@@ -122,6 +122,7 @@ export interface CmsSnapshot {
   media: MediaAsset[];
   events: CalendarEvent[];
   menu?: PublicMenuItem[];
+  displaySettings?: DisplaySettings;
 }
 
 export interface LanguageSourceItem {
@@ -129,4 +130,9 @@ export interface LanguageSourceItem {
   th: string;
   en: string;
   updatedAt?: string;
+}
+
+export interface DisplaySettings {
+  dateFormat: string;
+  timeMode: "24h" | "12h";
 }

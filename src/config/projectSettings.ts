@@ -24,6 +24,7 @@ interface ProjectSettings {
       menu: string;
       event: string;
       deleteEvent: string;
+      displaySettings: string;
       users: string;
       deleteUser: string;
       resetUsers: string;
@@ -41,6 +42,7 @@ interface ProjectSettings {
   storageKeys: {
     session: string;
     users: string;
+    displaySettings: string;
     publicLanguageSource: string;
   };
   auth: {

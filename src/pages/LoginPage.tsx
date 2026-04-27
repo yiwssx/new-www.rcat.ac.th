@@ -159,8 +159,8 @@ export default function LoginPage() {
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1.2 }}>
                       {isThai
-                        ? "กรุณารอสักครู่ ระบบกำลังเชื่อมต่อกับ CMS backend อย่างปลอดภัย"
-                        : "Please wait while we securely connect to the CMS backend."}
+                        ? "กรุณารอสักครู่ ระบบกำลังประมวลผลการเข้าสู่ระบบ"
+                        : "Please wait while we process your sign-in."}
                     </Typography>
                     <LinearProgress sx={{ height: 6, borderRadius: 99 }} />
                   </Box>

@@ -279,7 +279,7 @@ export default function UserManagementCard() {
             <Grid container spacing={1.5}>
               {usersQuery.isLoading && (
                 <Grid item xs={12}>
-                  <Typography color="text.secondary">Loading users from backend...</Typography>
+                  <Typography color="text.secondary">Processing user list...</Typography>
                 </Grid>
               )}
               {usersQuery.isError && (

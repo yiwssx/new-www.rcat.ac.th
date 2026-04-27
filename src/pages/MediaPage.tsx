@@ -32,10 +32,10 @@ import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
-import dayjs from "dayjs";
 import PageHeader from "../components/PageHeader";
 import { deleteMediaAsset, getCmsSnapshot, saveMediaAsset } from "../services/googleApi";
 import { MediaAsset, MediaType } from "../types";
+import { formatDisplayDate } from "../utils/dateDisplay";
 import { appSwal } from "../utils/swal";
 import { formatFileSize, readFileAsBase64 } from "../utils/files";
 
@@ -296,7 +296,7 @@ export default function MediaPage() {
       />
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "Unable to load media assets from Google Drive."}
+          {error instanceof Error ? error.message : "Unable to load media items right now."}
         </Alert>
       )}
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
@@ -378,7 +378,7 @@ export default function MediaPage() {
                     {asset.size || asset.mimeType || "Drive"}
                   </Typography>
                   <Typography color="text.secondary" variant="body2">
-                    {dayjs(asset.updatedAt).format("DD MMM")}
+                    {formatDisplayDate(asset.updatedAt)}
                   </Typography>
                 </Stack>
                 <Stack direction="row" spacing={0.5} justifyContent="flex-end" sx={{ mt: 2 }}>
@@ -431,7 +431,7 @@ export default function MediaPage() {
               <Stack spacing={1.5} sx={{ pt: 1 }}>
                 {formError && <Alert severity="error">{formError}</Alert>}
                 <Typography color="text.secondary">
-                  Confirm this media record before sending it to the Apps Script backend.
+                  Confirm this media item before saving.
                 </Typography>
                 <Typography fontWeight={900}>{form.name}</Typography>
                 <Typography color="text.secondary">

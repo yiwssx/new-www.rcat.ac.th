@@ -3,6 +3,7 @@ import {
   CalendarEvent,
   CmsSnapshot,
   ContentItem,
+  DisplaySettings,
   IntegrationStatus,
   LanguageSourceItem,
   MediaAsset,
@@ -233,7 +234,16 @@ export async function loginUserFromApi(email: string, password: string): Promise
 }
 
 export async function getCmsSnapshot(): Promise<CmsSnapshot> {
-  return googleFetch<CmsSnapshot>("snapshot");
+  const snapshot = await googleFetch<CmsSnapshot>("snapshot");
+
+  if (typeof window !== "undefined" && snapshot.displaySettings) {
+    window.localStorage.setItem(
+      projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings",
+      JSON.stringify(snapshot.displaySettings)
+    );
+  }
+
+  return snapshot;
 }
 
 export async function saveContentItem(item: ContentItem): Promise<ContentItem> {
@@ -283,6 +293,14 @@ export async function saveCalendarEvent(input: CalendarEventInput): Promise<Cale
 
 export async function deleteCalendarEvent(id: string): Promise<{ id: string; deleted: boolean }> {
   return postJson<{ id: string; deleted: boolean }>("deleteEvent", { id });
+}
+
+export async function getDisplaySettingsFromApi(): Promise<DisplaySettings> {
+  return googleFetch<DisplaySettings>("displaySettings");
+}
+
+export async function saveDisplaySettingsToApi(settings: Partial<DisplaySettings>): Promise<DisplaySettings> {
+  return postJson<DisplaySettings>("displaySettings", settings);
 }
 
 export async function getUserAccountsFromApi(): Promise<UserAccount[]> {

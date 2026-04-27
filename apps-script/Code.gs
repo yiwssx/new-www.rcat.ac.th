@@ -7,7 +7,7 @@ const EDITOR_WRITE_RESOURCES = [
   "event-delete",
   "publish",
   "menu",
-  "language-source"
+  "display-settings"
 ];
 
 const ADMIN_ONLY_RESOURCES = ["users", "users-delete", "users-reset"];
@@ -60,6 +60,10 @@ function routeRequest(event, method) {
       });
     }
 
+    if (method === "GET" && resource === "display-settings") {
+      return jsonResponse(getDisplaySettings());
+    }
+
     if (method === "GET" && resource === "content-detail") {
       return jsonResponse(
         getContentDetail(query, {
@@ -71,12 +75,6 @@ function routeRequest(event, method) {
     if (method === "GET" && resource === "users") {
       return jsonResponse({
         items: getUsers()
-      });
-    }
-
-    if (method === "GET" && resource === "language-source") {
-      return jsonResponse({
-        items: getLanguageSourceItems()
       });
     }
 
@@ -118,6 +116,10 @@ function routeRequest(event, method) {
       });
     }
 
+    if (method === "POST" && resource === "display-settings") {
+      return jsonResponse(updateDisplaySettings(payload));
+    }
+
     if (method === "POST" && resource === "users") {
       return jsonResponse(upsertUser(payload));
     }
@@ -129,12 +131,6 @@ function routeRequest(event, method) {
     if (method === "POST" && resource === "users-reset") {
       return jsonResponse({
         items: resetUsers()
-      });
-    }
-
-    if (method === "POST" && resource === "language-source") {
-      return jsonResponse({
-        items: replaceLanguageSource(payload.items || [])
       });
     }
 
@@ -167,11 +163,11 @@ function assertRouteAccess(method, resource, authContext) {
     return;
   }
 
-  if (method === "GET" && resource === "content-detail") {
+  if (method === "GET" && resource === "display-settings") {
     return;
   }
 
-  if (method === "GET" && resource === "language-source") {
+  if (method === "GET" && resource === "content-detail") {
     return;
   }
 
@@ -274,11 +270,9 @@ function setupCmsBackend() {
   ensureSheet(spreadsheet, SHEETS.events, EVENT_HEADERS);
   ensureSheet(spreadsheet, SHEETS.menu, MENU_HEADERS);
   ensureSheet(spreadsheet, SHEETS.users, USER_HEADERS);
-  ensureSheet(spreadsheet, SHEETS.language, LANGUAGE_HEADERS);
   const folders = ensureFolders();
   ensureSettingsSheet(spreadsheet);
   ensureDefaultUsersSheet(spreadsheet);
-  ensureDefaultLanguageSheet(spreadsheet);
 
   return {
     spreadsheetId: spreadsheet.getId(),
@@ -307,7 +301,8 @@ function getSnapshot(options) {
     content: visibleContent,
     media: visibleMedia,
     events: visibleEvents,
-    menu
+    menu,
+    displaySettings: getDisplaySettings()
   };
 }
 
@@ -1270,57 +1265,21 @@ function resetUsers() {
   return getUsers();
 }
 
-function ensureDefaultLanguageSheet(spreadsheet) {
-  ensureSheet(spreadsheet, SHEETS.language, LANGUAGE_HEADERS);
-}
-
-function getLanguageSourceItems() {
-  const spreadsheet = getSpreadsheet();
-  return readObjects(spreadsheet.getSheetByName(SHEETS.language), LANGUAGE_HEADERS)
-    .filter((item) => item.key)
-    .map((item) => ({
-      key: item.key,
-      th: item.th || "",
-      en: item.en || "",
-      updatedAt: item.updatedAt || ""
-    }))
-    .sort((left, right) => String(left.key).localeCompare(String(right.key)));
-}
-
-function replaceLanguageSource(items) {
-  const spreadsheet = getSpreadsheet();
-  const sheet = spreadsheet.getSheetByName(SHEETS.language);
-  const rows = [];
-
-  items.forEach((item) => {
-    validateRequired(item, ["key"]);
-    rows.push([item.key, item.th || "", item.en || "", new Date().toISOString()]);
-  });
-
-  sheet.clear();
-  sheet.getRange(1, 1, 1, LANGUAGE_HEADERS.length).setValues([LANGUAGE_HEADERS]);
-  sheet.setFrozenRows(1);
-
-  if (rows.length) {
-    sheet.getRange(2, 1, rows.length, LANGUAGE_HEADERS.length).setValues(rows);
-  }
-
-  return getLanguageSourceItems();
-}
-
 function flattenMenuItems(items, parentId, rows) {
   items.forEach((item, index) => {
     validateRequired(item, ["id", "href"]);
 
-    if (!item.label || !item.label.th || !item.label.en) {
-      throw new Error("Each menu item needs TH and EN labels.");
+    const menuLabel = item.label && (item.label.en || item.label.th);
+
+    if (!menuLabel) {
+      throw new Error("Each menu item needs a label.");
     }
 
     rows.push([
       item.id,
       parentId,
-      item.label.th,
-      item.label.en,
+      item.label.th || menuLabel,
+      item.label.en || menuLabel,
       item.href,
       index,
       item.enabled === false ? "FALSE" : "TRUE"
@@ -1400,6 +1359,14 @@ function ensureSettingsSheet(spreadsheet) {
     {
       key: SETTING_KEYS.authSessionHours,
       value: getSetting(SETTING_KEYS.authSessionHours)
+    },
+    {
+      key: SETTING_KEYS.dateDisplayFormat,
+      value: getSetting(SETTING_KEYS.dateDisplayFormat)
+    },
+    {
+      key: SETTING_KEYS.timeDisplayMode,
+      value: getSetting(SETTING_KEYS.timeDisplayMode)
     }
   ];
 
@@ -1417,6 +1384,51 @@ function upsertSetting(sheet, key, value) {
   }
 
   sheet.appendRow([key, value]);
+}
+
+function normalizeTimeDisplayMode(value) {
+  return value === "12h" ? "12h" : "24h";
+}
+
+function normalizeDateDisplayFormat(value) {
+  const normalized = String(value || "").trim();
+
+  if (!normalized) {
+    return DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.dateDisplayFormat];
+  }
+
+  if (normalized.length > 80 || /[^A-Za-z0-9 :/.,_\-\[\]\\]/.test(normalized)) {
+    return DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.dateDisplayFormat];
+  }
+
+  return normalized;
+}
+
+function getDisplaySettings() {
+  return {
+    dateFormat: normalizeDateDisplayFormat(
+      getSetting(SETTING_KEYS.dateDisplayFormat) || DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.dateDisplayFormat]
+    ),
+    timeMode: normalizeTimeDisplayMode(
+      getSetting(SETTING_KEYS.timeDisplayMode) || DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.timeDisplayMode]
+    )
+  };
+}
+
+function updateDisplaySettings(input) {
+  const settings = getDisplaySettings();
+  const dateFormat = normalizeDateDisplayFormat(
+    input && input.dateFormat !== undefined ? input.dateFormat : settings.dateFormat
+  );
+  const timeMode = normalizeTimeDisplayMode(
+    input && input.timeMode !== undefined ? input.timeMode : settings.timeMode
+  );
+
+  setSetting(SETTING_KEYS.dateDisplayFormat, dateFormat);
+  setSetting(SETTING_KEYS.timeDisplayMode, timeMode);
+  ensureSettingsSheet(getSpreadsheet());
+
+  return getDisplaySettings();
 }
 
 function ensureFolders() {

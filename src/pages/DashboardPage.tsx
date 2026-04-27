@@ -23,6 +23,7 @@ import MetricCard from "../components/MetricCard";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
 import { getCmsSnapshot, publishContent } from "../services/googleApi";
+import { formatDisplayDate, formatDisplayDateTime } from "../utils/dateDisplay";
 import { appSwal } from "../utils/swal";
 
 const metricIcons = [
@@ -50,10 +51,7 @@ export default function DashboardPage() {
     () => snapshot?.content.filter((item) => item.status !== "published") ?? [],
     [snapshot]
   );
-  const queue = useMemo(
-    () => pendingItems.slice(0, 4),
-    [pendingItems]
-  );
+  const queue = useMemo(() => pendingItems.slice(0, 4), [pendingItems]);
   const events = snapshot?.events.filter((event) => event.status !== "cancelled").slice(0, 3) ?? [];
 
   async function handlePublishQueue() {
@@ -122,7 +120,7 @@ export default function DashboardPage() {
       />
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "Unable to load the Google Apps Script snapshot."}
+          {error instanceof Error ? error.message : "Unable to load dashboard data right now."}
         </Alert>
       )}
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
@@ -158,7 +156,7 @@ export default function DashboardPage() {
                     <Box>
                       <Typography fontWeight={800}>{item.title}</Typography>
                       <Typography color="text.secondary" variant="body2">
-                        {item.owner} · {dayjs(item.publishAt).format("DD MMM YYYY")}
+                        {item.owner} | {formatDisplayDate(item.publishAt)}
                       </Typography>
                     </Box>
                     <StatusChip status={item.status} />
@@ -198,7 +196,7 @@ export default function DashboardPage() {
                     <Box>
                       <Typography fontWeight={800}>{event.title}</Typography>
                       <Typography color="text.secondary" variant="body2">
-                        {event.audience} · {dayjs(event.date).format("MMM YYYY, HH:mm")}
+                        {event.audience} | {formatDisplayDateTime(event.date)}
                       </Typography>
                     </Box>
                   </Stack>

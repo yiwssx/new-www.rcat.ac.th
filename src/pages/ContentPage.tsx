@@ -34,7 +34,6 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import dayjs from "dayjs";
 import ContentEditorDialog from "../components/ContentEditorDialog";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
@@ -48,6 +47,7 @@ import {
   type MediaAssetInput
 } from "../services/googleApi";
 import { ContentItem, ContentStatus } from "../types";
+import { formatDisplayDate } from "../utils/dateDisplay";
 import { appSwal } from "../utils/swal";
 
 const columnHelper = createColumnHelper<ContentItem>();
@@ -235,7 +235,7 @@ export default function ContentPage() {
       }),
       columnHelper.accessor("updatedAt", {
         header: "Updated",
-        cell: (info) => dayjs(info.getValue()).format("DD MMM YYYY")
+        cell: (info) => formatDisplayDate(info.getValue())
       }),
       columnHelper.display({
         id: "actions",
@@ -364,7 +364,7 @@ export default function ContentPage() {
       />
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "Unable to load CMS content from Google Apps Script."}
+          {error instanceof Error ? error.message : "Unable to load content right now."}
         </Alert>
       )}
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
