@@ -34,14 +34,12 @@ import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import dayjs from "dayjs";
-import LanguageSwitch from "../components/LanguageSwitch";
 import PublicMainMenu from "../components/PublicMainMenu";
 import { getCmsSiteName, projectSettings } from "../config/projectSettings";
-import { Language, useLanguage } from "../context/LanguageContext";
+import { useLanguage } from "../context/LanguageContext";
 import { loadPublicLanguageSource } from "../services/languageSource";
 import { getCmsSnapshot } from "../services/googleApi";
 import { formatDisplayDate, formatDisplayDateTime } from "../utils/dateDisplay";
-import { appSwal } from "../utils/swal";
 
 interface SectionHeadingProps {
   label: string;
@@ -366,7 +364,7 @@ function SectionHeading({ label, title, description }: SectionHeadingProps) {
 }
 
 export default function PublicHomePage() {
-  const { language, setLanguage } = useLanguage();
+  const { language } = useLanguage();
   const { data: languageSource = defaultPublicLanguageSource } = useQuery({
     queryKey: ["public-language-source"],
     queryFn: async () => loadPublicLanguageSource(defaultPublicLanguageSource)
@@ -426,19 +424,6 @@ export default function PublicHomePage() {
     [publicContent]
   );
 
-  async function handleLanguageChange(nextLanguage: Language) {
-    setLanguage(nextLanguage);
-    await appSwal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: languageSource[nextLanguage].languageToast,
-      showConfirmButton: false,
-      timer: 1400,
-      timerProgressBar: true
-    });
-  }
-
   return (
     <Box id="top" sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <Box
@@ -475,11 +460,6 @@ export default function PublicHomePage() {
               <Typography variant="body2" sx={{ opacity: 0.88 }}>
                 {copy.portal}
               </Typography>
-              <LanguageSwitch
-                value={language}
-                onChange={(nextLanguage) => void handleLanguageChange(nextLanguage)}
-                color="light"
-              />
               {socialLinks.map((item) => (
                 <IconButton
                   key={item.label}

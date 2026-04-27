@@ -1,51 +1,17 @@
-import {
-  ReactNode,
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState
-} from "react";
+import { ReactNode, createContext, useContext } from "react";
 
 export type Language = "th" | "en";
-
-const storageKey = "rcat.website.language";
+const fixedLanguage: Language = "th";
 
 interface LanguageContextValue {
   language: Language;
-  setLanguage: (language: Language) => void;
-  toggleLanguage: () => void;
 }
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
-
-function getStoredLanguage(): Language {
-  const storedLanguage = window.localStorage.getItem(storageKey);
-  return storedLanguage === "th" || storedLanguage === "en" ? storedLanguage : "th";
-}
+const languageContextValue: LanguageContextValue = { language: fixedLanguage };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setCurrentLanguage] = useState<Language>(getStoredLanguage);
-
-  const setLanguage = useCallback((nextLanguage: Language) => {
-    window.localStorage.setItem(storageKey, nextLanguage);
-    setCurrentLanguage(nextLanguage);
-  }, []);
-
-  const toggleLanguage = useCallback(() => {
-    setLanguage(language === "th" ? "en" : "th");
-  }, [language, setLanguage]);
-
-  const value = useMemo(
-    () => ({
-      language,
-      setLanguage,
-      toggleLanguage
-    }),
-    [language, setLanguage, toggleLanguage]
-  );
-
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+  return <LanguageContext.Provider value={languageContextValue}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {
