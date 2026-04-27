@@ -27,10 +27,9 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import LanguageSwitch from "../components/LanguageSwitch";
 import { getCmsSiteName, projectSettings } from "../config/projectSettings";
 import { useAuth } from "../context/AuthContext";
-import { Language, useLanguage } from "../context/LanguageContext";
+import { useLanguage } from "../context/LanguageContext";
 import { appSwal } from "../utils/swal";
 
 const drawerWidth = 280;
@@ -97,26 +96,13 @@ export default function CmsShell() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { session, logout } = useAuth();
-  const { language, setLanguage } = useLanguage();
+  const { language } = useLanguage();
   const isThai = language === "th";
   const visibleNavItems = navItems.filter((item) => !item.adminOnly || session?.user.role === "admin");
 
   function handleNavigate(to: NavItem["to"]) {
     void navigate({ to });
     setMobileOpen(false);
-  }
-
-  async function handleLanguageChange(nextLanguage: Language) {
-    setLanguage(nextLanguage);
-    await appSwal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: nextLanguage === "th" ? "เปลี่ยนภาษาเป็น TH แล้ว" : "Language changed to EN",
-      showConfirmButton: false,
-      timer: 1400,
-      timerProgressBar: true
-    });
   }
 
   async function handleLogout() {
@@ -245,7 +231,6 @@ export default function CmsShell() {
             {isThai ? "ระบบจัดการเว็บไซต์" : "Website CMS"}
           </Typography>
           <Box sx={{ flex: 1 }} />
-          <LanguageSwitch value={language} onChange={(nextLanguage) => void handleLanguageChange(nextLanguage)} />
         </Toolbar>
       </AppBar>
       <Box component="nav" sx={{ width: { lg: drawerWidth }, flexShrink: { lg: 0 } }}>

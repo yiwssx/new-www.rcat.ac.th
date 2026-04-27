@@ -14,16 +14,15 @@ import {
 } from "@mui/material";
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import LanguageSwitch from "../components/LanguageSwitch";
 import { getCmsSiteName, projectSettings } from "../config/projectSettings";
 import { useAuth } from "../context/AuthContext";
-import { Language, useLanguage } from "../context/LanguageContext";
+import { useLanguage } from "../context/LanguageContext";
 import { appSwal } from "../utils/swal";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { language, setLanguage } = useLanguage();
+  const { language } = useLanguage();
   const isThai = language === "th";
   const [email, setEmail] = useState(projectSettings.auth.loginPrefill.email);
   const [password, setPassword] = useState(projectSettings.auth.loginPrefill.password);
@@ -59,19 +58,6 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false);
     }
-  }
-
-  async function handleLanguageChange(nextLanguage: Language) {
-    setLanguage(nextLanguage);
-    await appSwal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: nextLanguage === "th" ? "เปลี่ยนภาษาเป็น TH แล้ว" : "Language changed to EN",
-      showConfirmButton: false,
-      timer: 1400,
-      timerProgressBar: true
-    });
   }
 
   return (
@@ -113,8 +99,6 @@ export default function LoginPage() {
                     {isThai ? "ระบบจัดการเนื้อหา" : "Content management"}
                   </Typography>
                 </Box>
-                <Box sx={{ flex: 1 }} />
-                <LanguageSwitch value={language} onChange={(nextLanguage) => void handleLanguageChange(nextLanguage)} />
               </Stack>
               {error && <Alert severity="error">{error}</Alert>}
               <Stack component="form" spacing={2.25} onSubmit={handleSubmit}>
