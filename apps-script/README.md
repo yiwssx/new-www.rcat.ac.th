@@ -9,7 +9,6 @@ This folder contains the zero-cost backend for the React CMS. It exposes a web a
 - `GET ?resource=menu` returns the public website menu tree.
 - `GET ?resource=content-detail&id=...` or `&slug=...` returns full content body from Google Docs.
 - `GET ?resource=users` returns CMS user accounts (without password hashes) for authenticated admins.
-- `GET ?resource=language-source` returns TH/EN language compare-table rows.
 - `POST ?resource=auth-login` authenticates a CMS user and returns a signed session token.
 - `POST ?resource=content` creates or updates one content item.
 - `POST ?resource=content-delete` deletes one content item.
@@ -22,7 +21,6 @@ This folder contains the zero-cost backend for the React CMS. It exposes a web a
 - `POST ?resource=users` creates or updates one CMS user account.
 - `POST ?resource=users-delete` deletes one CMS user account.
 - `POST ?resource=users-reset` restores the default admin user account.
-- `POST ?resource=language-source` replaces all language compare-table rows.
 
 The data source is a Google Sheet with these tabs:
 
@@ -31,7 +29,6 @@ The data source is a Google Sheet with these tabs:
 - `Events`
 - `Menu`
 - `Users`
-- `LanguageSource`
 - `Settings`
 
 Backend configuration is now property-driven. Runtime settings are read from Apps Script

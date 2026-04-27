@@ -22,8 +22,7 @@ vi.mock("../../config/projectSettings", () => ({
         displaySettings: "display-settings",
         users: "users",
         deleteUser: "users-delete",
-        resetUsers: "users-reset",
-        languageSource: "language-source"
+        resetUsers: "users-reset"
       }
     }
   }

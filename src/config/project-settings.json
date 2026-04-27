@@ -1,6 +1,6 @@
 {
   "site": {
-    "name": "RCAT CMS",
+    "name": "RCAT Public Website",
     "publicSiteUrl": "https://preview-placeholder.example.invalid",
     "logoPath": "/rcat-logo.png",
     "logoAlt": "RCAT"
@@ -24,8 +24,7 @@
       "displaySettings": "display-settings",
       "users": "users",
       "deleteUser": "users-delete",
-      "resetUsers": "users-reset",
-      "languageSource": "language-source"
+      "resetUsers": "users-reset"
     }
   },
   "query": {
@@ -39,8 +38,7 @@
   "storageKeys": {
     "session": "rcat.cms.session",
     "users": "rcat.cms.user.accounts",
-    "displaySettings": "rcat.cms.display.settings",
-    "publicLanguageSource": "rcat.public.language.source"
+    "displaySettings": "rcat.cms.display.settings"
   },
   "auth": {
     "sessionHours": 8,

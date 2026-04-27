@@ -59,7 +59,7 @@ function cloneMenu(items: PublicMenuItem[]) {
 
 function toFormState(item: PublicMenuItem): MenuFormState {
   return {
-    label: item.label.en || item.label.th,
+    label: item.label,
     href: item.href,
     enabled: item.enabled
   };
@@ -179,10 +179,7 @@ function createMenuItem(form: MenuFormState): PublicMenuItem {
 
   return {
     id: `menu-${crypto.randomUUID()}`,
-    label: {
-      th: label,
-      en: label
-    },
+    label,
     href: normalizeMenuHref(form.href),
     enabled: form.enabled
   };
@@ -220,7 +217,7 @@ function MenuTree({ items, depth = 0, onAddChild, onEdit, onRemove, onMove }: Me
               <Stack direction="row" spacing={1.2} alignItems="flex-start" sx={{ minWidth: 0 }}>
                 {depth > 0 && <SubdirectoryArrowRightRoundedIcon color="disabled" sx={{ mt: 0.2 }} />}
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography fontWeight={900}>{item.label.en || item.label.th}</Typography>
+                  <Typography fontWeight={900}>{item.label}</Typography>
                   <Typography color="text.secondary" variant="body2">
                     {item.href}
                   </Typography>
@@ -340,10 +337,7 @@ export default function MenuPage() {
       setItems((current) =>
         updateMenuItem(current, editingItem.id, (item) => ({
           ...item,
-          label: {
-            th: form.label.trim(),
-            en: form.label.trim()
-          },
+          label: form.label.trim(),
           href: normalizedHref,
           enabled: form.enabled
         }))
@@ -367,7 +361,7 @@ export default function MenuPage() {
     const item = findMenuItem(items, id);
     const result = await appSwal.fire({
       title: "Remove menu item?",
-      text: item?.label.en || item?.label.th || id,
+      text: item?.label || id,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Remove",

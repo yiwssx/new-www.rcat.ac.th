@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -13,9 +12,18 @@ import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import PublicMainMenu from "./PublicMainMenu";
 import { getCmsSiteName, projectSettings } from "../config/projectSettings";
-import { useLanguage } from "../context/LanguageContext";
-import { defaultPublicLanguageSource } from "../pages/PublicHomePage";
-import { loadPublicLanguageSource } from "../services/languageSource";
+
+const publicShellCopy = {
+  campus: "RCAT College Information Center",
+  portal: "Public relations",
+  eyebrow: "Royal College of Applied Technology",
+  siteName: "RCAT Public Website",
+  staffLogin: "Staff login",
+  footerTitle: "RCAT Public Website",
+  footerDescription:
+    "Public information for admissions, activities, official documents, and academic services.",
+  home: "Home"
+};
 
 interface PublicSiteShellProps {
   title: string;
@@ -24,12 +32,7 @@ interface PublicSiteShellProps {
 }
 
 export default function PublicSiteShell({ title, description, children }: PublicSiteShellProps) {
-  const { language } = useLanguage();
-  const { data: languageSource = defaultPublicLanguageSource } = useQuery({
-    queryKey: ["public-language-source"],
-    queryFn: async () => loadPublicLanguageSource(defaultPublicLanguageSource)
-  });
-  const copy = languageSource[language];
+  const copy = publicShellCopy;
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }} className="min-h-screen bg-rcat-soft-bg">
@@ -157,7 +160,7 @@ export default function PublicSiteShell({ title, description, children }: Public
               </Typography>
             </Box>
             <Button color="inherit" href="/">
-              {copy.nav[0]}
+              {copy.home}
             </Button>
           </Stack>
         </Container>

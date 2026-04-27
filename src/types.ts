@@ -80,14 +80,9 @@ export interface CalendarEvent {
   updatedAt?: string;
 }
 
-export interface PublicMenuLabel {
-  th: string;
-  en: string;
-}
-
 export interface PublicMenuItem {
   id: string;
-  label: PublicMenuLabel;
+  label: string;
   href: string;
   enabled: boolean;
   children?: PublicMenuItem[];
@@ -123,13 +118,6 @@ export interface CmsSnapshot {
   events: CalendarEvent[];
   menu?: PublicMenuItem[];
   displaySettings?: DisplaySettings;
-}
-
-export interface LanguageSourceItem {
-  key: string;
-  th: string;
-  en: string;
-  updatedAt?: string;
 }
 
 export interface DisplaySettings {

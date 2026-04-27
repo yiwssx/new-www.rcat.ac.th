@@ -810,10 +810,7 @@ function getMenu() {
     .forEach((row) => {
       itemMap[row.id] = {
         id: row.id,
-        label: {
-          th: row.labelTh || "",
-          en: row.labelEn || ""
-        },
+        label: row.labelEn || row.labelTh || "",
         href: row.href || "/",
         enabled: row.enabled === true || row.enabled === "TRUE" || row.enabled === "true",
         children: []
@@ -1269,7 +1266,9 @@ function flattenMenuItems(items, parentId, rows) {
   items.forEach((item, index) => {
     validateRequired(item, ["id", "href"]);
 
-    const menuLabel = item.label && (item.label.en || item.label.th);
+    const menuLabel = typeof item.label === "string"
+      ? item.label.trim()
+      : item.label && (item.label.en || item.label.th);
 
     if (!menuLabel) {
       throw new Error("Each menu item needs a label.");
@@ -1278,8 +1277,8 @@ function flattenMenuItems(items, parentId, rows) {
     rows.push([
       item.id,
       parentId,
-      item.label.th || menuLabel,
-      item.label.en || menuLabel,
+      menuLabel,
+      menuLabel,
       item.href,
       index,
       item.enabled === false ? "FALSE" : "TRUE"

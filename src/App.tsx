@@ -3,7 +3,6 @@ import { RouterProvider } from "@tanstack/react-router";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { Provider as ReduxProvider } from "react-redux";
 import { AuthProvider } from "./context/AuthContext";
-import { LanguageProvider } from "./context/LanguageContext";
 import { projectSettings } from "./config/projectSettings";
 import { router } from "./routes";
 import { store } from "./store/store";
@@ -27,12 +26,10 @@ export default function App() {
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <LanguageProvider>
             <ThemeProvider theme={theme}>
               <CssBaseline />
               <RouterProvider router={router} />
             </ThemeProvider>
-          </LanguageProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ReduxProvider>

@@ -5,7 +5,6 @@ import {
   ContentItem,
   DisplaySettings,
   IntegrationStatus,
-  LanguageSourceItem,
   MediaAsset,
   MediaType,
   PublicMenuItem,
@@ -318,16 +317,6 @@ export async function deleteUserAccountFromApi(id: string): Promise<{ id: string
 
 export async function resetUserAccountsFromApi(): Promise<UserAccount[]> {
   const response = await postJson<{ items: UserAccount[] }>("resetUsers", {});
-  return response.items;
-}
-
-export async function getLanguageSourceItemsFromApi(): Promise<LanguageSourceItem[]> {
-  const response = await googleFetch<{ items: LanguageSourceItem[] }>("languageSource");
-  return response.items;
-}
-
-export async function saveLanguageSourceItemsToApi(items: LanguageSourceItem[]): Promise<LanguageSourceItem[]> {
-  const response = await postJson<{ items: LanguageSourceItem[] }>("languageSource", { items });
   return response.items;
 }
 

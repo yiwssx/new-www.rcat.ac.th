@@ -29,7 +29,6 @@ import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { getCmsSiteName, projectSettings } from "../config/projectSettings";
 import { useAuth } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
 import { appSwal } from "../utils/swal";
 
 const drawerWidth = 280;
@@ -96,8 +95,6 @@ export default function CmsShell() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { session, logout } = useAuth();
-  const { language } = useLanguage();
-  const isThai = language === "th";
   const visibleNavItems = navItems.filter((item) => !item.adminOnly || session?.user.role === "admin");
 
   function handleNavigate(to: NavItem["to"]) {
@@ -107,12 +104,12 @@ export default function CmsShell() {
 
   async function handleLogout() {
     const result = await appSwal.fire({
-      title: isThai ? "ออกจากระบบ?" : "Sign out?",
-      text: isThai ? "คุณต้องการออกจากระบบ CMS หรือไม่" : "Do you want to sign out of the CMS?",
+      title: "Sign out?",
+      text: "Do you want to sign out of the CMS?",
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: isThai ? "ออกจากระบบ" : "Sign out",
-      cancelButtonText: isThai ? "ยกเลิก" : "Cancel"
+      confirmButtonText: "Sign out",
+      cancelButtonText: "Cancel"
     });
 
     if (!result.isConfirmed) {
@@ -137,7 +134,7 @@ export default function CmsShell() {
             {getCmsSiteName()}
           </Typography>
           <Typography color="text.secondary" variant="body2">
-            {isThai ? "เว็บไซต์การศึกษา" : "Education website"}
+            {"Education website"}
           </Typography>
         </Box>
       </Stack>
@@ -164,17 +161,15 @@ export default function CmsShell() {
               <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>{item.icon}</ListItemIcon>
               <ListItemText
                 primary={
-                  isThai
-                    ? {
-                        Dashboard: "แดชบอร์ด",
-                        Content: "เนื้อหา",
-                        Media: "สื่อ",
-                        Calendar: "ปฏิทิน",
+                     {
+                        Dashboard: "Dashboard",
+                        Content: "Content",
+                        Media: "Media",
+                        Calendar: "Calendar",
                         Menus: "Menus",
                         "Google APIs": "Google APIs",
-                        Settings: "ตั้งค่า"
-                      }[item.label]
-                    : item.label
+                        Settings: "Settings"
+                      }[item.label] 
                 }
               />
             </ListItemButton>
@@ -195,8 +190,8 @@ export default function CmsShell() {
             {session?.user.email}
           </Typography>
         </Box>
-        <Tooltip title={isThai ? "ออกจากระบบ" : "Sign out"}>
-          <IconButton aria-label={isThai ? "ออกจากระบบ" : "Sign out"} onClick={() => void handleLogout()}>
+        <Tooltip title="Sign out">
+          <IconButton aria-label="Sign out" onClick={() => void handleLogout()}>
             <LogoutOutlinedIcon />
           </IconButton>
         </Tooltip>
@@ -228,7 +223,7 @@ export default function CmsShell() {
             </IconButton>
           )}
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            {isThai ? "ระบบจัดการเว็บไซต์" : "Website CMS"}
+            {"Website CMS"}
           </Typography>
           <Box sx={{ flex: 1 }} />
         </Toolbar>

@@ -28,7 +28,6 @@ interface ProjectSettings {
       users: string;
       deleteUser: string;
       resetUsers: string;
-      languageSource: string;
     };
   };
   query: {
@@ -43,7 +42,6 @@ interface ProjectSettings {
     session: string;
     users: string;
     displaySettings: string;
-    publicLanguageSource: string;
   };
   auth: {
     sessionHours: number;
