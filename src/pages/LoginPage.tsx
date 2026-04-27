@@ -16,14 +16,11 @@ import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import { getCmsSiteName, projectSettings } from "../config/projectSettings";
 import { useAuth } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
 import { appSwal } from "../utils/swal";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { language } = useLanguage();
-  const isThai = language === "th";
   const [email, setEmail] = useState(projectSettings.auth.loginPrefill.email);
   const [password, setPassword] = useState(projectSettings.auth.loginPrefill.password);
   const [error, setError] = useState("");
@@ -40,7 +37,7 @@ export default function LoginPage() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: isThai ? "เข้าสู่ระบบสำเร็จ" : "Signed in successfully",
+        title: "Signed in successfully",
         showConfirmButton: false,
         timer: 1200,
         timerProgressBar: true
@@ -51,9 +48,9 @@ export default function LoginPage() {
       setError(nextError);
       await appSwal.fire({
         icon: "error",
-        title: isThai ? "เข้าสู่ระบบไม่สำเร็จ" : "Unable to sign in",
+        title: "Unable to sign in",
         text: nextError,
-        confirmButtonText: isThai ? "ตกลง" : "OK"
+        confirmButtonText: "OK"
       });
     } finally {
       setSubmitting(false);
@@ -96,14 +93,14 @@ export default function LoginPage() {
                     {getCmsSiteName()}
                   </Typography>
                   <Typography color="text.secondary">
-                    {isThai ? "ระบบจัดการเนื้อหา" : "Content management"}
+                    {"Content management"}
                   </Typography>
                 </Box>
               </Stack>
               {error && <Alert severity="error">{error}</Alert>}
               <Stack component="form" spacing={2.25} onSubmit={handleSubmit}>
                 <TextField
-                  label={isThai ? "อีเมล" : "Email"}
+                  label="Email"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -112,7 +109,7 @@ export default function LoginPage() {
                   fullWidth
                 />
                 <TextField
-                  label={isThai ? "รหัสผ่าน" : "Password"}
+                  label="Password"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -127,7 +124,7 @@ export default function LoginPage() {
                   disabled={submitting}
                   startIcon={<LoginOutlinedIcon />}
                 >
-                  {submitting ? (isThai ? "กำลังเข้าสู่ระบบ" : "Signing in") : isThai ? "เข้าสู่ระบบ" : "Sign in"}
+                  {submitting ? "Signing in" : "Sign in"}
                 </Button>
                 {submitting && (
                   <Box
@@ -139,12 +136,10 @@ export default function LoginPage() {
                     }}
                   >
                     <Typography variant="body2" fontWeight={700} sx={{ mb: 1 }}>
-                      {isThai ? "กำลังยืนยันตัวตน..." : "Authenticating your account..."}
+                      {"Authenticating your account..."}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1.2 }}>
-                      {isThai
-                        ? "กรุณารอสักครู่ ระบบกำลังประมวลผลการเข้าสู่ระบบ"
-                        : "Please wait while we process your sign-in."}
+                      {"Please wait while we process your sign-in."}
                     </Typography>
                     <LinearProgress sx={{ height: 6, borderRadius: 99 }} />
                   </Box>

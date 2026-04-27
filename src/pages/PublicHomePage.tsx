@@ -36,8 +36,6 @@ import YouTubeIcon from "@mui/icons-material/YouTube";
 import dayjs from "dayjs";
 import PublicMainMenu from "../components/PublicMainMenu";
 import { getCmsSiteName, projectSettings } from "../config/projectSettings";
-import { useLanguage } from "../context/LanguageContext";
-import { loadPublicLanguageSource } from "../services/languageSource";
 import { getCmsSnapshot } from "../services/googleApi";
 import { formatDisplayDate, formatDisplayDateTime } from "../utils/dateDisplay";
 
@@ -207,139 +205,79 @@ const socialLinks: SocialLink[] = [
   }
 ];
 
-export const defaultPublicLanguageSource = {
-  th: {
-    campus: "ศูนย์ข้อมูลวิทยาลัย RCAT",
-    portal: "ประชาสัมพันธ์",
-    eyebrow: "Royal College of Applied Technology",
-    siteName: "เว็บไซต์การศึกษา RCAT",
-    intro:
-      "ข้อมูลประชาสัมพันธ์ การรับสมัคร หลักสูตร กิจกรรม ประกาศ และการสื่อสารของวิทยาลัยจากระบบ RCAT CMS",
-    admissionChip: "เปิดรับสมัคร 2569",
-    announcementsButton: "ดูประกาศ",
-    staffLogin: "เข้าสู่ระบบเจ้าหน้าที่",
-    nav: ["หน้าแรก", "ภาพรวม", "แผนกวิชา", "ข่าว", "ประกาศ", "ติดต่อ"],
-    heroChip: "รับสมัคร บริการนักศึกษา และข่าววิทยาลัย",
-    heroTitle: "ข้อมูลวิทยาลัยในรูปแบบเว็บไซต์สถานศึกษา",
-    heroDescription:
-      "ติดตามการรับสมัคร แผนกวิชา ประกาศ เอกสารราชการ และกิจกรรมของวิทยาลัยในหน้าเดียว",
-    latestActivities: "กิจกรรมล่าสุด",
-    publicDocuments: "เอกสารเผยแพร่",
-    featuredNotice: "ข่าวเด่น",
-    academicCalendar: "ปฏิทินวิชาการ",
-    calendarDescription: "วันสำคัญและกิจกรรมใกล้ถึงของวิทยาลัย",
-    overviewLabel: "ภาพรวมวิทยาลัย",
-    overviewTitle: "หน้าหลักสำหรับข่าว สารสนเทศ และบริการนักศึกษา",
-    overviewDescription:
-      "โครงสร้างหน้าเว็บออกแบบให้เหมาะกับสถานศึกษา อ่านง่าย และเชื่อมต่อข้อมูลจาก CMS",
-    directorTitle: "สำนักงานผู้อำนวยการวิทยาลัย",
-    directorDescription:
-      "พื้นที่นำเสนอสารจากผู้บริหาร ข่าวประชาสัมพันธ์ และทิศทางการพัฒนาสถาบัน",
-    departmentsLabel: "แผนกวิชา",
-    departmentsTitle: "สาขาการเรียนรู้และเส้นทางพัฒนาผู้เรียน",
-    departmentsDescription:
-      "นำเสนอหลักสูตรและบริการของวิทยาลัยในรูปแบบชัดเจนสำหรับผู้เรียนและผู้ปกครอง",
-    prideLabel: "จุดเด่นวิทยาลัย",
-    prideTitle: "ผลงาน ความร่วมมือ และบริการสำคัญ",
-    prideDescription: "สรุปความโดดเด่นของวิทยาลัยในรูปแบบข้อมูลประชาสัมพันธ์",
-    newsLabel: "ข่าวและกิจกรรม",
-    newsTitle: "ข่าวล่าสุด กิจกรรม และเรื่องเด่น",
-    newsDescription: "พื้นที่ข่าวสารของวิทยาลัยพร้อมเรื่องเด่นและรายการอัปเดตแบบกระชับ",
-    posted: "เผยแพร่",
-    announcements: "ประกาศ",
-    documents: "เอกสารราชการ",
-    services: "บริการนักศึกษา",
-    contact: "ติดต่อและติดตาม",
-    contactAddress: "สำนักงานประชาสัมพันธ์และศูนย์รับสมัคร วิทยาลัย RCAT",
-    telephone: "โทรศัพท์",
-    email: "อีเมล",
-    footerTitle: "RCAT Public Website",
-    footerDescription:
-      "เว็บไซต์ประชาสัมพันธ์สำหรับการรับสมัคร กิจกรรม เอกสารราชการ และบริการวิชาการของวิทยาลัย",
-    backToTop: "กลับด้านบน",
-    languageToast: "เปลี่ยนภาษาเป็น TH แล้ว",
-    programs: [
-      ["เทคโนโลยีวิศวกรรม", "ระบบอัตโนมัติ หุ่นยนต์ อิเล็กทรอนิกส์ และโครงงานประยุกต์"],
-      ["ธุรกิจดิจิทัล", "การตลาด ผู้ประกอบการ การวิเคราะห์ข้อมูล และระบบธุรกิจ"],
-      ["พัฒนาผู้เรียน", "กิจกรรม แฟ้มสะสมงาน แนะแนว และการเตรียมอาชีพ"]
-    ],
-    quickLinks: [
-      ["รับสมัคร", "ช่วงสมัคร คุณสมบัติ และเอกสารที่ต้องใช้"],
-      ["หลักสูตร", "เส้นทางเทคนิค ธุรกิจ และการพัฒนาผู้เรียน"],
-      ["ปฏิทินวิชาการ", "ภาคเรียน วันสำคัญ และช่วงกิจกรรมของวิทยาลัย"],
-      ["เอกสารราชการ", "รายงาน แผนงาน ประกาศ และลิงก์ ITA"]
-    ],
-    highlights: [
-      ["18", "ผลงานนวัตกรรม", "ทีมนักเรียนนำเสนอโครงงานเทคโนโลยีประยุกต์ทุกปี"],
-      ["12", "ความร่วมมือภาคอุตสาหกรรม", "พันธมิตรสนับสนุนการเรียนรู้และฝึกประสบการณ์"],
-      ["24/7", "บริการดูแลผู้เรียน", "แนะแนว ให้คำปรึกษา และเตรียมแฟ้มสะสมงานตลอดปี"]
-    ],
-    documentsList: [
-      ["ปฏิทินวิชาการ 2569", "ปฏิทิน"],
-      ["แผนปฏิบัติการประจำปี", "แผนงาน"],
-      ["รายงานประเมินตนเอง", "คุณภาพ"],
-      ["ITA และความโปร่งใส", "เผยแพร่"]
-    ]
-  },
-  en: {
+const publicCopy = {
     campus: "RCAT Campus Information Center",
     portal: "Public relations portal",
     eyebrow: "Royal College of Applied Technology",
-    siteName: "RCAT Education Website",
+    siteName: "RCAT Public Website",
     intro:
-      "Public information, admissions, programs, activities, official notices, and campus communication connected to the RCAT CMS.",
-    admissionChip: "Open admissions 2026",
+      "Explore admissions, academic departments, official announcements, public documents, and campus activities from the RCAT CMS.",
+    admissionChip: "Admissions 2026",
     announcementsButton: "View announcements",
     staffLogin: "Staff login",
     nav: ["Home", "Overview", "Departments", "News", "Announcements", "Contact"],
     heroChip: "Admissions, services, and college updates",
     heroTitle: "College information in a formal school-site layout.",
     heroDescription:
-      "Explore admissions, academic departments, official announcements, public documents, and campus activities from a front page patterned after a Thai college website.",
+      "Explore admissions, academic departments, official announcements, public documents, and campus activities from one page.",
     latestActivities: "Latest activities",
     publicDocuments: "Public documents",
-    featuredNotice: "Featured Notice",
-    academicCalendar: "Academic Calendar",
-    calendarDescription: "Upcoming college dates and public activities.",
-    overviewLabel: "College Overview",
-    overviewTitle: "A public homepage for updates, information, and student services.",
+    featuredNotice: "Featured notice",
+    academicCalendar: "Academic calendar",
+    calendarDescription: "Important dates and upcoming college activities",
+    overviewLabel: "College overview",
+    overviewTitle: "A front page for news, information, and student services",
     overviewDescription:
-      "The page structure is tuned for an education website: readable, formal, and connected to CMS content.",
-    directorTitle: "Office of the College Director",
+      "The public website is structured for school communication, readable scanning, and CMS-backed content.",
+    directorTitle: "College director office",
     directorDescription:
-      "Leadership, public communication, and institutional development updates are framed here.",
-    departmentsLabel: "Academic Departments",
-    departmentsTitle: "Featured learning areas and development pathways.",
+      "A dedicated area for leadership messages, public updates, and institutional direction.",
+    departmentsLabel: "Departments",
+    departmentsTitle: "Learning programs and student pathways",
     departmentsDescription:
-      "Programs are displayed as formal department-style cards for students and families.",
-    prideLabel: "Campus Pride",
-    prideTitle: "Highlights, partnerships, and core services.",
-    prideDescription: "A concise public-information view of the college strengths.",
-    newsLabel: "News and Activities",
-    newsTitle: "Latest public updates, activities, and featured stories.",
-    newsDescription: "A college news board with a featured post and compact secondary updates.",
+      "Programs and services are presented clearly for students and families.",
+    prideLabel: "College highlights",
+    prideTitle: "Projects, partnerships, and key services",
+    prideDescription: "A concise public summary of RCAT strengths and support services.",
+    newsLabel: "News and activities",
+    newsTitle: "Latest news, activities, and featured updates",
+    newsDescription: "A public news area with featured stories and concise updates.",
     posted: "Posted",
     announcements: "Announcements",
-    documents: "Official Documents",
-    services: "Student Services",
-    contact: "Contact and Follow",
-    contactAddress: "RCAT campus public relations office and admissions center",
+    documents: "Official documents",
+    services: "Student services",
+    contact: "Contact and follow",
+    contactAddress: "Public relations and admissions office, RCAT",
     telephone: "Telephone",
     email: "Email",
     footerTitle: "RCAT Public Website",
     footerDescription:
       "Structured public communication for admissions, activities, official documents, and academic services.",
     backToTop: "Back to top",
-    languageToast: "Language changed to EN",
-    programs: programs.map((item) => [item.title, item.description]),
-    quickLinks: quickLinks.map((item) => [item.title, item.description]),
-    highlights: prideHighlights.map((item) => [item.value, item.title, item.description]),
-    documentsList: documentLinks.map((item) => [item.title, item.category])
-  }
-};
-
-export type PublicLanguageSource = typeof defaultPublicLanguageSource;
-
+    languageToast: "Language fixed",
+    programs: [
+      ["Engineering Technology", "Automation, robotics, electronics, and applied engineering projects."],
+      ["Digital Business", "Marketing, entrepreneurship, analytics, and practical business systems."],
+      ["Student Development", "Activities, portfolio support, guidance, and career preparation."]
+    ],
+    quickLinks: [
+      ["Admissions", "Application windows, qualifications, and required documents."],
+      ["Programs", "Technical, business, and student development pathways."],
+      ["Academic Calendar", "Upcoming terms, campus dates, and special academic periods."],
+      ["Official Documents", "Reports, quality documents, public notices, and ITA links."]
+    ],
+    highlights: [
+      ["18", "Innovation showcases", "Student teams present applied engineering and technology projects each year."],
+      ["12", "Industry collaborations", "Academic and workplace learning partnerships support practical pathways."],
+      ["24/7", "Student support services", "Guidance, academic advising, and portfolio preparation are available year round."]
+    ],
+    documentsList: [
+      ["Academic Calendar 2026", "Calendar"],
+      ["Annual Action Plan", "Planning"],
+      ["Self Assessment Report", "Quality"],
+      ["ITA and Transparency Portal", "Public"]
+    ]
+} as const;
 
 function SectionHeading({ label, title, description }: SectionHeadingProps) {
   return (
@@ -364,39 +302,16 @@ function SectionHeading({ label, title, description }: SectionHeadingProps) {
 }
 
 export default function PublicHomePage() {
-  const { language } = useLanguage();
-  const { data: languageSource = defaultPublicLanguageSource } = useQuery({
-    queryKey: ["public-language-source"],
-    queryFn: async () => loadPublicLanguageSource(defaultPublicLanguageSource)
-  });
-  const copy = languageSource[language];
-  const isThai = language === "th";
+  const copy = publicCopy;
   const { data, isLoading } = useQuery({
     queryKey: ["cms-snapshot"],
     queryFn: getCmsSnapshot
   });
 
-  const localizedPrograms = programs.map((program, index) => ({
-    ...program,
-    title: copy.programs[index][0],
-    description: copy.programs[index][1]
-  }));
-  const localizedQuickLinks = quickLinks.map((item, index) => ({
-    ...item,
-    title: copy.quickLinks[index][0],
-    description: copy.quickLinks[index][1]
-  }));
-  const localizedHighlights = prideHighlights.map((item, index) => ({
-    ...item,
-    value: copy.highlights[index][0],
-    title: copy.highlights[index][1],
-    description: copy.highlights[index][2]
-  }));
-  const localizedDocuments = documentLinks.map((item, index) => ({
-    ...item,
-    title: copy.documentsList[index][0],
-    category: copy.documentsList[index][1]
-  }));
+  const localizedPrograms = programs;
+  const localizedQuickLinks = quickLinks;
+  const localizedHighlights = prideHighlights;
+  const localizedDocuments = documentLinks;
   const publicContent = useMemo(() => {
     return (data?.content ?? [])
       .filter((item) => item.status === "published" || item.status === "scheduled")
@@ -752,7 +667,7 @@ export default function PublicHomePage() {
                           <Box sx={{ minWidth: 0 }}>
                             <Typography fontWeight={800}>{event.title}</Typography>
                             <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
-                              {event.audience} {isThai ? "วันที่" : "at"}{" "}
+                              {event.audience}{"at"}
                               {formatDisplayDateTime(event.date)}
                             </Typography>
                           </Box>

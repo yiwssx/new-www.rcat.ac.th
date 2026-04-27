@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Box, Container } from "@mui/material";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
-import { useLanguage } from "../context/LanguageContext";
 import { getCmsSnapshot } from "../services/googleApi";
 import { PublicMenuItem } from "../types";
 
@@ -18,11 +17,9 @@ function getEnabledMenuItems(items: PublicMenuItem[]): PublicMenuItem[] {
 
 function PublicMenuList({
   items,
-  language,
   nested = false
 }: {
   items: PublicMenuItem[];
-  language: "th" | "en";
   nested?: boolean;
 }) {
   return (
@@ -74,7 +71,7 @@ function PublicMenuList({
               }
             }}
           >
-            <span>{item.label[language]}</span>
+            <span>{item.label}</span>
             {item.children?.length &&
               (nested ? (
                 <KeyboardArrowRightRoundedIcon sx={{ fontSize: 18 }} />
@@ -104,7 +101,7 @@ function PublicMenuList({
                 pointerEvents: "none"
               }}
             >
-              <PublicMenuList items={item.children ?? []} language={language} nested />
+              <PublicMenuList items={item.children ?? []} nested />
             </Box>
           )}
         </Box>
@@ -114,7 +111,6 @@ function PublicMenuList({
 }
 
 export default function PublicMainMenu() {
-  const { language } = useLanguage();
   const { data } = useQuery({
     queryKey: ["cms-snapshot"],
     queryFn: getCmsSnapshot
@@ -124,7 +120,7 @@ export default function PublicMainMenu() {
   return (
     <Box
       component="nav"
-      aria-label={language === "th" ? "เมนูหลัก" : "Main menu"}
+      aria-label="Main menu"
       sx={{
         bgcolor: "primary.main",
         color: "white",
@@ -132,7 +128,7 @@ export default function PublicMainMenu() {
       }}
     >
       <Container maxWidth="xl">
-        <PublicMenuList items={enabledItems} language={language} />
+        <PublicMenuList items={enabledItems} />
       </Container>
     </Box>
   );
