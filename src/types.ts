@@ -1,0 +1,132 @@
+export type ContentStatus = "draft" | "review" | "scheduled" | "published";
+
+export type ContentType = "page" | "news" | "program" | "announcement" | "blog";
+
+export type MediaType = "image" | "document" | "sheet" | "video";
+
+export type IntegrationState = "connected" | "pending" | "error";
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "editor" | "viewer";
+  avatarUrl?: string;
+}
+
+export interface UserAccount extends User {
+  status: "active" | "disabled";
+  passwordHash?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Session {
+  user: User;
+  token: string;
+  expiresAt: string;
+}
+
+export interface ContentItem {
+  id: string;
+  title: string;
+  slug: string;
+  type: ContentType;
+  status: ContentStatus;
+  owner: string;
+  summary: string;
+  body?: string;
+  category?: string;
+  tags?: string[];
+  seoTitle?: string;
+  seoDescription?: string;
+  canonicalUrl?: string;
+  featured?: boolean;
+  readingMinutes?: number;
+  template?: string;
+  bodyDocId?: string;
+  bodyDocUrl?: string;
+  featuredMediaId?: string;
+  mediaIds?: string[];
+  updatedAt: string;
+  publishAt: string;
+}
+
+export interface MediaAsset {
+  id: string;
+  name: string;
+  type: MediaType;
+  size: string;
+  owner: string;
+  driveUrl: string;
+  fileId?: string;
+  mimeType?: string;
+  previewUrl?: string;
+  embedUrl?: string;
+  updatedAt: string;
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: string;
+  endDate?: string;
+  audience: string;
+  status: "confirmed" | "draft" | "cancelled";
+  location?: string;
+  description?: string;
+  category?: string;
+  visibility?: "public" | "private";
+  updatedAt?: string;
+}
+
+export interface PublicMenuLabel {
+  th: string;
+  en: string;
+}
+
+export interface PublicMenuItem {
+  id: string;
+  label: PublicMenuLabel;
+  href: string;
+  enabled: boolean;
+  children?: PublicMenuItem[];
+}
+
+export interface DashboardMetric {
+  id: string;
+  label: string;
+  value: string;
+  trend: string;
+  tone: "blue" | "green" | "amber" | "red";
+}
+
+export interface IntegrationStatus {
+  service: "Sheets" | "Drive" | "Docs";
+  status: IntegrationState;
+  detail: string;
+  lastSync: string;
+}
+
+export interface RolePermission {
+  id: string;
+  role: string;
+  scope: string;
+  canPublish: boolean;
+  canManageUsers: boolean;
+}
+
+export interface CmsSnapshot {
+  metrics: DashboardMetric[];
+  content: ContentItem[];
+  media: MediaAsset[];
+  events: CalendarEvent[];
+  menu?: PublicMenuItem[];
+}
+
+export interface LanguageSourceItem {
+  key: string;
+  th: string;
+  en: string;
+  updatedAt?: string;
+}

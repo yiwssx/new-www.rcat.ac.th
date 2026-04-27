@@ -1,0 +1,103 @@
+{
+  "site": {
+    "name": "RCAT CMS",
+    "publicSiteUrl": "https://new-wwwrcatacth.vercel.app",
+    "logoPath": "/rcat-logo.png",
+    "logoAlt": "RCAT"
+  },
+  "api": {
+    "googleAppsScriptUrl": "",
+    "googleAppsScriptUrlEnv": "VITE_GOOGLE_APPS_SCRIPT_URL",
+    "resources": {
+      "snapshot": "snapshot",
+      "health": "health",
+      "authLogin": "auth-login",
+      "content": "content",
+      "contentDetail": "content-detail",
+      "deleteContent": "content-delete",
+      "media": "media",
+      "deleteMedia": "media-delete",
+      "publish": "publish",
+      "menu": "menu",
+      "event": "event",
+      "deleteEvent": "event-delete",
+      "users": "users",
+      "deleteUser": "users-delete",
+      "resetUsers": "users-reset",
+      "languageSource": "language-source"
+    }
+  },
+  "query": {
+    "staleTimeMs": 300000,
+    "gcTimeMs": 900000,
+    "retry": 0,
+    "refetchOnMount": false,
+    "refetchOnReconnect": true,
+    "refetchOnWindowFocus": false
+  },
+  "storageKeys": {
+    "session": "rcat.cms.session",
+    "users": "rcat.cms.user.accounts",
+    "publicLanguageSource": "rcat.public.language.source"
+  },
+  "auth": {
+    "sessionHours": 8,
+    "loginPrefill": {
+      "email": "",
+      "password": ""
+    },
+    "bootstrapUsers": []
+  },
+  "roles": [
+    {
+      "id": "role-admin",
+      "role": "Administrator",
+      "scope": "All collections",
+      "canPublish": true,
+      "canManageUsers": true
+    },
+    {
+      "id": "role-editor",
+      "role": "Editor",
+      "scope": "Assigned departments",
+      "canPublish": true,
+      "canManageUsers": false
+    },
+    {
+      "id": "role-viewer",
+      "role": "Viewer",
+      "scope": "Read only",
+      "canPublish": false,
+      "canManageUsers": false
+    }
+  ],
+  "theme": {
+    "palette": {
+      "primaryMain": "#2c7a3f",
+      "primaryLight": "#e8f5e9",
+      "primaryDark": "#1f5a2c",
+      "secondaryMain": "#b88700",
+      "secondaryLight": "#fff4c2",
+      "secondaryDark": "#7a5900",
+      "successMain": "#3f8f49",
+      "successLight": "#e5f4e7",
+      "successDark": "#2a6232",
+      "warningMain": "#d6a11a",
+      "warningLight": "#fff0b3",
+      "warningDark": "#8c6500",
+      "errorMain": "#c84d3a",
+      "errorLight": "#fde9e5",
+      "errorDark": "#973728",
+      "backgroundDefault": "#f8fbf2",
+      "paper": "#ffffff",
+      "textPrimary": "#203324",
+      "textSecondary": "#5c6d60"
+    },
+    "shape": {
+      "borderRadius": 8
+    },
+    "typography": {
+      "fontFamily": ["\"Sarabun\"", "\"Noto Sans Thai\"", "\"Segoe UI\"", "sans-serif"]
+    }
+  }
+}

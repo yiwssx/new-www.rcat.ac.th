@@ -1,0 +1,109 @@
+import { useQuery } from "@tanstack/react-query";
+import {
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  Grid,
+  LinearProgress,
+  Stack,
+  TextField,
+  Typography
+} from "@mui/material";
+import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
+import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
+import dayjs from "dayjs";
+import PageHeader from "../components/PageHeader";
+import StatusChip from "../components/StatusChip";
+import { getGoogleAppsScriptUrl, projectSettings } from "../config/projectSettings";
+import { checkGoogleConnection } from "../services/googleApi";
+import { IntegrationStatus } from "../types";
+
+function getIntegrationIcon(service: IntegrationStatus["service"]) {
+  if (service === "Sheets") {
+    return <TableChartOutlinedIcon />;
+  }
+
+  if (service === "Drive") {
+    return <DriveFolderUploadOutlinedIcon />;
+  }
+
+  return <DescriptionOutlinedIcon />;
+}
+
+export default function IntegrationsPage() {
+  const endpoint = getGoogleAppsScriptUrl();
+  const { data = [], error, isError, isLoading } = useQuery({
+    queryKey: ["google-integrations"],
+    queryFn: checkGoogleConnection
+  });
+
+  return (
+    <Box>
+      <PageHeader
+        title="Google APIs"
+        description="Connection status for Sheets content, Drive media, and Docs drafts."
+      />
+      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {isError && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {error instanceof Error ? error.message : "Unable to check Google Apps Script health."}
+        </Alert>
+      )}
+      <Grid container spacing={2.5}>
+        {data.map((integration) => (
+          <Grid item xs={12} md={4} key={integration.service}>
+            <Card sx={{ height: "100%" }}>
+              <CardContent>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Box
+                    sx={{
+                      width: 54,
+                      height: 54,
+                      borderRadius: 2,
+                      display: "grid",
+                      placeItems: "center",
+                      color: "primary.main",
+                      backgroundColor: "primary.light"
+                    }}
+                  >
+                    {getIntegrationIcon(integration.service)}
+                  </Box>
+                  <StatusChip status={integration.status} />
+                </Stack>
+                <Typography variant="h3" sx={{ mt: 2 }}>
+                  {integration.service}
+                </Typography>
+                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                  {integration.detail}
+                </Typography>
+                <Typography color="text.secondary" variant="body2" sx={{ mt: 2 }}>
+                  Last sync:{" "}
+                  {integration.lastSync === "Not connected"
+                    ? integration.lastSync
+                    : dayjs(integration.lastSync).format("DD MMM YYYY HH:mm")}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+      <Card sx={{ mt: 2.5 }}>
+        <CardContent>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+            <CloudSyncOutlinedIcon color="primary" />
+            <Typography variant="h3">Apps Script endpoint</Typography>
+          </Stack>
+          <TextField
+            label="Endpoint"
+            value={endpoint || `${projectSettings.api.googleAppsScriptUrlEnv} is not configured`}
+            InputProps={{ readOnly: true }}
+            fullWidth
+          />
+        </CardContent>
+      </Card>
+    </Box>
+  );
+}
