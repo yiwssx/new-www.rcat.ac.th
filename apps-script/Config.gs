@@ -11,7 +11,9 @@ const SETTING_KEYS = {
   defaultAdminEmail: "defaultAdminEmail",
   defaultAdminPasswordHash: "defaultAdminPasswordHash",
   authTokenSecret: "authTokenSecret",
-  authSessionHours: "authSessionHours"
+  authSessionHours: "authSessionHours",
+  dateDisplayFormat: "dateDisplayFormat",
+  timeDisplayMode: "timeDisplayMode"
 };
 
 const DEFAULT_SCRIPT_PROPERTIES = {
@@ -23,7 +25,9 @@ const DEFAULT_SCRIPT_PROPERTIES = {
   [SETTING_KEYS.defaultAdminName]: "Administrator",
   [SETTING_KEYS.defaultAdminEmail]: "",
   [SETTING_KEYS.defaultAdminPasswordHash]: "",
-  [SETTING_KEYS.authSessionHours]: "8"
+  [SETTING_KEYS.authSessionHours]: "8",
+  [SETTING_KEYS.dateDisplayFormat]: "F j, Y",
+  [SETTING_KEYS.timeDisplayMode]: "24h"
 };
 
 const SHEETS = {
@@ -32,7 +36,6 @@ const SHEETS = {
   events: "Events",
   menu: "Menu",
   users: "Users",
-  language: "LanguageSource",
   settings: "Settings"
 };
 
@@ -102,8 +105,6 @@ const USER_HEADERS = [
   "createdAt",
   "updatedAt"
 ];
-
-const LANGUAGE_HEADERS = ["key", "th", "en", "updatedAt"];
 
 function ensureDefaultScriptProperties() {
   const scriptProperties = PropertiesService.getScriptProperties();

@@ -26,8 +26,8 @@ export default function AdminActionProgress() {
 
   const title = isLoginPage ? "Authenticating Your Account" : "Saving Changes";
   const description = isLoginPage
-    ? "Please wait while we verify your credentials with the CMS backend."
-    : "Syncing content with backend services. Please keep this page open.";
+    ? "Please wait while we verify your credentials."
+    : "Processing your request. Please keep this page open.";
 
   useEffect(() => {
     let timeoutId: number | undefined;

@@ -14,12 +14,12 @@ import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
-import dayjs from "dayjs";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
 import { getGoogleAppsScriptUrl, projectSettings } from "../config/projectSettings";
 import { checkGoogleConnection } from "../services/googleApi";
 import { IntegrationStatus } from "../types";
+import { formatDisplayDateTime } from "../utils/dateDisplay";
 
 function getIntegrationIcon(service: IntegrationStatus["service"]) {
   if (service === "Sheets") {
@@ -83,7 +83,7 @@ export default function IntegrationsPage() {
                   Last sync:{" "}
                   {integration.lastSync === "Not connected"
                     ? integration.lastSync
-                    : dayjs(integration.lastSync).format("DD MMM YYYY HH:mm")}
+                    : formatDisplayDateTime(integration.lastSync)}
                 </Typography>
               </CardContent>
             </Card>

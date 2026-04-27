@@ -1,259 +1,220 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Box,
   Button,
   Card,
   CardContent,
   Checkbox,
+  FormControl,
   Grid,
-  InputAdornment,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
-  Table as MuiTable,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Typography
 } from "@mui/material";
+import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PageHeader from "../components/PageHeader";
 import UserManagementCard from "../components/UserManagementCard";
 import { projectSettings } from "../config/projectSettings";
-import { defaultPublicLanguageSource } from "./PublicHomePage";
 import {
-  getPublicLanguageRows,
-  loadPublicLanguageSource,
-  savePublicLanguageRows,
-  savePublicLanguageSource
-} from "../services/languageSource";
-import { LanguageSourceItem } from "../types";
+  dateFormatPresets,
+  defaultDisplaySettings,
+  loadDisplaySettings,
+  saveDisplaySettings
+} from "../services/displaySettings";
+import { DisplaySettings } from "../types";
+import {
+  formatDisplayDate,
+  formatDisplayDateTime,
+  formatDisplayTime
+} from "../utils/dateDisplay";
 import { appSwal } from "../utils/swal";
 
-function sortLanguageRows(rows: LanguageSourceItem[]) {
-  return [...rows].sort((left, right) => left.key.localeCompare(right.key));
+function normalizeDisplaySettings(input: Partial<DisplaySettings>): DisplaySettings {
+  return {
+    dateFormat: String(input.dateFormat || defaultDisplaySettings.dateFormat).trim() || defaultDisplaySettings.dateFormat,
+    timeMode: input.timeMode === "12h" ? "12h" : "24h"
+  };
 }
 
 export default function SettingsPage() {
   const rolePermissions = projectSettings.roles;
-  const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [languageRows, setLanguageRows] = useState<LanguageSourceItem[]>([]);
+  const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(defaultDisplaySettings);
 
-  const languageQuery = useQuery({
-    queryKey: ["public-language-source"],
-    queryFn: async () => {
-      await loadPublicLanguageSource(defaultPublicLanguageSource);
-      return sortLanguageRows(getPublicLanguageRows(defaultPublicLanguageSource));
-    }
+  const displaySettingsQuery = useQuery({
+    queryKey: ["display-settings"],
+    queryFn: loadDisplaySettings
   });
 
-  const saveLanguageMutation = useMutation({
-    mutationFn: savePublicLanguageRows,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["public-language-source"] });
-    }
+  const saveDisplaySettingsMutation = useMutation({
+    mutationFn: saveDisplaySettings
   });
 
   useEffect(() => {
-    if (languageQuery.data) {
-      setLanguageRows(languageQuery.data);
+    if (displaySettingsQuery.data) {
+      setDisplaySettings(normalizeDisplaySettings(displaySettingsQuery.data));
     }
-  }, [languageQuery.data]);
+  }, [displaySettingsQuery.data]);
 
-  const filteredRows = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const previewDate = useMemo(() => {
+    const now = new Date();
+    return {
+      date: formatDisplayDate(now, displaySettings),
+      time: formatDisplayTime(now, displaySettings),
+      dateTime: formatDisplayDateTime(now, displaySettings)
+    };
+  }, [displaySettings]);
 
-    if (!query) {
-      return languageRows;
-    }
-
-    return languageRows.filter(
-      (row) =>
-        row.key.toLowerCase().includes(query) ||
-        row.th.toLowerCase().includes(query) ||
-        row.en.toLowerCase().includes(query)
-    );
-  }, [languageRows, search]);
-
-  function updateLanguageRow(rowKey: string, field: "th" | "en", value: string) {
-    setLanguageRows((current) =>
-      current.map((row) => (row.key === rowKey ? { ...row, [field]: value } : row))
-    );
-  }
-
-  async function handleSaveLanguageSource() {
+  async function handleSaveDisplaySettings() {
     try {
-      await saveLanguageMutation.mutateAsync(sortLanguageRows(languageRows));
+      const nextSettings = normalizeDisplaySettings(displaySettings);
+      const saved = await saveDisplaySettingsMutation.mutateAsync(nextSettings);
+      setDisplaySettings(normalizeDisplaySettings(saved));
       await appSwal.fire({
         icon: "success",
-        title: "Language table saved",
-        text: "TH/EN compare table is now synced to Apps Script sheet.",
+        title: "Display settings saved",
+        text: "Date and time display is updated for this CMS.",
         confirmButtonText: "OK"
       });
     } catch (error) {
       await appSwal.fire({
         icon: "error",
-        title: "Unable to save language table",
+        title: "Unable to save display settings",
         text: error instanceof Error ? error.message : "Please try again.",
         confirmButtonText: "OK"
       });
     }
   }
 
-  async function handleResetLanguageSource() {
-    const result = await appSwal.fire({
-      title: "Reset language source?",
-      text: "This will restore the default TH/EN source and overwrite sheet rows.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Reset",
-      cancelButtonText: "Cancel"
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    await savePublicLanguageSource(defaultPublicLanguageSource);
-    await queryClient.invalidateQueries({ queryKey: ["public-language-source"] });
-    await appSwal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: "Language source reset",
-      showConfirmButton: false,
-      timer: 1400,
-      timerProgressBar: true
-    });
-  }
-
   return (
     <Box>
       <PageHeader
         title="Settings"
-        description="Role permissions, publishing access, and security defaults for the CMS."
+        description="Publishing access, user controls, and display preferences."
       />
       <Grid container spacing={2.5}>
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                spacing={2}
-                justifyContent="space-between"
-                alignItems={{ xs: "stretch", md: "center" }}
-                sx={{ mb: 2 }}
-              >
-                <Box>
-                  <Typography variant="h3">TH/EN Language Compare Table</Typography>
-                  <Typography color="text.secondary">
-                    Manage public website copy in a side-by-side TH/EN table backed by Google Sheet.
-                  </Typography>
-                </Box>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                  <Button variant="outlined" color="inherit" onClick={() => void handleResetLanguageSource()}>
-                    Reset defaults
-                  </Button>
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+                <AccessTimeOutlinedIcon color="primary" />
+                <Typography variant="h3">Date and Time Display</Typography>
+              </Stack>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
+                Use WordPress-style date formats and choose 24-hour or 12-hour time display.
+              </Typography>
+              <Grid container spacing={1.5}>
+                <Grid item xs={12} md={5}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="date-format-preset-label">Date format preset</InputLabel>
+                    <Select
+                      labelId="date-format-preset-label"
+                      label="Date format preset"
+                      value={
+                        dateFormatPresets.some((item) => item.value === displaySettings.dateFormat)
+                          ? displaySettings.dateFormat
+                          : "__custom__"
+                      }
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        if (value === "__custom__") {
+                          return;
+                        }
+
+                        setDisplaySettings((current) => ({
+                          ...current,
+                          dateFormat: value
+                        }));
+                      }}
+                    >
+                      {dateFormatPresets.map((preset) => (
+                        <MenuItem key={preset.value} value={preset.value}>
+                          {preset.label}
+                        </MenuItem>
+                      ))}
+                      <MenuItem value="__custom__">Custom format</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="time-mode-label">Time mode</InputLabel>
+                    <Select
+                      labelId="time-mode-label"
+                      label="Time mode"
+                      value={displaySettings.timeMode}
+                      onChange={(event) =>
+                        setDisplaySettings((current) => ({
+                          ...current,
+                          timeMode: event.target.value === "12h" ? "12h" : "24h"
+                        }))
+                      }
+                    >
+                      <MenuItem value="24h">24-hour (14:30)</MenuItem>
+                      <MenuItem value="12h">12-hour (2:30 pm)</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={3}>
                   <Button
+                    fullWidth
                     variant="contained"
                     startIcon={<SaveOutlinedIcon />}
-                    disabled={saveLanguageMutation.isPending}
-                    onClick={() => void handleSaveLanguageSource()}
+                    disabled={saveDisplaySettingsMutation.isPending}
+                    onClick={() => void handleSaveDisplaySettings()}
+                    sx={{ height: "100%" }}
                   >
-                    {saveLanguageMutation.isPending ? "Saving" : "Save table"}
+                    {saveDisplaySettingsMutation.isPending ? "Processing" : "Save"}
                   </Button>
-                </Stack>
-              </Stack>
-              <TextField
-                placeholder="Search language key or value"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchOutlinedIcon />
-                    </InputAdornment>
-                  )
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Custom date format"
+                    value={displaySettings.dateFormat}
+                    onChange={(event) =>
+                      setDisplaySettings((current) => ({
+                        ...current,
+                        dateFormat: event.target.value
+                      }))
+                    }
+                    helperText="Examples: F j, Y | j F Y | Y-m-d | m/d/Y | d/m/Y"
+                    size="small"
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
+              <Card
+                variant="outlined"
+                sx={{
+                  mt: 2,
+                  borderColor: "rgba(31, 90, 44, 0.18)",
+                  bgcolor: "background.default"
                 }}
-                sx={{ mb: 2, maxWidth: 520 }}
-                fullWidth
-              />
-              <Box className="table-scroll">
-                <MuiTable size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 800, width: "22%" }}>Key</TableCell>
-                      <TableCell sx={{ fontWeight: 800 }}>TH</TableCell>
-                      <TableCell sx={{ fontWeight: 800 }}>EN</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {languageQuery.isLoading && (
-                      <TableRow>
-                        <TableCell colSpan={3}>
-                          <Typography color="text.secondary">Loading language rows...</Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {languageQuery.isError && (
-                      <TableRow>
-                        <TableCell colSpan={3}>
-                          <Typography color="error">
-                            {languageQuery.error instanceof Error
-                              ? languageQuery.error.message
-                              : "Unable to load language rows."}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {!languageQuery.isLoading &&
-                      !languageQuery.isError &&
-                      filteredRows.map((row) => (
-                        <TableRow key={row.key} hover>
-                          <TableCell
-                            sx={{
-                              verticalAlign: "top",
-                              fontFamily: "\"Cascadia Code\", Consolas, monospace",
-                              fontSize: "0.78rem"
-                            }}
-                          >
-                            {row.key}
-                          </TableCell>
-                          <TableCell sx={{ verticalAlign: "top", minWidth: 280 }}>
-                            <TextField
-                              value={row.th}
-                              onChange={(event) => updateLanguageRow(row.key, "th", event.target.value)}
-                              minRows={1}
-                              multiline
-                              fullWidth
-                            />
-                          </TableCell>
-                          <TableCell sx={{ verticalAlign: "top", minWidth: 280 }}>
-                            <TextField
-                              value={row.en}
-                              onChange={(event) => updateLanguageRow(row.key, "en", event.target.value)}
-                              minRows={1}
-                              multiline
-                              fullWidth
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    {!languageQuery.isLoading && !languageQuery.isError && !filteredRows.length && (
-                      <TableRow>
-                        <TableCell colSpan={3}>
-                          <Typography color="text.secondary">No language rows match your search.</Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </MuiTable>
-              </Box>
+              >
+                <CardContent>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 1 }}>
+                    Preview
+                  </Typography>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                    <Typography color="text.secondary">Date: {previewDate.date}</Typography>
+                    <Typography color="text.secondary">Time: {previewDate.time}</Typography>
+                    <Typography color="text.secondary">Date and time: {previewDate.dateTime}</Typography>
+                  </Stack>
+                  {displaySettingsQuery.isError && (
+                    <Typography color="error" variant="body2" sx={{ mt: 1.2 }}>
+                      {displaySettingsQuery.error instanceof Error
+                        ? displaySettingsQuery.error.message
+                        : "Unable to load saved display settings."}
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
         </Grid>
@@ -311,21 +272,21 @@ export default function SettingsPage() {
               </Stack>
               <Stack spacing={2}>
                 <Box>
-                  <Typography fontWeight={900}>JWT session window</Typography>
+                  <Typography fontWeight={900}>Session time</Typography>
                   <Typography color="text.secondary">
-                    Tokens expire after 8 hours in the template auth adapter.
+                    Signed-in sessions expire automatically based on system settings.
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography fontWeight={900}>Password hashing</Typography>
+                  <Typography fontWeight={900}>Password protection</Typography>
                   <Typography color="text.secondary">
-                    Passwords are verified with bcrypt hash values stored in the Users sheet.
+                    Passwords are stored as secure hashes in the Users sheet.
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography fontWeight={900}>Deployment</Typography>
+                  <Typography fontWeight={900}>Deploy setup</Typography>
                   <Typography color="text.secondary">
-                    SPA rewrites are ready for Vercel through vercel.json.
+                    Routing rewrites are ready for deployment through vercel.json.
                   </Typography>
                 </Box>
               </Stack>

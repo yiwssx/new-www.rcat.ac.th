@@ -40,6 +40,7 @@ import { getCmsSiteName, projectSettings } from "../config/projectSettings";
 import { Language, useLanguage } from "../context/LanguageContext";
 import { loadPublicLanguageSource } from "../services/languageSource";
 import { getCmsSnapshot } from "../services/googleApi";
+import { formatDisplayDate, formatDisplayDateTime } from "../utils/dateDisplay";
 import { appSwal } from "../utils/swal";
 
 interface SectionHeadingProps {
@@ -697,7 +698,7 @@ export default function PublicHomePage() {
                           sx={{ textTransform: "capitalize" }}
                         />
                         <Typography color="text.secondary" variant="body2">
-                          {dayjs(featuredStory.publishAt).format("DD MMM YYYY")}
+                          {formatDisplayDate(featuredStory.publishAt)}
                         </Typography>
                       </Stack>
                     </CardContent>
@@ -715,7 +716,7 @@ export default function PublicHomePage() {
                         No published CMS content yet
                       </Typography>
                       <Typography color="text.secondary" sx={{ mt: 1.2 }}>
-                        Content will appear here after the Apps Script backend returns published records.
+                        Content will appear here after published records are processed.
                       </Typography>
                     </CardContent>
                   </Card>
@@ -772,7 +773,7 @@ export default function PublicHomePage() {
                             <Typography fontWeight={800}>{event.title}</Typography>
                             <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
                               {event.audience} {isThai ? "วันที่" : "at"}{" "}
-                              {dayjs(event.date).format("MMM YYYY, HH:mm")}
+                              {formatDisplayDateTime(event.date)}
                             </Typography>
                           </Box>
                         </Stack>
@@ -1021,7 +1022,7 @@ export default function PublicHomePage() {
                                   {featuredStory.owner}
                                 </Typography>
                                 <Typography color="text.secondary" variant="body2">
-                                  {copy.posted} {dayjs(featuredStory.publishAt).format("DD MMM YYYY")}
+                                  {copy.posted} {formatDisplayDate(featuredStory.publishAt)}
                                 </Typography>
                               </Stack>
                             </Grid>
@@ -1090,7 +1091,7 @@ export default function PublicHomePage() {
                                 variant="caption"
                                 sx={{ mt: 1.25, display: "block" }}
                               >
-                                {dayjs(item.publishAt).format("DD MMM YYYY")}
+                                {formatDisplayDate(item.publishAt)}
                               </Typography>
                             </Box>
                           </Stack>
@@ -1132,7 +1133,7 @@ export default function PublicHomePage() {
                           />
                           <Typography fontWeight={800}>{item.title}</Typography>
                           <Typography color="text.secondary" variant="body2" sx={{ mt: 0.6 }}>
-                            {dayjs(item.date).format("DD MMM YYYY")}
+                            {formatDisplayDate(item.date)}
                           </Typography>
                         </Box>
                       ))}

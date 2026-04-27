@@ -19,6 +19,7 @@ vi.mock("../../config/projectSettings", () => ({
         menu: "menu",
         event: "event",
         deleteEvent: "event-delete",
+        displaySettings: "display-settings",
         users: "users",
         deleteUser: "users-delete",
         resetUsers: "users-reset",

@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
 import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
-import dayjs from "dayjs";
 import { ContentItem, MediaAsset } from "../types";
+import { formatDisplayDate } from "../utils/dateDisplay";
 
 interface PublicContentCardProps {
   item: ContentItem;
@@ -98,7 +98,7 @@ export default function PublicContentCard({
                 {item.owner}
               </Typography>
               <Typography color="text.secondary" variant="body2">
-                {dayjs(item.publishAt).format("DD MMM YYYY")}
+                {formatDisplayDate(item.publishAt)}
               </Typography>
             </Stack>
           </Box>

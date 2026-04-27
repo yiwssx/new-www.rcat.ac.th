@@ -16,12 +16,12 @@ import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
-import dayjs from "dayjs";
 import ContentBlocksRenderer from "../components/ContentBlocksRenderer";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { getCmsSnapshot, getContentDetail } from "../services/googleApi";
 import { parseContentBodyToBlocks } from "../utils/contentBlocks";
+import { formatDisplayDate, formatDisplayDateTime } from "../utils/dateDisplay";
 
 interface PublicContentDetailPageProps {
   slug?: string;
@@ -155,7 +155,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
                 <Chip label={item.type} color="primary" sx={{ textTransform: "capitalize" }} />
                 <Chip label={item.status} variant="outlined" sx={{ textTransform: "capitalize" }} />
-                <Chip label={dayjs(item.publishAt).format("DD MMM YYYY")} variant="outlined" />
+                <Chip label={formatDisplayDate(item.publishAt)} variant="outlined" />
                 {item.featured && <Chip label="Featured" color="secondary" />}
                 {normalizeCategoryList(item.category).slice(0, 3).map((category) => (
                   <Chip key={category} label={category} variant="outlined" />
@@ -240,13 +240,13 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     <Typography color="text.secondary" variant="body2">
                       Updated
                     </Typography>
-                    <Typography fontWeight={900}>{dayjs(item.updatedAt).format("DD MMM YYYY HH:mm")}</Typography>
+                    <Typography fontWeight={900}>{formatDisplayDateTime(item.updatedAt)}</Typography>
                   </Box>
                   <Box>
                     <Typography color="text.secondary" variant="body2">
                       Published
                     </Typography>
-                    <Typography fontWeight={900}>{dayjs(item.publishAt).format("DD MMM YYYY HH:mm")}</Typography>
+                    <Typography fontWeight={900}>{formatDisplayDateTime(item.publishAt)}</Typography>
                   </Box>
                   {!!item.template && (
                     <Box>

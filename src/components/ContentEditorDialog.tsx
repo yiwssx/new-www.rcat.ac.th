@@ -410,7 +410,7 @@ export default function ContentEditorDialog({
             <Stack spacing={1.5} sx={{ pt: 1 }}>
               {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
               <Typography color="text.secondary">
-                Confirm this record before sending it to the Apps Script backend.
+                Confirm this record before saving.
               </Typography>
               <Typography fontWeight={900}>{pendingDraft.title}</Typography>
               <Typography color="text.secondary">

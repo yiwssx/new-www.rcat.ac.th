@@ -21,6 +21,7 @@
       "menu": "menu",
       "event": "event",
       "deleteEvent": "event-delete",
+      "displaySettings": "display-settings",
       "users": "users",
       "deleteUser": "users-delete",
       "resetUsers": "users-reset",
@@ -38,6 +39,7 @@
   "storageKeys": {
     "session": "rcat.cms.session",
     "users": "rcat.cms.user.accounts",
+    "displaySettings": "rcat.cms.display.settings",
     "publicLanguageSource": "rcat.public.language.source"
   },
   "auth": {

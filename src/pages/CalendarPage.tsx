@@ -37,6 +37,11 @@ import {
   isEndDateTimeBeforeStart,
   toLocalDateTimeInputValue
 } from "../utils/calendar";
+import {
+  formatDisplayDate,
+  formatDisplayDateTime,
+  formatDisplayTime
+} from "../utils/dateDisplay";
 import { appSwal } from "../utils/swal";
 
 interface EventFormState {
@@ -270,7 +275,7 @@ export default function CalendarPage() {
       />
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "Unable to load calendar events from Google Apps Script."}
+          {error instanceof Error ? error.message : "Unable to load calendar events right now."}
         </Alert>
       )}
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
@@ -376,10 +381,10 @@ export default function CalendarPage() {
                   sx={{ width: { xs: "100%", md: "auto" } }}
                 >
                   <Box sx={{ textAlign: { xs: "left", md: "right" } }}>
-                    <Typography fontWeight={900}>{dayjs(event.date).format("DD MMM YYYY")}</Typography>
+                    <Typography fontWeight={900}>{formatDisplayDate(event.date)}</Typography>
                     <Typography color="text.secondary" variant="body2">
-                      {dayjs(event.date).format("HH:mm")}
-                      {event.endDate ? ` - ${dayjs(event.endDate).format("HH:mm")}` : ""}
+                      {formatDisplayTime(event.date)}
+                      {event.endDate ? ` - ${formatDisplayTime(event.endDate)}` : ""}
                     </Typography>
                   </Box>
                   <Stack direction="row" spacing={0.5}>
@@ -421,14 +426,14 @@ export default function CalendarPage() {
         <DialogContent dividers>
           {confirming ? (
             <Stack spacing={1.5} sx={{ pt: 1 }}>
-              {formError && <Alert severity="error">{formError}</Alert>}
-              <Typography color="text.secondary">
-                Confirm this event before sending it to the Apps Script backend.
-              </Typography>
-              <Typography fontWeight={900}>{form.title}</Typography>
-              <Typography color="text.secondary">
-                {form.audience} / {dayjs(form.dateTime).format("DD MMM YYYY HH:mm")} / {form.status}
-              </Typography>
+                {formError && <Alert severity="error">{formError}</Alert>}
+                <Typography color="text.secondary">
+                  Confirm this event before saving.
+                </Typography>
+                <Typography fontWeight={900}>{form.title}</Typography>
+                <Typography color="text.secondary">
+                {form.audience} / {formatDisplayDateTime(form.dateTime)} / {form.status}
+                </Typography>
             </Stack>
           ) : (
             <Stack spacing={2.2} sx={{ pt: 1 }}>

@@ -1,10 +1,6 @@
 import type { PublicLanguageSource } from "../pages/PublicHomePage";
-import { getGoogleAppsScriptUrl, projectSettings } from "../config/projectSettings";
+import { projectSettings } from "../config/projectSettings";
 import { LanguageSourceItem } from "../types";
-import {
-  getLanguageSourceItemsFromApi,
-  saveLanguageSourceItemsToApi
-} from "./googleApi";
 
 const storageKey = projectSettings.storageKeys.publicLanguageSource;
 
@@ -153,10 +149,6 @@ function persistLanguageItems(items: LanguageSourceItem[]) {
   window.localStorage.setItem(storageKey, JSON.stringify(items));
 }
 
-function usingBackendLanguageSource() {
-  return Boolean(getGoogleAppsScriptUrl());
-}
-
 export function getPublicLanguageRows(fallback: PublicLanguageSource): LanguageSourceItem[] {
   const stored = parseStoredItems(window.localStorage.getItem(storageKey));
   return stored && stored.length ? stored : toLanguageItems(fallback);
@@ -167,18 +159,7 @@ export function getPublicLanguageSource(fallback: PublicLanguageSource): PublicL
 }
 
 export async function loadPublicLanguageSource(fallback: PublicLanguageSource): Promise<PublicLanguageSource> {
-  if (!usingBackendLanguageSource()) {
-    return getPublicLanguageSource(fallback);
-  }
-
-  try {
-    const items = await getLanguageSourceItemsFromApi();
-    const nextItems = items.length ? items : toLanguageItems(fallback);
-    persistLanguageItems(nextItems);
-    return fromLanguageItems(fallback, nextItems);
-  } catch {
-    return getPublicLanguageSource(fallback);
-  }
+  return getPublicLanguageSource(fallback);
 }
 
 export async function savePublicLanguageRows(items: LanguageSourceItem[]): Promise<LanguageSourceItem[]> {
@@ -189,12 +170,6 @@ export async function savePublicLanguageRows(items: LanguageSourceItem[]): Promi
       en: item.en ?? ""
     }))
     .filter((item) => item.key);
-
-  if (usingBackendLanguageSource()) {
-    const saved = await saveLanguageSourceItemsToApi(cleanedItems);
-    persistLanguageItems(saved);
-    return saved;
-  }
 
   persistLanguageItems(cleanedItems);
   return cleanedItems;

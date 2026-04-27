@@ -10,7 +10,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid,
   IconButton,
   LinearProgress,
   Stack,
@@ -31,15 +30,13 @@ import { PublicMenuItem } from "../types";
 import { appSwal } from "../utils/swal";
 
 interface MenuFormState {
-  labelTh: string;
-  labelEn: string;
+  label: string;
   href: string;
   enabled: boolean;
 }
 
 const emptyForm: MenuFormState = {
-  labelTh: "",
-  labelEn: "",
+  label: "",
   href: "/",
   enabled: true
 };
@@ -62,8 +59,7 @@ function cloneMenu(items: PublicMenuItem[]) {
 
 function toFormState(item: PublicMenuItem): MenuFormState {
   return {
-    labelTh: item.label.th,
-    labelEn: item.label.en,
+    label: item.label.en || item.label.th,
     href: item.href,
     enabled: item.enabled
   };
@@ -179,11 +175,13 @@ function normalizeMenuHref(value: string) {
 }
 
 function createMenuItem(form: MenuFormState): PublicMenuItem {
+  const label = form.label.trim();
+
   return {
     id: `menu-${crypto.randomUUID()}`,
     label: {
-      th: form.labelTh.trim(),
-      en: form.labelEn.trim()
+      th: label,
+      en: label
     },
     href: normalizeMenuHref(form.href),
     enabled: form.enabled
@@ -222,9 +220,9 @@ function MenuTree({ items, depth = 0, onAddChild, onEdit, onRemove, onMove }: Me
               <Stack direction="row" spacing={1.2} alignItems="flex-start" sx={{ minWidth: 0 }}>
                 {depth > 0 && <SubdirectoryArrowRightRoundedIcon color="disabled" sx={{ mt: 0.2 }} />}
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography fontWeight={900}>{item.label.th}</Typography>
+                  <Typography fontWeight={900}>{item.label.en || item.label.th}</Typography>
                   <Typography color="text.secondary" variant="body2">
-                    {item.label.en} · {item.href}
+                    {item.href}
                   </Typography>
                   {!item.enabled && (
                     <Typography color="error" variant="caption">
@@ -328,11 +326,11 @@ export default function MenuPage() {
   async function handleSaveItem() {
     const normalizedHref = normalizeMenuHref(form.href);
 
-    if (!form.labelTh.trim() || !form.labelEn.trim() || !normalizedHref) {
+    if (!form.label.trim() || !normalizedHref) {
       await appSwal.fire({
         icon: "error",
         title: "Missing menu details",
-        text: "TH label, EN label, and route are required.",
+        text: "Label and route are required.",
         confirmButtonText: "OK"
       });
       return;
@@ -343,8 +341,8 @@ export default function MenuPage() {
         updateMenuItem(current, editingItem.id, (item) => ({
           ...item,
           label: {
-            th: form.labelTh.trim(),
-            en: form.labelEn.trim()
+            th: form.label.trim(),
+            en: form.label.trim()
           },
           href: normalizedHref,
           enabled: form.enabled
@@ -369,7 +367,7 @@ export default function MenuPage() {
     const item = findMenuItem(items, id);
     const result = await appSwal.fire({
       title: "Remove menu item?",
-      text: item?.label.en ?? id,
+      text: item?.label.en || item?.label.th || id,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Remove",
@@ -415,7 +413,7 @@ export default function MenuPage() {
     <Box>
       <PageHeader
         title="Menus"
-        description="Manage the public website main menu, dropdowns, routes, and TH/EN labels."
+        description="Manage the public website menu, submenus, routes, and visibility."
         action={
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
             <Button variant="outlined" color="inherit" onClick={handleResetDraft}>
@@ -429,7 +427,7 @@ export default function MenuPage() {
       />
       {isError && (
         <Typography color="error" sx={{ mb: 2 }}>
-          {error instanceof Error ? error.message : "Unable to load menu items from Google Apps Script."}
+          {error instanceof Error ? error.message : "Unable to load menu items right now."}
         </Typography>
       )}
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
@@ -465,26 +463,13 @@ export default function MenuPage() {
         <DialogTitle>{editingItem ? "Edit menu item" : parentId ? "Add child menu item" : "Add menu item"}</DialogTitle>
         <DialogContent>
           <Stack spacing={2.2} sx={{ pt: 1 }}>
-            <Grid container spacing={1.5}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="TH label"
-                  value={form.labelTh}
-                  onChange={(event) => setForm((current) => ({ ...current, labelTh: event.target.value }))}
-                  fullWidth
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="EN label"
-                  value={form.labelEn}
-                  onChange={(event) => setForm((current) => ({ ...current, labelEn: event.target.value }))}
-                  fullWidth
-                  required
-                />
-              </Grid>
-            </Grid>
+            <TextField
+              label="Menu label"
+              value={form.label}
+              onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
+              fullWidth
+              required
+            />
             <TextField
               label="Route or URL"
               value={form.href}
