@@ -1,0 +1,41 @@
+import type { SweetAlertIcon, SweetAlertOptions, SweetAlertResult } from "sweetalert2";
+
+type SwalStatic = typeof import("sweetalert2").default;
+type AppSwalInstance = ReturnType<SwalStatic["mixin"]>;
+type FireArgs = [SweetAlertOptions] | [string, string?, SweetAlertIcon?];
+
+interface LazyAppSwal {
+  fire(options: SweetAlertOptions): Promise<SweetAlertResult>;
+  fire(title: string, html?: string, icon?: SweetAlertIcon): Promise<SweetAlertResult>;
+}
+
+let appSwalPromise: Promise<AppSwalInstance> | null = null;
+
+async function getAppSwal() {
+  if (!appSwalPromise) {
+    appSwalPromise = Promise.all([
+      import("sweetalert2"),
+      import("sweetalert2/dist/sweetalert2.min.css")
+    ]).then(([{ default: Swal }]) =>
+      Swal.mixin({
+        confirmButtonColor: "#2c7a3f",
+        cancelButtonColor: "#7a5900",
+        reverseButtons: true
+      })
+    );
+  }
+
+  return appSwalPromise;
+}
+
+export const appSwal: LazyAppSwal = {
+  async fire(...args: FireArgs) {
+    const swal = await getAppSwal();
+
+    if (typeof args[0] === "string") {
+      return swal.fire(args[0], args[1], args[2]);
+    }
+
+    return swal.fire(args[0]);
+  }
+};
