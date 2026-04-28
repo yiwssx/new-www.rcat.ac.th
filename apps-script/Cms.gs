@@ -383,7 +383,26 @@ function sanitizePublicContentRecord(item, options) {
 }
 
 function normalizeSlugValue(value) {
-  return String(value || "").trim().toLowerCase();
+  const rawValue = String(value || "");
+
+  if (
+    !rawValue ||
+    /[\u0000-\u001F\u007F\s/\\?#:]/u.test(rawValue) ||
+    rawValue.indexOf("..") !== -1
+  ) {
+    throw createHttpError("Invalid slug format.", 400);
+  }
+
+  const normalized = rawValue
+    .toLowerCase()
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (!normalized || normalized.length > 120 || !/^[\p{L}\p{M}\p{N}-]+$/u.test(normalized)) {
+    throw createHttpError("Invalid slug format.", 400);
+  }
+
+  return normalized;
 }
 
 function normalizePublicMediaUrl(url, allowedHosts) {
@@ -454,9 +473,17 @@ function validateAllowedContentValue(fieldName, value, allowedValues) {
 
 function assertUniqueContentSlug(sheet, contentId, normalizedSlug) {
   const rows = readObjects(sheet, CONTENT_HEADERS);
-  const duplicate = rows.find(
-    (row) => normalizeSlugValue(row.slug) === normalizedSlug && row.id !== contentId
-  );
+  const duplicate = rows.find((row) => {
+    if (row.id === contentId) {
+      return false;
+    }
+
+    try {
+      return normalizeSlugValue(row.slug) === normalizedSlug;
+    } catch (error) {
+      return false;
+    }
+  });
 
   if (duplicate) {
     throw createHttpError("Slug นี้ถูกใช้งานแล้ว กรุณาเปลี่ยนลิงก์ถาวร", 409);

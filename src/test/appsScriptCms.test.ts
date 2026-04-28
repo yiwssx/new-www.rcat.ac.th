@@ -75,16 +75,42 @@ describe("Apps Script CMS helpers", () => {
   it("normalizes slugs and rejects duplicate slugs for other content records", () => {
     const context = loadCmsScript();
     context.readObjects.mockReturnValue([
-      { id: "content-1", slug: " Admissions " },
+      { id: "content-1", slug: "Admissions" },
+      { id: "content-legacy", slug: "../legacy" },
       { id: "content-2", slug: "student-news" }
     ]);
 
-    expect(context.normalizeSlugValue(" Admissions ")).toBe("admissions");
+    expect(context.normalizeSlugValue("Admissions")).toBe("admissions");
     expect(() => context.assertUniqueContentSlug({}, "content-1", "admissions")).not.toThrow();
 
     const error = captureError(() => context.assertUniqueContentSlug({}, "content-3", "admissions"));
     expect(error?.message).toBe("Slug นี้ถูกใช้งานแล้ว กรุณาเปลี่ยนลิงก์ถาวร");
     expect(error?.statusCode).toBe(409);
+  });
+
+  it("strictly validates safe Thai and English slug formats", () => {
+    const context = loadCmsScript();
+
+    expect(context.normalizeSlugValue("ข่าวรับสมัคร-2569")).toBe("ข่าวรับสมัคร-2569");
+    expect(context.normalizeSlugValue("student-news-2026")).toBe("student-news-2026");
+    expect(context.normalizeSlugValue("--Student---News-2026--")).toBe("student-news-2026");
+
+    [
+      "../admin",
+      "abc/def",
+      "abc?x=1",
+      "hello world",
+      "abc#section",
+      "abc:def",
+      "abc\\def",
+      "",
+      "---",
+      "a".repeat(121)
+    ].forEach((slug) => {
+      const error = captureError(() => context.normalizeSlugValue(slug));
+      expect(error?.message).toBe("Invalid slug format.");
+      expect(error?.statusCode).toBe(400);
+    });
   });
 
   it("validates content type and status values", () => {
