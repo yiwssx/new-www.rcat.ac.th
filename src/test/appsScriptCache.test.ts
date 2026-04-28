@@ -2,6 +2,7 @@ import { describe, expect, it, vi, type Mock } from "vitest";
 import cacheSource from "../../apps-script/Cache.gs?raw";
 
 interface CacheScriptContext {
+  estimateUtf8Bytes: (value: string) => number;
   getPublicSnapshotCached: () => unknown;
   invalidatePublicSnapshotCache: () => void;
   getSnapshot: Mock;
@@ -34,13 +35,14 @@ function loadCacheScript(snapshot: unknown = { content: [], media: [], events: [
     "console",
     `${cacheSource}
 return {
+  estimateUtf8Bytes,
   getPublicSnapshotCached,
   invalidatePublicSnapshotCache
 };`
   );
   const exports = createScriptExports(CacheService, getSnapshot, console) as Pick<
     CacheScriptContext,
-    "getPublicSnapshotCached" | "invalidatePublicSnapshotCache"
+    "estimateUtf8Bytes" | "getPublicSnapshotCached" | "invalidatePublicSnapshotCache"
   >;
 
   return {
@@ -64,6 +66,37 @@ describe("Apps Script public cache helpers", () => {
       JSON.stringify(snapshot),
       300
     );
+  });
+
+  it("skips oversized public snapshots without throwing", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const oversizedSnapshot = {
+      content: [
+        {
+          id: "content-1",
+          title: "Large content",
+          summary: "x".repeat(98 * 1024)
+        }
+      ],
+      media: [],
+      events: []
+    };
+    const context = loadCacheScript(oversizedSnapshot);
+
+    expect(() => context.getPublicSnapshotCached()).not.toThrow();
+    expect(context.getPublicSnapshotCached()).toEqual(oversizedSnapshot);
+    expect(context.getSnapshot).toHaveBeenCalledTimes(2);
+    expect(context.scriptCache.put).not.toHaveBeenCalled();
+    expect(context.store.size).toBe(0);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Skipping cache write for cms:public:snapshot:v1"));
+    warnSpy.mockRestore();
+  });
+
+  it("estimates multibyte payload size before cache writes", () => {
+    const context = loadCacheScript();
+
+    expect(context.estimateUtf8Bytes("abc")).toBe(3);
+    expect(context.estimateUtf8Bytes("ภาษาไทย")).toBeGreaterThan("ภาษาไทย".length);
   });
 
   it("invalidates the public snapshot cache", () => {

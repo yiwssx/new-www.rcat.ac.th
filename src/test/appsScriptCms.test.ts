@@ -14,6 +14,7 @@ interface CmsScriptContext {
     item: Record<string, unknown>,
     options?: { includeBody?: boolean }
   ) => Record<string, unknown>;
+  sanitizePublicMediaRecord: (asset: Record<string, unknown>) => Record<string, unknown>;
   validateContentStatus: (value: string) => string;
   validateContentType: (value: string) => string;
   validateUploadBytes: (bytes: { length: number } | null) => void;
@@ -40,6 +41,7 @@ return {
   normalizeSlugValue,
   resolveUploadMimeType,
   sanitizePublicContentRecord,
+  sanitizePublicMediaRecord,
   validateContentStatus,
   validateContentType,
   validateUploadBytes
@@ -114,6 +116,37 @@ describe("Apps Script CMS helpers", () => {
     expect(detailRecord.body).toBe("Body text");
     expect(detailRecord).not.toHaveProperty("bodyDocId");
     expect(detailRecord).not.toHaveProperty("bodyDocUrl");
+  });
+
+  it("reduces public media records to fields needed for rendering", () => {
+    const context = loadCmsScript();
+    const media = context.sanitizePublicMediaRecord({
+      id: "media-1",
+      name: "Public image",
+      type: "image",
+      size: "9 MB",
+      owner: "Admin",
+      driveUrl: "https://drive.google.com/file/d/media-1/view",
+      fileId: "media-1",
+      mimeType: "image/png",
+      previewUrl: "https://drive.google.com/thumbnail?id=media-1",
+      embedUrl: "https://drive.google.com/file/d/media-1/preview",
+      updatedAt: "2026-04-28T00:00:00.000Z"
+    });
+
+    expect(media).toEqual({
+      id: "media-1",
+      name: "Public image",
+      type: "image",
+      size: "",
+      owner: "",
+      driveUrl: "https://drive.google.com/file/d/media-1/view",
+      previewUrl: "https://drive.google.com/thumbnail?id=media-1",
+      embedUrl: "https://drive.google.com/file/d/media-1/preview",
+      updatedAt: ""
+    });
+    expect(media).not.toHaveProperty("fileId");
+    expect(media).not.toHaveProperty("mimeType");
   });
 
   it("allows expected upload MIME types and rejects unknown or oversized uploads", () => {
