@@ -131,8 +131,10 @@ return {
 }
 
 describe("Apps Script route auth handling", () => {
-  it("returns unknown route for legacy GET users and does not read query authToken", () => {
+  it("does not treat GET users as a valid authenticated route", () => {
     const context = loadCodeScript();
+
+    expect(context.shouldReadAuthContext("GET", "users")).toBe(false);
 
     const result = context.routeRequest(
       {
@@ -208,9 +210,18 @@ describe("Apps Script route auth handling", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("does not read authToken from query parameters for any GET resource", () => {
+  it("never reads authToken from query parameters", () => {
+    const context = loadCodeScript();
+
+    expect(context.extractAuthToken({}, { authToken: "query-token" })).toBe("");
+    expect(context.extractAuthToken({ authToken: "" }, { authToken: "query-token" })).toBe("");
+    expect(context.extractAuthToken({ authToken: "body-token" }, { authToken: "query-token" })).toBe("body-token");
+  });
+
+  it("does not read auth context for any GET resource", () => {
     const context = loadCodeScript();
     const getResources = [
+      "",
       "snapshot",
       "health",
       "menu",
@@ -218,13 +229,12 @@ describe("Apps Script route auth handling", () => {
       "content-detail",
       "users",
       "users-delete",
-      "snapshot-admin"
+      "snapshot-admin",
+      "any-future-admin-route"
     ];
 
     getResources.forEach((resource) => {
       expect(context.shouldReadAuthContext("GET", resource)).toBe(false);
     });
-
-    expect(context.extractAuthToken({}, { authToken: "query-token" })).toBe("");
   });
 });
