@@ -43,6 +43,14 @@ const ALLOWED_EXACT_UPLOAD_MIME_TYPES = [
   "application/csv"
 ];
 
+const ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS = [
+  "drive.google.com",
+  "docs.google.com",
+  "youtube.com",
+  "www.youtube.com",
+  "youtu.be"
+];
+
 function getSnapshot(options) {
   const config = options || {};
   const includeUnpublished = Boolean(config.includeUnpublished);
@@ -95,9 +103,9 @@ function sanitizePublicMediaRecord(asset) {
     type: asset.type || "document",
     size: "",
     owner: "",
-    driveUrl: asset.driveUrl || "",
-    previewUrl: asset.previewUrl || "",
-    embedUrl: asset.embedUrl || "",
+    driveUrl: normalizePublicMediaUrlOrEmpty(asset.driveUrl),
+    previewUrl: normalizePublicMediaUrlOrEmpty(asset.previewUrl, ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS),
+    embedUrl: normalizePublicMediaUrlOrEmpty(asset.embedUrl, ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS),
     updatedAt: ""
   };
 }
@@ -141,7 +149,7 @@ function upsertContent(item) {
     tags: normalizedTags.join(","),
     seoTitle: item.seoTitle || "",
     seoDescription: item.seoDescription || "",
-    canonicalUrl: item.canonicalUrl || "",
+    canonicalUrl: normalizePublicMediaUrl(item.canonicalUrl || ""),
     featured: toSheetBoolean(item.featured),
     readingMinutes,
     template: item.template || "standard",
@@ -214,11 +222,17 @@ function upsertMedia(asset) {
   const spreadsheet = getSpreadsheet();
   const sheet = spreadsheet.getSheetByName(SHEETS.media);
   const uploadedFile = asset.fileBase64 ? createDriveFile(asset) : null;
-  const driveUrl = uploadedFile ? uploadedFile.getUrl() : asset.driveUrl || "";
+  const driveUrl = normalizePublicMediaUrl(uploadedFile ? uploadedFile.getUrl() : asset.driveUrl || "");
   const fileId = uploadedFile ? uploadedFile.getId() : asset.fileId || extractDriveFileId(driveUrl);
   const mimeType = uploadedFile ? uploadedFile.getMimeType() : asset.mimeType || "";
-  const previewUrl = asset.previewUrl || buildPreviewUrl(fileId, asset.type);
-  const embedUrl = asset.embedUrl || buildEmbedUrl(fileId);
+  const previewUrl = normalizePublicMediaUrl(
+    asset.previewUrl || buildPreviewUrl(fileId, asset.type),
+    ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS
+  );
+  const embedUrl = normalizePublicMediaUrl(
+    asset.embedUrl || buildEmbedUrl(fileId),
+    ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS
+  );
   const nextAsset = {
     id: asset.id || `media-${Date.now()}`,
     name: asset.name,
@@ -339,7 +353,7 @@ function normalizeContentRecord(item, options) {
     tags: normalizeTags(item.tags),
     seoTitle: item.seoTitle || "",
     seoDescription: item.seoDescription || "",
-    canonicalUrl: item.canonicalUrl || "",
+    canonicalUrl: normalizePublicMediaUrlOrEmpty(item.canonicalUrl),
     featured: normalizeSheetBoolean(item.featured),
     readingMinutes,
     template: item.template || "standard",
@@ -356,6 +370,8 @@ function sanitizePublicContentRecord(item, options) {
     ...item
   };
 
+  sanitized.canonicalUrl = normalizePublicMediaUrlOrEmpty(sanitized.canonicalUrl);
+
   delete sanitized.bodyDocId;
   delete sanitized.bodyDocUrl;
 
@@ -368,6 +384,54 @@ function sanitizePublicContentRecord(item, options) {
 
 function normalizeSlugValue(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function normalizePublicMediaUrl(url, allowedHosts) {
+  const value = String(url || "").trim();
+  const hostAllowlist = allowedHosts || [];
+
+  if (!value) {
+    return "";
+  }
+
+  if (/[\u0000-\u001F\u007F\s\\]/.test(value)) {
+    throw createHttpError("Invalid public URL.", 400);
+  }
+
+  const protocolMatch = value.match(/^([A-Za-z][A-Za-z0-9+.-]*):/);
+
+  if (!protocolMatch) {
+    throw createHttpError("Public URL must use https.", 400);
+  }
+
+  const protocol = `${protocolMatch[1].toLowerCase()}:`;
+
+  if (protocol !== "https:") {
+    throw createHttpError("Public URL must use https.", 400);
+  }
+
+  const hostMatch = value.match(/^https:\/\/([^/?#]+)(?:[/?#]|$)/i);
+
+  if (!hostMatch || !hostMatch[1] || hostMatch[1].indexOf("@") !== -1) {
+    throw createHttpError("Invalid public URL.", 400);
+  }
+
+  const hostname = hostMatch[1].split(":")[0].toLowerCase();
+
+  if (hostAllowlist.length && hostAllowlist.indexOf(hostname) === -1) {
+    throw createHttpError("Public media preview/embed URL host is not allowed.", 400);
+  }
+
+  return value;
+}
+
+function normalizePublicMediaUrlOrEmpty(url, allowedHosts) {
+  try {
+    return normalizePublicMediaUrl(url, allowedHosts);
+  } catch (error) {
+    console.warn(`Dropping unsafe public URL: ${error.message || error}`);
+    return "";
+  }
 }
 
 function validateContentType(value) {

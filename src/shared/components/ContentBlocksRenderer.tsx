@@ -2,22 +2,11 @@ import { Box, Button, Divider, Stack, Typography } from "@mui/material";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import { MediaAsset } from "../../types";
 import { ContentBlock } from "../../utils/contentBlocks";
-import { normalizeSafeHref } from "../../utils/safeUrl";
+import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 
 interface ContentBlocksRendererProps {
   blocks: ContentBlock[];
   mediaAssets: MediaAsset[];
-}
-
-function normalizeSafeMediaSrc(value: string | undefined) {
-  const href = normalizeSafeHref(value || "");
-  const lowerHref = href.toLowerCase();
-
-  if (href.startsWith("/") || lowerHref.startsWith("http://") || lowerHref.startsWith("https://")) {
-    return href;
-  }
-
-  return "";
 }
 
 export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBlocksRendererProps) {
@@ -87,7 +76,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
 
         if (block.type === "image") {
           const asset = mediaById.get(block.mediaId);
-          const safePreviewUrl = normalizeSafeMediaSrc(asset?.previewUrl);
+          const safePreviewUrl = normalizeSafeResourceUrl(asset?.previewUrl);
           if (!asset || !safePreviewUrl) {
             return null;
           }
@@ -111,7 +100,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
 
         if (block.type === "video") {
           const asset = mediaById.get(block.mediaId);
-          const safeEmbedUrl = normalizeSafeMediaSrc(asset?.embedUrl);
+          const safeEmbedUrl = normalizeSafeResourceUrl(asset?.embedUrl);
           if (!asset || !safeEmbedUrl) {
             return null;
           }

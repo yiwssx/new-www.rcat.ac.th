@@ -8,6 +8,7 @@ interface HttpError extends Error {
 interface CmsScriptContext {
   assertUniqueContentSlug: (sheet: unknown, contentId: string, normalizedSlug: string) => void;
   isAllowedUploadMimeType: (value: string) => boolean;
+  normalizePublicMediaUrl: (url: string, allowedHosts?: string[]) => string;
   normalizeSlugValue: (value: string) => string;
   resolveUploadMimeType: (asset: { mimeType?: string; fileBase64?: string }) => string;
   sanitizePublicContentRecord: (
@@ -38,6 +39,7 @@ function loadCmsScript() {
 return {
   assertUniqueContentSlug,
   isAllowedUploadMimeType,
+  normalizePublicMediaUrl,
   normalizeSlugValue,
   resolveUploadMimeType,
   sanitizePublicContentRecord,
@@ -97,12 +99,14 @@ describe("Apps Script CMS helpers", () => {
 
   it("scrubs document storage fields from public content records", () => {
     const context = loadCmsScript();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const item = {
       id: "content-1",
       title: "Public item",
       body: "Body text",
       bodyDocId: "doc-id",
       bodyDocUrl: "https://docs.google.com/document/d/doc-id",
+      canonicalUrl: "javascript:alert(1)",
       mediaIds: ["media-1"]
     };
 
@@ -110,12 +114,14 @@ describe("Apps Script CMS helpers", () => {
     expect(snapshotRecord).not.toHaveProperty("body");
     expect(snapshotRecord).not.toHaveProperty("bodyDocId");
     expect(snapshotRecord).not.toHaveProperty("bodyDocUrl");
+    expect(snapshotRecord.canonicalUrl).toBe("");
     expect(snapshotRecord.mediaIds).toEqual(["media-1"]);
 
     const detailRecord = context.sanitizePublicContentRecord(item, { includeBody: true });
     expect(detailRecord.body).toBe("Body text");
     expect(detailRecord).not.toHaveProperty("bodyDocId");
     expect(detailRecord).not.toHaveProperty("bodyDocUrl");
+    warnSpy.mockRestore();
   });
 
   it("reduces public media records to fields needed for rendering", () => {
@@ -147,6 +153,47 @@ describe("Apps Script CMS helpers", () => {
     });
     expect(media).not.toHaveProperty("fileId");
     expect(media).not.toHaveProperty("mimeType");
+  });
+
+  it("drops unsafe public media URLs from legacy sheet records", () => {
+    const context = loadCmsScript();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const media = context.sanitizePublicMediaRecord({
+      id: "media-1",
+      name: "Unsafe media",
+      type: "video",
+      driveUrl: "javascript:alert(1)",
+      previewUrl: "https://evil.example/preview",
+      embedUrl: "data:text/html,<script>alert(1)</script>"
+    });
+
+    expect(media.driveUrl).toBe("");
+    expect(media.previewUrl).toBe("");
+    expect(media.embedUrl).toBe("");
+    warnSpy.mockRestore();
+  });
+
+  it("normalizes public media URLs by protocol and host allowlist", () => {
+    const context = loadCmsScript();
+
+    expect(context.normalizePublicMediaUrl("https://example.edu/file.pdf")).toBe("https://example.edu/file.pdf");
+    expect(
+      context.normalizePublicMediaUrl("https://drive.google.com/file/d/media-1/preview", ["drive.google.com"])
+    ).toBe("https://drive.google.com/file/d/media-1/preview");
+    expect(
+      context.normalizePublicMediaUrl("https://www.youtube.com/embed/video-id", ["www.youtube.com"])
+    ).toBe("https://www.youtube.com/embed/video-id");
+
+    expect(captureError(() => context.normalizePublicMediaUrl("http://example.edu/file.pdf"))?.statusCode).toBe(400);
+    expect(captureError(() => context.normalizePublicMediaUrl("javascript:alert(1)"))?.statusCode).toBe(400);
+    expect(captureError(() => context.normalizePublicMediaUrl("data:text/html,test"))?.statusCode).toBe(400);
+    expect(captureError(() => context.normalizePublicMediaUrl("file:///tmp/file.pdf"))?.statusCode).toBe(400);
+    expect(captureError(() => context.normalizePublicMediaUrl("blob:https://example.edu/id"))?.statusCode).toBe(400);
+    expect(captureError(() => context.normalizePublicMediaUrl("vbscript:msgbox(1)"))?.statusCode).toBe(400);
+    expect(
+      captureError(() => context.normalizePublicMediaUrl("https://evil.example/preview", ["drive.google.com"]))
+        ?.statusCode
+    ).toBe(400);
   });
 
   it("allows expected upload MIME types and rejects unknown or oversized uploads", () => {

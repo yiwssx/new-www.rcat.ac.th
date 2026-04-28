@@ -25,3 +25,19 @@ export function normalizeSafeHref(value: string): string {
 
   return ALLOWED_PROTOCOLS.has(protocol) ? href : "#";
 }
+
+export function normalizeSafeResourceUrl(value: string | null | undefined): string {
+  const href = normalizeSafeHref(value || "");
+
+  if (href === "#") {
+    return "";
+  }
+
+  const lowerHref = href.toLowerCase();
+
+  if (href.startsWith("/") || lowerHref.startsWith("https://")) {
+    return href;
+  }
+
+  return "";
+}
