@@ -148,7 +148,9 @@ function updateDisplaySettings(input) {
   setSetting(SETTING_KEYS.timeDisplayMode, timeMode);
   ensureSettingsSheet(getSpreadsheet());
 
-  return getDisplaySettings();
+  const updatedSettings = getDisplaySettings();
+  invalidatePublicSnapshotCache();
+  return updatedSettings;
 }
 
 function ensureFolders() {
