@@ -21,10 +21,15 @@ import PublicTextSetting from "../../config/projectTextElementSetting";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTiktok } from '@fortawesome/free-brands-svg-icons';
 import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
+import { useDocumentMetadata } from "../../utils/seo";
 
 interface PublicSiteShellProps {
   title?: string;
   description?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  canonicalUrl?: string;
+  canonicalPath?: string;
   children: ReactNode;
   hidePageHeader?: boolean;
   disableMainContainer?: boolean;
@@ -36,6 +41,10 @@ const DEFAULT_PUBLIC_EMAIL = "saraban@rcat.ac.th";
 export default function PublicSiteShell({
   title,
   description,
+  seoTitle,
+  seoDescription,
+  canonicalUrl,
+  canonicalPath,
   children,
   hidePageHeader = false,
   disableMainContainer = false
@@ -43,6 +52,14 @@ export default function PublicSiteShell({
   const publicText = PublicTextSetting;
   const showPageHeader = !hidePageHeader && (Boolean(title) || Boolean(description));
   const siteName = getCmsSiteName() || publicText.siteName;
+  const defaultCanonicalPath = typeof window === "undefined" ? undefined : window.location.pathname;
+
+  useDocumentMetadata({
+    title: seoTitle ?? title,
+    description: seoDescription ?? description,
+    canonicalUrl,
+    canonicalPath: canonicalPath ?? defaultCanonicalPath
+  });
 
   return (
     <Box id="top" sx={{ minHeight: "100vh", bgcolor: "background.default" }} className="min-h-screen bg-rcat-soft-bg">
