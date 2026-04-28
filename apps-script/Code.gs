@@ -32,8 +32,7 @@ function routeRequest(event, method) {
     const resource = getResource(event);
     const payload = parsePayload(event);
     const query = getQueryParams(event);
-    const authQuery = method === "GET" ? query : {};
-    const authContext = shouldReadAuthContext(method, resource) ? getRequestAuthContext(payload, authQuery) : null;
+    const authContext = shouldReadAuthContext(method, resource) ? getRequestAuthContext(payload) : null;
 
     assertRouteAccess(method, resource, authContext);
 
@@ -73,12 +72,6 @@ function routeRequest(event, method) {
           includeUnpublished: false
         })
       );
-    }
-
-    if (method === "GET" && resource === "users") {
-      return jsonResponse({
-        items: getUsers()
-      });
     }
 
     if (method === "POST" && resource === "auth-login") {
@@ -182,10 +175,6 @@ function routeRequest(event, method) {
 }
 
 function shouldReadAuthContext(method, resource) {
-  if (method === "GET") {
-    return resource === "users";
-  }
-
   return method === "POST" && resource !== "auth-login";
 }
 
@@ -203,11 +192,6 @@ function assertRouteAccess(method, resource, authContext) {
   }
 
   if (method === "GET" && resource === "content-detail") {
-    return;
-  }
-
-  if (method === "GET" && resource === "users") {
-    requireMinimumRole(authContext, "admin");
     return;
   }
 
@@ -246,8 +230,8 @@ function getRoleRank(role) {
   return 0;
 }
 
-function getRequestAuthContext(payload, query) {
-  const token = extractAuthToken(payload, query);
+function getRequestAuthContext(payload) {
+  const token = extractAuthToken(payload);
 
   if (!token) {
     return null;
@@ -256,10 +240,9 @@ function getRequestAuthContext(payload, query) {
   return verifyAuthToken(token);
 }
 
-function extractAuthToken(payload, query) {
+function extractAuthToken(payload) {
   const payloadToken = payload && payload.authToken ? String(payload.authToken) : "";
-  const queryToken = query && query.authToken ? String(query.authToken) : "";
-  return payloadToken || queryToken || "";
+  return payloadToken || "";
 }
 
 function ensureAuthTokenSecret() {
