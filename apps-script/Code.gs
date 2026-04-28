@@ -38,11 +38,13 @@ function routeRequest(event, method) {
     assertRouteAccess(method, resource, authContext);
 
     if (method === "GET" && resource === "snapshot") {
-      return jsonResponse(
-        getSnapshot({
-          includeUnpublished: false
-        })
-      );
+      const snapshot = authContext
+        ? getSnapshot({
+            includeUnpublished: false
+          })
+        : getPublicSnapshotCached();
+
+      return jsonResponse(snapshot);
     }
 
     if (method === "GET" && resource === "health") {

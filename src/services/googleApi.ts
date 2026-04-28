@@ -22,6 +22,13 @@ type ApiEnvelope<T> = T & {
   statusCode?: number;
 };
 
+const cacheFriendlyPublicGetResources = new Set<GoogleResource>([
+  "snapshot",
+  "menu",
+  "displaySettings",
+  "contentDetail"
+]);
+
 let activeGoogleApiRequestCount = 0;
 const googleApiActivitySubscribers = new Set<GoogleApiActivitySubscriber>();
 
@@ -156,11 +163,14 @@ async function googleFetch<T>(
   const url = new URL(assertAppScriptUrl());
   url.searchParams.set("resource", resources[resource]);
   const method = init?.method ?? "GET";
+  const normalizedMethod = method.toUpperCase();
+  const isCacheFriendlyPublicGet =
+    normalizedMethod === "GET" && cacheFriendlyPublicGetResources.has(resource);
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
   const endGoogleApiRequest = beginGoogleApiRequest();
 
-  if (method.toUpperCase() === "GET") {
+  if (normalizedMethod === "GET" && !isCacheFriendlyPublicGet) {
     url.searchParams.set("_ts", String(Date.now()));
   }
 
@@ -173,11 +183,16 @@ async function googleFetch<T>(
   }
 
   try {
-    const response = await fetch(url, {
-      cache: "no-store",
+    const requestInit: RequestInit = {
       ...init,
       signal: controller.signal
-    });
+    };
+
+    if (!isCacheFriendlyPublicGet) {
+      requestInit.cache = "no-store";
+    }
+
+    const response = await fetch(url, requestInit);
 
     if (!response.ok) {
       throw new Error(`คำขอ Google API ล้มเหลวด้วยสถานะ ${response.status}`);

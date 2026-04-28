@@ -77,6 +77,11 @@ describe("googleApi integration", () => {
     expect(snapshot.content).toEqual([]);
     expect(snapshot.menu).toEqual([]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const requestUrl = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(requestUrl.searchParams.get("resource")).toBe("snapshot");
+    expect(requestUrl.searchParams.has("authToken")).toBe(false);
+    expect(requestUrl.searchParams.has("_ts")).toBe(false);
   });
 
   it("does not append authToken to authenticated GET request URLs", async () => {
@@ -90,6 +95,7 @@ describe("googleApi integration", () => {
     const requestUrl = new URL(String(fetchMock.mock.calls[0][0]));
     expect(requestUrl.searchParams.get("resource")).toBe("snapshot");
     expect(requestUrl.searchParams.has("authToken")).toBe(false);
+    expect(requestUrl.searchParams.has("_ts")).toBe(false);
     expect(requestUrl.toString()).not.toContain("authToken");
   });
 
@@ -105,6 +111,7 @@ describe("googleApi integration", () => {
     const parsedUrl = new URL(String(requestUrl));
     expect(parsedUrl.searchParams.get("resource")).toBe("snapshot-admin");
     expect(parsedUrl.searchParams.has("authToken")).toBe(false);
+    expect(parsedUrl.searchParams.has("_ts")).toBe(false);
     expect(init.method).toBe("POST");
     expect(init.headers).toEqual({
       "Content-Type": "text/plain;charset=utf-8"

@@ -139,6 +139,7 @@ function upsertContent(item) {
   };
 
   upsertRow(sheet, CONTENT_HEADERS, nextItem);
+  invalidatePublicSnapshotCache();
   return normalizeContentRecord({
     ...nextItem,
     body: normalizedBody
@@ -159,6 +160,7 @@ function deleteContent(id) {
   }
 
   deleteRowById(SHEETS.content, CONTENT_HEADERS, id);
+  invalidatePublicSnapshotCache();
 
   return {
     id,
@@ -216,6 +218,7 @@ function upsertMedia(asset) {
   };
 
   upsertRow(sheet, MEDIA_HEADERS, nextAsset);
+  invalidatePublicSnapshotCache();
   return nextAsset;
 }
 
@@ -233,6 +236,7 @@ function deleteMedia(id, deleteDriveFile) {
   }
 
   deleteRowById(SHEETS.media, MEDIA_HEADERS, id);
+  invalidatePublicSnapshotCache();
 
   return {
     id,
@@ -261,11 +265,13 @@ function upsertEvent(event) {
   };
 
   upsertRow(sheet, EVENT_HEADERS, nextEvent);
+  invalidatePublicSnapshotCache();
   return nextEvent;
 }
 
 function deleteEvent(id) {
   deleteRowById(SHEETS.events, EVENT_HEADERS, id);
+  invalidatePublicSnapshotCache();
 
   return {
     id,
@@ -289,6 +295,7 @@ function publishContent(id) {
     if (rows[index][idIndex] === id) {
       sheet.getRange(index + 1, statusIndex + 1).setValue("published");
       sheet.getRange(index + 1, updatedIndex + 1).setValue(new Date().toISOString());
+      invalidatePublicSnapshotCache();
       return {
         id,
         published: true

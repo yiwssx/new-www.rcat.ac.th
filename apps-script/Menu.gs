@@ -68,7 +68,9 @@ function replaceMenu(items) {
     sheet.getRange(2, 1, rows.length, MENU_HEADERS.length).setValues(rows);
   }
 
-  return getMenu();
+  const menu = getMenu();
+  invalidatePublicSnapshotCache();
+  return menu;
 }
 
 
