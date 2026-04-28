@@ -24,10 +24,19 @@ describe("normalizeSafeHref", () => {
     expect(normalizeSafeHref("news")).toBe("#");
   });
 
+  it("rejects backslash, control characters, and internal whitespace", () => {
+    expect(normalizeSafeHref("/\\evil.com")).toBe("#");
+    expect(normalizeSafeHref("https://example.com\\@evil.com")).toBe("#");
+    expect(normalizeSafeHref("https://example.com/a b")).toBe("#");
+    expect(normalizeSafeHref("https://example.com/a\tb")).toBe("#");
+    expect(normalizeSafeHref("https://example.com/a\u0000b")).toBe("#");
+  });
+
   it("normalizes image and iframe resource URLs", () => {
     expect(normalizeSafeResourceUrl("https://example.com/image.jpg")).toBe("https://example.com/image.jpg");
     expect(normalizeSafeResourceUrl("/media/image.jpg")).toBe("/media/image.jpg");
     expect(normalizeSafeResourceUrl("http://example.com/image.jpg")).toBe("");
+    expect(normalizeSafeResourceUrl("https://example.com\\image.jpg")).toBe("");
     expect(normalizeSafeResourceUrl("javascript:alert(1)")).toBe("");
     expect(normalizeSafeResourceUrl("data:text/html,test")).toBe("");
     expect(normalizeSafeResourceUrl("mailto:test@example.com")).toBe("");
