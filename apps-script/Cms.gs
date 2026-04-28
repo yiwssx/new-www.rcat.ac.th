@@ -55,7 +55,9 @@ function getSnapshot(options) {
   const visibleEvents = includeUnpublished
     ? events
     : events.filter((event) => event.visibility !== "private" && event.status !== "cancelled");
-  const visibleMedia = includeUnpublished ? media : filterMediaForPublicSnapshot(media, visibleContent);
+  const visibleMedia = includeUnpublished
+    ? media
+    : filterMediaForPublicSnapshot(media, visibleContent).map(sanitizePublicMediaRecord);
   const responseContent = includeUnpublished
     ? visibleContent
     : visibleContent.map((item) => sanitizePublicContentRecord(item));
@@ -84,6 +86,20 @@ function filterMediaForPublicSnapshot(media, content) {
   });
 
   return media.filter((asset) => Boolean(allowedIds[asset.id]));
+}
+
+function sanitizePublicMediaRecord(asset) {
+  return {
+    id: asset.id || "",
+    name: asset.name || "",
+    type: asset.type || "document",
+    size: "",
+    owner: "",
+    driveUrl: asset.driveUrl || "",
+    previewUrl: asset.previewUrl || "",
+    embedUrl: asset.embedUrl || "",
+    updatedAt: ""
+  };
 }
 
 function upsertContent(item) {
