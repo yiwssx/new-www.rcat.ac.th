@@ -7,6 +7,10 @@ export function normalizeSafeHref(value: string): string {
     return "#";
   }
 
+  if (/[\u0000-\u001F\u007F\s\\]/.test(href)) {
+    return "#";
+  }
+
   if (href.startsWith("#")) {
     return href;
   }
