@@ -3,7 +3,7 @@ import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import { ContentItem, MediaAsset } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
-import { normalizeSafeHref } from "../../utils/safeUrl";
+import { normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 
 interface PublicContentCardProps {
@@ -20,17 +20,6 @@ function normalizeCategories(value: string | undefined) {
     .filter(Boolean);
 }
 
-function normalizeSafeImageSrc(value: string | undefined) {
-  const href = normalizeSafeHref(value || "");
-  const lowerHref = href.toLowerCase();
-
-  if (href.startsWith("/") || lowerHref.startsWith("http://") || lowerHref.startsWith("https://")) {
-    return href;
-  }
-
-  return "";
-}
-
 export default function PublicContentCard({
   item,
   mediaAssets = [],
@@ -38,7 +27,7 @@ export default function PublicContentCard({
   featured = false
 }: PublicContentCardProps) {
   const featuredMedia = mediaAssets.find((asset) => asset.id === item.featuredMediaId);
-  const featuredMediaPreviewUrl = normalizeSafeImageSrc(featuredMedia?.previewUrl);
+  const featuredMediaPreviewUrl = normalizeSafeResourceUrl(featuredMedia?.previewUrl);
   const categories = normalizeCategories(item.category);
 
   return (

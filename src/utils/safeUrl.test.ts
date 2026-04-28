@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSafeHref } from "./safeUrl";
+import { normalizeSafeHref, normalizeSafeResourceUrl } from "./safeUrl";
 
 describe("normalizeSafeHref", () => {
   it("rejects dangerous protocols", () => {
@@ -22,5 +22,14 @@ describe("normalizeSafeHref", () => {
     expect(normalizeSafeHref("ftp://example.com/file.txt")).toBe("#");
     expect(normalizeSafeHref("//example.com/path")).toBe("#");
     expect(normalizeSafeHref("news")).toBe("#");
+  });
+
+  it("normalizes image and iframe resource URLs", () => {
+    expect(normalizeSafeResourceUrl("https://example.com/image.jpg")).toBe("https://example.com/image.jpg");
+    expect(normalizeSafeResourceUrl("/media/image.jpg")).toBe("/media/image.jpg");
+    expect(normalizeSafeResourceUrl("http://example.com/image.jpg")).toBe("");
+    expect(normalizeSafeResourceUrl("javascript:alert(1)")).toBe("");
+    expect(normalizeSafeResourceUrl("data:text/html,test")).toBe("");
+    expect(normalizeSafeResourceUrl("mailto:test@example.com")).toBe("");
   });
 });

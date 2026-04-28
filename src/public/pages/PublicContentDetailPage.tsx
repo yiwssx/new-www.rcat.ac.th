@@ -23,7 +23,7 @@ import PublicSiteShell from "../components/PublicSiteShell";
 import { getCmsSnapshot, getContentDetail } from "../../services/googleApi";
 import { parseContentBodyToBlocks } from "../../utils/contentBlocks";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
-import { normalizeSafeHref } from "../../utils/safeUrl";
+import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 
 interface PublicContentDetailPageProps {
@@ -71,17 +71,6 @@ function getReturnPath(type: string) {
   return "/news";
 }
 
-function normalizeSafePublicResourceUrl(value: string | undefined) {
-  const href = normalizeSafeHref(value || "");
-  const lowerHref = href.toLowerCase();
-
-  if (href.startsWith("/") || lowerHref.startsWith("http://") || lowerHref.startsWith("https://")) {
-    return href;
-  }
-
-  return "";
-}
-
 function getSafeMediaHref(asset: { driveUrl?: string; previewUrl?: string; embedUrl?: string }) {
   const candidates = [asset.driveUrl, asset.previewUrl, asset.embedUrl];
 
@@ -118,8 +107,8 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   const mediaAssets = data?.media ?? [];
   const contentBlocks = useMemo(() => parseContentBodyToBlocks(item?.body), [item?.body]);
   const featuredMedia = mediaAssets.find((asset) => asset.id === item?.featuredMediaId);
-  const featuredMediaPreviewUrl = normalizeSafePublicResourceUrl(featuredMedia?.previewUrl);
-  const featuredMediaEmbedUrl = normalizeSafePublicResourceUrl(featuredMedia?.embedUrl);
+  const featuredMediaPreviewUrl = normalizeSafeResourceUrl(featuredMedia?.previewUrl);
+  const featuredMediaEmbedUrl = normalizeSafeResourceUrl(featuredMedia?.embedUrl);
   const canonicalHref = normalizeSafeHref(item?.canonicalUrl || "");
   const attachedMedia = mediaAssets.filter((asset) => item?.mediaIds?.includes(asset.id));
   const relatedItems = useMemo(() => {
