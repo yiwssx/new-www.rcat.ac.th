@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { getPublicSiteUrl, projectSettings } from "../config/projectSettings";
+import { normalizeSafeHref } from "./safeUrl";
 
 interface DocumentMetadataInput {
   title?: string;
@@ -89,18 +90,29 @@ function getOrCreateCanonicalLink() {
   return link;
 }
 
+function isCanonicalHref(value: string) {
+  const lowerValue = value.toLowerCase();
+  return value.startsWith("/") || lowerValue.startsWith("http://") || lowerValue.startsWith("https://");
+}
+
 function resolveCanonicalUrl(input: DocumentMetadataInput) {
-  const canonical = input.canonicalUrl?.trim() || input.canonicalPath?.trim();
+  const candidates = [input.canonicalUrl, input.canonicalPath];
 
-  if (!canonical) {
-    return "";
+  for (const candidate of candidates) {
+    const canonical = normalizeSafeHref(candidate || "");
+
+    if (!isCanonicalHref(canonical)) {
+      continue;
+    }
+
+    try {
+      return new URL(canonical, `${getCanonicalBaseUrl()}/`).toString();
+    } catch {
+      continue;
+    }
   }
 
-  try {
-    return new URL(canonical, `${getCanonicalBaseUrl()}/`).toString();
-  } catch {
-    return "";
-  }
+  return "";
 }
 
 export function updateDocumentMetadata(input: DocumentMetadataInput) {
