@@ -125,13 +125,15 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
 
         if (block.type === "button") {
           const safeHref = normalizeSafeHref(block.href);
+          const isValidHref = safeHref !== "#";
+
 
           return (
             <Box key={block.id}>
               <Button
-                component="a"
-                href={safeHref}
-                target="_blank"
+                component={isValidHref ? "a" : "button"}
+                href={isValidHref ? safeHref : undefined}
+                disabled={!isValidHref}
                 rel="noreferrer"
                 variant={block.variant}
               >
