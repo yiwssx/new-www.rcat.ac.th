@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build": "node scripts/generate-sitemap.mjs && tsc --noEmit -p tsconfig.json && vite build",
+    "generate:sitemap": "node scripts/generate-sitemap.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:unit": "vitest run --exclude src/test/integration/**",

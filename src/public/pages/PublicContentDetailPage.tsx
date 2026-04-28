@@ -149,7 +149,14 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   }
 
   return (
-    <PublicSiteShell title={item.title} description={item.summary}>
+    <PublicSiteShell
+      title={item.title}
+      description={item.summary}
+      seoTitle={item.seoTitle || item.title}
+      seoDescription={item.seoDescription || item.summary}
+      canonicalUrl={item.canonicalUrl}
+      canonicalPath={`/content/${item.slug || slug || ""}`}
+    >
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, lg: 8 }}>
           <Card>

@@ -236,7 +236,7 @@ export default function PublicHomePage() {
   );
 
   return (
-    <PublicSiteShell hidePageHeader disableMainContainer>
+    <PublicSiteShell hidePageHeader disableMainContainer seoDescription={publicText.intro} canonicalPath="/">
       {isLoading && <LinearProgress />}
       <Container maxWidth="xl">
           <Grid container spacing={3.2}>
