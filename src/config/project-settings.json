@@ -12,10 +12,12 @@
     "googleAppsScriptUrlEnv": "VITE_GOOGLE_APPS_SCRIPT_URL",
     "resources": {
       "snapshot": "snapshot",
+      "adminSnapshot": "snapshot-admin",
       "health": "health",
       "authLogin": "auth-login",
       "content": "content",
       "contentDetail": "content-detail",
+      "adminContentDetail": "content-detail-admin",
       "deleteContent": "content-delete",
       "media": "media",
       "deleteMedia": "media-delete",

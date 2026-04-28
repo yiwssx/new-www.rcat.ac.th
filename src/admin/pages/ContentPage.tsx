@@ -39,8 +39,8 @@ import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
 import {
   deleteContentItem,
-  getContentDetail,
-  getCmsSnapshot,
+  getAdminCmsSnapshot,
+  getAdminContentDetail,
   publishContent,
   saveContentItem,
   saveMediaAsset,
@@ -63,8 +63,8 @@ function waitForDialogTransition() {
 export default function ContentPage() {
   const queryClient = useQueryClient();
   const { data, error, isError, isLoading } = useQuery({
-    queryKey: ["cms-snapshot"],
-    queryFn: getCmsSnapshot
+    queryKey: ["cms-snapshot", "admin"],
+    queryFn: getAdminCmsSnapshot
   });
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<FilterStatus>("all");
@@ -108,7 +108,7 @@ export default function ContentPage() {
     setLoadingEditorItem(true);
 
     try {
-      const detail = await getContentDetail({ id: item.id });
+      const detail = await getAdminContentDetail({ id: item.id });
       setSelectedItem(detail);
       setEditorOpen(true);
     } catch (error) {

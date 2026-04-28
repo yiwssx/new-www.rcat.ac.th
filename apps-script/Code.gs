@@ -32,14 +32,15 @@ function routeRequest(event, method) {
     const resource = getResource(event);
     const payload = parsePayload(event);
     const query = getQueryParams(event);
-    const authContext = getRequestAuthContext(payload, query);
+    const authQuery = method === "GET" ? query : {};
+    const authContext = shouldReadAuthContext(method, resource) ? getRequestAuthContext(payload, authQuery) : null;
 
     assertRouteAccess(method, resource, authContext);
 
     if (method === "GET" && resource === "snapshot") {
       return jsonResponse(
         getSnapshot({
-          includeUnpublished: Boolean(authContext)
+          includeUnpublished: false
         })
       );
     }
@@ -67,7 +68,7 @@ function routeRequest(event, method) {
     if (method === "GET" && resource === "content-detail") {
       return jsonResponse(
         getContentDetail(query, {
-          includeUnpublished: Boolean(authContext)
+          includeUnpublished: false
         })
       );
     }
@@ -80,6 +81,24 @@ function routeRequest(event, method) {
 
     if (method === "POST" && resource === "auth-login") {
       return jsonResponse(loginUser(payload));
+    }
+
+    if (method === "POST" && resource === "snapshot-admin") {
+      requireMinimumRole(authContext, "editor");
+      return jsonResponse(
+        getSnapshot({
+          includeUnpublished: true
+        })
+      );
+    }
+
+    if (method === "POST" && resource === "content-detail-admin") {
+      requireMinimumRole(authContext, "editor");
+      return jsonResponse(
+        getContentDetail(payload, {
+          includeUnpublished: true
+        })
+      );
     }
 
     if (method === "POST" && resource === "content") {
@@ -121,6 +140,12 @@ function routeRequest(event, method) {
     }
 
     if (method === "POST" && resource === "users") {
+      if (payload.action === "list") {
+        return jsonResponse({
+          items: getUsers()
+        });
+      }
+
       return jsonResponse(upsertUser(payload));
     }
 
@@ -152,6 +177,14 @@ function routeRequest(event, method) {
       statusCode
     );
   }
+}
+
+function shouldReadAuthContext(method, resource) {
+  if (method === "GET") {
+    return resource === "users";
+  }
+
+  return method === "POST" && resource !== "auth-login";
 }
 
 function assertRouteAccess(method, resource, authContext) {

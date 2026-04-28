@@ -172,11 +172,6 @@ async function googleFetch<T>(
     });
   }
 
-  const authToken = readStoredSessionToken();
-  if (authToken && method.toUpperCase() === "GET" && resource !== "health") {
-    url.searchParams.set("authToken", authToken);
-  }
-
   try {
     const response = await fetch(url, {
       cache: "no-store",
@@ -235,14 +230,24 @@ export async function loginUserFromApi(email: string, password: string): Promise
 export async function getCmsSnapshot(): Promise<CmsSnapshot> {
   const snapshot = await googleFetch<CmsSnapshot>("snapshot");
 
+  persistSnapshotDisplaySettings(snapshot);
+  return snapshot;
+}
+
+export async function getAdminCmsSnapshot(): Promise<CmsSnapshot> {
+  const snapshot = await postJson<CmsSnapshot>("adminSnapshot", {});
+
+  persistSnapshotDisplaySettings(snapshot);
+  return snapshot;
+}
+
+function persistSnapshotDisplaySettings(snapshot: CmsSnapshot) {
   if (typeof window !== "undefined" && snapshot.displaySettings) {
     window.localStorage.setItem(
       projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings",
       JSON.stringify(snapshot.displaySettings)
     );
   }
-
-  return snapshot;
 }
 
 export async function saveContentItem(item: ContentItem): Promise<ContentItem> {
@@ -254,6 +259,10 @@ export async function getContentDetail(input: { id?: string; slug?: string }): P
     id: input.id,
     slug: input.slug
   });
+}
+
+export async function getAdminContentDetail(input: { id?: string; slug?: string }): Promise<ContentItem> {
+  return postJson<ContentItem>("adminContentDetail", input);
 }
 
 export async function deleteContentItem(id: string): Promise<{ id: string; deleted: boolean }> {
@@ -303,7 +312,7 @@ export async function saveDisplaySettingsToApi(settings: Partial<DisplaySettings
 }
 
 export async function getUserAccountsFromApi(): Promise<UserAccount[]> {
-  const response = await googleFetch<{ items: UserAccount[] }>("users");
+  const response = await postJson<{ items: UserAccount[] }>("users", { action: "list" });
   return response.items;
 }
 
