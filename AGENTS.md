@@ -48,6 +48,7 @@
 - Follow existing semicolon style.
 - Prefer functional React patterns and small service helpers.
 - Keep settings in JSON/properties; keep behavior in services/components.
+- Do not arbitrarily rewrite Thai copy, Thai HTML/JSX text, or localized content context; edit it only when explicitly requested or required for the bug.
 
 ## Token Usage Guardrails
 - Keep plans short and actionable.

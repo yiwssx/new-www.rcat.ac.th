@@ -41,6 +41,11 @@ Script Properties instead of hard-coded values in `Code.gs`.
    - `Config.gs`
    - `ScriptProperties.gs`
    - `Code.gs`
+   - `Cms.gs`
+   - `Menu.gs`
+   - `Users.gs`
+   - `Storage.gs`
+   - `HttpUtils.gs`
 3. Open Project Settings, enable `Show appsscript.json manifest file in editor`, then copy `appsscript.json` into the manifest file.
 4. Open Project Settings > Script Properties and optionally set:
    - `publicSiteUrl`
