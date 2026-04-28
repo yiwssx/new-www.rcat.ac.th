@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
+import projectSettings from "../../src/config/project-settings.json" with { type: "json" };
 
 test("public home route renders", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: /RCAT/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: projectSettings.site.name })).toBeVisible();
 });
 
 test("admin route redirects to login for unauthenticated users", async ({ page }) => {

@@ -7,27 +7,27 @@ import {
   createRoute,
   createRouter
 } from "@tanstack/react-router";
-import AdminActionProgress from "./components/AdminActionProgress";
-import { VercelInsights } from "./components/VercelInsights";
+import AdminActionProgress from "./admin/components/AdminActionProgress";
+import { VercelInsights } from "./shared/components/VercelInsights";
 import { useAuth } from "./context/AuthContext";
 
-const CalendarPage = lazy(() => import("./pages/CalendarPage"));
-const CmsShell = lazy(() => import("./layout/CmsShell"));
-const ContentPage = lazy(() => import("./pages/ContentPage"));
-const DashboardPage = lazy(() => import("./pages/DashboardPage"));
-const IntegrationsPage = lazy(() => import("./pages/IntegrationsPage"));
-const LoginPage = lazy(() => import("./pages/LoginPage"));
-const MediaPage = lazy(() => import("./pages/MediaPage"));
-const MenuPage = lazy(() => import("./pages/MenuPage"));
-const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
-const PublicAnnouncementsPage = lazy(() => import("./pages/PublicAnnouncementsPage"));
-const PublicBlogPage = lazy(() => import("./pages/PublicBlogPage"));
-const PublicContactPage = lazy(() => import("./pages/PublicContactPage"));
-const PublicContentDetailPage = lazy(() => import("./pages/PublicContentDetailPage"));
-const PublicDepartmentsPage = lazy(() => import("./pages/PublicDepartmentsPage"));
-const PublicHomePage = lazy(() => import("./pages/PublicHomePage"));
-const PublicNewsPage = lazy(() => import("./pages/PublicNewsPage"));
-const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const CalendarPage = lazy(() => import("./admin/pages/CalendarPage"));
+const CmsShell = lazy(() => import("./admin/layout/CmsShell"));
+const ContentPage = lazy(() => import("./admin/pages/ContentPage"));
+const DashboardPage = lazy(() => import("./admin/pages/DashboardPage"));
+const IntegrationsPage = lazy(() => import("./admin/pages/IntegrationsPage"));
+const LoginPage = lazy(() => import("./admin/pages/LoginPage"));
+const MediaPage = lazy(() => import("./admin/pages/MediaPage"));
+const MenuPage = lazy(() => import("./admin/pages/MenuPage"));
+const NotFoundPage = lazy(() => import("./shared/pages/NotFoundPage"));
+const PublicAnnouncementsPage = lazy(() => import("./public/pages/PublicAnnouncementsPage"));
+const PublicBlogPage = lazy(() => import("./public/pages/PublicBlogPage"));
+const PublicContactPage = lazy(() => import("./public/pages/PublicContactPage"));
+const PublicContentDetailPage = lazy(() => import("./public/pages/PublicContentDetailPage"));
+const PublicDepartmentsPage = lazy(() => import("./public/pages/PublicDepartmentsPage"));
+const PublicHomePage = lazy(() => import("./public/pages/PublicHomePage"));
+const PublicNewsPage = lazy(() => import("./public/pages/PublicNewsPage"));
+const SettingsPage = lazy(() => import("./admin/pages/SettingsPage"));
 
 function RouteFallback() {
   return (

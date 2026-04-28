@@ -1,0 +1,143 @@
+import { Box, Button, Divider, Stack, Typography } from "@mui/material";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import { MediaAsset } from "../../types";
+import { ContentBlock } from "../../utils/contentBlocks";
+
+interface ContentBlocksRendererProps {
+  blocks: ContentBlock[];
+  mediaAssets: MediaAsset[];
+}
+
+export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBlocksRendererProps) {
+  if (!blocks.length) {
+    return null;
+  }
+
+  const mediaById = new Map(mediaAssets.map((asset) => [asset.id, asset]));
+
+  return (
+    <Stack spacing={2.25}>
+      {blocks.map((block) => {
+        if (block.type === "paragraph") {
+          return (
+            <Typography key={block.id} sx={{ whiteSpace: "pre-line" }}>
+              {block.text}
+            </Typography>
+          );
+        }
+
+        if (block.type === "heading") {
+          const variant = block.level === 2 ? "h3" : block.level === 3 ? "h4" : "h5";
+          return (
+            <Typography key={block.id} variant={variant}>
+              {block.text}
+            </Typography>
+          );
+        }
+
+        if (block.type === "quote") {
+          return (
+            <Box
+              key={block.id}
+              sx={{
+                borderLeft: "4px solid",
+                borderColor: "primary.main",
+                pl: 2,
+                py: 0.5,
+                bgcolor: "rgba(31, 90, 44, 0.04)",
+                borderRadius: "0 10px 10px 0"
+              }}
+            >
+              <Typography sx={{ fontStyle: "italic", mb: block.citation ? 0.75 : 0 }}>
+                {block.text}
+              </Typography>
+              {block.citation && (
+                <Typography variant="body2" color="text.secondary">
+                  {block.citation}
+                </Typography>
+              )}
+            </Box>
+          );
+        }
+
+        if (block.type === "checklist") {
+          return (
+            <Stack key={block.id} spacing={0.75}>
+              {block.items.map((item) => (
+                <Stack key={`${block.id}-${item}`} direction="row" spacing={1} alignItems="flex-start">
+                  <CheckCircleOutlineOutlinedIcon sx={{ fontSize: 19, mt: 0.15, color: "primary.main" }} />
+                  <Typography>{item}</Typography>
+                </Stack>
+              ))}
+            </Stack>
+          );
+        }
+
+        if (block.type === "image") {
+          const asset = mediaById.get(block.mediaId);
+          if (!asset || !asset.previewUrl) {
+            return null;
+          }
+
+          return (
+            <Box key={block.id}>
+              <Box
+                component="img"
+                src={asset.previewUrl}
+                alt={block.caption || asset.name}
+                sx={{ width: "100%", borderRadius: 2, maxHeight: 460, objectFit: "cover" }}
+              />
+              {(block.caption || asset.name) && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+                  {block.caption || asset.name}
+                </Typography>
+              )}
+            </Box>
+          );
+        }
+
+        if (block.type === "video") {
+          const asset = mediaById.get(block.mediaId);
+          if (!asset || !asset.embedUrl) {
+            return null;
+          }
+
+          return (
+            <Box key={block.id}>
+              <Box
+                component="iframe"
+                title={asset.name}
+                src={asset.embedUrl}
+                sx={{ width: "100%", height: { xs: 240, md: 390 }, border: 0, borderRadius: 2 }}
+                allow="autoplay"
+              />
+              {(block.caption || asset.name) && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+                  {block.caption || asset.name}
+                </Typography>
+              )}
+            </Box>
+          );
+        }
+
+        if (block.type === "button") {
+          return (
+            <Box key={block.id}>
+              <Button
+                component="a"
+                href={block.href}
+                target="_blank"
+                rel="noreferrer"
+                variant={block.variant}
+              >
+                {block.label}
+              </Button>
+            </Box>
+          );
+        }
+
+        return <Divider key={block.id} />;
+      })}
+    </Stack>
+  );
+}
