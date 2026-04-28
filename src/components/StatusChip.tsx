@@ -1,36 +1,37 @@
 import { Chip, ChipProps } from "@mui/material";
 import { ContentStatus, IntegrationState } from "../types";
+import { contentStatusLabels, integrationStateLabels } from "../utils/thaiLabels";
 
 const contentStatusMeta: Record<ContentStatus, { label: string; color: ChipProps["color"] }> = {
   draft: {
-    label: "Draft",
+    label: contentStatusLabels.draft,
     color: "default"
   },
   review: {
-    label: "Review",
+    label: contentStatusLabels.review,
     color: "warning"
   },
   scheduled: {
-    label: "Scheduled",
+    label: contentStatusLabels.scheduled,
     color: "secondary"
   },
   published: {
-    label: "Published",
+    label: contentStatusLabels.published,
     color: "success"
   }
 };
 
 const integrationStatusMeta: Record<IntegrationState, { label: string; color: ChipProps["color"] }> = {
   connected: {
-    label: "Connected",
+    label: integrationStateLabels.connected,
     color: "success"
   },
   pending: {
-    label: "Pending",
+    label: integrationStateLabels.pending,
     color: "warning"
   },
   error: {
-    label: "Error",
+    label: integrationStateLabels.error,
     color: "error"
   }
 };

@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useState } from "react";
+import { useQuery,
+  useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -10,7 +12,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid,
   IconButton,
   MenuItem,
   Stack,
@@ -18,6 +19,7 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -32,6 +34,7 @@ import {
 } from "../services/users";
 import { User, UserAccount } from "../types";
 import { appSwal } from "../utils/swal";
+import { userRoleLabels, userStatusLabels } from "../utils/thaiLabels";
 
 type UserRole = User["role"];
 type UserStatus = UserAccount["status"];
@@ -104,9 +107,9 @@ export default function UserManagementCard() {
     if (!form.name.trim() || !form.email.trim()) {
       await appSwal.fire({
         icon: "error",
-        title: "Missing user details",
-        text: "Name and email are required.",
-        confirmButtonText: "OK"
+        title: "ข้อมูลผู้ใช้ไม่ครบ",
+        text: "ต้องระบุชื่อและอีเมล",
+        confirmButtonText: "ตกลง"
       });
       return;
     }
@@ -114,9 +117,9 @@ export default function UserManagementCard() {
     if (!isEditing && form.password.length < 6) {
       await appSwal.fire({
         icon: "error",
-        title: "Password required",
-        text: "New users need a password with at least 6 characters.",
-        confirmButtonText: "OK"
+        title: "ต้องระบุรหัสผ่าน",
+        text: "ผู้ใช้ใหม่ต้องมีรหัสผ่านอย่างน้อย 6 ตัวอักษร",
+        confirmButtonText: "ตกลง"
       });
       return;
     }
@@ -124,9 +127,9 @@ export default function UserManagementCard() {
     if (isEditing && form.password && form.password.length < 6) {
       await appSwal.fire({
         icon: "error",
-        title: "Password too short",
-        text: "Use at least 6 characters, or leave the password blank.",
-        confirmButtonText: "OK"
+        title: "รหัสผ่านสั้นเกินไป",
+        text: "ใช้รหัสผ่านอย่างน้อย 6 ตัวอักษร หรือเว้นว่างเพื่อใช้รหัสผ่านเดิม",
+        confirmButtonText: "ตกลง"
       });
       return;
     }
@@ -149,7 +152,7 @@ export default function UserManagementCard() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: isEditing ? "User updated" : "User added",
+        title: isEditing ? "อัปเดตผู้ใช้แล้ว" : "เพิ่มผู้ใช้แล้ว",
         showConfirmButton: false,
         timer: 1400,
         timerProgressBar: true
@@ -157,9 +160,9 @@ export default function UserManagementCard() {
     } catch (error) {
       await appSwal.fire({
         icon: "error",
-        title: "Unable to save user",
-        text: error instanceof Error ? error.message : "Please check the user details.",
-        confirmButtonText: "OK"
+        title: "ไม่สามารถบันทึกผู้ใช้ได้",
+        text: error instanceof Error ? error.message : "กรุณาตรวจสอบข้อมูลผู้ใช้",
+        confirmButtonText: "ตกลง"
       });
     }
   }
@@ -168,20 +171,20 @@ export default function UserManagementCard() {
     if (session?.user.id === user.id) {
       await appSwal.fire({
         icon: "error",
-        title: "Cannot remove yourself",
-        text: "Sign in as another administrator before removing this account.",
-        confirmButtonText: "OK"
+        title: "ไม่สามารถลบบัญชีของตนเองได้",
+        text: "กรุณาเข้าสู่ระบบด้วยผู้ดูแลระบบอีกบัญชีก่อนลบบัญชีนี้",
+        confirmButtonText: "ตกลง"
       });
       return;
     }
 
     const result = await appSwal.fire({
-      title: "Remove user?",
+      title: "ลบผู้ใช้?",
       text: user.email,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Remove",
-      cancelButtonText: "Cancel"
+      confirmButtonText: "ลบ",
+      cancelButtonText: "ยกเลิก"
     });
 
     if (!result.isConfirmed) {
@@ -195,7 +198,7 @@ export default function UserManagementCard() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "User removed",
+        title: "ลบผู้ใช้แล้ว",
         showConfirmButton: false,
         timer: 1400,
         timerProgressBar: true
@@ -203,21 +206,21 @@ export default function UserManagementCard() {
     } catch (error) {
       await appSwal.fire({
         icon: "error",
-        title: "Unable to remove user",
-        text: error instanceof Error ? error.message : "Please try again.",
-        confirmButtonText: "OK"
+        title: "ไม่สามารถลบผู้ใช้ได้",
+        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
       });
     }
   }
 
   async function handleResetUsers() {
     const result = await appSwal.fire({
-      title: "Reset users?",
-      text: "This restores the configured bootstrap user accounts.",
+      title: "รีเซ็ตผู้ใช้?",
+      text: "การดำเนินการนี้จะกู้คืนบัญชีผู้ใช้เริ่มต้นที่ตั้งค่าไว้",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Reset",
-      cancelButtonText: "Cancel"
+      confirmButtonText: "รีเซ็ต",
+      cancelButtonText: "ยกเลิก"
     });
 
     if (!result.isConfirmed) {
@@ -230,7 +233,7 @@ export default function UserManagementCard() {
       toast: true,
       position: "top-end",
       icon: "success",
-      title: "Users reset",
+      title: "รีเซ็ตผู้ใช้แล้ว",
       showConfirmButton: false,
       timer: 1400,
       timerProgressBar: true
@@ -251,11 +254,11 @@ export default function UserManagementCard() {
             <Stack direction="row" alignItems="center" spacing={1.5}>
               <ManageAccountsOutlinedIcon color="primary" />
               <Box>
-                <Typography variant="h3">Users</Typography>
+                <Typography variant="h3">ผู้ใช้</Typography>
                 <Typography color="text.secondary">
                   {isAdmin
-                    ? "Add, edit, disable, and remove CMS user accounts."
-                    : "Only administrator accounts can manage CMS users."}
+                    ? "เพิ่ม แก้ไข ปิดใช้งาน และลบบัญชีผู้ใช้ CMS"
+                    : "เฉพาะบัญชีผู้ดูแลระบบเท่านั้นที่จัดการผู้ใช้ CMS ได้"}
                 </Typography>
               </Box>
             </Stack>
@@ -267,10 +270,10 @@ export default function UserManagementCard() {
                   startIcon={<RestartAltOutlinedIcon />}
                   onClick={() => void handleResetUsers()}
                 >
-                  Reset users
+                  รีเซ็ตผู้ใช้
                 </Button>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
-                  Add user
+                  เพิ่มผู้ใช้
                 </Button>
               </Stack>
             )}
@@ -278,19 +281,19 @@ export default function UserManagementCard() {
           {isAdmin ? (
             <Grid container spacing={1.5}>
               {usersQuery.isLoading && (
-                <Grid item xs={12}>
-                  <Typography color="text.secondary">Processing user list...</Typography>
+                <Grid size={{ xs: 12 }}>
+                  <Typography color="text.secondary">กำลังโหลดรายชื่อผู้ใช้...</Typography>
                 </Grid>
               )}
               {usersQuery.isError && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography color="error">
-                    {usersQuery.error instanceof Error ? usersQuery.error.message : "Unable to load users."}
+                    {usersQuery.error instanceof Error ? usersQuery.error.message : "ไม่สามารถโหลดผู้ใช้ได้"}
                   </Typography>
                 </Grid>
               )}
               {users.map((user) => (
-                <Grid item xs={12} md={6} xl={4} key={user.id}>
+                <Grid size={{ xs: 12, md: 6, xl: 4 }} key={user.id}>
                   <Box
                     sx={{
                       height: "100%",
@@ -309,9 +312,9 @@ export default function UserManagementCard() {
                           {user.email}
                         </Typography>
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1.2 }}>
-                          <Chip label={user.role} size="small" sx={{ textTransform: "capitalize" }} />
+                          <Chip label={userRoleLabels[user.role]} size="small" />
                           <Chip
-                            label={user.status}
+                            label={userStatusLabels[user.status]}
                             size="small"
                             color={user.status === "active" ? "success" : "default"}
                             sx={{ textTransform: "capitalize" }}
@@ -319,15 +322,15 @@ export default function UserManagementCard() {
                         </Stack>
                       </Box>
                       <Stack direction="row" spacing={0.5}>
-                        <Tooltip title="Edit user">
-                          <IconButton aria-label="Edit user" size="small" onClick={() => handleEdit(user)}>
+                        <Tooltip title="แก้ไขผู้ใช้">
+                          <IconButton aria-label="แก้ไขผู้ใช้" size="small" onClick={() => handleEdit(user)}>
                             <EditOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Remove user">
+                        <Tooltip title="ลบผู้ใช้">
                           <span>
                             <IconButton
-                              aria-label="Remove user"
+                              aria-label="ลบผู้ใช้"
                               size="small"
                               color="error"
                               disabled={session?.user.id === user.id}
@@ -352,27 +355,27 @@ export default function UserManagementCard() {
                 border: "1px solid rgba(31, 90, 44, 0.12)"
               }}
             >
-              <Typography fontWeight={800}>Admin access required</Typography>
+              <Typography fontWeight={800}>ต้องใช้สิทธิ์ผู้ดูแลระบบ</Typography>
               <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
-                Your current role is {session?.user.role ?? "unknown"}. User management is restricted to admins.
+                บทบาทปัจจุบันคือ {session?.user.role ? userRoleLabels[session.user.role] : "ไม่ทราบ"} การจัดการผู้ใช้จำกัดเฉพาะผู้ดูแลระบบ
               </Typography>
             </Box>
           )}
         </CardContent>
       </Card>
       <Dialog open={dialogOpen} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>{isEditing ? "Edit user" : "Add user"}</DialogTitle>
+        <DialogTitle>{isEditing ? "แก้ไขผู้ใช้" : "เพิ่มผู้ใช้"}</DialogTitle>
         <DialogContent>
           <Stack spacing={2.2} sx={{ pt: 1 }}>
             <TextField
-              label="Name"
+              label="ชื่อ"
               value={form.name}
               onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
               fullWidth
               required
             />
             <TextField
-              label="Email"
+              label="อีเมล"
               type="email"
               value={form.email}
               onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
@@ -380,9 +383,9 @@ export default function UserManagementCard() {
               required
             />
             <Grid container spacing={1.5}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
-                  label="Role"
+                  label="บทบาท"
                   value={form.role}
                   onChange={(event) =>
                     setForm((current) => ({ ...current, role: event.target.value as UserRole }))
@@ -392,14 +395,14 @@ export default function UserManagementCard() {
                 >
                   {roleOptions.map((role) => (
                     <MenuItem key={role} value={role} sx={{ textTransform: "capitalize" }}>
-                      {role}
+                      {userRoleLabels[role]}
                     </MenuItem>
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
-                  label="Status"
+                  label="สถานะ"
                   value={form.status}
                   onChange={(event) =>
                     setForm((current) => ({ ...current, status: event.target.value as UserStatus }))
@@ -409,18 +412,18 @@ export default function UserManagementCard() {
                 >
                   {statusOptions.map((status) => (
                     <MenuItem key={status} value={status} sx={{ textTransform: "capitalize" }}>
-                      {status}
+                      {userStatusLabels[status]}
                     </MenuItem>
                   ))}
                 </TextField>
               </Grid>
             </Grid>
             <TextField
-              label={isEditing ? "New password" : "Password"}
+              label={isEditing ? "รหัสผ่านใหม่" : "รหัสผ่าน"}
               type="password"
               value={form.password}
               onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              helperText={isEditing ? "Leave blank to keep the current password." : "Minimum 6 characters."}
+              helperText={isEditing ? "เว้นว่างเพื่อใช้รหัสผ่านเดิม" : "อย่างน้อย 6 ตัวอักษร"}
               fullWidth
               required={!isEditing}
             />
@@ -428,10 +431,10 @@ export default function UserManagementCard() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button color="inherit" onClick={handleClose}>
-            Cancel
+            ยกเลิก
           </Button>
           <Button variant="contained" onClick={() => void handleSave()}>
-            Save user
+            บันทึกผู้ใช้
           </Button>
         </DialogActions>
       </Dialog>

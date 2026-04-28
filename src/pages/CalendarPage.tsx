@@ -1,5 +1,9 @@
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMemo,
+  useState } from "react";
+import { useMutation,
+  useQuery,
+  useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -11,7 +15,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid,
   IconButton,
   InputAdornment,
   LinearProgress,
@@ -23,6 +26,7 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -43,6 +47,7 @@ import {
   formatDisplayTime
 } from "../utils/dateDisplay";
 import { appSwal } from "../utils/swal";
+import { eventStatusLabels, visibilityLabels } from "../utils/thaiLabels";
 
 interface EventFormState {
   title: string;
@@ -66,7 +71,7 @@ const emptyForm: EventFormState = {
   status: "confirmed",
   location: "",
   description: "",
-  category: "Academic",
+  category: "วิชาการ",
   visibility: "public"
 };
 
@@ -183,7 +188,7 @@ export default function CalendarPage() {
 
   function handleSave() {
     if (!form.title.trim() || !form.audience.trim() || !form.dateTime) {
-      setFormError("Title, audience, and start date are required.");
+      setFormError("ต้องระบุชื่อกิจกรรม กลุ่มเป้าหมาย และวันที่เริ่มต้น");
       return;
     }
 
@@ -216,25 +221,25 @@ export default function CalendarPage() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: isEditing ? "Calendar event updated" : "Calendar event added",
+        title: isEditing ? "อัปเดตกิจกรรมแล้ว" : "เพิ่มกิจกรรมแล้ว",
         showConfirmButton: false,
         timer: 1400,
         timerProgressBar: true
       });
     } catch (currentError) {
-      setFormError(currentError instanceof Error ? currentError.message : "Please check the event details.");
+      setFormError(currentError instanceof Error ? currentError.message : "กรุณาตรวจสอบรายละเอียดกิจกรรม");
       setConfirming(false);
     }
   }
 
   async function handleDelete(event: CalendarEvent) {
     const result = await appSwal.fire({
-      title: "Remove calendar event?",
+      title: "ลบกิจกรรมในปฏิทิน?",
       text: event.title,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Remove",
-      cancelButtonText: "Cancel"
+      confirmButtonText: "ลบ",
+      cancelButtonText: "ยกเลิก"
     });
 
     if (!result.isConfirmed) {
@@ -247,7 +252,7 @@ export default function CalendarPage() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Calendar event removed",
+        title: "ลบกิจกรรมแล้ว",
         showConfirmButton: false,
         timer: 1400,
         timerProgressBar: true
@@ -255,9 +260,9 @@ export default function CalendarPage() {
     } catch (currentError) {
       await appSwal.fire({
         icon: "error",
-        title: "Unable to remove event",
-        text: currentError instanceof Error ? currentError.message : "Please try again.",
-        confirmButtonText: "OK"
+        title: "ไม่สามารถลบกิจกรรมได้",
+        text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
       });
     }
   }
@@ -265,17 +270,17 @@ export default function CalendarPage() {
   return (
     <Box>
       <PageHeader
-        title="Events Calendar"
-        description="Create, schedule, publish, cancel, and remove public calendar events."
+        title="ปฏิทินกิจกรรม"
+        description="สร้าง ตั้งเวลา เผยแพร่ ยกเลิก และลบกิจกรรมปฏิทินสาธารณะ"
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
-            Add event
+            เพิ่มกิจกรรม
           </Button>
         }
       />
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "Unable to load calendar events right now."}
+          {error instanceof Error ? error.message : "ไม่สามารถโหลดกิจกรรมปฏิทินได้ในขณะนี้"}
         </Alert>
       )}
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
@@ -287,15 +292,17 @@ export default function CalendarPage() {
         sx={{ mb: 2 }}
       >
         <TextField
-          placeholder="Search events"
+          placeholder="ค้นหากิจกรรม"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchOutlinedIcon />
-              </InputAdornment>
-            )
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchOutlinedIcon />
+                </InputAdornment>
+              )
+            }
           }}
           sx={{ minWidth: { lg: 360 } }}
         />
@@ -304,11 +311,11 @@ export default function CalendarPage() {
           exclusive
           onChange={(_, value: EventStatusFilter | null) => value && setStatusFilter(value)}
           size="small"
-          aria-label="Event status filter"
+          aria-label="ตัวกรองสถานะกิจกรรม"
         >
           {(["all", "confirmed", "draft", "cancelled"] as EventStatusFilter[]).map((status) => (
             <ToggleButton key={status} value={status} sx={{ textTransform: "capitalize" }}>
-              {status}
+              {status === "all" ? "ทั้งหมด" : eventStatusLabels[status]}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
@@ -349,13 +356,13 @@ export default function CalendarPage() {
                         {event.title}
                       </Typography>
                       <Chip
-                        label={event.status}
+                        label={eventStatusLabels[event.status]}
                         size="small"
                         color={getStatusColor(event.status)}
                         sx={{ textTransform: "capitalize" }}
                       />
                       <Chip
-                        label={event.visibility ?? "public"}
+                        label={visibilityLabels[event.visibility ?? "public"]}
                         size="small"
                         variant="outlined"
                         sx={{ textTransform: "capitalize" }}
@@ -388,14 +395,14 @@ export default function CalendarPage() {
                     </Typography>
                   </Box>
                   <Stack direction="row" spacing={0.5}>
-                    <Tooltip title="Edit event">
-                      <IconButton aria-label="Edit event" size="small" onClick={() => handleEdit(event)}>
+                    <Tooltip title="แก้ไขกิจกรรม">
+                      <IconButton aria-label="แก้ไขกิจกรรม" size="small" onClick={() => handleEdit(event)}>
                         <EditOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Remove event">
+                    <Tooltip title="ลบกิจกรรม">
                       <IconButton
-                        aria-label="Remove event"
+                        aria-label="ลบกิจกรรม"
                         size="small"
                         color="error"
                         onClick={() => void handleDelete(event)}
@@ -410,25 +417,25 @@ export default function CalendarPage() {
           </Card>
         ))}
         {!isLoading && !filteredEvents.length && (
-          <Typography color="text.secondary">No calendar events match this view.</Typography>
+          <Typography color="text.secondary">ไม่มีกิจกรรมที่ตรงกับมุมมองนี้</Typography>
         )}
       </Stack>
       <Dialog open={dialogOpen} onClose={saveMutation.isPending ? undefined : handleClose} fullWidth maxWidth="md">
         <DialogTitle>
           {confirming
             ? isEditing
-              ? "Save calendar event?"
-              : "Add calendar event?"
+              ? "บันทึกกิจกรรม?"
+              : "เพิ่มกิจกรรม?"
             : isEditing
-              ? "Edit calendar event"
-              : "Add calendar event"}
+              ? "แก้ไขกิจกรรม"
+              : "เพิ่มกิจกรรม"}
         </DialogTitle>
         <DialogContent dividers>
           {confirming ? (
             <Stack spacing={1.5} sx={{ pt: 1 }}>
                 {formError && <Alert severity="error">{formError}</Alert>}
                 <Typography color="text.secondary">
-                  Confirm this event before saving.
+                  ตรวจสอบกิจกรรมนี้ก่อนบันทึก
                 </Typography>
                 <Typography fontWeight={900}>{form.title}</Typography>
                 <Typography color="text.secondary">
@@ -439,33 +446,33 @@ export default function CalendarPage() {
             <Stack spacing={2.2} sx={{ pt: 1 }}>
               {formError && <Alert severity="error">{formError}</Alert>}
               <TextField
-                label="Title"
+                label="ชื่อกิจกรรม"
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                 required
                 fullWidth
               />
               <Grid container spacing={1.5}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
-                    label="Audience"
+                    label="กลุ่มเป้าหมาย"
                     value={form.audience}
                     onChange={(event) => setForm((current) => ({ ...current, audience: event.target.value }))}
                     required
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
-                    label="Location"
+                    label="สถานที่"
                     value={form.location}
                     onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
-                    label="Start"
+                    label="เริ่มต้น"
                     type="datetime-local"
                     value={form.dateTime}
                     onChange={(event) =>
@@ -481,27 +488,29 @@ export default function CalendarPage() {
                         };
                       })
                     }
-                    InputLabelProps={{ shrink: true }}
+                    slotProps={{ inputLabel: { shrink: true } }}
                     required
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
-                    label="End"
+                    label="สิ้นสุด"
                     type="datetime-local"
                     value={form.endDateTime}
                     onChange={(event) => setForm((current) => ({ ...current, endDateTime: event.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ min: form.dateTime || undefined }}
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      htmlInput: { min: form.dateTime || undefined }
+                    }}
                     error={Boolean(endDateError)}
-                    helperText={endDateError || "Optional"}
+                    helperText={endDateError || "ไม่บังคับ"}
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid size={{ xs: 12, sm: 4 }}>
                   <TextField
-                    label="Status"
+                    label="สถานะ"
                     value={form.status}
                     onChange={(event) =>
                       setForm((current) => ({
@@ -514,22 +523,22 @@ export default function CalendarPage() {
                   >
                     {(["confirmed", "draft", "cancelled"] as CalendarEvent["status"][]).map((status) => (
                       <MenuItem key={status} value={status} sx={{ textTransform: "capitalize" }}>
-                        {status}
+                        {eventStatusLabels[status]}
                       </MenuItem>
                     ))}
                   </TextField>
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid size={{ xs: 12, sm: 4 }}>
                   <TextField
-                    label="Category"
+                    label="หมวดหมู่"
                     value={form.category}
                     onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid size={{ xs: 12, sm: 4 }}>
                   <TextField
-                    label="Visibility"
+                    label="การมองเห็น"
                     value={form.visibility}
                     onChange={(event) =>
                       setForm((current) => ({
@@ -542,14 +551,14 @@ export default function CalendarPage() {
                   >
                     {(["public", "private"] as NonNullable<CalendarEvent["visibility"]>[]).map((visibility) => (
                       <MenuItem key={visibility} value={visibility} sx={{ textTransform: "capitalize" }}>
-                        {visibility}
+                        {visibilityLabels[visibility]}
                       </MenuItem>
                     ))}
                   </TextField>
                 </Grid>
               </Grid>
               <TextField
-                label="Description"
+                label="รายละเอียด"
                 value={form.description}
                 onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                 minRows={4}
@@ -563,19 +572,19 @@ export default function CalendarPage() {
           {confirming ? (
             <>
               <Button color="inherit" onClick={() => setConfirming(false)} disabled={saveMutation.isPending}>
-                Back
+                กลับ
               </Button>
               <Button variant="contained" disabled={saveMutation.isPending} onClick={() => void handleConfirmSave()}>
-                {saveMutation.isPending ? "Saving" : isEditing ? "Save" : "Add event"}
+                {saveMutation.isPending ? "กำลังบันทึก" : isEditing ? "บันทึก" : "เพิ่มกิจกรรม"}
               </Button>
             </>
           ) : (
             <>
               <Button color="inherit" onClick={handleClose} disabled={saveMutation.isPending}>
-                Cancel
+                ยกเลิก
               </Button>
               <Button variant="contained" startIcon={<EventAvailableOutlinedIcon />} disabled={saveMutation.isPending} onClick={handleSave}>
-                Continue
+                ดำเนินการต่อ
               </Button>
             </>
           )}

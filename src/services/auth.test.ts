@@ -1,6 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import { hashPassword, isTokenExpired, login, restoreSession } from "./auth";
 
+vi.mock("../config/projectSettings", () => ({
+  getGoogleAppsScriptUrl: () => "",
+  projectSettings: {
+    auth: {
+      sessionHours: 8
+    }
+  }
+}));
+
+vi.mock("./googleApi", () => ({
+  loginUserFromApi: vi.fn()
+}));
+
 vi.mock("./users", () => ({
   authenticateUser: vi.fn(async (email: string) => ({
     id: "user-test",

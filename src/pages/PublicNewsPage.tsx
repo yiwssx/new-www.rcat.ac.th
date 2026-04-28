@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Grid, LinearProgress, Stack, Typography } from "@mui/material";
+import { LinearProgress, Stack, Typography } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import PublicContentCard from "../components/PublicContentCard";
@@ -25,8 +26,8 @@ export default function PublicNewsPage() {
 
   return (
     <PublicSiteShell
-      title="News"
-      description="Latest college activities, campus stories, and public updates from the CMS."
+      title="ข่าว"
+      description="กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS"
     >
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
       {featuredItem && (
@@ -40,12 +41,12 @@ export default function PublicNewsPage() {
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
         <ArticleOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
-          All News
+          ข่าวทั้งหมด
         </Typography>
       </Stack>
       <Grid container spacing={2.5}>
         {secondaryItems.map((item) => (
-          <Grid item xs={12} md={6} key={item.id}>
+          <Grid size={{ xs: 12, md: 6 }} key={item.id}>
             <PublicContentCard item={item} mediaAssets={data?.media ?? []} />
           </Grid>
         ))}

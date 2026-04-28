@@ -1,6 +1,15 @@
-import { useMemo } from "react";
+import {
+  useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Card, CardContent, Chip, Grid, LinearProgress, Stack, Typography } from "@mui/material";
+import { Box,
+  Card,
+  CardContent,
+  Chip,
+  LinearProgress,
+  Stack,
+  Typography
+} from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import EngineeringOutlinedIcon from "@mui/icons-material/EngineeringOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
@@ -11,25 +20,25 @@ import { getCmsSnapshot } from "../services/googleApi";
 
 const departments = [
   {
-    title: "Engineering Technology",
+    title: "เทคโนโลยีวิศวกรรม",
     description:
-      "Automation, robotics, electronics, prototype development, and applied engineering practice.",
+      "ระบบอัตโนมัติ หุ่นยนต์ อิเล็กทรอนิกส์ การพัฒนาต้นแบบ และการปฏิบัติงานวิศวกรรมประยุกต์",
     icon: <EngineeringOutlinedIcon sx={{ fontSize: 42 }} />,
-    tags: ["Robotics", "Automation", "Electronics"]
+    tags: ["หุ่นยนต์", "ระบบอัตโนมัติ", "อิเล็กทรอนิกส์"]
   },
   {
-    title: "Digital Business",
+    title: "ธุรกิจดิจิทัล",
     description:
-      "Marketing, entrepreneurship, analytics, digital tools, and practical business systems.",
+      "การตลาด ผู้ประกอบการ การวิเคราะห์ข้อมูล เครื่องมือดิจิทัล และระบบธุรกิจใช้งานจริง",
     icon: <AutoStoriesOutlinedIcon sx={{ fontSize: 42 }} />,
-    tags: ["Marketing", "Analytics", "Enterprise"]
+    tags: ["การตลาด", "วิเคราะห์ข้อมูล", "ธุรกิจ"]
   },
   {
-    title: "Student Development",
+    title: "พัฒนาผู้เรียน",
     description:
-      "Guidance, activity programs, portfolio preparation, learner support, and career readiness.",
+      "แนะแนว กิจกรรม แฟ้มสะสมผลงาน การดูแลผู้เรียน และความพร้อมสู่อาชีพ",
     icon: <GroupsOutlinedIcon sx={{ fontSize: 42 }} />,
-    tags: ["Guidance", "Activities", "Career"]
+    tags: ["แนะแนว", "กิจกรรม", "อาชีพ"]
   }
 ];
 
@@ -49,13 +58,13 @@ export default function PublicDepartmentsPage() {
 
   return (
     <PublicSiteShell
-      title="Departments"
-      description="Academic departments, learning pathways, and program profiles published from the CMS."
+      title="แผนกวิชา"
+      description="แผนกวิชา เส้นทางการเรียนรู้ และข้อมูลหลักสูตรที่เผยแพร่จาก CMS"
     >
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
       <Grid container spacing={2.5}>
         {departments.map((department) => (
-          <Grid item xs={12} md={4} key={department.title}>
+          <Grid size={{ xs: 12, md: 4 }} key={department.title}>
             <Card sx={{ height: "100%" }}>
               <CardContent sx={{ p: 3 }}>
                 <Box
@@ -91,12 +100,12 @@ export default function PublicDepartmentsPage() {
         <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
           <SchoolOutlinedIcon color="primary" />
           <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
-            Program Profiles
+            ข้อมูลหลักสูตร
           </Typography>
         </Stack>
         <Grid container spacing={2.5}>
           {programItems.map((item) => (
-            <Grid item xs={12} md={6} key={item.id}>
+            <Grid size={{ xs: 12, md: 6 }} key={item.id}>
               <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<SchoolOutlinedIcon sx={{ fontSize: 42 }} />} />
             </Grid>
           ))}

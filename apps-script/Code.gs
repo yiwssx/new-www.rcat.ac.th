@@ -810,7 +810,7 @@ function getMenu() {
     .forEach((row) => {
       itemMap[row.id] = {
         id: row.id,
-        label: row.labelEn || row.labelTh || "",
+        label: row.labelTh || "",
         href: row.href || "/",
         enabled: row.enabled === true || row.enabled === "TRUE" || row.enabled === "true",
         children: []
@@ -1266,9 +1266,7 @@ function flattenMenuItems(items, parentId, rows) {
   items.forEach((item, index) => {
     validateRequired(item, ["id", "href"]);
 
-    const menuLabel = typeof item.label === "string"
-      ? item.label.trim()
-      : item.label && (item.label.en || item.label.th);
+    const menuLabel = typeof item.label === "string" ? item.label.trim() : "";
 
     if (!menuLabel) {
       throw new Error("Each menu item needs a label.");
@@ -1277,7 +1275,6 @@ function flattenMenuItems(items, parentId, rows) {
     rows.push([
       item.id,
       parentId,
-      menuLabel,
       menuLabel,
       item.href,
       index,
@@ -1317,7 +1314,20 @@ function ensureSheet(spreadsheet, name, headers) {
   const hasHeaders = mergedHeaders.every((header, index) => currentHeaders[index] === header);
 
   if (!hasHeaders) {
+    const existingRows = sheet.getLastRow() > 1
+      ? sheet.getRange(2, 1, sheet.getLastRow() - 1, currentHeaders.length).getValues()
+      : [];
+    const nextRows = existingRows.map((row) =>
+      mergedHeaders.map((header) => {
+        const sourceIndex = currentHeaders.indexOf(header);
+        return sourceIndex === -1 ? "" : row[sourceIndex];
+      })
+    );
+
     sheet.getRange(1, 1, 1, mergedHeaders.length).setValues([mergedHeaders]);
+    if (nextRows.length) {
+      sheet.getRange(2, 1, nextRows.length, mergedHeaders.length).setValues(nextRows);
+    }
     sheet.setFrozenRows(1);
   }
 
@@ -1618,30 +1628,30 @@ function buildMetrics(content, media) {
   return [
     {
       id: "published-pages",
-      label: "Published content",
+      label: "เนื้อหาที่เผยแพร่",
       value: String(publishedCount),
-      trend: `${scheduledCount} scheduled / ${blogCount} blog`,
+      trend: `ตั้งเวลา ${scheduledCount} รายการ / บทความ ${blogCount} รายการ`,
       tone: "blue"
     },
     {
       id: "review-queue",
-      label: "Review queue",
+      label: "คิวรอตรวจสอบ",
       value: String(reviewCount),
-      trend: "Needs editorial review",
+      trend: "รอบรรณาธิการตรวจสอบ",
       tone: "amber"
     },
     {
       id: "media-assets",
-      label: "Drive assets",
+      label: "สื่อใน Drive",
       value: String(media.length),
-      trend: "Synced from media sheet",
+      trend: "ซิงก์จากชีตสื่อ",
       tone: "green"
     },
     {
       id: "sync-health",
-      label: "Sync health",
+      label: "สถานะซิงก์",
       value: "100%",
-      trend: "Apps Script online",
+      trend: "Apps Script ออนไลน์",
       tone: "red"
     }
   ];

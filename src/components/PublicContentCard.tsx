@@ -3,6 +3,7 @@ import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import { ContentItem, MediaAsset } from "../types";
 import { formatDisplayDate } from "../utils/dateDisplay";
+import { contentStatusLabels, contentTypeLabels } from "../utils/thaiLabels";
 
 interface PublicContentCardProps {
   item: ContentItem;
@@ -69,13 +70,13 @@ export default function PublicContentCard({
           </Box>
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
-              <Chip label={item.type} size="small" sx={{ textTransform: "capitalize" }} />
-              <Chip label={item.status} size="small" variant="outlined" sx={{ textTransform: "capitalize" }} />
-              {item.featured && <Chip label="Featured" size="small" color="secondary" />}
+              <Chip label={contentTypeLabels[item.type]} size="small" />
+              <Chip label={contentStatusLabels[item.status]} size="small" variant="outlined" />
+              {item.featured && <Chip label="แนะนำ" size="small" color="secondary" />}
               {categories.slice(0, 2).map((category) => (
                 <Chip key={category} label={category} size="small" variant="outlined" />
               ))}
-              {!!item.readingMinutes && <Chip label={`${item.readingMinutes} min read`} size="small" variant="outlined" />}
+              {!!item.readingMinutes && <Chip label={`อ่าน ${item.readingMinutes} นาที`} size="small" variant="outlined" />}
             </Stack>
             <Typography variant="h3" sx={{ fontSize: featured ? "1.45rem" : "1.05rem" }}>
               {item.title}

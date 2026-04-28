@@ -28,6 +28,7 @@ import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import ContentBlockBuilder from "./ContentBlockBuilder";
 import { ContentItem, ContentStatus, ContentType, MediaAsset, MediaType } from "../types";
 import type { MediaAssetInput } from "../services/googleApi";
+import { contentStatusLabels, contentTypeLabels, mediaTypeLabels } from "../utils/thaiLabels";
 import {
   ContentBlock,
   createContentBlock,
@@ -71,7 +72,7 @@ function sanitizeSlugInput(value: string) {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/[^\p{Letter}\p{Number}-]+/gu, "-")
     .replace(/-{2,}/g, "-")
     .replace(/^-+/, "");
 }
@@ -84,7 +85,7 @@ function slugify(value: string) {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/[^\p{Letter}\p{Number}-]+/gu, "-")
     .replace(/-{2,}/g, "-")
     .replace(/^-+|-+$/g, "");
 }
@@ -190,9 +191,9 @@ export default function ContentEditorDialog({
   const [uploading, setUploading] = useState(false);
   const [tagInputValue, setTagInputValue] = useState("");
   const [bodyBlocks, setBodyBlocks] = useState<ContentBlock[]>([createContentBlock("paragraph")]);
-  const title = useMemo(() => (item ? "Edit content" : "Add new content"), [item]);
-  const confirmTitle = item ? "Save content changes?" : "Create content?";
-  const confirmButton = item ? "Save" : "Create";
+  const title = useMemo(() => (item ? "แก้ไขเนื้อหา" : "เพิ่มเนื้อหาใหม่"), [item]);
+  const confirmTitle = item ? "บันทึกการแก้ไขเนื้อหา?" : "สร้างเนื้อหา?";
+  const confirmButton = item ? "บันทึก" : "สร้าง";
   const availableMedia = useMemo(() => {
     const map = new Map<string, MediaAsset>();
     [...uploadedAssets, ...mediaAssets].forEach((asset) => map.set(asset.id, asset));
@@ -305,7 +306,7 @@ export default function ContentEditorDialog({
 
   async function handleUploadMedia() {
     if (!uploadFile || !onUploadMedia) {
-      setUploadError("Choose a file before uploading.");
+      setUploadError("กรุณาเลือกไฟล์ก่อนอัปโหลด");
       return;
     }
 
@@ -317,7 +318,7 @@ export default function ContentEditorDialog({
         name: uploadName.trim() || uploadFile.name,
         type: uploadType,
         size: formatFileSize(uploadFile.size),
-        owner: draft.owner.trim() || "CMS editor",
+        owner: draft.owner.trim() || "ผู้แก้ไข CMS",
         fileName: uploadFile.name,
         fileBase64,
         mimeType: uploadFile.type
@@ -334,7 +335,7 @@ export default function ContentEditorDialog({
       setUploadName("");
       setUploadType("image");
     } catch (currentError) {
-      setUploadError(currentError instanceof Error ? currentError.message : "Unable to upload media.");
+      setUploadError(currentError instanceof Error ? currentError.message : "ไม่สามารถอัปโหลดสื่อได้");
     } finally {
       setUploading(false);
     }
@@ -401,7 +402,7 @@ export default function ContentEditorDialog({
           </Typography>
           {!confirming && (
             <Typography color="text.secondary" variant="body2">
-              Edit content, attach media, and set publishing details in one workspace.
+              แก้ไขเนื้อหา แนบสื่อ และตั้งค่าการเผยแพร่ในพื้นที่ทำงานเดียว
             </Typography>
           )}
         </DialogTitle>
@@ -410,27 +411,27 @@ export default function ContentEditorDialog({
             <Stack spacing={1.5} sx={{ pt: 1 }}>
               {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
               <Typography color="text.secondary">
-                Confirm this record before saving.
+                ตรวจสอบรายการนี้ก่อนบันทึก
               </Typography>
               <Typography fontWeight={900}>{pendingDraft.title}</Typography>
               <Typography color="text.secondary">
-                {pendingDraft.type} / {pendingDraft.status} / {pendingDraft.owner}
+                {contentTypeLabels[pendingDraft.type]} / {contentStatusLabels[pendingDraft.status]} / {pendingDraft.owner}
               </Typography>
               {!!pendingDraft.category && (
-                <Typography color="text.secondary">Category: {pendingDraft.category}</Typography>
+                <Typography color="text.secondary">หมวดหมู่: {pendingDraft.category}</Typography>
               )}
               {!!categoryToSlugList(pendingDraft.category).length && (
                 <Typography color="text.secondary">
-                  Category slugs: {categoryToSlugList(pendingDraft.category).join(", ")}
+                  slug หมวดหมู่: {categoryToSlugList(pendingDraft.category).join(", ")}
                 </Typography>
               )}
               {!!normalizeTags(pendingDraft.tags).length && (
                 <Typography color="text.secondary">
-                  Tags: {normalizeTags(pendingDraft.tags).join(", ")}
+                  แท็ก: {normalizeTags(pendingDraft.tags).join(", ")}
                 </Typography>
               )}
               <Typography color="text.secondary">
-                {normalizeMediaIds(pendingDraft.mediaIds).length} media item(s) attached.
+                แนบสื่อแล้ว {normalizeMediaIds(pendingDraft.mediaIds).length} รายการ
               </Typography>
             </Stack>
           ) : (
@@ -445,17 +446,17 @@ export default function ContentEditorDialog({
               <Stack spacing={2.2}>
                 {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
                 <TextField
-                  label="Title"
+                  label="ชื่อเรื่อง"
                   value={draft.title}
                   onChange={(event) => handleTitleChange(event.target.value)}
                   required
                   fullWidth
                 />
                 <TextField
-                  label="Permalink slug"
+                  label="slug ลิงก์ถาวร"
                   value={draft.slug}
                   onChange={(event) => updateDraft("slug", sanitizeSlugInput(event.target.value))}
-                  helperText="Use lowercase words with hyphens, for example: student-life-updates"
+                  helperText="ใช้คำคั่นด้วยขีดกลาง เช่น student-life-updates หรือข้อความภาษาไทย"
                   required
                   fullWidth
                 />
@@ -465,7 +466,7 @@ export default function ContentEditorDialog({
                   onChange={handleBodyBlocksChange}
                 />
                 <TextField
-                  label="Excerpt"
+                  label="สรุปย่อ"
                   value={draft.summary}
                   onChange={(event) => updateDraft("summary", event.target.value)}
                   minRows={3}
@@ -483,39 +484,39 @@ export default function ContentEditorDialog({
                   alignSelf: "start"
                 }}
               >
-                <Typography fontWeight={900}>Publish</Typography>
+                <Typography fontWeight={900}>การเผยแพร่</Typography>
                 <FormControl fullWidth size="small">
-                  <InputLabel id="content-type-label">Type</InputLabel>
+                  <InputLabel id="content-type-label">ประเภท</InputLabel>
                   <Select
                     labelId="content-type-label"
-                    label="Type"
+                    label="ประเภท"
                     value={draft.type}
                     onChange={(event) => updateDraft("type", event.target.value as ContentType)}
                   >
                     {contentTypes.map((type) => (
                       <MenuItem key={type} value={type}>
-                        {type}
+                        {contentTypeLabels[type]}
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
                 <FormControl fullWidth size="small">
-                  <InputLabel id="content-status-label">Status</InputLabel>
+                  <InputLabel id="content-status-label">สถานะ</InputLabel>
                   <Select
                     labelId="content-status-label"
-                    label="Status"
+                    label="สถานะ"
                     value={draft.status}
                     onChange={(event) => updateDraft("status", event.target.value as ContentStatus)}
                   >
                     {contentStatuses.map((status) => (
                       <MenuItem key={status} value={status}>
-                        {status}
+                        {contentStatusLabels[status]}
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
                 <TextField
-                  label="Owner"
+                  label="ผู้รับผิดชอบ"
                   value={draft.owner}
                   onChange={(event) => updateDraft("owner", event.target.value)}
                   required
@@ -523,7 +524,7 @@ export default function ContentEditorDialog({
                   fullWidth
                 />
                 <TextField
-                  label="Publish date"
+                  label="วันที่เผยแพร่"
                   type="datetime-local"
                   value={draft.publishAt ? draft.publishAt.slice(0, 16) : ""}
                   onChange={(event) =>
@@ -534,28 +535,28 @@ export default function ContentEditorDialog({
                         : new Date().toISOString()
                     )
                   }
-                  InputLabelProps={{ shrink: true }}
+                  slotProps={{ inputLabel: { shrink: true } }}
                   size="small"
                   fullWidth
                 />
                 <Divider />
-                <Typography fontWeight={900}>Taxonomy</Typography>
+                <Typography fontWeight={900}>หมวดหมู่และแท็ก</Typography>
                 <TextField
-                  label="Category"
+                  label="หมวดหมู่"
                   value={draft.category ?? ""}
                   onChange={(event) => updateDraft("category", event.target.value)}
-                  placeholder="e.g. Admissions, Research, Student Life"
-                  helperText="Use commas to create multiple categories (WordPress style)."
+                  placeholder="เช่น รับสมัคร, วิจัย, ชีวิตผู้เรียน"
+                  helperText="ใช้จุลภาคเพื่อสร้างหลายหมวดหมู่แบบ WordPress"
                   size="small"
                   fullWidth
                 />
                 <TextField
-                  label="Category slugs"
+                  label="slug หมวดหมู่"
                   value={categorySlugs.join(", ")}
-                  helperText="Auto-generated from category names."
+                  helperText="สร้างอัตโนมัติจากชื่อหมวดหมู่"
                   size="small"
                   fullWidth
-                  InputProps={{ readOnly: true }}
+                  slotProps={{ input: { readOnly: true } }}
                 />
                 <Autocomplete
                   multiple
@@ -600,9 +601,9 @@ export default function ContentEditorDialog({
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Tags"
-                      placeholder="Type tag and press Enter or comma"
-                      helperText="Comma, Enter, or Tab adds a tag card."
+                      label="แท็ก"
+                      placeholder="พิมพ์แท็กแล้วกด Enter หรือจุลภาค"
+                      helperText="จุลภาค Enter หรือ Tab จะเพิ่มแท็ก"
                       size="small"
                       fullWidth
                       onKeyDown={(event) => {
@@ -619,10 +620,10 @@ export default function ContentEditorDialog({
                   )}
                 />
                 <FormControl fullWidth size="small">
-                  <InputLabel id="content-template-label">Template</InputLabel>
+                  <InputLabel id="content-template-label">เทมเพลต</InputLabel>
                   <Select
                     labelId="content-template-label"
-                    label="Template"
+                    label="เทมเพลต"
                     value={draft.template ?? "standard"}
                     onChange={(event) => updateDraft("template", event.target.value)}
                   >
@@ -634,7 +635,7 @@ export default function ContentEditorDialog({
                   </Select>
                 </FormControl>
                 <TextField
-                  label="Reading time (minutes)"
+                  label="เวลาอ่าน (นาที)"
                   type="number"
                   value={Math.max(1, Number(draft.readingMinutes) || 1)}
                   onChange={(event) =>
@@ -642,7 +643,7 @@ export default function ContentEditorDialog({
                   }
                   size="small"
                   fullWidth
-                  inputProps={{ min: 1, step: 1 }}
+                  slotProps={{ htmlInput: { min: 1, step: 1 } }}
                 />
                 <FormControlLabel
                   control={
@@ -652,19 +653,19 @@ export default function ContentEditorDialog({
                       size="small"
                     />
                   }
-                  label="Featured story"
+                  label="เรื่องแนะนำ"
                 />
                 <Divider />
                 <Typography fontWeight={900}>SEO</Typography>
                 <TextField
-                  label="SEO title"
+                  label="ชื่อ SEO"
                   value={draft.seoTitle ?? ""}
                   onChange={(event) => updateDraft("seoTitle", event.target.value)}
                   size="small"
                   fullWidth
                 />
                 <TextField
-                  label="SEO description"
+                  label="คำอธิบาย SEO"
                   value={draft.seoDescription ?? ""}
                   onChange={(event) => updateDraft("seoDescription", event.target.value)}
                   size="small"
@@ -673,7 +674,7 @@ export default function ContentEditorDialog({
                   fullWidth
                 />
                 <TextField
-                  label="Canonical URL"
+                  label="URL หลัก"
                   value={draft.canonicalUrl ?? ""}
                   onChange={(event) => updateDraft("canonicalUrl", event.target.value)}
                   placeholder="https://example.edu/blog/post"
@@ -681,7 +682,7 @@ export default function ContentEditorDialog({
                   fullWidth
                 />
                 <Divider />
-                <Typography fontWeight={900}>Featured media</Typography>
+                <Typography fontWeight={900}>สื่อแนะนำ</Typography>
                 <Box
                   sx={{
                     minHeight: 120,
@@ -707,7 +708,7 @@ export default function ContentEditorDialog({
                     </Stack>
                   ) : (
                     <Typography color="text.secondary" variant="body2">
-                      Select an image or video below.
+                      เลือกรูปภาพหรือวิดีโอด้านล่าง
                     </Typography>
                   )}
                 </Box>
@@ -723,12 +724,12 @@ export default function ContentEditorDialog({
                   ))}
                   {!selectedMedia.length && (
                     <Typography color="text.secondary" variant="body2">
-                      No media attached.
+                      ยังไม่ได้แนบสื่อ
                     </Typography>
                   )}
                 </Stack>
                 <Divider />
-                <Typography fontWeight={900}>Media library</Typography>
+                <Typography fontWeight={900}>คลังสื่อ</Typography>
                 <Stack spacing={1} sx={{ maxHeight: 260, overflowY: "auto", pr: 0.5 }}>
                   {availableMedia.map((asset) => {
                     const checked = selectedMediaIds.includes(asset.id);
@@ -776,7 +777,7 @@ export default function ContentEditorDialog({
                           </Typography>
                           <Stack direction="row" spacing={0.75} alignItems="center">
                             <Typography color="text.secondary" variant="caption">
-                              {asset.type}
+                              {mediaTypeLabels[asset.type]}
                             </Typography>
                             {checked && (asset.type === "image" || asset.type === "video") && (
                               <Button
@@ -784,7 +785,7 @@ export default function ContentEditorDialog({
                                 onClick={() => updateDraft("featuredMediaId", asset.id)}
                                 sx={{ minHeight: 0, p: 0, fontSize: "0.72rem" }}
                               >
-                                Feature
+                                ตั้งเป็นสื่อแนะนำ
                               </Button>
                             )}
                           </Stack>
@@ -794,15 +795,15 @@ export default function ContentEditorDialog({
                   })}
                   {!availableMedia.length && (
                     <Typography color="text.secondary" variant="body2">
-                      Upload media or add items in the Media Library.
+                      อัปโหลดสื่อหรือเพิ่มรายการในคลังสื่อ
                     </Typography>
                   )}
                 </Stack>
                 <Divider />
-                <Typography fontWeight={900}>Quick upload</Typography>
+                <Typography fontWeight={900}>อัปโหลดด่วน</Typography>
                 {uploadError && <Alert severity="error">{uploadError}</Alert>}
                 <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />} disabled={uploading}>
-                  Choose file
+                  เลือกไฟล์
                   <input hidden type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={handleFileChange} />
                 </Button>
                 {uploadFile && (
@@ -811,14 +812,14 @@ export default function ContentEditorDialog({
                   </Typography>
                 )}
                 <TextField
-                  label="Media title"
+                  label="ชื่อสื่อ"
                   value={uploadName}
                   onChange={(event) => setUploadName(event.target.value)}
                   size="small"
                   fullWidth
                 />
                 <TextField
-                  label="Type"
+                  label="ประเภท"
                   value={uploadType}
                   onChange={(event) => setUploadType(event.target.value as MediaType)}
                   size="small"
@@ -827,7 +828,7 @@ export default function ContentEditorDialog({
                 >
                   {mediaTypes.map((type) => (
                     <MenuItem key={type} value={type}>
-                      {type}
+                      {mediaTypeLabels[type]}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -837,7 +838,7 @@ export default function ContentEditorDialog({
                   disabled={uploading || !uploadFile || !onUploadMedia}
                   onClick={() => void handleUploadMedia()}
                 >
-                  {uploading ? "Uploading" : "Upload and attach"}
+                  {uploading ? "กำลังอัปโหลด" : "อัปโหลดและแนบ"}
                 </Button>
               </Stack>
             </Box>
@@ -847,7 +848,7 @@ export default function ContentEditorDialog({
           {confirming ? (
             <>
               <Button type="button" onClick={() => setConfirming(false)} disabled={saving}>
-                Back
+                กลับ
               </Button>
               <Button
                 type="button"
@@ -856,16 +857,16 @@ export default function ContentEditorDialog({
                 disabled={saving}
                 onClick={handleConfirmSave}
               >
-                {saving ? "Saving" : confirmButton}
+                {saving ? "กำลังบันทึก" : confirmButton}
               </Button>
             </>
           ) : (
             <>
               <Button type="button" onClick={handleClose} disabled={saving || uploading}>
-                Cancel
+                ยกเลิก
               </Button>
               <Button type="submit" variant="contained" startIcon={<SaveOutlinedIcon />} disabled={saving || uploading}>
-                Continue
+                ดำเนินการต่อ
               </Button>
             </>
           )}

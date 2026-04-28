@@ -1,9 +1,11 @@
 {
   "site": {
-    "name": "RCAT Public Website",
+    "name": "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
     "publicSiteUrl": "https://new-wwwrcatacth.vercel.app",
+    "language": "th",
+    "locale": "th-TH",
     "logoPath": "/rcat-logo.png",
-    "logoAlt": "RCAT"
+    "logoAlt": "ตราสัญลักษณ์ RCAT"
   },
   "api": {
     "googleAppsScriptUrl": "",
@@ -51,22 +53,22 @@
   "roles": [
     {
       "id": "role-admin",
-      "role": "Administrator",
-      "scope": "All collections",
+      "role": "ผู้ดูแลระบบ",
+      "scope": "ทุกชุดข้อมูล",
       "canPublish": true,
       "canManageUsers": true
     },
     {
       "id": "role-editor",
-      "role": "Editor",
-      "scope": "Assigned departments",
+      "role": "บรรณาธิการ",
+      "scope": "งานที่ได้รับมอบหมาย",
       "canPublish": true,
       "canManageUsers": false
     },
     {
       "id": "role-viewer",
-      "role": "Viewer",
-      "scope": "Read only",
+      "role": "ผู้เข้าชม",
+      "scope": "อ่านข้อมูลเท่านั้น",
       "canPublish": false,
       "canManageUsers": false
     }

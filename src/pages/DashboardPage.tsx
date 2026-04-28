@@ -1,16 +1,19 @@
-import { useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMemo } from "react";
+import { useMutation,
+  useQuery,
+  useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
   Button,
   Card,
   CardContent,
-  Grid,
   LinearProgress,
   Stack,
   Typography
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
@@ -58,20 +61,20 @@ export default function DashboardPage() {
     if (!pendingItems.length) {
       await appSwal.fire({
         icon: "info",
-        title: "Nothing to publish",
-        text: "There are no draft, review, or scheduled items in the queue.",
-        confirmButtonText: "OK"
+        title: "ไม่มีรายการให้เผยแพร่",
+        text: "ไม่มีฉบับร่าง รายการรอตรวจสอบ หรือรายการตั้งเวลาในคิว",
+        confirmButtonText: "ตกลง"
       });
       return;
     }
 
     const result = await appSwal.fire({
-      title: "Publish queue?",
-      text: `Publish ${pendingItems.length} content item${pendingItems.length === 1 ? "" : "s"} now.`,
+      title: "เผยแพร่คิว?",
+      text: `เผยแพร่เนื้อหา ${pendingItems.length} รายการตอนนี้`,
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Publish",
-      cancelButtonText: "Cancel"
+      confirmButtonText: "เผยแพร่",
+      cancelButtonText: "ยกเลิก"
     });
 
     if (!result.isConfirmed) {
@@ -87,7 +90,7 @@ export default function DashboardPage() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Queue published",
+        title: "เผยแพร่คิวแล้ว",
         showConfirmButton: false,
         timer: 1400,
         timerProgressBar: true
@@ -95,9 +98,9 @@ export default function DashboardPage() {
     } catch (currentError) {
       await appSwal.fire({
         icon: "error",
-        title: "Unable to publish queue",
-        text: currentError instanceof Error ? currentError.message : "Please try again.",
-        confirmButtonText: "OK"
+        title: "ไม่สามารถเผยแพร่คิวได้",
+        text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
       });
     }
   }
@@ -105,8 +108,8 @@ export default function DashboardPage() {
   return (
     <Box>
       <PageHeader
-        title="Dashboard"
-        description="Publishing overview for admissions, programs, announcements, and campus media."
+        title="แดชบอร์ด"
+        description="ภาพรวมการเผยแพร่สำหรับการรับสมัคร หลักสูตร ประกาศ และสื่อของสถานศึกษา"
         action={
           <Button
             variant="contained"
@@ -114,29 +117,29 @@ export default function DashboardPage() {
             disabled={publishMutation.isPending}
             onClick={() => void handlePublishQueue()}
           >
-            {publishMutation.isPending ? "Publishing" : "Publish queue"}
+            {publishMutation.isPending ? "กำลังเผยแพร่" : "เผยแพร่คิว"}
           </Button>
         }
       />
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "Unable to load dashboard data right now."}
+          {error instanceof Error ? error.message : "ไม่สามารถโหลดข้อมูลแดชบอร์ดได้ในขณะนี้"}
         </Alert>
       )}
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
       <Grid container spacing={2.5}>
         {(snapshot?.metrics ?? []).map((metric, index) => (
-          <Grid item xs={12} sm={6} xl={3} key={metric.id}>
+          <Grid size={{ xs: 12, sm: 6, xl: 3 }} key={metric.id}>
             <MetricCard metric={metric} icon={metricIcons[index] ?? <InsightsOutlinedIcon />} />
           </Grid>
         ))}
       </Grid>
       <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
-        <Grid item xs={12} lg={7}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent>
               <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                <Typography variant="h3">Publishing queue</Typography>
+                <Typography variant="h3">คิวเผยแพร่</Typography>
                 <FactCheckOutlinedIcon color="primary" />
               </Stack>
               <Stack spacing={1.5}>
@@ -163,17 +166,17 @@ export default function DashboardPage() {
                   </Stack>
                 ))}
                 {!queue.length && (
-                  <Typography color="text.secondary">No draft, review, or scheduled items are waiting.</Typography>
+                  <Typography color="text.secondary">ไม่มีฉบับร่าง รายการรอตรวจสอบ หรือรายการตั้งเวลาที่รออยู่</Typography>
                 )}
               </Stack>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} lg={5}>
+        <Grid size={{ xs: 12, lg: 5 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent>
               <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                <Typography variant="h3">Upcoming dates</Typography>
+                <Typography variant="h3">กำหนดการที่กำลังจะมาถึง</Typography>
                 <EventAvailableOutlinedIcon color="secondary" />
               </Stack>
               <Stack spacing={2}>
@@ -201,7 +204,7 @@ export default function DashboardPage() {
                     </Box>
                   </Stack>
                 ))}
-                {!events.length && <Typography color="text.secondary">No upcoming events are available.</Typography>}
+                {!events.length && <Typography color="text.secondary">ยังไม่มีกิจกรรมที่กำลังจะมาถึง</Typography>}
               </Stack>
             </CardContent>
           </Card>

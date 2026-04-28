@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import {
+  useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Box,
@@ -7,11 +8,11 @@ import {
   CardContent,
   Chip,
   Divider,
-  Grid,
   LinearProgress,
   Stack,
   Typography
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
@@ -22,6 +23,7 @@ import PublicSiteShell from "../components/PublicSiteShell";
 import { getCmsSnapshot, getContentDetail } from "../services/googleApi";
 import { parseContentBodyToBlocks } from "../utils/contentBlocks";
 import { formatDisplayDate, formatDisplayDateTime } from "../utils/dateDisplay";
+import { contentStatusLabels, contentTypeLabels } from "../utils/thaiLabels";
 
 interface PublicContentDetailPageProps {
   slug?: string;
@@ -123,7 +125,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
 
   if (isLoading || contentDetailQuery.isLoading) {
     return (
-      <PublicSiteShell title="Loading" description="Loading public content from the CMS.">
+      <PublicSiteShell title="กำลังโหลด" description="กำลังโหลดเนื้อหาสาธารณะจาก CMS">
         <LinearProgress />
       </PublicSiteShell>
     );
@@ -131,14 +133,14 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
 
   if (!item || (item.status !== "published" && item.status !== "scheduled")) {
     return (
-      <PublicSiteShell title="Content Not Found" description="The requested CMS content is not currently published.">
+      <PublicSiteShell title="ไม่พบเนื้อหา" description="เนื้อหา CMS ที่ร้องขอยังไม่ได้เผยแพร่ในขณะนี้">
         <Card>
           <CardContent sx={{ p: 3 }}>
             <Typography color="text.secondary">
-              The content may be unpublished, moved, or unavailable for public viewing.
+              เนื้อหาอาจยังไม่เผยแพร่ ถูกย้าย หรือไม่พร้อมให้แสดงต่อสาธารณะ
             </Typography>
             <Button href="/news" sx={{ mt: 2 }} startIcon={<ArrowBackOutlinedIcon />}>
-              Back to news
+              กลับไปหน้าข่าว
             </Button>
           </CardContent>
         </Card>
@@ -149,18 +151,18 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   return (
     <PublicSiteShell title={item.title} description={item.summary}>
       <Grid container spacing={2.5}>
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Card>
             <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-                <Chip label={item.type} color="primary" sx={{ textTransform: "capitalize" }} />
-                <Chip label={item.status} variant="outlined" sx={{ textTransform: "capitalize" }} />
+                <Chip label={contentTypeLabels[item.type]} color="primary" />
+                <Chip label={contentStatusLabels[item.status]} variant="outlined" />
                 <Chip label={formatDisplayDate(item.publishAt)} variant="outlined" />
-                {item.featured && <Chip label="Featured" color="secondary" />}
+                {item.featured && <Chip label="แนะนำ" color="secondary" />}
                 {normalizeCategoryList(item.category).slice(0, 3).map((category) => (
                   <Chip key={category} label={category} variant="outlined" />
                 ))}
-                {!!item.readingMinutes && <Chip label={`${item.readingMinutes} min read`} variant="outlined" />}
+                {!!item.readingMinutes && <Chip label={`อ่าน ${item.readingMinutes} นาที`} variant="outlined" />}
                 {normalizeTags(item.tags).slice(0, 4).map((tag) => (
                   <Chip key={tag} label={`#${tag}`} variant="outlined" />
                 ))}
@@ -209,13 +211,11 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                 ) : (
                   <>
                     <Typography>
-                      This public page presents the latest information prepared by {item.owner}. Visitors can
-                      use this content for admissions planning, campus activity updates, program review, or
-                      official college communication depending on the content category.
+                      หน้านี้แสดงข้อมูลล่าสุดที่จัดทำโดย {item.owner} ผู้เข้าชมสามารถใช้ข้อมูลนี้เพื่อวางแผนการสมัคร
+                      ติดตามกิจกรรม ตรวจสอบหลักสูตร หรืออ่านประกาศทางการของสถานศึกษาตามประเภทเนื้อหา
                     </Typography>
                     <Typography>
-                      For questions about this item, please contact the responsible office listed below or use
-                      the contact page to reach the public relations team.
+                      หากมีคำถามเกี่ยวกับรายการนี้ กรุณาติดต่อหน่วยงานที่รับผิดชอบหรือใช้หน้าติดต่อเพื่อส่งเรื่องถึงงานประชาสัมพันธ์
                     </Typography>
                   </>
                 )}
@@ -223,35 +223,35 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Stack spacing={2.5}>
             <Card>
               <CardContent sx={{ p: 2.5 }}>
-                <Typography variant="h3">Content Details</Typography>
+                <Typography variant="h3">รายละเอียดเนื้อหา</Typography>
                 <Divider sx={{ my: 1.5 }} />
                 <Stack spacing={1.2}>
                   <Box>
                     <Typography color="text.secondary" variant="body2">
-                      Owner
+                      ผู้รับผิดชอบ
                     </Typography>
                     <Typography fontWeight={900}>{item.owner}</Typography>
                   </Box>
                   <Box>
                     <Typography color="text.secondary" variant="body2">
-                      Updated
+                      ปรับปรุงล่าสุด
                     </Typography>
                     <Typography fontWeight={900}>{formatDisplayDateTime(item.updatedAt)}</Typography>
                   </Box>
                   <Box>
                     <Typography color="text.secondary" variant="body2">
-                      Published
+                      เผยแพร่
                     </Typography>
                     <Typography fontWeight={900}>{formatDisplayDateTime(item.publishAt)}</Typography>
                   </Box>
                   {!!item.template && (
                     <Box>
                       <Typography color="text.secondary" variant="body2">
-                        Template
+                        เทมเพลต
                       </Typography>
                       <Typography fontWeight={900} sx={{ textTransform: "capitalize" }}>
                         {item.template}
@@ -267,7 +267,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                       variant="outlined"
                       sx={{ justifyContent: "flex-start" }}
                     >
-                      Canonical URL
+                      URL หลัก
                     </Button>
                   )}
                 </Stack>
@@ -276,7 +276,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
             {!!attachedMedia.length && (
               <Card>
                 <CardContent sx={{ p: 2.5 }}>
-                  <Typography variant="h3">Attached Media</Typography>
+                  <Typography variant="h3">สื่อแนบ</Typography>
                   <Divider sx={{ my: 1.5 }} />
                   <Stack spacing={1.2}>
                     {attachedMedia.map((asset) => (
@@ -298,7 +298,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
               </Card>
             )}
             <Button href={getReturnPath(item.type)} startIcon={<ArrowBackOutlinedIcon />}>
-              Back to list
+              กลับไปหน้ารายการ
             </Button>
           </Stack>
         </Grid>
@@ -307,11 +307,11 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
       {relatedItems.length > 0 && (
         <Box sx={{ mt: 4 }}>
           <Typography variant="h2" sx={{ fontSize: "1.65rem", mb: 2 }}>
-            Related Content
+            เนื้อหาที่เกี่ยวข้อง
           </Typography>
           <Grid container spacing={2.5}>
             {relatedItems.map((relatedItem) => (
-              <Grid item xs={12} md={4} key={relatedItem.id}>
+              <Grid size={{ xs: 12, md: 4 }} key={relatedItem.id}>
                 <PublicContentCard item={relatedItem} mediaAssets={mediaAssets} />
               </Grid>
             ))}

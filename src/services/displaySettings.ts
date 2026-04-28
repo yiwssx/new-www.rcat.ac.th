@@ -6,13 +6,13 @@ import {
 } from "./googleApi";
 
 export const defaultDisplaySettings: DisplaySettings = {
-  dateFormat: "F j, Y",
+  dateFormat: "j F Y",
   timeMode: "24h"
 };
 
 export const dateFormatPresets = [
-  { value: "F j, Y", label: "April 27, 2026 (F j, Y)" },
-  { value: "j F Y", label: "27 April 2026 (j F Y)" },
+  { value: "j F Y", label: "27 เมษายน 2026 (j F Y)" },
+  { value: "F j, Y", label: "เมษายน 27, 2026 (F j, Y)" },
   { value: "Y-m-d", label: "2026-04-27 (Y-m-d)" },
   { value: "m/d/Y", label: "04/27/2026 (m/d/Y)" },
   { value: "d/m/Y", label: "27/04/2026 (d/m/Y)" }

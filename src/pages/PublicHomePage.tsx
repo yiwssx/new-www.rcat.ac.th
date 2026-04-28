@@ -8,12 +8,12 @@ import {
   Chip,
   Container,
   Divider,
-  Grid,
   IconButton,
   LinearProgress,
   Stack,
   Typography
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import { alpha } from "@mui/material/styles";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
@@ -24,6 +24,7 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import EngineeringOutlinedIcon from "@mui/icons-material/EngineeringOutlined";
 import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
+import FaxOutlinedIcon from '@mui/icons-material/FaxOutlined';
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
@@ -38,16 +39,12 @@ import PublicMainMenu from "../components/PublicMainMenu";
 import { getCmsSiteName, projectSettings } from "../config/projectSettings";
 import { getCmsSnapshot } from "../services/googleApi";
 import { formatDisplayDate, formatDisplayDateTime } from "../utils/dateDisplay";
+import { contentTypeLabels } from "../utils/thaiLabels";
 
 interface SectionHeadingProps {
   label: string;
   title: string;
   description: string;
-}
-
-interface NavItem {
-  label: string;
-  href: string;
 }
 
 interface QuickLink {
@@ -77,71 +74,44 @@ interface SocialLink {
 
 const programs = [
   {
-    title: "Engineering Technology",
-    description: "Automation, robotics, electronics, and applied engineering projects.",
+    title: "เทคโนโลยีวิศวกรรม",
+    description: "ระบบอัตโนมัติ หุ่นยนต์ อิเล็กทรอนิกส์ และงานโครงงานประยุกต์",
     icon: <EngineeringOutlinedIcon />
   },
   {
-    title: "Digital Business",
-    description: "Marketing, entrepreneurship, analytics, and practical business systems.",
+    title: "ธุรกิจดิจิทัล",
+    description: "การตลาด ผู้ประกอบการ การวิเคราะห์ข้อมูล และระบบธุรกิจใช้งานจริง",
     icon: <AutoStoriesOutlinedIcon />
   },
   {
-    title: "Student Development",
-    description: "Activities, portfolio support, guidance, and career preparation.",
+    title: "พัฒนาผู้เรียน",
+    description: "กิจกรรม แนะแนว แฟ้มสะสมผลงาน และการเตรียมความพร้อมสู่อาชีพ",
     icon: <GroupsOutlinedIcon />
-  }
-];
-
-const primaryNavItems: NavItem[] = [
-  {
-    label: "Home",
-    href: "/"
-  },
-  {
-    label: "Overview",
-    href: "/#overview"
-  },
-  {
-    label: "Departments",
-    href: "/departments"
-  },
-  {
-    label: "News",
-    href: "/news"
-  },
-  {
-    label: "Announcements",
-    href: "/announcements"
-  },
-  {
-    label: "Contact",
-    href: "/contact"
   }
 ];
 
 const quickLinks: QuickLink[] = [
   {
-    title: "Admissions",
-    description: "Application windows, qualifications, and required documents.",
+    title: "การรับสมัคร",
+    description: "ช่วงเวลารับสมัคร คุณสมบัติ และเอกสารที่ต้องใช้",
     href: "/announcements",
     icon: <SchoolOutlinedIcon />
   },
   {
-    title: "Programs",
-    description: "Technical, business, and student development pathways.",
+    title: "หลักสูตร",
+    description: "เส้นทางการเรียนด้านเทคนิค ธุรกิจ และการพัฒนาผู้เรียน",
     href: "/departments",
     icon: <AutoStoriesOutlinedIcon />
   },
   {
-    title: "Academic Calendar",
-    description: "Upcoming terms, campus dates, and special academic periods.",
+    title: "ปฏิทินวิชาการ",
+    description: "กำหนดการภาคเรียน กิจกรรม และช่วงเวลาสำคัญของสถานศึกษา",
     href: "#calendar",
     icon: <EventAvailableOutlinedIcon />
   },
   {
-    title: "Official Documents",
-    description: "Reports, quality documents, public notices, and ITA links.",
+    title: "เอกสารราชการ",
+    description: "รายงาน เอกสารประกันคุณภาพ ประกาศ และข้อมูล ITA",
     href: "/announcements",
     icon: <DescriptionOutlinedIcon />
   }
@@ -150,40 +120,40 @@ const quickLinks: QuickLink[] = [
 const prideHighlights: PrideHighlight[] = [
   {
     value: "18",
-    title: "Innovation showcases",
-    description: "Student teams present applied engineering and technology projects each year.",
+    title: "ผลงานนวัตกรรม",
+    description: "ทีมผู้เรียนนำเสนอผลงานวิศวกรรมและเทคโนโลยีประยุกต์เป็นประจำทุกปี",
     icon: <WorkspacePremiumOutlinedIcon />
   },
   {
     value: "12",
-    title: "Industry collaborations",
-    description: "Academic and workplace learning partnerships support practical pathways.",
+    title: "ความร่วมมือภาคอุตสาหกรรม",
+    description: "เครือข่ายการเรียนรู้ร่วมสถานประกอบการช่วยสร้างทักษะใช้งานจริง",
     icon: <EngineeringOutlinedIcon />
   },
   {
     value: "24/7",
-    title: "Student support services",
-    description: "Guidance, academic advising, and portfolio preparation are available year round.",
+    title: "บริการช่วยเหลือนักเรียน",
+    description: "มีการแนะแนว ให้คำปรึกษา และสนับสนุนแฟ้มสะสมผลงานตลอดปี",
     icon: <GroupsOutlinedIcon />
   }
 ];
 
 const documentLinks: DocumentLink[] = [
   {
-    title: "Academic Calendar 2026",
-    category: "Calendar"
+    title: "ปฏิทินวิชาการ 2026",
+    category: "ปฏิทิน"
   },
   {
-    title: "Annual Action Plan",
-    category: "Planning"
+    title: "แผนปฏิบัติการประจำปี",
+    category: "แผนงาน"
   },
   {
-    title: "Self Assessment Report",
-    category: "Quality"
+    title: "รายงานการประเมินตนเอง",
+    category: "ประกันคุณภาพ"
   },
   {
-    title: "ITA and Transparency Portal",
-    category: "Public"
+    title: "ITA และข้อมูลความโปร่งใส",
+    category: "ข้อมูลสาธารณะ"
   }
 ];
 
@@ -199,84 +169,62 @@ const socialLinks: SocialLink[] = [
     icon: <YouTubeIcon fontSize="small" />
   },
   {
-    label: "Portal",
+    label: "ระบบจัดการ",
     href: "/admin",
     icon: <OpenInNewRoundedIcon fontSize="small" />
   }
 ];
 
 const publicCopy = {
-    campus: "RCAT Campus Information Center",
-    portal: "Public relations portal",
-    eyebrow: "Royal College of Applied Technology",
-    siteName: "RCAT Public Website",
+    campus: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
+    portal: "ช่องทางการติดตาม",
+    eyebrow: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
+    siteName: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
     intro:
-      "Explore admissions, academic departments, official announcements, public documents, and campus activities from the RCAT CMS.",
-    admissionChip: "Admissions 2026",
-    announcementsButton: "View announcements",
-    staffLogin: "Staff login",
-    nav: ["Home", "Overview", "Departments", "News", "Announcements", "Contact"],
-    heroChip: "Admissions, services, and college updates",
-    heroTitle: "College information in a formal school-site layout.",
+      "🏆 สถานศึกษารางวัลพระราชทาน 3 ครั้ง ใน 10 ปี ปี 2552 2557 และ 2561",
+    admissionChip: "รับสมัคร 2026",
+    announcementsButton: "ดูประกาศ",
+    staffLogin: "เข้าสู่ระบบเจ้าหน้าที่",
+    heroChip: "รับสมัคร บริการ และข่าวสารสถานศึกษา",
+    heroTitle: "ศูนย์รวมข้อมูลสถานศึกษาในรูปแบบเว็บไซต์ทางการ",
     heroDescription:
-      "Explore admissions, academic departments, official announcements, public documents, and campus activities from one page.",
-    latestActivities: "Latest activities",
-    publicDocuments: "Public documents",
-    featuredNotice: "Featured notice",
-    academicCalendar: "Academic calendar",
-    calendarDescription: "Important dates and upcoming college activities",
-    overviewLabel: "College overview",
-    overviewTitle: "A front page for news, information, and student services",
+      "ติดตามข้อมูลการรับสมัคร แผนกวิชา ประกาศ เอกสารเผยแพร่ และกิจกรรมของสถานศึกษาได้จากหน้าเดียว",
+    latestActivities: "กิจกรรมล่าสุด",
+    publicDocuments: "เอกสารเผยแพร่",
+    featuredNotice: "ประกาศเด่น",
+    academicCalendar: "ปฏิทินวิชาการ",
+    calendarDescription: "กำหนดการสำคัญและกิจกรรมที่กำลังจะมาถึง",
+    overviewLabel: "ภาพรวมสถานศึกษา",
+    overviewTitle: "หน้าแรกสำหรับข่าวสาร ข้อมูล และบริการผู้เรียน",
     overviewDescription:
-      "The public website is structured for school communication, readable scanning, and CMS-backed content.",
-    directorTitle: "College director office",
+      "เว็บไซต์สาธารณะจัดโครงสร้างเพื่อการสื่อสารของสถานศึกษา อ่านง่าย และเชื่อมข้อมูลจาก CMS",
+    directorTitle: "ผู้บริหารสถานศึกษา",
+    directorName: "นายสุเทพ สระจันทร์",
     directorDescription:
-      "A dedicated area for leadership messages, public updates, and institutional direction.",
-    departmentsLabel: "Departments",
-    departmentsTitle: "Learning programs and student pathways",
+      "ผู้อำนวยการวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
+    departmentsLabel: "แผนกวิชา",
+    departmentsTitle: "หลักสูตรและเส้นทางการเรียนรู้",
     departmentsDescription:
-      "Programs and services are presented clearly for students and families.",
-    prideLabel: "College highlights",
-    prideTitle: "Projects, partnerships, and key services",
-    prideDescription: "A concise public summary of RCAT strengths and support services.",
-    newsLabel: "News and activities",
-    newsTitle: "Latest news, activities, and featured updates",
-    newsDescription: "A public news area with featured stories and concise updates.",
-    posted: "Posted",
-    announcements: "Announcements",
-    documents: "Official documents",
-    services: "Student services",
-    contact: "Contact and follow",
-    contactAddress: "Public relations and admissions office, RCAT",
-    telephone: "Telephone",
-    email: "Email",
-    footerTitle: "RCAT Public Website",
+      "นำเสนอหลักสูตรและบริการให้ผู้เรียนและผู้ปกครองเข้าใจได้ชัดเจน",
+    prideLabel: "จุดเด่นสถานศึกษา",
+    prideTitle: "โครงงาน ความร่วมมือ และบริการสำคัญ",
+    prideDescription: "สรุปจุดแข็งและบริการสนับสนุนของ RCAT สำหรับประชาชน",
+    newsLabel: "ข่าวและกิจกรรม",
+    newsTitle: "ข่าวล่าสุด กิจกรรม และเรื่องเด่น",
+    newsDescription: "พื้นที่ข่าวสาธารณะพร้อมเรื่องเด่นและข่าวอัปเดตแบบกระชับ",
+    posted: "เผยแพร่เมื่อ",
+    announcements: "ประกาศ",
+    documents: "เอกสารราชการ",
+    services: "บริการผู้เรียน",
+    contact: "ติดต่อเรา",
+    contactAddress: "เลขที่ 235 ตำบลนิเวศน์ อำเภอธวัชบุรี จังหวัดร้อยเอ็ด 45170",
+    telephone: "โทรศัพท์",
+    fax : "โทรสาร",
+    email: "อีเมล",
+    footerTitle: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
     footerDescription:
-      "Structured public communication for admissions, activities, official documents, and academic services.",
-    backToTop: "Back to top",
-    languageToast: "Language fixed",
-    programs: [
-      ["Engineering Technology", "Automation, robotics, electronics, and applied engineering projects."],
-      ["Digital Business", "Marketing, entrepreneurship, analytics, and practical business systems."],
-      ["Student Development", "Activities, portfolio support, guidance, and career preparation."]
-    ],
-    quickLinks: [
-      ["Admissions", "Application windows, qualifications, and required documents."],
-      ["Programs", "Technical, business, and student development pathways."],
-      ["Academic Calendar", "Upcoming terms, campus dates, and special academic periods."],
-      ["Official Documents", "Reports, quality documents, public notices, and ITA links."]
-    ],
-    highlights: [
-      ["18", "Innovation showcases", "Student teams present applied engineering and technology projects each year."],
-      ["12", "Industry collaborations", "Academic and workplace learning partnerships support practical pathways."],
-      ["24/7", "Student support services", "Guidance, academic advising, and portfolio preparation are available year round."]
-    ],
-    documentsList: [
-      ["Academic Calendar 2026", "Calendar"],
-      ["Annual Action Plan", "Planning"],
-      ["Self Assessment Report", "Quality"],
-      ["ITA and Transparency Portal", "Public"]
-    ]
+     "© " + new Date().getFullYear().toString() + " งานศูนย์ดิจิทัลและสื่อสารองค์กร ฝ่ายยุทธศาสตร์และแผนงาน",
+    backToTop: "กลับขึ้นด้านบน"
 } as const;
 
 function SectionHeading({ label, title, description }: SectionHeadingProps) {
@@ -333,7 +281,7 @@ export default function PublicHomePage() {
         .map((item) => ({
           title: item.title,
           date: dayjs(item.publishAt).format("YYYY-MM-DD"),
-          category: item.type,
+          category: contentTypeLabels[item.type],
           href: `/content/${item.slug}`
         })),
     [publicContent]
@@ -364,11 +312,11 @@ export default function PublicHomePage() {
               </Stack>
               <Stack direction="row" spacing={0.75} alignItems="center">
                 <LocalPhoneOutlinedIcon sx={{ fontSize: 18 }} />
-                <Typography variant="body2">(038) 000-000</Typography>
+                <Typography variant="body2">0 4356 9117</Typography>
               </Stack>
               <Stack direction="row" spacing={0.75} alignItems="center">
                 <MailOutlineRoundedIcon sx={{ fontSize: 18 }} />
-                <Typography variant="body2">info@rcat.ac.th</Typography>
+                <Typography variant="body2">saraban@rcat.ac.th</Typography>
               </Stack>
             </Stack>
             <Stack direction="row" spacing={0.5} alignItems="center">
@@ -483,7 +431,7 @@ export default function PublicHomePage() {
       <Box component="main" sx={{ py: { xs: 2.5, md: 4.5 } }}>
         <Container maxWidth="xl">
           <Grid container spacing={3.2}>
-            <Grid item xs={12} lg={8}>
+            <Grid size={{ xs: 12, lg: 8 }}>
               <Box
                 component="section"
                 sx={(theme) => ({
@@ -554,7 +502,7 @@ export default function PublicHomePage() {
                 </Stack>
               </Box>
             </Grid>
-            <Grid item xs={12} lg={4}>
+            <Grid size={{ xs: 12, lg: 4 }}>
               <Stack spacing={2.2} sx={{ height: "100%" }}>
                 {featuredStory ? (
                   <Card
@@ -588,7 +536,7 @@ export default function PublicHomePage() {
                       </Typography>
                       <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
                         <Chip
-                          label={featuredStory.type}
+                          label={contentTypeLabels[featuredStory.type]}
                           size="small"
                           sx={{ textTransform: "capitalize" }}
                         />
@@ -608,10 +556,10 @@ export default function PublicHomePage() {
                   >
                     <CardContent sx={{ p: 2.5 }}>
                       <Typography variant="h3" sx={{ fontSize: "1.2rem" }}>
-                        No published CMS content yet
+                        ยังไม่มีเนื้อหาที่เผยแพร่
                       </Typography>
                       <Typography color="text.secondary" sx={{ mt: 1.2 }}>
-                        Content will appear here after published records are processed.
+                        เนื้อหาจะแสดงที่นี่หลังจากมีรายการที่เผยแพร่แล้ว
                       </Typography>
                     </CardContent>
                   </Card>
@@ -681,7 +629,7 @@ export default function PublicHomePage() {
           </Grid>
 
           <Grid container spacing={4} sx={{ mt: 0.5 }}>
-            <Grid item xs={12} lg={8}>
+            <Grid size={{ xs: 12, lg: 8 }}>
               <Box component="section" id="overview">
                 <SectionHeading
                   label={copy.overviewLabel}
@@ -689,7 +637,7 @@ export default function PublicHomePage() {
                   description={copy.overviewDescription}
                 />
                 <Grid container spacing={2.5}>
-                  <Grid item xs={12} md={7}>
+                  <Grid size={{ xs: 12, md: 7 }}>
                     <Card sx={{ height: "100%" }}>
                       <CardContent sx={{ p: 3 }}>
                         <Typography variant="h3" sx={{ fontSize: "1.25rem" }}>
@@ -700,7 +648,7 @@ export default function PublicHomePage() {
                         </Typography>
                         <Grid container spacing={1.5} sx={{ mt: 2 }}>
                           {localizedQuickLinks.map((item) => (
-                            <Grid item xs={12} sm={6} key={item.title}>
+                            <Grid size={{ xs: 12, sm: 6 }} key={item.title}>
                               <Box
                                 component="a"
                                 href={item.href}
@@ -741,7 +689,7 @@ export default function PublicHomePage() {
                       </CardContent>
                     </Card>
                   </Grid>
-                  <Grid item xs={12} md={5}>
+                  <Grid size={{ xs: 12, md: 5 }}>
                     <Card
                       sx={{
                         height: "100%",
@@ -776,9 +724,9 @@ export default function PublicHomePage() {
                           <SchoolOutlinedIcon sx={{ fontSize: 88, color: "primary.dark" }} />
                         </Box>
                         <Typography variant="h3" sx={{ fontSize: "1.2rem", mt: 2 }}>
-                          {copy.directorTitle}
+                          {copy.directorName}
                         </Typography>
-                        <Typography color="text.secondary" sx={{ mt: 1 }}>
+                        <Typography color="text.secondary" sx={{ fontSize: "0.875rem", mt: 1 }}>
                           {copy.directorDescription}
                         </Typography>
                       </CardContent>
@@ -795,7 +743,7 @@ export default function PublicHomePage() {
                 />
                 <Grid container spacing={2.5}>
                   {localizedPrograms.map((program) => (
-                    <Grid item xs={12} md={4} key={program.title}>
+                    <Grid size={{ xs: 12, md: 4 }} key={program.title}>
                       <Card sx={{ height: "100%" }}>
                         <CardContent sx={{ p: 2.7 }}>
                           <Box
@@ -831,7 +779,7 @@ export default function PublicHomePage() {
                 />
                 <Grid container spacing={2.5}>
                   {localizedHighlights.map((item) => (
-                    <Grid item xs={12} md={4} key={item.title}>
+                    <Grid size={{ xs: 12, md: 4 }} key={item.title}>
                       <Card sx={{ height: "100%" }}>
                         <CardContent sx={{ p: 2.7 }}>
                           <Stack direction="row" spacing={1.4} alignItems="center">
@@ -875,11 +823,11 @@ export default function PublicHomePage() {
                 />
                 <Grid container spacing={2.5}>
                   {featuredStory ? (
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Card component="a" href={`/content/${featuredStory.slug}`} sx={{ display: "block" }}>
                         <CardContent sx={{ p: 2.8 }}>
                           <Grid container spacing={2.5} alignItems="stretch">
-                            <Grid item xs={12} md={4}>
+                            <Grid size={{ xs: 12, md: 4 }}>
                               <Box
                                 sx={(theme) => ({
                                   height: "100%",
@@ -894,10 +842,10 @@ export default function PublicHomePage() {
                                 <CampaignOutlinedIcon sx={{ fontSize: 84 }} />
                               </Box>
                             </Grid>
-                            <Grid item xs={12} md={8}>
+                            <Grid size={{ xs: 12, md: 8 }}>
                               <Chip
                                 icon={<ArticleOutlinedIcon />}
-                                label={featuredStory.type}
+                                label={contentTypeLabels[featuredStory.type]}
                                 size="small"
                                 sx={{ textTransform: "capitalize" }}
                               />
@@ -926,18 +874,18 @@ export default function PublicHomePage() {
                       </Card>
                     </Grid>
                   ) : (
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Card>
                         <CardContent sx={{ p: 2.8 }}>
                           <Typography color="text.secondary">
-                            No published CMS content is available yet.
+                            ยังไม่มีเนื้อหา CMS ที่เผยแพร่ในขณะนี้
                           </Typography>
                         </CardContent>
                       </Card>
                     </Grid>
                   )}
                   {newsStories.map((item) => (
-                    <Grid item xs={12} md={6} key={item.id}>
+                    <Grid size={{ xs: 12, md: 6 }} key={item.id}>
                       <Card
                         component="a"
                         href={`/content/${item.slug}`}
@@ -973,7 +921,7 @@ export default function PublicHomePage() {
                                   mb: 0.5
                                 }}
                               >
-                                {item.type}
+                                {contentTypeLabels[item.type]}
                               </Typography>
                               <Typography variant="h3" sx={{ fontSize: "1.05rem" }}>
                                 {item.title}
@@ -997,7 +945,7 @@ export default function PublicHomePage() {
                 </Grid>
               </Box>
             </Grid>
-            <Grid item xs={12} lg={4}>
+            <Grid size={{ xs: 12, lg: 4 }}>
               <Stack spacing={2.5}>
                 <Card id="announcements">
                   <CardContent sx={{ p: 2.5 }}>
@@ -1150,19 +1098,25 @@ export default function PublicHomePage() {
                       <Stack direction="row" spacing={1.2} alignItems="flex-start">
                         <LocationOnOutlinedIcon color="primary" />
                         <Typography color="text.secondary" variant="body2">
+                          {copy.campus}
+                            <br />
                           {copy.contactAddress}
                         </Typography>
                       </Stack>
                       <Stack direction="row" spacing={1.2} alignItems="flex-start">
                         <LocalPhoneOutlinedIcon color="primary" />
                         <Typography color="text.secondary" variant="body2">
-                          {copy.telephone}: (038) 000-000
+                          {copy.telephone}: 0 4356 9117
+                        </Typography>
+                        <FaxOutlinedIcon color="primary" />
+                        <Typography color="text.secondary" variant="body2">
+                          {copy.fax}: 0 4356 9118
                         </Typography>
                       </Stack>
                       <Stack direction="row" spacing={1.2} alignItems="flex-start">
                         <MailOutlineRoundedIcon color="primary" />
                         <Typography color="text.secondary" variant="body2">
-                          {copy.email}: info@rcat.ac.th
+                          {copy.email}: saraban@rcat.ac.th
                         </Typography>
                       </Stack>
                     </Stack>

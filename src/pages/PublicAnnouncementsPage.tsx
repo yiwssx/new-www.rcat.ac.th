@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Grid, LinearProgress, Stack, Typography } from "@mui/material";
+import { LinearProgress, Stack, Typography } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import PublicContentCard from "../components/PublicContentCard";
@@ -33,19 +34,19 @@ export default function PublicAnnouncementsPage() {
 
   return (
     <PublicSiteShell
-      title="Announcements"
-      description="Official notices, admissions information, and public documents published by the college."
+      title="ประกาศ"
+      description="ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา"
     >
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <CampaignOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
-          Official Notices
+          ประกาศราชการ
         </Typography>
       </Stack>
       <Grid container spacing={2.5}>
         {announcementItems.map((item) => (
-          <Grid item xs={12} md={6} key={item.id}>
+          <Grid size={{ xs: 12, md: 6 }} key={item.id}>
             <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<CampaignOutlinedIcon sx={{ fontSize: 42 }} />} />
           </Grid>
         ))}
@@ -54,12 +55,12 @@ export default function PublicAnnouncementsPage() {
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
         <DescriptionOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
-          Public Pages
+          หน้าข้อมูลสาธารณะ
         </Typography>
       </Stack>
       <Grid container spacing={2.5}>
         {pageItems.map((item) => (
-          <Grid item xs={12} md={6} key={item.id}>
+          <Grid size={{ xs: 12, md: 6 }} key={item.id}>
             <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<DescriptionOutlinedIcon sx={{ fontSize: 42 }} />} />
           </Grid>
         ))}

@@ -37,20 +37,20 @@ export default function LoginPage() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Signed in successfully",
+        title: "เข้าสู่ระบบสำเร็จ",
         showConfirmButton: false,
         timer: 1200,
         timerProgressBar: true
       });
       await navigate({ to: "/admin", replace: true });
     } catch (currentError) {
-      const nextError = currentError instanceof Error ? currentError.message : "Unable to sign in.";
+      const nextError = currentError instanceof Error ? currentError.message : "ไม่สามารถเข้าสู่ระบบได้";
       setError(nextError);
       await appSwal.fire({
         icon: "error",
-        title: "Unable to sign in",
+        title: "ไม่สามารถเข้าสู่ระบบได้",
         text: nextError,
-        confirmButtonText: "OK"
+        confirmButtonText: "ตกลง"
       });
     } finally {
       setSubmitting(false);
@@ -93,14 +93,14 @@ export default function LoginPage() {
                     {getCmsSiteName()}
                   </Typography>
                   <Typography color="text.secondary">
-                    {"Content management"}
+                    {"ระบบจัดการเนื้อหา"}
                   </Typography>
                 </Box>
               </Stack>
               {error && <Alert severity="error">{error}</Alert>}
               <Stack component="form" spacing={2.25} onSubmit={handleSubmit}>
                 <TextField
-                  label="Email"
+                  label="อีเมล"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -109,7 +109,7 @@ export default function LoginPage() {
                   fullWidth
                 />
                 <TextField
-                  label="Password"
+                  label="รหัสผ่าน"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -124,7 +124,7 @@ export default function LoginPage() {
                   disabled={submitting}
                   startIcon={<LoginOutlinedIcon />}
                 >
-                  {submitting ? "Signing in" : "Sign in"}
+                  {submitting ? "กำลังเข้าสู่ระบบ" : "เข้าสู่ระบบ"}
                 </Button>
                 {submitting && (
                   <Box
@@ -136,10 +136,10 @@ export default function LoginPage() {
                     }}
                   >
                     <Typography variant="body2" fontWeight={700} sx={{ mb: 1 }}>
-                      {"Authenticating your account..."}
+                      {"กำลังตรวจสอบบัญชีของคุณ..."}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1.2 }}>
-                      {"Please wait while we process your sign-in."}
+                      {"กรุณารอสักครู่ระหว่างดำเนินการเข้าสู่ระบบ"}
                     </Typography>
                     <LinearProgress sx={{ height: 6, borderRadius: 99 }} />
                   </Box>
