@@ -27,6 +27,22 @@
   };
 }
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+const ALLOWED_CONTENT_TYPES = ["page", "news", "program", "announcement", "blog"];
+const ALLOWED_CONTENT_STATUSES = ["draft", "review", "scheduled", "published"];
+
+const ALLOWED_EXACT_UPLOAD_MIME_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.oasis.opendocument.spreadsheet",
+  "text/csv",
+  "application/csv"
+];
+
 function getSnapshot(options) {
   const config = options || {};
   const includeUnpublished = Boolean(config.includeUnpublished);
@@ -40,10 +56,13 @@ function getSnapshot(options) {
     ? events
     : events.filter((event) => event.visibility !== "private" && event.status !== "cancelled");
   const visibleMedia = includeUnpublished ? media : filterMediaForPublicSnapshot(media, visibleContent);
+  const responseContent = includeUnpublished
+    ? visibleContent
+    : visibleContent.map((item) => sanitizePublicContentRecord(item));
 
   return {
     metrics: buildMetrics(visibleContent, visibleMedia),
-    content: visibleContent,
+    content: responseContent,
     media: visibleMedia,
     events: visibleEvents,
     menu,
@@ -74,6 +93,16 @@ function upsertContent(item) {
   const sheet = spreadsheet.getSheetByName(SHEETS.content);
   const existingItem = item.id ? findRowById(sheet, CONTENT_HEADERS, item.id) : null;
   const contentId = item.id || `content-${Date.now()}`;
+  const normalizedSlug = normalizeSlugValue(item.slug);
+  const normalizedType = validateContentType(item.type);
+  const normalizedStatus = validateContentStatus(item.status);
+
+  if (!normalizedSlug) {
+    throw createHttpError("Missing required field: slug", 400);
+  }
+
+  assertUniqueContentSlug(sheet, contentId, normalizedSlug);
+
   const normalizedBody = item.body || "";
   const normalizedTags = normalizeTags(item.tags);
   const normalizedCategory = normalizeCategoryValue(item.category);
@@ -87,9 +116,9 @@ function upsertContent(item) {
   const nextItem = {
     id: contentId,
     title: item.title,
-    slug: item.slug,
-    type: item.type,
-    status: item.status,
+    slug: normalizedSlug,
+    type: normalizedType,
+    status: normalizedStatus,
     owner: item.owner,
     summary: item.summary || "",
     category: normalizedCategory,
@@ -154,9 +183,11 @@ function getContentDetail(query, options) {
     throw createHttpError("Content item not found.", 404);
   }
 
-  return normalizeContentRecord(item, {
+  const detail = normalizeContentRecord(item, {
     includeBody: true
   });
+
+  return includeUnpublished ? detail : sanitizePublicContentRecord(detail, { includeBody: true });
 }
 
 function upsertMedia(asset) {
@@ -296,6 +327,55 @@ function normalizeContentRecord(item, options) {
   };
 }
 
+function sanitizePublicContentRecord(item, options) {
+  const config = options || {};
+  const sanitized = {
+    ...item
+  };
+
+  delete sanitized.bodyDocId;
+  delete sanitized.bodyDocUrl;
+
+  if (!config.includeBody) {
+    delete sanitized.body;
+  }
+
+  return sanitized;
+}
+
+function normalizeSlugValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function validateContentType(value) {
+  return validateAllowedContentValue("type", value, ALLOWED_CONTENT_TYPES);
+}
+
+function validateContentStatus(value) {
+  return validateAllowedContentValue("status", value, ALLOWED_CONTENT_STATUSES);
+}
+
+function validateAllowedContentValue(fieldName, value, allowedValues) {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  if (allowedValues.indexOf(normalized) === -1) {
+    throw createHttpError(`Invalid content ${fieldName}.`, 400);
+  }
+
+  return normalized;
+}
+
+function assertUniqueContentSlug(sheet, contentId, normalizedSlug) {
+  const rows = readObjects(sheet, CONTENT_HEADERS);
+  const duplicate = rows.find(
+    (row) => normalizeSlugValue(row.slug) === normalizedSlug && row.id !== contentId
+  );
+
+  if (duplicate) {
+    throw createHttpError("Slug นี้ถูกใช้งานแล้ว กรุณาเปลี่ยนลิงก์ถาวร", 409);
+  }
+}
+
 function resolveReadingMinutes(value, text) {
   const numericValue = Number(value);
 
@@ -422,7 +502,7 @@ function upsertContentBodyDocument(input) {
     ensureFileInFolder(file, docsFolder);
   }
 
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  makeContentBodyDocumentPrivate(file);
 
   return {
     id: document.getId(),
@@ -433,6 +513,14 @@ function upsertContentBodyDocument(input) {
 function buildContentDocumentName(title, id) {
   const safeTitle = String(title || "Untitled Content").trim();
   return `${safeTitle} (${id})`;
+}
+
+function makeContentBodyDocumentPrivate(file) {
+  if (!file) {
+    return;
+  }
+
+  file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
 }
 
 function ensureFileInFolder(file, folder) {
@@ -470,14 +558,62 @@ function readContentBody(docId) {
 
 function createDriveFile(asset) {
   const uploadFolder = resolveMediaUploadFolder();
-  const bytes = Utilities.base64Decode(stripDataUrlPrefix(asset.fileBase64));
+  const contentType = resolveUploadMimeType(asset);
+  const bytes = decodeUploadBytes(asset.fileBase64);
   const fileName = asset.fileName || asset.name;
-  const contentType = asset.mimeType || "application/octet-stream";
   const blob = Utilities.newBlob(bytes, contentType, fileName);
   const file = uploadFolder.createFile(blob);
 
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   return file;
+}
+
+function resolveUploadMimeType(asset) {
+  const contentType = normalizeUploadMimeType(asset.mimeType || parseDataUrlMimeType(asset.fileBase64));
+
+  if (!isAllowedUploadMimeType(contentType)) {
+    throw createHttpError("Unsupported file type.", 400);
+  }
+
+  return contentType;
+}
+
+function parseDataUrlMimeType(value) {
+  const match = String(value || "").match(/^data:([^;,]+)[;,]/i);
+  return match && match[1] ? match[1] : "";
+}
+
+function normalizeUploadMimeType(value) {
+  return String(value || "").split(";")[0].trim().toLowerCase();
+}
+
+function isAllowedUploadMimeType(value) {
+  const contentType = normalizeUploadMimeType(value);
+
+  if (contentType.indexOf("image/") === 0 || contentType.indexOf("video/") === 0) {
+    return true;
+  }
+
+  return ALLOWED_EXACT_UPLOAD_MIME_TYPES.indexOf(contentType) !== -1;
+}
+
+function decodeUploadBytes(fileBase64) {
+  let bytes;
+
+  try {
+    bytes = Utilities.base64Decode(stripDataUrlPrefix(fileBase64));
+  } catch (error) {
+    throw createHttpError("Invalid file upload data.", 400);
+  }
+
+  validateUploadBytes(bytes);
+  return bytes;
+}
+
+function validateUploadBytes(bytes) {
+  if (!bytes || bytes.length > MAX_UPLOAD_BYTES) {
+    throw createHttpError("File upload exceeds the 10 MB limit.", 413);
+  }
 }
 
 function resolveMediaUploadFolder() {
