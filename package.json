@@ -30,9 +30,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "bcryptjs": "^2.4.3",
     "dayjs": "^1.11.13",
-    "i": "^0.3.7",
     "jwt-decode": "^4.0.0",
-    "npm": "^11.13.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-redux": "^9.2.0",
@@ -55,5 +53,10 @@
     "vite": "^6.1.0",
     "vitest": "^3.0.7"
   },
-  "packageManager": "pnpm@10.0.0"
+  "packageManager": "pnpm@10.0.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
 }
