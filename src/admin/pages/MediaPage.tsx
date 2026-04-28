@@ -37,7 +37,7 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import PageHeader from "../components/PageHeader";
-import { deleteMediaAsset, getCmsSnapshot, saveMediaAsset } from "../../services/googleApi";
+import { deleteMediaAsset, getAdminCmsSnapshot, saveMediaAsset } from "../../services/googleApi";
 import { MediaAsset, MediaType } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
@@ -111,8 +111,8 @@ function toFormState(asset: MediaAsset): MediaFormState {
 export default function MediaPage() {
   const queryClient = useQueryClient();
   const { data, error, isError, isLoading } = useQuery({
-    queryKey: ["cms-snapshot"],
-    queryFn: getCmsSnapshot
+    queryKey: ["cms-snapshot", "admin"],
+    queryFn: getAdminCmsSnapshot
   });
   const mediaAssets = data?.media ?? [];
   const [dialogOpen, setDialogOpen] = useState(false);

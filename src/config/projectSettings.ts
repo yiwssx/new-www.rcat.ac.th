@@ -15,10 +15,12 @@ interface ProjectSettings {
     googleAppsScriptUrlEnv: string;
     resources: {
       snapshot: string;
+      adminSnapshot: string;
       health: string;
       authLogin: string;
       content: string;
       contentDetail: string;
+      adminContentDetail: string;
       deleteContent: string;
       media: string;
       deleteMedia: string;

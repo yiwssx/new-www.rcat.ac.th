@@ -34,7 +34,7 @@ import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlin
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import dayjs from "dayjs";
 import PageHeader from "../components/PageHeader";
-import { deleteCalendarEvent, getCmsSnapshot, saveCalendarEvent } from "../../services/googleApi";
+import { deleteCalendarEvent, getAdminCmsSnapshot, saveCalendarEvent } from "../../services/googleApi";
 import { CalendarEvent } from "../../types";
 import {
   getCalendarDateRangeError,
@@ -110,8 +110,8 @@ function getStatusColor(status: CalendarEvent["status"]) {
 export default function CalendarPage() {
   const queryClient = useQueryClient();
   const { data, error, isError, isLoading } = useQuery({
-    queryKey: ["cms-snapshot"],
-    queryFn: getCmsSnapshot
+    queryKey: ["cms-snapshot", "admin"],
+    queryFn: getAdminCmsSnapshot
   });
   const events = useMemo(
     () =>

@@ -25,7 +25,7 @@ import dayjs from "dayjs";
 import MetricCard from "../components/MetricCard";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
-import { getCmsSnapshot, publishContent } from "../../services/googleApi";
+import { getAdminCmsSnapshot, publishContent } from "../../services/googleApi";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
 
@@ -39,8 +39,8 @@ const metricIcons = [
 export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { data, error, isError, isLoading } = useQuery({
-    queryKey: ["cms-snapshot"],
-    queryFn: getCmsSnapshot
+    queryKey: ["cms-snapshot", "admin"],
+    queryFn: getAdminCmsSnapshot
   });
   const publishMutation = useMutation({
     mutationFn: publishContent,

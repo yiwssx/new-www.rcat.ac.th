@@ -8,10 +8,12 @@ vi.mock("../../config/projectSettings", () => ({
       googleAppsScriptUrlEnv: "VITE_GOOGLE_APPS_SCRIPT_URL",
       resources: {
         snapshot: "snapshot",
+        adminSnapshot: "snapshot-admin",
         health: "health",
         authLogin: "auth-login",
         content: "content",
         contentDetail: "content-detail",
+        adminContentDetail: "content-detail-admin",
         deleteContent: "content-delete",
         media: "media",
         deleteMedia: "media-delete",
@@ -24,31 +26,48 @@ vi.mock("../../config/projectSettings", () => ({
         deleteUser: "users-delete",
         resetUsers: "users-reset"
       }
+    },
+    storageKeys: {
+      session: "rcat.cms.session",
+      displaySettings: "rcat.cms.display.settings"
     }
   }
 }));
 
-import { getCmsSnapshot, saveCalendarEvent } from "../../services/googleApi";
+import { getAdminCmsSnapshot, getCmsSnapshot, saveCalendarEvent } from "../../services/googleApi";
+
+function createSnapshotResponse() {
+  return new Response(
+    JSON.stringify({
+      metrics: [],
+      content: [],
+      media: [],
+      events: [],
+      menu: [],
+      statusCode: 200
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } }
+  );
+}
+
+function storeSessionToken(token: string) {
+  window.localStorage.setItem(
+    "rcat.cms.session",
+    JSON.stringify({
+      token,
+      expiresAt: new Date(Date.now() + 60_000).toISOString()
+    })
+  );
+}
 
 describe("googleApi integration", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    window.localStorage.clear();
   });
 
   it("loads snapshot data from Apps Script", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          metrics: [],
-          content: [],
-          media: [],
-          events: [],
-          menu: [],
-          statusCode: 200
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      )
-    );
+    const fetchMock = vi.fn().mockResolvedValue(createSnapshotResponse());
 
     vi.stubGlobal("fetch", fetchMock);
 
@@ -58,6 +77,41 @@ describe("googleApi integration", () => {
     expect(snapshot.content).toEqual([]);
     expect(snapshot.menu).toEqual([]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not append authToken to authenticated GET request URLs", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(createSnapshotResponse());
+    storeSessionToken("url-token");
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getCmsSnapshot();
+
+    const requestUrl = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(requestUrl.searchParams.get("resource")).toBe("snapshot");
+    expect(requestUrl.searchParams.has("authToken")).toBe(false);
+    expect(requestUrl.toString()).not.toContain("authToken");
+  });
+
+  it("sends admin snapshot authToken in POST body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(createSnapshotResponse());
+    storeSessionToken("admin-token");
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getAdminCmsSnapshot();
+
+    const [requestUrl, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    const parsedUrl = new URL(String(requestUrl));
+    expect(parsedUrl.searchParams.get("resource")).toBe("snapshot-admin");
+    expect(parsedUrl.searchParams.has("authToken")).toBe(false);
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({
+      "Content-Type": "text/plain;charset=utf-8"
+    });
+    expect(JSON.parse(String(init.body))).toEqual({
+      authToken: "admin-token"
+    });
   });
 
   it("surfaces backend validation errors for event saves", async () => {
