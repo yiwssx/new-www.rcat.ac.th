@@ -8,7 +8,6 @@ This folder contains the zero-cost backend for the React CMS. It exposes a web a
 - `GET ?resource=health` checks the spreadsheet connection.
 - `GET ?resource=menu` returns the public website menu tree.
 - `GET ?resource=content-detail&id=...` or `&slug=...` returns full content body from Google Docs.
-- `GET ?resource=users` returns CMS user accounts (without password hashes) for authenticated admins.
 - `POST ?resource=auth-login` authenticates a CMS user and returns a signed session token.
 - `POST ?resource=content` creates or updates one content item.
 - `POST ?resource=content-delete` deletes one content item.
@@ -18,7 +17,8 @@ This folder contains the zero-cost backend for the React CMS. It exposes a web a
 - `POST ?resource=event-delete` deletes one calendar event.
 - `POST ?resource=publish` marks one content item as published.
 - `POST ?resource=menu` replaces the public website menu tree.
-- `POST ?resource=users` creates or updates one CMS user account.
+- `POST ?resource=users` with `{ "action": "list", "authToken": "..." }` returns CMS user accounts for authenticated admins.
+- `POST ?resource=users` creates or updates one CMS user account for authenticated admins.
 - `POST ?resource=users-delete` deletes one CMS user account.
 - `POST ?resource=users-reset` restores the default admin user account.
 
@@ -42,6 +42,7 @@ Script Properties instead of hard-coded values in `Code.gs`.
    - `ScriptProperties.gs`
    - `Code.gs`
    - `Cms.gs`
+   - `Cache.gs`
    - `Menu.gs`
    - `Users.gs`
    - `Storage.gs`
@@ -149,9 +150,11 @@ This backend now enforces signed server tokens for protected routes:
 
 - `POST` write routes require a valid token.
 - Admin-only routes (`users`, `users-delete`, `users-reset`) require admin role in a verified token.
-- Password hashes are never returned from `GET ?resource=users`.
+- User listing is only available through `POST ?resource=users` with `{ "action": "list", "authToken": "..." }`.
+- Password hashes are never returned from user listing responses.
 - Login attempts are rate-limited per email via Apps Script cache.
-- Public `snapshot` responses are limited to published/public records unless a valid token is provided.
+- Public `GET` routes do not read `authToken` from query parameters.
+- Public `snapshot` responses are limited to published/public records. Use `POST ?resource=snapshot-admin` for authenticated admin reads.
 
 For production school data, still review:
 
