@@ -25,4 +25,17 @@ describe("seo metadata helpers", () => {
       `${projectSettings.site.publicSiteUrl}/content/welcome`
     );
   });
+
+  it("does not expose unsafe canonical protocols", () => {
+    updateDocumentMetadata({
+      title: "SEO title",
+      description: "SEO description",
+      canonicalUrl: "javascript:alert(1)",
+      canonicalPath: "/content/safe"
+    });
+
+    expect(document.querySelector("link[rel='canonical']")?.getAttribute("href")).toBe(
+      `${projectSettings.site.publicSiteUrl}/content/safe`
+    );
+  });
 });

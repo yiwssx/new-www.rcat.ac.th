@@ -2,10 +2,22 @@ import { Box, Button, Divider, Stack, Typography } from "@mui/material";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import { MediaAsset } from "../../types";
 import { ContentBlock } from "../../utils/contentBlocks";
+import { normalizeSafeHref } from "../../utils/safeUrl";
 
 interface ContentBlocksRendererProps {
   blocks: ContentBlock[];
   mediaAssets: MediaAsset[];
+}
+
+function normalizeSafeMediaSrc(value: string | undefined) {
+  const href = normalizeSafeHref(value || "");
+  const lowerHref = href.toLowerCase();
+
+  if (href.startsWith("/") || lowerHref.startsWith("http://") || lowerHref.startsWith("https://")) {
+    return href;
+  }
+
+  return "";
 }
 
 export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBlocksRendererProps) {
@@ -75,7 +87,8 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
 
         if (block.type === "image") {
           const asset = mediaById.get(block.mediaId);
-          if (!asset || !asset.previewUrl) {
+          const safePreviewUrl = normalizeSafeMediaSrc(asset?.previewUrl);
+          if (!asset || !safePreviewUrl) {
             return null;
           }
 
@@ -83,7 +96,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
             <Box key={block.id}>
               <Box
                 component="img"
-                src={asset.previewUrl}
+                src={safePreviewUrl}
                 alt={block.caption || asset.name}
                 sx={{ width: "100%", borderRadius: 2, maxHeight: 460, objectFit: "cover" }}
               />
@@ -98,7 +111,8 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
 
         if (block.type === "video") {
           const asset = mediaById.get(block.mediaId);
-          if (!asset || !asset.embedUrl) {
+          const safeEmbedUrl = normalizeSafeMediaSrc(asset?.embedUrl);
+          if (!asset || !safeEmbedUrl) {
             return null;
           }
 
@@ -107,7 +121,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
               <Box
                 component="iframe"
                 title={asset.name}
-                src={asset.embedUrl}
+                src={safeEmbedUrl}
                 sx={{ width: "100%", height: { xs: 240, md: 390 }, border: 0, borderRadius: 2 }}
                 allow="autoplay"
               />
@@ -121,11 +135,13 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
         }
 
         if (block.type === "button") {
+          const safeHref = normalizeSafeHref(block.href);
+
           return (
             <Box key={block.id}>
               <Button
                 component="a"
-                href={block.href}
+                href={safeHref}
                 target="_blank"
                 rel="noreferrer"
                 variant={block.variant}

@@ -23,6 +23,7 @@ import PublicSiteShell from "../components/PublicSiteShell";
 import { getCmsSnapshot, getContentDetail } from "../../services/googleApi";
 import { parseContentBodyToBlocks } from "../../utils/contentBlocks";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
+import { normalizeSafeHref } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 
 interface PublicContentDetailPageProps {
@@ -70,6 +71,31 @@ function getReturnPath(type: string) {
   return "/news";
 }
 
+function normalizeSafePublicResourceUrl(value: string | undefined) {
+  const href = normalizeSafeHref(value || "");
+  const lowerHref = href.toLowerCase();
+
+  if (href.startsWith("/") || lowerHref.startsWith("http://") || lowerHref.startsWith("https://")) {
+    return href;
+  }
+
+  return "";
+}
+
+function getSafeMediaHref(asset: { driveUrl?: string; previewUrl?: string; embedUrl?: string }) {
+  const candidates = [asset.driveUrl, asset.previewUrl, asset.embedUrl];
+
+  for (const candidate of candidates) {
+    const safeHref = normalizeSafeHref(candidate || "");
+
+    if (safeHref !== "#") {
+      return safeHref;
+    }
+  }
+
+  return "#";
+}
+
 export default function PublicContentDetailPage({ slug }: PublicContentDetailPageProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["cms-snapshot"],
@@ -92,6 +118,9 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   const mediaAssets = data?.media ?? [];
   const contentBlocks = useMemo(() => parseContentBodyToBlocks(item?.body), [item?.body]);
   const featuredMedia = mediaAssets.find((asset) => asset.id === item?.featuredMediaId);
+  const featuredMediaPreviewUrl = normalizeSafePublicResourceUrl(featuredMedia?.previewUrl);
+  const featuredMediaEmbedUrl = normalizeSafePublicResourceUrl(featuredMedia?.embedUrl);
+  const canonicalHref = normalizeSafeHref(item?.canonicalUrl || "");
   const attachedMedia = mediaAssets.filter((asset) => item?.mediaIds?.includes(asset.id));
   const relatedItems = useMemo(() => {
     if (!item) {
@@ -186,18 +215,18 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                   overflow: "hidden"
                 }}
               >
-                {featuredMedia?.type === "image" && featuredMedia.previewUrl ? (
+                {featuredMedia?.type === "image" && featuredMediaPreviewUrl ? (
                   <Box
                     component="img"
-                    src={featuredMedia.previewUrl}
+                    src={featuredMediaPreviewUrl}
                     alt={featuredMedia.name}
                     sx={{ width: "100%", height: { xs: 220, md: 360 }, objectFit: "cover" }}
                   />
-                ) : featuredMedia?.type === "video" && featuredMedia.embedUrl ? (
+                ) : featuredMedia?.type === "video" && featuredMediaEmbedUrl ? (
                   <Box
                     component="iframe"
                     title={featuredMedia.name}
-                    src={featuredMedia.embedUrl}
+                    src={featuredMediaEmbedUrl}
                     sx={{ width: "100%", height: { xs: 240, md: 390 }, border: 0 }}
                     allow="autoplay"
                   />
@@ -268,7 +297,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                   {!!item.canonicalUrl && (
                     <Button
                       component="a"
-                      href={item.canonicalUrl}
+                      href={canonicalHref}
                       target="_blank"
                       rel="noreferrer"
                       variant="outlined"
@@ -290,7 +319,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                       <Button
                         key={asset.id}
                         component="a"
-                        href={asset.driveUrl || asset.previewUrl || asset.embedUrl}
+                        href={getSafeMediaHref(asset)}
                         target="_blank"
                         rel="noreferrer"
                         variant="outlined"

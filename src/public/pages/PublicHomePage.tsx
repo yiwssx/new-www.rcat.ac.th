@@ -39,6 +39,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTiktok } from '@fortawesome/free-brands-svg-icons';
 import { getCmsSnapshot } from "../../services/googleApi";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
+import { normalizeSafeHref } from "../../utils/safeUrl";
 import { contentTypeLabels } from "../../utils/thaiLabels";
 
 interface SectionHeadingProps {
@@ -460,7 +461,7 @@ export default function PublicHomePage() {
                             <Grid size={{ xs: 12, sm: 6 }} key={item.title}>
                               <Box
                                 component="a"
-                                href={item.href}
+                                href={normalizeSafeHref(item.href)}
                                 sx={{
                                   display: "block",
                                   p: 1.8,
@@ -775,7 +776,7 @@ export default function PublicHomePage() {
                         <Box
                           key={`${item.title}-${item.date}`}
                           component="a"
-                          href={item.href}
+                          href={normalizeSafeHref(item.href)}
                           sx={{ display: "block", py: 1.5 }}
                         >
                           <Chip
@@ -853,7 +854,7 @@ export default function PublicHomePage() {
                         <Box
                           key={item.title}
                           component="a"
-                          href={item.href}
+                          href={normalizeSafeHref(item.href)}
                           sx={{
                             p: 1.4,
                             borderRadius: 2,
@@ -935,7 +936,7 @@ export default function PublicHomePage() {
                         <Button
                           key={item.label}
                           component="a"
-                          href={item.href}
+                          href={normalizeSafeHref(item.href)}
                           variant="outlined"
                           color="inherit"
                           startIcon={item.icon}

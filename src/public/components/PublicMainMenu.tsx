@@ -5,6 +5,7 @@ import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownR
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import { getCmsSnapshot } from "../../services/googleApi";
 import { PublicMenuItem } from "../../types";
+import { normalizeSafeHref } from "../../utils/safeUrl";
 
 function getEnabledMenuItems(items: PublicMenuItem[]): PublicMenuItem[] {
   return items
@@ -51,7 +52,7 @@ function PublicMenuList({
         >
           <Box
             component="a"
-            href={item.href}
+            href={normalizeSafeHref(item.href)}
             sx={{
               minHeight: nested ? 42 : 48,
               px: nested ? 1.5 : 2,
