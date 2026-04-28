@@ -3,13 +3,12 @@ import {
   createContext,
   useCallback,
   useContext,
-  useMemo
+  useMemo,
+  useState
 } from "react";
 import { projectSettings } from "../config/projectSettings";
 import { Session } from "../types";
-import { login as requestLogin } from "../services/auth";
-import { selectSession, sessionEnded, sessionStarted } from "../store/authSlice";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { login as requestLogin, restoreSession } from "../services/auth";
 
 interface AuthContextValue {
   session: Session | null;
@@ -19,20 +18,27 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+function getInitialSession() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return restoreSession(window.localStorage.getItem(projectSettings.storageKeys.session));
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const dispatch = useAppDispatch();
-  const session = useAppSelector(selectSession);
+  const [session, setSession] = useState<Session | null>(() => getInitialSession());
 
   const login = useCallback(async (email: string, password: string) => {
     const nextSession = await requestLogin(email, password);
     window.localStorage.setItem(projectSettings.storageKeys.session, JSON.stringify(nextSession));
-    dispatch(sessionStarted(nextSession));
-  }, [dispatch]);
+    setSession(nextSession);
+  }, []);
 
   const logout = useCallback(() => {
     window.localStorage.removeItem(projectSettings.storageKeys.session);
-    dispatch(sessionEnded());
-  }, [dispatch]);
+    setSession(null);
+  }, []);
 
   const value = useMemo(
     () => ({
