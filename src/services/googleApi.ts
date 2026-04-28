@@ -110,7 +110,7 @@ function assertAppScriptUrl() {
   const appScriptUrl = getGoogleAppsScriptUrl();
 
   if (!appScriptUrl) {
-    throw new Error(`${projectSettings.api.googleAppsScriptUrlEnv} is not configured.`);
+    throw new Error(`ยังไม่ได้ตั้งค่า ${projectSettings.api.googleAppsScriptUrlEnv}`);
   }
 
   return appScriptUrl;
@@ -185,19 +185,19 @@ async function googleFetch<T>(
     });
 
     if (!response.ok) {
-      throw new Error(`Google API request failed with ${response.status}.`);
+      throw new Error(`คำขอ Google API ล้มเหลวด้วยสถานะ ${response.status}`);
     }
 
     const data = (await response.json()) as ApiEnvelope<T>;
 
     if (data.error || (data.statusCode && data.statusCode >= 400)) {
-      throw new Error(data.error ?? `Google API request failed with ${data.statusCode}.`);
+      throw new Error(data.error ?? `คำขอ Google API ล้มเหลวด้วยสถานะ ${data.statusCode}`);
     }
 
     return data;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("Google Apps Script took too long to respond. Please try again.");
+      throw new Error("Google Apps Script ตอบสนองช้าเกินไป กรุณาลองอีกครั้ง");
     }
 
     throw error;
@@ -328,19 +328,19 @@ export async function checkGoogleConnection(): Promise<IntegrationStatus[]> {
     {
       service: "Sheets",
       status: health.ok && health.hasSpreadsheet ? "connected" : "error",
-      detail: health.hasSpreadsheet ? "Spreadsheet configured" : "Spreadsheet is not connected",
+      detail: health.hasSpreadsheet ? "ตั้งค่า Spreadsheet แล้ว" : "ยังไม่ได้เชื่อมต่อ Spreadsheet",
       lastSync
     },
     {
       service: "Drive",
       status: health.hasDriveFolder ? "connected" : "pending",
-      detail: health.hasDriveFolder ? "Drive folder configured" : "Drive folder is not configured",
+      detail: health.hasDriveFolder ? "ตั้งค่าโฟลเดอร์ Drive แล้ว" : "ยังไม่ได้ตั้งค่าโฟลเดอร์ Drive",
       lastSync: health.hasDriveFolder ? lastSync : "Not connected"
     },
     {
       service: "Docs",
       status: health.hasDocsFolder ? "connected" : "pending",
-      detail: health.hasDocsFolder ? "Docs folder configured" : "Docs folder is not configured",
+      detail: health.hasDocsFolder ? "ตั้งค่าโฟลเดอร์ Docs แล้ว" : "ยังไม่ได้ตั้งค่าโฟลเดอร์ Docs",
       lastSync: health.hasDocsFolder ? lastSync : "Not connected"
     }
   ];

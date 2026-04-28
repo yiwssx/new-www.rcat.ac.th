@@ -120,7 +120,7 @@ export default function PublicMainMenu() {
   return (
     <Box
       component="nav"
-      aria-label="Main menu"
+      aria-label="เมนูหลัก"
       sx={{
         bgcolor: "primary.main",
         color: "white",

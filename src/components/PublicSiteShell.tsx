@@ -14,15 +14,15 @@ import PublicMainMenu from "./PublicMainMenu";
 import { getCmsSiteName, projectSettings } from "../config/projectSettings";
 
 const publicShellCopy = {
-  campus: "RCAT College Information Center",
-  portal: "Public relations",
-  eyebrow: "Royal College of Applied Technology",
-  siteName: "RCAT Public Website",
-  staffLogin: "Staff login",
-  footerTitle: "RCAT Public Website",
+  campus: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
+  portal: "ประชาสัมพันธ์",
+  eyebrow: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
+  siteName: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
+  staffLogin: "เข้าสู่ระบบเจ้าหน้าที่",
+  footerTitle: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
   footerDescription:
-    "Public information for admissions, activities, official documents, and academic services.",
-  home: "Home"
+    "ข้อมูลสาธารณะสำหรับการรับสมัคร กิจกรรม เอกสารราชการ และบริการทางวิชาการ",
+  home: "หน้าแรก"
 };
 
 interface PublicSiteShellProps {

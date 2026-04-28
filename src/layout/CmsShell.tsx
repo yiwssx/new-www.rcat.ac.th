@@ -49,27 +49,27 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    label: "Dashboard",
+    label: "แดชบอร์ด",
     to: "/admin",
     icon: <DashboardOutlinedIcon />
   },
   {
-    label: "Content",
+    label: "เนื้อหา",
     to: "/admin/content",
     icon: <ArticleOutlinedIcon />
   },
   {
-    label: "Media",
+    label: "สื่อ",
     to: "/admin/media",
     icon: <PermMediaOutlinedIcon />
   },
   {
-    label: "Calendar",
+    label: "ปฏิทิน",
     to: "/admin/calendar",
     icon: <EventAvailableOutlinedIcon />
   },
   {
-    label: "Menus",
+    label: "เมนู",
     to: "/admin/menus",
     icon: <AccountTreeOutlinedIcon />,
     adminOnly: true
@@ -81,7 +81,7 @@ const navItems: NavItem[] = [
     adminOnly: true
   },
   {
-    label: "Settings",
+    label: "ตั้งค่า",
     to: "/admin/settings",
     icon: <SettingsOutlinedIcon />,
     adminOnly: true
@@ -104,12 +104,12 @@ export default function CmsShell() {
 
   async function handleLogout() {
     const result = await appSwal.fire({
-      title: "Sign out?",
-      text: "Do you want to sign out of the CMS?",
+      title: "ออกจากระบบ?",
+      text: "ต้องการออกจากระบบ CMS หรือไม่",
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Sign out",
-      cancelButtonText: "Cancel"
+      confirmButtonText: "ออกจากระบบ",
+      cancelButtonText: "ยกเลิก"
     });
 
     if (!result.isConfirmed) {
@@ -134,7 +134,7 @@ export default function CmsShell() {
             {getCmsSiteName()}
           </Typography>
           <Typography color="text.secondary" variant="body2">
-            {"Education website"}
+            {"เว็บไซต์สถานศึกษา"}
           </Typography>
         </Box>
       </Stack>
@@ -161,15 +161,7 @@ export default function CmsShell() {
               <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>{item.icon}</ListItemIcon>
               <ListItemText
                 primary={
-                     {
-                        Dashboard: "Dashboard",
-                        Content: "Content",
-                        Media: "Media",
-                        Calendar: "Calendar",
-                        Menus: "Menus",
-                        "Google APIs": "Google APIs",
-                        Settings: "Settings"
-                      }[item.label] 
+                     item.label
                 }
               />
             </ListItemButton>
@@ -190,8 +182,8 @@ export default function CmsShell() {
             {session?.user.email}
           </Typography>
         </Box>
-        <Tooltip title="Sign out">
-          <IconButton aria-label="Sign out" onClick={() => void handleLogout()}>
+        <Tooltip title="ออกจากระบบ">
+          <IconButton aria-label="ออกจากระบบ" onClick={() => void handleLogout()}>
             <LogoutOutlinedIcon />
           </IconButton>
         </Tooltip>
@@ -214,7 +206,7 @@ export default function CmsShell() {
         <Toolbar>
           {!isDesktop && (
             <IconButton
-              aria-label="Open navigation"
+              aria-label="เปิดเมนูนำทาง"
               edge="start"
               onClick={() => setMobileOpen(true)}
               sx={{ mr: 1 }}
@@ -223,7 +215,7 @@ export default function CmsShell() {
             </IconButton>
           )}
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            {"Website CMS"}
+            {"ระบบจัดการเว็บไซต์"}
           </Typography>
           <Box sx={{ flex: 1 }} />
         </Toolbar>

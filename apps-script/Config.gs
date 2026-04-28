@@ -22,11 +22,11 @@ const DEFAULT_SCRIPT_PROPERTIES = {
   [SETTING_KEYS.rootFolderName]: "RCAT_BACKEND_DATABASE",
   [SETTING_KEYS.mediaFolderName]: "RCAT_MEDIA_STUFF",
   [SETTING_KEYS.docsFolderName]: "RCAT_CONTENTS",
-  [SETTING_KEYS.defaultAdminName]: "Administrator",
+  [SETTING_KEYS.defaultAdminName]: "ผู้ดูแลระบบ",
   [SETTING_KEYS.defaultAdminEmail]: "",
   [SETTING_KEYS.defaultAdminPasswordHash]: "",
   [SETTING_KEYS.authSessionHours]: "8",
-  [SETTING_KEYS.dateDisplayFormat]: "F j, Y",
+  [SETTING_KEYS.dateDisplayFormat]: "j F Y",
   [SETTING_KEYS.timeDisplayMode]: "24h"
 };
 
@@ -92,7 +92,7 @@ const EVENT_HEADERS = [
   "updatedAt"
 ];
 
-const MENU_HEADERS = ["id", "parentId", "labelTh", "labelEn", "href", "order", "enabled"];
+const MENU_HEADERS = ["id", "parentId", "labelTh", "href", "order", "enabled"];
 
 const USER_HEADERS = [
   "id",

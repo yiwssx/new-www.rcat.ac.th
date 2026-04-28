@@ -1,5 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  useEffect,
+  useMemo,
+  useState } from "react";
+import { useMutation,
+  useQuery } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -7,7 +11,6 @@ import {
   CardContent,
   Checkbox,
   FormControl,
-  Grid,
   InputLabel,
   MenuItem,
   Select,
@@ -15,6 +18,7 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
@@ -78,16 +82,16 @@ export default function SettingsPage() {
       setDisplaySettings(normalizeDisplaySettings(saved));
       await appSwal.fire({
         icon: "success",
-        title: "Display settings saved",
-        text: "Date and time display is updated for this CMS.",
-        confirmButtonText: "OK"
+        title: "บันทึกการแสดงผลแล้ว",
+        text: "รูปแบบวันที่และเวลาได้รับการอัปเดตสำหรับ CMS นี้",
+        confirmButtonText: "ตกลง"
       });
     } catch (error) {
       await appSwal.fire({
         icon: "error",
-        title: "Unable to save display settings",
-        text: error instanceof Error ? error.message : "Please try again.",
-        confirmButtonText: "OK"
+        title: "ไม่สามารถบันทึกการแสดงผลได้",
+        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
       });
     }
   }
@@ -95,27 +99,27 @@ export default function SettingsPage() {
   return (
     <Box>
       <PageHeader
-        title="Settings"
-        description="Publishing access, user controls, and display preferences."
+        title="ตั้งค่า"
+        description="สิทธิ์การเผยแพร่ การจัดการผู้ใช้ และรูปแบบการแสดงผล"
       />
       <Grid container spacing={2.5}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
                 <AccessTimeOutlinedIcon color="primary" />
-                <Typography variant="h3">Date and Time Display</Typography>
+                <Typography variant="h3">การแสดงวันที่และเวลา</Typography>
               </Stack>
               <Typography color="text.secondary" sx={{ mb: 2 }}>
-                Use WordPress-style date formats and choose 24-hour or 12-hour time display.
+                ใช้รูปแบบวันที่แบบ WordPress และเลือกรูปแบบเวลา 24 ชั่วโมงหรือ 12 ชั่วโมง
               </Typography>
               <Grid container spacing={1.5}>
-                <Grid item xs={12} md={5}>
+                <Grid size={{ xs: 12, md: 5 }}>
                   <FormControl fullWidth size="small">
-                    <InputLabel id="date-format-preset-label">Date format preset</InputLabel>
+                    <InputLabel id="date-format-preset-label">รูปแบบวันที่สำเร็จรูป</InputLabel>
                     <Select
                       labelId="date-format-preset-label"
-                      label="Date format preset"
+                      label="รูปแบบวันที่สำเร็จรูป"
                       value={
                         dateFormatPresets.some((item) => item.value === displaySettings.dateFormat)
                           ? displaySettings.dateFormat
@@ -138,16 +142,16 @@ export default function SettingsPage() {
                           {preset.label}
                         </MenuItem>
                       ))}
-                      <MenuItem value="__custom__">Custom format</MenuItem>
+                      <MenuItem value="__custom__">รูปแบบกำหนดเอง</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <FormControl fullWidth size="small">
-                    <InputLabel id="time-mode-label">Time mode</InputLabel>
+                    <InputLabel id="time-mode-label">รูปแบบเวลา</InputLabel>
                     <Select
                       labelId="time-mode-label"
-                      label="Time mode"
+                      label="รูปแบบเวลา"
                       value={displaySettings.timeMode}
                       onChange={(event) =>
                         setDisplaySettings((current) => ({
@@ -156,12 +160,12 @@ export default function SettingsPage() {
                         }))
                       }
                     >
-                      <MenuItem value="24h">24-hour (14:30)</MenuItem>
-                      <MenuItem value="12h">12-hour (2:30 pm)</MenuItem>
+                      <MenuItem value="24h">24 ชั่วโมง (14:30)</MenuItem>
+                      <MenuItem value="12h">12 ชั่วโมง (2:30 pm)</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Button
                     fullWidth
                     variant="contained"
@@ -170,12 +174,12 @@ export default function SettingsPage() {
                     onClick={() => void handleSaveDisplaySettings()}
                     sx={{ height: "100%" }}
                   >
-                    {saveDisplaySettingsMutation.isPending ? "Processing" : "Save"}
+                    {saveDisplaySettingsMutation.isPending ? "กำลังบันทึก" : "บันทึก"}
                   </Button>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField
-                    label="Custom date format"
+                    label="รูปแบบวันที่กำหนดเอง"
                     value={displaySettings.dateFormat}
                     onChange={(event) =>
                       setDisplaySettings((current) => ({
@@ -183,7 +187,7 @@ export default function SettingsPage() {
                         dateFormat: event.target.value
                       }))
                     }
-                    helperText="Examples: F j, Y | j F Y | Y-m-d | m/d/Y | d/m/Y"
+                    helperText="ตัวอย่าง: j F Y | F j, Y | Y-m-d | m/d/Y | d/m/Y"
                     size="small"
                     fullWidth
                   />
@@ -199,18 +203,18 @@ export default function SettingsPage() {
               >
                 <CardContent>
                   <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 1 }}>
-                    Preview
+                    ตัวอย่าง
                   </Typography>
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                    <Typography color="text.secondary">Date: {previewDate.date}</Typography>
-                    <Typography color="text.secondary">Time: {previewDate.time}</Typography>
-                    <Typography color="text.secondary">Date and time: {previewDate.dateTime}</Typography>
+                    <Typography color="text.secondary">วันที่: {previewDate.date}</Typography>
+                    <Typography color="text.secondary">เวลา: {previewDate.time}</Typography>
+                    <Typography color="text.secondary">วันที่และเวลา: {previewDate.dateTime}</Typography>
                   </Stack>
                   {displaySettingsQuery.isError && (
                     <Typography color="error" variant="body2" sx={{ mt: 1.2 }}>
                       {displaySettingsQuery.error instanceof Error
                         ? displaySettingsQuery.error.message
-                        : "Unable to load saved display settings."}
+                        : "ไม่สามารถโหลดค่าการแสดงผลที่บันทึกไว้ได้"}
                     </Typography>
                   )}
                 </CardContent>
@@ -218,15 +222,15 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <UserManagementCard />
         </Grid>
-        <Grid item xs={12} lg={7}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
                 <ShieldOutlinedIcon color="primary" />
-                <Typography variant="h3">Roles</Typography>
+                <Typography variant="h3">บทบาท</Typography>
               </Stack>
               <Stack spacing={1.5}>
                 {rolePermissions.map((role) => (
@@ -250,11 +254,11 @@ export default function SettingsPage() {
                     <Stack direction="row" spacing={2}>
                       <Stack direction="row" alignItems="center">
                         <Checkbox checked={role.canPublish} readOnly />
-                        <Typography variant="body2">Publish</Typography>
+                        <Typography variant="body2">เผยแพร่</Typography>
                       </Stack>
                       <Stack direction="row" alignItems="center">
                         <Checkbox checked={role.canManageUsers} readOnly />
-                        <Typography variant="body2">Users</Typography>
+                        <Typography variant="body2">ผู้ใช้</Typography>
                       </Stack>
                     </Stack>
                   </Stack>
@@ -263,30 +267,30 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} lg={5}>
+        <Grid size={{ xs: 12, lg: 5 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
                 <KeyOutlinedIcon color="secondary" />
-                <Typography variant="h3">Security</Typography>
+                <Typography variant="h3">ความปลอดภัย</Typography>
               </Stack>
               <Stack spacing={2}>
                 <Box>
-                  <Typography fontWeight={900}>Session time</Typography>
+                  <Typography fontWeight={900}>ระยะเวลาเซสชัน</Typography>
                   <Typography color="text.secondary">
-                    Signed-in sessions expire automatically based on system settings.
+                    เซสชันที่เข้าสู่ระบบจะหมดอายุตามค่าระบบโดยอัตโนมัติ
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography fontWeight={900}>Password protection</Typography>
+                  <Typography fontWeight={900}>การป้องกันรหัสผ่าน</Typography>
                   <Typography color="text.secondary">
-                    Passwords are stored as secure hashes in the Users sheet.
+                    รหัสผ่านถูกจัดเก็บเป็นแฮชที่ปลอดภัยในชีตผู้ใช้
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography fontWeight={900}>Deploy setup</Typography>
+                  <Typography fontWeight={900}>การตั้งค่าการ deploy</Typography>
                   <Typography color="text.secondary">
-                    Routing rewrites are ready for deployment through vercel.json.
+                    การ rewrite เส้นทางพร้อมใช้งานสำหรับการ deploy ผ่าน vercel.json
                   </Typography>
                 </Box>
               </Stack>

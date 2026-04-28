@@ -42,14 +42,14 @@ interface BlockTemplateOption {
 }
 
 const blockTemplateOptions: BlockTemplateOption[] = [
-  { type: "heading", label: "Heading", helper: "Section headings for long posts" },
-  { type: "paragraph", label: "Paragraph", helper: "Main body content" },
-  { type: "quote", label: "Quote", helper: "Highlights and testimonials" },
-  { type: "checklist", label: "Checklist", helper: "Bullet points and steps" },
-  { type: "image", label: "Image", helper: "Feature images from media library" },
-  { type: "video", label: "Video", helper: "Embedded video from media library" },
-  { type: "button", label: "Button", helper: "Strong CTA links" },
-  { type: "divider", label: "Divider", helper: "Visual section separator" }
+  { type: "heading", label: "หัวข้อ", helper: "หัวข้อย่อยสำหรับบทความยาว" },
+  { type: "paragraph", label: "ย่อหน้า", helper: "เนื้อหาหลัก" },
+  { type: "quote", label: "คำอ้างอิง", helper: "ข้อความเด่นหรือคำรับรอง" },
+  { type: "checklist", label: "รายการตรวจสอบ", helper: "หัวข้อย่อยและขั้นตอน" },
+  { type: "image", label: "รูปภาพ", helper: "รูปภาพเด่นจากคลังสื่อ" },
+  { type: "video", label: "วิดีโอ", helper: "วิดีโอฝังจากคลังสื่อ" },
+  { type: "button", label: "ปุ่ม", helper: "ลิงก์เรียกให้ดำเนินการ" },
+  { type: "divider", label: "เส้นแบ่ง", helper: "เส้นแบ่งส่วนเนื้อหา" }
 ];
 
 function normalizeChecklistInput(items: string[]) {
@@ -104,9 +104,9 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
 
   return (
     <Stack spacing={1.5}>
-      <Typography fontWeight={900}>Content builder</Typography>
+      <Typography fontWeight={900}>ตัวสร้างเนื้อหา</Typography>
       <Typography color="text.secondary" variant="body2">
-        Build post content using reusable blocks, similar to WordPress block editing.
+        สร้างเนื้อหาด้วยบล็อกที่นำกลับมาใช้ได้ คล้ายการแก้ไขบล็อกของ WordPress
       </Typography>
 
       <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
@@ -126,7 +126,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
 
       {!blocks.length && (
         <Alert severity="info">
-          No blocks yet. Start with Heading + Paragraph blocks for a classic WordPress-like post flow.
+          ยังไม่มีบล็อก เริ่มจากบล็อกหัวข้อและย่อหน้าเพื่อสร้างรูปแบบบทความพื้นฐาน
         </Alert>
       )}
 
@@ -148,7 +148,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                       <IconButton
                         size="small"
                         disabled={isFirst}
-                        aria-label="Move block up"
+                        aria-label="ย้ายบล็อกขึ้น"
                         onClick={() => moveBlock(block.id, "up")}
                       >
                         <ArrowUpwardOutlinedIcon fontSize="small" />
@@ -156,12 +156,12 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                       <IconButton
                         size="small"
                         disabled={isLast}
-                        aria-label="Move block down"
+                        aria-label="ย้ายบล็อกลง"
                         onClick={() => moveBlock(block.id, "down")}
                       >
                         <ArrowDownwardOutlinedIcon fontSize="small" />
                       </IconButton>
-                      <IconButton size="small" color="error" aria-label="Delete block" onClick={() => removeBlock(block.id)}>
+                      <IconButton size="small" color="error" aria-label="ลบบล็อก" onClick={() => removeBlock(block.id)}>
                         <DeleteOutlineIcon fontSize="small" />
                       </IconButton>
                     </Stack>
@@ -169,14 +169,14 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
 
                   {block.type === "paragraph" && (
                     <TextField
-                      label="Paragraph"
+                      label="ย่อหน้า"
                       value={block.text}
                       onChange={(event) =>
                         updateBlock(block.id, (current) =>
                           current.type === "paragraph" ? { ...current, text: event.target.value } : current
                         )
                       }
-                      placeholder="Write paragraph text..."
+                      placeholder="เขียนข้อความย่อหน้า..."
                       minRows={4}
                       multiline
                       fullWidth
@@ -186,21 +186,21 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                   {block.type === "heading" && (
                     <Fragment>
                       <TextField
-                        label="Heading text"
+                        label="ข้อความหัวข้อ"
                         value={block.text}
                         onChange={(event) =>
                           updateBlock(block.id, (current) =>
                             current.type === "heading" ? { ...current, text: event.target.value } : current
                           )
                         }
-                        placeholder="Section title"
+                        placeholder="ชื่อหัวข้อ"
                         fullWidth
                       />
                       <FormControl size="small" sx={{ width: 160 }}>
-                        <InputLabel id={`heading-level-${block.id}`}>Heading level</InputLabel>
+                        <InputLabel id={`heading-level-${block.id}`}>ระดับหัวข้อ</InputLabel>
                         <Select
                           labelId={`heading-level-${block.id}`}
-                          label="Heading level"
+                          label="ระดับหัวข้อ"
                           value={String(block.level)}
                           onChange={(event) =>
                             updateBlock(block.id, (current) =>
@@ -221,7 +221,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                   {block.type === "quote" && (
                     <Fragment>
                       <TextField
-                        label="Quote text"
+                        label="ข้อความอ้างอิง"
                         value={block.text}
                         onChange={(event) =>
                           updateBlock(block.id, (current) =>
@@ -233,14 +233,14 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                         fullWidth
                       />
                       <TextField
-                        label="Citation"
+                        label="แหล่งอ้างอิง"
                         value={block.citation}
                         onChange={(event) =>
                           updateBlock(block.id, (current) =>
                             current.type === "quote" ? { ...current, citation: event.target.value } : current
                           )
                         }
-                        placeholder="Name, office, or source"
+                        placeholder="ชื่อ หน่วยงาน หรือแหล่งที่มา"
                         fullWidth
                       />
                     </Fragment>
@@ -248,7 +248,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
 
                   {block.type === "checklist" && (
                     <TextField
-                      label="Checklist items"
+                      label="รายการตรวจสอบ"
                       value={normalizeChecklistInput(block.items)}
                       onChange={(event) =>
                         updateBlock(block.id, (current) =>
@@ -257,7 +257,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                             : current
                         )
                       }
-                      helperText="One item per line."
+                      helperText="หนึ่งรายการต่อหนึ่งบรรทัด"
                       minRows={4}
                       multiline
                       fullWidth
@@ -267,7 +267,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                   {block.type === "image" && (
                     <Fragment>
                       <TextField
-                        label="Image asset"
+                        label="ไฟล์รูปภาพ"
                         select
                         value={block.mediaId}
                         onChange={(event) =>
@@ -277,7 +277,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                         }
                         fullWidth
                       >
-                        <MenuItem value="">Select image from media library</MenuItem>
+                        <MenuItem value="">เลือกรูปภาพจากคลังสื่อ</MenuItem>
                         {imageAssets.map((asset) => (
                           <MenuItem key={asset.id} value={asset.id}>
                             {asset.name}
@@ -285,14 +285,14 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                         ))}
                       </TextField>
                       <TextField
-                        label="Caption"
+                        label="คำบรรยาย"
                         value={block.caption}
                         onChange={(event) =>
                           updateBlock(block.id, (current) =>
                             current.type === "image" ? { ...current, caption: event.target.value } : current
                           )
                         }
-                        placeholder="Optional image caption"
+                        placeholder="คำบรรยายรูปภาพ (ไม่บังคับ)"
                         fullWidth
                       />
                     </Fragment>
@@ -301,7 +301,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                   {block.type === "video" && (
                     <Fragment>
                       <TextField
-                        label="Video asset"
+                        label="ไฟล์วิดีโอ"
                         select
                         value={block.mediaId}
                         onChange={(event) =>
@@ -311,7 +311,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                         }
                         fullWidth
                       >
-                        <MenuItem value="">Select video from media library</MenuItem>
+                        <MenuItem value="">เลือกวิดีโอจากคลังสื่อ</MenuItem>
                         {videoAssets.map((asset) => (
                           <MenuItem key={asset.id} value={asset.id}>
                             {asset.name}
@@ -319,14 +319,14 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                         ))}
                       </TextField>
                       <TextField
-                        label="Caption"
+                        label="คำบรรยาย"
                         value={block.caption}
                         onChange={(event) =>
                           updateBlock(block.id, (current) =>
                             current.type === "video" ? { ...current, caption: event.target.value } : current
                           )
                         }
-                        placeholder="Optional video caption"
+                        placeholder="คำบรรยายวิดีโอ (ไม่บังคับ)"
                         fullWidth
                       />
                     </Fragment>
@@ -335,7 +335,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                   {block.type === "button" && (
                     <Fragment>
                       <TextField
-                        label="Button label"
+                        label="ข้อความปุ่ม"
                         value={block.label}
                         onChange={(event) =>
                           updateBlock(block.id, (current) =>
@@ -345,7 +345,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                         fullWidth
                       />
                       <TextField
-                        label="Button URL"
+                        label="URL ของปุ่ม"
                         value={block.href}
                         onChange={(event) =>
                           updateBlock(block.id, (current) =>
@@ -356,10 +356,10 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                         fullWidth
                       />
                       <FormControl size="small" sx={{ width: 180 }}>
-                        <InputLabel id={`button-variant-${block.id}`}>Style</InputLabel>
+                        <InputLabel id={`button-variant-${block.id}`}>รูปแบบ</InputLabel>
                         <Select
                           labelId={`button-variant-${block.id}`}
-                          label="Style"
+                          label="รูปแบบ"
                           value={block.variant}
                           onChange={(event) =>
                             updateBlock(block.id, (current) =>
@@ -372,8 +372,8 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                             )
                           }
                         >
-                          <MenuItem value="contained">Contained</MenuItem>
-                          <MenuItem value="outlined">Outlined</MenuItem>
+                          <MenuItem value="contained">ปุ่มทึบ</MenuItem>
+                          <MenuItem value="outlined">ปุ่มเส้นขอบ</MenuItem>
                         </Select>
                       </FormControl>
                     </Fragment>
@@ -383,7 +383,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                     <Box>
                       <Divider sx={{ mb: 1 }} />
                       <Typography color="text.secondary" variant="body2">
-                        Divider block separates content sections visually.
+                        บล็อกเส้นแบ่งใช้แยกส่วนเนื้อหาด้วยภาพ
                       </Typography>
                     </Box>
                   )}

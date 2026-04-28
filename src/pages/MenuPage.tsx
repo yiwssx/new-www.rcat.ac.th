@@ -137,7 +137,7 @@ function slugifySegment(value: string) {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/[^\p{Letter}\p{Number}-]+/gu, "-")
     .replace(/-{2,}/g, "-")
     .replace(/^-+|-+$/g, "");
 }
@@ -223,34 +223,34 @@ function MenuTree({ items, depth = 0, onAddChild, onEdit, onRemove, onMove }: Me
                   </Typography>
                   {!item.enabled && (
                     <Typography color="error" variant="caption">
-                      Hidden from public menu
+                      ซ่อนจากเมนูสาธารณะ
                     </Typography>
                   )}
                 </Box>
               </Stack>
               <Stack direction="row" spacing={0.5} justifyContent={{ xs: "flex-start", md: "flex-end" }}>
-                <Tooltip title="Move up">
-                  <IconButton aria-label="Move up" size="small" onClick={() => onMove(item.id, -1)}>
+                <Tooltip title="เลื่อนขึ้น">
+                  <IconButton aria-label="เลื่อนขึ้น" size="small" onClick={() => onMove(item.id, -1)}>
                     <ArrowUpwardRoundedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Move down">
-                  <IconButton aria-label="Move down" size="small" onClick={() => onMove(item.id, 1)}>
+                <Tooltip title="เลื่อนลง">
+                  <IconButton aria-label="เลื่อนลง" size="small" onClick={() => onMove(item.id, 1)}>
                     <ArrowDownwardRoundedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Add child">
-                  <IconButton aria-label="Add child" size="small" onClick={() => onAddChild(item.id)}>
+                <Tooltip title="เพิ่มเมนูย่อย">
+                  <IconButton aria-label="เพิ่มเมนูย่อย" size="small" onClick={() => onAddChild(item.id)}>
                     <AddIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Edit">
-                  <IconButton aria-label="Edit" size="small" onClick={() => onEdit(item.id)}>
+                <Tooltip title="แก้ไข">
+                  <IconButton aria-label="แก้ไข" size="small" onClick={() => onEdit(item.id)}>
                     <EditOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Remove">
-                  <IconButton aria-label="Remove" size="small" color="error" onClick={() => onRemove(item.id)}>
+                <Tooltip title="ลบ">
+                  <IconButton aria-label="ลบ" size="small" color="error" onClick={() => onRemove(item.id)}>
                     <DeleteOutlineIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -326,9 +326,9 @@ export default function MenuPage() {
     if (!form.label.trim() || !normalizedHref) {
       await appSwal.fire({
         icon: "error",
-        title: "Missing menu details",
-        text: "Label and route are required.",
-        confirmButtonText: "OK"
+        title: "ข้อมูลเมนูไม่ครบ",
+        text: "ต้องระบุชื่อเมนูและเส้นทาง",
+        confirmButtonText: "ตกลง"
       });
       return;
     }
@@ -360,12 +360,12 @@ export default function MenuPage() {
   async function handleRemove(id: string) {
     const item = findMenuItem(items, id);
     const result = await appSwal.fire({
-      title: "Remove menu item?",
+      title: "ลบรายการเมนู?",
       text: item?.label || id,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Remove",
-      cancelButtonText: "Cancel"
+      confirmButtonText: "ลบ",
+      cancelButtonText: "ยกเลิก"
     });
 
     if (!result.isConfirmed) {
@@ -384,7 +384,7 @@ export default function MenuPage() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Menu saved",
+        title: "บันทึกเมนูแล้ว",
         showConfirmButton: false,
         timer: 1400,
         timerProgressBar: true
@@ -392,9 +392,9 @@ export default function MenuPage() {
     } catch (error) {
       await appSwal.fire({
         icon: "error",
-        title: "Unable to save menu",
-        text: error instanceof Error ? error.message : "Please try again.",
-        confirmButtonText: "OK"
+        title: "ไม่สามารถบันทึกเมนูได้",
+        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
       });
     }
   }
@@ -406,22 +406,22 @@ export default function MenuPage() {
   return (
     <Box>
       <PageHeader
-        title="Menus"
-        description="Manage the public website menu, submenus, routes, and visibility."
+        title="เมนู"
+        description="จัดการเมนูเว็บไซต์สาธารณะ เมนูย่อย เส้นทาง และการแสดงผล"
         action={
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
             <Button variant="outlined" color="inherit" onClick={handleResetDraft}>
-              Clear draft
+              ล้างแบบร่าง
             </Button>
             <Button variant="contained" startIcon={<SaveOutlinedIcon />} onClick={() => void handlePublishMenu()}>
-              Save menu
+              บันทึกเมนู
             </Button>
           </Stack>
         }
       />
       {isError && (
         <Typography color="error" sx={{ mb: 2 }}>
-          {error instanceof Error ? error.message : "Unable to load menu items right now."}
+          {error instanceof Error ? error.message : "ไม่สามารถโหลดรายการเมนูได้ในขณะนี้"}
         </Typography>
       )}
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
@@ -435,13 +435,13 @@ export default function MenuPage() {
             sx={{ mb: 2 }}
           >
             <Box>
-              <Typography variant="h3">Public Main Menu</Typography>
+              <Typography variant="h3">เมนูหลักสาธารณะ</Typography>
               <Typography color="text.secondary">
-                Add top-level menu items, add child dropdowns, hide items, and reorder siblings.
+                เพิ่มเมนูระดับบน เพิ่มเมนูย่อย ซ่อนรายการ และจัดลำดับเมนู
               </Typography>
             </Box>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleAdd()}>
-              Add top item
+              เพิ่มเมนูหลัก
             </Button>
           </Stack>
           <MenuTree
@@ -454,21 +454,21 @@ export default function MenuPage() {
         </CardContent>
       </Card>
       <Dialog open={dialogOpen} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>{editingItem ? "Edit menu item" : parentId ? "Add child menu item" : "Add menu item"}</DialogTitle>
+        <DialogTitle>{editingItem ? "แก้ไขรายการเมนู" : parentId ? "เพิ่มเมนูย่อย" : "เพิ่มรายการเมนู"}</DialogTitle>
         <DialogContent>
           <Stack spacing={2.2} sx={{ pt: 1 }}>
             <TextField
-              label="Menu label"
+              label="ชื่อเมนู"
               value={form.label}
               onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
               fullWidth
               required
             />
             <TextField
-              label="Route or URL"
+              label="เส้นทางหรือ URL"
               value={form.href}
               onChange={(event) => setForm((current) => ({ ...current, href: event.target.value }))}
-              helperText="Use /news, /announcements, /blog, or a content slug like my-post. External URLs are also supported."
+              helperText="ใช้ /news, /announcements, /blog หรือ slug เนื้อหา เช่น my-post รองรับ URL ภายนอกด้วย"
               fullWidth
               required
             />
@@ -477,16 +477,16 @@ export default function MenuPage() {
                 checked={form.enabled}
                 onChange={(event) => setForm((current) => ({ ...current, enabled: event.target.checked }))}
               />
-              <Typography>Show in public menu</Typography>
+              <Typography>แสดงในเมนูสาธารณะ</Typography>
             </Stack>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button color="inherit" onClick={handleClose}>
-            Cancel
+            ยกเลิก
           </Button>
           <Button variant="contained" onClick={() => void handleSaveItem()}>
-            Save item
+            บันทึกรายการ
           </Button>
         </DialogActions>
       </Dialog>

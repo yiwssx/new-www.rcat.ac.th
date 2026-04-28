@@ -36,7 +36,7 @@ function getBootstrapUsers() {
 
 function assertCanManageUsers(actor?: User | null) {
   if (actor?.role !== "admin") {
-    throw new Error("Only administrators can manage users.");
+    throw new Error("เฉพาะผู้ดูแลระบบเท่านั้นที่จัดการผู้ใช้ได้");
   }
 }
 
@@ -49,7 +49,7 @@ function ensureAtLeastOneActiveAdmin(users: UserAccount[]) {
   const activeAdmins = users.filter((user) => user.role === "admin" && user.status === "active");
 
   if (!activeAdmins.length) {
-    throw new Error("At least one active administrator is required.");
+    throw new Error("ต้องมีผู้ดูแลระบบที่ใช้งานอย่างน้อยหนึ่งบัญชี");
   }
 }
 
@@ -73,18 +73,18 @@ export async function authenticateUser(email: string, password: string): Promise
   const user = users.find((account) => account.email === normalizeEmail(email));
 
   if (!user || user.status !== "active") {
-    throw new Error("Invalid email or password.");
+    throw new Error("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
   }
 
   if (!user.passwordHash) {
-    throw new Error("Local authentication is unavailable for this account.");
+    throw new Error("บัญชีนี้ไม่สามารถเข้าสู่ระบบภายในได้");
   }
 
   const bcrypt = await import("bcryptjs");
   const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
   if (!passwordMatches) {
-    throw new Error("Invalid email or password.");
+    throw new Error("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
   }
 
   return user;
@@ -99,11 +99,11 @@ export async function saveUserAccount(input: UserAccountInput, actor?: User | nu
   const duplicateUser = users.find((user) => user.email === email && user.id !== input.id);
 
   if (duplicateUser) {
-    throw new Error("A user with this email already exists.");
+    throw new Error("มีผู้ใช้อีเมลนี้อยู่แล้ว");
   }
 
   if (!existingUser && !input.password) {
-    throw new Error("Password is required for a new user.");
+    throw new Error("ต้องระบุรหัสผ่านสำหรับผู้ใช้ใหม่");
   }
 
   if (!usingBackendUsers()) {
@@ -112,7 +112,7 @@ export async function saveUserAccount(input: UserAccountInput, actor?: User | nu
       : existingUser?.passwordHash;
 
     if (!passwordHash) {
-      throw new Error("Password is required.");
+      throw new Error("ต้องระบุรหัสผ่าน");
     }
 
     const now = new Date().toISOString();
@@ -163,7 +163,7 @@ export async function deleteUserAccount(id: string, actor?: User | null): Promis
   if (targetUser.role === "admin" && targetUser.status === "active") {
     const activeAdmins = users.filter((user) => user.role === "admin" && user.status === "active");
     if (activeAdmins.length <= 1) {
-      throw new Error("At least one active administrator is required.");
+      throw new Error("ต้องมีผู้ดูแลระบบที่ใช้งานอย่างน้อยหนึ่งบัญชี");
     }
   }
 

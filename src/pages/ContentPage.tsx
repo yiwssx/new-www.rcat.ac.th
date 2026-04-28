@@ -49,6 +49,7 @@ import {
 import { ContentItem, ContentStatus } from "../types";
 import { formatDisplayDate } from "../utils/dateDisplay";
 import { appSwal } from "../utils/swal";
+import { contentStatusLabels, contentTypeLabels } from "../utils/thaiLabels";
 
 const columnHelper = createColumnHelper<ContentItem>();
 type FilterStatus = ContentStatus | "all";
@@ -113,9 +114,9 @@ export default function ContentPage() {
     } catch (error) {
       await appSwal.fire({
         icon: "error",
-        title: "Unable to open editor",
-        text: error instanceof Error ? error.message : "Please try again.",
-        confirmButtonText: "OK"
+        title: "ไม่สามารถเปิดตัวแก้ไขได้",
+        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
       });
     } finally {
       setLoadingEditorItem(false);
@@ -124,12 +125,12 @@ export default function ContentPage() {
 
   const handleDelete = useCallback(async (item: ContentItem) => {
     const result = await appSwal.fire({
-      title: "Delete content?",
+      title: "ลบเนื้อหา?",
       text: item.title,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel"
+      confirmButtonText: "ลบ",
+      cancelButtonText: "ยกเลิก"
     });
 
     if (!result.isConfirmed) {
@@ -142,7 +143,7 @@ export default function ContentPage() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Content deleted",
+        title: "ลบเนื้อหาแล้ว",
         showConfirmButton: false,
         timer: 1400,
         timerProgressBar: true
@@ -150,21 +151,21 @@ export default function ContentPage() {
     } catch (currentError) {
       await appSwal.fire({
         icon: "error",
-        title: "Unable to delete content",
-        text: currentError instanceof Error ? currentError.message : "Please try again.",
-        confirmButtonText: "OK"
+        title: "ไม่สามารถลบเนื้อหาได้",
+        text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
       });
     }
   }, [deleteMutation]);
 
   const handlePublish = useCallback(async (item: ContentItem) => {
     const result = await appSwal.fire({
-      title: "Publish content?",
+      title: "เผยแพร่เนื้อหา?",
       text: item.title,
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Publish",
-      cancelButtonText: "Cancel"
+      confirmButtonText: "เผยแพร่",
+      cancelButtonText: "ยกเลิก"
     });
 
     if (!result.isConfirmed) {
@@ -177,7 +178,7 @@ export default function ContentPage() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Content published",
+        title: "เผยแพร่เนื้อหาแล้ว",
         showConfirmButton: false,
         timer: 1400,
         timerProgressBar: true
@@ -185,9 +186,9 @@ export default function ContentPage() {
     } catch (currentError) {
       await appSwal.fire({
         icon: "error",
-        title: "Unable to publish content",
-        text: currentError instanceof Error ? currentError.message : "Please try again.",
-        confirmButtonText: "OK"
+        title: "ไม่สามารถเผยแพร่เนื้อหาได้",
+        text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
       });
     }
   }, [publishMutation]);
@@ -195,7 +196,7 @@ export default function ContentPage() {
   const columns = useMemo(
     () => [
       columnHelper.accessor("title", {
-        header: "Title",
+        header: "ชื่อเรื่อง",
         cell: (info) => (
           <Box>
             <Typography fontWeight={800}>{info.getValue()}</Typography>
@@ -216,25 +217,25 @@ export default function ContentPage() {
             </Stack>
             {!!info.row.original.mediaIds?.length && (
               <Typography color="text.secondary" variant="caption">
-                {info.row.original.mediaIds.length} media item(s)
+                สื่อแนบ {info.row.original.mediaIds.length} รายการ
               </Typography>
             )}
           </Box>
         )
       }),
       columnHelper.accessor("type", {
-        header: "Type",
-        cell: (info) => <Typography sx={{ textTransform: "capitalize" }}>{info.getValue()}</Typography>
+        header: "ประเภท",
+        cell: (info) => <Typography>{contentTypeLabels[info.getValue()]}</Typography>
       }),
       columnHelper.accessor("status", {
-        header: "Status",
+        header: "สถานะ",
         cell: (info) => <StatusChip status={info.getValue()} />
       }),
       columnHelper.accessor("owner", {
-        header: "Owner"
+        header: "ผู้รับผิดชอบ"
       }),
       columnHelper.accessor("updatedAt", {
-        header: "Updated",
+        header: "ปรับปรุง",
         cell: (info) => formatDisplayDate(info.getValue())
       }),
       columnHelper.display({
@@ -242,10 +243,10 @@ export default function ContentPage() {
         header: "",
         cell: (info) => (
           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-            <Tooltip title="View public page">
+            <Tooltip title="ดูหน้าสาธารณะ">
               <span>
                 <IconButton
-                  aria-label="View public page"
+                  aria-label="ดูหน้าสาธารณะ"
                   component="a"
                   href={`/content/${info.row.original.slug}`}
                   size="small"
@@ -257,9 +258,9 @@ export default function ContentPage() {
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title="Edit">
+            <Tooltip title="แก้ไข">
               <IconButton
-                aria-label="Edit"
+                aria-label="แก้ไข"
                 size="small"
                 disabled={loadingEditorItem}
                 onClick={() => void handleEdit(info.row.original)}
@@ -268,9 +269,9 @@ export default function ContentPage() {
               </IconButton>
             </Tooltip>
             {info.row.original.status !== "published" && (
-              <Tooltip title="Publish">
+              <Tooltip title="เผยแพร่">
                 <IconButton
-                  aria-label="Publish"
+                  aria-label="เผยแพร่"
                   size="small"
                   color="primary"
                   onClick={() => void handlePublish(info.row.original)}
@@ -279,9 +280,9 @@ export default function ContentPage() {
                 </IconButton>
               </Tooltip>
             )}
-            <Tooltip title="Delete">
+            <Tooltip title="ลบ">
               <IconButton
-                aria-label="Delete"
+                aria-label="ลบ"
                 size="small"
                 color="error"
                 onClick={() => void handleDelete(info.row.original)}
@@ -337,13 +338,13 @@ export default function ContentPage() {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Content saved",
+        title: "บันทึกเนื้อหาแล้ว",
         showConfirmButton: false,
         timer: 1400,
         timerProgressBar: true
       });
     } catch (currentError) {
-      setSaveError(currentError instanceof Error ? currentError.message : "Please check the content details.");
+      setSaveError(currentError instanceof Error ? currentError.message : "กรุณาตรวจสอบรายละเอียดเนื้อหา");
     }
   }
 
@@ -354,17 +355,17 @@ export default function ContentPage() {
   return (
     <Box>
       <PageHeader
-        title="Content"
-        description="Create and maintain pages, blogs, program profiles, news, and announcements."
+        title="เนื้อหา"
+        description="สร้างและดูแลหน้าเว็บ บทความ ข้อมูลหลักสูตร ข่าว และประกาศ"
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
-            New content
+            เพิ่มเนื้อหา
           </Button>
         }
       />
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "Unable to load content right now."}
+          {error instanceof Error ? error.message : "ไม่สามารถโหลดเนื้อหาได้ในขณะนี้"}
         </Alert>
       )}
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
@@ -378,15 +379,17 @@ export default function ContentPage() {
             sx={{ mb: 2 }}
           >
             <TextField
-              placeholder="Search content"
+              placeholder="ค้นหาเนื้อหา"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchOutlinedIcon />
-                  </InputAdornment>
-                )
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchOutlinedIcon />
+                    </InputAdornment>
+                  )
+                }
               }}
               sx={{ minWidth: { lg: 360 } }}
             />
@@ -395,11 +398,11 @@ export default function ContentPage() {
               exclusive
               onChange={(_, value: FilterStatus | null) => value && setStatus(value)}
               size="small"
-              aria-label="Status filter"
+              aria-label="ตัวกรองสถานะ"
             >
               {(["all", "draft", "review", "scheduled", "published"] as FilterStatus[]).map((item) => (
                 <ToggleButton key={item} value={item} sx={{ textTransform: "capitalize" }}>
-                  {item}
+                  {item === "all" ? "ทั้งหมด" : contentStatusLabels[item]}
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>

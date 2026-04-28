@@ -24,10 +24,10 @@ export default function AdminActionProgress() {
   const isLoginPage = pathname === "/login";
   const shouldShow = (isLoginPage || (canSeeManagementProgress && isAdminArea)) && activeRequestCount > 0;
 
-  const title = isLoginPage ? "Authenticating Your Account" : "Saving Changes";
+  const title = isLoginPage ? "กำลังตรวจสอบบัญชีของคุณ" : "กำลังบันทึกการเปลี่ยนแปลง";
   const description = isLoginPage
-    ? "Please wait while we verify your credentials."
-    : "Processing your request. Please keep this page open.";
+    ? "กรุณารอสักครู่ระหว่างตรวจสอบข้อมูลเข้าสู่ระบบ"
+    : "กำลังดำเนินการคำขอ กรุณาเปิดหน้านี้ไว้";
 
   useEffect(() => {
     let timeoutId: number | undefined;

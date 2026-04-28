@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import "dayjs/locale/th";
 import { DisplaySettings } from "../types";
 import {
   defaultDisplaySettings,
@@ -26,6 +27,8 @@ const WORDPRESS_TO_DAYJS_MAP: Record<string, string> = {
   s: "ss"
 };
 
+dayjs.locale("th");
+
 function escapeLiteral(value: string) {
   return value.replace(/\]/g, "\\]");
 }
@@ -33,7 +36,7 @@ function escapeLiteral(value: string) {
 export function convertWordPressFormatToDayjs(format: string) {
   const source = String(format || "").trim();
   if (!source) {
-    return "MMMM D, YYYY";
+    return "D MMMM YYYY";
   }
 
   let result = "";
@@ -67,7 +70,7 @@ export function convertWordPressFormatToDayjs(format: string) {
     result += character;
   }
 
-  return result || "MMMM D, YYYY";
+  return result || "D MMMM YYYY";
 }
 
 function getTimeWordPressFormat(timeMode: DisplaySettings["timeMode"]) {
@@ -84,19 +87,19 @@ function resolveDisplaySettings(override?: Partial<DisplaySettings>) {
 
 export function formatDisplayDate(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
-  return dayjs(value).format(convertWordPressFormatToDayjs(normalizedSettings.dateFormat));
+  return dayjs(value).locale("th").format(convertWordPressFormatToDayjs(normalizedSettings.dateFormat));
 }
 
 export function formatDisplayTime(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
-  return dayjs(value).format(
+  return dayjs(value).locale("th").format(
     convertWordPressFormatToDayjs(getTimeWordPressFormat(normalizedSettings.timeMode))
   );
 }
 
 export function formatDisplayDateTime(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
-  return dayjs(value).format(
+  return dayjs(value).locale("th").format(
     `${convertWordPressFormatToDayjs(normalizedSettings.dateFormat)} ${convertWordPressFormatToDayjs(
       getTimeWordPressFormat(normalizedSettings.timeMode)
     )}`

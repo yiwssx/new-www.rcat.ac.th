@@ -1,15 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
+import {
+  useQuery } from "@tanstack/react-query";
 import {
   Alert,
   Box,
   Card,
   CardContent,
-  Grid,
   LinearProgress,
   Stack,
   TextField,
   Typography
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
@@ -20,6 +21,7 @@ import { getGoogleAppsScriptUrl, projectSettings } from "../config/projectSettin
 import { checkGoogleConnection } from "../services/googleApi";
 import { IntegrationStatus } from "../types";
 import { formatDisplayDateTime } from "../utils/dateDisplay";
+import { integrationServiceLabels } from "../utils/thaiLabels";
 
 function getIntegrationIcon(service: IntegrationStatus["service"]) {
   if (service === "Sheets") {
@@ -44,17 +46,17 @@ export default function IntegrationsPage() {
     <Box>
       <PageHeader
         title="Google APIs"
-        description="Connection status for Sheets content, Drive media, and Docs drafts."
+        description="สถานะการเชื่อมต่อสำหรับเนื้อหาใน Sheets สื่อใน Drive และร่างเอกสารใน Docs"
       />
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "Unable to check Google Apps Script health."}
+          {error instanceof Error ? error.message : "ไม่สามารถตรวจสอบสถานะ Google Apps Script ได้"}
         </Alert>
       )}
       <Grid container spacing={2.5}>
         {data.map((integration) => (
-          <Grid item xs={12} md={4} key={integration.service}>
+          <Grid size={{ xs: 12, md: 4 }} key={integration.service}>
             <Card sx={{ height: "100%" }}>
               <CardContent>
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
@@ -74,15 +76,15 @@ export default function IntegrationsPage() {
                   <StatusChip status={integration.status} />
                 </Stack>
                 <Typography variant="h3" sx={{ mt: 2 }}>
-                  {integration.service}
+                  {integrationServiceLabels[integration.service] ?? integration.service}
                 </Typography>
                 <Typography color="text.secondary" sx={{ mt: 0.5 }}>
                   {integration.detail}
                 </Typography>
                 <Typography color="text.secondary" variant="body2" sx={{ mt: 2 }}>
-                  Last sync:{" "}
+                  ซิงก์ล่าสุด:{" "}
                   {integration.lastSync === "Not connected"
-                    ? integration.lastSync
+                    ? "ยังไม่เชื่อมต่อ"
                     : formatDisplayDateTime(integration.lastSync)}
                 </Typography>
               </CardContent>
@@ -94,12 +96,12 @@ export default function IntegrationsPage() {
         <CardContent>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
             <CloudSyncOutlinedIcon color="primary" />
-            <Typography variant="h3">Apps Script endpoint</Typography>
+            <Typography variant="h3">ปลายทาง Apps Script</Typography>
           </Stack>
           <TextField
-            label="Endpoint"
-            value={endpoint || `${projectSettings.api.googleAppsScriptUrlEnv} is not configured`}
-            InputProps={{ readOnly: true }}
+            label="ปลายทาง"
+            value={endpoint || `ยังไม่ได้ตั้งค่า ${projectSettings.api.googleAppsScriptUrlEnv}`}
+            slotProps={{ input: { readOnly: true } }}
             fullWidth
           />
         </CardContent>

@@ -1,14 +1,16 @@
-import { FormEvent, useState } from "react";
+import {
+  FormEvent,
+  useState } from "react";
 import {
   Box,
   Button,
   Card,
   CardContent,
-  Grid,
   Stack,
   TextField,
   Typography
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
@@ -27,9 +29,9 @@ export default function PublicContactPage() {
     event.preventDefault();
     await appSwal.fire({
       icon: "success",
-      title: "Message received",
-      text: "The public relations team will follow up through the contact channel you provided.",
-      confirmButtonText: "OK"
+      title: "ได้รับข้อความแล้ว",
+      text: "งานประชาสัมพันธ์จะติดต่อกลับตามช่องทางที่คุณให้ไว้",
+      confirmButtonText: "ตกลง"
     });
     setName("");
     setEmail("");
@@ -38,11 +40,11 @@ export default function PublicContactPage() {
 
   return (
     <PublicSiteShell
-      title="Contact"
-      description="Contact the college public relations office, admissions center, and online channels."
+      title="ติดต่อ"
+      description="ติดต่อสำนักงานประชาสัมพันธ์ ศูนย์รับสมัคร และช่องทางออนไลน์ของสถานศึกษา"
     >
       <Grid container spacing={2.5}>
-        <Grid item xs={12} lg={5}>
+        <Grid size={{ xs: 12, lg: 5 }}>
           <Stack spacing={2.5}>
             <Card>
               <CardContent sx={{ p: 3 }}>
@@ -50,24 +52,24 @@ export default function PublicContactPage() {
                   <Stack direction="row" spacing={1.4} alignItems="flex-start">
                     <LocationOnOutlinedIcon color="primary" />
                     <Box>
-                      <Typography fontWeight={900}>Campus public relations office</Typography>
+                      <Typography fontWeight={900}>สำนักงานประชาสัมพันธ์</Typography>
                       <Typography color="text.secondary">
-                        RCAT campus public relations office and admissions center
+                        งานประชาสัมพันธ์และศูนย์รับสมัคร RCAT
                       </Typography>
                     </Box>
                   </Stack>
                   <Stack direction="row" spacing={1.4} alignItems="flex-start">
                     <LocalPhoneOutlinedIcon color="primary" />
                     <Box>
-                      <Typography fontWeight={900}>Telephone</Typography>
-                      <Typography color="text.secondary">(038) 000-000</Typography>
+                      <Typography fontWeight={900}>โทรศัพท์</Typography>
+                      <Typography color="text.secondary">0 4356 9117</Typography>
                     </Box>
                   </Stack>
                   <Stack direction="row" spacing={1.4} alignItems="flex-start">
                     <MailOutlineRoundedIcon color="primary" />
                     <Box>
-                      <Typography fontWeight={900}>Email</Typography>
-                      <Typography color="text.secondary">info@rcat.ac.th</Typography>
+                      <Typography fontWeight={900}>อีเมล</Typography>
+                      <Typography color="text.secondary">saraban@rcat.ac.th</Typography>
                     </Box>
                   </Stack>
                 </Stack>
@@ -75,7 +77,7 @@ export default function PublicContactPage() {
             </Card>
             <Card>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="h3">Follow RCAT</Typography>
+                <Typography variant="h3">ติดตาม RCAT</Typography>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ mt: 2 }}>
                   <Button
                     component="a"
@@ -98,20 +100,20 @@ export default function PublicContactPage() {
             </Card>
           </Stack>
         </Grid>
-        <Grid item xs={12} lg={7}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <Card>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h3">Send a Message</Typography>
+              <Typography variant="h3">ส่งข้อความ</Typography>
               <Stack component="form" spacing={2.2} sx={{ mt: 2 }} onSubmit={handleSubmit}>
                 <TextField
-                  label="Name"
+                  label="ชื่อ"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   required
                   fullWidth
                 />
                 <TextField
-                  label="Email"
+                  label="อีเมล"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -119,7 +121,7 @@ export default function PublicContactPage() {
                   fullWidth
                 />
                 <TextField
-                  label="Message"
+                  label="ข้อความ"
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   multiline
@@ -128,7 +130,7 @@ export default function PublicContactPage() {
                   fullWidth
                 />
                 <Button type="submit" variant="contained" size="large" startIcon={<SendOutlinedIcon />}>
-                  Send message
+                  ส่งข้อความ
                 </Button>
               </Stack>
             </CardContent>

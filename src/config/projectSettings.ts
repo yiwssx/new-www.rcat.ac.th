@@ -5,6 +5,8 @@ interface ProjectSettings {
   site: {
     name: string;
     publicSiteUrl: string;
+    language: string;
+    locale: string;
     logoPath: string;
     logoAlt: string;
   };

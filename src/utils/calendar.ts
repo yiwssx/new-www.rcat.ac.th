@@ -30,6 +30,6 @@ export function getCalendarDateRangeError(startDateTime: string, endDateTime: st
   }
 
   return isEndDateTimeBeforeStart(startDateTime, endDateTime)
-    ? "End date must be the same as or after the start date."
+    ? "วันที่สิ้นสุดต้องเป็นวันเดียวกันหรือหลังวันที่เริ่มต้น"
     : "";
 }

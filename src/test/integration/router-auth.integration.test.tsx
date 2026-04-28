@@ -14,6 +14,6 @@ describe("router + auth integration", () => {
   it("redirects unauthenticated admin visits to the login page", async () => {
     render(<App />);
 
-    expect(await screen.findByRole("button", { name: /sign in/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /เข้าสู่ระบบ/ })).toBeInTheDocument();
   });
 });

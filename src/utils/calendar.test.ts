@@ -22,7 +22,7 @@ describe("calendar utils", () => {
   it("returns a user-facing validation error only for invalid ranges", () => {
     expect(getCalendarDateRangeError("2026-04-26T10:00", "")).toBe("");
     expect(getCalendarDateRangeError("2026-04-26T10:00", "2026-04-25T23:30")).toBe(
-      "End date must be the same as or after the start date."
+      "วันที่สิ้นสุดต้องเป็นวันเดียวกันหรือหลังวันที่เริ่มต้น"
     );
     expect(getCalendarDateRangeError("2026-04-26T10:00", "2026-04-26T00:00")).toBe("");
   });
