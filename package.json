@@ -13,7 +13,11 @@
     "test:integration": "vitest run src/test/integration",
     "test:functional:install": "playwright install chromium",
     "test:functional": "playwright test",
-    "test:all": "pnpm test:unit && pnpm test:integration && pnpm test:functional"
+    "test:all": "pnpm test:unit && pnpm test:integration && pnpm test:functional",
+    "gas:login": "pnpm dlx @google/clasp login",
+    "gas:push": "cd apps-script && pnpm dlx @google/clasp push --force",
+    "gas:version": "cd apps-script && pnpm dlx @google/clasp version \"release latest\"",
+    "gas:deployments": "cd apps-script && pnpm dlx @google/clasp deployments"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
