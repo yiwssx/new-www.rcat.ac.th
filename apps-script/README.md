@@ -60,11 +60,31 @@ Script Properties instead of hard-coded values in `Code.gs`.
 `setupCmsBackend` creates required sheets/folders.
 If `defaultAdminEmail` and `defaultAdminPasswordHash` are configured in Script Properties,
 it also seeds one admin user in `Users`.
-It does not seed sample content/media/events/menu rows. Add real records through the CMS or Sheet.
+It does not seed sample content, media, events, documents, highlights, stats, or achievements.
+Add real public content through the CMS.
 Media uploads sent to `POST ?resource=media` are stored in the folder configured by `driveFolderId`
 (`mediaFolderName`, default `RCAT_MEDIA_STUFF`).
 Content body text is stored in Google Docs under `docsFolderId` (`docsFolderName`, default `RCAT_CONTENTS`), and
 the Sheet stores document links instead of long body text.
+
+## Optional Starter Public Shell
+
+For a first-time setup, you may run `seedStarterPublicSiteSettings` from the Apps Script editor
+after `setupCmsBackend`.
+
+This helper is safe to skip. When used, it only:
+
+- writes neutral `siteSettings` values when all known `siteSettings` fields are empty;
+- creates a minimal public menu when the `Menu` sheet has no rows:
+  - `หน้าแรก` -> `/`
+  - `ข่าวสาร` -> `/news`
+  - `ประกาศ` -> `/announcements`
+  - `หลักสูตร` -> `/departments`
+  - `ติดต่อ` -> `/contact`
+
+It never overwrites existing `siteSettings` or existing menu rows, and it never creates fake
+news, announcements, documents, statistics, highlights, achievements, media, or events.
+Create real school content through the CMS.
 
 ## Deploy with clasp Recommended
 
@@ -188,6 +208,7 @@ Use this only if clasp cannot be used on the workstation.
    - `Menu.gs`
    - `Users.gs`
    - `Storage.gs`
+   - `SiteSettings.gs`
    - `HttpUtils.gs`
 3. Open Project Settings, enable `Show appsscript.json manifest file in editor`, then copy `appsscript.json` into the manifest file.
 4. Select the `setupCmsBackend` function and click Run.
