@@ -71,6 +71,11 @@ the Sheet stores document links instead of long body text.
 Use clasp as the primary deployment workflow so the local `.gs` files and `appsscript.json`
 are pushed together without opening each file in the Apps Script editor.
 
+Command context:
+
+- From repository root: package scripts such as `pnpm gas:push` are intended to be run here.
+- From `apps-script` directory: raw clasp commands are intended to be run here.
+
 1. Enable the Google Apps Script API at:
 
 ```text
@@ -79,36 +84,64 @@ https://script.google.com/home/usersettings
 
 2. Log in to clasp:
 
+From repository root:
+
 ```bash
 pnpm dlx @google/clasp login
 ```
 
-3. Copy the local clasp template from inside `apps-script`:
+3. Open the Apps Script directory:
+
+From repository root:
 
 ```bash
 cd apps-script
+```
+
+4. Copy the local clasp template:
+
+From `apps-script` directory:
+
+macOS/Linux/Git Bash:
+
+```bash
 cp .clasp.example.json .clasp.json
 ```
 
-4. Put the real `scriptId` into `.clasp.json`.
+Windows PowerShell:
+
+```powershell
+Copy-Item .clasp.example.json .clasp.json
+```
+
+Windows cmd:
+
+```bat
+copy .clasp.example.json .clasp.json
+```
+
+5. Put the real `scriptId` into `.clasp.json`.
    The `scriptId` comes from the Apps Script project URL:
 
 ```text
 https://script.google.com/home/projects/<SCRIPT_ID>/edit
 ```
 
-5. Push the Apps Script source from the repository:
+6. Push the Apps Script source:
+
+From `apps-script` directory:
 
 ```bash
-cd apps-script
 pnpm dlx @google/clasp push --force
 ```
 
-6. After the first push, open the Apps Script editor, select `setupCmsBackend`, and click Run.
+7. After the first push, open the Apps Script editor, select `setupCmsBackend`, and click Run.
    Approve the requested Google permissions, keep the returned `spreadsheetUrl` for direct Sheet inspection,
    and run `setupCmsBackend` again after schema upgrades so new columns are added without deleting existing rows.
 
-7. Create a version and deploy it to the existing Web App deployment:
+8. Create a version and deploy it to the existing Web App deployment:
+
+From `apps-script` directory:
 
 ```bash
 pnpm dlx @google/clasp deployments
