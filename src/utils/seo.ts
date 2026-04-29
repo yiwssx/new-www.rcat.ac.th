@@ -7,10 +7,11 @@ interface DocumentMetadataInput {
   description?: string;
   canonicalUrl?: string;
   canonicalPath?: string;
+  siteName?: string;
 }
 
-function getSiteName() {
-  return projectSettings.site.name;
+function getSiteName(siteName?: string) {
+  return siteName?.trim() || projectSettings.site.name;
 }
 
 function trimTrailingSlash(value: string) {
@@ -43,19 +44,19 @@ function getCanonicalBaseUrl(value = getPublicSiteUrl(), fallback = projectSetti
   return `https://${siteUrl}`;
 }
 
-export function buildDocumentTitle(title?: string) {
+export function buildDocumentTitle(title?: string, siteName?: string) {
   const normalizedTitle = title?.trim();
-  const siteName = getSiteName();
+  const normalizedSiteName = getSiteName(siteName);
 
   if (!normalizedTitle) {
-    return siteName;
+    return normalizedSiteName;
   }
 
-  if (normalizedTitle.includes(siteName)) {
+  if (normalizedTitle.includes(normalizedSiteName)) {
     return normalizedTitle;
   }
 
-  return `${normalizedTitle} | ${siteName}`;
+  return `${normalizedTitle} | ${normalizedSiteName}`;
 }
 
 function getOrCreateDescriptionMeta() {
@@ -120,7 +121,7 @@ export function updateDocumentMetadata(input: DocumentMetadataInput) {
     return;
   }
 
-  document.title = buildDocumentTitle(input.title);
+  document.title = buildDocumentTitle(input.title, input.siteName);
 
   const description = input.description?.trim();
   const descriptionMeta = getOrCreateDescriptionMeta();
@@ -140,5 +141,5 @@ export function updateDocumentMetadata(input: DocumentMetadataInput) {
 export function useDocumentMetadata(input: DocumentMetadataInput) {
   useEffect(() => {
     updateDocumentMetadata(input);
-  }, [input.title, input.description, input.canonicalUrl, input.canonicalPath]);
+  }, [input.title, input.description, input.canonicalUrl, input.canonicalPath, input.siteName]);
 }

@@ -1,8 +1,8 @@
-import { projectSettings } from "../config/projectSettings";
 import { SiteSettings } from "../types";
 
 const shortTextMaxLength = 120;
 const longTextMaxLength = 500;
+const neutralSiteName = "เว็บไซต์สถานศึกษา";
 const urlFields = new Set<keyof SiteSettings>([
   "admissionUrl",
   "facebookUrl",
@@ -19,7 +19,7 @@ const longTextFields = new Set<keyof SiteSettings>([
 ]);
 
 export const defaultSiteSettings: SiteSettings = {
-  siteName: projectSettings.site.name,
+  siteName: neutralSiteName,
   eyebrow: "",
   intro: "",
   campus: "",
@@ -31,14 +31,14 @@ export const defaultSiteSettings: SiteSettings = {
   facebookUrl: "",
   youtubeUrl: "",
   tiktokUrl: "",
-  heroTitle: projectSettings.site.name,
+  heroTitle: neutralSiteName,
   heroDescription: "",
   heroChip: "",
   heroImageUrl: "",
   directorName: "",
   directorTitle: "",
   directorDescription: "",
-  footerTitle: projectSettings.site.name,
+  footerTitle: neutralSiteName,
   footerDescription: ""
 };
 

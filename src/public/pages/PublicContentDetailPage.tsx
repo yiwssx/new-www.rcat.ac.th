@@ -17,6 +17,7 @@ import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
 import ContentBlocksRenderer from "../../shared/components/ContentBlocksRenderer";
+import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
@@ -227,15 +228,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                 {contentBlocks.length ? (
                   <ContentBlocksRenderer blocks={contentBlocks} mediaAssets={mediaAssets} />
                 ) : (
-                  <>
-                    <Typography>
-                      หน้านี้แสดงข้อมูลล่าสุดที่จัดทำโดย {item.owner} ผู้เข้าชมสามารถใช้ข้อมูลนี้เพื่อวางแผนการสมัคร
-                      ติดตามกิจกรรม ตรวจสอบหลักสูตร หรืออ่านประกาศทางการของสถานศึกษาตามประเภทเนื้อหา
-                    </Typography>
-                    <Typography>
-                      หากมีคำถามเกี่ยวกับรายการนี้ กรุณาติดต่อหน่วยงานที่รับผิดชอบหรือใช้หน้าติดต่อเพื่อส่งเรื่องถึงงานประชาสัมพันธ์
-                    </Typography>
-                  </>
+                  <EmptyState title="ยังไม่มีรายละเอียดเนื้อหาที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
                 )}
               </Stack>
             </CardContent>

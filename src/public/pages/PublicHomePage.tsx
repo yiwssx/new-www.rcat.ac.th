@@ -526,15 +526,19 @@ export default function PublicHomePage() {
                           </Typography>
                         </Stack>
                       )}
-                      {(siteSettings.phone || siteSettings.fax) && (
+                      {siteSettings.phone && (
                         <Stack direction="row" spacing={1.2} alignItems="flex-start">
                           <LocalPhoneOutlinedIcon color="primary" />
                           <Typography color="text.secondary" variant="body2">
-                            {[siteSettings.phone]}
+                            {siteSettings.phone}
                           </Typography>
+                        </Stack>
+                      )}
+                      {siteSettings.fax && (
+                        <Stack direction="row" spacing={1.2} alignItems="flex-start">
                           <FaxOutlinedIcon color="primary" />
                           <Typography color="text.secondary" variant="body2">
-                            {[siteSettings.fax]}
+                            {siteSettings.fax}
                           </Typography>
                         </Stack>
                       )}
