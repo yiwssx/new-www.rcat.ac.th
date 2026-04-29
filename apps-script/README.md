@@ -19,6 +19,7 @@ This folder contains the zero-cost backend for the React CMS. It exposes a web a
 - `POST ?resource=event-delete` deletes one calendar event.
 - `POST ?resource=publish` marks one content item as published.
 - `POST ?resource=menu` replaces the public website menu tree.
+- `POST ?resource=site-settings` updates public website settings for authenticated admins.
 - `POST ?resource=users` with `{ "action": "list", "authToken": "..." }` returns CMS user accounts for authenticated admins.
 - `POST ?resource=users` creates or updates one CMS user account for authenticated admins.
 - `POST ?resource=users-delete` deletes one CMS user account.
@@ -277,7 +278,12 @@ Use the deployed Web App URL and verify:
 - `GET ?resource=health`
 - `GET ?resource=snapshot`
 - `POST ?resource=snapshot-admin`
+- `POST ?resource=site-settings` with `{ "authToken": "...", "siteName": "..." }` as an admin-only route
 - `POST ?resource=users` with `{ "action": "list", "authToken": "..." }`
+
+Optional Apps Script editor verification:
+
+- Run `smokeTestSiteSettings` and confirm it returns `{ "ok": true, ... }`.
 
 ## Security Notes
 

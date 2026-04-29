@@ -58,7 +58,7 @@ const SITE_SETTINGS_DESCRIPTION_MAX_LENGTH = 500;
 
 function getSiteSettings() {
   const spreadsheet = getSpreadsheet();
-  const sheet = spreadsheet.getSheetByName(SHEETS.settings);
+  const sheet = getOrEnsureSettingsSheet(spreadsheet);
   const rawValue = getSheetSettingValue(sheet, SETTING_KEYS.siteSettings);
   let parsed = {};
 
@@ -75,7 +75,7 @@ function getSiteSettings() {
 
 function updateSiteSettings(input) {
   const spreadsheet = getSpreadsheet();
-  const sheet = spreadsheet.getSheetByName(SHEETS.settings) || ensureSettingsSheet(spreadsheet);
+  const sheet = getOrEnsureSettingsSheet(spreadsheet);
   const currentSettings = getSiteSettings();
   const nextSettings = normalizeSiteSettings(
     {
@@ -90,6 +90,20 @@ function updateSiteSettings(input) {
   upsertSetting(sheet, SETTING_KEYS.siteSettings, JSON.stringify(nextSettings));
   invalidatePublicSnapshotCache();
   return nextSettings;
+}
+
+function smokeTestSiteSettings() {
+  const settings = getSiteSettings();
+  const updated = updateSiteSettings({
+    siteName: settings.siteName || "เว็บไซต์สถานศึกษา",
+    heroTitle: settings.heroTitle || "เว็บไซต์สถานศึกษา"
+  });
+
+  return {
+    ok: true,
+    siteName: updated.siteName,
+    heroTitle: updated.heroTitle
+  };
 }
 
 function normalizeSiteSettings(input, options) {
@@ -118,7 +132,7 @@ function normalizeSiteSettings(input, options) {
 
 function seedStarterPublicSiteSettings() {
   const spreadsheet = getSpreadsheet();
-  const settingsSheet = ensureSettingsSheet(spreadsheet);
+  const settingsSheet = getOrEnsureSettingsSheet(spreadsheet);
   const rawSiteSettings = getSheetSettingValue(settingsSheet, SETTING_KEYS.siteSettings);
   const siteSettingsSeeded = shouldSeedSiteSettings(rawSiteSettings);
   const menuSeeded = seedStarterPublicMenuIfEmpty(spreadsheet);

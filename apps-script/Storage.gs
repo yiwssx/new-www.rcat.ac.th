@@ -95,6 +95,10 @@ function ensureSettingsSheet(spreadsheet) {
   return sheet;
 }
 
+function getOrEnsureSettingsSheet(spreadsheet) {
+  return spreadsheet.getSheetByName(SHEETS.settings) || ensureSettingsSheet(spreadsheet);
+}
+
 function upsertSetting(sheet, key, value) {
   const rows = sheet.getDataRange().getValues();
 
@@ -121,15 +125,15 @@ function upsertSettingIfMissing(sheet, key, value) {
 }
 
 function getSheetSettingValue(sheet, key) {
-  if (!sheet || sheet.getLastRow() < 2) {
+  if (!sheet || !key || sheet.getLastRow() < 2) {
     return "";
   }
 
-  const rows = sheet.getDataRange().getValues();
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
 
-  for (let index = 1; index < rows.length; index += 1) {
-    if (rows[index][0] === key) {
-      return rows[index][1] === undefined || rows[index][1] === null ? "" : String(rows[index][1]);
+  for (let index = 0; index < values.length; index += 1) {
+    if (String(values[index][0] || "") === String(key)) {
+      return normalizeCell(values[index][1]);
     }
   }
 

@@ -7,6 +7,7 @@ interface SeedContext {
   menuSetValues: Mock;
   readObjects: Mock;
   seedStarterPublicSiteSettings: () => { siteSettingsSeeded: boolean; menuSeeded: boolean };
+  smokeTestSiteSettings: () => { ok: boolean; siteName: string; heroTitle: string };
   upsertSetting: Mock;
 }
 
@@ -37,6 +38,7 @@ function loadSeedContext(input?: { rawSiteSettings?: string; existingMenuRows?: 
   const spreadsheet = {};
   const getSpreadsheet = vi.fn(() => spreadsheet);
   const ensureSettingsSheet = vi.fn(() => settingsSheet);
+  const getOrEnsureSettingsSheet = vi.fn(() => settingsSheet);
   const getSheetSettingValue = vi.fn(() => input?.rawSiteSettings || "");
   const upsertSetting = vi.fn();
   const ensureSheet = vi.fn(() => menuSheet);
@@ -46,6 +48,7 @@ function loadSeedContext(input?: { rawSiteSettings?: string; existingMenuRows?: 
     "console",
     "getSpreadsheet",
     "ensureSettingsSheet",
+    "getOrEnsureSettingsSheet",
     "getSheetSettingValue",
     "upsertSetting",
     "ensureSheet",
@@ -58,13 +61,15 @@ function loadSeedContext(input?: { rawSiteSettings?: string; existingMenuRows?: 
     "MENU_HEADERS",
     `${siteSettingsSource}
 return {
-  seedStarterPublicSiteSettings
+  seedStarterPublicSiteSettings,
+  smokeTestSiteSettings
 };`
   );
   const exports = createScriptExports(
     console,
     getSpreadsheet,
     ensureSettingsSheet,
+    getOrEnsureSettingsSheet,
     getSheetSettingValue,
     upsertSetting,
     ensureSheet,
@@ -75,7 +80,7 @@ return {
     { siteSettings: "siteSettings" },
     { menu: "Menu" },
     ["id", "parentId", "labelTh", "href", "order", "enabled"]
-  ) as Pick<SeedContext, "seedStarterPublicSiteSettings">;
+  ) as Pick<SeedContext, "seedStarterPublicSiteSettings" | "smokeTestSiteSettings">;
 
   return {
     ...exports,
@@ -133,5 +138,21 @@ describe("Apps Script starter public seed", () => {
     expect(context.upsertSetting).not.toHaveBeenCalled();
     expect(context.menuSetValues).not.toHaveBeenCalled();
     expect(context.invalidatePublicSnapshotCache).not.toHaveBeenCalled();
+  });
+
+  it("smoke tests reading and updating site settings", () => {
+    const context = loadSeedContext();
+    const result = context.smokeTestSiteSettings();
+    const [, key, rawValue] = context.upsertSetting.mock.calls[0];
+    const siteSettings = JSON.parse(rawValue);
+
+    expect(result).toEqual({
+      ok: true,
+      siteName: "เว็บไซต์สถานศึกษา",
+      heroTitle: "เว็บไซต์สถานศึกษา"
+    });
+    expect(key).toBe("siteSettings");
+    expect(siteSettings.siteName).toBe("เว็บไซต์สถานศึกษา");
+    expect(siteSettings.heroTitle).toBe("เว็บไซต์สถานศึกษา");
   });
 });
