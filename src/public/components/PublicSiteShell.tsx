@@ -17,11 +17,13 @@ import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import PublicMainMenu from "./PublicMainMenu";
-import PublicTextSetting from "../../config/projectTextElementSetting";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTiktok } from '@fortawesome/free-brands-svg-icons';
-import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTiktok } from "@fortawesome/free-brands-svg-icons";
+import { projectSettings } from "../../config/projectSettings";
+import { normalizeSiteSettings } from "../../services/siteSettings";
+import { normalizeSafeHref } from "../../utils/safeUrl";
 import { useDocumentMetadata } from "../../utils/seo";
+import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 interface PublicSiteShellProps {
   title?: string;
@@ -35,8 +37,10 @@ interface PublicSiteShellProps {
   disableMainContainer?: boolean;
 }
 
-const DEFAULT_PUBLIC_PHONE = "0 4356 9117";
-const DEFAULT_PUBLIC_EMAIL = "saraban@rcat.ac.th";
+const FOLLOW_LABEL = "ช่องทางติดตาม";
+const ANNOUNCEMENTS_LABEL = "ประกาศ";
+const STAFF_LOGIN_LABEL = "สำหรับเจ้าหน้าที่";
+const BACK_TO_TOP_LABEL = "กลับขึ้นด้านบน";
 
 export default function PublicSiteShell({
   title,
@@ -49,10 +53,28 @@ export default function PublicSiteShell({
   hidePageHeader = false,
   disableMainContainer = false
 }: PublicSiteShellProps) {
-  const publicText = PublicTextSetting;
+  const { data } = usePublicCmsSnapshot();
+  const siteSettings = normalizeSiteSettings(data?.siteSettings);
   const showPageHeader = !hidePageHeader && (Boolean(title) || Boolean(description));
-  const siteName = getCmsSiteName() || publicText.siteName;
+  const siteName = siteSettings.siteName;
   const defaultCanonicalPath = typeof window === "undefined" ? undefined : window.location.pathname;
+  const socialLinks = [
+    {
+      label: "Facebook",
+      href: siteSettings.facebookUrl,
+      icon: <FacebookRoundedIcon fontSize="small" />
+    },
+    {
+      label: "YouTube",
+      href: siteSettings.youtubeUrl,
+      icon: <YouTubeIcon fontSize="small" />
+    },
+    {
+      label: "TikTok",
+      href: siteSettings.tiktokUrl,
+      icon: <FontAwesomeIcon icon={faTiktok} style={{ fontSize: "1.25rem" }} />
+    }
+  ].filter((item) => item.href);
 
   useDocumentMetadata({
     title: seoTitle ?? title,
@@ -80,51 +102,45 @@ export default function PublicSiteShell({
             sx={{ py: 1.1 }}
           >
             <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 0.75, sm: 2 }}>
-              <Stack direction="row" spacing={0.75} alignItems="center">
-                <LocationOnOutlinedIcon sx={{ fontSize: 18 }} />
-                <Typography variant="body2">{publicText.campus}</Typography>
-              </Stack>
-              <Stack direction="row" spacing={0.75} alignItems="center">
-                <LocalPhoneOutlinedIcon sx={{ fontSize: 18 }} />
-                <Typography variant="body2">{DEFAULT_PUBLIC_PHONE}</Typography>
-              </Stack>
-              <Stack direction="row" spacing={0.75} alignItems="center">
-                <MailOutlineRoundedIcon sx={{ fontSize: 18 }} />
-                <Typography variant="body2">{DEFAULT_PUBLIC_EMAIL}</Typography>
-              </Stack>
+              {siteSettings.campus && (
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <LocationOnOutlinedIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="body2">{siteSettings.campus}</Typography>
+                </Stack>
+              )}
+              {siteSettings.phone && (
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <LocalPhoneOutlinedIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="body2">{siteSettings.phone}</Typography>
+                </Stack>
+              )}
+              {siteSettings.email && (
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <MailOutlineRoundedIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="body2">{siteSettings.email}</Typography>
+                </Stack>
+              )}
             </Stack>
-            <Stack direction="row" spacing={0.75} alignItems="center">
-              <Typography variant="body2" sx={{ opacity: 0.88 }}>
-                {publicText.portal}
-              </Typography>
-              <IconButton
-                component="a"
-                href="https://www.facebook.com/"
-                color="inherit"
-                size="small"
-                sx={{ border: "1px solid rgba(255, 255, 255, 0.22)", bgcolor: "rgba(255, 255, 255, 0.06)" }}
-              >
-                <FacebookRoundedIcon fontSize="small" />
-              </IconButton>
-              <IconButton
-                component="a"
-                href="https://www.youtube.com/"
-                color="inherit"
-                size="small"
-                sx={{ border: "1px solid rgba(255, 255, 255, 0.22)", bgcolor: "rgba(255, 255, 255, 0.06)" }}
-              >
-                <YouTubeIcon fontSize="small" />
-              </IconButton>
-              <IconButton
-                component="a"
-                href="https://www.tiktok.com/"
-                color="inherit"
-                size="small"
-                sx={{ border: "1px solid rgba(255, 255, 255, 0.22)", bgcolor: "rgba(255, 255, 255, 0.06)" }}
-              >
-                <FontAwesomeIcon icon={faTiktok} style={{ fontSize: "1.25rem" }} />
-              </IconButton>
-            </Stack>
+            {!!socialLinks.length && (
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <Typography variant="body2" sx={{ opacity: 0.88 }}>
+                  {FOLLOW_LABEL}
+                </Typography>
+                {socialLinks.map((item) => (
+                  <IconButton
+                    key={item.label}
+                    component="a"
+                    href={normalizeSafeHref(item.href)}
+                    aria-label={item.label}
+                    color="inherit"
+                    size="small"
+                    sx={{ border: "1px solid rgba(255, 255, 255, 0.22)", bgcolor: "rgba(255, 255, 255, 0.06)" }}
+                  >
+                    {item.icon}
+                  </IconButton>
+                ))}
+              </Stack>
+            )}
           </Stack>
         </Container>
       </Box>
@@ -158,54 +174,60 @@ export default function PublicSiteShell({
                 />
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Typography
-                  sx={{
-                    color: "secondary.dark",
-                    fontSize: "0.82rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    mb: 0.4
-                  }}
-                >
-                  {publicText.eyebrow}
-                </Typography>
+                {siteSettings.eyebrow && (
+                  <Typography
+                    sx={{
+                      color: "secondary.dark",
+                      fontSize: "0.82rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.14em",
+                      textTransform: "uppercase",
+                      mb: 0.4
+                    }}
+                  >
+                    {siteSettings.eyebrow}
+                  </Typography>
+                )}
                 <Typography variant="h1" sx={{ fontSize: { xs: "1.7rem", md: "2.4rem" }, lineHeight: 1.08 }}>
                   {siteName}
                 </Typography>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
-                  <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark" }} />
-                  <Typography color="text.secondary" sx={{ maxWidth: 860 }}>
-                    {publicText.intro}
-                  </Typography>
-                </Stack>
+                {siteSettings.intro && (
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
+                    <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark" }} />
+                    <Typography color="text.secondary" sx={{ maxWidth: 860 }}>
+                      {siteSettings.intro}
+                    </Typography>
+                  </Stack>
+                )}
               </Box>
             </Stack>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} alignItems={{ xs: "stretch", sm: "center" }}>
-              <Button
-                variant="contained"
-                color="error"
-                href="https://admission.vec.go.th/"
-                startIcon={<AssignmentIcon />}
-              >
-                {publicText.admissionChip}
-              </Button>
+              {siteSettings.admissionUrl && (
+                <Button
+                  variant="contained"
+                  color="error"
+                  href={normalizeSafeHref(siteSettings.admissionUrl)}
+                  startIcon={<AssignmentIcon />}
+                >
+                  สมัครเรียน
+                </Button>
+              )}
               <Button
                 variant="contained"
                 color="primary"
-                href="/announcements"
+                href={normalizeSafeHref("/announcements")}
                 endIcon={<ArrowForwardOutlinedIcon />}
               >
-                {publicText.announcementsButton}
+                {ANNOUNCEMENTS_LABEL}
               </Button>
               <Button
                 variant="outlined"
                 color="primary"
-                href="/login"
+                href={normalizeSafeHref("/login")}
                 startIcon={<AdminPanelSettingsOutlinedIcon />}
                 sx={{ bgcolor: "white" }}
               >
-                {publicText.staffLogin}
+                {STAFF_LOGIN_LABEL}
               </Button>
             </Stack>
           </Stack>
@@ -250,19 +272,23 @@ export default function PublicSiteShell({
             alignItems={{ xs: "flex-start", md: "center" }}
           >
             <Box>
-              <Typography fontWeight={900} sx={{ letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                {publicText.footerTitle}
-              </Typography>
-              <Typography sx={{ color: "rgba(255, 255, 255, 0.76)", mt: 0.6, maxWidth: 720 }}>
-                {publicText.footerDescription}
-              </Typography>
+              {siteSettings.footerTitle && (
+                <Typography fontWeight={900} sx={{ letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  {siteSettings.footerTitle}
+                </Typography>
+              )}
+              {siteSettings.footerDescription && (
+                <Typography sx={{ color: "rgba(255, 255, 255, 0.76)", mt: 0.6, maxWidth: 720 }}>
+                  {siteSettings.footerDescription}
+                </Typography>
+              )}
             </Box>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
-              <Button color="inherit" href="#top" startIcon={<ArrowForwardOutlinedIcon sx={{ transform: "rotate(-90deg)" }} />}>
-                {publicText.backToTop ?? publicText.home}
+              <Button color="inherit" href={normalizeSafeHref("#top")} startIcon={<ArrowForwardOutlinedIcon sx={{ transform: "rotate(-90deg)" }} />}>
+                {BACK_TO_TOP_LABEL}
               </Button>
-              <Button color="inherit" href="/login" startIcon={<AdminPanelSettingsOutlinedIcon />}>
-                {publicText.staffLogin}
+              <Button color="inherit" href={normalizeSafeHref("/login")} startIcon={<AdminPanelSettingsOutlinedIcon />}>
+                {STAFF_LOGIN_LABEL}
               </Button>
             </Stack>
           </Stack>

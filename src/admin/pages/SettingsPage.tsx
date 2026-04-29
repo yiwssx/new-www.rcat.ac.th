@@ -3,7 +3,8 @@ import {
   useMemo,
   useState } from "react";
 import { useMutation,
-  useQuery } from "@tanstack/react-query";
+  useQuery,
+  useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -21,6 +22,7 @@ import {
 import Grid from "@mui/material/Grid2";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
+import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PageHeader from "../components/PageHeader";
@@ -32,7 +34,10 @@ import {
   loadDisplaySettings,
   saveDisplaySettings
 } from "../../services/displaySettings";
-import { DisplaySettings } from "../../types";
+import { clearPublicCmsCache } from "../../services/publicCmsCache";
+import { defaultSiteSettings, normalizeSiteSettings } from "../../services/siteSettings";
+import { getAdminCmsSnapshot, saveSiteSettingsToApi } from "../../services/googleApi";
+import { DisplaySettings, SiteSettings } from "../../types";
 import {
   formatDisplayDate,
   formatDisplayDateTime,
@@ -47,17 +52,55 @@ function normalizeDisplaySettings(input: Partial<DisplaySettings>): DisplaySetti
   };
 }
 
+const siteSettingFields: Array<{
+  key: keyof SiteSettings;
+  label: string;
+  multiline?: boolean;
+  helperText?: string;
+}> = [
+  { key: "siteName", label: "ชื่อเว็บไซต์" },
+  { key: "eyebrow", label: "ข้อความเหนือชื่อเว็บไซต์" },
+  { key: "intro", label: "คำแนะนำเว็บไซต์", multiline: true },
+  { key: "campus", label: "ชื่อสถานศึกษา/วิทยาเขต" },
+  { key: "phone", label: "โทรศัพท์" },
+  { key: "fax", label: "โทรสาร" },
+  { key: "email", label: "อีเมล" },
+  { key: "address", label: "ที่อยู่", multiline: true },
+  { key: "admissionUrl", label: "ลิงก์สมัครเรียน", helperText: "ใช้ลิงก์ https:// หรือเว้นว่าง" },
+  { key: "facebookUrl", label: "Facebook URL", helperText: "ใช้ลิงก์ https:// หรือเว้นว่าง" },
+  { key: "youtubeUrl", label: "YouTube URL", helperText: "ใช้ลิงก์ https:// หรือเว้นว่าง" },
+  { key: "tiktokUrl", label: "TikTok URL", helperText: "ใช้ลิงก์ https:// หรือเว้นว่าง" },
+  { key: "heroTitle", label: "หัวข้อ Hero" },
+  { key: "heroDescription", label: "คำอธิบาย Hero", multiline: true },
+  { key: "heroChip", label: "ป้าย Hero" },
+  { key: "heroImageUrl", label: "Hero image URL", helperText: "ใช้ลิงก์รูปภาพ https:// หรือเว้นว่าง" },
+  { key: "directorName", label: "ชื่อผู้บริหาร" },
+  { key: "directorTitle", label: "ตำแหน่งผู้บริหาร" },
+  { key: "directorDescription", label: "คำอธิบายผู้บริหาร", multiline: true },
+  { key: "footerTitle", label: "หัวข้อท้ายเว็บ" },
+  { key: "footerDescription", label: "คำอธิบายท้ายเว็บ", multiline: true }
+];
+
 export default function SettingsPage() {
+  const queryClient = useQueryClient();
   const rolePermissions = projectSettings.roles;
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(defaultDisplaySettings);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(defaultSiteSettings);
 
   const displaySettingsQuery = useQuery({
     queryKey: ["display-settings"],
     queryFn: loadDisplaySettings
   });
+  const adminSnapshotQuery = useQuery({
+    queryKey: ["cms-snapshot", "admin"],
+    queryFn: getAdminCmsSnapshot
+  });
 
   const saveDisplaySettingsMutation = useMutation({
     mutationFn: saveDisplaySettings
+  });
+  const saveSiteSettingsMutation = useMutation({
+    mutationFn: saveSiteSettingsToApi
   });
 
   useEffect(() => {
@@ -65,6 +108,12 @@ export default function SettingsPage() {
       setDisplaySettings(normalizeDisplaySettings(displaySettingsQuery.data));
     }
   }, [displaySettingsQuery.data]);
+
+  useEffect(() => {
+    if (adminSnapshotQuery.data?.siteSettings) {
+      setSiteSettings(normalizeSiteSettings(adminSnapshotQuery.data.siteSettings));
+    }
+  }, [adminSnapshotQuery.data]);
 
   const previewDate = useMemo(() => {
     const now = new Date();
@@ -90,6 +139,37 @@ export default function SettingsPage() {
       await appSwal.fire({
         icon: "error",
         title: "ไม่สามารถบันทึกการแสดงผลได้",
+        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
+      });
+    }
+  }
+
+  function handleSiteSettingsChange(key: keyof SiteSettings, value: string) {
+    setSiteSettings((current) => ({
+      ...current,
+      [key]: value
+    }));
+  }
+
+  async function handleSaveSiteSettings() {
+    try {
+      const saved = await saveSiteSettingsMutation.mutateAsync(siteSettings);
+      setSiteSettings(normalizeSiteSettings(saved));
+      clearPublicCmsCache();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] }),
+        queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
+      ]);
+      await appSwal.fire({
+        icon: "success",
+        title: "บันทึกข้อมูลเว็บไซต์สาธารณะแล้ว",
+        confirmButtonText: "ตกลง"
+      });
+    } catch (error) {
+      await appSwal.fire({
+        icon: "error",
+        title: "ไม่สามารถบันทึกข้อมูลเว็บไซต์สาธารณะได้",
         text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
         confirmButtonText: "ตกลง"
       });
@@ -219,6 +299,52 @@ export default function SettingsPage() {
                   )}
                 </CardContent>
               </Card>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+                <LanguageOutlinedIcon color="primary" />
+                <Typography variant="h3">ข้อมูลเว็บไซต์สาธารณะ</Typography>
+              </Stack>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
+                ข้อมูลส่วนนี้จะแสดงในหน้าเว็บไซต์สาธารณะและถูกบันทึกใน Settings sheet ของ Apps Script
+              </Typography>
+              <Grid container spacing={1.5}>
+                {siteSettingFields.map((field) => (
+                  <Grid size={{ xs: 12, md: field.multiline ? 12 : 6 }} key={field.key}>
+                    <TextField
+                      label={field.label}
+                      value={siteSettings[field.key]}
+                      onChange={(event) => handleSiteSettingsChange(field.key, event.target.value)}
+                      helperText={field.helperText}
+                      multiline={field.multiline}
+                      minRows={field.multiline ? 3 : undefined}
+                      size="small"
+                      fullWidth
+                    />
+                  </Grid>
+                ))}
+                <Grid size={{ xs: 12 }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<SaveOutlinedIcon />}
+                    disabled={saveSiteSettingsMutation.isPending}
+                    onClick={() => void handleSaveSiteSettings()}
+                  >
+                    {saveSiteSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกข้อมูลเว็บไซต์"}
+                  </Button>
+                  {adminSnapshotQuery.isError && (
+                    <Typography color="error" variant="body2" sx={{ mt: 1.2 }}>
+                      {adminSnapshotQuery.error instanceof Error
+                        ? adminSnapshotQuery.error.message
+                        : "ไม่สามารถโหลดข้อมูลเว็บไซต์สาธารณะได้"}
+                    </Typography>
+                  )}
+                </Grid>
+              </Grid>
             </CardContent>
           </Card>
         </Grid>

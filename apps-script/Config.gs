@@ -13,7 +13,8 @@ const SETTING_KEYS = {
   authTokenSecret: "authTokenSecret",
   authSessionHours: "authSessionHours",
   dateDisplayFormat: "dateDisplayFormat",
-  timeDisplayMode: "timeDisplayMode"
+  timeDisplayMode: "timeDisplayMode",
+  siteSettings: "siteSettings"
 };
 
 const DEFAULT_SCRIPT_PROPERTIES = {

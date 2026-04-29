@@ -1,138 +1,126 @@
 import {
-  FormEvent,
-  useState } from "react";
-import {
   Box,
   Button,
   Card,
   CardContent,
   Stack,
-  TextField,
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
+import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
-import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import YouTubeIcon from "@mui/icons-material/YouTube";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTiktok } from "@fortawesome/free-brands-svg-icons";
+import EmptyState from "../../shared/components/EmptyState";
+import { normalizeSiteSettings } from "../../services/siteSettings";
+import { normalizeSafeHref } from "../../utils/safeUrl";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { appSwal } from "../../utils/swal";
+import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 export default function PublicContactPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    await appSwal.fire({
-      icon: "success",
-      title: "ได้รับข้อความแล้ว",
-      text: "งานประชาสัมพันธ์จะติดต่อกลับตามช่องทางที่คุณให้ไว้",
-      confirmButtonText: "ตกลง"
-    });
-    setName("");
-    setEmail("");
-    setMessage("");
-  }
+  const { data } = usePublicCmsSnapshot();
+  const siteSettings = normalizeSiteSettings(data?.siteSettings);
+  const contactRows = [
+    {
+      label: "ที่อยู่",
+      value: [siteSettings.campus, siteSettings.address].filter(Boolean).join("\n"),
+      icon: <LocationOnOutlinedIcon color="primary" />
+    },
+    {
+      label: "โทรศัพท์",
+      value: siteSettings.phone,
+      icon: <LocalPhoneOutlinedIcon color="primary" />
+    },
+    {
+      label: "โทรสาร",
+      value: siteSettings.fax,
+      icon: <FaxOutlinedIcon color="primary" />
+    },
+    {
+      label: "อีเมล",
+      value: siteSettings.email,
+      icon: <MailOutlineRoundedIcon color="primary" />
+    }
+  ].filter((item) => item.value);
+  const socialLinks = [
+    {
+      label: "Facebook",
+      href: siteSettings.facebookUrl,
+      icon: <FacebookRoundedIcon />
+    },
+    {
+      label: "YouTube",
+      href: siteSettings.youtubeUrl,
+      icon: <YouTubeIcon />
+    },
+    {
+      label: "TikTok",
+      href: siteSettings.tiktokUrl,
+      icon: <FontAwesomeIcon icon={faTiktok} />
+    }
+  ].filter((item) => item.href);
 
   return (
     <PublicSiteShell
       title="ติดต่อ"
-      description="ติดต่อสำนักงานประชาสัมพันธ์ ศูนย์รับสมัคร และช่องทางออนไลน์ของสถานศึกษา"
+      description="ข้อมูลติดต่อที่เผยแพร่จาก CMS"
     >
       <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, lg: 5 }}>
-          <Stack spacing={2.5}>
-            <Card>
-              <CardContent sx={{ p: 3 }}>
-                <Stack spacing={2}>
-                  <Stack direction="row" spacing={1.4} alignItems="flex-start">
-                    <LocationOnOutlinedIcon color="primary" />
-                    <Box>
-                      <Typography fontWeight={900}>สำนักงานประชาสัมพันธ์</Typography>
-                      <Typography color="text.secondary">
-                        งานประชาสัมพันธ์และศูนย์รับสมัคร RCAT
-                      </Typography>
-                    </Box>
-                  </Stack>
-                  <Stack direction="row" spacing={1.4} alignItems="flex-start">
-                    <LocalPhoneOutlinedIcon color="primary" />
-                    <Box>
-                      <Typography fontWeight={900}>โทรศัพท์</Typography>
-                      <Typography color="text.secondary">0 4356 9117</Typography>
-                    </Box>
-                  </Stack>
-                  <Stack direction="row" spacing={1.4} alignItems="flex-start">
-                    <MailOutlineRoundedIcon color="primary" />
-                    <Box>
-                      <Typography fontWeight={900}>อีเมล</Typography>
-                      <Typography color="text.secondary">saraban@rcat.ac.th</Typography>
-                    </Box>
-                  </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h3">ติดตาม RCAT</Typography>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ mt: 2 }}>
-                  <Button
-                    component="a"
-                    href="https://www.facebook.com/"
-                    variant="outlined"
-                    startIcon={<FacebookRoundedIcon />}
-                  >
-                    Facebook
-                  </Button>
-                  <Button
-                    component="a"
-                    href="https://www.youtube.com/"
-                    variant="outlined"
-                    startIcon={<YouTubeIcon />}
-                  >
-                    YouTube
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Stack>
-        </Grid>
         <Grid size={{ xs: 12, lg: 7 }}>
           <Card>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h3">ส่งข้อความ</Typography>
-              <Stack component="form" spacing={2.2} sx={{ mt: 2 }} onSubmit={handleSubmit}>
-                <TextField
-                  label="ชื่อ"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  required
-                  fullWidth
-                />
-                <TextField
-                  label="อีเมล"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                  fullWidth
-                />
-                <TextField
-                  label="ข้อความ"
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  multiline
-                  minRows={6}
-                  required
-                  fullWidth
-                />
-                <Button type="submit" variant="contained" size="large" startIcon={<SendOutlinedIcon />}>
-                  ส่งข้อความ
-                </Button>
-              </Stack>
+              <Typography variant="h3">ข้อมูลติดต่อ</Typography>
+              {contactRows.length ? (
+                <Stack spacing={2.2} sx={{ mt: 2 }}>
+                  {contactRows.map((item) => (
+                    <Stack key={item.label} direction="row" spacing={1.4} alignItems="flex-start">
+                      {item.icon}
+                      <Box>
+                        <Typography fontWeight={900}>{item.label}</Typography>
+                        <Typography color="text.secondary" sx={{ whiteSpace: "pre-line" }}>
+                          {item.value}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  ))}
+                </Stack>
+              ) : (
+                <Box sx={{ mt: 2 }}>
+                  <EmptyState title="ยังไม่มีข้อมูลติดต่อ" icon={<LocationOnOutlinedIcon />} />
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <Card>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h3">ช่องทางติดตาม</Typography>
+              {socialLinks.length ? (
+                <Stack direction={{ xs: "column", sm: "row", lg: "column" }} spacing={1.2} sx={{ mt: 2 }}>
+                  {socialLinks.map((item) => (
+                    <Button
+                      key={item.label}
+                      component="a"
+                      href={normalizeSafeHref(item.href)}
+                      aria-label={item.label}
+                      variant="outlined"
+                      startIcon={item.icon}
+                      sx={{ justifyContent: "flex-start" }}
+                    >
+                      {item.label}
+                    </Button>
+                  ))}
+                </Stack>
+              ) : (
+                <Box sx={{ mt: 2 }}>
+                  <EmptyState title="ยังไม่มีช่องทางติดตามที่เผยแพร่" />
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>

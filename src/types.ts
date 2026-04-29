@@ -118,9 +118,34 @@ export interface CmsSnapshot {
   events: CalendarEvent[];
   menu?: PublicMenuItem[];
   displaySettings?: DisplaySettings;
+  siteSettings?: SiteSettings;
 }
 
 export interface DisplaySettings {
   dateFormat: string;
   timeMode: "24h" | "12h";
+}
+
+export interface SiteSettings {
+  siteName: string;
+  eyebrow: string;
+  intro: string;
+  campus: string;
+  phone: string;
+  fax: string;
+  email: string;
+  address: string;
+  admissionUrl: string;
+  facebookUrl: string;
+  youtubeUrl: string;
+  tiktokUrl: string;
+  heroTitle: string;
+  heroDescription: string;
+  heroChip: string;
+  heroImageUrl: string;
+  directorName: string;
+  directorTitle: string;
+  directorDescription: string;
+  footerTitle: string;
+  footerDescription: string;
 }

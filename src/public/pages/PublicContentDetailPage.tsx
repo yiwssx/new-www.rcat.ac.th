@@ -92,7 +92,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   const visibleContent = useMemo(
     () =>
       (data?.content ?? [])
-        .filter((item) => item.status === "published" || item.status === "scheduled")
+        .filter((item) => item.status === "published")
         .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
     [data]
   );
@@ -142,7 +142,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
     );
   }
 
-  if (!item || (item.status !== "published" && item.status !== "scheduled")) {
+  if (!item || item.status !== "published") {
     return (
       <PublicSiteShell title="ไม่พบเนื้อหา" description="เนื้อหา CMS ที่ร้องขอยังไม่ได้เผยแพร่ในขณะนี้">
         <Card>

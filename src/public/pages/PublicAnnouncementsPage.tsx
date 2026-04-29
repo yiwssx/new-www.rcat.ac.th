@@ -3,6 +3,7 @@ import { LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
@@ -14,7 +15,7 @@ export default function PublicAnnouncementsPage() {
     () =>
       (data?.content ?? [])
         .filter(
-          (item) => item.type === "announcement" && (item.status === "published" || item.status === "scheduled")
+          (item) => item.type === "announcement" && item.status === "published"
         )
         .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
     [data]
@@ -23,7 +24,7 @@ export default function PublicAnnouncementsPage() {
   const pageItems = useMemo(
     () =>
       (data?.content ?? [])
-        .filter((item) => item.type === "page" && (item.status === "published" || item.status === "scheduled"))
+        .filter((item) => item.type === "page" && item.status === "published")
         .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
     [data]
   );
@@ -47,6 +48,9 @@ export default function PublicAnnouncementsPage() {
           </Grid>
         ))}
       </Grid>
+      {!announcementItems.length && !isLoading && (
+        <EmptyState title="ยังไม่มีประกาศที่เผยแพร่" icon={<CampaignOutlinedIcon />} />
+      )}
 
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
         <DescriptionOutlinedIcon color="primary" />
@@ -61,6 +65,9 @@ export default function PublicAnnouncementsPage() {
           </Grid>
         ))}
       </Grid>
+      {!pageItems.length && !isLoading && (
+        <EmptyState title="ยังไม่มีเอกสารเผยแพร่" icon={<DescriptionOutlinedIcon />} />
+      )}
     </PublicSiteShell>
   );
 }

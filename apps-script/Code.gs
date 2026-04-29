@@ -10,7 +10,7 @@
   "display-settings"
 ];
 
-const ADMIN_ONLY_RESOURCES = ["users", "users-delete", "users-reset"];
+const ADMIN_ONLY_RESOURCES = ["site-settings", "users", "users-delete", "users-reset"];
 
 const AUTH_SESSION_HOURS_FALLBACK = 8;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 10;
@@ -132,6 +132,11 @@ function routeRequest(event, method) {
 
     if (method === "POST" && resource === "display-settings") {
       return jsonResponse(updateDisplaySettings(payload));
+    }
+
+    if (method === "POST" && resource === "site-settings") {
+      requireMinimumRole(authContext, "admin");
+      return jsonResponse(updateSiteSettings(payload));
     }
 
     if (method === "POST" && resource === "users") {

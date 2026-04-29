@@ -3,6 +3,7 @@ import { LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
+import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
@@ -13,7 +14,7 @@ export default function PublicNewsPage() {
   const newsItems = useMemo(
     () =>
       (data?.content ?? [])
-        .filter((item) => item.type === "news" && (item.status === "published" || item.status === "scheduled"))
+        .filter((item) => item.type === "news" && item.status === "published")
         .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
     [data]
   );
@@ -47,6 +48,9 @@ export default function PublicNewsPage() {
           </Grid>
         ))}
       </Grid>
+      {!newsItems.length && !isLoading && (
+        <EmptyState title="ยังไม่มีข่าวที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
+      )}
     </PublicSiteShell>
   );
 }
