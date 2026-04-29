@@ -22,6 +22,7 @@ vi.mock("../../config/projectSettings", () => ({
         event: "event",
         deleteEvent: "event-delete",
         displaySettings: "display-settings",
+        siteSettings: "site-settings",
         users: "users",
         deleteUser: "users-delete",
         resetUsers: "users-reset"
@@ -34,7 +35,7 @@ vi.mock("../../config/projectSettings", () => ({
   }
 }));
 
-import { getAdminCmsSnapshot, getCmsSnapshot, saveCalendarEvent } from "../../services/googleApi";
+import { getAdminCmsSnapshot, getCmsSnapshot, saveCalendarEvent, saveSiteSettingsToApi } from "../../services/googleApi";
 
 function createSnapshotResponse() {
   return new Response(
@@ -44,6 +45,10 @@ function createSnapshotResponse() {
       media: [],
       events: [],
       menu: [],
+      siteSettings: {
+        siteName: "Public site",
+        heroTitle: "Public site"
+      },
       statusCode: 200
     }),
     { status: 200, headers: { "Content-Type": "application/json" } }
@@ -76,6 +81,7 @@ describe("googleApi integration", () => {
     expect(snapshot.metrics).toEqual([]);
     expect(snapshot.content).toEqual([]);
     expect(snapshot.menu).toEqual([]);
+    expect(snapshot.siteSettings?.siteName).toBe("Public site");
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     const requestUrl = new URL(String(fetchMock.mock.calls[0][0]));
@@ -117,6 +123,37 @@ describe("googleApi integration", () => {
       "Content-Type": "text/plain;charset=utf-8"
     });
     expect(JSON.parse(String(init.body))).toEqual({
+      authToken: "admin-token"
+    });
+  });
+
+  it("sends site settings authToken in POST body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          siteName: "Updated public site",
+          heroTitle: "Updated public site",
+          statusCode: 200
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    storeSessionToken("admin-token");
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const saved = await saveSiteSettingsToApi({
+      siteName: "Updated public site"
+    });
+
+    const [requestUrl, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    const parsedUrl = new URL(String(requestUrl));
+    expect(saved.siteName).toBe("Updated public site");
+    expect(parsedUrl.searchParams.get("resource")).toBe("site-settings");
+    expect(parsedUrl.searchParams.has("authToken")).toBe(false);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({
+      siteName: "Updated public site",
       authToken: "admin-token"
     });
   });

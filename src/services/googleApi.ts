@@ -9,6 +9,7 @@ import {
   MediaType,
   PublicMenuItem,
   Session,
+  SiteSettings,
   UserAccount
 } from "../types";
 
@@ -324,6 +325,10 @@ export async function getDisplaySettingsFromApi(): Promise<DisplaySettings> {
 
 export async function saveDisplaySettingsToApi(settings: Partial<DisplaySettings>): Promise<DisplaySettings> {
   return postJson<DisplaySettings>("displaySettings", settings);
+}
+
+export async function saveSiteSettingsToApi(settings: Partial<SiteSettings>): Promise<SiteSettings> {
+  return postJson<SiteSettings>("siteSettings", settings);
 }
 
 export async function getUserAccountsFromApi(): Promise<UserAccount[]> {

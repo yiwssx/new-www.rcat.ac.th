@@ -11,6 +11,7 @@ interface CodeScriptContext {
   getUsers: Mock;
   routeRequest: (event: Record<string, unknown>, method: string) => RouteResult;
   shouldReadAuthContext: (method: string, resource: string) => boolean;
+  updateSiteSettings: Mock;
   verifyAuthToken: Mock;
 }
 
@@ -22,6 +23,7 @@ function loadCodeScript(): CodeScriptContext {
       role: "admin"
     }
   ]);
+  const updateSiteSettings = vi.fn((input: Record<string, unknown>) => input);
   const verifyAuthToken = vi.fn((token: string) => {
     if (token === "admin-token") {
       return {
@@ -74,6 +76,7 @@ function loadCodeScript(): CodeScriptContext {
     "publishContent",
     "replaceMenu",
     "updateDisplaySettings",
+    "updateSiteSettings",
     "getUsers",
     "upsertUser",
     "deleteUser",
@@ -117,6 +120,7 @@ return {
     vi.fn(),
     vi.fn(),
     vi.fn(),
+    updateSiteSettings,
     getUsers,
     vi.fn(),
     vi.fn(),
@@ -126,6 +130,7 @@ return {
   return {
     ...exports,
     getUsers,
+    updateSiteSettings,
     verifyAuthToken
   };
 }
@@ -207,6 +212,44 @@ describe("Apps Script route auth handling", () => {
     expect(anonymousResult.statusCode).toBe(401);
     expect(anonymousResult.body.error).toBe("Authentication is required.");
     expect(anonymousContext.getUsers).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("updates site settings only for admin tokens", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const adminContext = loadCodeScript();
+    const adminResult = adminContext.routeRequest(
+      {
+        resource: "site-settings",
+        payload: {
+          siteName: "Updated site",
+          authToken: "admin-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(adminResult.statusCode).toBe(200);
+    expect(adminResult.body.siteName).toBe("Updated site");
+    expect(adminContext.updateSiteSettings).toHaveBeenCalledWith({
+      siteName: "Updated site",
+      authToken: "admin-token"
+    });
+
+    const editorContext = loadCodeScript();
+    const editorResult = editorContext.routeRequest(
+      {
+        resource: "site-settings",
+        payload: {
+          siteName: "Editor update",
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(editorResult.statusCode).toBe(403);
+    expect(editorContext.updateSiteSettings).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 

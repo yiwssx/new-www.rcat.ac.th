@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { Box, LinearProgress, Stack, Typography } from "@mui/material";
+import { LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
+import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
@@ -13,7 +14,7 @@ export default function PublicBlogPage() {
   const blogItems = useMemo(
     () =>
       (data?.content ?? [])
-        .filter((item) => item.type === "blog" && (item.status === "published" || item.status === "scheduled"))
+        .filter((item) => item.type === "blog" && item.status === "published")
         .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
     [data]
   );
@@ -23,7 +24,7 @@ export default function PublicBlogPage() {
   return (
     <PublicSiteShell
       title="บทความ"
-      description="บทความ เรื่องเล่า และเนื้อหาระยะยาวของสถานศึกษาที่เผยแพร่จาก CMS"
+      description="บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS"
     >
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
       {featuredItem && (
@@ -35,12 +36,7 @@ export default function PublicBlogPage() {
         />
       )}
       {!blogItems.length && !isLoading && (
-        <Box sx={{ py: 6 }}>
-          <Stack direction="row" spacing={1.2} alignItems="center" justifyContent="center">
-            <EditNoteOutlinedIcon color="primary" />
-            <Typography color="text.secondary">ยังไม่มีบทความที่เผยแพร่</Typography>
-          </Stack>
-        </Box>
+        <EmptyState title="ยังไม่มีบทความที่เผยแพร่" icon={<EditNoteOutlinedIcon />} />
       )}
       {!!secondaryItems.length && (
         <>

@@ -91,6 +91,8 @@ function ensureSettingsSheet(spreadsheet) {
   ];
 
   settings.forEach((setting) => upsertSetting(sheet, setting.key, setting.value));
+  upsertSettingIfMissing(sheet, SETTING_KEYS.siteSettings, JSON.stringify(DEFAULT_SITE_SETTINGS));
+  return sheet;
 }
 
 function upsertSetting(sheet, key, value) {
@@ -104,6 +106,34 @@ function upsertSetting(sheet, key, value) {
   }
 
   sheet.appendRow([key, value]);
+}
+
+function upsertSettingIfMissing(sheet, key, value) {
+  const rows = sheet.getDataRange().getValues();
+
+  for (let index = 1; index < rows.length; index += 1) {
+    if (rows[index][0] === key) {
+      return;
+    }
+  }
+
+  sheet.appendRow([key, value]);
+}
+
+function getSheetSettingValue(sheet, key) {
+  if (!sheet || sheet.getLastRow() < 2) {
+    return "";
+  }
+
+  const rows = sheet.getDataRange().getValues();
+
+  for (let index = 1; index < rows.length; index += 1) {
+    if (rows[index][0] === key) {
+      return rows[index][1] === undefined || rows[index][1] === null ? "" : String(rows[index][1]);
+    }
+  }
+
+  return "";
 }
 
 function normalizeTimeDisplayMode(value) {
