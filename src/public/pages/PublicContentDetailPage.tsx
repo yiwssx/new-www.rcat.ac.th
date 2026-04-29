@@ -1,6 +1,5 @@
 import {
   useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -20,7 +19,8 @@ import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined
 import ContentBlocksRenderer from "../../shared/components/ContentBlocksRenderer";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { getCmsSnapshot, getContentDetail } from "../../services/googleApi";
+import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
+import { usePublicContentDetail } from "../hooks/usePublicContentDetail";
 import { parseContentBodyToBlocks } from "../../utils/contentBlocks";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
@@ -86,15 +86,8 @@ function getSafeMediaHref(asset: { driveUrl?: string; previewUrl?: string; embed
 }
 
 export default function PublicContentDetailPage({ slug }: PublicContentDetailPageProps) {
-  const { data, isLoading } = useQuery({
-    queryKey: ["cms-snapshot"],
-    queryFn: getCmsSnapshot
-  });
-  const contentDetailQuery = useQuery({
-    queryKey: ["content-detail", slug],
-    queryFn: async () => getContentDetail({ slug }),
-    enabled: Boolean(slug)
-  });
+  const { data, isLoading } = usePublicCmsSnapshot();
+  const contentDetailQuery = usePublicContentDetail({ slug });
 
   const visibleContent = useMemo(
     () =>

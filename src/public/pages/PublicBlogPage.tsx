@@ -1,18 +1,14 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Box, LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { getCmsSnapshot } from "../../services/googleApi";
+import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 export default function PublicBlogPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["cms-snapshot"],
-    queryFn: getCmsSnapshot
-  });
+  const { data, isLoading } = usePublicCmsSnapshot();
 
   const blogItems = useMemo(
     () =>

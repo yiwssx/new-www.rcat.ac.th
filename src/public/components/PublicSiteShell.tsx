@@ -2,13 +2,13 @@ import { ReactNode } from "react";
 import {
   Box,
   Button,
-  Chip,
   Container,
   IconButton,
   Stack,
   Typography
 } from "@mui/material";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
@@ -182,8 +182,20 @@ export default function PublicSiteShell({
               </Box>
             </Stack>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} alignItems={{ xs: "stretch", sm: "center" }}>
-              <Chip label={publicText.admissionChip} color="secondary" />
-              <Button variant="contained" color="primary" href="/announcements" endIcon={<ArrowForwardOutlinedIcon />}>
+              <Button
+                variant="contained"
+                color="error"
+                href="https://admission.vec.go.th/"
+                startIcon={<AssignmentIcon />}
+              >
+                {publicText.admissionChip}
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                href="/announcements"
+                endIcon={<ArrowForwardOutlinedIcon />}
+              >
                 {publicText.announcementsButton}
               </Button>
               <Button
