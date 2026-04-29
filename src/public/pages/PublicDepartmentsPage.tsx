@@ -1,6 +1,5 @@
 import {
   useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Box,
   Card,
   CardContent,
@@ -16,7 +15,7 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { getCmsSnapshot } from "../../services/googleApi";
+import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 const departments = [
   {
@@ -43,10 +42,7 @@ const departments = [
 ];
 
 export default function PublicDepartmentsPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["cms-snapshot"],
-    queryFn: getCmsSnapshot
-  });
+  const { data, isLoading } = usePublicCmsSnapshot();
 
   const programItems = useMemo(
     () =>

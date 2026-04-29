@@ -93,7 +93,7 @@ export default function LoginPage() {
                     {getCmsSiteName()}
                   </Typography>
                   <Typography color="text.secondary">
-                    {"ระบบจัดการเนื้อหา"}
+                    {"ระบบบริหารจัดการเนื้อหา"}
                   </Typography>
                 </Box>
               </Stack>

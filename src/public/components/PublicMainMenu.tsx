@@ -1,9 +1,8 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Box, Container } from "@mui/material";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
-import { getCmsSnapshot } from "../../services/googleApi";
+import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { PublicMenuItem } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
@@ -112,10 +111,7 @@ function PublicMenuList({
 }
 
 export default function PublicMainMenu() {
-  const { data } = useQuery({
-    queryKey: ["cms-snapshot"],
-    queryFn: getCmsSnapshot
-  });
+  const { data } = usePublicCmsSnapshot();
   const enabledItems = useMemo(() => getEnabledMenuItems(data?.menu ?? []), [data]);
 
   return (

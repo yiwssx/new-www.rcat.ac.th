@@ -1,18 +1,14 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { getCmsSnapshot } from "../../services/googleApi";
+import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 export default function PublicNewsPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["cms-snapshot"],
-    queryFn: getCmsSnapshot
-  });
+  const { data, isLoading } = usePublicCmsSnapshot();
 
   const newsItems = useMemo(
     () =>

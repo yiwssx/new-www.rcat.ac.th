@@ -1,5 +1,4 @@
 import { ReactNode, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -37,7 +36,7 @@ import PublicSiteShell from "../components/PublicSiteShell";
 import PublicTextSetting from "../../config/projectTextElementSetting";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTiktok } from '@fortawesome/free-brands-svg-icons';
-import { getCmsSnapshot } from "../../services/googleApi";
+import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { contentTypeLabels } from "../../utils/thaiLabels";
@@ -200,10 +199,7 @@ function SectionHeading({ label, title, description }: SectionHeadingProps) {
 
 export default function PublicHomePage() {
   const publicText = PublicTextSetting;
-  const { data, isLoading } = useQuery({
-    queryKey: ["cms-snapshot"],
-    queryFn: getCmsSnapshot
-  });
+  const { data, isLoading } = usePublicCmsSnapshot();
 
   const localizedPrograms = programs;
   const localizedQuickLinks = quickLinks;
