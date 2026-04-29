@@ -41,36 +41,21 @@ Script Properties instead of hard-coded values in `Code.gs`.
 
 ## Setup
 
-1. Open [script.google.com](https://script.google.com/) and create a new project.
-2. Copy all `.gs` files from this folder into the Apps Script editor:
-   - `Config.gs`
-   - `ScriptProperties.gs`
-   - `Code.gs`
-   - `Cms.gs`
-   - `Cache.gs`
-   - `Menu.gs`
-   - `Users.gs`
-   - `Storage.gs`
-   - `HttpUtils.gs`
-3. Open Project Settings, enable `Show appsscript.json manifest file in editor`, then copy `appsscript.json` into the manifest file.
-4. Open Project Settings > Script Properties and optionally set:
+1. Open [script.google.com](https://script.google.com/) and create or choose the Apps Script project for this backend.
+2. Open Project Settings > Script Properties and optionally set:
    - `publicSiteUrl`
    - `spreadsheetName`
    - `rootFolderName`
    - `mediaFolderName`
    - `docsFolderName`
    - `authSessionHours` (token lifetime, default `8`)
-5. Set secure admin bootstrap Script Properties (required if you want automatic first admin creation):
+3. Set secure admin bootstrap Script Properties (required if you want automatic first admin creation):
    - `defaultAdminName` (optional display name)
    - `defaultAdminEmail` (required for bootstrap)
    - `defaultAdminPasswordHash` (required for bootstrap)
    - Use `createPasswordHash("your-password")` in Apps Script editor to generate a `sha256$...` hash value.
-6. Optional: set `authTokenSecret` manually. If omitted, the script auto-generates one on first request.
-7. Never commit real admin email/password hashes to source control.
-8. Select the `setupCmsBackend` function and click Run.
-9. Approve the requested Google permissions.
-10. Keep the returned `spreadsheetUrl` for direct Sheet inspection when needed.
-11. Run `setupCmsBackend` again after schema upgrades so new columns are added without deleting existing rows.
+4. Optional: set `authTokenSecret` manually. If omitted, the script auto-generates one on first request.
+5. Never commit real admin email/password hashes to source control.
 
 `setupCmsBackend` creates required sheets/folders.
 If `defaultAdminEmail` and `defaultAdminPasswordHash` are configured in Script Properties,
@@ -81,7 +66,67 @@ Media uploads sent to `POST ?resource=media` are stored in the folder configured
 Content body text is stored in Google Docs under `docsFolderId` (`docsFolderName`, default `RCAT_CONTENTS`), and
 the Sheet stores document links instead of long body text.
 
+## Deploy with clasp Recommended
+
+Use clasp as the primary deployment workflow so the local `.gs` files and `appsscript.json`
+are pushed together without opening each file in the Apps Script editor.
+
+1. Enable the Google Apps Script API at:
+
+```text
+https://script.google.com/home/usersettings
+```
+
+2. Log in to clasp:
+
+```bash
+pnpm dlx @google/clasp login
+```
+
+3. Copy the local clasp template from inside `apps-script`:
+
+```bash
+cd apps-script
+cp .clasp.example.json .clasp.json
+```
+
+4. Put the real `scriptId` into `.clasp.json`.
+   The `scriptId` comes from the Apps Script project URL:
+
+```text
+https://script.google.com/home/projects/<SCRIPT_ID>/edit
+```
+
+5. Push the Apps Script source from the repository:
+
+```bash
+cd apps-script
+pnpm dlx @google/clasp push --force
+```
+
+6. After the first push, open the Apps Script editor, select `setupCmsBackend`, and click Run.
+   Approve the requested Google permissions, keep the returned `spreadsheetUrl` for direct Sheet inspection,
+   and run `setupCmsBackend` again after schema upgrades so new columns are added without deleting existing rows.
+
+7. Create a version and deploy it to the existing Web App deployment:
+
+```bash
+pnpm dlx @google/clasp deployments
+pnpm dlx @google/clasp version "release latest"
+pnpm dlx @google/clasp deploy --deploymentId <DEPLOYMENT_ID> --versionNumber <VERSION_NUMBER> --description "release latest"
+```
+
+Warnings:
+
+- `clasp push --force` replaces project source files but does not update Script Properties.
+- The existing Web App URL stays the same only when deploying to the existing `deploymentId`.
+- After `clasp push --force`, create a new version and deploy it; otherwise `/exec` may still run old code.
+- Do not commit `apps-script/.clasp.json`.
+
 ## Deploy Web App
+
+Use this UI flow only to create the initial Web App deployment or to change Web App access settings.
+For source updates, use the clasp workflow above.
 
 1. Click Deploy > New deployment.
 2. Select type `Web app`.
@@ -93,6 +138,29 @@ the Sheet stores document links instead of long body text.
 ```text
 https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
 ```
+
+Keep the deployment ID for later `clasp deploy --deploymentId <DEPLOYMENT_ID>` updates.
+
+## Manual Setup Fallback
+
+Use this only if clasp cannot be used on the workstation.
+
+1. Open the Apps Script editor for the project.
+2. Copy all `.gs` files from this folder into the Apps Script editor:
+   - `Config.gs`
+   - `ScriptProperties.gs`
+   - `Code.gs`
+   - `Cms.gs`
+   - `Cache.gs`
+   - `Menu.gs`
+   - `Users.gs`
+   - `Storage.gs`
+   - `HttpUtils.gs`
+3. Open Project Settings, enable `Show appsscript.json manifest file in editor`, then copy `appsscript.json` into the manifest file.
+4. Select the `setupCmsBackend` function and click Run.
+5. Approve the requested Google permissions.
+6. Keep the returned `spreadsheetUrl` for direct Sheet inspection when needed.
+7. Run `setupCmsBackend` again after schema upgrades so new columns are added without deleting existing rows.
 
 ## Connect The React App
 
@@ -143,11 +211,19 @@ https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?resource=snapshot
 
 After editing Apps Script code:
 
-1. Click Deploy > Manage deployments.
-2. Edit the active web app deployment.
-3. Choose New version.
-4. Click Deploy.
-5. Keep the same Web app URL in `.env.local`.
+1. Run `pnpm dlx @google/clasp push --force` from `apps-script`.
+2. Run `pnpm dlx @google/clasp version "release latest"`.
+3. Run `pnpm dlx @google/clasp deploy --deploymentId <DEPLOYMENT_ID> --versionNumber <VERSION_NUMBER> --description "release latest"`.
+4. Keep the same Web App URL in `.env.local` by deploying to the same existing `deploymentId`.
+
+## Final Verification Checklist
+
+Use the deployed Web App URL and verify:
+
+- `GET ?resource=health`
+- `GET ?resource=snapshot`
+- `POST ?resource=snapshot-admin`
+- `POST ?resource=users` with `{ "action": "list", "authToken": "..." }`
 
 ## Security Notes
 
