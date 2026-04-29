@@ -80,7 +80,8 @@ export default function PublicSiteShell({
     title: seoTitle ?? title,
     description: seoDescription ?? description,
     canonicalUrl,
-    canonicalPath: canonicalPath ?? defaultCanonicalPath
+    canonicalPath: canonicalPath ?? defaultCanonicalPath,
+    siteName
   });
 
   return (
@@ -169,7 +170,7 @@ export default function PublicSiteShell({
                 <Box
                   component="img"
                   src={projectSettings.site.logoPath}
-                  alt={projectSettings.site.logoAlt}
+                  alt={siteName}
                   sx={{ width: { xs: 54, md: 64 }, height: { xs: 54, md: 64 }, objectFit: "contain" }}
                 />
               </Box>

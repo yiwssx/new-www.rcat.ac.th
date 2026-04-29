@@ -12,6 +12,10 @@ describe("seo metadata helpers", () => {
     expect(buildDocumentTitle("Admissions")).toBe(`Admissions | ${projectSettings.site.name}`);
   });
 
+  it("uses the provided public site name when available", () => {
+    expect(buildDocumentTitle("Admissions", "CMS public site")).toBe("Admissions | CMS public site");
+  });
+
   it("updates document title, description, and canonical URL", () => {
     updateDocumentMetadata({
       title: "SEO title",
