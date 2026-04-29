@@ -22,6 +22,21 @@ const DEFAULT_SITE_SETTINGS = {
   footerDescription: ""
 };
 
+const STARTER_PUBLIC_SITE_SETTINGS = {
+  ...DEFAULT_SITE_SETTINGS,
+  siteName: "เว็บไซต์สถานศึกษา",
+  heroTitle: "เว็บไซต์สถานศึกษา",
+  footerTitle: "เว็บไซต์สถานศึกษา"
+};
+
+const STARTER_PUBLIC_MENU_ITEMS = [
+  { id: "starter-home", label: "หน้าแรก", href: "/" },
+  { id: "starter-news", label: "ข่าวสาร", href: "/news" },
+  { id: "starter-announcements", label: "ประกาศ", href: "/announcements" },
+  { id: "starter-departments", label: "หลักสูตร", href: "/departments" },
+  { id: "starter-contact", label: "ติดต่อ", href: "/contact" }
+];
+
 const SITE_SETTINGS_URL_FIELDS = [
   "admissionUrl",
   "facebookUrl",
@@ -99,6 +114,67 @@ function normalizeSiteSettings(input, options) {
   });
 
   return normalized;
+}
+
+function seedStarterPublicSiteSettings() {
+  const spreadsheet = getSpreadsheet();
+  const settingsSheet = ensureSettingsSheet(spreadsheet);
+  const rawSiteSettings = getSheetSettingValue(settingsSheet, SETTING_KEYS.siteSettings);
+  const siteSettingsSeeded = shouldSeedSiteSettings(rawSiteSettings);
+  const menuSeeded = seedStarterPublicMenuIfEmpty(spreadsheet);
+
+  if (siteSettingsSeeded) {
+    upsertSetting(
+      settingsSheet,
+      SETTING_KEYS.siteSettings,
+      JSON.stringify(normalizeSiteSettings(STARTER_PUBLIC_SITE_SETTINGS))
+    );
+  }
+
+  if (siteSettingsSeeded || menuSeeded) {
+    invalidatePublicSnapshotCache();
+  }
+
+  return {
+    siteSettingsSeeded,
+    menuSeeded
+  };
+}
+
+function shouldSeedSiteSettings(rawValue) {
+  if (!rawValue) {
+    return true;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    const normalized = normalizeSiteSettings(parsed);
+    return Object.keys(normalized).every((key) => !String(normalized[key] || "").trim());
+  } catch (error) {
+    console.warn(`Starter site settings seed skipped because existing siteSettings could not be parsed: ${error.message || error}`);
+    return false;
+  }
+}
+
+function seedStarterPublicMenuIfEmpty(spreadsheet) {
+  const sheet = ensureSheet(spreadsheet, SHEETS.menu, MENU_HEADERS);
+  const existingRows = readObjects(sheet, MENU_HEADERS);
+
+  if (existingRows.length) {
+    return false;
+  }
+
+  const rows = STARTER_PUBLIC_MENU_ITEMS.map((item, index) => [
+    item.id,
+    "",
+    item.label,
+    item.href,
+    index,
+    "TRUE"
+  ]);
+
+  sheet.getRange(2, 1, rows.length, MENU_HEADERS.length).setValues(rows);
+  return true;
 }
 
 function normalizeSiteSettingsText(value, fieldName, maxLength, options) {
