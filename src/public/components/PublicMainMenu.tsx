@@ -15,13 +15,7 @@ function getEnabledMenuItems(items: PublicMenuItem[]): PublicMenuItem[] {
     }));
 }
 
-function PublicMenuList({
-  items,
-  nested = false
-}: {
-  items: PublicMenuItem[];
-  nested?: boolean;
-}) {
+function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; nested?: boolean }) {
   return (
     <Box
       component="ul"

@@ -284,4 +284,3 @@ function getErrorStatusCode(error) {
 
   return error.statusCode;
 }
-

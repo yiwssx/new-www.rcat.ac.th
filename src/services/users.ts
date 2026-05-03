@@ -107,9 +107,7 @@ export async function saveUserAccount(input: UserAccountInput, actor?: User | nu
   }
 
   if (!usingBackendUsers()) {
-    const passwordHash = input.password
-      ? await hashPassword(input.password)
-      : existingUser?.passwordHash;
+    const passwordHash = input.password ? await hashPassword(input.password) : existingUser?.passwordHash;
 
     if (!passwordHash) {
       throw new Error("ต้องระบุรหัสผ่าน");

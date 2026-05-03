@@ -1,15 +1,5 @@
-import {
-  useQuery } from "@tanstack/react-query";
-import {
-  Alert,
-  Box,
-  Card,
-  CardContent,
-  LinearProgress,
-  Stack,
-  TextField,
-  Typography
-} from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
+import { Alert, Box, Card, CardContent, LinearProgress, Stack, TextField, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
@@ -37,7 +27,12 @@ function getIntegrationIcon(service: IntegrationStatus["service"]) {
 
 export default function IntegrationsPage() {
   const endpoint = getGoogleAppsScriptUrl();
-  const { data = [], error, isError, isLoading } = useQuery({
+  const {
+    data = [],
+    error,
+    isError,
+    isLoading
+  } = useQuery({
     queryKey: ["google-integrations"],
     queryFn: checkGoogleConnection
   });

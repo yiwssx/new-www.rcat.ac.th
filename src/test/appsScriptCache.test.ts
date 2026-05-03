@@ -61,11 +61,7 @@ describe("Apps Script public cache helpers", () => {
     expect(context.getPublicSnapshotCached()).toEqual(snapshot);
     expect(context.getPublicSnapshotCached()).toEqual(snapshot);
     expect(context.getSnapshot).toHaveBeenCalledTimes(1);
-    expect(context.scriptCache.put).toHaveBeenCalledWith(
-      "cms:public:snapshot:v1",
-      JSON.stringify(snapshot),
-      300
-    );
+    expect(context.scriptCache.put).toHaveBeenCalledWith("cms:public:snapshot:v1", JSON.stringify(snapshot), 300);
   });
 
   it("skips oversized public snapshots without throwing", () => {

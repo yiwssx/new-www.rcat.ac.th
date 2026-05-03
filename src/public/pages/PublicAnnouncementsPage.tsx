@@ -33,9 +33,7 @@ export default function PublicAnnouncementsPage() {
   const announcementItems = useMemo(
     () =>
       (data?.content ?? [])
-        .filter(
-          (item) => item.type === "announcement" && item.status === "published"
-        )
+        .filter((item) => item.type === "announcement" && item.status === "published")
         .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
     [data]
   );
@@ -58,10 +56,7 @@ export default function PublicAnnouncementsPage() {
   );
 
   return (
-    <PublicSiteShell
-      title="ประกาศ"
-      description="ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา"
-    >
+    <PublicSiteShell title="ประกาศ" description="ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา">
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <CampaignOutlinedIcon color="primary" />
@@ -81,7 +76,11 @@ export default function PublicAnnouncementsPage() {
       <Grid container spacing={2.5}>
         {filteredAnnouncementItems.map((item) => (
           <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-            <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<CampaignOutlinedIcon sx={{ fontSize: 42 }} />} />
+            <PublicContentCard
+              item={item}
+              mediaAssets={data?.media ?? []}
+              icon={<CampaignOutlinedIcon sx={{ fontSize: 42 }} />}
+            />
           </Grid>
         ))}
       </Grid>
@@ -101,7 +100,11 @@ export default function PublicAnnouncementsPage() {
       <Grid container spacing={2.5}>
         {pageItems.map((item) => (
           <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-            <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<DescriptionOutlinedIcon sx={{ fontSize: 42 }} />} />
+            <PublicContentCard
+              item={item}
+              mediaAssets={data?.media ?? []}
+              icon={<DescriptionOutlinedIcon sx={{ fontSize: 42 }} />}
+            />
           </Grid>
         ))}
       </Grid>

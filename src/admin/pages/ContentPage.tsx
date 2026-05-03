@@ -123,75 +123,81 @@ export default function ContentPage() {
     }
   }, []);
 
-  const handleDelete = useCallback(async (item: ContentItem) => {
-    const result = await appSwal.fire({
-      title: "ลบเนื้อหา?",
-      text: item.title,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "ลบ",
-      cancelButtonText: "ยกเลิก"
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    try {
-      await deleteMutation.mutateAsync(item.id);
-      await appSwal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "ลบเนื้อหาแล้ว",
-        showConfirmButton: false,
-        timer: 1400,
-        timerProgressBar: true
+  const handleDelete = useCallback(
+    async (item: ContentItem) => {
+      const result = await appSwal.fire({
+        title: "ลบเนื้อหา?",
+        text: item.title,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "ลบ",
+        cancelButtonText: "ยกเลิก"
       });
-    } catch (currentError) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถลบเนื้อหาได้",
-        text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
-    }
-  }, [deleteMutation]);
 
-  const handlePublish = useCallback(async (item: ContentItem) => {
-    const result = await appSwal.fire({
-      title: "เผยแพร่เนื้อหา?",
-      text: item.title,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "เผยแพร่",
-      cancelButtonText: "ยกเลิก"
-    });
+      if (!result.isConfirmed) {
+        return;
+      }
 
-    if (!result.isConfirmed) {
-      return;
-    }
+      try {
+        await deleteMutation.mutateAsync(item.id);
+        await appSwal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "ลบเนื้อหาแล้ว",
+          showConfirmButton: false,
+          timer: 1400,
+          timerProgressBar: true
+        });
+      } catch (currentError) {
+        await appSwal.fire({
+          icon: "error",
+          title: "ไม่สามารถลบเนื้อหาได้",
+          text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
+          confirmButtonText: "ตกลง"
+        });
+      }
+    },
+    [deleteMutation]
+  );
 
-    try {
-      await publishMutation.mutateAsync(item.id);
-      await appSwal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "เผยแพร่เนื้อหาแล้ว",
-        showConfirmButton: false,
-        timer: 1400,
-        timerProgressBar: true
+  const handlePublish = useCallback(
+    async (item: ContentItem) => {
+      const result = await appSwal.fire({
+        title: "เผยแพร่เนื้อหา?",
+        text: item.title,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "เผยแพร่",
+        cancelButtonText: "ยกเลิก"
       });
-    } catch (currentError) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถเผยแพร่เนื้อหาได้",
-        text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
-    }
-  }, [publishMutation]);
+
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      try {
+        await publishMutation.mutateAsync(item.id);
+        await appSwal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "เผยแพร่เนื้อหาแล้ว",
+          showConfirmButton: false,
+          timer: 1400,
+          timerProgressBar: true
+        });
+      } catch (currentError) {
+        await appSwal.fire({
+          icon: "error",
+          title: "ไม่สามารถเผยแพร่เนื้อหาได้",
+          text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
+          confirmButtonText: "ตกลง"
+        });
+      }
+    },
+    [publishMutation]
+  );
 
   const columns = useMemo(
     () => [
@@ -250,9 +256,7 @@ export default function ContentPage() {
                   component="a"
                   href={`/content/${info.row.original.slug}`}
                   size="small"
-                  disabled={
-                    info.row.original.status !== "published" && info.row.original.status !== "scheduled"
-                  }
+                  disabled={info.row.original.status !== "published" && info.row.original.status !== "scheduled"}
                 >
                   <OpenInNewRoundedIcon fontSize="small" />
                 </IconButton>
@@ -414,9 +418,7 @@ export default function ContentPage() {
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
                       <TableCell key={header.id} sx={{ fontWeight: 800 }}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -426,9 +428,7 @@ export default function ContentPage() {
                 {table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} hover>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}
                   </TableRow>
                 ))}

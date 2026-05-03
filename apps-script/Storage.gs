@@ -11,9 +11,13 @@
 function ensureSheet(spreadsheet, name, headers) {
   const sheet = spreadsheet.getSheetByName(name) || spreadsheet.insertSheet(name);
   const maxColumns = Math.max(sheet.getLastColumn(), headers.length);
-  const currentHeaders = sheet.getLastRow() >= 1
-    ? sheet.getRange(1, 1, 1, maxColumns).getValues()[0].filter((header) => header)
-    : [];
+  const currentHeaders =
+    sheet.getLastRow() >= 1
+      ? sheet
+          .getRange(1, 1, 1, maxColumns)
+          .getValues()[0]
+          .filter((header) => header)
+      : [];
 
   if (!currentHeaders.length) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -25,9 +29,8 @@ function ensureSheet(spreadsheet, name, headers) {
   const hasHeaders = mergedHeaders.every((header, index) => currentHeaders[index] === header);
 
   if (!hasHeaders) {
-    const existingRows = sheet.getLastRow() > 1
-      ? sheet.getRange(2, 1, sheet.getLastRow() - 1, currentHeaders.length).getValues()
-      : [];
+    const existingRows =
+      sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, currentHeaders.length).getValues() : [];
     const nextRows = existingRows.map((row) =>
       mergedHeaders.map((header) => {
         const sourceIndex = currentHeaders.indexOf(header);
@@ -174,9 +177,7 @@ function updateDisplaySettings(input) {
   const dateFormat = normalizeDateDisplayFormat(
     input && input.dateFormat !== undefined ? input.dateFormat : settings.dateFormat
   );
-  const timeMode = normalizeTimeDisplayMode(
-    input && input.timeMode !== undefined ? input.timeMode : settings.timeMode
-  );
+  const timeMode = normalizeTimeDisplayMode(input && input.timeMode !== undefined ? input.timeMode : settings.timeMode);
 
   setSetting(SETTING_KEYS.dateDisplayFormat, dateFormat);
   setSetting(SETTING_KEYS.timeDisplayMode, timeMode);
@@ -189,8 +190,10 @@ function updateDisplaySettings(input) {
 
 function ensureFolders() {
   const rootName = getSetting(SETTING_KEYS.rootFolderName) || DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.rootFolderName];
-  const mediaFolderName = getSetting(SETTING_KEYS.mediaFolderName) || DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.mediaFolderName];
-  const docsFolderName = getSetting(SETTING_KEYS.docsFolderName) || DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.docsFolderName];
+  const mediaFolderName =
+    getSetting(SETTING_KEYS.mediaFolderName) || DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.mediaFolderName];
+  const docsFolderName =
+    getSetting(SETTING_KEYS.docsFolderName) || DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.docsFolderName];
   const rootFolder = getOrCreateFolder(rootName);
   const driveFolderId = getSetting(SETTING_KEYS.driveFolderId);
   const docsFolderId = getSetting(SETTING_KEYS.docsFolderId);
@@ -403,4 +406,3 @@ function buildMetrics(content, media) {
     }
   ];
 }
-

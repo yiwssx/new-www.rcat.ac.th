@@ -120,20 +120,12 @@ function sortEventsByUpcomingDate(events: CalendarEvent[]) {
 }
 
 function hasContentKeyword(item: ContentItem, keywords: string[]) {
-  const haystack = [item.category, ...(item.tags ?? [])]
-    .join(" ")
-    .toLowerCase();
+  const haystack = [item.category, ...(item.tags ?? [])].join(" ").toLowerCase();
 
   return keywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
 }
 
-function CompactAnnouncementList({
-  items,
-  emptyTitle
-}: {
-  items: ContentItem[];
-  emptyTitle: string;
-}) {
+function CompactAnnouncementList({ items, emptyTitle }: { items: ContentItem[]; emptyTitle: string }) {
   if (!items.length) {
     return <EmptyState title={emptyTitle} icon={<CampaignOutlinedIcon />} />;
   }
@@ -265,11 +257,7 @@ function EventListCard({ items }: { items: CalendarEvent[] }) {
 
 function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
   const hasContactInfo = Boolean(
-    siteSettings.campus ||
-      siteSettings.address ||
-      siteSettings.phone ||
-      siteSettings.fax ||
-      siteSettings.email
+    siteSettings.campus || siteSettings.address || siteSettings.phone || siteSettings.fax || siteSettings.email
   );
   const mapEmbedSrc = normalizeSafeResourceUrl(siteSettings.mapEmbedUrl);
   const mapHref = normalizeSafeHref(siteSettings.mapUrl);
@@ -283,79 +271,63 @@ function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
       <CardContent sx={{ p: 2.5 }}>
         <HomeSectionHeading label="ติดต่อ" title="ติดต่อและแผนที่" />
         {hasContactInfo && (
-  <Stack spacing={1.15} sx={{ mb: mapEmbedSrc ? 1.8 : 0 }}>
-    {(siteSettings.campus || siteSettings.address) && (
-      <Stack direction="row" spacing={1.1} alignItems="flex-start">
-        <LocationOnOutlinedIcon color="primary" fontSize="small" sx={{ mt: 0.2, flexShrink: 0 }} />
-        <Typography
-          color="text.secondary"
-          variant="body2"
-          sx={{
-            whiteSpace: "pre-line",
-            lineHeight: 1.55,
-            minWidth: 0
-          }}
-        >
-          {[siteSettings.campus, siteSettings.address].filter(Boolean).join("\n")}
-        </Typography>
-      </Stack>
-    )}
+          <Stack spacing={1.15} sx={{ mb: mapEmbedSrc ? 1.8 : 0 }}>
+            {(siteSettings.campus || siteSettings.address) && (
+              <Stack direction="row" spacing={1.1} alignItems="flex-start">
+                <LocationOnOutlinedIcon color="primary" fontSize="small" sx={{ mt: 0.2, flexShrink: 0 }} />
+                <Typography
+                  color="text.secondary"
+                  variant="body2"
+                  sx={{
+                    whiteSpace: "pre-line",
+                    lineHeight: 1.55,
+                    minWidth: 0
+                  }}
+                >
+                  {[siteSettings.campus, siteSettings.address].filter(Boolean).join("\n")}
+                </Typography>
+              </Stack>
+            )}
 
-    {(siteSettings.phone || siteSettings.fax) && (
-      <Stack
-        direction={{ xs: "row", sm: "row" }}
-        spacing={1.4}
-        useFlexGap
-        flexWrap="wrap"
-        alignItems="center"
-      >
-        {siteSettings.phone && (
-          <Stack
-            direction="row"
-            spacing={0.8}
-            alignItems="center"
-            sx={{ minWidth: 0, flex: "0 1 auto" }}
-          >
-            <LocalPhoneOutlinedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
-            <Typography color="text.secondary" variant="body2" noWrap>
-              {siteSettings.phone}
-            </Typography>
+            {(siteSettings.phone || siteSettings.fax) && (
+              <Stack direction={{ xs: "row", sm: "row" }} spacing={1.4} useFlexGap flexWrap="wrap" alignItems="center">
+                {siteSettings.phone && (
+                  <Stack direction="row" spacing={0.8} alignItems="center" sx={{ minWidth: 0, flex: "0 1 auto" }}>
+                    <LocalPhoneOutlinedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
+                    <Typography color="text.secondary" variant="body2" noWrap>
+                      {siteSettings.phone}
+                    </Typography>
+                  </Stack>
+                )}
+
+                {siteSettings.fax && (
+                  <Stack direction="row" spacing={0.8} alignItems="center" sx={{ minWidth: 0, flex: "0 1 auto" }}>
+                    <FaxOutlinedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
+                    <Typography color="text.secondary" variant="body2" noWrap>
+                      {siteSettings.fax}
+                    </Typography>
+                  </Stack>
+                )}
+              </Stack>
+            )}
+
+            {siteSettings.email && (
+              <Stack direction="row" spacing={1.1} alignItems="center">
+                <MailOutlineRoundedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
+                <Typography
+                  color="text.secondary"
+                  variant="body2"
+                  sx={{
+                    minWidth: 0,
+                    overflowWrap: "anywhere"
+                  }}
+                >
+                  {siteSettings.email}
+                </Typography>
+              </Stack>
+            )}
           </Stack>
         )}
-
-        {siteSettings.fax && (
-          <Stack
-            direction="row"
-            spacing={0.8}
-            alignItems="center"
-            sx={{ minWidth: 0, flex: "0 1 auto" }}
-          >
-            <FaxOutlinedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
-            <Typography color="text.secondary" variant="body2" noWrap>
-              {siteSettings.fax}
-            </Typography>
-          </Stack>
-        )}
-      </Stack>
-    )}
-
-    {siteSettings.email && (
-      <Stack direction="row" spacing={1.1} alignItems="center">
-        <MailOutlineRoundedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
-        <Typography
-          color="text.secondary"
-          variant="body2"
-          sx={{
-            minWidth: 0,
-            overflowWrap: "anywhere"
-          }}
-        >
-          {siteSettings.email}
-        </Typography>
-      </Stack>
-    )}
-  </Stack>
-)}
         {mapEmbedSrc && (
           <Box
             component="iframe"
@@ -401,9 +373,9 @@ function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
 function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
   const hasDirectorInfo = Boolean(
     siteSettings.directorName ||
-      siteSettings.directorDescription ||
-      siteSettings.directorTitle ||
-      siteSettings.directorImageUrl
+    siteSettings.directorDescription ||
+    siteSettings.directorTitle ||
+    siteSettings.directorImageUrl
   );
   const directorImageAlt = siteSettings.directorName
     ? `รูปผู้บริหาร ${siteSettings.directorName}`
@@ -471,12 +443,12 @@ export default function PublicHomePage() {
     [data]
   );
   const announcementContent = publicContent.filter((item) => item.type === "announcement");
-  const latestNews = publicContent
-    .filter((item) => item.type === "news" || item.type === "blog")
-    .slice(0, 4);
+  const latestNews = publicContent.filter((item) => item.type === "news" || item.type === "blog").slice(0, 4);
   const latestAnnouncements = announcementContent.slice(0, 5);
   const programItems = publicContent.filter((item) => item.type === "program").slice(0, 6);
-  const documentItems = publicContent.filter((item) => item.type === "page" && hasContentKeyword(item, documentKeywords)).slice(0, 6);
+  const documentItems = publicContent
+    .filter((item) => item.type === "page" && hasContentKeyword(item, documentKeywords))
+    .slice(0, 6);
   const eventItems = sortEventsByUpcomingDate(
     (data?.events ?? []).filter((event) => event.status === "confirmed" && (event.visibility ?? "public") === "public")
   ).slice(0, 4);
@@ -539,7 +511,11 @@ export default function PublicHomePage() {
                     {siteSettings.heroDescription}
                   </Typography>
                 )}
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} alignItems={{ xs: "stretch", sm: "center" }}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1.2}
+                  alignItems={{ xs: "stretch", sm: "center" }}
+                >
                   {siteSettings.admissionUrl && (
                     <Button
                       variant="contained"
@@ -597,7 +573,11 @@ export default function PublicHomePage() {
                 <Grid container spacing={2.5}>
                   {latestNews.map((item) => (
                     <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-                      <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<CampaignOutlinedIcon sx={{ fontSize: 42 }} />} />
+                      <PublicContentCard
+                        item={item}
+                        mediaAssets={data?.media ?? []}
+                        icon={<CampaignOutlinedIcon sx={{ fontSize: 42 }} />}
+                      />
                     </Grid>
                   ))}
                 </Grid>
@@ -611,7 +591,11 @@ export default function PublicHomePage() {
                   <Grid container spacing={2.5}>
                     {programItems.map((item) => (
                       <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-                        <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<SchoolOutlinedIcon sx={{ fontSize: 42 }} />} />
+                        <PublicContentCard
+                          item={item}
+                          mediaAssets={data?.media ?? []}
+                          icon={<SchoolOutlinedIcon sx={{ fontSize: 42 }} />}
+                        />
                       </Grid>
                     ))}
                   </Grid>

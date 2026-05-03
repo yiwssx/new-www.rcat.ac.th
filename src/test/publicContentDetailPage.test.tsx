@@ -112,13 +112,19 @@ describe("PublicContentDetailPage", () => {
     const tagLink = within(article).getByText("#รับสมัคร").closest("a");
     const categoryLink = within(article).getByText("งานทะเบียน").closest("a");
 
-    expect(tagLink?.getAttribute("href")).toBe("/announcements?tag=%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%A1%E0%B8%B1%E0%B8%84%E0%B8%A3");
-    expect(categoryLink?.getAttribute("href")).toBe("/announcements?category=%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%97%E0%B8%B0%E0%B9%80%E0%B8%9A%E0%B8%B5%E0%B8%A2%E0%B8%99");
+    expect(tagLink?.getAttribute("href")).toBe(
+      "/announcements?tag=%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%A1%E0%B8%B1%E0%B8%84%E0%B8%A3"
+    );
+    expect(categoryLink?.getAttribute("href")).toBe(
+      "/announcements?category=%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%97%E0%B8%B0%E0%B9%80%E0%B8%9A%E0%B8%B5%E0%B8%A2%E0%B8%99"
+    );
 
-    await waitFor(() => expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
-      id: "content-1",
-      slug: "announcement-1"
-    }));
+    await waitFor(() =>
+      expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
+        id: "content-1",
+        slug: "announcement-1"
+      })
+    );
     expect(await within(article).findByText("ดูแล้ว 13 ครั้ง")).toBeInTheDocument();
     expect(window.localStorage.getItem("rcat.cms.viewed.content-1")).toMatch(/^\d+$/);
   });
@@ -145,10 +151,12 @@ describe("PublicContentDetailPage", () => {
 
     render(<PublicContentDetailPage slug="announcement-1" />);
 
-    await waitFor(() => expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
-      id: "content-1",
-      slug: "announcement-1"
-    }));
+    await waitFor(() =>
+      expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
+        id: "content-1",
+        slug: "announcement-1"
+      })
+    );
     expect(window.localStorage.getItem("rcat.cms.viewed.content-1")).toBeNull();
   });
 
@@ -176,9 +184,11 @@ describe("PublicContentDetailPage", () => {
     expect(screen.getByText("กิจกรรม").closest("a")?.getAttribute("href")).toBe(
       "/news?category=%E0%B8%81%E0%B8%B4%E0%B8%88%E0%B8%81%E0%B8%A3%E0%B8%A3%E0%B8%A1"
     );
-    await waitFor(() => expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
-      id: "content-1",
-      slug: "news-1"
-    }));
+    await waitFor(() =>
+      expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
+        id: "content-1",
+        slug: "news-1"
+      })
+    );
   });
 });

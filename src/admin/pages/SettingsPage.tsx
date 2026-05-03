@@ -1,10 +1,5 @@
-import {
-  useEffect,
-  useMemo,
-  useState } from "react";
-import { useMutation,
-  useQuery,
-  useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -38,16 +33,13 @@ import { clearPublicCmsCache } from "../../services/publicCmsCache";
 import { defaultSiteSettings, normalizeSiteSettings } from "../../services/siteSettings";
 import { getAdminCmsSnapshot, saveSiteSettingsToApi } from "../../services/googleApi";
 import { DisplaySettings, SiteSettings } from "../../types";
-import {
-  formatDisplayDate,
-  formatDisplayDateTime,
-  formatDisplayTime
-} from "../../utils/dateDisplay";
+import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
 
 function normalizeDisplaySettings(input: Partial<DisplaySettings>): DisplaySettings {
   return {
-    dateFormat: String(input.dateFormat || defaultDisplaySettings.dateFormat).trim() || defaultDisplaySettings.dateFormat,
+    dateFormat:
+      String(input.dateFormat || defaultDisplaySettings.dateFormat).trim() || defaultDisplaySettings.dateFormat,
     timeMode: input.timeMode === "12h" ? "12h" : "24h"
   };
 }
@@ -77,9 +69,21 @@ const siteSettingFields: Array<{
   { key: "directorName", label: "ชื่อผู้บริหาร" },
   { key: "directorTitle", label: "ตำแหน่งผู้บริหาร" },
   { key: "directorDescription", label: "คำอธิบายผู้บริหาร", multiline: true },
-  { key: "directorImageUrl", label: "รูปภาพผู้บริหาร URL", helperText: "ลิงก์รูปภาพผู้บริหารแบบ https:// หรือเว้นว่าง" },
-  { key: "mapUrl", label: "Google Maps URL", helperText: "ลิงก์เปิด Google Maps เช่น https://maps.app.goo.gl/... หรือเว้นว่าง" },
-  { key: "mapEmbedUrl", label: "Google Maps Embed URL", helperText: "วางลิงก์ Google Maps Embed หรือโค้ด iframe จาก Google Maps ได้ ระบบจะเก็บเฉพาะค่า src ที่ปลอดภัย" },
+  {
+    key: "directorImageUrl",
+    label: "รูปภาพผู้บริหาร URL",
+    helperText: "ลิงก์รูปภาพผู้บริหารแบบ https:// หรือเว้นว่าง"
+  },
+  {
+    key: "mapUrl",
+    label: "Google Maps URL",
+    helperText: "ลิงก์เปิด Google Maps เช่น https://maps.app.goo.gl/... หรือเว้นว่าง"
+  },
+  {
+    key: "mapEmbedUrl",
+    label: "Google Maps Embed URL",
+    helperText: "วางลิงก์ Google Maps Embed หรือโค้ด iframe จาก Google Maps ได้ ระบบจะเก็บเฉพาะค่า src ที่ปลอดภัย"
+  },
   { key: "footerTitle", label: "หัวข้อท้ายเว็บ" },
   { key: "footerDescription", label: "คำอธิบายท้ายเว็บ", multiline: true }
 ];
@@ -181,10 +185,7 @@ export default function SettingsPage() {
 
   return (
     <Box>
-      <PageHeader
-        title="ตั้งค่า"
-        description="สิทธิ์การเผยแพร่ การจัดการผู้ใช้ และรูปแบบการแสดงผล"
-      />
+      <PageHeader title="ตั้งค่า" description="สิทธิ์การเผยแพร่ การจัดการผู้ใช้ และรูปแบบการแสดงผล" />
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12 }}>
           <Card>
@@ -406,15 +407,11 @@ export default function SettingsPage() {
               <Stack spacing={2}>
                 <Box>
                   <Typography fontWeight={900}>ระยะเวลาเซสชัน</Typography>
-                  <Typography color="text.secondary">
-                    เซสชันที่เข้าสู่ระบบจะหมดอายุตามค่าระบบโดยอัตโนมัติ
-                  </Typography>
+                  <Typography color="text.secondary">เซสชันที่เข้าสู่ระบบจะหมดอายุตามค่าระบบโดยอัตโนมัติ</Typography>
                 </Box>
                 <Box>
                   <Typography fontWeight={900}>การป้องกันรหัสผ่าน</Typography>
-                  <Typography color="text.secondary">
-                    รหัสผ่านถูกจัดเก็บเป็นแฮชที่ปลอดภัยในชีตผู้ใช้
-                  </Typography>
+                  <Typography color="text.secondary">รหัสผ่านถูกจัดเก็บเป็นแฮชที่ปลอดภัยในชีตผู้ใช้</Typography>
                 </Box>
                 <Box>
                   <Typography fontWeight={900}>การตั้งค่าการ deploy</Typography>

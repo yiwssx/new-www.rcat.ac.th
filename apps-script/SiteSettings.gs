@@ -178,7 +178,9 @@ function shouldSeedSiteSettings(rawValue) {
       return !value || (key === "mapUrl" && value === DEFAULT_MAP_URL);
     });
   } catch (error) {
-    console.warn(`Starter site settings seed skipped because existing siteSettings could not be parsed: ${error.message || error}`);
+    console.warn(
+      `Starter site settings seed skipped because existing siteSettings could not be parsed: ${error.message || error}`
+    );
     return false;
   }
 }
@@ -191,14 +193,7 @@ function seedStarterPublicMenuIfEmpty(spreadsheet) {
     return false;
   }
 
-  const rows = STARTER_PUBLIC_MENU_ITEMS.map((item, index) => [
-    item.id,
-    "",
-    item.label,
-    item.href,
-    index,
-    "TRUE"
-  ]);
+  const rows = STARTER_PUBLIC_MENU_ITEMS.map((item, index) => [item.id, "", item.label, item.href, index, "TRUE"]);
 
   sheet.getRange(2, 1, rows.length, MENU_HEADERS.length).setValues(rows);
   return true;
@@ -270,9 +265,7 @@ function normalizeSiteSettingsMapUrl(url) {
   }
 
   if (
-    (parts.hostname === "www.google.com" ||
-      parts.hostname === "google.com" ||
-      parts.hostname === "maps.google.com") &&
+    (parts.hostname === "www.google.com" || parts.hostname === "google.com" || parts.hostname === "maps.google.com") &&
     parts.pathname.indexOf("/maps") === 0
   ) {
     return normalized;

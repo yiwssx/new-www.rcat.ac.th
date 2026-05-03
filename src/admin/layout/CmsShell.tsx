@@ -159,11 +159,7 @@ export default function CmsShell() {
               }}
             >
               <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>{item.icon}</ListItemIcon>
-              <ListItemText
-                primary={
-                     item.label
-                }
-              />
+              <ListItemText primary={item.label} />
             </ListItemButton>
           );
         })}
@@ -205,12 +201,7 @@ export default function CmsShell() {
       >
         <Toolbar>
           {!isDesktop && (
-            <IconButton
-              aria-label="เปิดเมนูนำทาง"
-              edge="start"
-              onClick={() => setMobileOpen(true)}
-              sx={{ mr: 1 }}
-            >
+            <IconButton aria-label="เปิดเมนูนำทาง" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
               <MenuIcon />
             </IconButton>
           )}

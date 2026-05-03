@@ -76,10 +76,7 @@ function createContentRow(record: Record<string, unknown>) {
 
 function loadCmsScript(input: { contentRows?: Array<Record<string, unknown>> } = {}) {
   const readObjects = vi.fn();
-  const contentValues: unknown[][] = [
-    TEST_CONTENT_HEADERS,
-    ...(input.contentRows ?? []).map(createContentRow)
-  ];
+  const contentValues: unknown[][] = [TEST_CONTENT_HEADERS, ...(input.contentRows ?? []).map(createContentRow)];
   const contentSheet = {
     getDataRange: vi.fn(() => ({
       getValues: () => contentValues
@@ -368,9 +365,9 @@ describe("Apps Script CMS helpers", () => {
     expect(
       context.normalizePublicMediaUrl("https://drive.google.com/file/d/media-1/preview", ["drive.google.com"])
     ).toBe("https://drive.google.com/file/d/media-1/preview");
-    expect(
-      context.normalizePublicMediaUrl("https://www.youtube.com/embed/video-id", ["www.youtube.com"])
-    ).toBe("https://www.youtube.com/embed/video-id");
+    expect(context.normalizePublicMediaUrl("https://www.youtube.com/embed/video-id", ["www.youtube.com"])).toBe(
+      "https://www.youtube.com/embed/video-id"
+    );
 
     expect(captureError(() => context.normalizePublicMediaUrl("http://example.edu/file.pdf"))?.statusCode).toBe(400);
     expect(captureError(() => context.normalizePublicMediaUrl("javascript:alert(1)"))?.statusCode).toBe(400);
@@ -390,11 +387,15 @@ describe("Apps Script CMS helpers", () => {
     expect(context.isAllowedUploadMimeType("image/png")).toBe(true);
     expect(context.isAllowedUploadMimeType("video/mp4")).toBe(true);
     expect(context.isAllowedUploadMimeType("application/pdf")).toBe(true);
-    expect(context.isAllowedUploadMimeType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")).toBe(true);
+    expect(
+      context.isAllowedUploadMimeType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    ).toBe(true);
     expect(context.isAllowedUploadMimeType("application/javascript")).toBe(false);
     expect(context.resolveUploadMimeType({ fileBase64: "data:text/csv;base64,YSxi" })).toBe("text/csv");
 
-    expect(captureError(() => context.resolveUploadMimeType({ mimeType: "application/octet-stream" }))?.statusCode).toBe(400);
+    expect(
+      captureError(() => context.resolveUploadMimeType({ mimeType: "application/octet-stream" }))?.statusCode
+    ).toBe(400);
     expect(captureError(() => context.validateUploadBytes({ length: 10 * 1024 * 1024 + 1 }))?.statusCode).toBe(413);
     expect(() => context.validateUploadBytes({ length: 10 * 1024 * 1024 })).not.toThrow();
   });

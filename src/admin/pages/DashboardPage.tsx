@@ -1,18 +1,6 @@
-import {
-  useMemo } from "react";
-import { useMutation,
-  useQuery,
-  useQueryClient } from "@tanstack/react-query";
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  LinearProgress,
-  Stack,
-  Typography
-} from "@mui/material";
+import { useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Alert, Box, Button, Card, CardContent, LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
@@ -50,10 +38,7 @@ export default function DashboardPage() {
   });
 
   const snapshot = data;
-  const pendingItems = useMemo(
-    () => snapshot?.content.filter((item) => item.status !== "published") ?? [],
-    [snapshot]
-  );
+  const pendingItems = useMemo(() => snapshot?.content.filter((item) => item.status !== "published") ?? [], [snapshot]);
   const queue = useMemo(() => pendingItems.slice(0, 4), [pendingItems]);
   const events = snapshot?.events.filter((event) => event.status !== "cancelled").slice(0, 3) ?? [];
 
@@ -166,7 +151,9 @@ export default function DashboardPage() {
                   </Stack>
                 ))}
                 {!queue.length && (
-                  <Typography color="text.secondary">ไม่มีฉบับร่าง รายการรอตรวจสอบ หรือรายการตั้งเวลาที่รออยู่</Typography>
+                  <Typography color="text.secondary">
+                    ไม่มีฉบับร่าง รายการรอตรวจสอบ หรือรายการตั้งเวลาที่รออยู่
+                  </Typography>
                 )}
               </Stack>
             </CardContent>

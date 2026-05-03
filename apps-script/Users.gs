@@ -14,7 +14,9 @@ function getUsersWithPasswordHashes() {
 
   return users.map((user) => ({
     ...user,
-    email: String(user.email || "").trim().toLowerCase(),
+    email: String(user.email || "")
+      .trim()
+      .toLowerCase(),
     role: user.role || "viewer",
     status: user.status || "active"
   }));
@@ -24,7 +26,9 @@ function sanitizeUserRecord(user) {
   return {
     id: user.id,
     name: user.name,
-    email: String(user.email || "").trim().toLowerCase(),
+    email: String(user.email || "")
+      .trim()
+      .toLowerCase(),
     role: user.role,
     status: user.status,
     avatarUrl: user.avatarUrl || "",
@@ -45,7 +49,9 @@ function ensureDefaultUsersSheet(spreadsheet) {
 }
 
 function buildDefaultAdminUser() {
-  const email = String(getSetting(SETTING_KEYS.defaultAdminEmail) || "").trim().toLowerCase();
+  const email = String(getSetting(SETTING_KEYS.defaultAdminEmail) || "")
+    .trim()
+    .toLowerCase();
   const passwordHash = String(getSetting(SETTING_KEYS.defaultAdminPasswordHash) || "").trim();
 
   if (!email || !passwordHash) {
@@ -78,7 +84,9 @@ function hasBootstrapAdminCredentials() {
 function loginUser(input) {
   validateRequired(input, ["email", "password"]);
 
-  const email = String(input.email || "").trim().toLowerCase();
+  const email = String(input.email || "")
+    .trim()
+    .toLowerCase();
   const password = String(input.password || "");
   assertLoginAttemptsAllowed(email);
   const user = getUsersWithPasswordHashes().find((item) => item.email === email);
@@ -118,7 +126,9 @@ function buildAuthSession(user) {
 }
 
 function loginRateLimitCacheKey(email) {
-  return `cms:login-fail:${String(email || "").trim().toLowerCase()}`;
+  return `cms:login-fail:${String(email || "")
+    .trim()
+    .toLowerCase()}`;
 }
 
 function assertLoginAttemptsAllowed(email) {
@@ -185,7 +195,9 @@ function verifyAuthToken(token) {
     throw createHttpError("Session expired. Please sign in again.", 401);
   }
 
-  const normalizedEmail = String(claims.email || "").trim().toLowerCase();
+  const normalizedEmail = String(claims.email || "")
+    .trim()
+    .toLowerCase();
   const user = getUsersWithPasswordHashes().find((item) => item.id === claims.sub && item.email === normalizedEmail);
 
   if (!user || user.status !== "active") {
@@ -297,7 +309,9 @@ function upsertUser(user) {
   const sheet = spreadsheet.getSheetByName(SHEETS.users);
   const users = getUsersWithPasswordHashes();
   const id = user.id || `user-${Date.now()}`;
-  const normalizedEmail = String(user.email || "").trim().toLowerCase();
+  const normalizedEmail = String(user.email || "")
+    .trim()
+    .toLowerCase();
   const duplicateUser = users.find((item) => item.email === normalizedEmail && item.id !== id);
 
   if (duplicateUser) {
@@ -369,9 +383,7 @@ function deleteUser(id) {
 
 function resetUsers() {
   if (!hasBootstrapAdminCredentials()) {
-    throw new Error(
-      "Cannot reset users because default admin credentials are not configured in Script Properties."
-    );
+    throw new Error("Cannot reset users because default admin credentials are not configured in Script Properties.");
   }
 
   const spreadsheet = getSpreadsheet();
@@ -381,9 +393,7 @@ function resetUsers() {
   sheet.clear();
   sheet.getRange(1, 1, 1, USER_HEADERS.length).setValues([USER_HEADERS]);
   sheet.setFrozenRows(1);
-  sheet.getRange(2, 1, 1, USER_HEADERS.length).setValues([
-    USER_HEADERS.map((header) => admin[header] || "")
-  ]);
+  sheet.getRange(2, 1, 1, USER_HEADERS.length).setValues([USER_HEADERS.map((header) => admin[header] || "")]);
 
   return getUsers();
 }

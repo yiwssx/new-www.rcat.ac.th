@@ -19,10 +19,7 @@ export default function PublicDepartmentsPage() {
   );
 
   return (
-    <PublicSiteShell
-      title="หลักสูตร"
-      description="ข้อมูลหลักสูตรที่เผยแพร่จาก CMS"
-    >
+    <PublicSiteShell title="หลักสูตร" description="ข้อมูลหลักสูตรที่เผยแพร่จาก CMS">
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <SchoolOutlinedIcon color="primary" />
@@ -34,7 +31,11 @@ export default function PublicDepartmentsPage() {
         <Grid container spacing={2.5}>
           {programItems.map((item) => (
             <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-              <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<SchoolOutlinedIcon sx={{ fontSize: 42 }} />} />
+              <PublicContentCard
+                item={item}
+                mediaAssets={data?.media ?? []}
+                icon={<SchoolOutlinedIcon sx={{ fontSize: 42 }} />}
+              />
             </Grid>
           ))}
         </Grid>

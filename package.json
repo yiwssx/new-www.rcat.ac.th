@@ -17,7 +17,12 @@
     "gas:login": "pnpm dlx @google/clasp login",
     "gas:push": "cd apps-script && pnpm dlx @google/clasp push --force",
     "gas:version": "cd apps-script && pnpm dlx @google/clasp version \"release latest\"",
-    "gas:deployments": "cd apps-script && pnpm dlx @google/clasp deployments"
+    "gas:deployments": "cd apps-script && pnpm dlx @google/clasp deployments",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" \"scripts/**/*.{js,mjs}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" \"scripts/**/*.{js,mjs}\" --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "quality": "pnpm format:check && pnpm lint && pnpm test:unit && pnpm test:integration && pnpm build"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -40,6 +45,7 @@
     "sweetalert2": "^11.26.24"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.4",
     "@testing-library/jest-dom": "^6.6.3",
@@ -49,10 +55,17 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
     "jsdom": "^26.0.0",
     "postcss": "^8.5.10",
+    "prettier": "^3.8.3",
     "tailwindcss": "^4.2.4",
     "typescript": "^5.7.3",
+    "typescript-eslint": "^8.59.1",
     "vite": "^6.1.0",
     "vitest": "^3.0.7"
   },

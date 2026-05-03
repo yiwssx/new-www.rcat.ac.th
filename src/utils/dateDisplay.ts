@@ -1,10 +1,7 @@
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import { DisplaySettings } from "../types";
-import {
-  defaultDisplaySettings,
-  getStoredDisplaySettings
-} from "../services/displaySettings";
+import { defaultDisplaySettings, getStoredDisplaySettings } from "../services/displaySettings";
 
 const WORDPRESS_TO_DAYJS_MAP: Record<string, string> = {
   d: "DD",
@@ -92,16 +89,18 @@ export function formatDisplayDate(value: string | Date, settings?: Partial<Displ
 
 export function formatDisplayTime(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
-  return dayjs(value).locale("th").format(
-    convertWordPressFormatToDayjs(getTimeWordPressFormat(normalizedSettings.timeMode))
-  );
+  return dayjs(value)
+    .locale("th")
+    .format(convertWordPressFormatToDayjs(getTimeWordPressFormat(normalizedSettings.timeMode)));
 }
 
 export function formatDisplayDateTime(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
-  return dayjs(value).locale("th").format(
-    `${convertWordPressFormatToDayjs(normalizedSettings.dateFormat)} ${convertWordPressFormatToDayjs(
-      getTimeWordPressFormat(normalizedSettings.timeMode)
-    )}`
-  );
+  return dayjs(value)
+    .locale("th")
+    .format(
+      `${convertWordPressFormatToDayjs(normalizedSettings.dateFormat)} ${convertWordPressFormatToDayjs(
+        getTimeWordPressFormat(normalizedSettings.timeMode)
+      )}`
+    );
 }

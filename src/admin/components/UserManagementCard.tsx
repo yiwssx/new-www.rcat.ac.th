@@ -1,7 +1,5 @@
-import {
-  useState } from "react";
-import { useQuery,
-  useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -26,12 +24,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import { useAuth } from "../../context/AuthContext";
-import {
-  deleteUserAccount,
-  getUserAccounts,
-  resetUserAccounts,
-  saveUserAccount
-} from "../../services/users";
+import { deleteUserAccount, getUserAccounts, resetUserAccounts, saveUserAccount } from "../../services/users";
 import { User, UserAccount } from "../../types";
 import { appSwal } from "../../utils/swal";
 import { userRoleLabels, userStatusLabels } from "../../utils/thaiLabels";
@@ -357,7 +350,8 @@ export default function UserManagementCard() {
             >
               <Typography fontWeight={800}>ต้องใช้สิทธิ์ผู้ดูแลระบบ</Typography>
               <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
-                บทบาทปัจจุบันคือ {session?.user.role ? userRoleLabels[session.user.role] : "ไม่ทราบ"} การจัดการผู้ใช้จำกัดเฉพาะผู้ดูแลระบบ
+                บทบาทปัจจุบันคือ {session?.user.role ? userRoleLabels[session.user.role] : "ไม่ทราบ"}{" "}
+                การจัดการผู้ใช้จำกัดเฉพาะผู้ดูแลระบบ
               </Typography>
             </Box>
           )}
@@ -387,9 +381,7 @@ export default function UserManagementCard() {
                 <TextField
                   label="บทบาท"
                   value={form.role}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, role: event.target.value as UserRole }))
-                  }
+                  onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as UserRole }))}
                   select
                   fullWidth
                 >
@@ -404,9 +396,7 @@ export default function UserManagementCard() {
                 <TextField
                   label="สถานะ"
                   value={form.status}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, status: event.target.value as UserStatus }))
-                  }
+                  onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as UserStatus }))}
                   select
                   fullWidth
                 >

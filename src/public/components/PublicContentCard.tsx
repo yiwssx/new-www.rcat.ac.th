@@ -78,7 +78,9 @@ export default function PublicContentCard({
               {categories.slice(0, 2).map((category) => (
                 <Chip key={category} label={category} size="small" variant="outlined" />
               ))}
-              {!!item.readingMinutes && <Chip label={`อ่าน ${item.readingMinutes} นาที`} size="small" variant="outlined" />}
+              {!!item.readingMinutes && (
+                <Chip label={`อ่าน ${item.readingMinutes} นาที`} size="small" variant="outlined" />
+              )}
             </Stack>
             <Typography variant="h3" sx={{ fontSize: featured ? "1.45rem" : "1.05rem" }}>
               {item.title}
@@ -88,15 +90,13 @@ export default function PublicContentCard({
             </Typography>
             {!!item.tags?.length && (
               <Typography color="text.secondary" variant="caption" sx={{ mt: 1, display: "block" }}>
-                {item.tags.slice(0, 4).map((tag) => `#${tag}`).join(" ")}
+                {item.tags
+                  .slice(0, 4)
+                  .map((tag) => `#${tag}`)
+                  .join(" ")}
               </Typography>
             )}
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={0.5}
-              justifyContent="space-between"
-              sx={{ mt: 2 }}
-            >
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={0.5} justifyContent="space-between" sx={{ mt: 2 }}>
               <Typography color="text.secondary" variant="body2">
                 {item.owner}
               </Typography>

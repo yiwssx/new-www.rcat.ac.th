@@ -1,15 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Divider,
-  LinearProgress,
-  Stack,
-  Typography
-} from "@mui/material";
+import { Box, Button, Card, CardContent, Chip, Divider, LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
@@ -381,7 +371,9 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                           target="_blank"
                           rel="noreferrer"
                           variant="outlined"
-                          startIcon={asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />}
+                          startIcon={
+                            asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />
+                          }
                           sx={{ justifyContent: "flex-start", ...focusVisibleSx }}
                         >
                           {asset.name}
@@ -571,7 +563,9 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                         target="_blank"
                         rel="noreferrer"
                         variant="outlined"
-                        startIcon={asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />}
+                        startIcon={
+                          asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />
+                        }
                         sx={{ justifyContent: "flex-start" }}
                       >
                         {asset.name}

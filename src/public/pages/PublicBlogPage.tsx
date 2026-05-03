@@ -22,10 +22,7 @@ export default function PublicBlogPage() {
   const [featuredItem, ...secondaryItems] = blogItems;
 
   return (
-    <PublicSiteShell
-      title="บทความ"
-      description="บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS"
-    >
+    <PublicSiteShell title="บทความ" description="บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS">
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
       {featuredItem && (
         <PublicContentCard
@@ -49,7 +46,11 @@ export default function PublicBlogPage() {
           <Grid container spacing={2.5}>
             {secondaryItems.map((item) => (
               <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-                <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<EditNoteOutlinedIcon sx={{ fontSize: 42 }} />} />
+                <PublicContentCard
+                  item={item}
+                  mediaAssets={data?.media ?? []}
+                  icon={<EditNoteOutlinedIcon sx={{ fontSize: 42 }} />}
+                />
               </Grid>
             ))}
           </Grid>

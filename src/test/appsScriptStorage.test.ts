@@ -10,12 +10,20 @@ return {
   );
 
   return createScriptExports() as {
-    getSheetSettingValue: (sheet: {
-      getLastRow: () => number;
-      getRange: (row: number, column: number, numRows: number, numColumns: number) => {
-        getValues: () => unknown[][];
-      };
-    } | null, key: string) => unknown;
+    getSheetSettingValue: (
+      sheet: {
+        getLastRow: () => number;
+        getRange: (
+          row: number,
+          column: number,
+          numRows: number,
+          numColumns: number
+        ) => {
+          getValues: () => unknown[][];
+        };
+      } | null,
+      key: string
+    ) => unknown;
   };
 }
 
@@ -24,7 +32,7 @@ describe("Apps Script Storage helpers", () => {
     const { getSheetSettingValue } = loadStorageHelpers();
     const getValues = vi.fn(() => [
       ["publicSiteUrl", "https://example.edu"],
-      ["siteSettings", "{\"siteName\":\"School\"}"]
+      ["siteSettings", '{"siteName":"School"}']
     ]);
     const getRange = vi.fn(() => ({ getValues }));
 
@@ -36,7 +44,7 @@ describe("Apps Script Storage helpers", () => {
       "siteSettings"
     );
 
-    expect(result).toBe("{\"siteName\":\"School\"}");
+    expect(result).toBe('{"siteName":"School"}');
     expect(getRange).toHaveBeenCalledWith(2, 1, 2, 2);
   });
 
