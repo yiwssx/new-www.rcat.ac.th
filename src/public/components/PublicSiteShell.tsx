@@ -40,6 +40,233 @@ function getTelephoneHref(phone: string) {
   return normalizedPhone ? `tel:${normalizedPhone}` : "#";
 }
 
+interface TopBarSocialLink {
+  label: string;
+  href: string;
+  icon: ReactNode;
+}
+
+interface TopBarInfoItemProps {
+  icon: ReactNode;
+  text: string;
+  href?: string;
+  compact?: boolean;
+  allowShrink?: boolean;
+}
+
+function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false }: TopBarInfoItemProps) {
+  const content = (
+    <>
+      <Box
+        component="span"
+        sx={{
+          display: "inline-flex",
+          alignItems: "center",
+          flexShrink: 0,
+          "& svg": {
+            fontSize: compact ? { xs: "0.82rem", sm: "0.96rem", md: "1.05rem" } : { md: "1.05rem" }
+          },
+          "& .svg-inline--fa": {
+            fontSize: compact ? { xs: "0.82rem", sm: "0.96rem", md: "1.05rem" } : { md: "1.05rem" }
+          }
+        }}
+      >
+        {icon}
+      </Box>
+      <Typography
+        variant="body2"
+        sx={{
+          minWidth: allowShrink ? 0 : undefined,
+          fontSize: compact ? { xs: "0.66rem", sm: "0.78rem", md: "0.875rem" } : { md: "0.875rem" },
+          lineHeight: 1.18,
+          overflow: allowShrink ? "hidden" : "visible",
+          textOverflow: allowShrink ? "ellipsis" : "clip",
+          whiteSpace: "nowrap"
+        }}
+      >
+        {text}
+      </Typography>
+    </>
+  );
+
+  const sx = {
+    color: "inherit",
+    textDecoration: "none",
+    minWidth: allowShrink ? 0 : "max-content",
+    maxWidth: "100%",
+    flex: allowShrink ? "1 1 auto" : "0 0 auto",
+    "&:focus-visible": {
+      outline: "2px solid",
+      outlineColor: "secondary.main",
+      outlineOffset: 2,
+      borderRadius: 1
+    }
+  };
+
+  if (href) {
+    return (
+      <Stack
+        component="a"
+        href={normalizeSafeHref(href)}
+        direction="row"
+        spacing={{ xs: 0.45, sm: 0.55, md: 0.75 }}
+        alignItems="center"
+        sx={sx}
+      >
+        {content}
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack direction="row" spacing={{ xs: 0.45, sm: 0.55, md: 0.75 }} alignItems="center" sx={sx}>
+      {content}
+    </Stack>
+  );
+}
+
+function TopBarSocialIcons({ links, showLabel }: { links: TopBarSocialLink[]; showLabel: boolean }) {
+  if (!links.length) {
+    return null;
+  }
+
+  return (
+    <Stack
+      direction="row"
+      spacing={{ xs: 0.35, sm: 0.45, md: 0.75 }}
+      alignItems="center"
+      justifyContent="flex-end"
+      sx={{ minWidth: "max-content", flexShrink: 0 }}
+    >
+      {showLabel && (
+        <Typography variant="body2" sx={{ opacity: 0.88, whiteSpace: "nowrap" }}>
+          {FOLLOW_LABEL}
+        </Typography>
+      )}
+
+      {links.map((item) => (
+        <IconButton
+          key={item.label}
+          component="a"
+          href={normalizeSafeHref(item.href)}
+          aria-label={item.label}
+          color="inherit"
+          size="small"
+          sx={{
+            width: { xs: 22, sm: 26, md: 34 },
+            height: { xs: 22, sm: 26, md: 34 },
+            p: { xs: 0.2, sm: 0.3, md: 0.5 },
+            border: "1px solid rgba(255, 255, 255, 0.22)",
+            bgcolor: "rgba(255, 255, 255, 0.06)",
+            "& svg": {
+              fontSize: { xs: "0.78rem", sm: "0.92rem", md: "1.25rem" }
+            },
+            "& .svg-inline--fa": {
+              fontSize: { xs: "0.78rem", sm: "0.92rem", md: "1.25rem" }
+            },
+            "&:focus-visible": {
+              outline: "2px solid",
+              outlineColor: "secondary.main",
+              outlineOffset: 2
+            }
+          }}
+        >
+          {item.icon}
+        </IconButton>
+      ))}
+    </Stack>
+  );
+}
+
+function MobileTopBar({
+  campus,
+  phone,
+  email,
+  socialLinks
+}: {
+  campus: string;
+  phone?: string;
+  email?: string;
+  socialLinks: TopBarSocialLink[];
+}) {
+  return (
+    <Box
+      sx={{
+        display: { xs: "grid", md: "none" },
+        gridTemplateColumns: "minmax(0, 1fr) auto",
+        gridTemplateRows: "auto auto",
+        columnGap: { xs: 0.75, sm: 1.1 },
+        rowGap: { xs: 0.35, sm: 0.45 },
+        alignItems: "center",
+        py: { xs: 0.45, sm: 0.55 },
+        minWidth: 0,
+        overflow: "hidden"
+      }}
+    >
+      <Box sx={{ gridColumn: phone ? "1 / 2" : "1 / 3", gridRow: "1 / 2", minWidth: 0 }}>
+        <TopBarInfoItem icon={<LocationOnOutlinedIcon />} text={campus} compact allowShrink />
+      </Box>
+
+      {phone && (
+        <Box sx={{ gridColumn: "2 / 3", gridRow: "1 / 2", justifySelf: "end", minWidth: "max-content" }}>
+          <TopBarInfoItem icon={<LocalPhoneOutlinedIcon />} text={phone} href={getTelephoneHref(phone)} compact />
+        </Box>
+      )}
+
+      {email && (
+        <Box sx={{ gridColumn: "1 / 2", gridRow: "2 / 3", minWidth: 0 }}>
+          <TopBarInfoItem icon={<MailOutlineRoundedIcon />} text={email} compact allowShrink />
+        </Box>
+      )}
+
+      {!!socialLinks.length && (
+        <Box sx={{ gridColumn: "2 / 3", gridRow: "2 / 3", justifySelf: "end", minWidth: "max-content" }}>
+          <TopBarSocialIcons links={socialLinks} showLabel={false} />
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+function DesktopTopBar({
+  campus,
+  siteName,
+  phone,
+  email,
+  socialLinks
+}: {
+  campus?: string;
+  siteName: string;
+  phone?: string;
+  email?: string;
+  socialLinks: TopBarSocialLink[];
+}) {
+  return (
+    <Stack
+      direction="row"
+      spacing={2}
+      alignItems="center"
+      justifyContent="space-between"
+      sx={{
+        display: { xs: "none", md: "flex" },
+        py: { md: 1.1 },
+        minWidth: 0,
+        overflow: "hidden"
+      }}
+    >
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 0, flex: "1 1 auto" }}>
+        <TopBarInfoItem icon={<LocationOnOutlinedIcon />} text={campus || siteName} allowShrink />
+
+        {phone && <TopBarInfoItem icon={<LocalPhoneOutlinedIcon />} text={phone} href={getTelephoneHref(phone)} />}
+
+        {email && <TopBarInfoItem icon={<MailOutlineRoundedIcon />} text={email} />}
+      </Stack>
+
+      <TopBarSocialIcons links={socialLinks} showLabel />
+    </Stack>
+  );
+}
+
 export default function PublicSiteShell({
   title,
   description,
@@ -56,23 +283,31 @@ export default function PublicSiteShell({
   const showPageHeader = !hidePageHeader && (Boolean(title) || Boolean(description));
   const siteName = siteSettings.siteName;
   const defaultCanonicalPath = typeof window === "undefined" ? undefined : window.location.pathname;
-  const socialLinks = [
-    {
+  const socialLinks: TopBarSocialLink[] = [];
+
+  if (siteSettings.facebookUrl) {
+    socialLinks.push({
       label: "Facebook",
       href: siteSettings.facebookUrl,
       icon: <FacebookRoundedIcon fontSize="small" />
-    },
-    {
+    });
+  }
+
+  if (siteSettings.youtubeUrl) {
+    socialLinks.push({
       label: "YouTube",
       href: siteSettings.youtubeUrl,
       icon: <YouTubeIcon fontSize="small" />
-    },
-    {
+    });
+  }
+
+  if (siteSettings.tiktokUrl) {
+    socialLinks.push({
       label: "TikTok",
       href: siteSettings.tiktokUrl,
-      icon: <FontAwesomeIcon icon={faTiktok} style={{ fontSize: "1.25rem" }} />
-    }
-  ].filter((item) => item.href);
+      icon: <FontAwesomeIcon icon={faTiktok} />
+    });
+  }
 
   useDocumentMetadata({
     title: seoTitle ?? title,
@@ -93,88 +328,19 @@ export default function PublicSiteShell({
         }}
       >
         <Container maxWidth="xl">
-          <Stack
-            direction="row"
-            spacing={{ xs: 1, md: 1.5 }}
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ py: { xs: 0.55, md: 1.1 }, minWidth: 0 }}
-          >
-            <Stack
-              direction="row"
-              spacing={{ xs: 1, sm: 1.5, md: 2 }}
-              alignItems="center"
-              useFlexGap
-              sx={{ minWidth: 0, flex: 1, flexWrap: { xs: "nowrap", sm: "wrap", md: "nowrap" } }}
-            >
-              {siteSettings.campus && (
-                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0, flex: "1 1 auto" }}>
-                  <LocationOnOutlinedIcon sx={{ fontSize: { xs: 16, md: 18 }, flex: "0 0 auto" }} />
-                  <Typography variant="body2" noWrap sx={{ minWidth: 0 }}>
-                    {siteSettings.campus}
-                  </Typography>
-                </Stack>
-              )}
-              {siteSettings.phone && (
-                <Stack
-                  component="a"
-                  href={normalizeSafeHref(getTelephoneHref(siteSettings.phone))}
-                  direction="row"
-                  spacing={0.75}
-                  alignItems="center"
-                  sx={{
-                    color: "inherit",
-                    textDecoration: "none",
-                    flex: "0 1 auto",
-                    maxWidth: { xs: "46vw", sm: "none" },
-                    minWidth: 0,
-                    "&:focus-visible": {
-                      outline: "2px solid",
-                      outlineColor: "secondary.main",
-                      outlineOffset: 2,
-                      borderRadius: 1
-                    }
-                  }}
-                >
-                  <LocalPhoneOutlinedIcon sx={{ fontSize: { xs: 16, md: 18 }, flex: "0 0 auto" }} />
-                  <Typography variant="body2" noWrap sx={{ minWidth: 0 }}>
-                    {siteSettings.phone}
-                  </Typography>
-                </Stack>
-              )}
-              {siteSettings.email && (
-                <Stack
-                  direction="row"
-                  spacing={0.75}
-                  alignItems="center"
-                  sx={{ display: { xs: "none", md: "flex" }, flex: "0 0 auto" }}
-                >
-                  <MailOutlineRoundedIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2">{siteSettings.email}</Typography>
-                </Stack>
-              )}
-            </Stack>
-            {!!socialLinks.length && (
-              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ display: { xs: "none", md: "flex" } }}>
-                <Typography variant="body2" sx={{ opacity: 0.88 }}>
-                  {FOLLOW_LABEL}
-                </Typography>
-                {socialLinks.map((item) => (
-                  <IconButton
-                    key={item.label}
-                    component="a"
-                    href={normalizeSafeHref(item.href)}
-                    aria-label={item.label}
-                    color="inherit"
-                    size="small"
-                    sx={{ border: "1px solid rgba(255, 255, 255, 0.22)", bgcolor: "rgba(255, 255, 255, 0.06)" }}
-                  >
-                    {item.icon}
-                  </IconButton>
-                ))}
-              </Stack>
-            )}
-          </Stack>
+          <MobileTopBar
+            campus={siteSettings.campus || siteName}
+            phone={siteSettings.phone}
+            email={siteSettings.email}
+            socialLinks={socialLinks}
+          />
+          <DesktopTopBar
+            campus={siteSettings.campus}
+            siteName={siteName}
+            phone={siteSettings.phone}
+            email={siteSettings.email}
+            socialLinks={socialLinks}
+          />
         </Container>
       </Box>
 
