@@ -146,6 +146,9 @@ export interface SiteSettings {
   directorName: string;
   directorTitle: string;
   directorDescription: string;
+  directorImageUrl: string;
+  mapUrl: string;
+  mapEmbedUrl: string;
   footerTitle: string;
   footerDescription: string;
 }

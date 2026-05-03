@@ -40,6 +40,9 @@ function createSnapshot(overrides: Partial<CmsSnapshot> = {}): CmsSnapshot {
       directorName: "",
       directorTitle: "",
       directorDescription: "",
+      directorImageUrl: "",
+      mapUrl: "",
+      mapEmbedUrl: "",
       footerTitle: "CMS public site",
       footerDescription: ""
     },

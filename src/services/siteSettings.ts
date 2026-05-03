@@ -3,12 +3,16 @@ import { SiteSettings } from "../types";
 const shortTextMaxLength = 120;
 const longTextMaxLength = 500;
 const neutralSiteName = "เว็บไซต์สถานศึกษา";
+const defaultMapUrl = "https://maps.app.goo.gl/yhCsgrkLgd1pekM28";
 const urlFields = new Set<keyof SiteSettings>([
   "admissionUrl",
   "facebookUrl",
   "youtubeUrl",
   "tiktokUrl",
-  "heroImageUrl"
+  "heroImageUrl",
+  "directorImageUrl",
+  "mapUrl",
+  "mapEmbedUrl"
 ]);
 const longTextFields = new Set<keyof SiteSettings>([
   "intro",
@@ -38,6 +42,9 @@ export const defaultSiteSettings: SiteSettings = {
   directorName: "",
   directorTitle: "",
   directorDescription: "",
+  directorImageUrl: "",
+  mapUrl: defaultMapUrl,
+  mapEmbedUrl: "",
   footerTitle: neutralSiteName,
   footerDescription: ""
 };
@@ -70,6 +77,48 @@ function normalizeHttpsUrl(value: unknown) {
   }
 }
 
+function normalizeMapUrl(value: unknown) {
+  const url = normalizeHttpsUrl(value);
+
+  if (!url) {
+    return "";
+  }
+
+  const parsed = new URL(url);
+  const hostname = parsed.hostname.toLowerCase();
+
+  if (hostname === "maps.app.goo.gl") {
+    return url;
+  }
+
+  if (
+    (hostname === "www.google.com" ||
+      hostname === "google.com" ||
+      hostname === "maps.google.com") &&
+    parsed.pathname.startsWith("/maps")
+  ) {
+    return url;
+  }
+
+  return "";
+}
+
+function normalizeMapEmbedUrl(value: unknown) {
+  const url = normalizeHttpsUrl(value);
+
+  if (!url) {
+    return "";
+  }
+
+  const parsed = new URL(url);
+
+  if (parsed.hostname.toLowerCase() === "www.google.com" && parsed.pathname === "/maps/embed") {
+    return url;
+  }
+
+  return "";
+}
+
 export function normalizeSiteSettings(input: unknown): SiteSettings {
   const source = isRecord(input) ? input : {};
   const normalized = {
@@ -82,6 +131,16 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
     }
 
     if (urlFields.has(key)) {
+      if (key === "mapUrl") {
+        normalized[key] = normalizeMapUrl(source[key]);
+        return;
+      }
+
+      if (key === "mapEmbedUrl") {
+        normalized[key] = normalizeMapEmbedUrl(source[key]);
+        return;
+      }
+
       normalized[key] = normalizeHttpsUrl(source[key]);
       return;
     }
