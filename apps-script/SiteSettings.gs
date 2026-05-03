@@ -1,3 +1,5 @@
+const DEFAULT_MAP_URL = "https://maps.app.goo.gl/yhCsgrkLgd1pekM28";
+
 const DEFAULT_SITE_SETTINGS = {
   siteName: "",
   eyebrow: "",
@@ -18,6 +20,9 @@ const DEFAULT_SITE_SETTINGS = {
   directorName: "",
   directorTitle: "",
   directorDescription: "",
+  directorImageUrl: "",
+  mapUrl: DEFAULT_MAP_URL,
+  mapEmbedUrl: "",
   footerTitle: "",
   footerDescription: ""
 };
@@ -26,6 +31,7 @@ const STARTER_PUBLIC_SITE_SETTINGS = {
   ...DEFAULT_SITE_SETTINGS,
   siteName: "เว็บไซต์สถานศึกษา",
   heroTitle: "เว็บไซต์สถานศึกษา",
+  mapUrl: DEFAULT_MAP_URL,
   footerTitle: "เว็บไซต์สถานศึกษา"
 };
 
@@ -42,7 +48,10 @@ const SITE_SETTINGS_URL_FIELDS = [
   "facebookUrl",
   "youtubeUrl",
   "tiktokUrl",
-  "heroImageUrl"
+  "heroImageUrl",
+  "directorImageUrl",
+  "mapUrl",
+  "mapEmbedUrl"
 ];
 
 const SITE_SETTINGS_LONG_TEXT_FIELDS = [
@@ -162,8 +171,12 @@ function shouldSeedSiteSettings(rawValue) {
 
   try {
     const parsed = JSON.parse(rawValue);
-    const normalized = normalizeSiteSettings(parsed);
-    return Object.keys(normalized).every((key) => !String(normalized[key] || "").trim());
+    const source = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+
+    return Object.keys(DEFAULT_SITE_SETTINGS).every((key) => {
+      const value = String(source[key] || "").trim();
+      return !value || (key === "mapUrl" && value === DEFAULT_MAP_URL);
+    });
   } catch (error) {
     console.warn(`Starter site settings seed skipped because existing siteSettings could not be parsed: ${error.message || error}`);
     return false;
@@ -213,13 +226,77 @@ function normalizeSiteSettingsUrl(value, fieldName, options) {
   }
 
   try {
+    if (fieldName === "mapUrl") {
+      return normalizeSiteSettingsMapUrl(url);
+    }
+
+    if (fieldName === "mapEmbedUrl") {
+      return normalizeSiteSettingsMapEmbedUrl(url);
+    }
+
     return normalizePublicMediaUrl(url);
   } catch (error) {
     if (options && options.validate) {
-      throw createHttpError(`${fieldName} must be an https URL or empty.`, 400);
+      throw createHttpError(getSiteSettingsUrlErrorMessage(fieldName), 400);
     }
 
     console.warn(`Dropping unsafe site settings URL for ${fieldName}: ${error.message || error}`);
     return "";
   }
+}
+
+function normalizeSiteSettingsMapUrl(url) {
+  const normalized = normalizePublicMediaUrl(url);
+  const parts = parseSiteSettingsHttpsUrl(normalized);
+
+  if (parts.hostname === "maps.app.goo.gl") {
+    return normalized;
+  }
+
+  if (
+    (parts.hostname === "www.google.com" ||
+      parts.hostname === "google.com" ||
+      parts.hostname === "maps.google.com") &&
+    parts.pathname.indexOf("/maps") === 0
+  ) {
+    return normalized;
+  }
+
+  throw createHttpError("mapUrl must be a Google Maps https URL or empty.", 400);
+}
+
+function normalizeSiteSettingsMapEmbedUrl(url) {
+  const normalized = normalizePublicMediaUrl(url, ["www.google.com"]);
+  const parts = parseSiteSettingsHttpsUrl(normalized);
+
+  if (parts.pathname === "/maps/embed") {
+    return normalized;
+  }
+
+  throw createHttpError("mapEmbedUrl must be a Google Maps embed https URL or empty.", 400);
+}
+
+function parseSiteSettingsHttpsUrl(url) {
+  const match = String(url || "").match(/^https:\/\/([^/?#]+)([^?#]*)/i);
+
+  if (!match || !match[1]) {
+    throw createHttpError("Invalid public URL.", 400);
+  }
+
+  return {
+    hostname: match[1].split(":")[0].toLowerCase(),
+    pathname: match[2] || "/"
+  };
+}
+
+function getSiteSettingsUrlErrorMessage(fieldName) {
+  if (fieldName === "mapUrl") {
+    return "mapUrl must be a Google Maps https URL or empty.";
+  }
+
+  if (fieldName === "mapEmbedUrl") {
+    return "mapEmbedUrl must be a Google Maps embed https URL or empty.";
+  }
+
+  return `${fieldName} must be an https URL or empty.`;
 }

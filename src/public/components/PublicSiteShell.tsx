@@ -96,34 +96,39 @@ export default function PublicSiteShell({
       >
         <Container maxWidth="xl">
           <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={1.5}
+            direction="row"
+            spacing={{ xs: 1, md: 1.5 }}
             justifyContent="space-between"
-            alignItems={{ xs: "flex-start", md: "center" }}
-            sx={{ py: 1.1 }}
+            alignItems="center"
+            sx={{ py: { xs: 0.55, md: 1.1 } }}
           >
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 0.75, sm: 2 }}>
+            <Stack direction="row" spacing={{ xs: 1.2, md: 2 }} alignItems="center" sx={{ minWidth: 0 }}>
               {siteSettings.campus && (
-                <Stack direction="row" spacing={0.75} alignItems="center">
+                <Stack
+                  direction="row"
+                  spacing={0.75}
+                  alignItems="center"
+                  sx={{ display: { xs: siteSettings.phone ? "none" : "flex", md: "flex" }, minWidth: 0 }}
+                >
                   <LocationOnOutlinedIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2">{siteSettings.campus}</Typography>
+                  <Typography variant="body2" noWrap>{siteSettings.campus}</Typography>
                 </Stack>
               )}
               {siteSettings.phone && (
-                <Stack direction="row" spacing={0.75} alignItems="center">
+                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
                   <LocalPhoneOutlinedIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2">{siteSettings.phone}</Typography>
+                  <Typography variant="body2" noWrap>{siteSettings.phone}</Typography>
                 </Stack>
               )}
               {siteSettings.email && (
-                <Stack direction="row" spacing={0.75} alignItems="center">
+                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ display: { xs: "none", md: "flex" } }}>
                   <MailOutlineRoundedIcon sx={{ fontSize: 18 }} />
                   <Typography variant="body2">{siteSettings.email}</Typography>
                 </Stack>
               )}
             </Stack>
             {!!socialLinks.length && (
-              <Stack direction="row" spacing={0.75} alignItems="center">
+              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ display: { xs: "none", md: "flex" } }}>
                 <Typography variant="body2" sx={{ opacity: 0.88 }}>
                   {FOLLOW_LABEL}
                 </Typography>
@@ -150,16 +155,16 @@ export default function PublicSiteShell({
         <Container maxWidth="xl">
           <Stack
             direction={{ xs: "column", lg: "row" }}
-            spacing={2}
+            spacing={{ xs: 1.2, md: 2 }}
             justifyContent="space-between"
             alignItems={{ xs: "flex-start", lg: "center" }}
-            sx={{ py: 2.4 }}
+            sx={{ py: { xs: 1.2, md: 2.4 } }}
           >
-            <Stack direction="row" spacing={2} alignItems="center">
+            <Stack direction="row" spacing={{ xs: 1.15, md: 2 }} alignItems="center" sx={{ width: "100%", minWidth: 0 }}>
               <Box
                 sx={{
-                  width: { xs: 72, md: 86 },
-                  height: { xs: 72, md: 86 },
+                  width: { xs: 56, md: 86 },
+                  height: { xs: 56, md: 86 },
                   borderRadius: 999,
                   display: "grid",
                   placeItems: "center",
@@ -171,7 +176,7 @@ export default function PublicSiteShell({
                   component="img"
                   src={projectSettings.site.logoPath}
                   alt={siteName}
-                  sx={{ width: { xs: 54, md: 64 }, height: { xs: 54, md: 64 }, objectFit: "contain" }}
+                  sx={{ width: { xs: 44, md: 64 }, height: { xs: 44, md: 64 }, objectFit: "contain" }}
                 />
               </Box>
               <Box sx={{ minWidth: 0 }}>
@@ -179,36 +184,53 @@ export default function PublicSiteShell({
                   <Typography
                     sx={{
                       color: "secondary.dark",
-                      fontSize: "0.82rem",
+                      fontSize: { xs: "0.74rem", md: "0.82rem" },
                       fontWeight: 700,
-                      letterSpacing: "0.14em",
+                      letterSpacing: "0.02em",
+                      lineHeight: 1.25,
                       textTransform: "uppercase",
-                      mb: 0.4
+                      mb: { xs: 0.2, md: 0.4 }
                     }}
                   >
                     {siteSettings.eyebrow}
                   </Typography>
                 )}
-                <Typography variant="h1" sx={{ fontSize: { xs: "1.7rem", md: "2.4rem" }, lineHeight: 1.08 }}>
+                <Typography variant="h1" sx={{ fontSize: { xs: "1.38rem", sm: "1.55rem", md: "2.4rem" }, lineHeight: 1.08 }}>
                   {siteName}
                 </Typography>
                 {siteSettings.intro && (
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.6, display: { xs: "none", sm: "flex" } }}>
                     <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark" }} />
-                    <Typography color="text.secondary" sx={{ maxWidth: 860 }}>
+                    <Typography
+                      color="text.secondary"
+                      sx={{
+                        maxWidth: 860,
+                        overflow: "hidden",
+                        display: "-webkit-box",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: 1
+                      }}
+                    >
                       {siteSettings.intro}
                     </Typography>
                   </Stack>
                 )}
               </Box>
             </Stack>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} alignItems={{ xs: "stretch", sm: "center" }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              useFlexGap
+              sx={{ flexWrap: "wrap", width: { xs: "100%", lg: "auto" } }}
+            >
               {siteSettings.admissionUrl && (
                 <Button
                   variant="contained"
                   color="error"
                   href={normalizeSafeHref(siteSettings.admissionUrl)}
                   startIcon={<AssignmentIcon />}
+                  sx={{ flex: { xs: "1 1 132px", sm: "0 0 auto" } }}
                 >
                   สมัครเรียน
                 </Button>
@@ -218,15 +240,16 @@ export default function PublicSiteShell({
                 color="primary"
                 href={normalizeSafeHref("/announcements")}
                 endIcon={<ArrowForwardOutlinedIcon />}
+                sx={{ flex: { xs: "1 1 132px", sm: "0 0 auto" } }}
               >
                 {ANNOUNCEMENTS_LABEL}
               </Button>
               <Button
-                variant="outlined"
+                variant="text"
                 color="primary"
                 href={normalizeSafeHref("/login")}
                 startIcon={<AdminPanelSettingsOutlinedIcon />}
-                sx={{ bgcolor: "white" }}
+                sx={{ display: { xs: "none", sm: "inline-flex" } }}
               >
                 {STAFF_LOGIN_LABEL}
               </Button>

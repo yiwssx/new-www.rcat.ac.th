@@ -111,7 +111,10 @@ describe("Apps Script starter public seed", () => {
       phone: "",
       email: "",
       address: "",
-      heroImageUrl: ""
+      heroImageUrl: "",
+      directorImageUrl: "",
+      mapUrl: "https://maps.app.goo.gl/yhCsgrkLgd1pekM28",
+      mapEmbedUrl: ""
     });
     expect(context.menuSetValues).toHaveBeenCalledWith([
       ["starter-home", "", "หน้าแรก", "/", 0, "TRUE"],

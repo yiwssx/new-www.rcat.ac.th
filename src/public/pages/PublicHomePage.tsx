@@ -23,12 +23,14 @@ import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
+import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import dayjs from "dayjs";
 import EmptyState from "../../shared/components/EmptyState";
 import { normalizeSiteSettings } from "../../services/siteSettings";
-import { CalendarEvent, ContentItem, PublicMenuItem, SiteSettings } from "../../types";
+import { CalendarEvent, ContentItem, SiteSettings } from "../../types";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import PublicContentCard from "../components/PublicContentCard";
@@ -41,27 +43,6 @@ interface HomeSectionHeadingProps {
   description?: string;
   action?: ReactNode;
 }
-
-interface QuickLink {
-  label: string;
-  href: string;
-}
-
-const quickLinkFallback: QuickLink[] = [
-  { label: "ประกาศ", href: "/announcements" },
-  { label: "ข่าวสาร", href: "/news" },
-  { label: "หลักสูตร", href: "/departments" },
-  { label: "ติดต่อ", href: "/contact" }
-];
-
-const quickAccessPreferenceGroups = [
-  ["สมัครเรียน", "รับสมัคร", "admission", "apply"],
-  ["ข่าวสาร", "ข่าว", "news", "blog"],
-  ["ประกาศ", "announcement"],
-  ["หลักสูตร", "departments", "program"],
-  ["เอกสารเผยแพร่", "เอกสาร", "document", "ita"],
-  ["ติดต่อ", "contact"]
-];
 
 const documentKeywords = ["เอกสาร", "document", "ita", "แผนงาน", "ประกันคุณภาพ"];
 
@@ -146,60 +127,6 @@ function hasContentKeyword(item: ContentItem, keywords: string[]) {
   return keywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
 }
 
-function linkMatchesPreference(link: QuickLink, group: string[]) {
-  const label = link.label.toLowerCase();
-  const href = link.href.toLowerCase();
-
-  return group.some((keyword) => {
-    const normalizedKeyword = keyword.toLowerCase();
-    return label.includes(normalizedKeyword) || href.includes(normalizedKeyword);
-  });
-}
-
-function orderQuickLinks(links: QuickLink[]) {
-  const remaining = [...links];
-  const ordered: QuickLink[] = [];
-
-  quickAccessPreferenceGroups.forEach((group) => {
-    const matchIndex = remaining.findIndex((link) => linkMatchesPreference(link, group));
-
-    if (matchIndex === -1) {
-      return;
-    }
-
-    ordered.push(remaining[matchIndex]);
-    remaining.splice(matchIndex, 1);
-  });
-
-  return [...ordered, ...remaining].slice(0, 6);
-}
-
-function collectMenuLinks(items: PublicMenuItem[] | undefined): QuickLink[] {
-  const links: QuickLink[] = [];
-
-  function visit(menuItems: PublicMenuItem[]) {
-    menuItems.forEach((item) => {
-      if (!item.enabled) {
-        return;
-      }
-
-      if (item.label && item.href) {
-        links.push({
-          label: item.label,
-          href: item.href
-        });
-      }
-
-      if (item.children?.length) {
-        visit(item.children);
-      }
-    });
-  }
-
-  visit(items ?? []);
-  return links.length ? orderQuickLinks(links) : quickLinkFallback;
-}
-
 function CompactAnnouncementList({
   items,
   emptyTitle
@@ -243,49 +170,22 @@ function CompactAnnouncementList({
   );
 }
 
-function QuickAccessGrid({ links }: { links: QuickLink[] }) {
+function LatestAnnouncementsCard({ items }: { items: ContentItem[] }) {
   return (
-    <Box component="section" sx={{ mt: { xs: 3, md: 4.5 } }}>
-      <HomeSectionHeading label="ทางลัด" title="เมนูใช้งานด่วน" />
-      <Grid container spacing={{ xs: 1.25, md: 2 }}>
-        {links.map((item) => (
-          <Grid size={{ xs: 6, sm: 4, lg: 2 }} key={`${item.href}-${item.label}`}>
-            <Card
-              component="a"
-              href={normalizeSafeHref(item.href)}
-              aria-label={item.label}
-              sx={{
-                display: "block",
-                height: "100%",
-                ...focusVisibleSx
-              }}
-            >
-              <CardContent sx={{ p: { xs: 1.5, md: 2 }, height: "100%" }}>
-                <Stack spacing={1.2} sx={{ minHeight: { xs: 92, md: 106 } }}>
-                  <Box
-                    sx={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 1.5,
-                      display: "grid",
-                      placeItems: "center",
-                      bgcolor: "primary.light",
-                      color: "primary.main",
-                      flex: "0 0 auto"
-                    }}
-                  >
-                    <NavigateNextRoundedIcon />
-                  </Box>
-                  <Typography fontWeight={900} sx={{ lineHeight: 1.25 }}>
-                    {item.label}
-                  </Typography>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
+    <Card id="announcements" sx={{ height: "100%" }}>
+      <CardContent sx={{ p: 2.5 }}>
+        <HomeSectionHeading
+          label="ประกาศ"
+          title="ประกาศล่าสุด"
+          action={
+            <Button href={normalizeSafeHref("/announcements")} endIcon={<ArrowForwardOutlinedIcon />}>
+              ทั้งหมด
+            </Button>
+          }
+        />
+        <CompactAnnouncementList items={items} emptyTitle="ยังไม่มีประกาศที่เผยแพร่" />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -407,12 +307,60 @@ function ContactInfoCard({ siteSettings }: { siteSettings: SiteSettings }) {
   );
 }
 
+function SmallMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
+  if (!siteSettings.mapEmbedUrl && !siteSettings.mapUrl) {
+    return null;
+  }
+
+  return (
+    <Card component="section" id="map" sx={{ height: "100%" }}>
+      <CardContent sx={{ p: 2.5 }}>
+        <HomeSectionHeading label="แผนที่" title="แผนที่" />
+        {siteSettings.mapEmbedUrl ? (
+          <Box
+            component="iframe"
+            src={normalizeSafeHref(siteSettings.mapEmbedUrl)}
+            title="แผนที่วิทยาลัย"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            sx={{
+              width: "100%",
+              height: { xs: 190, md: 210 },
+              border: 0,
+              borderRadius: 2,
+              display: "block"
+            }}
+          />
+        ) : (
+          <Button
+            component="a"
+            href={normalizeSafeHref(siteSettings.mapUrl)}
+            target="_blank"
+            rel="noreferrer"
+            variant="outlined"
+            startIcon={<MapOutlinedIcon />}
+            endIcon={<OpenInNewOutlinedIcon />}
+            fullWidth
+            sx={{ justifyContent: "space-between", ...focusVisibleSx }}
+          >
+            เปิดแผนที่
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
   const hasDirectorInfo = Boolean(
     siteSettings.directorName ||
       siteSettings.directorDescription ||
-      siteSettings.directorTitle
+      siteSettings.directorTitle ||
+      siteSettings.directorImageUrl
   );
+  const directorImageAlt = siteSettings.directorName
+    ? `รูปผู้บริหาร ${siteSettings.directorName}`
+    : "รูปผู้บริหารสถานศึกษา";
 
   return (
     <Card component="section" sx={{ height: "100%", borderTop: "5px solid", borderColor: "secondary.main" }}>
@@ -420,17 +368,33 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
         <HomeSectionHeading label="ผู้บริหารสถานศึกษา" title={siteSettings.directorTitle || "ข้อมูลผู้บริหาร"} />
         {hasDirectorInfo ? (
           <Stack spacing={2} sx={{ height: "100%" }}>
-            <Box
-              sx={(theme) => ({
-                minHeight: { xs: 96, md: 116 },
-                borderRadius: 2,
-                display: "grid",
-                placeItems: "center",
-                bgcolor: alpha(theme.palette.primary.light, 0.82)
-              })}
-            >
-              <SchoolOutlinedIcon sx={{ fontSize: { xs: 56, md: 66 }, color: "primary.dark" }} />
-            </Box>
+            {siteSettings.directorImageUrl ? (
+              <Box
+                component="img"
+                src={normalizeSafeHref(siteSettings.directorImageUrl)}
+                alt={directorImageAlt}
+                sx={{
+                  width: "100%",
+                  height: { xs: 180, md: 220 },
+                  borderRadius: 2,
+                  objectFit: "cover",
+                  display: "block",
+                  bgcolor: "background.default"
+                }}
+              />
+            ) : (
+              <Box
+                sx={(theme) => ({
+                  minHeight: { xs: 96, md: 116 },
+                  borderRadius: 2,
+                  display: "grid",
+                  placeItems: "center",
+                  bgcolor: alpha(theme.palette.primary.light, 0.82)
+                })}
+              >
+                <SchoolOutlinedIcon sx={{ fontSize: { xs: 56, md: 66 }, color: "primary.dark" }} />
+              </Box>
+            )}
             <Stack spacing={0.8}>
               {siteSettings.directorName && (
                 <Typography variant="h3" sx={{ fontSize: { xs: "1.15rem", md: "1.25rem" } }}>
@@ -466,7 +430,6 @@ export default function PublicHomePage() {
   const latestAnnouncements = announcementContent.slice(0, 5);
   const programItems = publicContent.filter((item) => item.type === "program").slice(0, 6);
   const documentItems = publicContent.filter((item) => item.type === "page" && hasContentKeyword(item, documentKeywords)).slice(0, 6);
-  const quickLinks = collectMenuLinks(data?.menu);
   const eventItems = sortEventsByUpcomingDate(
     (data?.events ?? []).filter((event) => event.status === "confirmed" && (event.visibility ?? "public") === "public")
   ).slice(0, 4);
@@ -578,10 +541,8 @@ export default function PublicHomePage() {
           </Grid>
         </Grid>
 
-        <QuickAccessGrid links={quickLinks} />
-
         <Box component="section" id="news" sx={{ mt: { xs: 4, md: 5.5 } }}>
-          <Grid container spacing={3.2}>
+          <Grid container spacing={3.2} alignItems="flex-start">
             <Grid size={{ xs: 12, lg: 8 }}>
               <HomeSectionHeading
                 label="ข่าวสาร"
@@ -606,20 +567,12 @@ export default function PublicHomePage() {
             </Grid>
 
             <Grid size={{ xs: 12, lg: 4 }}>
-              <Card id="announcements" sx={{ height: "100%" }}>
-                <CardContent sx={{ p: 2.5 }}>
-                  <HomeSectionHeading
-                    label="ประกาศ"
-                    title="ประกาศล่าสุด"
-                    action={
-                      <Button href={normalizeSafeHref("/announcements")} endIcon={<ArrowForwardOutlinedIcon />}>
-                        ทั้งหมด
-                      </Button>
-                    }
-                  />
-                  <CompactAnnouncementList items={latestAnnouncements} emptyTitle="ยังไม่มีประกาศที่เผยแพร่" />
-                </CardContent>
-              </Card>
+              <Stack spacing={2.5}>
+                <LatestAnnouncementsCard items={latestAnnouncements} />
+                <DocumentListCard items={documentItems} />
+                {hasContactInfo && <ContactInfoCard siteSettings={siteSettings} />}
+                <SmallMapCard siteSettings={siteSettings} />
+              </Stack>
             </Grid>
           </Grid>
         </Box>
@@ -642,24 +595,10 @@ export default function PublicHomePage() {
         <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
           <Grid container spacing={3.2}>
             <Grid size={{ xs: 12, lg: 7 }}>
-              <DocumentListCard items={documentItems} />
-            </Grid>
-            <Grid size={{ xs: 12, lg: 5 }}>
               <EventListCard items={eventItems} />
             </Grid>
           </Grid>
         </Box>
-
-        {hasContactInfo && (
-          <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
-            <HomeSectionHeading label="ข้อมูลสถานศึกษา" title="ข้อมูลติดต่อ" />
-            <Grid container spacing={3.2}>
-              <Grid size={{ xs: 12, lg: 8 }}>
-                <ContactInfoCard siteSettings={siteSettings} />
-              </Grid>
-            </Grid>
-          </Box>
-        )}
       </Container>
     </PublicSiteShell>
   );
