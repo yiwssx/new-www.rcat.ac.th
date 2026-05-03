@@ -1,5 +1,17 @@
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 
+function hasUnsafeUrlCharacter(value: string) {
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+
+    if (code <= 31 || code === 127 || char === "\\" || /\s/.test(char)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function normalizeSafeHref(value: string): string {
   const href = String(value || "").trim();
 
@@ -7,7 +19,7 @@ export function normalizeSafeHref(value: string): string {
     return "#";
   }
 
-  if (/[\u0000-\u001F\u007F\s\\]/.test(href)) {
+  if (hasUnsafeUrlCharacter(href)) {
     return "#";
   }
 

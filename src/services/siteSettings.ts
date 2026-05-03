@@ -58,6 +58,18 @@ function normalizeText(value: unknown, maxLength: number) {
   return text.length > maxLength ? text.slice(0, maxLength) : text;
 }
 
+function hasUnsafeUrlCharacter(value: string) {
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+
+    if (code <= 31 || code === 127 || char === "\\" || /\s/.test(char)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function normalizeHttpsUrl(value: unknown) {
   const url = String(value || "").trim();
 
@@ -65,7 +77,7 @@ function normalizeHttpsUrl(value: unknown) {
     return "";
   }
 
-  if (/[\u0000-\u001F\u007F\s\\]/.test(url)) {
+  if (hasUnsafeUrlCharacter(url)) {
     return "";
   }
 

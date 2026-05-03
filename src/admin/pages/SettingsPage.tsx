@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Box,
@@ -93,6 +93,8 @@ export default function SettingsPage() {
   const rolePermissions = projectSettings.roles;
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(defaultDisplaySettings);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(defaultSiteSettings);
+  const [displaySettingsSource, setDisplaySettingsSource] = useState<DisplaySettings | undefined>();
+  const [siteSettingsSource, setSiteSettingsSource] = useState<SiteSettings | undefined>();
 
   const displaySettingsQuery = useQuery({
     queryKey: ["display-settings"],
@@ -110,17 +112,15 @@ export default function SettingsPage() {
     mutationFn: saveSiteSettingsToApi
   });
 
-  useEffect(() => {
-    if (displaySettingsQuery.data) {
-      setDisplaySettings(normalizeDisplaySettings(displaySettingsQuery.data));
-    }
-  }, [displaySettingsQuery.data]);
+  if (displaySettingsQuery.data && displaySettingsSource !== displaySettingsQuery.data) {
+    setDisplaySettingsSource(displaySettingsQuery.data);
+    setDisplaySettings(normalizeDisplaySettings(displaySettingsQuery.data));
+  }
 
-  useEffect(() => {
-    if (adminSnapshotQuery.data?.siteSettings) {
-      setSiteSettings(normalizeSiteSettings(adminSnapshotQuery.data.siteSettings));
-    }
-  }, [adminSnapshotQuery.data]);
+  if (adminSnapshotQuery.data?.siteSettings && siteSettingsSource !== adminSnapshotQuery.data.siteSettings) {
+    setSiteSettingsSource(adminSnapshotQuery.data.siteSettings);
+    setSiteSettings(normalizeSiteSettings(adminSnapshotQuery.data.siteSettings));
+  }
 
   const previewDate = useMemo(() => {
     const now = new Date();

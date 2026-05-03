@@ -157,6 +157,12 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function createErrorWithCause(message: string, cause: unknown) {
+  const error = new Error(message) as Error & { cause?: unknown };
+  error.cause = cause;
+  return error;
+}
+
 async function googleFetch<T>(
   resource: GoogleResource,
   init?: RequestInit,
@@ -208,7 +214,7 @@ async function googleFetch<T>(
     return data;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("Google Apps Script ตอบสนองช้าเกินไป กรุณาลองอีกครั้ง");
+      throw createErrorWithCause("Google Apps Script ตอบสนองช้าเกินไป กรุณาลองอีกครั้ง", error);
     }
 
     throw error;

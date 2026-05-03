@@ -30,7 +30,7 @@ function sanitizeDateFormat(value: unknown) {
     return defaultDisplaySettings.dateFormat;
   }
 
-  if (/[^A-Za-z0-9 :/.,_\-\[\]\\]/.test(nextValue)) {
+  if (/[^A-Za-z0-9 :/.,_[\]\\-]/.test(nextValue)) {
     return defaultDisplaySettings.dateFormat;
   }
 

@@ -83,7 +83,7 @@ export function readPublicCache<T>(key: string): { data: T; savedAt: number } | 
     return null;
   }
 
-  let raw: string | null = null;
+  let raw: string | null;
 
   try {
     raw = storage.getItem(key);

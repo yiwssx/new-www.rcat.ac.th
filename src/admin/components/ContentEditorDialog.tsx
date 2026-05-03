@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import {
   Alert,
   Autocomplete,
@@ -66,6 +66,33 @@ function createDraft(): ContentItem {
     updatedAt: new Date().toISOString(),
     publishAt: new Date().toISOString()
   };
+}
+
+function normalizeEditorDraft(source: ContentItem): ContentItem {
+  return {
+    ...source,
+    body: source.body ?? "",
+    slug: sanitizeSlugInput(source.slug ?? ""),
+    category: normalizeCategoryValue(source.category ?? ""),
+    tags: normalizeTags(source.tags),
+    seoTitle: source.seoTitle ?? "",
+    seoDescription: source.seoDescription ?? "",
+    canonicalUrl: source.canonicalUrl ?? "",
+    featured: Boolean(source.featured),
+    readingMinutes: Math.max(1, Number(source.readingMinutes) || 1),
+    template: source.template ?? "standard",
+    featuredMediaId: source.featuredMediaId ?? "",
+    mediaIds: normalizeMediaIds(source.mediaIds)
+  };
+}
+
+function createEditorDraft(item: ContentItem | null) {
+  return normalizeEditorDraft(item ?? createDraft());
+}
+
+function createBodyBlocks(body: string | undefined) {
+  const parsedBlocks = parseContentBodyToBlocks(body);
+  return parsedBlocks.length ? parsedBlocks : [createContentBlock("paragraph")];
 }
 
 function sanitizeSlugInput(value: string) {
@@ -180,7 +207,8 @@ export default function ContentEditorDialog({
   onSave,
   onUploadMedia
 }: ContentEditorDialogProps) {
-  const [draft, setDraft] = useState<ContentItem>(() => item ?? createDraft());
+  const [draftSource, setDraftSource] = useState(() => ({ item, open }));
+  const [draft, setDraft] = useState<ContentItem>(() => createEditorDraft(item));
   const [pendingDraft, setPendingDraft] = useState<ContentItem | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [uploadedAssets, setUploadedAssets] = useState<MediaAsset[]>([]);
@@ -190,7 +218,7 @@ export default function ContentEditorDialog({
   const [uploadError, setUploadError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [tagInputValue, setTagInputValue] = useState("");
-  const [bodyBlocks, setBodyBlocks] = useState<ContentBlock[]>([createContentBlock("paragraph")]);
+  const [bodyBlocks, setBodyBlocks] = useState<ContentBlock[]>(() => createBodyBlocks(item?.body));
   const title = useMemo(() => (item ? "แก้ไขเนื้อหา" : "เพิ่มเนื้อหาใหม่"), [item]);
   const confirmTitle = item ? "บันทึกการแก้ไขเนื้อหา?" : "สร้างเนื้อหา?";
   const confirmButton = item ? "บันทึก" : "สร้าง";
@@ -204,23 +232,10 @@ export default function ContentEditorDialog({
   const selectedMedia = availableMedia.filter((asset) => selectedMediaIds.includes(asset.id));
   const featuredMedia = availableMedia.find((asset) => asset.id === draft.featuredMediaId);
 
-  useEffect(() => {
-    const nextDraft = item ?? createDraft();
-    setDraft({
-      ...nextDraft,
-      body: nextDraft.body ?? "",
-      slug: sanitizeSlugInput(nextDraft.slug ?? ""),
-      category: normalizeCategoryValue(nextDraft.category ?? ""),
-      tags: normalizeTags(nextDraft.tags),
-      seoTitle: nextDraft.seoTitle ?? "",
-      seoDescription: nextDraft.seoDescription ?? "",
-      canonicalUrl: nextDraft.canonicalUrl ?? "",
-      featured: Boolean(nextDraft.featured),
-      readingMinutes: Math.max(1, Number(nextDraft.readingMinutes) || 1),
-      template: nextDraft.template ?? "standard",
-      featuredMediaId: nextDraft.featuredMediaId ?? "",
-      mediaIds: normalizeMediaIds(nextDraft.mediaIds)
-    });
+  if (draftSource.item !== item || draftSource.open !== open) {
+    const nextDraft = createEditorDraft(item);
+    setDraftSource({ item, open });
+    setDraft(nextDraft);
     setPendingDraft(null);
     setConfirming(false);
     setUploadFile(null);
@@ -229,9 +244,8 @@ export default function ContentEditorDialog({
     setUploadError("");
     setUploading(false);
     setTagInputValue("");
-    const parsedBlocks = parseContentBodyToBlocks(nextDraft.body);
-    setBodyBlocks(parsedBlocks.length ? parsedBlocks : [createContentBlock("paragraph")]);
-  }, [item, open]);
+    setBodyBlocks(createBodyBlocks(nextDraft.body));
+  }
 
   function setDraftTags(nextTags: string[]) {
     setDraft((current) => ({

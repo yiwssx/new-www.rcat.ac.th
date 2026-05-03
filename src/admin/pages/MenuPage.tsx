@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Box,
@@ -287,6 +287,7 @@ export default function MenuPage() {
     queryFn: getPublicMenuItems
   });
   const [items, setItems] = useState<PublicMenuItem[]>(cloneMenu(data));
+  const [itemsSource, setItemsSource] = useState(data);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | undefined>();
   const [parentId, setParentId] = useState<string | undefined>();
@@ -294,9 +295,10 @@ export default function MenuPage() {
 
   const editingItem = findMenuItem(items, editingId);
 
-  useEffect(() => {
+  if (itemsSource !== data) {
+    setItemsSource(data);
     setItems(cloneMenu(data));
-  }, [data]);
+  }
 
   function handleAdd(parent?: string) {
     setParentId(parent);
