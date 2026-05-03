@@ -383,7 +383,7 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
 
   return (
     <Card component="section" sx={{ borderTop: "5px solid", borderColor: "secondary.main" }}>
-      <CardContent sx={{ p: { xs: 1.75, md: 2 }, textAlign: "center" }}>
+      <CardContent sx={{ p: { xs: 1.75, md: 2 }, textAlign: "left" }}>
         <Box sx={{ mb: 1.25 }}>
           <Typography
             component="p"
@@ -402,16 +402,15 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
           </Typography>
         </Box>
         {hasDirectorInfo ? (
-          <Stack spacing={1}>
+          <Stack direction="row" spacing={1.5} alignItems="flex-start">
             {siteSettings.directorImageUrl ? (
               <Box
                 component="img"
                 src={normalizeSafeHref(siteSettings.directorImageUrl)}
                 alt={directorImageAlt}
                 sx={{
-                  width: "100%",
-                  maxWidth: { xs: 112, sm: 120, md: 128, lg: 136 },
-                  mx: "auto",
+                  width: { xs: 86, sm: 96, md: 104, lg: 112 },
+                  flex: "0 0 auto",
                   aspectRatio: "3 / 4",
                   borderRadius: 2,
                   objectFit: "cover",
@@ -423,9 +422,8 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
             ) : (
               <Box
                 sx={(theme) => ({
-                  width: "100%",
-                  maxWidth: { xs: 112, sm: 120, md: 128, lg: 136 },
-                  mx: "auto",
+                  width: { xs: 86, sm: 96, md: 104, lg: 112 },
+                  flex: "0 0 auto",
                   aspectRatio: "3 / 4",
                   borderRadius: 2,
                   display: "grid",
@@ -433,12 +431,15 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
                   bgcolor: alpha(theme.palette.primary.light, 0.82)
                 })}
               >
-                <SchoolOutlinedIcon sx={{ fontSize: { xs: 42, md: 48 }, color: "primary.dark" }} />
+                <SchoolOutlinedIcon sx={{ fontSize: { xs: 36, md: 42 }, color: "primary.dark" }} />
               </Box>
             )}
-            <Stack spacing={0.45}>
+            <Stack spacing={0.45} sx={{ minWidth: 0, flex: 1, pt: 0.25 }}>
               {siteSettings.directorName && (
-                <Typography variant="h3" sx={{ fontSize: { xs: "0.98rem", md: "1.05rem" }, fontWeight: 900 }}>
+                <Typography
+                  variant="h3"
+                  sx={{ fontSize: { xs: "0.98rem", md: "1.05rem" }, fontWeight: 900, lineHeight: 1.25 }}
+                >
                   {siteSettings.directorName}
                 </Typography>
               )}
