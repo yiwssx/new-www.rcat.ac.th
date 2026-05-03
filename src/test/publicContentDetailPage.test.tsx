@@ -7,8 +7,16 @@ const googleApiMocks = vi.hoisted(() => ({
   recordContentView: vi.fn()
 }));
 
-let currentSnapshot: CmsSnapshot;
+let currentSnapshot: CmsSnapshot | undefined;
 let currentDetail: ContentItem | undefined;
+let currentSnapshotQueryState = {
+  isLoading: false,
+  isFetching: false
+};
+let currentDetailQueryState = {
+  isLoading: false,
+  isFetching: false
+};
 
 vi.mock("../services/googleApi", () => ({
   recordContentView: googleApiMocks.recordContentView
@@ -17,14 +25,14 @@ vi.mock("../services/googleApi", () => ({
 vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
   usePublicCmsSnapshot: () => ({
     data: currentSnapshot,
-    isLoading: false
+    ...currentSnapshotQueryState
   })
 }));
 
 vi.mock("../public/hooks/usePublicContentDetail", () => ({
   usePublicContentDetail: () => ({
     data: currentDetail,
-    isLoading: false
+    ...currentDetailQueryState
   })
 }));
 
@@ -70,6 +78,16 @@ function createSnapshot(content: ContentItem): CmsSnapshot {
 
 beforeEach(() => {
   window.localStorage.clear();
+  currentDetail = createContent();
+  currentSnapshot = createSnapshot(currentDetail);
+  currentSnapshotQueryState = {
+    isLoading: false,
+    isFetching: false
+  };
+  currentDetailQueryState = {
+    isLoading: false,
+    isFetching: false
+  };
   googleApiMocks.recordContentView.mockReset();
   googleApiMocks.recordContentView.mockResolvedValue({
     id: "content-1",
@@ -84,6 +102,24 @@ afterEach(() => {
 });
 
 describe("PublicContentDetailPage", () => {
+  it("shows loading instead of not found while the snapshot is loading", () => {
+    currentSnapshot = undefined;
+    currentDetail = undefined;
+    currentSnapshotQueryState = {
+      isLoading: true,
+      isFetching: false
+    };
+    currentDetailQueryState = {
+      isLoading: false,
+      isFetching: false
+    };
+
+    render(<PublicContentDetailPage slug="announcement-1" />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("กำลังโหลดข้อมูล");
+    expect(screen.queryByText(/ไม่พบเนื้อหา/)).not.toBeInTheDocument();
+  });
+
   it("renders announcements as an article without the generic detail sidebar", async () => {
     currentDetail = createContent();
     currentSnapshot = createSnapshot(currentDetail);

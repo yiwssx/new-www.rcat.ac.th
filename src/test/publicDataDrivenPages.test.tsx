@@ -1,16 +1,23 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicSiteShell from "../public/components/PublicSiteShell";
 import PublicAnnouncementsPage from "../public/pages/PublicAnnouncementsPage";
 import PublicHomePage from "../public/pages/PublicHomePage";
+import { defaultSiteSettings } from "../services/siteSettings";
 import { CmsSnapshot } from "../types";
 
-let currentSnapshot: CmsSnapshot;
+let currentSnapshot: CmsSnapshot | undefined;
+let currentQueryState = {
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  refetch: vi.fn()
+};
 
 vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
   usePublicCmsSnapshot: () => ({
     data: currentSnapshot,
-    isLoading: false
+    ...currentQueryState
   })
 }));
 
@@ -51,12 +58,101 @@ function createSnapshot(overrides: Partial<CmsSnapshot> = {}): CmsSnapshot {
   };
 }
 
+beforeEach(() => {
+  currentSnapshot = createSnapshot();
+  currentQueryState = {
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn()
+  };
+});
+
 afterEach(() => {
   cleanup();
   window.history.pushState({}, "", "/");
 });
 
 describe("public data-driven pages", () => {
+  it("shows the public loading state before a snapshot is available", () => {
+    currentSnapshot = undefined;
+    currentQueryState = {
+      ...currentQueryState,
+      isLoading: true
+    };
+
+    render(
+      <PublicSiteShell>
+        <div>Loaded content</div>
+      </PublicSiteShell>
+    );
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("กำลังโหลดข้อมูล");
+    expect(status).toHaveTextContent("กรุณารอสักครู่ ระบบกำลังดึงข้อมูลเว็บไซต์");
+    expect(screen.queryByText(defaultSiteSettings.siteName)).not.toBeInTheDocument();
+    expect(screen.queryByText("Loaded content")).not.toBeInTheDocument();
+  });
+
+  it("renders cached public data while a snapshot refresh is fetching", () => {
+    currentSnapshot = createSnapshot({
+      siteSettings: {
+        ...createSnapshot().siteSettings!,
+        siteName: "Cached CMS site",
+        heroTitle: "Cached CMS site",
+        footerTitle: "Cached CMS site"
+      }
+    });
+    currentQueryState = {
+      ...currentQueryState,
+      isFetching: true
+    };
+
+    render(
+      <PublicSiteShell>
+        <div>Cached content</div>
+      </PublicSiteShell>
+    );
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Cached CMS site").length).toBeGreaterThan(0);
+    expect(screen.getByText("Cached content")).toBeInTheDocument();
+  });
+
+  it("shows the public error state when the snapshot fails without cached data", () => {
+    currentSnapshot = undefined;
+    currentQueryState = {
+      ...currentQueryState,
+      isError: true
+    };
+
+    render(
+      <PublicSiteShell>
+        <div>Loaded content</div>
+      </PublicSiteShell>
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("ไม่สามารถโหลดข้อมูลได้");
+    expect(screen.getByText("กรุณาลองใหม่อีกครั้ง")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ลองอีกครั้ง" })).toBeInTheDocument();
+    expect(screen.queryByText(defaultSiteSettings.siteName)).not.toBeInTheDocument();
+    expect(screen.queryByText("Loaded content")).not.toBeInTheDocument();
+  });
+
+  it("does not show homepage empty states during initial snapshot loading", () => {
+    currentSnapshot = undefined;
+    currentQueryState = {
+      ...currentQueryState,
+      isLoading: true
+    };
+
+    render(<PublicHomePage />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("กำลังโหลดข้อมูล");
+    expect(document.body).not.toHaveTextContent("ยังไม่มี");
+    expect(screen.queryByText(defaultSiteSettings.siteName)).not.toBeInTheDocument();
+  });
+
   it("does not render mock document titles when no CMS content exists", () => {
     currentSnapshot = createSnapshot();
 

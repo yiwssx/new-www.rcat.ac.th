@@ -10,6 +10,8 @@ import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import PublicMainMenu from "./PublicMainMenu";
+import PublicErrorState from "./PublicErrorState";
+import PublicLoadingState from "./PublicLoadingState";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTiktok } from "@fortawesome/free-brands-svg-icons";
 import { projectSettings } from "../../config/projectSettings";
@@ -278,11 +280,46 @@ export default function PublicSiteShell({
   hidePageHeader = false,
   disableMainContainer = false
 }: PublicSiteShellProps) {
-  const { data } = usePublicCmsSnapshot();
+  const { data, isLoading, isFetching, isError, refetch } = usePublicCmsSnapshot();
+  const isInitialPublicLoading = !data && (isLoading || isFetching);
+  const isInitialPublicError = !data && isError && !isInitialPublicLoading;
+  const shouldShowPublicLoading = isInitialPublicLoading || (!data && !isError);
+  const defaultCanonicalPath = typeof window === "undefined" ? undefined : window.location.pathname;
+
+  useDocumentMetadata({
+    title: shouldShowPublicLoading
+      ? "กำลังโหลดข้อมูล"
+      : isInitialPublicError
+        ? "ไม่สามารถโหลดข้อมูลได้"
+        : seoTitle ?? title,
+    description: shouldShowPublicLoading
+      ? "กรุณารอสักครู่ ระบบกำลังดึงข้อมูลเว็บไซต์"
+      : isInitialPublicError
+        ? "กรุณาลองใหม่อีกครั้ง"
+        : seoDescription ?? description,
+    canonicalUrl,
+    canonicalPath: canonicalPath ?? defaultCanonicalPath,
+    siteName: data?.siteSettings?.siteName?.trim() || projectSettings.site.name
+  });
+
+  if (shouldShowPublicLoading) {
+    return <PublicLoadingState />;
+  }
+
+  if (isInitialPublicError) {
+    return (
+      <PublicErrorState
+        onRetry={() => {
+          void refetch();
+        }}
+        isRetrying={isFetching}
+      />
+    );
+  }
+
   const siteSettings = normalizeSiteSettings(data?.siteSettings);
   const showPageHeader = !hidePageHeader && (Boolean(title) || Boolean(description));
   const siteName = siteSettings.siteName;
-  const defaultCanonicalPath = typeof window === "undefined" ? undefined : window.location.pathname;
   const socialLinks: TopBarSocialLink[] = [];
 
   if (siteSettings.facebookUrl) {
@@ -308,14 +345,6 @@ export default function PublicSiteShell({
       icon: <FontAwesomeIcon icon={faTiktok} />
     });
   }
-
-  useDocumentMetadata({
-    title: seoTitle ?? title,
-    description: seoDescription ?? description,
-    canonicalUrl,
-    canonicalPath: canonicalPath ?? defaultCanonicalPath,
-    siteName
-  });
 
   return (
     <Box id="top" sx={{ minHeight: "100vh", bgcolor: "background.default" }} className="min-h-screen bg-rcat-soft-bg">

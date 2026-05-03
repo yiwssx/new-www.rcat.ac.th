@@ -25,7 +25,7 @@ function normalizeCategoryList(category: string | undefined) {
 }
 
 export default function PublicAnnouncementsPage() {
-  const { data, isLoading } = usePublicCmsSnapshot();
+  const { data, isFetching } = usePublicCmsSnapshot();
   const activeTag = readSearchParam("tag");
   const activeCategory = readSearchParam("category");
   const hasActiveFilter = Boolean(activeTag || activeCategory);
@@ -55,9 +55,13 @@ export default function PublicAnnouncementsPage() {
     [activeCategory, activeTag, announcementItems]
   );
 
+  if (!data) {
+    return <PublicSiteShell>{null}</PublicSiteShell>;
+  }
+
   return (
     <PublicSiteShell title="ประกาศ" description="ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา">
-      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {isFetching && <LinearProgress sx={{ mb: 3 }} />}
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <CampaignOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
@@ -84,7 +88,7 @@ export default function PublicAnnouncementsPage() {
           </Grid>
         ))}
       </Grid>
-      {!filteredAnnouncementItems.length && !isLoading && (
+      {!filteredAnnouncementItems.length && (
         <EmptyState
           title={hasActiveFilter ? "ไม่พบประกาศตามตัวกรองที่เลือก" : "ยังไม่มีประกาศที่เผยแพร่"}
           icon={<CampaignOutlinedIcon />}
@@ -108,7 +112,7 @@ export default function PublicAnnouncementsPage() {
           </Grid>
         ))}
       </Grid>
-      {!pageItems.length && !isLoading && (
+      {!pageItems.length && (
         <EmptyState title="ยังไม่มีเอกสารเผยแพร่" icon={<DescriptionOutlinedIcon />} />
       )}
     </PublicSiteShell>

@@ -25,7 +25,7 @@ function normalizeCategoryList(category: string | undefined) {
 }
 
 export default function PublicNewsPage() {
-  const { data, isLoading } = usePublicCmsSnapshot();
+  const { data, isFetching } = usePublicCmsSnapshot();
   const activeTag = readSearchParam("tag");
   const activeCategory = readSearchParam("category");
   const hasActiveFilter = Boolean(activeTag || activeCategory);
@@ -49,9 +49,13 @@ export default function PublicNewsPage() {
 
   const [featuredItem, ...secondaryItems] = filteredNewsItems;
 
+  if (!data) {
+    return <PublicSiteShell>{null}</PublicSiteShell>;
+  }
+
   return (
     <PublicSiteShell title="ข่าว" description="กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS">
-      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {isFetching && <LinearProgress sx={{ mb: 3 }} />}
       {featuredItem && (
         <PublicContentCard
           item={featuredItem}
@@ -82,7 +86,7 @@ export default function PublicNewsPage() {
           </Grid>
         ))}
       </Grid>
-      {!filteredNewsItems.length && !isLoading && (
+      {!filteredNewsItems.length && (
         <EmptyState
           title={hasActiveFilter ? "ไม่พบข่าวตามตัวกรองที่เลือก" : "ยังไม่มีข่าวที่เผยแพร่"}
           icon={<ArticleOutlinedIcon />}
