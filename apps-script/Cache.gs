@@ -89,11 +89,7 @@ function estimateUtf8Bytes(value) {
       bytes += 1;
     } else if (codePoint <= 0x7ff) {
       bytes += 2;
-    } else if (
-      codePoint >= 0xd800 &&
-      codePoint <= 0xdbff &&
-      index + 1 < value.length
-    ) {
+    } else if (codePoint >= 0xd800 && codePoint <= 0xdbff && index + 1 < value.length) {
       const nextCodePoint = value.charCodeAt(index + 1);
 
       if (nextCodePoint >= 0xdc00 && nextCodePoint <= 0xdfff) {

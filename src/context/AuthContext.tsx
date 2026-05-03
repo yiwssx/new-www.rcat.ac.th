@@ -1,11 +1,4 @@
-import {
-  ReactNode,
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState
-} from "react";
+import { ReactNode, createContext, useCallback, useContext, useMemo, useState } from "react";
 import { projectSettings } from "../config/projectSettings";
 import { Session } from "../types";
 import { login as requestLogin, restoreSession } from "../services/auth";

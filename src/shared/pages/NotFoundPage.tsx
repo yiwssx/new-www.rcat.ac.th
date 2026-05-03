@@ -13,14 +13,8 @@ export default function NotFoundPage() {
       <Container maxWidth="sm">
         <Stack spacing={2} alignItems="flex-start">
           <Typography variant="h1">ไม่พบหน้า</Typography>
-          <Typography color="text.secondary">
-            เส้นทาง CMS ที่ร้องขอไม่มีอยู่ในระบบนี้
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<HomeOutlinedIcon />}
-            onClick={() => void navigate({ to: "/" })}
-          >
+          <Typography color="text.secondary">เส้นทาง CMS ที่ร้องขอไม่มีอยู่ในระบบนี้</Typography>
+          <Button variant="contained" startIcon={<HomeOutlinedIcon />} onClick={() => void navigate({ to: "/" })}>
             หน้าแรก
           </Button>
         </Stack>

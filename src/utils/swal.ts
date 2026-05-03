@@ -13,15 +13,13 @@ let appSwalPromise: Promise<AppSwalInstance> | null = null;
 
 async function getAppSwal() {
   if (!appSwalPromise) {
-    appSwalPromise = Promise.all([
-      import("sweetalert2"),
-      import("sweetalert2/dist/sweetalert2.min.css")
-    ]).then(([{ default: Swal }]) =>
-      Swal.mixin({
-        confirmButtonColor: "#2c7a3f",
-        cancelButtonColor: "#7a5900",
-        reverseButtons: true
-      })
+    appSwalPromise = Promise.all([import("sweetalert2"), import("sweetalert2/dist/sweetalert2.min.css")]).then(
+      ([{ default: Swal }]) =>
+        Swal.mixin({
+          confirmButtonColor: "#2c7a3f",
+          cancelButtonColor: "#7a5900",
+          reverseButtons: true
+        })
     );
   }
 

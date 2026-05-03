@@ -277,7 +277,12 @@ function MenuTree({ items, depth = 0, onAddChild, onEdit, onRemove, onMove }: Me
 
 export default function MenuPage() {
   const queryClient = useQueryClient();
-  const { data = [], error, isError, isLoading } = useQuery({
+  const {
+    data = [],
+    error,
+    isError,
+    isLoading
+  } = useQuery({
     queryKey: ["public-menu"],
     queryFn: getPublicMenuItems
   });
@@ -436,9 +441,7 @@ export default function MenuPage() {
           >
             <Box>
               <Typography variant="h3">เมนูหลักสาธารณะ</Typography>
-              <Typography color="text.secondary">
-                เพิ่มเมนูระดับบน เพิ่มเมนูย่อย ซ่อนรายการ และจัดลำดับเมนู
-              </Typography>
+              <Typography color="text.secondary">เพิ่มเมนูระดับบน เพิ่มเมนูย่อย ซ่อนรายการ และจัดลำดับเมนู</Typography>
             </Box>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleAdd()}>
               เพิ่มเมนูหลัก

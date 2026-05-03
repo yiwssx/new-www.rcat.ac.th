@@ -1,9 +1,6 @@
 import { getGoogleAppsScriptUrl, projectSettings } from "../config/projectSettings";
 import { DisplaySettings } from "../types";
-import {
-  getDisplaySettingsFromApi,
-  saveDisplaySettingsToApi
-} from "./googleApi";
+import { getDisplaySettingsFromApi, saveDisplaySettingsToApi } from "./googleApi";
 
 export const defaultDisplaySettings: DisplaySettings = {
   dateFormat: "j F Y",
@@ -55,8 +52,7 @@ export function normalizeDisplaySettings(input: unknown): DisplaySettings {
   };
 }
 
-const displaySettingsStorageKey =
-  projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings";
+const displaySettingsStorageKey = projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings";
 
 function persistDisplaySettings(settings: DisplaySettings) {
   if (typeof window === "undefined") {
@@ -106,9 +102,7 @@ export async function loadDisplaySettings(): Promise<DisplaySettings> {
   }
 }
 
-export async function saveDisplaySettings(
-  input: Partial<DisplaySettings>
-): Promise<DisplaySettings> {
+export async function saveDisplaySettings(input: Partial<DisplaySettings>): Promise<DisplaySettings> {
   const settings = normalizeDisplaySettings({
     ...getStoredDisplaySettings(),
     ...input

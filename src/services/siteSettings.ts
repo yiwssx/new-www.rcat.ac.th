@@ -108,9 +108,7 @@ function normalizeMapUrl(value: unknown) {
   }
 
   if (
-    (hostname === "www.google.com" ||
-      hostname === "google.com" ||
-      hostname === "maps.google.com") &&
+    (hostname === "www.google.com" || hostname === "google.com" || hostname === "maps.google.com") &&
     parsed.pathname.startsWith("/maps")
   ) {
     return url;
@@ -161,10 +159,7 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
       return;
     }
 
-    normalized[key] = normalizeText(
-      source[key],
-      longTextFields.has(key) ? longTextMaxLength : shortTextMaxLength
-    );
+    normalized[key] = normalizeText(source[key], longTextFields.has(key) ? longTextMaxLength : shortTextMaxLength);
   });
 
   if (!normalized.siteName) {

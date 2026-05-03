@@ -50,10 +50,7 @@ export default function PublicNewsPage() {
   const [featuredItem, ...secondaryItems] = filteredNewsItems;
 
   return (
-    <PublicSiteShell
-      title="ข่าว"
-      description="กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS"
-    >
+    <PublicSiteShell title="ข่าว" description="กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS">
       {isLoading && <LinearProgress sx={{ mb: 3 }} />}
       {featuredItem && (
         <PublicContentCard

@@ -1,11 +1,4 @@
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Stack,
-  Typography
-} from "@mui/material";
+import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
 import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
@@ -31,13 +24,7 @@ const focusVisibleSx = {
   }
 };
 
-function LargeMapCard({
-  mapUrl,
-  mapEmbedUrl
-}: {
-  mapUrl: string;
-  mapEmbedUrl: string;
-}) {
+function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: string }) {
   const mapEmbedSrc = normalizeSafeResourceUrl(mapEmbedUrl);
   const mapHref = normalizeSafeHref(mapUrl);
 
@@ -164,10 +151,7 @@ export default function PublicContactPage() {
   ].filter((item) => item.href);
 
   return (
-    <PublicSiteShell
-      title="ติดต่อ"
-      description="ข้อมูลติดต่อที่เผยแพร่จาก CMS"
-    >
+    <PublicSiteShell title="ติดต่อ" description="ข้อมูลติดต่อที่เผยแพร่จาก CMS">
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, lg: 5 }}>
           <Stack spacing={2.5}>

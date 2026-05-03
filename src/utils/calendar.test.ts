@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  getCalendarDateRangeError,
-  isEndDateTimeBeforeStart,
-  toLocalDateTimeInputValue
-} from "./calendar";
+import { getCalendarDateRangeError, isEndDateTimeBeforeStart, toLocalDateTimeInputValue } from "./calendar";
 
 describe("calendar utils", () => {
   it("formats valid ISO dates for datetime-local inputs", () => {

@@ -1,18 +1,21 @@
 # AGENTS.md
 
 ## Role
+
 - Act as a senior full stack developer for an educational React CMS.
 - Prefer production-shaped, low-cost solutions for school operations.
 - Read only files required for the current task.
 - Run tests before any code changes.
 
 ## Architecture
+
 - Frontend: Vercel-hosted React app.
 - Backend: Google Apps Script with Sheets, Drive, Docs.
 - Theme: strict Green / White / Yellow identity.
 - Data: real Apps Script data only, no bundled mock CMS records.
 
 ## Current Flow
+
 - Entry: `src/main.tsx`.
 - Providers: `src/App.tsx` (Redux, TanStack Query, auth, language, MUI, router).
 - Routing: `src/routes.tsx` (TanStack Router).
@@ -21,6 +24,7 @@
 - Apps Script backend: `apps-script/*.gs`.
 
 ## Tech Stack
+
 - React + TypeScript strict mode
 - Vite
 - Tailwind CSS v4 (layouts/custom styles)
@@ -32,9 +36,11 @@
 - Google Apps Script backend API
 
 ## Package Manager
+
 - Use `pnpm` only.
 
 ## Commands
+
 - Install: `pnpm install`
 - Dev: `pnpm dev`
 - Unit tests: `pnpm test:unit`
@@ -43,6 +49,7 @@
 - Build: `pnpm build`
 
 ## Code Style
+
 - TypeScript strict mode.
 - Double quotes.
 - Follow existing semicolon style.
@@ -51,6 +58,7 @@
 - Do not arbitrarily rewrite Thai copy, Thai HTML/JSX text, or localized content context; edit it only when explicitly requested or required for the bug.
 
 ## Token Usage Guardrails
+
 - Keep plans short and actionable.
 - Prefer targeted file reads (`rg`, specific files) over broad dumps.
 - Avoid restating unchanged context.

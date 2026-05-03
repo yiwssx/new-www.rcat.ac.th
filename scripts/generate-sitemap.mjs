@@ -54,7 +54,9 @@ function getEnvValue(localEnv, key) {
 }
 
 function trimTrailingSlash(value) {
-  return String(value || "").trim().replace(/\/+$/, "");
+  return String(value || "")
+    .trim()
+    .replace(/\/+$/, "");
 }
 
 function hasProtocol(value) {
@@ -84,7 +86,9 @@ export function normalizeSiteUrl(value, fallback = "https://example.edu") {
 }
 
 function normalizeSlug(value) {
-  return String(value || "").trim().replace(/^\/+|\/+$/g, "");
+  return String(value || "")
+    .trim()
+    .replace(/^\/+|\/+$/g, "");
 }
 
 function routeToUrl(siteUrl, route) {
@@ -192,10 +196,7 @@ async function fetchPublicSnapshot(appsScriptUrl, resource) {
 
 async function main() {
   const [settings, localEnv] = await Promise.all([readProjectSettings(), loadLocalEnv()]);
-  const siteUrl = normalizeSiteUrl(
-    getEnvValue(localEnv, "VITE_PUBLIC_SITE_URL"),
-    settings.site?.publicSiteUrl
-  );
+  const siteUrl = normalizeSiteUrl(getEnvValue(localEnv, "VITE_PUBLIC_SITE_URL"), settings.site?.publicSiteUrl);
   const appsScriptUrl =
     getEnvValue(localEnv, "VITE_GOOGLE_APPS_SCRIPT_URL") || trimTrailingSlash(settings.api?.googleAppsScriptUrl);
   const snapshotResource = settings.api?.resources?.snapshot || "snapshot";
@@ -212,10 +213,7 @@ async function main() {
   const xml = createSitemapXml(urls);
 
   await mkdir(PUBLIC_DIR, { recursive: true });
-  await Promise.all([
-    writeFile(SITEMAP_PATH, xml, "utf8"),
-    writeFile(ROBOTS_PATH, createRobotsTxt(siteUrl), "utf8")
-  ]);
+  await Promise.all([writeFile(SITEMAP_PATH, xml, "utf8"), writeFile(ROBOTS_PATH, createRobotsTxt(siteUrl), "utf8")]);
   console.log(`Generated public/sitemap.xml with ${urls.length} URL(s).`);
 }
 

@@ -1,4 +1,12 @@
-import type { CalendarEvent, ContentStatus, ContentType, IntegrationState, MediaType, User, UserAccount } from "../types";
+import type {
+  CalendarEvent,
+  ContentStatus,
+  ContentType,
+  IntegrationState,
+  MediaType,
+  User,
+  UserAccount
+} from "../types";
 
 export const contentTypeLabels: Record<ContentType, string> = {
   page: "หน้าเว็บ",

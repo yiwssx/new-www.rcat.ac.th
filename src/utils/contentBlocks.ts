@@ -228,9 +228,7 @@ function normalizeContentBlocks(value: unknown): ContentBlock[] {
     return [];
   }
 
-  return value
-    .map((item) => normalizeContentBlock(item))
-    .filter((item): item is ContentBlock => Boolean(item));
+  return value.map((item) => normalizeContentBlock(item)).filter((item): item is ContentBlock => Boolean(item));
 }
 
 function isMeaningfulBlock(block: ContentBlock) {

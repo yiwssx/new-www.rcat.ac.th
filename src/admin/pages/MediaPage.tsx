@@ -1,8 +1,4 @@
-import {
-  ChangeEvent,
-  FormEvent,
-  useMemo,
-  useState } from "react";
+import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -410,12 +406,7 @@ export default function MediaPage() {
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="ลบสื่อ">
-                    <IconButton
-                      aria-label="ลบสื่อ"
-                      size="small"
-                      color="error"
-                      onClick={() => void handleDelete(asset)}
-                    >
+                    <IconButton aria-label="ลบสื่อ" size="small" color="error" onClick={() => void handleDelete(asset)}>
                       <DeleteOutlineIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -430,16 +421,21 @@ export default function MediaPage() {
           ไม่มีสื่อที่ตรงกับมุมมองนี้
         </Typography>
       )}
-      <Dialog open={dialogOpen} onClose={saveMutation.isPending ? undefined : handleCloseDialog} fullWidth maxWidth="sm">
+      <Dialog
+        open={dialogOpen}
+        onClose={saveMutation.isPending ? undefined : handleCloseDialog}
+        fullWidth
+        maxWidth="sm"
+      >
         <form onSubmit={handleSubmit}>
-          <DialogTitle>{confirming ? (isEditing ? "บันทึกการแก้ไขสื่อ?" : "อัปโหลดสื่อ?") : isEditing ? "แก้ไขสื่อ" : "เพิ่มสื่อ"}</DialogTitle>
+          <DialogTitle>
+            {confirming ? (isEditing ? "บันทึกการแก้ไขสื่อ?" : "อัปโหลดสื่อ?") : isEditing ? "แก้ไขสื่อ" : "เพิ่มสื่อ"}
+          </DialogTitle>
           <DialogContent dividers>
             {confirming ? (
               <Stack spacing={1.5} sx={{ pt: 1 }}>
                 {formError && <Alert severity="error">{formError}</Alert>}
-                <Typography color="text.secondary">
-                  ตรวจสอบสื่อนี้ก่อนบันทึก
-                </Typography>
+                <Typography color="text.secondary">ตรวจสอบสื่อนี้ก่อนบันทึก</Typography>
                 <Typography fontWeight={900}>{form.name}</Typography>
                 <Typography color="text.secondary">
                   {mediaTypeLabels[form.type]} / {form.owner} {file ? `/ ${file.name}` : ""}
@@ -450,7 +446,12 @@ export default function MediaPage() {
                 {formError && <Alert severity="error">{formError}</Alert>}
                 <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />}>
                   {file ? "เปลี่ยนไฟล์" : "เลือกไฟล์"}
-                  <input hidden type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={handleFileChange} />
+                  <input
+                    hidden
+                    type="file"
+                    accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"
+                    onChange={handleFileChange}
+                  />
                 </Button>
                 {file && (
                   <Typography color="text.secondary" variant="body2">

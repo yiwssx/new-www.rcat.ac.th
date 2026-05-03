@@ -1,12 +1,5 @@
 import { ReactNode } from "react";
-import {
-  Box,
-  Button,
-  Container,
-  IconButton,
-  Stack,
-  Typography
-} from "@mui/material";
+import { Box, Button, Container, IconButton, Stack, Typography } from "@mui/material";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
@@ -115,12 +108,7 @@ export default function PublicSiteShell({
               sx={{ minWidth: 0, flex: 1, flexWrap: { xs: "nowrap", sm: "wrap", md: "nowrap" } }}
             >
               {siteSettings.campus && (
-                <Stack
-                  direction="row"
-                  spacing={0.75}
-                  alignItems="center"
-                  sx={{ minWidth: 0, flex: "1 1 auto" }}
-                >
+                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0, flex: "1 1 auto" }}>
                   <LocationOnOutlinedIcon sx={{ fontSize: { xs: 16, md: 18 }, flex: "0 0 auto" }} />
                   <Typography variant="body2" noWrap sx={{ minWidth: 0 }}>
                     {siteSettings.campus}
@@ -155,7 +143,12 @@ export default function PublicSiteShell({
                 </Stack>
               )}
               {siteSettings.email && (
-                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ display: { xs: "none", md: "flex" }, flex: "0 0 auto" }}>
+                <Stack
+                  direction="row"
+                  spacing={0.75}
+                  alignItems="center"
+                  sx={{ display: { xs: "none", md: "flex" }, flex: "0 0 auto" }}
+                >
                   <MailOutlineRoundedIcon sx={{ fontSize: 18 }} />
                   <Typography variant="body2">{siteSettings.email}</Typography>
                 </Stack>
@@ -229,7 +222,10 @@ export default function PublicSiteShell({
                     {siteSettings.eyebrow}
                   </Typography>
                 )}
-                <Typography variant="h1" sx={{ fontSize: { xs: "1.34rem", sm: "1.5rem", md: "2.4rem" }, lineHeight: 1.08 }}>
+                <Typography
+                  variant="h1"
+                  sx={{ fontSize: { xs: "1.34rem", sm: "1.5rem", md: "2.4rem" }, lineHeight: 1.08 }}
+                >
                   {siteName}
                 </Typography>
                 {siteSettings.intro && (
@@ -343,7 +339,11 @@ export default function PublicSiteShell({
               )}
             </Box>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
-              <Button color="inherit" href={normalizeSafeHref("#top")} startIcon={<ArrowForwardOutlinedIcon sx={{ transform: "rotate(-90deg)" }} />}>
+              <Button
+                color="inherit"
+                href={normalizeSafeHref("#top")}
+                startIcon={<ArrowForwardOutlinedIcon sx={{ transform: "rotate(-90deg)" }} />}
+              >
                 {BACK_TO_TOP_LABEL}
               </Button>
               <Button color="inherit" href={normalizeSafeHref("/login")} startIcon={<AdminPanelSettingsOutlinedIcon />}>

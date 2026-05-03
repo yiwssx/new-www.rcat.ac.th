@@ -92,9 +92,7 @@ export default function LoginPage() {
                   <Typography variant="h1" sx={{ fontSize: "1.75rem" }}>
                     {getCmsSiteName()}
                   </Typography>
-                  <Typography color="text.secondary">
-                    {"ระบบบริหารจัดการเนื้อหา"}
-                  </Typography>
+                  <Typography color="text.secondary">{"ระบบบริหารจัดการเนื้อหา"}</Typography>
                 </Box>
               </Stack>
               {error && <Alert severity="error">{error}</Alert>}

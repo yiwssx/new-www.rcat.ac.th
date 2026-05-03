@@ -410,12 +410,11 @@ export default function ContentEditorDialog({
           {confirming && pendingDraft ? (
             <Stack spacing={1.5} sx={{ pt: 1 }}>
               {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-              <Typography color="text.secondary">
-                ตรวจสอบรายการนี้ก่อนบันทึก
-              </Typography>
+              <Typography color="text.secondary">ตรวจสอบรายการนี้ก่อนบันทึก</Typography>
               <Typography fontWeight={900}>{pendingDraft.title}</Typography>
               <Typography color="text.secondary">
-                {contentTypeLabels[pendingDraft.type]} / {contentStatusLabels[pendingDraft.status]} / {pendingDraft.owner}
+                {contentTypeLabels[pendingDraft.type]} / {contentStatusLabels[pendingDraft.status]} /{" "}
+                {pendingDraft.owner}
               </Typography>
               {!!pendingDraft.category && (
                 <Typography color="text.secondary">หมวดหมู่: {pendingDraft.category}</Typography>
@@ -426,9 +425,7 @@ export default function ContentEditorDialog({
                 </Typography>
               )}
               {!!normalizeTags(pendingDraft.tags).length && (
-                <Typography color="text.secondary">
-                  แท็ก: {normalizeTags(pendingDraft.tags).join(", ")}
-                </Typography>
+                <Typography color="text.secondary">แท็ก: {normalizeTags(pendingDraft.tags).join(", ")}</Typography>
               )}
               <Typography color="text.secondary">
                 แนบสื่อแล้ว {normalizeMediaIds(pendingDraft.mediaIds).length} รายการ
@@ -530,9 +527,7 @@ export default function ContentEditorDialog({
                   onChange={(event) =>
                     updateDraft(
                       "publishAt",
-                      event.target.value
-                        ? new Date(event.target.value).toISOString()
-                        : new Date().toISOString()
+                      event.target.value ? new Date(event.target.value).toISOString() : new Date().toISOString()
                     )
                   }
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -590,12 +585,7 @@ export default function ContentEditorDialog({
                   }}
                   renderTags={(value, getTagProps) =>
                     value.map((option, index) => (
-                      <Chip
-                        {...getTagProps({ index })}
-                        key={`${option}-${index}`}
-                        label={option}
-                        size="small"
-                      />
+                      <Chip {...getTagProps({ index })} key={`${option}-${index}`} label={option} size="small" />
                     ))
                   }
                   renderInput={(params) => (
@@ -638,9 +628,7 @@ export default function ContentEditorDialog({
                   label="เวลาอ่าน (นาที)"
                   type="number"
                   value={Math.max(1, Number(draft.readingMinutes) || 1)}
-                  onChange={(event) =>
-                    updateDraft("readingMinutes", Math.max(1, Number(event.target.value) || 1))
-                  }
+                  onChange={(event) => updateDraft("readingMinutes", Math.max(1, Number(event.target.value) || 1))}
                   size="small"
                   fullWidth
                   slotProps={{ htmlInput: { min: 1, step: 1 } }}
@@ -802,9 +790,19 @@ export default function ContentEditorDialog({
                 <Divider />
                 <Typography fontWeight={900}>อัปโหลดด่วน</Typography>
                 {uploadError && <Alert severity="error">{uploadError}</Alert>}
-                <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />} disabled={uploading}>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  startIcon={<UploadFileOutlinedIcon />}
+                  disabled={uploading}
+                >
                   เลือกไฟล์
-                  <input hidden type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={handleFileChange} />
+                  <input
+                    hidden
+                    type="file"
+                    accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"
+                    onChange={handleFileChange}
+                  />
                 </Button>
                 {uploadFile && (
                   <Typography color="text.secondary" variant="body2">

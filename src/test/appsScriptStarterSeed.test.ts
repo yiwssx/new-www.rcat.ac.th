@@ -70,7 +70,7 @@ function loadSeedContext(input?: { rawSiteSettings?: string; existingMenuRows?: 
     "SETTING_KEYS",
     "SHEETS",
     "MENU_HEADERS",
-`${siteSettingsSource}
+    `${siteSettingsSource}
 return {
   normalizeSiteSettings,
   seedStarterPublicSiteSettings,

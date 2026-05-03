@@ -1,9 +1,5 @@
-import {
-  useMemo,
-  useState } from "react";
-import { useMutation,
-  useQuery,
-  useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -36,16 +32,8 @@ import dayjs from "dayjs";
 import PageHeader from "../components/PageHeader";
 import { deleteCalendarEvent, getAdminCmsSnapshot, saveCalendarEvent } from "../../services/googleApi";
 import { CalendarEvent } from "../../types";
-import {
-  getCalendarDateRangeError,
-  isEndDateTimeBeforeStart,
-  toLocalDateTimeInputValue
-} from "../../utils/calendar";
-import {
-  formatDisplayDate,
-  formatDisplayDateTime,
-  formatDisplayTime
-} from "../../utils/dateDisplay";
+import { getCalendarDateRangeError, isEndDateTimeBeforeStart, toLocalDateTimeInputValue } from "../../utils/calendar";
+import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
 import { eventStatusLabels, visibilityLabels } from "../../utils/thaiLabels";
 
@@ -114,10 +102,7 @@ export default function CalendarPage() {
     queryFn: getAdminCmsSnapshot
   });
   const events = useMemo(
-    () =>
-      [...(data?.events ?? [])].sort(
-        (left, right) => dayjs(left.date).valueOf() - dayjs(right.date).valueOf()
-      ),
+    () => [...(data?.events ?? [])].sort((left, right) => dayjs(left.date).valueOf() - dayjs(right.date).valueOf()),
     [data]
   );
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -422,25 +407,17 @@ export default function CalendarPage() {
       </Stack>
       <Dialog open={dialogOpen} onClose={saveMutation.isPending ? undefined : handleClose} fullWidth maxWidth="md">
         <DialogTitle>
-          {confirming
-            ? isEditing
-              ? "บันทึกกิจกรรม?"
-              : "เพิ่มกิจกรรม?"
-            : isEditing
-              ? "แก้ไขกิจกรรม"
-              : "เพิ่มกิจกรรม"}
+          {confirming ? (isEditing ? "บันทึกกิจกรรม?" : "เพิ่มกิจกรรม?") : isEditing ? "แก้ไขกิจกรรม" : "เพิ่มกิจกรรม"}
         </DialogTitle>
         <DialogContent dividers>
           {confirming ? (
             <Stack spacing={1.5} sx={{ pt: 1 }}>
-                {formError && <Alert severity="error">{formError}</Alert>}
-                <Typography color="text.secondary">
-                  ตรวจสอบกิจกรรมนี้ก่อนบันทึก
-                </Typography>
-                <Typography fontWeight={900}>{form.title}</Typography>
-                <Typography color="text.secondary">
+              {formError && <Alert severity="error">{formError}</Alert>}
+              <Typography color="text.secondary">ตรวจสอบกิจกรรมนี้ก่อนบันทึก</Typography>
+              <Typography fontWeight={900}>{form.title}</Typography>
+              <Typography color="text.secondary">
                 {form.audience} / {formatDisplayDateTime(form.dateTime)} / {form.status}
-                </Typography>
+              </Typography>
             </Stack>
           ) : (
             <Stack spacing={2.2} sx={{ pt: 1 }}>
@@ -583,7 +560,12 @@ export default function CalendarPage() {
               <Button color="inherit" onClick={handleClose} disabled={saveMutation.isPending}>
                 ยกเลิก
               </Button>
-              <Button variant="contained" startIcon={<EventAvailableOutlinedIcon />} disabled={saveMutation.isPending} onClick={handleSave}>
+              <Button
+                variant="contained"
+                startIcon={<EventAvailableOutlinedIcon />}
+                disabled={saveMutation.isPending}
+                onClick={handleSave}
+              >
                 ดำเนินการต่อ
               </Button>
             </>

@@ -23,11 +23,7 @@ import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorOutlinedIcon from "@mui/icons-material/DragIndicatorOutlined";
 import { MediaAsset } from "../../types";
-import {
-  ContentBlock,
-  ContentBlockType,
-  createContentBlock
-} from "../../utils/contentBlocks";
+import { ContentBlock, ContentBlockType, createContentBlock } from "../../utils/contentBlocks";
 
 interface ContentBlockBuilderProps {
   blocks: ContentBlock[];
@@ -125,9 +121,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
       </Stack>
 
       {!blocks.length && (
-        <Alert severity="info">
-          ยังไม่มีบล็อก เริ่มจากบล็อกหัวข้อและย่อหน้าเพื่อสร้างรูปแบบบทความพื้นฐาน
-        </Alert>
+        <Alert severity="info">ยังไม่มีบล็อก เริ่มจากบล็อกหัวข้อและย่อหน้าเพื่อสร้างรูปแบบบทความพื้นฐาน</Alert>
       )}
 
       <Stack spacing={1.25}>

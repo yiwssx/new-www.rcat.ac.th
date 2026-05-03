@@ -73,7 +73,6 @@ function replaceMenu(items) {
   return menu;
 }
 
-
 function flattenMenuItems(items, parentId, rows) {
   items.forEach((item, index) => {
     validateRequired(item, ["id", "href"]);
@@ -84,14 +83,7 @@ function flattenMenuItems(items, parentId, rows) {
       throw new Error("Each menu item needs a label.");
     }
 
-    rows.push([
-      item.id,
-      parentId,
-      menuLabel,
-      item.href,
-      index,
-      item.enabled === false ? "FALSE" : "TRUE"
-    ]);
+    rows.push([item.id, parentId, menuLabel, item.href, index, item.enabled === false ? "FALSE" : "TRUE"]);
 
     if (item.children && item.children.length) {
       flattenMenuItems(item.children, item.id, rows);

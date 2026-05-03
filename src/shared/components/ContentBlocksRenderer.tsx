@@ -49,9 +49,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 borderRadius: "0 10px 10px 0"
               }}
             >
-              <Typography sx={{ fontStyle: "italic", mb: block.citation ? 0.75 : 0 }}>
-                {block.text}
-              </Typography>
+              <Typography sx={{ fontStyle: "italic", mb: block.citation ? 0.75 : 0 }}>{block.text}</Typography>
               {block.citation && (
                 <Typography variant="body2" color="text.secondary">
                   {block.citation}
@@ -126,7 +124,6 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
         if (block.type === "button") {
           const safeHref = normalizeSafeHref(block.href);
           const isValidHref = safeHref !== "#";
-
 
           return (
             <Box key={block.id}>

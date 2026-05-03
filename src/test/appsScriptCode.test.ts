@@ -50,13 +50,15 @@ function loadCodeScript(): CodeScriptContext {
 
     return null;
   });
-  const jsonResponse = vi.fn((body: Record<string, unknown>, statusCode = 200): RouteResult => ({
-    body: {
-      ...body,
+  const jsonResponse = vi.fn(
+    (body: Record<string, unknown>, statusCode = 200): RouteResult => ({
+      body: {
+        ...body,
+        statusCode
+      },
       statusCode
-    },
-    statusCode
-  }));
+    })
+  );
   const createScriptExports = new Function(
     "ensureDefaultScriptProperties",
     "getResource",
@@ -98,7 +100,8 @@ return {
   );
   const exports = createScriptExports(
     vi.fn(),
-    (event: { resource?: string; parameter?: { resource?: string } }) => event.resource || event.parameter?.resource || "",
+    (event: { resource?: string; parameter?: { resource?: string } }) =>
+      event.resource || event.parameter?.resource || "",
     (event: { payload?: Record<string, unknown> }) => event.payload || {},
     (event: { query?: Record<string, unknown> }) => event.query || {},
     (key: string) => (key === "authTokenSecret" ? "secret" : ""),

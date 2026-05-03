@@ -166,8 +166,7 @@ async function googleFetch<T>(
   url.searchParams.set("resource", resources[resource]);
   const method = init?.method ?? "GET";
   const normalizedMethod = method.toUpperCase();
-  const isCacheFriendlyPublicGet =
-    normalizedMethod === "GET" && cacheFriendlyPublicGetResources.has(resource);
+  const isCacheFriendlyPublicGet = normalizedMethod === "GET" && cacheFriendlyPublicGetResources.has(resource);
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
   const endGoogleApiRequest = beginGoogleApiRequest();

@@ -1,12 +1,6 @@
 import { Suspense, lazy, type ReactElement } from "react";
 import { Box, CircularProgress } from "@mui/material";
-import {
-  Navigate,
-  Outlet,
-  createRootRoute,
-  createRoute,
-  createRouter
-} from "@tanstack/react-router";
+import { Navigate, Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import AdminActionProgress from "./admin/components/AdminActionProgress";
 import { VercelInsights } from "./shared/components/VercelInsights";
 import { useAuth } from "./context/AuthContext";

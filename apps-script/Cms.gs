@@ -3,10 +3,9 @@
   ensureAuthTokenSecret();
 
   const spreadsheetId = getSetting(SETTING_KEYS.spreadsheetId);
-  const spreadsheetName = getSetting(SETTING_KEYS.spreadsheetName) || DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.spreadsheetName];
-  const spreadsheet = spreadsheetId
-    ? SpreadsheetApp.openById(spreadsheetId)
-    : SpreadsheetApp.create(spreadsheetName);
+  const spreadsheetName =
+    getSetting(SETTING_KEYS.spreadsheetName) || DEFAULT_SCRIPT_PROPERTIES[SETTING_KEYS.spreadsheetName];
+  const spreadsheet = spreadsheetId ? SpreadsheetApp.openById(spreadsheetId) : SpreadsheetApp.create(spreadsheetName);
 
   setSetting(SETTING_KEYS.spreadsheetId, spreadsheet.getId());
 
@@ -294,10 +293,7 @@ function upsertMedia(asset) {
     asset.previewUrl || buildPreviewUrl(fileId, asset.type),
     ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS
   );
-  const embedUrl = normalizePublicMediaUrl(
-    asset.embedUrl || buildEmbedUrl(fileId),
-    ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS
-  );
+  const embedUrl = normalizePublicMediaUrl(asset.embedUrl || buildEmbedUrl(fileId), ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS);
   const nextAsset = {
     id: asset.id || `media-${Date.now()}`,
     name: asset.name,
@@ -406,10 +402,7 @@ function normalizeContentRecord(item, options) {
   const includeBody = Boolean(config.includeBody);
   const documentBody = includeBody ? readContentBody(item.bodyDocId) : "";
   const bodyValue = includeBody ? documentBody || item.body || "" : "";
-  const readingMinutes = resolveReadingMinutes(
-    item.readingMinutes,
-    bodyValue || item.summary || item.title
-  );
+  const readingMinutes = resolveReadingMinutes(item.readingMinutes, bodyValue || item.summary || item.title);
 
   return {
     ...item,
@@ -452,11 +445,7 @@ function sanitizePublicContentRecord(item, options) {
 function normalizeSlugValue(value) {
   const rawValue = String(value || "");
 
-  if (
-    !rawValue ||
-    /[\u0000-\u001F\u007F\s/\\?#:]/u.test(rawValue) ||
-    rawValue.indexOf("..") !== -1
-  ) {
+  if (!rawValue || /[\u0000-\u001F\u007F\s/\\?#:]/u.test(rawValue) || rawValue.indexOf("..") !== -1) {
     throw createHttpError("Invalid slug format.", 400);
   }
 
@@ -553,7 +542,9 @@ function validateContentStatus(value) {
 }
 
 function validateAllowedContentValue(fieldName, value, allowedValues) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (allowedValues.indexOf(normalized) === -1) {
     throw createHttpError(`Invalid content ${fieldName}.`, 400);
@@ -789,7 +780,10 @@ function parseDataUrlMimeType(value) {
 }
 
 function normalizeUploadMimeType(value) {
-  return String(value || "").split(";")[0].trim().toLowerCase();
+  return String(value || "")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
 }
 
 function isAllowedUploadMimeType(value) {
@@ -884,4 +878,3 @@ function formatBytes(size) {
 
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
-

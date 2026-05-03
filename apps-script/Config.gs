@@ -97,17 +97,7 @@ const EVENT_HEADERS = [
 
 const MENU_HEADERS = ["id", "parentId", "labelTh", "href", "order", "enabled"];
 
-const USER_HEADERS = [
-  "id",
-  "name",
-  "email",
-  "role",
-  "status",
-  "passwordHash",
-  "avatarUrl",
-  "createdAt",
-  "updatedAt"
-];
+const USER_HEADERS = ["id", "name", "email", "role", "status", "passwordHash", "avatarUrl", "createdAt", "updatedAt"];
 
 function ensureDefaultScriptProperties() {
   const scriptProperties = PropertiesService.getScriptProperties();
