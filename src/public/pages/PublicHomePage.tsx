@@ -283,41 +283,79 @@ function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
       <CardContent sx={{ p: 2.5 }}>
         <HomeSectionHeading label="ติดต่อ" title="ติดต่อและแผนที่" />
         {hasContactInfo && (
-          <Stack spacing={1.2}>
-            {(siteSettings.campus || siteSettings.address) && (
-              <Stack direction="row" spacing={1.2} alignItems="flex-start">
-                <LocationOnOutlinedIcon color="primary" />
-                <Typography color="text.secondary" variant="body2" sx={{ whiteSpace: "pre-line" }}>
-                  {[siteSettings.campus, siteSettings.address].filter(Boolean).join("\n")}
-                </Typography>
-              </Stack>
-            )}
-            {siteSettings.phone && (
-              <Stack direction="row" spacing={1.2} alignItems="flex-start">
-                <LocalPhoneOutlinedIcon color="primary" />
-                <Typography color="text.secondary" variant="body2">
-                  {siteSettings.phone}
-                </Typography>
-              </Stack>
-            )}
-            {siteSettings.fax && (
-              <Stack direction="row" spacing={1.2} alignItems="flex-start">
-                <FaxOutlinedIcon color="primary" />
-                <Typography color="text.secondary" variant="body2">
-                  {siteSettings.fax}
-                </Typography>
-              </Stack>
-            )}
-            {siteSettings.email && (
-              <Stack direction="row" spacing={1.2} alignItems="flex-start">
-                <MailOutlineRoundedIcon color="primary" />
-                <Typography color="text.secondary" variant="body2">
-                  {siteSettings.email}
-                </Typography>
-              </Stack>
-            )}
+  <Stack spacing={1.15} sx={{ mb: mapEmbedSrc ? 1.8 : 0 }}>
+    {(siteSettings.campus || siteSettings.address) && (
+      <Stack direction="row" spacing={1.1} alignItems="flex-start">
+        <LocationOnOutlinedIcon color="primary" fontSize="small" sx={{ mt: 0.2, flexShrink: 0 }} />
+        <Typography
+          color="text.secondary"
+          variant="body2"
+          sx={{
+            whiteSpace: "pre-line",
+            lineHeight: 1.55,
+            minWidth: 0
+          }}
+        >
+          {[siteSettings.campus, siteSettings.address].filter(Boolean).join("\n")}
+        </Typography>
+      </Stack>
+    )}
+
+    {(siteSettings.phone || siteSettings.fax) && (
+      <Stack
+        direction={{ xs: "row", sm: "row" }}
+        spacing={1.4}
+        useFlexGap
+        flexWrap="wrap"
+        alignItems="center"
+      >
+        {siteSettings.phone && (
+          <Stack
+            direction="row"
+            spacing={0.8}
+            alignItems="center"
+            sx={{ minWidth: 0, flex: "0 1 auto" }}
+          >
+            <LocalPhoneOutlinedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
+            <Typography color="text.secondary" variant="body2" noWrap>
+              {siteSettings.phone}
+            </Typography>
           </Stack>
         )}
+
+        {siteSettings.fax && (
+          <Stack
+            direction="row"
+            spacing={0.8}
+            alignItems="center"
+            sx={{ minWidth: 0, flex: "0 1 auto" }}
+          >
+            <FaxOutlinedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
+            <Typography color="text.secondary" variant="body2" noWrap>
+              {siteSettings.fax}
+            </Typography>
+          </Stack>
+        )}
+      </Stack>
+    )}
+
+    {siteSettings.email && (
+      <Stack direction="row" spacing={1.1} alignItems="center">
+        <MailOutlineRoundedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
+        <Typography
+          color="text.secondary"
+          variant="body2"
+          sx={{
+            minWidth: 0,
+            overflowWrap: "anywhere"
+          }}
+        >
+          {siteSettings.email}
+        </Typography>
+      </Stack>
+    )}
+  </Stack>
+)}
         {mapEmbedSrc && (
           <Box
             component="iframe"
@@ -331,7 +369,7 @@ function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
               border: 0,
               borderRadius: 2,
               display: "block",
-              mt: hasContactInfo ? 2 : 0
+              mt: hasContactInfo ? 1.2 : 0
             }}
           />
         )}
@@ -348,7 +386,7 @@ function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
             aria-label="เปิดแผนที่ใน Google Maps"
             sx={{
               justifyContent: "space-between",
-              mt: mapEmbedSrc || hasContactInfo ? 1.4 : 0,
+              mt: mapEmbedSrc || hasContactInfo ? 1 : 0,
               ...focusVisibleSx
             }}
           >
