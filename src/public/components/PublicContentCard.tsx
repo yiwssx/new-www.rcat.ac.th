@@ -3,7 +3,7 @@ import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import { ContentItem, MediaAsset } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
-import { normalizeSafeResourceUrl } from "../../utils/safeUrl";
+import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 
 interface PublicContentCardProps {
@@ -33,7 +33,7 @@ export default function PublicContentCard({
   return (
     <Card
       component="a"
-      href={`/content/${item.slug}`}
+      href={normalizeSafeHref(`/content/${item.slug}`)}
       sx={{
         display: "block",
         height: "100%",
