@@ -5,6 +5,7 @@ interface SeedContext {
   getSheetSettingValue: Mock;
   invalidatePublicSnapshotCache: Mock;
   menuSetValues: Mock;
+  normalizeSiteSettings: (input: Record<string, unknown>, options?: { validate?: boolean }) => Record<string, string>;
   readObjects: Mock;
   seedStarterPublicSiteSettings: () => { siteSettingsSeeded: boolean; menuSeeded: boolean };
   smokeTestSiteSettings: () => { ok: boolean; siteName: string; heroTitle: string };
@@ -17,11 +18,21 @@ function createHttpError(message: string, statusCode: number) {
   return error;
 }
 
-function normalizePublicMediaUrl(url: string) {
-  const parsed = new URL(url);
+function normalizePublicMediaUrl(url: string, allowedHosts?: string[]) {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw createHttpError("Invalid public URL.", 400);
+  }
 
   if (parsed.protocol !== "https:") {
     throw createHttpError("Public URL must use https.", 400);
+  }
+
+  if (allowedHosts?.length && !allowedHosts.includes(parsed.hostname.toLowerCase())) {
+    throw createHttpError("Public media preview/embed URL host is not allowed.", 400);
   }
 
   return url;
@@ -59,8 +70,9 @@ function loadSeedContext(input?: { rawSiteSettings?: string; existingMenuRows?: 
     "SETTING_KEYS",
     "SHEETS",
     "MENU_HEADERS",
-    `${siteSettingsSource}
+`${siteSettingsSource}
 return {
+  normalizeSiteSettings,
   seedStarterPublicSiteSettings,
   smokeTestSiteSettings
 };`
@@ -80,7 +92,7 @@ return {
     { siteSettings: "siteSettings" },
     { menu: "Menu" },
     ["id", "parentId", "labelTh", "href", "order", "enabled"]
-  ) as Pick<SeedContext, "seedStarterPublicSiteSettings" | "smokeTestSiteSettings">;
+  ) as Pick<SeedContext, "normalizeSiteSettings" | "seedStarterPublicSiteSettings" | "smokeTestSiteSettings">;
 
   return {
     ...exports,
@@ -157,5 +169,62 @@ describe("Apps Script starter public seed", () => {
     expect(key).toBe("siteSettings");
     expect(siteSettings.siteName).toBe("เว็บไซต์สถานศึกษา");
     expect(siteSettings.heroTitle).toBe("เว็บไซต์สถานศึกษา");
+  });
+});
+
+describe("Apps Script site settings normalization", () => {
+  it("accepts direct and iframe Google Maps embed URLs", () => {
+    const context = loadSeedContext();
+    const direct = context.normalizeSiteSettings({
+      mapEmbedUrl: "https://www.google.com/maps/embed?pb=direct"
+    });
+    const iframe = context.normalizeSiteSettings({
+      mapEmbedUrl: '<iframe width="600" src="https://www.google.com/maps/embed?pb=iframe&amp;z=15"></iframe>'
+    });
+
+    expect(direct.mapEmbedUrl).toBe("https://www.google.com/maps/embed?pb=direct");
+    expect(iframe.mapEmbedUrl).toBe("https://www.google.com/maps/embed?pb=iframe&z=15");
+  });
+
+  it("allows Google Maps short links only as mapUrl", () => {
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    try {
+      const context = loadSeedContext();
+      const settings = context.normalizeSiteSettings({
+        mapUrl: "https://maps.app.goo.gl/yhCsgrkLgd1pekM28",
+        mapEmbedUrl: "https://maps.app.goo.gl/yhCsgrkLgd1pekM28"
+      });
+
+      expect(settings.mapUrl).toBe("https://maps.app.goo.gl/yhCsgrkLgd1pekM28");
+      expect(settings.mapEmbedUrl).toBe("");
+    } finally {
+      consoleWarnSpy.mockRestore();
+    }
+  });
+
+  it("rejects unsafe iframe src values when validating admin saves", () => {
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    try {
+      const context = loadSeedContext();
+      const relaxed = context.normalizeSiteSettings({
+        mapEmbedUrl: '<iframe src="https://evil.com/maps/embed?pb=test"></iframe>'
+      });
+
+      expect(relaxed.mapEmbedUrl).toBe("");
+      expect(() =>
+        context.normalizeSiteSettings(
+          {
+            mapEmbedUrl: '<iframe src="https://evil.com/maps/embed?pb=test"></iframe>'
+          },
+          {
+            validate: true
+          }
+        )
+      ).toThrow("mapEmbedUrl must be a Google Maps embed https URL or empty.");
+    } finally {
+      consoleWarnSpy.mockRestore();
+    }
   });
 });

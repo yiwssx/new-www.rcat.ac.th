@@ -245,6 +245,22 @@ function normalizeSiteSettingsUrl(value, fieldName, options) {
   }
 }
 
+function extractIframeSrc(value) {
+  const input = String(value || "").trim();
+
+  if (!/<iframe\b/i.test(input)) {
+    return input;
+  }
+
+  const srcMatch = input.match(/<iframe\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1/i);
+
+  return srcMatch ? decodeIframeSrcHtmlEntities(srcMatch[2]) : "";
+}
+
+function decodeIframeSrcHtmlEntities(value) {
+  return String(value || "").replace(/&amp;/gi, "&");
+}
+
 function normalizeSiteSettingsMapUrl(url) {
   const normalized = normalizePublicMediaUrl(url);
   const parts = parseSiteSettingsHttpsUrl(normalized);
@@ -266,10 +282,10 @@ function normalizeSiteSettingsMapUrl(url) {
 }
 
 function normalizeSiteSettingsMapEmbedUrl(url) {
-  const normalized = normalizePublicMediaUrl(url, ["www.google.com"]);
+  const normalized = normalizePublicMediaUrl(extractIframeSrc(url), ["www.google.com"]);
   const parts = parseSiteSettingsHttpsUrl(normalized);
 
-  if (parts.pathname === "/maps/embed") {
+  if (parts.hostname === "www.google.com" && parts.pathname === "/maps/embed") {
     return normalized;
   }
 

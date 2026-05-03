@@ -19,7 +19,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTiktok } from "@fortawesome/free-brands-svg-icons";
 import EmptyState from "../../shared/components/EmptyState";
 import { normalizeSiteSettings } from "../../services/siteSettings";
-import { normalizeSafeHref } from "../../utils/safeUrl";
+import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
@@ -38,27 +38,47 @@ function LargeMapCard({
   mapUrl: string;
   mapEmbedUrl: string;
 }) {
+  const mapEmbedSrc = normalizeSafeResourceUrl(mapEmbedUrl);
+  const mapHref = normalizeSafeHref(mapUrl);
+
   return (
     <Card sx={{ height: "100%" }}>
       <CardContent sx={{ p: 3, height: "100%" }}>
         <Typography variant="h3">แผนที่</Typography>
-        {mapEmbedUrl ? (
-          <Box
-            component="iframe"
-            src={normalizeSafeHref(mapEmbedUrl)}
-            title="แผนที่วิทยาลัย"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            sx={{
-              width: "100%",
-              minHeight: { xs: 300, md: 420 },
-              border: 0,
-              borderRadius: 2,
-              display: "block",
-              mt: 2
-            }}
-          />
-        ) : mapUrl ? (
+        {mapEmbedSrc ? (
+          <>
+            <Box
+              component="iframe"
+              src={mapEmbedSrc}
+              title="แผนที่วิทยาลัย"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              sx={{
+                width: "100%",
+                minHeight: { xs: 300, md: 420 },
+                border: 0,
+                borderRadius: 2,
+                display: "block",
+                mt: 2
+              }}
+            />
+            {mapHref !== "#" && (
+              <Button
+                component="a"
+                href={mapHref}
+                target="_blank"
+                rel="noreferrer"
+                variant="text"
+                startIcon={<MapOutlinedIcon />}
+                endIcon={<OpenInNewOutlinedIcon />}
+                aria-label="เปิดแผนที่ใน Google Maps"
+                sx={{ mt: 1.5, ...focusVisibleSx }}
+              >
+                เปิดใน Google Maps
+              </Button>
+            )}
+          </>
+        ) : mapHref !== "#" ? (
           <Box
             sx={{
               mt: 2,
@@ -74,24 +94,25 @@ function LargeMapCard({
           >
             <Stack spacing={1.8} alignItems="center">
               <MapOutlinedIcon sx={{ fontSize: 58, color: "primary.main" }} />
-              <Typography fontWeight={900}>เปิดตำแหน่งใน Google Maps</Typography>
+              <Typography fontWeight={900}>ยังไม่ได้ตั้งค่าแผนที่แบบฝัง</Typography>
               <Button
                 component="a"
-                href={normalizeSafeHref(mapUrl)}
+                href={mapHref}
                 target="_blank"
                 rel="noreferrer"
-                variant="contained"
+                variant="outlined"
                 startIcon={<MapOutlinedIcon />}
                 endIcon={<OpenInNewOutlinedIcon />}
+                aria-label="เปิดแผนที่ใน Google Maps"
                 sx={focusVisibleSx}
               >
-                เปิด Google Maps
+                เปิดใน Google Maps
               </Button>
             </Stack>
           </Box>
         ) : (
           <Box sx={{ mt: 2 }}>
-            <EmptyState title="ยังไม่มีแผนที่เผยแพร่" icon={<MapOutlinedIcon />} />
+            <EmptyState title="ยังไม่มีข้อมูลแผนที่" icon={<MapOutlinedIcon />} />
           </Box>
         )}
       </CardContent>

@@ -78,8 +78,8 @@ const siteSettingFields: Array<{
   { key: "directorTitle", label: "ตำแหน่งผู้บริหาร" },
   { key: "directorDescription", label: "คำอธิบายผู้บริหาร", multiline: true },
   { key: "directorImageUrl", label: "รูปภาพผู้บริหาร URL", helperText: "ลิงก์รูปภาพผู้บริหารแบบ https:// หรือเว้นว่าง" },
-  { key: "mapUrl", label: "Google Maps URL", helperText: "ลิงก์ Google Maps สำหรับปุ่มเปิดแผนที่" },
-  { key: "mapEmbedUrl", label: "Google Maps Embed URL", helperText: "ลิงก์ Google Maps Embed สำหรับแสดงแผนที่ในหน้าเว็บ หรือเว้นว่าง" },
+  { key: "mapUrl", label: "Google Maps URL", helperText: "ลิงก์เปิด Google Maps เช่น https://maps.app.goo.gl/... หรือเว้นว่าง" },
+  { key: "mapEmbedUrl", label: "Google Maps Embed URL", helperText: "วางลิงก์ Google Maps Embed หรือโค้ด iframe จาก Google Maps ได้ ระบบจะเก็บเฉพาะค่า src ที่ปลอดภัย" },
   { key: "footerTitle", label: "หัวข้อท้ายเว็บ" },
   { key: "footerDescription", label: "คำอธิบายท้ายเว็บ", multiline: true }
 ];

@@ -32,7 +32,7 @@ import EmptyState from "../../shared/components/EmptyState";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { CalendarEvent, ContentItem, SiteSettings } from "../../types";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
-import { normalizeSafeHref } from "../../utils/safeUrl";
+import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
@@ -263,63 +263,65 @@ function EventListCard({ items }: { items: CalendarEvent[] }) {
   );
 }
 
-function ContactInfoCard({ siteSettings }: { siteSettings: SiteSettings }) {
-  return (
-    <Card id="contact" sx={{ height: "100%" }}>
-      <CardContent sx={{ p: 2.5 }}>
-        <HomeSectionHeading label="ติดต่อ" title="ติดต่อ" />
-        <Stack spacing={1.2}>
-          {(siteSettings.campus || siteSettings.address) && (
-            <Stack direction="row" spacing={1.2} alignItems="flex-start">
-              <LocationOnOutlinedIcon color="primary" />
-              <Typography color="text.secondary" variant="body2" sx={{ whiteSpace: "pre-line" }}>
-                {[siteSettings.campus, siteSettings.address].filter(Boolean).join("\n")}
-              </Typography>
-            </Stack>
-          )}
-          {siteSettings.phone && (
-            <Stack direction="row" spacing={1.2} alignItems="flex-start">
-              <LocalPhoneOutlinedIcon color="primary" />
-              <Typography color="text.secondary" variant="body2">
-                {siteSettings.phone}
-              </Typography>
-            </Stack>
-          )}
-          {siteSettings.fax && (
-            <Stack direction="row" spacing={1.2} alignItems="flex-start">
-              <FaxOutlinedIcon color="primary" />
-              <Typography color="text.secondary" variant="body2">
-                {siteSettings.fax}
-              </Typography>
-            </Stack>
-          )}
-          {siteSettings.email && (
-            <Stack direction="row" spacing={1.2} alignItems="flex-start">
-              <MailOutlineRoundedIcon color="primary" />
-              <Typography color="text.secondary" variant="body2">
-                {siteSettings.email}
-              </Typography>
-            </Stack>
-          )}
-        </Stack>
-      </CardContent>
-    </Card>
+function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
+  const hasContactInfo = Boolean(
+    siteSettings.campus ||
+      siteSettings.address ||
+      siteSettings.phone ||
+      siteSettings.fax ||
+      siteSettings.email
   );
-}
+  const mapEmbedSrc = normalizeSafeResourceUrl(siteSettings.mapEmbedUrl);
+  const mapHref = normalizeSafeHref(siteSettings.mapUrl);
 
-function SmallMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
-  if (!siteSettings.mapEmbedUrl && !siteSettings.mapUrl) {
+  if (!hasContactInfo && !mapEmbedSrc && mapHref === "#") {
     return null;
   }
 
   return (
-    <Card component="section" id="map" sx={{ height: "100%" }}>
+    <Card component="section" id="contact" sx={{ height: "100%" }}>
       <CardContent sx={{ p: 2.5 }}>
-        <HomeSectionHeading label="แผนที่" title="แผนที่" />
-        {siteSettings.mapEmbedUrl ? (
+        <HomeSectionHeading label="ติดต่อ" title="ติดต่อและแผนที่" />
+        {hasContactInfo && (
+          <Stack spacing={1.2}>
+            {(siteSettings.campus || siteSettings.address) && (
+              <Stack direction="row" spacing={1.2} alignItems="flex-start">
+                <LocationOnOutlinedIcon color="primary" />
+                <Typography color="text.secondary" variant="body2" sx={{ whiteSpace: "pre-line" }}>
+                  {[siteSettings.campus, siteSettings.address].filter(Boolean).join("\n")}
+                </Typography>
+              </Stack>
+            )}
+            {siteSettings.phone && (
+              <Stack direction="row" spacing={1.2} alignItems="flex-start">
+                <LocalPhoneOutlinedIcon color="primary" />
+                <Typography color="text.secondary" variant="body2">
+                  {siteSettings.phone}
+                </Typography>
+              </Stack>
+            )}
+            {siteSettings.fax && (
+              <Stack direction="row" spacing={1.2} alignItems="flex-start">
+                <FaxOutlinedIcon color="primary" />
+                <Typography color="text.secondary" variant="body2">
+                  {siteSettings.fax}
+                </Typography>
+              </Stack>
+            )}
+            {siteSettings.email && (
+              <Stack direction="row" spacing={1.2} alignItems="flex-start">
+                <MailOutlineRoundedIcon color="primary" />
+                <Typography color="text.secondary" variant="body2">
+                  {siteSettings.email}
+                </Typography>
+              </Stack>
+            )}
+          </Stack>
+        )}
+        {mapEmbedSrc && (
           <Box
             component="iframe"
-            src={normalizeSafeHref(siteSettings.mapEmbedUrl)}
+            src={mapEmbedSrc}
             title="แผนที่วิทยาลัย"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
@@ -328,22 +330,29 @@ function SmallMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
               height: { xs: 190, md: 210 },
               border: 0,
               borderRadius: 2,
-              display: "block"
+              display: "block",
+              mt: hasContactInfo ? 2 : 0
             }}
           />
-        ) : (
+        )}
+        {mapHref !== "#" && (
           <Button
             component="a"
-            href={normalizeSafeHref(siteSettings.mapUrl)}
+            href={mapHref}
             target="_blank"
             rel="noreferrer"
-            variant="outlined"
+            variant={mapEmbedSrc ? "text" : "outlined"}
             startIcon={<MapOutlinedIcon />}
             endIcon={<OpenInNewOutlinedIcon />}
             fullWidth
-            sx={{ justifyContent: "space-between", ...focusVisibleSx }}
+            aria-label="เปิดแผนที่ใน Google Maps"
+            sx={{
+              justifyContent: "space-between",
+              mt: mapEmbedSrc || hasContactInfo ? 1.4 : 0,
+              ...focusVisibleSx
+            }}
           >
-            เปิดแผนที่
+            เปิดใน Google Maps
           </Button>
         )}
       </CardContent>
@@ -434,13 +443,6 @@ export default function PublicHomePage() {
     (data?.events ?? []).filter((event) => event.status === "confirmed" && (event.visibility ?? "public") === "public")
   ).slice(0, 4);
   const heroImageLayer = siteSettings.heroImageUrl ? `, url(${JSON.stringify(siteSettings.heroImageUrl)})` : "";
-  const hasContactInfo = Boolean(
-    siteSettings.campus ||
-      siteSettings.address ||
-      siteSettings.phone ||
-      siteSettings.fax ||
-      siteSettings.email
-  );
 
   return (
     <PublicSiteShell
@@ -570,8 +572,7 @@ export default function PublicHomePage() {
               <Stack spacing={2.5}>
                 <LatestAnnouncementsCard items={latestAnnouncements} />
                 <DocumentListCard items={documentItems} />
-                {hasContactInfo && <ContactInfoCard siteSettings={siteSettings} />}
-                <SmallMapCard siteSettings={siteSettings} />
+                <ContactMapCard siteSettings={siteSettings} />
               </Stack>
             </Grid>
           </Grid>

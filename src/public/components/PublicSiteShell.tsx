@@ -42,6 +42,11 @@ const ANNOUNCEMENTS_LABEL = "ประกาศ";
 const STAFF_LOGIN_LABEL = "สำหรับเจ้าหน้าที่";
 const BACK_TO_TOP_LABEL = "กลับขึ้นด้านบน";
 
+function getTelephoneHref(phone: string) {
+  const normalizedPhone = String(phone || "").replace(/[^\d+#*]/g, "");
+  return normalizedPhone ? `tel:${normalizedPhone}` : "#";
+}
+
 export default function PublicSiteShell({
   title,
   description,
@@ -100,28 +105,57 @@ export default function PublicSiteShell({
             spacing={{ xs: 1, md: 1.5 }}
             justifyContent="space-between"
             alignItems="center"
-            sx={{ py: { xs: 0.55, md: 1.1 } }}
+            sx={{ py: { xs: 0.55, md: 1.1 }, minWidth: 0 }}
           >
-            <Stack direction="row" spacing={{ xs: 1.2, md: 2 }} alignItems="center" sx={{ minWidth: 0 }}>
+            <Stack
+              direction="row"
+              spacing={{ xs: 1, sm: 1.5, md: 2 }}
+              alignItems="center"
+              useFlexGap
+              sx={{ minWidth: 0, flex: 1, flexWrap: { xs: "nowrap", sm: "wrap", md: "nowrap" } }}
+            >
               {siteSettings.campus && (
                 <Stack
                   direction="row"
                   spacing={0.75}
                   alignItems="center"
-                  sx={{ display: { xs: siteSettings.phone ? "none" : "flex", md: "flex" }, minWidth: 0 }}
+                  sx={{ minWidth: 0, flex: "1 1 auto" }}
                 >
-                  <LocationOnOutlinedIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" noWrap>{siteSettings.campus}</Typography>
+                  <LocationOnOutlinedIcon sx={{ fontSize: { xs: 16, md: 18 }, flex: "0 0 auto" }} />
+                  <Typography variant="body2" noWrap sx={{ minWidth: 0 }}>
+                    {siteSettings.campus}
+                  </Typography>
                 </Stack>
               )}
               {siteSettings.phone && (
-                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
-                  <LocalPhoneOutlinedIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" noWrap>{siteSettings.phone}</Typography>
+                <Stack
+                  component="a"
+                  href={normalizeSafeHref(getTelephoneHref(siteSettings.phone))}
+                  direction="row"
+                  spacing={0.75}
+                  alignItems="center"
+                  sx={{
+                    color: "inherit",
+                    textDecoration: "none",
+                    flex: "0 1 auto",
+                    maxWidth: { xs: "46vw", sm: "none" },
+                    minWidth: 0,
+                    "&:focus-visible": {
+                      outline: "2px solid",
+                      outlineColor: "secondary.main",
+                      outlineOffset: 2,
+                      borderRadius: 1
+                    }
+                  }}
+                >
+                  <LocalPhoneOutlinedIcon sx={{ fontSize: { xs: 16, md: 18 }, flex: "0 0 auto" }} />
+                  <Typography variant="body2" noWrap sx={{ minWidth: 0 }}>
+                    {siteSettings.phone}
+                  </Typography>
                 </Stack>
               )}
               {siteSettings.email && (
-                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ display: { xs: "none", md: "flex" } }}>
+                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ display: { xs: "none", md: "flex" }, flex: "0 0 auto" }}>
                   <MailOutlineRoundedIcon sx={{ fontSize: 18 }} />
                   <Typography variant="body2">{siteSettings.email}</Typography>
                 </Stack>
@@ -160,11 +194,11 @@ export default function PublicSiteShell({
             alignItems={{ xs: "flex-start", lg: "center" }}
             sx={{ py: { xs: 1.2, md: 2.4 } }}
           >
-            <Stack direction="row" spacing={{ xs: 1.15, md: 2 }} alignItems="center" sx={{ width: "100%", minWidth: 0 }}>
+            <Stack direction="row" spacing={{ xs: 1.1, md: 2 }} alignItems="center" sx={{ width: "100%", minWidth: 0 }}>
               <Box
                 sx={{
-                  width: { xs: 56, md: 86 },
-                  height: { xs: 56, md: 86 },
+                  width: { xs: 54, sm: 58, md: 86 },
+                  height: { xs: 54, sm: 58, md: 86 },
                   borderRadius: 999,
                   display: "grid",
                   placeItems: "center",
@@ -176,7 +210,7 @@ export default function PublicSiteShell({
                   component="img"
                   src={projectSettings.site.logoPath}
                   alt={siteName}
-                  sx={{ width: { xs: 44, md: 64 }, height: { xs: 44, md: 64 }, objectFit: "contain" }}
+                  sx={{ width: { xs: 42, sm: 46, md: 64 }, height: { xs: 42, sm: 46, md: 64 }, objectFit: "contain" }}
                 />
               </Box>
               <Box sx={{ minWidth: 0 }}>
@@ -195,20 +229,21 @@ export default function PublicSiteShell({
                     {siteSettings.eyebrow}
                   </Typography>
                 )}
-                <Typography variant="h1" sx={{ fontSize: { xs: "1.38rem", sm: "1.55rem", md: "2.4rem" }, lineHeight: 1.08 }}>
+                <Typography variant="h1" sx={{ fontSize: { xs: "1.34rem", sm: "1.5rem", md: "2.4rem" }, lineHeight: 1.08 }}>
                   {siteName}
                 </Typography>
                 {siteSettings.intro && (
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.6, display: { xs: "none", sm: "flex" } }}>
-                    <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark" }} />
+                  <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: { xs: 0.35, md: 0.6 } }}>
+                    <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark", fontSize: { xs: 17, md: 24 } }} />
                     <Typography
                       color="text.secondary"
                       sx={{
                         maxWidth: 860,
-                        overflow: "hidden",
-                        display: "-webkit-box",
+                        fontSize: { xs: "0.78rem", md: "1rem" },
+                        overflow: { xs: "hidden", md: "visible" },
+                        display: { xs: "-webkit-box", md: "block" },
                         WebkitBoxOrient: "vertical",
-                        WebkitLineClamp: 1
+                        WebkitLineClamp: { xs: 1, md: "unset" }
                       }}
                     >
                       {siteSettings.intro}
