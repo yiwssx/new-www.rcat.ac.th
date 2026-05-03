@@ -443,8 +443,7 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
 }
 
 export default function PublicHomePage() {
-  const { data, isLoading } = usePublicCmsSnapshot();
-  const siteSettings = normalizeSiteSettings(data?.siteSettings);
+  const { data, isFetching } = usePublicCmsSnapshot();
   const publicContent = useMemo(
     () => sortByPublishDate((data?.content ?? []).filter((item) => item.status === "published")),
     [data]
@@ -459,6 +458,16 @@ export default function PublicHomePage() {
   const eventItems = sortEventsByUpcomingDate(
     (data?.events ?? []).filter((event) => event.status === "confirmed" && (event.visibility ?? "public") === "public")
   ).slice(0, 4);
+
+  if (!data) {
+    return (
+      <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/">
+        {null}
+      </PublicSiteShell>
+    );
+  }
+
+  const siteSettings = normalizeSiteSettings(data.siteSettings);
   const heroImageLayer = siteSettings.heroImageUrl ? `, url(${JSON.stringify(siteSettings.heroImageUrl)})` : "";
 
   return (
@@ -468,7 +477,7 @@ export default function PublicHomePage() {
       seoDescription={siteSettings.heroDescription || siteSettings.intro}
       canonicalPath="/"
     >
-      {isLoading && <LinearProgress />}
+      {isFetching && <LinearProgress />}
       <Container maxWidth="xl">
         <Grid container spacing={3} alignItems="stretch">
           <Grid size={{ xs: 12, lg: 8 }}>

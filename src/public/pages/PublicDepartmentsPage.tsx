@@ -8,7 +8,7 @@ import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 export default function PublicDepartmentsPage() {
-  const { data, isLoading } = usePublicCmsSnapshot();
+  const { data, isFetching } = usePublicCmsSnapshot();
 
   const programItems = useMemo(
     () =>
@@ -18,9 +18,13 @@ export default function PublicDepartmentsPage() {
     [data]
   );
 
+  if (!data) {
+    return <PublicSiteShell>{null}</PublicSiteShell>;
+  }
+
   return (
     <PublicSiteShell title="หลักสูตร" description="ข้อมูลหลักสูตรที่เผยแพร่จาก CMS">
-      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {isFetching && <LinearProgress sx={{ mb: 3 }} />}
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <SchoolOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>

@@ -109,7 +109,12 @@ function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: st
 
 export default function PublicContactPage() {
   const { data } = usePublicCmsSnapshot();
-  const siteSettings = normalizeSiteSettings(data?.siteSettings);
+
+  if (!data) {
+    return <PublicSiteShell>{null}</PublicSiteShell>;
+  }
+
+  const siteSettings = normalizeSiteSettings(data.siteSettings);
   const contactRows = [
     {
       label: "ที่อยู่",

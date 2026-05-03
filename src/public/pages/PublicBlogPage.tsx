@@ -9,7 +9,7 @@ import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 export default function PublicBlogPage() {
-  const { data, isLoading } = usePublicCmsSnapshot();
+  const { data, isFetching } = usePublicCmsSnapshot();
 
   const blogItems = useMemo(
     () =>
@@ -21,9 +21,13 @@ export default function PublicBlogPage() {
 
   const [featuredItem, ...secondaryItems] = blogItems;
 
+  if (!data) {
+    return <PublicSiteShell>{null}</PublicSiteShell>;
+  }
+
   return (
     <PublicSiteShell title="บทความ" description="บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS">
-      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {isFetching && <LinearProgress sx={{ mb: 3 }} />}
       {featuredItem && (
         <PublicContentCard
           item={featuredItem}
@@ -32,7 +36,7 @@ export default function PublicBlogPage() {
           featured
         />
       )}
-      {!blogItems.length && !isLoading && (
+      {!blogItems.length && (
         <EmptyState title="ยังไม่มีบทความที่เผยแพร่" icon={<EditNoteOutlinedIcon />} />
       )}
       {!!secondaryItems.length && (

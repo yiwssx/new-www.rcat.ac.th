@@ -152,7 +152,7 @@ function getSafeMediaHref(asset: { driveUrl?: string; previewUrl?: string; embed
 }
 
 export default function PublicContentDetailPage({ slug }: PublicContentDetailPageProps) {
-  const { data, isLoading } = usePublicCmsSnapshot();
+  const { data, isLoading, isFetching } = usePublicCmsSnapshot();
   const contentDetailQuery = usePublicContentDetail({ slug });
   const [recordedViewCountState, setRecordedViewCountState] = useState<{
     count: number | null;
@@ -206,6 +206,8 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
       .slice(0, 3)
       .map((entry) => entry.candidate);
   }, [item, visibleContent]);
+  const isInitialSnapshotLoading = !data && (isLoading || isFetching);
+  const isInitialContentLoading = !item && (contentDetailQuery.isLoading || contentDetailQuery.isFetching);
 
   useEffect(() => {
     if (!item || item.status !== "published") {
@@ -231,12 +233,16 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
       });
   }, [item]);
 
-  if (isLoading || contentDetailQuery.isLoading) {
+  if (isInitialSnapshotLoading || isInitialContentLoading) {
     return (
       <PublicSiteShell title="กำลังโหลด" description="กำลังโหลดเนื้อหาสาธารณะจาก CMS">
         <LinearProgress />
       </PublicSiteShell>
     );
+  }
+
+  if (!data) {
+    return <PublicSiteShell>{null}</PublicSiteShell>;
   }
 
   if (!item || item.status !== "published") {
