@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PublicSiteShell from "../public/components/PublicSiteShell";
 import PublicAnnouncementsPage from "../public/pages/PublicAnnouncementsPage";
@@ -75,15 +75,127 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("ยังไม่มีข้อมูลหลักสูตรที่เผยแพร่")).toBeInTheDocument();
   });
 
-  it("orders homepage programs under news and events under announcements", () => {
-    currentSnapshot = createSnapshot();
+  it("renders the approved homepage information architecture", () => {
+    const baseSiteSettings = createSnapshot().siteSettings!;
+    currentSnapshot = createSnapshot({
+      content: [
+        {
+          id: "news-1",
+          title: "ข่าวเปิดบ้านวิทยาลัย",
+          slug: "open-house",
+          type: "news",
+          status: "published",
+          owner: "Admin",
+          summary: "ข่าวประชาสัมพันธ์ล่าสุด",
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
+        },
+        {
+          id: "program-1",
+          title: "หลักสูตรช่างยนต์",
+          slug: "auto-program",
+          type: "program",
+          status: "published",
+          owner: "Admin",
+          summary: "ข้อมูลหลักสูตร",
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
+        },
+        {
+          id: "announcement-1",
+          title: "ประกาศรับสมัครนักเรียน",
+          slug: "admission-announcement",
+          type: "announcement",
+          status: "published",
+          owner: "Admin",
+          summary: "ประกาศล่าสุด",
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
+        },
+        {
+          id: "document-1",
+          title: "เอกสารแผนปฏิบัติการ",
+          slug: "action-plan",
+          type: "page",
+          status: "published",
+          owner: "Admin",
+          summary: "เอกสารเผยแพร่",
+          category: "เอกสาร",
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
+        }
+      ],
+      events: [
+        {
+          id: "event-1",
+          title: "ปฐมนิเทศนักศึกษาใหม่",
+          date: "2026-05-20T09:00:00.000Z",
+          audience: "public",
+          status: "confirmed",
+          location: "หอประชุม",
+          visibility: "public"
+        }
+      ],
+      siteSettings: {
+        ...baseSiteSettings,
+        heroTitle: "ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง",
+        directorTitle: "สารจากผู้อำนวยการ",
+        directorName: "ผู้อำนวยการตัวอย่าง",
+        directorDescription: "มุ่งพัฒนาผู้เรียนสู่อาชีพ",
+        campus: "วิทยาลัยเทคนิคตัวอย่าง",
+        address: "1 ถนนการศึกษา",
+        phone: "02-000-0000",
+        mapUrl: "https://www.google.com/maps/place/example",
+        mapEmbedUrl: "https://www.google.com/maps/embed?pb=test"
+      }
+    });
 
     render(<PublicHomePage />);
 
     const pageText = document.body.textContent || "";
-    expect(pageText.indexOf("ข่าวสารและกิจกรรมล่าสุด")).toBeLessThan(pageText.indexOf("หลักสูตรที่เปิดสอน"));
-    expect(pageText.indexOf("ประกาศล่าสุด")).toBeLessThan(pageText.indexOf("กำหนดการ"));
-    expect(pageText.indexOf("กำหนดการ")).toBeLessThan(pageText.indexOf("เอกสารเผยแพร่"));
+    const heroIndex = pageText.indexOf("ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง");
+    const directorIndex = pageText.indexOf("สารจากผู้อำนวยการ");
+    const newsIndex = pageText.indexOf("ข่าวสารและกิจกรรมล่าสุด");
+    const programsIndex = pageText.indexOf("หลักสูตรที่เปิดสอน");
+    const announcementsIndex = pageText.indexOf("ประกาศล่าสุด");
+    const eventsIndex = pageText.indexOf("กำหนดการ");
+    const documentsIndex = pageText.indexOf("เอกสารเผยแพร่");
+    const contactIndex = pageText.indexOf("ติดต่อและแผนที่");
+
+    [
+      heroIndex,
+      directorIndex,
+      newsIndex,
+      programsIndex,
+      announcementsIndex,
+      eventsIndex,
+      documentsIndex,
+      contactIndex
+    ].forEach((index) => expect(index).toBeGreaterThanOrEqual(0));
+    expect(heroIndex).toBeLessThan(directorIndex);
+    expect(directorIndex).toBeLessThan(newsIndex);
+    expect(newsIndex).toBeLessThan(programsIndex);
+    expect(programsIndex).toBeLessThan(announcementsIndex);
+    expect(announcementsIndex).toBeLessThan(eventsIndex);
+    expect(eventsIndex).toBeLessThan(documentsIndex);
+    expect(documentsIndex).toBeLessThan(contactIndex);
+
+    expect(screen.getByText("ข่าวเปิดบ้านวิทยาลัย")).toBeInTheDocument();
+    expect(screen.getByText("หลักสูตรช่างยนต์")).toBeInTheDocument();
+    expect(screen.getByText("ประกาศรับสมัครนักเรียน")).toBeInTheDocument();
+    expect(screen.getByText("ปฐมนิเทศนักศึกษาใหม่")).toBeInTheDocument();
+    expect(screen.getByText("เอกสารแผนปฏิบัติการ")).toBeInTheDocument();
+    expect(screen.getAllByText("กำหนดการ")).toHaveLength(1);
+    expect(screen.getAllByText("ปฐมนิเทศนักศึกษาใหม่")).toHaveLength(1);
+
+    const contactSection = screen.getByText("ติดต่อและแผนที่").closest("section") as HTMLElement;
+    expect(contactSection).not.toBeNull();
+    expect(contactSection).toHaveTextContent("วิทยาลัยเทคนิคตัวอย่าง");
+    expect(within(contactSection).getByTitle("แผนที่วิทยาลัย")).toBeInTheDocument();
+    expect(within(contactSection).getByRole("link", { name: "เปิดแผนที่ใน Google Maps" }).getAttribute("href")).toBe(
+      "https://www.google.com/maps/place/example"
+    );
+    expect(screen.getAllByText("ติดต่อและแผนที่")).toHaveLength(1);
   });
 
   it("hides social icons when site settings URLs are empty", () => {
@@ -135,7 +247,7 @@ describe("public data-driven pages", () => {
 
     expect(screen.getByText("ประกาศรับสมัคร")).toBeInTheDocument();
     expect(screen.queryByText("ประกาศทั่วไป")).not.toBeInTheDocument();
-    expect(screen.getByText("#รับสมัคร")).toBeInTheDocument();
+    expect(screen.getAllByText("#รับสมัคร")).toHaveLength(2);
     expect(screen.getByRole("link", { name: "ล้างตัวกรอง" }).getAttribute("href")).toBe("/announcements");
   });
 });
