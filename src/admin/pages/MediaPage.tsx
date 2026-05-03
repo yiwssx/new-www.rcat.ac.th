@@ -110,7 +110,7 @@ export default function MediaPage() {
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot
   });
-  const mediaAssets = data?.media ?? [];
+  const mediaAssets = useMemo(() => data?.media ?? [], [data?.media]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<MediaAsset | null>(null);
   const [form, setForm] = useState<MediaFormState>(emptyForm);

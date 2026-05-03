@@ -15,7 +15,7 @@ import {
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/authSessionContext";
 import { appSwal } from "../../utils/swal";
 
 export default function LoginPage() {

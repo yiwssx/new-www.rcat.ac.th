@@ -28,7 +28,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/authSessionContext";
 import { appSwal } from "../../utils/swal";
 
 const drawerWidth = 280;

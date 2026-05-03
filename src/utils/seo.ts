@@ -139,7 +139,9 @@ export function updateDocumentMetadata(input: DocumentMetadataInput) {
 }
 
 export function useDocumentMetadata(input: DocumentMetadataInput) {
+  const { title, description, canonicalUrl, canonicalPath, siteName } = input;
+
   useEffect(() => {
-    updateDocumentMetadata(input);
-  }, [input.title, input.description, input.canonicalUrl, input.canonicalPath, input.siteName]);
+    updateDocumentMetadata({ title, description, canonicalUrl, canonicalPath, siteName });
+  }, [title, description, canonicalUrl, canonicalPath, siteName]);
 }
