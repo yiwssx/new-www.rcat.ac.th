@@ -64,6 +64,7 @@ const SITE_SETTINGS_LONG_TEXT_FIELDS = [
 
 const SITE_SETTINGS_TEXT_MAX_LENGTH = 120;
 const SITE_SETTINGS_DESCRIPTION_MAX_LENGTH = 500;
+const GOOGLE_DRIVE_IMAGE_HOSTS = ["drive.google.com", "www.drive.google.com"];
 
 function getSiteSettings() {
   const spreadsheet = getSpreadsheet();
@@ -229,6 +230,10 @@ function normalizeSiteSettingsUrl(value, fieldName, options) {
       return normalizeSiteSettingsMapEmbedUrl(url);
     }
 
+    if (fieldName === "directorImageUrl") {
+      return normalizeSiteSettingsDirectorImageUrl(url);
+    }
+
     return normalizePublicMediaUrl(url);
   } catch (error) {
     if (options && options.validate) {
@@ -238,6 +243,72 @@ function normalizeSiteSettingsUrl(value, fieldName, options) {
     console.warn(`Dropping unsafe site settings URL for ${fieldName}: ${error.message || error}`);
     return "";
   }
+}
+
+function extractGoogleDriveFileId(value) {
+  const url = String(value || "").trim();
+
+  if (!url) {
+    return "";
+  }
+
+  let normalized = "";
+
+  try {
+    normalized = normalizePublicMediaUrl(url, GOOGLE_DRIVE_IMAGE_HOSTS);
+  } catch (error) {
+    return "";
+  }
+
+  const filePathMatch = normalized.match(/^https:\/\/(?:www\.)?drive\.google\.com\/file\/d\/([^/?#]+)(?:[/?#]|$)/i);
+  const fileId = filePathMatch ? filePathMatch[1] : getSiteSettingsQueryParam(normalized, "id");
+
+  return /^[a-zA-Z0-9_-]+$/.test(fileId || "") ? fileId : "";
+}
+
+function normalizeGoogleDriveImageUrl(value) {
+  const fileId = extractGoogleDriveFileId(value);
+
+  return fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200` : "";
+}
+
+function normalizeSiteSettingsDirectorImageUrl(url) {
+  const normalized = normalizePublicMediaUrl(url);
+  const parts = parseSiteSettingsHttpsUrl(normalized);
+
+  if (GOOGLE_DRIVE_IMAGE_HOSTS.indexOf(parts.hostname) !== -1) {
+    const driveImageUrl = normalizeGoogleDriveImageUrl(normalized);
+
+    if (driveImageUrl) {
+      return driveImageUrl;
+    }
+
+    throw createHttpError("directorImageUrl must be an https image URL, Google Drive share URL, or empty.", 400);
+  }
+
+  return normalized;
+}
+
+function getSiteSettingsQueryParam(url, name) {
+  const queryMatch = String(url || "").match(/\?([^#]*)/);
+
+  if (!queryMatch || !queryMatch[1]) {
+    return "";
+  }
+
+  const pairs = queryMatch[1].split("&");
+
+  for (let index = 0; index < pairs.length; index += 1) {
+    const pair = pairs[index];
+    const separatorIndex = pair.indexOf("=");
+    const key = separatorIndex === -1 ? pair : pair.slice(0, separatorIndex);
+
+    if (key === name) {
+      return separatorIndex === -1 ? "" : pair.slice(separatorIndex + 1);
+    }
+  }
+
+  return "";
 }
 
 function extractIframeSrc(value) {
@@ -305,6 +376,10 @@ function getSiteSettingsUrlErrorMessage(fieldName) {
 
   if (fieldName === "mapEmbedUrl") {
     return "mapEmbedUrl must be a Google Maps embed https URL or empty.";
+  }
+
+  if (fieldName === "directorImageUrl") {
+    return "directorImageUrl must be an https image URL, Google Drive share URL, or empty.";
   }
 
   return `${fieldName} must be an https URL or empty.`;

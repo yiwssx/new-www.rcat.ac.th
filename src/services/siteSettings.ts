@@ -21,6 +21,8 @@ const longTextFields = new Set<keyof SiteSettings>([
   "directorDescription",
   "footerDescription"
 ]);
+const googleDriveImageHosts = new Set(["drive.google.com", "www.drive.google.com"]);
+const googleDriveFileIdPattern = /^[a-zA-Z0-9_-]+$/;
 
 export const defaultSiteSettings: SiteSettings = {
   siteName: neutralSiteName,
@@ -87,6 +89,51 @@ function normalizeHttpsUrl(value: unknown) {
   } catch {
     return "";
   }
+}
+
+export function extractGoogleDriveFileId(value: string) {
+  const url = String(value || "").trim();
+
+  if (!url || hasUnsafeUrlCharacter(url)) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(url);
+
+    if (parsed.protocol !== "https:" || !googleDriveImageHosts.has(parsed.hostname.toLowerCase())) {
+      return "";
+    }
+
+    const pathFileId = parsed.pathname.match(/^\/file\/d\/([^/]+)(?:\/|$)/)?.[1] || "";
+    const fileId = pathFileId || parsed.searchParams.get("id") || "";
+
+    return googleDriveFileIdPattern.test(fileId) ? fileId : "";
+  } catch {
+    return "";
+  }
+}
+
+export function normalizeGoogleDriveImageUrl(value: string) {
+  const fileId = extractGoogleDriveFileId(value);
+
+  return fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200` : "";
+}
+
+function normalizeDirectorImageUrl(value: unknown) {
+  const url = normalizeHttpsUrl(value);
+
+  if (!url) {
+    return "";
+  }
+
+  const parsed = new URL(url);
+
+  if (googleDriveImageHosts.has(parsed.hostname.toLowerCase())) {
+    return normalizeGoogleDriveImageUrl(url);
+  }
+
+  return url;
 }
 
 function decodeIframeSrcHtmlEntities(value: string) {
@@ -164,6 +211,11 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
 
       if (key === "mapEmbedUrl") {
         normalized[key] = normalizeMapEmbedUrl(source[key]);
+        return;
+      }
+
+      if (key === "directorImageUrl") {
+        normalized[key] = normalizeDirectorImageUrl(source[key]);
         return;
       }
 

@@ -72,7 +72,8 @@ const siteSettingFields: Array<{
   {
     key: "directorImageUrl",
     label: "รูปภาพผู้บริหาร URL",
-    helperText: "ลิงก์รูปภาพผู้บริหารแบบ https:// หรือเว้นว่าง"
+    helperText:
+      "วางลิงก์รูปภาพแบบ https:// หรือ Google Drive share link ได้ เช่น /file/d/... ระบบจะแปลงเป็นลิงก์รูปภาพให้อัตโนมัติ ควรตั้งค่าไฟล์เป็น Anyone with the link"
   },
   {
     key: "mapUrl",
