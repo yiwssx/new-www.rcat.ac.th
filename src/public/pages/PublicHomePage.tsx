@@ -383,10 +383,26 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
 
   return (
     <Card component="section" sx={{ borderTop: "5px solid", borderColor: "secondary.main" }}>
-      <CardContent sx={{ p: 2.5, "& > .MuiStack-root:first-of-type": { mb: 1.5 } }}>
-        <HomeSectionHeading label="ผู้บริหารสถานศึกษา" title={siteSettings.directorTitle || "ข้อมูลผู้บริหาร"} />
+      <CardContent sx={{ p: { xs: 1.75, md: 2 }, textAlign: "center" }}>
+        <Box sx={{ mb: 1.25 }}>
+          <Typography
+            component="p"
+            sx={{
+              color: "secondary.dark",
+              fontSize: "0.72rem",
+              fontWeight: 800,
+              letterSpacing: 0,
+              textTransform: "uppercase"
+            }}
+          >
+            :: ผู้บริหารสถานศึกษา
+          </Typography>
+          <Typography variant="h3" sx={{ fontSize: { xs: "1.05rem", md: "1.15rem" } }}>
+            {siteSettings.directorTitle || "ข้อมูลผู้บริหาร"}
+          </Typography>
+        </Box>
         {hasDirectorInfo ? (
-          <Stack spacing={1.25}>
+          <Stack spacing={1}>
             {siteSettings.directorImageUrl ? (
               <Box
                 component="img"
@@ -394,7 +410,7 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
                 alt={directorImageAlt}
                 sx={{
                   width: "100%",
-                  maxWidth: { xs: 128, sm: 140, md: 150, lg: 160 },
+                  maxWidth: { xs: 112, sm: 120, md: 128, lg: 136 },
                   mx: "auto",
                   aspectRatio: "3 / 4",
                   borderRadius: 2,
@@ -408,7 +424,7 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
               <Box
                 sx={(theme) => ({
                   width: "100%",
-                  maxWidth: { xs: 128, sm: 140, md: 150, lg: 160 },
+                  maxWidth: { xs: 112, sm: 120, md: 128, lg: 136 },
                   mx: "auto",
                   aspectRatio: "3 / 4",
                   borderRadius: 2,
@@ -420,14 +436,14 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
                 <SchoolOutlinedIcon sx={{ fontSize: { xs: 42, md: 48 }, color: "primary.dark" }} />
               </Box>
             )}
-            <Stack spacing={0.8}>
+            <Stack spacing={0.45}>
               {siteSettings.directorName && (
-                <Typography variant="h3" sx={{ fontSize: { xs: "1rem", md: "1.1rem" } }}>
+                <Typography variant="h3" sx={{ fontSize: { xs: "0.98rem", md: "1.05rem" }, fontWeight: 900 }}>
                   {siteSettings.directorName}
                 </Typography>
               )}
               {siteSettings.directorDescription && (
-                <Typography color="text.secondary" sx={{ fontSize: "0.85rem" }}>
+                <Typography color="text.secondary" sx={{ fontSize: "0.82rem", lineHeight: 1.45 }}>
                   {siteSettings.directorDescription}
                 </Typography>
               )}
