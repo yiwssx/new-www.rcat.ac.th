@@ -11,6 +11,7 @@
 ];
 
 const ADMIN_ONLY_RESOURCES = ["site-settings", "users", "users-delete", "users-reset"];
+const PUBLIC_POST_RESOURCES = ["content-view"];
 
 const AUTH_SESSION_HOURS_FALLBACK = 8;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 10;
@@ -94,6 +95,10 @@ function routeRequest(event, method) {
           includeUnpublished: true
         })
       );
+    }
+
+    if (method === "POST" && resource === "content-view") {
+      return jsonResponse(incrementContentView(payload));
     }
 
     if (method === "POST" && resource === "content") {
@@ -180,7 +185,7 @@ function routeRequest(event, method) {
 }
 
 function shouldReadAuthContext(method, resource) {
-  return method === "POST" && resource !== "auth-login";
+  return method === "POST" && resource !== "auth-login" && PUBLIC_POST_RESOURCES.indexOf(resource) === -1;
 }
 
 function assertRouteAccess(method, resource, authContext) {
@@ -197,6 +202,10 @@ function assertRouteAccess(method, resource, authContext) {
   }
 
   if (method === "GET" && resource === "content-detail") {
+    return;
+  }
+
+  if (method === "POST" && PUBLIC_POST_RESOURCES.indexOf(resource) !== -1) {
     return;
   }
 

@@ -21,6 +21,7 @@ interface ProjectSettings {
       content: string;
       contentDetail: string;
       adminContentDetail: string;
+      contentView: string;
       deleteContent: string;
       media: string;
       deleteMedia: string;

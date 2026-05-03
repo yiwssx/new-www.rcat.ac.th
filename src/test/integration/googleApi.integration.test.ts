@@ -14,6 +14,7 @@ vi.mock("../../config/projectSettings", () => ({
         content: "content",
         contentDetail: "content-detail",
         adminContentDetail: "content-detail-admin",
+        contentView: "content-view",
         deleteContent: "content-delete",
         media: "media",
         deleteMedia: "media-delete",
@@ -35,7 +36,13 @@ vi.mock("../../config/projectSettings", () => ({
   }
 }));
 
-import { getAdminCmsSnapshot, getCmsSnapshot, saveCalendarEvent, saveSiteSettingsToApi } from "../../services/googleApi";
+import {
+  getAdminCmsSnapshot,
+  getCmsSnapshot,
+  recordContentView,
+  saveCalendarEvent,
+  saveSiteSettingsToApi
+} from "../../services/googleApi";
 
 function createSnapshotResponse() {
   return new Response(
@@ -155,6 +162,36 @@ describe("googleApi integration", () => {
     expect(JSON.parse(String(init.body))).toEqual({
       siteName: "Updated public site",
       authToken: "admin-token"
+    });
+  });
+
+  it("records content views without authToken", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "content-1",
+          slug: "announcement-1",
+          viewCount: 8,
+          lastViewedAt: "2026-05-03T00:00:00.000Z",
+          statusCode: 200
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    storeSessionToken("admin-token");
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const saved = await recordContentView({ slug: "announcement-1" });
+    const [requestUrl, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    const parsedUrl = new URL(String(requestUrl));
+
+    expect(saved.viewCount).toBe(8);
+    expect(parsedUrl.searchParams.get("resource")).toBe("content-view");
+    expect(parsedUrl.searchParams.has("authToken")).toBe(false);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({
+      slug: "announcement-1"
     });
   });
 
