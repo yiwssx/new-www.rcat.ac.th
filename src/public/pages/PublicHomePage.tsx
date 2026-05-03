@@ -31,7 +31,6 @@ import { normalizeSiteSettings } from "../../services/siteSettings";
 import { CalendarEvent, ContentItem, PublicMenuItem, SiteSettings } from "../../types";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
-import { contentTypeLabels } from "../../utils/thaiLabels";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
@@ -117,16 +116,6 @@ function sortByPublishDate(items: ContentItem[]) {
   return [...items].sort((left, right) => getPublishDateValue(right) - getPublishDateValue(left));
 }
 
-function sortFeaturedThenLatest(items: ContentItem[]) {
-  return [...items].sort((left, right) => {
-    if (Boolean(right.featured) !== Boolean(left.featured)) {
-      return right.featured ? 1 : -1;
-    }
-
-    return getPublishDateValue(right) - getPublishDateValue(left);
-  });
-}
-
 function getEventDateValue(event: CalendarEvent) {
   const date = dayjs(event.date);
   return date.isValid() ? date.valueOf() : Number.POSITIVE_INFINITY;
@@ -209,42 +198,6 @@ function collectMenuLinks(items: PublicMenuItem[] | undefined): QuickLink[] {
 
   visit(items ?? []);
   return links.length ? orderQuickLinks(links) : quickLinkFallback;
-}
-
-function FeaturedStoryFallback({ item }: { item: ContentItem }) {
-  return (
-    <Box
-      component="a"
-      href={normalizeSafeHref(`/content/${item.slug}`)}
-      aria-label={`อ่านเนื้อหาเด่น ${item.title}`}
-      sx={{
-        display: "block",
-        p: 1.75,
-        borderRadius: 2,
-        bgcolor: "background.default",
-        border: "1px solid rgba(31, 90, 44, 0.12)",
-        ...focusVisibleSx
-      }}
-    >
-      <Stack spacing={1}>
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          <Chip label="เนื้อหาเด่น" size="small" color="secondary" />
-          <Chip label={contentTypeLabels[item.type]} size="small" variant="outlined" />
-        </Stack>
-        <Typography variant="h3" sx={{ fontSize: "1.05rem" }}>
-          {item.title}
-        </Typography>
-        {item.summary && (
-          <Typography color="text.secondary" variant="body2">
-            {item.summary}
-          </Typography>
-        )}
-        <Typography color="text.secondary" variant="body2">
-          {formatDisplayDate(item.publishAt)}
-        </Typography>
-      </Stack>
-    </Box>
-  );
 }
 
 function CompactAnnouncementList({
@@ -454,31 +407,45 @@ function ContactInfoCard({ siteSettings }: { siteSettings: SiteSettings }) {
   );
 }
 
-function DirectorCard({ siteSettings }: { siteSettings: SiteSettings }) {
+function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
+  const hasDirectorInfo = Boolean(
+    siteSettings.directorName ||
+      siteSettings.directorDescription ||
+      siteSettings.directorTitle
+  );
+
   return (
-    <Card sx={{ height: "100%" }}>
-      <CardContent sx={{ p: 2.5 }}>
-        <HomeSectionHeading label="ผู้บริหาร" title={siteSettings.directorTitle || "ข้อมูลผู้บริหาร"} />
-        <Box
-          sx={(theme) => ({
-            minHeight: 120,
-            borderRadius: 2,
-            display: "grid",
-            placeItems: "center",
-            bgcolor: alpha(theme.palette.primary.light, 0.82)
-          })}
-        >
-          <SchoolOutlinedIcon sx={{ fontSize: 72, color: "primary.dark" }} />
-        </Box>
-        {siteSettings.directorName && (
-          <Typography variant="h3" sx={{ fontSize: "1.2rem", mt: 2 }}>
-            {siteSettings.directorName}
-          </Typography>
-        )}
-        {siteSettings.directorDescription && (
-          <Typography color="text.secondary" sx={{ fontSize: "0.875rem", mt: 1 }}>
-            {siteSettings.directorDescription}
-          </Typography>
+    <Card component="section" sx={{ height: "100%", borderTop: "5px solid", borderColor: "secondary.main" }}>
+      <CardContent sx={{ p: 2.5, height: "100%" }}>
+        <HomeSectionHeading label="ผู้บริหารสถานศึกษา" title={siteSettings.directorTitle || "ข้อมูลผู้บริหาร"} />
+        {hasDirectorInfo ? (
+          <Stack spacing={2} sx={{ height: "100%" }}>
+            <Box
+              sx={(theme) => ({
+                minHeight: { xs: 96, md: 116 },
+                borderRadius: 2,
+                display: "grid",
+                placeItems: "center",
+                bgcolor: alpha(theme.palette.primary.light, 0.82)
+              })}
+            >
+              <SchoolOutlinedIcon sx={{ fontSize: { xs: 56, md: 66 }, color: "primary.dark" }} />
+            </Box>
+            <Stack spacing={0.8}>
+              {siteSettings.directorName && (
+                <Typography variant="h3" sx={{ fontSize: { xs: "1.15rem", md: "1.25rem" } }}>
+                  {siteSettings.directorName}
+                </Typography>
+              )}
+              {siteSettings.directorDescription && (
+                <Typography color="text.secondary" sx={{ fontSize: "0.9rem" }}>
+                  {siteSettings.directorDescription}
+                </Typography>
+              )}
+            </Stack>
+          </Stack>
+        ) : (
+          <EmptyState title="ยังไม่มีข้อมูลผู้บริหาร" icon={<SchoolOutlinedIcon />} />
         )}
       </CardContent>
     </Card>
@@ -493,8 +460,6 @@ export default function PublicHomePage() {
     [data]
   );
   const announcementContent = publicContent.filter((item) => item.type === "announcement");
-  const featuredStory = publicContent.find((item) => item.featured) ?? publicContent[0];
-  const urgentAnnouncements = sortFeaturedThenLatest(announcementContent).slice(0, 3);
   const latestNews = publicContent
     .filter((item) => item.type === "news" || item.type === "blog")
     .slice(0, 4);
@@ -506,7 +471,6 @@ export default function PublicHomePage() {
     (data?.events ?? []).filter((event) => event.status === "confirmed" && (event.visibility ?? "public") === "public")
   ).slice(0, 4);
   const heroImageLayer = siteSettings.heroImageUrl ? `, url(${JSON.stringify(siteSettings.heroImageUrl)})` : "";
-  const hasDirectorCard = Boolean(siteSettings.directorName || siteSettings.directorDescription);
   const hasContactInfo = Boolean(
     siteSettings.campus ||
       siteSettings.address ||
@@ -610,18 +574,7 @@ export default function PublicHomePage() {
           </Grid>
 
           <Grid size={{ xs: 12, lg: 4 }}>
-            <Card component="section" sx={{ height: "100%", borderTop: "5px solid", borderColor: "secondary.main" }}>
-              <CardContent sx={{ p: 2.5 }}>
-                <HomeSectionHeading label="ประกาศ" title="ประกาศสำคัญ" />
-                {urgentAnnouncements.length ? (
-                  <CompactAnnouncementList items={urgentAnnouncements} emptyTitle="ยังไม่มีประกาศที่เผยแพร่" />
-                ) : featuredStory ? (
-                  <FeaturedStoryFallback item={featuredStory} />
-                ) : (
-                  <EmptyState title="ยังไม่มีประกาศที่เผยแพร่" icon={<CampaignOutlinedIcon />} />
-                )}
-              </CardContent>
-            </Card>
+            <DirectorHeroCard siteSettings={siteSettings} />
           </Grid>
         </Grid>
 
@@ -697,20 +650,13 @@ export default function PublicHomePage() {
           </Grid>
         </Box>
 
-        {(hasDirectorCard || hasContactInfo) && (
+        {hasContactInfo && (
           <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
-            <HomeSectionHeading label="ข้อมูลสถานศึกษา" title="ข้อมูลติดต่อและผู้บริหาร" />
+            <HomeSectionHeading label="ข้อมูลสถานศึกษา" title="ข้อมูลติดต่อ" />
             <Grid container spacing={3.2}>
-              {hasDirectorCard && (
-                <Grid size={{ xs: 12, lg: hasContactInfo ? 6 : 12 }}>
-                  <DirectorCard siteSettings={siteSettings} />
-                </Grid>
-              )}
-              {hasContactInfo && (
-                <Grid size={{ xs: 12, lg: hasDirectorCard ? 6 : 12 }}>
-                  <ContactInfoCard siteSettings={siteSettings} />
-                </Grid>
-              )}
+              <Grid size={{ xs: 12, lg: 8 }}>
+                <ContactInfoCard siteSettings={siteSettings} />
+              </Grid>
             </Grid>
           </Box>
         )}
