@@ -154,7 +154,13 @@ function getSafeMediaHref(asset: { driveUrl?: string; previewUrl?: string; embed
 export default function PublicContentDetailPage({ slug }: PublicContentDetailPageProps) {
   const { data, isLoading } = usePublicCmsSnapshot();
   const contentDetailQuery = usePublicContentDetail({ slug });
-  const [recordedViewCount, setRecordedViewCount] = useState<number | null>(null);
+  const [recordedViewCountState, setRecordedViewCountState] = useState<{
+    count: number | null;
+    storageKey: string;
+  }>({
+    count: null,
+    storageKey: ""
+  });
 
   const visibleContent = useMemo(
     () =>
@@ -202,10 +208,6 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   }, [item, visibleContent]);
 
   useEffect(() => {
-    setRecordedViewCount(null);
-  }, [item?.id, item?.slug]);
-
-  useEffect(() => {
     if (!item || item.status !== "published") {
       return;
     }
@@ -219,7 +221,10 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
     void recordContentView({ id: item.id, slug: item.slug })
       .then((response) => {
         markContentViewRecorded(storageKey);
-        setRecordedViewCount(response.viewCount);
+        setRecordedViewCountState({
+          count: response.viewCount,
+          storageKey
+        });
       })
       .catch(() => {
         // Public content should render even when view tracking is unavailable.
@@ -251,6 +256,9 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
     );
   }
 
+  const viewCountStorageKey = getViewCountStorageKey(item);
+  const recordedViewCount =
+    recordedViewCountState.storageKey === viewCountStorageKey ? recordedViewCountState.count : null;
   const displayedViewCount = recordedViewCount ?? item.viewCount ?? 0;
   const categoryList = normalizeCategoryList(item.category);
   const tagList = normalizeTags(item.tags);
