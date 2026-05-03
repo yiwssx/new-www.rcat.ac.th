@@ -23,7 +23,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/authSessionContext";
 import { deleteUserAccount, getUserAccounts, resetUserAccounts, saveUserAccount } from "../../services/users";
 import { User, UserAccount } from "../../types";
 import { appSwal } from "../../utils/swal";

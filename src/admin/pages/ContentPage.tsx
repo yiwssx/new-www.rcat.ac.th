@@ -72,8 +72,8 @@ export default function ContentPage() {
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [saveError, setSaveError] = useState("");
   const [loadingEditorItem, setLoadingEditorItem] = useState(false);
-  const items = data?.content ?? [];
-  const mediaAssets = data?.media ?? [];
+  const items = useMemo(() => data?.content ?? [], [data?.content]);
+  const mediaAssets = useMemo(() => data?.media ?? [], [data?.media]);
 
   const saveMutation = useMutation({
     mutationFn: saveContentItem,
@@ -298,7 +298,7 @@ export default function ContentPage() {
         )
       })
     ],
-    [handleDelete, handleEdit, handlePublish]
+    [handleDelete, handleEdit, handlePublish, loadingEditorItem]
   );
 
   const filteredItems = useMemo(() => {

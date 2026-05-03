@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { alpha } from "@mui/material/styles";
 import { Backdrop, Box, CircularProgress, LinearProgress, Stack, Typography } from "@mui/material";
 import { useRouterState } from "@tanstack/react-router";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/authSessionContext";
 import { getGoogleApiActivityCount, subscribeGoogleApiActivity } from "../../services/googleApi";
 
 const showDelayMs = 120;

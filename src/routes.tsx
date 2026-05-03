@@ -1,83 +1,25 @@
-import { Suspense, lazy, type ReactElement } from "react";
-import { Box, CircularProgress } from "@mui/material";
-import { Navigate, Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
-import AdminActionProgress from "./admin/components/AdminActionProgress";
-import { VercelInsights } from "./shared/components/VercelInsights";
-import { useAuth } from "./context/AuthContext";
-
-const CalendarPage = lazy(() => import("./admin/pages/CalendarPage"));
-const CmsShell = lazy(() => import("./admin/layout/CmsShell"));
-const ContentPage = lazy(() => import("./admin/pages/ContentPage"));
-const DashboardPage = lazy(() => import("./admin/pages/DashboardPage"));
-const IntegrationsPage = lazy(() => import("./admin/pages/IntegrationsPage"));
-const LoginPage = lazy(() => import("./admin/pages/LoginPage"));
-const MediaPage = lazy(() => import("./admin/pages/MediaPage"));
-const MenuPage = lazy(() => import("./admin/pages/MenuPage"));
-const NotFoundPage = lazy(() => import("./shared/pages/NotFoundPage"));
-const PublicAnnouncementsPage = lazy(() => import("./public/pages/PublicAnnouncementsPage"));
-const PublicBlogPage = lazy(() => import("./public/pages/PublicBlogPage"));
-const PublicContactPage = lazy(() => import("./public/pages/PublicContactPage"));
-const PublicContentDetailPage = lazy(() => import("./public/pages/PublicContentDetailPage"));
-const PublicDepartmentsPage = lazy(() => import("./public/pages/PublicDepartmentsPage"));
-const PublicHomePage = lazy(() => import("./public/pages/PublicHomePage"));
-const PublicNewsPage = lazy(() => import("./public/pages/PublicNewsPage"));
-const SettingsPage = lazy(() => import("./admin/pages/SettingsPage"));
-
-function RouteFallback() {
-  return (
-    <Box
-      sx={{
-        minHeight: "62vh",
-        display: "grid",
-        placeItems: "center",
-        bgcolor: "background.default"
-      }}
-      className="min-h-[62vh] grid place-items-center"
-    >
-      <CircularProgress />
-    </Box>
-  );
-}
-
-function RootRouteLayout() {
-  return (
-    <Suspense fallback={<RouteFallback />}>
-      <Outlet />
-      <AdminActionProgress />
-      <VercelInsights />
-    </Suspense>
-  );
-}
-
-function ProtectedLayout() {
-  const { session } = useAuth();
-
-  if (!session) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <CmsShell />;
-}
-
-function AdminOnlyPage({ children }: { children: ReactElement }) {
-  const { session } = useAuth();
-
-  if (session?.user.role !== "admin") {
-    return <Navigate to="/admin" replace />;
-  }
-
-  return children;
-}
-
-function PublicContentDetailRoute() {
-  const { slug } = publicContentDetailRoute.useParams();
-  return <PublicContentDetailPage slug={slug} />;
-}
-
-function PublicPermalinkRoute() {
-  const { slug } = publicPermalinkRoute.useParams();
-  return <PublicContentDetailPage slug={slug} />;
-}
+import { Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import {
+  AdminOnlyPage,
+  CalendarPage,
+  ContentPage,
+  DashboardPage,
+  IntegrationsPage,
+  LoginPage,
+  MediaPage,
+  MenuPage,
+  NotFoundPage,
+  ProtectedLayout,
+  PublicAnnouncementsPage,
+  PublicBlogPage,
+  PublicContactPage,
+  PublicContentDetailRoute,
+  PublicDepartmentsPage,
+  PublicHomePage,
+  PublicNewsPage,
+  RootRouteLayout,
+  SettingsPage
+} from "./routeComponents";
 
 const rootRoute = createRootRoute({
   component: RootRouteLayout,
@@ -135,7 +77,7 @@ const publicContentDetailRoute = createRoute({
 const publicPermalinkRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "$slug",
-  component: PublicPermalinkRoute
+  component: PublicContentDetailRoute
 });
 
 const loginRoute = createRoute({
