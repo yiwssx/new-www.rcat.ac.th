@@ -160,7 +160,9 @@ function upsertContent(item) {
     featuredMediaId: item.featuredMediaId || "",
     mediaIds: normalizeMediaIds(item.mediaIds).join(","),
     updatedAt: new Date().toISOString(),
-    publishAt: item.publishAt || new Date().toISOString()
+    publishAt: item.publishAt || new Date().toISOString(),
+    viewCount: existingItem ? normalizeViewCount(existingItem.viewCount) : 0,
+    lastViewedAt: existingItem ? existingItem.lastViewedAt || "" : ""
   };
 
   upsertRow(sheet, CONTENT_HEADERS, nextItem);
@@ -215,6 +217,54 @@ function getContentDetail(query, options) {
   });
 
   return includeUnpublished ? detail : sanitizePublicContentRecord(detail, { includeBody: true });
+}
+
+function incrementContentView(input) {
+  const lookup = input || {};
+  const id = normalizeContentIdValue(lookup.id || "");
+  const slug = lookup.slug ? normalizeSlugValue(lookup.slug) : "";
+
+  if (!id && !slug) {
+    throw createHttpError("Missing content id or slug.", 400);
+  }
+
+  const spreadsheet = getSpreadsheet();
+  const sheet = ensureSheet(spreadsheet, SHEETS.content, CONTENT_HEADERS);
+  const activeHeaders = getActiveHeaders(sheet, CONTENT_HEADERS);
+  const rows = sheet.getDataRange().getValues();
+  const idIndex = activeHeaders.indexOf("id");
+  const slugIndex = activeHeaders.indexOf("slug");
+  const statusIndex = activeHeaders.indexOf("status");
+  const viewCountIndex = activeHeaders.indexOf("viewCount");
+  const lastViewedAtIndex = activeHeaders.indexOf("lastViewedAt");
+
+  for (let index = 1; index < rows.length; index += 1) {
+    const row = rows[index];
+    const rowId = String(row[idIndex] || "");
+    const rowSlug = String(row[slugIndex] || "");
+
+    if ((id && rowId === id) || (slug && rowSlug === slug)) {
+      if (String(row[statusIndex] || "") !== "published") {
+        throw createHttpError("Content item not found.", 404);
+      }
+
+      const viewCount = normalizeViewCount(row[viewCountIndex]) + 1;
+      const lastViewedAt = new Date().toISOString();
+
+      sheet.getRange(index + 1, viewCountIndex + 1).setValue(viewCount);
+      sheet.getRange(index + 1, lastViewedAtIndex + 1).setValue(lastViewedAt);
+      invalidatePublicSnapshotCache();
+
+      return {
+        id: rowId,
+        slug: rowSlug,
+        viewCount,
+        lastViewedAt
+      };
+    }
+  }
+
+  throw createHttpError("Content item not found.", 404);
 }
 
 function upsertMedia(asset) {
@@ -361,7 +411,9 @@ function normalizeContentRecord(item, options) {
     bodyDocId: item.bodyDocId || "",
     bodyDocUrl: item.bodyDocUrl || "",
     featuredMediaId: item.featuredMediaId || "",
-    mediaIds: normalizeMediaIds(item.mediaIds)
+    mediaIds: normalizeMediaIds(item.mediaIds),
+    viewCount: normalizeViewCount(item.viewCount),
+    lastViewedAt: item.lastViewedAt || ""
   };
 }
 
@@ -404,6 +456,30 @@ function normalizeSlugValue(value) {
   }
 
   return normalized;
+}
+
+function normalizeContentIdValue(value) {
+  const normalized = String(value || "").trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (normalized.length > 160 || /[\u0000-\u001F\u007F\s/\\?#:]/u.test(normalized)) {
+    throw createHttpError("Invalid content id.", 400);
+  }
+
+  return normalized;
+}
+
+function normalizeViewCount(value) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return 0;
+  }
+
+  return Math.floor(numericValue);
 }
 
 function normalizePublicMediaUrl(url, allowedHosts) {

@@ -62,7 +62,9 @@ const CONTENT_HEADERS = [
   "featuredMediaId",
   "mediaIds",
   "updatedAt",
-  "publishAt"
+  "publishAt",
+  "viewCount",
+  "lastViewedAt"
 ];
 
 const MEDIA_HEADERS = [

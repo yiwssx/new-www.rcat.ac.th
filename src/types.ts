@@ -48,6 +48,8 @@ export interface ContentItem {
   bodyDocUrl?: string;
   featuredMediaId?: string;
   mediaIds?: string[];
+  viewCount?: number;
+  lastViewedAt?: string;
   updatedAt: string;
   publishAt: string;
 }

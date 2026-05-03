@@ -7,6 +7,14 @@ interface HttpError extends Error {
 
 interface CmsScriptContext {
   assertUniqueContentSlug: (sheet: unknown, contentId: string, normalizedSlug: string) => void;
+  contentValues: unknown[][];
+  incrementContentView: (input: { id?: string; slug?: string }) => {
+    id: string;
+    slug: string;
+    viewCount: number;
+    lastViewedAt: string;
+  };
+  invalidatePublicSnapshotCache: Mock;
   isAllowedUploadMimeType: (value: string) => boolean;
   normalizePublicMediaUrl: (url: string, allowedHosts?: string[]) => string;
   normalizeSlugValue: (value: string) => string;
@@ -22,22 +30,80 @@ interface CmsScriptContext {
   readObjects: Mock;
 }
 
+const TEST_CONTENT_HEADERS = [
+  "id",
+  "title",
+  "slug",
+  "type",
+  "status",
+  "owner",
+  "summary",
+  "category",
+  "tags",
+  "seoTitle",
+  "seoDescription",
+  "canonicalUrl",
+  "featured",
+  "readingMinutes",
+  "template",
+  "body",
+  "bodyDocId",
+  "bodyDocUrl",
+  "featuredMediaId",
+  "mediaIds",
+  "updatedAt",
+  "publishAt",
+  "viewCount",
+  "lastViewedAt"
+];
+
 function createHttpError(message: string, statusCode: number) {
   const error = new Error(message) as HttpError;
   error.statusCode = statusCode;
   return error;
 }
 
-function loadCmsScript() {
+function createContentRow(record: Record<string, unknown>) {
+  return TEST_CONTENT_HEADERS.map((header) => record[header] ?? "");
+}
+
+function loadCmsScript(input: { contentRows?: Array<Record<string, unknown>> } = {}) {
   const readObjects = vi.fn();
+  const contentValues: unknown[][] = [
+    TEST_CONTENT_HEADERS,
+    ...(input.contentRows ?? []).map(createContentRow)
+  ];
+  const contentSheet = {
+    getDataRange: vi.fn(() => ({
+      getValues: () => contentValues
+    })),
+    getName: () => "Content",
+    getRange: vi.fn((row: number, column: number) => ({
+      setValue: (value: unknown) => {
+        contentValues[row - 1][column - 1] = value;
+      }
+    }))
+  };
+  const getSpreadsheet = vi.fn(() => ({
+    getSheetByName: () => contentSheet
+  }));
+  const ensureSheet = vi.fn(() => contentSheet);
+  const getActiveHeaders = vi.fn(() => TEST_CONTENT_HEADERS);
+  const invalidatePublicSnapshotCache = vi.fn();
   const createScriptExports = new Function(
     "console",
     "createHttpError",
+    "getSpreadsheet",
+    "ensureSheet",
+    "getActiveHeaders",
+    "invalidatePublicSnapshotCache",
     "readObjects",
     "CONTENT_HEADERS",
+    "SHEETS",
     `${cmsSource}
 return {
   assertUniqueContentSlug,
+  incrementContentView,
   isAllowedUploadMimeType,
   normalizePublicMediaUrl,
   normalizeSlugValue,
@@ -52,12 +118,21 @@ return {
   const exports = createScriptExports(
     console,
     createHttpError,
+    getSpreadsheet,
+    ensureSheet,
+    getActiveHeaders,
+    invalidatePublicSnapshotCache,
     readObjects,
-    ["id", "slug"]
+    TEST_CONTENT_HEADERS,
+    {
+      content: "Content"
+    }
   ) as Omit<CmsScriptContext, "readObjects">;
 
   return {
     ...exports,
+    contentValues,
+    invalidatePublicSnapshotCache,
     readObjects
   };
 }
@@ -148,6 +223,47 @@ describe("Apps Script CMS helpers", () => {
     expect(detailRecord).not.toHaveProperty("bodyDocId");
     expect(detailRecord).not.toHaveProperty("bodyDocUrl");
     warnSpy.mockRestore();
+  });
+
+  it("increments view count only for published public content", () => {
+    const context = loadCmsScript({
+      contentRows: [
+        {
+          id: "content-1",
+          slug: "announcement-1",
+          status: "published",
+          viewCount: "4"
+        }
+      ]
+    });
+    const result = context.incrementContentView({ slug: "announcement-1" });
+    const viewCountIndex = TEST_CONTENT_HEADERS.indexOf("viewCount");
+    const lastViewedAtIndex = TEST_CONTENT_HEADERS.indexOf("lastViewedAt");
+
+    expect(result.id).toBe("content-1");
+    expect(result.slug).toBe("announcement-1");
+    expect(result.viewCount).toBe(5);
+    expect(result.lastViewedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(context.contentValues[1][viewCountIndex]).toBe(5);
+    expect(context.contentValues[1][lastViewedAtIndex]).toBe(result.lastViewedAt);
+    expect(context.invalidatePublicSnapshotCache).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not increment missing or unpublished content", () => {
+    const context = loadCmsScript({
+      contentRows: [
+        {
+          id: "content-draft",
+          slug: "draft-announcement",
+          status: "draft",
+          viewCount: "10"
+        }
+      ]
+    });
+
+    expect(captureError(() => context.incrementContentView({ slug: "missing" }))?.statusCode).toBe(404);
+    expect(captureError(() => context.incrementContentView({ slug: "draft-announcement" }))?.statusCode).toBe(404);
+    expect(context.contentValues[1][TEST_CONTENT_HEADERS.indexOf("viewCount")]).toBe("10");
   });
 
   it("reduces public media records to fields needed for rendering", () => {

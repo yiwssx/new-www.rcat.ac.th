@@ -29,6 +29,7 @@ const cacheFriendlyPublicGetResources = new Set<GoogleResource>([
   "displaySettings",
   "contentDetail"
 ]);
+const unauthenticatedPostResources = new Set<GoogleResource>(["authLogin", "contentView"]);
 
 let activeGoogleApiRequestCount = 0;
 const googleApiActivitySubscribers = new Set<GoogleApiActivitySubscriber>();
@@ -219,7 +220,7 @@ async function googleFetch<T>(
 }
 
 function postJson<T>(resource: GoogleResource, body: unknown) {
-  const authToken = resource === "authLogin" ? "" : readStoredSessionToken();
+  const authToken = unauthenticatedPostResources.has(resource) ? "" : readStoredSessionToken();
   const payload = isObjectRecord(body)
     ? {
         ...body,
@@ -275,6 +276,17 @@ export async function getContentDetail(input: { id?: string; slug?: string }): P
     id: input.id,
     slug: input.slug
   });
+}
+
+export interface ContentViewResponse {
+  id: string;
+  slug: string;
+  viewCount: number;
+  lastViewedAt: string;
+}
+
+export async function recordContentView(input: { id?: string; slug?: string }): Promise<ContentViewResponse> {
+  return postJson<ContentViewResponse>("contentView", input);
 }
 
 export async function getAdminContentDetail(input: { id?: string; slug?: string }): Promise<ContentItem> {

@@ -1,5 +1,4 @@
-import {
-  useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -18,6 +17,7 @@ import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutl
 import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
 import ContentBlocksRenderer from "../../shared/components/ContentBlocksRenderer";
 import EmptyState from "../../shared/components/EmptyState";
+import { recordContentView } from "../../services/googleApi";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
@@ -30,6 +30,16 @@ import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 interface PublicContentDetailPageProps {
   slug?: string;
 }
+
+const viewCountDebounceTtlMs = 6 * 60 * 60 * 1000;
+
+const focusVisibleSx = {
+  "&:focus-visible": {
+    outline: "3px solid",
+    outlineColor: "secondary.main",
+    outlineOffset: 3
+  }
+};
 
 function normalizeTags(tags: string[] | undefined) {
   return Array.isArray(tags) ? tags.filter(Boolean) : [];
@@ -72,6 +82,71 @@ function getReturnPath(type: string) {
   return "/news";
 }
 
+function getFilterListPath(type: string) {
+  if (type === "announcement") {
+    return "/announcements";
+  }
+
+  if (type === "news" || type === "blog") {
+    return "/news";
+  }
+
+  return getReturnPath(type);
+}
+
+function getFilterHref(type: string, key: "tag" | "category", value: string) {
+  return `${getFilterListPath(type)}?${key}=${encodeURIComponent(value)}`;
+}
+
+function isDifferentDateTime(left: string | undefined, right: string | undefined) {
+  if (!left || !right) {
+    return false;
+  }
+
+  const leftTime = new Date(left).getTime();
+  const rightTime = new Date(right).getTime();
+
+  if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
+    return left !== right;
+  }
+
+  return Math.abs(leftTime - rightTime) > 1000;
+}
+
+function getViewCountStorageKey(item: { id?: string; slug?: string }) {
+  const lookupKey = item.id || item.slug || "";
+  return lookupKey ? `rcat.cms.viewed.${lookupKey}` : "";
+}
+
+function shouldRecordContentView(storageKey: string) {
+  if (!storageKey || typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const savedAt = Number(window.localStorage.getItem(storageKey) || 0);
+    return !savedAt || savedAt + viewCountDebounceTtlMs <= Date.now();
+  } catch {
+    return false;
+  }
+}
+
+function markContentViewRecorded(storageKey: string) {
+  if (!storageKey || typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(storageKey, String(Date.now()));
+  } catch {
+    // Ignore storage failures; view counting must not affect article rendering.
+  }
+}
+
+function formatViewCount(value: number | undefined) {
+  return Math.max(0, Number(value) || 0).toLocaleString("th-TH");
+}
+
 function getSafeMediaHref(asset: { driveUrl?: string; previewUrl?: string; embedUrl?: string }) {
   const candidates = [asset.driveUrl, asset.previewUrl, asset.embedUrl];
 
@@ -89,6 +164,7 @@ function getSafeMediaHref(asset: { driveUrl?: string; previewUrl?: string; embed
 export default function PublicContentDetailPage({ slug }: PublicContentDetailPageProps) {
   const { data, isLoading } = usePublicCmsSnapshot();
   const contentDetailQuery = usePublicContentDetail({ slug });
+  const [recordedViewCount, setRecordedViewCount] = useState<number | null>(null);
 
   const visibleContent = useMemo(
     () =>
@@ -135,6 +211,31 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
       .map((entry) => entry.candidate);
   }, [item, visibleContent]);
 
+  useEffect(() => {
+    setRecordedViewCount(null);
+  }, [item?.id, item?.slug]);
+
+  useEffect(() => {
+    if (!item || item.status !== "published") {
+      return;
+    }
+
+    const storageKey = getViewCountStorageKey(item);
+
+    if (!shouldRecordContentView(storageKey)) {
+      return;
+    }
+
+    markContentViewRecorded(storageKey);
+    void recordContentView({ id: item.id, slug: item.slug })
+      .then((response) => {
+        setRecordedViewCount(response.viewCount);
+      })
+      .catch(() => {
+        // Public content should render even when view tracking is unavailable.
+      });
+  }, [item]);
+
   if (isLoading || contentDetailQuery.isLoading) {
     return (
       <PublicSiteShell title="กำลังโหลด" description="กำลังโหลดเนื้อหาสาธารณะจาก CMS">
@@ -160,6 +261,162 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
     );
   }
 
+  const displayedViewCount = recordedViewCount ?? item.viewCount ?? 0;
+  const categoryList = normalizeCategoryList(item.category);
+  const tagList = normalizeTags(item.tags);
+  const shouldShowUpdatedAt = isDifferentDateTime(item.updatedAt, item.publishAt);
+
+  if (item.type === "announcement") {
+    return (
+      <PublicSiteShell
+        title={item.title}
+        description={item.summary}
+        seoTitle={item.seoTitle || item.title}
+        seoDescription={item.seoDescription || item.summary}
+        canonicalUrl={item.canonicalUrl}
+        canonicalPath={`/content/${item.slug || slug || ""}`}
+      >
+        <Box sx={{ maxWidth: 960, mx: "auto" }}>
+          <Button href={normalizeSafeHref("/announcements")} startIcon={<ArrowBackOutlinedIcon />} sx={{ mb: 2 }}>
+            กลับไปหน้าประกาศ
+          </Button>
+          <Card component="article">
+            <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
+              <Stack spacing={2.4}>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Chip label="ประกาศ" color="primary" />
+                  {item.featured && <Chip label="สำคัญ" color="secondary" />}
+                  {categoryList.map((category) => (
+                    <Chip
+                      key={category}
+                      component="a"
+                      clickable
+                      href={normalizeSafeHref(getFilterHref(item.type, "category", category))}
+                      label={category}
+                      variant="outlined"
+                      sx={focusVisibleSx}
+                    />
+                  ))}
+                </Stack>
+
+                <Box>
+                  <Typography variant="h1" sx={{ fontSize: { xs: "2rem", md: "3.2rem" }, lineHeight: 1.12 }}>
+                    {item.seoTitle || item.title}
+                  </Typography>
+                  {(item.seoDescription || item.summary) && (
+                    <Typography color="text.secondary" sx={{ mt: 1.5, fontSize: { xs: "1rem", md: "1.12rem" } }}>
+                      {item.seoDescription || item.summary}
+                    </Typography>
+                  )}
+                </Box>
+
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Chip label={`ผู้โพสต์: ${item.owner || "ไม่ระบุ"}`} variant="outlined" />
+                  <Chip label={`เผยแพร่: ${formatDisplayDateTime(item.publishAt)}`} variant="outlined" />
+                  {shouldShowUpdatedAt && (
+                    <Chip label={`อัปเดต: ${formatDisplayDateTime(item.updatedAt)}`} variant="outlined" />
+                  )}
+                  <Chip label={`ดูแล้ว ${formatViewCount(displayedViewCount)} ครั้ง`} variant="outlined" />
+                </Stack>
+
+                {!!tagList.length && (
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {tagList.map((tag) => (
+                      <Chip
+                        key={tag}
+                        component="a"
+                        clickable
+                        href={normalizeSafeHref(getFilterHref(item.type, "tag", tag))}
+                        label={`#${tag}`}
+                        variant="outlined"
+                        sx={focusVisibleSx}
+                      />
+                    ))}
+                  </Stack>
+                )}
+
+                {featuredMedia?.type === "image" && featuredMediaPreviewUrl && (
+                  <Box
+                    component="img"
+                    src={featuredMediaPreviewUrl}
+                    alt={featuredMedia.name}
+                    sx={{
+                      width: "100%",
+                      height: { xs: 220, md: 430 },
+                      borderRadius: 2,
+                      objectFit: "cover",
+                      display: "block"
+                    }}
+                  />
+                )}
+                {featuredMedia?.type === "video" && featuredMediaEmbedUrl && (
+                  <Box
+                    component="iframe"
+                    title={featuredMedia.name}
+                    src={featuredMediaEmbedUrl}
+                    sx={{ width: "100%", height: { xs: 240, md: 430 }, border: 0, borderRadius: 2 }}
+                    allow="autoplay"
+                  />
+                )}
+
+                <Divider />
+
+                {contentBlocks.length ? (
+                  <ContentBlocksRenderer blocks={contentBlocks} mediaAssets={mediaAssets} />
+                ) : (
+                  <EmptyState title="ยังไม่มีรายละเอียดประกาศที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
+                )}
+
+                {!!attachedMedia.length && (
+                  <Box>
+                    <Typography variant="h3" sx={{ mb: 1.5 }}>
+                      เอกสารแนบ
+                    </Typography>
+                    <Stack spacing={1.2}>
+                      {attachedMedia.map((asset) => (
+                        <Button
+                          key={asset.id}
+                          component="a"
+                          href={getSafeMediaHref(asset)}
+                          target="_blank"
+                          rel="noreferrer"
+                          variant="outlined"
+                          startIcon={asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />}
+                          sx={{ justifyContent: "flex-start", ...focusVisibleSx }}
+                        >
+                          {asset.name}
+                        </Button>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Button href={normalizeSafeHref("/announcements")} startIcon={<ArrowBackOutlinedIcon />} sx={{ mt: 2.5 }}>
+            กลับไปหน้าประกาศ
+          </Button>
+
+          {relatedItems.length > 0 && (
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h2" sx={{ fontSize: "1.65rem", mb: 2 }}>
+                ประกาศที่เกี่ยวข้อง
+              </Typography>
+              <Grid container spacing={2.5}>
+                {relatedItems.map((relatedItem) => (
+                  <Grid size={{ xs: 12, md: 4 }} key={relatedItem.id}>
+                    <PublicContentCard item={relatedItem} mediaAssets={mediaAssets} />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+        </Box>
+      </PublicSiteShell>
+    );
+  }
+
   return (
     <PublicSiteShell
       title={item.title}
@@ -178,12 +435,28 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                 <Chip label={contentStatusLabels[item.status]} variant="outlined" />
                 <Chip label={formatDisplayDate(item.publishAt)} variant="outlined" />
                 {item.featured && <Chip label="แนะนำ" color="secondary" />}
-                {normalizeCategoryList(item.category).slice(0, 3).map((category) => (
-                  <Chip key={category} label={category} variant="outlined" />
+                {categoryList.slice(0, 3).map((category) => (
+                  <Chip
+                    key={category}
+                    component="a"
+                    clickable
+                    href={normalizeSafeHref(getFilterHref(item.type, "category", category))}
+                    label={category}
+                    variant="outlined"
+                    sx={focusVisibleSx}
+                  />
                 ))}
                 {!!item.readingMinutes && <Chip label={`อ่าน ${item.readingMinutes} นาที`} variant="outlined" />}
-                {normalizeTags(item.tags).slice(0, 4).map((tag) => (
-                  <Chip key={tag} label={`#${tag}`} variant="outlined" />
+                {tagList.slice(0, 4).map((tag) => (
+                  <Chip
+                    key={tag}
+                    component="a"
+                    clickable
+                    href={normalizeSafeHref(getFilterHref(item.type, "tag", tag))}
+                    label={`#${tag}`}
+                    variant="outlined"
+                    sx={focusVisibleSx}
+                  />
                 ))}
               </Stack>
               <Box

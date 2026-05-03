@@ -9,6 +9,7 @@ interface RouteResult {
 interface CodeScriptContext {
   extractAuthToken: (payload: Record<string, unknown>, query?: Record<string, unknown>) => string;
   getUsers: Mock;
+  incrementContentView: Mock;
   routeRequest: (event: Record<string, unknown>, method: string) => RouteResult;
   shouldReadAuthContext: (method: string, resource: string) => boolean;
   updateSiteSettings: Mock;
@@ -23,6 +24,12 @@ function loadCodeScript(): CodeScriptContext {
       role: "admin"
     }
   ]);
+  const incrementContentView = vi.fn(() => ({
+    id: "content-1",
+    slug: "announcement-1",
+    viewCount: 2,
+    lastViewedAt: "2026-05-03T00:00:00.000Z"
+  }));
   const updateSiteSettings = vi.fn((input: Record<string, unknown>) => input);
   const verifyAuthToken = vi.fn((token: string) => {
     if (token === "admin-token") {
@@ -66,6 +73,7 @@ function loadCodeScript(): CodeScriptContext {
     "getMenu",
     "getDisplaySettings",
     "getContentDetail",
+    "incrementContentView",
     "loginUser",
     "upsertContent",
     "deleteContent",
@@ -110,6 +118,7 @@ return {
     vi.fn(() => []),
     vi.fn(() => ({})),
     vi.fn(),
+    incrementContentView,
     vi.fn(),
     vi.fn(),
     vi.fn(),
@@ -130,6 +139,7 @@ return {
   return {
     ...exports,
     getUsers,
+    incrementContentView,
     updateSiteSettings,
     verifyAuthToken
   };
@@ -253,6 +263,27 @@ describe("Apps Script route auth handling", () => {
     consoleErrorSpy.mockRestore();
   });
 
+  it("records public content views without authentication", () => {
+    const context = loadCodeScript();
+    const result = context.routeRequest(
+      {
+        resource: "content-view",
+        payload: {
+          slug: "announcement-1"
+        }
+      },
+      "POST"
+    );
+
+    expect(context.shouldReadAuthContext("POST", "content-view")).toBe(false);
+    expect(result.statusCode).toBe(200);
+    expect(result.body.viewCount).toBe(2);
+    expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.incrementContentView).toHaveBeenCalledWith({
+      slug: "announcement-1"
+    });
+  });
+
   it("never reads authToken from query parameters", () => {
     const context = loadCodeScript();
 
@@ -273,6 +304,7 @@ describe("Apps Script route auth handling", () => {
       "users",
       "users-delete",
       "snapshot-admin",
+      "content-view",
       "any-future-admin-route"
     ];
 

@@ -566,37 +566,30 @@ export default function PublicHomePage() {
               ) : (
                 <EmptyState title="ยังไม่มีข่าวที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
               )}
+
+              <Box component="section" id="departments" sx={{ mt: { xs: 4, md: 5.5 } }}>
+                <HomeSectionHeading label="หลักสูตร" title="หลักสูตรที่เปิดสอน" />
+                {programItems.length ? (
+                  <Grid container spacing={2.5}>
+                    {programItems.map((item) => (
+                      <Grid size={{ xs: 12, md: 6 }} key={item.id}>
+                        <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<SchoolOutlinedIcon sx={{ fontSize: 42 }} />} />
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <EmptyState title="ยังไม่มีข้อมูลหลักสูตรที่เผยแพร่" icon={<SchoolOutlinedIcon />} />
+                )}
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12, lg: 4 }}>
               <Stack spacing={2.5}>
                 <LatestAnnouncementsCard items={latestAnnouncements} />
+                <EventListCard items={eventItems} />
                 <DocumentListCard items={documentItems} />
                 <ContactMapCard siteSettings={siteSettings} />
               </Stack>
-            </Grid>
-          </Grid>
-        </Box>
-
-        <Box component="section" id="departments" sx={{ mt: { xs: 4, md: 5.5 } }}>
-          <HomeSectionHeading label="หลักสูตร" title="หลักสูตรที่เปิดสอน" />
-          {programItems.length ? (
-            <Grid container spacing={2.5}>
-              {programItems.map((item) => (
-                <Grid size={{ xs: 12, md: 6, lg: 4 }} key={item.id}>
-                  <PublicContentCard item={item} mediaAssets={data?.media ?? []} icon={<SchoolOutlinedIcon sx={{ fontSize: 42 }} />} />
-                </Grid>
-              ))}
-            </Grid>
-          ) : (
-            <EmptyState title="ยังไม่มีข้อมูลหลักสูตรที่เผยแพร่" icon={<SchoolOutlinedIcon />} />
-          )}
-        </Box>
-
-        <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
-          <Grid container spacing={3.2}>
-            <Grid size={{ xs: 12, lg: 7 }}>
-              <EventListCard items={eventItems} />
             </Grid>
           </Grid>
         </Box>

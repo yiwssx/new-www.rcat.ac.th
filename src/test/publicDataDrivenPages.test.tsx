@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PublicSiteShell from "../public/components/PublicSiteShell";
+import PublicAnnouncementsPage from "../public/pages/PublicAnnouncementsPage";
 import PublicHomePage from "../public/pages/PublicHomePage";
 import { CmsSnapshot } from "../types";
 
@@ -52,6 +53,7 @@ function createSnapshot(overrides: Partial<CmsSnapshot> = {}): CmsSnapshot {
 
 afterEach(() => {
   cleanup();
+  window.history.pushState({}, "", "/");
 });
 
 describe("public data-driven pages", () => {
@@ -73,6 +75,17 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("ยังไม่มีข้อมูลหลักสูตรที่เผยแพร่")).toBeInTheDocument();
   });
 
+  it("orders homepage programs under news and events under announcements", () => {
+    currentSnapshot = createSnapshot();
+
+    render(<PublicHomePage />);
+
+    const pageText = document.body.textContent || "";
+    expect(pageText.indexOf("ข่าวสารและกิจกรรมล่าสุด")).toBeLessThan(pageText.indexOf("หลักสูตรที่เปิดสอน"));
+    expect(pageText.indexOf("ประกาศล่าสุด")).toBeLessThan(pageText.indexOf("กำหนดการ"));
+    expect(pageText.indexOf("กำหนดการ")).toBeLessThan(pageText.indexOf("เอกสารเผยแพร่"));
+  });
+
   it("hides social icons when site settings URLs are empty", () => {
     currentSnapshot = createSnapshot();
 
@@ -85,5 +98,44 @@ describe("public data-driven pages", () => {
     expect(screen.queryByLabelText("Facebook")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("YouTube")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("TikTok")).not.toBeInTheDocument();
+  });
+
+  it("filters announcements by clickable tag query params", () => {
+    window.history.pushState({}, "", "/announcements?tag=รับสมัคร");
+    currentSnapshot = createSnapshot({
+      content: [
+        {
+          id: "announcement-1",
+          title: "ประกาศรับสมัคร",
+          slug: "admissions",
+          type: "announcement",
+          status: "published",
+          owner: "Admin",
+          summary: "",
+          tags: ["รับสมัคร"],
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
+        },
+        {
+          id: "announcement-2",
+          title: "ประกาศทั่วไป",
+          slug: "general",
+          type: "announcement",
+          status: "published",
+          owner: "Admin",
+          summary: "",
+          tags: ["ทั่วไป"],
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
+        }
+      ]
+    });
+
+    render(<PublicAnnouncementsPage />);
+
+    expect(screen.getByText("ประกาศรับสมัคร")).toBeInTheDocument();
+    expect(screen.queryByText("ประกาศทั่วไป")).not.toBeInTheDocument();
+    expect(screen.getByText("#รับสมัคร")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "ล้างตัวกรอง" }).getAttribute("href")).toBe("/announcements");
   });
 });
