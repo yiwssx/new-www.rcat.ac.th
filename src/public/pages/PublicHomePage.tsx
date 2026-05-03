@@ -394,10 +394,9 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
                 alt={directorImageAlt}
                 sx={{
                   width: "100%",
-                  maxWidth: { xs: 280, sm: 320, lg: "100%" },
+                  maxWidth: { xs: 180, sm: 200, md: 220, lg: 220 },
                   mx: "auto",
                   aspectRatio: "3 / 4",
-                  maxHeight: { xs: 420, md: 460 },
                   borderRadius: 2,
                   objectFit: "cover",
                   objectPosition: "center top",
@@ -409,7 +408,7 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
               <Box
                 sx={(theme) => ({
                   width: "100%",
-                  maxWidth: { xs: 280, sm: 320, lg: "100%" },
+                  maxWidth: { xs: 180, sm: 200, md: 220, lg: 220 },
                   mx: "auto",
                   aspectRatio: "3 / 4",
                   borderRadius: 2,
@@ -418,7 +417,7 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
                   bgcolor: alpha(theme.palette.primary.light, 0.82)
                 })}
               >
-                <SchoolOutlinedIcon sx={{ fontSize: { xs: 64, md: 76 }, color: "primary.dark" }} />
+                <SchoolOutlinedIcon sx={{ fontSize: { xs: 54, md: 64 }, color: "primary.dark" }} />
               </Box>
             )}
             <Stack spacing={0.8}>
