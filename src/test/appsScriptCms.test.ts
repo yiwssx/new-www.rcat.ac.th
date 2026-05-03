@@ -16,6 +16,9 @@ interface CmsScriptContext {
   };
   invalidatePublicSnapshotCache: Mock;
   isAllowedUploadMimeType: (value: string) => boolean;
+  lockService: {
+    getScriptLock: Mock;
+  };
   normalizePublicMediaUrl: (url: string, allowedHosts?: string[]) => string;
   normalizeSlugValue: (value: string) => string;
   resolveUploadMimeType: (asset: { mimeType?: string; fileBase64?: string }) => string;
@@ -24,6 +27,10 @@ interface CmsScriptContext {
     options?: { includeBody?: boolean }
   ) => Record<string, unknown>;
   sanitizePublicMediaRecord: (asset: Record<string, unknown>) => Record<string, unknown>;
+  scriptLock: {
+    tryLock: Mock;
+    releaseLock: Mock;
+  };
   validateContentStatus: (value: string) => string;
   validateContentType: (value: string) => string;
   validateUploadBytes: (bytes: { length: number } | null) => void;
@@ -87,6 +94,13 @@ function loadCmsScript(input: { contentRows?: Array<Record<string, unknown>> } =
   const getSpreadsheet = vi.fn(() => ({
     getSheetByName: () => contentSheet
   }));
+  const scriptLock = {
+    tryLock: vi.fn(() => true),
+    releaseLock: vi.fn()
+  };
+  const lockService = {
+    getScriptLock: vi.fn(() => scriptLock)
+  };
   const ensureSheet = vi.fn(() => contentSheet);
   const getActiveHeaders = vi.fn(() => TEST_CONTENT_HEADERS);
   const invalidatePublicSnapshotCache = vi.fn();
@@ -98,6 +112,7 @@ function loadCmsScript(input: { contentRows?: Array<Record<string, unknown>> } =
     "getActiveHeaders",
     "invalidatePublicSnapshotCache",
     "readObjects",
+    "LockService",
     "CONTENT_HEADERS",
     "SHEETS",
     `${cmsSource}
@@ -123,6 +138,7 @@ return {
     getActiveHeaders,
     invalidatePublicSnapshotCache,
     readObjects,
+    lockService,
     TEST_CONTENT_HEADERS,
     {
       content: "Content"
@@ -133,7 +149,9 @@ return {
     ...exports,
     contentValues,
     invalidatePublicSnapshotCache,
-    readObjects
+    lockService,
+    readObjects,
+    scriptLock
   };
 }
 
@@ -246,7 +264,10 @@ describe("Apps Script CMS helpers", () => {
     expect(result.lastViewedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(context.contentValues[1][viewCountIndex]).toBe(5);
     expect(context.contentValues[1][lastViewedAtIndex]).toBe(result.lastViewedAt);
-    expect(context.invalidatePublicSnapshotCache).toHaveBeenCalledTimes(1);
+    expect(context.lockService.getScriptLock).toHaveBeenCalledTimes(1);
+    expect(context.scriptLock.tryLock).toHaveBeenCalledWith(5000);
+    expect(context.scriptLock.releaseLock).toHaveBeenCalledTimes(1);
+    expect(context.invalidatePublicSnapshotCache).not.toHaveBeenCalled();
   });
 
   it("does not increment missing or unpublished content", () => {
@@ -262,8 +283,33 @@ describe("Apps Script CMS helpers", () => {
     });
 
     expect(captureError(() => context.incrementContentView({ slug: "missing" }))?.statusCode).toBe(404);
+    expect(context.scriptLock.releaseLock).toHaveBeenCalledTimes(1);
     expect(captureError(() => context.incrementContentView({ slug: "draft-announcement" }))?.statusCode).toBe(404);
+    expect(context.scriptLock.releaseLock).toHaveBeenCalledTimes(2);
     expect(context.contentValues[1][TEST_CONTENT_HEADERS.indexOf("viewCount")]).toBe("10");
+    expect(context.invalidatePublicSnapshotCache).not.toHaveBeenCalled();
+  });
+
+  it("does not read or write view count rows when the content view lock is unavailable", () => {
+    const context = loadCmsScript({
+      contentRows: [
+        {
+          id: "content-1",
+          slug: "announcement-1",
+          status: "published",
+          viewCount: "4"
+        }
+      ]
+    });
+    context.scriptLock.tryLock.mockReturnValue(false);
+
+    const error = captureError(() => context.incrementContentView({ slug: "announcement-1" }));
+
+    expect(error?.statusCode).toBe(503);
+    expect(context.scriptLock.tryLock).toHaveBeenCalledWith(5000);
+    expect(context.scriptLock.releaseLock).not.toHaveBeenCalled();
+    expect(context.contentValues[1][TEST_CONTENT_HEADERS.indexOf("viewCount")]).toBe("4");
+    expect(context.invalidatePublicSnapshotCache).not.toHaveBeenCalled();
   });
 
   it("reduces public media records to fields needed for rendering", () => {

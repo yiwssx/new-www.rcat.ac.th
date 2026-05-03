@@ -120,6 +120,7 @@ describe("PublicContentDetailPage", () => {
       slug: "announcement-1"
     }));
     expect(await within(article).findByText("ดูแล้ว 13 ครั้ง")).toBeInTheDocument();
+    expect(window.localStorage.getItem("rcat.cms.viewed.content-1")).toMatch(/^\d+$/);
   });
 
   it("omits updated metadata for announcements when publish and update times match", () => {
@@ -135,6 +136,20 @@ describe("PublicContentDetailPage", () => {
     const article = screen.getByRole("article");
     expect(within(article).getByText(/เผยแพร่:/)).toBeInTheDocument();
     expect(within(article).queryByText(/อัปเดต:/)).not.toBeInTheDocument();
+  });
+
+  it("does not debounce failed content view attempts", async () => {
+    googleApiMocks.recordContentView.mockRejectedValueOnce(new Error("offline"));
+    currentDetail = createContent();
+    currentSnapshot = createSnapshot(currentDetail);
+
+    render(<PublicContentDetailPage slug="announcement-1" />);
+
+    await waitFor(() => expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
+      id: "content-1",
+      slug: "announcement-1"
+    }));
+    expect(window.localStorage.getItem("rcat.cms.viewed.content-1")).toBeNull();
   });
 
   it("keeps the generic sidebar for non-announcement content", async () => {
