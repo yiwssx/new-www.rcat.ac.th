@@ -173,6 +173,9 @@ describe("Apps Script starter public seed", () => {
 });
 
 describe("Apps Script site settings normalization", () => {
+  const driveFileId = "RCAT_director-2026_ABC123";
+  const canonicalDriveThumbnail = `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w1200`;
+
   it("accepts direct and iframe Google Maps embed URLs", () => {
     const context = loadSeedContext();
     const direct = context.normalizeSiteSettings({
@@ -184,6 +187,69 @@ describe("Apps Script site settings normalization", () => {
 
     expect(direct.mapEmbedUrl).toBe("https://www.google.com/maps/embed?pb=direct");
     expect(iframe.mapEmbedUrl).toBe("https://www.google.com/maps/embed?pb=iframe&z=15");
+  });
+
+  it("normalizes Google Drive director image share URLs to thumbnail URLs", () => {
+    const context = loadSeedContext();
+
+    expect(
+      context.normalizeSiteSettings({
+        directorImageUrl: `https://drive.google.com/file/d/${driveFileId}/view?usp=sharing`
+      }).directorImageUrl
+    ).toBe(canonicalDriveThumbnail);
+    expect(
+      context.normalizeSiteSettings({
+        directorImageUrl: `https://drive.google.com/open?id=${driveFileId}`
+      }).directorImageUrl
+    ).toBe(canonicalDriveThumbnail);
+    expect(
+      context.normalizeSiteSettings({
+        directorImageUrl: `https://drive.google.com/uc?id=${driveFileId}`
+      }).directorImageUrl
+    ).toBe(canonicalDriveThumbnail);
+    expect(
+      context.normalizeSiteSettings({
+        directorImageUrl: `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w400`
+      }).directorImageUrl
+    ).toBe(canonicalDriveThumbnail);
+  });
+
+  it("keeps non-Google director image URLs and rejects unsafe Google Drive IDs", () => {
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    try {
+      const context = loadSeedContext();
+
+      expect(
+        context.normalizeSiteSettings({
+          directorImageUrl: "https://example.edu/director.jpg"
+        }).directorImageUrl
+      ).toBe("https://example.edu/director.jpg");
+      expect(
+        context.normalizeSiteSettings({
+          directorImageUrl: "https://drive.google.com/file/d/unsafe$file/view?usp=sharing"
+        }).directorImageUrl
+      ).toBe("");
+    } finally {
+      consoleWarnSpy.mockRestore();
+    }
+  });
+
+  it("does not apply Google Drive director image normalization to map fields", () => {
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    try {
+      const context = loadSeedContext();
+      const settings = context.normalizeSiteSettings({
+        mapUrl: `https://drive.google.com/file/d/${driveFileId}/view?usp=sharing`,
+        mapEmbedUrl: `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w1200`
+      });
+
+      expect(settings.mapUrl).toBe("");
+      expect(settings.mapEmbedUrl).toBe("");
+    } finally {
+      consoleWarnSpy.mockRestore();
+    }
   });
 
   it("allows Google Maps short links only as mapUrl", () => {

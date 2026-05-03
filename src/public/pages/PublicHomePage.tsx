@@ -382,11 +382,11 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
     : "รูปผู้บริหารสถานศึกษา";
 
   return (
-    <Card component="section" sx={{ height: "100%", borderTop: "5px solid", borderColor: "secondary.main" }}>
-      <CardContent sx={{ p: 2.5, height: "100%" }}>
+    <Card component="section" sx={{ borderTop: "5px solid", borderColor: "secondary.main" }}>
+      <CardContent sx={{ p: 2.5, "& > .MuiStack-root:first-of-type": { mb: 1.5 } }}>
         <HomeSectionHeading label="ผู้บริหารสถานศึกษา" title={siteSettings.directorTitle || "ข้อมูลผู้บริหาร"} />
         {hasDirectorInfo ? (
-          <Stack spacing={2} sx={{ height: "100%" }}>
+          <Stack spacing={1.25}>
             {siteSettings.directorImageUrl ? (
               <Box
                 component="img"
@@ -394,7 +394,7 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
                 alt={directorImageAlt}
                 sx={{
                   width: "100%",
-                  maxWidth: { xs: 180, sm: 200, md: 220, lg: 220 },
+                  maxWidth: { xs: 128, sm: 140, md: 150, lg: 160 },
                   mx: "auto",
                   aspectRatio: "3 / 4",
                   borderRadius: 2,
@@ -408,7 +408,7 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
               <Box
                 sx={(theme) => ({
                   width: "100%",
-                  maxWidth: { xs: 180, sm: 200, md: 220, lg: 220 },
+                  maxWidth: { xs: 128, sm: 140, md: 150, lg: 160 },
                   mx: "auto",
                   aspectRatio: "3 / 4",
                   borderRadius: 2,
@@ -417,17 +417,17 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
                   bgcolor: alpha(theme.palette.primary.light, 0.82)
                 })}
               >
-                <SchoolOutlinedIcon sx={{ fontSize: { xs: 54, md: 64 }, color: "primary.dark" }} />
+                <SchoolOutlinedIcon sx={{ fontSize: { xs: 42, md: 48 }, color: "primary.dark" }} />
               </Box>
             )}
             <Stack spacing={0.8}>
               {siteSettings.directorName && (
-                <Typography variant="h3" sx={{ fontSize: { xs: "1.15rem", md: "1.25rem" } }}>
+                <Typography variant="h3" sx={{ fontSize: { xs: "1rem", md: "1.1rem" } }}>
                   {siteSettings.directorName}
                 </Typography>
               )}
               {siteSettings.directorDescription && (
-                <Typography color="text.secondary" sx={{ fontSize: "0.9rem" }}>
+                <Typography color="text.secondary" sx={{ fontSize: "0.85rem" }}>
                   {siteSettings.directorDescription}
                 </Typography>
               )}
@@ -478,7 +478,7 @@ export default function PublicHomePage() {
     >
       {isFetching && <LinearProgress />}
       <Container maxWidth="xl">
-        <Grid container spacing={3} alignItems="stretch">
+        <Grid container spacing={3} alignItems="flex-start">
           <Grid size={{ xs: 12, lg: 8 }}>
             <Box
               component="section"

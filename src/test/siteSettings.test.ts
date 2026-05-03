@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { defaultSiteSettings, extractIframeSrc, normalizeSiteSettings } from "../services/siteSettings";
 
 describe("siteSettings", () => {
+  const driveFileId = "RCAT_director-2026_ABC123";
+  const canonicalDriveThumbnail = `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w1200`;
+
   it("returns safe defaults for missing settings", () => {
     const settings = normalizeSiteSettings(null);
 
@@ -33,6 +36,48 @@ describe("siteSettings", () => {
     expect(settings.directorImageUrl).toBe("https://example.edu/director.jpg");
     expect(settings.mapUrl).toBe("https://maps.app.goo.gl/yhCsgrkLgd1pekM28");
     expect(settings.mapEmbedUrl).toBe("https://www.google.com/maps/embed?pb=test");
+  });
+
+  it("normalizes Google Drive director image share URLs to thumbnail URLs", () => {
+    const filePathSettings = normalizeSiteSettings({
+      directorImageUrl: `https://drive.google.com/file/d/${driveFileId}/view?usp=sharing`
+    });
+    const openSettings = normalizeSiteSettings({
+      directorImageUrl: `https://drive.google.com/open?id=${driveFileId}`
+    });
+    const ucSettings = normalizeSiteSettings({
+      directorImageUrl: `https://drive.google.com/uc?id=${driveFileId}`
+    });
+    const thumbnailSettings = normalizeSiteSettings({
+      directorImageUrl: `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w400`
+    });
+
+    expect(filePathSettings.directorImageUrl).toBe(canonicalDriveThumbnail);
+    expect(openSettings.directorImageUrl).toBe(canonicalDriveThumbnail);
+    expect(ucSettings.directorImageUrl).toBe(canonicalDriveThumbnail);
+    expect(thumbnailSettings.directorImageUrl).toBe(canonicalDriveThumbnail);
+  });
+
+  it("keeps non-Google HTTPS director image URLs and rejects unsafe Google Drive IDs", () => {
+    const httpsSettings = normalizeSiteSettings({
+      directorImageUrl: "https://example.edu/director.jpg"
+    });
+    const unsafeDriveSettings = normalizeSiteSettings({
+      directorImageUrl: "https://drive.google.com/file/d/unsafe$file/view?usp=sharing"
+    });
+
+    expect(httpsSettings.directorImageUrl).toBe("https://example.edu/director.jpg");
+    expect(unsafeDriveSettings.directorImageUrl).toBe("");
+  });
+
+  it("does not apply Google Drive image normalization to map fields", () => {
+    const settings = normalizeSiteSettings({
+      mapUrl: `https://drive.google.com/file/d/${driveFileId}/view?usp=sharing`,
+      mapEmbedUrl: `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w1200`
+    });
+
+    expect(settings.mapUrl).toBe("");
+    expect(settings.mapEmbedUrl).toBe("");
   });
 
   it("extracts a safe Google Maps embed URL from iframe input", () => {
