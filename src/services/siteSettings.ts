@@ -77,6 +77,22 @@ function normalizeHttpsUrl(value: unknown) {
   }
 }
 
+function decodeIframeSrcHtmlEntities(value: string) {
+  return value.replace(/&amp;/gi, "&");
+}
+
+export function extractIframeSrc(value: string): string {
+  const input = String(value || "").trim();
+
+  if (!/<iframe\b/i.test(input)) {
+    return input;
+  }
+
+  const srcMatch = input.match(/<iframe\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1/i);
+
+  return srcMatch ? decodeIframeSrcHtmlEntities(srcMatch[2]) : "";
+}
+
 function normalizeMapUrl(value: unknown) {
   const url = normalizeHttpsUrl(value);
 
@@ -104,7 +120,7 @@ function normalizeMapUrl(value: unknown) {
 }
 
 function normalizeMapEmbedUrl(value: unknown) {
-  const url = normalizeHttpsUrl(value);
+  const url = normalizeHttpsUrl(extractIframeSrc(String(value || "")));
 
   if (!url) {
     return "";
