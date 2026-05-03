@@ -228,43 +228,57 @@ function incrementContentView(input) {
     throw createHttpError("Missing content id or slug.", 400);
   }
 
-  const spreadsheet = getSpreadsheet();
-  const sheet = ensureSheet(spreadsheet, SHEETS.content, CONTENT_HEADERS);
-  const activeHeaders = getActiveHeaders(sheet, CONTENT_HEADERS);
-  const rows = sheet.getDataRange().getValues();
-  const idIndex = activeHeaders.indexOf("id");
-  const slugIndex = activeHeaders.indexOf("slug");
-  const statusIndex = activeHeaders.indexOf("status");
-  const viewCountIndex = activeHeaders.indexOf("viewCount");
-  const lastViewedAtIndex = activeHeaders.indexOf("lastViewedAt");
+  const lock = LockService.getScriptLock();
+  let lockAcquired = false;
 
-  for (let index = 1; index < rows.length; index += 1) {
-    const row = rows[index];
-    const rowId = String(row[idIndex] || "");
-    const rowSlug = String(row[slugIndex] || "");
+  try {
+    lockAcquired = lock.tryLock(5000);
 
-    if ((id && rowId === id) || (slug && rowSlug === slug)) {
-      if (String(row[statusIndex] || "") !== "published") {
-        throw createHttpError("Content item not found.", 404);
+    if (!lockAcquired) {
+      throw createHttpError("Content view counter is busy. Please retry.", 503);
+    }
+
+    const spreadsheet = getSpreadsheet();
+    const sheet = ensureSheet(spreadsheet, SHEETS.content, CONTENT_HEADERS);
+    const activeHeaders = getActiveHeaders(sheet, CONTENT_HEADERS);
+    const rows = sheet.getDataRange().getValues();
+    const idIndex = activeHeaders.indexOf("id");
+    const slugIndex = activeHeaders.indexOf("slug");
+    const statusIndex = activeHeaders.indexOf("status");
+    const viewCountIndex = activeHeaders.indexOf("viewCount");
+    const lastViewedAtIndex = activeHeaders.indexOf("lastViewedAt");
+
+    for (let index = 1; index < rows.length; index += 1) {
+      const row = rows[index];
+      const rowId = String(row[idIndex] || "");
+      const rowSlug = String(row[slugIndex] || "");
+
+      if ((id && rowId === id) || (slug && rowSlug === slug)) {
+        if (String(row[statusIndex] || "") !== "published") {
+          throw createHttpError("Content item not found.", 404);
+        }
+
+        const viewCount = normalizeViewCount(row[viewCountIndex]) + 1;
+        const lastViewedAt = new Date().toISOString();
+
+        sheet.getRange(index + 1, viewCountIndex + 1).setValue(viewCount);
+        sheet.getRange(index + 1, lastViewedAtIndex + 1).setValue(lastViewedAt);
+
+        return {
+          id: rowId,
+          slug: rowSlug,
+          viewCount,
+          lastViewedAt
+        };
       }
+    }
 
-      const viewCount = normalizeViewCount(row[viewCountIndex]) + 1;
-      const lastViewedAt = new Date().toISOString();
-
-      sheet.getRange(index + 1, viewCountIndex + 1).setValue(viewCount);
-      sheet.getRange(index + 1, lastViewedAtIndex + 1).setValue(lastViewedAt);
-      invalidatePublicSnapshotCache();
-
-      return {
-        id: rowId,
-        slug: rowSlug,
-        viewCount,
-        lastViewedAt
-      };
+    throw createHttpError("Content item not found.", 404);
+  } finally {
+    if (lockAcquired) {
+      lock.releaseLock();
     }
   }
-
-  throw createHttpError("Content item not found.", 404);
 }
 
 function upsertMedia(asset) {

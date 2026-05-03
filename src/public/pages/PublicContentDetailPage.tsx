@@ -226,9 +226,9 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
       return;
     }
 
-    markContentViewRecorded(storageKey);
     void recordContentView({ id: item.id, slug: item.slug })
       .then((response) => {
+        markContentViewRecorded(storageKey);
         setRecordedViewCount(response.viewCount);
       })
       .catch(() => {
