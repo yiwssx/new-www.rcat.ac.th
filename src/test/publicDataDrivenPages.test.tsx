@@ -268,10 +268,10 @@ describe("public data-driven pages", () => {
       documentsIndex,
       contactIndex
     ].forEach((index) => expect(index).toBeGreaterThanOrEqual(0));
-    expect(heroIndex).toBeLessThan(directorIndex);
-    expect(directorIndex).toBeLessThan(newsIndex);
+    expect(heroIndex).toBeLessThan(newsIndex);
     expect(newsIndex).toBeLessThan(programsIndex);
-    expect(programsIndex).toBeLessThan(announcementsIndex);
+    expect(programsIndex).toBeLessThan(directorIndex);
+    expect(directorIndex).toBeLessThan(announcementsIndex);
     expect(announcementsIndex).toBeLessThan(eventsIndex);
     expect(eventsIndex).toBeLessThan(documentsIndex);
     expect(documentsIndex).toBeLessThan(contactIndex);
