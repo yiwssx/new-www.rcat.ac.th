@@ -520,7 +520,7 @@ export default function PublicHomePage() {
             sx={(theme) => ({
               position: "relative",
               overflow: "hidden",
-              borderRadius: 3,
+              borderRadius: 1,
               minHeight: { xs: 240, sm: 240, md: 240, lg: 240 },
               display: "flex",
               alignItems: "center",
