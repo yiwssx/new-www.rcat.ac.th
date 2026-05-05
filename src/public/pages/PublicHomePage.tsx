@@ -34,6 +34,7 @@ import { CalendarEvent, ContentItem, SiteSettings } from "../../types";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import PublicContentCard from "../components/PublicContentCard";
+import PublicHomeCarousel from "../components/PublicHomeCarousel";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
@@ -503,6 +504,7 @@ export default function PublicHomePage() {
       canonicalPath="/"
     >
       {isFetching && <LinearProgress />}
+      <PublicHomeCarousel />
       <Container maxWidth="xl">
         <Box
           sx={{
