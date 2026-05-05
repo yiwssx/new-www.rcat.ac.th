@@ -58,6 +58,68 @@ interface TopBarInfoItemProps {
   allowShrink?: boolean;
 }
 
+interface FooterDirectoryGroup {
+  title: string;
+  links: Array<{
+    label: string;
+    href: string;
+  }>;
+}
+
+const footerDirectoryGroups: FooterDirectoryGroup[] = [
+  {
+    title: "สำนักงานกลาง (สอศ.)",
+    links: [
+      { label: "สำนักอำนวยการ", href: "#" },
+      { label: "สำนักความร่วมมือ", href: "#" },
+      { label: "สำนักติดตามและประเมินผล", href: "#" },
+      { label: "สำนักนโยบายและแผน", href: "#" },
+      { label: "สำนักพัฒนาสมรรถนะครูและบุคลากรฯ", href: "#" },
+      { label: "สำนักมาตรฐานการอาชีวศึกษา", href: "#" },
+      { label: "สำนักวิจัยและพัฒนาการอาชีวศึกษา", href: "#" },
+      { label: "สำนักบริหารการอาชีวศึกษาเอกชน", href: "#" }
+    ]
+  },
+  {
+    title: "หน่วยงานกลาง สอศ.",
+    links: [
+      { label: "ศูนย์เทคโนโลยีสารสนเทศฯ", href: "#" },
+      { label: "ศูนย์ประสานงานสถานศึกษาสังกัดอาชีวศึกษา", href: "#" },
+      { label: "ศูนย์อาชีวศึกษาทวิภาคี", href: "#" },
+      { label: "ศูนย์จิตอาสาและธรรมาภิบาลอาชีวศึกษา", href: "#" },
+      { label: "ศูนย์ประชาสัมพันธ์และภาพลักษณ์", href: "#" },
+      { label: "หน่วยตรวจสอบภายใน", href: "#" },
+      { label: "หน่วยศึกษานิเทศก์", href: "#" },
+      { label: "กลุ่มพัฒนาระบบบริหาร", href: "#" }
+    ]
+  },
+  {
+    title: "เครือข่ายสถานศึกษา",
+    links: [
+      { label: "วิทยาลัยเกษตรและเทคโนโลยีตัวอย่าง", href: "#" },
+      { label: "วิทยาลัยเทคนิคตัวอย่าง", href: "#" },
+      { label: "วิทยาลัยอาชีวศึกษาตัวอย่าง", href: "#" },
+      { label: "วิทยาลัยสารพัดช่างตัวอย่าง", href: "#" },
+      { label: "วิทยาลัยการอาชีพตัวอย่างหนึ่ง", href: "#" },
+      { label: "วิทยาลัยการอาชีพตัวอย่างสอง", href: "#" },
+      { label: "วิทยาลัยเทคโนโลยีฐานอาชีพตัวอย่าง", href: "#" },
+      { label: "วิทยาลัยชุมชนอาชีวศึกษาตัวอย่าง", href: "#" }
+    ]
+  },
+  {
+    title: "นโยบายการให้บริการ",
+    links: [
+      { label: "นโยบายความเป็นส่วนตัวของข้อมูล", href: "#" },
+      { label: "นโยบายการใช้คุกกี้", href: "#" },
+      { label: "แผนผังเว็บไซต์", href: "/sitemap.xml" },
+      { label: "ติดต่อเรา", href: "/contact" },
+      { label: "ข้อกำหนดการใช้งาน", href: "#" },
+      { label: "การเข้าถึงเว็บไซต์", href: "#" },
+      { label: "คำถามที่พบบ่อย", href: "#" }
+    ]
+  }
+];
+
 function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false }: TopBarInfoItemProps) {
   const content = (
     <>
@@ -268,6 +330,78 @@ function DesktopTopBar({
 
       <TopBarSocialIcons links={socialLinks} showLabel />
     </Stack>
+  );
+}
+
+function FooterDirectory() {
+  return (
+    <Box
+      component="section"
+      aria-label="ไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์"
+      sx={{
+        bgcolor: "primary.light",
+        borderTop: "1px solid rgba(31, 90, 44, 0.12)",
+        py: { xs: 3, md: 4 }
+      }}
+    >
+      <Container maxWidth="xl">
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(4, minmax(0, 1fr))" },
+            gap: { xs: 2.5, md: 4 }
+          }}
+        >
+          {footerDirectoryGroups.map((group) => (
+            <Box key={group.title}>
+              <Typography
+                component="h2"
+                sx={{
+                  color: "primary.dark",
+                  fontSize: { xs: "1rem", md: "1.08rem" },
+                  fontWeight: 900,
+                  mb: 1.25
+                }}
+              >
+                {group.title}
+              </Typography>
+              <Stack component="ul" spacing={0.7} sx={{ m: 0, p: 0, listStyle: "none" }}>
+                {group.links.map((link) => (
+                  <Box component="li" key={link.label}>
+                    <Typography
+                      component="a"
+                      href={normalizeSafeHref(link.href)}
+                      aria-label={`เปิดลิงก์ ${link.label}`}
+                      sx={{
+                        color: "text.secondary",
+                        display: "inline-block",
+                        fontSize: { xs: "0.9rem", md: "0.94rem" },
+                        lineHeight: 1.55,
+                        textDecoration: "none",
+                        transition: "color 160ms ease",
+                        "&:hover": {
+                          color: "primary.dark",
+                          textDecoration: "underline",
+                          textUnderlineOffset: "3px"
+                        },
+                        "&:focus-visible": {
+                          borderRadius: 0.5,
+                          outline: "2px solid",
+                          outlineColor: "secondary.main",
+                          outlineOffset: 3
+                        }
+                      }}
+                    >
+                      {link.label}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+          ))}
+        </Box>
+      </Container>
+    </Box>
   );
 }
 
@@ -533,6 +667,8 @@ export default function PublicSiteShell({
       <Box component="main" sx={{ py: { xs: 3, md: 4.5 } }} className="mx-auto w-full max-w-[1680px]">
         {disableMainContainer ? children : <Container maxWidth="xl">{children}</Container>}
       </Box>
+
+      <FooterDirectory />
 
       <Box component="footer" sx={{ py: 4, bgcolor: "primary.dark", color: "white", mt: 2 }}>
         <Container maxWidth="xl">
