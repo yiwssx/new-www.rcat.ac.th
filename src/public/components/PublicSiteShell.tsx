@@ -15,6 +15,7 @@ import PublicErrorState from "./PublicErrorState";
 import PublicLoadingState from "./PublicLoadingState";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTiktok } from "@fortawesome/free-brands-svg-icons";
+import FloatingMessengerButton from "./FloatingMessengerButton";
 import { projectSettings } from "../../config/projectSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeSafeHref } from "../../utils/safeUrl";
@@ -568,6 +569,7 @@ export default function PublicSiteShell({
           </Stack>
         </Container>
       </Box>
+      <FloatingMessengerButton />
     </Box>
   );
 }
