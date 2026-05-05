@@ -1333,7 +1333,9 @@ export default function PublicHomePage() {
                 )}
               </Box>
               <AchievementHighlightsSection />
-              <ExternalServicesSection />
+              <Box sx={{ display: { xs: "none", lg: "block" } }}>
+                <ExternalServicesSection />
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12, lg: 4 }} sx={{ order: { xs: 2, lg: 2 } }}>
@@ -1341,6 +1343,9 @@ export default function PublicHomePage() {
                 <LatestAnnouncementsCard items={latestAnnouncements} />
                 <EventListCard items={eventItems} />
                 <DocumentListCard items={documentItems} />
+                <Box sx={{ display: { xs: "block", lg: "none" } }}>
+                  <ExternalServicesSection />
+                </Box>
                 <ContactMapCard siteSettings={siteSettings} />
                 <VisitorStatsCard />
               </Stack>
