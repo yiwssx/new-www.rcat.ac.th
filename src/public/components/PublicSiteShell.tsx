@@ -1,9 +1,10 @@
 import { ReactNode } from "react";
-import { Box, Button, Container, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Button, Container, IconButton, InputAdornment, Stack, TextField, Typography } from "@mui/material";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
@@ -291,12 +292,12 @@ export default function PublicSiteShell({
       ? "กำลังโหลดข้อมูล"
       : isInitialPublicError
         ? "ไม่สามารถโหลดข้อมูลได้"
-        : seoTitle ?? title,
+        : (seoTitle ?? title),
     description: shouldShowPublicLoading
       ? "กรุณารอสักครู่ ระบบกำลังดึงข้อมูลเว็บไซต์"
       : isInitialPublicError
         ? "กรุณาลองใหม่อีกครั้ง"
-        : seoDescription ?? description,
+        : (seoDescription ?? description),
     canonicalUrl,
     canonicalPath: canonicalPath ?? defaultCanonicalPath,
     siteName: data?.siteSettings?.siteName?.trim() || projectSettings.site.name
@@ -470,15 +471,34 @@ export default function PublicSiteShell({
               >
                 {ANNOUNCEMENTS_LABEL}
               </Button>
-              <Button
-                variant="text"
-                color="primary"
-                href={normalizeSafeHref("/login")}
-                startIcon={<AdminPanelSettingsOutlinedIcon />}
-                sx={{ display: { xs: "none", sm: "inline-flex" } }}
+              <Box
+                component="form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                }}
+                sx={{ width: { xs: "100%", sm: 240, md: 280 }, flex: { xs: "1 1 100%", sm: "0 1 280px" } }}
               >
-                {STAFF_LOGIN_LABEL}
-              </Button>
+                <TextField
+                  type="search"
+                  size="small"
+                  placeholder="ค้นหาในเว็บไซต์"
+                  aria-label="ค้นหาในเว็บไซต์"
+                  fullWidth
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchOutlinedIcon fontSize="small" />
+                      </InputAdornment>
+                    )
+                  }}
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      bgcolor: "white",
+                      borderRadius: 1
+                    }
+                  }}
+                />
+              </Box>
             </Stack>
           </Stack>
         </Container>
