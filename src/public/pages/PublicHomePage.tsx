@@ -35,8 +35,10 @@ import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import dayjs from "dayjs";
 import EmptyState from "../../shared/components/EmptyState";
@@ -73,6 +75,12 @@ interface MockExternalServiceItem {
   href: string;
   tone: "student" | "homeroom" | "management" | "learning" | "calendar" | "check" | "admission" | "career";
   icon: ReactNode;
+}
+
+interface MockVisitorStat {
+  label: string;
+  value: string;
+  helper?: string;
 }
 
 interface HomeSectionHeadingProps {
@@ -222,6 +230,13 @@ const focusVisibleSx = {
 };
 
 const urgentMarqueeText = "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด Urgent/Hilight/Marquee mock >_^";
+
+const mockVisitorStats: MockVisitorStat[] = [
+  { label: "วันนี้", value: "128", helper: "ผู้เข้าชม" },
+  { label: "เมื่อวาน", value: "342", helper: "ผู้เข้าชม" },
+  { label: "เดือนนี้", value: "8,764", helper: "ผู้เข้าชม" },
+  { label: "ทั้งหมด", value: "156,892", helper: "ครั้ง" }
+];
 
 function HomeSectionHeading({ label, title, description, action }: HomeSectionHeadingProps) {
   return (
@@ -534,6 +549,85 @@ function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
             เปิดใน Google Maps
           </Button>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function VisitorStatsCard() {
+  return (
+    <Card
+      component="section"
+      aria-label="จำนวนผู้เข้าชมเว็บไซต์"
+      sx={{
+        borderTop: "5px solid",
+        borderColor: "secondary.main",
+        bgcolor: "background.paper"
+      }}
+    >
+      <CardContent sx={{ p: 2.5 }}>
+        <Stack direction="row" spacing={1.2} alignItems="flex-start" justifyContent="space-between" sx={{ mb: 2 }}>
+          <Stack direction="row" spacing={1.1} alignItems="center" sx={{ minWidth: 0 }}>
+            <Box
+              sx={(theme) => ({
+                width: 42,
+                height: 42,
+                borderRadius: 2,
+                display: "grid",
+                placeItems: "center",
+                color: "primary.dark",
+                bgcolor: alpha(theme.palette.secondary.light, 0.7),
+                flexShrink: 0
+              })}
+            >
+              <VisibilityOutlinedIcon />
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography fontWeight={900} sx={{ color: "primary.dark", lineHeight: 1.25 }}>
+                จำนวนผู้เข้าชมเว็บไซต์
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35, lineHeight: 1.45 }}>
+                ข้อมูลตัวอย่างสำหรับแสดงผลสถิติการเข้าชม
+              </Typography>
+            </Box>
+          </Stack>
+          <Chip
+            icon={<PeopleAltOutlinedIcon />}
+            label="Mock"
+            size="small"
+            color="primary"
+            variant="outlined"
+            sx={{ flexShrink: 0, fontWeight: 800 }}
+          />
+        </Stack>
+
+        <Grid container spacing={1.2}>
+          {mockVisitorStats.map((stat) => (
+            <Grid size={{ xs: 6 }} key={stat.label}>
+              <Box
+                sx={(theme) => ({
+                  height: "100%",
+                  borderRadius: 1.5,
+                  border: "1px solid rgba(31, 90, 44, 0.12)",
+                  bgcolor: alpha(theme.palette.primary.light, 0.42),
+                  p: 1.35
+                })}
+              >
+                <Typography variant="body2" color="text.secondary" fontWeight={800}>
+                  {stat.label}
+                </Typography>
+                <Typography sx={{ color: "primary.dark", fontSize: { xs: "1.35rem", md: "1.5rem" }, fontWeight: 900 }}>
+                  {stat.value}
+                </Typography>
+                {stat.helper && (
+                  <Typography variant="caption" color="text.secondary">
+                    {stat.helper}
+                  </Typography>
+                )}
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
       </CardContent>
     </Card>
   );
@@ -1192,7 +1286,7 @@ export default function PublicHomePage() {
 
         <Box component="section" id="news" sx={{ mt: { xs: 3, md: 4 } }}>
           <Grid container spacing={3.2} alignItems="flex-start">
-            <Grid size={{ xs: 12, lg: 8 }}>
+            <Grid size={{ xs: 12, lg: 8 }} sx={{ order: { xs: 1, lg: 1 } }}>
               <HomeSectionHeading
                 label="ข่าวสาร"
                 title="ข่าวสารและกิจกรรมล่าสุด"
@@ -1242,12 +1336,13 @@ export default function PublicHomePage() {
               <ExternalServicesSection />
             </Grid>
 
-            <Grid size={{ xs: 12, lg: 4 }}>
+            <Grid size={{ xs: 12, lg: 4 }} sx={{ order: { xs: 2, lg: 2 } }}>
               <Stack spacing={2.5}>
                 <LatestAnnouncementsCard items={latestAnnouncements} />
                 <EventListCard items={eventItems} />
                 <DocumentListCard items={documentItems} />
                 <ContactMapCard siteSettings={siteSettings} />
+                <VisitorStatsCard />
               </Stack>
             </Grid>
           </Grid>
