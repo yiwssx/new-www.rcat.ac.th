@@ -1,22 +1,19 @@
 import { useMemo } from "react";
 import { Box, Container, LinearProgress, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import dayjs from "dayjs";
-import EmptyState from "../../shared/components/EmptyState";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { CalendarEvent, ContentItem } from "../../types";
-import PublicContentCard from "../components/PublicContentCard";
 import PublicHomeCarousel from "../components/PublicHomeCarousel";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { AchievementHighlightsSection } from "../components/home/AchievementHighlightsSection";
 import { ContactMapCard } from "../components/home/ContactMapCard";
 import { DocumentListCard } from "../components/home/DocumentListCard";
 import { EventListCard } from "../components/home/EventListCard";
-import { HomeSectionHeading } from "../components/home/HomeSectionHeading";
 import { LatestAnnouncementsCard } from "../components/home/LatestAnnouncementsCard";
 import { HomeHeroSection } from "../components/home/HomeHeroSection";
 import { LatestNewsSection } from "../components/home/LatestNewsSection";
+import { ProgramsSection } from "../components/home/ProgramsSection";
 import { ProcurementNewsSection } from "../components/home/ProcurementNewsSection";
 import { ExternalServicesSection } from "../components/home/ExternalServicesSection";
 import { UrgentMarqueeSection } from "../components/home/UrgentMarqueeSection";
@@ -108,25 +105,7 @@ export default function PublicHomePage() {
               <LatestNewsSection items={latestNews} mediaAssets={data?.media ?? []} />
 
               <ProcurementNewsSection />
-
-              <Box component="section" id="departments" sx={{ mt: { xs: 4, md: 5.5 } }}>
-                <HomeSectionHeading label="หลักสูตร" title="หลักสูตรที่เปิดสอน" />
-                {programItems.length ? (
-                  <Grid container spacing={2.5}>
-                    {programItems.map((item) => (
-                      <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-                        <PublicContentCard
-                          item={item}
-                          mediaAssets={data?.media ?? []}
-                          icon={<SchoolOutlinedIcon sx={{ fontSize: 42 }} />}
-                        />
-                      </Grid>
-                    ))}
-                  </Grid>
-                ) : (
-                  <EmptyState title="ยังไม่มีข้อมูลหลักสูตรที่เผยแพร่" icon={<SchoolOutlinedIcon />} />
-                )}
-              </Box>
+              <ProgramsSection items={programItems} mediaAssets={data?.media ?? []} />
               <AchievementHighlightsSection />
               <Box sx={{ display: { xs: "none", lg: "block" } }}>
                 <ExternalServicesSection />
