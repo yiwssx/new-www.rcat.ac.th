@@ -31,7 +31,7 @@ export function UrgentMarqueeSection() {
         >
           <Chip
             icon={<CampaignOutlinedIcon />}
-            label="ประกาศด่วน"
+            label="ประชาสัมพันธ์"
             color="secondary"
             sx={{
               alignSelf: { xs: "flex-start", sm: "center" },
