@@ -645,18 +645,21 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
     : "รูปผู้บริหารสถานศึกษา";
 
   return (
-    <Card component="section" sx={{ borderTop: "5px solid", borderColor: "secondary.main" }}>
-      <CardContent
-        sx={{
-          p: { xs: 1.75, md: 2 },
-          pb: { xs: 1.75, md: 2 },
-          textAlign: "left",
-          "&:last-child": {
-            pb: { xs: 1.75, md: 2 }
-          }
-        }}
-      >
-        <Box sx={{ mb: 1.25 }}>
+    <Box
+      component="section"
+      sx={{
+        height: "100%",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        bgcolor: "transparent",
+        py: { xs: 1.5, md: 1 }
+      }}
+    >
+      <Stack spacing={1.15} alignItems="center" sx={{ width: "100%" }}>
+        <Box sx={{ width: "100%", textAlign: "center" }}>
           <Typography
             component="p"
             sx={{
@@ -666,25 +669,23 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
               letterSpacing: 0,
               textTransform: "uppercase"
             }}
-          >
-            :: ผู้บริหารสถานศึกษา
-          </Typography>
-          <Typography variant="h3" sx={{ fontSize: { xs: "1.05rem", md: "1.15rem" } }}>
+          ></Typography>
+          <Typography variant="h1" sx={{ fontSize: { xs: "1.05rem", md: "1.15rem" } }}>
             {siteSettings.directorTitle || "ข้อมูลผู้บริหาร"}
           </Typography>
         </Box>
         {hasDirectorInfo ? (
-          <Stack direction="row" spacing={1.5} alignItems="flex-start">
+          <Stack spacing={1.15} alignItems="center" sx={{ width: "100%" }}>
             {siteSettings.directorImageUrl ? (
               <Box
                 component="img"
                 src={normalizeSafeHref(siteSettings.directorImageUrl)}
                 alt={directorImageAlt}
                 sx={{
-                  width: { xs: 86, sm: 96, md: 104, lg: 112 },
+                  width: { xs: 160, sm: 176, md: 184, lg: 192 },
                   flex: "0 0 auto",
                   aspectRatio: "3 / 4",
-                  borderRadius: 2,
+                  borderRadius: 1,
                   objectFit: "cover",
                   objectPosition: "center top",
                   display: "block",
@@ -694,7 +695,7 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
             ) : (
               <Box
                 sx={(theme) => ({
-                  width: { xs: 86, sm: 96, md: 104, lg: 112 },
+                  width: { xs: 160, sm: 176, md: 184, lg: 192 },
                   flex: "0 0 auto",
                   aspectRatio: "3 / 4",
                   borderRadius: 2,
@@ -703,10 +704,10 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
                   bgcolor: alpha(theme.palette.primary.light, 0.82)
                 })}
               >
-                <SchoolOutlinedIcon sx={{ fontSize: { xs: 36, md: 42 }, color: "primary.dark" }} />
+                <SchoolOutlinedIcon sx={{ fontSize: { xs: 52, md: 58 }, color: "primary.dark" }} />
               </Box>
             )}
-            <Stack spacing={0.45} sx={{ minWidth: 0, flex: 1, pt: 0.25 }}>
+            <Stack spacing={0.45} alignItems="center" sx={{ width: "100%", textAlign: "center" }}>
               {siteSettings.directorName && (
                 <Typography
                   variant="h3"
@@ -725,8 +726,8 @@ function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
         ) : (
           <EmptyState title="ยังไม่มีข้อมูลผู้บริหาร" icon={<SchoolOutlinedIcon />} />
         )}
-      </CardContent>
-    </Card>
+      </Stack>
+    </Box>
   );
 }
 
@@ -1143,7 +1144,7 @@ export default function PublicHomePage() {
               lg: "minmax(0, 1fr) minmax(300px, 360px)"
             },
             gap: { xs: 2, md: 3 },
-            alignItems: "start"
+            alignItems: "stretch"
           }}
         >
           <Box
@@ -1152,6 +1153,7 @@ export default function PublicHomePage() {
               position: "relative",
               overflow: "hidden",
               borderRadius: 1,
+              height: "100%",
               minHeight: { xs: 240, sm: 240, md: 240, lg: 240 },
               display: "flex",
               alignItems: "center",
@@ -1279,7 +1281,7 @@ export default function PublicHomePage() {
             </Stack>
           </Box>
 
-          <Box sx={{ width: "100%" }}>
+          <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
             <DirectorHeroCard siteSettings={siteSettings} />
           </Box>
         </Box>
