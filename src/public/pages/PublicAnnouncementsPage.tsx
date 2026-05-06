@@ -112,9 +112,7 @@ export default function PublicAnnouncementsPage() {
           </Grid>
         ))}
       </Grid>
-      {!pageItems.length && (
-        <EmptyState title="ยังไม่มีเอกสารเผยแพร่" icon={<DescriptionOutlinedIcon />} />
-      )}
+      {!pageItems.length && <EmptyState title="ยังไม่มีเอกสารเผยแพร่" icon={<DescriptionOutlinedIcon />} />}
     </PublicSiteShell>
   );
 }

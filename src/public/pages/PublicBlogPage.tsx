@@ -36,9 +36,7 @@ export default function PublicBlogPage() {
           featured
         />
       )}
-      {!blogItems.length && (
-        <EmptyState title="ยังไม่มีบทความที่เผยแพร่" icon={<EditNoteOutlinedIcon />} />
-      )}
+      {!blogItems.length && <EmptyState title="ยังไม่มีบทความที่เผยแพร่" icon={<EditNoteOutlinedIcon />} />}
       {!!secondaryItems.length && (
         <>
           <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
