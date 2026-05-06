@@ -1,15 +1,11 @@
 import { useMemo } from "react";
-import { Box, Button, Container, LinearProgress, Stack } from "@mui/material";
+import { Box, Container, LinearProgress, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
-import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
-import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import dayjs from "dayjs";
 import EmptyState from "../../shared/components/EmptyState";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { CalendarEvent, ContentItem } from "../../types";
-import { normalizeSafeHref } from "../../utils/safeUrl";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicHomeCarousel from "../components/PublicHomeCarousel";
 import PublicSiteShell from "../components/PublicSiteShell";
@@ -20,6 +16,7 @@ import { EventListCard } from "../components/home/EventListCard";
 import { HomeSectionHeading } from "../components/home/HomeSectionHeading";
 import { LatestAnnouncementsCard } from "../components/home/LatestAnnouncementsCard";
 import { HomeHeroSection } from "../components/home/HomeHeroSection";
+import { LatestNewsSection } from "../components/home/LatestNewsSection";
 import { ProcurementNewsSection } from "../components/home/ProcurementNewsSection";
 import { ExternalServicesSection } from "../components/home/ExternalServicesSection";
 import { UrgentMarqueeSection } from "../components/home/UrgentMarqueeSection";
@@ -108,30 +105,7 @@ export default function PublicHomePage() {
         <Box component="section" id="news" sx={{ mt: { xs: 3, md: 4 } }}>
           <Grid container spacing={3.2} alignItems="flex-start">
             <Grid size={{ xs: 12, lg: 8 }} sx={{ order: { xs: 1, lg: 1 } }}>
-              <HomeSectionHeading
-                label="ข่าวสาร"
-                title="ข่าวสารและกิจกรรมล่าสุด"
-                action={
-                  <Button href={normalizeSafeHref("/news")} endIcon={<ArrowForwardOutlinedIcon />}>
-                    ข่าวทั้งหมด
-                  </Button>
-                }
-              />
-              {latestNews.length ? (
-                <Grid container spacing={2.5}>
-                  {latestNews.map((item) => (
-                    <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-                      <PublicContentCard
-                        item={item}
-                        mediaAssets={data?.media ?? []}
-                        icon={<CampaignOutlinedIcon sx={{ fontSize: 42 }} />}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-              ) : (
-                <EmptyState title="ยังไม่มีข่าวที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
-              )}
+              <LatestNewsSection items={latestNews} mediaAssets={data?.media ?? []} />
 
               <ProcurementNewsSection />
 
