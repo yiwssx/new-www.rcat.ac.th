@@ -16,7 +16,7 @@ export const theme = createTheme({
       main: palette.secondaryMain,
       light: palette.secondaryLight,
       dark: palette.secondaryDark,
-      contrastText: palette.textPrimary
+      contrastText: palette.paper
     },
     success: {
       main: palette.successMain,
@@ -26,7 +26,8 @@ export const theme = createTheme({
     warning: {
       main: palette.warningMain,
       light: palette.warningLight,
-      dark: palette.warningDark
+      dark: palette.warningDark,
+      contrastText: palette.paper
     },
     error: {
       main: palette.errorMain,
