@@ -35,10 +35,8 @@ import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
-import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import dayjs from "dayjs";
 import EmptyState from "../../shared/components/EmptyState";
@@ -49,6 +47,10 @@ import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl
 import PublicContentCard from "../components/PublicContentCard";
 import PublicHomeCarousel from "../components/PublicHomeCarousel";
 import PublicSiteShell from "../components/PublicSiteShell";
+import { DirectorHeroCard } from "../components/home/DirectorHeroCard";
+import { HomeSectionHeading } from "../components/home/HomeSectionHeading";
+import { UrgentMarqueeSection } from "../components/home/UrgentMarqueeSection";
+import { VisitorStatsCard } from "../components/home/VisitorStatsCard";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 interface MockAchievementItem {
@@ -75,19 +77,6 @@ interface MockExternalServiceItem {
   href: string;
   tone: "student" | "homeroom" | "management" | "learning" | "calendar" | "check" | "admission" | "career";
   icon: ReactNode;
-}
-
-interface MockVisitorStat {
-  label: string;
-  value: string;
-  helper?: string;
-}
-
-interface HomeSectionHeadingProps {
-  label: string;
-  title: string;
-  description?: string;
-  action?: ReactNode;
 }
 
 const documentKeywords = ["เอกสาร", "document", "ita", "แผนงาน", "ประกันคุณภาพ"];
@@ -228,49 +217,6 @@ const focusVisibleSx = {
     outlineOffset: 3
   }
 };
-
-const urgentMarqueeText = "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด Urgent/Hilight/Marquee mock >_^";
-
-const mockVisitorStats: MockVisitorStat[] = [
-  { label: "วันนี้", value: "128", helper: "ผู้เข้าชม" },
-  { label: "เมื่อวาน", value: "342", helper: "ผู้เข้าชม" },
-  { label: "เดือนนี้", value: "8,764", helper: "ผู้เข้าชม" },
-  { label: "ทั้งหมด", value: "156,892", helper: "ครั้ง" }
-];
-
-function HomeSectionHeading({ label, title, description, action }: HomeSectionHeadingProps) {
-  return (
-    <Stack
-      direction={{ xs: "column", sm: "row" }}
-      spacing={1.5}
-      justifyContent="space-between"
-      alignItems={{ xs: "flex-start", sm: "flex-end" }}
-      sx={{ mb: 2.5 }}
-    >
-      <Stack spacing={0.75}>
-        <Typography
-          component="p"
-          sx={{
-            color: "secondary.dark",
-            fontSize: "0.78rem",
-            fontWeight: 800,
-            letterSpacing: 0,
-            textTransform: "uppercase"
-          }}
-        >
-          :: {label}
-        </Typography>
-        <Typography variant="h2">{title}</Typography>
-        {description && (
-          <Typography color="text.secondary" sx={{ maxWidth: 760 }}>
-            {description}
-          </Typography>
-        )}
-      </Stack>
-      {action}
-    </Stack>
-  );
-}
 
 function getPublishDateValue(item: ContentItem) {
   const date = dayjs(item.publishAt);
@@ -551,183 +497,6 @@ function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function VisitorStatsCard() {
-  return (
-    <Card
-      component="section"
-      aria-label="จำนวนผู้เข้าชมเว็บไซต์"
-      sx={{
-        borderTop: "5px solid",
-        borderColor: "secondary.main",
-        bgcolor: "background.paper"
-      }}
-    >
-      <CardContent sx={{ p: 2.5 }}>
-        <Stack direction="row" spacing={1.2} alignItems="flex-start" justifyContent="space-between" sx={{ mb: 2 }}>
-          <Stack direction="row" spacing={1.1} alignItems="center" sx={{ minWidth: 0 }}>
-            <Box
-              sx={(theme) => ({
-                width: 42,
-                height: 42,
-                borderRadius: 2,
-                display: "grid",
-                placeItems: "center",
-                color: "primary.dark",
-                bgcolor: alpha(theme.palette.secondary.light, 0.7),
-                flexShrink: 0
-              })}
-            >
-              <VisibilityOutlinedIcon />
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography fontWeight={900} sx={{ color: "primary.dark", lineHeight: 1.25 }}>
-                จำนวนผู้เข้าชมเว็บไซต์
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35, lineHeight: 1.45 }}>
-                ข้อมูลตัวอย่างสำหรับแสดงผลสถิติการเข้าชม
-              </Typography>
-            </Box>
-          </Stack>
-          <Chip
-            icon={<PeopleAltOutlinedIcon />}
-            label="Mock"
-            size="small"
-            color="primary"
-            variant="outlined"
-            sx={{ flexShrink: 0, fontWeight: 800 }}
-          />
-        </Stack>
-
-        <Grid container spacing={1.2}>
-          {mockVisitorStats.map((stat) => (
-            <Grid size={{ xs: 6 }} key={stat.label}>
-              <Box
-                sx={(theme) => ({
-                  height: "100%",
-                  borderRadius: 1.5,
-                  border: "1px solid rgba(31, 90, 44, 0.12)",
-                  bgcolor: alpha(theme.palette.primary.light, 0.42),
-                  p: 1.35
-                })}
-              >
-                <Typography variant="body2" color="text.secondary" fontWeight={800}>
-                  {stat.label}
-                </Typography>
-                <Typography sx={{ color: "primary.dark", fontSize: { xs: "1.35rem", md: "1.5rem" }, fontWeight: 900 }}>
-                  {stat.value}
-                </Typography>
-                {stat.helper && (
-                  <Typography variant="caption" color="text.secondary">
-                    {stat.helper}
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
-      </CardContent>
-    </Card>
-  );
-}
-
-function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
-  const hasDirectorInfo = Boolean(
-    siteSettings.directorName ||
-    siteSettings.directorDescription ||
-    siteSettings.directorTitle ||
-    siteSettings.directorImageUrl
-  );
-  const directorImageAlt = siteSettings.directorName
-    ? `รูปผู้บริหาร ${siteSettings.directorName}`
-    : "รูปผู้บริหารสถานศึกษา";
-
-  return (
-    <Box
-      component="section"
-      sx={{
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        bgcolor: "transparent",
-        py: { xs: 1.5, md: 1 }
-      }}
-    >
-      <Stack spacing={1.15} alignItems="center" sx={{ width: "100%" }}>
-        <Box sx={{ width: "100%", textAlign: "center" }}>
-          <Typography
-            component="p"
-            sx={{
-              color: "secondary.dark",
-              fontSize: "0.72rem",
-              fontWeight: 800,
-              letterSpacing: 0,
-              textTransform: "uppercase"
-            }}
-          ></Typography>
-          <Typography variant="h1" sx={{ fontSize: { xs: "1.05rem", md: "1.15rem" } }}>
-            {siteSettings.directorTitle || "ข้อมูลผู้บริหาร"}
-          </Typography>
-        </Box>
-        {hasDirectorInfo ? (
-          <Stack spacing={1.15} alignItems="center" sx={{ width: "100%" }}>
-            {siteSettings.directorImageUrl ? (
-              <Box
-                component="img"
-                src={normalizeSafeHref(siteSettings.directorImageUrl)}
-                alt={directorImageAlt}
-                sx={{
-                  width: { xs: 160, sm: 176, md: 184, lg: 192 },
-                  flex: "0 0 auto",
-                  aspectRatio: "3 / 4",
-                  borderRadius: 1,
-                  objectFit: "cover",
-                  objectPosition: "center top",
-                  display: "block",
-                  bgcolor: "background.default"
-                }}
-              />
-            ) : (
-              <Box
-                sx={(theme) => ({
-                  width: { xs: 160, sm: 176, md: 184, lg: 192 },
-                  flex: "0 0 auto",
-                  aspectRatio: "3 / 4",
-                  borderRadius: 2,
-                  display: "grid",
-                  placeItems: "center",
-                  bgcolor: alpha(theme.palette.primary.light, 0.82)
-                })}
-              >
-                <SchoolOutlinedIcon sx={{ fontSize: { xs: 52, md: 58 }, color: "primary.dark" }} />
-              </Box>
-            )}
-            <Stack spacing={0.45} alignItems="center" sx={{ width: "100%", textAlign: "center" }}>
-              {siteSettings.directorName && (
-                <Typography
-                  variant="h3"
-                  sx={{ fontSize: { xs: "0.98rem", md: "1.05rem" }, fontWeight: 900, lineHeight: 1.25 }}
-                >
-                  {siteSettings.directorName}
-                </Typography>
-              )}
-              {siteSettings.directorDescription && (
-                <Typography color="text.secondary" sx={{ fontSize: "0.82rem", lineHeight: 1.45 }}>
-                  {siteSettings.directorDescription}
-                </Typography>
-              )}
-            </Stack>
-          </Stack>
-        ) : (
-          <EmptyState title="ยังไม่มีข้อมูลผู้บริหาร" icon={<SchoolOutlinedIcon />} />
-        )}
-      </Stack>
-    </Box>
   );
 }
 
@@ -1035,64 +804,6 @@ function ExternalServicesSection() {
           );
         })}
       </Grid>
-    </Box>
-  );
-}
-
-function UrgentMarqueeSection() {
-  return (
-    <Box component="section" aria-label="ประกาศด่วน" sx={{ py: { xs: 1, md: 1.2 }, bgcolor: "background.default" }}>
-      <Container maxWidth="xl">
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={{ xs: 0.8, sm: 1.4 }}
-          alignItems={{ xs: "stretch", sm: "center" }}
-          sx={(theme) => ({
-            overflow: "hidden",
-            borderRadius: 1.5,
-            border: "1px solid rgba(197, 133, 0, 0.26)",
-            bgcolor: alpha(theme.palette.secondary.light, 0.36),
-            boxShadow: "0 8px 22px rgba(31, 90, 44, 0.08)",
-            px: { xs: 1.2, sm: 1.5, md: 2 },
-            py: { xs: 0.85, md: 0.95 },
-            "@keyframes marqueeScroll": {
-              "0%": { transform: "translateX(100%)" },
-              "100%": { transform: "translateX(-100%)" }
-            },
-            "&:hover .marqueeText": {
-              animationPlayState: "paused"
-            }
-          })}
-        >
-          <Chip
-            icon={<CampaignOutlinedIcon />}
-            label="ประกาศด่วน"
-            color="secondary"
-            sx={{
-              alignSelf: { xs: "flex-start", sm: "center" },
-              flexShrink: 0,
-              color: "primary.dark",
-              fontWeight: 900
-            }}
-          />
-          <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-            <Typography
-              className="marqueeText"
-              component="p"
-              sx={{
-                display: "inline-block",
-                whiteSpace: "nowrap",
-                color: "primary.dark",
-                fontWeight: 900,
-                fontSize: { xs: "0.88rem", md: "0.98rem" },
-                animation: "marqueeScroll 18s linear infinite"
-              }}
-            >
-              {urgentMarqueeText} &nbsp; • &nbsp; {urgentMarqueeText} &nbsp; • &nbsp; {urgentMarqueeText}
-            </Typography>
-          </Box>
-        </Stack>
-      </Container>
     </Box>
   );
 }
