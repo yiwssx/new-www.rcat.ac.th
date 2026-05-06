@@ -257,6 +257,10 @@ describe("public data-driven pages", () => {
     const eventsIndex = pageText.indexOf("กำหนดการ");
     const documentsIndex = pageText.indexOf("เอกสารเผยแพร่");
     const contactIndex = pageText.indexOf("ติดต่อและแผนที่");
+    const procurementIndex = pageText.indexOf("ข่าวจัดซื้อจัดจ้าง");
+    const achievementsIndex = pageText.indexOf("ผลงานและความภาคภูมิใจ");
+    const externalServicesIndex = pageText.indexOf("บริการออนไลน์และลิงก์ที่เกี่ยวข้อง");
+    const visitorStatsIndex = pageText.indexOf("จำนวนผู้เข้าชมเว็บไซต์");
 
     [
       heroIndex,
@@ -266,20 +270,32 @@ describe("public data-driven pages", () => {
       announcementsIndex,
       eventsIndex,
       documentsIndex,
-      contactIndex
+      contactIndex,
+      procurementIndex,
+      achievementsIndex,
+      externalServicesIndex,
+      visitorStatsIndex
     ].forEach((index) => expect(index).toBeGreaterThanOrEqual(0));
     expect(heroIndex).toBeLessThan(directorIndex);
     expect(directorIndex).toBeLessThan(newsIndex);
-    expect(newsIndex).toBeLessThan(programsIndex);
+    expect(newsIndex).toBeLessThan(procurementIndex);
+    expect(procurementIndex).toBeLessThan(programsIndex);
+    expect(programsIndex).toBeLessThan(achievementsIndex);
+    expect(achievementsIndex).toBeLessThan(externalServicesIndex);
     expect(announcementsIndex).toBeLessThan(eventsIndex);
     expect(eventsIndex).toBeLessThan(documentsIndex);
     expect(documentsIndex).toBeLessThan(contactIndex);
+    expect(contactIndex).toBeLessThan(visitorStatsIndex);
 
     expect(screen.getByText("ข่าวเปิดบ้านวิทยาลัย")).toBeInTheDocument();
     expect(screen.getByText("หลักสูตรช่างยนต์")).toBeInTheDocument();
     expect(screen.getByText("ประกาศรับสมัครนักเรียน")).toBeInTheDocument();
     expect(screen.getByText("ปฐมนิเทศนักศึกษาใหม่")).toBeInTheDocument();
     expect(screen.getByText("เอกสารแผนปฏิบัติการ")).toBeInTheDocument();
+    expect(screen.getByText("ข่าวจัดซื้อจัดจ้าง")).toBeInTheDocument();
+    expect(screen.getByText("ผลงานและความภาคภูมิใจ")).toBeInTheDocument();
+    expect(screen.getByText("จำนวนผู้เข้าชมเว็บไซต์")).toBeInTheDocument();
+    expect(screen.getAllByText("บริการออนไลน์และลิงก์ที่เกี่ยวข้อง").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("กำหนดการ")).toHaveLength(1);
     expect(screen.getAllByText("ปฐมนิเทศนักศึกษาใหม่")).toHaveLength(1);
 
