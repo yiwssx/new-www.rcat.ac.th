@@ -3,22 +3,18 @@ import { Box, Button, Card, CardContent, Chip, Container, LinearProgress, Stack,
 import Grid from "@mui/material/Grid2";
 import { alpha } from "@mui/material/styles";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
-import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
 import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
-import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import dayjs from "dayjs";
 import EmptyState from "../../shared/components/EmptyState";
 import { normalizeSiteSettings } from "../../services/siteSettings";
@@ -27,34 +23,18 @@ import { normalizeSafeHref } from "../../utils/safeUrl";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicHomeCarousel from "../components/PublicHomeCarousel";
 import PublicSiteShell from "../components/PublicSiteShell";
+import { AchievementHighlightsSection } from "../components/home/AchievementHighlightsSection";
 import { ContactMapCard } from "../components/home/ContactMapCard";
 import { DirectorHeroCard } from "../components/home/DirectorHeroCard";
 import { DocumentListCard } from "../components/home/DocumentListCard";
 import { EventListCard } from "../components/home/EventListCard";
 import { HomeSectionHeading } from "../components/home/HomeSectionHeading";
 import { LatestAnnouncementsCard } from "../components/home/LatestAnnouncementsCard";
+import { ProcurementNewsSection } from "../components/home/ProcurementNewsSection";
 import { focusVisibleSx } from "../components/home/homeSectionStyles";
 import { UrgentMarqueeSection } from "../components/home/UrgentMarqueeSection";
 import { VisitorStatsCard } from "../components/home/VisitorStatsCard";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
-
-interface MockAchievementItem {
-  title: string;
-  category: string;
-  description: string;
-  year: string;
-  icon: ReactNode;
-}
-
-interface MockProcurementItem {
-  title: string;
-  type: string;
-  status: string;
-  date: string;
-  description: string;
-  budget: string;
-  href: string;
-}
 
 interface MockExternalServiceItem {
   title: string;
@@ -125,76 +105,6 @@ const mockExternalServiceItems: MockExternalServiceItem[] = [
   }
 ];
 
-const mockProcurementItems: MockProcurementItem[] = [
-  {
-    title: "ประกาศประกวดราคาซื้อครุภัณฑ์คอมพิวเตอร์เพื่อการเรียนการสอน",
-    type: "ประกวดราคา",
-    status: "เปิดรับข้อเสนอ",
-    date: "15 พฤษภาคม 2568",
-    description: "จัดซื้อครุภัณฑ์คอมพิวเตอร์และอุปกรณ์สนับสนุนการจัดการเรียนรู้สำหรับห้องปฏิบัติการ",
-    budget: "งบประมาณ 499,800 บาท",
-    href: "/announcements"
-  },
-  {
-    title: "ประกาศผู้ชนะการเสนอราคาจ้างปรับปรุงระบบเครือข่ายภายในอาคารเรียน",
-    type: "ประกาศผู้ชนะ",
-    status: "ประกาศผลแล้ว",
-    date: "8 พฤษภาคม 2568",
-    description: "งานปรับปรุงระบบเครือข่ายและจุดกระจายสัญญาณอินเทอร์เน็ตเพื่อรองรับการเรียนการสอน",
-    budget: "งบประมาณ 180,000 บาท",
-    href: "/announcements"
-  },
-  {
-    title: "ร่างขอบเขตของงานจัดซื้อวัสดุฝึกปฏิบัติการเกษตร",
-    type: "ร่าง TOR",
-    status: "รับฟังความคิดเห็น",
-    date: "2 พฤษภาคม 2568",
-    description: "เผยแพร่ร่างขอบเขตของงานสำหรับวัสดุฝึกปฏิบัติด้านพืชศาสตร์และสัตวศาสตร์",
-    budget: "งบประมาณ 95,000 บาท",
-    href: "/announcements"
-  },
-  {
-    title: "ประกาศแผนการจัดซื้อจัดจ้างประจำปีงบประมาณ",
-    type: "แผนจัดซื้อจัดจ้าง",
-    status: "เผยแพร่แล้ว",
-    date: "25 เมษายน 2568",
-    description: "เผยแพร่แผนการจัดซื้อจัดจ้างเพื่อความโปร่งใสและเปิดเผยข้อมูลต่อสาธารณะ",
-    budget: "ตามแผนงบประมาณ",
-    href: "/announcements"
-  }
-];
-
-const mockAchievementItems: MockAchievementItem[] = [
-  {
-    title: "รางวัลทักษะวิชาชีพระดับภาค",
-    category: "นักเรียนนักศึกษา",
-    description: "ตัวแทนนักศึกษาเข้าร่วมการแข่งขันทักษะวิชาชีพและสร้างชื่อเสียงให้สถานศึกษา",
-    year: "2567",
-    icon: <WorkspacePremiumOutlinedIcon />
-  },
-  {
-    title: "โครงการเกษตรอัจฉริยะต้นแบบ",
-    category: "นวัตกรรม",
-    description: "พัฒนาการเรียนรู้ด้านเกษตรสมัยใหม่ด้วยเทคโนโลยีและการลงมือปฏิบัติจริง",
-    year: "2567",
-    icon: <AutoAwesomeOutlinedIcon />
-  },
-  {
-    title: "ความร่วมมือกับสถานประกอบการ",
-    category: "ทวิภาคี",
-    description: "ขยายเครือข่ายความร่วมมือเพื่อพัฒนาทักษะอาชีพและประสบการณ์จริงของผู้เรียน",
-    year: "2568",
-    icon: <GroupsOutlinedIcon />
-  },
-  {
-    title: "ผลงานครูและบุคลากรดีเด่น",
-    category: "บุคลากร",
-    description: "ส่งเสริมครูและบุคลากรในการพัฒนานวัตกรรมการเรียนรู้และบริการวิชาการ",
-    year: "2568",
-    icon: <EmojiEventsOutlinedIcon />
-  }
-];
-
 function getPublishDateValue(item: ContentItem) {
   const date = dayjs(item.publishAt);
   return date.isValid() ? date.valueOf() : 0;
@@ -230,153 +140,6 @@ function hasContentKeyword(item: ContentItem, keywords: string[]) {
   const haystack = [item.category, ...(item.tags ?? [])].join(" ").toLowerCase();
 
   return keywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
-}
-
-function ProcurementNewsSection() {
-  return (
-    <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
-      <HomeSectionHeading
-        label="จัดซื้อจัดจ้าง"
-        title="ข่าวจัดซื้อจัดจ้าง"
-        description="ประกาศ แผนจัดซื้อจัดจ้าง ร่างขอบเขตของงาน และผลการพิจารณาที่เกี่ยวข้องกับการจัดซื้อจัดจ้างของสถานศึกษา"
-        action={
-          <Button href={normalizeSafeHref("/announcements")} endIcon={<ArrowForwardOutlinedIcon />}>
-            ดูทั้งหมด
-          </Button>
-        }
-      />
-      <Grid container spacing={2.5}>
-        {mockProcurementItems.map((item) => (
-          <Grid size={{ xs: 12, md: 6 }} key={`${item.type}-${item.title}`}>
-            <Card
-              component="article"
-              sx={{
-                height: "100%",
-                border: "1px solid rgba(31, 90, 44, 0.12)",
-                boxShadow: "0 12px 28px rgba(31, 90, 44, 0.07)"
-              }}
-            >
-              <CardContent
-                sx={{
-                  height: "100%",
-                  p: 2.25,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1.35
-                }}
-              >
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                  <Chip icon={<RequestQuoteOutlinedIcon />} label={item.type} size="small" color="primary" />
-                  <Chip label={item.status} size="small" color="secondary" variant="outlined" />
-                </Stack>
-
-                <Stack spacing={0.9} sx={{ flex: 1 }}>
-                  <Typography variant="h3" sx={{ fontSize: { xs: "1.04rem", md: "1.1rem" }, lineHeight: 1.32 }}>
-                    {item.title}
-                  </Typography>
-                  <Typography color="text.secondary" variant="body2" fontWeight={800}>
-                    {item.date}
-                  </Typography>
-                  <Typography color="text.secondary" variant="body2" sx={{ lineHeight: 1.65 }}>
-                    {item.description}
-                  </Typography>
-                  <Box
-                    sx={(theme) => ({
-                      mt: "auto",
-                      p: 1.15,
-                      borderRadius: 1.5,
-                      bgcolor: alpha(theme.palette.primary.light, 0.62),
-                      border: "1px solid rgba(31, 90, 44, 0.1)"
-                    })}
-                  >
-                    <Typography color="primary.dark" variant="body2" fontWeight={900}>
-                      {item.budget}
-                    </Typography>
-                  </Box>
-                </Stack>
-
-                <Button
-                  href={normalizeSafeHref(item.href)}
-                  endIcon={<ArrowForwardOutlinedIcon />}
-                  aria-label={`อ่านประกาศจัดซื้อจัดจ้าง ${item.title}`}
-                  sx={{ alignSelf: "flex-start", px: 0 }}
-                >
-                  อ่านประกาศ
-                </Button>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
-  );
-}
-
-function AchievementHighlightsSection() {
-  return (
-    <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
-      <HomeSectionHeading
-        label="ความสำเร็จ"
-        title="ผลงานและความภาคภูมิใจ"
-        description="รวมผลงานเด่น รางวัล และความภาคภูมิใจของนักเรียนนักศึกษา ครู บุคลากร และสถานศึกษา"
-      />
-      <Grid container spacing={2.5}>
-        {mockAchievementItems.map((item) => (
-          <Grid size={{ xs: 12, md: 6 }} key={`${item.title}-${item.year}`}>
-            <Card
-              component="article"
-              sx={{
-                height: "100%",
-                border: "1px solid rgba(31, 90, 44, 0.12)",
-                boxShadow: "0 12px 28px rgba(31, 90, 44, 0.08)"
-              }}
-            >
-              <CardContent
-                sx={{
-                  height: "100%",
-                  p: 2.25,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1.4
-                }}
-              >
-                <Stack direction="row" spacing={1.2} alignItems="center" justifyContent="space-between">
-                  <Box
-                    sx={(theme) => ({
-                      width: 44,
-                      height: 44,
-                      borderRadius: 2,
-                      display: "grid",
-                      placeItems: "center",
-                      color: "primary.dark",
-                      bgcolor: alpha(theme.palette.secondary.light, 0.75),
-                      border: "1px solid rgba(31, 90, 44, 0.1)",
-                      "& svg": {
-                        fontSize: 25
-                      }
-                    })}
-                  >
-                    {item.icon}
-                  </Box>
-                  <Chip label={`พ.ศ. ${item.year}`} size="small" color="secondary" sx={{ fontWeight: 800 }} />
-                </Stack>
-
-                <Stack spacing={1} sx={{ flex: 1 }}>
-                  <Chip label={item.category} size="small" variant="outlined" sx={{ alignSelf: "flex-start" }} />
-                  <Typography variant="h3" sx={{ fontSize: { xs: "1.05rem", md: "1.12rem" }, lineHeight: 1.28 }}>
-                    {item.title}
-                  </Typography>
-                  <Typography color="text.secondary" variant="body2" sx={{ lineHeight: 1.65 }}>
-                    {item.description}
-                  </Typography>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
-  );
 }
 
 function getExternalServiceToneColor(tone: MockExternalServiceItem["tone"]) {
