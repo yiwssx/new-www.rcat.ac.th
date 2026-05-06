@@ -664,7 +664,14 @@ export default function PublicSiteShell({
         </Box>
       )}
 
-      <Box component="main" sx={{ py: { xs: 3, md: 4.5 } }} className="mx-auto w-full max-w-[1680px]">
+      <Box
+        component="main"
+        sx={{
+          pt: disableMainContainer ? 0 : { xs: 3, md: 4.5 },
+          pb: { xs: 3, md: 4.5 }
+        }}
+        className="mx-auto w-full max-w-[1680px]"
+      >
         {disableMainContainer ? children : <Container maxWidth="xl">{children}</Container>}
       </Box>
 
