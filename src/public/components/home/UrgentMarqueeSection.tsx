@@ -36,8 +36,11 @@ export function UrgentMarqueeSection() {
             sx={{
               alignSelf: { xs: "flex-start", sm: "center" },
               flexShrink: 0,
-              color: "primary.dark",
-              fontWeight: 900
+              color: "secondary.contrastText",
+              fontWeight: 900,
+              "& .MuiChip-icon": {
+                color: "secondary.contrastText"
+              }
             }}
           />
           <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
