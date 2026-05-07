@@ -10,8 +10,10 @@ import {
   Collapse,
   Stack,
   Typography,
-  Divider
+  Divider,
+  useMediaQuery
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
@@ -120,14 +122,55 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
   );
 }
 
+function PublicTopLevelMenuMeasurement({ items }: { items: PublicMenuItem[] }) {
+  return (
+    <Box
+      component="ul"
+      sx={{
+        m: 0,
+        p: 0,
+        listStyle: "none",
+        display: "flex",
+        flexWrap: "nowrap"
+      }}
+    >
+      {items.map((item) => (
+        <Box component="li" key={item.id} sx={{ position: "relative" }}>
+          <Box
+            component="span"
+            sx={{
+              minHeight: 48,
+              px: 2,
+              py: 1.15,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 0.8,
+              color: "white",
+              fontWeight: 800,
+              whiteSpace: "nowrap"
+            }}
+          >
+            <span>{item.label}</span>
+            {item.children?.length ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: 18 }} /> : null}
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
 export default function PublicMainMenu() {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const { data } = usePublicCmsSnapshot();
   const enabledItems = useMemo(() => getEnabledMenuItems(data?.menu ?? []), [data]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileOpenItems, setMobileOpenItems] = useState<Record<string, boolean>>({});
-  const [useCompactMenu, setUseCompactMenu] = useState(false);
+  const [isMenuOverflowing, setIsMenuOverflowing] = useState(false);
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
   const menuMeasurementRef = useRef<HTMLDivElement | null>(null);
+  const shouldUseCompactMenu = isSmallScreen || isMenuOverflowing;
 
   const updateMenuMode = useCallback(() => {
     const container = menuContainerRef.current;
@@ -137,7 +180,7 @@ export default function PublicMainMenu() {
       return;
     }
 
-    setUseCompactMenu(content.scrollWidth > container.clientWidth - 8);
+    setIsMenuOverflowing(content.scrollWidth > container.clientWidth - 8);
   }, []);
 
   useEffect(() => {
@@ -162,6 +205,19 @@ export default function PublicMainMenu() {
 
     return () => window.removeEventListener("resize", updateMenuMode);
   }, [enabledItems, updateMenuMode]);
+
+  useEffect(() => {
+    if (!shouldUseCompactMenu && mobileMenuOpen) {
+      const closeTimer = window.setTimeout(() => {
+        setMobileMenuOpen(false);
+        setMobileOpenItems({});
+      }, 0);
+
+      return () => window.clearTimeout(closeTimer);
+    }
+
+    return undefined;
+  }, [mobileMenuOpen, shouldUseCompactMenu]);
 
   const toggleMobileItem = (itemId: string) => {
     setMobileOpenItems((prev) => ({
@@ -201,17 +257,17 @@ export default function PublicMainMenu() {
           }}
         >
           <Box ref={menuMeasurementRef} sx={{ display: "inline-flex", width: "max-content" }}>
-            <PublicMenuList items={enabledItems} />
+            <PublicTopLevelMenuMeasurement items={enabledItems} />
           </Box>
         </Box>
 
-        {!useCompactMenu && (
+        {!shouldUseCompactMenu && (
           <Box sx={{ display: "flex", overflow: "hidden", minWidth: 0, width: "100%" }}>
             <PublicMenuList items={enabledItems} />
           </Box>
         )}
 
-        {useCompactMenu && (
+        {shouldUseCompactMenu && (
           <Box
             sx={{
               display: "flex",
@@ -257,13 +313,19 @@ export default function PublicMainMenu() {
           </Box>
           <Divider />
           <Box sx={{ flex: 1, overflowY: "auto" }}>
-            <MobileMenuList
-              items={enabledItems}
-              level={0}
-              onNavigate={handleMobileNavigate}
-              openItems={mobileOpenItems}
-              toggleOpen={toggleMobileItem}
-            />
+            {enabledItems.length ? (
+              <MobileMenuList
+                items={enabledItems}
+                level={0}
+                onNavigate={handleMobileNavigate}
+                openItems={mobileOpenItems}
+                toggleOpen={toggleMobileItem}
+              />
+            ) : (
+              <Typography sx={{ px: 2, py: 2 }} color="text.secondary">
+                ยังไม่มีรายการเมนู
+              </Typography>
+            )}
           </Box>
         </Stack>
       </Drawer>
