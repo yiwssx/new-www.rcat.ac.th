@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { MouseEvent, ReactNode } from "react";
 import { Box, Button, Container, IconButton, InputAdornment, Stack, TextField, Typography } from "@mui/material";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
@@ -42,6 +42,54 @@ const BACK_TO_TOP_LABEL = "กลับขึ้นด้านบน";
 function getTelephoneHref(phone: string) {
   const normalizedPhone = String(phone || "").replace(/[^\d+#*]/g, "");
   return normalizedPhone ? `tel:${normalizedPhone}` : "#";
+}
+
+function easeInOutCubic(progress: number) {
+  return progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+}
+
+function getScrollElement() {
+  return document.scrollingElement || document.documentElement;
+}
+
+function animateScrollToTop(duration = 1400) {
+  const scrollElement = getScrollElement();
+  const startY = scrollElement.scrollTop || window.scrollY || 0;
+
+  if (startY <= 0) {
+    return;
+  }
+
+  const startTime = window.performance.now();
+
+  function step(currentTime: number) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = easeInOutCubic(progress);
+    const nextY = Math.round(startY * (1 - eased));
+
+    scrollElement.scrollTop = nextY;
+    document.documentElement.scrollTop = nextY;
+    document.body.scrollTop = nextY;
+
+    if (progress < 1 && nextY > 0) {
+      window.requestAnimationFrame(step);
+      return;
+    }
+
+    scrollElement.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }
+
+  window.requestAnimationFrame(step);
+}
+
+function handleBackToTop(event: MouseEvent<HTMLButtonElement>) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  animateScrollToTop(1400);
 }
 
 interface TopBarSocialLink {
@@ -711,8 +759,10 @@ export default function PublicSiteShell({
             </Box>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
               <Button
+                component="button"
+                type="button"
                 color="inherit"
-                href={normalizeSafeHref("#top")}
+                onClick={handleBackToTop}
                 startIcon={<ArrowForwardOutlinedIcon sx={{ transform: "rotate(-90deg)" }} />}
               >
                 {BACK_TO_TOP_LABEL}

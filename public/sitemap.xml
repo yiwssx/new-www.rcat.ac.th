@@ -24,12 +24,4 @@
     <loc>https://preview-placeholder.example.invalid/contact</loc>
     <lastmod>2026-05-07</lastmod>
   </url>
-  <url>
-    <loc>https://preview-placeholder.example.invalid/content/test-annouce</loc>
-    <lastmod>2026-05-07</lastmod>
-  </url>
-  <url>
-    <loc>https://preview-placeholder.example.invalid/test-annouce</loc>
-    <lastmod>2026-05-07</lastmod>
-  </url>
 </urlset>
