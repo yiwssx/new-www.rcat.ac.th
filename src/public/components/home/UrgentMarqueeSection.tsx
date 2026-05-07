@@ -53,7 +53,7 @@ export function UrgentMarqueeSection() {
                 color: "primary.dark",
                 fontWeight: 900,
                 fontSize: { xs: "0.88rem", md: "0.98rem" },
-                animation: "marqueeScroll 18s linear infinite"
+                animation: "marqueeScroll 28s linear infinite"
               }}
             >
               {urgentMarqueeText} &nbsp; • &nbsp; {urgentMarqueeText} &nbsp; • &nbsp; {urgentMarqueeText}
