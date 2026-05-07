@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Container,
@@ -41,7 +41,7 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
         p: 0,
         listStyle: "none",
         display: nested ? "block" : "flex",
-        flexWrap: nested ? "nowrap" : "wrap"
+        flexWrap: "nowrap"
       }}
     >
       {items.map((item) => (
@@ -125,6 +125,43 @@ export default function PublicMainMenu() {
   const enabledItems = useMemo(() => getEnabledMenuItems(data?.menu ?? []), [data]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileOpenItems, setMobileOpenItems] = useState<Record<string, boolean>>({});
+  const [useCompactMenu, setUseCompactMenu] = useState(false);
+  const menuContainerRef = useRef<HTMLDivElement | null>(null);
+  const menuMeasurementRef = useRef<HTMLDivElement | null>(null);
+
+  const updateMenuMode = useCallback(() => {
+    const container = menuContainerRef.current;
+    const content = menuMeasurementRef.current;
+
+    if (!container || !content) {
+      return;
+    }
+
+    setUseCompactMenu(content.scrollWidth > container.clientWidth - 8);
+  }, []);
+
+  useEffect(() => {
+    updateMenuMode();
+
+    const container = menuContainerRef.current;
+    const content = menuMeasurementRef.current;
+
+    if (!container || !content) {
+      return undefined;
+    }
+
+    if (typeof ResizeObserver !== "undefined") {
+      const resizeObserver = new ResizeObserver(updateMenuMode);
+      resizeObserver.observe(container);
+      resizeObserver.observe(content);
+
+      return () => resizeObserver.disconnect();
+    }
+
+    window.addEventListener("resize", updateMenuMode);
+
+    return () => window.removeEventListener("resize", updateMenuMode);
+  }, [enabledItems, updateMenuMode]);
 
   const toggleMobileItem = (itemId: string) => {
     setMobileOpenItems((prev) => ({
@@ -152,20 +189,49 @@ export default function PublicMainMenu() {
         boxShadow: "0 10px 20px rgba(0, 0, 0, 0.08)"
       }}
     >
-      <Container maxWidth="xl" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", py: 0 }}>
-        <Box sx={{ display: { xs: "none", md: "flex" }, width: "100%" }}>
-          <PublicMenuList items={enabledItems} />
+      <Container ref={menuContainerRef} maxWidth="xl" sx={{ position: "relative", minWidth: 0, py: 0 }}>
+        <Box
+          sx={{
+            position: "absolute",
+            visibility: "hidden",
+            pointerEvents: "none",
+            height: 0,
+            overflow: "hidden",
+            width: "100%"
+          }}
+        >
+          <Box ref={menuMeasurementRef} sx={{ display: "inline-flex", width: "max-content" }}>
+            <PublicMenuList items={enabledItems} />
+          </Box>
         </Box>
 
-        <Box sx={{ display: { xs: "flex", md: "none" }, width: "100%", justifyContent: "flex-end" }}>
-          <IconButton
-            aria-label="เปิดเมนูหลัก"
-            onClick={() => setMobileMenuOpen(true)}
-            sx={{ border: 1, borderColor: "divider", bgcolor: "background.paper", color: "text.primary", ml: "auto" }}
+        {!useCompactMenu && (
+          <Box sx={{ display: "flex", overflow: "hidden", minWidth: 0, width: "100%" }}>
+            <PublicMenuList items={enabledItems} />
+          </Box>
+        )}
+
+        {useCompactMenu && (
+          <Box
+            sx={{
+              display: "flex",
+              width: "100%",
+              alignItems: "center",
+              justifyContent: "flex-start",
+              minHeight: 48,
+              gap: 1
+            }}
           >
-            <MenuRoundedIcon />
-          </IconButton>
-        </Box>
+            <IconButton
+              aria-label={mobileMenuOpen ? "ปิดเมนูหลัก" : "เปิดเมนูหลัก"}
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              sx={{ border: "1px solid rgba(255, 255, 255, 0.28)", color: "inherit" }}
+            >
+              {mobileMenuOpen ? <CloseRoundedIcon /> : <MenuRoundedIcon />}
+            </IconButton>
+            <Typography fontWeight={900}>เมนูหลัก</Typography>
+          </Box>
+        )}
       </Container>
 
       <Drawer
@@ -204,7 +270,6 @@ export default function PublicMainMenu() {
     </Box>
   );
 }
-
 function MobileMenuList({
   items,
   level,
