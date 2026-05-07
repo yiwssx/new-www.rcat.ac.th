@@ -12,6 +12,7 @@ import { DocumentListCard } from "../components/home/DocumentListCard";
 import { EventListCard } from "../components/home/EventListCard";
 import { LatestAnnouncementsCard } from "../components/home/LatestAnnouncementsCard";
 import { HomeHeroSection } from "../components/home/HomeHeroSection";
+import { HomeIntroVideoSection } from "../components/home/HomeIntroVideoSection";
 import { LatestNewsSection } from "../components/home/LatestNewsSection";
 import { ProgramsSection } from "../components/home/ProgramsSection";
 import { ProcurementNewsSection } from "../components/home/ProcurementNewsSection";
@@ -98,6 +99,7 @@ export default function PublicHomePage() {
       <PublicHomeCarousel />
       <Container maxWidth="xl">
         <HomeHeroSection siteSettings={siteSettings} />
+        <HomeIntroVideoSection />
 
         <Box component="section" id="news" sx={{ mt: { xs: 3, md: 4 } }}>
           <Grid container spacing={3.2} alignItems="flex-start">
