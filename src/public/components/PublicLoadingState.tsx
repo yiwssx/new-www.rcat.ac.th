@@ -70,9 +70,6 @@ export default function PublicLoadingState() {
                 กำลังโหลดข้อมูล
               </Typography>
               <Typography color="text.secondary">กรุณารอสักครู่ ระบบกำลังเตรียมข้อมูลเว็บไซต์สำหรับคุณ</Typography>
-              <Box component="span" aria-hidden="true" sx={{ display: "none" }}>
-                กรุณารอสักครู่ ระบบกำลังดึงข้อมูลเว็บไซต์
-              </Box>
             </Stack>
             <Stack spacing={1.2} alignItems="center" sx={{ width: "100%" }}>
               <LinearProgress
@@ -89,7 +86,7 @@ export default function PublicLoadingState() {
                 })}
               />
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.85rem" }}>
-                กำลังเชื่อมต่อระบบข้อมูลสาธารณะ...
+                กำลังเชื่อมต่อระบบฐานข้อมูล...
               </Typography>
             </Stack>
           </Stack>

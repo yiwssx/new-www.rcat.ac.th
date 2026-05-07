@@ -89,7 +89,7 @@ describe("public data-driven pages", () => {
 
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("กำลังโหลดข้อมูล");
-    expect(status).toHaveTextContent("กรุณารอสักครู่ ระบบกำลังดึงข้อมูลเว็บไซต์");
+    expect(status).toHaveTextContent("กรุณารอสักครู่ ระบบกำลังเตรียมข้อมูลเว็บไซต์สำหรับคุณ");
     expect(screen.queryByText(defaultSiteSettings.siteName)).not.toBeInTheDocument();
     expect(screen.queryByText("Loaded content")).not.toBeInTheDocument();
   });
