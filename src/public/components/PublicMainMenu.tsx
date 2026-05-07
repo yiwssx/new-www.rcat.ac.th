@@ -1,5 +1,21 @@
-import { useMemo } from "react";
-import { Box, Container } from "@mui/material";
+import { useMemo, useState } from "react";
+import {
+  Box,
+  Container,
+  IconButton,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemText,
+  Collapse,
+  Stack,
+  Typography,
+  Divider
+} from "@mui/material";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
+import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
@@ -107,6 +123,24 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
 export default function PublicMainMenu() {
   const { data } = usePublicCmsSnapshot();
   const enabledItems = useMemo(() => getEnabledMenuItems(data?.menu ?? []), [data]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpenItems, setMobileOpenItems] = useState<Record<string, boolean>>({});
+
+  const toggleMobileItem = (itemId: string) => {
+    setMobileOpenItems((prev) => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    setMobileOpenItems({});
+  };
+
+  const handleMobileNavigate = () => {
+    closeMobileMenu();
+  };
 
   return (
     <Box
@@ -118,9 +152,128 @@ export default function PublicMainMenu() {
         boxShadow: "0 10px 20px rgba(0, 0, 0, 0.08)"
       }}
     >
-      <Container maxWidth="xl">
-        <PublicMenuList items={enabledItems} />
+      <Container maxWidth="xl" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", py: 0 }}>
+        <Box sx={{ display: { xs: "none", md: "flex" }, width: "100%" }}>
+          <PublicMenuList items={enabledItems} />
+        </Box>
+
+        <Box sx={{ display: { xs: "flex", md: "none" }, width: "100%", justifyContent: "flex-end" }}>
+          <IconButton
+            aria-label="เปิดเมนูหลัก"
+            onClick={() => setMobileMenuOpen(true)}
+            sx={{ border: 1, borderColor: "divider", bgcolor: "background.paper", color: "text.primary", ml: "auto" }}
+          >
+            <MenuRoundedIcon />
+          </IconButton>
+        </Box>
       </Container>
+
+      <Drawer
+        anchor="left"
+        open={mobileMenuOpen}
+        onClose={closeMobileMenu}
+        ModalProps={{ keepMounted: true }}
+        PaperProps={{
+          sx: {
+            width: { xs: "84vw", sm: 360 },
+            maxWidth: 360
+          }
+        }}
+      >
+        <Stack spacing={0} sx={{ height: "100%" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1.5 }}>
+            <Typography variant="subtitle1" fontWeight={700}>
+              เมนูหลัก
+            </Typography>
+            <IconButton aria-label="ปิดเมนูหลัก" onClick={closeMobileMenu}>
+              <CloseRoundedIcon />
+            </IconButton>
+          </Box>
+          <Divider />
+          <Box sx={{ flex: 1, overflowY: "auto" }}>
+            <MobileMenuList
+              items={enabledItems}
+              level={0}
+              onNavigate={handleMobileNavigate}
+              openItems={mobileOpenItems}
+              toggleOpen={toggleMobileItem}
+            />
+          </Box>
+        </Stack>
+      </Drawer>
     </Box>
+  );
+}
+
+function MobileMenuList({
+  items,
+  level,
+  onNavigate,
+  openItems,
+  toggleOpen
+}: {
+  items: PublicMenuItem[];
+  level: number;
+  onNavigate: () => void;
+  openItems: Record<string, boolean>;
+  toggleOpen: (itemId: string) => void;
+}) {
+  return (
+    <List disablePadding>
+      {items.map((item) => {
+        const hasChildren = Boolean(item.children?.length);
+        const isOpen = Boolean(openItems[item.id]);
+
+        return (
+          <Box key={item.id}>
+            <ListItemButton
+              component={hasChildren ? "div" : "a"}
+              href={hasChildren ? undefined : normalizeSafeHref(item.href)}
+              onClick={() => {
+                if (hasChildren) {
+                  toggleOpen(item.id);
+                } else {
+                  onNavigate();
+                }
+              }}
+              sx={{
+                pl: 2 + level * 2,
+                pr: 2,
+                py: 1.25,
+                borderBottom: "1px solid",
+                borderColor: "divider",
+                color: "text.primary",
+                justifyContent: "space-between"
+              }}
+              aria-expanded={hasChildren ? isOpen : undefined}
+              aria-controls={hasChildren ? `${item.id}-mobile-submenu` : undefined}
+            >
+              <ListItemText
+                primary={item.label}
+                primaryTypographyProps={{
+                  fontWeight: 700,
+                  fontSize: level ? { xs: "0.88rem", md: "0.92rem" } : { xs: "0.95rem", md: "0.98rem" },
+                  color: level ? "text.secondary" : "text.primary",
+                  whiteSpace: "normal"
+                }}
+              />
+              {hasChildren && (isOpen ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />)}
+            </ListItemButton>
+
+            {hasChildren && (
+              <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                <MobileMenuList
+                  items={item.children ?? []}
+                  level={level + 1}
+                  onNavigate={onNavigate}
+                  openItems={openItems}
+                  toggleOpen={toggleOpen}
+                />
+              </Collapse>
+            )}
+          </Box>
+        );
+      })}
+    </List>
   );
 }
