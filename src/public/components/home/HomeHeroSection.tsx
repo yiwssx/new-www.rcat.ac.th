@@ -89,7 +89,10 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
                 alignSelf: "flex-start",
                 bgcolor: "rgba(255, 255, 255, 0.14)",
                 color: "white",
-                border: "1px solid rgba(255, 255, 255, 0.22)"
+                border: "1px solid rgba(255, 255, 255, 0.22)",
+                "& .MuiChip-icon": {
+                  color: "secondary.main"
+                }
               }}
             />
           )}
@@ -98,6 +101,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
             variant="h1"
             sx={{
               fontSize: { xs: "1.75rem", sm: "2.1rem", md: "2.55rem", lg: "2.55rem" },
+              fontWeight: 500,
               lineHeight: 1.08,
               letterSpacing: "-0.02em"
             }}
