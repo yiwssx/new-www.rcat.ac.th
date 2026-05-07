@@ -611,7 +611,11 @@ export default function PublicSiteShell({
                 onSubmit={(event) => {
                   event.preventDefault();
                 }}
-                sx={{ width: { xs: "100%", sm: 240, md: 280 }, flex: { xs: "1 1 100%", sm: "0 1 280px" } }}
+                sx={{
+                  width: { xs: "100%", sm: 210, md: 230, lg: 240 },
+                  maxWidth: { xs: "100%", sm: 240 },
+                  flex: { xs: "1 1 100%", sm: "0 1 230px", lg: "0 0 240px" }
+                }}
               >
                 <TextField
                   type="search"
@@ -629,7 +633,15 @@ export default function PublicSiteShell({
                   sx={{
                     "& .MuiInputBase-root": {
                       bgcolor: "white",
-                      borderRadius: 1
+                      borderRadius: 1,
+                      height: { xs: 36, md: 38 }
+                    },
+                    "& .MuiInputBase-input": {
+                      py: { xs: 0.65, md: 0.75 },
+                      fontSize: { xs: "0.86rem", md: "0.9rem" }
+                    },
+                    "& .MuiInputAdornment-root svg": {
+                      fontSize: { xs: "1rem", md: "1.08rem" }
                     }
                   }}
                 />
