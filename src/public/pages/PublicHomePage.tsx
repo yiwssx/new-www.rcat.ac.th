@@ -13,6 +13,7 @@ import { EventListCard } from "../components/home/EventListCard";
 import { LatestAnnouncementsCard } from "../components/home/LatestAnnouncementsCard";
 import { HomeHeroSection } from "../components/home/HomeHeroSection";
 import { HomeIntroVideoSection } from "../components/home/HomeIntroVideoSection";
+import { JobOpportunitiesSection } from "../components/home/JobOpportunitiesSection";
 import { LatestNewsSection } from "../components/home/LatestNewsSection";
 import { ProgramsSection } from "../components/home/ProgramsSection";
 import { ProcurementNewsSection } from "../components/home/ProcurementNewsSection";
@@ -107,6 +108,7 @@ export default function PublicHomePage() {
               <LatestNewsSection items={latestNews} mediaAssets={data?.media ?? []} />
 
               <ProcurementNewsSection />
+              <JobOpportunitiesSection />
               <ProgramsSection items={programItems} mediaAssets={data?.media ?? []} />
               <AchievementHighlightsSection />
               <Box sx={{ display: { xs: "none", lg: "block" } }}>
