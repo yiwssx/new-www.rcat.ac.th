@@ -115,11 +115,16 @@ export default function PublicIntroGate() {
             />
 
             <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={1.2}
+              direction="row"
+              spacing={{ xs: 0.75, sm: 1, md: 1.2 }}
               justifyContent="center"
               alignItems="stretch"
-              sx={{ width: "100%", maxWidth: 620, mx: "auto" }}
+              sx={{
+                width: "100%",
+                maxWidth: { xs: 360, sm: 520, md: 620 },
+                mx: "auto",
+                flexWrap: "nowrap"
+              }}
             >
               <Button
                 component="a"
@@ -128,9 +133,26 @@ export default function PublicIntroGate() {
                 rel="noreferrer"
                 variant="outlined"
                 color="primary"
-                size="large"
+                size="medium"
+                fullWidth
                 endIcon={<OpenInNewRoundedIcon />}
-                sx={{ minHeight: 46, px: 2.4, fontWeight: 800 }}
+                sx={{
+                  minWidth: 0,
+                  flex: "1 1 0",
+                  minHeight: { xs: 36, sm: 40, md: 46 },
+                  px: { xs: 0.75, sm: 1.4, md: 2.4 },
+                  fontSize: { xs: "0.72rem", sm: "0.84rem", md: "0.95rem" },
+                  fontWeight: 800,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  "& .MuiButton-startIcon, & .MuiButton-endIcon": {
+                    mx: { xs: 0.25, sm: 0.5 },
+                    "& svg": {
+                      fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" }
+                    }
+                  }
+                }}
               >
                 {introConfig.secondaryButtonLabel}
               </Button>
@@ -138,10 +160,27 @@ export default function PublicIntroGate() {
                 type="button"
                 variant="contained"
                 color="primary"
-                size="large"
+                size="medium"
+                fullWidth
                 startIcon={<LoginRoundedIcon />}
                 onClick={handleEnterSite}
-                sx={{ minHeight: 46, px: 2.4, fontWeight: 800 }}
+                sx={{
+                  minWidth: 0,
+                  flex: "1 1 0",
+                  minHeight: { xs: 36, sm: 40, md: 46 },
+                  px: { xs: 0.75, sm: 1.4, md: 2.4 },
+                  fontSize: { xs: "0.72rem", sm: "0.84rem", md: "0.95rem" },
+                  fontWeight: 800,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  "& .MuiButton-startIcon, & .MuiButton-endIcon": {
+                    mx: { xs: 0.25, sm: 0.5 },
+                    "& svg": {
+                      fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" }
+                    }
+                  }
+                }}
               >
                 {introConfig.primaryButtonLabel}
               </Button>
