@@ -48,7 +48,7 @@ export default function FloatingMessengerButton() {
           target="_blank"
           rel="noreferrer"
           aria-label="แชทกับเจ้าหน้าที่ผ่าน Messenger"
-          sx={(theme) => ({
+          sx={(_theme) => ({
             bgcolor: "#0084ff",
             color: "white",
             boxShadow: "0 12px 28px rgba(0, 132, 255, 0.32)",

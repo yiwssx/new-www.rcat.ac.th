@@ -16,6 +16,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
         display: "grid",
         gridTemplateColumns: {
           xs: "1fr",
+          md: "minmax(0, 1fr) minmax(240px, 280px)",
           lg: "minmax(0, 1fr) minmax(300px, 360px)"
         },
         gap: { xs: 2, md: 3 },
@@ -100,7 +101,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
           <Typography
             variant="h1"
             sx={{
-              fontSize: { xs: "1.75rem", sm: "2.1rem", md: "2.55rem", lg: "2.55rem" },
+              fontSize: { xs: "1.75rem", sm: "2.1rem", md: "2.2rem", lg: "2.55rem" },
               fontWeight: 500,
               lineHeight: 1.08,
               letterSpacing: "-0.02em"
