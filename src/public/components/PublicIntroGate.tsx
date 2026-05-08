@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Button, Container, Paper, Stack, Typography } from "@mui/material";
+import { Box, Button, Container, Paper, Stack } from "@mui/material";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import { alpha } from "@mui/material/styles";
@@ -31,8 +31,6 @@ const mockIntroImage = `data:image/svg+xml;utf8,${encodeURIComponent(`
 const introConfig = {
   enabled: true,
   storageKey: "public-intro-gate-mock-royal-occasion-2026",
-  title: "เนื่องในโอกาสวันสำคัญของสถาบันพระมหากษัตริย์",
-  subtitle: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด ขอน้อมสำนึกในพระมหากรุณาธิคุณ",
   imageUrl: mockIntroImage,
   imageAlt: "ภาพตัวอย่างสำหรับหน้า Intro วันสำคัญ",
   primaryButtonLabel: "เข้าสู่เว็บไซต์หลัก",
@@ -73,7 +71,7 @@ export default function PublicIntroGate() {
     <Box
       role="dialog"
       aria-modal="true"
-      aria-labelledby="public-intro-title"
+      aria-label="หน้าแนะนำก่อนเข้าสู่เว็บไซต์"
       sx={(theme) => ({
         position: "fixed",
         inset: 0,
@@ -88,7 +86,7 @@ export default function PublicIntroGate() {
         overflowY: "auto"
       })}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth="xl">
         <Paper
           elevation={0}
           sx={(theme) => ({
@@ -96,47 +94,20 @@ export default function PublicIntroGate() {
             border: `1px solid ${alpha(theme.palette.secondary.dark, 0.24)}`,
             bgcolor: alpha(theme.palette.background.paper, 0.92),
             boxShadow: `0 26px 80px ${alpha(theme.palette.primary.dark, 0.18)}`,
-            px: { xs: 1.5, sm: 2.5, md: 3.5 },
-            py: { xs: 2, md: 3 }
+            px: { xs: 0.75, sm: 1.25, md: 1.5 },
+            py: { xs: 1, md: 1.5 }
           })}
         >
-          <Stack spacing={{ xs: 1.6, md: 2.2 }} alignItems="center">
-            <Box sx={{ textAlign: "center" }}>
-              <Typography
-                id="public-intro-title"
-                component="h1"
-                sx={{
-                  color: "primary.dark",
-                  fontSize: { xs: "1.45rem", sm: "1.9rem", md: "2.45rem" },
-                  fontWeight: 900,
-                  lineHeight: 1.18
-                }}
-              >
-                {introConfig.title}
-              </Typography>
-              <Typography
-                color="text.secondary"
-                sx={{
-                  maxWidth: 760,
-                  mx: "auto",
-                  mt: { xs: 0.6, md: 0.8 },
-                  fontSize: { xs: "0.96rem", md: "1.08rem" },
-                  lineHeight: 1.65
-                }}
-              >
-                {introConfig.subtitle}
-              </Typography>
-            </Box>
-
+          <Stack spacing={{ xs: 1, md: 1.4 }} alignItems="center">
             <Box
               component="img"
               src={introConfig.imageUrl}
               alt={introConfig.imageAlt}
               sx={{
                 width: "100%",
-                maxHeight: { xs: "58vh", md: "64vh" },
+                maxHeight: { xs: "70vh", sm: "74vh", md: "78vh", lg: "82vh" },
                 objectFit: "contain",
-                borderRadius: { xs: 1.5, md: 2 },
+                borderRadius: { xs: 1, md: 1.5 },
                 bgcolor: "rgba(255,255,255,0.72)",
                 border: "1px solid rgba(184, 135, 0, 0.28)",
                 boxShadow: "0 18px 46px rgba(122, 89, 0, 0.16)"
@@ -148,19 +119,8 @@ export default function PublicIntroGate() {
               spacing={1.2}
               justifyContent="center"
               alignItems="stretch"
-              sx={{ width: "100%" }}
+              sx={{ width: "100%", maxWidth: 620, mx: "auto" }}
             >
-              <Button
-                type="button"
-                variant="contained"
-                color="primary"
-                size="large"
-                startIcon={<LoginRoundedIcon />}
-                onClick={handleEnterSite}
-                sx={{ minHeight: 46, px: 2.4, fontWeight: 800 }}
-              >
-                {introConfig.primaryButtonLabel}
-              </Button>
               <Button
                 component="a"
                 href={normalizeSafeHref(introConfig.secondaryButtonUrl)}
@@ -173,6 +133,17 @@ export default function PublicIntroGate() {
                 sx={{ minHeight: 46, px: 2.4, fontWeight: 800 }}
               >
                 {introConfig.secondaryButtonLabel}
+              </Button>
+              <Button
+                type="button"
+                variant="contained"
+                color="primary"
+                size="large"
+                startIcon={<LoginRoundedIcon />}
+                onClick={handleEnterSite}
+                sx={{ minHeight: 46, px: 2.4, fontWeight: 800 }}
+              >
+                {introConfig.primaryButtonLabel}
               </Button>
             </Stack>
           </Stack>
