@@ -11,7 +11,11 @@ export default function FloatingMessengerButton() {
         sx={(theme) => ({
           position: "fixed",
           right: { xs: 16, md: 24 },
-          bottom: { xs: "calc(16px + env(safe-area-inset-bottom))", md: 24 },
+          bottom: {
+            xs: "calc(16px + env(safe-area-inset-bottom))",
+            md: 96,
+            lg: 104
+          },
           zIndex: theme.zIndex.tooltip,
           display: "flex",
           alignItems: "center",
@@ -28,7 +32,7 @@ export default function FloatingMessengerButton() {
             borderRadius: 999,
             bgcolor: "background.paper",
             color: "text.primary",
-            fontSize: { xs: "0.78rem", sm: "0.84rem" },
+            fontSize: { xs: "0.78rem", sm: "0.84rem", md: "0.82rem" },
             fontWeight: 800,
             whiteSpace: "nowrap",
             boxShadow: "0 10px 24px rgba(31, 90, 44, 0.16)",
