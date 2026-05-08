@@ -16,6 +16,7 @@ import PublicLoadingState from "./PublicLoadingState";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTiktok } from "@fortawesome/free-brands-svg-icons";
 import FloatingMessengerButton from "./FloatingMessengerButton";
+import PublicIntroGate from "./PublicIntroGate";
 import { projectSettings } from "../../config/projectSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeSafeHref } from "../../utils/safeUrl";
@@ -532,6 +533,7 @@ export default function PublicSiteShell({
 
   return (
     <Box id="top" sx={{ minHeight: "100vh", bgcolor: "background.default" }} className="min-h-screen bg-rcat-soft-bg">
+      <PublicIntroGate />
       <Box
         sx={{
           bgcolor: "primary.dark",
