@@ -11,23 +11,28 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControlLabel,
   IconButton,
   Stack,
   Switch,
   TextField,
+  Tooltip,
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import PageHeader from "../components/PageHeader";
 import { deleteCarouselSlideFromApi, getAdminCmsSnapshot, saveCarouselSlideToApi } from "../../services/googleApi";
 import { clearPublicCmsCache } from "../../services/publicCmsCache";
-import { CarouselSlide } from "../../types";
+import { CarouselSlide, MediaAsset } from "../../types";
 import { formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal } from "../../utils/swal";
@@ -43,6 +48,20 @@ function sortCarouselSlides(slides: CarouselSlide[]) {
 
     return Date.parse(right.updatedAt || "") - Date.parse(left.updatedAt || "");
   });
+}
+
+function getMediaImageUrl(asset: MediaAsset) {
+  return asset.previewUrl || asset.driveUrl || asset.embedUrl || "";
+}
+
+function getCarouselImageMedia(mediaAssets: MediaAsset[]) {
+  return mediaAssets
+    .filter((asset) => asset.type === "image" && getMediaImageUrl(asset))
+    .sort((left, right) => Date.parse(right.updatedAt || "") - Date.parse(left.updatedAt || ""));
+}
+
+function isSelectedCarouselImage(slide: CarouselSlide, asset: MediaAsset) {
+  return Boolean(slide.imageUrl && slide.imageUrl === getMediaImageUrl(asset));
 }
 
 function toLocalDateTimeInputValue(value?: string) {
@@ -130,6 +149,10 @@ export default function CarouselPage() {
     () => sortCarouselSlides(adminSnapshotQuery.data?.carouselSlides ?? []),
     [adminSnapshotQuery.data?.carouselSlides]
   );
+  const imageMediaAssets = useMemo(
+    () => getCarouselImageMedia(adminSnapshotQuery.data?.media ?? []),
+    [adminSnapshotQuery.data?.media]
+  );
   const [editingSlide, setEditingSlide] = useState<CarouselSlide | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -176,6 +199,24 @@ export default function CarouselPage() {
     setDialogOpen(false);
     setEditingSlide(null);
     setIsCreating(false);
+  }
+
+  function handleSelectMediaImage(asset: MediaAsset) {
+    const imageUrl = getMediaImageUrl(asset);
+
+    if (!imageUrl) {
+      return;
+    }
+
+    setEditingSlide((current) =>
+      current
+        ? {
+            ...current,
+            imageUrl,
+            imageAlt: current.imageAlt.trim() || asset.name || current.title
+          }
+        : current
+    );
   }
 
   async function invalidateCarouselData() {
@@ -446,9 +487,124 @@ export default function CarouselPage() {
                     label="รูปภาพ URL"
                     value={editingSlide.imageUrl}
                     onChange={(event) => updateEditingSlide("imageUrl", event.target.value)}
+                    helperText="กรอก URL รูปภาพเอง หรือเลือกจากคลังสื่อด้านล่าง"
                     required
                     fullWidth
                   />
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      border: "1px solid rgba(31, 90, 44, 0.14)",
+                      borderRadius: 2,
+                      bgcolor: "rgba(255, 255, 255, 0.78)"
+                    }}
+                  >
+                    <Stack spacing={1.25}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <ImageOutlinedIcon color="primary" fontSize="small" />
+                        <Box>
+                          <Typography fontWeight={900} variant="body2">
+                            เลือกจากคลังสื่อ
+                          </Typography>
+                          <Typography color="text.secondary" variant="caption">
+                            เลือกภาพที่อัปโหลดไว้ในคลังสื่อเพื่อใช้เป็นภาพสไลด์ หรือกรอก URL รูปภาพเองด้านบน
+                          </Typography>
+                        </Box>
+                      </Stack>
+                      <Divider />
+                      {imageMediaAssets.length === 0 ? (
+                        <Alert severity="info">
+                          ยังไม่มีรูปภาพในคลังสื่อ กรุณาอัปโหลดรูปภาพในเมนูสื่อ หรือกรอก URL รูปภาพเอง
+                        </Alert>
+                      ) : (
+                        <Box sx={{ maxHeight: 260, overflowY: "auto", pr: 0.5 }}>
+                          <Grid container spacing={1.25}>
+                            {imageMediaAssets.map((asset) => {
+                              const imageUrl = getMediaImageUrl(asset);
+                              const selected = isSelectedCarouselImage(editingSlide, asset);
+
+                              return (
+                                <Grid key={asset.id} size={{ xs: 12, sm: 6 }}>
+                                  <Card
+                                    variant="outlined"
+                                    sx={{
+                                      height: "100%",
+                                      borderColor: selected ? "primary.main" : "rgba(31, 90, 44, 0.14)",
+                                      boxShadow: selected ? "0 0 0 1px rgba(31, 90, 44, 0.35)" : "none"
+                                    }}
+                                  >
+                                    <Box
+                                      component="img"
+                                      src={imageUrl}
+                                      alt={asset.name}
+                                      sx={{
+                                        width: "100%",
+                                        height: 110,
+                                        display: "block",
+                                        objectFit: "cover",
+                                        bgcolor: "primary.light"
+                                      }}
+                                    />
+                                    <CardContent sx={{ p: 1.25, "&:last-child": { pb: 1.25 } }}>
+                                      <Stack spacing={1}>
+                                        <Stack direction="row" spacing={0.75} alignItems="flex-start">
+                                          <Typography
+                                            variant="body2"
+                                            fontWeight={800}
+                                            sx={{
+                                              flex: 1,
+                                              minWidth: 0,
+                                              display: "-webkit-box",
+                                              WebkitLineClamp: 2,
+                                              WebkitBoxOrient: "vertical",
+                                              overflow: "hidden"
+                                            }}
+                                          >
+                                            {asset.name}
+                                          </Typography>
+                                          {(asset.driveUrl || imageUrl) && (
+                                            <Tooltip title="เปิดรูปภาพ">
+                                              <IconButton
+                                                aria-label={`เปิดรูปภาพ ${asset.name}`}
+                                                component="a"
+                                                href={normalizeSafeHref(asset.driveUrl || imageUrl)}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                size="small"
+                                              >
+                                                <OpenInNewOutlinedIcon fontSize="small" />
+                                              </IconButton>
+                                            </Tooltip>
+                                          )}
+                                        </Stack>
+                                        {selected ? (
+                                          <Chip
+                                            icon={<CheckCircleOutlineOutlinedIcon />}
+                                            label="กำลังใช้ภาพนี้"
+                                            color="primary"
+                                            size="small"
+                                            sx={{ alignSelf: "flex-start", fontWeight: 800 }}
+                                          />
+                                        ) : (
+                                          <Button
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => handleSelectMediaImage(asset)}
+                                          >
+                                            เลือกภาพนี้
+                                          </Button>
+                                        )}
+                                      </Stack>
+                                    </CardContent>
+                                  </Card>
+                                </Grid>
+                              );
+                            })}
+                          </Grid>
+                        </Box>
+                      )}
+                    </Stack>
+                  </Box>
                   <TextField
                     label="คำอธิบายรูปภาพ alt"
                     value={editingSlide.imageAlt}
