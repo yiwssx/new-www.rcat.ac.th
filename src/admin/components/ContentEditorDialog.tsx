@@ -43,6 +43,45 @@ const contentStatuses: ContentStatus[] = ["draft", "review", "scheduled", "publi
 const mediaTypes: MediaType[] = ["image", "document", "sheet", "video"];
 const contentTemplates = ["standard", "feature", "update"];
 
+interface AnnouncementCategoryPreset {
+  label: string;
+  category: string;
+  tags: string[];
+}
+
+const announcementCategoryPresets: AnnouncementCategoryPreset[] = [
+  {
+    label: "จัดซื้อจัดจ้าง",
+    category: "จัดซื้อจัดจ้าง",
+    tags: ["จัดซื้อ", "จัดจ้าง", "procurement"]
+  },
+  {
+    label: "ประกวดราคา / TOR",
+    category: "จัดซื้อจัดจ้าง",
+    tags: ["ประกวดราคา", "TOR", "จัดซื้อจัดจ้าง"]
+  },
+  {
+    label: "สมัครงาน",
+    category: "สมัครงาน",
+    tags: ["สมัครงาน", "recruitment", "job"]
+  },
+  {
+    label: "หางาน / ตำแหน่งงาน",
+    category: "หางาน",
+    tags: ["หางาน", "ตำแหน่งงาน", "jobs"]
+  },
+  {
+    label: "ฝึกงาน",
+    category: "ฝึกงาน",
+    tags: ["ฝึกงาน", "job"]
+  },
+  {
+    label: "แนะแนวอาชีพ",
+    category: "แนะแนวอาชีพ",
+    tags: ["แนะแนวอาชีพ", "หางาน"]
+  }
+];
+
 function createDraft(): ContentItem {
   return {
     id: `content-${Date.now()}`,
@@ -275,6 +314,23 @@ export default function ContentEditorDialog({
     setDraft((current) => ({
       ...current,
       [key]: value,
+      updatedAt: new Date().toISOString()
+    }));
+  }
+
+  function mergeCategoryValue(currentCategory: string | undefined, nextCategory: string) {
+    return normalizeCategoryValue([currentCategory, nextCategory].filter(Boolean).join(", "));
+  }
+
+  function mergeTagsValue(currentTags: ContentItem["tags"] | undefined, nextTags: string[]) {
+    return normalizeTags([...normalizeTags(currentTags), ...nextTags]);
+  }
+
+  function applyAnnouncementPreset(preset: AnnouncementCategoryPreset) {
+    setDraft((current) => ({
+      ...current,
+      category: mergeCategoryValue(current.category, preset.category),
+      tags: mergeTagsValue(current.tags, preset.tags),
       updatedAt: new Date().toISOString()
     }));
   }
@@ -550,12 +606,41 @@ export default function ContentEditorDialog({
                 />
                 <Divider />
                 <Typography fontWeight={900}>หมวดหมู่และแท็ก</Typography>
+                {draft.type === "announcement" && (
+                  <Box
+                    sx={{
+                      p: 1.25,
+                      borderRadius: 1.5,
+                      border: "1px solid rgba(31, 90, 44, 0.14)",
+                      bgcolor: "white"
+                    }}
+                  >
+                    <Typography fontWeight={900} variant="body2">
+                      ชุดหมวดหมู่สำหรับประกาศหน้าแรก
+                    </Typography>
+                    <Typography color="text.secondary" variant="caption">
+                      เลือกชุดหมวดหมู่เพื่อให้ประกาศถูกจัดเข้า section หน้าแรกได้ถูกต้อง เช่น จัดซื้อจัดจ้าง หรือ
+                      สมัครงาน/หางาน
+                    </Typography>
+                    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
+                      {announcementCategoryPresets.map((preset) => (
+                        <Chip
+                          key={preset.label}
+                          label={preset.label}
+                          variant="outlined"
+                          color="primary"
+                          onClick={() => applyAnnouncementPreset(preset)}
+                        />
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
                 <TextField
                   label="หมวดหมู่"
                   value={draft.category ?? ""}
                   onChange={(event) => updateDraft("category", event.target.value)}
                   placeholder="เช่น รับสมัคร, วิจัย, ชีวิตผู้เรียน"
-                  helperText="ใช้จุลภาคเพื่อสร้างหลายหมวดหมู่แบบ WordPress"
+                  helperText="ใช้จุลภาคเพื่อสร้างหลายหมวดหมู่ เช่น จัดซื้อจัดจ้าง, สมัครงาน, หางาน"
                   size="small"
                   fullWidth
                 />
@@ -607,7 +692,7 @@ export default function ContentEditorDialog({
                       {...params}
                       label="แท็ก"
                       placeholder="พิมพ์แท็กแล้วกด Enter หรือจุลภาค"
-                      helperText="จุลภาค Enter หรือ Tab จะเพิ่มแท็ก"
+                      helperText="จุลภาค Enter หรือ Tab จะเพิ่มแท็ก เช่น procurement, สมัครงาน, ฝึกงาน"
                       size="small"
                       fullWidth
                       onKeyDown={(event) => {
