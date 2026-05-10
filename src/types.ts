@@ -68,6 +68,22 @@ export interface MediaAsset {
   updatedAt: string;
 }
 
+export interface CarouselSlide {
+  id: string;
+  title: string;
+  subtitle: string;
+  chip: string;
+  imageUrl: string;
+  imageAlt: string;
+  buttonLabel: string;
+  href: string;
+  enabled: boolean;
+  order: number;
+  startAt?: string;
+  endAt?: string;
+  updatedAt: string;
+}
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -119,6 +135,7 @@ export interface CmsSnapshot {
   media: MediaAsset[];
   events: CalendarEvent[];
   menu?: PublicMenuItem[];
+  carouselSlides?: CarouselSlide[];
   displaySettings?: DisplaySettings;
   siteSettings?: SiteSettings;
   homepageSettings?: HomepageSettings;

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Box, Button, Chip, Container, IconButton, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import ArrowForwardIosRoundedIcon from "@mui/icons-material/ArrowForwardIosRounded";
 import CircleIcon from "@mui/icons-material/Circle";
 import useEmblaCarousel from "embla-carousel-react";
-import { ContentItem, MediaAsset } from "../../types";
+import { CarouselSlide } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
 interface ResolvedCarouselSlide {
@@ -20,14 +20,6 @@ interface ResolvedCarouselSlide {
 }
 
 const AUTOPLAY_INTERVAL_MS = 5000;
-
-function resolveSlideMedia(item: ContentItem, mediaAssets: MediaAsset[]) {
-  const mediaIds = [item.featuredMediaId, ...(item.mediaIds ?? [])].filter(Boolean);
-
-  return mediaIds
-    .map((id) => mediaAssets.find((asset) => asset.id === id))
-    .find((asset) => asset?.type === "image" && (asset.previewUrl || asset.driveUrl || asset.embedUrl));
-}
 
 function ensureCarouselBrowserApis() {
   if (typeof window === "undefined" || typeof window.matchMedia === "function") {
@@ -78,45 +70,27 @@ function ensureCarouselBrowserApis() {
   }
 }
 
-export default function PublicHomeCarousel({
-  items,
-  mediaAssets
-}: {
-  items: ContentItem[];
-  mediaAssets: MediaAsset[];
-}) {
+export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[] }) {
   ensureCarouselBrowserApis();
 
-  const slides = useMemo(
-    () =>
-      items
-        .map((item): ResolvedCarouselSlide | null => {
-          const media = resolveSlideMedia(item, mediaAssets);
+  const resolvedSlides = slides
+    .map((slide): ResolvedCarouselSlide | null => {
+      if (!slide.enabled || !slide.imageUrl || !slide.title) {
+        return null;
+      }
 
-          if (!media) {
-            return null;
-          }
-
-          const imageUrl = media.previewUrl || media.driveUrl || media.embedUrl || "";
-
-          if (!imageUrl) {
-            return null;
-          }
-
-          return {
-            id: item.id,
-            chip: item.category || "ประชาสัมพันธ์",
-            title: item.title,
-            subtitle: item.summary,
-            imageUrl,
-            altText: media.name || item.title,
-            buttonLabel: "อ่านต่อ",
-            href: `/content/${item.slug}`
-          };
-        })
-        .filter((slide): slide is ResolvedCarouselSlide => Boolean(slide)),
-    [items, mediaAssets]
-  );
+      return {
+        id: slide.id,
+        chip: slide.chip || "ประชาสัมพันธ์",
+        title: slide.title,
+        subtitle: slide.subtitle,
+        imageUrl: slide.imageUrl,
+        altText: slide.imageAlt || slide.title,
+        buttonLabel: slide.buttonLabel || "อ่านต่อ",
+        href: slide.href || "/"
+      };
+    })
+    .filter((slide): slide is ResolvedCarouselSlide => Boolean(slide));
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
@@ -169,7 +143,7 @@ export default function PublicHomeCarousel({
   useEffect(() => {
     stopAutoplay();
 
-    if (!emblaApi || isHovering || slides.length < 2) {
+    if (!emblaApi || isHovering || resolvedSlides.length < 2) {
       return stopAutoplay;
     }
 
@@ -178,9 +152,9 @@ export default function PublicHomeCarousel({
     }, AUTOPLAY_INTERVAL_MS);
 
     return stopAutoplay;
-  }, [emblaApi, isHovering, slides.length, stopAutoplay]);
+  }, [emblaApi, isHovering, resolvedSlides.length, stopAutoplay]);
 
-  if (slides.length === 0) {
+  if (resolvedSlides.length === 0) {
     return null;
   }
 
@@ -204,7 +178,7 @@ export default function PublicHomeCarousel({
         >
           <Box ref={emblaRef} sx={{ overflow: "hidden" }}>
             <Box sx={{ display: "flex" }}>
-              {slides.map((slide) => (
+              {resolvedSlides.map((slide) => (
                 <Box
                   key={slide.id}
                   role="group"
@@ -272,7 +246,7 @@ export default function PublicHomeCarousel({
             </Box>
           </Box>
 
-          {slides.length > 1 && (
+          {resolvedSlides.length > 1 && (
             <Stack
               direction="row"
               spacing={1}
@@ -315,7 +289,7 @@ export default function PublicHomeCarousel({
             </Stack>
           )}
 
-          {slides.length > 1 && (
+          {resolvedSlides.length > 1 && (
             <Stack
               direction="row"
               spacing={0.4}
@@ -327,7 +301,7 @@ export default function PublicHomeCarousel({
                 bottom: { xs: 10, md: 16 }
               }}
             >
-              {slides.map((slide, index) => (
+              {resolvedSlides.map((slide, index) => (
                 <IconButton
                   key={slide.id}
                   aria-label={`ไปยังสไลด์ ${index + 1}`}

@@ -163,6 +163,31 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("ยังไม่มีเอกสารเผยแพร่")).toBeInTheDocument();
   });
 
+  it("renders homepage carousel slides from the CMS snapshot", () => {
+    currentSnapshot = createSnapshot({
+      carouselSlides: [
+        {
+          id: "carousel-1",
+          title: "CMS carousel title",
+          subtitle: "CMS carousel subtitle",
+          chip: "Homepage",
+          imageUrl: "https://example.edu/carousel.jpg",
+          imageAlt: "CMS carousel image",
+          buttonLabel: "Read more",
+          href: "/content/cms-carousel",
+          enabled: true,
+          order: 1,
+          updatedAt: "2026-05-10T00:00:00.000Z"
+        }
+      ]
+    });
+
+    render(<PublicHomePage />);
+
+    expect(screen.getByText("CMS carousel title")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Read more" })).toHaveAttribute("href", "/content/cms-carousel");
+  });
+
   it("shows an honest empty state when no program content exists", () => {
     currentSnapshot = createSnapshot();
 

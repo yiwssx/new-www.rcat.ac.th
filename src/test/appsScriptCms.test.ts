@@ -8,6 +8,7 @@ interface HttpError extends Error {
 interface CmsScriptContext {
   assertUniqueContentSlug: (sheet: unknown, contentId: string, normalizedSlug: string) => void;
   contentValues: unknown[][];
+  getCarouselSlides: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
   incrementContentView: (input: { id?: string; slug?: string }) => {
     id: string;
     slug: string;
@@ -16,10 +17,15 @@ interface CmsScriptContext {
   };
   invalidatePublicSnapshotCache: Mock;
   isAllowedUploadMimeType: (value: string) => boolean;
+  isCarouselSlideVisible: (slide: Record<string, unknown>, now: Date) => boolean;
   lockService: {
     getScriptLock: Mock;
   };
   normalizePublicMediaUrl: (url: string, allowedHosts?: string[]) => string;
+  normalizeCarouselSlideRecord: (
+    row: Record<string, unknown>,
+    fallback?: Record<string, unknown>
+  ) => Record<string, unknown>;
   normalizeSlugValue: (value: string) => string;
   resolveUploadMimeType: (asset: { mimeType?: string; fileBase64?: string }) => string;
   sanitizePublicContentRecord: (
@@ -62,6 +68,22 @@ const TEST_CONTENT_HEADERS = [
   "publishAt",
   "viewCount",
   "lastViewedAt"
+];
+
+const TEST_CAROUSEL_HEADERS = [
+  "id",
+  "title",
+  "subtitle",
+  "chip",
+  "imageUrl",
+  "imageAlt",
+  "buttonLabel",
+  "href",
+  "enabled",
+  "order",
+  "startAt",
+  "endAt",
+  "updatedAt"
 ];
 
 function createHttpError(message: string, statusCode: number) {
@@ -111,12 +133,16 @@ function loadCmsScript(input: { contentRows?: Array<Record<string, unknown>> } =
     "readObjects",
     "LockService",
     "CONTENT_HEADERS",
+    "CAROUSEL_HEADERS",
     "SHEETS",
     `${cmsSource}
 return {
   assertUniqueContentSlug,
+  getCarouselSlides,
   incrementContentView,
   isAllowedUploadMimeType,
+  isCarouselSlideVisible,
+  normalizeCarouselSlideRecord,
   normalizePublicMediaUrl,
   normalizeSlugValue,
   resolveUploadMimeType,
@@ -137,8 +163,10 @@ return {
     readObjects,
     lockService,
     TEST_CONTENT_HEADERS,
+    TEST_CAROUSEL_HEADERS,
     {
-      content: "Content"
+      content: "Content",
+      carousel: "Carousel"
     }
   ) as Omit<CmsScriptContext, "readObjects">;
 
@@ -338,6 +366,87 @@ describe("Apps Script CMS helpers", () => {
     });
     expect(media).not.toHaveProperty("fileId");
     expect(media).not.toHaveProperty("mimeType");
+  });
+
+  it("returns only visible public carousel slides sorted by order", () => {
+    const context = loadCmsScript();
+    context.readObjects.mockImplementation((_sheet: unknown, headers: string[]) => {
+      if (headers === TEST_CAROUSEL_HEADERS) {
+        return [
+          {
+            id: "hidden-disabled",
+            title: "Disabled slide",
+            imageUrl: "https://example.edu/disabled.jpg",
+            enabled: "FALSE",
+            order: "1",
+            updatedAt: "2026-05-03T00:00:00.000Z"
+          },
+          {
+            id: "visible-later",
+            title: "Second slide",
+            imageUrl: "https://example.edu/second.jpg",
+            enabled: "TRUE",
+            order: "2",
+            updatedAt: "2026-05-05T00:00:00.000Z"
+          },
+          {
+            id: "visible-first",
+            title: "First slide",
+            imageUrl: "https://example.edu/first.jpg",
+            enabled: true,
+            order: "1",
+            updatedAt: "2026-05-04T00:00:00.000Z"
+          },
+          {
+            id: "hidden-future",
+            title: "Future slide",
+            imageUrl: "https://example.edu/future.jpg",
+            enabled: "TRUE",
+            order: "0",
+            startAt: "2099-01-01T00:00:00.000Z",
+            updatedAt: "2026-05-06T00:00:00.000Z"
+          }
+        ];
+      }
+
+      return [];
+    });
+
+    const slides = context.getCarouselSlides();
+
+    expect(slides.map((slide) => slide.id)).toEqual(["visible-first", "visible-later"]);
+    expect(slides[0]).toMatchObject({
+      chip: "ประชาสัมพันธ์",
+      buttonLabel: "อ่านต่อ",
+      href: "/",
+      enabled: true
+    });
+  });
+
+  it("includes disabled carousel slides for admin snapshots", () => {
+    const context = loadCmsScript();
+    context.readObjects.mockImplementation((_sheet: unknown, headers: string[]) => {
+      if (headers === TEST_CAROUSEL_HEADERS) {
+        return [
+          {
+            id: "disabled-slide",
+            title: "Disabled slide",
+            imageUrl: "",
+            enabled: "FALSE",
+            order: "3",
+            updatedAt: "2026-05-03T00:00:00.000Z"
+          }
+        ];
+      }
+
+      return [];
+    });
+
+    expect(context.getCarouselSlides({ includeDisabled: true })).toHaveLength(1);
+    expect(context.getCarouselSlides({ includeDisabled: true })[0]).toMatchObject({
+      id: "disabled-slide",
+      enabled: false
+    });
   });
 
   it("drops unsafe public media URLs from legacy sheet records", () => {

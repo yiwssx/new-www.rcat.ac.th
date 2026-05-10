@@ -20,6 +20,8 @@
       "adminContentDetail": "content-detail-admin",
       "contentView": "content-view",
       "deleteContent": "content-delete",
+      "carousel": "carousel",
+      "deleteCarousel": "carousel-delete",
       "media": "media",
       "deleteMedia": "media-delete",
       "publish": "publish",
