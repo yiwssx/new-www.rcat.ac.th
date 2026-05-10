@@ -10,7 +10,7 @@
   "display-settings"
 ];
 
-const ADMIN_ONLY_RESOURCES = ["site-settings", "users", "users-delete", "users-reset"];
+const ADMIN_ONLY_RESOURCES = ["site-settings", "homepage-settings", "users", "users-delete", "users-reset"];
 const PUBLIC_POST_RESOURCES = ["content-view"];
 
 const AUTH_SESSION_HOURS_FALLBACK = 8;
@@ -142,6 +142,11 @@ function routeRequest(event, method) {
     if (method === "POST" && resource === "site-settings") {
       requireMinimumRole(authContext, "admin");
       return jsonResponse(updateSiteSettings(payload));
+    }
+
+    if (method === "POST" && resource === "homepage-settings") {
+      requireMinimumRole(authContext, "admin");
+      return jsonResponse(updateHomepageSettings(payload));
     }
 
     if (method === "POST" && resource === "users") {

@@ -28,6 +28,7 @@
       "deleteEvent": "event-delete",
       "displaySettings": "display-settings",
       "siteSettings": "site-settings",
+      "homepageSettings": "homepage-settings",
       "users": "users",
       "deleteUser": "users-delete",
       "resetUsers": "users-reset"

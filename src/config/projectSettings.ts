@@ -31,6 +31,7 @@ interface ProjectSettings {
       deleteEvent: string;
       displaySettings: string;
       siteSettings: string;
+      homepageSettings: string;
       users: string;
       deleteUser: string;
       resetUsers: string;

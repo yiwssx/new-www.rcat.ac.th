@@ -1,15 +1,15 @@
 import { Box, Paper } from "@mui/material";
+import type { HomepageIntroVideoSettings } from "../../../types";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
-const mockIntroVideo = {
-  title: "วีดิทัศน์แนะนำสถานศึกษา",
-  youtubeEmbedUrl: "https://www.youtube-nocookie.com/embed/crrbCUW4lDo"
-};
+export function HomeIntroVideoSection({ settings }: { settings?: HomepageIntroVideoSettings }) {
+  if (!settings?.enabled || !settings.youtubeEmbedUrl.trim()) {
+    return null;
+  }
 
-export function HomeIntroVideoSection() {
   return (
     <Box component="section" id="intro-video" sx={{ mt: { xs: 3, md: 4 } }}>
-      <HomeSectionHeading label="แนะนำสถานศึกษา" title="วีดิทัศน์แนะนำสถานศึกษา" />
+      <HomeSectionHeading label="แนะนำสถานศึกษา" title={settings.title} />
 
       <Paper
         elevation={0}
@@ -38,8 +38,8 @@ export function HomeIntroVideoSection() {
         >
           <Box
             component="iframe"
-            src={mockIntroVideo.youtubeEmbedUrl}
-            title={mockIntroVideo.title}
+            src={settings.youtubeEmbedUrl}
+            title={settings.title}
             loading="lazy"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen

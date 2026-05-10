@@ -121,11 +121,41 @@ export interface CmsSnapshot {
   menu?: PublicMenuItem[];
   displaySettings?: DisplaySettings;
   siteSettings?: SiteSettings;
+  homepageSettings?: HomepageSettings;
 }
 
 export interface DisplaySettings {
   dateFormat: string;
   timeMode: "24h" | "12h";
+}
+
+export interface HomepageIntroGateSettings {
+  enabled: boolean;
+  imageUrl: string;
+  imageAlt: string;
+  primaryButtonLabel: string;
+  secondaryButtonLabel: string;
+  secondaryButtonUrl: string;
+  storageKey: string;
+}
+
+export interface HomepageMarqueeSettings {
+  enabled: boolean;
+  label: string;
+  text: string;
+  speedSeconds: number;
+}
+
+export interface HomepageIntroVideoSettings {
+  enabled: boolean;
+  title: string;
+  youtubeEmbedUrl: string;
+}
+
+export interface HomepageSettings {
+  introGate: HomepageIntroGateSettings;
+  marquee: HomepageMarqueeSettings;
+  introVideo: HomepageIntroVideoSettings;
 }
 
 export interface SiteSettings {

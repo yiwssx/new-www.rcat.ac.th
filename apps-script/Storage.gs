@@ -95,6 +95,7 @@ function ensureSettingsSheet(spreadsheet) {
 
   settings.forEach((setting) => upsertSetting(sheet, setting.key, setting.value));
   upsertSettingIfMissing(sheet, SETTING_KEYS.siteSettings, JSON.stringify(DEFAULT_SITE_SETTINGS));
+  upsertSettingIfMissing(sheet, SETTING_KEYS.homepageSettings, JSON.stringify(DEFAULT_HOMEPAGE_SETTINGS));
   return sheet;
 }
 
@@ -186,6 +187,119 @@ function updateDisplaySettings(input) {
   const updatedSettings = getDisplaySettings();
   invalidatePublicSnapshotCache();
   return updatedSettings;
+}
+
+function cloneObject(value) {
+  return JSON.parse(JSON.stringify(value || {}));
+}
+
+function safeJsonParseObject(value, fallback) {
+  if (!value) {
+    return cloneObject(fallback);
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch (error) {
+    console.warn(`Unable to parse JSON settings object: ${error.message || error}`);
+  }
+
+  return cloneObject(fallback);
+}
+
+function normalizeHomepageSettings(input) {
+  const source = input && typeof input === "object" && !Array.isArray(input) ? input : {};
+  const defaults = DEFAULT_HOMEPAGE_SETTINGS;
+  const introGate =
+    source.introGate && typeof source.introGate === "object" && !Array.isArray(source.introGate)
+      ? source.introGate
+      : {};
+  const marquee =
+    source.marquee && typeof source.marquee === "object" && !Array.isArray(source.marquee) ? source.marquee : {};
+  const introVideo =
+    source.introVideo && typeof source.introVideo === "object" && !Array.isArray(source.introVideo)
+      ? source.introVideo
+      : {};
+  const speedSeconds = Number(marquee.speedSeconds);
+
+  return {
+    introGate: {
+      enabled: introGate.enabled === true,
+      imageUrl: normalizeHomepageSettingsString(introGate.imageUrl, defaults.introGate.imageUrl),
+      imageAlt: normalizeHomepageSettingsString(introGate.imageAlt, defaults.introGate.imageAlt),
+      primaryButtonLabel: normalizeHomepageSettingsString(
+        introGate.primaryButtonLabel,
+        defaults.introGate.primaryButtonLabel
+      ),
+      secondaryButtonLabel: normalizeHomepageSettingsString(
+        introGate.secondaryButtonLabel,
+        defaults.introGate.secondaryButtonLabel
+      ),
+      secondaryButtonUrl: normalizeHomepageSettingsString(
+        introGate.secondaryButtonUrl,
+        defaults.introGate.secondaryButtonUrl
+      ),
+      storageKey: normalizeHomepageSettingsString(introGate.storageKey, defaults.introGate.storageKey)
+    },
+    marquee: {
+      enabled: marquee.enabled === true,
+      label: normalizeHomepageSettingsString(marquee.label, defaults.marquee.label),
+      text: normalizeHomepageSettingsString(marquee.text, defaults.marquee.text),
+      speedSeconds: Number.isFinite(speedSeconds)
+        ? Math.min(90, Math.max(12, speedSeconds))
+        : defaults.marquee.speedSeconds
+    },
+    introVideo: {
+      enabled: introVideo.enabled === true,
+      title: normalizeHomepageSettingsString(introVideo.title, defaults.introVideo.title),
+      youtubeEmbedUrl: normalizeHomepageSettingsString(introVideo.youtubeEmbedUrl, defaults.introVideo.youtubeEmbedUrl)
+    }
+  };
+}
+
+function normalizeHomepageSettingsString(value, fallback) {
+  return typeof value === "string" ? value.trim() : fallback;
+}
+
+function getHomepageSettings() {
+  const spreadsheet = getSpreadsheet();
+  const sheet = getOrEnsureSettingsSheet(spreadsheet);
+  const rawValue = getSheetSettingValue(sheet, SETTING_KEYS.homepageSettings);
+
+  return normalizeHomepageSettings(safeJsonParseObject(rawValue, DEFAULT_HOMEPAGE_SETTINGS));
+}
+
+function updateHomepageSettings(input) {
+  const spreadsheet = getSpreadsheet();
+  const sheet = getOrEnsureSettingsSheet(spreadsheet);
+  const currentSettings = getHomepageSettings();
+  const source = input && typeof input === "object" && !Array.isArray(input) ? input : {};
+  const nextSettings = normalizeHomepageSettings({
+    introGate: {
+      ...currentSettings.introGate,
+      ...(source.introGate && typeof source.introGate === "object" && !Array.isArray(source.introGate)
+        ? source.introGate
+        : {})
+    },
+    marquee: {
+      ...currentSettings.marquee,
+      ...(source.marquee && typeof source.marquee === "object" && !Array.isArray(source.marquee) ? source.marquee : {})
+    },
+    introVideo: {
+      ...currentSettings.introVideo,
+      ...(source.introVideo && typeof source.introVideo === "object" && !Array.isArray(source.introVideo)
+        ? source.introVideo
+        : {})
+    }
+  });
+
+  upsertSetting(sheet, SETTING_KEYS.homepageSettings, JSON.stringify(nextSettings));
+  invalidatePublicSnapshotCache();
+  return nextSettings;
 }
 
 function ensureFolders() {

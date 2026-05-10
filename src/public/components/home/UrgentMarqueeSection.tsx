@@ -1,10 +1,15 @@
 import { Box, Chip, Container, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
+import type { HomepageMarqueeSettings } from "../../../types";
 
-const urgentMarqueeText = "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด Urgent/Hilight/Marquee mock >_^";
+export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeSettings }) {
+  if (!settings?.enabled || !settings.text.trim()) {
+    return null;
+  }
 
-export function UrgentMarqueeSection() {
+  const marqueeText = settings.text.trim();
+
   return (
     <Box component="section" aria-label="ประกาศด่วน" sx={{ py: { xs: 1, md: 1.2 }, bgcolor: "background.default" }}>
       <Container maxWidth="xl">
@@ -31,7 +36,7 @@ export function UrgentMarqueeSection() {
         >
           <Chip
             icon={<CampaignOutlinedIcon />}
-            label="ประชาสัมพันธ์"
+            label={settings.label}
             color="secondary"
             sx={{
               alignSelf: { xs: "flex-start", sm: "center" },
@@ -53,10 +58,10 @@ export function UrgentMarqueeSection() {
                 color: "primary.dark",
                 fontWeight: 900,
                 fontSize: { xs: "0.88rem", md: "0.98rem" },
-                animation: "marqueeScroll 28s linear infinite"
+                animation: `marqueeScroll ${settings.speedSeconds}s linear infinite`
               }}
             >
-              {urgentMarqueeText} &nbsp; • &nbsp; {urgentMarqueeText} &nbsp; • &nbsp; {urgentMarqueeText}
+              {marqueeText} &nbsp; • &nbsp; {marqueeText} &nbsp; • &nbsp; {marqueeText}
             </Typography>
           </Box>
         </Stack>
