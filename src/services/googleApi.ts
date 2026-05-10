@@ -4,6 +4,7 @@ import {
   CmsSnapshot,
   ContentItem,
   DisplaySettings,
+  HomepageSettings,
   IntegrationStatus,
   MediaAsset,
   MediaType,
@@ -346,6 +347,10 @@ export async function saveDisplaySettingsToApi(settings: Partial<DisplaySettings
 
 export async function saveSiteSettingsToApi(settings: Partial<SiteSettings>): Promise<SiteSettings> {
   return postJson<SiteSettings>("siteSettings", settings);
+}
+
+export async function saveHomepageSettingsToApi(settings: Partial<HomepageSettings>): Promise<HomepageSettings> {
+  return postJson<HomepageSettings>("homepageSettings", settings);
 }
 
 export async function getUserAccountsFromApi(): Promise<UserAccount[]> {

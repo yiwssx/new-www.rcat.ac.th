@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Box, Container, LinearProgress, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import dayjs from "dayjs";
+import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { CalendarEvent, ContentItem } from "../../types";
 import PublicHomeCarousel from "../components/PublicHomeCarousel";
@@ -87,6 +88,7 @@ export default function PublicHomePage() {
   }
 
   const siteSettings = normalizeSiteSettings(data.siteSettings);
+  const homepageSettings = normalizeHomepageSettings(data.homepageSettings);
 
   return (
     <PublicSiteShell
@@ -96,11 +98,11 @@ export default function PublicHomePage() {
       canonicalPath="/"
     >
       {isFetching && <LinearProgress />}
-      <UrgentMarqueeSection />
+      <UrgentMarqueeSection settings={homepageSettings.marquee} />
       <PublicHomeCarousel />
       <Container maxWidth="xl">
         <HomeHeroSection siteSettings={siteSettings} />
-        <HomeIntroVideoSection />
+        <HomeIntroVideoSection settings={homepageSettings.introVideo} />
 
         <Box component="section" id="news" sx={{ mt: { xs: 3, md: 4 } }}>
           <Grid container spacing={3.2} alignItems="flex-start">

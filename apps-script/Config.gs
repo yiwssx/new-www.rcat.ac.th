@@ -14,7 +14,31 @@ const SETTING_KEYS = {
   authSessionHours: "authSessionHours",
   dateDisplayFormat: "dateDisplayFormat",
   timeDisplayMode: "timeDisplayMode",
-  siteSettings: "siteSettings"
+  siteSettings: "siteSettings",
+  homepageSettings: "homepageSettings"
+};
+
+const DEFAULT_HOMEPAGE_SETTINGS = {
+  introGate: {
+    enabled: false,
+    imageUrl: "",
+    imageAlt: "ภาพหน้าแนะนำก่อนเข้าสู่เว็บไซต์",
+    primaryButtonLabel: "เข้าสู่เว็บไซต์หลัก",
+    secondaryButtonLabel: "",
+    secondaryButtonUrl: "",
+    storageKey: "public-intro-gate"
+  },
+  marquee: {
+    enabled: false,
+    label: "ประชาสัมพันธ์",
+    text: "",
+    speedSeconds: 32
+  },
+  introVideo: {
+    enabled: false,
+    title: "วีดิทัศน์แนะนำสถานศึกษา",
+    youtubeEmbedUrl: ""
+  }
 };
 
 const DEFAULT_SCRIPT_PROPERTIES = {

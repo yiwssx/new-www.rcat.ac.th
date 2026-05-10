@@ -3,59 +3,34 @@ import { Box, Button, Container, Paper, Stack } from "@mui/material";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import { alpha } from "@mui/material/styles";
+import type { HomepageIntroGateSettings } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
-const mockIntroImage = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fff8e1"/>
-      <stop offset="50%" stop-color="#f8e3a2"/>
-      <stop offset="100%" stop-color="#ffffff"/>
-    </linearGradient>
-    <radialGradient id="halo" cx="50%" cy="40%" r="45%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
-      <stop offset="100%" stop-color="#d6a11a" stop-opacity="0.12"/>
-    </radialGradient>
-  </defs>
-  <rect width="1600" height="900" fill="url(#bg)"/>
-  <rect x="70" y="70" width="1460" height="760" rx="36" fill="none" stroke="#b88700" stroke-width="10"/>
-  <rect x="105" y="105" width="1390" height="690" rx="28" fill="none" stroke="#ffffff" stroke-width="4" opacity="0.9"/>
-  <circle cx="800" cy="345" r="190" fill="url(#halo)" stroke="#b88700" stroke-width="6"/>
-  <text x="800" y="335" text-anchor="middle" font-family="serif" font-size="58" font-weight="700" fill="#7a5900">MOCK IMAGE</text>
-  <text x="800" y="405" text-anchor="middle" font-family="serif" font-size="34" fill="#7a5900">สำหรับวันสำคัญของสถาบันพระมหากษัตริย์</text>
-  <text x="800" y="640" text-anchor="middle" font-family="sans-serif" font-size="42" font-weight="700" fill="#1f5a2c">พื้นที่แสดงภาพพิธีการ / ภาพเฉลิมพระเกียรติ</text>
-</svg>
-`)}`;
+function shouldShowIntroGate(settings?: HomepageIntroGateSettings) {
+  return Boolean(settings?.enabled && settings.imageUrl.trim());
+}
 
-const introConfig = {
-  enabled: true,
-  storageKey: "public-intro-gate-mock-royal-occasion-2026",
-  imageUrl: mockIntroImage,
-  imageAlt: "ภาพตัวอย่างสำหรับหน้า Intro วันสำคัญ",
-  primaryButtonLabel: "เข้าสู่เว็บไซต์หลัก",
-  secondaryButtonLabel: "ไปยังหน้ากิจกรรมเฉลิมพระเกียรติ",
-  secondaryButtonUrl: "https://example.com/royal-activity"
-};
-
-function getInitialVisibility() {
-  if (!introConfig.enabled || typeof window === "undefined") {
+function getInitialVisibility(settings?: HomepageIntroGateSettings) {
+  if (!settings || !shouldShowIntroGate(settings) || typeof window === "undefined") {
     return false;
   }
 
   try {
-    return window.sessionStorage.getItem(introConfig.storageKey) !== "dismissed";
+    return window.sessionStorage.getItem(settings.storageKey) !== "dismissed";
   } catch {
     return true;
   }
 }
 
-export default function PublicIntroGate() {
-  const [isVisible, setIsVisible] = useState(getInitialVisibility);
+export default function PublicIntroGate({ settings }: { settings?: HomepageIntroGateSettings }) {
+  const [isVisible, setIsVisible] = useState(() => getInitialVisibility(settings));
+  const hasSecondaryButton = Boolean(settings?.secondaryButtonLabel.trim() && settings.secondaryButtonUrl.trim());
 
   function handleEnterSite() {
     try {
-      window.sessionStorage.setItem(introConfig.storageKey, "dismissed");
+      if (settings?.storageKey) {
+        window.sessionStorage.setItem(settings.storageKey, "dismissed");
+      }
     } catch {
       // Session storage can be unavailable in strict privacy modes; entry should still work.
     }
@@ -63,9 +38,11 @@ export default function PublicIntroGate() {
     setIsVisible(false);
   }
 
-  if (!introConfig.enabled || !isVisible) {
+  if (!settings || !shouldShowIntroGate(settings) || !isVisible) {
     return null;
   }
+
+  const activeSettings = settings;
 
   return (
     <Box
@@ -101,8 +78,8 @@ export default function PublicIntroGate() {
           <Stack spacing={{ xs: 1, md: 1.4 }} alignItems="center">
             <Box
               component="img"
-              src={introConfig.imageUrl}
-              alt={introConfig.imageAlt}
+              src={activeSettings.imageUrl}
+              alt={activeSettings.imageAlt}
               sx={{
                 width: "100%",
                 maxHeight: { xs: "70vh", sm: "74vh", md: "78vh", lg: "82vh" },
@@ -121,52 +98,54 @@ export default function PublicIntroGate() {
               alignItems="stretch"
               sx={{
                 width: "100%",
-                maxWidth: { xs: 360, sm: 520, md: 620 },
+                maxWidth: hasSecondaryButton ? { xs: 360, sm: 520, md: 620 } : { xs: 280, sm: 320 },
                 mx: "auto",
                 flexWrap: "nowrap"
               }}
             >
-              <Button
-                component="a"
-                href={normalizeSafeHref(introConfig.secondaryButtonUrl)}
-                target="_blank"
-                rel="noreferrer"
-                variant="outlined"
-                color="primary"
-                size="medium"
-                fullWidth
-                endIcon={<OpenInNewRoundedIcon />}
-                sx={{
-                  minWidth: 0,
-                  flex: "1 1 0",
-                  minHeight: { xs: 36, sm: 40, md: 46 },
-                  px: { xs: 0.75, sm: 1.4, md: 2.4 },
-                  fontSize: { xs: "0.72rem", sm: "0.84rem", md: "0.95rem" },
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  "& .MuiButton-startIcon, & .MuiButton-endIcon": {
-                    mx: { xs: 0.25, sm: 0.5 },
-                    "& svg": {
-                      fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" }
+              {hasSecondaryButton && (
+                <Button
+                  component="a"
+                  href={normalizeSafeHref(activeSettings.secondaryButtonUrl)}
+                  target="_blank"
+                  rel="noreferrer"
+                  variant="outlined"
+                  color="primary"
+                  size="medium"
+                  fullWidth
+                  endIcon={<OpenInNewRoundedIcon />}
+                  sx={{
+                    minWidth: 0,
+                    flex: "1 1 0",
+                    minHeight: { xs: 36, sm: 40, md: 46 },
+                    px: { xs: 0.75, sm: 1.4, md: 2.4 },
+                    fontSize: { xs: "0.72rem", sm: "0.84rem", md: "0.95rem" },
+                    fontWeight: 800,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    "& .MuiButton-startIcon, & .MuiButton-endIcon": {
+                      mx: { xs: 0.25, sm: 0.5 },
+                      "& svg": {
+                        fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" }
+                      }
                     }
-                  }
-                }}
-              >
-                {introConfig.secondaryButtonLabel}
-              </Button>
+                  }}
+                >
+                  {activeSettings.secondaryButtonLabel}
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="contained"
                 color="primary"
                 size="medium"
-                fullWidth
+                fullWidth={hasSecondaryButton}
                 startIcon={<LoginRoundedIcon />}
                 onClick={handleEnterSite}
                 sx={{
                   minWidth: 0,
-                  flex: "1 1 0",
+                  flex: hasSecondaryButton ? "1 1 0" : "0 1 auto",
                   minHeight: { xs: 36, sm: 40, md: 46 },
                   px: { xs: 0.75, sm: 1.4, md: 2.4 },
                   fontSize: { xs: "0.72rem", sm: "0.84rem", md: "0.95rem" },
@@ -182,7 +161,7 @@ export default function PublicIntroGate() {
                   }
                 }}
               >
-                {introConfig.primaryButtonLabel}
+                {activeSettings.primaryButtonLabel}
               </Button>
             </Stack>
           </Stack>

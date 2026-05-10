@@ -12,6 +12,7 @@ interface CodeScriptContext {
   incrementContentView: Mock;
   routeRequest: (event: Record<string, unknown>, method: string) => RouteResult;
   shouldReadAuthContext: (method: string, resource: string) => boolean;
+  updateHomepageSettings: Mock;
   updateSiteSettings: Mock;
   verifyAuthToken: Mock;
 }
@@ -31,6 +32,7 @@ function loadCodeScript(): CodeScriptContext {
     lastViewedAt: "2026-05-03T00:00:00.000Z"
   }));
   const updateSiteSettings = vi.fn((input: Record<string, unknown>) => input);
+  const updateHomepageSettings = vi.fn((input: Record<string, unknown>) => input);
   const verifyAuthToken = vi.fn((token: string) => {
     if (token === "admin-token") {
       return {
@@ -87,6 +89,7 @@ function loadCodeScript(): CodeScriptContext {
     "replaceMenu",
     "updateDisplaySettings",
     "updateSiteSettings",
+    "updateHomepageSettings",
     "getUsers",
     "upsertUser",
     "deleteUser",
@@ -133,6 +136,7 @@ return {
     vi.fn(),
     vi.fn(),
     updateSiteSettings,
+    updateHomepageSettings,
     getUsers,
     vi.fn(),
     vi.fn(),
@@ -143,6 +147,7 @@ return {
     ...exports,
     getUsers,
     incrementContentView,
+    updateHomepageSettings,
     updateSiteSettings,
     verifyAuthToken
   };
@@ -263,6 +268,56 @@ describe("Apps Script route auth handling", () => {
 
     expect(editorResult.statusCode).toBe(403);
     expect(editorContext.updateSiteSettings).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("updates homepage settings only for admin tokens", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const adminContext = loadCodeScript();
+    const adminResult = adminContext.routeRequest(
+      {
+        resource: "homepage-settings",
+        payload: {
+          marquee: {
+            enabled: true,
+            text: "Updated marquee"
+          },
+          authToken: "admin-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(adminResult.statusCode).toBe(200);
+    expect(adminResult.body.marquee).toEqual({
+      enabled: true,
+      text: "Updated marquee"
+    });
+    expect(adminContext.updateHomepageSettings).toHaveBeenCalledWith({
+      marquee: {
+        enabled: true,
+        text: "Updated marquee"
+      },
+      authToken: "admin-token"
+    });
+
+    const editorContext = loadCodeScript();
+    const editorResult = editorContext.routeRequest(
+      {
+        resource: "homepage-settings",
+        payload: {
+          marquee: {
+            enabled: true,
+            text: "Editor update"
+          },
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(editorResult.statusCode).toBe(403);
+    expect(editorContext.updateHomepageSettings).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 

@@ -76,7 +76,8 @@ function getSnapshot(options) {
     events: visibleEvents,
     menu,
     displaySettings: getDisplaySettings(),
-    siteSettings: getSiteSettings()
+    siteSettings: getSiteSettings(),
+    homepageSettings: getHomepageSettings()
   };
 }
 

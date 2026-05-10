@@ -18,6 +18,7 @@ import { faTiktok } from "@fortawesome/free-brands-svg-icons";
 import FloatingMessengerButton from "./FloatingMessengerButton";
 import PublicIntroGate from "./PublicIntroGate";
 import { projectSettings } from "../../config/projectSettings";
+import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { useDocumentMetadata } from "../../utils/seo";
@@ -503,6 +504,7 @@ export default function PublicSiteShell({
   }
 
   const siteSettings = normalizeSiteSettings(data?.siteSettings);
+  const homepageSettings = normalizeHomepageSettings(data?.homepageSettings);
   const showPageHeader = !hidePageHeader && (Boolean(title) || Boolean(description));
   const siteName = siteSettings.siteName;
   const socialLinks: TopBarSocialLink[] = [];
@@ -533,7 +535,7 @@ export default function PublicSiteShell({
 
   return (
     <Box id="top" sx={{ minHeight: "100vh", bgcolor: "background.default" }} className="min-h-screen bg-rcat-soft-bg">
-      <PublicIntroGate />
+      <PublicIntroGate settings={homepageSettings.introGate} />
       <Box
         sx={{
           bgcolor: "primary.dark",
