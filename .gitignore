@@ -23,6 +23,9 @@ pnpm-debug.log*
 # Vercel
 .vercel/
 
+# AI context temporary files
+.context/
+
 # Playwright / test artifacts
 test-results/
 playwright-report/
