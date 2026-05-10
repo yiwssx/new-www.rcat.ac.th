@@ -1,3 +1,14 @@
+## Project guide
+
+- Use pnpm only.
+- This is a React/Vite/MUI public website and CMS.
+- Backend is Google Apps Script in apps-script/.
+- Do not add mock content unless explicitly requested.
+- Do not modify backend/admin when task is frontend-only.
+- Do not modify frontend UI when task is backend-only.
+- Prefer small diffs.
+- Run pnpm quality before declaring success.
+
 ## Auto-generated signatures
 
 <!-- Updated by gen-context.js -->

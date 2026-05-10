@@ -17,7 +17,7 @@
 ## Current Flow
 
 - Entry: `src/main.tsx`.
-- Providers: `src/App.tsx` (Redux, TanStack Query, auth, language, MUI, router).
+- Providers: TanStack Query, auth, MUI, router.
 - Routing: `src/routes.tsx` (TanStack Router).
 - App settings: `src/config/project-settings.json` (avoid hard-coded runtime settings).
 - API adapter: `src/services/googleApi.ts`.
@@ -30,7 +30,6 @@
 - Tailwind CSS v4 (layouts/custom styles)
 - MUI (complex data UI + component base)
 - TanStack Router, Query, Table
-- Redux Toolkit + React Redux
 - JWT + bcryptjs
 - SweetAlert2
 - Google Apps Script backend API
