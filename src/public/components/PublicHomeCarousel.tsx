@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Chip, Container, IconButton, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import ArrowForwardIosRoundedIcon from "@mui/icons-material/ArrowForwardIosRounded";
 import CircleIcon from "@mui/icons-material/Circle";
 import useEmblaCarousel from "embla-carousel-react";
+import { ContentItem, MediaAsset } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
-interface CarouselSlide {
+interface ResolvedCarouselSlide {
   id: string;
   chip: string;
   title: string;
@@ -20,48 +21,13 @@ interface CarouselSlide {
 
 const AUTOPLAY_INTERVAL_MS = 5000;
 
-const slides: CarouselSlide[] = [
-  {
-    id: "public-relations",
-    chip: "ประชาสัมพันธ์",
-    title: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
-    subtitle: "พัฒนาทักษะวิชาชีพเกษตร เทคโนโลยี และนวัตกรรม เพื่ออนาคตของผู้เรียน",
-    imageUrl: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1800&q=80",
-    altText: "แปลงเกษตรสีเขียวในบรรยากาศการเรียนรู้ด้านเกษตร",
-    buttonLabel: "ดูข่าวสาร",
-    href: "/news"
-  },
-  {
-    id: "admissions",
-    chip: "รับสมัครนักเรียน นักศึกษา",
-    title: "เปิดรับสมัครหลักสูตรสายอาชีพ",
-    subtitle: "เรียนรู้จากประสบการณ์จริง พร้อมต่อยอดสู่อาชีพและการศึกษาต่อ",
-    imageUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1800&q=80",
-    altText: "นักเรียนในพื้นที่สถานศึกษา",
-    buttonLabel: "สมัครเรียน",
-    href: "/departments"
-  },
-  {
-    id: "campus-activities",
-    chip: "กิจกรรมวิทยาลัย",
-    title: "กิจกรรมเด่นและผลงานนักศึกษา",
-    subtitle: "ติดตามภาพกิจกรรม โครงการ และความสำเร็จของนักเรียนนักศึกษา",
-    imageUrl: "https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?auto=format&fit=crop&w=1800&q=80",
-    altText: "กลุ่มนักศึกษาร่วมกิจกรรมในสถานศึกษา",
-    buttonLabel: "ดูกิจกรรม",
-    href: "/news"
-  },
-  {
-    id: "announcements",
-    chip: "บริการข้อมูล",
-    title: "ประกาศและข้อมูลเผยแพร่",
-    subtitle: "รวมข่าวประกาศ เอกสารสำคัญ และข้อมูลสำหรับผู้เรียน ผู้ปกครอง และชุมชน",
-    imageUrl: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1800&q=80",
-    altText: "พื้นที่ทำงานและเทคโนโลยีสำหรับบริการข้อมูล",
-    buttonLabel: "ดูประกาศ",
-    href: "/announcements"
-  }
-];
+function resolveSlideMedia(item: ContentItem, mediaAssets: MediaAsset[]) {
+  const mediaIds = [item.featuredMediaId, ...(item.mediaIds ?? [])].filter(Boolean);
+
+  return mediaIds
+    .map((id) => mediaAssets.find((asset) => asset.id === id))
+    .find((asset) => asset?.type === "image" && (asset.previewUrl || asset.driveUrl || asset.embedUrl));
+}
 
 function ensureCarouselBrowserApis() {
   if (typeof window === "undefined" || typeof window.matchMedia === "function") {
@@ -112,9 +78,45 @@ function ensureCarouselBrowserApis() {
   }
 }
 
-export default function PublicHomeCarousel() {
+export default function PublicHomeCarousel({
+  items,
+  mediaAssets
+}: {
+  items: ContentItem[];
+  mediaAssets: MediaAsset[];
+}) {
   ensureCarouselBrowserApis();
 
+  const slides = useMemo(
+    () =>
+      items
+        .map((item): ResolvedCarouselSlide | null => {
+          const media = resolveSlideMedia(item, mediaAssets);
+
+          if (!media) {
+            return null;
+          }
+
+          const imageUrl = media.previewUrl || media.driveUrl || media.embedUrl || "";
+
+          if (!imageUrl) {
+            return null;
+          }
+
+          return {
+            id: item.id,
+            chip: item.category || "ประชาสัมพันธ์",
+            title: item.title,
+            subtitle: item.summary,
+            imageUrl,
+            altText: media.name || item.title,
+            buttonLabel: "อ่านต่อ",
+            href: `/content/${item.slug}`
+          };
+        })
+        .filter((slide): slide is ResolvedCarouselSlide => Boolean(slide)),
+    [items, mediaAssets]
+  );
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
@@ -167,7 +169,7 @@ export default function PublicHomeCarousel() {
   useEffect(() => {
     stopAutoplay();
 
-    if (!emblaApi || isHovering) {
+    if (!emblaApi || isHovering || slides.length < 2) {
       return stopAutoplay;
     }
 
@@ -176,7 +178,11 @@ export default function PublicHomeCarousel() {
     }, AUTOPLAY_INTERVAL_MS);
 
     return stopAutoplay;
-  }, [emblaApi, isHovering, stopAutoplay]);
+  }, [emblaApi, isHovering, slides.length, stopAutoplay]);
+
+  if (slides.length === 0) {
+    return null;
+  }
 
   return (
     <Box component="section" aria-label="สไลด์ประชาสัมพันธ์หน้าแรก" sx={{ mb: { xs: 2.5, md: 3.5 } }}>
@@ -266,76 +272,80 @@ export default function PublicHomeCarousel() {
             </Box>
           </Box>
 
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{
-              position: "absolute",
-              right: { xs: 12, md: 20 },
-              top: { xs: 12, md: 20 }
-            }}
-          >
-            <IconButton
-              aria-label="สไลด์ก่อนหน้า"
-              onClick={scrollPrev}
-              sx={(theme) => ({
-                width: { xs: 34, md: 40 },
-                height: { xs: 34, md: 40 },
-                color: "white",
-                bgcolor: alpha(theme.palette.common.black, 0.32),
-                "&:hover": {
-                  bgcolor: alpha(theme.palette.common.black, 0.46)
-                }
-              })}
+          {slides.length > 1 && (
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                position: "absolute",
+                right: { xs: 12, md: 20 },
+                top: { xs: 12, md: 20 }
+              }}
             >
-              <ArrowBackIosNewRoundedIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              aria-label="สไลด์ถัดไป"
-              onClick={scrollNext}
-              sx={(theme) => ({
-                width: { xs: 34, md: 40 },
-                height: { xs: 34, md: 40 },
-                color: "white",
-                bgcolor: alpha(theme.palette.common.black, 0.32),
-                "&:hover": {
-                  bgcolor: alpha(theme.palette.common.black, 0.46)
-                }
-              })}
-            >
-              <ArrowForwardIosRoundedIcon fontSize="small" />
-            </IconButton>
-          </Stack>
-
-          <Stack
-            direction="row"
-            spacing={0.4}
-            justifyContent="center"
-            sx={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: { xs: 10, md: 16 }
-            }}
-          >
-            {slides.map((slide, index) => (
               <IconButton
-                key={slide.id}
-                aria-label={`ไปยังสไลด์ ${index + 1}`}
-                aria-current={selectedIndex === index ? "true" : undefined}
-                onClick={() => {
-                  scrollTo(index);
-                }}
-                sx={{
-                  width: 28,
-                  height: 28,
-                  color: selectedIndex === index ? "secondary.main" : "rgba(255, 255, 255, 0.7)"
-                }}
+                aria-label="สไลด์ก่อนหน้า"
+                onClick={scrollPrev}
+                sx={(theme) => ({
+                  width: { xs: 34, md: 40 },
+                  height: { xs: 34, md: 40 },
+                  color: "white",
+                  bgcolor: alpha(theme.palette.common.black, 0.32),
+                  "&:hover": {
+                    bgcolor: alpha(theme.palette.common.black, 0.46)
+                  }
+                })}
               >
-                <CircleIcon sx={{ fontSize: selectedIndex === index ? 9 : 7 }} />
+                <ArrowBackIosNewRoundedIcon fontSize="small" />
               </IconButton>
-            ))}
-          </Stack>
+              <IconButton
+                aria-label="สไลด์ถัดไป"
+                onClick={scrollNext}
+                sx={(theme) => ({
+                  width: { xs: 34, md: 40 },
+                  height: { xs: 34, md: 40 },
+                  color: "white",
+                  bgcolor: alpha(theme.palette.common.black, 0.32),
+                  "&:hover": {
+                    bgcolor: alpha(theme.palette.common.black, 0.46)
+                  }
+                })}
+              >
+                <ArrowForwardIosRoundedIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+          )}
+
+          {slides.length > 1 && (
+            <Stack
+              direction="row"
+              spacing={0.4}
+              justifyContent="center"
+              sx={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: { xs: 10, md: 16 }
+              }}
+            >
+              {slides.map((slide, index) => (
+                <IconButton
+                  key={slide.id}
+                  aria-label={`ไปยังสไลด์ ${index + 1}`}
+                  aria-current={selectedIndex === index ? "true" : undefined}
+                  onClick={() => {
+                    scrollTo(index);
+                  }}
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    color: selectedIndex === index ? "secondary.main" : "rgba(255, 255, 255, 0.7)"
+                  }}
+                >
+                  <CircleIcon sx={{ fontSize: selectedIndex === index ? 9 : 7 }} />
+                </IconButton>
+              ))}
+            </Stack>
+          )}
         </Box>
       </Container>
     </Box>
