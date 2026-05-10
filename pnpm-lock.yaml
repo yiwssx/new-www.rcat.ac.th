@@ -120,6 +120,9 @@ importers:
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
+      sigmap:
+        specifier: ^6.10.0
+        version: 6.10.0
       tailwindcss:
         specifier: ^4.2.4
         version: 4.2.4
@@ -1934,6 +1937,11 @@ packages:
 
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
+
+  sigmap@6.10.0:
+    resolution: {integrity: sha512-9r7TqHYv3SkEZJHhv1nky/d73cxZC4qHaT3m+imA9zeC7oQPpha1iarBT4joufVtqMFvNP3iPIO27A3wvUrV+w==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -3832,6 +3840,8 @@ snapshots:
   shebang-regex@3.0.0: {}
 
   siginfo@2.0.0: {}
+
+  sigmap@6.10.0: {}
 
   source-map-js@1.2.1: {}
 
