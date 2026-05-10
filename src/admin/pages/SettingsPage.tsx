@@ -6,18 +6,24 @@ import {
   Card,
   CardContent,
   Checkbox,
+  Divider,
   FormControl,
+  FormControlLabel,
   InputLabel,
   MenuItem,
   Select,
   Stack,
+  Switch,
   TextField,
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
+import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
 import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
+import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
+import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PageHeader from "../components/PageHeader";
@@ -29,10 +35,11 @@ import {
   loadDisplaySettings,
   saveDisplaySettings
 } from "../../services/displaySettings";
+import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { clearPublicCmsCache } from "../../services/publicCmsCache";
 import { defaultSiteSettings, normalizeSiteSettings } from "../../services/siteSettings";
-import { getAdminCmsSnapshot, saveSiteSettingsToApi } from "../../services/googleApi";
-import { DisplaySettings, SiteSettings } from "../../types";
+import { getAdminCmsSnapshot, saveHomepageSettingsToApi, saveSiteSettingsToApi } from "../../services/googleApi";
+import { DisplaySettings, HomepageSettings, SiteSettings } from "../../types";
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
 
@@ -94,8 +101,10 @@ export default function SettingsPage() {
   const rolePermissions = projectSettings.roles;
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(defaultDisplaySettings);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(defaultSiteSettings);
+  const [homepageSettings, setHomepageSettings] = useState<HomepageSettings>(normalizeHomepageSettings());
   const [displaySettingsSource, setDisplaySettingsSource] = useState<DisplaySettings | undefined>();
   const [siteSettingsSource, setSiteSettingsSource] = useState<SiteSettings | undefined>();
+  const [homepageSettingsSource, setHomepageSettingsSource] = useState<HomepageSettings | undefined>();
 
   const displaySettingsQuery = useQuery({
     queryKey: ["display-settings"],
@@ -112,6 +121,9 @@ export default function SettingsPage() {
   const saveSiteSettingsMutation = useMutation({
     mutationFn: saveSiteSettingsToApi
   });
+  const saveHomepageSettingsMutation = useMutation({
+    mutationFn: saveHomepageSettingsToApi
+  });
 
   if (displaySettingsQuery.data && displaySettingsSource !== displaySettingsQuery.data) {
     setDisplaySettingsSource(displaySettingsQuery.data);
@@ -121,6 +133,14 @@ export default function SettingsPage() {
   if (adminSnapshotQuery.data?.siteSettings && siteSettingsSource !== adminSnapshotQuery.data.siteSettings) {
     setSiteSettingsSource(adminSnapshotQuery.data.siteSettings);
     setSiteSettings(normalizeSiteSettings(adminSnapshotQuery.data.siteSettings));
+  }
+
+  if (
+    adminSnapshotQuery.data?.homepageSettings &&
+    homepageSettingsSource !== adminSnapshotQuery.data.homepageSettings
+  ) {
+    setHomepageSettingsSource(adminSnapshotQuery.data.homepageSettings);
+    setHomepageSettings(normalizeHomepageSettings(adminSnapshotQuery.data.homepageSettings));
   }
 
   const previewDate = useMemo(() => {
@@ -160,6 +180,38 @@ export default function SettingsPage() {
     }));
   }
 
+  function handleHomepageIntroGateChange(key: keyof HomepageSettings["introGate"], value: string | boolean) {
+    setHomepageSettings((current) => ({
+      ...current,
+      introGate: {
+        ...current.introGate,
+        [key]: value
+      }
+    }));
+  }
+
+  function handleHomepageMarqueeChange(key: keyof HomepageSettings["marquee"], value: string | boolean | number) {
+    const nextValue = key === "speedSeconds" ? Math.min(90, Math.max(12, Number(value) || 32)) : value;
+
+    setHomepageSettings((current) => ({
+      ...current,
+      marquee: {
+        ...current.marquee,
+        [key]: nextValue
+      }
+    }));
+  }
+
+  function handleHomepageIntroVideoChange(key: keyof HomepageSettings["introVideo"], value: string | boolean) {
+    setHomepageSettings((current) => ({
+      ...current,
+      introVideo: {
+        ...current.introVideo,
+        [key]: value
+      }
+    }));
+  }
+
   async function handleSaveSiteSettings() {
     try {
       const saved = await saveSiteSettingsMutation.mutateAsync(siteSettings);
@@ -178,6 +230,31 @@ export default function SettingsPage() {
       await appSwal.fire({
         icon: "error",
         title: "ไม่สามารถบันทึกข้อมูลเว็บไซต์สาธารณะได้",
+        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
+      });
+    }
+  }
+
+  async function handleSaveHomepageSettings() {
+    try {
+      const nextSettings = normalizeHomepageSettings(homepageSettings);
+      const saved = await saveHomepageSettingsMutation.mutateAsync(nextSettings);
+      setHomepageSettings(normalizeHomepageSettings(saved));
+      clearPublicCmsCache();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] }),
+        queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
+      ]);
+      await appSwal.fire({
+        icon: "success",
+        title: "บันทึกการตั้งค่าหน้าแรกแล้ว",
+        confirmButtonText: "ตกลง"
+      });
+    } catch (error) {
+      await appSwal.fire({
+        icon: "error",
+        title: "ไม่สามารถบันทึกการตั้งค่าหน้าแรกได้",
         text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
         confirmButtonText: "ตกลง"
       });
@@ -350,6 +427,206 @@ export default function SettingsPage() {
                   )}
                 </Grid>
               </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+                <CampaignOutlinedIcon color="primary" />
+                <Typography variant="h3">การตั้งค่าหน้าแรก</Typography>
+              </Stack>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
+                ควบคุมส่วน Intro Gate, ประกาศวิ่ง และวิดีโอแนะนำสถานศึกษาที่แสดงในหน้าเว็บไซต์สาธารณะ
+              </Typography>
+
+              {adminSnapshotQuery.isError && (
+                <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                  ไม่สามารถโหลดการตั้งค่าหน้าแรกได้
+                </Typography>
+              )}
+
+              <Stack spacing={2.4} divider={<Divider flexItem />}>
+                <Box>
+                  <Stack direction="row" alignItems="center" spacing={1.2} sx={{ mb: 1.5 }}>
+                    <LoginRoundedIcon color="primary" />
+                    <Typography variant="h4">Intro Gate</Typography>
+                  </Stack>
+                  <Grid container spacing={1.5}>
+                    <Grid size={{ xs: 12 }}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={homepageSettings.introGate.enabled}
+                            onChange={(event) => handleHomepageIntroGateChange("enabled", event.target.checked)}
+                          />
+                        }
+                        label="เปิดใช้งาน Intro Gate"
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="รูปภาพ Intro Gate URL"
+                        value={homepageSettings.introGate.imageUrl}
+                        onChange={(event) => handleHomepageIntroGateChange("imageUrl", event.target.value)}
+                        helperText="ใช้ลิงก์รูปภาพ https:// หรือ Google Drive image URL ที่เผยแพร่ได้"
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="คำอธิบายรูปภาพ alt"
+                        value={homepageSettings.introGate.imageAlt}
+                        onChange={(event) => handleHomepageIntroGateChange("imageAlt", event.target.value)}
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="ข้อความปุ่มเข้าสู่เว็บไซต์หลัก"
+                        value={homepageSettings.introGate.primaryButtonLabel}
+                        onChange={(event) => handleHomepageIntroGateChange("primaryButtonLabel", event.target.value)}
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="ข้อความปุ่มลิงก์ภายนอก"
+                        value={homepageSettings.introGate.secondaryButtonLabel}
+                        onChange={(event) => handleHomepageIntroGateChange("secondaryButtonLabel", event.target.value)}
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="URL ปุ่มลิงก์ภายนอก"
+                        value={homepageSettings.introGate.secondaryButtonUrl}
+                        onChange={(event) => handleHomepageIntroGateChange("secondaryButtonUrl", event.target.value)}
+                        helperText="ใช้ลิงก์ https:// หรือเว้นว่างเพื่อซ่อนปุ่มลิงก์ภายนอก"
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="sessionStorage key"
+                        value={homepageSettings.introGate.storageKey}
+                        onChange={(event) => handleHomepageIntroGateChange("storageKey", event.target.value)}
+                        helperText="เปลี่ยน key เมื่อต้องการให้ผู้ใช้เห็น Intro Gate ใหม่อีกครั้ง"
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                <Box>
+                  <Stack direction="row" alignItems="center" spacing={1.2} sx={{ mb: 1.5 }}>
+                    <CampaignOutlinedIcon color="primary" />
+                    <Typography variant="h4">Urgent Marquee</Typography>
+                  </Stack>
+                  <Grid container spacing={1.5}>
+                    <Grid size={{ xs: 12 }}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={homepageSettings.marquee.enabled}
+                            onChange={(event) => handleHomepageMarqueeChange("enabled", event.target.checked)}
+                          />
+                        }
+                        label="เปิดใช้งานประกาศวิ่ง"
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="ป้ายประกาศ"
+                        value={homepageSettings.marquee.label}
+                        onChange={(event) => handleHomepageMarqueeChange("label", event.target.value)}
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="ความเร็วการวิ่ง วินาที"
+                        type="number"
+                        value={homepageSettings.marquee.speedSeconds}
+                        onChange={(event) => handleHomepageMarqueeChange("speedSeconds", event.target.value)}
+                        helperText="ตัวเลขมาก = วิ่งช้าลง แนะนำ 28–40 วินาที"
+                        inputProps={{ min: 12, max: 90 }}
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                      <TextField
+                        label="ข้อความประกาศ"
+                        value={homepageSettings.marquee.text}
+                        onChange={(event) => handleHomepageMarqueeChange("text", event.target.value)}
+                        multiline
+                        minRows={3}
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                <Box>
+                  <Stack direction="row" alignItems="center" spacing={1.2} sx={{ mb: 1.5 }}>
+                    <OndemandVideoOutlinedIcon color="primary" />
+                    <Typography variant="h4">Intro Video</Typography>
+                  </Stack>
+                  <Grid container spacing={1.5}>
+                    <Grid size={{ xs: 12 }}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={homepageSettings.introVideo.enabled}
+                            onChange={(event) => handleHomepageIntroVideoChange("enabled", event.target.checked)}
+                          />
+                        }
+                        label="เปิดใช้งานวิดีโอแนะนำสถานศึกษา"
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="หัวข้อวิดีโอ"
+                        value={homepageSettings.introVideo.title}
+                        onChange={(event) => handleHomepageIntroVideoChange("title", event.target.value)}
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        label="YouTube embed URL"
+                        value={homepageSettings.introVideo.youtubeEmbedUrl}
+                        onChange={(event) => handleHomepageIntroVideoChange("youtubeEmbedUrl", event.target.value)}
+                        helperText="แนะนำให้ใช้ https://www.youtube-nocookie.com/embed/... หรือ YouTube embed URL"
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Stack>
+
+              <Box sx={{ mt: 2.5 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<SaveOutlinedIcon />}
+                  disabled={saveHomepageSettingsMutation.isPending}
+                  onClick={() => void handleSaveHomepageSettings()}
+                >
+                  {saveHomepageSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกการตั้งค่าหน้าแรก"}
+                </Button>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
