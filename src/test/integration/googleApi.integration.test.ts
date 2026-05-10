@@ -16,6 +16,8 @@ vi.mock("../../config/projectSettings", () => ({
         adminContentDetail: "content-detail-admin",
         contentView: "content-view",
         deleteContent: "content-delete",
+        carousel: "carousel",
+        deleteCarousel: "carousel-delete",
         media: "media",
         deleteMedia: "media-delete",
         publish: "publish",
@@ -24,6 +26,7 @@ vi.mock("../../config/projectSettings", () => ({
         deleteEvent: "event-delete",
         displaySettings: "display-settings",
         siteSettings: "site-settings",
+        homepageSettings: "homepage-settings",
         users: "users",
         deleteUser: "users-delete",
         resetUsers: "users-reset"

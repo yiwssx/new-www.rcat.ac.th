@@ -1,6 +1,7 @@
 import { getGoogleAppsScriptUrl, projectSettings } from "../config/projectSettings";
 import {
   CalendarEvent,
+  CarouselSlide,
   CmsSnapshot,
   ContentItem,
   DisplaySettings,
@@ -115,6 +116,8 @@ export interface MediaAssetInput {
   fileName?: string;
   fileBase64?: string;
 }
+
+export type CarouselSlideInput = Partial<CarouselSlide>;
 
 function assertAppScriptUrl() {
   const appScriptUrl = getGoogleAppsScriptUrl();
@@ -301,6 +304,14 @@ export async function getAdminContentDetail(input: { id?: string; slug?: string 
 
 export async function deleteContentItem(id: string): Promise<{ id: string; deleted: boolean }> {
   return postJson<{ id: string; deleted: boolean }>("deleteContent", { id });
+}
+
+export async function saveCarouselSlideToApi(slide: CarouselSlideInput): Promise<CarouselSlide> {
+  return postJson<CarouselSlide>("carousel", slide);
+}
+
+export async function deleteCarouselSlideFromApi(id: string): Promise<{ id: string; deleted: boolean }> {
+  return postJson<{ id: string; deleted: boolean }>("deleteCarousel", { id });
 }
 
 export async function getPublicMenuItems(): Promise<PublicMenuItem[]> {

@@ -12,6 +12,8 @@ interface CodeScriptContext {
   incrementContentView: Mock;
   routeRequest: (event: Record<string, unknown>, method: string) => RouteResult;
   shouldReadAuthContext: (method: string, resource: string) => boolean;
+  upsertCarouselSlide: Mock;
+  deleteCarouselSlide: Mock;
   updateHomepageSettings: Mock;
   updateSiteSettings: Mock;
   verifyAuthToken: Mock;
@@ -30,6 +32,15 @@ function loadCodeScript(): CodeScriptContext {
     slug: "announcement-1",
     viewCount: 2,
     lastViewedAt: "2026-05-03T00:00:00.000Z"
+  }));
+  const upsertCarouselSlide = vi.fn((input: Record<string, unknown>) => ({
+    id: input.id || "carousel-1",
+    title: input.title || "",
+    enabled: input.enabled === true
+  }));
+  const deleteCarouselSlide = vi.fn((id: string) => ({
+    id,
+    deleted: true
   }));
   const updateSiteSettings = vi.fn((input: Record<string, unknown>) => input);
   const updateHomepageSettings = vi.fn((input: Record<string, unknown>) => input);
@@ -81,6 +92,8 @@ function loadCodeScript(): CodeScriptContext {
     "loginUser",
     "upsertContent",
     "deleteContent",
+    "upsertCarouselSlide",
+    "deleteCarouselSlide",
     "upsertMedia",
     "deleteMedia",
     "upsertEvent",
@@ -128,6 +141,8 @@ return {
     vi.fn(),
     vi.fn(),
     vi.fn(),
+    upsertCarouselSlide,
+    deleteCarouselSlide,
     vi.fn(),
     vi.fn(),
     vi.fn(),
@@ -147,6 +162,8 @@ return {
     ...exports,
     getUsers,
     incrementContentView,
+    upsertCarouselSlide,
+    deleteCarouselSlide,
     updateHomepageSettings,
     updateSiteSettings,
     verifyAuthToken
@@ -318,6 +335,70 @@ describe("Apps Script route auth handling", () => {
 
     expect(editorResult.statusCode).toBe(403);
     expect(editorContext.updateHomepageSettings).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("allows editors to upsert and delete carousel slides", () => {
+    const context = loadCodeScript();
+    const saveResult = context.routeRequest(
+      {
+        resource: "carousel",
+        payload: {
+          id: "carousel-1",
+          title: "Homepage slide",
+          enabled: true,
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+    const deleteResult = context.routeRequest(
+      {
+        resource: "carousel-delete",
+        payload: {
+          id: "carousel-1",
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(saveResult.statusCode).toBe(200);
+    expect(saveResult.body).toMatchObject({
+      id: "carousel-1",
+      title: "Homepage slide",
+      enabled: true
+    });
+    expect(deleteResult.statusCode).toBe(200);
+    expect(deleteResult.body).toMatchObject({
+      id: "carousel-1",
+      deleted: true
+    });
+    expect(context.upsertCarouselSlide).toHaveBeenCalledWith({
+      id: "carousel-1",
+      title: "Homepage slide",
+      enabled: true,
+      authToken: "editor-token"
+    });
+    expect(context.deleteCarouselSlide).toHaveBeenCalledWith("carousel-1");
+  });
+
+  it("blocks unauthenticated carousel writes", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadCodeScript();
+    const result = context.routeRequest(
+      {
+        resource: "carousel",
+        payload: {
+          title: "Homepage slide"
+        }
+      },
+      "POST"
+    );
+
+    expect(result.statusCode).toBe(401);
+    expect(result.body.error).toBe("Authentication is required.");
+    expect(context.upsertCarouselSlide).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 

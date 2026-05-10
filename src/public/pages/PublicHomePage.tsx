@@ -24,7 +24,6 @@ import { VisitorStatsCard } from "../components/home/VisitorStatsCard";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 const documentKeywords = ["เอกสาร", "document", "ita", "แผนงาน", "ประกันคุณภาพ"];
-const carouselKeywords = ["carousel", "banner", "slide", "สไลด์", "แบนเนอร์", "หน้าแรก", "ไฮไลท์"];
 const procurementKeywords = ["procurement", "จัดซื้อ", "จัดจ้าง", "จัดซื้อจัดจ้าง", "ประกวดราคา", "tor"];
 const jobOpportunityKeywords = [
   "job",
@@ -89,9 +88,7 @@ export default function PublicHomePage() {
   const announcementContent = publicContent.filter((item) => item.type === "announcement");
   const latestNews = publicContent.filter((item) => item.type === "news" || item.type === "blog").slice(0, 4);
   const latestAnnouncements = announcementContent.slice(0, 5);
-  const carouselItems = publicContent
-    .filter((item) => Boolean(item.featured) && hasContentSearchTerm(item, carouselKeywords))
-    .slice(0, 5);
+  const carouselSlides = data?.carouselSlides ?? [];
   const procurementItems = announcementContent
     .filter((item) => hasContentSearchTerm(item, procurementKeywords))
     .slice(0, 4);
@@ -126,7 +123,7 @@ export default function PublicHomePage() {
     >
       {isFetching && <LinearProgress />}
       <UrgentMarqueeSection settings={homepageSettings.marquee} />
-      <PublicHomeCarousel items={carouselItems} mediaAssets={data?.media ?? []} />
+      <PublicHomeCarousel slides={carouselSlides} />
       <Container maxWidth="xl">
         <HomeHeroSection siteSettings={siteSettings} />
         <HomeIntroVideoSection settings={homepageSettings.introVideo} />

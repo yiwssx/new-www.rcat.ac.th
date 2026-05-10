@@ -1,6 +1,8 @@
 ﻿const EDITOR_WRITE_RESOURCES = [
   "content",
   "content-delete",
+  "carousel",
+  "carousel-delete",
   "media",
   "media-delete",
   "event",
@@ -107,6 +109,14 @@ function routeRequest(event, method) {
 
     if (method === "POST" && resource === "content-delete") {
       return jsonResponse(deleteContent(payload.id));
+    }
+
+    if (method === "POST" && resource === "carousel") {
+      return jsonResponse(upsertCarouselSlide(payload));
+    }
+
+    if (method === "POST" && resource === "carousel-delete") {
+      return jsonResponse(deleteCarouselSlide(payload.id));
     }
 
     if (method === "POST" && resource === "media") {

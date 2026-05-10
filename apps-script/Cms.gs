@@ -10,6 +10,7 @@
   setSetting(SETTING_KEYS.spreadsheetId, spreadsheet.getId());
 
   ensureSheet(spreadsheet, SHEETS.content, CONTENT_HEADERS);
+  ensureSheet(spreadsheet, SHEETS.carousel, CAROUSEL_HEADERS);
   ensureSheet(spreadsheet, SHEETS.media, MEDIA_HEADERS);
   ensureSheet(spreadsheet, SHEETS.events, EVENT_HEADERS);
   ensureSheet(spreadsheet, SHEETS.menu, MENU_HEADERS);
@@ -57,6 +58,9 @@ function getSnapshot(options) {
   const content = readObjects(spreadsheet.getSheetByName(SHEETS.content), CONTENT_HEADERS).map(normalizeContentRecord);
   const media = readObjects(spreadsheet.getSheetByName(SHEETS.media), MEDIA_HEADERS);
   const events = readObjects(spreadsheet.getSheetByName(SHEETS.events), EVENT_HEADERS);
+  const carouselSlides = getCarouselSlides({
+    includeDisabled: includeUnpublished
+  });
   const menu = getMenu();
   const visibleContent = includeUnpublished ? content : content.filter((item) => item.status === "published");
   const visibleEvents = includeUnpublished
@@ -75,6 +79,7 @@ function getSnapshot(options) {
     media: visibleMedia,
     events: visibleEvents,
     menu,
+    carouselSlides,
     displaySettings: getDisplaySettings(),
     siteSettings: getSiteSettings(),
     homepageSettings: getHomepageSettings()
@@ -193,6 +198,136 @@ function deleteContent(id) {
     id,
     deleted: true
   };
+}
+
+function getCarouselSlides(options) {
+  const config = options || {};
+  const includeDisabled = Boolean(config.includeDisabled);
+  const spreadsheet = getSpreadsheet();
+  const sheet =
+    spreadsheet.getSheetByName(SHEETS.carousel) || ensureSheet(spreadsheet, SHEETS.carousel, CAROUSEL_HEADERS);
+  const now = new Date();
+
+  return readObjects(sheet, CAROUSEL_HEADERS)
+    .map(normalizeCarouselSlideRecord)
+    .filter((slide) => includeDisabled || isCarouselSlideVisible(slide, now))
+    .sort(compareCarouselSlides)
+    .map((slide) => (includeDisabled ? slide : sanitizePublicCarouselSlideRecord(slide)));
+}
+
+function upsertCarouselSlide(input) {
+  const spreadsheet = getSpreadsheet();
+  const sheet =
+    spreadsheet.getSheetByName(SHEETS.carousel) || ensureSheet(spreadsheet, SHEETS.carousel, CAROUSEL_HEADERS);
+  const existingSlide = input && input.id ? findRowById(sheet, CAROUSEL_HEADERS, input.id) : null;
+  const nextSlide = normalizeCarouselSlideRecord(input || {}, existingSlide || {}, {
+    touch: true
+  });
+
+  upsertRow(sheet, CAROUSEL_HEADERS, {
+    ...nextSlide,
+    enabled: toSheetBoolean(nextSlide.enabled)
+  });
+  invalidatePublicSnapshotCache();
+  return nextSlide;
+}
+
+function deleteCarouselSlide(id) {
+  deleteRowById(SHEETS.carousel, CAROUSEL_HEADERS, id);
+  invalidatePublicSnapshotCache();
+
+  return {
+    id,
+    deleted: true
+  };
+}
+
+function normalizeCarouselSlideRecord(row, fallback, options) {
+  const source = row || {};
+  const defaults = fallback || {};
+  const config = options || {};
+  const title = normalizeCarouselString(source.title, defaults.title || "");
+  const order = Number(source.order !== undefined && source.order !== "" ? source.order : defaults.order);
+
+  return {
+    id: normalizeCarouselString(source.id, defaults.id || `carousel-${Date.now()}`),
+    title,
+    subtitle: normalizeCarouselString(source.subtitle, defaults.subtitle || ""),
+    chip: normalizeCarouselString(source.chip, defaults.chip || "ประชาสัมพันธ์"),
+    imageUrl: normalizeCarouselString(source.imageUrl, defaults.imageUrl || ""),
+    imageAlt: normalizeCarouselString(source.imageAlt, defaults.imageAlt || title),
+    buttonLabel: normalizeCarouselString(source.buttonLabel, defaults.buttonLabel || "อ่านต่อ"),
+    href: normalizeCarouselString(source.href, defaults.href || "/"),
+    enabled: normalizeSheetBoolean(
+      source.enabled !== undefined && source.enabled !== "" ? source.enabled : defaults.enabled
+    ),
+    order: Number.isFinite(order) ? order : 0,
+    startAt: normalizeCarouselString(source.startAt, defaults.startAt || ""),
+    endAt: normalizeCarouselString(source.endAt, defaults.endAt || ""),
+    updatedAt: config.touch
+      ? new Date().toISOString()
+      : normalizeCarouselString(source.updatedAt, defaults.updatedAt || new Date().toISOString())
+  };
+}
+
+function sanitizePublicCarouselSlideRecord(slide) {
+  return {
+    id: slide.id || "",
+    title: slide.title || "",
+    subtitle: slide.subtitle || "",
+    chip: slide.chip || "ประชาสัมพันธ์",
+    imageUrl: slide.imageUrl || "",
+    imageAlt: slide.imageAlt || slide.title || "",
+    buttonLabel: slide.buttonLabel || "อ่านต่อ",
+    href: slide.href || "/",
+    enabled: slide.enabled === true,
+    order: Number.isFinite(Number(slide.order)) ? Number(slide.order) : 0,
+    startAt: slide.startAt || "",
+    endAt: slide.endAt || "",
+    updatedAt: slide.updatedAt || ""
+  };
+}
+
+function isCarouselSlideVisible(slide, now) {
+  if (!slide.enabled || !slide.imageUrl || !slide.title) {
+    return false;
+  }
+
+  const currentTime = now instanceof Date ? now.getTime() : Date.now();
+  const startTime = slide.startAt ? Date.parse(slide.startAt) : Number.NaN;
+  const endTime = slide.endAt ? Date.parse(slide.endAt) : Number.NaN;
+
+  if (Number.isFinite(startTime) && startTime > currentTime) {
+    return false;
+  }
+
+  if (Number.isFinite(endTime) && endTime < currentTime) {
+    return false;
+  }
+
+  return true;
+}
+
+function compareCarouselSlides(left, right) {
+  const leftOrder = Number(left.order);
+  const rightOrder = Number(right.order);
+  const normalizedLeftOrder = Number.isFinite(leftOrder) ? leftOrder : 0;
+  const normalizedRightOrder = Number.isFinite(rightOrder) ? rightOrder : 0;
+
+  if (normalizedLeftOrder !== normalizedRightOrder) {
+    return normalizedLeftOrder - normalizedRightOrder;
+  }
+
+  const leftUpdatedAt = Date.parse(left.updatedAt || "");
+  const rightUpdatedAt = Date.parse(right.updatedAt || "");
+  const normalizedLeftUpdatedAt = Number.isFinite(leftUpdatedAt) ? leftUpdatedAt : 0;
+  const normalizedRightUpdatedAt = Number.isFinite(rightUpdatedAt) ? rightUpdatedAt : 0;
+
+  return normalizedRightUpdatedAt - normalizedLeftUpdatedAt;
+}
+
+function normalizeCarouselString(value, fallback) {
+  return typeof value === "string" ? value.trim() : fallback;
 }
 
 function getContentDetail(query, options) {

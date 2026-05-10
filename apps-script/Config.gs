@@ -57,6 +57,7 @@ const DEFAULT_SCRIPT_PROPERTIES = {
 
 const SHEETS = {
   content: "Content",
+  carousel: "Carousel",
   media: "Media",
   events: "Events",
   menu: "Menu",
@@ -102,6 +103,22 @@ const MEDIA_HEADERS = [
   "mimeType",
   "previewUrl",
   "embedUrl",
+  "updatedAt"
+];
+
+const CAROUSEL_HEADERS = [
+  "id",
+  "title",
+  "subtitle",
+  "chip",
+  "imageUrl",
+  "imageAlt",
+  "buttonLabel",
+  "href",
+  "enabled",
+  "order",
+  "startAt",
+  "endAt",
   "updatedAt"
 ];
 
