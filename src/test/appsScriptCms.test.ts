@@ -9,6 +9,7 @@ interface CmsScriptContext {
   assertUniqueContentSlug: (sheet: unknown, contentId: string, normalizedSlug: string) => void;
   contentValues: unknown[][];
   getCarouselSlides: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
+  getExternalServices: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
   incrementContentView: (input: { id?: string; slug?: string }) => {
     id: string;
     slug: string;
@@ -18,11 +19,16 @@ interface CmsScriptContext {
   invalidatePublicSnapshotCache: Mock;
   isAllowedUploadMimeType: (value: string) => boolean;
   isCarouselSlideVisible: (slide: Record<string, unknown>, now: Date) => boolean;
+  isExternalServiceVisible: (service: Record<string, unknown>) => boolean;
   lockService: {
     getScriptLock: Mock;
   };
   normalizePublicMediaUrl: (url: string, allowedHosts?: string[]) => string;
   normalizeCarouselSlideRecord: (
+    row: Record<string, unknown>,
+    fallback?: Record<string, unknown>
+  ) => Record<string, unknown>;
+  normalizeExternalServiceRecord: (
     row: Record<string, unknown>,
     fallback?: Record<string, unknown>
   ) => Record<string, unknown>;
@@ -86,6 +92,18 @@ const TEST_CAROUSEL_HEADERS = [
   "updatedAt"
 ];
 
+const TEST_EXTERNAL_SERVICE_HEADERS = [
+  "id",
+  "title",
+  "description",
+  "href",
+  "tone",
+  "iconKey",
+  "enabled",
+  "order",
+  "updatedAt"
+];
+
 function createHttpError(message: string, statusCode: number) {
   const error = new Error(message) as HttpError;
   error.statusCode = statusCode;
@@ -134,15 +152,19 @@ function loadCmsScript(input: { contentRows?: Array<Record<string, unknown>> } =
     "LockService",
     "CONTENT_HEADERS",
     "CAROUSEL_HEADERS",
+    "EXTERNAL_SERVICE_HEADERS",
     "SHEETS",
     `${cmsSource}
 return {
   assertUniqueContentSlug,
   getCarouselSlides,
+  getExternalServices,
   incrementContentView,
   isAllowedUploadMimeType,
   isCarouselSlideVisible,
+  isExternalServiceVisible,
   normalizeCarouselSlideRecord,
+  normalizeExternalServiceRecord,
   normalizePublicMediaUrl,
   normalizeSlugValue,
   resolveUploadMimeType,
@@ -164,9 +186,11 @@ return {
     lockService,
     TEST_CONTENT_HEADERS,
     TEST_CAROUSEL_HEADERS,
+    TEST_EXTERNAL_SERVICE_HEADERS,
     {
       content: "Content",
-      carousel: "Carousel"
+      carousel: "Carousel",
+      externalServices: "ExternalServices"
     }
   ) as Omit<CmsScriptContext, "readObjects">;
 
@@ -445,6 +469,88 @@ describe("Apps Script CMS helpers", () => {
     expect(context.getCarouselSlides({ includeDisabled: true })).toHaveLength(1);
     expect(context.getCarouselSlides({ includeDisabled: true })[0]).toMatchObject({
       id: "disabled-slide",
+      enabled: false
+    });
+  });
+
+  it("returns only visible public external services sorted by order", () => {
+    const context = loadCmsScript();
+    context.readObjects.mockImplementation((_sheet: unknown, headers: string[]) => {
+      if (headers === TEST_EXTERNAL_SERVICE_HEADERS) {
+        return [
+          {
+            id: "hidden-disabled",
+            title: "Disabled service",
+            href: "https://services.example.edu/disabled",
+            enabled: "FALSE",
+            order: "1",
+            updatedAt: "2026-05-03T00:00:00.000Z"
+          },
+          {
+            id: "visible-later",
+            title: "Career service",
+            href: "https://services.example.edu/career",
+            tone: "career",
+            iconKey: "handshake",
+            enabled: "TRUE",
+            order: "2",
+            updatedAt: "2026-05-05T00:00:00.000Z"
+          },
+          {
+            id: "visible-first",
+            title: "Student service",
+            href: "https://services.example.edu/student",
+            tone: "unknown",
+            iconKey: "unknown",
+            enabled: true,
+            order: "1",
+            updatedAt: "2026-05-04T00:00:00.000Z"
+          },
+          {
+            id: "hidden-empty-href",
+            title: "Missing href",
+            enabled: "TRUE",
+            order: "0",
+            updatedAt: "2026-05-06T00:00:00.000Z"
+          }
+        ];
+      }
+
+      return [];
+    });
+
+    const services = context.getExternalServices();
+
+    expect(services.map((service) => service.id)).toEqual(["visible-first", "visible-later"]);
+    expect(services[0]).toMatchObject({
+      tone: "general",
+      iconKey: "link",
+      enabled: true
+    });
+  });
+
+  it("includes disabled external services for admin snapshots", () => {
+    const context = loadCmsScript();
+    context.readObjects.mockImplementation((_sheet: unknown, headers: string[]) => {
+      if (headers === TEST_EXTERNAL_SERVICE_HEADERS) {
+        return [
+          {
+            id: "disabled-service",
+            title: "Disabled service",
+            href: "",
+            enabled: "FALSE",
+            order: "3",
+            updatedAt: "2026-05-03T00:00:00.000Z"
+          }
+        ];
+      }
+
+      return [];
+    });
+
+    expect(context.getExternalServices({ includeDisabled: true })).toHaveLength(1);
+    expect(context.getExternalServices({ includeDisabled: true })[0]).toMatchObject({
+      id: "disabled-service",
       enabled: false
     });
   });

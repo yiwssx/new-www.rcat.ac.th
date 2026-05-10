@@ -89,6 +89,7 @@ export default function PublicHomePage() {
   const latestNews = publicContent.filter((item) => item.type === "news" || item.type === "blog").slice(0, 4);
   const latestAnnouncements = announcementContent.slice(0, 5);
   const carouselSlides = data?.carouselSlides ?? [];
+  const externalServiceItems = data?.externalServices ?? [];
   const procurementItems = announcementContent
     .filter((item) => hasContentSearchTerm(item, procurementKeywords))
     .slice(0, 4);
@@ -138,7 +139,7 @@ export default function PublicHomePage() {
               <ProgramsSection items={programItems} mediaAssets={data?.media ?? []} />
               <AchievementHighlightsSection />
               <Box sx={{ display: { xs: "none", lg: "block" } }}>
-                <ExternalServicesSection />
+                <ExternalServicesSection items={externalServiceItems} />
               </Box>
             </Grid>
 
@@ -148,7 +149,7 @@ export default function PublicHomePage() {
                 <EventListCard items={eventItems} />
                 <DocumentListCard items={documentItems} />
                 <Box sx={{ display: { xs: "block", lg: "none" } }}>
-                  <ExternalServicesSection />
+                  <ExternalServicesSection items={externalServiceItems} />
                 </Box>
                 <ContactMapCard siteSettings={siteSettings} />
                 <VisitorStatsCard />

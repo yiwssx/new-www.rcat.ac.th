@@ -58,6 +58,7 @@ const DEFAULT_SCRIPT_PROPERTIES = {
 const SHEETS = {
   content: "Content",
   carousel: "Carousel",
+  externalServices: "ExternalServices",
   media: "Media",
   events: "Events",
   menu: "Menu",
@@ -119,6 +120,18 @@ const CAROUSEL_HEADERS = [
   "order",
   "startAt",
   "endAt",
+  "updatedAt"
+];
+
+const EXTERNAL_SERVICE_HEADERS = [
+  "id",
+  "title",
+  "description",
+  "href",
+  "tone",
+  "iconKey",
+  "enabled",
+  "order",
   "updatedAt"
 ];
 

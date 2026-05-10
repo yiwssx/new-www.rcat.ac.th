@@ -7,82 +7,33 @@ import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
 import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
+import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import { ExternalServiceIconKey, ExternalServiceLink, ExternalServiceTone } from "../../../types";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { focusVisibleSx } from "./homeSectionStyles";
 
-interface MockExternalServiceItem {
-  title: string;
-  description: string;
-  href: string;
-  tone: "student" | "homeroom" | "management" | "learning" | "calendar" | "check" | "admission" | "career";
-  icon: ReactNode;
+function getExternalServiceIcon(iconKey: ExternalServiceIconKey): ReactNode {
+  const icons: Record<ExternalServiceIconKey, ReactNode> = {
+    apps: <AppsOutlinedIcon />,
+    calendar: <CalendarMonthOutlinedIcon />,
+    check: <FactCheckOutlinedIcon />,
+    groups: <GroupsOutlinedIcon />,
+    handshake: <HandshakeOutlinedIcon />,
+    registration: <HowToRegOutlinedIcon />,
+    book: <MenuBookOutlinedIcon />,
+    school: <SchoolOutlinedIcon />,
+    link: <LinkOutlinedIcon />
+  };
+
+  return icons[iconKey] ?? icons.link;
 }
 
-const mockExternalServiceItems: MockExternalServiceItem[] = [
-  {
-    title: "ระบบ Smart Affair",
-    description: "ระบบบริหารจัดการกิจการนักเรียนนักศึกษา",
-    href: "https://example.com/smart-affair",
-    tone: "student",
-    icon: <SchoolOutlinedIcon />
-  },
-  {
-    title: "ระบบ Homeroom",
-    description: "ระบบดูแลช่วยเหลือและติดตามผู้เรียน",
-    href: "https://example.com/homeroom",
-    tone: "homeroom",
-    icon: <GroupsOutlinedIcon />
-  },
-  {
-    title: "ระบบ RMS",
-    description: "ระบบบริหารจัดการข้อมูลสถานศึกษา",
-    href: "https://example.com/rms",
-    tone: "management",
-    icon: <AppsOutlinedIcon />
-  },
-  {
-    title: "ระบบ LMS",
-    description: "ระบบจัดการเรียนรู้ออนไลน์",
-    href: "https://example.com/lms",
-    tone: "learning",
-    icon: <MenuBookOutlinedIcon />
-  },
-  {
-    title: "ระบบ ศธ.02 ออนไลน์",
-    description: "บริการข้อมูลทะเบียนและงานวัดผล",
-    href: "https://example.com/std2018",
-    tone: "calendar",
-    icon: <CalendarMonthOutlinedIcon />
-  },
-  {
-    title: "ตรวจสอบผลการเรียน",
-    description: "ตรวจสอบข้อมูลผลการเรียนและสถานะผู้เรียน",
-    href: "https://example.com/grade-check",
-    tone: "check",
-    icon: <FactCheckOutlinedIcon />
-  },
-  {
-    title: "ระบบสมัครเรียนออนไลน์",
-    description: "สมัครเรียนและติดตามข้อมูลการรับสมัคร",
-    href: "https://example.com/admission",
-    tone: "admission",
-    icon: <HowToRegOutlinedIcon />
-  },
-  {
-    title: "ศูนย์กำลังคนอาชีวศึกษา",
-    description: "เชื่อมโยงข้อมูลอาชีพ ฝึกงาน และสถานประกอบการ",
-    href: "https://example.com/v-cop",
-    tone: "career",
-    icon: <HandshakeOutlinedIcon />
-  }
-];
-
-function getExternalServiceToneColor(tone: MockExternalServiceItem["tone"]) {
-  const colors: Record<MockExternalServiceItem["tone"], string> = {
+function getExternalServiceToneColor(tone: ExternalServiceTone) {
+  const colors: Record<ExternalServiceTone, string> = {
     student: "#6d28d9",
     homeroom: "#7c3aed",
     management: "#4c1d95",
@@ -90,19 +41,24 @@ function getExternalServiceToneColor(tone: MockExternalServiceItem["tone"]) {
     calendar: "#9333ea",
     check: "#6b21a8",
     admission: "#8b5cf6",
-    career: "#581c87"
+    career: "#581c87",
+    general: "#1f5a2c"
   };
 
-  return colors[tone];
+  return colors[tone] ?? colors.general;
 }
 
-export function ExternalServicesSection() {
+export function ExternalServicesSection({ items }: { items: ExternalServiceLink[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
   return (
     <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
       <HomeSectionHeading
         label="E-Service"
         title="บริการออนไลน์และลิงก์ที่เกี่ยวข้อง"
-        description="รวมระบบบริการออนไลน์และลิงก์สำคัญสำหรับนักเรียนนักศึกษา ผู้ปกครอง บุคลากร และผู้สนใจ"
+        description="รวมระบบบริการออนไลน์และลิงก์สำคัญสำหรับนักเรียน นักศึกษา ผู้ปกครอง บุคลากร และผู้สนใจ"
       />
 
       <Box
@@ -175,11 +131,11 @@ export function ExternalServicesSection() {
       </Box>
 
       <Grid container spacing={2}>
-        {mockExternalServiceItems.map((item) => {
+        {items.map((item) => {
           const toneColor = getExternalServiceToneColor(item.tone);
 
           return (
-            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.title}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.id}>
               <Card
                 component="a"
                 href={normalizeSafeHref(item.href)}
@@ -219,7 +175,7 @@ export function ExternalServicesSection() {
                           }
                         }}
                       >
-                        {item.icon}
+                        {getExternalServiceIcon(item.iconKey)}
                       </Box>
                       <OpenInNewOutlinedIcon sx={{ color: "text.secondary", fontSize: 19 }} />
                     </Stack>
@@ -227,9 +183,11 @@ export function ExternalServicesSection() {
                       <Typography variant="h3" sx={{ fontSize: "1rem", lineHeight: 1.32 }}>
                         {item.title}
                       </Typography>
-                      <Typography color="text.secondary" variant="body2" sx={{ lineHeight: 1.55 }}>
-                        {item.description}
-                      </Typography>
+                      {item.description && (
+                        <Typography color="text.secondary" variant="body2" sx={{ lineHeight: 1.55 }}>
+                          {item.description}
+                        </Typography>
+                      )}
                     </Stack>
                   </Stack>
                 </CardContent>

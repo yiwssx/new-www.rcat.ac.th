@@ -22,6 +22,8 @@
       "deleteContent": "content-delete",
       "carousel": "carousel",
       "deleteCarousel": "carousel-delete",
+      "externalService": "external-service",
+      "deleteExternalService": "external-service-delete",
       "media": "media",
       "deleteMedia": "media-delete",
       "publish": "publish",
