@@ -3,6 +3,8 @@
   "content-delete",
   "carousel",
   "carousel-delete",
+  "external-service",
+  "external-service-delete",
   "media",
   "media-delete",
   "event",
@@ -117,6 +119,14 @@ function routeRequest(event, method) {
 
     if (method === "POST" && resource === "carousel-delete") {
       return jsonResponse(deleteCarouselSlide(payload.id));
+    }
+
+    if (method === "POST" && resource === "external-service") {
+      return jsonResponse(upsertExternalService(payload));
+    }
+
+    if (method === "POST" && resource === "external-service-delete") {
+      return jsonResponse(deleteExternalService(payload.id));
     }
 
     if (method === "POST" && resource === "media") {

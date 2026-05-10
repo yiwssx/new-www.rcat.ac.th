@@ -14,6 +14,8 @@ interface CodeScriptContext {
   shouldReadAuthContext: (method: string, resource: string) => boolean;
   upsertCarouselSlide: Mock;
   deleteCarouselSlide: Mock;
+  upsertExternalService: Mock;
+  deleteExternalService: Mock;
   updateHomepageSettings: Mock;
   updateSiteSettings: Mock;
   verifyAuthToken: Mock;
@@ -39,6 +41,15 @@ function loadCodeScript(): CodeScriptContext {
     enabled: input.enabled === true
   }));
   const deleteCarouselSlide = vi.fn((id: string) => ({
+    id,
+    deleted: true
+  }));
+  const upsertExternalService = vi.fn((input: Record<string, unknown>) => ({
+    id: input.id || "external-service-1",
+    title: input.title || "",
+    enabled: input.enabled === true
+  }));
+  const deleteExternalService = vi.fn((id: string) => ({
     id,
     deleted: true
   }));
@@ -94,6 +105,8 @@ function loadCodeScript(): CodeScriptContext {
     "deleteContent",
     "upsertCarouselSlide",
     "deleteCarouselSlide",
+    "upsertExternalService",
+    "deleteExternalService",
     "upsertMedia",
     "deleteMedia",
     "upsertEvent",
@@ -143,6 +156,8 @@ return {
     vi.fn(),
     upsertCarouselSlide,
     deleteCarouselSlide,
+    upsertExternalService,
+    deleteExternalService,
     vi.fn(),
     vi.fn(),
     vi.fn(),
@@ -164,6 +179,8 @@ return {
     incrementContentView,
     upsertCarouselSlide,
     deleteCarouselSlide,
+    upsertExternalService,
+    deleteExternalService,
     updateHomepageSettings,
     updateSiteSettings,
     verifyAuthToken
@@ -399,6 +416,70 @@ describe("Apps Script route auth handling", () => {
     expect(result.statusCode).toBe(401);
     expect(result.body.error).toBe("Authentication is required.");
     expect(context.upsertCarouselSlide).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("allows editors to upsert and delete external services", () => {
+    const context = loadCodeScript();
+    const saveResult = context.routeRequest(
+      {
+        resource: "external-service",
+        payload: {
+          id: "external-service-1",
+          title: "Student portal",
+          enabled: true,
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+    const deleteResult = context.routeRequest(
+      {
+        resource: "external-service-delete",
+        payload: {
+          id: "external-service-1",
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(saveResult.statusCode).toBe(200);
+    expect(saveResult.body).toMatchObject({
+      id: "external-service-1",
+      title: "Student portal",
+      enabled: true
+    });
+    expect(deleteResult.statusCode).toBe(200);
+    expect(deleteResult.body).toMatchObject({
+      id: "external-service-1",
+      deleted: true
+    });
+    expect(context.upsertExternalService).toHaveBeenCalledWith({
+      id: "external-service-1",
+      title: "Student portal",
+      enabled: true,
+      authToken: "editor-token"
+    });
+    expect(context.deleteExternalService).toHaveBeenCalledWith("external-service-1");
+  });
+
+  it("blocks unauthenticated external service writes", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadCodeScript();
+    const result = context.routeRequest(
+      {
+        resource: "external-service",
+        payload: {
+          title: "Student portal"
+        }
+      },
+      "POST"
+    );
+
+    expect(result.statusCode).toBe(401);
+    expect(result.body.error).toBe("Authentication is required.");
+    expect(context.upsertExternalService).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 

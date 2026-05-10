@@ -2,10 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import PublicHomeCarousel from "../public/components/PublicHomeCarousel";
 import PublicIntroGate from "../public/components/PublicIntroGate";
+import { ExternalServicesSection } from "../public/components/home/ExternalServicesSection";
 import { HomeIntroVideoSection } from "../public/components/home/HomeIntroVideoSection";
 import { UrgentMarqueeSection } from "../public/components/home/UrgentMarqueeSection";
 import { DEFAULT_HOMEPAGE_SETTINGS } from "../services/homepageSettings";
-import { CarouselSlide } from "../types";
+import { CarouselSlide, ExternalServiceLink } from "../types";
 
 describe("homepage settings public sections", () => {
   it("does not render IntroGate when disabled or imageUrl is empty", () => {
@@ -82,5 +83,33 @@ describe("homepage settings public sections", () => {
 
     expect(screen.getByText("Campus highlight")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Read more" })).toHaveAttribute("href", "/content/campus-highlight");
+  });
+
+  it("does not render ExternalServicesSection when no service links exist", () => {
+    expect(render(<ExternalServicesSection items={[]} />).container.firstChild).toBeNull();
+  });
+
+  it("renders ExternalServicesSection from provided service links", () => {
+    const items: ExternalServiceLink[] = [
+      {
+        id: "external-service-1",
+        title: "Student portal",
+        description: "Official service link",
+        href: "https://services.example.edu/student",
+        tone: "student",
+        iconKey: "school",
+        enabled: true,
+        order: 1,
+        updatedAt: "2026-05-10T00:00:00.000Z"
+      }
+    ];
+
+    render(<ExternalServicesSection items={items} />);
+
+    expect(screen.getByText("Student portal")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "เปิดลิงก์บริการ Student portal" })).toHaveAttribute(
+      "href",
+      "https://services.example.edu/student"
+    );
   });
 });

@@ -257,6 +257,19 @@ describe("public data-driven pages", () => {
           visibility: "public"
         }
       ],
+      externalServices: [
+        {
+          id: "external-service-1",
+          title: "Student portal",
+          description: "Official service link",
+          href: "https://services.example.edu/student",
+          tone: "student",
+          iconKey: "school",
+          enabled: true,
+          order: 1,
+          updatedAt: "2026-05-10T00:00:00.000Z"
+        }
+      ],
       siteSettings: {
         ...baseSiteSettings,
         heroTitle: "ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง",

@@ -5,6 +5,7 @@ import {
   CmsSnapshot,
   ContentItem,
   DisplaySettings,
+  ExternalServiceLink,
   HomepageSettings,
   IntegrationStatus,
   MediaAsset,
@@ -118,6 +119,7 @@ export interface MediaAssetInput {
 }
 
 export type CarouselSlideInput = Partial<CarouselSlide>;
+export type ExternalServiceLinkInput = Partial<ExternalServiceLink>;
 
 function assertAppScriptUrl() {
   const appScriptUrl = getGoogleAppsScriptUrl();
@@ -312,6 +314,14 @@ export async function saveCarouselSlideToApi(slide: CarouselSlideInput): Promise
 
 export async function deleteCarouselSlideFromApi(id: string): Promise<{ id: string; deleted: boolean }> {
   return postJson<{ id: string; deleted: boolean }>("deleteCarousel", { id });
+}
+
+export async function saveExternalServiceLinkToApi(service: ExternalServiceLinkInput): Promise<ExternalServiceLink> {
+  return postJson<ExternalServiceLink>("externalService", service);
+}
+
+export async function deleteExternalServiceLinkFromApi(id: string): Promise<{ id: string; deleted: boolean }> {
+  return postJson<{ id: string; deleted: boolean }>("deleteExternalService", { id });
 }
 
 export async function getPublicMenuItems(): Promise<PublicMenuItem[]> {

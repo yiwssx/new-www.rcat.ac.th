@@ -84,6 +84,40 @@ export interface CarouselSlide {
   updatedAt: string;
 }
 
+export type ExternalServiceTone =
+  | "student"
+  | "homeroom"
+  | "management"
+  | "learning"
+  | "calendar"
+  | "check"
+  | "admission"
+  | "career"
+  | "general";
+
+export type ExternalServiceIconKey =
+  | "apps"
+  | "calendar"
+  | "check"
+  | "groups"
+  | "handshake"
+  | "registration"
+  | "book"
+  | "school"
+  | "link";
+
+export interface ExternalServiceLink {
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+  tone: ExternalServiceTone;
+  iconKey: ExternalServiceIconKey;
+  enabled: boolean;
+  order: number;
+  updatedAt: string;
+}
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -136,6 +170,7 @@ export interface CmsSnapshot {
   events: CalendarEvent[];
   menu?: PublicMenuItem[];
   carouselSlides?: CarouselSlide[];
+  externalServices?: ExternalServiceLink[];
   displaySettings?: DisplaySettings;
   siteSettings?: SiteSettings;
   homepageSettings?: HomepageSettings;

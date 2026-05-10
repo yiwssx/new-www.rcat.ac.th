@@ -11,6 +11,7 @@
 
   ensureSheet(spreadsheet, SHEETS.content, CONTENT_HEADERS);
   ensureSheet(spreadsheet, SHEETS.carousel, CAROUSEL_HEADERS);
+  ensureSheet(spreadsheet, SHEETS.externalServices, EXTERNAL_SERVICE_HEADERS);
   ensureSheet(spreadsheet, SHEETS.media, MEDIA_HEADERS);
   ensureSheet(spreadsheet, SHEETS.events, EVENT_HEADERS);
   ensureSheet(spreadsheet, SHEETS.menu, MENU_HEADERS);
@@ -31,6 +32,28 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 const ALLOWED_CONTENT_TYPES = ["page", "news", "program", "announcement", "blog"];
 const ALLOWED_CONTENT_STATUSES = ["draft", "review", "scheduled", "published"];
+const ALLOWED_EXTERNAL_SERVICE_TONES = [
+  "student",
+  "homeroom",
+  "management",
+  "learning",
+  "calendar",
+  "check",
+  "admission",
+  "career",
+  "general"
+];
+const ALLOWED_EXTERNAL_SERVICE_ICON_KEYS = [
+  "apps",
+  "calendar",
+  "check",
+  "groups",
+  "handshake",
+  "registration",
+  "book",
+  "school",
+  "link"
+];
 
 const ALLOWED_EXACT_UPLOAD_MIME_TYPES = [
   "application/pdf",
@@ -61,6 +84,9 @@ function getSnapshot(options) {
   const carouselSlides = getCarouselSlides({
     includeDisabled: includeUnpublished
   });
+  const externalServices = getExternalServices({
+    includeDisabled: includeUnpublished
+  });
   const menu = getMenu();
   const visibleContent = includeUnpublished ? content : content.filter((item) => item.status === "published");
   const visibleEvents = includeUnpublished
@@ -80,6 +106,7 @@ function getSnapshot(options) {
     events: visibleEvents,
     menu,
     carouselSlides,
+    externalServices,
     displaySettings: getDisplaySettings(),
     siteSettings: getSiteSettings(),
     homepageSettings: getHomepageSettings()
@@ -328,6 +355,128 @@ function compareCarouselSlides(left, right) {
 
 function normalizeCarouselString(value, fallback) {
   return typeof value === "string" ? value.trim() : fallback;
+}
+
+function getExternalServices(options) {
+  const config = options || {};
+  const includeDisabled = Boolean(config.includeDisabled);
+  const spreadsheet = getSpreadsheet();
+  const sheet =
+    spreadsheet.getSheetByName(SHEETS.externalServices) ||
+    ensureSheet(spreadsheet, SHEETS.externalServices, EXTERNAL_SERVICE_HEADERS);
+
+  return readObjects(sheet, EXTERNAL_SERVICE_HEADERS)
+    .map(normalizeExternalServiceRecord)
+    .filter((service) => includeDisabled || isExternalServiceVisible(service))
+    .sort(compareExternalServices)
+    .map((service) => (includeDisabled ? service : sanitizePublicExternalServiceRecord(service)));
+}
+
+function upsertExternalService(input) {
+  const spreadsheet = getSpreadsheet();
+  const sheet =
+    spreadsheet.getSheetByName(SHEETS.externalServices) ||
+    ensureSheet(spreadsheet, SHEETS.externalServices, EXTERNAL_SERVICE_HEADERS);
+  const existingService = input && input.id ? findRowById(sheet, EXTERNAL_SERVICE_HEADERS, input.id) : null;
+  const nextService = normalizeExternalServiceRecord(input || {}, existingService || {}, {
+    touch: true
+  });
+
+  upsertRow(sheet, EXTERNAL_SERVICE_HEADERS, {
+    ...nextService,
+    enabled: toSheetBoolean(nextService.enabled)
+  });
+  invalidatePublicSnapshotCache();
+  return nextService;
+}
+
+function deleteExternalService(id) {
+  deleteRowById(SHEETS.externalServices, EXTERNAL_SERVICE_HEADERS, id);
+  invalidatePublicSnapshotCache();
+
+  return {
+    id,
+    deleted: true
+  };
+}
+
+function normalizeExternalServiceRecord(row, fallback, options) {
+  const source = row || {};
+  const defaults = fallback || {};
+  const config = options || {};
+  const order = Number(source.order !== undefined && source.order !== "" ? source.order : defaults.order);
+
+  return {
+    id: normalizeExternalServiceString(source.id, defaults.id || `external-service-${Date.now()}`),
+    title: normalizeExternalServiceString(source.title, defaults.title || ""),
+    description: normalizeExternalServiceString(source.description, defaults.description || ""),
+    href: normalizeExternalServiceString(source.href, defaults.href || ""),
+    tone: normalizeExternalServiceTone(source.tone, defaults.tone || "general"),
+    iconKey: normalizeExternalServiceIconKey(source.iconKey, defaults.iconKey || "link"),
+    enabled: normalizeSheetBoolean(
+      source.enabled !== undefined && source.enabled !== "" ? source.enabled : defaults.enabled
+    ),
+    order: Number.isFinite(order) ? order : 0,
+    updatedAt: config.touch
+      ? new Date().toISOString()
+      : normalizeExternalServiceString(source.updatedAt, defaults.updatedAt || new Date().toISOString())
+  };
+}
+
+function sanitizePublicExternalServiceRecord(service) {
+  return {
+    id: service.id || "",
+    title: service.title || "",
+    description: service.description || "",
+    href: service.href || "",
+    tone: normalizeExternalServiceTone(service.tone, "general"),
+    iconKey: normalizeExternalServiceIconKey(service.iconKey, "link"),
+    enabled: service.enabled === true,
+    order: Number.isFinite(Number(service.order)) ? Number(service.order) : 0,
+    updatedAt: service.updatedAt || ""
+  };
+}
+
+function isExternalServiceVisible(service) {
+  return Boolean(service.enabled && service.title && service.href);
+}
+
+function compareExternalServices(left, right) {
+  const leftOrder = Number(left.order);
+  const rightOrder = Number(right.order);
+  const normalizedLeftOrder = Number.isFinite(leftOrder) ? leftOrder : 0;
+  const normalizedRightOrder = Number.isFinite(rightOrder) ? rightOrder : 0;
+
+  if (normalizedLeftOrder !== normalizedRightOrder) {
+    return normalizedLeftOrder - normalizedRightOrder;
+  }
+
+  const leftUpdatedAt = Date.parse(left.updatedAt || "");
+  const rightUpdatedAt = Date.parse(right.updatedAt || "");
+  const normalizedLeftUpdatedAt = Number.isFinite(leftUpdatedAt) ? leftUpdatedAt : 0;
+  const normalizedRightUpdatedAt = Number.isFinite(rightUpdatedAt) ? rightUpdatedAt : 0;
+
+  return normalizedRightUpdatedAt - normalizedLeftUpdatedAt;
+}
+
+function normalizeExternalServiceString(value, fallback) {
+  return typeof value === "string" ? value.trim() : fallback;
+}
+
+function normalizeExternalServiceTone(value, fallback) {
+  return normalizeExternalServiceAllowedValue(value, fallback, ALLOWED_EXTERNAL_SERVICE_TONES);
+}
+
+function normalizeExternalServiceIconKey(value, fallback) {
+  return normalizeExternalServiceAllowedValue(value, fallback, ALLOWED_EXTERNAL_SERVICE_ICON_KEYS);
+}
+
+function normalizeExternalServiceAllowedValue(value, fallback, allowedValues) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  return allowedValues.indexOf(normalized) === -1 ? fallback : normalized;
 }
 
 function getContentDetail(query, options) {

@@ -25,6 +25,8 @@ interface ProjectSettings {
       deleteContent: string;
       carousel: string;
       deleteCarousel: string;
+      externalService: string;
+      deleteExternalService: string;
       media: string;
       deleteMedia: string;
       publish: string;
