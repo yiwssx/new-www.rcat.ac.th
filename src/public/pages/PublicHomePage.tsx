@@ -24,6 +24,17 @@ import { VisitorStatsCard } from "../components/home/VisitorStatsCard";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 const documentKeywords = ["เอกสาร", "document", "ita", "แผนงาน", "ประกันคุณภาพ"];
+const procurementKeywords = ["procurement", "จัดซื้อ", "จัดจ้าง", "จัดซื้อจัดจ้าง", "ประกวดราคา", "tor"];
+const jobOpportunityKeywords = [
+  "job",
+  "jobs",
+  "recruitment",
+  "สมัครงาน",
+  "หางาน",
+  "ตำแหน่งงาน",
+  "ฝึกงาน",
+  "แนะแนวอาชีพ"
+];
 
 function getPublishDateValue(item: ContentItem) {
   const date = dayjs(item.publishAt);
@@ -62,6 +73,12 @@ function hasContentKeyword(item: ContentItem, keywords: string[]) {
   return keywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
 }
 
+function hasContentSearchTerm(item: ContentItem, terms: string[]) {
+  const haystack = [item.title, item.summary, item.category, ...(item.tags ?? [])].join(" ").toLowerCase();
+
+  return terms.some((term) => haystack.includes(term.toLowerCase()));
+}
+
 export default function PublicHomePage() {
   const { data, isFetching } = usePublicCmsSnapshot();
   const publicContent = useMemo(
@@ -71,6 +88,12 @@ export default function PublicHomePage() {
   const announcementContent = publicContent.filter((item) => item.type === "announcement");
   const latestNews = publicContent.filter((item) => item.type === "news" || item.type === "blog").slice(0, 4);
   const latestAnnouncements = announcementContent.slice(0, 5);
+  const procurementItems = announcementContent
+    .filter((item) => hasContentSearchTerm(item, procurementKeywords))
+    .slice(0, 4);
+  const jobOpportunityItems = announcementContent
+    .filter((item) => hasContentSearchTerm(item, jobOpportunityKeywords))
+    .slice(0, 4);
   const programItems = publicContent.filter((item) => item.type === "program").slice(0, 6);
   const documentItems = publicContent
     .filter((item) => item.type === "page" && hasContentKeyword(item, documentKeywords))
@@ -109,8 +132,8 @@ export default function PublicHomePage() {
             <Grid size={{ xs: 12, lg: 8 }} sx={{ order: { xs: 1, lg: 1 } }}>
               <LatestNewsSection items={latestNews} mediaAssets={data?.media ?? []} />
 
-              <ProcurementNewsSection />
-              <JobOpportunitiesSection />
+              <ProcurementNewsSection items={procurementItems} />
+              <JobOpportunitiesSection items={jobOpportunityItems} />
               <ProgramsSection items={programItems} mediaAssets={data?.media ?? []} />
               <AchievementHighlightsSection />
               <Box sx={{ display: { xs: "none", lg: "block" } }}>
