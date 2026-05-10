@@ -27,6 +27,7 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
 import { useAuth } from "../../context/authSessionContext";
 import { appSwal } from "../../utils/swal";
@@ -37,6 +38,7 @@ interface NavItem {
   label: string;
   to:
     | "/admin"
+    | "/admin/carousel"
     | "/admin/content"
     | "/admin/media"
     | "/admin/calendar"
@@ -57,6 +59,11 @@ const navItems: NavItem[] = [
     label: "เนื้อหา",
     to: "/admin/content",
     icon: <ArticleOutlinedIcon />
+  },
+  {
+    label: "สไลด์หน้าแรก",
+    to: "/admin/carousel",
+    icon: <ViewCarouselOutlinedIcon />
   },
   {
     label: "สื่อ",
