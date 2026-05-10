@@ -2,6 +2,7 @@ import { Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/re
 import {
   AdminOnlyPage,
   CalendarPage,
+  CarouselPage,
   ContentPage,
   DashboardPage,
   IntegrationsPage,
@@ -104,6 +105,12 @@ const adminContentRoute = createRoute({
   component: ContentPage
 });
 
+const adminCarouselRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "carousel",
+  component: CarouselPage
+});
+
 const adminMediaRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "media",
@@ -161,6 +168,7 @@ const routeTree = rootRoute.addChildren([
   adminRoute.addChildren([
     adminDashboardRoute,
     adminContentRoute,
+    adminCarouselRoute,
     adminMediaRoute,
     adminCalendarRoute,
     adminMenuRoute,
