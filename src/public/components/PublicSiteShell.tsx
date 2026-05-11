@@ -1,5 +1,6 @@
-import { MouseEvent, ReactNode } from "react";
+import { MouseEvent, ReactNode, useState } from "react";
 import { Box, Button, Container, IconButton, InputAdornment, Stack, TextField, Typography } from "@mui/material";
+import { useNavigate } from "@tanstack/react-router";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
@@ -422,7 +423,9 @@ export default function PublicSiteShell({
   hidePageHeader = false,
   disableMainContainer = false
 }: PublicSiteShellProps) {
+  const navigate = useNavigate();
   const { data, isLoading, isFetching, isError, refetch } = usePublicCmsSnapshot();
+  const [searchQuery, setSearchQuery] = useState("");
   const isInitialPublicLoading = !data && (isLoading || isFetching);
   const isInitialPublicError = !data && isError && !isInitialPublicLoading;
   const shouldShowPublicLoading = isInitialPublicLoading || (!data && !isError);
@@ -618,6 +621,13 @@ export default function PublicSiteShell({
                 component="form"
                 onSubmit={(event) => {
                   event.preventDefault();
+                  const query = searchQuery.trim();
+
+                  if (!query) {
+                    return;
+                  }
+
+                  void navigate({ to: "/search", search: { q: query } });
                 }}
                 sx={{
                   width: { xs: "100%", sm: 210, md: 230, lg: 240 },
@@ -628,6 +638,8 @@ export default function PublicSiteShell({
                 <TextField
                   type="search"
                   size="small"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="ค้นหาในเว็บไซต์"
                   aria-label="ค้นหาในเว็บไซต์"
                   fullWidth
