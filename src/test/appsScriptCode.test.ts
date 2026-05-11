@@ -18,6 +18,7 @@ interface CodeScriptContext {
   deleteExternalService: Mock;
   updateHomepageSettings: Mock;
   updateSiteSettings: Mock;
+  updateVisitorStats: Mock;
   verifyAuthToken: Mock;
 }
 
@@ -55,6 +56,7 @@ function loadCodeScript(): CodeScriptContext {
   }));
   const updateSiteSettings = vi.fn((input: Record<string, unknown>) => input);
   const updateHomepageSettings = vi.fn((input: Record<string, unknown>) => input);
+  const updateVisitorStats = vi.fn((input: Record<string, unknown>) => input);
   const verifyAuthToken = vi.fn((token: string) => {
     if (token === "admin-token") {
       return {
@@ -116,6 +118,7 @@ function loadCodeScript(): CodeScriptContext {
     "updateDisplaySettings",
     "updateSiteSettings",
     "updateHomepageSettings",
+    "updateVisitorStats",
     "getUsers",
     "upsertUser",
     "deleteUser",
@@ -167,6 +170,7 @@ return {
     vi.fn(),
     updateSiteSettings,
     updateHomepageSettings,
+    updateVisitorStats,
     getUsers,
     vi.fn(),
     vi.fn(),
@@ -183,6 +187,7 @@ return {
     deleteExternalService,
     updateHomepageSettings,
     updateSiteSettings,
+    updateVisitorStats,
     verifyAuthToken
   };
 }
@@ -352,6 +357,48 @@ describe("Apps Script route auth handling", () => {
 
     expect(editorResult.statusCode).toBe(403);
     expect(editorContext.updateHomepageSettings).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("updates visitor stats only for admin tokens", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const adminContext = loadCodeScript();
+    const adminResult = adminContext.routeRequest(
+      {
+        resource: "visitor-stats",
+        payload: {
+          enabled: true,
+          usersToday: 12,
+          authToken: "admin-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(adminResult.statusCode).toBe(200);
+    expect(adminResult.body.enabled).toBe(true);
+    expect(adminResult.body.usersToday).toBe(12);
+    expect(adminContext.updateVisitorStats).toHaveBeenCalledWith({
+      enabled: true,
+      usersToday: 12,
+      authToken: "admin-token"
+    });
+
+    const editorContext = loadCodeScript();
+    const editorResult = editorContext.routeRequest(
+      {
+        resource: "visitor-stats",
+        payload: {
+          enabled: true,
+          usersToday: 3,
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(editorResult.statusCode).toBe(403);
+    expect(editorContext.updateVisitorStats).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 

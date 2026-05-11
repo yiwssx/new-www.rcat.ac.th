@@ -96,6 +96,7 @@ function ensureSettingsSheet(spreadsheet) {
   settings.forEach((setting) => upsertSetting(sheet, setting.key, setting.value));
   upsertSettingIfMissing(sheet, SETTING_KEYS.siteSettings, JSON.stringify(DEFAULT_SITE_SETTINGS));
   upsertSettingIfMissing(sheet, SETTING_KEYS.homepageSettings, JSON.stringify(DEFAULT_HOMEPAGE_SETTINGS));
+  upsertSettingIfMissing(sheet, SETTING_KEYS.visitorStats, JSON.stringify(DEFAULT_VISITOR_STATS));
   return sheet;
 }
 
@@ -300,6 +301,56 @@ function updateHomepageSettings(input) {
   upsertSetting(sheet, SETTING_KEYS.homepageSettings, JSON.stringify(nextSettings));
   invalidatePublicSnapshotCache();
   return nextSettings;
+}
+
+function normalizeVisitorStats(input) {
+  const source = input && typeof input === "object" && !Array.isArray(input) ? input : {};
+
+  return {
+    enabled: source.enabled === true,
+    usersToday: normalizeVisitorStatsNumber(source.usersToday),
+    usersYesterday: normalizeVisitorStatsNumber(source.usersYesterday),
+    usersThisMonth: normalizeVisitorStatsNumber(source.usersThisMonth),
+    usersThisYear: normalizeVisitorStatsNumber(source.usersThisYear),
+    totalUsers: normalizeVisitorStatsNumber(source.totalUsers),
+    totalViews: normalizeVisitorStatsNumber(source.totalViews),
+    onlineUsers: normalizeVisitorStatsNumber(source.onlineUsers),
+    updatedAt: typeof source.updatedAt === "string" ? source.updatedAt.trim() : ""
+  };
+}
+
+function normalizeVisitorStatsNumber(value) {
+  const numeric = Number(value);
+
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(numeric));
+}
+
+function getVisitorStats() {
+  const spreadsheet = getSpreadsheet();
+  const sheet = getOrEnsureSettingsSheet(spreadsheet);
+  const rawValue = getSheetSettingValue(sheet, SETTING_KEYS.visitorStats);
+
+  return normalizeVisitorStats(safeJsonParseObject(rawValue, DEFAULT_VISITOR_STATS));
+}
+
+function updateVisitorStats(input) {
+  const spreadsheet = getSpreadsheet();
+  const sheet = getOrEnsureSettingsSheet(spreadsheet);
+  const currentStats = getVisitorStats();
+  const source = input && typeof input === "object" && !Array.isArray(input) ? input : {};
+  const nextStats = normalizeVisitorStats({
+    ...currentStats,
+    ...source,
+    updatedAt: new Date().toISOString()
+  });
+
+  upsertSetting(sheet, SETTING_KEYS.visitorStats, JSON.stringify(nextStats));
+  invalidatePublicSnapshotCache();
+  return nextStats;
 }
 
 function ensureFolders() {
