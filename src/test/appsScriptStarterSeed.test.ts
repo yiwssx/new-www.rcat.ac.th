@@ -125,7 +125,7 @@ describe("Apps Script starter public seed", () => {
       address: "",
       heroImageUrl: "",
       directorImageUrl: "",
-      mapUrl: "https://maps.app.goo.gl/yhCsgrkLgd1pekM28",
+      mapUrl: "",
       mapEmbedUrl: ""
     });
     expect(context.menuSetValues).toHaveBeenCalledWith([
@@ -257,16 +257,28 @@ describe("Apps Script site settings normalization", () => {
 
     try {
       const context = loadSeedContext();
+      const mapUrl = "https://maps.app.goo.gl/realCampusMap123";
       const settings = context.normalizeSiteSettings({
-        mapUrl: "https://maps.app.goo.gl/yhCsgrkLgd1pekM28",
-        mapEmbedUrl: "https://maps.app.goo.gl/yhCsgrkLgd1pekM28"
+        mapUrl,
+        mapEmbedUrl: mapUrl
       });
 
-      expect(settings.mapUrl).toBe("https://maps.app.goo.gl/yhCsgrkLgd1pekM28");
+      expect(settings.mapUrl).toBe(mapUrl);
       expect(settings.mapEmbedUrl).toBe("");
     } finally {
       consoleWarnSpy.mockRestore();
     }
+  });
+
+  it("drops the legacy default map URL during Apps Script normalization", () => {
+    const context = loadSeedContext();
+    const legacyMapUrl = ["https://maps.app.goo.gl", "yhCsgrkLgd1pekM28"].join("/");
+
+    expect(
+      context.normalizeSiteSettings({
+        mapUrl: legacyMapUrl
+      }).mapUrl
+    ).toBe("");
   });
 
   it("rejects unsafe iframe src values when validating admin saves", () => {

@@ -1,4 +1,4 @@
-const DEFAULT_MAP_URL = "https://maps.app.goo.gl/yhCsgrkLgd1pekM28";
+const LEGACY_DEFAULT_MAP_URL = "https://maps.app.goo.gl/yhCsgrkLgd1pekM28";
 
 const DEFAULT_SITE_SETTINGS = {
   siteName: "",
@@ -21,7 +21,7 @@ const DEFAULT_SITE_SETTINGS = {
   directorTitle: "",
   directorDescription: "",
   directorImageUrl: "",
-  mapUrl: DEFAULT_MAP_URL,
+  mapUrl: "",
   mapEmbedUrl: "",
   footerTitle: "",
   footerDescription: "",
@@ -35,7 +35,6 @@ const STARTER_PUBLIC_SITE_SETTINGS = {
   ...DEFAULT_SITE_SETTINGS,
   siteName: "เว็บไซต์สถานศึกษา",
   heroTitle: "เว็บไซต์สถานศึกษา",
-  mapUrl: DEFAULT_MAP_URL,
   footerTitle: "เว็บไซต์สถานศึกษา"
 };
 
@@ -190,8 +189,17 @@ function shouldSeedSiteSettings(rawValue) {
     const source = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
 
     return Object.keys(DEFAULT_SITE_SETTINGS).every((key) => {
-      const value = String(source[key] || "").trim();
-      return !value || (key === "mapUrl" && value === DEFAULT_MAP_URL);
+      const value = source[key];
+
+      if (Array.isArray(value)) {
+        return value.length === 0;
+      }
+
+      if (typeof value === "boolean") {
+        return value === false;
+      }
+
+      return !String(value || "").trim();
     });
   } catch (error) {
     console.warn(
@@ -378,6 +386,10 @@ function decodeIframeSrcHtmlEntities(value) {
 }
 
 function normalizeSiteSettingsMapUrl(url) {
+  if (String(url || "").trim() === LEGACY_DEFAULT_MAP_URL) {
+    return "";
+  }
+
   const normalized = normalizePublicMediaUrl(url);
   const parts = parseSiteSettingsHttpsUrl(normalized);
 

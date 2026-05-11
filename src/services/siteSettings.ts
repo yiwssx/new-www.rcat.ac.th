@@ -3,7 +3,7 @@ import { FooterDirectoryGroup, FooterDirectoryLink, SiteSettings } from "../type
 const shortTextMaxLength = 120;
 const longTextMaxLength = 500;
 const neutralSiteName = "เว็บไซต์สถานศึกษา";
-const defaultMapUrl = "https://maps.app.goo.gl/yhCsgrkLgd1pekM28";
+export const legacyDefaultMapUrl = "https://maps.app.goo.gl/yhCsgrkLgd1pekM28";
 const urlFields = new Set<keyof SiteSettings>([
   "admissionUrl",
   "facebookUrl",
@@ -46,7 +46,7 @@ export const defaultSiteSettings: SiteSettings = {
   directorTitle: "",
   directorDescription: "",
   directorImageUrl: "",
-  mapUrl: defaultMapUrl,
+  mapUrl: "",
   mapEmbedUrl: "",
   footerTitle: neutralSiteName,
   footerDescription: "",
@@ -190,6 +190,10 @@ export function extractIframeSrc(value: string): string {
 }
 
 function normalizeMapUrl(value: unknown) {
+  if (String(value || "").trim() === legacyDefaultMapUrl) {
+    return "";
+  }
+
   const url = normalizeHttpsUrl(value);
 
   if (!url) {

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { defaultSiteSettings, extractIframeSrc, normalizeSiteSettings } from "../services/siteSettings";
+import {
+  defaultSiteSettings,
+  extractIframeSrc,
+  legacyDefaultMapUrl,
+  normalizeSiteSettings
+} from "../services/siteSettings";
 
 describe("siteSettings", () => {
   const driveFileId = "RCAT_director-2026_ABC123";
@@ -14,7 +19,7 @@ describe("siteSettings", () => {
     expect(settings.facebookUrl).toBe("");
     expect(settings.heroImageUrl).toBe("");
     expect(settings.directorImageUrl).toBe("");
-    expect(settings.mapUrl).toBe("https://maps.app.goo.gl/yhCsgrkLgd1pekM28");
+    expect(settings.mapUrl).toBe("");
     expect(settings.mapEmbedUrl).toBe("");
     expect(settings.footerDirectoryGroups).toEqual([]);
     expect(settings.messengerUrl).toBe("");
@@ -63,7 +68,7 @@ describe("siteSettings", () => {
       tiktokUrl: "data:text/html,test",
       heroImageUrl: "https://example.edu/hero.jpg",
       directorImageUrl: "https://example.edu/director.jpg",
-      mapUrl: "https://maps.app.goo.gl/yhCsgrkLgd1pekM28",
+      mapUrl: "https://maps.app.goo.gl/realCampusMap123",
       mapEmbedUrl: "https://www.google.com/maps/embed?pb=test"
     });
 
@@ -72,8 +77,16 @@ describe("siteSettings", () => {
     expect(settings.tiktokUrl).toBe("");
     expect(settings.heroImageUrl).toBe("https://example.edu/hero.jpg");
     expect(settings.directorImageUrl).toBe("https://example.edu/director.jpg");
-    expect(settings.mapUrl).toBe("https://maps.app.goo.gl/yhCsgrkLgd1pekM28");
+    expect(settings.mapUrl).toBe("https://maps.app.goo.gl/realCampusMap123");
     expect(settings.mapEmbedUrl).toBe("https://www.google.com/maps/embed?pb=test");
+  });
+
+  it("cleans the legacy default map URL to an empty value", () => {
+    const settings = normalizeSiteSettings({
+      mapUrl: legacyDefaultMapUrl
+    });
+
+    expect(settings.mapUrl).toBe("");
   });
 
   it("normalizes Google Drive director image share URLs to thumbnail URLs", () => {
@@ -131,11 +144,11 @@ describe("siteSettings", () => {
 
   it("allows Google Maps short links only for mapUrl, not mapEmbedUrl", () => {
     const settings = normalizeSiteSettings({
-      mapUrl: "https://maps.app.goo.gl/yhCsgrkLgd1pekM28",
-      mapEmbedUrl: "https://maps.app.goo.gl/yhCsgrkLgd1pekM28"
+      mapUrl: "https://maps.app.goo.gl/realCampusMap123",
+      mapEmbedUrl: "https://maps.app.goo.gl/realCampusMap123"
     });
 
-    expect(settings.mapUrl).toBe("https://maps.app.goo.gl/yhCsgrkLgd1pekM28");
+    expect(settings.mapUrl).toBe("https://maps.app.goo.gl/realCampusMap123");
     expect(settings.mapEmbedUrl).toBe("");
   });
 
