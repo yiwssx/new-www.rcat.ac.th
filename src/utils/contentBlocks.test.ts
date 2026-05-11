@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CONTENT_BLOCKS_MARKER,
+  createContentBlock,
   extractMediaIdsFromContentBlocks,
   parseContentBodyToBlocks,
   serializeContentBlocksToBody
@@ -41,6 +42,42 @@ describe("contentBlocks", () => {
     const parsed = parseContentBodyToBlocks(serialized);
     expect(parsed).toHaveLength(3);
     expect(parsed[0]).toMatchObject({ type: "heading", text: "Admissions Update" });
+  });
+
+  it("creates and preserves Facebook post blocks safely", () => {
+    const block = createContentBlock("facebookPost");
+
+    expect(block).toMatchObject({
+      type: "facebookPost",
+      href: "",
+      caption: "",
+      showText: true,
+      width: 500
+    });
+
+    const serialized = serializeContentBlocksToBody([
+      {
+        id: "facebook-1",
+        type: "facebookPost",
+        href: " https://www.facebook.com/rcat/posts/12345 ",
+        caption: "Official update",
+        showText: true,
+        width: 900
+      }
+    ]);
+
+    const parsed = parseContentBodyToBlocks(serialized);
+
+    expect(parsed).toEqual([
+      {
+        id: "facebook-1",
+        type: "facebookPost",
+        href: "https://www.facebook.com/rcat/posts/12345",
+        caption: "Official update",
+        showText: true,
+        width: 750
+      }
+    ]);
   });
 
   it("extracts unique media ids from image/video blocks", () => {
