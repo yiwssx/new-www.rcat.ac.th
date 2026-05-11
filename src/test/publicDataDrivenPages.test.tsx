@@ -244,6 +244,18 @@ describe("public data-driven pages", () => {
           category: "เอกสาร",
           updatedAt: "2026-05-03T00:00:00.000Z",
           publishAt: "2026-05-03T00:00:00.000Z"
+        },
+        {
+          id: "achievement-1",
+          title: "Regional innovation award",
+          slug: "regional-innovation-award",
+          type: "page",
+          status: "published",
+          owner: "Admin",
+          summary: "A real CMS achievement highlight",
+          category: "achievement",
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
         }
       ],
       events: [
@@ -343,6 +355,7 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("เอกสารแผนปฏิบัติการ")).toBeInTheDocument();
     expect(screen.getByText("ข่าวจัดซื้อจัดจ้าง")).toBeInTheDocument();
     expect(screen.getByText("ผลงานและความภาคภูมิใจ")).toBeInTheDocument();
+    expect(screen.getByText("Regional innovation award")).toBeInTheDocument();
     expect(screen.getByText("Website Visitors")).toBeInTheDocument();
     expect(screen.getAllByText("บริการออนไลน์และลิงก์ที่เกี่ยวข้อง").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("กำหนดการ")).toHaveLength(1);

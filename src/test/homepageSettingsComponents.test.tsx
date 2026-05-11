@@ -2,12 +2,13 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import PublicHomeCarousel from "../public/components/PublicHomeCarousel";
 import PublicIntroGate from "../public/components/PublicIntroGate";
+import { AchievementHighlightsSection } from "../public/components/home/AchievementHighlightsSection";
 import { ExternalServicesSection } from "../public/components/home/ExternalServicesSection";
 import { HomeIntroVideoSection } from "../public/components/home/HomeIntroVideoSection";
 import { UrgentMarqueeSection } from "../public/components/home/UrgentMarqueeSection";
 import { VisitorStatsCard } from "../public/components/home/VisitorStatsCard";
 import { DEFAULT_HOMEPAGE_SETTINGS } from "../services/homepageSettings";
-import { CarouselSlide, ExternalServiceLink } from "../types";
+import { CarouselSlide, ContentItem, ExternalServiceLink } from "../types";
 
 describe("homepage settings public sections", () => {
   it("does not render IntroGate when disabled or imageUrl is empty", () => {
@@ -111,6 +112,35 @@ describe("homepage settings public sections", () => {
     expect(screen.getByRole("link", { name: "เปิดลิงก์บริการ Student portal" })).toHaveAttribute(
       "href",
       "https://services.example.edu/student"
+    );
+  });
+
+  it("does not render AchievementHighlightsSection when no achievement content exists", () => {
+    expect(render(<AchievementHighlightsSection items={[]} />).container.firstChild).toBeNull();
+  });
+
+  it("renders AchievementHighlightsSection from provided content", () => {
+    const items: ContentItem[] = [
+      {
+        id: "achievement-1",
+        title: "Regional award winner",
+        slug: "regional-award-winner",
+        type: "news",
+        status: "published",
+        owner: "Admin",
+        summary: "A real CMS achievement highlight.",
+        category: "achievement",
+        updatedAt: "2026-05-10T00:00:00.000Z",
+        publishAt: "2026-05-10T00:00:00.000Z"
+      }
+    ];
+
+    render(<AchievementHighlightsSection items={items} />);
+
+    expect(screen.getByText("Regional award winner")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "อ่านผลงาน Regional award winner" })).toHaveAttribute(
+      "href",
+      "/content/regional-award-winner"
     );
   });
 
