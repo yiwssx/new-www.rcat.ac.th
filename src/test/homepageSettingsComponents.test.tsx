@@ -4,11 +4,13 @@ import FloatingMessengerButton from "../public/components/FloatingMessengerButto
 import PublicHomeCarousel from "../public/components/PublicHomeCarousel";
 import PublicIntroGate from "../public/components/PublicIntroGate";
 import { AchievementHighlightsSection } from "../public/components/home/AchievementHighlightsSection";
+import { ContactMapCard } from "../public/components/home/ContactMapCard";
 import { ExternalServicesSection } from "../public/components/home/ExternalServicesSection";
 import { HomeIntroVideoSection } from "../public/components/home/HomeIntroVideoSection";
 import { UrgentMarqueeSection } from "../public/components/home/UrgentMarqueeSection";
 import { VisitorStatsCard } from "../public/components/home/VisitorStatsCard";
 import { DEFAULT_HOMEPAGE_SETTINGS } from "../services/homepageSettings";
+import { defaultSiteSettings } from "../services/siteSettings";
 import { CarouselSlide, ContentItem, ExternalServiceLink } from "../types";
 
 describe("homepage settings public sections", () => {
@@ -206,5 +208,26 @@ describe("homepage settings public sections", () => {
       "href",
       "https://m.me/rcat"
     );
+  });
+
+  it("does not render ContactMapCard without contact info or map settings", () => {
+    expect(render(<ContactMapCard siteSettings={defaultSiteSettings} />).container.firstChild).toBeNull();
+  });
+
+  it("renders ContactMapCard contact info without requiring a map", () => {
+    render(
+      <ContactMapCard
+        siteSettings={{
+          ...defaultSiteSettings,
+          campus: "Real campus",
+          phone: "02-000-0000"
+        }}
+      />
+    );
+
+    expect(screen.getByText("Real campus")).toBeInTheDocument();
+    expect(screen.getByText("02-000-0000")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "เปิดแผนที่ใน Google Maps" })).not.toBeInTheDocument();
+    expect(screen.queryByTitle(/แผนที่/)).not.toBeInTheDocument();
   });
 });

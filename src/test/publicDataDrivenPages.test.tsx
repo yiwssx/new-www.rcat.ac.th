@@ -365,7 +365,7 @@ describe("public data-driven pages", () => {
     const contactSection = screen.getByText("ติดต่อและแผนที่").closest("section") as HTMLElement;
     expect(contactSection).not.toBeNull();
     expect(contactSection).toHaveTextContent("วิทยาลัยเทคนิคตัวอย่าง");
-    expect(within(contactSection).getByTitle("แผนที่วิทยาลัย")).toBeInTheDocument();
+    expect(within(contactSection).getByTitle("แผนที่วิทยาลัยเทคนิคตัวอย่าง")).toBeInTheDocument();
     expect(within(contactSection).getByRole("link", { name: "เปิดแผนที่ใน Google Maps" }).getAttribute("href")).toBe(
       "https://www.google.com/maps/place/example"
     );

@@ -69,8 +69,70 @@ function toNonNegativeInteger(value: unknown): number {
   return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
 }
 
+function extractIframeSrcForValidation(value: string) {
+  const input = String(value || "").trim();
+
+  if (!/<iframe\b/i.test(input)) {
+    return input;
+  }
+
+  const srcMatch = input.match(/<iframe\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1/i);
+
+  return srcMatch ? srcMatch[2].replace(/&amp;/gi, "&") : "";
+}
+
+function isProbablyGoogleMapsUrl(value: string) {
+  const input = value.trim();
+
+  if (!input) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(input);
+    const hostname = parsed.hostname.toLowerCase();
+
+    if (parsed.protocol !== "https:") {
+      return false;
+    }
+
+    if (hostname === "maps.app.goo.gl") {
+      return true;
+    }
+
+    return (
+      (hostname === "www.google.com" || hostname === "google.com" || hostname === "maps.google.com") &&
+      parsed.pathname.startsWith("/maps")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isProbablyGoogleMapsEmbedUrl(value: string) {
+  const input = extractIframeSrcForValidation(value);
+
+  if (!input) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(input);
+
+    return (
+      parsed.protocol === "https:" &&
+      parsed.hostname.toLowerCase() === "www.google.com" &&
+      parsed.pathname === "/maps/embed"
+    );
+  } catch {
+    return false;
+  }
+}
+
 function getSiteSettingsValidationMessage(settings: SiteSettings): { title: string; text: string } | null {
   const messengerUrl = settings.messengerUrl.trim();
+  const mapUrl = settings.mapUrl.trim();
+  const mapEmbedUrl = settings.mapEmbedUrl.trim();
 
   if (messengerUrl.toLowerCase().includes("example.com")) {
     return {
@@ -83,6 +145,41 @@ function getSiteSettingsValidationMessage(settings: SiteSettings): { title: stri
     return {
       title: "กรุณากรอก Messenger URL",
       text: "เมื่อเปิดใช้งานปุ่ม Messenger ต้องระบุ URL จริง เช่น https://m.me/yourpage"
+    };
+  }
+
+  if (mapUrl === "#") {
+    return {
+      title: "ไม่ควรใช้ลิงก์ #",
+      text: "กรุณาใช้ลิงก์ Google Maps จริงของสถานศึกษา หรือเว้นว่างเพื่อซ่อนปุ่มแผนที่"
+    };
+  }
+
+  if (mapUrl.toLowerCase().includes("example.com")) {
+    return {
+      title: "ไม่ควรใช้ลิงก์ตัวอย่าง",
+      text: "กรุณาใช้ลิงก์ Google Maps จริงของสถานศึกษา"
+    };
+  }
+
+  if (mapUrl && !isProbablyGoogleMapsUrl(mapUrl)) {
+    return {
+      title: "ลิงก์ Google Maps ไม่ถูกต้อง",
+      text: "กรุณาใช้ลิงก์ Google Maps เช่น https://maps.app.goo.gl/... หรือ https://www.google.com/maps/..."
+    };
+  }
+
+  if (mapEmbedUrl.toLowerCase().includes("example.com")) {
+    return {
+      title: "ไม่ควรใช้ลิงก์ตัวอย่าง",
+      text: "กรุณาใช้ Google Maps Embed URL จริง หรือโค้ด iframe จาก Google Maps"
+    };
+  }
+
+  if (mapEmbedUrl && !isProbablyGoogleMapsEmbedUrl(mapEmbedUrl)) {
+    return {
+      title: "ลิงก์ Google Maps Embed ไม่ถูกต้อง",
+      text: "กรุณาใช้ https://www.google.com/maps/embed... หรือวางโค้ด iframe จาก Google Maps"
     };
   }
 
@@ -155,12 +252,13 @@ const siteSettingFields: Array<{
   {
     key: "mapUrl",
     label: "Google Maps URL",
-    helperText: "ลิงก์เปิด Google Maps เช่น https://maps.app.goo.gl/... หรือเว้นว่าง"
+    helperText:
+      "ลิงก์เปิด Google Maps จริงของสถานศึกษา เช่น https://maps.app.goo.gl/... หรือเว้นว่างเพื่อไม่แสดงปุ่มแผนที่"
   },
   {
     key: "mapEmbedUrl",
     label: "Google Maps Embed URL",
-    helperText: "วางลิงก์ Google Maps Embed หรือโค้ด iframe จาก Google Maps ได้ ระบบจะเก็บเฉพาะค่า src ที่ปลอดภัย"
+    helperText: "วางลิงก์ Google Maps Embed หรือโค้ด iframe จาก Google Maps ได้ หากเว้นว่าง ระบบจะไม่แสดงแผนที่ฝัง"
   },
   { key: "footerTitle", label: "หัวข้อท้ายเว็บ" },
   { key: "footerDescription", label: "คำอธิบายท้ายเว็บ", multiline: true }
@@ -638,6 +736,11 @@ export default function SettingsPage() {
                       size="small"
                       fullWidth
                     />
+                    {field.key === "mapEmbedUrl" && (
+                      <Typography color="warning.dark" variant="caption" sx={{ display: "block", mt: 0.6 }}>
+                        ตรวจสอบพิกัดให้ถูกต้องก่อนบันทึก เพราะข้อมูลนี้แสดงต่อผู้ใช้เว็บไซต์สาธารณะ
+                      </Typography>
+                    )}
                   </Grid>
                 ))}
                 <Grid size={{ xs: 12 }}>

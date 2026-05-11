@@ -16,6 +16,7 @@ export function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings })
   );
   const mapEmbedSrc = normalizeSafeResourceUrl(siteSettings.mapEmbedUrl);
   const mapHref = normalizeSafeHref(siteSettings.mapUrl);
+  const mapTitle = `แผนที่${siteSettings.campus || siteSettings.siteName || "สถานศึกษา"}`;
 
   if (!hasContactInfo && !mapEmbedSrc && mapHref === "#") {
     return null;
@@ -87,7 +88,7 @@ export function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings })
           <Box
             component="iframe"
             src={mapEmbedSrc}
-            title="แผนที่วิทยาลัย"
+            title={mapTitle}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             sx={{
@@ -99,6 +100,11 @@ export function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings })
               mt: hasContactInfo ? 1.2 : 0
             }}
           />
+        )}
+        {!mapEmbedSrc && mapHref !== "#" && (
+          <Typography color="text.secondary" variant="body2" sx={{ mt: hasContactInfo ? 1.2 : 0 }}>
+            เปิดแผนที่ใน Google Maps เพื่อดูเส้นทาง
+          </Typography>
         )}
         {mapHref !== "#" && (
           <Button
