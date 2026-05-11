@@ -16,6 +16,44 @@ describe("siteSettings", () => {
     expect(settings.directorImageUrl).toBe("");
     expect(settings.mapUrl).toBe("https://maps.app.goo.gl/yhCsgrkLgd1pekM28");
     expect(settings.mapEmbedUrl).toBe("");
+    expect(settings.footerDirectoryGroups).toEqual([]);
+    expect(settings.messengerUrl).toBe("");
+    expect(settings.messengerLabel).toBe("แชทกับเจ้าหน้าที่");
+    expect(settings.messengerEnabled).toBe(false);
+  });
+
+  it("normalizes footer directory groups and Messenger settings", () => {
+    const settings = normalizeSiteSettings({
+      footerDirectoryGroups: [
+        {
+          title: " ลิงก์สำคัญ ",
+          links: [
+            { label: " ติดต่อเรา ", href: " /contact ", enabled: true },
+            { label: " ปิดไว้ ", href: " https://school.example.edu ", enabled: false }
+          ]
+        },
+        {
+          title: "",
+          links: []
+        }
+      ],
+      messengerUrl: " https://m.me/rcat ",
+      messengerLabel: " สอบถามข้อมูล ",
+      messengerEnabled: true
+    });
+
+    expect(settings.footerDirectoryGroups).toEqual([
+      {
+        title: "ลิงก์สำคัญ",
+        links: [
+          { label: "ติดต่อเรา", href: "/contact", enabled: true },
+          { label: "ปิดไว้", href: "https://school.example.edu", enabled: false }
+        ]
+      }
+    ]);
+    expect(settings.messengerUrl).toBe("https://m.me/rcat");
+    expect(settings.messengerLabel).toBe("สอบถามข้อมูล");
+    expect(settings.messengerEnabled).toBe(true);
   });
 
   it("clears unsafe public URLs and keeps allowed map URLs", () => {

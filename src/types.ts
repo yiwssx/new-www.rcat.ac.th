@@ -223,6 +223,17 @@ export interface HomepageSettings {
   introVideo: HomepageIntroVideoSettings;
 }
 
+export interface FooterDirectoryLink {
+  label: string;
+  href: string;
+  enabled: boolean;
+}
+
+export interface FooterDirectoryGroup {
+  title: string;
+  links: FooterDirectoryLink[];
+}
+
 export interface SiteSettings {
   siteName: string;
   eyebrow: string;
@@ -248,4 +259,8 @@ export interface SiteSettings {
   mapEmbedUrl: string;
   footerTitle: string;
   footerDescription: string;
+  footerDirectoryGroups: FooterDirectoryGroup[];
+  messengerUrl: string;
+  messengerLabel: string;
+  messengerEnabled: boolean;
 }

@@ -20,6 +20,7 @@ import PublicIntroGate from "./PublicIntroGate";
 import { projectSettings } from "../../config/projectSettings";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
+import { FooterDirectoryGroup } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { useDocumentMetadata } from "../../utils/seo";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
@@ -107,68 +108,6 @@ interface TopBarInfoItemProps {
   compact?: boolean;
   allowShrink?: boolean;
 }
-
-interface FooterDirectoryGroup {
-  title: string;
-  links: Array<{
-    label: string;
-    href: string;
-  }>;
-}
-
-const footerDirectoryGroups: FooterDirectoryGroup[] = [
-  {
-    title: "สำนักงานกลาง (สอศ.)",
-    links: [
-      { label: "สำนักอำนวยการ", href: "#" },
-      { label: "สำนักความร่วมมือ", href: "#" },
-      { label: "สำนักติดตามและประเมินผล", href: "#" },
-      { label: "สำนักนโยบายและแผน", href: "#" },
-      { label: "สำนักพัฒนาสมรรถนะครูและบุคลากรฯ", href: "#" },
-      { label: "สำนักมาตรฐานการอาชีวศึกษา", href: "#" },
-      { label: "สำนักวิจัยและพัฒนาการอาชีวศึกษา", href: "#" },
-      { label: "สำนักบริหารการอาชีวศึกษาเอกชน", href: "#" }
-    ]
-  },
-  {
-    title: "หน่วยงานกลาง สอศ.",
-    links: [
-      { label: "ศูนย์เทคโนโลยีสารสนเทศฯ", href: "#" },
-      { label: "ศูนย์ประสานงานสถานศึกษาสังกัดอาชีวศึกษา", href: "#" },
-      { label: "ศูนย์อาชีวศึกษาทวิภาคี", href: "#" },
-      { label: "ศูนย์จิตอาสาและธรรมาภิบาลอาชีวศึกษา", href: "#" },
-      { label: "ศูนย์ประชาสัมพันธ์และภาพลักษณ์", href: "#" },
-      { label: "หน่วยตรวจสอบภายใน", href: "#" },
-      { label: "หน่วยศึกษานิเทศก์", href: "#" },
-      { label: "กลุ่มพัฒนาระบบบริหาร", href: "#" }
-    ]
-  },
-  {
-    title: "เครือข่ายสถานศึกษา",
-    links: [
-      { label: "วิทยาลัยเกษตรและเทคโนโลยีตัวอย่าง", href: "#" },
-      { label: "วิทยาลัยเทคนิคตัวอย่าง", href: "#" },
-      { label: "วิทยาลัยอาชีวศึกษาตัวอย่าง", href: "#" },
-      { label: "วิทยาลัยสารพัดช่างตัวอย่าง", href: "#" },
-      { label: "วิทยาลัยการอาชีพตัวอย่างหนึ่ง", href: "#" },
-      { label: "วิทยาลัยการอาชีพตัวอย่างสอง", href: "#" },
-      { label: "วิทยาลัยเทคโนโลยีฐานอาชีพตัวอย่าง", href: "#" },
-      { label: "วิทยาลัยชุมชนอาชีวศึกษาตัวอย่าง", href: "#" }
-    ]
-  },
-  {
-    title: "นโยบายการให้บริการ",
-    links: [
-      { label: "นโยบายความเป็นส่วนตัวของข้อมูล", href: "#" },
-      { label: "นโยบายการใช้คุกกี้", href: "#" },
-      { label: "แผนผังเว็บไซต์", href: "/sitemap.xml" },
-      { label: "ติดต่อเรา", href: "/contact" },
-      { label: "ข้อกำหนดการใช้งาน", href: "#" },
-      { label: "การเข้าถึงเว็บไซต์", href: "#" },
-      { label: "คำถามที่พบบ่อย", href: "#" }
-    ]
-  }
-];
 
 function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false }: TopBarInfoItemProps) {
   const content = (
@@ -383,7 +322,24 @@ function DesktopTopBar({
   );
 }
 
-function FooterDirectory() {
+function getEnabledFooterDirectoryGroups(groups: FooterDirectoryGroup[]) {
+  return groups
+    .map((group) => ({
+      ...group,
+      links: group.links.filter(
+        (link) => link.enabled && link.label && link.href && link.href !== "#" && normalizeSafeHref(link.href) !== "#"
+      )
+    }))
+    .filter((group) => group.title && group.links.length > 0);
+}
+
+function FooterDirectory({ groups }: { groups: FooterDirectoryGroup[] }) {
+  const enabledGroups = getEnabledFooterDirectoryGroups(groups);
+
+  if (!enabledGroups.length) {
+    return null;
+  }
+
   return (
     <Box
       component="section"
@@ -402,7 +358,7 @@ function FooterDirectory() {
             gap: { xs: 2.5, md: 4 }
           }}
         >
-          {footerDirectoryGroups.map((group) => (
+          {enabledGroups.map((group) => (
             <Box key={group.title}>
               <Typography
                 component="h2"
@@ -739,7 +695,7 @@ export default function PublicSiteShell({
         {disableMainContainer ? children : <Container maxWidth="xl">{children}</Container>}
       </Box>
 
-      <FooterDirectory />
+      <FooterDirectory groups={siteSettings.footerDirectoryGroups} />
 
       <Box component="footer" sx={{ py: 4, bgcolor: "primary.dark", color: "white", mt: 2 }}>
         <Container maxWidth="xl">
@@ -778,7 +734,11 @@ export default function PublicSiteShell({
           </Stack>
         </Container>
       </Box>
-      <FloatingMessengerButton />
+      <FloatingMessengerButton
+        enabled={siteSettings.messengerEnabled}
+        href={siteSettings.messengerUrl}
+        label={siteSettings.messengerLabel}
+      />
     </Box>
   );
 }

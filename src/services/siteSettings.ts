@@ -1,4 +1,4 @@
-import { SiteSettings } from "../types";
+import { FooterDirectoryGroup, FooterDirectoryLink, SiteSettings } from "../types";
 
 const shortTextMaxLength = 120;
 const longTextMaxLength = 500;
@@ -12,7 +12,8 @@ const urlFields = new Set<keyof SiteSettings>([
   "heroImageUrl",
   "directorImageUrl",
   "mapUrl",
-  "mapEmbedUrl"
+  "mapEmbedUrl",
+  "messengerUrl"
 ]);
 const longTextFields = new Set<keyof SiteSettings>([
   "intro",
@@ -48,7 +49,11 @@ export const defaultSiteSettings: SiteSettings = {
   mapUrl: defaultMapUrl,
   mapEmbedUrl: "",
   footerTitle: neutralSiteName,
-  footerDescription: ""
+  footerDescription: "",
+  footerDirectoryGroups: [],
+  messengerUrl: "",
+  messengerLabel: "แชทกับเจ้าหน้าที่",
+  messengerEnabled: false
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -58,6 +63,38 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function normalizeText(value: unknown, maxLength: number) {
   const text = String(value || "").trim();
   return text.length > maxLength ? text.slice(0, maxLength) : text;
+}
+
+function normalizeBoolean(value: unknown) {
+  return value === true;
+}
+
+function normalizeFooterDirectoryLink(value: unknown): FooterDirectoryLink {
+  const source = isRecord(value) ? value : {};
+
+  return {
+    label: normalizeText(source.label, shortTextMaxLength),
+    href: String(source.href || "").trim(),
+    enabled: normalizeBoolean(source.enabled)
+  };
+}
+
+function normalizeFooterDirectoryGroups(value: unknown): FooterDirectoryGroup[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((group) => {
+      const source = isRecord(group) ? group : {};
+      const links = Array.isArray(source.links) ? source.links.map(normalizeFooterDirectoryLink) : [];
+
+      return {
+        title: normalizeText(source.title, shortTextMaxLength),
+        links
+      };
+    })
+    .filter((group) => group.title || group.links.some((link) => link.label || link.href));
 }
 
 function hasUnsafeUrlCharacter(value: string) {
@@ -203,6 +240,16 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
       return;
     }
 
+    if (key === "footerDirectoryGroups") {
+      normalized.footerDirectoryGroups = normalizeFooterDirectoryGroups(source[key]);
+      return;
+    }
+
+    if (key === "messengerEnabled") {
+      normalized.messengerEnabled = normalizeBoolean(source[key]);
+      return;
+    }
+
     if (urlFields.has(key)) {
       if (key === "mapUrl") {
         normalized[key] = normalizeMapUrl(source[key]);
@@ -236,6 +283,10 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
 
   if (!normalized.footerTitle) {
     normalized.footerTitle = normalized.siteName;
+  }
+
+  if (!normalized.messengerLabel) {
+    normalized.messengerLabel = defaultSiteSettings.messengerLabel;
   }
 
   return normalized;
