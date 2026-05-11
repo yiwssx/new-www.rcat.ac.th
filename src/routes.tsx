@@ -19,6 +19,7 @@ import {
   PublicDepartmentsPage,
   PublicHomePage,
   PublicNewsPage,
+  PublicSearchPage,
   RootRouteLayout,
   SettingsPage
 } from "./routeComponents";
@@ -68,6 +69,12 @@ const publicContactRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "contact",
   component: PublicContactPage
+});
+
+const publicSearchRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "search",
+  component: PublicSearchPage
 });
 
 const publicContentDetailRoute = createRoute({
@@ -168,6 +175,7 @@ const routeTree = rootRoute.addChildren([
     publicAnnouncementsRoute,
     publicBlogRoute,
     publicContactRoute,
+    publicSearchRoute,
     publicContentDetailRoute,
     publicPermalinkRoute,
     loginRoute
