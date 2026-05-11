@@ -7,6 +7,7 @@ export type ContentBlockType =
   | "checklist"
   | "image"
   | "video"
+  | "facebookPost"
   | "button"
   | "divider";
 
@@ -43,6 +44,14 @@ export interface MediaContentBlock extends ContentBlockBase {
   caption: string;
 }
 
+export interface FacebookPostContentBlock extends ContentBlockBase {
+  type: "facebookPost";
+  href: string;
+  caption: string;
+  showText: boolean;
+  width: number;
+}
+
 export interface ButtonContentBlock extends ContentBlockBase {
   type: "button";
   label: string;
@@ -60,6 +69,7 @@ export type ContentBlock =
   | QuoteContentBlock
   | ChecklistContentBlock
   | MediaContentBlock
+  | FacebookPostContentBlock
   | ButtonContentBlock
   | DividerContentBlock;
 
@@ -89,6 +99,7 @@ function normalizeBlockType(value: unknown): ContentBlockType | "" {
     value === "checklist" ||
     value === "image" ||
     value === "video" ||
+    value === "facebookPost" ||
     value === "button" ||
     value === "divider"
   ) {
@@ -121,6 +132,16 @@ function normalizeHeadingLevel(value: unknown): 2 | 3 | 4 {
   return 2;
 }
 
+function normalizeFacebookPostWidth(value: unknown): number {
+  const numeric = Number(value);
+
+  if (!Number.isFinite(numeric)) {
+    return 500;
+  }
+
+  return Math.min(750, Math.max(350, Math.round(numeric)));
+}
+
 export function createContentBlock(type: ContentBlockType): ContentBlock {
   const id = createBlockId();
 
@@ -138,6 +159,10 @@ export function createContentBlock(type: ContentBlockType): ContentBlock {
 
   if (type === "image" || type === "video") {
     return { id, type, mediaId: "", caption: "" };
+  }
+
+  if (type === "facebookPost") {
+    return { id, type, href: "", caption: "", showText: true, width: 500 };
   }
 
   if (type === "button") {
@@ -206,6 +231,17 @@ function normalizeContentBlock(value: unknown): ContentBlock | null {
     };
   }
 
+  if (type === "facebookPost") {
+    return {
+      id,
+      type,
+      href: normalizeString(value.href).trim(),
+      caption: normalizeString(value.caption),
+      showText: value.showText === true,
+      width: normalizeFacebookPostWidth(value.width)
+    };
+  }
+
   if (type === "button") {
     const variant = value.variant === "outlined" ? "outlined" : "contained";
     return {
@@ -242,6 +278,10 @@ function isMeaningfulBlock(block: ContentBlock) {
 
   if (block.type === "image" || block.type === "video") {
     return Boolean(block.mediaId);
+  }
+
+  if (block.type === "facebookPost") {
+    return Boolean(block.href.trim());
   }
 
   if (block.type === "button") {

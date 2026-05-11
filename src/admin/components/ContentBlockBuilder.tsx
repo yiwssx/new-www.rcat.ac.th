@@ -8,11 +8,13 @@ import {
   Chip,
   Divider,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputLabel,
   MenuItem,
   Select,
   Stack,
+  Switch,
   TextField,
   Tooltip,
   Typography
@@ -44,6 +46,7 @@ const blockTemplateOptions: BlockTemplateOption[] = [
   { type: "checklist", label: "รายการตรวจสอบ", helper: "หัวข้อย่อยและขั้นตอน" },
   { type: "image", label: "รูปภาพ", helper: "รูปภาพเด่นจากคลังสื่อ" },
   { type: "video", label: "วิดีโอ", helper: "วิดีโอฝังจากคลังสื่อ" },
+  { type: "facebookPost", label: "โพสต์ Facebook", helper: "ฝังโพสต์ Facebook แบบ public" },
   { type: "button", label: "ปุ่ม", helper: "ลิงก์เรียกให้ดำเนินการ" },
   { type: "divider", label: "เส้นแบ่ง", helper: "เส้นแบ่งส่วนเนื้อหา" }
 ];
@@ -321,6 +324,68 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                           )
                         }
                         placeholder="คำบรรยายวิดีโอ (ไม่บังคับ)"
+                        fullWidth
+                      />
+                    </Fragment>
+                  )}
+
+                  {block.type === "facebookPost" && (
+                    <Fragment>
+                      <Alert severity="warning">
+                        โพสต์ต้องตั้งค่าเป็น Public หากภายหลังเปลี่ยนสิทธิ์การมองเห็น Facebook อาจไม่แสดงบนเว็บไซต์
+                      </Alert>
+                      <TextField
+                        label="Facebook Post URL"
+                        value={block.href}
+                        onChange={(event) =>
+                          updateBlock(block.id, (current) =>
+                            current.type === "facebookPost" ? { ...current, href: event.target.value } : current
+                          )
+                        }
+                        helperText="วางลิงก์โพสต์ Facebook ที่เป็น Public เท่านั้น"
+                        placeholder="https://www.facebook.com/..."
+                        fullWidth
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={block.showText}
+                            onChange={(event) =>
+                              updateBlock(block.id, (current) =>
+                                current.type === "facebookPost"
+                                  ? { ...current, showText: event.target.checked }
+                                  : current
+                              )
+                            }
+                            size="small"
+                          />
+                        }
+                        label="แสดงข้อความโพสต์"
+                      />
+                      <TextField
+                        type="number"
+                        label="ความกว้าง"
+                        value={block.width}
+                        onChange={(event) =>
+                          updateBlock(block.id, (current) =>
+                            current.type === "facebookPost"
+                              ? { ...current, width: Number(event.target.value) || 500 }
+                              : current
+                          )
+                        }
+                        helperText="รองรับประมาณ 350-750 px"
+                        slotProps={{ htmlInput: { min: 350, max: 750, step: 1 } }}
+                        sx={{ maxWidth: 220 }}
+                      />
+                      <TextField
+                        label="คำบรรยาย"
+                        value={block.caption}
+                        onChange={(event) =>
+                          updateBlock(block.id, (current) =>
+                            current.type === "facebookPost" ? { ...current, caption: event.target.value } : current
+                          )
+                        }
+                        placeholder="คำบรรยายใต้โพสต์ (ไม่บังคับ)"
                         fullWidth
                       />
                     </Fragment>
