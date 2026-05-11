@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import FloatingMessengerButton from "../public/components/FloatingMessengerButton";
 import PublicHomeCarousel from "../public/components/PublicHomeCarousel";
 import PublicIntroGate from "../public/components/PublicIntroGate";
 import { AchievementHighlightsSection } from "../public/components/home/AchievementHighlightsSection";
@@ -190,5 +191,20 @@ describe("homepage settings public sections", () => {
       "Total views",
       "Who's Online"
     ].forEach((label) => expect(screen.getByText(label)).toBeInTheDocument());
+  });
+
+  it("does not render FloatingMessengerButton when disabled or missing href", () => {
+    expect(render(<FloatingMessengerButton />).container.firstChild).toBeNull();
+    expect(render(<FloatingMessengerButton enabled />).container.firstChild).toBeNull();
+  });
+
+  it("renders FloatingMessengerButton from provided settings", () => {
+    render(<FloatingMessengerButton enabled href="https://m.me/rcat" label="สอบถามข้อมูล" />);
+
+    expect(screen.getByText("สอบถามข้อมูล")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "สอบถามข้อมูลผ่าน Messenger" })).toHaveAttribute(
+      "href",
+      "https://m.me/rcat"
+    );
   });
 });

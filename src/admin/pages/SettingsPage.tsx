@@ -46,7 +46,13 @@ import {
   saveSiteSettingsToApi,
   saveVisitorStatsToApi
 } from "../../services/googleApi";
-import { DisplaySettings, HomepageSettings, SiteSettings, VisitorStatsSettings } from "../../types";
+import {
+  DisplaySettings,
+  FooterDirectoryLink,
+  HomepageSettings,
+  SiteSettings,
+  VisitorStatsSettings
+} from "../../types";
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
 
@@ -63,8 +69,60 @@ function toNonNegativeInteger(value: unknown): number {
   return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
 }
 
+function getSiteSettingsValidationMessage(settings: SiteSettings): { title: string; text: string } | null {
+  const messengerUrl = settings.messengerUrl.trim();
+
+  if (messengerUrl.toLowerCase().includes("example.com")) {
+    return {
+      title: "ไม่ควรใช้ลิงก์ตัวอย่าง",
+      text: "กรุณาใช้ Messenger URL จริง หรือเว้นว่างเพื่อซ่อนปุ่ม"
+    };
+  }
+
+  if (settings.messengerEnabled && (!messengerUrl || messengerUrl === "#")) {
+    return {
+      title: "กรุณากรอก Messenger URL",
+      text: "เมื่อเปิดใช้งานปุ่ม Messenger ต้องระบุ URL จริง เช่น https://m.me/yourpage"
+    };
+  }
+
+  for (const group of settings.footerDirectoryGroups) {
+    for (const link of group.links) {
+      const href = link.href.trim();
+
+      if (href === "#") {
+        return {
+          title: "ไม่ควรใช้ลิงก์ #",
+          text: "กรุณาใช้ URL จริงหรือลบลิงก์ที่ยังไม่พร้อมออกจากส่วนท้ายเว็บไซต์"
+        };
+      }
+
+      if (href.toLowerCase().includes("example.com")) {
+        return {
+          title: "ไม่ควรใช้ลิงก์ตัวอย่าง",
+          text: "กรุณาใช้ URL จริงสำหรับลิงก์ส่วนท้ายเว็บไซต์"
+        };
+      }
+
+      if (link.enabled && (!link.label.trim() || !href)) {
+        return {
+          title: "กรุณากรอกข้อมูลลิงก์ให้ครบ",
+          text: "ลิงก์ส่วนท้ายที่เปิดใช้งานต้องมีทั้งชื่อและ URL"
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+type SiteSettingTextKey = Exclude<
+  keyof SiteSettings,
+  "footerDirectoryGroups" | "messengerEnabled" | "messengerUrl" | "messengerLabel"
+>;
+
 const siteSettingFields: Array<{
-  key: keyof SiteSettings;
+  key: SiteSettingTextKey;
   label: string;
   multiline?: boolean;
   helperText?: string;
@@ -208,10 +266,104 @@ export default function SettingsPage() {
     }
   }
 
-  function handleSiteSettingsChange(key: keyof SiteSettings, value: string) {
+  function handleSiteSettingsChange(key: SiteSettingTextKey | "messengerUrl" | "messengerLabel", value: string) {
     setSiteSettings((current) => ({
       ...current,
       [key]: value
+    }));
+  }
+
+  function handleMessengerEnabledChange(value: boolean) {
+    setSiteSettings((current) => ({
+      ...current,
+      messengerEnabled: value
+    }));
+  }
+
+  function handleFooterGroupTitleChange(groupIndex: number, value: string) {
+    setSiteSettings((current) => ({
+      ...current,
+      footerDirectoryGroups: current.footerDirectoryGroups.map((group, index) =>
+        index === groupIndex ? { ...group, title: value } : group
+      )
+    }));
+  }
+
+  function handleAddFooterGroup() {
+    setSiteSettings((current) => ({
+      ...current,
+      footerDirectoryGroups: [
+        ...current.footerDirectoryGroups,
+        {
+          title: "",
+          links: []
+        }
+      ]
+    }));
+  }
+
+  function handleRemoveFooterGroup(groupIndex: number) {
+    setSiteSettings((current) => ({
+      ...current,
+      footerDirectoryGroups: current.footerDirectoryGroups.filter((_, index) => index !== groupIndex)
+    }));
+  }
+
+  function handleAddFooterLink(groupIndex: number) {
+    setSiteSettings((current) => ({
+      ...current,
+      footerDirectoryGroups: current.footerDirectoryGroups.map((group, index) =>
+        index === groupIndex
+          ? {
+              ...group,
+              links: [
+                ...group.links,
+                {
+                  label: "",
+                  href: "",
+                  enabled: true
+                }
+              ]
+            }
+          : group
+      )
+    }));
+  }
+
+  function handleRemoveFooterLink(groupIndex: number, linkIndex: number) {
+    setSiteSettings((current) => ({
+      ...current,
+      footerDirectoryGroups: current.footerDirectoryGroups.map((group, index) =>
+        index === groupIndex
+          ? { ...group, links: group.links.filter((_, childIndex) => childIndex !== linkIndex) }
+          : group
+      )
+    }));
+  }
+
+  function handleFooterLinkChange(
+    groupIndex: number,
+    linkIndex: number,
+    key: keyof FooterDirectoryLink,
+    value: string | boolean
+  ) {
+    setSiteSettings((current) => ({
+      ...current,
+      footerDirectoryGroups: current.footerDirectoryGroups.map((group, index) =>
+        index === groupIndex
+          ? {
+              ...group,
+              links: group.links.map((link, childIndex) =>
+                childIndex === linkIndex
+                  ? {
+                      ...link,
+                      [key]: value
+                    }
+                  : link
+              )
+            }
+          : group
+      )
     }));
   }
 
@@ -256,7 +408,19 @@ export default function SettingsPage() {
 
   async function handleSaveSiteSettings() {
     try {
-      const saved = await saveSiteSettingsMutation.mutateAsync(siteSettings);
+      const validationMessage = getSiteSettingsValidationMessage(siteSettings);
+
+      if (validationMessage) {
+        await appSwal.fire({
+          icon: "warning",
+          title: validationMessage.title,
+          text: validationMessage.text,
+          confirmButtonText: "ตกลง"
+        });
+        return;
+      }
+
+      const saved = await saveSiteSettingsMutation.mutateAsync(normalizeSiteSettings(siteSettings));
       setSiteSettings(normalizeSiteSettings(saved));
       clearPublicCmsCache();
       await Promise.all([
@@ -476,6 +640,165 @@ export default function SettingsPage() {
                     />
                   </Grid>
                 ))}
+                <Grid size={{ xs: 12 }}>
+                  <Divider sx={{ my: 1 }} />
+                  <Stack spacing={1}>
+                    <Typography fontWeight={900}>ลิงก์ส่วนท้ายเว็บไซต์และ Messenger</Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      จัดการไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์และปุ่มแชท Messenger ที่แสดงบนเว็บไซต์สาธารณะ
+                    </Typography>
+                  </Stack>
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={siteSettings.messengerEnabled}
+                        onChange={(event) => handleMessengerEnabledChange(event.target.checked)}
+                      />
+                    }
+                    label="เปิดใช้งานปุ่ม Messenger"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    label="ข้อความปุ่ม Messenger"
+                    value={siteSettings.messengerLabel}
+                    onChange={(event) => handleSiteSettingsChange("messengerLabel", event.target.value)}
+                    size="small"
+                    fullWidth
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    label="Messenger URL"
+                    value={siteSettings.messengerUrl}
+                    onChange={(event) => handleSiteSettingsChange("messengerUrl", event.target.value)}
+                    helperText="เช่น https://m.me/yourpage หรือเว้นว่างเพื่อซ่อนปุ่ม"
+                    size="small"
+                    fullWidth
+                  />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <Stack spacing={1.5}>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
+                      <Typography fontWeight={900} sx={{ flex: 1 }}>
+                        ไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์
+                      </Typography>
+                      <Button variant="outlined" onClick={handleAddFooterGroup}>
+                        เพิ่มกลุ่มลิงก์
+                      </Button>
+                    </Stack>
+                    {siteSettings.footerDirectoryGroups.length === 0 && (
+                      <Box
+                        sx={{
+                          border: "1px dashed rgba(31, 90, 44, 0.22)",
+                          borderRadius: 1.5,
+                          p: 2,
+                          bgcolor: "background.default"
+                        }}
+                      >
+                        <Typography color="text.secondary" variant="body2">
+                          ยังไม่มีกลุ่มลิงก์ ส่วนท้ายเว็บไซต์จะไม่แสดงไดเรกทอรีลิงก์จนกว่าจะเพิ่มลิงก์ที่เปิดใช้งาน
+                        </Typography>
+                      </Box>
+                    )}
+                    {siteSettings.footerDirectoryGroups.map((group, groupIndex) => (
+                      <Box
+                        key={`footer-group-${groupIndex}`}
+                        sx={{
+                          border: "1px solid rgba(31, 90, 44, 0.14)",
+                          borderRadius: 1.5,
+                          p: 1.5,
+                          bgcolor: "background.default"
+                        }}
+                      >
+                        <Stack spacing={1.25}>
+                          <Grid container spacing={1.2} alignItems="center">
+                            <Grid size={{ xs: 12, md: 8 }}>
+                              <TextField
+                                label="ชื่อกลุ่มลิงก์"
+                                value={group.title}
+                                onChange={(event) => handleFooterGroupTitleChange(groupIndex, event.target.value)}
+                                size="small"
+                                fullWidth
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                              <Stack direction="row" spacing={1} justifyContent={{ md: "flex-end" }}>
+                                <Button variant="outlined" onClick={() => handleAddFooterLink(groupIndex)}>
+                                  เพิ่มลิงก์
+                                </Button>
+                                <Button
+                                  color="error"
+                                  variant="outlined"
+                                  onClick={() => handleRemoveFooterGroup(groupIndex)}
+                                >
+                                  ลบกลุ่ม
+                                </Button>
+                              </Stack>
+                            </Grid>
+                          </Grid>
+                          {group.links.map((link, linkIndex) => (
+                            <Grid
+                              container
+                              spacing={1}
+                              alignItems="center"
+                              key={`footer-link-${groupIndex}-${linkIndex}`}
+                            >
+                              <Grid size={{ xs: 12, md: 3 }}>
+                                <FormControlLabel
+                                  control={
+                                    <Switch
+                                      checked={link.enabled}
+                                      onChange={(event) =>
+                                        handleFooterLinkChange(groupIndex, linkIndex, "enabled", event.target.checked)
+                                      }
+                                    />
+                                  }
+                                  label="เปิดใช้งาน"
+                                />
+                              </Grid>
+                              <Grid size={{ xs: 12, md: 3 }}>
+                                <TextField
+                                  label="ชื่อลิงก์"
+                                  value={link.label}
+                                  onChange={(event) =>
+                                    handleFooterLinkChange(groupIndex, linkIndex, "label", event.target.value)
+                                  }
+                                  size="small"
+                                  fullWidth
+                                />
+                              </Grid>
+                              <Grid size={{ xs: 12, md: 4 }}>
+                                <TextField
+                                  label="URL"
+                                  value={link.href}
+                                  onChange={(event) =>
+                                    handleFooterLinkChange(groupIndex, linkIndex, "href", event.target.value)
+                                  }
+                                  helperText="ใช้ /internal-path หรือ https:// และห้ามใช้ #"
+                                  size="small"
+                                  fullWidth
+                                />
+                              </Grid>
+                              <Grid size={{ xs: 12, md: 2 }}>
+                                <Button
+                                  color="error"
+                                  variant="outlined"
+                                  onClick={() => handleRemoveFooterLink(groupIndex, linkIndex)}
+                                  fullWidth
+                                >
+                                  ลบลิงก์
+                                </Button>
+                              </Grid>
+                            </Grid>
+                          ))}
+                        </Stack>
+                      </Box>
+                    ))}
+                  </Stack>
+                </Grid>
                 <Grid size={{ xs: 12 }}>
                   <Button
                     variant="contained"

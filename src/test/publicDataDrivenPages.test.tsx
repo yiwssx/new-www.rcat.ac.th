@@ -29,6 +29,7 @@ function createSnapshot(overrides: Partial<CmsSnapshot> = {}): CmsSnapshot {
     events: [],
     menu: [],
     siteSettings: {
+      ...defaultSiteSettings,
       siteName: "CMS public site",
       eyebrow: "",
       intro: "",

@@ -1,12 +1,27 @@
 import { Box, Fab, Tooltip } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFacebookMessenger } from "@fortawesome/free-brands-svg-icons";
+import { normalizeSafeHref } from "../../utils/safeUrl";
 
-const messengerUrl = "https://m.me/100063746585360";
+interface FloatingMessengerButtonProps {
+  href?: string;
+  label?: string;
+  enabled?: boolean;
+}
 
-export default function FloatingMessengerButton() {
+export default function FloatingMessengerButton({
+  href,
+  label = "แชทกับเจ้าหน้าที่",
+  enabled = false
+}: FloatingMessengerButtonProps) {
+  const normalizedHref = normalizeSafeHref(href || "");
+
+  if (!enabled || !href) {
+    return null;
+  }
+
   return (
-    <Tooltip title="แชทกับเจ้าหน้าที่" placement="left">
+    <Tooltip title={label} placement="left">
       <Box
         sx={(theme) => ({
           position: "fixed",
@@ -39,15 +54,15 @@ export default function FloatingMessengerButton() {
             border: "1px solid rgba(31, 90, 44, 0.12)"
           }}
         >
-          แชทกับเจ้าหน้าที่
+          {label}
         </Box>
 
         <Fab
           component="a"
-          href={messengerUrl}
+          href={normalizedHref}
           target="_blank"
           rel="noreferrer"
-          aria-label="แชทกับเจ้าหน้าที่ผ่าน Messenger"
+          aria-label={`${label}ผ่าน Messenger`}
           sx={(_theme) => ({
             bgcolor: "#0084ff",
             color: "white",

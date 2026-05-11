@@ -24,7 +24,11 @@ const DEFAULT_SITE_SETTINGS = {
   mapUrl: DEFAULT_MAP_URL,
   mapEmbedUrl: "",
   footerTitle: "",
-  footerDescription: ""
+  footerDescription: "",
+  footerDirectoryGroups: [],
+  messengerUrl: "",
+  messengerLabel: "แชทกับเจ้าหน้าที่",
+  messengerEnabled: false
 };
 
 const STARTER_PUBLIC_SITE_SETTINGS = {
@@ -51,7 +55,8 @@ const SITE_SETTINGS_URL_FIELDS = [
   "heroImageUrl",
   "directorImageUrl",
   "mapUrl",
-  "mapEmbedUrl"
+  "mapEmbedUrl",
+  "messengerUrl"
 ];
 
 const SITE_SETTINGS_LONG_TEXT_FIELDS = [
@@ -122,6 +127,16 @@ function normalizeSiteSettings(input, options) {
   const normalized = {};
 
   Object.keys(DEFAULT_SITE_SETTINGS).forEach((key) => {
+    if (key === "footerDirectoryGroups") {
+      normalized[key] = normalizeFooterDirectoryGroups(source[key]);
+      return;
+    }
+
+    if (key === "messengerEnabled") {
+      normalized[key] = normalizeSiteSettingsBoolean(source[key]);
+      return;
+    }
+
     if (SITE_SETTINGS_URL_FIELDS.indexOf(key) !== -1) {
       normalized[key] = normalizeSiteSettingsUrl(source[key], key, config);
       return;
@@ -212,6 +227,41 @@ function normalizeSiteSettingsText(value, fieldName, maxLength, options) {
   }
 
   return text.slice(0, maxLength);
+}
+
+function normalizeSiteSettingsBoolean(value) {
+  return value === true;
+}
+
+function normalizeFooterDirectoryGroups(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((group) => {
+      const source = group && typeof group === "object" && !Array.isArray(group) ? group : {};
+      const rawLinks = Array.isArray(source.links) ? source.links : [];
+      const links = rawLinks.map(normalizeFooterDirectoryLink);
+
+      return {
+        title: normalizeSiteSettingsText(source.title, "footerDirectoryGroup.title", SITE_SETTINGS_TEXT_MAX_LENGTH),
+        links
+      };
+    })
+    .filter((group) => {
+      return group.title || group.links.some((link) => link.label || link.href);
+    });
+}
+
+function normalizeFooterDirectoryLink(value) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+
+  return {
+    label: normalizeSiteSettingsText(source.label, "footerDirectoryLink.label", SITE_SETTINGS_TEXT_MAX_LENGTH),
+    href: String(source.href || "").trim(),
+    enabled: source.enabled === true
+  };
 }
 
 function normalizeSiteSettingsUrl(value, fieldName, options) {
