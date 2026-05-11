@@ -37,6 +37,26 @@ const jobOpportunityKeywords = [
   "แนะแนวอาชีพ"
 ];
 
+const achievementKeywords = [
+  "ความสำเร็จ",
+  "ผลงาน",
+  "รางวัล",
+  "เกียรติยศ",
+  "ความภาคภูมิใจ",
+  "นักเรียนดีเด่น",
+  "ครูดีเด่น",
+  "บุคลากรดีเด่น",
+  "นวัตกรรม",
+  "ทวิภาคี",
+  "achievement",
+  "award",
+  "honor",
+  "highlight",
+  "success",
+  "innovation"
+];
+const achievementContentTypes = ["news", "announcement", "blog", "page"];
+
 function getPublishDateValue(item: ContentItem) {
   const date = dayjs(item.publishAt);
   return date.isValid() ? date.valueOf() : 0;
@@ -97,6 +117,9 @@ export default function PublicHomePage() {
   const jobOpportunityItems = announcementContent
     .filter((item) => hasContentSearchTerm(item, jobOpportunityKeywords))
     .slice(0, 4);
+  const achievementItems = publicContent
+    .filter((item) => achievementContentTypes.includes(item.type) && hasContentSearchTerm(item, achievementKeywords))
+    .slice(0, 4);
   const programItems = publicContent.filter((item) => item.type === "program").slice(0, 6);
   const documentItems = publicContent
     .filter((item) => item.type === "page" && hasContentKeyword(item, documentKeywords))
@@ -139,7 +162,7 @@ export default function PublicHomePage() {
               <ProcurementNewsSection items={procurementItems} />
               <JobOpportunitiesSection items={jobOpportunityItems} />
               <ProgramsSection items={programItems} mediaAssets={data?.media ?? []} />
-              <AchievementHighlightsSection />
+              <AchievementHighlightsSection items={achievementItems} />
               <Box sx={{ display: { xs: "none", lg: "block" } }}>
                 <ExternalServicesSection items={externalServiceItems} />
               </Box>
