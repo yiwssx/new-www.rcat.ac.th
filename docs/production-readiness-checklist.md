@@ -25,6 +25,7 @@
 
 ## Admin data-entry checklist
 
+- [ ] Follow [Launch Data Runbook](./launch-data-runbook.md) for staff data entry and sign-off.
 - [ ] Site settings: site name, hero text, campus, phone, email, address, social links, director details, footer title/description.
 - [ ] Homepage settings: IntroGate, Marquee, and IntroVideo enabled only when real image/text/video URLs are ready.
 - [ ] Carousel slides: real title, subtitle, chip, image URL/media, image alt text, destination URL, order, enabled status, and date window.
