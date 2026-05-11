@@ -15,7 +15,8 @@ const SETTING_KEYS = {
   dateDisplayFormat: "dateDisplayFormat",
   timeDisplayMode: "timeDisplayMode",
   siteSettings: "siteSettings",
-  homepageSettings: "homepageSettings"
+  homepageSettings: "homepageSettings",
+  visitorStats: "visitorStats"
 };
 
 const DEFAULT_HOMEPAGE_SETTINGS = {
@@ -39,6 +40,18 @@ const DEFAULT_HOMEPAGE_SETTINGS = {
     title: "วีดิทัศน์แนะนำสถานศึกษา",
     youtubeEmbedUrl: ""
   }
+};
+
+const DEFAULT_VISITOR_STATS = {
+  enabled: false,
+  usersToday: 0,
+  usersYesterday: 0,
+  usersThisMonth: 0,
+  usersThisYear: 0,
+  totalUsers: 0,
+  totalViews: 0,
+  onlineUsers: 0,
+  updatedAt: ""
 };
 
 const DEFAULT_SCRIPT_PROPERTIES = {

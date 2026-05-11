@@ -109,7 +109,8 @@ function getSnapshot(options) {
     externalServices,
     displaySettings: getDisplaySettings(),
     siteSettings: getSiteSettings(),
-    homepageSettings: getHomepageSettings()
+    homepageSettings: getHomepageSettings(),
+    visitorStats: getVisitorStats()
   };
 }
 

@@ -270,6 +270,17 @@ describe("public data-driven pages", () => {
           updatedAt: "2026-05-10T00:00:00.000Z"
         }
       ],
+      visitorStats: {
+        enabled: true,
+        usersToday: 1,
+        usersYesterday: 2,
+        usersThisMonth: 3,
+        usersThisYear: 4,
+        totalUsers: 5,
+        totalViews: 6,
+        onlineUsers: 7,
+        updatedAt: "2026-05-10T00:00:00.000Z"
+      },
       siteSettings: {
         ...baseSiteSettings,
         heroTitle: "ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง",
@@ -298,7 +309,7 @@ describe("public data-driven pages", () => {
     const procurementIndex = pageText.indexOf("ข่าวจัดซื้อจัดจ้าง");
     const achievementsIndex = pageText.indexOf("ผลงานและความภาคภูมิใจ");
     const externalServicesIndex = pageText.indexOf("บริการออนไลน์และลิงก์ที่เกี่ยวข้อง");
-    const visitorStatsIndex = pageText.indexOf("จำนวนผู้เข้าชมเว็บไซต์");
+    const visitorStatsIndex = pageText.indexOf("Website Visitors");
 
     [
       heroIndex,
@@ -332,7 +343,7 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("เอกสารแผนปฏิบัติการ")).toBeInTheDocument();
     expect(screen.getByText("ข่าวจัดซื้อจัดจ้าง")).toBeInTheDocument();
     expect(screen.getByText("ผลงานและความภาคภูมิใจ")).toBeInTheDocument();
-    expect(screen.getByText("จำนวนผู้เข้าชมเว็บไซต์")).toBeInTheDocument();
+    expect(screen.getByText("Website Visitors")).toBeInTheDocument();
     expect(screen.getAllByText("บริการออนไลน์และลิงก์ที่เกี่ยวข้อง").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("กำหนดการ")).toHaveLength(1);
     expect(screen.getAllByText("ปฐมนิเทศนักศึกษาใหม่")).toHaveLength(1);

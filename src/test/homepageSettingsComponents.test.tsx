@@ -5,6 +5,7 @@ import PublicIntroGate from "../public/components/PublicIntroGate";
 import { ExternalServicesSection } from "../public/components/home/ExternalServicesSection";
 import { HomeIntroVideoSection } from "../public/components/home/HomeIntroVideoSection";
 import { UrgentMarqueeSection } from "../public/components/home/UrgentMarqueeSection";
+import { VisitorStatsCard } from "../public/components/home/VisitorStatsCard";
 import { DEFAULT_HOMEPAGE_SETTINGS } from "../services/homepageSettings";
 import { CarouselSlide, ExternalServiceLink } from "../types";
 
@@ -111,5 +112,53 @@ describe("homepage settings public sections", () => {
       "href",
       "https://services.example.edu/student"
     );
+  });
+
+  it("does not render VisitorStatsCard when disabled", () => {
+    expect(
+      render(
+        <VisitorStatsCard
+          stats={{
+            enabled: false,
+            usersToday: 0,
+            usersYesterday: 0,
+            usersThisMonth: 0,
+            usersThisYear: 0,
+            totalUsers: 0,
+            totalViews: 0,
+            onlineUsers: 0,
+            updatedAt: ""
+          }}
+        />
+      ).container.firstChild
+    ).toBeNull();
+  });
+
+  it("renders VisitorStatsCard labels when enabled", () => {
+    render(
+      <VisitorStatsCard
+        stats={{
+          enabled: true,
+          usersToday: 1,
+          usersYesterday: 2,
+          usersThisMonth: 3,
+          usersThisYear: 4,
+          totalUsers: 5,
+          totalViews: 6,
+          onlineUsers: 7,
+          updatedAt: "2026-05-10T00:00:00.000Z"
+        }}
+      />
+    );
+
+    [
+      "Users Today",
+      "Users Yesterday",
+      "Users This Month",
+      "Users This Year",
+      "Total Users",
+      "Total views",
+      "Who's Online"
+    ].forEach((label) => expect(screen.getByText(label)).toBeInTheDocument());
   });
 });

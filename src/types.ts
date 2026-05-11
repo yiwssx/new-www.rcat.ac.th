@@ -163,6 +163,18 @@ export interface RolePermission {
   canManageUsers: boolean;
 }
 
+export interface VisitorStatsSettings {
+  enabled: boolean;
+  usersToday: number;
+  usersYesterday: number;
+  usersThisMonth: number;
+  usersThisYear: number;
+  totalUsers: number;
+  totalViews: number;
+  onlineUsers: number;
+  updatedAt: string;
+}
+
 export interface CmsSnapshot {
   metrics: DashboardMetric[];
   content: ContentItem[];
@@ -174,6 +186,7 @@ export interface CmsSnapshot {
   displaySettings?: DisplaySettings;
   siteSettings?: SiteSettings;
   homepageSettings?: HomepageSettings;
+  visitorStats?: VisitorStatsSettings;
 }
 
 export interface DisplaySettings {

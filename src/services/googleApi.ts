@@ -13,7 +13,8 @@ import {
   PublicMenuItem,
   Session,
   SiteSettings,
-  UserAccount
+  UserAccount,
+  VisitorStatsSettings
 } from "../types";
 
 const resources = projectSettings.api.resources;
@@ -372,6 +373,10 @@ export async function saveSiteSettingsToApi(settings: Partial<SiteSettings>): Pr
 
 export async function saveHomepageSettingsToApi(settings: Partial<HomepageSettings>): Promise<HomepageSettings> {
   return postJson<HomepageSettings>("homepageSettings", settings);
+}
+
+export async function saveVisitorStatsToApi(stats: Partial<VisitorStatsSettings>): Promise<VisitorStatsSettings> {
+  return postJson<VisitorStatsSettings>("visitorStats", stats);
 }
 
 export async function getUserAccountsFromApi(): Promise<UserAccount[]> {

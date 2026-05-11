@@ -4,6 +4,7 @@ import Grid from "@mui/material/Grid2";
 import dayjs from "dayjs";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
+import { normalizeVisitorStats } from "../../services/visitorStats";
 import { CalendarEvent, ContentItem } from "../../types";
 import PublicHomeCarousel from "../components/PublicHomeCarousel";
 import PublicSiteShell from "../components/PublicSiteShell";
@@ -114,6 +115,7 @@ export default function PublicHomePage() {
 
   const siteSettings = normalizeSiteSettings(data.siteSettings);
   const homepageSettings = normalizeHomepageSettings(data.homepageSettings);
+  const visitorStats = normalizeVisitorStats(data.visitorStats);
 
   return (
     <PublicSiteShell
@@ -152,7 +154,7 @@ export default function PublicHomePage() {
                   <ExternalServicesSection items={externalServiceItems} />
                 </Box>
                 <ContactMapCard siteSettings={siteSettings} />
-                <VisitorStatsCard />
+                <VisitorStatsCard stats={visitorStats} />
               </Stack>
             </Grid>
           </Grid>

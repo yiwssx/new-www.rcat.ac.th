@@ -24,6 +24,7 @@ import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
 import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PageHeader from "../components/PageHeader";
@@ -38,8 +39,14 @@ import {
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { clearPublicCmsCache } from "../../services/publicCmsCache";
 import { defaultSiteSettings, normalizeSiteSettings } from "../../services/siteSettings";
-import { getAdminCmsSnapshot, saveHomepageSettingsToApi, saveSiteSettingsToApi } from "../../services/googleApi";
-import { DisplaySettings, HomepageSettings, SiteSettings } from "../../types";
+import { normalizeVisitorStats } from "../../services/visitorStats";
+import {
+  getAdminCmsSnapshot,
+  saveHomepageSettingsToApi,
+  saveSiteSettingsToApi,
+  saveVisitorStatsToApi
+} from "../../services/googleApi";
+import { DisplaySettings, HomepageSettings, SiteSettings, VisitorStatsSettings } from "../../types";
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
 
@@ -49,6 +56,11 @@ function normalizeDisplaySettings(input: Partial<DisplaySettings>): DisplaySetti
       String(input.dateFormat || defaultDisplaySettings.dateFormat).trim() || defaultDisplaySettings.dateFormat,
     timeMode: input.timeMode === "12h" ? "12h" : "24h"
   };
+}
+
+function toNonNegativeInteger(value: unknown): number {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
 }
 
 const siteSettingFields: Array<{
@@ -96,15 +108,30 @@ const siteSettingFields: Array<{
   { key: "footerDescription", label: "คำอธิบายท้ายเว็บ", multiline: true }
 ];
 
+const visitorStatsFields: Array<{
+  key: Exclude<keyof VisitorStatsSettings, "enabled" | "updatedAt">;
+  label: string;
+}> = [
+  { key: "usersToday", label: "Users Today" },
+  { key: "usersYesterday", label: "Users Yesterday" },
+  { key: "usersThisMonth", label: "Users This Month" },
+  { key: "usersThisYear", label: "Users This Year" },
+  { key: "totalUsers", label: "Total Users" },
+  { key: "totalViews", label: "Total views" },
+  { key: "onlineUsers", label: "Who's Online" }
+];
+
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const rolePermissions = projectSettings.roles;
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(defaultDisplaySettings);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(defaultSiteSettings);
   const [homepageSettings, setHomepageSettings] = useState<HomepageSettings>(normalizeHomepageSettings());
+  const [visitorStats, setVisitorStats] = useState<VisitorStatsSettings>(normalizeVisitorStats());
   const [displaySettingsSource, setDisplaySettingsSource] = useState<DisplaySettings | undefined>();
   const [siteSettingsSource, setSiteSettingsSource] = useState<SiteSettings | undefined>();
   const [homepageSettingsSource, setHomepageSettingsSource] = useState<HomepageSettings | undefined>();
+  const [visitorStatsSource, setVisitorStatsSource] = useState<VisitorStatsSettings | undefined>();
 
   const displaySettingsQuery = useQuery({
     queryKey: ["display-settings"],
@@ -124,6 +151,9 @@ export default function SettingsPage() {
   const saveHomepageSettingsMutation = useMutation({
     mutationFn: saveHomepageSettingsToApi
   });
+  const saveVisitorStatsMutation = useMutation({
+    mutationFn: saveVisitorStatsToApi
+  });
 
   if (displaySettingsQuery.data && displaySettingsSource !== displaySettingsQuery.data) {
     setDisplaySettingsSource(displaySettingsQuery.data);
@@ -141,6 +171,11 @@ export default function SettingsPage() {
   ) {
     setHomepageSettingsSource(adminSnapshotQuery.data.homepageSettings);
     setHomepageSettings(normalizeHomepageSettings(adminSnapshotQuery.data.homepageSettings));
+  }
+
+  if (adminSnapshotQuery.data?.visitorStats && visitorStatsSource !== adminSnapshotQuery.data.visitorStats) {
+    setVisitorStatsSource(adminSnapshotQuery.data.visitorStats);
+    setVisitorStats(normalizeVisitorStats(adminSnapshotQuery.data.visitorStats));
   }
 
   const previewDate = useMemo(() => {
@@ -212,6 +247,13 @@ export default function SettingsPage() {
     }));
   }
 
+  function handleVisitorStatsChange(key: keyof VisitorStatsSettings, value: number | boolean) {
+    setVisitorStats((current) => ({
+      ...current,
+      [key]: typeof value === "number" ? toNonNegativeInteger(value) : value
+    }));
+  }
+
   async function handleSaveSiteSettings() {
     try {
       const saved = await saveSiteSettingsMutation.mutateAsync(siteSettings);
@@ -255,6 +297,31 @@ export default function SettingsPage() {
       await appSwal.fire({
         icon: "error",
         title: "ไม่สามารถบันทึกการตั้งค่าหน้าแรกได้",
+        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
+      });
+    }
+  }
+
+  async function handleSaveVisitorStats() {
+    try {
+      const nextStats = normalizeVisitorStats(visitorStats);
+      const saved = await saveVisitorStatsMutation.mutateAsync(nextStats);
+      setVisitorStats(normalizeVisitorStats(saved));
+      clearPublicCmsCache();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] }),
+        queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
+      ]);
+      await appSwal.fire({
+        icon: "success",
+        title: "บันทึกสถิติผู้เข้าชมแล้ว",
+        confirmButtonText: "ตกลง"
+      });
+    } catch (error) {
+      await appSwal.fire({
+        icon: "error",
+        title: "ไม่สามารถบันทึกสถิติผู้เข้าชมได้",
         text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
         confirmButtonText: "ตกลง"
       });
@@ -627,6 +694,67 @@ export default function SettingsPage() {
                   {saveHomepageSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกการตั้งค่าหน้าแรก"}
                 </Button>
               </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+                <PeopleAltOutlinedIcon color="primary" />
+                <Typography variant="h3">สถิติผู้เข้าชมเว็บไซต์</Typography>
+              </Stack>
+              <Typography color="text.secondary" sx={{ mb: 1 }}>
+                ควบคุมตัวเลขสถิติผู้เข้าชมที่แสดงในหน้าเว็บไซต์สาธารณะ
+              </Typography>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
+                ค่าชุดนี้เป็นการกรอกด้วยผู้ดูแลระบบ ยังไม่ใช่ระบบวัดผลแบบ real-time
+              </Typography>
+
+              {adminSnapshotQuery.isError && (
+                <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                  ไม่สามารถโหลดสถิติผู้เข้าชมได้
+                </Typography>
+              )}
+
+              <Grid container spacing={1.5}>
+                <Grid size={{ xs: 12 }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={visitorStats.enabled}
+                        onChange={(event) => handleVisitorStatsChange("enabled", event.target.checked)}
+                      />
+                    }
+                    label="เปิดใช้งานสถิติผู้เข้าชม"
+                  />
+                </Grid>
+                {visitorStatsFields.map((field) => (
+                  <Grid key={field.key} size={{ xs: 12, sm: 6, md: 4 }}>
+                    <TextField
+                      label={field.label}
+                      type="number"
+                      value={visitorStats[field.key]}
+                      onChange={(event) =>
+                        handleVisitorStatsChange(field.key, toNonNegativeInteger(event.target.value))
+                      }
+                      inputProps={{ min: 0, step: 1 }}
+                      size="small"
+                      fullWidth
+                    />
+                  </Grid>
+                ))}
+                <Grid size={{ xs: 12 }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<SaveOutlinedIcon />}
+                    disabled={saveVisitorStatsMutation.isPending}
+                    onClick={() => void handleSaveVisitorStats()}
+                  >
+                    {saveVisitorStatsMutation.isPending ? "กำลังบันทึก" : "บันทึกสถิติผู้เข้าชม"}
+                  </Button>
+                </Grid>
+              </Grid>
             </CardContent>
           </Card>
         </Grid>
