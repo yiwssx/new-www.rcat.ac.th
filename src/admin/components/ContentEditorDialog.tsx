@@ -43,42 +43,112 @@ const contentStatuses: ContentStatus[] = ["draft", "review", "scheduled", "publi
 const mediaTypes: MediaType[] = ["image", "document", "sheet", "video"];
 const contentTemplates = ["standard", "feature", "update"];
 
-interface AnnouncementCategoryPreset {
+type ContentMetadataPreset = {
   label: string;
+  group: string;
   category: string;
   tags: string[];
-}
+  contentTypes?: ContentType[];
+};
 
-const announcementCategoryPresets: AnnouncementCategoryPreset[] = [
+const contentMetadataPresets: ContentMetadataPreset[] = [
   {
     label: "จัดซื้อจัดจ้าง",
+    group: "จัดซื้อจัดจ้าง",
     category: "จัดซื้อจัดจ้าง",
-    tags: ["จัดซื้อ", "จัดจ้าง", "procurement"]
+    tags: ["จัดซื้อ", "จัดจ้าง", "จัดซื้อจัดจ้าง", "procurement"],
+    contentTypes: ["announcement"]
   },
   {
     label: "ประกวดราคา / TOR",
+    group: "จัดซื้อจัดจ้าง",
     category: "จัดซื้อจัดจ้าง",
-    tags: ["ประกวดราคา", "TOR", "จัดซื้อจัดจ้าง"]
+    tags: ["ประกวดราคา", "TOR", "จัดซื้อจัดจ้าง", "procurement"],
+    contentTypes: ["announcement"]
   },
   {
     label: "สมัครงาน",
+    group: "สมัครงาน / หางาน",
     category: "สมัครงาน",
-    tags: ["สมัครงาน", "recruitment", "job"]
+    tags: ["สมัครงาน", "recruitment", "job"],
+    contentTypes: ["announcement", "news"]
   },
   {
     label: "หางาน / ตำแหน่งงาน",
+    group: "สมัครงาน / หางาน",
     category: "หางาน",
-    tags: ["หางาน", "ตำแหน่งงาน", "jobs"]
+    tags: ["หางาน", "ตำแหน่งงาน", "jobs"],
+    contentTypes: ["announcement", "news"]
   },
   {
     label: "ฝึกงาน",
+    group: "สมัครงาน / หางาน",
     category: "ฝึกงาน",
-    tags: ["ฝึกงาน", "job"]
+    tags: ["ฝึกงาน", "job", "career"],
+    contentTypes: ["announcement", "news"]
   },
   {
     label: "แนะแนวอาชีพ",
+    group: "สมัครงาน / หางาน",
     category: "แนะแนวอาชีพ",
-    tags: ["แนะแนวอาชีพ", "หางาน"]
+    tags: ["แนะแนวอาชีพ", "หางาน", "career"],
+    contentTypes: ["announcement", "news", "blog"]
+  },
+  {
+    label: "ผลงาน / ความสำเร็จ",
+    group: "ผลงาน",
+    category: "ผลงาน",
+    tags: ["ผลงาน", "ความสำเร็จ", "achievement", "success"],
+    contentTypes: ["news", "announcement", "blog", "page"]
+  },
+  {
+    label: "รางวัล / เกียรติยศ",
+    group: "ผลงาน",
+    category: "รางวัล",
+    tags: ["รางวัล", "เกียรติยศ", "award", "honor"],
+    contentTypes: ["news", "announcement", "blog", "page"]
+  },
+  {
+    label: "นวัตกรรม",
+    group: "ผลงาน",
+    category: "นวัตกรรม",
+    tags: ["นวัตกรรม", "innovation", "highlight"],
+    contentTypes: ["news", "blog", "page"]
+  },
+  {
+    label: "ทวิภาคี / ความร่วมมือ",
+    group: "ผลงาน",
+    category: "ทวิภาคี",
+    tags: ["ทวิภาคี", "ความร่วมมือ", "achievement"],
+    contentTypes: ["news", "announcement", "blog", "page"]
+  },
+  {
+    label: "เอกสารเผยแพร่",
+    group: "เอกสาร",
+    category: "เอกสาร",
+    tags: ["เอกสาร", "document"],
+    contentTypes: ["page", "announcement"]
+  },
+  {
+    label: "ITA",
+    group: "เอกสาร",
+    category: "ITA",
+    tags: ["ITA", "เอกสาร", "document"],
+    contentTypes: ["page"]
+  },
+  {
+    label: "แผนงาน / แผนปฏิบัติการ",
+    group: "เอกสาร",
+    category: "แผนงาน",
+    tags: ["แผนงาน", "แผนปฏิบัติการ", "document"],
+    contentTypes: ["page"]
+  },
+  {
+    label: "ประกันคุณภาพ",
+    group: "เอกสาร",
+    category: "ประกันคุณภาพ",
+    tags: ["ประกันคุณภาพ", "เอกสาร", "document"],
+    contentTypes: ["page"]
   }
 ];
 
@@ -197,6 +267,23 @@ function normalizeTags(value: ContentItem["tags"] | string | undefined) {
     .filter((tag, index, tags) => tags.indexOf(tag) === index);
 }
 
+function getAvailableMetadataPresets(type: ContentType) {
+  return contentMetadataPresets.filter((preset) => !preset.contentTypes || preset.contentTypes.includes(type));
+}
+
+function groupMetadataPresets(presets: ContentMetadataPreset[]) {
+  return presets.reduce<Array<{ name: string; presets: ContentMetadataPreset[] }>>((groups, preset) => {
+    const currentGroup = groups.find((group) => group.name === preset.group);
+
+    if (currentGroup) {
+      currentGroup.presets.push(preset);
+      return groups;
+    }
+
+    return [...groups, { name: preset.group, presets: [preset] }];
+  }, []);
+}
+
 function inferMediaType(file: File): MediaType {
   if (file.type.startsWith("image/")) {
     return "image";
@@ -267,6 +354,10 @@ export default function ContentEditorDialog({
     return Array.from(map.values());
   }, [mediaAssets, uploadedAssets]);
   const categorySlugs = useMemo(() => categoryToSlugList(draft.category), [draft.category]);
+  const metadataPresetGroups = useMemo(
+    () => groupMetadataPresets(getAvailableMetadataPresets(draft.type)),
+    [draft.type]
+  );
   const selectedMediaIds = normalizeMediaIds(draft.mediaIds);
   const selectedMedia = availableMedia.filter((asset) => selectedMediaIds.includes(asset.id));
   const featuredMedia = availableMedia.find((asset) => asset.id === draft.featuredMediaId);
@@ -326,7 +417,7 @@ export default function ContentEditorDialog({
     return normalizeTags([...normalizeTags(currentTags), ...nextTags]);
   }
 
-  function applyAnnouncementPreset(preset: AnnouncementCategoryPreset) {
+  function applyMetadataPreset(preset: ContentMetadataPreset) {
     setDraft((current) => ({
       ...current,
       category: mergeCategoryValue(current.category, preset.category),
@@ -606,33 +697,39 @@ export default function ContentEditorDialog({
                 />
                 <Divider />
                 <Typography fontWeight={900}>หมวดหมู่และแท็ก</Typography>
-                {draft.type === "announcement" && (
+                {!!metadataPresetGroups.length && (
                   <Box
                     sx={{
                       p: 1.25,
                       borderRadius: 1.5,
                       border: "1px solid rgba(31, 90, 44, 0.14)",
-                      bgcolor: "white"
+                      bgcolor: "background.default"
                     }}
                   >
                     <Typography fontWeight={900} variant="body2">
-                      ชุดหมวดหมู่สำหรับประกาศหน้าแรก
+                      ชุดหมวดหมู่และแท็กสำหรับการแสดงผลหน้าแรก
                     </Typography>
                     <Typography color="text.secondary" variant="caption">
-                      เลือกชุดหมวดหมู่เพื่อให้ประกาศถูกจัดเข้า section หน้าแรกได้ถูกต้อง เช่น จัดซื้อจัดจ้าง หรือ
-                      สมัครงาน/หางาน
+                      เลือกชุดข้อมูลเพื่อช่วยให้เนื้อหาถูกจัดเข้า section หน้าแรกและค้นหาเจอได้ถูกต้อง
                     </Typography>
-                    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
-                      {announcementCategoryPresets.map((preset) => (
-                        <Chip
-                          key={preset.label}
-                          label={preset.label}
-                          variant="outlined"
-                          color="primary"
-                          onClick={() => applyAnnouncementPreset(preset)}
-                        />
-                      ))}
-                    </Stack>
+                    {metadataPresetGroups.map((group) => (
+                      <Box key={group.name} sx={{ mt: 1 }}>
+                        <Typography variant="caption" fontWeight={900} color="text.secondary">
+                          {group.name}
+                        </Typography>
+                        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                          {group.presets.map((preset) => (
+                            <Chip
+                              key={preset.label}
+                              label={preset.label}
+                              variant="outlined"
+                              color="primary"
+                              onClick={() => applyMetadataPreset(preset)}
+                            />
+                          ))}
+                        </Stack>
+                      </Box>
+                    ))}
                   </Box>
                 )}
                 <TextField
@@ -640,7 +737,7 @@ export default function ContentEditorDialog({
                   value={draft.category ?? ""}
                   onChange={(event) => updateDraft("category", event.target.value)}
                   placeholder="เช่น รับสมัคร, วิจัย, ชีวิตผู้เรียน"
-                  helperText="ใช้จุลภาคเพื่อสร้างหลายหมวดหมู่ เช่น จัดซื้อจัดจ้าง, สมัครงาน, หางาน"
+                  helperText="ใช้จุลภาคเพื่อสร้างหลายหมวดหมู่ เช่น จัดซื้อจัดจ้าง, สมัครงาน, ผลงาน, เอกสาร"
                   size="small"
                   fullWidth
                 />
@@ -692,7 +789,7 @@ export default function ContentEditorDialog({
                       {...params}
                       label="แท็ก"
                       placeholder="พิมพ์แท็กแล้วกด Enter หรือจุลภาค"
-                      helperText="จุลภาค Enter หรือ Tab จะเพิ่มแท็ก เช่น procurement, สมัครงาน, ฝึกงาน"
+                      helperText="จุลภาค Enter หรือ Tab จะเพิ่มแท็ก เช่น procurement, job, achievement, document"
                       size="small"
                       fullWidth
                       onKeyDown={(event) => {
