@@ -1,6 +1,7 @@
 import { CmsSnapshot, ContentItem } from "../types";
 
 export const PUBLIC_SNAPSHOT_CACHE_KEY = "rcat.cms.public.snapshot.v1";
+const PUBLIC_HOME_CACHE_KEY = "rcat.cms.public.home.snapshot";
 export const PUBLIC_CONTENT_DETAIL_CACHE_PREFIX = "rcat.cms.public.content-detail.v1.";
 export const PUBLIC_SNAPSHOT_CACHE_TTL_MS = 15 * 60 * 1000;
 export const PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -183,6 +184,7 @@ export function setPublicContentDetailCache(slug: string | undefined, content: C
 
 export function clearPublicCmsCache() {
   removePublicCache(PUBLIC_SNAPSHOT_CACHE_KEY);
+  removePublicCache(PUBLIC_HOME_CACHE_KEY);
   getKeysByPrefix(PUBLIC_CONTENT_DETAIL_CACHE_PREFIX).forEach((key) => {
     removePublicCache(key);
   });

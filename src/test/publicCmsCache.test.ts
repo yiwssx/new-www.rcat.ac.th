@@ -3,12 +3,15 @@ import {
   clearPublicCmsCache,
   getPublicContentDetailCache,
   PUBLIC_CONTENT_DETAIL_CACHE_PREFIX,
+  PUBLIC_SNAPSHOT_CACHE_KEY,
   readPublicCache,
   removePublicCache,
   setPublicContentDetailCache,
+  setPublicSnapshotCache,
   writePublicCache
 } from "../services/publicCmsCache";
-import { ContentItem } from "../types";
+import { getPublicHomeCache, PUBLIC_HOME_CACHE_KEY, setPublicHomeCache } from "../services/publicHomeCache";
+import { CmsSnapshot, ContentItem, PublicHomeSnapshot } from "../types";
 
 const testCacheKey = "rcat.cms.public.test";
 
@@ -77,5 +80,103 @@ describe("publicCmsCache", () => {
 
     expect(window.localStorage.getItem(expectedKey)).not.toBeNull();
     expect(getPublicContentDetailCache(slug)?.data).toEqual(content);
+  });
+
+  it("keeps public home cache separate and clears it with public CMS cache", () => {
+    const snapshot: CmsSnapshot = {
+      metrics: [],
+      content: [],
+      media: [],
+      events: []
+    };
+    const homeSnapshot: PublicHomeSnapshot = {
+      siteSettings: {
+        siteName: "Test site",
+        eyebrow: "",
+        intro: "",
+        campus: "",
+        phone: "",
+        fax: "",
+        email: "",
+        address: "",
+        admissionUrl: "",
+        facebookUrl: "",
+        youtubeUrl: "",
+        tiktokUrl: "",
+        heroTitle: "",
+        heroDescription: "",
+        heroChip: "",
+        heroImageUrl: "",
+        directorName: "",
+        directorTitle: "",
+        directorDescription: "",
+        directorImageUrl: "",
+        mapUrl: "",
+        mapEmbedUrl: "",
+        footerTitle: "",
+        footerDescription: "",
+        footerDirectoryGroups: [],
+        messengerUrl: "",
+        messengerLabel: "แชทกับเจ้าหน้าที่",
+        messengerEnabled: false
+      },
+      homepageSettings: {
+        introGate: {
+          enabled: false,
+          imageUrl: "",
+          imageAlt: "",
+          primaryButtonLabel: "",
+          secondaryButtonLabel: "",
+          secondaryButtonUrl: "",
+          storageKey: ""
+        },
+        marquee: {
+          enabled: false,
+          label: "",
+          text: "",
+          speedSeconds: 32
+        },
+        introVideo: {
+          enabled: false,
+          title: "",
+          youtubeEmbedUrl: ""
+        }
+      },
+      menu: [],
+      carouselSlides: [],
+      externalServices: [],
+      visitorStats: {
+        enabled: false,
+        usersToday: 0,
+        usersYesterday: 0,
+        usersThisMonth: 0,
+        usersThisYear: 0,
+        totalUsers: 0,
+        totalViews: 0,
+        onlineUsers: 0,
+        updatedAt: ""
+      },
+      latestNews: [],
+      latestAnnouncements: [],
+      procurementItems: [],
+      jobOpportunityItems: [],
+      achievementItems: [],
+      programItems: [],
+      documentItems: [],
+      eventItems: [],
+      media: [],
+      generatedAt: "2026-05-12T00:00:00.000Z"
+    };
+
+    setPublicSnapshotCache(snapshot);
+    setPublicHomeCache(homeSnapshot);
+
+    expect(PUBLIC_HOME_CACHE_KEY).not.toBe(PUBLIC_SNAPSHOT_CACHE_KEY);
+    expect(getPublicHomeCache()?.data).toEqual(homeSnapshot);
+
+    clearPublicCmsCache();
+
+    expect(window.localStorage.getItem(PUBLIC_SNAPSHOT_CACHE_KEY)).toBeNull();
+    expect(window.localStorage.getItem(PUBLIC_HOME_CACHE_KEY)).toBeNull();
   });
 });

@@ -4,10 +4,17 @@ import PublicSiteShell from "../public/components/PublicSiteShell";
 import PublicAnnouncementsPage from "../public/pages/PublicAnnouncementsPage";
 import PublicHomePage from "../public/pages/PublicHomePage";
 import { defaultSiteSettings } from "../services/siteSettings";
-import { CmsSnapshot } from "../types";
+import { CmsSnapshot, PublicHomeSnapshot } from "../types";
 
 let currentSnapshot: CmsSnapshot | undefined;
+let currentHomeSnapshot: PublicHomeSnapshot | undefined;
 let currentQueryState = {
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  refetch: vi.fn()
+};
+let currentHomeQueryState = {
   isLoading: false,
   isFetching: false,
   isError: false,
@@ -18,6 +25,13 @@ vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
   usePublicCmsSnapshot: () => ({
     data: currentSnapshot,
     ...currentQueryState
+  })
+}));
+
+vi.mock("../public/hooks/usePublicHomeSnapshot", () => ({
+  usePublicHomeSnapshot: () => ({
+    data: currentHomeSnapshot,
+    ...currentHomeQueryState
   })
 }));
 
@@ -59,9 +73,72 @@ function createSnapshot(overrides: Partial<CmsSnapshot> = {}): CmsSnapshot {
   };
 }
 
+function createHomeSnapshot(overrides: Partial<PublicHomeSnapshot> = {}): PublicHomeSnapshot {
+  const snapshot = createSnapshot();
+
+  return {
+    siteSettings: snapshot.siteSettings!,
+    homepageSettings: {
+      introGate: {
+        enabled: false,
+        imageUrl: "",
+        imageAlt: "ภาพหน้าแนะนำก่อนเข้าสู่เว็บไซต์",
+        primaryButtonLabel: "เข้าสู่เว็บไซต์หลัก",
+        secondaryButtonLabel: "",
+        secondaryButtonUrl: "",
+        storageKey: "public-intro-gate"
+      },
+      marquee: {
+        enabled: false,
+        label: "ประชาสัมพันธ์",
+        text: "",
+        speedSeconds: 32
+      },
+      introVideo: {
+        enabled: false,
+        title: "วีดิทัศน์แนะนำสถานศึกษา",
+        youtubeEmbedUrl: ""
+      }
+    },
+    displaySettings: snapshot.displaySettings,
+    menu: snapshot.menu ?? [],
+    carouselSlides: snapshot.carouselSlides ?? [],
+    externalServices: snapshot.externalServices ?? [],
+    visitorStats: {
+      enabled: false,
+      usersToday: 0,
+      usersYesterday: 0,
+      usersThisMonth: 0,
+      usersThisYear: 0,
+      totalUsers: 0,
+      totalViews: 0,
+      onlineUsers: 0,
+      updatedAt: ""
+    },
+    latestNews: [],
+    latestAnnouncements: [],
+    procurementItems: [],
+    jobOpportunityItems: [],
+    achievementItems: [],
+    programItems: [],
+    documentItems: [],
+    eventItems: [],
+    media: [],
+    generatedAt: "2026-05-12T00:00:00.000Z",
+    ...overrides
+  };
+}
+
 beforeEach(() => {
   currentSnapshot = createSnapshot();
+  currentHomeSnapshot = createHomeSnapshot();
   currentQueryState = {
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn()
+  };
+  currentHomeQueryState = {
     isLoading: false,
     isFetching: false,
     isError: false,
@@ -141,9 +218,9 @@ describe("public data-driven pages", () => {
   });
 
   it("does not show homepage empty states during initial snapshot loading", () => {
-    currentSnapshot = undefined;
-    currentQueryState = {
-      ...currentQueryState,
+    currentHomeSnapshot = undefined;
+    currentHomeQueryState = {
+      ...currentHomeQueryState,
       isLoading: true
     };
 
@@ -155,7 +232,7 @@ describe("public data-driven pages", () => {
   });
 
   it("does not render mock document titles when no CMS content exists", () => {
-    currentSnapshot = createSnapshot();
+    currentHomeSnapshot = createHomeSnapshot();
 
     render(<PublicHomePage />);
 
@@ -164,8 +241,8 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("ยังไม่มีเอกสารเผยแพร่")).toBeInTheDocument();
   });
 
-  it("renders homepage carousel slides from the CMS snapshot", () => {
-    currentSnapshot = createSnapshot({
+  it("renders homepage carousel slides from the public home snapshot", () => {
+    currentHomeSnapshot = createHomeSnapshot({
       carouselSlides: [
         {
           id: "carousel-1",
@@ -190,7 +267,7 @@ describe("public data-driven pages", () => {
   });
 
   it("shows an honest empty state when no program content exists", () => {
-    currentSnapshot = createSnapshot();
+    currentHomeSnapshot = createHomeSnapshot();
 
     render(<PublicHomePage />);
 
@@ -199,67 +276,81 @@ describe("public data-driven pages", () => {
 
   it("renders the approved homepage information architecture", () => {
     const baseSiteSettings = createSnapshot().siteSettings!;
-    currentSnapshot = createSnapshot({
-      content: [
-        {
-          id: "news-1",
-          title: "ข่าวเปิดบ้านวิทยาลัย",
-          slug: "open-house",
-          type: "news",
-          status: "published",
-          owner: "Admin",
-          summary: "ข่าวประชาสัมพันธ์ล่าสุด",
-          updatedAt: "2026-05-03T00:00:00.000Z",
-          publishAt: "2026-05-03T00:00:00.000Z"
-        },
-        {
-          id: "program-1",
-          title: "หลักสูตรช่างยนต์",
-          slug: "auto-program",
-          type: "program",
-          status: "published",
-          owner: "Admin",
-          summary: "ข้อมูลหลักสูตร",
-          updatedAt: "2026-05-03T00:00:00.000Z",
-          publishAt: "2026-05-03T00:00:00.000Z"
-        },
-        {
-          id: "announcement-1",
-          title: "ประกาศรับสมัครนักเรียน",
-          slug: "admission-announcement",
-          type: "announcement",
-          status: "published",
-          owner: "Admin",
-          summary: "ประกาศล่าสุด",
-          updatedAt: "2026-05-03T00:00:00.000Z",
-          publishAt: "2026-05-03T00:00:00.000Z"
-        },
-        {
-          id: "document-1",
-          title: "เอกสารแผนปฏิบัติการ",
-          slug: "action-plan",
-          type: "page",
-          status: "published",
-          owner: "Admin",
-          summary: "เอกสารเผยแพร่",
-          category: "เอกสาร",
-          updatedAt: "2026-05-03T00:00:00.000Z",
-          publishAt: "2026-05-03T00:00:00.000Z"
-        },
-        {
-          id: "achievement-1",
-          title: "Regional innovation award",
-          slug: "regional-innovation-award",
-          type: "page",
-          status: "published",
-          owner: "Admin",
-          summary: "A real CMS achievement highlight",
-          category: "achievement",
-          updatedAt: "2026-05-03T00:00:00.000Z",
-          publishAt: "2026-05-03T00:00:00.000Z"
-        }
-      ],
-      events: [
+    const latestNews: PublicHomeSnapshot["latestNews"] = [
+      {
+        id: "news-1",
+        title: "ข่าวเปิดบ้านวิทยาลัย",
+        slug: "open-house",
+        type: "news",
+        status: "published",
+        owner: "Admin",
+        summary: "ข่าวประชาสัมพันธ์ล่าสุด",
+        updatedAt: "2026-05-03T00:00:00.000Z",
+        publishAt: "2026-05-03T00:00:00.000Z"
+      }
+    ];
+    const programItems: PublicHomeSnapshot["programItems"] = [
+      {
+        id: "program-1",
+        title: "หลักสูตรช่างยนต์",
+        slug: "auto-program",
+        type: "program",
+        status: "published",
+        owner: "Admin",
+        summary: "ข้อมูลหลักสูตร",
+        updatedAt: "2026-05-03T00:00:00.000Z",
+        publishAt: "2026-05-03T00:00:00.000Z"
+      }
+    ];
+    const latestAnnouncements: PublicHomeSnapshot["latestAnnouncements"] = [
+      {
+        id: "announcement-1",
+        title: "ประกาศรับสมัครนักเรียน",
+        slug: "admission-announcement",
+        type: "announcement",
+        status: "published",
+        owner: "Admin",
+        summary: "ประกาศล่าสุด",
+        updatedAt: "2026-05-03T00:00:00.000Z",
+        publishAt: "2026-05-03T00:00:00.000Z"
+      }
+    ];
+    const documentItems: PublicHomeSnapshot["documentItems"] = [
+      {
+        id: "document-1",
+        title: "เอกสารแผนปฏิบัติการ",
+        slug: "action-plan",
+        type: "page",
+        status: "published",
+        owner: "Admin",
+        summary: "เอกสารเผยแพร่",
+        category: "เอกสาร",
+        updatedAt: "2026-05-03T00:00:00.000Z",
+        publishAt: "2026-05-03T00:00:00.000Z"
+      }
+    ];
+    const achievementItems: PublicHomeSnapshot["achievementItems"] = [
+      {
+        id: "achievement-1",
+        title: "Regional innovation award",
+        slug: "regional-innovation-award",
+        type: "page",
+        status: "published",
+        owner: "Admin",
+        summary: "A real CMS achievement highlight",
+        category: "achievement",
+        updatedAt: "2026-05-03T00:00:00.000Z",
+        publishAt: "2026-05-03T00:00:00.000Z"
+      }
+    ];
+
+    currentHomeSnapshot = createHomeSnapshot({
+      latestNews,
+      programItems,
+      latestAnnouncements,
+      documentItems,
+      achievementItems,
+      eventItems: [
         {
           id: "event-1",
           title: "ปฐมนิเทศนักศึกษาใหม่",

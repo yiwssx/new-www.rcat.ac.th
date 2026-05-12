@@ -15,6 +15,7 @@ interface ProjectSettings {
     googleAppsScriptUrlEnv: string;
     resources: {
       snapshot: string;
+      publicHome: string;
       adminSnapshot: string;
       health: string;
       authLogin: string;

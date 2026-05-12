@@ -8,6 +8,7 @@ interface RouteResult {
 
 interface CodeScriptContext {
   extractAuthToken: (payload: Record<string, unknown>, query?: Record<string, unknown>) => string;
+  getPublicHomeSnapshot: Mock;
   getUsers: Mock;
   incrementContentView: Mock;
   routeRequest: (event: Record<string, unknown>, method: string) => RouteResult;
@@ -35,6 +36,11 @@ function loadCodeScript(): CodeScriptContext {
     slug: "announcement-1",
     viewCount: 2,
     lastViewedAt: "2026-05-03T00:00:00.000Z"
+  }));
+  const getPublicHomeSnapshot = vi.fn(() => ({
+    latestNews: [],
+    media: [],
+    generatedAt: "2026-05-12T00:00:00.000Z"
   }));
   const upsertCarouselSlide = vi.fn((input: Record<string, unknown>) => ({
     id: input.id || "carousel-1",
@@ -97,6 +103,7 @@ function loadCodeScript(): CodeScriptContext {
     "verifyAuthToken",
     "jsonResponse",
     "getPublicSnapshotCached",
+    "getPublicHomeSnapshot",
     "getSnapshot",
     "getMenu",
     "getDisplaySettings",
@@ -149,6 +156,7 @@ return {
     vi.fn(() => ({
       content: []
     })),
+    getPublicHomeSnapshot,
     vi.fn(),
     vi.fn(() => []),
     vi.fn(() => ({})),
@@ -179,6 +187,7 @@ return {
 
   return {
     ...exports,
+    getPublicHomeSnapshot,
     getUsers,
     incrementContentView,
     upsertCarouselSlide,
@@ -193,6 +202,23 @@ return {
 }
 
 describe("Apps Script route auth handling", () => {
+  it("returns public-home through unauthenticated GET without reading auth context", () => {
+    const context = loadCodeScript();
+    const result = context.routeRequest(
+      {
+        resource: "public-home"
+      },
+      "GET"
+    );
+
+    expect(context.shouldReadAuthContext("GET", "public-home")).toBe(false);
+    expect(result.statusCode).toBe(200);
+    expect(result.body.latestNews).toEqual([]);
+    expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
+    expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.getPublicHomeSnapshot).toHaveBeenCalledTimes(1);
+  });
+
   it("does not treat GET users as a valid authenticated route", () => {
     const context = loadCodeScript();
 
@@ -564,6 +590,7 @@ describe("Apps Script route auth handling", () => {
     const getResources = [
       "",
       "snapshot",
+      "public-home",
       "health",
       "menu",
       "display-settings",

@@ -21,7 +21,7 @@ import PublicIntroGate from "./PublicIntroGate";
 import { projectSettings } from "../../config/projectSettings";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
-import { FooterDirectoryGroup } from "../../types";
+import { DisplaySettings, FooterDirectoryGroup, HomepageSettings, PublicMenuItem, SiteSettings } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { useDocumentMetadata } from "../../utils/seo";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
@@ -36,6 +36,10 @@ interface PublicSiteShellProps {
   children: ReactNode;
   hidePageHeader?: boolean;
   disableMainContainer?: boolean;
+  preloadedSiteSettings?: SiteSettings;
+  preloadedHomepageSettings?: HomepageSettings;
+  preloadedDisplaySettings?: DisplaySettings;
+  preloadedMenu?: PublicMenuItem[];
 }
 
 const FOLLOW_LABEL = "ช่องทางติดตาม";
@@ -421,14 +425,23 @@ export default function PublicSiteShell({
   canonicalPath,
   children,
   hidePageHeader = false,
-  disableMainContainer = false
+  disableMainContainer = false,
+  preloadedSiteSettings,
+  preloadedHomepageSettings,
+  preloadedMenu
 }: PublicSiteShellProps) {
   const navigate = useNavigate();
-  const { data, isLoading, isFetching, isError, refetch } = usePublicCmsSnapshot();
+  const hasPreloadedShellData =
+    Boolean(preloadedSiteSettings) && Boolean(preloadedHomepageSettings) && preloadedMenu !== undefined;
+  const { data, isLoading, isFetching, isError, refetch } = usePublicCmsSnapshot({
+    enabled: !hasPreloadedShellData
+  });
   const [searchQuery, setSearchQuery] = useState("");
-  const isInitialPublicLoading = !data && (isLoading || isFetching);
-  const isInitialPublicError = !data && isError && !isInitialPublicLoading;
-  const shouldShowPublicLoading = isInitialPublicLoading || (!data && !isError);
+  const shellSiteSettings = preloadedSiteSettings ?? data?.siteSettings;
+  const shellHomepageSettings = preloadedHomepageSettings ?? data?.homepageSettings;
+  const isInitialPublicLoading = !hasPreloadedShellData && !data && (isLoading || isFetching);
+  const isInitialPublicError = !hasPreloadedShellData && !data && isError && !isInitialPublicLoading;
+  const shouldShowPublicLoading = !hasPreloadedShellData && (isInitialPublicLoading || (!data && !isError));
   const defaultCanonicalPath = typeof window === "undefined" ? undefined : window.location.pathname;
 
   useDocumentMetadata({
@@ -444,7 +457,7 @@ export default function PublicSiteShell({
         : (seoDescription ?? description),
     canonicalUrl,
     canonicalPath: canonicalPath ?? defaultCanonicalPath,
-    siteName: data?.siteSettings?.siteName?.trim() || projectSettings.site.name
+    siteName: shellSiteSettings?.siteName?.trim() || projectSettings.site.name
   });
 
   if (shouldShowPublicLoading) {
@@ -462,8 +475,8 @@ export default function PublicSiteShell({
     );
   }
 
-  const siteSettings = normalizeSiteSettings(data?.siteSettings);
-  const homepageSettings = normalizeHomepageSettings(data?.homepageSettings);
+  const siteSettings = normalizeSiteSettings(shellSiteSettings);
+  const homepageSettings = normalizeHomepageSettings(shellHomepageSettings);
   const showPageHeader = !hidePageHeader && (Boolean(title) || Boolean(description));
   const siteName = siteSettings.siteName;
   const socialLinks: TopBarSocialLink[] = [];
@@ -671,7 +684,7 @@ export default function PublicSiteShell({
         </Container>
       </Box>
 
-      <PublicMainMenu />
+      <PublicMainMenu preloadedMenu={preloadedMenu} />
 
       {showPageHeader && (
         <Box

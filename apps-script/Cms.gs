@@ -74,6 +74,47 @@ const ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS = [
   "youtu.be"
 ];
 
+const PUBLIC_HOME_LATEST_NEWS_LIMIT = 4;
+const PUBLIC_HOME_ANNOUNCEMENTS_LIMIT = 5;
+const PUBLIC_HOME_PROCUREMENT_LIMIT = 4;
+const PUBLIC_HOME_JOB_LIMIT = 4;
+const PUBLIC_HOME_ACHIEVEMENT_LIMIT = 4;
+const PUBLIC_HOME_PROGRAM_LIMIT = 6;
+const PUBLIC_HOME_DOCUMENT_LIMIT = 6;
+const PUBLIC_HOME_EVENT_LIMIT = 4;
+
+const PUBLIC_HOME_DOCUMENT_KEYWORDS = ["เอกสาร", "document", "ita", "แผนงาน", "ประกันคุณภาพ"];
+const PUBLIC_HOME_PROCUREMENT_KEYWORDS = ["procurement", "จัดซื้อ", "จัดจ้าง", "จัดซื้อจัดจ้าง", "ประกวดราคา", "tor"];
+const PUBLIC_HOME_JOB_KEYWORDS = [
+  "job",
+  "jobs",
+  "recruitment",
+  "สมัครงาน",
+  "หางาน",
+  "ตำแหน่งงาน",
+  "ฝึกงาน",
+  "แนะแนวอาชีพ"
+];
+const PUBLIC_HOME_ACHIEVEMENT_KEYWORDS = [
+  "ความสำเร็จ",
+  "ผลงาน",
+  "รางวัล",
+  "เกียรติยศ",
+  "ความภาคภูมิใจ",
+  "นักเรียนดีเด่น",
+  "ครูดีเด่น",
+  "บุคลากรดีเด่น",
+  "นวัตกรรม",
+  "ทวิภาคี",
+  "achievement",
+  "award",
+  "honor",
+  "highlight",
+  "success",
+  "innovation"
+];
+const PUBLIC_HOME_ACHIEVEMENT_CONTENT_TYPES = ["news", "announcement", "blog", "page"];
+
 function getSnapshot(options) {
   const config = options || {};
   const includeUnpublished = Boolean(config.includeUnpublished);
@@ -111,6 +152,179 @@ function getSnapshot(options) {
     siteSettings: getSiteSettings(),
     homepageSettings: getHomepageSettings(),
     visitorStats: getVisitorStats()
+  };
+}
+
+function getPublicHomeSnapshot() {
+  const spreadsheet = getSpreadsheet();
+  const content = readObjects(spreadsheet.getSheetByName(SHEETS.content), CONTENT_HEADERS).map(normalizeContentRecord);
+  const media = readObjects(spreadsheet.getSheetByName(SHEETS.media), MEDIA_HEADERS);
+  const events = readObjects(spreadsheet.getSheetByName(SHEETS.events), EVENT_HEADERS);
+  const publicContent = sortContentByPublishDate(
+    content.filter((item) => item.status === "published").map((item) => sanitizePublicContentRecord(item))
+  );
+  const announcementContent = publicContent.filter((item) => item.type === "announcement");
+  const latestNews = publicContent
+    .filter((item) => item.type === "news" || item.type === "blog")
+    .slice(0, PUBLIC_HOME_LATEST_NEWS_LIMIT);
+  const latestAnnouncements = announcementContent.slice(0, PUBLIC_HOME_ANNOUNCEMENTS_LIMIT);
+  const procurementItems = announcementContent
+    .filter((item) => hasHomeContentSearchTerm(item, PUBLIC_HOME_PROCUREMENT_KEYWORDS))
+    .slice(0, PUBLIC_HOME_PROCUREMENT_LIMIT);
+  const jobOpportunityItems = announcementContent
+    .filter((item) => hasHomeContentSearchTerm(item, PUBLIC_HOME_JOB_KEYWORDS))
+    .slice(0, PUBLIC_HOME_JOB_LIMIT);
+  const achievementItems = publicContent
+    .filter(
+      (item) =>
+        PUBLIC_HOME_ACHIEVEMENT_CONTENT_TYPES.indexOf(item.type) !== -1 &&
+        hasHomeContentSearchTerm(item, PUBLIC_HOME_ACHIEVEMENT_KEYWORDS)
+    )
+    .slice(0, PUBLIC_HOME_ACHIEVEMENT_LIMIT);
+  const programItems = publicContent.filter((item) => item.type === "program").slice(0, PUBLIC_HOME_PROGRAM_LIMIT);
+  const documentItems = publicContent
+    .filter((item) => item.type === "page" && hasHomeContentKeyword(item, PUBLIC_HOME_DOCUMENT_KEYWORDS))
+    .slice(0, PUBLIC_HOME_DOCUMENT_LIMIT);
+  const eventItems = sortEventsByUpcomingDate(
+    events.filter((event) => event.status === "confirmed" && (event.visibility || "public") === "public")
+  )
+    .slice(0, PUBLIC_HOME_EVENT_LIMIT)
+    .map(sanitizePublicHomeEventRecord);
+  const homeContent = collectPublicHomeContentItems([
+    latestNews,
+    latestAnnouncements,
+    procurementItems,
+    jobOpportunityItems,
+    achievementItems,
+    programItems,
+    documentItems
+  ]);
+  const siteSettings = getSiteSettings();
+  const carouselSlides = getCarouselSlides({
+    includeDisabled: false
+  });
+
+  return {
+    siteSettings,
+    homepageSettings: getHomepageSettings(),
+    displaySettings: getDisplaySettings(),
+    menu: getMenu(),
+    carouselSlides,
+    externalServices: getExternalServices({
+      includeDisabled: false
+    }),
+    visitorStats: getVisitorStats(),
+    latestNews,
+    latestAnnouncements,
+    procurementItems,
+    jobOpportunityItems,
+    achievementItems,
+    programItems,
+    documentItems,
+    eventItems,
+    media: filterPublicHomeMedia(media, homeContent),
+    generatedAt: new Date().toISOString()
+  };
+}
+
+function collectPublicHomeContentItems(groups) {
+  const seen = {};
+  const items = [];
+
+  groups.forEach((group) => {
+    group.forEach((item) => {
+      if (!item.id || seen[item.id]) {
+        return;
+      }
+
+      seen[item.id] = true;
+      items.push(item);
+    });
+  });
+
+  return items;
+}
+
+function sortContentByPublishDate(items) {
+  return items.slice().sort((left, right) => getHomePublishDateValue(right) - getHomePublishDateValue(left));
+}
+
+function getHomePublishDateValue(item) {
+  const value = Date.parse(item.publishAt || "");
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getHomeEventDateValue(event) {
+  const value = Date.parse(event.date || "");
+  return Number.isFinite(value) ? value : Number.POSITIVE_INFINITY;
+}
+
+function sortEventsByUpcomingDate(events) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTime = today.getTime();
+
+  return events.slice().sort((left, right) => {
+    const leftDate = getHomeEventDateValue(left);
+    const rightDate = getHomeEventDateValue(right);
+    const leftUpcoming = leftDate >= todayTime;
+    const rightUpcoming = rightDate >= todayTime;
+
+    if (leftUpcoming !== rightUpcoming) {
+      return leftUpcoming ? -1 : 1;
+    }
+
+    return leftUpcoming ? leftDate - rightDate : rightDate - leftDate;
+  });
+}
+
+function hasHomeContentKeyword(item, keywords) {
+  const haystack = [item.category]
+    .concat(item.tags || [])
+    .join(" ")
+    .toLowerCase();
+
+  return keywords.some((keyword) => haystack.indexOf(String(keyword).toLowerCase()) !== -1);
+}
+
+function hasHomeContentSearchTerm(item, terms) {
+  const haystack = [item.title, item.summary, item.category]
+    .concat(item.tags || [])
+    .join(" ")
+    .toLowerCase();
+
+  return terms.some((term) => haystack.indexOf(String(term).toLowerCase()) !== -1);
+}
+
+function filterPublicHomeMedia(media, homeContent) {
+  const allowedIds = {};
+
+  homeContent.forEach((item) => {
+    if (item.featuredMediaId) {
+      allowedIds[item.featuredMediaId] = true;
+    }
+
+    normalizeMediaIds(item.mediaIds).forEach((id) => {
+      allowedIds[id] = true;
+    });
+  });
+
+  return media.filter((asset) => Boolean(allowedIds[asset.id])).map(sanitizePublicMediaRecord);
+}
+
+function sanitizePublicHomeEventRecord(event) {
+  return {
+    id: event.id || "",
+    title: event.title || "",
+    date: event.date || "",
+    endDate: event.endDate || "",
+    audience: event.audience || "",
+    status: "confirmed",
+    location: event.location || "",
+    description: event.description || "",
+    category: event.category || "",
+    visibility: "public",
+    updatedAt: event.updatedAt || ""
   };
 }
 
