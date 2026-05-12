@@ -2,13 +2,15 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicSiteShell from "../public/components/PublicSiteShell";
 import PublicAnnouncementsPage from "../public/pages/PublicAnnouncementsPage";
+import PublicDepartmentsPage from "../public/pages/PublicDepartmentsPage";
 import PublicHomePage from "../public/pages/PublicHomePage";
 import { defaultSiteSettings } from "../services/siteSettings";
-import { CmsSnapshot, PublicContentListSnapshot, PublicHomeSnapshot } from "../types";
+import { CmsSnapshot, PublicContentListSnapshot, PublicHomeSnapshot, PublicProgramListSnapshot } from "../types";
 
 let currentSnapshot: CmsSnapshot | undefined;
 let currentHomeSnapshot: PublicHomeSnapshot | undefined;
 let currentContentListSnapshot: PublicContentListSnapshot | undefined;
+let currentProgramListSnapshot: PublicProgramListSnapshot | undefined;
 let currentQueryState = {
   isLoading: false,
   isFetching: false,
@@ -22,6 +24,12 @@ let currentHomeQueryState = {
   refetch: vi.fn()
 };
 let currentContentListQueryState = {
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  refetch: vi.fn()
+};
+let currentProgramListQueryState = {
   isLoading: false,
   isFetching: false,
   isError: false,
@@ -46,6 +54,13 @@ vi.mock("../public/hooks/usePublicContentList", () => ({
   usePublicContentList: () => ({
     data: currentContentListSnapshot,
     ...currentContentListQueryState
+  })
+}));
+
+vi.mock("../public/hooks/usePublicProgramList", () => ({
+  usePublicProgramList: () => ({
+    data: currentProgramListSnapshot,
+    ...currentProgramListQueryState
   })
 }));
 
@@ -160,10 +175,26 @@ function createContentListSnapshot(overrides: Partial<PublicContentListSnapshot>
   };
 }
 
+function createProgramListSnapshot(overrides: Partial<PublicProgramListSnapshot> = {}): PublicProgramListSnapshot {
+  const snapshot = createSnapshot();
+
+  return {
+    items: [],
+    media: [],
+    siteSettings: snapshot.siteSettings!,
+    homepageSettings: createHomeSnapshot().homepageSettings,
+    displaySettings: snapshot.displaySettings,
+    menu: snapshot.menu ?? [],
+    generatedAt: "2026-05-12T00:00:00.000Z",
+    ...overrides
+  };
+}
+
 beforeEach(() => {
   currentSnapshot = createSnapshot();
   currentHomeSnapshot = createHomeSnapshot();
   currentContentListSnapshot = createContentListSnapshot();
+  currentProgramListSnapshot = createProgramListSnapshot();
   currentQueryState = {
     isLoading: false,
     isFetching: false,
@@ -177,6 +208,12 @@ beforeEach(() => {
     refetch: vi.fn()
   };
   currentContentListQueryState = {
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn()
+  };
+  currentProgramListQueryState = {
     isLoading: false,
     isFetching: false,
     isError: false,
@@ -310,6 +347,29 @@ describe("public data-driven pages", () => {
     render(<PublicHomePage />);
 
     expect(screen.getByText("ยังไม่มีข้อมูลหลักสูตรที่เผยแพร่")).toBeInTheDocument();
+  });
+
+  it("renders departments from the public program list snapshot", () => {
+    currentProgramListSnapshot = createProgramListSnapshot({
+      items: [
+        {
+          id: "program-1",
+          title: "CMS program from list",
+          slug: "cms-program",
+          type: "program",
+          status: "published",
+          owner: "Admin",
+          summary: "Program loaded without the full snapshot",
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
+        }
+      ]
+    });
+
+    render(<PublicDepartmentsPage />);
+
+    expect(screen.getByText("CMS program from list")).toBeInTheDocument();
+    expect(screen.getByText("Program loaded without the full snapshot")).toBeInTheDocument();
   });
 
   it("renders the approved homepage information architecture", () => {

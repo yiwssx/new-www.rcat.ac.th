@@ -16,7 +16,18 @@ import {
   setPublicContentListCache
 } from "../services/publicContentListCache";
 import { getPublicHomeCache, PUBLIC_HOME_CACHE_KEY, setPublicHomeCache } from "../services/publicHomeCache";
-import { CmsSnapshot, ContentItem, PublicContentListSnapshot, PublicHomeSnapshot } from "../types";
+import {
+  getPublicProgramListCache,
+  PUBLIC_PROGRAM_LIST_CACHE_KEY,
+  setPublicProgramListCache
+} from "../services/publicProgramListCache";
+import {
+  CmsSnapshot,
+  ContentItem,
+  PublicContentListSnapshot,
+  PublicHomeSnapshot,
+  PublicProgramListSnapshot
+} from "../types";
 
 const testCacheKey = "rcat.cms.public.test";
 
@@ -94,6 +105,22 @@ function createPublicContentListSnapshot(
         youtubeEmbedUrl: ""
       }
     },
+    menu: [],
+    generatedAt: "2026-05-12T00:00:00.000Z",
+    ...overrides
+  };
+}
+
+function createPublicProgramListSnapshot(
+  overrides: Partial<PublicProgramListSnapshot> = {}
+): PublicProgramListSnapshot {
+  const contentListSnapshot = createPublicContentListSnapshot();
+
+  return {
+    items: [],
+    media: [],
+    siteSettings: contentListSnapshot.siteSettings,
+    homepageSettings: contentListSnapshot.homepageSettings,
     menu: [],
     generatedAt: "2026-05-12T00:00:00.000Z",
     ...overrides
@@ -271,5 +298,20 @@ describe("publicCmsCache", () => {
 
     expect(window.localStorage.getItem(getPublicContentListCacheKey("news"))).toBeNull();
     expect(window.localStorage.getItem(getPublicContentListCacheKey("blog"))).toBeNull();
+  });
+
+  it("keeps public program list cache separate and clears it with public CMS cache", () => {
+    const programSnapshot = createPublicProgramListSnapshot({
+      items: [createContentItem({ id: "program-1", title: "Cached program", type: "program" })]
+    });
+
+    setPublicProgramListCache(programSnapshot);
+
+    expect(PUBLIC_PROGRAM_LIST_CACHE_KEY).not.toBe(PUBLIC_SNAPSHOT_CACHE_KEY);
+    expect(getPublicProgramListCache()?.data).toEqual(programSnapshot);
+
+    clearPublicCmsCache();
+
+    expect(window.localStorage.getItem(PUBLIC_PROGRAM_LIST_CACHE_KEY)).toBeNull();
   });
 });

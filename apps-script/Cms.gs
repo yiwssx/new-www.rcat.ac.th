@@ -257,6 +257,27 @@ function getPublicContentListSnapshot(query) {
   return response;
 }
 
+function getPublicProgramListSnapshot() {
+  const spreadsheet = getSpreadsheet();
+  const content = readObjects(spreadsheet.getSheetByName(SHEETS.content), CONTENT_HEADERS).map(normalizeContentRecord);
+  const media = readObjects(spreadsheet.getSheetByName(SHEETS.media), MEDIA_HEADERS);
+  const items = sortContentByPublishDate(
+    content
+      .filter((item) => item.status === "published" && item.type === "program")
+      .map((item) => sanitizePublicContentRecord(item))
+  );
+
+  return {
+    items,
+    media: filterPublicHomeMedia(media, items),
+    siteSettings: getSiteSettings(),
+    homepageSettings: getHomepageSettings(),
+    displaySettings: getDisplaySettings(),
+    menu: getMenu(),
+    generatedAt: new Date().toISOString()
+  };
+}
+
 function normalizePublicContentListKind(value) {
   const normalized = String(value || "")
     .trim()

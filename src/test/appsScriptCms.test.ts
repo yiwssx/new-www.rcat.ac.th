@@ -10,6 +10,7 @@ interface CmsScriptContext {
   contentValues: unknown[][];
   getPublicContentListSnapshot: (query: Record<string, unknown>) => Record<string, unknown>;
   getPublicHomeSnapshot: () => Record<string, unknown>;
+  getPublicProgramListSnapshot: () => Record<string, unknown>;
   getCarouselSlides: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
   getExternalServices: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
   incrementContentView: (input: { id?: string; slug?: string }) => {
@@ -196,6 +197,7 @@ return {
   assertUniqueContentSlug,
   getPublicContentListSnapshot,
   getPublicHomeSnapshot,
+  getPublicProgramListSnapshot,
   getCarouselSlides,
   getExternalServices,
   incrementContentView,
@@ -680,6 +682,91 @@ describe("Apps Script CMS helpers", () => {
       "media-page"
     ]);
     expect(captureError(() => context.getPublicContentListSnapshot({ kind: "program" }))?.statusCode).toBe(400);
+  });
+
+  it("builds a public program list snapshot with only published programs and referenced media", () => {
+    const context = loadCmsScript();
+    context.readObjects.mockImplementation((_sheet: unknown, headers: string[]) => {
+      if (headers === TEST_CONTENT_HEADERS) {
+        return [
+          {
+            id: "program-1",
+            title: "Published program",
+            slug: "published-program",
+            type: "program",
+            status: "published",
+            owner: "Admin",
+            summary: "Visible program",
+            body: "Body should not be in list payload",
+            featuredMediaId: "media-program",
+            updatedAt: "2026-05-04T00:00:00.000Z",
+            publishAt: "2026-05-04T00:00:00.000Z"
+          },
+          {
+            id: "program-draft",
+            title: "Draft program",
+            slug: "draft-program",
+            type: "program",
+            status: "draft",
+            owner: "Admin",
+            summary: "Hidden draft",
+            featuredMediaId: "media-draft",
+            updatedAt: "2026-05-05T00:00:00.000Z",
+            publishAt: "2026-05-05T00:00:00.000Z"
+          },
+          {
+            id: "news-1",
+            title: "Published news",
+            slug: "published-news",
+            type: "news",
+            status: "published",
+            owner: "Admin",
+            summary: "Not a program",
+            featuredMediaId: "media-news",
+            updatedAt: "2026-05-06T00:00:00.000Z",
+            publishAt: "2026-05-06T00:00:00.000Z"
+          }
+        ];
+      }
+
+      if (headers === TEST_MEDIA_HEADERS) {
+        return [
+          {
+            id: "media-program",
+            name: "Program image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-program/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-program"
+          },
+          {
+            id: "media-draft",
+            name: "Draft image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-draft/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-draft"
+          },
+          {
+            id: "media-news",
+            name: "News image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-news/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-news"
+          }
+        ];
+      }
+
+      return [];
+    });
+
+    const snapshot = context.getPublicProgramListSnapshot();
+    const items = snapshot.items as Array<Record<string, unknown>>;
+    const media = snapshot.media as Array<Record<string, unknown>>;
+
+    expect(items.map((item) => item.id)).toEqual(["program-1"]);
+    expect(items[0]).not.toHaveProperty("body");
+    expect(media.map((asset) => asset.id)).toEqual(["media-program"]);
+    expect(snapshot).toHaveProperty("siteSettings");
+    expect(snapshot).toHaveProperty("generatedAt");
   });
 
   it("returns only visible public carousel slides sorted by order", () => {
