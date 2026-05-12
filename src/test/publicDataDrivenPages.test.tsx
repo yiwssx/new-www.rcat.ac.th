@@ -4,10 +4,11 @@ import PublicSiteShell from "../public/components/PublicSiteShell";
 import PublicAnnouncementsPage from "../public/pages/PublicAnnouncementsPage";
 import PublicHomePage from "../public/pages/PublicHomePage";
 import { defaultSiteSettings } from "../services/siteSettings";
-import { CmsSnapshot, PublicHomeSnapshot } from "../types";
+import { CmsSnapshot, PublicContentListSnapshot, PublicHomeSnapshot } from "../types";
 
 let currentSnapshot: CmsSnapshot | undefined;
 let currentHomeSnapshot: PublicHomeSnapshot | undefined;
+let currentContentListSnapshot: PublicContentListSnapshot | undefined;
 let currentQueryState = {
   isLoading: false,
   isFetching: false,
@@ -15,6 +16,12 @@ let currentQueryState = {
   refetch: vi.fn()
 };
 let currentHomeQueryState = {
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  refetch: vi.fn()
+};
+let currentContentListQueryState = {
   isLoading: false,
   isFetching: false,
   isError: false,
@@ -32,6 +39,13 @@ vi.mock("../public/hooks/usePublicHomeSnapshot", () => ({
   usePublicHomeSnapshot: () => ({
     data: currentHomeSnapshot,
     ...currentHomeQueryState
+  })
+}));
+
+vi.mock("../public/hooks/usePublicContentList", () => ({
+  usePublicContentList: () => ({
+    data: currentContentListSnapshot,
+    ...currentContentListQueryState
   })
 }));
 
@@ -129,9 +143,27 @@ function createHomeSnapshot(overrides: Partial<PublicHomeSnapshot> = {}): Public
   };
 }
 
+function createContentListSnapshot(overrides: Partial<PublicContentListSnapshot> = {}): PublicContentListSnapshot {
+  const snapshot = createSnapshot();
+
+  return {
+    kind: "announcements",
+    items: [],
+    pageItems: [],
+    media: [],
+    siteSettings: snapshot.siteSettings!,
+    homepageSettings: createHomeSnapshot().homepageSettings,
+    displaySettings: snapshot.displaySettings,
+    menu: snapshot.menu ?? [],
+    generatedAt: "2026-05-12T00:00:00.000Z",
+    ...overrides
+  };
+}
+
 beforeEach(() => {
   currentSnapshot = createSnapshot();
   currentHomeSnapshot = createHomeSnapshot();
+  currentContentListSnapshot = createContentListSnapshot();
   currentQueryState = {
     isLoading: false,
     isFetching: false,
@@ -139,6 +171,12 @@ beforeEach(() => {
     refetch: vi.fn()
   };
   currentHomeQueryState = {
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn()
+  };
+  currentContentListQueryState = {
     isLoading: false,
     isFetching: false,
     isError: false,
@@ -479,8 +517,9 @@ describe("public data-driven pages", () => {
 
   it("filters announcements by clickable tag query params", () => {
     window.history.pushState({}, "", "/announcements?tag=รับสมัคร");
-    currentSnapshot = createSnapshot({
-      content: [
+    currentContentListSnapshot = createContentListSnapshot({
+      kind: "announcements",
+      items: [
         {
           id: "announcement-1",
           title: "ประกาศรับสมัคร",

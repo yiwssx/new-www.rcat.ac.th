@@ -62,6 +62,10 @@ function routeRequest(event, method) {
       return jsonResponse(getPublicHomeSnapshot());
     }
 
+    if (method === "GET" && resource === "public-content-list") {
+      return jsonResponse(getPublicContentListSnapshot(query));
+    }
+
     if (method === "GET" && resource === "health") {
       return jsonResponse({
         ok: true,
@@ -236,7 +240,11 @@ function assertRouteAccess(method, resource, authContext) {
 
   if (
     method === "GET" &&
-    (resource === "snapshot" || resource === "public-home" || resource === "health" || resource === "menu")
+    (resource === "snapshot" ||
+      resource === "public-home" ||
+      resource === "public-content-list" ||
+      resource === "health" ||
+      resource === "menu")
   ) {
     return;
   }

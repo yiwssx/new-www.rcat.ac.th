@@ -8,6 +8,7 @@ interface HttpError extends Error {
 interface CmsScriptContext {
   assertUniqueContentSlug: (sheet: unknown, contentId: string, normalizedSlug: string) => void;
   contentValues: unknown[][];
+  getPublicContentListSnapshot: (query: Record<string, unknown>) => Record<string, unknown>;
   getPublicHomeSnapshot: () => Record<string, unknown>;
   getCarouselSlides: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
   getExternalServices: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
@@ -193,6 +194,7 @@ function loadCmsScript(input: { contentRows?: Array<Record<string, unknown>> } =
     `${cmsSource}
 return {
   assertUniqueContentSlug,
+  getPublicContentListSnapshot,
   getPublicHomeSnapshot,
   getCarouselSlides,
   getExternalServices,
@@ -545,6 +547,139 @@ describe("Apps Script CMS helpers", () => {
     expect(media.map((asset) => asset.id).sort()).toEqual(["media-news", "media-program"]);
     expect(eventItems.map((event) => event.id)).toEqual(["event-public"]);
     expect(snapshot).toHaveProperty("generatedAt");
+  });
+
+  it("builds public content list snapshots by kind with only published referenced data", () => {
+    const context = loadCmsScript();
+    context.readObjects.mockImplementation((_sheet: unknown, headers: string[]) => {
+      if (headers === TEST_CONTENT_HEADERS) {
+        return [
+          {
+            id: "news-1",
+            title: "Published news",
+            slug: "published-news",
+            type: "news",
+            status: "published",
+            owner: "Admin",
+            summary: "Visible news",
+            body: "Body should not be in list payload",
+            featuredMediaId: "media-news",
+            updatedAt: "2026-05-04T00:00:00.000Z",
+            publishAt: "2026-05-04T00:00:00.000Z"
+          },
+          {
+            id: "news-draft",
+            title: "Draft news",
+            slug: "draft-news",
+            type: "news",
+            status: "draft",
+            owner: "Admin",
+            summary: "Hidden draft",
+            featuredMediaId: "media-draft",
+            updatedAt: "2026-05-05T00:00:00.000Z",
+            publishAt: "2026-05-05T00:00:00.000Z"
+          },
+          {
+            id: "blog-1",
+            title: "Published blog",
+            slug: "published-blog",
+            type: "blog",
+            status: "published",
+            owner: "Admin",
+            summary: "Visible blog",
+            featuredMediaId: "media-blog",
+            updatedAt: "2026-05-03T00:00:00.000Z",
+            publishAt: "2026-05-03T00:00:00.000Z"
+          },
+          {
+            id: "announcement-1",
+            title: "Published announcement",
+            slug: "published-announcement",
+            type: "announcement",
+            status: "published",
+            owner: "Admin",
+            summary: "Visible announcement",
+            featuredMediaId: "media-announcement",
+            updatedAt: "2026-05-02T00:00:00.000Z",
+            publishAt: "2026-05-02T00:00:00.000Z"
+          },
+          {
+            id: "page-1",
+            title: "Published page",
+            slug: "published-page",
+            type: "page",
+            status: "published",
+            owner: "Admin",
+            summary: "Visible page",
+            mediaIds: "media-page",
+            updatedAt: "2026-05-01T00:00:00.000Z",
+            publishAt: "2026-05-01T00:00:00.000Z"
+          }
+        ];
+      }
+
+      if (headers === TEST_MEDIA_HEADERS) {
+        return [
+          {
+            id: "media-news",
+            name: "News image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-news/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-news"
+          },
+          {
+            id: "media-blog",
+            name: "Blog image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-blog/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-blog"
+          },
+          {
+            id: "media-announcement",
+            name: "Announcement image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-announcement/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-announcement"
+          },
+          {
+            id: "media-page",
+            name: "Page image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-page/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-page"
+          },
+          {
+            id: "media-draft",
+            name: "Draft image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-draft/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-draft"
+          }
+        ];
+      }
+
+      return [];
+    });
+
+    const newsSnapshot = context.getPublicContentListSnapshot({ kind: "news" });
+    const blogSnapshot = context.getPublicContentListSnapshot({ kind: "blog" });
+    const announcementsSnapshot = context.getPublicContentListSnapshot({ kind: "announcements" });
+
+    expect((newsSnapshot.items as Array<Record<string, unknown>>).map((item) => item.id)).toEqual(["news-1"]);
+    expect((newsSnapshot.items as Array<Record<string, unknown>>)[0]).not.toHaveProperty("body");
+    expect((newsSnapshot.media as Array<Record<string, unknown>>).map((asset) => asset.id)).toEqual(["media-news"]);
+    expect((blogSnapshot.items as Array<Record<string, unknown>>).map((item) => item.id)).toEqual(["blog-1"]);
+    expect((announcementsSnapshot.items as Array<Record<string, unknown>>).map((item) => item.id)).toEqual([
+      "announcement-1"
+    ]);
+    expect((announcementsSnapshot.pageItems as Array<Record<string, unknown>>).map((item) => item.id)).toEqual([
+      "page-1"
+    ]);
+    expect((announcementsSnapshot.media as Array<Record<string, unknown>>).map((asset) => asset.id).sort()).toEqual([
+      "media-announcement",
+      "media-page"
+    ]);
+    expect(captureError(() => context.getPublicContentListSnapshot({ kind: "program" }))?.statusCode).toBe(400);
   });
 
   it("returns only visible public carousel slides sorted by order", () => {

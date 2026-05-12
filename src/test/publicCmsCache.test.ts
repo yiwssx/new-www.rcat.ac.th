@@ -10,8 +10,13 @@ import {
   setPublicSnapshotCache,
   writePublicCache
 } from "../services/publicCmsCache";
+import {
+  getPublicContentListCache,
+  getPublicContentListCacheKey,
+  setPublicContentListCache
+} from "../services/publicContentListCache";
 import { getPublicHomeCache, PUBLIC_HOME_CACHE_KEY, setPublicHomeCache } from "../services/publicHomeCache";
-import { CmsSnapshot, ContentItem, PublicHomeSnapshot } from "../types";
+import { CmsSnapshot, ContentItem, PublicContentListSnapshot, PublicHomeSnapshot } from "../types";
 
 const testCacheKey = "rcat.cms.public.test";
 
@@ -26,6 +31,71 @@ function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
     summary: "Cached public content",
     updatedAt: "2026-04-29T00:00:00.000Z",
     publishAt: "2026-04-29T00:00:00.000Z",
+    ...overrides
+  };
+}
+
+function createPublicContentListSnapshot(
+  overrides: Partial<PublicContentListSnapshot> = {}
+): PublicContentListSnapshot {
+  return {
+    kind: "news",
+    items: [],
+    media: [],
+    siteSettings: {
+      siteName: "Test site",
+      eyebrow: "",
+      intro: "",
+      campus: "",
+      phone: "",
+      fax: "",
+      email: "",
+      address: "",
+      admissionUrl: "",
+      facebookUrl: "",
+      youtubeUrl: "",
+      tiktokUrl: "",
+      heroTitle: "",
+      heroDescription: "",
+      heroChip: "",
+      heroImageUrl: "",
+      directorName: "",
+      directorTitle: "",
+      directorDescription: "",
+      directorImageUrl: "",
+      mapUrl: "",
+      mapEmbedUrl: "",
+      footerTitle: "",
+      footerDescription: "",
+      footerDirectoryGroups: [],
+      messengerUrl: "",
+      messengerLabel: "แชทกับเจ้าหน้าที่",
+      messengerEnabled: false
+    },
+    homepageSettings: {
+      introGate: {
+        enabled: false,
+        imageUrl: "",
+        imageAlt: "",
+        primaryButtonLabel: "",
+        secondaryButtonLabel: "",
+        secondaryButtonUrl: "",
+        storageKey: ""
+      },
+      marquee: {
+        enabled: false,
+        label: "",
+        text: "",
+        speedSeconds: 32
+      },
+      introVideo: {
+        enabled: false,
+        title: "",
+        youtubeEmbedUrl: ""
+      }
+    },
+    menu: [],
+    generatedAt: "2026-05-12T00:00:00.000Z",
     ...overrides
   };
 }
@@ -178,5 +248,28 @@ describe("publicCmsCache", () => {
 
     expect(window.localStorage.getItem(PUBLIC_SNAPSHOT_CACHE_KEY)).toBeNull();
     expect(window.localStorage.getItem(PUBLIC_HOME_CACHE_KEY)).toBeNull();
+  });
+
+  it("keeps public content list caches separate by kind and clears them with public CMS cache", () => {
+    const newsSnapshot = createPublicContentListSnapshot({
+      kind: "news",
+      items: [createContentItem({ id: "news-1", title: "Cached news" })]
+    });
+    const blogSnapshot = createPublicContentListSnapshot({
+      kind: "blog",
+      items: [createContentItem({ id: "blog-1", title: "Cached blog", type: "blog" })]
+    });
+
+    setPublicContentListCache("news", newsSnapshot);
+    setPublicContentListCache("blog", blogSnapshot);
+
+    expect(getPublicContentListCacheKey("news")).not.toBe(getPublicContentListCacheKey("blog"));
+    expect(getPublicContentListCache("news")?.data).toEqual(newsSnapshot);
+    expect(getPublicContentListCache("blog")?.data).toEqual(blogSnapshot);
+
+    clearPublicCmsCache();
+
+    expect(window.localStorage.getItem(getPublicContentListCacheKey("news"))).toBeNull();
+    expect(window.localStorage.getItem(getPublicContentListCacheKey("blog"))).toBeNull();
   });
 });

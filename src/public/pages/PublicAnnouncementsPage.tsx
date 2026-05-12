@@ -5,8 +5,10 @@ import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
+import PublicErrorState from "../components/PublicErrorState";
+import PublicLoadingState from "../components/PublicLoadingState";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
+import { usePublicContentList } from "../hooks/usePublicContentList";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
 function readSearchParam(name: string) {
@@ -25,26 +27,13 @@ function normalizeCategoryList(category: string | undefined) {
 }
 
 export default function PublicAnnouncementsPage() {
-  const { data, isFetching } = usePublicCmsSnapshot();
+  const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("announcements");
   const activeTag = readSearchParam("tag");
   const activeCategory = readSearchParam("category");
   const hasActiveFilter = Boolean(activeTag || activeCategory);
-
-  const announcementItems = useMemo(
-    () =>
-      (data?.content ?? [])
-        .filter((item) => item.type === "announcement" && item.status === "published")
-        .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
-    [data]
-  );
-
-  const pageItems = useMemo(
-    () =>
-      (data?.content ?? [])
-        .filter((item) => item.type === "page" && item.status === "published")
-        .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
-    [data]
-  );
+  const announcementItems = useMemo(() => data?.items ?? [], [data?.items]);
+  const pageItems = useMemo(() => data?.pageItems ?? [], [data?.pageItems]);
+  const mediaAssets = data?.media ?? [];
   const filteredAnnouncementItems = useMemo(
     () =>
       announcementItems.filter((item) => {
@@ -55,12 +44,34 @@ export default function PublicAnnouncementsPage() {
     [activeCategory, activeTag, announcementItems]
   );
 
+  if (!data && (isLoading || isFetching)) {
+    return <PublicLoadingState />;
+  }
+
+  if (!data && isError) {
+    return (
+      <PublicErrorState
+        onRetry={() => {
+          void refetch();
+        }}
+        isRetrying={isFetching}
+      />
+    );
+  }
+
   if (!data) {
-    return <PublicSiteShell>{null}</PublicSiteShell>;
+    return <PublicLoadingState />;
   }
 
   return (
-    <PublicSiteShell title="ประกาศ" description="ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา">
+    <PublicSiteShell
+      title="ประกาศ"
+      description="ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา"
+      preloadedSiteSettings={data.siteSettings}
+      preloadedHomepageSettings={data.homepageSettings}
+      preloadedDisplaySettings={data.displaySettings}
+      preloadedMenu={data.menu}
+    >
       {isFetching && <LinearProgress sx={{ mb: 3 }} />}
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <CampaignOutlinedIcon color="primary" />
@@ -82,7 +93,7 @@ export default function PublicAnnouncementsPage() {
           <Grid size={{ xs: 12, md: 6 }} key={item.id}>
             <PublicContentCard
               item={item}
-              mediaAssets={data?.media ?? []}
+              mediaAssets={mediaAssets}
               icon={<CampaignOutlinedIcon sx={{ fontSize: 42 }} />}
             />
           </Grid>
@@ -106,7 +117,7 @@ export default function PublicAnnouncementsPage() {
           <Grid size={{ xs: 12, md: 6 }} key={item.id}>
             <PublicContentCard
               item={item}
-              mediaAssets={data?.media ?? []}
+              mediaAssets={mediaAssets}
               icon={<DescriptionOutlinedIcon sx={{ fontSize: 42 }} />}
             />
           </Grid>

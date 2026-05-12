@@ -16,6 +16,7 @@ interface ProjectSettings {
     resources: {
       snapshot: string;
       publicHome: string;
+      publicContentList: string;
       adminSnapshot: string;
       health: string;
       authLogin: string;
