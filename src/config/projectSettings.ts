@@ -17,6 +17,7 @@ interface ProjectSettings {
       snapshot: string;
       publicHome: string;
       publicContentList: string;
+      publicProgramList: string;
       adminSnapshot: string;
       health: string;
       authLogin: string;

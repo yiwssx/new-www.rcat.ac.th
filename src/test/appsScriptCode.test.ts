@@ -10,6 +10,7 @@ interface CodeScriptContext {
   extractAuthToken: (payload: Record<string, unknown>, query?: Record<string, unknown>) => string;
   getPublicContentListSnapshot: Mock;
   getPublicHomeSnapshot: Mock;
+  getPublicProgramListSnapshot: Mock;
   getUsers: Mock;
   incrementContentView: Mock;
   routeRequest: (event: Record<string, unknown>, method: string) => RouteResult;
@@ -45,6 +46,11 @@ function loadCodeScript(): CodeScriptContext {
   }));
   const getPublicContentListSnapshot = vi.fn((query: Record<string, unknown>) => ({
     kind: query.kind || "news",
+    items: [],
+    media: [],
+    generatedAt: "2026-05-12T00:00:00.000Z"
+  }));
+  const getPublicProgramListSnapshot = vi.fn(() => ({
     items: [],
     media: [],
     generatedAt: "2026-05-12T00:00:00.000Z"
@@ -112,6 +118,7 @@ function loadCodeScript(): CodeScriptContext {
     "getPublicSnapshotCached",
     "getPublicHomeSnapshot",
     "getPublicContentListSnapshot",
+    "getPublicProgramListSnapshot",
     "getSnapshot",
     "getMenu",
     "getDisplaySettings",
@@ -166,6 +173,7 @@ return {
     })),
     getPublicHomeSnapshot,
     getPublicContentListSnapshot,
+    getPublicProgramListSnapshot,
     vi.fn(),
     vi.fn(() => []),
     vi.fn(() => ({})),
@@ -198,6 +206,7 @@ return {
     ...exports,
     getPublicContentListSnapshot,
     getPublicHomeSnapshot,
+    getPublicProgramListSnapshot,
     getUsers,
     incrementContentView,
     upsertCarouselSlide,
@@ -249,6 +258,23 @@ describe("Apps Script route auth handling", () => {
     expect(context.getPublicContentListSnapshot).toHaveBeenCalledWith({
       kind: "announcements"
     });
+  });
+
+  it("returns public program lists through unauthenticated GET without reading auth context", () => {
+    const context = loadCodeScript();
+    const result = context.routeRequest(
+      {
+        resource: "public-program-list"
+      },
+      "GET"
+    );
+
+    expect(context.shouldReadAuthContext("GET", "public-program-list")).toBe(false);
+    expect(result.statusCode).toBe(200);
+    expect(result.body.items).toEqual([]);
+    expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
+    expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.getPublicProgramListSnapshot).toHaveBeenCalledTimes(1);
   });
 
   it("does not treat GET users as a valid authenticated route", () => {
@@ -624,6 +650,7 @@ describe("Apps Script route auth handling", () => {
       "snapshot",
       "public-home",
       "public-content-list",
+      "public-program-list",
       "health",
       "menu",
       "display-settings",

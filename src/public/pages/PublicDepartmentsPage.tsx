@@ -1,29 +1,46 @@
-import { useMemo } from "react";
 import { LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
+import PublicErrorState from "../components/PublicErrorState";
+import PublicLoadingState from "../components/PublicLoadingState";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
+import { usePublicProgramList } from "../hooks/usePublicProgramList";
 
 export default function PublicDepartmentsPage() {
-  const { data, isFetching } = usePublicCmsSnapshot();
+  const { data, isLoading, isFetching, isError, refetch } = usePublicProgramList();
+  const programItems = data?.items ?? [];
+  const mediaAssets = data?.media ?? [];
 
-  const programItems = useMemo(
-    () =>
-      (data?.content ?? [])
-        .filter((item) => item.type === "program" && item.status === "published")
-        .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
-    [data]
-  );
+  if (!data && (isLoading || isFetching)) {
+    return <PublicLoadingState />;
+  }
+
+  if (!data && isError) {
+    return (
+      <PublicErrorState
+        onRetry={() => {
+          void refetch();
+        }}
+        isRetrying={isFetching}
+      />
+    );
+  }
 
   if (!data) {
-    return <PublicSiteShell>{null}</PublicSiteShell>;
+    return <PublicLoadingState />;
   }
 
   return (
-    <PublicSiteShell title="หลักสูตร" description="ข้อมูลหลักสูตรที่เผยแพร่จาก CMS">
+    <PublicSiteShell
+      title="หลักสูตร"
+      description="ข้อมูลหลักสูตรที่เผยแพร่จาก CMS"
+      preloadedSiteSettings={data.siteSettings}
+      preloadedHomepageSettings={data.homepageSettings}
+      preloadedDisplaySettings={data.displaySettings}
+      preloadedMenu={data.menu}
+    >
       {isFetching && <LinearProgress sx={{ mb: 3 }} />}
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <SchoolOutlinedIcon color="primary" />
@@ -37,7 +54,7 @@ export default function PublicDepartmentsPage() {
             <Grid size={{ xs: 12, md: 6 }} key={item.id}>
               <PublicContentCard
                 item={item}
-                mediaAssets={data?.media ?? []}
+                mediaAssets={mediaAssets}
                 icon={<SchoolOutlinedIcon sx={{ fontSize: 42 }} />}
               />
             </Grid>
