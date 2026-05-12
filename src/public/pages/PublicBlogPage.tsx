@@ -1,37 +1,54 @@
-import { useMemo } from "react";
 import { LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
+import PublicErrorState from "../components/PublicErrorState";
+import PublicLoadingState from "../components/PublicLoadingState";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
+import { usePublicContentList } from "../hooks/usePublicContentList";
 
 export default function PublicBlogPage() {
-  const { data, isFetching } = usePublicCmsSnapshot();
-
-  const blogItems = useMemo(
-    () =>
-      (data?.content ?? [])
-        .filter((item) => item.type === "blog" && item.status === "published")
-        .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
-    [data]
-  );
+  const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("blog");
+  const blogItems = data?.items ?? [];
+  const mediaAssets = data?.media ?? [];
 
   const [featuredItem, ...secondaryItems] = blogItems;
 
+  if (!data && (isLoading || isFetching)) {
+    return <PublicLoadingState />;
+  }
+
+  if (!data && isError) {
+    return (
+      <PublicErrorState
+        onRetry={() => {
+          void refetch();
+        }}
+        isRetrying={isFetching}
+      />
+    );
+  }
+
   if (!data) {
-    return <PublicSiteShell>{null}</PublicSiteShell>;
+    return <PublicLoadingState />;
   }
 
   return (
-    <PublicSiteShell title="บทความ" description="บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS">
+    <PublicSiteShell
+      title="บทความ"
+      description="บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS"
+      preloadedSiteSettings={data.siteSettings}
+      preloadedHomepageSettings={data.homepageSettings}
+      preloadedDisplaySettings={data.displaySettings}
+      preloadedMenu={data.menu}
+    >
       {isFetching && <LinearProgress sx={{ mb: 3 }} />}
       {featuredItem && (
         <PublicContentCard
           item={featuredItem}
-          mediaAssets={data?.media ?? []}
+          mediaAssets={mediaAssets}
           icon={<AutoStoriesOutlinedIcon sx={{ fontSize: 58 }} />}
           featured
         />
@@ -50,7 +67,7 @@ export default function PublicBlogPage() {
               <Grid size={{ xs: 12, md: 6 }} key={item.id}>
                 <PublicContentCard
                   item={item}
-                  mediaAssets={data?.media ?? []}
+                  mediaAssets={mediaAssets}
                   icon={<EditNoteOutlinedIcon sx={{ fontSize: 42 }} />}
                 />
               </Grid>

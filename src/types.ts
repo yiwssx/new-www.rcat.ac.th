@@ -209,6 +209,20 @@ export interface PublicHomeSnapshot {
   generatedAt: string;
 }
 
+export type PublicContentListKind = "news" | "announcements" | "blog";
+
+export interface PublicContentListSnapshot {
+  kind: PublicContentListKind;
+  items: ContentItem[];
+  pageItems?: ContentItem[];
+  media: MediaAsset[];
+  siteSettings: SiteSettings;
+  homepageSettings: HomepageSettings;
+  displaySettings?: DisplaySettings;
+  menu: PublicMenuItem[];
+  generatedAt: string;
+}
+
 export interface DisplaySettings {
   dateFormat: string;
   timeMode: "24h" | "12h";

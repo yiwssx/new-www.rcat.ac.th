@@ -227,6 +227,56 @@ function getPublicHomeSnapshot() {
   };
 }
 
+function getPublicContentListSnapshot(query) {
+  const config = query || {};
+  const kind = normalizePublicContentListKind(config.kind || config.type || "");
+  const spreadsheet = getSpreadsheet();
+  const content = readObjects(spreadsheet.getSheetByName(SHEETS.content), CONTENT_HEADERS).map(normalizeContentRecord);
+  const media = readObjects(spreadsheet.getSheetByName(SHEETS.media), MEDIA_HEADERS);
+  const publicContent = sortContentByPublishDate(
+    content.filter((item) => item.status === "published").map((item) => sanitizePublicContentRecord(item))
+  );
+  const items = publicContent.filter((item) => item.type === getPublicContentListType(kind));
+  const pageItems = kind === "announcements" ? publicContent.filter((item) => item.type === "page") : [];
+  const listContent = collectPublicHomeContentItems([items, pageItems]);
+  const response = {
+    kind,
+    items,
+    media: filterPublicContentListMedia(media, listContent),
+    siteSettings: getSiteSettings(),
+    homepageSettings: getHomepageSettings(),
+    displaySettings: getDisplaySettings(),
+    menu: getMenu(),
+    generatedAt: new Date().toISOString()
+  };
+
+  if (kind === "announcements") {
+    response.pageItems = pageItems;
+  }
+
+  return response;
+}
+
+function normalizePublicContentListKind(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized === "news" || normalized === "announcements" || normalized === "blog") {
+    return normalized;
+  }
+
+  throw createHttpError("Invalid public content list kind.", 400);
+}
+
+function getPublicContentListType(kind) {
+  if (kind === "announcements") {
+    return "announcement";
+  }
+
+  return kind;
+}
+
 function collectPublicHomeContentItems(groups) {
   const seen = {};
   const items = [];
@@ -310,6 +360,10 @@ function filterPublicHomeMedia(media, homeContent) {
   });
 
   return media.filter((asset) => Boolean(allowedIds[asset.id])).map(sanitizePublicMediaRecord);
+}
+
+function filterPublicContentListMedia(media, contentItems) {
+  return filterPublicHomeMedia(media, contentItems);
 }
 
 function sanitizePublicHomeEventRecord(event) {

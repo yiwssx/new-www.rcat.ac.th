@@ -10,6 +10,8 @@ import {
   IntegrationStatus,
   MediaAsset,
   MediaType,
+  PublicContentListKind,
+  PublicContentListSnapshot,
   PublicHomeSnapshot,
   PublicMenuItem,
   Session,
@@ -31,6 +33,7 @@ type ApiEnvelope<T> = T & {
 const cacheFriendlyPublicGetResources = new Set<GoogleResource>([
   "snapshot",
   "publicHome",
+  "publicContentList",
   "menu",
   "displaySettings",
   "contentDetail"
@@ -267,6 +270,15 @@ export async function getCmsSnapshot(): Promise<CmsSnapshot> {
 
 export async function getPublicHomeSnapshot(): Promise<PublicHomeSnapshot> {
   const snapshot = await googleFetch<PublicHomeSnapshot>("publicHome");
+
+  persistDisplaySettings(snapshot.displaySettings);
+  return snapshot;
+}
+
+export async function getPublicContentListSnapshot(kind: PublicContentListKind): Promise<PublicContentListSnapshot> {
+  const snapshot = await googleFetch<PublicContentListSnapshot>("publicContentList", undefined, {
+    kind
+  });
 
   persistDisplaySettings(snapshot.displaySettings);
   return snapshot;

@@ -13,6 +13,7 @@
     "resources": {
       "snapshot": "snapshot",
       "publicHome": "public-home",
+      "publicContentList": "public-content-list",
       "adminSnapshot": "snapshot-admin",
       "health": "health",
       "authLogin": "auth-login",
