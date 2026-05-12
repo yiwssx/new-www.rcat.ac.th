@@ -12,6 +12,7 @@
     "googleAppsScriptUrlEnv": "VITE_GOOGLE_APPS_SCRIPT_URL",
     "resources": {
       "snapshot": "snapshot",
+      "publicHome": "public-home",
       "adminSnapshot": "snapshot-admin",
       "health": "health",
       "authLogin": "auth-login",

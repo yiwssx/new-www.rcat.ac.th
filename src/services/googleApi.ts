@@ -10,6 +10,7 @@ import {
   IntegrationStatus,
   MediaAsset,
   MediaType,
+  PublicHomeSnapshot,
   PublicMenuItem,
   Session,
   SiteSettings,
@@ -29,6 +30,7 @@ type ApiEnvelope<T> = T & {
 
 const cacheFriendlyPublicGetResources = new Set<GoogleResource>([
   "snapshot",
+  "publicHome",
   "menu",
   "displaySettings",
   "contentDetail"
@@ -263,6 +265,13 @@ export async function getCmsSnapshot(): Promise<CmsSnapshot> {
   return snapshot;
 }
 
+export async function getPublicHomeSnapshot(): Promise<PublicHomeSnapshot> {
+  const snapshot = await googleFetch<PublicHomeSnapshot>("publicHome");
+
+  persistDisplaySettings(snapshot.displaySettings);
+  return snapshot;
+}
+
 export async function getAdminCmsSnapshot(): Promise<CmsSnapshot> {
   const snapshot = await postJson<CmsSnapshot>("adminSnapshot", {});
 
@@ -270,13 +279,17 @@ export async function getAdminCmsSnapshot(): Promise<CmsSnapshot> {
   return snapshot;
 }
 
-function persistSnapshotDisplaySettings(snapshot: CmsSnapshot) {
-  if (typeof window !== "undefined" && snapshot.displaySettings) {
+function persistDisplaySettings(displaySettings?: DisplaySettings) {
+  if (typeof window !== "undefined" && displaySettings) {
     window.localStorage.setItem(
       projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings",
-      JSON.stringify(snapshot.displaySettings)
+      JSON.stringify(displaySettings)
     );
   }
+}
+
+function persistSnapshotDisplaySettings(snapshot: Pick<CmsSnapshot, "displaySettings">) {
+  persistDisplaySettings(snapshot.displaySettings);
 }
 
 export async function saveContentItem(item: ContentItem): Promise<ContentItem> {

@@ -9,11 +9,16 @@ import {
 
 const publicQueryGcTimeMs = 60 * 60 * 1000;
 
+interface UsePublicCmsSnapshotOptions {
+  enabled?: boolean;
+}
+
 function isFresh(savedAt: number, ttlMs: number) {
   return savedAt + ttlMs > Date.now();
 }
 
-export function usePublicCmsSnapshot() {
+export function usePublicCmsSnapshot(options: UsePublicCmsSnapshotOptions = {}) {
+  const enabled = options.enabled ?? true;
   const cachedSnapshot = useMemo(() => getPublicSnapshotCache(), []);
   const hasFreshCache = cachedSnapshot ? isFresh(cachedSnapshot.savedAt, PUBLIC_SNAPSHOT_CACHE_TTL_MS) : false;
 
@@ -26,9 +31,10 @@ export function usePublicCmsSnapshot() {
     },
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
+    enabled,
     staleTime: PUBLIC_SNAPSHOT_CACHE_TTL_MS,
     gcTime: publicQueryGcTimeMs,
-    refetchOnMount: cachedSnapshot ? !hasFreshCache : true,
+    refetchOnMount: enabled && (cachedSnapshot ? !hasFreshCache : true),
     refetchOnWindowFocus: false,
     refetchOnReconnect: true
   });

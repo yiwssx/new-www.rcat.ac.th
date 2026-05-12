@@ -160,11 +160,12 @@ function PublicTopLevelMenuMeasurement({ items }: { items: PublicMenuItem[] }) {
   );
 }
 
-export default function PublicMainMenu() {
+export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: PublicMenuItem[] }) {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
-  const { data } = usePublicCmsSnapshot();
-  const enabledItems = useMemo(() => getEnabledMenuItems(data?.menu ?? []), [data]);
+  const hasPreloadedMenu = preloadedMenu !== undefined;
+  const { data } = usePublicCmsSnapshot({ enabled: !hasPreloadedMenu });
+  const enabledItems = useMemo(() => getEnabledMenuItems(preloadedMenu ?? data?.menu ?? []), [data, preloadedMenu]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileOpenItems, setMobileOpenItems] = useState<Record<string, boolean>>({});
   const [isMenuOverflowing, setIsMenuOverflowing] = useState(false);

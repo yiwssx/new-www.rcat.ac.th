@@ -8,6 +8,7 @@ interface HttpError extends Error {
 interface CmsScriptContext {
   assertUniqueContentSlug: (sheet: unknown, contentId: string, normalizedSlug: string) => void;
   contentValues: unknown[][];
+  getPublicHomeSnapshot: () => Record<string, unknown>;
   getCarouselSlides: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
   getExternalServices: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
   incrementContentView: (input: { id?: string; slug?: string }) => {
@@ -92,6 +93,20 @@ const TEST_CAROUSEL_HEADERS = [
   "updatedAt"
 ];
 
+const TEST_MEDIA_HEADERS = [
+  "id",
+  "name",
+  "type",
+  "size",
+  "owner",
+  "driveUrl",
+  "fileId",
+  "mimeType",
+  "previewUrl",
+  "embedUrl",
+  "updatedAt"
+];
+
 const TEST_EXTERNAL_SERVICE_HEADERS = [
   "id",
   "title",
@@ -101,6 +116,20 @@ const TEST_EXTERNAL_SERVICE_HEADERS = [
   "iconKey",
   "enabled",
   "order",
+  "updatedAt"
+];
+
+const TEST_EVENT_HEADERS = [
+  "id",
+  "title",
+  "date",
+  "endDate",
+  "audience",
+  "status",
+  "location",
+  "description",
+  "category",
+  "visibility",
   "updatedAt"
 ];
 
@@ -149,14 +178,22 @@ function loadCmsScript(input: { contentRows?: Array<Record<string, unknown>> } =
     "getActiveHeaders",
     "invalidatePublicSnapshotCache",
     "readObjects",
+    "getMenu",
+    "getDisplaySettings",
+    "getSiteSettings",
+    "getHomepageSettings",
+    "getVisitorStats",
     "LockService",
     "CONTENT_HEADERS",
+    "MEDIA_HEADERS",
     "CAROUSEL_HEADERS",
     "EXTERNAL_SERVICE_HEADERS",
+    "EVENT_HEADERS",
     "SHEETS",
     `${cmsSource}
 return {
   assertUniqueContentSlug,
+  getPublicHomeSnapshot,
   getCarouselSlides,
   getExternalServices,
   incrementContentView,
@@ -183,14 +220,23 @@ return {
     getActiveHeaders,
     invalidatePublicSnapshotCache,
     readObjects,
+    vi.fn(() => []),
+    vi.fn(() => ({ dateFormat: "D MMM BBBB", timeMode: "24h" })),
+    vi.fn(() => ({ siteName: "Public site" })),
+    vi.fn(() => ({})),
+    vi.fn(() => ({ enabled: false })),
     lockService,
     TEST_CONTENT_HEADERS,
+    TEST_MEDIA_HEADERS,
     TEST_CAROUSEL_HEADERS,
     TEST_EXTERNAL_SERVICE_HEADERS,
+    TEST_EVENT_HEADERS,
     {
       content: "Content",
       carousel: "Carousel",
-      externalServices: "ExternalServices"
+      externalServices: "ExternalServices",
+      media: "Media",
+      events: "Events"
     }
   ) as Omit<CmsScriptContext, "readObjects">;
 
@@ -390,6 +436,115 @@ describe("Apps Script CMS helpers", () => {
     });
     expect(media).not.toHaveProperty("fileId");
     expect(media).not.toHaveProperty("mimeType");
+  });
+
+  it("builds a limited public home snapshot without draft content or unreferenced media", () => {
+    const context = loadCmsScript();
+    context.readObjects.mockImplementation((_sheet: unknown, headers: string[]) => {
+      if (headers === TEST_CONTENT_HEADERS) {
+        return [
+          {
+            id: "news-1",
+            title: "Published news",
+            slug: "published-news",
+            type: "news",
+            status: "published",
+            owner: "Admin",
+            summary: "Visible homepage news",
+            body: "Body should not be in home payload",
+            featuredMediaId: "media-news",
+            updatedAt: "2026-05-04T00:00:00.000Z",
+            publishAt: "2026-05-04T00:00:00.000Z"
+          },
+          {
+            id: "draft-news",
+            title: "Draft news",
+            slug: "draft-news",
+            type: "news",
+            status: "draft",
+            owner: "Admin",
+            summary: "Hidden draft",
+            featuredMediaId: "media-draft",
+            updatedAt: "2026-05-05T00:00:00.000Z",
+            publishAt: "2026-05-05T00:00:00.000Z"
+          },
+          {
+            id: "program-1",
+            title: "Published program",
+            slug: "published-program",
+            type: "program",
+            status: "published",
+            owner: "Admin",
+            summary: "Visible program",
+            mediaIds: "media-program",
+            updatedAt: "2026-05-03T00:00:00.000Z",
+            publishAt: "2026-05-03T00:00:00.000Z"
+          }
+        ];
+      }
+
+      if (headers === TEST_MEDIA_HEADERS) {
+        return [
+          {
+            id: "media-news",
+            name: "News image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-news/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-news"
+          },
+          {
+            id: "media-program",
+            name: "Program image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-program/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-program"
+          },
+          {
+            id: "media-draft",
+            name: "Draft image",
+            type: "image",
+            driveUrl: "https://drive.google.com/file/d/media-draft/view",
+            previewUrl: "https://drive.google.com/thumbnail?id=media-draft"
+          }
+        ];
+      }
+
+      if (headers === TEST_EVENT_HEADERS) {
+        return [
+          {
+            id: "event-public",
+            title: "Public event",
+            date: "2026-05-20T09:00:00.000Z",
+            audience: "public",
+            status: "confirmed",
+            visibility: "public"
+          },
+          {
+            id: "event-private",
+            title: "Private event",
+            date: "2026-05-21T09:00:00.000Z",
+            audience: "staff",
+            status: "confirmed",
+            visibility: "private"
+          }
+        ];
+      }
+
+      return [];
+    });
+
+    const snapshot = context.getPublicHomeSnapshot();
+    const latestNews = snapshot.latestNews as Array<Record<string, unknown>>;
+    const programItems = snapshot.programItems as Array<Record<string, unknown>>;
+    const media = snapshot.media as Array<Record<string, unknown>>;
+    const eventItems = snapshot.eventItems as Array<Record<string, unknown>>;
+
+    expect(latestNews.map((item) => item.id)).toEqual(["news-1"]);
+    expect(programItems.map((item) => item.id)).toEqual(["program-1"]);
+    expect(latestNews[0]).not.toHaveProperty("body");
+    expect(media.map((asset) => asset.id).sort()).toEqual(["media-news", "media-program"]);
+    expect(eventItems.map((event) => event.id)).toEqual(["event-public"]);
+    expect(snapshot).toHaveProperty("generatedAt");
   });
 
   it("returns only visible public carousel slides sorted by order", () => {

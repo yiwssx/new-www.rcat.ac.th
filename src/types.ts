@@ -189,6 +189,26 @@ export interface CmsSnapshot {
   visitorStats?: VisitorStatsSettings;
 }
 
+export interface PublicHomeSnapshot {
+  siteSettings: SiteSettings;
+  homepageSettings: HomepageSettings;
+  displaySettings?: DisplaySettings;
+  menu: PublicMenuItem[];
+  carouselSlides: CarouselSlide[];
+  externalServices: ExternalServiceLink[];
+  visitorStats: VisitorStatsSettings;
+  latestNews: ContentItem[];
+  latestAnnouncements: ContentItem[];
+  procurementItems: ContentItem[];
+  jobOpportunityItems: ContentItem[];
+  achievementItems: ContentItem[];
+  programItems: ContentItem[];
+  documentItems: ContentItem[];
+  eventItems: CalendarEvent[];
+  media: MediaAsset[];
+  generatedAt: string;
+}
+
 export interface DisplaySettings {
   dateFormat: string;
   timeMode: "24h" | "12h";

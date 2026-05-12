@@ -58,6 +58,10 @@ function routeRequest(event, method) {
       return jsonResponse(snapshot);
     }
 
+    if (method === "GET" && resource === "public-home") {
+      return jsonResponse(getPublicHomeSnapshot());
+    }
+
     if (method === "GET" && resource === "health") {
       return jsonResponse({
         ok: true,
@@ -230,7 +234,10 @@ function assertRouteAccess(method, resource, authContext) {
     return;
   }
 
-  if (method === "GET" && (resource === "snapshot" || resource === "health" || resource === "menu")) {
+  if (
+    method === "GET" &&
+    (resource === "snapshot" || resource === "public-home" || resource === "health" || resource === "menu")
+  ) {
     return;
   }
 
