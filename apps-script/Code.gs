@@ -129,72 +129,72 @@ function routeRequest(event, method) {
     }
 
     if (method === "POST" && resource === "content") {
-      return jsonResponse(upsertContent(payload));
+      return jsonResponse(withScriptLock(() => upsertContent(payload)));
     }
 
     if (method === "POST" && resource === "content-delete") {
-      return jsonResponse(deleteContent(payload.id));
+      return jsonResponse(withScriptLock(() => deleteContent(payload.id)));
     }
 
     if (method === "POST" && resource === "carousel") {
-      return jsonResponse(upsertCarouselSlide(payload));
+      return jsonResponse(withScriptLock(() => upsertCarouselSlide(payload)));
     }
 
     if (method === "POST" && resource === "carousel-delete") {
-      return jsonResponse(deleteCarouselSlide(payload.id));
+      return jsonResponse(withScriptLock(() => deleteCarouselSlide(payload.id)));
     }
 
     if (method === "POST" && resource === "external-service") {
-      return jsonResponse(upsertExternalService(payload));
+      return jsonResponse(withScriptLock(() => upsertExternalService(payload)));
     }
 
     if (method === "POST" && resource === "external-service-delete") {
-      return jsonResponse(deleteExternalService(payload.id));
+      return jsonResponse(withScriptLock(() => deleteExternalService(payload.id)));
     }
 
     if (method === "POST" && resource === "media") {
-      return jsonResponse(upsertMedia(payload));
+      return jsonResponse(withScriptLock(() => upsertMedia(payload)));
     }
 
     if (method === "POST" && resource === "media-delete") {
-      return jsonResponse(deleteMedia(payload.id, payload.deleteDriveFile !== false));
+      return jsonResponse(withScriptLock(() => deleteMedia(payload.id, payload.deleteDriveFile !== false)));
     }
 
     if (method === "POST" && resource === "event") {
-      return jsonResponse(upsertEvent(payload));
+      return jsonResponse(withScriptLock(() => upsertEvent(payload)));
     }
 
     if (method === "POST" && resource === "event-delete") {
-      return jsonResponse(deleteEvent(payload.id));
+      return jsonResponse(withScriptLock(() => deleteEvent(payload.id)));
     }
 
     if (method === "POST" && resource === "publish") {
-      return jsonResponse(publishContent(payload.id));
+      return jsonResponse(withScriptLock(() => publishContent(payload.id)));
     }
 
     if (method === "POST" && resource === "menu") {
       return jsonResponse({
-        items: replaceMenu(payload.items || [])
+        items: withScriptLock(() => replaceMenu(payload.items || []))
       });
     }
 
     if (method === "POST" && resource === "display-settings") {
-      return jsonResponse(updateDisplaySettings(payload));
+      return jsonResponse(withScriptLock(() => updateDisplaySettings(payload)));
     }
 
     if (method === "POST" && resource === "site-settings") {
       requireMinimumRole(authContext, "admin");
-      return jsonResponse(updateSiteSettings(payload));
+      return jsonResponse(withScriptLock(() => updateSiteSettings(payload)));
     }
 
     if (method === "POST" && resource === "homepage-settings") {
       requireMinimumRole(authContext, "admin");
-      return jsonResponse(updateHomepageSettings(payload));
+      return jsonResponse(withScriptLock(() => updateHomepageSettings(payload)));
     }
 
     if (method === "POST" && resource === "visitor-stats") {
       requireMinimumRole(authContext, "admin");
-      return jsonResponse(updateVisitorStats(payload));
+      return jsonResponse(withScriptLock(() => updateVisitorStats(payload)));
     }
 
     if (method === "POST" && resource === "users") {
@@ -204,16 +204,16 @@ function routeRequest(event, method) {
         });
       }
 
-      return jsonResponse(upsertUser(payload));
+      return jsonResponse(withScriptLock(() => upsertUser(payload)));
     }
 
     if (method === "POST" && resource === "users-delete") {
-      return jsonResponse(deleteUser(payload.id));
+      return jsonResponse(withScriptLock(() => deleteUser(payload.id)));
     }
 
     if (method === "POST" && resource === "users-reset") {
       return jsonResponse({
-        items: resetUsers()
+        items: withScriptLock(() => resetUsers())
       });
     }
 
