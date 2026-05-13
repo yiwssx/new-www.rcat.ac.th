@@ -22,11 +22,17 @@ import {
   setPublicProgramListCache
 } from "../services/publicProgramListCache";
 import {
+  getPublicSearchIndexCache,
+  PUBLIC_SEARCH_INDEX_CACHE_KEY,
+  setPublicSearchIndexCache
+} from "../services/publicSearchIndexCache";
+import {
   CmsSnapshot,
   ContentItem,
   PublicContentListSnapshot,
   PublicHomeSnapshot,
-  PublicProgramListSnapshot
+  PublicProgramListSnapshot,
+  PublicSearchIndexSnapshot
 } from "../types";
 
 const testCacheKey = "rcat.cms.public.test";
@@ -119,6 +125,21 @@ function createPublicProgramListSnapshot(
   return {
     items: [],
     media: [],
+    siteSettings: contentListSnapshot.siteSettings,
+    homepageSettings: contentListSnapshot.homepageSettings,
+    menu: [],
+    generatedAt: "2026-05-12T00:00:00.000Z",
+    ...overrides
+  };
+}
+
+function createPublicSearchIndexSnapshot(
+  overrides: Partial<PublicSearchIndexSnapshot> = {}
+): PublicSearchIndexSnapshot {
+  const contentListSnapshot = createPublicContentListSnapshot();
+
+  return {
+    items: [],
     siteSettings: contentListSnapshot.siteSettings,
     homepageSettings: contentListSnapshot.homepageSettings,
     menu: [],
@@ -313,5 +334,20 @@ describe("publicCmsCache", () => {
     clearPublicCmsCache();
 
     expect(window.localStorage.getItem(PUBLIC_PROGRAM_LIST_CACHE_KEY)).toBeNull();
+  });
+
+  it("keeps public search index cache separate and clears it with public CMS cache", () => {
+    const searchSnapshot = createPublicSearchIndexSnapshot({
+      items: [createContentItem({ id: "search-1", title: "Cached search result" })]
+    });
+
+    setPublicSearchIndexCache(searchSnapshot);
+
+    expect(PUBLIC_SEARCH_INDEX_CACHE_KEY).not.toBe(PUBLIC_SNAPSHOT_CACHE_KEY);
+    expect(getPublicSearchIndexCache()?.data).toEqual(searchSnapshot);
+
+    clearPublicCmsCache();
+
+    expect(window.localStorage.getItem(PUBLIC_SEARCH_INDEX_CACHE_KEY)).toBeNull();
   });
 });

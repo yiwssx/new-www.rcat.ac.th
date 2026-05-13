@@ -18,6 +18,7 @@ interface ProjectSettings {
       publicHome: string;
       publicContentList: string;
       publicProgramList: string;
+      publicSearchIndex: string;
       adminSnapshot: string;
       health: string;
       authLogin: string;

@@ -11,6 +11,7 @@ interface CmsScriptContext {
   getPublicContentListSnapshot: (query: Record<string, unknown>) => Record<string, unknown>;
   getPublicHomeSnapshot: () => Record<string, unknown>;
   getPublicProgramListSnapshot: () => Record<string, unknown>;
+  getPublicSearchIndexSnapshot: () => Record<string, unknown>;
   getCarouselSlides: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
   getExternalServices: (options?: { includeDisabled?: boolean }) => Array<Record<string, unknown>>;
   incrementContentView: (input: { id?: string; slug?: string }) => {
@@ -198,6 +199,7 @@ return {
   getPublicContentListSnapshot,
   getPublicHomeSnapshot,
   getPublicProgramListSnapshot,
+  getPublicSearchIndexSnapshot,
   getCarouselSlides,
   getExternalServices,
   incrementContentView,
@@ -767,6 +769,90 @@ describe("Apps Script CMS helpers", () => {
     expect(media.map((asset) => asset.id)).toEqual(["media-program"]);
     expect(snapshot).toHaveProperty("siteSettings");
     expect(snapshot).toHaveProperty("generatedAt");
+  });
+
+  it("builds a public search index with only published body-free content", () => {
+    const context = loadCmsScript();
+    context.readObjects.mockImplementation((_sheet: unknown, headers: string[]) => {
+      if (headers === TEST_CONTENT_HEADERS) {
+        return [
+          {
+            id: "news-1",
+            title: "Published searchable news",
+            slug: "published-searchable-news",
+            type: "news",
+            status: "published",
+            owner: "Admin",
+            summary: "Visible search summary",
+            category: "Search category",
+            tags: "search,public",
+            seoTitle: "Search SEO",
+            seoDescription: "Search description",
+            featured: "TRUE",
+            readingMinutes: "3",
+            body: "Body should not be in search index",
+            bodyDocId: "doc-id",
+            bodyDocUrl: "https://docs.google.com/document/d/doc-id",
+            featuredMediaId: "media-news",
+            mediaIds: "media-extra",
+            updatedAt: "2026-05-04T00:00:00.000Z",
+            publishAt: "2026-05-04T00:00:00.000Z"
+          },
+          {
+            id: "draft-news",
+            title: "Draft hidden news",
+            slug: "draft-hidden-news",
+            type: "news",
+            status: "draft",
+            owner: "Admin",
+            summary: "Hidden draft",
+            updatedAt: "2026-05-05T00:00:00.000Z",
+            publishAt: "2026-05-05T00:00:00.000Z"
+          },
+          {
+            id: "review-page",
+            title: "Review hidden page",
+            slug: "review-hidden-page",
+            type: "page",
+            status: "review",
+            owner: "Admin",
+            summary: "Hidden review",
+            updatedAt: "2026-05-06T00:00:00.000Z",
+            publishAt: "2026-05-06T00:00:00.000Z"
+          }
+        ];
+      }
+
+      return [];
+    });
+
+    const snapshot = context.getPublicSearchIndexSnapshot();
+    const items = snapshot.items as Array<Record<string, unknown>>;
+
+    expect(items.map((item) => item.id)).toEqual(["news-1"]);
+    expect(items[0]).toMatchObject({
+      title: "Published searchable news",
+      status: "published",
+      owner: "Admin",
+      summary: "Visible search summary",
+      category: "Search category",
+      tags: ["search", "public"],
+      seoTitle: "Search SEO",
+      seoDescription: "Search description",
+      featured: true,
+      readingMinutes: 3
+    });
+    expect(items[0]).not.toHaveProperty("body");
+    expect(items[0]).not.toHaveProperty("bodyDocId");
+    expect(items[0]).not.toHaveProperty("bodyDocUrl");
+    expect(items[0]).not.toHaveProperty("mediaIds");
+    expect(items[0]).not.toHaveProperty("featuredMediaId");
+    expect(snapshot).not.toHaveProperty("media");
+    expect(snapshot).not.toHaveProperty("events");
+    expect(snapshot).toHaveProperty("siteSettings");
+    expect(snapshot).toHaveProperty("generatedAt");
+    expect(context.readObjects).toHaveBeenCalledTimes(1);
+    expect(context.readObjects).toHaveBeenCalledWith(expect.anything(), TEST_CONTENT_HEADERS);
   });
 
   it("returns only visible public carousel slides sorted by order", () => {

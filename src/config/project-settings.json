@@ -15,6 +15,7 @@
       "publicHome": "public-home",
       "publicContentList": "public-content-list",
       "publicProgramList": "public-program-list",
+      "publicSearchIndex": "public-search-index",
       "adminSnapshot": "snapshot-admin",
       "health": "health",
       "authLogin": "auth-login",
