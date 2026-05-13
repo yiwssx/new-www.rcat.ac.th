@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, type Mock } from "vitest";
 import codeSource from "../../apps-script/Code.gs?raw";
+import locksSource from "../../apps-script/Locks.gs?raw";
 
 interface RouteResult {
   body: Record<string, unknown>;
@@ -7,6 +8,9 @@ interface RouteResult {
 }
 
 interface CodeScriptContext {
+  deleteContent: Mock;
+  deleteEvent: Mock;
+  deleteMedia: Mock;
   extractAuthToken: (payload: Record<string, unknown>, query?: Record<string, unknown>) => string;
   getPublicContentListSnapshot: Mock;
   getPublicHomeSnapshot: Mock;
@@ -14,19 +18,73 @@ interface CodeScriptContext {
   getPublicSearchIndexSnapshot: Mock;
   getUsers: Mock;
   incrementContentView: Mock;
+  lockService: {
+    getScriptLock: Mock;
+  };
+  publishContent: Mock;
+  replaceMenu: Mock;
+  resetUsers: Mock;
   routeRequest: (event: Record<string, unknown>, method: string) => RouteResult;
+  scriptLock: {
+    tryLock: Mock;
+    releaseLock: Mock;
+  };
   shouldReadAuthContext: (method: string, resource: string) => boolean;
+  upsertContent: Mock;
   upsertCarouselSlide: Mock;
   deleteCarouselSlide: Mock;
   upsertExternalService: Mock;
   deleteExternalService: Mock;
+  upsertEvent: Mock;
+  upsertMedia: Mock;
+  upsertUser: Mock;
+  deleteUser: Mock;
+  updateDisplaySettings: Mock;
   updateHomepageSettings: Mock;
   updateSiteSettings: Mock;
   updateVisitorStats: Mock;
   verifyAuthToken: Mock;
 }
 
-function loadCodeScript(): CodeScriptContext {
+type ThrowingWriteResource =
+  | "content"
+  | "content-delete"
+  | "carousel"
+  | "carousel-delete"
+  | "external-service"
+  | "external-service-delete"
+  | "media"
+  | "media-delete"
+  | "event"
+  | "event-delete"
+  | "publish"
+  | "menu"
+  | "display-settings"
+  | "site-settings"
+  | "homepage-settings"
+  | "visitor-stats"
+  | "users"
+  | "users-delete"
+  | "users-reset";
+
+interface LoadCodeScriptOptions {
+  lockAcquired?: boolean;
+  throwingWriteResource?: ThrowingWriteResource;
+}
+
+function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
+  const maybeThrowWrite = (resource: ThrowingWriteResource) => {
+    if (input.throwingWriteResource === resource) {
+      throw new Error("Forced write failure.");
+    }
+  };
+  const scriptLock = {
+    tryLock: vi.fn(() => input.lockAcquired !== false),
+    releaseLock: vi.fn()
+  };
+  const lockService = {
+    getScriptLock: vi.fn(() => scriptLock)
+  };
   const getUsers = vi.fn(() => [
     {
       id: "user-1",
@@ -40,6 +98,20 @@ function loadCodeScript(): CodeScriptContext {
     viewCount: 2,
     lastViewedAt: "2026-05-03T00:00:00.000Z"
   }));
+  const upsertContent = vi.fn((content: Record<string, unknown>) => {
+    maybeThrowWrite("content");
+    return {
+      id: content.id || "content-1",
+      title: content.title || ""
+    };
+  });
+  const deleteContent = vi.fn((id: string) => {
+    maybeThrowWrite("content-delete");
+    return {
+      id,
+      deleted: true
+    };
+  });
   const getPublicHomeSnapshot = vi.fn(() => ({
     latestNews: [],
     media: [],
@@ -60,27 +132,112 @@ function loadCodeScript(): CodeScriptContext {
     items: [],
     generatedAt: "2026-05-12T00:00:00.000Z"
   }));
-  const upsertCarouselSlide = vi.fn((input: Record<string, unknown>) => ({
-    id: input.id || "carousel-1",
-    title: input.title || "",
-    enabled: input.enabled === true
-  }));
-  const deleteCarouselSlide = vi.fn((id: string) => ({
-    id,
-    deleted: true
-  }));
-  const upsertExternalService = vi.fn((input: Record<string, unknown>) => ({
-    id: input.id || "external-service-1",
-    title: input.title || "",
-    enabled: input.enabled === true
-  }));
-  const deleteExternalService = vi.fn((id: string) => ({
-    id,
-    deleted: true
-  }));
-  const updateSiteSettings = vi.fn((input: Record<string, unknown>) => input);
-  const updateHomepageSettings = vi.fn((input: Record<string, unknown>) => input);
-  const updateVisitorStats = vi.fn((input: Record<string, unknown>) => input);
+  const upsertCarouselSlide = vi.fn((input: Record<string, unknown>) => {
+    maybeThrowWrite("carousel");
+    return {
+      id: input.id || "carousel-1",
+      title: input.title || "",
+      enabled: input.enabled === true
+    };
+  });
+  const deleteCarouselSlide = vi.fn((id: string) => {
+    maybeThrowWrite("carousel-delete");
+    return {
+      id,
+      deleted: true
+    };
+  });
+  const upsertExternalService = vi.fn((input: Record<string, unknown>) => {
+    maybeThrowWrite("external-service");
+    return {
+      id: input.id || "external-service-1",
+      title: input.title || "",
+      enabled: input.enabled === true
+    };
+  });
+  const deleteExternalService = vi.fn((id: string) => {
+    maybeThrowWrite("external-service-delete");
+    return {
+      id,
+      deleted: true
+    };
+  });
+  const upsertMedia = vi.fn((asset: Record<string, unknown>) => {
+    maybeThrowWrite("media");
+    return {
+      id: asset.id || "media-1"
+    };
+  });
+  const deleteMedia = vi.fn((id: string) => {
+    maybeThrowWrite("media-delete");
+    return {
+      id,
+      deleted: true
+    };
+  });
+  const upsertEvent = vi.fn((event: Record<string, unknown>) => {
+    maybeThrowWrite("event");
+    return {
+      id: event.id || "event-1"
+    };
+  });
+  const deleteEvent = vi.fn((id: string) => {
+    maybeThrowWrite("event-delete");
+    return {
+      id,
+      deleted: true
+    };
+  });
+  const publishContent = vi.fn((id: string) => {
+    maybeThrowWrite("publish");
+    return {
+      id,
+      published: true
+    };
+  });
+  const replaceMenu = vi.fn((items: Array<Record<string, unknown>>) => {
+    maybeThrowWrite("menu");
+    return items;
+  });
+  const updateDisplaySettings = vi.fn((settings: Record<string, unknown>) => {
+    maybeThrowWrite("display-settings");
+    return settings;
+  });
+  const updateSiteSettings = vi.fn((settings: Record<string, unknown>) => {
+    maybeThrowWrite("site-settings");
+    return settings;
+  });
+  const updateHomepageSettings = vi.fn((settings: Record<string, unknown>) => {
+    maybeThrowWrite("homepage-settings");
+    return settings;
+  });
+  const updateVisitorStats = vi.fn((stats: Record<string, unknown>) => {
+    maybeThrowWrite("visitor-stats");
+    return stats;
+  });
+  const upsertUser = vi.fn((user: Record<string, unknown>) => {
+    maybeThrowWrite("users");
+    return {
+      id: user.id || "user-2",
+      email: user.email || "editor@example.edu"
+    };
+  });
+  const deleteUser = vi.fn((id: string) => {
+    maybeThrowWrite("users-delete");
+    return {
+      id,
+      deleted: true
+    };
+  });
+  const resetUsers = vi.fn(() => {
+    maybeThrowWrite("users-reset");
+    return [
+      {
+        id: "user-admin",
+        role: "admin"
+      }
+    ];
+  });
   const verifyAuthToken = vi.fn((token: string) => {
     if (token === "admin-token") {
       return {
@@ -118,6 +275,7 @@ function loadCodeScript(): CodeScriptContext {
     "setSetting",
     "Utilities",
     "SETTING_KEYS",
+    "LockService",
     "verifyAuthToken",
     "jsonResponse",
     "getPublicSnapshotCached",
@@ -151,7 +309,8 @@ function loadCodeScript(): CodeScriptContext {
     "upsertUser",
     "deleteUser",
     "resetUsers",
-    `${codeSource}
+    `${locksSource}
+${codeSource}
 return {
   extractAuthToken,
   routeRequest,
@@ -172,6 +331,7 @@ return {
     {
       authTokenSecret: "authTokenSecret"
     },
+    lockService,
     verifyAuthToken,
     jsonResponse,
     vi.fn(() => ({
@@ -187,46 +347,83 @@ return {
     vi.fn(),
     incrementContentView,
     vi.fn(),
-    vi.fn(),
-    vi.fn(),
+    upsertContent,
+    deleteContent,
     upsertCarouselSlide,
     deleteCarouselSlide,
     upsertExternalService,
     deleteExternalService,
-    vi.fn(),
-    vi.fn(),
-    vi.fn(),
-    vi.fn(),
-    vi.fn(),
-    vi.fn(),
-    vi.fn(),
+    upsertMedia,
+    deleteMedia,
+    upsertEvent,
+    deleteEvent,
+    publishContent,
+    replaceMenu,
+    updateDisplaySettings,
     updateSiteSettings,
     updateHomepageSettings,
     updateVisitorStats,
     getUsers,
-    vi.fn(),
-    vi.fn(),
-    vi.fn()
+    upsertUser,
+    deleteUser,
+    resetUsers
   ) as Pick<CodeScriptContext, "extractAuthToken" | "routeRequest" | "shouldReadAuthContext">;
 
   return {
     ...exports,
+    deleteContent,
+    deleteEvent,
+    deleteMedia,
     getPublicContentListSnapshot,
     getPublicHomeSnapshot,
     getPublicProgramListSnapshot,
     getPublicSearchIndexSnapshot,
     getUsers,
     incrementContentView,
+    lockService,
+    publishContent,
+    replaceMenu,
+    resetUsers,
+    scriptLock,
+    upsertContent,
     upsertCarouselSlide,
     deleteCarouselSlide,
     upsertExternalService,
     deleteExternalService,
+    upsertEvent,
+    upsertMedia,
+    upsertUser,
+    deleteUser,
+    updateDisplaySettings,
     updateHomepageSettings,
     updateSiteSettings,
     updateVisitorStats,
     verifyAuthToken
   };
 }
+
+type LockedWriteMockName = keyof Pick<
+  CodeScriptContext,
+  | "deleteContent"
+  | "deleteEvent"
+  | "deleteMedia"
+  | "deleteUser"
+  | "publishContent"
+  | "replaceMenu"
+  | "resetUsers"
+  | "upsertContent"
+  | "upsertCarouselSlide"
+  | "deleteCarouselSlide"
+  | "upsertExternalService"
+  | "deleteExternalService"
+  | "upsertEvent"
+  | "upsertMedia"
+  | "upsertUser"
+  | "updateDisplaySettings"
+  | "updateHomepageSettings"
+  | "updateSiteSettings"
+  | "updateVisitorStats"
+>;
 
 describe("Apps Script route auth handling", () => {
   it("returns public-home through unauthenticated GET without reading auth context", () => {
@@ -323,6 +520,281 @@ describe("Apps Script route auth handling", () => {
     expect(context.getUsers).not.toHaveBeenCalled();
   });
 
+  it("acquires and releases the script lock for mutating write routes", () => {
+    const writeRoutes: Array<{
+      resource: string;
+      payload: Record<string, unknown>;
+      mockName: LockedWriteMockName;
+    }> = [
+      {
+        resource: "content",
+        payload: {
+          title: "Content",
+          authToken: "editor-token"
+        },
+        mockName: "upsertContent"
+      },
+      {
+        resource: "content-delete",
+        payload: {
+          id: "content-1",
+          authToken: "editor-token"
+        },
+        mockName: "deleteContent"
+      },
+      {
+        resource: "publish",
+        payload: {
+          id: "content-1",
+          authToken: "editor-token"
+        },
+        mockName: "publishContent"
+      },
+      {
+        resource: "carousel",
+        payload: {
+          title: "Slide",
+          authToken: "editor-token"
+        },
+        mockName: "upsertCarouselSlide"
+      },
+      {
+        resource: "carousel-delete",
+        payload: {
+          id: "carousel-1",
+          authToken: "editor-token"
+        },
+        mockName: "deleteCarouselSlide"
+      },
+      {
+        resource: "external-service",
+        payload: {
+          title: "Service",
+          authToken: "editor-token"
+        },
+        mockName: "upsertExternalService"
+      },
+      {
+        resource: "external-service-delete",
+        payload: {
+          id: "external-service-1",
+          authToken: "editor-token"
+        },
+        mockName: "deleteExternalService"
+      },
+      {
+        resource: "media",
+        payload: {
+          name: "Media",
+          authToken: "editor-token"
+        },
+        mockName: "upsertMedia"
+      },
+      {
+        resource: "media-delete",
+        payload: {
+          id: "media-1",
+          authToken: "editor-token"
+        },
+        mockName: "deleteMedia"
+      },
+      {
+        resource: "event",
+        payload: {
+          title: "Event",
+          authToken: "editor-token"
+        },
+        mockName: "upsertEvent"
+      },
+      {
+        resource: "event-delete",
+        payload: {
+          id: "event-1",
+          authToken: "editor-token"
+        },
+        mockName: "deleteEvent"
+      },
+      {
+        resource: "menu",
+        payload: {
+          items: [{ id: "home" }],
+          authToken: "editor-token"
+        },
+        mockName: "replaceMenu"
+      },
+      {
+        resource: "display-settings",
+        payload: {
+          dateFormat: "D MMM BBBB",
+          authToken: "editor-token"
+        },
+        mockName: "updateDisplaySettings"
+      },
+      {
+        resource: "site-settings",
+        payload: {
+          siteName: "Updated",
+          authToken: "admin-token"
+        },
+        mockName: "updateSiteSettings"
+      },
+      {
+        resource: "homepage-settings",
+        payload: {
+          marquee: {},
+          authToken: "admin-token"
+        },
+        mockName: "updateHomepageSettings"
+      },
+      {
+        resource: "visitor-stats",
+        payload: {
+          enabled: true,
+          authToken: "admin-token"
+        },
+        mockName: "updateVisitorStats"
+      },
+      {
+        resource: "users",
+        payload: {
+          email: "editor@example.edu",
+          authToken: "admin-token"
+        },
+        mockName: "upsertUser"
+      },
+      {
+        resource: "users-delete",
+        payload: {
+          id: "user-2",
+          authToken: "admin-token"
+        },
+        mockName: "deleteUser"
+      },
+      {
+        resource: "users-reset",
+        payload: {
+          authToken: "admin-token"
+        },
+        mockName: "resetUsers"
+      }
+    ];
+
+    writeRoutes.forEach((route) => {
+      const context = loadCodeScript();
+      const result = context.routeRequest(
+        {
+          resource: route.resource,
+          payload: route.payload
+        },
+        "POST"
+      );
+
+      expect(result.statusCode).toBe(200);
+      expect(context.lockService.getScriptLock).toHaveBeenCalledTimes(1);
+      expect(context.scriptLock.tryLock).toHaveBeenCalledWith(5000);
+      expect(context.scriptLock.releaseLock).toHaveBeenCalledTimes(1);
+      expect(context[route.mockName]).toHaveBeenCalled();
+    });
+  });
+
+  it("returns 503 and skips the write when the script lock is unavailable", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadCodeScript({
+      lockAcquired: false
+    });
+    const result = context.routeRequest(
+      {
+        resource: "carousel",
+        payload: {
+          title: "Homepage slide",
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(result.statusCode).toBe(503);
+    expect(result.body.error).toBe("CMS is busy. Please retry.");
+    expect(context.lockService.getScriptLock).toHaveBeenCalledTimes(1);
+    expect(context.scriptLock.tryLock).toHaveBeenCalledWith(5000);
+    expect(context.scriptLock.releaseLock).not.toHaveBeenCalled();
+    expect(context.upsertCarouselSlide).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("releases the script lock when a write route throws", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadCodeScript({
+      throwingWriteResource: "carousel"
+    });
+    const result = context.routeRequest(
+      {
+        resource: "carousel",
+        payload: {
+          title: "Homepage slide",
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(result.statusCode).toBe(500);
+    expect(result.body.error).toBe("Forced write failure.");
+    expect(context.upsertCarouselSlide).toHaveBeenCalledTimes(1);
+    expect(context.scriptLock.releaseLock).toHaveBeenCalledTimes(1);
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("does not acquire write locks for read-only routes or content views", () => {
+    const context = loadCodeScript();
+
+    expect(
+      context.routeRequest(
+        {
+          resource: "public-home"
+        },
+        "GET"
+      ).statusCode
+    ).toBe(200);
+    expect(
+      context.routeRequest(
+        {
+          resource: "snapshot-admin",
+          payload: {
+            authToken: "editor-token"
+          }
+        },
+        "POST"
+      ).statusCode
+    ).toBe(200);
+    expect(
+      context.routeRequest(
+        {
+          resource: "users",
+          payload: {
+            action: "list",
+            authToken: "admin-token"
+          }
+        },
+        "POST"
+      ).statusCode
+    ).toBe(200);
+    expect(
+      context.routeRequest(
+        {
+          resource: "content-view",
+          payload: {
+            slug: "announcement-1"
+          }
+        },
+        "POST"
+      ).statusCode
+    ).toBe(200);
+
+    expect(context.lockService.getScriptLock).not.toHaveBeenCalled();
+    expect(context.incrementContentView).toHaveBeenCalledTimes(1);
+  });
+
   it("lists users through POST users action=list only for admin tokens", () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const adminContext = loadCodeScript();
@@ -416,6 +888,7 @@ describe("Apps Script route auth handling", () => {
 
     expect(editorResult.statusCode).toBe(403);
     expect(editorContext.updateSiteSettings).not.toHaveBeenCalled();
+    expect(editorContext.lockService.getScriptLock).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 
@@ -466,6 +939,7 @@ describe("Apps Script route auth handling", () => {
 
     expect(editorResult.statusCode).toBe(403);
     expect(editorContext.updateHomepageSettings).not.toHaveBeenCalled();
+    expect(editorContext.lockService.getScriptLock).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 
@@ -508,6 +982,7 @@ describe("Apps Script route auth handling", () => {
 
     expect(editorResult.statusCode).toBe(403);
     expect(editorContext.updateVisitorStats).not.toHaveBeenCalled();
+    expect(editorContext.lockService.getScriptLock).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 
@@ -572,6 +1047,7 @@ describe("Apps Script route auth handling", () => {
     expect(result.statusCode).toBe(401);
     expect(result.body.error).toBe("Authentication is required.");
     expect(context.upsertCarouselSlide).not.toHaveBeenCalled();
+    expect(context.lockService.getScriptLock).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 
@@ -636,6 +1112,7 @@ describe("Apps Script route auth handling", () => {
     expect(result.statusCode).toBe(401);
     expect(result.body.error).toBe("Authentication is required.");
     expect(context.upsertExternalService).not.toHaveBeenCalled();
+    expect(context.lockService.getScriptLock).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 
@@ -658,6 +1135,7 @@ describe("Apps Script route auth handling", () => {
     expect(context.incrementContentView).toHaveBeenCalledWith({
       slug: "announcement-1"
     });
+    expect(context.lockService.getScriptLock).not.toHaveBeenCalled();
   });
 
   it("never reads authToken from query parameters", () => {
