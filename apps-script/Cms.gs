@@ -278,6 +278,23 @@ function getPublicProgramListSnapshot() {
   };
 }
 
+function getPublicSearchIndexSnapshot() {
+  const spreadsheet = getSpreadsheet();
+  const content = readObjects(spreadsheet.getSheetByName(SHEETS.content), CONTENT_HEADERS).map(normalizeContentRecord);
+  const items = sortContentByPublishDate(
+    content.filter((item) => item.status === "published").map((item) => sanitizePublicSearchIndexContentRecord(item))
+  );
+
+  return {
+    items,
+    siteSettings: getSiteSettings(),
+    homepageSettings: getHomepageSettings(),
+    displaySettings: getDisplaySettings(),
+    menu: getMenu(),
+    generatedAt: new Date().toISOString()
+  };
+}
+
 function normalizePublicContentListKind(value) {
   const normalized = String(value || "")
     .trim()
@@ -400,6 +417,28 @@ function sanitizePublicHomeEventRecord(event) {
     category: event.category || "",
     visibility: "public",
     updatedAt: event.updatedAt || ""
+  };
+}
+
+function sanitizePublicSearchIndexContentRecord(item) {
+  const sanitized = sanitizePublicContentRecord(item);
+
+  return {
+    id: sanitized.id || "",
+    title: sanitized.title || "",
+    slug: sanitized.slug || "",
+    type: sanitized.type || "page",
+    status: "published",
+    owner: sanitized.owner || "",
+    summary: sanitized.summary || "",
+    category: sanitized.category || "",
+    tags: sanitized.tags || [],
+    seoTitle: sanitized.seoTitle || "",
+    seoDescription: sanitized.seoDescription || "",
+    featured: Boolean(sanitized.featured),
+    readingMinutes: sanitized.readingMinutes || 0,
+    updatedAt: sanitized.updatedAt || "",
+    publishAt: sanitized.publishAt || ""
   };
 }
 

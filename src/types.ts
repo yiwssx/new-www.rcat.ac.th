@@ -233,6 +233,15 @@ export interface PublicProgramListSnapshot {
   generatedAt: string;
 }
 
+export interface PublicSearchIndexSnapshot {
+  items: ContentItem[];
+  siteSettings: SiteSettings;
+  homepageSettings: HomepageSettings;
+  displaySettings?: DisplaySettings;
+  menu: PublicMenuItem[];
+  generatedAt: string;
+}
+
 export interface DisplaySettings {
   dateFormat: string;
   timeMode: "24h" | "12h";

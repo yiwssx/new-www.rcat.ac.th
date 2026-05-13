@@ -15,6 +15,7 @@ import {
   PublicHomeSnapshot,
   PublicMenuItem,
   PublicProgramListSnapshot,
+  PublicSearchIndexSnapshot,
   Session,
   SiteSettings,
   UserAccount,
@@ -36,6 +37,7 @@ const cacheFriendlyPublicGetResources = new Set<GoogleResource>([
   "publicHome",
   "publicContentList",
   "publicProgramList",
+  "publicSearchIndex",
   "menu",
   "displaySettings",
   "contentDetail"
@@ -288,6 +290,13 @@ export async function getPublicContentListSnapshot(kind: PublicContentListKind):
 
 export async function getPublicProgramListSnapshot(): Promise<PublicProgramListSnapshot> {
   const snapshot = await googleFetch<PublicProgramListSnapshot>("publicProgramList");
+
+  persistDisplaySettings(snapshot.displaySettings);
+  return snapshot;
+}
+
+export async function getPublicSearchIndexSnapshot(): Promise<PublicSearchIndexSnapshot> {
+  const snapshot = await googleFetch<PublicSearchIndexSnapshot>("publicSearchIndex");
 
   persistDisplaySettings(snapshot.displaySettings);
   return snapshot;

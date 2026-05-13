@@ -5,8 +5,10 @@ import Grid from "@mui/material/Grid2";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import EmptyState from "../../shared/components/EmptyState";
+import PublicErrorState from "../components/PublicErrorState";
+import PublicLoadingState from "../components/PublicLoadingState";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
+import { usePublicSearchIndex } from "../hooks/usePublicSearchIndex";
 import { ContentItem } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
@@ -37,12 +39,12 @@ function getContentTypeLabel(type: ContentItem["type"]) {
 
 export default function PublicSearchPage() {
   const navigate = useNavigate();
-  const { data, isFetching } = usePublicCmsSnapshot();
+  const { data, isLoading, isFetching, isError, refetch } = usePublicSearchIndex();
   const search = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
   const query = getSearchQueryFromLocation(search);
   const [draftQuery, setDraftQuery] = useState(query);
 
-  const results = useMemo(() => searchPublishedContent(data?.content ?? [], query), [data?.content, query]);
+  const results = useMemo(() => searchPublishedContent(data?.items ?? [], query), [data?.items, query]);
   const visibleResults = results.slice(0, 30);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -56,8 +58,23 @@ export default function PublicSearchPage() {
     void navigate({ to: "/search", search: { q: nextQuery } });
   }
 
+  if (!data && (isLoading || isFetching)) {
+    return <PublicLoadingState />;
+  }
+
+  if (!data && isError) {
+    return (
+      <PublicErrorState
+        onRetry={() => {
+          void refetch();
+        }}
+        isRetrying={isFetching}
+      />
+    );
+  }
+
   if (!data) {
-    return <PublicSiteShell>{null}</PublicSiteShell>;
+    return <PublicLoadingState />;
   }
 
   return (
@@ -67,6 +84,10 @@ export default function PublicSearchPage() {
       canonicalPath="/search"
       seoTitle={query ? `ค้นหา: ${query}` : "ค้นหา"}
       seoDescription="ค้นหาเนื้อหา ข่าว ประกาศ หลักสูตร และบทความในเว็บไซต์"
+      preloadedSiteSettings={data.siteSettings}
+      preloadedHomepageSettings={data.homepageSettings}
+      preloadedDisplaySettings={data.displaySettings}
+      preloadedMenu={data.menu}
     >
       <Card
         component="form"

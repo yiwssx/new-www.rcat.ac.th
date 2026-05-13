@@ -70,6 +70,10 @@ function routeRequest(event, method) {
       return jsonResponse(getPublicProgramListSnapshot());
     }
 
+    if (method === "GET" && resource === "public-search-index") {
+      return jsonResponse(getPublicSearchIndexSnapshot());
+    }
+
     if (method === "GET" && resource === "health") {
       return jsonResponse({
         ok: true,
@@ -248,6 +252,7 @@ function assertRouteAccess(method, resource, authContext) {
       resource === "public-home" ||
       resource === "public-content-list" ||
       resource === "public-program-list" ||
+      resource === "public-search-index" ||
       resource === "health" ||
       resource === "menu")
   ) {

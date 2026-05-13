@@ -11,6 +11,7 @@ interface CodeScriptContext {
   getPublicContentListSnapshot: Mock;
   getPublicHomeSnapshot: Mock;
   getPublicProgramListSnapshot: Mock;
+  getPublicSearchIndexSnapshot: Mock;
   getUsers: Mock;
   incrementContentView: Mock;
   routeRequest: (event: Record<string, unknown>, method: string) => RouteResult;
@@ -53,6 +54,10 @@ function loadCodeScript(): CodeScriptContext {
   const getPublicProgramListSnapshot = vi.fn(() => ({
     items: [],
     media: [],
+    generatedAt: "2026-05-12T00:00:00.000Z"
+  }));
+  const getPublicSearchIndexSnapshot = vi.fn(() => ({
+    items: [],
     generatedAt: "2026-05-12T00:00:00.000Z"
   }));
   const upsertCarouselSlide = vi.fn((input: Record<string, unknown>) => ({
@@ -119,6 +124,7 @@ function loadCodeScript(): CodeScriptContext {
     "getPublicHomeSnapshot",
     "getPublicContentListSnapshot",
     "getPublicProgramListSnapshot",
+    "getPublicSearchIndexSnapshot",
     "getSnapshot",
     "getMenu",
     "getDisplaySettings",
@@ -174,6 +180,7 @@ return {
     getPublicHomeSnapshot,
     getPublicContentListSnapshot,
     getPublicProgramListSnapshot,
+    getPublicSearchIndexSnapshot,
     vi.fn(),
     vi.fn(() => []),
     vi.fn(() => ({})),
@@ -207,6 +214,7 @@ return {
     getPublicContentListSnapshot,
     getPublicHomeSnapshot,
     getPublicProgramListSnapshot,
+    getPublicSearchIndexSnapshot,
     getUsers,
     incrementContentView,
     upsertCarouselSlide,
@@ -275,6 +283,23 @@ describe("Apps Script route auth handling", () => {
     expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
     expect(context.verifyAuthToken).not.toHaveBeenCalled();
     expect(context.getPublicProgramListSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns public search index through unauthenticated GET without reading auth context", () => {
+    const context = loadCodeScript();
+    const result = context.routeRequest(
+      {
+        resource: "public-search-index"
+      },
+      "GET"
+    );
+
+    expect(context.shouldReadAuthContext("GET", "public-search-index")).toBe(false);
+    expect(result.statusCode).toBe(200);
+    expect(result.body.items).toEqual([]);
+    expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
+    expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.getPublicSearchIndexSnapshot).toHaveBeenCalledTimes(1);
   });
 
   it("does not treat GET users as a valid authenticated route", () => {
@@ -651,6 +676,7 @@ describe("Apps Script route auth handling", () => {
       "public-home",
       "public-content-list",
       "public-program-list",
+      "public-search-index",
       "health",
       "menu",
       "display-settings",
