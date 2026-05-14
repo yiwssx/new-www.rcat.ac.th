@@ -2,8 +2,19 @@ const GOOGLE_TAG_MANAGER_ID = "GTM-WTCRN6KX";
 const GOOGLE_ANALYTICS_ID = "G-6L3DV71C2J";
 const GOOGLE_TAG_MANAGER_SCRIPT_ID = "rcat-google-tag-manager";
 const GOOGLE_ANALYTICS_SCRIPT_ID = "rcat-google-analytics";
+const DEFAULT_PUBLIC_ANALYTICS_STRATEGY = "gtm";
 
 type GtagArguments = [command: string, ...parameters: unknown[]];
+type PublicAnalyticsStrategy = "gtm" | "gtag" | "both";
+type IdleCallbackHandle =
+  | {
+      type: "idle";
+      id: number;
+    }
+  | {
+      type: "timeout";
+      id: ReturnType<typeof window.setTimeout>;
+    };
 
 type AnalyticsWindow = Window & {
   dataLayer?: unknown[];
@@ -13,6 +24,8 @@ type AnalyticsWindow = Window & {
 let googleTagManagerInitialized = false;
 let googleAnalyticsInitialized = false;
 let lastTrackedPagePath = "";
+let pendingPageViewHandle: IdleCallbackHandle | null = null;
+let pendingPageViewPath = "";
 
 function normalizePathname(pathname: string) {
   const [pathWithoutQuery] = pathname.split(/[?#]/u);
@@ -56,6 +69,16 @@ function appendAsyncScript(id: string, src: string) {
   script.async = true;
   script.src = src;
   document.head.appendChild(script);
+}
+
+function getPublicAnalyticsStrategy(): PublicAnalyticsStrategy {
+  const strategy = import.meta.env.VITE_PUBLIC_ANALYTICS_STRATEGY?.trim().toLowerCase();
+
+  if (strategy === "gtag" || strategy === "both") {
+    return strategy;
+  }
+
+  return DEFAULT_PUBLIC_ANALYTICS_STRATEGY;
 }
 
 function ensureGoogleTagManager() {
@@ -104,8 +127,15 @@ function ensurePublicAnalytics() {
     return;
   }
 
-  ensureGoogleTagManager();
-  ensureGoogleAnalytics();
+  const strategy = getPublicAnalyticsStrategy();
+
+  if (strategy === "gtm" || strategy === "both") {
+    ensureGoogleTagManager();
+  }
+
+  if (strategy === "gtag" || strategy === "both") {
+    ensureGoogleAnalytics();
+  }
 }
 
 function getCurrentPageViewFields() {
@@ -120,6 +150,7 @@ function getCurrentPageViewFields() {
 
 export function trackPublicPageView(pathname: string) {
   if (!isPublicAnalyticsPath(pathname)) {
+    cancelPendingPageView();
     return;
   }
 
@@ -127,20 +158,85 @@ export function trackPublicPageView(pathname: string) {
     return;
   }
 
-  ensurePublicAnalytics();
-
-  const analyticsWindow = getAnalyticsWindow();
   const pageViewFields = getCurrentPageViewFields();
 
-  if (lastTrackedPagePath === pageViewFields.page_path) {
+  if (lastTrackedPagePath === pageViewFields.page_path || pendingPageViewPath === pageViewFields.page_path) {
     return;
   }
 
-  analyticsWindow.gtag?.("event", "page_view", pageViewFields);
-  lastTrackedPagePath = pageViewFields.page_path;
+  cancelPendingPageView();
+  pendingPageViewPath = pageViewFields.page_path;
+  pendingPageViewHandle = scheduleIdlePageView(() => {
+    const scheduledPagePath = pendingPageViewPath;
+    pendingPageViewHandle = null;
+    pendingPageViewPath = "";
+
+    if (!isPublicAnalyticsPath(window.location.pathname)) {
+      return;
+    }
+
+    const currentPageViewFields = getCurrentPageViewFields();
+
+    if (
+      currentPageViewFields.page_path !== scheduledPagePath ||
+      lastTrackedPagePath === currentPageViewFields.page_path
+    ) {
+      return;
+    }
+
+    ensurePublicAnalytics();
+    sendPublicPageView(currentPageViewFields);
+    lastTrackedPagePath = currentPageViewFields.page_path;
+  });
+}
+
+function scheduleIdlePageView(callback: () => void): IdleCallbackHandle {
+  if (typeof window.requestIdleCallback === "function") {
+    return {
+      type: "idle",
+      id: window.requestIdleCallback(callback, { timeout: 2000 })
+    };
+  }
+
+  return {
+    type: "timeout",
+    id: window.setTimeout(callback, 0)
+  };
+}
+
+function cancelPendingPageView() {
+  if (!pendingPageViewHandle) {
+    pendingPageViewPath = "";
+    return;
+  }
+
+  if (pendingPageViewHandle.type === "idle" && typeof window.cancelIdleCallback === "function") {
+    window.cancelIdleCallback(pendingPageViewHandle.id);
+  } else if (pendingPageViewHandle.type === "timeout") {
+    window.clearTimeout(pendingPageViewHandle.id);
+  }
+
+  pendingPageViewHandle = null;
+  pendingPageViewPath = "";
+}
+
+function sendPublicPageView(pageViewFields: ReturnType<typeof getCurrentPageViewFields>) {
+  const strategy = getPublicAnalyticsStrategy();
+  const analyticsWindow = getAnalyticsWindow();
+
+  if (strategy === "gtag" || strategy === "both") {
+    analyticsWindow.gtag?.("event", "page_view", pageViewFields);
+    return;
+  }
+
+  ensureDataLayer().push({
+    event: "page_view",
+    ...pageViewFields
+  });
 }
 
 export function resetPublicAnalyticsForTests() {
+  cancelPendingPageView();
   googleTagManagerInitialized = false;
   googleAnalyticsInitialized = false;
   lastTrackedPagePath = "";

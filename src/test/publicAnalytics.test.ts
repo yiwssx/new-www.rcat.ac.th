@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   isPublicAnalyticsPath,
   resetPublicAnalyticsForTests,
@@ -13,6 +13,13 @@ type GtagCommand = [command: string, ...parameters: unknown[]];
 type TestAnalyticsWindow = Window & {
   dataLayer?: unknown[];
   gtag?: (...args: GtagCommand) => void;
+};
+
+type DataLayerPageView = {
+  event: "page_view";
+  page_path: string;
+  page_location: string;
+  page_title: string;
 };
 
 function getTestAnalyticsWindow() {
@@ -41,6 +48,12 @@ function isGtagCommand(value: unknown): value is GtagCommand {
 }
 
 function getPageViewEvents() {
+  return getDataLayer().filter((entry): entry is DataLayerPageView => {
+    return typeof entry === "object" && entry !== null && "event" in entry && entry.event === "page_view";
+  });
+}
+
+function getGtagPageViewEvents() {
   return getDataLayer().filter(
     (entry): entry is ["event", "page_view", Record<string, unknown>] =>
       isGtagCommand(entry) && entry[0] === "event" && entry[1] === "page_view"
@@ -53,8 +66,18 @@ function getConfigEvents() {
   );
 }
 
+function flushAnalyticsIdle() {
+  vi.runOnlyPendingTimers();
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+
 afterEach(() => {
   resetAnalyticsDom();
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
 });
 
 describe("public analytics route guard", () => {
@@ -81,19 +104,46 @@ describe("public analytics tracking", () => {
     window.history.replaceState({}, "", "/admin/content");
 
     trackPublicPageView("/admin/content");
+    flushAnalyticsIdle();
 
     expect(document.getElementById(googleTagManagerScriptId)).toBeNull();
     expect(document.getElementById(googleAnalyticsScriptId)).toBeNull();
     expect(getTestAnalyticsWindow().dataLayer).toBeUndefined();
   });
 
-  it("injects public analytics and sends an explicit public page view", () => {
+  it("defers public analytics and sends one explicit public page view through GTM by default", () => {
     document.title = "News";
     window.history.replaceState({}, "", "/news");
 
     trackPublicPageView("/news");
 
+    expect(document.getElementById(googleTagManagerScriptId)).toBeNull();
+    expect(document.getElementById(googleAnalyticsScriptId)).toBeNull();
+
+    flushAnalyticsIdle();
+
     expect(document.getElementById(googleTagManagerScriptId)).not.toBeNull();
+    expect(document.getElementById(googleAnalyticsScriptId)).toBeNull();
+    expect(getConfigEvents()).toEqual([]);
+    expect(getPageViewEvents()).toEqual([
+      expect.objectContaining({
+        event: "page_view",
+        page_path: "/news",
+        page_location: "http://localhost:3000/news",
+        page_title: "News"
+      })
+    ]);
+  });
+
+  it("can use direct GA4 without GTM when explicitly configured", () => {
+    vi.stubEnv("VITE_PUBLIC_ANALYTICS_STRATEGY", "gtag");
+    document.title = "News";
+    window.history.replaceState({}, "", "/news");
+
+    trackPublicPageView("/news");
+    flushAnalyticsIdle();
+
+    expect(document.getElementById(googleTagManagerScriptId)).toBeNull();
     expect(document.getElementById(googleAnalyticsScriptId)).not.toBeNull();
     expect(getConfigEvents()).toEqual([
       [
@@ -104,7 +154,7 @@ describe("public analytics tracking", () => {
         }
       ]
     ]);
-    expect(getPageViewEvents()).toEqual([
+    expect(getGtagPageViewEvents()).toEqual([
       [
         "event",
         "page_view",
@@ -122,34 +172,52 @@ describe("public analytics tracking", () => {
 
     trackPublicPageView("/news");
     trackPublicPageView("/news");
+    flushAnalyticsIdle();
 
     expect(document.querySelectorAll(`#${googleTagManagerScriptId}`)).toHaveLength(1);
-    expect(document.querySelectorAll(`#${googleAnalyticsScriptId}`)).toHaveLength(1);
+    expect(document.querySelectorAll(`#${googleAnalyticsScriptId}`)).toHaveLength(0);
     expect(getPageViewEvents()).toHaveLength(1);
   });
 
   it("does not send private route page views after analytics has loaded", () => {
     window.history.replaceState({}, "", "/news");
     trackPublicPageView("/news");
+    flushAnalyticsIdle();
 
     window.history.replaceState({}, "", "/admin");
     trackPublicPageView("/admin");
+    flushAnalyticsIdle();
 
     expect(getPageViewEvents()).toHaveLength(1);
     expect(JSON.stringify(getDataLayer())).not.toContain("/admin");
   });
 
-  it("loads analytics from private to public navigation and tracks only the public page", () => {
-    window.history.replaceState({}, "", "/login");
-    trackPublicPageView("/login");
-
+  it("cancels delayed analytics when navigation becomes private before idle", () => {
     window.history.replaceState({}, "", "/news");
     trackPublicPageView("/news");
 
+    window.history.replaceState({}, "", "/admin");
+    trackPublicPageView("/admin");
+    flushAnalyticsIdle();
+
+    expect(document.getElementById(googleTagManagerScriptId)).toBeNull();
+    expect(document.getElementById(googleAnalyticsScriptId)).toBeNull();
+    expect(getTestAnalyticsWindow().dataLayer).toBeUndefined();
+  });
+
+  it("loads analytics from private to public navigation and tracks only the public page", () => {
+    window.history.replaceState({}, "", "/login");
+    trackPublicPageView("/login");
+    flushAnalyticsIdle();
+
+    window.history.replaceState({}, "", "/news");
+    trackPublicPageView("/news");
+    flushAnalyticsIdle();
+
     expect(document.getElementById(googleTagManagerScriptId)).not.toBeNull();
-    expect(document.getElementById(googleAnalyticsScriptId)).not.toBeNull();
+    expect(document.getElementById(googleAnalyticsScriptId)).toBeNull();
     expect(getPageViewEvents()).toHaveLength(1);
-    expect(getPageViewEvents()[0][2]).toEqual(
+    expect(getPageViewEvents()[0]).toEqual(
       expect.objectContaining({
         page_path: "/news"
       })

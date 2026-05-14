@@ -90,6 +90,48 @@ describe("homepage settings public sections", () => {
     expect(screen.getByRole("link", { name: "Read more" })).toHaveAttribute("href", "/content/campus-highlight");
   });
 
+  it("prioritizes only the first PublicHomeCarousel image", () => {
+    const slides: CarouselSlide[] = [
+      {
+        id: "carousel-1",
+        title: "Campus highlight",
+        subtitle: "A real CMS carousel slide",
+        chip: "Homepage",
+        imageUrl: "https://example.edu/banner-1.jpg",
+        imageAlt: "Campus banner",
+        buttonLabel: "Read more",
+        href: "/content/campus-highlight",
+        enabled: true,
+        order: 1,
+        updatedAt: "2026-05-10T00:00:00.000Z"
+      },
+      {
+        id: "carousel-2",
+        title: "Student showcase",
+        subtitle: "Another CMS carousel slide",
+        chip: "Homepage",
+        imageUrl: "https://example.edu/banner-2.jpg",
+        imageAlt: "Student banner",
+        buttonLabel: "Open",
+        href: "/content/student-showcase",
+        enabled: true,
+        order: 2,
+        updatedAt: "2026-05-10T00:00:00.000Z"
+      }
+    ];
+
+    render(<PublicHomeCarousel slides={slides} />);
+
+    const carouselImages = screen.getAllByRole("img");
+
+    expect(carouselImages[0]).toHaveAttribute("loading", "eager");
+    expect(carouselImages[0]).toHaveAttribute("fetchpriority", "high");
+    expect(carouselImages[0]).toHaveAttribute("decoding", "async");
+    expect(carouselImages[1]).toHaveAttribute("loading", "lazy");
+    expect(carouselImages[1]).toHaveAttribute("fetchpriority", "auto");
+    expect(carouselImages[1]).toHaveAttribute("decoding", "async");
+  });
+
   it("does not render ExternalServicesSection when no service links exist", () => {
     expect(render(<ExternalServicesSection items={[]} />).container.firstChild).toBeNull();
   });
