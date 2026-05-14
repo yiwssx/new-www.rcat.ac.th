@@ -145,7 +145,7 @@ describe("PublicContentDetailPage public UX regressions", () => {
   it("renders announcement detail with correct metadata, back link, and related announcements", () => {
     const announcementDetail = createContent({
       id: "announcement-1",
-      title: "ประกาศปลั่งพลาจ้างสุคชิน",
+      title: "ประกาศสำคัญสำหรับนักเรียน นักศึกษา",
       slug: "important-announcement",
       type: "announcement",
       status: "published",
@@ -160,7 +160,7 @@ describe("PublicContentDetailPage public UX regressions", () => {
 
     const relatedAnnouncement = createContent({
       id: "announcement-2",
-      title: "ประกาศที่เกี่ยวข้องครับท่าน",
+      title: "ประกาศที่เกี่ยวข้อง",
       slug: "related-important-announcement",
       type: "announcement",
       status: "published",
