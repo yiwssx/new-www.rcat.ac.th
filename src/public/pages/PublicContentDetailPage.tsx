@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
+import "dayjs/locale/th";
 import { Box, Button, Card, CardContent, Chip, Divider, LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
@@ -13,9 +15,9 @@ import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { usePublicContentDetail } from "../hooks/usePublicContentDetail";
 import { parseContentBodyToBlocks } from "../../utils/contentBlocks";
-import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
+import { ContentItem } from "../../types";
 
 interface PublicContentDetailPageProps {
   slug?: string;
@@ -88,21 +90,6 @@ function getFilterHref(type: string, key: "tag" | "category", value: string) {
   return `${getFilterListPath(type)}?${key}=${encodeURIComponent(value)}`;
 }
 
-function isDifferentDateTime(left: string | undefined, right: string | undefined) {
-  if (!left || !right) {
-    return false;
-  }
-
-  const leftTime = new Date(left).getTime();
-  const rightTime = new Date(right).getTime();
-
-  if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
-    return left !== right;
-  }
-
-  return Math.abs(leftTime - rightTime) > 1000;
-}
-
 function getViewCountStorageKey(item: { id?: string; slug?: string }) {
   const lookupKey = item.id || item.slug || "";
   return lookupKey ? `rcat.cms.viewed.${lookupKey}` : "";
@@ -137,6 +124,16 @@ function formatViewCount(value: number | undefined) {
   return Math.max(0, Number(value) || 0).toLocaleString("th-TH");
 }
 
+function formatContentDetailThaiDate(value: string | Date) {
+  const parsed = dayjs(value).locale("th");
+
+  if (!parsed.isValid()) {
+    return "";
+  }
+
+  return `${parsed.format("D MMMM")} ${parsed.year() + 543}`;
+}
+
 function getSafeMediaHref(asset: { driveUrl?: string; previewUrl?: string; embedUrl?: string }) {
   const candidates = [asset.driveUrl, asset.previewUrl, asset.embedUrl];
 
@@ -149,6 +146,43 @@ function getSafeMediaHref(asset: { driveUrl?: string; previewUrl?: string; embed
   }
 
   return "#";
+}
+
+function ContentDetailMetadata({
+  item,
+  tagList,
+  displayedViewCount
+}: {
+  item: ContentItem;
+  tagList: string[];
+  displayedViewCount: number;
+}) {
+  return (
+    <Stack spacing={1}>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Chip label={contentTypeLabels[item.type]} color="primary" />
+        <Chip label={contentStatusLabels[item.status]} variant="outlined" />
+        <Chip label={formatContentDetailThaiDate(item.publishAt)} variant="outlined" />
+        <Chip label={`ผู้เผยแพร่: ${item.owner || "ไม่ระบุ"}`} variant="outlined" />
+        <Chip label={`ผู้เข้าดู ${formatViewCount(displayedViewCount)} ครั้ง`} variant="outlined" />
+      </Stack>
+      {!!tagList.length && (
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {tagList.map((tag) => (
+            <Chip
+              key={tag}
+              component="a"
+              clickable
+              href={normalizeSafeHref(getFilterHref(item.type, "tag", tag))}
+              label={`#${tag}`}
+              variant="outlined"
+              sx={focusVisibleSx}
+            />
+          ))}
+        </Stack>
+      )}
+    </Stack>
+  );
 }
 
 export default function PublicContentDetailPage({ slug }: PublicContentDetailPageProps) {
@@ -175,7 +209,6 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   const featuredMedia = mediaAssets.find((asset) => asset.id === item?.featuredMediaId);
   const featuredMediaPreviewUrl = normalizeSafeResourceUrl(featuredMedia?.previewUrl);
   const featuredMediaEmbedUrl = normalizeSafeResourceUrl(featuredMedia?.embedUrl);
-  const canonicalHref = normalizeSafeHref(item?.canonicalUrl || "");
   const attachedMedia = mediaAssets.filter((asset) => item?.mediaIds?.includes(asset.id));
   const relatedItems = useMemo(() => {
     if (!item) {
@@ -266,9 +299,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   const recordedViewCount =
     recordedViewCountState.storageKey === viewCountStorageKey ? recordedViewCountState.count : null;
   const displayedViewCount = recordedViewCount ?? item.viewCount ?? 0;
-  const categoryList = normalizeCategoryList(item.category);
   const tagList = normalizeTags(item.tags);
-  const shouldShowUpdatedAt = isDifferentDateTime(item.updatedAt, item.publishAt);
 
   if (item.type === "announcement") {
     return (
@@ -287,21 +318,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
           <Card component="article">
             <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
               <Stack spacing={2.4}>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  <Chip label="ประกาศ" color="primary" />
-                  {item.featured && <Chip label="สำคัญ" color="secondary" />}
-                  {categoryList.map((category) => (
-                    <Chip
-                      key={category}
-                      component="a"
-                      clickable
-                      href={normalizeSafeHref(getFilterHref(item.type, "category", category))}
-                      label={category}
-                      variant="outlined"
-                      sx={focusVisibleSx}
-                    />
-                  ))}
-                </Stack>
+                <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
 
                 <Box>
                   <Typography variant="h1" sx={{ fontSize: { xs: "2rem", md: "3.2rem" }, lineHeight: 1.12 }}>
@@ -313,31 +330,6 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     </Typography>
                   )}
                 </Box>
-
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  <Chip label={`ผู้โพสต์: ${item.owner || "ไม่ระบุ"}`} variant="outlined" />
-                  <Chip label={`เผยแพร่: ${formatDisplayDateTime(item.publishAt)}`} variant="outlined" />
-                  {shouldShowUpdatedAt && (
-                    <Chip label={`อัปเดต: ${formatDisplayDateTime(item.updatedAt)}`} variant="outlined" />
-                  )}
-                  <Chip label={`ดูแล้ว ${formatViewCount(displayedViewCount)} ครั้ง`} variant="outlined" />
-                </Stack>
-
-                {!!tagList.length && (
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {tagList.map((tag) => (
-                      <Chip
-                        key={tag}
-                        component="a"
-                        clickable
-                        href={normalizeSafeHref(getFilterHref(item.type, "tag", tag))}
-                        label={`#${tag}`}
-                        variant="outlined"
-                        sx={focusVisibleSx}
-                      />
-                    ))}
-                  </Stack>
-                )}
 
                 {featuredMedia?.type === "image" && featuredMediaPreviewUrl && (
                   <Box
@@ -436,35 +428,9 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
         <Grid size={{ xs: 12, lg: 8 }}>
           <Card>
             <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-                <Chip label={contentTypeLabels[item.type]} color="primary" />
-                <Chip label={contentStatusLabels[item.status]} variant="outlined" />
-                <Chip label={formatDisplayDate(item.publishAt)} variant="outlined" />
-                {item.featured && <Chip label="แนะนำ" color="secondary" />}
-                {categoryList.slice(0, 3).map((category) => (
-                  <Chip
-                    key={category}
-                    component="a"
-                    clickable
-                    href={normalizeSafeHref(getFilterHref(item.type, "category", category))}
-                    label={category}
-                    variant="outlined"
-                    sx={focusVisibleSx}
-                  />
-                ))}
-                {!!item.readingMinutes && <Chip label={`อ่าน ${item.readingMinutes} นาที`} variant="outlined" />}
-                {tagList.slice(0, 4).map((tag) => (
-                  <Chip
-                    key={tag}
-                    component="a"
-                    clickable
-                    href={normalizeSafeHref(getFilterHref(item.type, "tag", tag))}
-                    label={`#${tag}`}
-                    variant="outlined"
-                    sx={focusVisibleSx}
-                  />
-                ))}
-              </Stack>
+              <Box sx={{ mb: 2 }}>
+                <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
+              </Box>
               <Box
                 sx={{
                   minHeight: { xs: 180, md: 260 },
@@ -507,7 +473,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                 {contentBlocks.length ? (
                   <ContentBlocksRenderer blocks={contentBlocks} mediaAssets={mediaAssets} />
                 ) : (
-                  <EmptyState title="ยังไม่มีรายละเอียดเนื้อหาที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
+                  <EmptyState title="ยังไม่มีเนื้อหาที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
                 )}
               </Stack>
             </CardContent>
@@ -515,54 +481,6 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
         </Grid>
         <Grid size={{ xs: 12, lg: 4 }}>
           <Stack spacing={2.5}>
-            <Card>
-              <CardContent sx={{ p: 2.5 }}>
-                <Typography variant="h3">รายละเอียดเนื้อหา</Typography>
-                <Divider sx={{ my: 1.5 }} />
-                <Stack spacing={1.2}>
-                  <Box>
-                    <Typography color="text.secondary" variant="body2">
-                      ผู้รับผิดชอบ
-                    </Typography>
-                    <Typography fontWeight={900}>{item.owner}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography color="text.secondary" variant="body2">
-                      ปรับปรุงล่าสุด
-                    </Typography>
-                    <Typography fontWeight={900}>{formatDisplayDateTime(item.updatedAt)}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography color="text.secondary" variant="body2">
-                      เผยแพร่
-                    </Typography>
-                    <Typography fontWeight={900}>{formatDisplayDateTime(item.publishAt)}</Typography>
-                  </Box>
-                  {!!item.template && (
-                    <Box>
-                      <Typography color="text.secondary" variant="body2">
-                        เทมเพลต
-                      </Typography>
-                      <Typography fontWeight={900} sx={{ textTransform: "capitalize" }}>
-                        {item.template}
-                      </Typography>
-                    </Box>
-                  )}
-                  {!!item.canonicalUrl && (
-                    <Button
-                      component="a"
-                      href={canonicalHref}
-                      target="_blank"
-                      rel="noreferrer"
-                      variant="outlined"
-                      sx={{ justifyContent: "flex-start" }}
-                    >
-                      URL หลัก
-                    </Button>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
             {!!attachedMedia.length && (
               <Card>
                 <CardContent sx={{ p: 2.5 }}>
