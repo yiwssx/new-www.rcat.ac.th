@@ -63,4 +63,49 @@ describe("Facebook embed regressions", () => {
     expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
     expect(container.querySelector(".fb-post")).not.toBeInTheDocument();
   });
+
+  // TODO: These risky Facebook URL types are currently allowed by normalizeFacebookPostUrl
+  // and will render Facebook embeds. Recommend future tightening to restrict to
+  // permalink.php, story.php, photo.php, and /posts paths only.
+  it.each<{ label: string; url: string }>([
+    {
+      label: "share/p/ paths (currently embeddable, may be risky)",
+      url: "https://www.facebook.com/share/p/abc123def456/"
+    },
+    {
+      label: "watch paths with video ID (currently embeddable, may be risky)",
+      url: "https://www.facebook.com/watch/?v=123456789012345"
+    },
+    {
+      label: "reel paths (currently embeddable, may be risky)",
+      url: "https://www.facebook.com/reel/123456789012345"
+    }
+  ])("documents that risky URL types ($label) are currently embedded", ({ url }) => {
+    const { container } = render(
+      <ContentBlocksRenderer
+        mediaAssets={[]}
+        blocks={[
+          {
+            id: "facebook-risky",
+            type: "facebookPost",
+            href: url,
+            caption: "Risky Facebook content",
+            showText: true,
+            width: 500
+          }
+        ]}
+      />
+    );
+
+    // These URLs currently pass through normalizeFacebookPostUrl and render
+    const iframe = screen.getByTitle("Facebook post");
+    const iframeSrc = iframe.getAttribute("src") || "";
+    const pluginUrl = new URL(iframeSrc);
+
+    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
+    expect(pluginUrl.searchParams.get("href")).toBe(url);
+    expect(iframe).toHaveAttribute("loading", "lazy");
+    expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
+    expect(container.querySelector(".fb-post")).not.toBeInTheDocument();
+  });
 });

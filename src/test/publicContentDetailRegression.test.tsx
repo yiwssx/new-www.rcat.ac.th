@@ -141,4 +141,75 @@ describe("PublicContentDetailPage public UX regressions", () => {
       "https://drive.google.com/file/d/media-1/view"
     );
   });
+
+  it("renders announcement detail with correct metadata, back link, and related announcements", () => {
+    const announcementDetail = createContent({
+      id: "announcement-1",
+      title: "ประกาศปลั่งพลาจ้างสุคชิน",
+      slug: "important-announcement",
+      type: "announcement",
+      status: "published",
+      owner: "งานประชาสัมพันธ์",
+      summary: "ประกาศสำคัญจากสำนักงานเลขานุการ",
+      body: "รายละเอียดประกาศสำคัญ",
+      tags: ["สำคัญ", "วิทยาลัย"],
+      mediaIds: ["media-1"],
+      publishAt: "2026-05-14T08:00:00.000Z",
+      viewCount: 42
+    });
+
+    const relatedAnnouncement = createContent({
+      id: "announcement-2",
+      title: "ประกาศที่เกี่ยวข้องครับท่าน",
+      slug: "related-important-announcement",
+      type: "announcement",
+      status: "published",
+      owner: "งานประชาสัมพันธ์",
+      summary: "ประกาศที่มีแท็กเดียวกัน",
+      tags: ["สำคัญ"],
+      mediaIds: [],
+      publishAt: "2026-05-13T08:00:00.000Z",
+      viewCount: 28
+    });
+
+    window.localStorage.setItem("rcat.cms.viewed.announcement-1", String(Date.now()));
+
+    currentDetail = announcementDetail;
+    currentSnapshot = createSnapshot(announcementDetail, relatedAnnouncement);
+
+    render(<PublicContentDetailPage slug="important-announcement" />);
+
+    const article = screen.getByRole("article");
+
+    // Verify old sidebar is not shown
+    expect(screen.queryByText("รายละเอียดเนื้อหา")).not.toBeInTheDocument();
+    expect(screen.queryByText("เทมเพลต")).not.toBeInTheDocument();
+    expect(screen.queryByText("URL หลัก")).not.toBeInTheDocument();
+    expect(screen.queryByText("ปรับปรุงล่าสุด")).not.toBeInTheDocument();
+
+    // Verify article metadata renders correctly
+    expect(within(article).getByText("ประกาศ")).toBeInTheDocument();
+    expect(within(article).getByText("เผยแพร่แล้ว")).toBeInTheDocument();
+    expect(within(article).getByText("14 พฤษภาคม 2569")).toBeInTheDocument();
+    expect(within(article).getByText("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeInTheDocument();
+    expect(within(article).getByText("ผู้เข้าดู 42 ครั้ง")).toBeInTheDocument();
+
+    // Verify tags are clickable
+    const importantTag = within(article).getByText("#สำคัญ").closest("a");
+    expect(importantTag).toHaveAttribute("href", "/announcements?tag=%E0%B8%AA%E0%B8%B3%E0%B8%84%E0%B8%B1%E0%B8%8D");
+
+    // Verify attached media renders
+    expect(screen.getByText("เอกสารแนบ")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "กำหนดการ.pdf" })).toHaveAttribute(
+      "href",
+      "https://drive.google.com/file/d/media-1/view"
+    );
+
+    // Verify announcement-specific back link
+    expect(screen.getAllByRole("link", { name: "กลับไปหน้าประกาศ" }).length).toBeGreaterThan(0);
+
+    // Verify related announcement section renders
+    expect(screen.getByText("ประกาศที่เกี่ยวข้อง")).toBeInTheDocument();
+    expect(screen.getByText("ประกาศที่เกี่ยวข้องครับท่าน")).toBeInTheDocument();
+  });
 });
