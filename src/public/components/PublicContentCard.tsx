@@ -34,10 +34,8 @@ export default function PublicContentCard({
     <Card
       component="a"
       href={normalizeSafeHref(`/content/${item.slug}`)}
-      className="rcat-card"
+      className="rcat-card block h-full"
       sx={{
-        display: "block",
-        height: "100%",
         transition: "transform 160ms ease, box-shadow 160ms ease",
         "&:hover": {
           transform: "translateY(-2px)",
@@ -48,31 +46,25 @@ export default function PublicContentCard({
       <CardContent sx={{ p: featured ? 3 : 2.4 }}>
         <Stack direction={featured ? { xs: "column", md: "row" } : "row"} spacing={2}>
           <Box
-            className="rcat-image-frame"
+            className="rcat-image-frame grid place-items-center"
             sx={{
               width: featured ? { xs: "100%", md: 180 } : 70,
               minWidth: featured ? { md: 180 } : 70,
-              height: featured ? { xs: 150, md: 150 } : 70,
-              borderRadius: 2,
-              display: "grid",
-              placeItems: "center",
-              bgcolor: "primary.light",
-              color: "primary.main",
-              overflow: "hidden"
+              height: featured ? { xs: 150, md: 150 } : 70
             }}
           >
             {featuredMedia?.type === "image" && featuredMediaPreviewUrl ? (
               <Box
                 component="img"
+                className="h-full w-full object-cover"
                 src={featuredMediaPreviewUrl}
                 alt={featuredMedia.name}
-                sx={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             ) : (
               icon
             )}
           </Box>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Box className="min-w-0 flex-1">
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
               <Chip label={contentTypeLabels[item.type]} size="small" />
               <Chip label={contentStatusLabels[item.status]} size="small" variant="outlined" />
@@ -87,11 +79,11 @@ export default function PublicContentCard({
             <Typography variant="h3" sx={{ fontSize: featured ? "1.45rem" : "1.05rem" }}>
               {item.title}
             </Typography>
-            <Typography color="text.secondary" sx={{ mt: 1 }} className="content-summary">
+            <Typography color="text.secondary" className="content-summary mt-2">
               {item.summary}
             </Typography>
             {!!item.tags?.length && (
-              <Typography color="text.secondary" variant="caption" sx={{ mt: 1, display: "block" }}>
+              <Typography color="text.secondary" variant="caption" className="mt-2 block">
                 {item.tags
                   .slice(0, 4)
                   .map((tag) => `#${tag}`)

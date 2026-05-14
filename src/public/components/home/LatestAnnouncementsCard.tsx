@@ -6,7 +6,6 @@ import { ContentItem } from "../../../types";
 import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
-import { focusVisibleSx } from "./homeSectionStyles";
 
 function CompactAnnouncementList({ items, emptyTitle }: { items: ContentItem[]; emptyTitle: string }) {
   if (!items.length) {
@@ -21,13 +20,7 @@ function CompactAnnouncementList({ items, emptyTitle }: { items: ContentItem[]; 
           component="a"
           href={normalizeSafeHref(`/content/${item.slug}`)}
           aria-label={`อ่านประกาศ ${item.title}`}
-          sx={{
-            display: "block",
-            py: 1.45,
-            px: 0.5,
-            borderRadius: 1.5,
-            ...focusVisibleSx
-          }}
+          className="rcat-focus-ring block rounded-md px-1 py-3"
         >
           <Stack spacing={0.8}>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
@@ -47,7 +40,7 @@ function CompactAnnouncementList({ items, emptyTitle }: { items: ContentItem[]; 
 
 export function LatestAnnouncementsCard({ items }: { items: ContentItem[] }) {
   return (
-    <Card id="announcements" sx={{ height: "100%" }}>
+    <Card id="announcements" className="rcat-card h-full">
       <CardContent sx={{ p: 2.5 }}>
         <HomeSectionHeading
           label="ประกาศ"
