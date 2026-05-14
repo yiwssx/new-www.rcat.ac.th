@@ -55,7 +55,7 @@ a {
   }
 
   .rcat-container {
-    @apply mx-auto w-full max-w-[1680px];
+    @apply mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8;
   }
 
   .rcat-section {
