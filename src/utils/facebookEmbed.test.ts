@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isValidFacebookPostUrl, normalizeFacebookPostUrl } from "./facebookEmbed";
+import {
+  buildFacebookPostPluginUrl,
+  clampFacebookPostPluginWidth,
+  isValidFacebookPostUrl,
+  normalizeFacebookPostUrl
+} from "./facebookEmbed";
 
 describe("facebookEmbed", () => {
   it("accepts common public Facebook post URLs", () => {
@@ -31,5 +36,37 @@ describe("facebookEmbed", () => {
     expect(normalizeFacebookPostUrl("https://www.facebook.com/settings")).toBe("");
     expect(isValidFacebookPostUrl("https://www.facebook.com/rcat/posts/12345")).toBe(true);
     expect(isValidFacebookPostUrl("https://example.com/rcat/posts/12345")).toBe(false);
+  });
+
+  it("builds an encoded iframe plugin URL from the original post URL", () => {
+    const pluginUrl = buildFacebookPostPluginUrl({
+      href: "https://www.facebook.com/rcat/posts/12345",
+      showText: false,
+      width: 520
+    });
+
+    const parsed = new URL(pluginUrl);
+
+    expect(parsed.origin + parsed.pathname).toBe("https://www.facebook.com/plugins/post.php");
+    expect(pluginUrl).toContain("href=https%3A%2F%2Fwww.facebook.com%2Frcat%2Fposts%2F12345");
+    expect(parsed.searchParams.get("href")).toBe("https://www.facebook.com/rcat/posts/12345");
+    expect(parsed.searchParams.get("show_text")).toBe("false");
+    expect(parsed.searchParams.get("width")).toBe("520");
+  });
+
+  it("does not build plugin URLs for invalid post URLs", () => {
+    expect(
+      buildFacebookPostPluginUrl({
+        href: "https://example.com/rcat/posts/12345",
+        showText: true,
+        width: 500
+      })
+    ).toBe("");
+  });
+
+  it("clamps Facebook iframe widths", () => {
+    expect(clampFacebookPostPluginWidth(300)).toBe(350);
+    expect(clampFacebookPostPluginWidth(900)).toBe(750);
+    expect(clampFacebookPostPluginWidth(Number.NaN)).toBe(500);
   });
 });
