@@ -8,6 +8,10 @@ describe("homepageSettings", () => {
 
   it("preserves valid values", () => {
     const settings = normalizeHomepageSettings({
+      carousel: {
+        autoplayEnabled: false,
+        autoplayIntervalSeconds: 8
+      },
       introGate: {
         enabled: true,
         imageUrl: "https://example.edu/intro.jpg",
@@ -30,6 +34,8 @@ describe("homepageSettings", () => {
       }
     });
 
+    expect(settings.carousel.autoplayEnabled).toBe(false);
+    expect(settings.carousel.autoplayIntervalSeconds).toBe(8);
     expect(settings.introGate.enabled).toBe(true);
     expect(settings.introGate.imageUrl).toBe("https://example.edu/intro.jpg");
     expect(settings.marquee.text).toBe("School announcement");
@@ -59,5 +65,25 @@ describe("homepageSettings", () => {
         }
       }).marquee.speedSeconds
     ).toBe(90);
+  });
+
+  it("clamps carousel autoplay interval seconds", () => {
+    expect(
+      normalizeHomepageSettings({
+        carousel: {
+          autoplayEnabled: true,
+          autoplayIntervalSeconds: 1
+        }
+      }).carousel.autoplayIntervalSeconds
+    ).toBe(3);
+
+    expect(
+      normalizeHomepageSettings({
+        carousel: {
+          autoplayEnabled: true,
+          autoplayIntervalSeconds: 60
+        }
+      }).carousel.autoplayIntervalSeconds
+    ).toBe(30);
   });
 });

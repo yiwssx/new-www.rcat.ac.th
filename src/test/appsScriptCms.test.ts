@@ -885,6 +885,14 @@ describe("Apps Script CMS helpers", () => {
             updatedAt: "2026-05-04T00:00:00.000Z"
           },
           {
+            id: "visible-image-only",
+            title: "",
+            imageUrl: "https://example.edu/image-only.jpg",
+            enabled: true,
+            order: "3",
+            updatedAt: "2026-05-04T00:00:00.000Z"
+          },
+          {
             id: "hidden-future",
             title: "Future slide",
             imageUrl: "https://example.edu/future.jpg",
@@ -901,7 +909,7 @@ describe("Apps Script CMS helpers", () => {
 
     const slides = context.getCarouselSlides();
 
-    expect(slides.map((slide) => slide.id)).toEqual(["visible-first", "visible-later"]);
+    expect(slides.map((slide) => slide.id)).toEqual(["visible-first", "visible-later", "visible-image-only"]);
     expect(slides[0]).toMatchObject({
       chip: "ประชาสัมพันธ์",
       buttonLabel: "อ่านต่อ",

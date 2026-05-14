@@ -645,7 +645,7 @@ function sanitizePublicCarouselSlideRecord(slide) {
 }
 
 function isCarouselSlideVisible(slide, now) {
-  if (!slide.enabled || !slide.imageUrl || !slide.title) {
+  if (!slide.enabled || !slide.imageUrl) {
     return false;
   }
 

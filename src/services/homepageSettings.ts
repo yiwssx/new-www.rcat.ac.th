@@ -1,6 +1,10 @@
 import type { HomepageSettings } from "../types";
 
 export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
+  carousel: {
+    autoplayEnabled: true,
+    autoplayIntervalSeconds: 5
+  },
   introGate: {
     enabled: false,
     imageUrl: "",
@@ -45,13 +49,31 @@ function normalizeSpeedSeconds(value: unknown) {
   return Math.min(90, Math.max(12, numericValue));
 }
 
+function normalizeCarouselIntervalSeconds(value: unknown) {
+  const numericValue = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return DEFAULT_HOMEPAGE_SETTINGS.carousel.autoplayIntervalSeconds;
+  }
+
+  return Math.min(30, Math.max(3, numericValue));
+}
+
 export function normalizeHomepageSettings(input?: Partial<HomepageSettings> | null): HomepageSettings {
   const source: Record<string, unknown> = isObjectRecord(input) ? input : {};
+  const carousel: Record<string, unknown> = isObjectRecord(source.carousel) ? source.carousel : {};
   const introGate: Record<string, unknown> = isObjectRecord(source.introGate) ? source.introGate : {};
   const marquee: Record<string, unknown> = isObjectRecord(source.marquee) ? source.marquee : {};
   const introVideo: Record<string, unknown> = isObjectRecord(source.introVideo) ? source.introVideo : {};
 
   return {
+    carousel: {
+      autoplayEnabled:
+        typeof carousel.autoplayEnabled === "boolean"
+          ? carousel.autoplayEnabled
+          : DEFAULT_HOMEPAGE_SETTINGS.carousel.autoplayEnabled,
+      autoplayIntervalSeconds: normalizeCarouselIntervalSeconds(carousel.autoplayIntervalSeconds)
+    },
     introGate: {
       enabled: normalizeEnabled(introGate.enabled),
       imageUrl: normalizeString(introGate.imageUrl, DEFAULT_HOMEPAGE_SETTINGS.introGate.imageUrl),
