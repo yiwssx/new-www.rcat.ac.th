@@ -46,7 +46,11 @@ export default function PublicNewsPage() {
   const [featuredItem, ...secondaryItems] = filteredNewsItems;
 
   if (!data && (isLoading || isFetching)) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell>
+        <PublicLoadingState />
+      </PublicSiteShell>
+    );
   }
 
   if (!data && isError) {
@@ -61,7 +65,11 @@ export default function PublicNewsPage() {
   }
 
   if (!data) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell>
+        <PublicLoadingState />
+      </PublicSiteShell>
+    );
   }
 
   return (

@@ -27,7 +27,13 @@ export default function PublicHomePage() {
   const { data, isLoading, isFetching, isError, refetch } = usePublicHomeSnapshot();
 
   if (!data && (isLoading || isFetching)) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/">
+        <Container maxWidth="xl">
+          <PublicLoadingState />
+        </Container>
+      </PublicSiteShell>
+    );
   }
 
   if (!data && isError) {
@@ -42,7 +48,13 @@ export default function PublicHomePage() {
   }
 
   if (!data) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/">
+        <Container maxWidth="xl">
+          <PublicLoadingState />
+        </Container>
+      </PublicSiteShell>
+    );
   }
 
   const siteSettings = normalizeSiteSettings(data.siteSettings);

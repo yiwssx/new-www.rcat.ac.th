@@ -14,7 +14,11 @@ export default function PublicDepartmentsPage() {
   const mediaAssets = data?.media ?? [];
 
   if (!data && (isLoading || isFetching)) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell>
+        <PublicLoadingState />
+      </PublicSiteShell>
+    );
   }
 
   if (!data && isError) {
@@ -29,7 +33,11 @@ export default function PublicDepartmentsPage() {
   }
 
   if (!data) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell>
+        <PublicLoadingState />
+      </PublicSiteShell>
+    );
   }
 
   return (

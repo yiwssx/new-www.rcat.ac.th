@@ -59,7 +59,11 @@ export default function PublicSearchPage() {
   }
 
   if (!data && (isLoading || isFetching)) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell canonicalPath="/search">
+        <PublicLoadingState />
+      </PublicSiteShell>
+    );
   }
 
   if (!data && isError) {
@@ -74,7 +78,11 @@ export default function PublicSearchPage() {
   }
 
   if (!data) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell canonicalPath="/search">
+        <PublicLoadingState />
+      </PublicSiteShell>
+    );
   }
 
   return (

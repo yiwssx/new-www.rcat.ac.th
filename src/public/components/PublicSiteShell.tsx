@@ -1,5 +1,15 @@
 import { MouseEvent, ReactNode, useState } from "react";
-import { Box, Button, Container, IconButton, InputAdornment, Stack, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Container,
+  IconButton,
+  InputAdornment,
+  LinearProgress,
+  Stack,
+  TextField,
+  Typography
+} from "@mui/material";
 import { useNavigate } from "@tanstack/react-router";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
@@ -13,7 +23,6 @@ import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import PublicMainMenu from "./PublicMainMenu";
 import PublicErrorState from "./PublicErrorState";
-import PublicLoadingState from "./PublicLoadingState";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTiktok } from "@fortawesome/free-brands-svg-icons";
 import FloatingMessengerButton from "./FloatingMessengerButton";
@@ -46,6 +55,12 @@ const FOLLOW_LABEL = "ช่องทางติดตาม";
 const ANNOUNCEMENTS_LABEL = "ประกาศ";
 const STAFF_LOGIN_LABEL = "สำหรับเจ้าหน้าที่";
 const BACK_TO_TOP_LABEL = "กลับขึ้นด้านบน";
+
+const fallbackPublicShellSettings: Partial<SiteSettings> = {
+  siteName: projectSettings.site.name,
+  heroTitle: projectSettings.site.name,
+  footerTitle: projectSettings.site.name
+};
 
 function getTelephoneHref(phone: string) {
   const normalizedPhone = String(phone || "").replace(/[^\d+#*]/g, "");
@@ -437,32 +452,22 @@ export default function PublicSiteShell({
     enabled: !hasPreloadedShellData
   });
   const [searchQuery, setSearchQuery] = useState("");
-  const shellSiteSettings = preloadedSiteSettings ?? data?.siteSettings;
+  const shellSiteSettings = preloadedSiteSettings ?? data?.siteSettings ?? fallbackPublicShellSettings;
   const shellHomepageSettings = preloadedHomepageSettings ?? data?.homepageSettings;
-  const isInitialPublicLoading = !hasPreloadedShellData && !data && (isLoading || isFetching);
-  const isInitialPublicError = !hasPreloadedShellData && !data && isError && !isInitialPublicLoading;
-  const shouldShowPublicLoading = !hasPreloadedShellData && (isInitialPublicLoading || (!data && !isError));
+  const isShellFetching = !hasPreloadedShellData && !data && (isLoading || isFetching);
+  const isInitialPublicError = !hasPreloadedShellData && !data && isError && !isShellFetching;
   const defaultCanonicalPath = typeof window === "undefined" ? undefined : window.location.pathname;
+  const siteSettings = normalizeSiteSettings(shellSiteSettings);
+  const homepageSettings = normalizeHomepageSettings(shellHomepageSettings);
+  const siteName = siteSettings.siteName;
 
   useDocumentMetadata({
-    title: shouldShowPublicLoading
-      ? "กำลังโหลดข้อมูล"
-      : isInitialPublicError
-        ? "ไม่สามารถโหลดข้อมูลได้"
-        : (seoTitle ?? title),
-    description: shouldShowPublicLoading
-      ? "กรุณารอสักครู่ ระบบกำลังดึงข้อมูลเว็บไซต์"
-      : isInitialPublicError
-        ? "กรุณาลองใหม่อีกครั้ง"
-        : (seoDescription ?? description),
+    title: isInitialPublicError ? "ไม่สามารถโหลดข้อมูลได้" : (seoTitle ?? title ?? siteName),
+    description: isInitialPublicError ? "กรุณาลองใหม่อีกครั้ง" : (seoDescription ?? description),
     canonicalUrl,
     canonicalPath: canonicalPath ?? defaultCanonicalPath,
-    siteName: shellSiteSettings?.siteName?.trim() || projectSettings.site.name
+    siteName
   });
-
-  if (shouldShowPublicLoading) {
-    return <PublicLoadingState />;
-  }
 
   if (isInitialPublicError) {
     return (
@@ -475,10 +480,7 @@ export default function PublicSiteShell({
     );
   }
 
-  const siteSettings = normalizeSiteSettings(shellSiteSettings);
-  const homepageSettings = normalizeHomepageSettings(shellHomepageSettings);
   const showPageHeader = !hidePageHeader && (Boolean(title) || Boolean(description));
-  const siteName = siteSettings.siteName;
   const socialLinks: TopBarSocialLink[] = [];
 
   if (siteSettings.facebookUrl) {
@@ -685,6 +687,8 @@ export default function PublicSiteShell({
       </Box>
 
       <PublicMainMenu preloadedMenu={preloadedMenu} />
+
+      {isShellFetching && <LinearProgress sx={{ height: 3 }} />}
 
       {showPageHeader && (
         <Box

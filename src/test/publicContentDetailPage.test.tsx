@@ -116,7 +116,10 @@ describe("PublicContentDetailPage", () => {
 
     render(<PublicContentDetailPage slug="announcement-1" />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("กำลังโหลดข้อมูล");
+    expect(screen.getAllByRole("progressbar").length).toBeGreaterThan(0);
+    expect(document.body).not.toHaveTextContent("กำลังโหลดข้อมูล");
+    expect(document.body).not.toHaveTextContent("กำลังเชื่อมต่อระบบฐานข้อมูล");
+    expect(document.title).not.toContain("กำลังโหลดข้อมูล");
     expect(screen.queryByText(/ไม่พบเนื้อหา/)).not.toBeInTheDocument();
   });
 

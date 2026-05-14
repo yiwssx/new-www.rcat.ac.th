@@ -4,6 +4,7 @@ import PublicSiteShell from "../public/components/PublicSiteShell";
 import PublicAnnouncementsPage from "../public/pages/PublicAnnouncementsPage";
 import PublicDepartmentsPage from "../public/pages/PublicDepartmentsPage";
 import PublicHomePage from "../public/pages/PublicHomePage";
+import { projectSettings } from "../config/projectSettings";
 import { defaultSiteSettings } from "../services/siteSettings";
 import { CmsSnapshot, PublicContentListSnapshot, PublicHomeSnapshot, PublicProgramListSnapshot } from "../types";
 
@@ -227,7 +228,7 @@ afterEach(() => {
 });
 
 describe("public data-driven pages", () => {
-  it("shows the public loading state before a snapshot is available", () => {
+  it("renders the public shell instead of the full-screen loading card before a snapshot is available", () => {
     currentSnapshot = undefined;
     currentQueryState = {
       ...currentQueryState,
@@ -240,11 +241,11 @@ describe("public data-driven pages", () => {
       </PublicSiteShell>
     );
 
-    const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("กำลังโหลดข้อมูล");
-    expect(status).toHaveTextContent("กรุณารอสักครู่ ระบบกำลังเตรียมข้อมูลเว็บไซต์สำหรับคุณ");
-    expect(screen.queryByText(defaultSiteSettings.siteName)).not.toBeInTheDocument();
-    expect(screen.queryByText("Loaded content")).not.toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("กำลังเชื่อมต่อระบบฐานข้อมูล");
+    expect(screen.getAllByText(projectSettings.site.name).length).toBeGreaterThan(0);
+    expect(screen.getByText("Loaded content")).toBeInTheDocument();
+    expect(document.title).not.toContain("กำลังโหลดข้อมูล");
   });
 
   it("renders cached public data while a snapshot refresh is fetching", () => {
@@ -301,9 +302,10 @@ describe("public data-driven pages", () => {
 
     render(<PublicHomePage />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("กำลังโหลดข้อมูล");
-    expect(document.body).not.toHaveTextContent("ยังไม่มี");
-    expect(screen.queryByText(defaultSiteSettings.siteName)).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).not.toHaveTextContent("กำลังโหลดข้อมูล");
+    expect(document.body).not.toHaveTextContent("กำลังเชื่อมต่อระบบฐานข้อมูล");
+    expect(screen.queryByText("ยังไม่มีเอกสารเผยแพร่")).not.toBeInTheDocument();
+    expect(screen.getAllByText("CMS public site").length).toBeGreaterThan(0);
   });
 
   it("does not render mock document titles when no CMS content exists", () => {
