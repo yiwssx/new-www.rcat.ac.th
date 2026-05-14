@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Chip, Container, IconButton, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
@@ -20,8 +20,15 @@ interface ResolvedCarouselSlide {
 }
 
 const AUTOPLAY_INTERVAL_MS = 5000;
+let carouselBrowserApisEnsured = false;
 
 function ensureCarouselBrowserApis() {
+  if (carouselBrowserApisEnsured) {
+    return;
+  }
+
+  carouselBrowserApisEnsured = true;
+
   if (typeof window === "undefined" || typeof window.matchMedia === "function") {
     // Continue below so jsdom can still receive observer fallbacks when needed.
   } else {
@@ -73,24 +80,28 @@ function ensureCarouselBrowserApis() {
 export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[] }) {
   ensureCarouselBrowserApis();
 
-  const resolvedSlides = slides
-    .map((slide): ResolvedCarouselSlide | null => {
-      if (!slide.enabled || !slide.imageUrl || !slide.title) {
-        return null;
-      }
+  const resolvedSlides = useMemo(
+    () =>
+      slides
+        .map((slide): ResolvedCarouselSlide | null => {
+          if (!slide.enabled || !slide.imageUrl || !slide.title) {
+            return null;
+          }
 
-      return {
-        id: slide.id,
-        chip: slide.chip || "ประชาสัมพันธ์",
-        title: slide.title,
-        subtitle: slide.subtitle,
-        imageUrl: slide.imageUrl,
-        altText: slide.imageAlt || slide.title,
-        buttonLabel: slide.buttonLabel || "อ่านต่อ",
-        href: slide.href || "/"
-      };
-    })
-    .filter((slide): slide is ResolvedCarouselSlide => Boolean(slide));
+          return {
+            id: slide.id,
+            chip: slide.chip || "ประชาสัมพันธ์",
+            title: slide.title,
+            subtitle: slide.subtitle,
+            imageUrl: slide.imageUrl,
+            altText: slide.imageAlt || slide.title,
+            buttonLabel: slide.buttonLabel || "อ่านต่อ",
+            href: slide.href || "/"
+          };
+        })
+        .filter((slide): slide is ResolvedCarouselSlide => Boolean(slide)),
+    [slides]
+  );
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
@@ -178,7 +189,7 @@ export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[]
         >
           <Box ref={emblaRef} sx={{ overflow: "hidden" }}>
             <Box sx={{ display: "flex" }}>
-              {resolvedSlides.map((slide) => (
+              {resolvedSlides.map((slide, index) => (
                 <Box
                   key={slide.id}
                   role="group"
@@ -192,15 +203,37 @@ export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[]
                     alignItems: "center",
                     p: { xs: 2, sm: 3, md: 5 },
                     color: "white",
-                    backgroundImage: `linear-gradient(105deg, ${alpha(theme.palette.primary.dark, 0.92)} 0%, ${alpha(
-                      theme.palette.primary.main,
-                      0.72
-                    )} 45%, ${alpha(theme.palette.common.black, 0.34)} 100%), url(${JSON.stringify(slide.imageUrl)})`,
-                    backgroundPosition: "center",
-                    backgroundSize: "cover"
+                    bgcolor: "primary.dark",
+                    overflow: "hidden",
+                    "&::before": {
+                      content: '""',
+                      position: "absolute",
+                      inset: 0,
+                      zIndex: 1,
+                      background: `linear-gradient(105deg, ${alpha(theme.palette.primary.dark, 0.92)} 0%, ${alpha(
+                        theme.palette.primary.main,
+                        0.72
+                      )} 45%, ${alpha(theme.palette.common.black, 0.34)} 100%)`
+                    }
                   })}
                 >
-                  <Stack spacing={{ xs: 1.25, md: 1.6 }} sx={{ position: "relative", zIndex: 1, maxWidth: 680 }}>
+                  <Box
+                    component="img"
+                    src={slide.imageUrl}
+                    alt={slide.altText}
+                    loading={index === 0 ? "eager" : "lazy"}
+                    {...({ fetchpriority: index === 0 ? "high" : "auto" } as Record<string, string>)}
+                    decoding="async"
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      zIndex: 0
+                    }}
+                  />
+                  <Stack spacing={{ xs: 1.25, md: 1.6 }} sx={{ position: "relative", zIndex: 2, maxWidth: 680 }}>
                     <Chip
                       label={slide.chip}
                       color="secondary"
