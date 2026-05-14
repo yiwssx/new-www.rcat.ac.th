@@ -6,8 +6,14 @@ import { alpha } from "@mui/material/styles";
 import type { HomepageIntroGateSettings } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
+const DEFAULT_INTRO_GATE_STORAGE_KEY = "public-intro-gate";
+
 function shouldShowIntroGate(settings?: HomepageIntroGateSettings) {
   return Boolean(settings?.enabled && settings.imageUrl.trim());
+}
+
+function getIntroGateStorageKey(settings?: HomepageIntroGateSettings) {
+  return settings?.storageKey.trim() || DEFAULT_INTRO_GATE_STORAGE_KEY;
 }
 
 function getInitialVisibility(settings?: HomepageIntroGateSettings) {
@@ -16,26 +22,42 @@ function getInitialVisibility(settings?: HomepageIntroGateSettings) {
   }
 
   try {
-    return window.sessionStorage.getItem(settings.storageKey) !== "dismissed";
+    return window.sessionStorage.getItem(getIntroGateStorageKey(settings)) !== "dismissed";
   } catch {
     return true;
   }
 }
 
+function isDismissedInSession(storageKey: string, dismissedKeys: ReadonlySet<string>) {
+  if (dismissedKeys.has(storageKey)) {
+    return true;
+  }
+
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  try {
+    return window.sessionStorage.getItem(storageKey) === "dismissed";
+  } catch {
+    return false;
+  }
+}
+
 export default function PublicIntroGate({ settings }: { settings?: HomepageIntroGateSettings }) {
-  const [isVisible, setIsVisible] = useState(() => getInitialVisibility(settings));
+  const [dismissedKeys, setDismissedKeys] = useState<ReadonlySet<string>>(() => new Set());
   const hasSecondaryButton = Boolean(settings?.secondaryButtonLabel.trim() && settings.secondaryButtonUrl.trim());
+  const storageKey = getIntroGateStorageKey(settings);
+  const isVisible = getInitialVisibility(settings) && !isDismissedInSession(storageKey, dismissedKeys);
 
   function handleEnterSite() {
     try {
-      if (settings?.storageKey) {
-        window.sessionStorage.setItem(settings.storageKey, "dismissed");
-      }
+      window.sessionStorage.setItem(storageKey, "dismissed");
     } catch {
       // Session storage can be unavailable in strict privacy modes; entry should still work.
     }
 
-    setIsVisible(false);
+    setDismissedKeys((current) => new Set(current).add(storageKey));
   }
 
   if (!settings || !shouldShowIntroGate(settings) || !isVisible) {

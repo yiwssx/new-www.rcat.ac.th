@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import FloatingMessengerButton from "../public/components/FloatingMessengerButton";
 import PublicHomeCarousel from "../public/components/PublicHomeCarousel";
 import PublicIntroGate from "../public/components/PublicIntroGate";
@@ -12,7 +12,23 @@ import { VisitorStatsCard } from "../public/components/home/VisitorStatsCard";
 import { shouldStartCarouselAutoplay } from "../public/utils/homeCarousel";
 import { DEFAULT_HOMEPAGE_SETTINGS } from "../services/homepageSettings";
 import { defaultSiteSettings } from "../services/siteSettings";
-import { CarouselSlide, ContentItem, ExternalServiceLink } from "../types";
+import { CarouselSlide, ContentItem, ExternalServiceLink, HomepageIntroGateSettings } from "../types";
+
+function createIntroGateSettings(overrides: Partial<HomepageIntroGateSettings> = {}): HomepageIntroGateSettings {
+  return {
+    ...DEFAULT_HOMEPAGE_SETTINGS.introGate,
+    enabled: true,
+    imageUrl: "https://example.edu/intro.jpg",
+    imageAlt: "Intro image",
+    primaryButtonLabel: "เข้าสู่เว็บไซต์หลัก",
+    storageKey: "intro-test",
+    ...overrides
+  };
+}
+
+afterEach(() => {
+  window.sessionStorage.clear();
+});
 
 describe("homepage settings public sections", () => {
   it("does not render IntroGate when disabled or imageUrl is empty", () => {
@@ -28,6 +44,47 @@ describe("homepage settings public sections", () => {
         />
       ).container.firstChild
     ).toBeNull();
+  });
+
+  it("shows IntroGate when settings become enabled after the first render", () => {
+    const { rerender } = render(<PublicIntroGate settings={DEFAULT_HOMEPAGE_SETTINGS.introGate} />);
+
+    expect(screen.queryByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).not.toBeInTheDocument();
+
+    rerender(<PublicIntroGate settings={createIntroGateSettings()} />);
+
+    expect(screen.getByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Intro image" })).toHaveAttribute("src", "https://example.edu/intro.jpg");
+  });
+
+  it("does not show IntroGate when sessionStorage has a dismissed marker", () => {
+    window.sessionStorage.setItem("intro-test", "dismissed");
+
+    render(<PublicIntroGate settings={createIntroGateSettings()} />);
+
+    expect(screen.queryByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).not.toBeInTheDocument();
+  });
+
+  it("stores a dismissed marker and hides IntroGate after entering the site", () => {
+    render(<PublicIntroGate settings={createIntroGateSettings()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /เข้าสู่เว็บไซต์หลัก/ }));
+
+    expect(window.sessionStorage.getItem("intro-test")).toBe("dismissed");
+    expect(screen.queryByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).not.toBeInTheDocument();
+  });
+
+  it("re-evaluates IntroGate visibility when storageKey changes", () => {
+    window.sessionStorage.setItem("intro-dismissed", "dismissed");
+    const { rerender } = render(
+      <PublicIntroGate settings={createIntroGateSettings({ storageKey: "intro-dismissed" })} />
+    );
+
+    expect(screen.queryByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).not.toBeInTheDocument();
+
+    rerender(<PublicIntroGate settings={createIntroGateSettings({ storageKey: "intro-new" })} />);
+
+    expect(screen.getByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).toBeInTheDocument();
   });
 
   it("does not render UrgentMarqueeSection when disabled or text is empty", () => {
