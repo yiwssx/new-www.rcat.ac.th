@@ -5,11 +5,10 @@ import EmptyState from "../../../shared/components/EmptyState";
 import { ContentItem } from "../../../types";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
-import { focusVisibleSx } from "./homeSectionStyles";
 
 export function DocumentListCard({ items }: { items: ContentItem[] }) {
   return (
-    <Card id="documents" sx={{ height: "100%" }}>
+    <Card id="documents" className="rcat-card h-full">
       <CardContent sx={{ p: 2.5 }}>
         <HomeSectionHeading label="เอกสาร" title="เอกสารเผยแพร่" />
         {items.length ? (
@@ -20,18 +19,11 @@ export function DocumentListCard({ items }: { items: ContentItem[] }) {
                 component="a"
                 href={normalizeSafeHref(`/content/${item.slug}`)}
                 aria-label={`อ่านเอกสาร ${item.title}`}
-                sx={{
-                  p: 1.5,
-                  display: "block",
-                  borderRadius: 2,
-                  bgcolor: "background.default",
-                  border: "1px solid rgba(31, 90, 44, 0.12)",
-                  ...focusVisibleSx
-                }}
+                className="rcat-card-muted rcat-focus-ring block p-3"
               >
                 <Stack direction="row" spacing={1.2} alignItems="flex-start">
                   <DescriptionOutlinedIcon sx={{ color: "primary.main", mt: 0.2 }} />
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Box className="min-w-0 flex-1">
                     <Typography fontWeight={800}>{item.title}</Typography>
                     {item.category && (
                       <Typography color="text.secondary" variant="body2" sx={{ mt: 0.45 }}>
