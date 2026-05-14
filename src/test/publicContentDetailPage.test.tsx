@@ -137,26 +137,29 @@ describe("PublicContentDetailPage", () => {
     expect(screen.queryByText("ปรับปรุงล่าสุด")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "กลับไปหน้ารายการ" })).not.toBeInTheDocument();
 
-    expect(within(article).getByText("ผู้โพสต์: งานประชาสัมพันธ์")).toBeInTheDocument();
-    expect(within(article).getByText(/เผยแพร่:/)).toBeInTheDocument();
-    expect(within(article).getByText(/อัปเดต:/)).toBeInTheDocument();
+    expect(within(article).getByText("ประกาศ")).toBeInTheDocument();
+    expect(within(article).getByText("เผยแพร่แล้ว")).toBeInTheDocument();
+    expect(within(article).getByText("3 พฤษภาคม 2569")).toBeInTheDocument();
+    expect(within(article).queryByText(/3 พฤษภาคม 2569\s+\d{1,2}:\d{2}/)).not.toBeInTheDocument();
+    expect(within(article).getByText("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeInTheDocument();
+    expect(within(article).getByText("ผู้เข้าดู 12 ครั้ง")).toBeInTheDocument();
+    expect(within(article).queryByText(/ผู้โพสต์:/)).not.toBeInTheDocument();
+    expect(within(article).queryByText((text) => text.startsWith("เผยแพร่:"))).not.toBeInTheDocument();
+    expect(within(article).queryByText(/อัปเดต:/)).not.toBeInTheDocument();
     expect(within(article).getByText("เอกสารแนบ")).toBeInTheDocument();
     expect(within(article).getByRole("link", { name: "ใบสมัคร.pdf" })).toBeInTheDocument();
 
     const articleText = article.textContent || "";
-    expect(articleText.indexOf("ประกาศรับสมัคร")).toBeLessThan(articleText.indexOf("ผู้โพสต์: งานประชาสัมพันธ์"));
-    expect(articleText.indexOf("ผู้โพสต์: งานประชาสัมพันธ์")).toBeLessThan(articleText.indexOf("เนื้อหาประกาศ"));
+    expect(articleText.indexOf("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeLessThan(articleText.indexOf("ประกาศรับสมัคร"));
+    expect(articleText.indexOf("ประกาศรับสมัคร")).toBeLessThan(articleText.indexOf("เนื้อหาประกาศ"));
     expect(articleText.indexOf("เนื้อหาประกาศ")).toBeLessThan(articleText.indexOf("เอกสารแนบ"));
 
     const tagLink = within(article).getByText("#รับสมัคร").closest("a");
-    const categoryLink = within(article).getByText("งานทะเบียน").closest("a");
 
     expect(tagLink?.getAttribute("href")).toBe(
       "/announcements?tag=%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%A1%E0%B8%B1%E0%B8%84%E0%B8%A3"
     );
-    expect(categoryLink?.getAttribute("href")).toBe(
-      "/announcements?category=%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%97%E0%B8%B0%E0%B9%80%E0%B8%9A%E0%B8%B5%E0%B8%A2%E0%B8%99"
-    );
+    expect(within(article).queryByText("งานทะเบียน")).not.toBeInTheDocument();
 
     await waitFor(() =>
       expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
@@ -164,11 +167,11 @@ describe("PublicContentDetailPage", () => {
         slug: "announcement-1"
       })
     );
-    expect(await within(article).findByText("ดูแล้ว 13 ครั้ง")).toBeInTheDocument();
+    expect(await within(article).findByText("ผู้เข้าดู 13 ครั้ง")).toBeInTheDocument();
     expect(window.localStorage.getItem("rcat.cms.viewed.content-1")).toMatch(/^\d+$/);
   });
 
-  it("omits updated metadata for announcements when publish and update times match", () => {
+  it("uses full Thai date without update or time metadata for announcements", () => {
     currentDetail = createContent({
       updatedAt: "2026-05-03T08:00:00.000Z",
       publishAt: "2026-05-03T08:00:00.000Z"
@@ -179,7 +182,9 @@ describe("PublicContentDetailPage", () => {
     render(<PublicContentDetailPage slug="announcement-1" />);
 
     const article = screen.getByRole("article");
-    expect(within(article).getByText(/เผยแพร่:/)).toBeInTheDocument();
+    expect(within(article).getByText("3 พฤษภาคม 2569")).toBeInTheDocument();
+    expect(within(article).queryByText(/3 พฤษภาคม 2569\s+\d{1,2}:\d{2}/)).not.toBeInTheDocument();
+    expect(within(article).queryByText((text) => text.startsWith("เผยแพร่:"))).not.toBeInTheDocument();
     expect(within(article).queryByText(/อัปเดต:/)).not.toBeInTheDocument();
   });
 
@@ -199,7 +204,7 @@ describe("PublicContentDetailPage", () => {
     expect(window.localStorage.getItem("rcat.cms.viewed.content-1")).toBeNull();
   });
 
-  it("keeps the generic sidebar for non-announcement content", async () => {
+  it("removes the generic sidebar for non-announcement content", async () => {
     currentDetail = createContent({
       type: "news",
       title: "ข่าวกิจกรรม",
@@ -211,18 +216,25 @@ describe("PublicContentDetailPage", () => {
 
     render(<PublicContentDetailPage slug="news-1" />);
 
-    expect(screen.getByText("รายละเอียดเนื้อหา")).toBeInTheDocument();
-    expect(screen.getByText("ผู้รับผิดชอบ")).toBeInTheDocument();
-    expect(screen.getByText("ปรับปรุงล่าสุด")).toBeInTheDocument();
+    expect(screen.queryByText("รายละเอียดเนื้อหา")).not.toBeInTheDocument();
+    expect(screen.queryByText("ผู้รับผิดชอบ")).not.toBeInTheDocument();
+    expect(screen.queryByText("ปรับปรุงล่าสุด")).not.toBeInTheDocument();
+    expect(screen.queryByText("เผยแพร่")).not.toBeInTheDocument();
+    expect(screen.queryByText("เทมเพลต")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "URL หลัก" })).not.toBeInTheDocument();
+    expect(screen.getByText("ข่าว")).toBeInTheDocument();
+    expect(screen.getByText("เผยแพร่แล้ว")).toBeInTheDocument();
+    expect(screen.getByText("3 พฤษภาคม 2569")).toBeInTheDocument();
+    expect(screen.queryByText(/3 พฤษภาคม 2569\s+\d{1,2}:\d{2}/)).not.toBeInTheDocument();
+    expect(screen.getByText("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeInTheDocument();
+    expect(screen.getByText("ผู้เข้าดู 12 ครั้ง")).toBeInTheDocument();
     expect(screen.getByText("สื่อแนบ")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ใบสมัคร.pdf" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "กลับไปหน้ารายการ" })).toBeInTheDocument();
     expect(screen.getByText("#ข่าวกิจกรรม").closest("a")?.getAttribute("href")).toBe(
       "/news?tag=%E0%B8%82%E0%B9%88%E0%B8%B2%E0%B8%A7%E0%B8%81%E0%B8%B4%E0%B8%88%E0%B8%81%E0%B8%A3%E0%B8%A3%E0%B8%A1"
     );
-    expect(screen.getByText("กิจกรรม").closest("a")?.getAttribute("href")).toBe(
-      "/news?category=%E0%B8%81%E0%B8%B4%E0%B8%88%E0%B8%81%E0%B8%A3%E0%B8%A3%E0%B8%A1"
-    );
+    expect(screen.queryByText("กิจกรรม")).not.toBeInTheDocument();
     await waitFor(() =>
       expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
         id: "content-1",
