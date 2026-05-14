@@ -17,7 +17,7 @@ import { usePublicContentDetail } from "../hooks/usePublicContentDetail";
 import { parseContentBodyToBlocks } from "../../utils/contentBlocks";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
-import { ContentItem } from "../../types";
+import { ContentItem, MediaAsset } from "../../types";
 
 interface PublicContentDetailPageProps {
   slug?: string;
@@ -182,6 +182,45 @@ function ContentDetailMetadata({
         </Stack>
       )}
     </Stack>
+  );
+}
+
+function AttachedMediaSection({ attachedMedia }: { attachedMedia: MediaAsset[] }) {
+  if (!attachedMedia.length) {
+    return null;
+  }
+
+  return (
+    <Box
+      sx={{
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 2,
+        bgcolor: "rgba(31, 90, 44, 0.025)",
+        p: { xs: 2, md: 2.5 }
+      }}
+    >
+      <Typography variant="h3">สื่อแนบ</Typography>
+      <Divider sx={{ my: 1.5 }} />
+      <Grid container spacing={1.2}>
+        {attachedMedia.map((asset) => (
+          <Grid size={{ xs: 12, sm: 6 }} key={asset.id}>
+            <Button
+              component="a"
+              href={getSafeMediaHref(asset)}
+              target="_blank"
+              rel="noreferrer"
+              variant="outlined"
+              fullWidth
+              startIcon={asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />}
+              sx={{ justifyContent: "flex-start", minHeight: 44, ...focusVisibleSx }}
+            >
+              {asset.name}
+            </Button>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
   );
 }
 
@@ -424,13 +463,11 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
       canonicalUrl={item.canonicalUrl}
       canonicalPath={`/content/${item.slug || slug || ""}`}
     >
-      <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Card>
-            <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
-              <Box sx={{ mb: 2 }}>
-                <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
-              </Box>
+      <Box sx={{ maxWidth: 1040, mx: "auto" }}>
+        <Card component="article">
+          <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
+            <Stack spacing={2.5}>
+              <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
               <Box
                 sx={{
                   minHeight: { xs: 180, md: 260 },
@@ -439,7 +476,6 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                   placeItems: "center",
                   bgcolor: "primary.light",
                   color: "primary.main",
-                  mb: 3,
                   overflow: "hidden"
                 }}
               >
@@ -462,13 +498,15 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                   <ArticleOutlinedIcon sx={{ fontSize: 92 }} />
                 )}
               </Box>
-              <Typography variant="h2" sx={{ fontSize: { xs: "1.55rem", md: "2rem" } }}>
-                {item.seoTitle || item.title}
-              </Typography>
-              <Typography color="text.secondary" sx={{ mt: 1.5, fontSize: "1.05rem" }}>
-                {item.seoDescription || item.summary}
-              </Typography>
-              <Divider sx={{ my: 3 }} />
+              <Box>
+                <Typography variant="h2" sx={{ fontSize: { xs: "1.55rem", md: "2rem" } }}>
+                  {item.seoTitle || item.title}
+                </Typography>
+                <Typography color="text.secondary" sx={{ mt: 1.5, fontSize: "1.05rem" }}>
+                  {item.seoDescription || item.summary}
+                </Typography>
+              </Box>
+              <Divider />
               <Stack spacing={2}>
                 {contentBlocks.length ? (
                   <ContentBlocksRenderer blocks={contentBlocks} mediaAssets={mediaAssets} />
@@ -476,58 +514,36 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                   <EmptyState title="ยังไม่มีเนื้อหาที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
                 )}
               </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Stack spacing={2.5}>
-            {!!attachedMedia.length && (
-              <Card>
-                <CardContent sx={{ p: 2.5 }}>
-                  <Typography variant="h3">สื่อแนบ</Typography>
-                  <Divider sx={{ my: 1.5 }} />
-                  <Stack spacing={1.2}>
-                    {attachedMedia.map((asset) => (
-                      <Button
-                        key={asset.id}
-                        component="a"
-                        href={getSafeMediaHref(asset)}
-                        target="_blank"
-                        rel="noreferrer"
-                        variant="outlined"
-                        startIcon={
-                          asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />
-                        }
-                        sx={{ justifyContent: "flex-start" }}
-                      >
-                        {asset.name}
-                      </Button>
-                    ))}
-                  </Stack>
-                </CardContent>
-              </Card>
-            )}
-            <Button href={getReturnPath(item.type)} startIcon={<ArrowBackOutlinedIcon />}>
-              กลับไปหน้ารายการ
-            </Button>
-          </Stack>
-        </Grid>
-      </Grid>
+              <AttachedMediaSection attachedMedia={attachedMedia} />
+            </Stack>
+          </CardContent>
+        </Card>
 
-      {relatedItems.length > 0 && (
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h2" sx={{ fontSize: "1.65rem", mb: 2 }}>
-            เนื้อหาที่เกี่ยวข้อง
-          </Typography>
-          <Grid container spacing={2.5}>
-            {relatedItems.map((relatedItem) => (
-              <Grid size={{ xs: 12, md: 4 }} key={relatedItem.id}>
-                <PublicContentCard item={relatedItem} mediaAssets={mediaAssets} />
-              </Grid>
-            ))}
-          </Grid>
+        <Box sx={{ mt: 2.5 }}>
+          <Button
+            href={getReturnPath(item.type)}
+            startIcon={<ArrowBackOutlinedIcon />}
+            sx={{ width: { xs: "100%", sm: "auto" }, ...focusVisibleSx }}
+          >
+            กลับไปหน้ารายการ
+          </Button>
         </Box>
-      )}
+
+        {relatedItems.length > 0 && (
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h2" sx={{ fontSize: "1.65rem", mb: 2 }}>
+              เนื้อหาที่เกี่ยวข้อง
+            </Typography>
+            <Grid container spacing={2.5}>
+              {relatedItems.map((relatedItem) => (
+                <Grid size={{ xs: 12, md: 4 }} key={relatedItem.id}>
+                  <PublicContentCard item={relatedItem} mediaAssets={mediaAssets} />
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
+      </Box>
     </PublicSiteShell>
   );
 }
