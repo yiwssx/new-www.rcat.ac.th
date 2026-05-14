@@ -1,4 +1,8 @@
 const allowedFacebookHosts = new Set(["facebook.com", "www.facebook.com", "m.facebook.com"]);
+const facebookPostPluginBaseUrl = "https://www.facebook.com/plugins/post.php";
+const defaultFacebookPostWidth = 500;
+const minimumFacebookPostWidth = 350;
+const maximumFacebookPostWidth = 750;
 
 function hasUnsafeUrlCharacter(value: string) {
   for (const char of value) {
@@ -69,4 +73,26 @@ export function normalizeFacebookPostUrl(value: string): string {
 
 export function isValidFacebookPostUrl(value: string): boolean {
   return Boolean(normalizeFacebookPostUrl(value));
+}
+
+export function clampFacebookPostPluginWidth(value: number): number {
+  return Math.min(
+    maximumFacebookPostWidth,
+    Math.max(minimumFacebookPostWidth, Math.round(Number.isFinite(value) ? value : defaultFacebookPostWidth))
+  );
+}
+
+export function buildFacebookPostPluginUrl(input: { href: string; showText: boolean; width: number }): string {
+  const href = normalizeFacebookPostUrl(input.href);
+
+  if (!href) {
+    return "";
+  }
+
+  const pluginUrl = new URL(facebookPostPluginBaseUrl);
+  pluginUrl.searchParams.set("href", href);
+  pluginUrl.searchParams.set("show_text", input.showText ? "true" : "false");
+  pluginUrl.searchParams.set("width", String(clampFacebookPostPluginWidth(input.width)));
+
+  return pluginUrl.toString();
 }

@@ -342,7 +342,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                             current.type === "facebookPost" ? { ...current, href: event.target.value } : current
                           )
                         }
-                        helperText="วางลิงก์โพสต์ Facebook ที่เป็น Public เท่านั้น"
+                        helperText="วาง URL โพสต์ Facebook เท่านั้น ไม่ต้องวางโค้ด iframe แนะนำให้คัดลอก URL จากวันที่/เวลาของโพสต์"
                         placeholder="https://www.facebook.com/..."
                         fullWidth
                       />

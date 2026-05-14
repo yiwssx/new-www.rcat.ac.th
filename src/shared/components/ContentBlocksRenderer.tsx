@@ -1,9 +1,12 @@
-import { useEffect } from "react";
 import { Box, Button, Divider, Stack, Typography } from "@mui/material";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import { MediaAsset } from "../../types";
 import { ContentBlock, FacebookPostContentBlock } from "../../utils/contentBlocks";
-import { normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
+import {
+  buildFacebookPostPluginUrl,
+  clampFacebookPostPluginWidth,
+  normalizeFacebookPostUrl
+} from "../../utils/facebookEmbed";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 
 interface ContentBlocksRendererProps {
@@ -11,48 +14,12 @@ interface ContentBlocksRendererProps {
   mediaAssets: MediaAsset[];
 }
 
-type FacebookSdkWindow = Window & {
-  FB?: {
-    XFBML?: {
-      parse: () => void;
-    };
-  };
-};
-
-function clampFacebookPostWidth(value: number) {
-  return Math.min(750, Math.max(350, Math.round(Number.isFinite(value) ? value : 500)));
-}
+const defaultFacebookPostHeight = 761;
 
 function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
   const href = normalizeFacebookPostUrl(block.href);
-  const width = clampFacebookPostWidth(block.width || 500);
-
-  useEffect(() => {
-    if (!href || typeof window === "undefined") {
-      return;
-    }
-
-    const scriptId = "facebook-jssdk";
-    const existingScript = document.getElementById(scriptId);
-    const parseFacebookEmbeds = () => {
-      const fb = (window as FacebookSdkWindow).FB;
-      fb?.XFBML?.parse?.();
-    };
-
-    if (!existingScript) {
-      const script = document.createElement("script");
-      script.id = scriptId;
-      script.async = true;
-      script.defer = true;
-      script.crossOrigin = "anonymous";
-      script.src = "https://connect.facebook.net/th_TH/sdk.js#xfbml=1&version=v20.0";
-      script.onload = parseFacebookEmbeds;
-      document.body.appendChild(script);
-      return;
-    }
-
-    parseFacebookEmbeds();
-  }, [href]);
+  const width = clampFacebookPostPluginWidth(block.width || 500);
+  const pluginUrl = buildFacebookPostPluginUrl({ href, showText: block.showText, width });
 
   if (!href) {
     return null;
@@ -61,13 +28,28 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
   return (
     <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
       <Box sx={{ width: "100%", maxWidth: width }}>
-        <div
-          className="fb-post"
-          data-href={href}
-          data-width={String(width)}
-          data-show-text={block.showText ? "true" : "false"}
-          data-lazy="true"
+        <iframe
+          title="Facebook post"
+          src={pluginUrl}
+          width={width}
+          height={block.height || defaultFacebookPostHeight}
+          loading="lazy"
+          scrolling="no"
+          allowFullScreen
+          allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+          style={{ border: 0, overflow: "hidden", width: "100%", maxWidth: width, borderRadius: 8 }}
         />
+        <Button
+          component="a"
+          href={normalizeSafeHref(href)}
+          target="_blank"
+          rel="noreferrer"
+          size="small"
+          variant="text"
+          sx={{ mt: 0.75, px: 0 }}
+        >
+          เปิดโพสต์บน Facebook
+        </Button>
         {block.caption && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
             {block.caption}

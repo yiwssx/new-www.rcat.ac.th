@@ -50,6 +50,7 @@ export interface FacebookPostContentBlock extends ContentBlockBase {
   caption: string;
   showText: boolean;
   width: number;
+  height?: number;
 }
 
 export interface ButtonContentBlock extends ContentBlockBase {
@@ -142,6 +143,16 @@ function normalizeFacebookPostWidth(value: unknown): number {
   return Math.min(750, Math.max(350, Math.round(numeric)));
 }
 
+function normalizeFacebookPostHeight(value: unknown): number | undefined {
+  const numeric = Number(value);
+
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return undefined;
+  }
+
+  return Math.round(numeric);
+}
+
 export function createContentBlock(type: ContentBlockType): ContentBlock {
   const id = createBlockId();
 
@@ -232,13 +243,16 @@ function normalizeContentBlock(value: unknown): ContentBlock | null {
   }
 
   if (type === "facebookPost") {
+    const height = normalizeFacebookPostHeight(value.height);
+
     return {
       id,
       type,
       href: normalizeString(value.href).trim(),
       caption: normalizeString(value.caption),
       showText: value.showText === true,
-      width: normalizeFacebookPostWidth(value.width)
+      width: normalizeFacebookPostWidth(value.width),
+      ...(height ? { height } : {})
     };
   }
 
