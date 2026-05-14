@@ -215,6 +215,7 @@ describe("PublicContentDetailPage", () => {
     currentSnapshot = createSnapshot(currentDetail);
 
     render(<PublicContentDetailPage slug="news-1" />);
+    const article = screen.getByRole("article");
 
     expect(screen.queryByText("รายละเอียดเนื้อหา")).not.toBeInTheDocument();
     expect(screen.queryByText("ผู้รับผิดชอบ")).not.toBeInTheDocument();
@@ -228,8 +229,9 @@ describe("PublicContentDetailPage", () => {
     expect(screen.queryByText(/3 พฤษภาคม 2569\s+\d{1,2}:\d{2}/)).not.toBeInTheDocument();
     expect(screen.getByText("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeInTheDocument();
     expect(screen.getByText("ผู้เข้าดู 12 ครั้ง")).toBeInTheDocument();
-    expect(screen.getByText("สื่อแนบ")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "ใบสมัคร.pdf" })).toBeInTheDocument();
+    expect(within(article).getByText("สื่อแนบ")).toBeInTheDocument();
+    expect(within(article).getByRole("link", { name: "ใบสมัคร.pdf" })).toBeInTheDocument();
+    expect(within(article).queryByRole("link", { name: "กลับไปหน้ารายการ" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "กลับไปหน้ารายการ" })).toBeInTheDocument();
     expect(screen.getByText("#ข่าวกิจกรรม").closest("a")?.getAttribute("href")).toBe(
       "/news?tag=%E0%B8%82%E0%B9%88%E0%B8%B2%E0%B8%A7%E0%B8%81%E0%B8%B4%E0%B8%88%E0%B8%81%E0%B8%A3%E0%B8%A3%E0%B8%A1"
