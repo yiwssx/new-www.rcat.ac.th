@@ -45,7 +45,11 @@ export default function PublicAnnouncementsPage() {
   );
 
   if (!data && (isLoading || isFetching)) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell>
+        <PublicLoadingState />
+      </PublicSiteShell>
+    );
   }
 
   if (!data && isError) {
@@ -60,7 +64,11 @@ export default function PublicAnnouncementsPage() {
   }
 
   if (!data) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell>
+        <PublicLoadingState />
+      </PublicSiteShell>
+    );
   }
 
   return (

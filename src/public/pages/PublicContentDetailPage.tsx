@@ -235,7 +235,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
 
   if (isInitialSnapshotLoading || isInitialContentLoading) {
     return (
-      <PublicSiteShell title="กำลังโหลด" description="กำลังโหลดเนื้อหาสาธารณะจาก CMS">
+      <PublicSiteShell hidePageHeader seoTitle="" seoDescription="" canonicalPath={`/content/${slug || ""}`}>
         <LinearProgress />
       </PublicSiteShell>
     );

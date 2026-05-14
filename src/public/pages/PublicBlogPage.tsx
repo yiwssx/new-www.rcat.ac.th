@@ -17,7 +17,11 @@ export default function PublicBlogPage() {
   const [featuredItem, ...secondaryItems] = blogItems;
 
   if (!data && (isLoading || isFetching)) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell>
+        <PublicLoadingState />
+      </PublicSiteShell>
+    );
   }
 
   if (!data && isError) {
@@ -32,7 +36,11 @@ export default function PublicBlogPage() {
   }
 
   if (!data) {
-    return <PublicLoadingState />;
+    return (
+      <PublicSiteShell>
+        <PublicLoadingState />
+      </PublicSiteShell>
+    );
   }
 
   return (
