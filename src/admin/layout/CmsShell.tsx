@@ -202,7 +202,7 @@ export default function CmsShell() {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }} className="cms-shell-main">
+    <Box sx={{ display: "flex", minHeight: "100vh" }} className="rcat-admin-page">
       <AppBar
         position="fixed"
         color="inherit"

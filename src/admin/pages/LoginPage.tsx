@@ -71,7 +71,7 @@ export default function LoginPage() {
       }}
     >
       <Container maxWidth="sm">
-        <Card className="cms-elevated-surface">
+        <Card className="rcat-admin-card">
           <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
             <Stack spacing={3}>
               <Stack direction="row" spacing={1.5} alignItems="center">

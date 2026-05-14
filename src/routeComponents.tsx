@@ -36,7 +36,7 @@ export function RouteFallback() {
         placeItems: "center",
         bgcolor: "background.default"
       }}
-      className="min-h-[62vh] grid place-items-center"
+      className="rcat-section-tight grid min-h-[62vh] place-items-center"
     >
       <CircularProgress />
     </Box>
