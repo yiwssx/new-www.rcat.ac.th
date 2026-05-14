@@ -34,6 +34,7 @@ export default function PublicContentCard({
     <Card
       component="a"
       href={normalizeSafeHref(`/content/${item.slug}`)}
+      className="rcat-card"
       sx={{
         display: "block",
         height: "100%",
@@ -47,6 +48,7 @@ export default function PublicContentCard({
       <CardContent sx={{ p: featured ? 3 : 2.4 }}>
         <Stack direction={featured ? { xs: "column", md: "row" } : "row"} spacing={2}>
           <Box
+            className="rcat-image-frame"
             sx={{
               width: featured ? { xs: "100%", md: 180 } : 70,
               minWidth: featured ? { md: 180 } : 70,

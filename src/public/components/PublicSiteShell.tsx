@@ -508,7 +508,7 @@ export default function PublicSiteShell({
   }
 
   return (
-    <Box id="top" sx={{ minHeight: "100vh", bgcolor: "background.default" }} className="min-h-screen bg-rcat-soft-bg">
+    <Box id="top" sx={{ minHeight: "100vh", bgcolor: "background.default" }} className="rcat-page">
       <PublicIntroGate settings={homepageSettings.introGate} />
       <Box
         sx={{
@@ -719,7 +719,7 @@ export default function PublicSiteShell({
           pt: disableMainContainer ? 0 : { xs: 3, md: 4.5 },
           pb: { xs: 3, md: 4.5 }
         }}
-        className="mx-auto w-full max-w-[1680px]"
+        className="rcat-container"
       >
         {disableMainContainer ? children : <Container maxWidth="xl">{children}</Container>}
       </Box>

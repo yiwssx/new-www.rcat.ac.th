@@ -192,11 +192,8 @@ function AttachedMediaSection({ attachedMedia }: { attachedMedia: MediaAsset[] }
 
   return (
     <Box
+      className="rcat-card-muted"
       sx={{
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2,
-        bgcolor: "rgba(31, 90, 44, 0.025)",
         p: { xs: 2, md: 2.5 }
       }}
     >
@@ -350,11 +347,11 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
         canonicalUrl={item.canonicalUrl}
         canonicalPath={`/content/${item.slug || slug || ""}`}
       >
-        <Box sx={{ maxWidth: 960, mx: "auto" }}>
+        <Box className="rcat-content-detail-shell max-w-[960px]">
           <Button href={normalizeSafeHref("/announcements")} startIcon={<ArrowBackOutlinedIcon />} sx={{ mb: 2 }}>
             กลับไปหน้าประกาศ
           </Button>
-          <Card component="article">
+          <Card component="article" className="rcat-card">
             <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
               <Stack spacing={2.4}>
                 <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
@@ -373,6 +370,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                 {featuredMedia?.type === "image" && featuredMediaPreviewUrl && (
                   <Box
                     component="img"
+                    className="rcat-image-frame"
                     src={featuredMediaPreviewUrl}
                     alt={featuredMedia.name}
                     sx={{
@@ -387,6 +385,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                 {featuredMedia?.type === "video" && featuredMediaEmbedUrl && (
                   <Box
                     component="iframe"
+                    className="rcat-image-frame"
                     title={featuredMedia.name}
                     src={featuredMediaEmbedUrl}
                     sx={{ width: "100%", height: { xs: 240, md: 430 }, border: 0, borderRadius: 2 }}
@@ -403,7 +402,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                 )}
 
                 {!!attachedMedia.length && (
-                  <Box>
+                  <Box className="rcat-card-muted" sx={{ p: { xs: 2, md: 2.5 } }}>
                     <Typography variant="h3" sx={{ mb: 1.5 }}>
                       เอกสารแนบ
                     </Typography>
@@ -463,20 +462,19 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
       canonicalUrl={item.canonicalUrl}
       canonicalPath={`/content/${item.slug || slug || ""}`}
     >
-      <Box sx={{ maxWidth: 1040, mx: "auto" }}>
-        <Card component="article">
+      <Box className="rcat-content-detail-shell">
+        <Card component="article" className="rcat-card">
           <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
             <Stack spacing={2.5}>
               <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
               <Box
+                className="rcat-image-frame"
                 sx={{
                   minHeight: { xs: 180, md: 260 },
-                  borderRadius: 2,
                   display: "grid",
                   placeItems: "center",
                   bgcolor: "primary.light",
-                  color: "primary.main",
-                  overflow: "hidden"
+                  color: "primary.main"
                 }}
               >
                 {featuredMedia?.type === "image" && featuredMediaPreviewUrl ? (
