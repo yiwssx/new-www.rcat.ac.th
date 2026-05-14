@@ -160,7 +160,7 @@ describe("PublicContentDetailPage public UX regressions", () => {
 
     const relatedAnnouncement = createContent({
       id: "announcement-2",
-      title: "ประกาศที่เกี่ยวข้อง",
+      title: "ประกาศรับสมัครที่เกี่ยวข้อง",
       slug: "related-important-announcement",
       type: "announcement",
       status: "published",
@@ -210,6 +210,6 @@ describe("PublicContentDetailPage public UX regressions", () => {
 
     // Verify related announcement section renders
     expect(screen.getByText("ประกาศที่เกี่ยวข้อง")).toBeInTheDocument();
-    expect(screen.getByText("ประกาศที่เกี่ยวข้องครับท่าน")).toBeInTheDocument();
+    expect(screen.getByText("ประกาศรับสมัครที่เกี่ยวข้อง")).toBeInTheDocument();
   });
 });
