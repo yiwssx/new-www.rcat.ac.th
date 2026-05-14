@@ -9,6 +9,7 @@ import { ExternalServicesSection } from "../public/components/home/ExternalServi
 import { HomeIntroVideoSection } from "../public/components/home/HomeIntroVideoSection";
 import { UrgentMarqueeSection } from "../public/components/home/UrgentMarqueeSection";
 import { VisitorStatsCard } from "../public/components/home/VisitorStatsCard";
+import { shouldStartCarouselAutoplay } from "../public/utils/homeCarousel";
 import { DEFAULT_HOMEPAGE_SETTINGS } from "../services/homepageSettings";
 import { defaultSiteSettings } from "../services/siteSettings";
 import { CarouselSlide, ContentItem, ExternalServiceLink } from "../types";
@@ -86,8 +87,36 @@ describe("homepage settings public sections", () => {
 
     render(<PublicHomeCarousel slides={slides} />);
 
-    expect(screen.getByText("Campus highlight")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Read more" })).toHaveAttribute("href", "/content/campus-highlight");
+    expect(screen.getByRole("img", { name: "Campus banner" })).toHaveAttribute("src", "https://example.edu/banner.jpg");
+    expect(screen.queryByText("Campus highlight")).not.toBeInTheDocument();
+    expect(screen.queryByText("A real CMS carousel slide")).not.toBeInTheDocument();
+    expect(screen.queryByText("Homepage")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Read more" })).not.toBeInTheDocument();
+  });
+
+  it("renders PublicHomeCarousel when a visible slide has only an image URL", () => {
+    const slides: CarouselSlide[] = [
+      {
+        id: "carousel-1",
+        title: "",
+        subtitle: "",
+        chip: "",
+        imageUrl: "https://example.edu/ceremony.jpg",
+        imageAlt: "",
+        buttonLabel: "",
+        href: "",
+        enabled: true,
+        order: 1,
+        updatedAt: "2026-05-10T00:00:00.000Z"
+      }
+    ];
+
+    render(<PublicHomeCarousel slides={slides} />);
+
+    expect(screen.getByRole("img", { name: "ภาพสไลด์หน้าแรก" })).toHaveAttribute(
+      "src",
+      "https://example.edu/ceremony.jpg"
+    );
   });
 
   it("prioritizes only the first PublicHomeCarousel image", () => {
@@ -130,6 +159,12 @@ describe("homepage settings public sections", () => {
     expect(carouselImages[1]).toHaveAttribute("loading", "lazy");
     expect(carouselImages[1]).toHaveAttribute("fetchpriority", "auto");
     expect(carouselImages[1]).toHaveAttribute("decoding", "async");
+  });
+
+  it("only starts carousel autoplay when enabled and multiple slides are visible", () => {
+    expect(shouldStartCarouselAutoplay(false, 2)).toBe(false);
+    expect(shouldStartCarouselAutoplay(true, 1)).toBe(false);
+    expect(shouldStartCarouselAutoplay(true, 2)).toBe(true);
   });
 
   it("does not render ExternalServicesSection when no service links exist", () => {

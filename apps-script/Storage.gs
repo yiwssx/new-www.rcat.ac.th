@@ -215,6 +215,8 @@ function safeJsonParseObject(value, fallback) {
 function normalizeHomepageSettings(input) {
   const source = input && typeof input === "object" && !Array.isArray(input) ? input : {};
   const defaults = DEFAULT_HOMEPAGE_SETTINGS;
+  const carousel =
+    source.carousel && typeof source.carousel === "object" && !Array.isArray(source.carousel) ? source.carousel : {};
   const introGate =
     source.introGate && typeof source.introGate === "object" && !Array.isArray(source.introGate)
       ? source.introGate
@@ -225,9 +227,17 @@ function normalizeHomepageSettings(input) {
     source.introVideo && typeof source.introVideo === "object" && !Array.isArray(source.introVideo)
       ? source.introVideo
       : {};
+  const autoplayIntervalSeconds = Number(carousel.autoplayIntervalSeconds);
   const speedSeconds = Number(marquee.speedSeconds);
 
   return {
+    carousel: {
+      autoplayEnabled:
+        typeof carousel.autoplayEnabled === "boolean" ? carousel.autoplayEnabled : defaults.carousel.autoplayEnabled,
+      autoplayIntervalSeconds: Number.isFinite(autoplayIntervalSeconds)
+        ? Math.min(30, Math.max(3, autoplayIntervalSeconds))
+        : defaults.carousel.autoplayIntervalSeconds
+    },
     introGate: {
       enabled: introGate.enabled === true,
       imageUrl: normalizeHomepageSettingsString(introGate.imageUrl, defaults.introGate.imageUrl),
@@ -280,6 +290,12 @@ function updateHomepageSettings(input) {
   const currentSettings = getHomepageSettings();
   const source = input && typeof input === "object" && !Array.isArray(input) ? input : {};
   const nextSettings = normalizeHomepageSettings({
+    carousel: {
+      ...currentSettings.carousel,
+      ...(source.carousel && typeof source.carousel === "object" && !Array.isArray(source.carousel)
+        ? source.carousel
+        : {})
+    },
     introGate: {
       ...currentSettings.introGate,
       ...(source.introGate && typeof source.introGate === "object" && !Array.isArray(source.introGate)

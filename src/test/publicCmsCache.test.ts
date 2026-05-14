@@ -90,6 +90,10 @@ function createPublicContentListSnapshot(
       messengerEnabled: false
     },
     homepageSettings: {
+      carousel: {
+        autoplayEnabled: true,
+        autoplayIntervalSeconds: 5
+      },
       introGate: {
         enabled: false,
         imageUrl: "",
@@ -239,6 +243,10 @@ describe("publicCmsCache", () => {
         messengerEnabled: false
       },
       homepageSettings: {
+        carousel: {
+          autoplayEnabled: true,
+          autoplayIntervalSeconds: 5
+        },
         introGate: {
           enabled: false,
           imageUrl: "",

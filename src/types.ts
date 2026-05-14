@@ -270,7 +270,13 @@ export interface HomepageIntroVideoSettings {
   youtubeEmbedUrl: string;
 }
 
+export interface HomepageCarouselSettings {
+  autoplayEnabled: boolean;
+  autoplayIntervalSeconds: number;
+}
+
 export interface HomepageSettings {
+  carousel: HomepageCarouselSettings;
   introGate: HomepageIntroGateSettings;
   marquee: HomepageMarqueeSettings;
   introVideo: HomepageIntroVideoSettings;

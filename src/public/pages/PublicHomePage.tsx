@@ -85,7 +85,7 @@ export default function PublicHomePage() {
     >
       {isFetching && <LinearProgress />}
       <UrgentMarqueeSection settings={homepageSettings.marquee} />
-      <PublicHomeCarousel slides={carouselSlides} />
+      <PublicHomeCarousel slides={carouselSlides} settings={homepageSettings.carousel} />
       <Container maxWidth="xl">
         <HomeHeroSection siteSettings={siteSettings} />
         <HomeIntroVideoSection settings={homepageSettings.introVideo} />

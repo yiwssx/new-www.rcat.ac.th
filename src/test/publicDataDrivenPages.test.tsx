@@ -109,6 +109,10 @@ function createHomeSnapshot(overrides: Partial<PublicHomeSnapshot> = {}): Public
   return {
     siteSettings: snapshot.siteSettings!,
     homepageSettings: {
+      carousel: {
+        autoplayEnabled: true,
+        autoplayIntervalSeconds: 5
+      },
       introGate: {
         enabled: false,
         imageUrl: "",
@@ -339,8 +343,12 @@ describe("public data-driven pages", () => {
 
     render(<PublicHomePage />);
 
-    expect(screen.getByText("CMS carousel title")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Read more" })).toHaveAttribute("href", "/content/cms-carousel");
+    expect(screen.getByRole("img", { name: "CMS carousel image" })).toHaveAttribute(
+      "src",
+      "https://example.edu/carousel.jpg"
+    );
+    expect(screen.queryByText("CMS carousel title")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Read more" })).not.toBeInTheDocument();
   });
 
   it("shows an honest empty state when no program content exists", () => {

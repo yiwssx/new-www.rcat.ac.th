@@ -30,12 +30,24 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import PageHeader from "../components/PageHeader";
-import { deleteCarouselSlideFromApi, getAdminCmsSnapshot, saveCarouselSlideToApi } from "../../services/googleApi";
+import {
+  deleteCarouselSlideFromApi,
+  getAdminCmsSnapshot,
+  saveCarouselSlideToApi,
+  saveHomepageSettingsToApi
+} from "../../services/googleApi";
 import { clearPublicCmsCache } from "../../services/publicCmsCache";
-import { CarouselSlide, MediaAsset } from "../../types";
+import { CarouselSlide, HomepageCarouselSettings, MediaAsset } from "../../types";
 import { formatDisplayDateTime } from "../../utils/dateDisplay";
+import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal } from "../../utils/swal";
+import {
+  CAROUSEL_FALLBACK_TITLE,
+  getCarouselSlideDisplayTitle,
+  getCarouselSlideValidationMessage,
+  normalizeCarouselAutoplayInterval
+} from "../utils/carousel";
 
 function sortCarouselSlides(slides: CarouselSlide[]) {
   return [...slides].sort((left, right) => {
@@ -90,11 +102,11 @@ function createCarouselDraft(order: number): CarouselSlide {
     id: `carousel-${Date.now()}`,
     title: "",
     subtitle: "",
-    chip: "ประชาสัมพันธ์",
+    chip: "",
     imageUrl: "",
     imageAlt: "",
-    buttonLabel: "อ่านต่อ",
-    href: "/",
+    buttonLabel: "",
+    href: "",
     enabled: false,
     order,
     startAt: "",
@@ -111,11 +123,11 @@ function normalizeCarouselDraft(slide: CarouselSlide): CarouselSlide {
     ...slide,
     title,
     subtitle: slide.subtitle.trim(),
-    chip: slide.chip.trim() || "ประชาสัมพันธ์",
+    chip: slide.chip.trim(),
     imageUrl: slide.imageUrl.trim(),
-    imageAlt: slide.imageAlt.trim() || title,
-    buttonLabel: slide.buttonLabel.trim() || "อ่านต่อ",
-    href: slide.href.trim() || "/",
+    imageAlt: slide.imageAlt.trim(),
+    buttonLabel: slide.buttonLabel.trim(),
+    href: slide.href.trim(),
     enabled: Boolean(slide.enabled),
     order: Number.isFinite(order) ? order : 0,
     startAt: slide.startAt || "",
@@ -153,7 +165,13 @@ export default function CarouselPage() {
     () => getCarouselImageMedia(adminSnapshotQuery.data?.media ?? []),
     [adminSnapshotQuery.data?.media]
   );
+  const homepageSettings = useMemo(
+    () => normalizeHomepageSettings(adminSnapshotQuery.data?.homepageSettings),
+    [adminSnapshotQuery.data?.homepageSettings]
+  );
   const [editingSlide, setEditingSlide] = useState<CarouselSlide | null>(null);
+  const [carouselSettingsDraft, setCarouselSettingsDraft] = useState<HomepageCarouselSettings | null>(null);
+  const carouselSettings = carouselSettingsDraft ?? homepageSettings.carousel;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -162,6 +180,9 @@ export default function CarouselPage() {
   });
   const deleteCarouselMutation = useMutation({
     mutationFn: deleteCarouselSlideFromApi
+  });
+  const saveHomepageSettingsMutation = useMutation({
+    mutationFn: saveHomepageSettingsToApi
   });
 
   function updateEditingSlide<K extends keyof CarouselSlide>(key: K, value: CarouselSlide[K]) {
@@ -173,6 +194,20 @@ export default function CarouselPage() {
           }
         : current
     );
+  }
+
+  function updateCarouselSettings<K extends keyof HomepageCarouselSettings>(
+    key: K,
+    value: HomepageCarouselSettings[K]
+  ) {
+    setCarouselSettingsDraft((current) => {
+      const baseSettings = current ?? homepageSettings.carousel;
+
+      return {
+        ...baseSettings,
+        [key]: key === "autoplayIntervalSeconds" ? normalizeCarouselAutoplayInterval(value as number) : value
+      };
+    });
   }
 
   function handleAddSlide() {
@@ -227,39 +262,43 @@ export default function CarouselPage() {
     ]);
   }
 
+  async function handleSaveCarouselSettings() {
+    try {
+      const nextSettings = normalizeHomepageSettings({
+        ...homepageSettings,
+        carousel: carouselSettings
+      });
+      const saved = await saveHomepageSettingsMutation.mutateAsync(nextSettings);
+      setCarouselSettingsDraft(normalizeHomepageSettings(saved).carousel);
+      await invalidateCarouselData();
+      await appSwal.fire({
+        icon: "success",
+        title: "บันทึกการตั้งค่าสไลด์หน้าแรกแล้ว",
+        confirmButtonText: "ตกลง"
+      });
+    } catch (error) {
+      await appSwal.fire({
+        icon: "error",
+        title: "ไม่สามารถบันทึกการตั้งค่าสไลด์หน้าแรกได้",
+        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
+        confirmButtonText: "ตกลง"
+      });
+    }
+  }
+
   async function handleSaveCarouselSlide() {
     if (!editingSlide) {
       return;
     }
 
     const nextSlide = normalizeCarouselDraft(editingSlide);
+    const validationMessage = getCarouselSlideValidationMessage(nextSlide);
 
-    if (!nextSlide.title) {
+    if (validationMessage) {
       await appSwal.fire({
         icon: "warning",
-        title: "กรุณาระบุชื่อสไลด์",
-        confirmButtonText: "ตกลง"
-      });
-      return;
-    }
-
-    if (!nextSlide.imageUrl) {
-      await appSwal.fire({
-        icon: "warning",
-        title: "กรุณาระบุ URL รูปภาพ",
-        confirmButtonText: "ตกลง"
-      });
-      return;
-    }
-
-    const startAtMs = nextSlide.startAt ? Date.parse(nextSlide.startAt) : Number.NaN;
-    const endAtMs = nextSlide.endAt ? Date.parse(nextSlide.endAt) : Number.NaN;
-
-    if (Number.isFinite(startAtMs) && Number.isFinite(endAtMs) && endAtMs < startAtMs) {
-      await appSwal.fire({
-        icon: "warning",
-        title: "ช่วงเวลาไม่ถูกต้อง",
-        text: "เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่มต้น",
+        title: validationMessage.title,
+        text: validationMessage.text,
         confirmButtonText: "ตกลง"
       });
       return;
@@ -289,7 +328,7 @@ export default function CarouselPage() {
     const result = await appSwal.fire({
       icon: "warning",
       title: "ลบสไลด์หน้าแรก?",
-      text: slide.title,
+      text: getCarouselSlideDisplayTitle(slide),
       showCancelButton: true,
       confirmButtonText: "ลบ",
       cancelButtonText: "ยกเลิก"
@@ -328,6 +367,56 @@ export default function CarouselPage() {
           </Button>
         }
       />
+
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Stack spacing={2}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "center" }}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="h3" sx={{ fontSize: "1.12rem" }}>
+                  การเล่นสไลด์อัตโนมัติ
+                </Typography>
+                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                  ตั้งค่าการเลื่อนภาพอัตโนมัติสำหรับสไลด์หน้าแรก
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                startIcon={<SaveOutlinedIcon />}
+                disabled={saveHomepageSettingsMutation.isPending || adminSnapshotQuery.isLoading}
+                onClick={() => void handleSaveCarouselSettings()}
+              >
+                {saveHomepageSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกการตั้งค่า"}
+              </Button>
+            </Stack>
+            <Grid container spacing={1.5}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={carouselSettings.autoplayEnabled}
+                      onChange={(event) => updateCarouselSettings("autoplayEnabled", event.target.checked)}
+                    />
+                  }
+                  label="เปิดเล่นสไลด์อัตโนมัติ"
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  label="ระยะเวลาเปลี่ยนภาพ (วินาที)"
+                  type="number"
+                  value={carouselSettings.autoplayIntervalSeconds}
+                  onChange={(event) => updateCarouselSettings("autoplayIntervalSeconds", Number(event.target.value))}
+                  helperText="กำหนดได้ตั้งแต่ 3 ถึง 30 วินาที"
+                  inputProps={{ min: 3, max: 30 }}
+                  size="small"
+                  fullWidth
+                />
+              </Grid>
+            </Grid>
+          </Stack>
+        </CardContent>
+      </Card>
 
       {adminSnapshotQuery.isLoading && (
         <Card sx={{ mb: 3 }}>
@@ -397,7 +486,6 @@ export default function CarouselPage() {
                 <CardContent>
                   <Stack spacing={1.5}>
                     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                      <Chip label={slide.chip || "ประชาสัมพันธ์"} size="small" color="secondary" />
                       <Chip
                         label={slide.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
                         size="small"
@@ -408,7 +496,7 @@ export default function CarouselPage() {
                     </Stack>
                     <Box>
                       <Typography variant="h3" sx={{ fontSize: "1.12rem" }}>
-                        {slide.title || "ไม่มีชื่อสไลด์"}
+                        {getCarouselSlideDisplayTitle(slide)}
                       </Typography>
                       {slide.subtitle && (
                         <Typography color="text.secondary" className="content-summary" sx={{ mt: 0.75 }}>
@@ -421,9 +509,11 @@ export default function CarouselPage() {
                         {dateRangeLabel}
                       </Typography>
                     )}
-                    <Typography color="text.secondary" variant="body2" sx={{ wordBreak: "break-word" }}>
-                      {slide.href || "/"}
-                    </Typography>
+                    {slide.href && (
+                      <Typography color="text.secondary" variant="body2" sx={{ wordBreak: "break-word" }}>
+                        {slide.href}
+                      </Typography>
+                    )}
                     <Stack direction="row" spacing={1} justifyContent="flex-end">
                       <IconButton aria-label="แก้ไขสไลด์หน้าแรก" onClick={() => handleEditSlide(slide)} size="small">
                         <EditOutlinedIcon fontSize="small" />
@@ -463,14 +553,14 @@ export default function CarouselPage() {
                     label="เปิดใช้งาน"
                   />
                   <TextField
-                    label="ชื่อสไลด์"
+                    label="ชื่อสไลด์ (ไม่บังคับ)"
                     value={editingSlide.title}
                     onChange={(event) => updateEditingSlide("title", event.target.value)}
-                    required
+                    helperText="ใช้เป็นคำอธิบายภายในและข้อความสำรองสำหรับรูปภาพ"
                     fullWidth
                   />
                   <TextField
-                    label="คำอธิบาย"
+                    label="คำอธิบาย (ไม่บังคับ)"
                     value={editingSlide.subtitle}
                     onChange={(event) => updateEditingSlide("subtitle", event.target.value)}
                     minRows={3}
@@ -478,7 +568,7 @@ export default function CarouselPage() {
                     fullWidth
                   />
                   <TextField
-                    label="ป้ายกำกับ"
+                    label="ป้ายกำกับเดิม (ไม่บังคับ)"
                     value={editingSlide.chip}
                     onChange={(event) => updateEditingSlide("chip", event.target.value)}
                     fullWidth
@@ -606,15 +696,16 @@ export default function CarouselPage() {
                     </Stack>
                   </Box>
                   <TextField
-                    label="คำอธิบายรูปภาพ alt"
+                    label="คำอธิบายรูปภาพ alt (แนะนำ)"
                     value={editingSlide.imageAlt}
                     onChange={(event) => updateEditingSlide("imageAlt", event.target.value)}
+                    helperText="ถ้าเว้นว่าง ระบบจะใช้ชื่อสไลด์ หรือข้อความสำรองสำหรับผู้อ่านหน้าจอ"
                     fullWidth
                   />
                   <Grid container spacing={1.5}>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
-                        label="ข้อความปุ่ม"
+                        label="ข้อความปุ่มเดิม (ไม่บังคับ)"
                         value={editingSlide.buttonLabel}
                         onChange={(event) => updateEditingSlide("buttonLabel", event.target.value)}
                         fullWidth
@@ -622,7 +713,7 @@ export default function CarouselPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
-                        label="ลิงก์ปลายทาง"
+                        label="ลิงก์ปลายทางเดิม (ไม่บังคับ)"
                         value={editingSlide.href}
                         onChange={(event) => updateEditingSlide("href", event.target.value)}
                         fullWidth
@@ -669,43 +760,31 @@ export default function CarouselPage() {
                   <Box
                     sx={{
                       minHeight: 220,
-                      display: "flex",
-                      alignItems: "flex-end",
-                      p: 2.2,
-                      color: "white",
+                      display: "grid",
+                      placeItems: "center",
                       bgcolor: "primary.dark",
-                      backgroundImage: editingSlide.imageUrl
-                        ? `linear-gradient(105deg, rgba(31, 90, 44, 0.9), rgba(0, 0, 0, 0.3)), url(${JSON.stringify(
-                            editingSlide.imageUrl
-                          )})`
-                        : undefined,
-                      backgroundPosition: "center",
-                      backgroundSize: "cover"
+                      overflow: "hidden"
                     }}
                   >
-                    <Stack spacing={1.1} sx={{ maxWidth: 420 }}>
-                      <Chip
-                        label={editingSlide.chip || "ประชาสัมพันธ์"}
-                        color="secondary"
-                        sx={{ alignSelf: "flex-start", color: "primary.dark", fontWeight: 800 }}
+                    {editingSlide.imageUrl ? (
+                      <Box
+                        component="img"
+                        src={editingSlide.imageUrl}
+                        alt={editingSlide.imageAlt || editingSlide.title || CAROUSEL_FALLBACK_TITLE}
+                        sx={{
+                          width: "100%",
+                          minHeight: 220,
+                          height: "100%",
+                          display: "block",
+                          objectFit: "cover",
+                          objectPosition: "center center"
+                        }}
                       />
-                      <Typography variant="h3" sx={{ fontSize: "1.35rem", color: "inherit" }}>
-                        {editingSlide.title || "ชื่อสไลด์หน้าแรก"}
+                    ) : (
+                      <Typography color="white" fontWeight={800}>
+                        ยังไม่มีรูปภาพ
                       </Typography>
-                      <Typography sx={{ color: "rgba(255, 255, 255, 0.86)" }}>
-                        {editingSlide.subtitle || "คำอธิบายสั้นสำหรับสไลด์หน้าแรก"}
-                      </Typography>
-                      <Button
-                        component="a"
-                        href={normalizeSafeHref(editingSlide.href || "/")}
-                        variant="contained"
-                        color="secondary"
-                        size="small"
-                        sx={{ alignSelf: "flex-start", color: "primary.dark", fontWeight: 800 }}
-                      >
-                        {editingSlide.buttonLabel || "อ่านต่อ"}
-                      </Button>
-                    </Stack>
+                    )}
                   </Box>
                 </Card>
               </Grid>

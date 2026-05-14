@@ -1,25 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Button, Chip, Container, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Container, IconButton, Stack } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import ArrowForwardIosRoundedIcon from "@mui/icons-material/ArrowForwardIosRounded";
 import CircleIcon from "@mui/icons-material/Circle";
 import useEmblaCarousel from "embla-carousel-react";
-import { CarouselSlide } from "../../types";
-import { normalizeSafeHref } from "../../utils/safeUrl";
+import { CarouselSlide, HomepageCarouselSettings } from "../../types";
+import {
+  isCarouselSlideActive,
+  normalizeCarouselAutoplayIntervalSeconds,
+  shouldStartCarouselAutoplay
+} from "../utils/homeCarousel";
 
 interface ResolvedCarouselSlide {
   id: string;
-  chip: string;
-  title: string;
-  subtitle: string;
   imageUrl: string;
   altText: string;
-  buttonLabel: string;
-  href: string;
+  label: string;
 }
 
-const AUTOPLAY_INTERVAL_MS = 5000;
+const DEFAULT_SLIDE_ALT = "ภาพสไลด์หน้าแรก";
 let carouselBrowserApisEnsured = false;
 
 function ensureCarouselBrowserApis() {
@@ -77,35 +77,40 @@ function ensureCarouselBrowserApis() {
   }
 }
 
-export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[] }) {
+export default function PublicHomeCarousel({
+  slides,
+  settings
+}: {
+  slides: CarouselSlide[];
+  settings?: HomepageCarouselSettings;
+}) {
   ensureCarouselBrowserApis();
+  const [visibleAtMs] = useState(() => Date.now());
 
-  const resolvedSlides = useMemo(
-    () =>
-      slides
-        .map((slide): ResolvedCarouselSlide | null => {
-          if (!slide.enabled || !slide.imageUrl || !slide.title) {
-            return null;
-          }
+  const resolvedSlides = useMemo(() => {
+    return slides
+      .map((slide): ResolvedCarouselSlide | null => {
+        if (!isCarouselSlideActive(slide, visibleAtMs)) {
+          return null;
+        }
 
-          return {
-            id: slide.id,
-            chip: slide.chip || "ประชาสัมพันธ์",
-            title: slide.title,
-            subtitle: slide.subtitle,
-            imageUrl: slide.imageUrl,
-            altText: slide.imageAlt || slide.title,
-            buttonLabel: slide.buttonLabel || "อ่านต่อ",
-            href: slide.href || "/"
-          };
-        })
-        .filter((slide): slide is ResolvedCarouselSlide => Boolean(slide)),
-    [slides]
-  );
+        const altText = slide.imageAlt || slide.title || DEFAULT_SLIDE_ALT;
+
+        return {
+          id: slide.id,
+          imageUrl: slide.imageUrl,
+          altText,
+          label: slide.title || altText
+        };
+      })
+      .filter((slide): slide is ResolvedCarouselSlide => Boolean(slide));
+  }, [slides, visibleAtMs]);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const autoplayRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
+  const autoplayEnabled = settings?.autoplayEnabled ?? true;
+  const autoplayIntervalMs = normalizeCarouselAutoplayIntervalSeconds(settings?.autoplayIntervalSeconds) * 1000;
 
   const stopAutoplay = useCallback(() => {
     if (autoplayRef.current) {
@@ -154,16 +159,16 @@ export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[]
   useEffect(() => {
     stopAutoplay();
 
-    if (!emblaApi || isHovering || resolvedSlides.length < 2) {
+    if (!emblaApi || isHovering || !shouldStartCarouselAutoplay(autoplayEnabled, resolvedSlides.length)) {
       return stopAutoplay;
     }
 
     autoplayRef.current = window.setInterval(() => {
       emblaApi.scrollNext();
-    }, AUTOPLAY_INTERVAL_MS);
+    }, autoplayIntervalMs);
 
     return stopAutoplay;
-  }, [emblaApi, isHovering, resolvedSlides.length, stopAutoplay]);
+  }, [autoplayEnabled, autoplayIntervalMs, emblaApi, isHovering, resolvedSlides.length, stopAutoplay]);
 
   if (resolvedSlides.length === 0) {
     return null;
@@ -193,29 +198,15 @@ export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[]
                 <Box
                   key={slide.id}
                   role="group"
-                  aria-label={`${slide.title}: ${slide.altText}`}
-                  sx={(theme) => ({
+                  aria-label={slide.label}
+                  sx={{
                     position: "relative",
                     flex: "0 0 100%",
                     minWidth: 0,
                     minHeight: { xs: 260, sm: 320, md: 420 },
-                    display: "flex",
-                    alignItems: "center",
-                    p: { xs: 2, sm: 3, md: 5 },
-                    color: "white",
                     bgcolor: "primary.dark",
-                    overflow: "hidden",
-                    "&::before": {
-                      content: '""',
-                      position: "absolute",
-                      inset: 0,
-                      zIndex: 1,
-                      background: `linear-gradient(105deg, ${alpha(theme.palette.primary.dark, 0.92)} 0%, ${alpha(
-                        theme.palette.primary.main,
-                        0.72
-                      )} 45%, ${alpha(theme.palette.common.black, 0.34)} 100%)`
-                    }
-                  })}
+                    overflow: "hidden"
+                  }}
                 >
                   <Box
                     component="img"
@@ -230,50 +221,10 @@ export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[]
                       width: "100%",
                       height: "100%",
                       objectFit: "cover",
+                      objectPosition: "center center",
                       zIndex: 0
                     }}
                   />
-                  <Stack spacing={{ xs: 1.25, md: 1.6 }} sx={{ position: "relative", zIndex: 2, maxWidth: 680 }}>
-                    <Chip
-                      label={slide.chip}
-                      color="secondary"
-                      sx={{
-                        alignSelf: "flex-start",
-                        color: "primary.dark",
-                        fontWeight: 800
-                      }}
-                    />
-                    <Typography
-                      variant="h1"
-                      sx={{
-                        maxWidth: 680,
-                        fontSize: { xs: "1.72rem", sm: "2.2rem", md: "3rem" },
-                        lineHeight: 1.08,
-                        textShadow: "0 2px 18px rgba(0, 0, 0, 0.28)"
-                      }}
-                    >
-                      {slide.title}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        maxWidth: 560,
-                        color: "rgba(255, 255, 255, 0.88)",
-                        fontSize: { xs: "0.94rem", md: "1.08rem" },
-                        lineHeight: 1.6
-                      }}
-                    >
-                      {slide.subtitle}
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      href={normalizeSafeHref(slide.href)}
-                      endIcon={<ArrowForwardIosRoundedIcon />}
-                      sx={{ alignSelf: "flex-start", color: "primary.dark", fontWeight: 800 }}
-                    >
-                      {slide.buttonLabel}
-                    </Button>
-                  </Stack>
                 </Box>
               ))}
             </Box>
@@ -286,7 +237,8 @@ export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[]
               sx={{
                 position: "absolute",
                 right: { xs: 12, md: 20 },
-                top: { xs: 12, md: 20 }
+                top: { xs: 12, md: 20 },
+                zIndex: 2
               }}
             >
               <IconButton
@@ -296,9 +248,10 @@ export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[]
                   width: { xs: 34, md: 40 },
                   height: { xs: 34, md: 40 },
                   color: "white",
-                  bgcolor: alpha(theme.palette.common.black, 0.32),
+                  bgcolor: alpha(theme.palette.common.black, 0.22),
+                  backdropFilter: "blur(2px)",
                   "&:hover": {
-                    bgcolor: alpha(theme.palette.common.black, 0.46)
+                    bgcolor: alpha(theme.palette.common.black, 0.38)
                   }
                 })}
               >
@@ -311,9 +264,10 @@ export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[]
                   width: { xs: 34, md: 40 },
                   height: { xs: 34, md: 40 },
                   color: "white",
-                  bgcolor: alpha(theme.palette.common.black, 0.32),
+                  bgcolor: alpha(theme.palette.common.black, 0.22),
+                  backdropFilter: "blur(2px)",
                   "&:hover": {
-                    bgcolor: alpha(theme.palette.common.black, 0.46)
+                    bgcolor: alpha(theme.palette.common.black, 0.38)
                   }
                 })}
               >
@@ -331,7 +285,8 @@ export default function PublicHomeCarousel({ slides }: { slides: CarouselSlide[]
                 position: "absolute",
                 left: 0,
                 right: 0,
-                bottom: { xs: 10, md: 16 }
+                bottom: { xs: 10, md: 16 },
+                zIndex: 2
               }}
             >
               {resolvedSlides.map((slide, index) => (
