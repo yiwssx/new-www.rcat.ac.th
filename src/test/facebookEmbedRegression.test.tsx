@@ -64,23 +64,20 @@ describe("Facebook embed regressions", () => {
     expect(container.querySelector(".fb-post")).not.toBeInTheDocument();
   });
 
-  // TODO: These risky Facebook URL types are currently allowed by normalizeFacebookPostUrl
-  // and will render Facebook embeds. Recommend future tightening to restrict to
-  // permalink.php, story.php, photo.php, and /posts paths only.
   it.each<{ label: string; url: string }>([
     {
-      label: "share/p/ paths (currently embeddable, may be risky)",
+      label: "/share/p/ paths",
       url: "https://www.facebook.com/share/p/abc123def456/"
     },
     {
-      label: "watch paths with video ID (currently embeddable, may be risky)",
+      label: "/watch paths with video ID",
       url: "https://www.facebook.com/watch/?v=123456789012345"
     },
     {
-      label: "reel paths (currently embeddable, may be risky)",
+      label: "/reel paths",
       url: "https://www.facebook.com/reel/123456789012345"
     }
-  ])("documents that risky URL types ($label) are currently embedded", ({ url }) => {
+  ])("renders fallback message and link instead of iframe for risky Facebook URL types ($label)", ({ url }) => {
     const { container } = render(
       <ContentBlocksRenderer
         mediaAssets={[]}
@@ -97,14 +94,17 @@ describe("Facebook embed regressions", () => {
       />
     );
 
-    // These URLs currently pass through normalizeFacebookPostUrl and render
-    const iframe = screen.getByTitle("Facebook post");
-    const iframeSrc = iframe.getAttribute("src") || "";
-    const pluginUrl = new URL(iframeSrc);
+    // Risky URLs should not render iframe
+    expect(screen.queryByTitle("Facebook post")).not.toBeInTheDocument();
 
-    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
-    expect(pluginUrl.searchParams.get("href")).toBe(url);
-    expect(iframe).toHaveAttribute("loading", "lazy");
+    // Should render fallback message
+    expect(screen.getByText("ไม่สามารถฝังโพสต์ Facebook นี้ได้โดยตรง")).toBeInTheDocument();
+
+    // Should render fallback link with correct href
+    const fallbackLink = screen.getByRole("link", { name: "เปิดโพสต์บน Facebook" });
+    expect(fallbackLink).toHaveAttribute("href", url);
+
+    // Should not render SDK or custom elements
     expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
     expect(container.querySelector(".fb-post")).not.toBeInTheDocument();
   });

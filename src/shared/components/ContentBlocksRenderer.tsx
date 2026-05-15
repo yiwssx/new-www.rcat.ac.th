@@ -5,6 +5,7 @@ import { ContentBlock, FacebookPostContentBlock } from "../../utils/contentBlock
 import {
   buildFacebookPostPluginUrl,
   clampFacebookPostPluginWidth,
+  isUnsupportedFacebookUrl,
   normalizeFacebookPostUrl
 } from "../../utils/facebookEmbed";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
@@ -18,46 +19,86 @@ const defaultFacebookPostHeight = 761;
 
 function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
   const href = normalizeFacebookPostUrl(block.href);
+  const isUnsupported = isUnsupportedFacebookUrl(block.href);
   const width = clampFacebookPostPluginWidth(block.width || 500);
   const pluginUrl = buildFacebookPostPluginUrl({ href, showText: block.showText, width });
 
-  if (!href) {
+  // If it's an unsafe or non-Facebook URL, render nothing
+  if (!href && !isUnsupported) {
     return null;
   }
 
-  return (
-    <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
-      <Box sx={{ width: "100%", maxWidth: width }}>
-        <iframe
-          title="Facebook post"
-          src={pluginUrl}
-          width={width}
-          height={block.height || defaultFacebookPostHeight}
-          loading="lazy"
-          scrolling="no"
-          allowFullScreen
-          allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-          style={{ border: 0, overflow: "hidden", width: "100%", maxWidth: width, borderRadius: 8 }}
-        />
-        <Button
-          component="a"
-          href={normalizeSafeHref(href)}
-          target="_blank"
-          rel="noreferrer"
-          size="small"
-          variant="text"
-          sx={{ mt: 0.75, px: 0 }}
-        >
-          เปิดโพสต์บน Facebook
-        </Button>
-        {block.caption && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-            {block.caption}
-          </Typography>
-        )}
+  // If it's a valid supported URL, render iframe
+  if (href && pluginUrl) {
+    return (
+      <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        <Box sx={{ width: "100%", maxWidth: width }}>
+          <iframe
+            title="Facebook post"
+            src={pluginUrl}
+            width={width}
+            height={block.height || defaultFacebookPostHeight}
+            loading="lazy"
+            scrolling="no"
+            allowFullScreen
+            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+            style={{ border: 0, overflow: "hidden", width: "100%", maxWidth: width, borderRadius: 8 }}
+          />
+          <Button
+            component="a"
+            href={normalizeSafeHref(href)}
+            target="_blank"
+            rel="noreferrer"
+            size="small"
+            variant="text"
+            sx={{ mt: 0.75, px: 0 }}
+          >
+            เปิดโพสต์บน Facebook
+          </Button>
+          {block.caption && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+              {block.caption}
+            </Typography>
+          )}
+        </Box>
       </Box>
-    </Box>
-  );
+    );
+  }
+
+  // If it's an unsupported Facebook URL, render fallback with message and link
+  if (isUnsupported && block.href) {
+    const safeHref = normalizeSafeHref(block.href);
+    const isValidHref = safeHref !== "#";
+
+    return (
+      <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        <Box sx={{ width: "100%", textAlign: "center" }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            ไม่สามารถฝังโพสต์ Facebook นี้ได้โดยตรง
+          </Typography>
+          {isValidHref && (
+            <Button
+              component="a"
+              href={safeHref}
+              target="_blank"
+              rel="noreferrer"
+              size="small"
+              variant="outlined"
+            >
+              เปิดโพสต์บน Facebook
+            </Button>
+          )}
+          {block.caption && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+              {block.caption}
+            </Typography>
+          )}
+        </Box>
+      </Box>
+    );
+  }
+
+  return null;
 }
 
 export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBlocksRendererProps) {

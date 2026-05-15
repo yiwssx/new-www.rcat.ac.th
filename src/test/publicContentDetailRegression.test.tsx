@@ -160,7 +160,11 @@ describe("PublicContentDetailPage public UX regressions", () => {
 
     const relatedAnnouncement = createContent({
       id: "announcement-2",
+<<<<<<< HEAD
       title: "ประกาศด่วนเพิ่มเติม",
+=======
+      title: "ประกาศรับสมัครที่เกี่ยวข้อง",
+>>>>>>> 2a8a50754bbae936ee2dd9202d47c247fdc88bc4
       slug: "related-important-announcement",
       type: "announcement",
       status: "published",
@@ -211,5 +215,9 @@ describe("PublicContentDetailPage public UX regressions", () => {
     // Verify related announcement section renders with heading and content
     expect(screen.getByRole("heading", { name: "ประกาศที่เกี่ยวข้อง" })).toBeInTheDocument();
     expect(screen.getByText("ประกาศที่เกี่ยวข้อง")).toBeInTheDocument();
+<<<<<<< HEAD
+=======
+    expect(screen.getByText("ประกาศรับสมัครที่เกี่ยวข้อง")).toBeInTheDocument();
+>>>>>>> 2a8a50754bbae936ee2dd9202d47c247fdc88bc4
   });
 });
