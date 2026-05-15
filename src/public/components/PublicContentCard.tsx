@@ -59,6 +59,8 @@ export default function PublicContentCard({
                 className="h-full w-full object-cover"
                 src={featuredMediaPreviewUrl}
                 alt={featuredMedia.name}
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               icon

@@ -373,6 +373,9 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     className="rcat-image-frame"
                     src={featuredMediaPreviewUrl}
                     alt={featuredMedia.name}
+                    loading="eager"
+                    decoding="async"
+                    {...({ fetchpriority: "high" } as Record<string, string>)}
                     sx={{
                       width: "100%",
                       height: { xs: 220, md: 430 },
@@ -388,6 +391,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     className="rcat-image-frame"
                     title={featuredMedia.name}
                     src={featuredMediaEmbedUrl}
+                    loading="lazy"
                     sx={{ width: "100%", height: { xs: 240, md: 430 }, border: 0, borderRadius: 2 }}
                     allow="autoplay"
                   />
@@ -482,6 +486,9 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     component="img"
                     src={featuredMediaPreviewUrl}
                     alt={featuredMedia.name}
+                    loading="eager"
+                    decoding="async"
+                    {...({ fetchpriority: "high" } as Record<string, string>)}
                     sx={{ width: "100%", height: { xs: 220, md: 360 }, objectFit: "cover" }}
                   />
                 ) : featuredMedia?.type === "video" && featuredMediaEmbedUrl ? (
@@ -489,6 +496,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     component="iframe"
                     title={featuredMedia.name}
                     src={featuredMediaEmbedUrl}
+                    loading="lazy"
                     sx={{ width: "100%", height: { xs: 240, md: 390 }, border: 0 }}
                     allow="autoplay"
                   />
