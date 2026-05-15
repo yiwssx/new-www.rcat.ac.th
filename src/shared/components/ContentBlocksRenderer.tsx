@@ -77,14 +77,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
             ไม่สามารถฝังโพสต์ Facebook นี้ได้โดยตรง
           </Typography>
           {isValidHref && (
-            <Button
-              component="a"
-              href={safeHref}
-              target="_blank"
-              rel="noreferrer"
-              size="small"
-              variant="outlined"
-            >
+            <Button component="a" href={safeHref} target="_blank" rel="noreferrer" size="small" variant="outlined">
               เปิดโพสต์บน Facebook
             </Button>
           )}

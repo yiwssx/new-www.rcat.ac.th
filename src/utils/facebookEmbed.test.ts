@@ -17,13 +17,12 @@ describe("facebookEmbed", () => {
     expect(normalizeFacebookPostUrl("https://m.facebook.com/story.php?story_fbid=123&id=456")).toBe(
       "https://m.facebook.com/story.php?story_fbid=123&id=456"
     );
-    expect(normalizeFacebookPostUrl("https://www.facebook.com/share/p/abc123/")).toBe(
-      "https://www.facebook.com/share/p/abc123/"
-    );
-    expect(normalizeFacebookPostUrl("https://www.facebook.com/watch/?v=12345")).toBe(
-      "https://www.facebook.com/watch/?v=12345"
-    );
-    expect(normalizeFacebookPostUrl("https://www.facebook.com/reel/12345")).toBe("https://www.facebook.com/reel/12345");
+  });
+
+  it("rejects unsupported Facebook URL types", () => {
+    expect(normalizeFacebookPostUrl("https://www.facebook.com/share/p/abc123/")).toBe("");
+    expect(normalizeFacebookPostUrl("https://www.facebook.com/watch/?v=12345")).toBe("");
+    expect(normalizeFacebookPostUrl("https://www.facebook.com/reel/12345")).toBe("");
   });
 
   it("rejects unsafe or non-Facebook URLs", () => {
