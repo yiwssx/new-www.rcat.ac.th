@@ -2,20 +2,20 @@
 
 รายงานนี้บันทึกผล smoke test สำหรับ deployment ปัจจุบัน โดยอ้างอิงจาก [Production Smoke Checklist](../production-smoke-checklist.md) และ [Production Smoke Test Report Template](../production-smoke-test-report-template.md)
 
-> Manual verification required: ยังไม่ได้รับ live deployment URL หรือ Vercel deployment URL สำหรับรอบนี้ ดังนั้นการตรวจที่ต้องใช้ production browser, Vercel dashboard, GTM/GA4 debug tools, admin credentials หรือ Apps Script production writes ถูกบันทึกเป็น `Not tested`
+> Manual verification required: มี live deployment URL แล้ว แต่ยังไม่มีหลักฐาน manual production smoke verification สำหรับรอบนี้ ดังนั้นการตรวจที่ต้องใช้ production browser, Vercel dashboard, GTM/GA4 debug tools, admin credentials หรือ Apps Script production writes ถูกบันทึกเป็น `Not tested`
 
 ## 1. Deployment Information
 
-| รายการ                        | รายละเอียด                                                                                 |
-| ----------------------------- | ------------------------------------------------------------------------------------------ |
-| Deployment URL                |                                                                                            |
-| Vercel Deployment ID หรือ URL |                                                                                            |
-| Commit SHA                    | `a4da2a27e4946124d1ed52ba4857abad5c9ac5bd`                                                 |
-| วันที่/เวลาที่ทดสอบ           | 2026-05-15, local repository verification                                                  |
-| ผู้ทดสอบ                      | Codex QA/frontend release engineer                                                         |
-| Browser/Device                | Not tested                                                                                 |
-| Environment                   | Production                                                                                 |
-| หมายเหตุรอบ Deploy            | No live deployment URL provided; code-only/local command evidence recorded where available |
+| รายการ                        | รายละเอียด                                                                          |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| Deployment URL                | https://new-wwwrcatacth.vercel.app/                                                 |
+| Vercel Deployment ID หรือ URL |                                                                                     |
+| Commit SHA                    | `a4da2a27e4946124d1ed52ba4857abad5c9ac5bd`                                          |
+| วันที่/เวลาที่ทดสอบ           | 2026-05-15, local repository verification                                           |
+| ผู้ทดสอบ                      | Codex QA/frontend release engineer                                                  |
+| Browser/Device                | Not tested                                                                          |
+| Environment                   | Production                                                                          |
+| หมายเหตุรอบ Deploy            | Live deployment URL provided; manual production smoke verification is still pending |
 
 ## 2. Environment Variables Checked
 
