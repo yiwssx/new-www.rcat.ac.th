@@ -35,16 +35,15 @@ Manual verification required: ต้องตรวจค่าจริงใ�
 
 ## 3. Quality Command Results
 
-| Command                 | Result     | Evidence / notes                                                                                        |
-| ----------------------- | ---------- | ------------------------------------------------------------------------------------------------------- |
-| `pnpm format:check`     | Pass       | Local verification while creating this report; final run passed                                         |
-| `pnpm lint`             | Not tested | Not run for this report                                                                                 |
-| `pnpm test:unit`        | Pass       | Local pre-change verification passed: 28 test files, 189 tests                                          |
-| `pnpm test:integration` | Not tested | Not run for this report                                                                                 |
-| `pnpm build`            | Not tested | Not run for this report                                                                                 |
-| `pnpm quality`          | Not tested | Not run for this report; isolate and fix the failed sub-command before continuing if this command fails |
+| Command                 | Result | Evidence / notes                          |
+| ----------------------- | ------ | ----------------------------------------- |
+| `pnpm format:check`     | Pass   | Full local quality gate passed            |
+| `pnpm lint`             | Pass   | Full local quality gate passed            |
+| `pnpm test:unit`        | Pass   | Full local quality gate passed            |
+| `pnpm test:integration` | Pass   | Full local quality gate passed            |
+| `pnpm build`            | Pass   | Full local quality gate passed            |
+| `pnpm quality`          | Pass   | Full local quality gate passed end-to-end |
 
-- [ ] Full quality gate is not complete until `pnpm lint`, `pnpm test:integration`, `pnpm build`, and `pnpm quality` are run for the release candidate.
 - [ ] Manual verification required before release sign-off.
 
 ## 4. Public Homepage
@@ -230,7 +229,7 @@ No failed production smoke checks were observed because production smoke checks 
 
 **Decision rationale:**
 
-- Block release until manual production verification is completed against a real deployment URL. Local unit tests passed and the report document is formatted, but those are not enough evidence to approve a production release.
+- Local quality gate passed, but release remains blocked until manual production smoke verification is completed against a real deployment URL.
 
 **Release approver:**
 
