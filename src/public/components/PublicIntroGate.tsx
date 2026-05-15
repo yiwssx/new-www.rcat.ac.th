@@ -102,6 +102,9 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
               component="img"
               src={activeSettings.imageUrl}
               alt={activeSettings.imageAlt}
+              loading="eager"
+              decoding="async"
+              {...({ fetchpriority: "high" } as Record<string, string>)}
               sx={{
                 width: "100%",
                 maxHeight: { xs: "70vh", sm: "74vh", md: "78vh", lg: "82vh" },

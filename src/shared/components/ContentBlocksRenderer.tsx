@@ -170,6 +170,8 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 component="img"
                 src={safePreviewUrl}
                 alt={block.caption || asset.name}
+                loading="lazy"
+                decoding="async"
                 sx={{ width: "100%", borderRadius: 2, maxHeight: 460, objectFit: "cover" }}
               />
               {(block.caption || asset.name) && (
@@ -194,6 +196,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 component="iframe"
                 title={asset.name}
                 src={safeEmbedUrl}
+                loading="lazy"
                 sx={{ width: "100%", height: { xs: 240, md: 390 }, border: 0, borderRadius: 2 }}
                 allow="autoplay"
               />
