@@ -76,8 +76,10 @@ Manual production browser verification initially passed, but follow-up mobile te
 **Evidence / notes:**
 
 - Known issue: Mobile intro gate image does not appear.
+- Likely contributor: the current production intro gate image uses a direct Facebook CDN URL (`scontent...fbcdn.net`), which can expire, vary by CDN edge, and fail on mobile.
+- Recommended replacement: optimized WebP/AVIF static asset under `/public/intro` such as `/intro/intro-gate-2026.webp`, or an owned CDN/storage URL.
 - Owner/action/priority: Frontend reliability owner to harden mobile intro gate image loading and fallback behavior; priority P1.
-- Do not mark this fixed until verified after deployment.
+- Do not mark this fixed until production uses a stable replacement URL and mobile is re-tested after deployment.
 
 ## 6. Carousel
 
@@ -218,9 +220,9 @@ Rollback readiness was manually verified.
 
 ## 13. Failed Checks
 
-| Check                                   | Result      | Owner/action                                                                | Priority |
-| --------------------------------------- | ----------- | --------------------------------------------------------------------------- | -------- |
-| Mobile intro gate image does not appear | Known issue | Frontend reliability owner to fix and verify on production after deployment | P1       |
+| Check                                   | Result      | Owner/action                                                                                                                                                    | Priority |
+| --------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| Mobile intro gate image does not appear | Known issue | Frontend reliability owner to replace direct Facebook CDN image URL with stable WebP/AVIF or owned CDN asset, then verify on production mobile after deployment | P1       |
 
 ## 14. Final Release Decision
 
@@ -230,7 +232,7 @@ Rollback readiness was manually verified.
 
 **Decision rationale:**
 
-- Local quality gate passed, but follow-up mobile production testing found the intro gate image does not appear on mobile. Release status is downgraded until the fix is deployed and verified.
+- Local quality gate passed, but follow-up mobile production testing found the intro gate image does not appear on mobile. The current direct Facebook CDN image URL likely contributed to the failure. Release status is downgraded until production uses a stable replacement URL and mobile is re-tested after deployment.
 
 **Release approver:**
 

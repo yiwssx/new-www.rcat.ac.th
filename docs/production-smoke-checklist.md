@@ -19,6 +19,7 @@
 - [ ] Intro gate แสดงเมื่อเปิดใช้งานจาก settings
 - [ ] Intro gate สามารถกดปิดหรือเข้าสู่เว็บไซต์ได้
 - [ ] Intro gate แสดงผลหลัง settings โหลดเสร็จโดยไม่ต้อง refresh หน้า
+- [ ] Intro gate image URL ไม่ใช่ direct Facebook CDN URL (`fbcdn.net` หรือ `scontent...fbcdn.net`); ใช้ไฟล์ static เช่น `/intro/intro-gate-2026.webp`, site media/storage, หรือ owned CDN/storage URL
 - [ ] Carousel แสดงเป็น slideshow รูปภาพอย่างเดียว
 - [ ] Carousel ไม่มี title, subtitle หรือ CTA overlay บังรูปภาพ
 - [ ] ปุ่มควบคุม Carousel ทำงานเมื่อมีหลาย slide
