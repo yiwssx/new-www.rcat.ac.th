@@ -4,10 +4,9 @@ import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import { alpha } from "@mui/material/styles";
 import type { HomepageIntroGateSettings } from "../../types";
-import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
+import { normalizePublicImageUrl, normalizeSafeHref } from "../../utils/safeUrl";
 
 const DEFAULT_INTRO_GATE_STORAGE_KEY = "public-intro-gate";
-const FACEBOOK_CDN_HOST_SUFFIX = "fbcdn.net";
 type IntroGateImageStatus = "loading" | "loaded" | "failed";
 
 function shouldShowIntroGate(settings?: HomepageIntroGateSettings) {
@@ -16,26 +15,6 @@ function shouldShowIntroGate(settings?: HomepageIntroGateSettings) {
 
 function getIntroGateStorageKey(settings?: HomepageIntroGateSettings) {
   return settings?.storageKey.trim() || DEFAULT_INTRO_GATE_STORAGE_KEY;
-}
-
-function isFacebookCdnImageUrl(value: string) {
-  if (!value || value.startsWith("/")) {
-    return false;
-  }
-
-  try {
-    const hostname = new URL(value).hostname.toLowerCase();
-
-    return hostname === FACEBOOK_CDN_HOST_SUFFIX || hostname.endsWith(`.${FACEBOOK_CDN_HOST_SUFFIX}`);
-  } catch {
-    return false;
-  }
-}
-
-function normalizeIntroGateImageSrc(value: string | null | undefined) {
-  const imageSrc = normalizeSafeResourceUrl(value);
-
-  return imageSrc && !isFacebookCdnImageUrl(imageSrc) ? imageSrc : "";
 }
 
 function getInitialVisibility(settings?: HomepageIntroGateSettings) {
@@ -72,7 +51,7 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
     src: "",
     status: "failed"
   });
-  const imageSrc = useMemo(() => normalizeIntroGateImageSrc(settings?.imageUrl), [settings?.imageUrl]);
+  const imageSrc = useMemo(() => normalizePublicImageUrl(settings?.imageUrl), [settings?.imageUrl]);
   const hasSafeImage = Boolean(imageSrc);
   const imageStatus = imageState.src === imageSrc ? imageState.status : hasSafeImage ? "loading" : "failed";
   const hasSecondaryButton = Boolean(settings?.secondaryButtonLabel.trim() && settings.secondaryButtonUrl.trim());

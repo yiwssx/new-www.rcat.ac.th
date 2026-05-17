@@ -5,6 +5,7 @@ import PublicHomeCarousel from "../public/components/PublicHomeCarousel";
 import PublicIntroGate from "../public/components/PublicIntroGate";
 import { AchievementHighlightsSection } from "../public/components/home/AchievementHighlightsSection";
 import { ContactMapCard } from "../public/components/home/ContactMapCard";
+import { DirectorHeroCard } from "../public/components/home/DirectorHeroCard";
 import { ExternalServicesSection } from "../public/components/home/ExternalServicesSection";
 import { HomeIntroVideoSection } from "../public/components/home/HomeIntroVideoSection";
 import { UrgentMarqueeSection } from "../public/components/home/UrgentMarqueeSection";
@@ -72,6 +73,40 @@ describe("homepage settings public sections", () => {
 
     expect(window.sessionStorage.getItem("intro-test")).toBe("dismissed");
     expect(screen.queryByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).not.toBeInTheDocument();
+  });
+
+  it("renders DirectorHeroCard with a normalized Google Drive image URL", () => {
+    render(
+      <DirectorHeroCard
+        siteSettings={{
+          ...defaultSiteSettings,
+          directorTitle: "Director",
+          directorName: "Director Example",
+          directorImageUrl: "https://drive.google.com/file/d/RCAT_director-2026_ABC123/view?usp=sharing"
+        }}
+      />
+    );
+
+    expect(screen.getByRole("img", { name: /Director Example/ })).toHaveAttribute(
+      "src",
+      "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w1600"
+    );
+  });
+
+  it("renders DirectorHeroCard placeholder when the configured image URL is invalid", () => {
+    render(
+      <DirectorHeroCard
+        siteSettings={{
+          ...defaultSiteSettings,
+          directorTitle: "Director",
+          directorName: "Director Example",
+          directorImageUrl: "javascript:alert(1)"
+        }}
+      />
+    );
+
+    expect(screen.queryByRole("img", { name: /Director Example/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Director Example")).toBeInTheDocument();
   });
 
   it("re-evaluates IntroGate visibility when storageKey changes", () => {

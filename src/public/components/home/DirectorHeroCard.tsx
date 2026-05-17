@@ -3,9 +3,10 @@ import { alpha } from "@mui/material/styles";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import EmptyState from "../../../shared/components/EmptyState";
 import { SiteSettings } from "../../../types";
-import { normalizeSafeHref } from "../../../utils/safeUrl";
+import { normalizePublicImageUrl } from "../../../utils/safeUrl";
 
 export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
+  const directorImageUrl = normalizePublicImageUrl(siteSettings.directorImageUrl);
   const hasDirectorInfo = Boolean(
     siteSettings.directorName ||
     siteSettings.directorDescription ||
@@ -48,10 +49,10 @@ export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings 
         </Box>
         {hasDirectorInfo ? (
           <Stack spacing={1.15} alignItems="center" sx={{ width: "100%" }}>
-            {siteSettings.directorImageUrl ? (
+            {directorImageUrl ? (
               <Box
                 component="img"
-                src={normalizeSafeHref(siteSettings.directorImageUrl)}
+                src={directorImageUrl}
                 alt={directorImageAlt}
                 sx={{
                   width: { xs: 160, sm: 176, md: 184, lg: 192 },

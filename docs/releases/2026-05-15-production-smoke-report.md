@@ -77,7 +77,8 @@ Manual production browser verification initially passed, but follow-up mobile te
 
 - Known issue: Mobile intro gate image does not appear.
 - Likely contributor: the current production intro gate image uses a direct Facebook CDN URL (`scontent...fbcdn.net`), which can expire, vary by CDN edge, and fail on mobile.
-- Recommended replacement: optimized WebP/AVIF static asset under `/public/intro` such as `/intro/intro-gate-2026.webp`, or an owned CDN/storage URL.
+- Code support added: IntroGate now supports public Google Drive image URLs and normalizes supported Drive share/open/uc/thumbnail URLs to `https://drive.google.com/thumbnail?id=FILE_ID&sz=w1600`.
+- Recommended replacement: optimized WebP/AVIF static asset under `/public/intro` such as `/intro/intro-gate-2026.webp`, a public Google Drive file, or an owned CDN/storage URL.
 - Owner/action/priority: Frontend reliability owner to harden mobile intro gate image loading and fallback behavior; priority P1.
 - Do not mark this fixed until production uses a stable replacement URL and mobile is re-tested after deployment.
 
@@ -220,9 +221,9 @@ Rollback readiness was manually verified.
 
 ## 13. Failed Checks
 
-| Check                                   | Result      | Owner/action                                                                                                                                                    | Priority |
-| --------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| Mobile intro gate image does not appear | Known issue | Frontend reliability owner to replace direct Facebook CDN image URL with stable WebP/AVIF or owned CDN asset, then verify on production mobile after deployment | P1       |
+| Check                                   | Result      | Owner/action                                                                                                                                                                          | Priority |
+| --------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| Mobile intro gate image does not appear | Known issue | Frontend reliability owner to replace direct Facebook CDN image URL with stable WebP/AVIF, public Google Drive, or owned CDN asset, then verify on production mobile after deployment | P1       |
 
 ## 14. Final Release Decision
 
@@ -232,7 +233,7 @@ Rollback readiness was manually verified.
 
 **Decision rationale:**
 
-- Local quality gate passed, but follow-up mobile production testing found the intro gate image does not appear on mobile. The current direct Facebook CDN image URL likely contributed to the failure. Release status is downgraded until production uses a stable replacement URL and mobile is re-tested after deployment.
+- Local quality gate passed, but follow-up mobile production testing found the intro gate image does not appear on mobile. The current direct Facebook CDN image URL likely contributed to the failure. Code now supports public Google Drive image URLs for IntroGate, but release status remains downgraded until production uses a stable replacement URL and mobile is re-tested after deployment.
 
 **Release approver:**
 
