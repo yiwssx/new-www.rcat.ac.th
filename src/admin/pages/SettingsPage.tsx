@@ -963,7 +963,18 @@ export default function SettingsPage() {
                         label="รูปภาพ Intro Gate URL"
                         value={homepageSettings.introGate.imageUrl}
                         onChange={(event) => handleHomepageIntroGateChange("imageUrl", event.target.value)}
-                        helperText="ใช้ลิงก์รูปภาพ https:// หรือ Google Drive image URL ที่เผยแพร่ได้"
+                        helperText={
+                          <Stack component="span" spacing={0.35}>
+                            <Box component="span">
+                              แนะนำให้อัปโหลดรูปไปยังสื่อของเว็บไซต์, ใช้ path คงที่เช่น /intro/intro-gate-2026.webp,
+                              หรือใช้ CDN/storage ที่เป็นของเรา
+                            </Box>
+                            <Box component="span" sx={{ color: "warning.main", fontWeight: 800 }}>
+                              ห้ามใช้ลิงก์ Facebook CDN โดยตรง เช่น scontent...fbcdn.net เพราะเป็นลิงก์ชั่วคราว
+                              และอาจไม่แสดงบนมือถือ
+                            </Box>
+                          </Stack>
+                        }
                         size="small"
                         fullWidth
                       />

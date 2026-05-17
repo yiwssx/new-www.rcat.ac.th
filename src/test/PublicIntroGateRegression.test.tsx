@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 describe("PublicIntroGate regressions", () => {
-  it("renders a normalized image for a valid imageUrl", () => {
+  it("renders a normalized image for a valid stable HTTPS imageUrl", () => {
     render(<PublicIntroGate settings={createSettings()} />);
 
     const introImage = screen.getByRole("img", { name: imageAlt });
@@ -39,6 +39,45 @@ describe("PublicIntroGate regressions", () => {
     expect(introImage).toHaveAttribute("fetchpriority", "high");
     expect(introImage).toHaveAttribute("decoding", "async");
     expect(screen.getByText(loadingMessage)).toBeInTheDocument();
+  });
+
+  it("renders a stable relative intro image path", () => {
+    render(<PublicIntroGate settings={createSettings({ imageUrl: "/intro/intro-gate-2026.webp" })} />);
+
+    expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute("src", "/intro/intro-gate-2026.webp");
+  });
+
+  it.each(["https://fbcdn.net/intro-gate.jpg", "https://scontent.fkkc3-1.fna.fbcdn.net/v/t39.30808-6/intro-gate.jpg"])(
+    "rejects direct Facebook CDN intro image URL %s",
+    (imageUrl) => {
+      render(
+        <PublicIntroGate
+          settings={createSettings({
+            imageUrl
+          })}
+        />
+      );
+
+      expect(screen.getByRole("dialog", { name: dialogName })).toBeInTheDocument();
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
+      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+    }
+  );
+
+  it("keeps the enter button usable when a Facebook CDN image URL is rejected", () => {
+    render(
+      <PublicIntroGate
+        settings={createSettings({
+          imageUrl: "https://scontent.fkkc3-1.fna.fbcdn.net/v/t39.30808-6/intro-gate.jpg",
+          storageKey: "intro-fbcdn-dismiss"
+        })}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: primaryButtonLabel }));
+
+    expect(window.sessionStorage.getItem("intro-fbcdn-dismiss")).toBe("dismissed");
+    expect(screen.queryByRole("dialog", { name: dialogName })).not.toBeInTheDocument();
   });
 
   it("does not render a broken image when imageUrl is unsafe", () => {
