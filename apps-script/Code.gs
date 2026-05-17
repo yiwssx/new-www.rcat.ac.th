@@ -59,19 +59,19 @@ function routeRequest(event, method) {
     }
 
     if (method === "GET" && resource === "public-home") {
-      return jsonResponse(getPublicHomeSnapshot());
+      return jsonResponse(getPublicHomeSnapshotCached());
     }
 
     if (method === "GET" && resource === "public-content-list") {
-      return jsonResponse(getPublicContentListSnapshot(query));
+      return jsonResponse(getPublicContentListSnapshotCached(query));
     }
 
     if (method === "GET" && resource === "public-program-list") {
-      return jsonResponse(getPublicProgramListSnapshot());
+      return jsonResponse(getPublicProgramListSnapshotCached());
     }
 
     if (method === "GET" && resource === "public-search-index") {
-      return jsonResponse(getPublicSearchIndexSnapshot());
+      return jsonResponse(getPublicSearchIndexSnapshotCached());
     }
 
     if (method === "GET" && resource === "health") {
@@ -95,11 +95,7 @@ function routeRequest(event, method) {
     }
 
     if (method === "GET" && resource === "content-detail") {
-      return jsonResponse(
-        getContentDetail(query, {
-          includeUnpublished: false
-        })
-      );
+      return jsonResponse(getPublicContentDetailCached(query));
     }
 
     if (method === "POST" && resource === "auth-login") {
