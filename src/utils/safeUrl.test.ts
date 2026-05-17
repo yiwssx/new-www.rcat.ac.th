@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSafeHref, normalizeSafeResourceUrl } from "./safeUrl";
+import { normalizePublicImageUrl, normalizeSafeHref, normalizeSafeResourceUrl } from "./safeUrl";
 
 describe("normalizeSafeHref", () => {
   it("rejects dangerous protocols", () => {
@@ -40,5 +40,39 @@ describe("normalizeSafeHref", () => {
     expect(normalizeSafeResourceUrl("javascript:alert(1)")).toBe("");
     expect(normalizeSafeResourceUrl("data:text/html,test")).toBe("");
     expect(normalizeSafeResourceUrl("mailto:test@example.com")).toBe("");
+  });
+});
+
+describe("normalizePublicImageUrl", () => {
+  const driveFileId = "RCAT_intro-2026_ABC123";
+  const driveThumbnail = `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w1600`;
+
+  it("allows stable relative paths and normal HTTPS image URLs", () => {
+    expect(normalizePublicImageUrl("/intro/intro-gate-2026.webp")).toBe("/intro/intro-gate-2026.webp");
+    expect(normalizePublicImageUrl("https://example-cdn.example.com/intro.webp")).toBe(
+      "https://example-cdn.example.com/intro.webp"
+    );
+  });
+
+  it("normalizes supported Google Drive image URL forms to thumbnail URLs", () => {
+    expect(normalizePublicImageUrl(`https://drive.google.com/file/d/${driveFileId}/view?usp=sharing`)).toBe(
+      driveThumbnail
+    );
+    expect(normalizePublicImageUrl(`https://drive.google.com/open?id=${driveFileId}`)).toBe(driveThumbnail);
+    expect(normalizePublicImageUrl(`https://drive.google.com/uc?id=${driveFileId}`)).toBe(driveThumbnail);
+    expect(normalizePublicImageUrl(`https://drive.google.com/thumbnail?id=${driveFileId}&sz=w400`)).toBe(
+      driveThumbnail
+    );
+  });
+
+  it("rejects unsafe URLs, suspicious Drive IDs, and direct Facebook CDN URLs", () => {
+    expect(normalizePublicImageUrl("javascript:alert(1)")).toBe("");
+    expect(normalizePublicImageUrl("data:image/png;base64,abc")).toBe("");
+    expect(normalizePublicImageUrl("file:///C:/intro.webp")).toBe("");
+    expect(normalizePublicImageUrl("//example.com/intro.webp")).toBe("");
+    expect(normalizePublicImageUrl("https://example.com/intro gate.webp")).toBe("");
+    expect(normalizePublicImageUrl("https://drive.google.com/file/d/unsafe$file/view?usp=sharing")).toBe("");
+    expect(normalizePublicImageUrl("https://fbcdn.net/intro-gate.jpg")).toBe("");
+    expect(normalizePublicImageUrl("https://scontent.fkkc3-1.fna.fbcdn.net/v/t39.30808-6/intro-gate.jpg")).toBe("");
   });
 });

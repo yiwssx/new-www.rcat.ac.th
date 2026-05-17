@@ -47,6 +47,36 @@ describe("PublicIntroGate regressions", () => {
     expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute("src", "/intro/intro-gate-2026.webp");
   });
 
+  it("converts a Google Drive file share URL to a thumbnail image URL", () => {
+    render(
+      <PublicIntroGate
+        settings={createSettings({
+          imageUrl: "https://drive.google.com/file/d/RCAT_intro-2026_ABC123/view?usp=sharing"
+        })}
+      />
+    );
+
+    expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute(
+      "src",
+      "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w1600"
+    );
+  });
+
+  it("accepts an existing Google Drive thumbnail image URL", () => {
+    render(
+      <PublicIntroGate
+        settings={createSettings({
+          imageUrl: "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w400"
+        })}
+      />
+    );
+
+    expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute(
+      "src",
+      "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w1600"
+    );
+  });
+
   it.each(["https://fbcdn.net/intro-gate.jpg", "https://scontent.fkkc3-1.fna.fbcdn.net/v/t39.30808-6/intro-gate.jpg"])(
     "rejects direct Facebook CDN intro image URL %s",
     (imageUrl) => {
@@ -80,13 +110,16 @@ describe("PublicIntroGate regressions", () => {
     expect(screen.queryByRole("dialog", { name: dialogName })).not.toBeInTheDocument();
   });
 
-  it("does not render a broken image when imageUrl is unsafe", () => {
-    render(<PublicIntroGate settings={createSettings({ imageUrl: "javascript:alert(1)" })} />);
+  it.each(["javascript:alert(1)", "data:image/png;base64,abc", "file:///C:/intro.webp", "//example.com/intro.webp"])(
+    "does not render a broken image when imageUrl is unsafe: %s",
+    (imageUrl) => {
+      render(<PublicIntroGate settings={createSettings({ imageUrl })} />);
 
-    expect(screen.getByRole("dialog", { name: dialogName })).toBeInTheDocument();
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
-    expect(screen.getByText(errorMessage)).toBeInTheDocument();
-  });
+      expect(screen.getByRole("dialog", { name: dialogName })).toBeInTheDocument();
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
+      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+    }
+  );
 
   it("shows a fallback message when the intro image fails to load", () => {
     render(<PublicIntroGate settings={createSettings()} />);
