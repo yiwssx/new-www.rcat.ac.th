@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, type Mock } from "vitest";
 import codeSource from "../../apps-script/Code.gs?raw";
+import configSource from "../../apps-script/Config.gs?raw";
 import locksSource from "../../apps-script/Locks.gs?raw";
 
 interface RouteResult {
@@ -426,6 +427,11 @@ type LockedWriteMockName = keyof Pick<
 >;
 
 describe("Apps Script route auth handling", () => {
+  it("keeps Apps Script intro gate Thai defaults readable", () => {
+    expect(configSource).toContain('imageAlt: "ภาพแนะนำ"');
+    expect(configSource).toContain('primaryButtonLabel: "เข้าสู่เว็บไซต์หลัก"');
+  });
+
   it("returns public-home through unauthenticated GET without reading auth context", () => {
     const context = loadCodeScript();
     const result = context.routeRequest(

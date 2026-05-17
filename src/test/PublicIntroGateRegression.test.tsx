@@ -1,16 +1,20 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PublicIntroGate from "../public/components/PublicIntroGate";
-import { HomepageIntroGateSettings } from "../types";
+import type { HomepageIntroGateSettings } from "../types";
 
 const dialogName = "หน้าแนะนำก่อนเข้าสู่เว็บไซต์";
+const imageAlt = "ภาพแนะนำ";
+const primaryButtonLabel = "เข้าสู่เว็บไซต์หลัก";
+const loadingMessage = "กำลังโหลดภาพประชาสัมพันธ์";
+const errorMessage = "ไม่สามารถโหลดภาพประชาสัมพันธ์ได้";
 
 function createSettings(overrides: Partial<HomepageIntroGateSettings> = {}): HomepageIntroGateSettings {
   return {
     enabled: true,
     imageUrl: "https://example.edu/intro.jpg",
-    imageAlt: "ภาพแนะนำ",
-    primaryButtonLabel: "เข้าสู่เว็บไซต์หลัก",
+    imageAlt,
+    primaryButtonLabel,
     secondaryButtonLabel: "",
     secondaryButtonUrl: "",
     storageKey: "intro-regression",
@@ -25,6 +29,45 @@ afterEach(() => {
 });
 
 describe("PublicIntroGate regressions", () => {
+  it("renders a normalized image for a valid imageUrl", () => {
+    render(<PublicIntroGate settings={createSettings()} />);
+
+    const introImage = screen.getByRole("img", { name: imageAlt });
+
+    expect(introImage).toHaveAttribute("src", "https://example.edu/intro.jpg");
+    expect(introImage).toHaveAttribute("loading", "eager");
+    expect(introImage).toHaveAttribute("fetchpriority", "high");
+    expect(introImage).toHaveAttribute("decoding", "async");
+    expect(screen.getByText(loadingMessage)).toBeInTheDocument();
+  });
+
+  it("does not render a broken image when imageUrl is unsafe", () => {
+    render(<PublicIntroGate settings={createSettings({ imageUrl: "javascript:alert(1)" })} />);
+
+    expect(screen.getByRole("dialog", { name: dialogName })).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByText(errorMessage)).toBeInTheDocument();
+  });
+
+  it("shows a fallback message when the intro image fails to load", () => {
+    render(<PublicIntroGate settings={createSettings()} />);
+
+    fireEvent.error(screen.getByRole("img", { name: imageAlt }));
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByText(errorMessage)).toBeInTheDocument();
+  });
+
+  it("keeps the enter button usable after the intro image fails", () => {
+    render(<PublicIntroGate settings={createSettings({ storageKey: "intro-error-dismiss" })} />);
+
+    fireEvent.error(screen.getByRole("img", { name: imageAlt }));
+    fireEvent.click(screen.getByRole("button", { name: primaryButtonLabel }));
+
+    expect(window.sessionStorage.getItem("intro-error-dismiss")).toBe("dismissed");
+    expect(screen.queryByRole("dialog", { name: dialogName })).not.toBeInTheDocument();
+  });
+
   it("stays hidden until enabled settings with an image arrive", () => {
     const { rerender } = render(<PublicIntroGate />);
 
@@ -37,7 +80,7 @@ describe("PublicIntroGate regressions", () => {
     rerender(<PublicIntroGate settings={createSettings()} />);
 
     expect(screen.getByRole("dialog", { name: dialogName })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "ภาพแนะนำ" })).toHaveAttribute("src", "https://example.edu/intro.jpg");
+    expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute("src", "https://example.edu/intro.jpg");
   });
 
   it("does not require a page refresh when async settings become available", () => {
@@ -53,7 +96,7 @@ describe("PublicIntroGate regressions", () => {
   it("stores dismissal and hides after the primary enter button is clicked", () => {
     render(<PublicIntroGate settings={createSettings()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /เข้าสู่เว็บไซต์หลัก/ }));
+    fireEvent.click(screen.getByRole("button", { name: primaryButtonLabel }));
 
     expect(window.sessionStorage.getItem("intro-regression")).toBe("dismissed");
     expect(screen.queryByRole("dialog", { name: dialogName })).not.toBeInTheDocument();
@@ -103,7 +146,7 @@ describe("PublicIntroGate regressions", () => {
 
     render(<PublicIntroGate settings={createSettings({ storageKey: "throwing-storage" })} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /เข้าสู่เว็บไซต์หลัก/ }));
+    fireEvent.click(screen.getByRole("button", { name: primaryButtonLabel }));
 
     expect(storageMock.setItem).toHaveBeenCalledWith("throwing-storage", "dismissed");
     expect(screen.queryByRole("dialog", { name: dialogName })).not.toBeInTheDocument();
