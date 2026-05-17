@@ -2,7 +2,7 @@
 
 รายงานนี้บันทึกผล smoke test สำหรับ deployment ปัจจุบัน โดยอ้างอิงจาก [Production Smoke Checklist](../production-smoke-checklist.md) และ [Production Smoke Test Report Template](../production-smoke-test-report-template.md)
 
-> Manual production smoke verification completed against https://preview-placeholder.example.invalid/. Follow-up mobile verification found a known issue: the intro gate image does not appear on mobile.
+> Manual production smoke verification completed against https://preview-placeholder.example.invalid/. Follow-up mobile IntroGate image issue was traced to Google Drive file sharing permission; after the file was shared publicly with anyone who has the link, the IntroGate image appears correctly.
 
 ## 1. Deployment Information
 
@@ -63,24 +63,24 @@ Manual production browser verification passed against https://preview-placeholde
 
 ## 5. Intro Gate
 
-**Overall result:** Pass with known issue
+**Overall result:** Pass
 
-Manual production browser verification initially passed, but follow-up mobile testing found the intro gate image does not appear on mobile.
+Manual production browser verification passed. Follow-up mobile testing confirmed the IntroGate image appears correctly after the Google Drive file sharing permission was corrected.
 
 - [x] Intro gate appears when enabled
 - [x] Intro gate can be dismissed
 - [x] Intro gate does not require page refresh after settings load
 - [x] Intro gate remains hidden when disabled
-- [ ] Mobile intro gate image appears reliably
+- [x] Mobile intro gate image appears reliably
 
 **Evidence / notes:**
 
-- Known issue: Mobile intro gate image does not appear.
-- Likely contributor: the current production intro gate image uses a direct Facebook CDN URL (`scontent...fbcdn.net`), which can expire, vary by CDN edge, and fail on mobile.
-- Code support added: IntroGate now supports public Google Drive image URLs and normalizes supported Drive share/open/uc/thumbnail URLs to `https://drive.google.com/thumbnail?id=FILE_ID&sz=w1600`.
-- Recommended replacement: optimized WebP/AVIF static asset under `/public/intro` such as `/intro/intro-gate-2026.webp`, a public Google Drive file, or an owned CDN/storage URL.
-- Owner/action/priority: Frontend reliability owner to harden mobile intro gate image loading and fallback behavior; priority P1.
-- Do not mark this fixed until production uses a stable replacement URL and mobile is re-tested after deployment.
+- Root cause: the Google Drive image file was not shared publicly; this was a file permission issue, not an IntroGate rendering logic issue.
+- Google Drive image files used by IntroGate must be shared as "Anyone with the link can view".
+- IntroGate supports public Google Drive image URLs and normalizes supported Drive share/open/uc/thumbnail URLs to `https://drive.google.com/thumbnail?id=FILE_ID&sz=w1600`.
+- Direct Facebook CDN URLs such as `scontent...fbcdn.net` should still be avoided because they are temporary and can vary by CDN edge.
+- Mobile IntroGate was re-tested after correcting the Google Drive sharing permission and now appears correctly.
+- Director image was also verified working with the corrected public image access.
 
 ## 6. Carousel
 
@@ -221,19 +221,17 @@ Rollback readiness was manually verified.
 
 ## 13. Failed Checks
 
-| Check                                   | Result      | Owner/action                                                                                                                                                                          | Priority |
-| --------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| Mobile intro gate image does not appear | Known issue | Frontend reliability owner to replace direct Facebook CDN image URL with stable WebP/AVIF, public Google Drive, or owned CDN asset, then verify on production mobile after deployment | P1       |
+No failed checks. Mobile IntroGate image issue was resolved by setting the Google Drive file permission to public / anyone with the link can view.
 
 ## 14. Final Release Decision
 
-- [ ] Pass
-- [x] Pass with known issues
+- [x] Pass
+- [ ] Pass with known issues
 - [ ] Block release
 
 **Decision rationale:**
 
-- Local quality gate passed, but follow-up mobile production testing found the intro gate image does not appear on mobile. The current direct Facebook CDN image URL likely contributed to the failure. Code now supports public Google Drive image URLs for IntroGate, but release status remains downgraded until production uses a stable replacement URL and mobile is re-tested after deployment.
+- Local quality gate passed. Manual production smoke verification passed. The mobile IntroGate image issue was resolved by correcting the Google Drive file sharing permission, and production was re-tested successfully.
 
 **Release approver:**
 
