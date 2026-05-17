@@ -2,7 +2,7 @@
 
 รายงานนี้บันทึกผล smoke test สำหรับ deployment ปัจจุบัน โดยอ้างอิงจาก [Production Smoke Checklist](../production-smoke-checklist.md) และ [Production Smoke Test Report Template](../production-smoke-test-report-template.md)
 
-> Manual production smoke verification completed against https://new-wwwrcatacth.vercel.app/. All manual smoke checks were confirmed as passed.
+> Manual production smoke verification completed against https://new-wwwrcatacth.vercel.app/. Follow-up mobile verification found a known issue: the intro gate image does not appear on mobile.
 
 ## 1. Deployment Information
 
@@ -63,18 +63,21 @@ Manual production browser verification passed against https://new-wwwrcatacth.ve
 
 ## 5. Intro Gate
 
-**Overall result:** Pass
+**Overall result:** Pass with known issue
 
-Manual production browser verification passed.
+Manual production browser verification initially passed, but follow-up mobile testing found the intro gate image does not appear on mobile.
 
 - [x] Intro gate appears when enabled
 - [x] Intro gate can be dismissed
 - [x] Intro gate does not require page refresh after settings load
 - [x] Intro gate remains hidden when disabled
+- [ ] Mobile intro gate image appears reliably
 
 **Evidence / notes:**
 
-- Intro gate behavior was manually verified on production.
+- Known issue: Mobile intro gate image does not appear.
+- Owner/action/priority: Frontend reliability owner to harden mobile intro gate image loading and fallback behavior; priority P1.
+- Do not mark this fixed until verified after deployment.
 
 ## 6. Carousel
 
@@ -215,17 +218,19 @@ Rollback readiness was manually verified.
 
 ## 13. Failed Checks
 
-No failed checks. Manual production smoke verification passed.
+| Check                                   | Result      | Owner/action                                                                | Priority |
+| --------------------------------------- | ----------- | --------------------------------------------------------------------------- | -------- |
+| Mobile intro gate image does not appear | Known issue | Frontend reliability owner to fix and verify on production after deployment | P1       |
 
 ## 14. Final Release Decision
 
-- [x] Pass
-- [ ] Pass with known issues
+- [ ] Pass
+- [x] Pass with known issues
 - [ ] Block release
 
 **Decision rationale:**
 
-- Local quality gate passed and manual production smoke verification passed against https://new-wwwrcatacth.vercel.app/.
+- Local quality gate passed, but follow-up mobile production testing found the intro gate image does not appear on mobile. Release status is downgraded until the fix is deployed and verified.
 
 **Release approver:**
 

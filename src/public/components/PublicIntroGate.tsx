@@ -1,12 +1,13 @@
-import { useState } from "react";
-import { Box, Button, Container, Paper, Stack } from "@mui/material";
+import { useMemo, useState } from "react";
+import { Box, Button, Container, Paper, Stack, Typography } from "@mui/material";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import { alpha } from "@mui/material/styles";
 import type { HomepageIntroGateSettings } from "../../types";
-import { normalizeSafeHref } from "../../utils/safeUrl";
+import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 
 const DEFAULT_INTRO_GATE_STORAGE_KEY = "public-intro-gate";
+type IntroGateImageStatus = "loading" | "loaded" | "failed";
 
 function shouldShowIntroGate(settings?: HomepageIntroGateSettings) {
   return Boolean(settings?.enabled && settings.imageUrl.trim());
@@ -46,6 +47,13 @@ function isDismissedInSession(storageKey: string, dismissedKeys: ReadonlySet<str
 
 export default function PublicIntroGate({ settings }: { settings?: HomepageIntroGateSettings }) {
   const [dismissedKeys, setDismissedKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const [imageState, setImageState] = useState<{ src: string; status: IntroGateImageStatus }>({
+    src: "",
+    status: "failed"
+  });
+  const imageSrc = useMemo(() => normalizeSafeResourceUrl(settings?.imageUrl), [settings?.imageUrl]);
+  const hasSafeImage = Boolean(imageSrc);
+  const imageStatus = imageState.src === imageSrc ? imageState.status : hasSafeImage ? "loading" : "failed";
   const hasSecondaryButton = Boolean(settings?.secondaryButtonLabel.trim() && settings.secondaryButtonUrl.trim());
   const storageKey = getIntroGateStorageKey(settings);
   const isVisible = getInitialVisibility(settings) && !isDismissedInSession(storageKey, dismissedKeys);
@@ -65,6 +73,8 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
   }
 
   const activeSettings = settings;
+  const showImageLoadingState = hasSafeImage && imageStatus === "loading";
+  const showImageErrorState = !hasSafeImage || imageStatus === "failed";
 
   return (
     <Box
@@ -99,22 +109,91 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
         >
           <Stack spacing={{ xs: 1, md: 1.4 }} alignItems="center">
             <Box
-              component="img"
-              src={activeSettings.imageUrl}
-              alt={activeSettings.imageAlt}
-              loading="eager"
-              decoding="async"
-              {...({ fetchpriority: "high" } as Record<string, string>)}
-              sx={{
+              sx={(theme) => ({
+                position: "relative",
+                display: "grid",
+                placeItems: "center",
                 width: "100%",
+                minHeight: { xs: 220, sm: 280, md: 340 },
                 maxHeight: { xs: "70vh", sm: "74vh", md: "78vh", lg: "82vh" },
-                objectFit: "contain",
+                overflow: "hidden",
                 borderRadius: { xs: 1, md: 1.5 },
                 bgcolor: "rgba(255,255,255,0.72)",
                 border: "1px solid rgba(184, 135, 0, 0.28)",
-                boxShadow: "0 18px 46px rgba(122, 89, 0, 0.16)"
-              }}
-            />
+                boxShadow: "0 18px 46px rgba(122, 89, 0, 0.16)",
+                color: "text.secondary",
+                textAlign: "center",
+                "&::before": showImageLoadingState
+                  ? {
+                      content: '""',
+                      position: "absolute",
+                      inset: 0,
+                      background: `linear-gradient(110deg, ${alpha(theme.palette.common.white, 0.24)} 8%, ${alpha(
+                        theme.palette.secondary.light,
+                        0.36
+                      )} 18%, ${alpha(theme.palette.common.white, 0.24)} 33%)`,
+                      backgroundSize: "200% 100%",
+                      animation: "introGateImageLoading 1.35s ease-in-out infinite"
+                    }
+                  : undefined,
+                "@keyframes introGateImageLoading": {
+                  "0%": {
+                    backgroundPosition: "100% 0"
+                  },
+                  "100%": {
+                    backgroundPosition: "-100% 0"
+                  }
+                }
+              })}
+            >
+              {showImageLoadingState && (
+                <Typography
+                  aria-live="polite"
+                  sx={{
+                    position: "relative",
+                    zIndex: 1,
+                    px: 2,
+                    fontSize: { xs: "0.86rem", sm: "0.95rem" },
+                    fontWeight: 700
+                  }}
+                >
+                  กำลังโหลดภาพประชาสัมพันธ์
+                </Typography>
+              )}
+              {showImageErrorState && (
+                <Typography
+                  role="status"
+                  sx={{
+                    px: 2,
+                    fontSize: { xs: "0.86rem", sm: "0.95rem" },
+                    fontWeight: 700
+                  }}
+                >
+                  ไม่สามารถโหลดภาพประชาสัมพันธ์ได้
+                </Typography>
+              )}
+              {hasSafeImage && imageStatus !== "failed" && (
+                <Box
+                  component="img"
+                  src={imageSrc}
+                  alt={activeSettings.imageAlt}
+                  loading="eager"
+                  decoding="async"
+                  onLoad={() => setImageState({ src: imageSrc, status: "loaded" })}
+                  onError={() => setImageState({ src: imageSrc, status: "failed" })}
+                  {...({ fetchpriority: "high" } as Record<string, string>)}
+                  sx={{
+                    display: "block",
+                    width: "100%",
+                    height: "auto",
+                    maxHeight: { xs: "70vh", sm: "74vh", md: "78vh", lg: "82vh" },
+                    objectFit: "contain",
+                    opacity: imageStatus === "loaded" ? 1 : 0,
+                    transition: "opacity 160ms ease"
+                  }}
+                />
+              )}
+            </Box>
 
             <Stack
               direction="row"

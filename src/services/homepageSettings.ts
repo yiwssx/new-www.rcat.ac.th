@@ -8,7 +8,7 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   introGate: {
     enabled: false,
     imageUrl: "",
-    imageAlt: "ภาพหน้าแนะนำก่อนเข้าสู่เว็บไซต์",
+    imageAlt: "ภาพแนะนำ",
     primaryButtonLabel: "เข้าสู่เว็บไซต์หลัก",
     secondaryButtonLabel: "",
     secondaryButtonUrl: "",

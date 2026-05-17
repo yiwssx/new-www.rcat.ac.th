@@ -4,6 +4,7 @@ import { DEFAULT_HOMEPAGE_SETTINGS, normalizeHomepageSettings } from "../service
 describe("homepageSettings", () => {
   it("returns disabled defaults when input is undefined", () => {
     expect(normalizeHomepageSettings()).toEqual(DEFAULT_HOMEPAGE_SETTINGS);
+    expect(DEFAULT_HOMEPAGE_SETTINGS.introGate.imageAlt).toBe("ภาพแนะนำ");
   });
 
   it("preserves valid values", () => {
