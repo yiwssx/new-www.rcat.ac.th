@@ -12,10 +12,15 @@ interface CodeScriptContext {
   deleteContent: Mock;
   deleteEvent: Mock;
   deleteMedia: Mock;
+  getPublicContentDetailCached: Mock;
+  getPublicContentListSnapshotCached: Mock;
   extractAuthToken: (payload: Record<string, unknown>, query?: Record<string, unknown>) => string;
   getPublicContentListSnapshot: Mock;
+  getPublicHomeSnapshotCached: Mock;
   getPublicHomeSnapshot: Mock;
+  getPublicProgramListSnapshotCached: Mock;
   getPublicProgramListSnapshot: Mock;
+  getPublicSearchIndexSnapshotCached: Mock;
   getPublicSearchIndexSnapshot: Mock;
   getUsers: Mock;
   incrementContentView: Mock;
@@ -132,6 +137,17 @@ function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
   const getPublicSearchIndexSnapshot = vi.fn(() => ({
     items: [],
     generatedAt: "2026-05-12T00:00:00.000Z"
+  }));
+  const getPublicHomeSnapshotCached = vi.fn(() => getPublicHomeSnapshot());
+  const getPublicContentListSnapshotCached = vi.fn((query: Record<string, unknown>) =>
+    getPublicContentListSnapshot(query)
+  );
+  const getPublicProgramListSnapshotCached = vi.fn(() => getPublicProgramListSnapshot());
+  const getPublicSearchIndexSnapshotCached = vi.fn(() => getPublicSearchIndexSnapshot());
+  const getPublicContentDetailCached = vi.fn((query: Record<string, unknown>) => ({
+    id: query.id || "content-1",
+    slug: query.slug || "content-1",
+    title: "Public content"
   }));
   const upsertCarouselSlide = vi.fn((input: Record<string, unknown>) => {
     maybeThrowWrite("carousel");
@@ -280,13 +296,14 @@ function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
     "verifyAuthToken",
     "jsonResponse",
     "getPublicSnapshotCached",
-    "getPublicHomeSnapshot",
-    "getPublicContentListSnapshot",
-    "getPublicProgramListSnapshot",
-    "getPublicSearchIndexSnapshot",
+    "getPublicHomeSnapshotCached",
+    "getPublicContentListSnapshotCached",
+    "getPublicProgramListSnapshotCached",
+    "getPublicSearchIndexSnapshotCached",
     "getSnapshot",
     "getMenu",
     "getDisplaySettings",
+    "getPublicContentDetailCached",
     "getContentDetail",
     "incrementContentView",
     "loginUser",
@@ -338,13 +355,14 @@ return {
     vi.fn(() => ({
       content: []
     })),
-    getPublicHomeSnapshot,
-    getPublicContentListSnapshot,
-    getPublicProgramListSnapshot,
-    getPublicSearchIndexSnapshot,
+    getPublicHomeSnapshotCached,
+    getPublicContentListSnapshotCached,
+    getPublicProgramListSnapshotCached,
+    getPublicSearchIndexSnapshotCached,
     vi.fn(),
     vi.fn(() => []),
     vi.fn(() => ({})),
+    getPublicContentDetailCached,
     vi.fn(),
     incrementContentView,
     vi.fn(),
@@ -375,9 +393,14 @@ return {
     deleteContent,
     deleteEvent,
     deleteMedia,
+    getPublicContentDetailCached,
+    getPublicContentListSnapshotCached,
     getPublicContentListSnapshot,
+    getPublicHomeSnapshotCached,
     getPublicHomeSnapshot,
+    getPublicProgramListSnapshotCached,
     getPublicProgramListSnapshot,
+    getPublicSearchIndexSnapshotCached,
     getPublicSearchIndexSnapshot,
     getUsers,
     incrementContentView,
@@ -446,6 +469,7 @@ describe("Apps Script route auth handling", () => {
     expect(result.body.latestNews).toEqual([]);
     expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
     expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.getPublicHomeSnapshotCached).toHaveBeenCalledTimes(1);
     expect(context.getPublicHomeSnapshot).toHaveBeenCalledTimes(1);
   });
 
@@ -466,6 +490,9 @@ describe("Apps Script route auth handling", () => {
     expect(result.body.kind).toBe("announcements");
     expect(result.body.items).toEqual([]);
     expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.getPublicContentListSnapshotCached).toHaveBeenCalledWith({
+      kind: "announcements"
+    });
     expect(context.getPublicContentListSnapshot).toHaveBeenCalledWith({
       kind: "announcements"
     });
@@ -485,6 +512,7 @@ describe("Apps Script route auth handling", () => {
     expect(result.body.items).toEqual([]);
     expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
     expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.getPublicProgramListSnapshotCached).toHaveBeenCalledTimes(1);
     expect(context.getPublicProgramListSnapshot).toHaveBeenCalledTimes(1);
   });
 
@@ -502,7 +530,30 @@ describe("Apps Script route auth handling", () => {
     expect(result.body.items).toEqual([]);
     expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
     expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.getPublicSearchIndexSnapshotCached).toHaveBeenCalledTimes(1);
     expect(context.getPublicSearchIndexSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns public content detail through the cached public wrapper", () => {
+    const context = loadCodeScript();
+    const result = context.routeRequest(
+      {
+        resource: "content-detail",
+        query: {
+          slug: "announcement-1"
+        }
+      },
+      "GET"
+    );
+
+    expect(context.shouldReadAuthContext("GET", "content-detail")).toBe(false);
+    expect(result.statusCode).toBe(200);
+    expect(result.body.slug).toBe("announcement-1");
+    expect(result.body.title).toBe("Public content");
+    expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.getPublicContentDetailCached).toHaveBeenCalledWith({
+      slug: "announcement-1"
+    });
   });
 
   it("does not treat GET users as a valid authenticated route", () => {
