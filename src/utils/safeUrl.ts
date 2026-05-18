@@ -1,5 +1,6 @@
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 const GOOGLE_DRIVE_IMAGE_SIZE = "w1600";
+const GOOGLE_DRIVE_RESPONSIVE_IMAGE_WIDTHS = [640, 900, 1200, 1600];
 const GOOGLE_DRIVE_HOSTS = new Set(["drive.google.com", "www.drive.google.com"]);
 const FACEBOOK_CDN_HOST_SUFFIX = "fbcdn.net";
 const GOOGLE_DRIVE_FILE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -127,4 +128,26 @@ export function normalizePublicImageUrl(value: string | null | undefined): strin
   }
 
   return imageUrl;
+}
+
+function buildGoogleDriveThumbnailUrl(fileId: string, width: number) {
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${width}`;
+}
+
+export function getPublicImageSrcSet(value: string | null | undefined): string {
+  const imageUrl = normalizeSafeResourceUrl(value);
+
+  if (!imageUrl || imageUrl.startsWith("/") || isFacebookCdnUrl(imageUrl) || !isGoogleDriveUrl(imageUrl)) {
+    return "";
+  }
+
+  const googleDriveFileId = extractGoogleDriveFileId(imageUrl);
+
+  if (!googleDriveFileId) {
+    return "";
+  }
+
+  return GOOGLE_DRIVE_RESPONSIVE_IMAGE_WIDTHS.map(
+    (width) => `${buildGoogleDriveThumbnailUrl(googleDriveFileId, width)} ${width}w`
+  ).join(", ");
 }

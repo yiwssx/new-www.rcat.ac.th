@@ -100,6 +100,36 @@ describe("PublicHomeCarousel regressions", () => {
     expect(secondImage).toHaveAttribute("decoding", "async");
   });
 
+  it("adds responsive Google Drive carousel image candidates without changing first image priority", () => {
+    render(
+      <PublicHomeCarousel
+        slides={[
+          createSlide({
+            id: "slide-1",
+            imageAlt: "Drive slide",
+            imageUrl: "https://drive.google.com/file/d/RCAT_carousel-2026_ABC123/view?usp=sharing"
+          })
+        ]}
+      />
+    );
+
+    const image = screen.getByRole("img", { name: "Drive slide" });
+
+    expect(image).toHaveAttribute("src", "https://drive.google.com/file/d/RCAT_carousel-2026_ABC123/view?usp=sharing");
+    expect(image).toHaveAttribute(
+      "srcset",
+      [
+        "https://drive.google.com/thumbnail?id=RCAT_carousel-2026_ABC123&sz=w640 640w",
+        "https://drive.google.com/thumbnail?id=RCAT_carousel-2026_ABC123&sz=w900 900w",
+        "https://drive.google.com/thumbnail?id=RCAT_carousel-2026_ABC123&sz=w1200 1200w",
+        "https://drive.google.com/thumbnail?id=RCAT_carousel-2026_ABC123&sz=w1600 1600w"
+      ].join(", ")
+    );
+    expect(image).toHaveAttribute("sizes", "(max-width: 900px) 100vw, 1280px");
+    expect(image).toHaveAttribute("loading", "eager");
+    expect(image).toHaveAttribute("fetchpriority", "high");
+  });
+
   it("hides navigation controls and dots when only one visible slide exists", () => {
     render(<PublicHomeCarousel slides={[createSlide({ imageAlt: "Only slide" })]} />);
 

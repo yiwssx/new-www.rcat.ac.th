@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import FloatingMessengerButton from "../public/components/FloatingMessengerButton";
 import PublicHomeCarousel from "../public/components/PublicHomeCarousel";
 import PublicIntroGate from "../public/components/PublicIntroGate";
@@ -29,6 +29,8 @@ function createIntroGateSettings(overrides: Partial<HomepageIntroGateSettings> =
 
 afterEach(() => {
   window.sessionStorage.clear();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("homepage settings public sections", () => {
@@ -90,6 +92,15 @@ describe("homepage settings public sections", () => {
     expect(screen.getByRole("img", { name: /Director Example/ })).toHaveAttribute(
       "src",
       "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w1600"
+    );
+    expect(screen.getByRole("img", { name: /Director Example/ })).toHaveAttribute(
+      "srcset",
+      [
+        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w640 640w",
+        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w900 900w",
+        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w1200 1200w",
+        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w1600 1600w"
+      ].join(", ")
     );
   });
 
@@ -154,6 +165,55 @@ describe("homepage settings public sections", () => {
         />
       ).container.firstChild
     ).toBeNull();
+  });
+
+  it("defers the intro video iframe until it is near the viewport", async () => {
+    let intersectionCallback: IntersectionObserverCallback | undefined;
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+
+    vi.stubGlobal(
+      "IntersectionObserver",
+      vi.fn((callback: IntersectionObserverCallback) => {
+        intersectionCallback = callback;
+
+        return {
+          disconnect,
+          observe,
+          takeRecords: () => [],
+          unobserve: vi.fn(),
+          root: null,
+          rootMargin: "600px 0px",
+          thresholds: []
+        };
+      })
+    );
+
+    render(
+      <HomeIntroVideoSection
+        settings={{
+          enabled: true,
+          title: "Intro video",
+          youtubeEmbedUrl: "https://www.youtube-nocookie.com/embed/example"
+        }}
+      />
+    );
+
+    expect(screen.queryByTitle("Intro video")).not.toBeInTheDocument();
+
+    act(() => {
+      intersectionCallback?.(
+        [{ isIntersecting: true, intersectionRatio: 1 } as IntersectionObserverEntry],
+        {} as IntersectionObserver
+      );
+    });
+
+    expect(await screen.findByTitle("Intro video")).toHaveAttribute(
+      "src",
+      "https://www.youtube-nocookie.com/embed/example"
+    );
+    expect(observe).toHaveBeenCalled();
+    expect(disconnect).toHaveBeenCalled();
   });
 
   it("does not render PublicHomeCarousel when no slides exist", () => {
@@ -398,5 +458,48 @@ describe("homepage settings public sections", () => {
     expect(screen.getByText("02-000-0000")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "เปิดแผนที่ใน Google Maps" })).not.toBeInTheDocument();
     expect(screen.queryByTitle(/แผนที่/)).not.toBeInTheDocument();
+  });
+
+  it("defers the ContactMapCard map iframe until it is near the viewport", async () => {
+    let intersectionCallback: IntersectionObserverCallback | undefined;
+
+    vi.stubGlobal(
+      "IntersectionObserver",
+      vi.fn((callback: IntersectionObserverCallback) => {
+        intersectionCallback = callback;
+
+        return {
+          disconnect: vi.fn(),
+          observe: vi.fn(),
+          takeRecords: () => [],
+          unobserve: vi.fn(),
+          root: null,
+          rootMargin: "600px 0px",
+          thresholds: []
+        };
+      })
+    );
+
+    render(
+      <ContactMapCard
+        siteSettings={{
+          ...defaultSiteSettings,
+          campus: "Real campus",
+          mapEmbedUrl: "https://www.google.com/maps/embed?pb=test",
+          mapUrl: "https://www.google.com/maps/place/example"
+        }}
+      />
+    );
+
+    expect(screen.queryByTitle(/Real campus/)).not.toBeInTheDocument();
+
+    act(() => {
+      intersectionCallback?.(
+        [{ isIntersecting: true, intersectionRatio: 1 } as IntersectionObserverEntry],
+        {} as IntersectionObserver
+      );
+    });
+
+    expect(await screen.findByTitle(/Real campus/)).toHaveAttribute("src", "https://www.google.com/maps/embed?pb=test");
   });
 });

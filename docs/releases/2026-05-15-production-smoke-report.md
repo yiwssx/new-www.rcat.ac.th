@@ -184,9 +184,9 @@ Manual production CMS verification passed. Credentials are intentionally not rec
 
 ## 11. Vercel Logs / Performance
 
-**Overall result:** Pass
+**Overall result:** Pass with performance follow-up
 
-Manual Vercel deployment, logs, route, and performance verification passed.
+Manual Vercel deployment, logs, route, and functional verification passed. A later performance investigation was opened after the user reported Vercel Speed Insights around 70 on both mobile and desktop.
 
 - [x] Deployment succeeds
 - [x] Homepage route works
@@ -194,12 +194,17 @@ Manual Vercel deployment, logs, route, and performance verification passed.
 - [x] Admin route works
 - [x] Browser hard refresh works
 - [x] No critical runtime errors in Vercel logs
-- [x] Speed Insights does not show obvious regression
+- [ ] Speed Insights 90+ desktop/mobile verified after performance fixes
 - [x] First load performance remains acceptable
 
 **Evidence / notes:**
 
 - Deployment URL verified; exact Vercel deployment ID not recorded.
+- Functional production smoke remains Pass.
+- User later reported Vercel Speed Insights around 70 on both desktop and mobile.
+- Follow-up investigation on 2026-05-18 found likely performance contributors: IntroGate Google Drive image as LCP, duplicate homepage `public-home` and legacy `snapshot` fetches before the frontend optimization, eager below-fold YouTube/Google Maps iframes, and an oversized high-priority logo preload.
+- This is tracked as a performance follow-up, not a functional release blocker.
+- Do not claim the 90+ Speed Insights target is restored until production is re-tested after deployment.
 
 ## 12. Rollback Readiness
 
@@ -232,6 +237,7 @@ No failed checks. Mobile IntroGate image issue was resolved by setting the Googl
 **Decision rationale:**
 
 - Local quality gate passed. Manual production smoke verification passed. The mobile IntroGate image issue was resolved by correcting the Google Drive file sharing permission, and production was re-tested successfully.
+- Performance follow-up is open for the user-reported Speed Insights drop to around 70. Functional release status remains Pass; the 90+ desktop/mobile target requires post-deployment measurement after performance fixes.
 
 **Release approver:**
 

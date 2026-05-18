@@ -47,6 +47,7 @@ interface PublicSiteShellProps {
   preloadedHomepageSettings?: HomepageSettings;
   preloadedDisplaySettings?: DisplaySettings;
   preloadedMenu?: PublicMenuItem[];
+  skipShellDataFetch?: boolean;
 }
 
 const FOLLOW_LABEL = "ช่องทางติดตาม";
@@ -454,19 +455,21 @@ export default function PublicSiteShell({
   disableMainContainer = false,
   preloadedSiteSettings,
   preloadedHomepageSettings,
-  preloadedMenu
+  preloadedMenu,
+  skipShellDataFetch = false
 }: PublicSiteShellProps) {
   const navigate = useNavigate();
   const hasPreloadedShellData =
     Boolean(preloadedSiteSettings) && Boolean(preloadedHomepageSettings) && preloadedMenu !== undefined;
+  const shouldFetchShellData = !skipShellDataFetch && !hasPreloadedShellData;
   const { data, isLoading, isFetching, isError, refetch } = usePublicCmsSnapshot({
-    enabled: !hasPreloadedShellData
+    enabled: shouldFetchShellData
   });
   const [searchQuery, setSearchQuery] = useState("");
   const shellSiteSettings = preloadedSiteSettings ?? data?.siteSettings ?? fallbackPublicShellSettings;
   const shellHomepageSettings = preloadedHomepageSettings ?? data?.homepageSettings;
-  const isShellFetching = !hasPreloadedShellData && !data && (isLoading || isFetching);
-  const isInitialPublicError = !hasPreloadedShellData && !data && isError && !isShellFetching;
+  const isShellFetching = shouldFetchShellData && !data && (isLoading || isFetching);
+  const isInitialPublicError = shouldFetchShellData && !data && isError && !isShellFetching;
   const defaultCanonicalPath = typeof window === "undefined" ? undefined : window.location.pathname;
   const siteSettings = normalizeSiteSettings(shellSiteSettings);
   const homepageSettings = normalizeHomepageSettings(shellHomepageSettings);
@@ -698,7 +701,7 @@ export default function PublicSiteShell({
         </Container>
       </Box>
 
-      <PublicMainMenu preloadedMenu={preloadedMenu} />
+      <PublicMainMenu preloadedMenu={preloadedMenu ?? data?.menu ?? (skipShellDataFetch ? [] : undefined)} />
 
       {isShellFetching && <LinearProgress sx={{ height: 3 }} />}
 

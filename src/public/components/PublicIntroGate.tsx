@@ -4,7 +4,7 @@ import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import { alpha } from "@mui/material/styles";
 import type { HomepageIntroGateSettings } from "../../types";
-import { normalizePublicImageUrl, normalizeSafeHref } from "../../utils/safeUrl";
+import { getPublicImageSrcSet, normalizePublicImageUrl, normalizeSafeHref } from "../../utils/safeUrl";
 
 const DEFAULT_INTRO_GATE_STORAGE_KEY = "public-intro-gate";
 type IntroGateImageStatus = "loading" | "loaded" | "failed";
@@ -52,6 +52,7 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
     status: "failed"
   });
   const imageSrc = useMemo(() => normalizePublicImageUrl(settings?.imageUrl), [settings?.imageUrl]);
+  const imageSrcSet = useMemo(() => getPublicImageSrcSet(settings?.imageUrl), [settings?.imageUrl]);
   const hasSafeImage = Boolean(imageSrc);
   const imageStatus = imageState.src === imageSrc ? imageState.status : hasSafeImage ? "loading" : "failed";
   const hasSecondaryButton = Boolean(settings?.secondaryButtonLabel.trim() && settings.secondaryButtonUrl.trim());
@@ -176,6 +177,8 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
                 <Box
                   component="img"
                   src={imageSrc}
+                  srcSet={imageSrcSet || undefined}
+                  sizes="(max-width: 600px) 94vw, (max-width: 1200px) 92vw, 1280px"
                   alt={activeSettings.imageAlt}
                   loading="eager"
                   decoding="async"
