@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizePublicImageUrl, normalizeSafeHref, normalizeSafeResourceUrl } from "./safeUrl";
+import { getPublicImageSrcSet, normalizePublicImageUrl, normalizeSafeHref, normalizeSafeResourceUrl } from "./safeUrl";
 
 describe("normalizeSafeHref", () => {
   it("rejects dangerous protocols", () => {
@@ -63,6 +63,20 @@ describe("normalizePublicImageUrl", () => {
     expect(normalizePublicImageUrl(`https://drive.google.com/thumbnail?id=${driveFileId}&sz=w400`)).toBe(
       driveThumbnail
     );
+  });
+
+  it("builds responsive srcset candidates for supported Google Drive image URLs only", () => {
+    expect(getPublicImageSrcSet(`https://drive.google.com/file/d/${driveFileId}/view?usp=sharing`)).toBe(
+      [
+        `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w640 640w`,
+        `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w900 900w`,
+        `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w1200 1200w`,
+        `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w1600 1600w`
+      ].join(", ")
+    );
+    expect(getPublicImageSrcSet("/intro/intro-gate-2026.webp")).toBe("");
+    expect(getPublicImageSrcSet("https://example-cdn.example.com/intro.webp")).toBe("");
+    expect(getPublicImageSrcSet("https://scontent.fkkc3-1.fna.fbcdn.net/v/t39.30808-6/intro-gate.jpg")).toBe("");
   });
 
   it("rejects unsafe URLs, suspicious Drive IDs, and direct Facebook CDN URLs", () => {

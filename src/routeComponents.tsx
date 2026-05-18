@@ -1,11 +1,11 @@
 import { Suspense, lazy, type ReactElement } from "react";
 import { Box, CircularProgress } from "@mui/material";
-import { Navigate, Outlet, useParams } from "@tanstack/react-router";
-import AdminActionProgress from "./admin/components/AdminActionProgress";
+import { Navigate, Outlet, useParams, useRouterState } from "@tanstack/react-router";
 import { PublicAnalytics } from "./shared/components/PublicAnalytics";
 import { VercelInsights } from "./shared/components/VercelInsights";
 import { useAuth } from "./context/authSessionContext";
 
+const AdminActionProgress = lazy(() => import("./admin/components/AdminActionProgress"));
 export const CalendarPage = lazy(() => import("./admin/pages/CalendarPage"));
 export const CarouselPage = lazy(() => import("./admin/pages/CarouselPage"));
 export const CmsShell = lazy(() => import("./admin/layout/CmsShell"));
@@ -47,9 +47,23 @@ export function RootRouteLayout() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Outlet />
-      <AdminActionProgress />
+      <AdminActionProgressBoundary />
       <PublicAnalytics />
       <VercelInsights />
+    </Suspense>
+  );
+}
+
+function AdminActionProgressBoundary() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  if (pathname !== "/login" && !pathname.startsWith("/admin")) {
+    return null;
+  }
+
+  return (
+    <Suspense fallback={null}>
+      <AdminActionProgress />
     </Suspense>
   );
 }

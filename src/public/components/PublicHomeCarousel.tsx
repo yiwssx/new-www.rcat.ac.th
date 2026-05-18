@@ -11,6 +11,7 @@ import {
   normalizeCarouselAutoplayIntervalSeconds,
   shouldStartCarouselAutoplay
 } from "../utils/homeCarousel";
+import { getPublicImageSrcSet } from "../../utils/safeUrl";
 
 interface ResolvedCarouselSlide {
   id: string;
@@ -211,6 +212,8 @@ export default function PublicHomeCarousel({
                   <Box
                     component="img"
                     src={slide.imageUrl}
+                    srcSet={getPublicImageSrcSet(slide.imageUrl) || undefined}
+                    sizes="(max-width: 900px) 100vw, 1280px"
                     alt={slide.altText}
                     loading={index === 0 ? "eager" : "lazy"}
                     {...({ fetchpriority: index === 0 ? "high" : "auto" } as Record<string, string>)}

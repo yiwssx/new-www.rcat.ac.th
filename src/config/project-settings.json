@@ -4,7 +4,7 @@
     "publicSiteUrl": "https://preview-placeholder.example.invalid",
     "language": "th",
     "locale": "th-TH",
-    "logoPath": "/rcat-logo.png",
+    "logoPath": "/rcat-logo-128.png",
     "logoAlt": "ตราสัญลักษณ์ RCAT"
   },
   "api": {

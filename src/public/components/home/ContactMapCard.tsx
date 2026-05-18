@@ -1,4 +1,4 @@
-import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
+import { Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
@@ -9,6 +9,7 @@ import { SiteSettings } from "../../../types";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { focusVisibleSx } from "./homeSectionStyles";
+import { LazyEmbedFrame } from "./LazyEmbedFrame";
 
 export function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings }) {
   const hasContactInfo = Boolean(
@@ -85,19 +86,18 @@ export function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings })
           </Stack>
         )}
         {mapEmbedSrc && (
-          <Box
-            component="iframe"
+          <LazyEmbedFrame
             src={mapEmbedSrc}
             title={mapTitle}
-            loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             sx={{
+              position: "relative",
               width: "100%",
               height: { xs: 190, md: 210 },
-              border: 0,
               borderRadius: 2,
               display: "block",
-              mt: hasContactInfo ? 1.2 : 0
+              mt: hasContactInfo ? 1.2 : 0,
+              overflow: "hidden"
             }}
           />
         )}

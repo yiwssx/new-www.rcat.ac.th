@@ -8,6 +8,8 @@ import { projectSettings } from "../config/projectSettings";
 import { defaultSiteSettings } from "../services/siteSettings";
 import { CmsSnapshot, PublicContentListSnapshot, PublicHomeSnapshot, PublicProgramListSnapshot } from "../types";
 
+const usePublicCmsSnapshotMock = vi.hoisted(() => vi.fn());
+
 let currentSnapshot: CmsSnapshot | undefined;
 let currentHomeSnapshot: PublicHomeSnapshot | undefined;
 let currentContentListSnapshot: PublicContentListSnapshot | undefined;
@@ -38,10 +40,14 @@ let currentProgramListQueryState = {
 };
 
 vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
-  usePublicCmsSnapshot: () => ({
-    data: currentSnapshot,
-    ...currentQueryState
-  })
+  usePublicCmsSnapshot: (options?: { enabled?: boolean }) => {
+    usePublicCmsSnapshotMock(options);
+
+    return {
+      data: currentSnapshot,
+      ...currentQueryState
+    };
+  }
 }));
 
 vi.mock("../public/hooks/usePublicHomeSnapshot", () => ({
@@ -224,6 +230,7 @@ beforeEach(() => {
     isError: false,
     refetch: vi.fn()
   };
+  usePublicCmsSnapshotMock.mockClear();
 });
 
 afterEach(() => {
@@ -310,6 +317,7 @@ describe("public data-driven pages", () => {
     expect(document.body).not.toHaveTextContent("กำลังเชื่อมต่อระบบฐานข้อมูล");
     expect(screen.queryByText("ยังไม่มีเอกสารเผยแพร่")).not.toBeInTheDocument();
     expect(screen.getAllByText("CMS public site").length).toBeGreaterThan(0);
+    expect(usePublicCmsSnapshotMock.mock.calls.every(([options]) => options?.enabled === false)).toBe(true);
   });
 
   it("does not render mock document titles when no CMS content exists", () => {

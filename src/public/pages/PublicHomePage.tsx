@@ -28,7 +28,7 @@ export default function PublicHomePage() {
 
   if (!data && (isLoading || isFetching)) {
     return (
-      <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/">
+      <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/" skipShellDataFetch>
         <Container maxWidth="xl">
           <PublicLoadingState />
         </Container>
@@ -49,7 +49,7 @@ export default function PublicHomePage() {
 
   if (!data) {
     return (
-      <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/">
+      <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/" skipShellDataFetch>
         <Container maxWidth="xl">
           <PublicLoadingState />
         </Container>

@@ -3,10 +3,11 @@ import { alpha } from "@mui/material/styles";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import EmptyState from "../../../shared/components/EmptyState";
 import { SiteSettings } from "../../../types";
-import { normalizePublicImageUrl } from "../../../utils/safeUrl";
+import { getPublicImageSrcSet, normalizePublicImageUrl } from "../../../utils/safeUrl";
 
 export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
   const directorImageUrl = normalizePublicImageUrl(siteSettings.directorImageUrl);
+  const directorImageSrcSet = getPublicImageSrcSet(siteSettings.directorImageUrl);
   const hasDirectorInfo = Boolean(
     siteSettings.directorName ||
     siteSettings.directorDescription ||
@@ -53,6 +54,8 @@ export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings 
               <Box
                 component="img"
                 src={directorImageUrl}
+                srcSet={directorImageSrcSet || undefined}
+                sizes="(max-width: 600px) 160px, (max-width: 900px) 176px, 192px"
                 alt={directorImageAlt}
                 sx={{
                   width: { xs: 160, sm: 176, md: 184, lg: 192 },

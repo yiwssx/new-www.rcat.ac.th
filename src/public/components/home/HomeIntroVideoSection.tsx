@@ -1,6 +1,7 @@
 import { Box, Paper } from "@mui/material";
 import type { HomepageIntroVideoSettings } from "../../../types";
 import { HomeSectionHeading } from "./HomeSectionHeading";
+import { LazyEmbedFrame } from "./LazyEmbedFrame";
 
 export function HomeIntroVideoSection({ settings }: { settings?: HomepageIntroVideoSettings }) {
   if (!settings?.enabled || !settings.youtubeEmbedUrl.trim()) {
@@ -23,7 +24,12 @@ export function HomeIntroVideoSection({ settings }: { settings?: HomepageIntroVi
           overflow: "hidden"
         }}
       >
-        <Box
+        <LazyEmbedFrame
+          src={settings.youtubeEmbedUrl}
+          title={settings.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
           sx={{
             position: "relative",
             width: "100%",
@@ -35,24 +41,7 @@ export function HomeIntroVideoSection({ settings }: { settings?: HomepageIntroVi
             bgcolor: "grey.900",
             boxShadow: "0 16px 34px rgba(0, 0, 0, 0.16)"
           }}
-        >
-          <Box
-            component="iframe"
-            src={settings.youtubeEmbedUrl}
-            title={settings.title}
-            loading="lazy"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
-            sx={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              border: 0
-            }}
-          />
-        </Box>
+        />
       </Paper>
     </Box>
   );
