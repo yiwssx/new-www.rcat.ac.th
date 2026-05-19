@@ -11,7 +11,8 @@ import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import { ExternalServiceIconKey, ExternalServiceLink, ExternalServiceTone } from "../../../types";
+import { ExternalServiceIconKey, ExternalServiceLink } from "../../../types";
+import { getExternalServiceToneStyle } from "../../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { focusVisibleSx } from "./homeSectionStyles";
@@ -30,22 +31,6 @@ function getExternalServiceIcon(iconKey: ExternalServiceIconKey): ReactNode {
   };
 
   return icons[iconKey] ?? icons.link;
-}
-
-function getExternalServiceToneColor(tone: ExternalServiceTone) {
-  const colors: Record<ExternalServiceTone, string> = {
-    student: "#6d28d9",
-    homeroom: "#7c3aed",
-    management: "#4c1d95",
-    learning: "#5b21b6",
-    calendar: "#9333ea",
-    check: "#6b21a8",
-    admission: "#8b5cf6",
-    career: "#581c87",
-    general: "#1f5a2c"
-  };
-
-  return colors[tone] ?? colors.general;
 }
 
 export function ExternalServicesSection({ items }: { items: ExternalServiceLink[] }) {
@@ -71,9 +56,10 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
           p: { xs: 2.4, sm: 3, md: 4 },
           display: "flex",
           alignItems: "center",
-          background: "linear-gradient(135deg, #3b0764 0%, #6d28d9 48%, #a855f7 100%)",
+          background:
+            "linear-gradient(135deg, var(--rcat-primary-hover) 0%, var(--rcat-primary) 65%, var(--rcat-secondary) 100%)",
           color: "white",
-          boxShadow: "0 18px 34px rgba(88, 28, 135, 0.2)"
+          boxShadow: "var(--rcat-shadow-md)"
         }}
       >
         <Box
@@ -85,7 +71,7 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
             width: { xs: 150, md: 190 },
             height: { xs: 150, md: 190 },
             borderRadius: "50%",
-            border: "26px solid rgba(250, 204, 21, 0.18)"
+            border: "26px solid rgba(234, 179, 8, 0.22)"
           }}
         />
         <Box
@@ -97,16 +83,16 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
             width: 96,
             height: 96,
             borderRadius: 3,
-            backgroundImage: "radial-gradient(rgba(255, 255, 255, 0.72) 1px, transparent 1px)",
+            backgroundImage: "radial-gradient(rgba(254, 249, 195, 0.72) 1px, transparent 1px)",
             backgroundSize: "12px 12px",
-            opacity: 0.42
+            opacity: 0.34
           }}
         />
         <Stack spacing={0.9} sx={{ position: "relative", zIndex: 1, maxWidth: 620 }}>
           <Typography
             component="p"
             sx={{
-              color: "#fde047",
+              color: "var(--rcat-accent-soft)",
               fontWeight: 900,
               letterSpacing: 0,
               textTransform: "uppercase"
@@ -119,7 +105,7 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
             sx={{
               fontSize: { xs: "2.55rem", sm: "3.35rem", md: "4.5rem" },
               lineHeight: 0.95,
-              color: "#fef08a"
+              color: "var(--rcat-surface)"
             }}
           >
             E-Service
@@ -132,7 +118,7 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
 
       <Grid container spacing={2}>
         {items.map((item) => {
-          const toneColor = getExternalServiceToneColor(item.tone);
+          const toneStyle = getExternalServiceToneStyle(item.tone);
 
           return (
             <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.id}>
@@ -146,14 +132,15 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
                   height: "100%",
                   display: "block",
                   textDecoration: "none",
-                  border: "1px solid rgba(88, 28, 135, 0.16)",
-                  bgcolor: "#faf5ff",
+                  border: "1px solid var(--rcat-border)",
+                  bgcolor: "var(--rcat-surface)",
+                  boxShadow: "var(--rcat-shadow-sm)",
                   transition: "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
                   ...focusVisibleSx,
                   "&:hover": {
                     transform: "translateY(-3px)",
-                    borderColor: "rgba(109, 40, 217, 0.35)",
-                    boxShadow: "0 16px 30px rgba(88, 28, 135, 0.15)"
+                    borderColor: "rgba(22, 101, 52, 0.35)",
+                    boxShadow: "0 16px 30px rgba(15, 23, 42, 0.1)"
                   }
                 }}
               >
@@ -167,9 +154,9 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
                           borderRadius: 2,
                           display: "grid",
                           placeItems: "center",
-                          color: "white",
-                          bgcolor: toneColor,
-                          boxShadow: "0 10px 20px rgba(88, 28, 135, 0.18)",
+                          color: toneStyle.iconColor,
+                          bgcolor: toneStyle.iconBg,
+                          boxShadow: "0 10px 20px rgba(22, 101, 52, 0.18)",
                           "& svg": {
                             fontSize: 27
                           }

@@ -45,6 +45,7 @@ import {
 } from "../../services/googleApi";
 import { clearPublicCmsCache } from "../../services/publicCmsCache";
 import { ExternalServiceIconKey, ExternalServiceLink, ExternalServiceTone } from "../../types";
+import { getExternalServiceToneStyle } from "../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal } from "../../utils/swal";
 
@@ -71,6 +72,15 @@ const externalServiceIconOptions: Array<{ value: ExternalServiceIconKey; label: 
   { value: "school", label: "สถานศึกษา" },
   { value: "link", label: "ลิงก์ทั่วไป" }
 ];
+
+const externalServicePrimaryButtonSx = {
+  bgcolor: "var(--rcat-primary)",
+  "&:hover": { bgcolor: "var(--rcat-primary-hover)" },
+  "&.Mui-focusVisible": {
+    outline: "3px solid var(--rcat-accent)",
+    outlineOffset: 2
+  }
+};
 
 function sortExternalServices(services: ExternalServiceLink[]) {
   return [...services].sort((left, right) => {
@@ -120,22 +130,6 @@ function getToneLabel(tone: ExternalServiceTone) {
 
 function getIconLabel(iconKey: ExternalServiceIconKey) {
   return externalServiceIconOptions.find((option) => option.value === iconKey)?.label ?? "ลิงก์ทั่วไป";
-}
-
-function getExternalServiceToneColor(tone: ExternalServiceTone) {
-  const colors: Record<ExternalServiceTone, string> = {
-    student: "#6d28d9",
-    homeroom: "#7c3aed",
-    management: "#4c1d95",
-    learning: "#5b21b6",
-    calendar: "#9333ea",
-    check: "#6b21a8",
-    admission: "#8b5cf6",
-    career: "#581c87",
-    general: "#1f5a2c"
-  };
-
-  return colors[tone] ?? colors.general;
 }
 
 function getExternalServiceIcon(iconKey: ExternalServiceIconKey): ReactNode {
@@ -322,6 +316,8 @@ export default function ExternalServicesPage() {
   }
 
   function renderServiceIcon(iconKey: ExternalServiceIconKey, tone: ExternalServiceTone) {
+    const toneStyle = getExternalServiceToneStyle(tone);
+
     return (
       <Box
         sx={{
@@ -330,8 +326,8 @@ export default function ExternalServicesPage() {
           borderRadius: 2,
           display: "grid",
           placeItems: "center",
-          color: "white",
-          bgcolor: getExternalServiceToneColor(tone),
+          color: toneStyle.iconColor,
+          bgcolor: toneStyle.iconBg,
           boxShadow: "0 10px 20px rgba(31, 90, 44, 0.16)",
           "& svg": {
             fontSize: 27
@@ -344,19 +340,24 @@ export default function ExternalServicesPage() {
   }
 
   return (
-    <Box>
+    <Box sx={{ color: "var(--rcat-text)" }}>
       <PageHeader
         title="E-Service"
         description="จัดการลิงก์บริการออนไลน์ที่แสดงในหน้าเว็บไซต์สาธารณะ"
         action={
-          <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleAddService}>
+          <Button
+            variant="contained"
+            startIcon={<AddOutlinedIcon />}
+            onClick={handleAddService}
+            sx={externalServicePrimaryButtonSx}
+          >
             เพิ่มลิงก์บริการ
           </Button>
         }
       />
 
       {adminSnapshotQuery.isLoading && (
-        <Card sx={{ mb: 3 }}>
+        <Card sx={{ mb: 3, borderColor: "var(--rcat-border)", bgcolor: "var(--rcat-surface)" }}>
           <CardContent>
             <Typography color="text.secondary">กำลังโหลดลิงก์ E-Service...</Typography>
           </CardContent>
@@ -372,7 +373,7 @@ export default function ExternalServicesPage() {
       )}
 
       {!adminSnapshotQuery.isLoading && !adminSnapshotQuery.isError && !services.length && (
-        <Card>
+        <Card sx={{ borderColor: "var(--rcat-border)", bgcolor: "var(--rcat-surface)" }}>
           <CardContent>
             <Stack spacing={2} alignItems="flex-start">
               <AppsOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
@@ -384,7 +385,12 @@ export default function ExternalServicesPage() {
                   เพิ่มลิงก์บริการออนไลน์เพื่อแสดงในหน้าเว็บไซต์สาธารณะ
                 </Typography>
               </Box>
-              <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleAddService}>
+              <Button
+                variant="contained"
+                startIcon={<AddOutlinedIcon />}
+                onClick={handleAddService}
+                sx={externalServicePrimaryButtonSx}
+              >
                 เพิ่มลิงก์บริการ
               </Button>
             </Stack>
@@ -395,7 +401,14 @@ export default function ExternalServicesPage() {
       <Grid container spacing={2.5}>
         {services.map((service) => (
           <Grid key={service.id} size={{ xs: 12, md: 6, xl: 4 }}>
-            <Card sx={{ height: "100%" }}>
+            <Card
+              sx={{
+                height: "100%",
+                borderColor: "var(--rcat-border)",
+                bgcolor: "var(--rcat-surface)",
+                boxShadow: "var(--rcat-shadow-sm)"
+              }}
+            >
               <CardContent>
                 <Stack spacing={1.5} sx={{ height: "100%" }}>
                   <Stack direction="row" spacing={1.25} alignItems="flex-start" justifyContent="space-between">
@@ -557,7 +570,10 @@ export default function ExternalServicesPage() {
               </Grid>
 
               <Grid size={{ xs: 12, md: 5 }}>
-                <Card variant="outlined" sx={{ bgcolor: "#faf5ff", borderColor: "rgba(88, 28, 135, 0.16)" }}>
+                <Card
+                  variant="outlined"
+                  sx={{ bgcolor: "var(--rcat-primary-soft)", borderColor: "rgba(22, 101, 52, 0.18)" }}
+                >
                   <CardContent>
                     <Stack spacing={1.35}>
                       <Stack direction="row" spacing={1.1} alignItems="flex-start" justifyContent="space-between">
@@ -588,6 +604,7 @@ export default function ExternalServicesPage() {
             startIcon={<SaveOutlinedIcon />}
             disabled={saveExternalServiceMutation.isPending}
             onClick={() => void handleSaveExternalService()}
+            sx={externalServicePrimaryButtonSx}
           >
             {saveExternalServiceMutation.isPending ? "กำลังบันทึก" : "บันทึกลิงก์ E-Service"}
           </Button>
