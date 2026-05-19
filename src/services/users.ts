@@ -6,6 +6,7 @@ import {
   resetUserAccountsFromApi,
   saveUserAccountToApi
 } from "./googleApi";
+import { assertLocalAuthFallbackAllowed } from "./authRuntime";
 
 export interface UserAccountInput {
   id?: string;
@@ -55,6 +56,7 @@ function ensureAtLeastOneActiveAdmin(users: UserAccount[]) {
 
 export async function getUserAccounts(): Promise<UserAccount[]> {
   if (!usingBackendUsers()) {
+    assertLocalAuthFallbackAllowed();
     const users = userCache ?? getBootstrapUsers();
     userCache = users;
     return users;
