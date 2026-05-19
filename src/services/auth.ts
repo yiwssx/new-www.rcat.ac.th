@@ -1,16 +1,7 @@
-import { jwtDecode } from "jwt-decode";
 import { getGoogleAppsScriptUrl, projectSettings } from "../config/projectSettings";
 import { Session, User } from "../types";
-import { loginUserFromApi } from "./googleApi";
-import { authenticateUser } from "./users";
-
-interface JwtPayload {
-  sub: string;
-  name: string;
-  email: string;
-  role: User["role"];
-  exp: number;
-}
+import { assertLocalAuthFallbackAllowed } from "./authRuntime";
+export { isTokenExpired, restoreSession } from "./authSession";
 
 function createLocalSessionToken() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -27,9 +18,12 @@ export async function hashPassword(password: string) {
 
 export async function login(email: string, password: string): Promise<Session> {
   if (getGoogleAppsScriptUrl()) {
+    const { loginUserFromApi } = await import("./googleApi");
     return loginUserFromApi(email, password);
   }
 
+  assertLocalAuthFallbackAllowed();
+  const { authenticateUser } = await import("./users");
   const account = await authenticateUser(email, password);
   const user: User = {
     id: account.id,
@@ -45,38 +39,4 @@ export async function login(email: string, password: string): Promise<Session> {
     token: createLocalSessionToken(),
     expiresAt: expiresAt.toISOString()
   };
-}
-
-export function isTokenExpired(token: string, expiresAt?: string) {
-  try {
-    const payload = jwtDecode<JwtPayload>(token);
-    if (payload?.exp) {
-      return payload.exp * 1000 <= Date.now();
-    }
-  } catch {
-    // Fall back to expiresAt if token is opaque.
-  }
-
-  if (!expiresAt) {
-    return true;
-  }
-
-  return Date.parse(expiresAt) <= Date.now();
-}
-
-export function restoreSession(value: string | null): Session | null {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const session = JSON.parse(value) as Session;
-    if (!session?.token || !session?.expiresAt || !session?.user) {
-      return null;
-    }
-
-    return isTokenExpired(session.token, session.expiresAt) ? null : session;
-  } catch {
-    return null;
-  }
 }

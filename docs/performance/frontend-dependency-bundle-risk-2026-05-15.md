@@ -3,13 +3,42 @@
 Date: 2026-05-15  
 Production URL: https://preview-placeholder.example.invalid/  
 Scope: package/source import review and local Vite production build output  
-Status: Evidence report only. No production code changes were made.
+Status: Updated 2026-05-19 with the auth import-graph hardening follow-up.
 
 ## Summary
 
 The current build keeps the largest admin pages lazy-loaded, but the public entry bundle is still heavy because global app providers, route setup, analytics components, MUI runtime, and auth services are loaded before any public route renders.
 
 The highest-risk finding is not that `bcryptjs` is downloaded on the first public page load. The build shows `bcryptjs` is emitted as a separate lazy chunk. The risk is that browser-side local auth and user fallback code is statically reachable from the app-wide auth provider, so public visitors receive auth/user-management fallback code in the initial application chunk and production safety depends on the Apps Script URL being configured correctly.
+
+## 2026-05-19 Auth Import-Graph Follow-Up
+
+Changes made:
+
+- `AuthProvider` now imports only lightweight session restore code during public startup.
+- Credential login now dynamically imports `src/services/auth.ts` only when login is attempted.
+- `src/services/auth.ts` dynamically imports the Apps Script auth API path or local user fallback only inside the login action.
+- `src/services/users.ts` keeps development/test local fallback behavior, but production builds fail closed if Apps Script user management is missing.
+- `bcryptjs` remains installed and lazy-loaded only for the explicit local fallback paths.
+
+New build result:
+
+| Asset / metric             | Baseline build | 2026-05-19 build | Delta                   |
+| -------------------------- | -------------: | ---------------: | ----------------------- |
+| Initial `index` JS raw     |      390.71 kB |        382.35 kB | -8.36 kB                |
+| Initial `index` JS gzip    |      128.48 kB |        125.95 kB | -2.53 kB                |
+| Initial CSS raw            |       15.52 kB |         15.52 kB | No change               |
+| `bcryptjs` lazy chunk gzip |       10.19 kB |         10.19 kB | No change               |
+| Total built JavaScript raw |    1,171,978 B |      1,175,911 B | +3,933 B split overhead |
+| Total built CSS raw        |       46,020 B |         46,020 B | No change               |
+
+The initial public entry chunk improved modestly because user-management fallback code moved behind login/admin-only dynamic imports. The total JavaScript output increased slightly because the split creates additional small chunks (`auth`, `authRuntime`, and `users`) rather than flattening that code into the entry bundle.
+
+Remaining risks:
+
+- The public entry chunk is still large at 382.35 kB raw / 125.95 kB gzip.
+- `bcryptjs` is still present as a lazy browser chunk for development/test local fallback behavior.
+- Homepage LCP remains image/media-dependent and still needs production Lighthouse/Vercel measurement before claiming score recovery.
 
 ## Build Command
 
@@ -89,14 +118,14 @@ Positive isolation already present:
 - `AdminActionProgress` is lazy and path-gated.
 - `SweetAlert2` is imported dynamically through `src/utils/swal.ts`.
 
-Remaining leakage risk:
+Resolved auth leakage from the follow-up:
 
-- `src/App.tsx` mounts `AuthProvider` globally.
-- `src/context/AuthContext.tsx` statically imports `src/services/auth.ts`.
-- `src/services/auth.ts` statically imports `src/services/users.ts`.
-- `src/services/users.ts` contains local browser user/auth fallback logic and dynamic `bcryptjs` imports.
+- `src/App.tsx` still mounts `AuthProvider` globally, but the provider no longer statically imports `src/services/auth.ts`.
+- `src/context/AuthContext.tsx` imports `src/services/authSession.ts` for session restore only.
+- `src/services/auth.ts` dynamically imports `src/services/googleApi.ts` or `src/services/users.ts` only when credential login is attempted.
+- `src/services/users.ts` remains reachable from admin user management and local fallback login paths, not normal public route startup.
 
-This means the bcrypt payload itself is lazy, but the fallback auth/user service code is still part of the startup graph.
+This means the bcrypt payload and user-management fallback implementation remain lazy. They are still in the frontend build for development/test fallback behavior, but they are no longer part of the public startup graph.
 
 ## Dependency Risk Ranking
 
@@ -115,7 +144,7 @@ Why this matters:
 
 Recommendation:
 
-Make Apps Script authentication mandatory in production and prevent browser-local auth fallback from running in production builds. Then split any development-only fallback code away from the public startup path.
+Apps Script authentication is now mandatory for production fallback paths. If the Apps Script URL is missing in production, login/user-management fallback fails closed instead of silently using browser-local auth. Development/test local fallback is preserved.
 
 What not to change yet:
 
@@ -125,24 +154,24 @@ Do not remove `bcryptjs` until the local/dev auth fallback strategy is explicitl
 
 Risk:
 
-The initial `index` chunk is 390.71 kB raw and 128.48 kB gzip. That is high for a public marketing/institutional homepage before route-specific chunks load.
+The initial `index` chunk improved from 390.71 kB raw / 128.48 kB gzip to 382.35 kB raw / 125.95 kB gzip. That is still high for a public marketing/institutional homepage before route-specific chunks load.
 
 Likely contributors:
 
 - Global MUI provider/runtime and baseline.
 - TanStack Router/Query startup.
 - Route definitions and protected route guards.
-- Auth provider and auth/user service imports.
+- Auth provider and session restore imports.
 - Public analytics/Speed Insights wiring.
 
 Recommendation:
 
 First target import graph reductions that do not change UX:
 
-1. Decouple browser-local auth/user fallback code from app startup.
+1. Keep browser-local auth/user fallback code out of app startup.
 2. Keep only lightweight session restore in the global provider.
-3. Lazy-load login/auth mutation code when `/login` or admin user management is used.
-4. Rebuild and compare the initial `index` chunk size before deeper UI work.
+3. Continue lazy-loading login/auth mutation code when `/login` or admin user management is used.
+4. Measure the next bottleneck before deeper UI work.
 
 ### P1: Public Homepage Route Chunk and LCP/Image Risk
 
@@ -219,11 +248,11 @@ Keep both systems for now. Use Tailwind/global CSS for layout utilities, public 
 
 ### P0
 
-Require Apps Script auth in production and block browser-local auth fallback in production mode. This reduces security risk first and creates a clean boundary for performance work.
+Completed in the 2026-05-19 follow-up: Apps Script auth is required in production fallback paths, and browser-local auth/user fallback now fails closed in production mode.
 
 ### P1
 
-Split auth/user fallback code out of the public startup graph. Keep global session restore light, and lazy-load login/user-management services only where needed.
+Completed in the 2026-05-19 follow-up: auth/user fallback code is split out of the public startup graph. Keep this boundary in place during future auth work.
 
 ### P1
 
