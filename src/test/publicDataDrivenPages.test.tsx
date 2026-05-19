@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicSiteShell from "../public/components/PublicSiteShell";
 import PublicAnnouncementsPage from "../public/pages/PublicAnnouncementsPage";
@@ -320,14 +320,17 @@ describe("public data-driven pages", () => {
     expect(usePublicCmsSnapshotMock.mock.calls.every(([options]) => options?.enabled === false)).toBe(true);
   });
 
-  it("does not render mock document titles when no CMS content exists", () => {
+  it("does not render mock document titles when no CMS content exists", async () => {
     currentHomeSnapshot = createHomeSnapshot();
 
     render(<PublicHomePage />);
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     expect(screen.queryByText(/ITA/)).not.toBeInTheDocument();
     expect(screen.queryByText(/แผนปฏิบัติการ/)).not.toBeInTheDocument();
-    expect(screen.getByText("ยังไม่มีเอกสารเผยแพร่")).toBeInTheDocument();
+    expect(await screen.findByText("ยังไม่มีเอกสารเผยแพร่", undefined, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("renders homepage carousel slides from the public home snapshot", () => {
@@ -359,10 +362,100 @@ describe("public data-driven pages", () => {
     expect(screen.queryByRole("link", { name: "Read more" })).not.toBeInTheDocument();
   });
 
-  it("shows an honest empty state when no program content exists", () => {
+  it("defers below-the-fold homepage sections until they approach the viewport", async () => {
+    const originalIntersectionObserver = window.IntersectionObserver;
+    const observerCallbacks: IntersectionObserverCallback[] = [];
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "720px 0px";
+      readonly thresholds = [0];
+
+      constructor(callback: IntersectionObserverCallback) {
+        observerCallbacks.push(callback);
+      }
+
+      disconnect = vi.fn();
+      observe = vi.fn();
+      takeRecords = vi.fn(() => []);
+      unobserve = vi.fn();
+    }
+
+    Object.defineProperty(window, "IntersectionObserver", {
+      configurable: true,
+      writable: true,
+      value: MockIntersectionObserver
+    });
+    window.__RCAT_ENABLE_HOME_DEFER_TEST__ = true;
+
+    currentHomeSnapshot = createHomeSnapshot({
+      latestNews: [
+        {
+          id: "news-visible",
+          title: "Visible top news",
+          slug: "visible-top-news",
+          type: "news",
+          status: "published",
+          owner: "Admin",
+          summary: "Top news renders before deferred sections",
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
+        }
+      ],
+      programItems: [
+        {
+          id: "program-deferred",
+          title: "Deferred program card",
+          slug: "deferred-program-card",
+          type: "program",
+          status: "published",
+          owner: "Admin",
+          summary: "Program waits for the viewport gate",
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
+        }
+      ]
+    });
+
+    try {
+      render(<PublicHomePage />);
+
+      expect(screen.getByText("Visible top news")).toBeInTheDocument();
+      expect(screen.queryByText("Deferred program card")).not.toBeInTheDocument();
+      expect(observerCallbacks.length).toBeGreaterThan(0);
+
+      act(() => {
+        observerCallbacks.forEach((callback) => {
+          callback(
+            [
+              {
+                isIntersecting: true,
+                intersectionRatio: 1
+              } as IntersectionObserverEntry
+            ],
+            {} as IntersectionObserver
+          );
+        });
+      });
+
+      expect(await screen.findByText("Deferred program card", undefined, { timeout: 5000 })).toBeInTheDocument();
+    } finally {
+      delete window.__RCAT_ENABLE_HOME_DEFER_TEST__;
+      Object.defineProperty(window, "IntersectionObserver", {
+        configurable: true,
+        writable: true,
+        value: originalIntersectionObserver
+      });
+    }
+  });
+
+  it("shows an honest empty state when no program content exists", async () => {
     currentHomeSnapshot = createHomeSnapshot();
 
     render(<PublicHomePage />);
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     expect(screen.getByText("ยังไม่มีข้อมูลหลักสูตรที่เผยแพร่")).toBeInTheDocument();
   });
@@ -390,7 +483,7 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("Program loaded without the full snapshot")).toBeInTheDocument();
   });
 
-  it("renders the approved homepage information architecture", () => {
+  it("renders the approved homepage information architecture", async () => {
     const baseSiteSettings = createSnapshot().siteSettings!;
     const latestNews: PublicHomeSnapshot["latestNews"] = [
       {
@@ -516,6 +609,8 @@ describe("public data-driven pages", () => {
     });
 
     render(<PublicHomePage />);
+    await screen.findByText("Website Visitors", undefined, { timeout: 5000 });
+    await screen.findByText("ติดต่อและแผนที่", undefined, { timeout: 5000 });
 
     const pageText = document.body.textContent || "";
     const heroIndex = pageText.indexOf("ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง");
@@ -531,7 +626,7 @@ describe("public data-driven pages", () => {
     const externalServicesIndex = pageText.indexOf("บริการออนไลน์และลิงก์ที่เกี่ยวข้อง");
     const visitorStatsIndex = pageText.indexOf("Website Visitors");
 
-    [
+    Object.entries({
       heroIndex,
       directorIndex,
       newsIndex,
@@ -544,7 +639,7 @@ describe("public data-driven pages", () => {
       achievementsIndex,
       externalServicesIndex,
       visitorStatsIndex
-    ].forEach((index) => expect(index).toBeGreaterThanOrEqual(0));
+    }).forEach(([label, index]) => expect(index, label).toBeGreaterThanOrEqual(0));
     expect(heroIndex).toBeLessThan(directorIndex);
     expect(directorIndex).toBeLessThan(newsIndex);
     expect(newsIndex).toBeLessThan(procurementIndex);
