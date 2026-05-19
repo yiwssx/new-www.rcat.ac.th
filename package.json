@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prepare": "husky",
     "ai:map": "sigmap",
     "ai:codex": "sigmap --adapter codex",
     "ai:copilot": "sigmap --adapter copilot",
@@ -30,7 +31,8 @@
     "lint:report": "eslint \"src/**/*.{ts,tsx}\" \"scripts/**/*.{js,mjs}\" --format stylish",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "quality": "pnpm format:check && pnpm lint && pnpm test:unit && pnpm test:integration && pnpm build"
+    "quality": "pnpm format:check && pnpm lint && pnpm test:unit && pnpm test:integration && pnpm build",
+    "lint-staged": "lint-staged"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -77,7 +79,9 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.59.1",
     "vite": "^6.1.0",
-    "vitest": "^3.0.7"
+    "vitest": "^3.0.7",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
