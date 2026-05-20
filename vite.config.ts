@@ -1,12 +1,14 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import type { Plugin } from "vite";
 
-function utf8HtmlCharset() {
+function utf8HtmlCharset(): Plugin {
   return {
     name: "utf8-html-charset",
-    configureServer(server: any) {
-      server.middlewares.use((_req: any, res: any, next: any) => {
+    configureServer(server) {
+      server.middlewares.use((_req, res, next) => {
         const originalSetHeader = res.setHeader.bind(res);
+
         res.setHeader = (name: string, value: string | string[]) => {
           if (String(name).toLowerCase() === "content-type") {
             const values = Array.isArray(value) ? value : [value];
@@ -25,19 +27,37 @@ function utf8HtmlCharset() {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), utf8HtmlCharset()],
-  build: {
-    cssCodeSplit: true
-  },
-  server: {
-    host: "127.0.0.1",
-    port: 5173
-  },
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: "./src/test/setup.ts",
-    exclude: ["tests/functional/**", "node_modules/**", "dist/**"]
+export default defineConfig(async ({ command }) => {
+  const plugins = [react(), utf8HtmlCharset()] as Plugin[];
+
+  // Enable vite-plugin-checker only during the dev server to provide
+  // fast TypeScript feedback without affecting production builds.
+  if (command === "serve") {
+    const { default: checker } = await import("vite-plugin-checker");
+
+    plugins.push(
+      checker({
+        typescript: {
+          tsconfigPath: "tsconfig.json"
+        }
+      })
+    );
   }
+
+  return {
+    plugins,
+    build: {
+      cssCodeSplit: true
+    },
+    server: {
+      host: "127.0.0.1",
+      port: 5173
+    },
+    test: {
+      environment: "jsdom",
+      globals: true,
+      setupFiles: "./src/test/setup.ts",
+      exclude: ["tests/functional/**", "node_modules/**", "dist/**"]
+    }
+  };
 });
