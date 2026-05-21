@@ -3,12 +3,12 @@ import cacheSource from "../../apps-script/Cache.gs?raw";
 
 interface CacheScriptContext {
   estimateUtf8Bytes: (value: string) => number;
-  getPublicContentDetailCached: (query: Record<string, unknown>) => unknown;
-  getPublicContentListSnapshotCached: (query: Record<string, unknown>) => unknown;
-  getPublicHomeSnapshotCached: () => unknown;
-  getPublicProgramListSnapshotCached: () => unknown;
-  getPublicSearchIndexSnapshotCached: () => unknown;
-  getPublicSnapshotCached: () => unknown;
+  getPublicContentDetailCached: (query: Record<string, unknown>, options?: Record<string, unknown>) => unknown;
+  getPublicContentListSnapshotCached: (query: Record<string, unknown>, options?: Record<string, unknown>) => unknown;
+  getPublicHomeSnapshotCached: (options?: Record<string, unknown>) => unknown;
+  getPublicProgramListSnapshotCached: (options?: Record<string, unknown>) => unknown;
+  getPublicSearchIndexSnapshotCached: (options?: Record<string, unknown>) => unknown;
+  getPublicSnapshotCached: (options?: Record<string, unknown>) => unknown;
   getContentDetail: Mock;
   getPublicContentListSnapshot: Mock;
   getPublicHomeSnapshot: Mock;
@@ -142,6 +142,65 @@ describe("Apps Script public cache helpers", () => {
     expect(context.getPublicSnapshotCached()).toEqual(snapshot);
     expect(context.getSnapshot).toHaveBeenCalledTimes(1);
     expect(context.scriptCache.put).toHaveBeenCalledWith("cms:public:snapshot:v1", JSON.stringify(snapshot), 300);
+  });
+
+  it("does not expose cache diagnostics on normal public responses", () => {
+    const context = loadCacheScript();
+
+    expect(context.getPublicHomeSnapshotCached()).not.toHaveProperty("debugPerformance");
+    expect(context.getPublicContentDetailCached({ slug: "announcement-1" })).not.toHaveProperty("debugPerformance");
+  });
+
+  it("adds safe debug diagnostics for public cache misses and hits", () => {
+    const context = loadCacheScript();
+    const firstResponse = context.getPublicHomeSnapshotCached({ debugPerformance: true }) as Record<string, unknown>;
+    const firstDebug = firstResponse.debugPerformance as Record<string, unknown>;
+
+    expect(firstDebug).toMatchObject({
+      resource: "public-home",
+      cacheKey: "cms:public:home:v1",
+      cacheHit: false,
+      cacheMiss: true,
+      cacheRead: {
+        returnedPayload: false,
+        parseError: false,
+        removeCachedValueCalled: false
+      },
+      cacheWrite: {
+        attempted: true,
+        success: true,
+        skipped: false,
+        reason: "",
+        maxValueBytes: 95 * 1024
+      },
+      cacheMaxValueBytes: 95 * 1024
+    });
+    expect(firstDebug.payloadBytes).toEqual(expect.any(Number));
+    expect(firstDebug.totalDurationMs).toEqual(expect.any(Number));
+    expect(firstDebug.buildPayloadDurationMs).toEqual(expect.any(Number));
+    expect(JSON.stringify(firstDebug)).not.toContain("Public content");
+
+    const secondResponse = context.getPublicHomeSnapshotCached({ debugPerformance: true }) as Record<string, unknown>;
+    const secondDebug = secondResponse.debugPerformance as Record<string, unknown>;
+
+    expect(secondDebug).toMatchObject({
+      resource: "public-home",
+      cacheKey: "cms:public:home:v1",
+      cacheHit: true,
+      cacheMiss: false,
+      cacheRead: {
+        returnedPayload: true,
+        parseError: false,
+        removeCachedValueCalled: false
+      },
+      cacheWrite: {
+        attempted: false,
+        success: false,
+        skipped: false,
+        reason: ""
+      }
+    });
+    expect(context.getPublicHomeSnapshot).toHaveBeenCalledTimes(1);
   });
 
   it("caches public home, program list, and search index snapshots", () => {
@@ -290,6 +349,92 @@ describe("Apps Script public cache helpers", () => {
     expect(context.scriptCache.put).not.toHaveBeenCalled();
     expect(context.store.size).toBe(0);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Skipping cache write for cms:public:snapshot:v1"));
+    warnSpy.mockRestore();
+  });
+
+  it("reports oversized cache writes in debug diagnostics", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const oversizedSnapshot = {
+      content: [
+        {
+          id: "content-1",
+          title: "Large content",
+          summary: "x".repeat(98 * 1024)
+        }
+      ],
+      media: [],
+      events: []
+    };
+    const context = loadCacheScript(oversizedSnapshot);
+    const response = context.getPublicSnapshotCached({ debugPerformance: true }) as Record<string, unknown>;
+    const debug = response.debugPerformance as Record<string, unknown>;
+
+    expect(debug).toMatchObject({
+      resource: "snapshot",
+      cacheKey: "cms:public:snapshot:v1",
+      cacheHit: false,
+      cacheMiss: true,
+      cacheWrite: {
+        attempted: true,
+        success: false,
+        skipped: true,
+        reason: "payload-too-large",
+        maxValueBytes: 95 * 1024
+      }
+    });
+    expect(debug.payloadBytes).toBeGreaterThan(95 * 1024);
+    expect(context.scriptCache.put).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it("reports cache write failures in debug diagnostics without throwing", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const context = loadCacheScript();
+
+    context.scriptCache.put.mockImplementationOnce(() => {
+      throw new Error("Cache service unavailable");
+    });
+
+    const response = context.getPublicHomeSnapshotCached({ debugPerformance: true }) as Record<string, unknown>;
+    const debug = response.debugPerformance as Record<string, unknown>;
+
+    expect(response).toMatchObject({
+      latestNews: [],
+      generatedAt: "2026-05-12T00:00:00.000Z"
+    });
+    expect(debug).toMatchObject({
+      resource: "public-home",
+      cacheWrite: {
+        attempted: true,
+        success: false,
+        skipped: false,
+        reason: "cache-put-failed"
+      }
+    });
+    warnSpy.mockRestore();
+  });
+
+  it("reports invalid cached JSON removal in debug diagnostics", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const context = loadCacheScript();
+
+    context.store.set("cms:public:home:v1", "{not-json");
+
+    const response = context.getPublicHomeSnapshotCached({ debugPerformance: true }) as Record<string, unknown>;
+    const debug = response.debugPerformance as Record<string, unknown>;
+
+    expect(debug).toMatchObject({
+      resource: "public-home",
+      cacheHit: false,
+      cacheMiss: true,
+      cacheRead: {
+        returnedPayload: true,
+        parseError: true,
+        removeCachedValueCalled: true
+      }
+    });
+    expect(context.scriptCache.remove).toHaveBeenCalledWith("cms:public:home:v1");
+    expect(context.store.has("cms:public:home:v1")).toBe(true);
     warnSpy.mockRestore();
   });
 

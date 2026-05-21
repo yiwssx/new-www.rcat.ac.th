@@ -138,7 +138,7 @@ function getSnapshot(options) {
     : filterMediaForPublicSnapshot(media, visibleContent).map(sanitizePublicMediaRecord);
   const responseContent = includeUnpublished
     ? visibleContent
-    : visibleContent.map((item) => sanitizePublicContentRecord(item));
+    : visibleContent.map((item) => sanitizePublicContentListRecord(item));
 
   return {
     metrics: buildMetrics(visibleContent, visibleMedia),
@@ -161,7 +161,7 @@ function getPublicHomeSnapshot() {
   const media = readObjects(spreadsheet.getSheetByName(SHEETS.media), MEDIA_HEADERS);
   const events = readObjects(spreadsheet.getSheetByName(SHEETS.events), EVENT_HEADERS);
   const publicContent = sortContentByPublishDate(
-    content.filter((item) => item.status === "published").map((item) => sanitizePublicContentRecord(item))
+    content.filter((item) => item.status === "published").map((item) => sanitizePublicContentListRecord(item))
   );
   const announcementContent = publicContent.filter((item) => item.type === "announcement");
   const latestNews = publicContent
@@ -234,7 +234,7 @@ function getPublicContentListSnapshot(query) {
   const content = readObjects(spreadsheet.getSheetByName(SHEETS.content), CONTENT_HEADERS).map(normalizeContentRecord);
   const media = readObjects(spreadsheet.getSheetByName(SHEETS.media), MEDIA_HEADERS);
   const publicContent = sortContentByPublishDate(
-    content.filter((item) => item.status === "published").map((item) => sanitizePublicContentRecord(item))
+    content.filter((item) => item.status === "published").map((item) => sanitizePublicContentListRecord(item))
   );
   const items = publicContent.filter((item) => item.type === getPublicContentListType(kind));
   const pageItems = kind === "announcements" ? publicContent.filter((item) => item.type === "page") : [];
@@ -264,7 +264,7 @@ function getPublicProgramListSnapshot() {
   const items = sortContentByPublishDate(
     content
       .filter((item) => item.status === "published" && item.type === "program")
-      .map((item) => sanitizePublicContentRecord(item))
+      .map((item) => sanitizePublicContentListRecord(item))
   );
 
   return {
@@ -1054,6 +1054,28 @@ function sanitizePublicContentRecord(item, options) {
   }
 
   return sanitized;
+}
+
+function sanitizePublicContentListRecord(item) {
+  const sanitized = sanitizePublicContentRecord(item);
+
+  return {
+    id: sanitized.id || "",
+    title: sanitized.title || "",
+    slug: sanitized.slug || "",
+    type: sanitized.type || "page",
+    status: "published",
+    owner: sanitized.owner || "",
+    summary: sanitized.summary || "",
+    category: sanitized.category || "",
+    tags: sanitized.tags || [],
+    featured: Boolean(sanitized.featured),
+    readingMinutes: sanitized.readingMinutes || 0,
+    featuredMediaId: sanitized.featuredMediaId || "",
+    mediaIds: sanitized.mediaIds || [],
+    updatedAt: sanitized.updatedAt || "",
+    publishAt: sanitized.publishAt || ""
+  };
 }
 
 function normalizeSlugValue(value) {

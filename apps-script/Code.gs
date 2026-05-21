@@ -44,6 +44,9 @@ function routeRequest(event, method) {
     const resource = getResource(event);
     const payload = parsePayload(event);
     const query = getQueryParams(event);
+    const publicPerformanceDebugOptions = {
+      debugPerformance: isPublicPerformanceDebugEnabled(query)
+    };
     const authContext = shouldReadAuthContext(method, resource) ? getRequestAuthContext(payload) : null;
 
     assertRouteAccess(method, resource, authContext);
@@ -53,25 +56,25 @@ function routeRequest(event, method) {
         ? getSnapshot({
             includeUnpublished: false
           })
-        : getPublicSnapshotCached();
+        : getPublicSnapshotCached(publicPerformanceDebugOptions);
 
       return jsonResponse(snapshot);
     }
 
     if (method === "GET" && resource === "public-home") {
-      return jsonResponse(getPublicHomeSnapshotCached());
+      return jsonResponse(getPublicHomeSnapshotCached(publicPerformanceDebugOptions));
     }
 
     if (method === "GET" && resource === "public-content-list") {
-      return jsonResponse(getPublicContentListSnapshotCached(query));
+      return jsonResponse(getPublicContentListSnapshotCached(query, publicPerformanceDebugOptions));
     }
 
     if (method === "GET" && resource === "public-program-list") {
-      return jsonResponse(getPublicProgramListSnapshotCached());
+      return jsonResponse(getPublicProgramListSnapshotCached(publicPerformanceDebugOptions));
     }
 
     if (method === "GET" && resource === "public-search-index") {
-      return jsonResponse(getPublicSearchIndexSnapshotCached());
+      return jsonResponse(getPublicSearchIndexSnapshotCached(publicPerformanceDebugOptions));
     }
 
     if (method === "GET" && resource === "health") {
@@ -95,7 +98,7 @@ function routeRequest(event, method) {
     }
 
     if (method === "GET" && resource === "content-detail") {
-      return jsonResponse(getPublicContentDetailCached(query));
+      return jsonResponse(getPublicContentDetailCached(query, publicPerformanceDebugOptions));
     }
 
     if (method === "POST" && resource === "auth-login") {
@@ -231,6 +234,10 @@ function routeRequest(event, method) {
       statusCode
     );
   }
+}
+
+function isPublicPerformanceDebugEnabled(query) {
+  return String((query && query.debugPerformance) || "").trim() === "1";
 }
 
 function shouldReadAuthContext(method, resource) {
