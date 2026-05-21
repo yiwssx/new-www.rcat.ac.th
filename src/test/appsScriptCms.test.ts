@@ -671,6 +671,11 @@ describe("Apps Script CMS helpers", () => {
 
     expect((newsSnapshot.items as Array<Record<string, unknown>>).map((item) => item.id)).toEqual(["news-1"]);
     expect((newsSnapshot.items as Array<Record<string, unknown>>)[0]).not.toHaveProperty("body");
+    expect((newsSnapshot.items as Array<Record<string, unknown>>)[0]).not.toHaveProperty("bodyDocId");
+    expect((newsSnapshot.items as Array<Record<string, unknown>>)[0]).not.toHaveProperty("bodyDocUrl");
+    expect((newsSnapshot.items as Array<Record<string, unknown>>)[0]).not.toHaveProperty("canonicalUrl");
+    expect((newsSnapshot.items as Array<Record<string, unknown>>)[0]).not.toHaveProperty("viewCount");
+    expect((newsSnapshot.items as Array<Record<string, unknown>>)[0]).not.toHaveProperty("lastViewedAt");
     expect((newsSnapshot.media as Array<Record<string, unknown>>).map((asset) => asset.id)).toEqual(["media-news"]);
     expect((blogSnapshot.items as Array<Record<string, unknown>>).map((item) => item.id)).toEqual(["blog-1"]);
     expect((announcementsSnapshot.items as Array<Record<string, unknown>>).map((item) => item.id)).toEqual([

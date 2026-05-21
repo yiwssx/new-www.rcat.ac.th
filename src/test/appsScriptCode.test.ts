@@ -469,7 +469,9 @@ describe("Apps Script route auth handling", () => {
     expect(result.body.latestNews).toEqual([]);
     expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
     expect(context.verifyAuthToken).not.toHaveBeenCalled();
-    expect(context.getPublicHomeSnapshotCached).toHaveBeenCalledTimes(1);
+    expect(context.getPublicHomeSnapshotCached).toHaveBeenCalledWith({
+      debugPerformance: false
+    });
     expect(context.getPublicHomeSnapshot).toHaveBeenCalledTimes(1);
   });
 
@@ -490,9 +492,14 @@ describe("Apps Script route auth handling", () => {
     expect(result.body.kind).toBe("announcements");
     expect(result.body.items).toEqual([]);
     expect(context.verifyAuthToken).not.toHaveBeenCalled();
-    expect(context.getPublicContentListSnapshotCached).toHaveBeenCalledWith({
-      kind: "announcements"
-    });
+    expect(context.getPublicContentListSnapshotCached).toHaveBeenCalledWith(
+      {
+        kind: "announcements"
+      },
+      {
+        debugPerformance: false
+      }
+    );
     expect(context.getPublicContentListSnapshot).toHaveBeenCalledWith({
       kind: "announcements"
     });
@@ -512,7 +519,9 @@ describe("Apps Script route auth handling", () => {
     expect(result.body.items).toEqual([]);
     expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
     expect(context.verifyAuthToken).not.toHaveBeenCalled();
-    expect(context.getPublicProgramListSnapshotCached).toHaveBeenCalledTimes(1);
+    expect(context.getPublicProgramListSnapshotCached).toHaveBeenCalledWith({
+      debugPerformance: false
+    });
     expect(context.getPublicProgramListSnapshot).toHaveBeenCalledTimes(1);
   });
 
@@ -530,7 +539,9 @@ describe("Apps Script route auth handling", () => {
     expect(result.body.items).toEqual([]);
     expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
     expect(context.verifyAuthToken).not.toHaveBeenCalled();
-    expect(context.getPublicSearchIndexSnapshotCached).toHaveBeenCalledTimes(1);
+    expect(context.getPublicSearchIndexSnapshotCached).toHaveBeenCalledWith({
+      debugPerformance: false
+    });
     expect(context.getPublicSearchIndexSnapshot).toHaveBeenCalledTimes(1);
   });
 
@@ -551,8 +562,31 @@ describe("Apps Script route auth handling", () => {
     expect(result.body.slug).toBe("announcement-1");
     expect(result.body.title).toBe("Public content");
     expect(context.verifyAuthToken).not.toHaveBeenCalled();
-    expect(context.getPublicContentDetailCached).toHaveBeenCalledWith({
-      slug: "announcement-1"
+    expect(context.getPublicContentDetailCached).toHaveBeenCalledWith(
+      {
+        slug: "announcement-1"
+      },
+      {
+        debugPerformance: false
+      }
+    );
+  });
+
+  it("passes debugPerformance=1 only to public cached GET wrappers", () => {
+    const context = loadCodeScript();
+    const result = context.routeRequest(
+      {
+        resource: "public-home",
+        query: {
+          debugPerformance: "1"
+        }
+      },
+      "GET"
+    );
+
+    expect(result.statusCode).toBe(200);
+    expect(context.getPublicHomeSnapshotCached).toHaveBeenCalledWith({
+      debugPerformance: true
     });
   });
 
