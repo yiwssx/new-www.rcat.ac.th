@@ -80,7 +80,8 @@ const SHEETS = {
   events: "Events",
   menu: "Menu",
   users: "Users",
-  settings: "Settings"
+  settings: "Settings",
+  visitorStats: "VisitorStats"
 };
 
 const CONTENT_HEADERS = [
@@ -169,6 +170,19 @@ const EVENT_HEADERS = [
 const MENU_HEADERS = ["id", "parentId", "labelTh", "href", "order", "enabled"];
 
 const USER_HEADERS = ["id", "name", "email", "role", "status", "passwordHash", "avatarUrl", "createdAt", "updatedAt"];
+
+const VISITOR_STATS_HEADERS = [
+  "visitorId",
+  "firstSeenAt",
+  "lastSeenAt",
+  "lastPath",
+  "lastPathAt",
+  "totalViews",
+  "dateKeys",
+  "monthKeys",
+  "yearKeys",
+  "updatedAt"
+];
 
 function ensureDefaultScriptProperties() {
   const scriptProperties = PropertiesService.getScriptProperties();

@@ -7,7 +7,7 @@ The public homepage is now substantially safer than the previous audit. The main
 - `homepageSettings` controls IntroGate, UrgentMarqueeSection, and HomeIntroVideoSection with disabled defaults.
 - Carousel is a first-class module backed by `carouselSlides`, with admin/editor management and media picker support.
 - E-Service links are first-class `externalServices` records and the public section hides when no enabled links exist.
-- VisitorStats is CMS-backed/manual, hidden unless enabled, and no longer shows a public Mock chip.
+- VisitorStats is automatically counted from privacy-friendly public site views, hidden unless enabled, and no longer shows a public Mock chip.
 - AchievementHighlights renders from published CMS `ContentItem` data and hides when no matching content exists.
 - Footer directory links are stored in `siteSettings.footerDirectoryGroups` and public rendering filters disabled, empty, and `#` links.
 - Floating Messenger is controlled by `siteSettings.messengerUrl`, `messengerLabel`, and `messengerEnabled`.

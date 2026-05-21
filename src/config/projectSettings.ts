@@ -26,6 +26,7 @@ interface ProjectSettings {
       contentDetail: string;
       adminContentDetail: string;
       contentView: string;
+      siteView: string;
       deleteContent: string;
       carousel: string;
       deleteCarousel: string;

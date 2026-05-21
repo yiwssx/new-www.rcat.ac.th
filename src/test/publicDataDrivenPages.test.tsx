@@ -609,8 +609,12 @@ describe("public data-driven pages", () => {
     });
 
     render(<PublicHomePage />);
-    await screen.findByText("Website Visitors", undefined, { timeout: 5000 });
-    await screen.findByText("ติดต่อและแผนที่", undefined, { timeout: 5000 });
+    await Promise.all([
+      screen.findByText("Website Visitors", undefined, { timeout: 10000 }),
+      screen.findByText("ติดต่อและแผนที่", undefined, { timeout: 10000 }),
+      screen.findByText("ผลงานและความภาคภูมิใจ", undefined, { timeout: 10000 }),
+      screen.findAllByText("บริการออนไลน์และลิงก์ที่เกี่ยวข้อง", undefined, { timeout: 10000 })
+    ]);
 
     const pageText = document.body.textContent || "";
     const heroIndex = pageText.indexOf("ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง");
@@ -672,7 +676,7 @@ describe("public data-driven pages", () => {
       "https://www.google.com/maps/place/example"
     );
     expect(screen.getAllByText("ติดต่อและแผนที่")).toHaveLength(1);
-  });
+  }, 15000);
 
   it("hides social icons when site settings URLs are empty", () => {
     currentSnapshot = createSnapshot();

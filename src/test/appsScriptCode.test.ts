@@ -24,6 +24,7 @@ interface CodeScriptContext {
   getPublicSearchIndexSnapshot: Mock;
   getUsers: Mock;
   incrementContentView: Mock;
+  incrementSiteView: Mock;
   lockService: {
     getScriptLock: Mock;
   };
@@ -103,6 +104,17 @@ function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
     slug: "announcement-1",
     viewCount: 2,
     lastViewedAt: "2026-05-03T00:00:00.000Z"
+  }));
+  const incrementSiteView = vi.fn(() => ({
+    enabled: true,
+    usersToday: 1,
+    usersYesterday: 0,
+    usersThisMonth: 1,
+    usersThisYear: 1,
+    totalUsers: 1,
+    totalViews: 1,
+    onlineUsers: 1,
+    updatedAt: "2026-05-03T00:00:00.000Z"
   }));
   const upsertContent = vi.fn((content: Record<string, unknown>) => {
     maybeThrowWrite("content");
@@ -306,6 +318,7 @@ function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
     "getPublicContentDetailCached",
     "getContentDetail",
     "incrementContentView",
+    "incrementSiteView",
     "loginUser",
     "upsertContent",
     "deleteContent",
@@ -365,6 +378,7 @@ return {
     getPublicContentDetailCached,
     vi.fn(),
     incrementContentView,
+    incrementSiteView,
     vi.fn(),
     upsertContent,
     deleteContent,
@@ -404,6 +418,7 @@ return {
     getPublicSearchIndexSnapshot,
     getUsers,
     incrementContentView,
+    incrementSiteView,
     lockService,
     publishContent,
     replaceMenu,
@@ -836,7 +851,7 @@ describe("Apps Script route auth handling", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("does not acquire write locks for read-only routes or content views", () => {
+  it("does not acquire write locks for read-only routes, content views, or site views", () => {
     const context = loadCodeScript();
 
     expect(
@@ -881,9 +896,22 @@ describe("Apps Script route auth handling", () => {
         "POST"
       ).statusCode
     ).toBe(200);
+    expect(
+      context.routeRequest(
+        {
+          resource: "site-view",
+          payload: {
+            visitorId: "rcat_1234567890abcdef",
+            path: "/news"
+          }
+        },
+        "POST"
+      ).statusCode
+    ).toBe(200);
 
     expect(context.lockService.getScriptLock).not.toHaveBeenCalled();
     expect(context.incrementContentView).toHaveBeenCalledTimes(1);
+    expect(context.incrementSiteView).toHaveBeenCalledTimes(1);
   });
 
   it("lists users through POST users action=list only for admin tokens", () => {
@@ -1229,6 +1257,37 @@ describe("Apps Script route auth handling", () => {
     expect(context.lockService.getScriptLock).not.toHaveBeenCalled();
   });
 
+  it("records public site views without authentication", () => {
+    const context = loadCodeScript();
+    const result = context.routeRequest(
+      {
+        resource: "site-view",
+        payload: {
+          visitorId: "rcat_1234567890abcdef",
+          path: "/news",
+          timestamp: "2026-05-03T00:00:00.000Z",
+          referrerOrigin: "https://example.edu",
+          pageTitle: "News"
+        }
+      },
+      "POST"
+    );
+
+    expect(context.shouldReadAuthContext("POST", "site-view")).toBe(false);
+    expect(result.statusCode).toBe(200);
+    expect(result.body.totalViews).toBe(1);
+    expect(result.body.onlineUsers).toBe(1);
+    expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.incrementSiteView).toHaveBeenCalledWith({
+      visitorId: "rcat_1234567890abcdef",
+      path: "/news",
+      timestamp: "2026-05-03T00:00:00.000Z",
+      referrerOrigin: "https://example.edu",
+      pageTitle: "News"
+    });
+    expect(context.lockService.getScriptLock).not.toHaveBeenCalled();
+  });
+
   it("never reads authToken from query parameters", () => {
     const context = loadCodeScript();
 
@@ -1254,6 +1313,7 @@ describe("Apps Script route auth handling", () => {
       "users-delete",
       "snapshot-admin",
       "content-view",
+      "site-view",
       "any-future-admin-route"
     ];
 

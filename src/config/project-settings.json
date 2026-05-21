@@ -23,6 +23,7 @@
       "contentDetail": "content-detail",
       "adminContentDetail": "content-detail-admin",
       "contentView": "content-view",
+      "siteView": "site-view",
       "deleteContent": "content-delete",
       "carousel": "carousel",
       "deleteCarousel": "carousel-delete",
