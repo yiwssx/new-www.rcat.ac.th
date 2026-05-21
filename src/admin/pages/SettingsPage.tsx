@@ -567,7 +567,9 @@ export default function SettingsPage() {
 
   async function handleSaveVisitorStats() {
     try {
-      const nextStats = normalizeVisitorStats(visitorStats);
+      const nextStats = normalizeVisitorStats({
+        enabled: visitorStats.enabled
+      });
       const saved = await saveVisitorStatsMutation.mutateAsync(nextStats);
       setVisitorStats(normalizeVisitorStats(saved));
       clearPublicCmsCache();
@@ -1146,7 +1148,7 @@ export default function SettingsPage() {
                 ควบคุมตัวเลขสถิติผู้เข้าชมที่แสดงในหน้าเว็บไซต์สาธารณะ
               </Typography>
               <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
-                ค่าชุดนี้เป็นการกรอกด้วยผู้ดูแลระบบ ยังไม่ใช่ระบบวัดผลแบบ real-time
+                ตัวเลขสถิติถูกนับอัตโนมัติจากหน้าเว็บสาธารณะ ผู้ดูแลสามารถเปิดหรือปิดการแสดงผลได้เท่านั้น
               </Typography>
 
               {adminSnapshotQuery.isError && (
@@ -1173,10 +1175,8 @@ export default function SettingsPage() {
                       label={field.label}
                       type="number"
                       value={visitorStats[field.key]}
-                      onChange={(event) =>
-                        handleVisitorStatsChange(field.key, toNonNegativeInteger(event.target.value))
-                      }
                       inputProps={{ min: 0, step: 1 }}
+                      InputProps={{ readOnly: true }}
                       size="small"
                       fullWidth
                     />
@@ -1189,7 +1189,7 @@ export default function SettingsPage() {
                     disabled={saveVisitorStatsMutation.isPending}
                     onClick={() => void handleSaveVisitorStats()}
                   >
-                    {saveVisitorStatsMutation.isPending ? "กำลังบันทึก" : "บันทึกสถิติผู้เข้าชม"}
+                    {saveVisitorStatsMutation.isPending ? "กำลังบันทึก" : "บันทึกการแสดงผลสถิติผู้เข้าชม"}
                   </Button>
                 </Grid>
               </Grid>

@@ -2,6 +2,7 @@ import { Suspense, lazy, type ReactElement } from "react";
 import { Box, CircularProgress } from "@mui/material";
 import { Navigate, Outlet, useParams, useRouterState } from "@tanstack/react-router";
 import { PublicAnalytics } from "./shared/components/PublicAnalytics";
+import { PublicSiteViewTracker } from "./shared/components/PublicSiteViewTracker";
 import { VercelInsights } from "./shared/components/VercelInsights";
 import { useAuth } from "./context/authSessionContext";
 
@@ -49,6 +50,7 @@ export function RootRouteLayout() {
       <Outlet />
       <AdminActionProgressBoundary />
       <PublicAnalytics />
+      <PublicSiteViewTracker />
       <VercelInsights />
     </Suspense>
   );

@@ -22,7 +22,7 @@ const ADMIN_ONLY_RESOURCES = [
   "users-delete",
   "users-reset"
 ];
-const PUBLIC_POST_RESOURCES = ["content-view"];
+const PUBLIC_POST_RESOURCES = ["content-view", "site-view"];
 
 const AUTH_SESSION_HOURS_FALLBACK = 8;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 10;
@@ -125,6 +125,10 @@ function routeRequest(event, method) {
 
     if (method === "POST" && resource === "content-view") {
       return jsonResponse(incrementContentView(payload));
+    }
+
+    if (method === "POST" && resource === "site-view") {
+      return jsonResponse(incrementSiteView(payload));
     }
 
     if (method === "POST" && resource === "content") {

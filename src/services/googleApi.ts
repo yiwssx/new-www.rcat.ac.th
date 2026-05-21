@@ -42,7 +42,7 @@ const cacheFriendlyPublicGetResources = new Set<GoogleResource>([
   "displaySettings",
   "contentDetail"
 ]);
-const unauthenticatedPostResources = new Set<GoogleResource>(["authLogin", "contentView"]);
+const unauthenticatedPostResources = new Set<GoogleResource>(["authLogin", "contentView", "siteView"]);
 
 let activeGoogleApiRequestCount = 0;
 const googleApiActivitySubscribers = new Set<GoogleApiActivitySubscriber>();
@@ -342,6 +342,51 @@ export interface ContentViewResponse {
 
 export async function recordContentView(input: { id?: string; slug?: string }): Promise<ContentViewResponse> {
   return postJson<ContentViewResponse>("contentView", input);
+}
+
+export interface SiteViewInput {
+  visitorId: string;
+  path: string;
+  timestamp: string;
+  referrerOrigin?: string;
+  pageTitle?: string;
+}
+
+export function recordSiteView(input: SiteViewInput): boolean {
+  try {
+    const url = new URL(assertAppScriptUrl());
+    const body = JSON.stringify(input);
+
+    url.searchParams.set("resource", resources.siteView);
+
+    if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function" && typeof Blob !== "undefined") {
+      const payload = new Blob([body], {
+        type: "text/plain;charset=utf-8"
+      });
+
+      if (navigator.sendBeacon(url.toString(), payload)) {
+        return true;
+      }
+    }
+
+    if (typeof fetch !== "function") {
+      return false;
+    }
+
+    void fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body,
+      keepalive: true,
+      cache: "no-store"
+    }).catch(() => undefined);
+
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function getAdminContentDetail(input: { id?: string; slug?: string }): Promise<ContentItem> {

@@ -16,6 +16,7 @@
   ensureSheet(spreadsheet, SHEETS.events, EVENT_HEADERS);
   ensureSheet(spreadsheet, SHEETS.menu, MENU_HEADERS);
   ensureSheet(spreadsheet, SHEETS.users, USER_HEADERS);
+  ensureSheet(spreadsheet, SHEETS.visitorStats, VISITOR_STATS_HEADERS);
   const folders = ensureFolders();
   ensureSettingsSheet(spreadsheet);
   ensureDefaultUsersSheet(spreadsheet);
