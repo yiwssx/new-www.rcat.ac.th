@@ -9,6 +9,7 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
   }
 
   const marqueeText = settings.text.trim();
+  const tickerItems = [marqueeText, marqueeText, marqueeText];
 
   return (
     <Box component="section" aria-label="ประกาศด่วน" sx={{ py: { xs: 1, md: 1.2 }, bgcolor: "background.default" }}>
@@ -26,11 +27,17 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
             px: { xs: 1.2, sm: 1.5, md: 2 },
             py: { xs: 0.85, md: 0.95 },
             "@keyframes marqueeScroll": {
-              "0%": { transform: "translateX(100%)" },
-              "100%": { transform: "translateX(-100%)" }
+              "0%": { transform: "translateX(0)" },
+              "100%": { transform: "translateX(-50%)" }
             },
-            "&:hover .marqueeText": {
+            "&:hover .marqueeTrack": {
               animationPlayState: "paused"
+            },
+            "@media (prefers-reduced-motion: reduce)": {
+              "& .marqueeTrack": {
+                animation: "none",
+                transform: "translateX(0)"
+              }
             }
           })}
         >
@@ -49,20 +56,45 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
             }}
           />
           <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-            <Typography
-              className="marqueeText"
-              component="p"
+            <Box
+              className="marqueeTrack"
               sx={{
-                display: "inline-block",
+                display: "flex",
+                width: "max-content",
                 whiteSpace: "nowrap",
-                color: "primary.dark",
-                fontWeight: 900,
-                fontSize: { xs: "0.88rem", md: "0.98rem" },
                 animation: `marqueeScroll ${settings.speedSeconds}s linear infinite`
               }}
             >
-              {marqueeText} &nbsp; • &nbsp; {marqueeText} &nbsp; • &nbsp; {marqueeText}
-            </Typography>
+              {[false, true].map((isDuplicate) => (
+                <Box
+                  key={isDuplicate ? "duplicate" : "primary"}
+                  data-testid="urgent-marquee-group"
+                  aria-hidden={isDuplicate ? "true" : undefined}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    flexShrink: 0,
+                    pr: { xs: 4, md: 6 }
+                  }}
+                >
+                  {tickerItems.map((item, index) => (
+                    <Typography
+                      key={`${isDuplicate ? "duplicate" : "primary"}-${index}`}
+                      component="span"
+                      aria-hidden={index > 0 ? "true" : undefined}
+                      sx={{
+                        color: "primary.dark",
+                        fontWeight: 900,
+                        fontSize: { xs: "0.88rem", md: "0.98rem" }
+                      }}
+                    >
+                      {index > 0 ? " \u00a0 • \u00a0 " : ""}
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              ))}
+            </Box>
           </Box>
         </Stack>
       </Container>

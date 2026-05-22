@@ -476,7 +476,7 @@ export default function SettingsPage() {
   }
 
   function handleHomepageMarqueeChange(key: keyof HomepageSettings["marquee"], value: string | boolean | number) {
-    const nextValue = key === "speedSeconds" ? Math.min(90, Math.max(12, Number(value) || 32)) : value;
+    const nextValue = key === "speedSeconds" ? Math.min(180, Math.max(24, Number(value) || 60)) : value;
 
     setHomepageSettings((current) => ({
       ...current,
@@ -1064,8 +1064,8 @@ export default function SettingsPage() {
                         type="number"
                         value={homepageSettings.marquee.speedSeconds}
                         onChange={(event) => handleHomepageMarqueeChange("speedSeconds", event.target.value)}
-                        helperText="ตัวเลขมาก = วิ่งช้าลง แนะนำ 28–40 วินาที"
-                        inputProps={{ min: 12, max: 90 }}
+                        helperText="ตัวเลขมาก = วิ่งช้าลง แนะนำ 60–90 วินาทีสำหรับสไตล์หน่วยงานที่นิ่งและอ่านง่าย"
+                        inputProps={{ min: 24, max: 180 }}
                         size="small"
                         fullWidth
                       />
