@@ -6,7 +6,7 @@ const SITE_VIEW_THROTTLE_STORAGE_KEY = "rcat.site.view.throttle.v1";
 const SITE_VIEW_THROTTLE_MS = 30 * 60 * 1000;
 const SITE_VIEW_MAX_PATH_LENGTH = 240;
 const SITE_VIEW_MAX_PAGE_TITLE_LENGTH = 120;
-const SITE_VISITOR_ID_PATTERN = /^[A-Za-z0-9_-]{12,80}$/;
+const SITE_VISITOR_ID_PATTERN = /^rcat_[A-Za-z0-9_-]{12,64}$/;
 
 type SiteViewRecorder = (input: SiteViewInput) => boolean;
 

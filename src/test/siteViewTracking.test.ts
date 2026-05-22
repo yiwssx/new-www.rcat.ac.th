@@ -74,6 +74,21 @@ describe("trackPublicSiteView", () => {
     expect(window.localStorage.getItem("rcat.site.visitor.id")).toMatch(/^rcat_[A-Za-z0-9_-]{16,}$/);
   });
 
+  it("replaces stored visitor ids that do not use the rcat prefix", () => {
+    window.localStorage.setItem("rcat.site.visitor.id", "visitor_1234567890123456");
+    const record = vi.fn((input: SiteViewInput) => Boolean(input));
+
+    trackPublicSiteView("/news", { record });
+
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        visitorId: expect.stringMatching(/^rcat_[A-Za-z0-9_-]{16,}$/)
+      })
+    );
+    expect(record.mock.calls[0][0].visitorId).not.toBe("visitor_1234567890123456");
+    expect(window.localStorage.getItem("rcat.site.visitor.id")).toMatch(/^rcat_[A-Za-z0-9_-]{16,}$/);
+  });
+
   it("does not track login or admin routes", () => {
     const record = vi.fn((input: SiteViewInput) => Boolean(input));
 
