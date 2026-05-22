@@ -15,6 +15,11 @@ import {
   getPublicContentListCacheKey,
   setPublicContentListCache
 } from "../services/publicContentListCache";
+import {
+  getPublicDocumentListCache,
+  PUBLIC_DOCUMENT_LIST_CACHE_KEY,
+  setPublicDocumentListCache
+} from "../services/publicDocumentListCache";
 import { getPublicHomeCache, PUBLIC_HOME_CACHE_KEY, setPublicHomeCache } from "../services/publicHomeCache";
 import {
   getPublicProgramListCache,
@@ -30,6 +35,7 @@ import {
   CmsSnapshot,
   ContentItem,
   PublicContentListSnapshot,
+  PublicDocumentListSnapshot,
   PublicHomeSnapshot,
   PublicProgramListSnapshot,
   PublicSearchIndexSnapshot
@@ -342,6 +348,36 @@ describe("publicCmsCache", () => {
     clearPublicCmsCache();
 
     expect(window.localStorage.getItem(PUBLIC_PROGRAM_LIST_CACHE_KEY)).toBeNull();
+  });
+
+  it("keeps public document list cache separate and clears it with public CMS cache", () => {
+    const documentSnapshot: PublicDocumentListSnapshot = {
+      items: [
+        {
+          id: "document-1",
+          title: "Cached public document",
+          description: "Document description",
+          category: "Policy",
+          fileUrl: "https://example.edu/document.pdf",
+          fileName: "document.pdf",
+          mediaId: "media-1",
+          publishedAt: "2026-05-04T00:00:00.000Z",
+          order: 1,
+          pinned: true,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        }
+      ],
+      generatedAt: "2026-05-04T00:00:00.000Z"
+    };
+
+    setPublicDocumentListCache(documentSnapshot);
+
+    expect(PUBLIC_DOCUMENT_LIST_CACHE_KEY).not.toBe(PUBLIC_SNAPSHOT_CACHE_KEY);
+    expect(getPublicDocumentListCache()?.data).toEqual(documentSnapshot);
+
+    clearPublicCmsCache();
+
+    expect(window.localStorage.getItem(PUBLIC_DOCUMENT_LIST_CACHE_KEY)).toBeNull();
   });
 
   it("keeps public search index cache separate and clears it with public CMS cache", () => {

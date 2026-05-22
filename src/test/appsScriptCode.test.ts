@@ -10,12 +10,15 @@ interface RouteResult {
 
 interface CodeScriptContext {
   deleteContent: Mock;
+  deleteDocument: Mock;
   deleteEvent: Mock;
   deleteMedia: Mock;
   getPublicContentDetailCached: Mock;
   getPublicContentListSnapshotCached: Mock;
+  getPublicDocumentListCached: Mock;
   extractAuthToken: (payload: Record<string, unknown>, query?: Record<string, unknown>) => string;
   getPublicContentListSnapshot: Mock;
+  getPublicDocumentListSnapshot: Mock;
   getPublicHomeSnapshotCached: Mock;
   getPublicHomeSnapshot: Mock;
   getPublicProgramListSnapshotCached: Mock;
@@ -38,6 +41,7 @@ interface CodeScriptContext {
   };
   shouldReadAuthContext: (method: string, resource: string) => boolean;
   upsertContent: Mock;
+  upsertDocument: Mock;
   upsertCarouselSlide: Mock;
   deleteCarouselSlide: Mock;
   upsertExternalService: Mock;
@@ -56,6 +60,8 @@ interface CodeScriptContext {
 type ThrowingWriteResource =
   | "content"
   | "content-delete"
+  | "document"
+  | "document-delete"
   | "carousel"
   | "carousel-delete"
   | "external-service"
@@ -130,6 +136,21 @@ function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
       deleted: true
     };
   });
+  const upsertDocument = vi.fn((document: Record<string, unknown>) => {
+    maybeThrowWrite("document");
+    return {
+      id: document.id || "document-1",
+      title: document.title || "",
+      status: document.status || "draft"
+    };
+  });
+  const deleteDocument = vi.fn((id: string) => {
+    maybeThrowWrite("document-delete");
+    return {
+      id,
+      deleted: true
+    };
+  });
   const getPublicHomeSnapshot = vi.fn(() => ({
     latestNews: [],
     media: [],
@@ -139,6 +160,10 @@ function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
     kind: query.kind || "news",
     items: [],
     media: [],
+    generatedAt: "2026-05-12T00:00:00.000Z"
+  }));
+  const getPublicDocumentListSnapshot = vi.fn(() => ({
+    items: [],
     generatedAt: "2026-05-12T00:00:00.000Z"
   }));
   const getPublicProgramListSnapshot = vi.fn(() => ({
@@ -154,6 +179,7 @@ function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
   const getPublicContentListSnapshotCached = vi.fn((query: Record<string, unknown>) =>
     getPublicContentListSnapshot(query)
   );
+  const getPublicDocumentListCached = vi.fn(() => getPublicDocumentListSnapshot());
   const getPublicProgramListSnapshotCached = vi.fn(() => getPublicProgramListSnapshot());
   const getPublicSearchIndexSnapshotCached = vi.fn(() => getPublicSearchIndexSnapshot());
   const getPublicContentDetailCached = vi.fn((query: Record<string, unknown>) => ({
@@ -310,6 +336,7 @@ function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
     "getPublicSnapshotCached",
     "getPublicHomeSnapshotCached",
     "getPublicContentListSnapshotCached",
+    "getPublicDocumentListCached",
     "getPublicProgramListSnapshotCached",
     "getPublicSearchIndexSnapshotCached",
     "getSnapshot",
@@ -322,6 +349,8 @@ function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
     "loginUser",
     "upsertContent",
     "deleteContent",
+    "upsertDocument",
+    "deleteDocument",
     "upsertCarouselSlide",
     "deleteCarouselSlide",
     "upsertExternalService",
@@ -370,6 +399,7 @@ return {
     })),
     getPublicHomeSnapshotCached,
     getPublicContentListSnapshotCached,
+    getPublicDocumentListCached,
     getPublicProgramListSnapshotCached,
     getPublicSearchIndexSnapshotCached,
     vi.fn(),
@@ -382,6 +412,8 @@ return {
     vi.fn(),
     upsertContent,
     deleteContent,
+    upsertDocument,
+    deleteDocument,
     upsertCarouselSlide,
     deleteCarouselSlide,
     upsertExternalService,
@@ -405,11 +437,14 @@ return {
   return {
     ...exports,
     deleteContent,
+    deleteDocument,
     deleteEvent,
     deleteMedia,
     getPublicContentDetailCached,
     getPublicContentListSnapshotCached,
     getPublicContentListSnapshot,
+    getPublicDocumentListCached,
+    getPublicDocumentListSnapshot,
     getPublicHomeSnapshotCached,
     getPublicHomeSnapshot,
     getPublicProgramListSnapshotCached,
@@ -425,6 +460,7 @@ return {
     resetUsers,
     scriptLock,
     upsertContent,
+    upsertDocument,
     upsertCarouselSlide,
     deleteCarouselSlide,
     upsertExternalService,
@@ -444,6 +480,7 @@ return {
 type LockedWriteMockName = keyof Pick<
   CodeScriptContext,
   | "deleteContent"
+  | "deleteDocument"
   | "deleteEvent"
   | "deleteMedia"
   | "deleteUser"
@@ -451,6 +488,7 @@ type LockedWriteMockName = keyof Pick<
   | "replaceMenu"
   | "resetUsers"
   | "upsertContent"
+  | "upsertDocument"
   | "upsertCarouselSlide"
   | "deleteCarouselSlide"
   | "upsertExternalService"
@@ -518,6 +556,26 @@ describe("Apps Script route auth handling", () => {
     expect(context.getPublicContentListSnapshot).toHaveBeenCalledWith({
       kind: "announcements"
     });
+  });
+
+  it("returns public document lists through unauthenticated GET without reading auth context", () => {
+    const context = loadCodeScript();
+    const result = context.routeRequest(
+      {
+        resource: "public-document-list"
+      },
+      "GET"
+    );
+
+    expect(context.shouldReadAuthContext("GET", "public-document-list")).toBe(false);
+    expect(result.statusCode).toBe(200);
+    expect(result.body.items).toEqual([]);
+    expect(result.body.generatedAt).toBe("2026-05-12T00:00:00.000Z");
+    expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.getPublicDocumentListCached).toHaveBeenCalledWith({
+      debugPerformance: false
+    });
+    expect(context.getPublicDocumentListSnapshot).toHaveBeenCalledTimes(1);
   });
 
   it("returns public program lists through unauthenticated GET without reading auth context", () => {
@@ -647,6 +705,23 @@ describe("Apps Script route auth handling", () => {
           authToken: "editor-token"
         },
         mockName: "deleteContent"
+      },
+      {
+        resource: "document",
+        payload: {
+          title: "Public document",
+          fileUrl: "https://example.edu/document.pdf",
+          authToken: "editor-token"
+        },
+        mockName: "upsertDocument"
+      },
+      {
+        resource: "document-delete",
+        payload: {
+          id: "document-1",
+          authToken: "editor-token"
+        },
+        mockName: "deleteDocument"
       },
       {
         resource: "publish",
@@ -1170,6 +1245,53 @@ describe("Apps Script route auth handling", () => {
     consoleErrorSpy.mockRestore();
   });
 
+  it("allows editors to upsert and delete public documents", () => {
+    const context = loadCodeScript();
+    const saveResult = context.routeRequest(
+      {
+        resource: "document",
+        payload: {
+          id: "document-1",
+          title: "Public document",
+          fileUrl: "https://example.edu/document.pdf",
+          status: "published",
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+    const deleteResult = context.routeRequest(
+      {
+        resource: "document-delete",
+        payload: {
+          id: "document-1",
+          authToken: "editor-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(saveResult.statusCode).toBe(200);
+    expect(saveResult.body).toMatchObject({
+      id: "document-1",
+      title: "Public document",
+      status: "published"
+    });
+    expect(deleteResult.statusCode).toBe(200);
+    expect(deleteResult.body).toMatchObject({
+      id: "document-1",
+      deleted: true
+    });
+    expect(context.upsertDocument).toHaveBeenCalledWith({
+      id: "document-1",
+      title: "Public document",
+      fileUrl: "https://example.edu/document.pdf",
+      status: "published",
+      authToken: "editor-token"
+    });
+    expect(context.deleteDocument).toHaveBeenCalledWith("document-1");
+  });
+
   it("allows editors to upsert and delete external services", () => {
     const context = loadCodeScript();
     const saveResult = context.routeRequest(
@@ -1303,6 +1425,7 @@ describe("Apps Script route auth handling", () => {
       "snapshot",
       "public-home",
       "public-content-list",
+      "public-document-list",
       "public-program-list",
       "public-search-index",
       "health",

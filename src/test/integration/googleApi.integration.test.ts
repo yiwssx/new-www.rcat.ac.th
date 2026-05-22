@@ -15,6 +15,9 @@ vi.mock("../../config/projectSettings", () => ({
         contentDetail: "content-detail",
         adminContentDetail: "content-detail-admin",
         contentView: "content-view",
+        publicDocumentList: "public-document-list",
+        document: "document",
+        deleteDocument: "document-delete",
         deleteContent: "content-delete",
         carousel: "carousel",
         deleteCarousel: "carousel-delete",
@@ -40,10 +43,13 @@ vi.mock("../../config/projectSettings", () => ({
 }));
 
 import {
+  deleteDocumentFromApi,
   getAdminCmsSnapshot,
   getCmsSnapshot,
+  getPublicDocumentList,
   recordContentView,
   saveCalendarEvent,
+  saveDocumentToApi,
   saveSiteSettingsToApi
 } from "../../services/googleApi";
 
@@ -195,6 +201,102 @@ describe("googleApi integration", () => {
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({
       slug: "announcement-1"
+    });
+  });
+
+  it("loads public document lists with a cache-friendly GET", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "document-1",
+              title: "Public document",
+              fileUrl: "https://example.edu/document.pdf",
+              publishedAt: "2026-05-03T00:00:00.000Z",
+              order: 1,
+              pinned: true,
+              updatedAt: "2026-05-03T00:00:00.000Z"
+            }
+          ],
+          generatedAt: "2026-05-03T00:00:00.000Z",
+          statusCode: 200
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    storeSessionToken("admin-token");
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const snapshot = await getPublicDocumentList();
+    const [requestUrl, init] = fetchMock.mock.calls[0] as [URL, RequestInit | undefined];
+    const parsedUrl = new URL(String(requestUrl));
+
+    expect(snapshot.items.map((item) => item.id)).toEqual(["document-1"]);
+    expect(parsedUrl.searchParams.get("resource")).toBe("public-document-list");
+    expect(parsedUrl.searchParams.has("_ts")).toBe(false);
+    expect(parsedUrl.searchParams.has("authToken")).toBe(false);
+    expect(init?.cache).toBeUndefined();
+  });
+
+  it("sends document save and delete authToken in POST bodies", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: "document-1",
+            title: "Public document",
+            fileUrl: "https://example.edu/document.pdf",
+            status: "published",
+            order: 1,
+            pinned: false,
+            updatedAt: "2026-05-03T00:00:00.000Z",
+            statusCode: 200
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: "document-1",
+            deleted: true,
+            statusCode: 200
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+    storeSessionToken("editor-token");
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    await saveDocumentToApi({
+      id: "document-1",
+      title: "Public document",
+      description: "Downloadable file",
+      category: "Policy",
+      fileUrl: "https://example.edu/document.pdf",
+      status: "published",
+      order: 1,
+      pinned: false
+    });
+    await deleteDocumentFromApi("document-1");
+
+    const [saveUrl, saveInit] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    const [deleteUrl, deleteInit] = fetchMock.mock.calls[1] as [URL, RequestInit];
+
+    expect(new URL(String(saveUrl)).searchParams.get("resource")).toBe("document");
+    expect(JSON.parse(String(saveInit.body))).toMatchObject({
+      id: "document-1",
+      title: "Public document",
+      authToken: "editor-token"
+    });
+    expect(new URL(String(deleteUrl)).searchParams.get("resource")).toBe("document-delete");
+    expect(JSON.parse(String(deleteInit.body))).toEqual({
+      id: "document-1",
+      authToken: "editor-token"
     });
   });
 

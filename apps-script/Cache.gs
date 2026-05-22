@@ -1,5 +1,6 @@
 const PUBLIC_SNAPSHOT_CACHE_KEY = "cms:public:snapshot:v1";
 const PUBLIC_HOME_CACHE_KEY = "cms:public:home:v1";
+const PUBLIC_DOCUMENT_LIST_CACHE_KEY = "cms:public:document-list:v1";
 const PUBLIC_PROGRAM_LIST_CACHE_KEY = "cms:public:program-list:v1";
 const PUBLIC_SEARCH_INDEX_CACHE_KEY = "cms:public:search-index:v1";
 const PUBLIC_CONTENT_LIST_CACHE_PREFIX = "cms:public:content-list:v1:";
@@ -54,6 +55,15 @@ function getPublicContentListSnapshotCached(query, options) {
   });
 }
 
+function getPublicDocumentListCached(options) {
+  return getPublicCachedJsonResponse({
+    resource: "public-document-list",
+    cacheKey: PUBLIC_DOCUMENT_LIST_CACHE_KEY,
+    debugPerformance: Boolean(options && options.debugPerformance),
+    buildPayload: getPublicDocumentListSnapshot
+  });
+}
+
 function getPublicProgramListSnapshotCached(options) {
   return getPublicCachedJsonResponse({
     resource: "public-program-list",
@@ -102,6 +112,7 @@ function getPublicContentDetailCached(query, options) {
 function invalidatePublicSnapshotCache() {
   removeCachedValue(PUBLIC_SNAPSHOT_CACHE_KEY);
   removeCachedValue(PUBLIC_HOME_CACHE_KEY);
+  removeCachedValue(PUBLIC_DOCUMENT_LIST_CACHE_KEY);
   removeCachedValue(PUBLIC_PROGRAM_LIST_CACHE_KEY);
   removeCachedValue(PUBLIC_SEARCH_INDEX_CACHE_KEY);
   ["news", "announcements", "blog"].forEach((kind) => {

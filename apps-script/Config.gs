@@ -78,6 +78,7 @@ const SHEETS = {
   externalServices: "ExternalServices",
   media: "Media",
   events: "Events",
+  documents: "Documents",
   menu: "Menu",
   users: "Users",
   settings: "Settings",
@@ -164,6 +165,21 @@ const EVENT_HEADERS = [
   "description",
   "category",
   "visibility",
+  "updatedAt"
+];
+
+const DOCUMENT_HEADERS = [
+  "id",
+  "title",
+  "description",
+  "category",
+  "fileUrl",
+  "fileName",
+  "mediaId",
+  "publishedAt",
+  "status",
+  "order",
+  "pinned",
   "updatedAt"
 ];
 

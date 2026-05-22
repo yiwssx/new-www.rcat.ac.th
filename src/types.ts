@@ -54,6 +54,26 @@ export interface ContentItem {
   publishAt: string;
 }
 
+export type DocumentStatus = "draft" | "published";
+
+export interface PublicDocumentItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  fileUrl: string;
+  fileName: string;
+  mediaId: string;
+  publishedAt: string;
+  order: number;
+  pinned: boolean;
+  updatedAt: string;
+}
+
+export interface CmsDocumentItem extends PublicDocumentItem {
+  status: DocumentStatus;
+}
+
 export interface MediaAsset {
   id: string;
   name: string;
@@ -178,6 +198,7 @@ export interface VisitorStatsSettings {
 export interface CmsSnapshot {
   metrics: DashboardMetric[];
   content: ContentItem[];
+  documents?: CmsDocumentItem[];
   media: MediaAsset[];
   events: CalendarEvent[];
   menu?: PublicMenuItem[];
@@ -203,7 +224,7 @@ export interface PublicHomeSnapshot {
   jobOpportunityItems: ContentItem[];
   achievementItems: ContentItem[];
   programItems: ContentItem[];
-  documentItems: ContentItem[];
+  documentItems: Array<ContentItem | PublicDocumentItem>;
   eventItems: CalendarEvent[];
   media: MediaAsset[];
   generatedAt: string;
@@ -230,6 +251,11 @@ export interface PublicProgramListSnapshot {
   homepageSettings: HomepageSettings;
   displaySettings?: DisplaySettings;
   menu: PublicMenuItem[];
+  generatedAt: string;
+}
+
+export interface PublicDocumentListSnapshot {
+  items: PublicDocumentItem[];
   generatedAt: string;
 }
 

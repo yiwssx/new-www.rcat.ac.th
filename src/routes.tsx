@@ -5,6 +5,7 @@ import {
   CarouselPage,
   ContentPage,
   DashboardPage,
+  DocumentsPage,
   ExternalServicesPage,
   IntegrationsPage,
   LoginPage,
@@ -113,6 +114,12 @@ const adminContentRoute = createRoute({
   component: ContentPage
 });
 
+const adminDocumentsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "documents",
+  component: DocumentsPage
+});
+
 const adminCarouselRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "carousel",
@@ -183,6 +190,7 @@ const routeTree = rootRoute.addChildren([
   adminRoute.addChildren([
     adminDashboardRoute,
     adminContentRoute,
+    adminDocumentsRoute,
     adminCarouselRoute,
     adminExternalServicesRoute,
     adminMediaRoute,
