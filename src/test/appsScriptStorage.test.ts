@@ -42,6 +42,7 @@ function loadStorageHelpers() {
     appendRow: vi.fn((values: unknown[]) => sheetRows.push(values))
   });
   const createScriptExports = new Function(
+    "DEFAULT_HOMEPAGE_SETTINGS",
     "DEFAULT_VISITOR_STATS",
     "SETTING_KEYS",
     "SHEETS",
@@ -55,6 +56,7 @@ return {
   getSheetSettingValue,
   getVisitorStats,
   incrementSiteView,
+  normalizeHomepageSettings,
   normalizeVisitorStats,
   updateVisitorStats
 };`
@@ -98,6 +100,32 @@ return {
   const invalidatePublicSnapshotCache = vi.fn();
   const exports = createScriptExports(
     {
+      carousel: {
+        autoplayEnabled: true,
+        autoplayIntervalSeconds: 5
+      },
+      introGate: {
+        enabled: false,
+        imageUrl: "",
+        imageAlt: "ภาพแนะนำ",
+        primaryButtonLabel: "เข้าสู่เว็บไซต์หลัก",
+        secondaryButtonLabel: "",
+        secondaryButtonUrl: "",
+        storageKey: "public-intro-gate"
+      },
+      marquee: {
+        enabled: false,
+        label: "ประชาสัมพันธ์",
+        text: "",
+        speedSeconds: 60
+      },
+      introVideo: {
+        enabled: false,
+        title: "วีดิทัศน์แนะนำสถานศึกษา",
+        youtubeEmbedUrl: ""
+      }
+    },
+    {
       enabled: false,
       usersToday: 0,
       usersYesterday: 0,
@@ -110,6 +138,7 @@ return {
     },
     {
       spreadsheetId: "spreadsheetId",
+      homepageSettings: "homepageSettings",
       visitorStats: "visitorStats"
     },
     {
@@ -138,6 +167,11 @@ return {
     ) => unknown;
     getVisitorStats: () => Record<string, unknown>;
     incrementSiteView: (input?: Record<string, unknown>) => Record<string, unknown>;
+    normalizeHomepageSettings: (input?: Record<string, unknown>) => {
+      marquee: {
+        speedSeconds: number;
+      };
+    };
     normalizeVisitorStats: (input?: Record<string, unknown>) => Record<string, unknown>;
     updateVisitorStats: (input?: Record<string, unknown>) => Record<string, unknown>;
   };
@@ -223,6 +257,33 @@ describe("Apps Script Storage helpers", () => {
       usersThisMonth: 0,
       totalViews: 10
     });
+  });
+
+  it("normalizes Apps Script homepage marquee speed for calmer movement", () => {
+    const { normalizeHomepageSettings } = loadStorageHelpers();
+
+    expect(normalizeHomepageSettings().marquee.speedSeconds).toBe(60);
+    expect(
+      normalizeHomepageSettings({
+        marquee: {
+          speedSeconds: 4
+        }
+      }).marquee.speedSeconds
+    ).toBe(24);
+    expect(
+      normalizeHomepageSettings({
+        marquee: {
+          speedSeconds: 120
+        }
+      }).marquee.speedSeconds
+    ).toBe(120);
+    expect(
+      normalizeHomepageSettings({
+        marquee: {
+          speedSeconds: 240
+        }
+      }).marquee.speedSeconds
+    ).toBe(180);
   });
 
   it("updates visitor stats enablement only and invalidates public cache", () => {

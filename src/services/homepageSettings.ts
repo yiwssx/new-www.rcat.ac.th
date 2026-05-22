@@ -18,7 +18,7 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
     enabled: false,
     label: "ประชาสัมพันธ์",
     text: "",
-    speedSeconds: 32
+    speedSeconds: 60
   },
   introVideo: {
     enabled: false,
@@ -46,7 +46,7 @@ function normalizeSpeedSeconds(value: unknown) {
     return DEFAULT_HOMEPAGE_SETTINGS.marquee.speedSeconds;
   }
 
-  return Math.min(90, Math.max(12, numericValue));
+  return Math.min(180, Math.max(24, numericValue));
 }
 
 function normalizeCarouselIntervalSeconds(value: unknown) {

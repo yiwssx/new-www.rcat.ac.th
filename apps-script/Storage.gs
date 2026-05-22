@@ -265,7 +265,7 @@ function normalizeHomepageSettings(input) {
       label: normalizeHomepageSettingsString(marquee.label, defaults.marquee.label),
       text: normalizeHomepageSettingsString(marquee.text, defaults.marquee.text),
       speedSeconds: Number.isFinite(speedSeconds)
-        ? Math.min(90, Math.max(12, speedSeconds))
+        ? Math.min(180, Math.max(24, speedSeconds))
         : defaults.marquee.speedSeconds
     },
     introVideo: {

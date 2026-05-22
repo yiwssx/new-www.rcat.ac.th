@@ -5,6 +5,7 @@ describe("homepageSettings", () => {
   it("returns disabled defaults when input is undefined", () => {
     expect(normalizeHomepageSettings()).toEqual(DEFAULT_HOMEPAGE_SETTINGS);
     expect(DEFAULT_HOMEPAGE_SETTINGS.introGate.imageAlt).toBe("ภาพแนะนำ");
+    expect(DEFAULT_HOMEPAGE_SETTINGS.marquee.speedSeconds).toBe(60);
   });
 
   it("preserves valid values", () => {
@@ -54,7 +55,7 @@ describe("homepageSettings", () => {
           speedSeconds: 4
         }
       }).marquee.speedSeconds
-    ).toBe(12);
+    ).toBe(24);
 
     expect(
       normalizeHomepageSettings({
@@ -65,7 +66,18 @@ describe("homepageSettings", () => {
           speedSeconds: 120
         }
       }).marquee.speedSeconds
-    ).toBe(90);
+    ).toBe(120);
+
+    expect(
+      normalizeHomepageSettings({
+        marquee: {
+          enabled: true,
+          label: "Notice",
+          text: "Very slow",
+          speedSeconds: 240
+        }
+      }).marquee.speedSeconds
+    ).toBe(180);
   });
 
   it("clamps carousel autoplay interval seconds", () => {

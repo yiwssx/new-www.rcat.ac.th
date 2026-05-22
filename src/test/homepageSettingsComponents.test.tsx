@@ -150,6 +150,32 @@ describe("homepage settings public sections", () => {
     ).toBeNull();
   });
 
+  it("renders UrgentMarqueeSection as a seamless duplicated ticker", () => {
+    render(
+      <UrgentMarqueeSection
+        settings={{
+          ...DEFAULT_HOMEPAGE_SETTINGS.marquee,
+          enabled: true,
+          label: "Notice",
+          text: "Campus announcement",
+          speedSeconds: 60
+        }}
+      />
+    );
+
+    expect(screen.getByRole("region", { name: "ประกาศด่วน" })).toBeInTheDocument();
+    expect(screen.getByText("Notice")).toBeInTheDocument();
+
+    const tickerGroups = screen.getAllByTestId("urgent-marquee-group");
+
+    expect(tickerGroups).toHaveLength(2);
+    expect(tickerGroups[0]).toHaveTextContent("Campus announcement");
+    expect(tickerGroups[1]).toHaveTextContent("Campus announcement");
+    expect(tickerGroups[1]).toHaveAttribute("aria-hidden", "true");
+    expect(document.head.textContent).not.toContain("translateX(100%)");
+    expect(document.head.textContent).toContain("translateX(-50%)");
+  });
+
   it("does not render HomeIntroVideoSection when disabled or youtubeEmbedUrl is empty", () => {
     expect(
       render(<HomeIntroVideoSection settings={DEFAULT_HOMEPAGE_SETTINGS.introVideo} />).container.firstChild

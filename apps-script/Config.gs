@@ -37,7 +37,7 @@ const DEFAULT_HOMEPAGE_SETTINGS = {
     enabled: false,
     label: "ประชาสัมพันธ์",
     text: "",
-    speedSeconds: 32
+    speedSeconds: 60
   },
   introVideo: {
     enabled: false,
