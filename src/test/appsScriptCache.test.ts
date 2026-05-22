@@ -5,12 +5,14 @@ interface CacheScriptContext {
   estimateUtf8Bytes: (value: string) => number;
   getPublicContentDetailCached: (query: Record<string, unknown>, options?: Record<string, unknown>) => unknown;
   getPublicContentListSnapshotCached: (query: Record<string, unknown>, options?: Record<string, unknown>) => unknown;
+  getPublicDocumentListCached: (options?: Record<string, unknown>) => unknown;
   getPublicHomeSnapshotCached: (options?: Record<string, unknown>) => unknown;
   getPublicProgramListSnapshotCached: (options?: Record<string, unknown>) => unknown;
   getPublicSearchIndexSnapshotCached: (options?: Record<string, unknown>) => unknown;
   getPublicSnapshotCached: (options?: Record<string, unknown>) => unknown;
   getContentDetail: Mock;
   getPublicContentListSnapshot: Mock;
+  getPublicDocumentListSnapshot: Mock;
   getPublicHomeSnapshot: Mock;
   getPublicProgramListSnapshot: Mock;
   getPublicSearchIndexSnapshot: Mock;
@@ -62,6 +64,10 @@ function loadCacheScript(snapshot: unknown = { content: [], media: [], events: [
     items: [],
     generatedAt: "2026-05-12T00:00:00.000Z"
   }));
+  const getPublicDocumentListSnapshot = vi.fn(() => ({
+    items: [],
+    generatedAt: "2026-05-12T00:00:00.000Z"
+  }));
   const getPublicProgramListSnapshot = vi.fn(() => ({
     items: [],
     generatedAt: "2026-05-12T00:00:00.000Z"
@@ -81,6 +87,7 @@ function loadCacheScript(snapshot: unknown = { content: [], media: [], events: [
     "getSnapshot",
     "getPublicHomeSnapshot",
     "getPublicContentListSnapshot",
+    "getPublicDocumentListSnapshot",
     "getPublicProgramListSnapshot",
     "getPublicSearchIndexSnapshot",
     "getContentDetail",
@@ -90,6 +97,7 @@ return {
   estimateUtf8Bytes,
   getPublicContentDetailCached,
   getPublicContentListSnapshotCached,
+  getPublicDocumentListCached,
   getPublicHomeSnapshotCached,
   getPublicProgramListSnapshotCached,
   getPublicSearchIndexSnapshotCached,
@@ -103,6 +111,7 @@ return {
     getSnapshot,
     getPublicHomeSnapshot,
     getPublicContentListSnapshot,
+    getPublicDocumentListSnapshot,
     getPublicProgramListSnapshot,
     getPublicSearchIndexSnapshot,
     getContentDetail,
@@ -112,6 +121,7 @@ return {
     | "estimateUtf8Bytes"
     | "getPublicContentDetailCached"
     | "getPublicContentListSnapshotCached"
+    | "getPublicDocumentListCached"
     | "getPublicHomeSnapshotCached"
     | "getPublicProgramListSnapshotCached"
     | "getPublicSearchIndexSnapshotCached"
@@ -123,6 +133,7 @@ return {
     ...exports,
     getContentDetail,
     getPublicContentListSnapshot,
+    getPublicDocumentListSnapshot,
     getPublicHomeSnapshot,
     getPublicProgramListSnapshot,
     getPublicSearchIndexSnapshot,
@@ -203,7 +214,7 @@ describe("Apps Script public cache helpers", () => {
     expect(context.getPublicHomeSnapshot).toHaveBeenCalledTimes(1);
   });
 
-  it("caches public home, program list, and search index snapshots", () => {
+  it("caches public home, document list, program list, and search index snapshots", () => {
     const context = loadCacheScript();
 
     expect(context.getPublicHomeSnapshotCached()).toEqual({
@@ -212,6 +223,14 @@ describe("Apps Script public cache helpers", () => {
     });
     expect(context.getPublicHomeSnapshotCached()).toEqual({
       latestNews: [],
+      generatedAt: "2026-05-12T00:00:00.000Z"
+    });
+    expect(context.getPublicDocumentListCached()).toEqual({
+      items: [],
+      generatedAt: "2026-05-12T00:00:00.000Z"
+    });
+    expect(context.getPublicDocumentListCached()).toEqual({
+      items: [],
       generatedAt: "2026-05-12T00:00:00.000Z"
     });
     expect(context.getPublicProgramListSnapshotCached()).toEqual({
@@ -232,12 +251,21 @@ describe("Apps Script public cache helpers", () => {
     });
 
     expect(context.getPublicHomeSnapshot).toHaveBeenCalledTimes(1);
+    expect(context.getPublicDocumentListSnapshot).toHaveBeenCalledTimes(1);
     expect(context.getPublicProgramListSnapshot).toHaveBeenCalledTimes(1);
     expect(context.getPublicSearchIndexSnapshot).toHaveBeenCalledTimes(1);
     expect(context.scriptCache.put).toHaveBeenCalledWith(
       "cms:public:home:v1",
       JSON.stringify({
         latestNews: [],
+        generatedAt: "2026-05-12T00:00:00.000Z"
+      }),
+      300
+    );
+    expect(context.scriptCache.put).toHaveBeenCalledWith(
+      "cms:public:document-list:v1",
+      JSON.stringify({
+        items: [],
         generatedAt: "2026-05-12T00:00:00.000Z"
       }),
       300
@@ -449,6 +477,7 @@ describe("Apps Script public cache helpers", () => {
     const context = loadCacheScript();
     context.store.set("cms:public:snapshot:v1", JSON.stringify({ content: ["stale"] }));
     context.store.set("cms:public:home:v1", JSON.stringify({ latestNews: ["stale"] }));
+    context.store.set("cms:public:document-list:v1", JSON.stringify({ items: ["stale"] }));
     context.store.set("cms:public:program-list:v1", JSON.stringify({ items: ["stale"] }));
     context.store.set("cms:public:search-index:v1", JSON.stringify({ items: ["stale"] }));
     context.store.set("cms:public:content-list:v1:news", JSON.stringify({ items: ["stale"] }));
@@ -459,6 +488,7 @@ describe("Apps Script public cache helpers", () => {
 
     expect(context.scriptCache.remove).toHaveBeenCalledWith("cms:public:snapshot:v1");
     expect(context.scriptCache.remove).toHaveBeenCalledWith("cms:public:home:v1");
+    expect(context.scriptCache.remove).toHaveBeenCalledWith("cms:public:document-list:v1");
     expect(context.scriptCache.remove).toHaveBeenCalledWith("cms:public:program-list:v1");
     expect(context.scriptCache.remove).toHaveBeenCalledWith("cms:public:search-index:v1");
     expect(context.scriptCache.remove).toHaveBeenCalledWith("cms:public:content-list:v1:news");
@@ -470,6 +500,7 @@ describe("Apps Script public cache helpers", () => {
     );
     expect(context.store.has("cms:public:snapshot:v1")).toBe(false);
     expect(context.store.has("cms:public:home:v1")).toBe(false);
+    expect(context.store.has("cms:public:document-list:v1")).toBe(false);
     expect(context.store.has("cms:public:program-list:v1")).toBe(false);
     expect(context.store.has("cms:public:search-index:v1")).toBe(false);
     expect(context.store.has("cms:public:content-list:v1:news")).toBe(false);

@@ -4,7 +4,7 @@ import PublicContentCard from "../public/components/PublicContentCard";
 import { DocumentListCard } from "../public/components/home/DocumentListCard";
 import { EventListCard } from "../public/components/home/EventListCard";
 import { LatestAnnouncementsCard } from "../public/components/home/LatestAnnouncementsCard";
-import { CalendarEvent, ContentItem, MediaAsset } from "../types";
+import { CalendarEvent, ContentItem, MediaAsset, PublicDocumentItem } from "../types";
 
 function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
   return {
@@ -34,6 +34,23 @@ function createMediaAsset(overrides: Partial<MediaAsset> = {}): MediaAsset {
     driveUrl: "https://drive.google.com/file/d/media-1/view",
     previewUrl: "https://example.edu/card-image.jpg",
     embedUrl: "",
+    updatedAt: "2026-05-10T00:00:00.000Z",
+    ...overrides
+  };
+}
+
+function createPublicDocumentItem(overrides: Partial<PublicDocumentItem> = {}): PublicDocumentItem {
+  return {
+    id: "document-1",
+    title: "Public file document",
+    description: "Document description",
+    category: "Policy",
+    fileUrl: "https://example.edu/public-file.pdf",
+    fileName: "public-file.pdf",
+    mediaId: "media-1",
+    publishedAt: "2026-05-10T00:00:00.000Z",
+    order: 1,
+    pinned: false,
     updatedAt: "2026-05-10T00:00:00.000Z",
     ...overrides
   };
@@ -107,6 +124,16 @@ describe("public card layout regressions", () => {
     expect(documentLink).toHaveAttribute("href", "/content/action-plan-document");
     expect(documentLink).toHaveClass("rcat-card-muted", "rcat-focus-ring", "block");
     expect(within(documentLink).getByText("Planning")).toBeInTheDocument();
+  });
+
+  it("keeps managed document rows visually framed while linking directly to fileUrl", () => {
+    render(<DocumentListCard items={[createPublicDocumentItem()]} />);
+
+    const documentLink = screen.getByRole("link", { name: /Public file document/ });
+
+    expect(documentLink).toHaveAttribute("href", "https://example.edu/public-file.pdf");
+    expect(documentLink).toHaveClass("rcat-card-muted", "rcat-focus-ring", "block");
+    expect(within(documentLink).getByText("Policy")).toBeInTheDocument();
   });
 
   it("keeps event list content inside the calendar card without introducing links", () => {

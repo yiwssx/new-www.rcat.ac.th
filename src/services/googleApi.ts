@@ -10,8 +10,10 @@ import {
   IntegrationStatus,
   MediaAsset,
   MediaType,
+  CmsDocumentItem,
   PublicContentListKind,
   PublicContentListSnapshot,
+  PublicDocumentListSnapshot,
   PublicHomeSnapshot,
   PublicMenuItem,
   PublicProgramListSnapshot,
@@ -36,6 +38,7 @@ const cacheFriendlyPublicGetResources = new Set<GoogleResource>([
   "snapshot",
   "publicHome",
   "publicContentList",
+  "publicDocumentList",
   "publicProgramList",
   "publicSearchIndex",
   "menu",
@@ -130,6 +133,7 @@ export interface MediaAssetInput {
 
 export type CarouselSlideInput = Partial<CarouselSlide>;
 export type ExternalServiceLinkInput = Partial<ExternalServiceLink>;
+export type DocumentItemInput = Partial<CmsDocumentItem>;
 
 function assertAppScriptUrl() {
   const appScriptUrl = getGoogleAppsScriptUrl();
@@ -288,6 +292,10 @@ export async function getPublicContentListSnapshot(kind: PublicContentListKind):
   return snapshot;
 }
 
+export async function getPublicDocumentList(): Promise<PublicDocumentListSnapshot> {
+  return googleFetch<PublicDocumentListSnapshot>("publicDocumentList");
+}
+
 export async function getPublicProgramListSnapshot(): Promise<PublicProgramListSnapshot> {
   const snapshot = await googleFetch<PublicProgramListSnapshot>("publicProgramList");
 
@@ -395,6 +403,14 @@ export async function getAdminContentDetail(input: { id?: string; slug?: string 
 
 export async function deleteContentItem(id: string): Promise<{ id: string; deleted: boolean }> {
   return postJson<{ id: string; deleted: boolean }>("deleteContent", { id });
+}
+
+export async function saveDocumentToApi(document: DocumentItemInput): Promise<CmsDocumentItem> {
+  return postJson<CmsDocumentItem>("document", document);
+}
+
+export async function deleteDocumentFromApi(id: string): Promise<{ id: string; deleted: boolean }> {
+  return postJson<{ id: string; deleted: boolean }>("deleteDocument", { id });
 }
 
 export async function saveCarouselSlideToApi(slide: CarouselSlideInput): Promise<CarouselSlide> {

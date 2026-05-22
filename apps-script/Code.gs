@@ -1,6 +1,8 @@
 ﻿const EDITOR_WRITE_RESOURCES = [
   "content",
   "content-delete",
+  "document",
+  "document-delete",
   "carousel",
   "carousel-delete",
   "external-service",
@@ -67,6 +69,10 @@ function routeRequest(event, method) {
 
     if (method === "GET" && resource === "public-content-list") {
       return jsonResponse(getPublicContentListSnapshotCached(query, publicPerformanceDebugOptions));
+    }
+
+    if (method === "GET" && resource === "public-document-list") {
+      return jsonResponse(getPublicDocumentListCached(publicPerformanceDebugOptions));
     }
 
     if (method === "GET" && resource === "public-program-list") {
@@ -137,6 +143,14 @@ function routeRequest(event, method) {
 
     if (method === "POST" && resource === "content-delete") {
       return jsonResponse(withScriptLock(() => deleteContent(payload.id)));
+    }
+
+    if (method === "POST" && resource === "document") {
+      return jsonResponse(withScriptLock(() => upsertDocument(payload)));
+    }
+
+    if (method === "POST" && resource === "document-delete") {
+      return jsonResponse(withScriptLock(() => deleteDocument(payload.id)));
     }
 
     if (method === "POST" && resource === "carousel") {
@@ -258,6 +272,7 @@ function assertRouteAccess(method, resource, authContext) {
     (resource === "snapshot" ||
       resource === "public-home" ||
       resource === "public-content-list" ||
+      resource === "public-document-list" ||
       resource === "public-program-list" ||
       resource === "public-search-index" ||
       resource === "health" ||

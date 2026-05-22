@@ -23,6 +23,7 @@ import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -42,6 +43,7 @@ interface NavItem {
     | "/admin/carousel"
     | "/admin/external-services"
     | "/admin/content"
+    | "/admin/documents"
     | "/admin/media"
     | "/admin/calendar"
     | "/admin/menus"
@@ -61,6 +63,11 @@ const navItems: NavItem[] = [
     label: "เนื้อหา",
     to: "/admin/content",
     icon: <ArticleOutlinedIcon />
+  },
+  {
+    label: "เอกสารเผยแพร่",
+    to: "/admin/documents",
+    icon: <DescriptionOutlinedIcon />
   },
   {
     label: "สไลด์หน้าแรก",

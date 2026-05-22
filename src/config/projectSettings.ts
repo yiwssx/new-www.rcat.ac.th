@@ -17,6 +17,7 @@ interface ProjectSettings {
       snapshot: string;
       publicHome: string;
       publicContentList: string;
+      publicDocumentList: string;
       publicProgramList: string;
       publicSearchIndex: string;
       adminSnapshot: string;
@@ -28,6 +29,8 @@ interface ProjectSettings {
       contentView: string;
       siteView: string;
       deleteContent: string;
+      document: string;
+      deleteDocument: string;
       carousel: string;
       deleteCarousel: string;
       externalService: string;

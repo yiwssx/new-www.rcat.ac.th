@@ -2,11 +2,25 @@ import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
 import EmptyState from "../../../shared/components/EmptyState";
-import { ContentItem } from "../../../types";
+import { ContentItem, PublicDocumentItem } from "../../../types";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
-export function DocumentListCard({ items }: { items: ContentItem[] }) {
+type DocumentListItem = ContentItem | PublicDocumentItem;
+
+function getDocumentHref(item: DocumentListItem) {
+  if ("fileUrl" in item && item.fileUrl) {
+    return normalizeSafeHref(item.fileUrl);
+  }
+
+  if ("slug" in item && item.slug) {
+    return normalizeSafeHref(`/content/${item.slug}`);
+  }
+
+  return "#";
+}
+
+export function DocumentListCard({ items }: { items: DocumentListItem[] }) {
   return (
     <Card id="documents" className="rcat-card h-full">
       <CardContent sx={{ p: 2.5 }}>
@@ -17,7 +31,7 @@ export function DocumentListCard({ items }: { items: ContentItem[] }) {
               <Box
                 key={item.id}
                 component="a"
-                href={normalizeSafeHref(`/content/${item.slug}`)}
+                href={getDocumentHref(item)}
                 aria-label={`อ่านเอกสาร ${item.title}`}
                 className="rcat-card-muted rcat-focus-ring block p-3"
               >

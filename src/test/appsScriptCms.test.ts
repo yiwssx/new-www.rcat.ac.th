@@ -136,6 +136,21 @@ const TEST_EVENT_HEADERS = [
   "updatedAt"
 ];
 
+const TEST_DOCUMENT_HEADERS = [
+  "id",
+  "title",
+  "description",
+  "category",
+  "fileUrl",
+  "fileName",
+  "mediaId",
+  "publishedAt",
+  "status",
+  "order",
+  "pinned",
+  "updatedAt"
+];
+
 function createHttpError(message: string, statusCode: number) {
   const error = new Error(message) as HttpError;
   error.statusCode = statusCode;
@@ -192,6 +207,7 @@ function loadCmsScript(input: { contentRows?: Array<Record<string, unknown>> } =
     "CAROUSEL_HEADERS",
     "EXTERNAL_SERVICE_HEADERS",
     "EVENT_HEADERS",
+    "DOCUMENT_HEADERS",
     "SHEETS",
     `${cmsSource}
 return {
@@ -237,12 +253,14 @@ return {
     TEST_CAROUSEL_HEADERS,
     TEST_EXTERNAL_SERVICE_HEADERS,
     TEST_EVENT_HEADERS,
+    TEST_DOCUMENT_HEADERS,
     {
       content: "Content",
       carousel: "Carousel",
       externalServices: "ExternalServices",
       media: "Media",
-      events: "Events"
+      events: "Events",
+      documents: "Documents"
     }
   ) as Omit<CmsScriptContext, "readObjects">;
 
