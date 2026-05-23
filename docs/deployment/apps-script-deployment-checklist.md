@@ -2,6 +2,8 @@
 
 Use this checklist whenever a release changes `apps-script/*.gs`, Apps Script manifest/scopes, public API resources, CMS write resources, sheet/storage behavior, cache wrappers, site-view tracking, visitor stats, or public documents backend behavior.
 
+Related stabilization release report: [`docs/releases/stabilization-release-2026-05-23.md`](../releases/stabilization-release-2026-05-23.md).
+
 ## Deployment Overview
 
 - The frontend/Vercel deployment and the Google Apps Script backend deployment are separate release steps.
