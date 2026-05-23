@@ -113,6 +113,8 @@ If `debugPerformance=1` does not add `debugPerformance` to a public response aft
 
 ## Apps Script Deployment Steps
 
+Use the full Apps Script release checklist in [`docs/deployment/apps-script-deployment-checklist.md`](../deployment/apps-script-deployment-checklist.md) before updating production.
+
 1. Push source to Apps Script:
 
    ```sh

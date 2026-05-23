@@ -65,6 +65,7 @@ Admins can enable or disable the public display of the visitor stats card. Count
 ## Deployment Steps
 
 Deploy both the frontend and Apps Script changes.
+Use the full Apps Script release checklist in [`docs/deployment/apps-script-deployment-checklist.md`](../deployment/apps-script-deployment-checklist.md) for versioning, deployment update, production verification, and rollback steps.
 
 ```powershell
 pnpm build
