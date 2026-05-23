@@ -218,7 +218,9 @@ Avoid broad icon imports. Audit public shell icons only after the P0/P1 auth and
 
 Risk:
 
-`package.json` includes FontAwesome packages, but no current source import was found for:
+Resolved on 2026-05-23: a follow-up audit again found zero source usage and removed the unused FontAwesome dependencies from `package.json` and `pnpm-lock.yaml`.
+
+Previously, `package.json` included FontAwesome packages, but no source import was found for:
 
 - `@fortawesome/fontawesome-svg-core`
 - `@fortawesome/free-brands-svg-icons`
@@ -229,7 +231,7 @@ No direct bundle impact was found from source imports during this pass.
 
 Recommendation:
 
-Do not remove yet during this evidence-only task. Mark for dependency hygiene review after confirming no planned brand icon usage remains.
+No further action is needed unless a future feature intentionally introduces FontAwesome again for a specific icon that MUI Icons does not cover.
 
 ### P2: Tailwind and MUI Boundary
 
@@ -268,7 +270,7 @@ Keep SweetAlert lazy and do not replace it unless interaction metrics justify it
 
 ### P2
 
-Audit unused dependencies, including FontAwesome, after production behavior and planned icon usage are confirmed.
+Audit remaining unused dependencies after production behavior and planned usage are confirmed. FontAwesome was handled in the 2026-05-23 MUI/Tailwind/icons cleanup.
 
 ### P2
 
@@ -277,7 +279,7 @@ Document and enforce the Tailwind/MUI boundary in UI work, but do not rewrite ex
 ## What Should Not Be Changed Yet
 
 - Do not remove `bcryptjs` until local/development auth fallback behavior is explicitly replaced or gated.
-- Do not remove FontAwesome dependencies until usage intent is confirmed.
+- Do not reintroduce FontAwesome dependencies unless usage intent is confirmed.
 - Do not remove MUI or rewrite MUI components in Tailwind.
 - Do not remove Tailwind or move all CSS into MUI.
 - Do not remove SweetAlert2; it is already lazy-loaded.
