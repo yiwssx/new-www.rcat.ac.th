@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, type Mock } from "vitest";
+import documentsSource from "../../apps-script/Cms.Documents.gs?raw";
 import cmsSource from "../../apps-script/Cms.gs?raw";
 
 interface HttpError extends Error {
@@ -210,6 +211,7 @@ function loadCmsScript(input: { contentRows?: Array<Record<string, unknown>> } =
     "DOCUMENT_HEADERS",
     "SHEETS",
     `${cmsSource}
+${documentsSource}
 return {
   assertUniqueContentSlug,
   getPublicContentListSnapshot,
