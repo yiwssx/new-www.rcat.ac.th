@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import storageSource from "../../apps-script/Storage.gs?raw";
+import visitorStatsSource from "../../apps-script/Storage.VisitorStats.gs?raw";
 
 function loadStorageHelpers() {
   const visitorStatsHeaders = [
@@ -52,6 +53,7 @@ function loadStorageHelpers() {
     "LockService",
     "invalidatePublicSnapshotCache",
     `${storageSource}
+${visitorStatsSource}
 return {
   getSheetSettingValue,
   getVisitorStats,
