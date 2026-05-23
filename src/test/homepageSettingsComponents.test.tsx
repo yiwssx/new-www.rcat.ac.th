@@ -172,8 +172,37 @@ describe("homepage settings public sections", () => {
     expect(tickerGroups[0]).toHaveTextContent("Campus announcement");
     expect(tickerGroups[1]).toHaveTextContent("Campus announcement");
     expect(tickerGroups[1]).toHaveAttribute("aria-hidden", "true");
-    expect(document.head.textContent).not.toContain("translateX(100%)");
-    expect(document.head.textContent).toContain("translateX(-50%)");
+
+    const marqueeTrack = document.querySelector(".marqueeTrack");
+    const injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
+
+    expect(marqueeTrack).not.toBeNull();
+    expect(injectedStyles).not.toContain("translateX(100%)");
+    expect(injectedStyles).toContain("translate3d(-50%,0,0)");
+    expect(injectedStyles).toContain("animation-duration:60s");
+    expect(injectedStyles).toContain("animation-timing-function:linear");
+    expect(injectedStyles).toContain("animation-iteration-count:infinite");
+    expect(injectedStyles).toContain("animation-delay:0s");
+    expect(injectedStyles).toContain("animation-play-state:paused");
+    expect(injectedStyles).toContain("will-change:transform");
+    expect(injectedStyles).toContain("prefers-reduced-motion:reduce");
+    expect(injectedStyles).toContain("animation:none");
+  });
+
+  it("falls back to a calm marquee speed when speedSeconds is invalid", () => {
+    render(
+      <UrgentMarqueeSection
+        settings={{
+          ...DEFAULT_HOMEPAGE_SETTINGS.marquee,
+          enabled: true,
+          label: "Notice",
+          text: "Campus announcement",
+          speedSeconds: Number.NaN
+        }}
+      />
+    );
+
+    expect((document.head.textContent || "").replace(/\s/g, "")).toContain("animation-duration:60s");
   });
 
   it("does not render HomeIntroVideoSection when disabled or youtubeEmbedUrl is empty", () => {

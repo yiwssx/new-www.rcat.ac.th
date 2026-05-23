@@ -1,7 +1,30 @@
 import { Box, Chip, Container, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { keyframes } from "@emotion/react";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import type { HomepageMarqueeSettings } from "../../../types";
+
+const defaultMarqueeSpeedSeconds = 60;
+
+const marqueeScroll = keyframes`
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+`;
+
+function getMarqueeSpeedSeconds(value: unknown) {
+  const numericValue = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return defaultMarqueeSpeedSeconds;
+  }
+
+  return Math.min(180, Math.max(24, numericValue));
+}
 
 export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeSettings }) {
   if (!settings?.enabled || !settings.text.trim()) {
@@ -9,6 +32,7 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
   }
 
   const marqueeText = settings.text.trim();
+  const speedSeconds = getMarqueeSpeedSeconds(settings.speedSeconds);
   const tickerItems = [marqueeText, marqueeText, marqueeText];
 
   return (
@@ -26,17 +50,14 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
             boxShadow: "0 8px 22px rgba(31, 90, 44, 0.08)",
             px: { xs: 1.2, sm: 1.5, md: 2 },
             py: { xs: 0.85, md: 0.95 },
-            "@keyframes marqueeScroll": {
-              "0%": { transform: "translateX(0)" },
-              "100%": { transform: "translateX(-50%)" }
-            },
             "&:hover .marqueeTrack": {
               animationPlayState: "paused"
             },
             "@media (prefers-reduced-motion: reduce)": {
               "& .marqueeTrack": {
+                // Respect users who request less motion by keeping the urgent notice readable but static.
                 animation: "none",
-                transform: "translateX(0)"
+                transform: "translate3d(0, 0, 0)"
               }
             }
           })}
@@ -62,7 +83,12 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
                 display: "flex",
                 width: "max-content",
                 whiteSpace: "nowrap",
-                animation: `marqueeScroll ${settings.speedSeconds}s linear infinite`
+                animationName: `${marqueeScroll}`,
+                animationDuration: `${speedSeconds}s`,
+                animationTimingFunction: "linear",
+                animationIterationCount: "infinite",
+                animationDelay: "0s",
+                willChange: "transform"
               }}
             >
               {[false, true].map((isDuplicate) => (
