@@ -4,6 +4,8 @@ Date: 2026-05-23
 
 Status: architecture documentation only. This audit does not change production code, runtime behavior, Apps Script behavior, auth, analytics, site-view tracking, public cache behavior, carousel, IntroGate, urgent marquee, or CMS schema.
 
+Related release report: [`docs/releases/stabilization-release-2026-05-23.md`](../releases/stabilization-release-2026-05-23.md).
+
 ## Executive Summary
 
 The project is not failing because it uses the wrong stack. It is becoming risky because one repository now owns the public website, CMS admin, Google Apps Script API, spreadsheet storage model, Drive/Docs integration, analytics, site-view tracking, public caches, and styling boundaries.
