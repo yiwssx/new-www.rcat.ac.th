@@ -26,6 +26,10 @@ function getMarqueeSpeedSeconds(value: unknown) {
   return Math.min(180, Math.max(24, numericValue));
 }
 
+function getReducedMotionMarqueeSpeedSeconds(speedSeconds: number) {
+  return Math.min(240, Math.max(speedSeconds * 2, 120));
+}
+
 export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeSettings }) {
   if (!settings?.enabled || !settings.text.trim()) {
     return null;
@@ -33,6 +37,7 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
 
   const marqueeText = settings.text.trim();
   const speedSeconds = getMarqueeSpeedSeconds(settings.speedSeconds);
+  const reducedMotionSpeedSeconds = getReducedMotionMarqueeSpeedSeconds(speedSeconds);
   const tickerItems = [marqueeText, marqueeText, marqueeText];
 
   return (
@@ -55,9 +60,8 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
             },
             "@media (prefers-reduced-motion: reduce)": {
               "& .marqueeTrack": {
-                // Respect users who request less motion by keeping the urgent notice readable but static.
-                animation: "none",
-                transform: "translate3d(0, 0, 0)"
+                // This is an urgent public notice, so reduced motion slows the ticker instead of stopping it.
+                animationDuration: `${reducedMotionSpeedSeconds}s`
               }
             }
           })}

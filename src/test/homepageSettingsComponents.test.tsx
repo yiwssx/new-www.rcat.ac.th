@@ -186,7 +186,10 @@ describe("homepage settings public sections", () => {
     expect(injectedStyles).toContain("animation-play-state:paused");
     expect(injectedStyles).toContain("will-change:transform");
     expect(injectedStyles).toContain("prefers-reduced-motion:reduce");
-    expect(injectedStyles).toContain("animation:none");
+    expect(injectedStyles).toContain("animation-duration:120s");
+    expect(injectedStyles).not.toContain("animation:none");
+    expect(injectedStyles).not.toContain("animation:none!important");
+    expect(injectedStyles).not.toContain("animation-name:none");
   });
 
   it("falls back to a calm marquee speed when speedSeconds is invalid", () => {
@@ -203,6 +206,28 @@ describe("homepage settings public sections", () => {
     );
 
     expect((document.head.textContent || "").replace(/\s/g, "")).toContain("animation-duration:60s");
+    expect((document.head.textContent || "").replace(/\s/g, "")).toContain("animation-duration:120s");
+  });
+
+  it("caps reduced-motion marquee speed while keeping the ticker animated", () => {
+    render(
+      <UrgentMarqueeSection
+        settings={{
+          ...DEFAULT_HOMEPAGE_SETTINGS.marquee,
+          enabled: true,
+          label: "Notice",
+          text: "Campus announcement",
+          speedSeconds: 180
+        }}
+      />
+    );
+
+    const injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
+
+    expect(injectedStyles).toContain("prefers-reduced-motion:reduce");
+    expect(injectedStyles).toContain("animation-duration:180s");
+    expect(injectedStyles).toContain("animation-duration:240s");
+    expect(injectedStyles).not.toContain("animation:none");
   });
 
   it("does not render HomeIntroVideoSection when disabled or youtubeEmbedUrl is empty", () => {
