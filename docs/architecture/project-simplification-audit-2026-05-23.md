@@ -98,7 +98,7 @@ Preferred direction: require a short feature RFC for new modules that add sheets
 - Close or verify the `VisitorStatsCard` mobile layout fix and Messenger safe spacing.
 - Freeze heavy new feature work temporarily, especially public documents expansion beyond the current homepage/admin support.
 - Keep site-view and public cache behavior stable; do not invalidate snapshots from public view tracking.
-- Document Apps Script deployment steps for every backend-affecting release and confirm the production web app deployment version after deploys.
+- Use `docs/deployment/apps-script-deployment-checklist.md` for every backend-affecting release and confirm the production web app deployment version after deploys.
 
 ### P1 - Modularize Without Rewriting
 
@@ -149,7 +149,7 @@ Preferred direction: require a short feature RFC for new modules that add sheets
 
 1. Verify the urgent marquee animation fix in a normal browser and with reduced-motion enabled.
 2. Verify the `VisitorStatsCard` mobile layout fix with the floating Messenger button enabled.
-3. Create an Apps Script deployment checklist that covers `pnpm gas:push`, version creation, deployment update, production URL confirmation, and stale deployment verification.
+3. Use the Apps Script deployment checklist for every backend-affecting release: `docs/deployment/apps-script-deployment-checklist.md`.
 4. Review this feature inventory with the project owner and mark each feature as core, support, optional, or deferred.
 5. Continue the public documents module only after stabilization, starting with an explicit decision on whether a public `/documents` archive is needed.
 
