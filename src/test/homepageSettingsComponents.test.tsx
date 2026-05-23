@@ -439,6 +439,11 @@ describe("homepage settings public sections", () => {
       />
     );
 
+    expect(screen.getByRole("region", { name: "Website Visitors" })).toBeInTheDocument();
+    expect(screen.getByText("Website Visitors")).toBeInTheDocument();
+    expect(screen.getByText("สถิติผู้เข้าชมเว็บไซต์")).toBeInTheDocument();
+    expect(screen.getByText(/^Updated/)).toBeInTheDocument();
+
     [
       "Users Today",
       "Users Yesterday",

@@ -192,6 +192,7 @@ export default function PublicHomePage() {
   const mediaAssets = data.media ?? [];
   const carouselSlides = data.carouselSlides ?? [];
   const externalServiceItems = data.externalServices ?? [];
+  const hasFloatingMessenger = siteSettings.messengerEnabled && Boolean(siteSettings.messengerUrl);
 
   return (
     <PublicSiteShell
@@ -207,7 +208,7 @@ export default function PublicHomePage() {
       {isFetching && <LinearProgress />}
       <UrgentMarqueeSection settings={homepageSettings.marquee} />
       <PublicHomeCarousel slides={carouselSlides} settings={homepageSettings.carousel} />
-      <Container maxWidth="xl">
+      <Container maxWidth="xl" sx={{ pb: hasFloatingMessenger ? { xs: 9, md: 14 } : undefined }}>
         <HomeHeroSection siteSettings={siteSettings} />
         <HomeIntroVideoSection settings={homepageSettings.introVideo} />
 
