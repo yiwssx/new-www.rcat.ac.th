@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import PublicContentCard from "../public/components/PublicContentCard";
-import { DocumentListCard } from "../public/components/home/DocumentListCard";
+import { DocumentListCard } from "../features/public-documents";
 import { EventListCard } from "../public/components/home/EventListCard";
 import { LatestAnnouncementsCard } from "../public/components/home/LatestAnnouncementsCard";
 import { CalendarEvent, ContentItem, MediaAsset, PublicDocumentItem } from "../types";
