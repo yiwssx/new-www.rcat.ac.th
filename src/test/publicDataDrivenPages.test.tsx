@@ -449,6 +449,81 @@ describe("public data-driven pages", () => {
     }
   });
 
+  it("renders visitor stats in the initial homepage DOM without waiting for the defer observer", () => {
+    const originalIntersectionObserver = window.IntersectionObserver;
+    const observerCallbacks: IntersectionObserverCallback[] = [];
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "720px 0px";
+      readonly thresholds = [0];
+
+      constructor(callback: IntersectionObserverCallback) {
+        observerCallbacks.push(callback);
+      }
+
+      disconnect = vi.fn();
+      observe = vi.fn();
+      takeRecords = vi.fn(() => []);
+      unobserve = vi.fn();
+    }
+
+    Object.defineProperty(window, "IntersectionObserver", {
+      configurable: true,
+      writable: true,
+      value: MockIntersectionObserver
+    });
+    window.__RCAT_ENABLE_HOME_DEFER_TEST__ = true;
+
+    currentHomeSnapshot = createHomeSnapshot({
+      visitorStats: {
+        enabled: true,
+        usersToday: 0,
+        usersYesterday: 0,
+        usersThisMonth: 0,
+        usersThisYear: 0,
+        totalUsers: 0,
+        totalViews: 12,
+        onlineUsers: 0,
+        updatedAt: "2026-05-10T00:00:00.000Z"
+      },
+      programItems: [
+        {
+          id: "program-deferred",
+          title: "Deferred program card",
+          slug: "deferred-program-card",
+          type: "program",
+          status: "published",
+          owner: "Admin",
+          summary: "Program waits for the viewport gate",
+          updatedAt: "2026-05-03T00:00:00.000Z",
+          publishAt: "2026-05-03T00:00:00.000Z"
+        }
+      ]
+    });
+
+    try {
+      render(<PublicHomePage />);
+
+      const visitorStatsRegion = screen.getByRole("region", { name: "Website Visitors" });
+      const onlineLabel = within(visitorStatsRegion).getByText("Who's Online");
+
+      expect(document.body).toHaveTextContent("Who's Online");
+      expect(onlineLabel.parentElement).toHaveTextContent("0");
+      expect(within(visitorStatsRegion).getByText("Total views")).toBeInTheDocument();
+      expect(within(visitorStatsRegion).getByText("12")).toBeInTheDocument();
+      expect(screen.queryByText("Deferred program card")).not.toBeInTheDocument();
+      expect(observerCallbacks.length).toBeGreaterThan(0);
+    } finally {
+      delete window.__RCAT_ENABLE_HOME_DEFER_TEST__;
+      Object.defineProperty(window, "IntersectionObserver", {
+        configurable: true,
+        writable: true,
+        value: originalIntersectionObserver
+      });
+    }
+  });
+
   it("shows an honest empty state when no program content exists", async () => {
     currentHomeSnapshot = createHomeSnapshot();
 
