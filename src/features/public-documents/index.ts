@@ -1,3 +1,4 @@
+export { getPublicDocumentList } from "./api";
 export { DocumentListCard } from "./DocumentListCard";
 export {
   clearPublicDocumentListCache,
