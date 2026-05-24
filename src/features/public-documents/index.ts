@@ -1,5 +1,6 @@
 export { getPublicDocumentList } from "./api";
 export { DocumentListCard } from "./DocumentListCard";
+export type { PublicDocumentItem, PublicDocumentListSnapshot } from "./types";
 export {
   clearPublicDocumentListCache,
   getPublicDocumentListCache,
