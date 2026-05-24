@@ -32,7 +32,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "quality": "pnpm format:check && pnpm lint && pnpm test:unit && pnpm test:integration && pnpm build",
-    "lint-staged": "lint-staged"
+    "lint-staged": "lint-staged",
+    "commitlint": "commitlint --edit"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -53,6 +54,8 @@
     "sweetalert2": "^11.26.24"
   },
   "devDependencies": {
+    "@commitlint/cli": "15.0.0",
+    "@commitlint/config-conventional": "15.0.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.4",
