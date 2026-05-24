@@ -19,7 +19,7 @@ import {
   getPublicDocumentListCache,
   PUBLIC_DOCUMENT_LIST_CACHE_KEY,
   setPublicDocumentListCache
-} from "../services/publicDocumentListCache";
+} from "../features/public-documents";
 import { getPublicHomeCache, PUBLIC_HOME_CACHE_KEY, setPublicHomeCache } from "../services/publicHomeCache";
 import {
   getPublicProgramListCache,

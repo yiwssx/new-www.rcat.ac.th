@@ -27,7 +27,7 @@ const LazyContactMapCard = lazy(() =>
   }))
 );
 const LazyDocumentListCard = lazy(() =>
-  import("../components/home/DocumentListCard").then((module) => ({
+  import("../../features/public-documents/DocumentListCard").then((module) => ({
     default: module.DocumentListCard
   }))
 );
