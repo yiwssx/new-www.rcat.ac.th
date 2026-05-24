@@ -13,6 +13,7 @@ import { HomeHeroSection } from "../components/home/HomeHeroSection";
 import { HomeIntroVideoSection } from "../components/home/HomeIntroVideoSection";
 import { LatestNewsSection } from "../components/home/LatestNewsSection";
 import { UrgentMarqueeSection } from "../components/home/UrgentMarqueeSection";
+import { VisitorStatsCard } from "../components/home/VisitorStatsCard";
 import { usePublicHomeSnapshot } from "../hooks/usePublicHomeSnapshot";
 
 const LazyAchievementHighlightsSection = lazy(() =>
@@ -55,12 +56,6 @@ const LazyProgramsSection = lazy(() =>
     default: module.ProgramsSection
   }))
 );
-const LazyVisitorStatsCard = lazy(() =>
-  import("../components/home/VisitorStatsCard").then((module) => ({
-    default: module.VisitorStatsCard
-  }))
-);
-
 declare global {
   interface Window {
     __RCAT_ENABLE_HOME_DEFER_TEST__?: boolean;
@@ -253,9 +248,7 @@ export default function PublicHomePage() {
                 <DeferredHomeSection minHeight={320}>
                   <LazyContactMapCard siteSettings={siteSettings} />
                 </DeferredHomeSection>
-                <DeferredHomeSection minHeight={220}>
-                  <LazyVisitorStatsCard stats={visitorStats} />
-                </DeferredHomeSection>
+                <VisitorStatsCard stats={visitorStats} />
               </Stack>
             </Grid>
           </Grid>
