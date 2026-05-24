@@ -1,3 +1,7 @@
+import type { PublicDocumentItem } from "./features/public-documents/types";
+
+export type { PublicDocumentItem, PublicDocumentListSnapshot } from "./features/public-documents/types";
+
 export type ContentStatus = "draft" | "review" | "scheduled" | "published";
 
 export type ContentType = "page" | "news" | "program" | "announcement" | "blog";
@@ -55,20 +59,6 @@ export interface ContentItem {
 }
 
 export type DocumentStatus = "draft" | "published";
-
-export interface PublicDocumentItem {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  fileUrl: string;
-  fileName: string;
-  mediaId: string;
-  publishedAt: string;
-  order: number;
-  pinned: boolean;
-  updatedAt: string;
-}
 
 export interface CmsDocumentItem extends PublicDocumentItem {
   status: DocumentStatus;
@@ -251,11 +241,6 @@ export interface PublicProgramListSnapshot {
   homepageSettings: HomepageSettings;
   displaySettings?: DisplaySettings;
   menu: PublicMenuItem[];
-  generatedAt: string;
-}
-
-export interface PublicDocumentListSnapshot {
-  items: PublicDocumentItem[];
   generatedAt: string;
 }
 
