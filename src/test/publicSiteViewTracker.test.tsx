@@ -9,9 +9,9 @@ import {
   createRouter
 } from "@tanstack/react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PublicSiteViewTracker } from "../shared/components/PublicSiteViewTracker";
+import { PublicSiteViewTracker } from "../features/site-view";
 import { recordSiteView, type SiteViewInput } from "../services/googleApi";
-import { resetSiteViewTrackingForTests } from "../services/siteViewTracking";
+import { resetSiteViewTrackingForTests } from "../features/site-view";
 
 vi.mock("../services/googleApi", () => ({
   recordSiteView: vi.fn(() => true)
