@@ -1,4 +1,4 @@
-import { recordSiteView, SiteViewInput } from "./googleApi";
+import { recordSiteView, SiteViewInput } from "../../services/googleApi";
 
 export const SITE_VISITOR_ID_STORAGE_KEY = "rcat.site.visitor.id";
 

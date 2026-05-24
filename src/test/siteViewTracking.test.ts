@@ -18,7 +18,7 @@ vi.mock("../config/projectSettings", () => ({
 }));
 
 import { recordSiteView, type SiteViewInput } from "../services/googleApi";
-import { isPublicSiteViewPath, resetSiteViewTrackingForTests, trackPublicSiteView } from "../services/siteViewTracking";
+import { isPublicSiteViewPath, resetSiteViewTrackingForTests, trackPublicSiteView } from "../features/site-view";
 
 function setSendBeacon(sendBeacon: ((url: string | URL, data?: BodyInit | null) => boolean) | undefined) {
   Object.defineProperty(window.navigator, "sendBeacon", {
