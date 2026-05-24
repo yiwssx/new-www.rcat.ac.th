@@ -1,6 +1,8 @@
 import type { PublicDocumentItem } from "./features/public-documents/types";
+import type { VisitorStatsSettings } from "./features/visitor-stats/types";
 
 export type { PublicDocumentItem, PublicDocumentListSnapshot } from "./features/public-documents/types";
+export type { VisitorStatsSettings } from "./features/visitor-stats/types";
 
 export type ContentStatus = "draft" | "review" | "scheduled" | "published";
 
@@ -171,18 +173,6 @@ export interface RolePermission {
   scope: string;
   canPublish: boolean;
   canManageUsers: boolean;
-}
-
-export interface VisitorStatsSettings {
-  enabled: boolean;
-  usersToday: number;
-  usersYesterday: number;
-  usersThisMonth: number;
-  usersThisYear: number;
-  totalUsers: number;
-  totalViews: number;
-  onlineUsers: number;
-  updatedAt: string;
 }
 
 export interface CmsSnapshot {
