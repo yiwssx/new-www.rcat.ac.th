@@ -1,4 +1,4 @@
-import { VisitorStatsSettings } from "../features/visitor-stats";
+import type { VisitorStatsSettings } from "../features/visitor-stats";
 
 export const DEFAULT_VISITOR_STATS: VisitorStatsSettings = {
   enabled: false,

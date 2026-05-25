@@ -1,5 +1,5 @@
 import { readPublicCache, removePublicCache, writePublicCache } from "../../services/publicCmsCache";
-import { PublicDocumentListSnapshot } from "./types";
+import type { PublicDocumentListSnapshot } from "./types";
 
 export const PUBLIC_DOCUMENT_LIST_CACHE_KEY = "rcat.cms.public.document-list";
 export const PUBLIC_DOCUMENT_LIST_CACHE_TTL_MS = 15 * 60 * 1000;

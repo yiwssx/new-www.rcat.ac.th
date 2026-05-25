@@ -2,10 +2,10 @@ import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
 import EmptyState from "../../shared/components/EmptyState";
-import { ContentItem } from "../../types";
+import type { ContentItem } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { HomeSectionHeading } from "../../public/components/home/HomeSectionHeading";
-import { PublicDocumentItem } from "./types";
+import type { PublicDocumentItem } from "./types";
 
 type DocumentListItem = ContentItem | PublicDocumentItem;
 

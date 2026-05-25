@@ -4,7 +4,7 @@ import { alpha } from "@mui/material/styles";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import { VisitorStatsSettings } from "../../../features/visitor-stats";
+import type { VisitorStatsSettings } from "../../../features/visitor-stats";
 import { normalizeVisitorStats } from "../../../services/visitorStats";
 import { formatDisplayDateTime } from "../../../utils/dateDisplay";
 
