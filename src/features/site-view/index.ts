@@ -1,3 +1,5 @@
+export { recordSiteView } from "./api";
+export type { SiteViewInput } from "./api";
 export { PublicSiteViewTracker } from "./PublicSiteViewTracker";
 export {
   isPublicSiteViewPath,
