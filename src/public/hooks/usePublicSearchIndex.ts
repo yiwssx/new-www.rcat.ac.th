@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicSearchIndexSnapshot } from "../../services/googleApi";
 import {
   getPublicSearchIndexCache,
+  getPublicSearchIndexSnapshot,
   PUBLIC_SEARCH_INDEX_CACHE_TTL_MS,
   setPublicSearchIndexCache
-} from "../../services/publicSearchIndexCache";
+} from "../../features/public-search";
 
 const publicSearchIndexQueryGcTimeMs = 60 * 60 * 1000;
 
