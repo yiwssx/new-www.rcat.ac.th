@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicContentListSnapshot } from "../../services/googleApi";
 import {
   getPublicContentListCache,
+  getPublicContentListSnapshot,
   PUBLIC_CONTENT_LIST_CACHE_TTL_MS,
   setPublicContentListCache
-} from "../../services/publicContentListCache";
-import { PublicContentListKind } from "../../types";
+} from "../../features/public-content";
+import type { PublicContentListKind } from "../../types";
 
 const publicContentListQueryGcTimeMs = 60 * 60 * 1000;
 

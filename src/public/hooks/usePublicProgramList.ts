@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicProgramListSnapshot } from "../../services/googleApi";
 import {
   getPublicProgramListCache,
+  getPublicProgramListSnapshot,
   PUBLIC_PROGRAM_LIST_CACHE_TTL_MS,
   setPublicProgramListCache
-} from "../../services/publicProgramListCache";
+} from "../../features/public-programs";
 
 const publicProgramListQueryGcTimeMs = 60 * 60 * 1000;
 

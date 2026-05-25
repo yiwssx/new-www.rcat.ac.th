@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getContentDetail } from "../../services/googleApi";
 import {
+  getContentDetail,
   getPublicContentDetailCache,
   PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS,
   setPublicContentDetailCache
-} from "../../services/publicCmsCache";
+} from "../../features/public-content";
 
 const publicQueryGcTimeMs = 60 * 60 * 1000;
 

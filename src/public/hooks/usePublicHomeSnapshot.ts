@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicHomeSnapshot } from "../../services/googleApi";
-import { getPublicHomeCache, PUBLIC_HOME_CACHE_TTL_MS, setPublicHomeCache } from "../../services/publicHomeCache";
+import {
+  getPublicHomeCache,
+  getPublicHomeSnapshot,
+  PUBLIC_HOME_CACHE_TTL_MS,
+  setPublicHomeCache
+} from "../../features/public-home";
 
 const publicHomeQueryGcTimeMs = 60 * 60 * 1000;
 
