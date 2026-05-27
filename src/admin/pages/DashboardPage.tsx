@@ -13,7 +13,8 @@ import dayjs from "dayjs";
 import MetricCard from "../components/MetricCard";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
-import { getAdminCmsSnapshot, publishContent } from "../../services/googleApi";
+import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
+import { publishContent } from "../../features/cms-content";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
 

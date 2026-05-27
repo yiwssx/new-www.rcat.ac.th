@@ -38,11 +38,8 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import PageHeader from "../components/PageHeader";
-import {
-  deleteExternalServiceLinkFromApi,
-  getAdminCmsSnapshot,
-  saveExternalServiceLinkToApi
-} from "../../services/googleApi";
+import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
+import { deleteExternalServiceLinkFromApi, saveExternalServiceLinkToApi } from "../../features/cms-external-services";
 import { clearPublicCmsCache } from "../../services/publicCmsCache";
 import { ExternalServiceIconKey, ExternalServiceLink, ExternalServiceTone } from "../../types";
 import { getExternalServiceToneStyle } from "../../utils/externalServiceTheme";

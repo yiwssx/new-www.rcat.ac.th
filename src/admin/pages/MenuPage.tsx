@@ -25,7 +25,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SubdirectoryArrowRightRoundedIcon from "@mui/icons-material/SubdirectoryArrowRightRounded";
 import PageHeader from "../components/PageHeader";
-import { getPublicMenuItems, savePublicMenuItems } from "../../services/googleApi";
+import { getPublicMenuItems, savePublicMenuItems } from "../../features/cms-navigation";
 import { PublicMenuItem } from "../../types";
 import { appSwal } from "../../utils/swal";
 

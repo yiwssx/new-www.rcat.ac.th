@@ -30,12 +30,9 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import PageHeader from "../components/PageHeader";
-import {
-  deleteCarouselSlideFromApi,
-  getAdminCmsSnapshot,
-  saveCarouselSlideToApi,
-  saveHomepageSettingsToApi
-} from "../../services/googleApi";
+import { deleteCarouselSlideFromApi, saveCarouselSlideToApi } from "../../features/cms-carousel";
+import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
+import { saveHomepageSettingsToApi } from "../../features/cms-settings";
 import { clearPublicCmsCache } from "../../services/publicCmsCache";
 import { CarouselSlide, HomepageCarouselSettings, MediaAsset } from "../../types";
 import { formatDisplayDateTime } from "../../utils/dateDisplay";

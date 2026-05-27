@@ -37,12 +37,8 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
-import {
-  deleteDocumentFromApi,
-  getAdminCmsSnapshot,
-  saveDocumentToApi,
-  type DocumentItemInput
-} from "../../services/googleApi";
+import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
+import { deleteDocumentFromApi, saveDocumentToApi, type DocumentItemInput } from "../../features/cms-documents";
 import { clearPublicCmsCache } from "../../services/publicCmsCache";
 import { CmsDocumentItem, DocumentStatus } from "../../types";
 import { formatDisplayDateTime } from "../../utils/dateDisplay";
