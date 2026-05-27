@@ -40,12 +40,8 @@ import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { clearPublicCmsCache } from "../../services/publicCmsCache";
 import { defaultSiteSettings, normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeVisitorStats } from "../../services/visitorStats";
-import {
-  getAdminCmsSnapshot,
-  saveHomepageSettingsToApi,
-  saveSiteSettingsToApi,
-  saveVisitorStatsToApi
-} from "../../services/googleApi";
+import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
+import { saveHomepageSettingsToApi, saveSiteSettingsToApi, saveVisitorStatsToApi } from "../../features/cms-settings";
 import {
   DisplaySettings,
   FooterDirectoryLink,

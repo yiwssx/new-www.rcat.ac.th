@@ -27,7 +27,7 @@ import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import ContentBlockBuilder from "./ContentBlockBuilder";
 import { ContentItem, ContentStatus, ContentType, MediaAsset, MediaType } from "../../types";
-import type { MediaAssetInput } from "../../services/googleApi";
+import type { MediaAssetInput } from "../../features/cms-media";
 import { contentStatusLabels, contentTypeLabels, mediaTypeLabels } from "../../utils/thaiLabels";
 import {
   ContentBlock,

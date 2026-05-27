@@ -30,7 +30,8 @@ import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlin
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import dayjs from "dayjs";
 import PageHeader from "../components/PageHeader";
-import { deleteCalendarEvent, getAdminCmsSnapshot, saveCalendarEvent } from "../../services/googleApi";
+import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
+import { deleteCalendarEvent, saveCalendarEvent } from "../../features/cms-events";
 import { CalendarEvent } from "../../types";
 import { getCalendarDateRangeError, isEndDateTimeBeforeStart, toLocalDateTimeInputValue } from "../../utils/calendar";
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";

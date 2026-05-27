@@ -37,15 +37,9 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ContentEditorDialog from "../components/ContentEditorDialog";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
-import {
-  deleteContentItem,
-  getAdminCmsSnapshot,
-  getAdminContentDetail,
-  publishContent,
-  saveContentItem,
-  saveMediaAsset,
-  type MediaAssetInput
-} from "../../services/googleApi";
+import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
+import { deleteContentItem, getAdminContentDetail, publishContent, saveContentItem } from "../../features/cms-content";
+import { saveMediaAsset, type MediaAssetInput } from "../../features/cms-media";
 import { ContentItem, ContentStatus } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
