@@ -1,16 +1,49 @@
+import type { CarouselSlide } from "./features/cms-carousel/types";
+import type { DashboardMetric } from "./features/cms-dashboard/types";
+import type { CmsDocumentItem } from "./features/cms-documents/types";
+import type { CalendarEvent } from "./features/cms-events/types";
+import type { ExternalServiceLink } from "./features/cms-external-services/types";
+import type { MediaAsset } from "./features/cms-media/types";
+import type { PublicMenuItem } from "./features/cms-navigation/types";
+import type { DisplaySettings, HomepageSettings, SiteSettings } from "./features/cms-settings/types";
+import type { ContentItem } from "./features/public-content/types";
 import type { PublicDocumentItem } from "./features/public-documents/types";
 import type { VisitorStatsSettings } from "./features/visitor-stats/types";
 
+export type { CarouselSlide } from "./features/cms-carousel/types";
+export type { DashboardMetric } from "./features/cms-dashboard/types";
+export type { CmsDocumentItem, DocumentStatus } from "./features/cms-documents/types";
+export type { CalendarEvent } from "./features/cms-events/types";
+export type {
+  ExternalServiceIconKey,
+  ExternalServiceLink,
+  ExternalServiceTone
+} from "./features/cms-external-services/types";
+export type { IntegrationState, IntegrationStatus } from "./features/cms-integrations/types";
+export type { MediaAsset, MediaType } from "./features/cms-media/types";
+export type { PublicMenuItem } from "./features/cms-navigation/types";
+export type {
+  DisplaySettings,
+  FooterDirectoryGroup,
+  FooterDirectoryLink,
+  HomepageCarouselSettings,
+  HomepageIntroGateSettings,
+  HomepageIntroVideoSettings,
+  HomepageMarqueeSettings,
+  HomepageSettings,
+  SiteSettings
+} from "./features/cms-settings/types";
+export type {
+  ContentItem,
+  ContentStatus,
+  ContentType,
+  PublicContentListKind,
+  PublicContentListSnapshot
+} from "./features/public-content/types";
 export type { PublicDocumentItem, PublicDocumentListSnapshot } from "./features/public-documents/types";
+export type { PublicProgramListSnapshot } from "./features/public-programs/types";
+export type { PublicSearchIndexSnapshot } from "./features/public-search/types";
 export type { VisitorStatsSettings } from "./features/visitor-stats/types";
-
-export type ContentStatus = "draft" | "review" | "scheduled" | "published";
-
-export type ContentType = "page" | "news" | "program" | "announcement" | "blog";
-
-export type MediaType = "image" | "document" | "sheet" | "video";
-
-export type IntegrationState = "connected" | "pending" | "error";
 
 export interface User {
   id: string;
@@ -31,140 +64,6 @@ export interface Session {
   user: User;
   token: string;
   expiresAt: string;
-}
-
-export interface ContentItem {
-  id: string;
-  title: string;
-  slug: string;
-  type: ContentType;
-  status: ContentStatus;
-  owner: string;
-  summary: string;
-  body?: string;
-  category?: string;
-  tags?: string[];
-  seoTitle?: string;
-  seoDescription?: string;
-  canonicalUrl?: string;
-  featured?: boolean;
-  readingMinutes?: number;
-  template?: string;
-  bodyDocId?: string;
-  bodyDocUrl?: string;
-  featuredMediaId?: string;
-  mediaIds?: string[];
-  viewCount?: number;
-  lastViewedAt?: string;
-  updatedAt: string;
-  publishAt: string;
-}
-
-export type DocumentStatus = "draft" | "published";
-
-export interface CmsDocumentItem extends PublicDocumentItem {
-  status: DocumentStatus;
-}
-
-export interface MediaAsset {
-  id: string;
-  name: string;
-  type: MediaType;
-  size: string;
-  owner: string;
-  driveUrl: string;
-  fileId?: string;
-  mimeType?: string;
-  previewUrl?: string;
-  embedUrl?: string;
-  updatedAt: string;
-}
-
-export interface CarouselSlide {
-  id: string;
-  title: string;
-  subtitle: string;
-  chip: string;
-  imageUrl: string;
-  imageAlt: string;
-  buttonLabel: string;
-  href: string;
-  enabled: boolean;
-  order: number;
-  startAt?: string;
-  endAt?: string;
-  updatedAt: string;
-}
-
-export type ExternalServiceTone =
-  | "student"
-  | "homeroom"
-  | "management"
-  | "learning"
-  | "calendar"
-  | "check"
-  | "admission"
-  | "career"
-  | "general";
-
-export type ExternalServiceIconKey =
-  | "apps"
-  | "calendar"
-  | "check"
-  | "groups"
-  | "handshake"
-  | "registration"
-  | "book"
-  | "school"
-  | "link";
-
-export interface ExternalServiceLink {
-  id: string;
-  title: string;
-  description: string;
-  href: string;
-  tone: ExternalServiceTone;
-  iconKey: ExternalServiceIconKey;
-  enabled: boolean;
-  order: number;
-  updatedAt: string;
-}
-
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  date: string;
-  endDate?: string;
-  audience: string;
-  status: "confirmed" | "draft" | "cancelled";
-  location?: string;
-  description?: string;
-  category?: string;
-  visibility?: "public" | "private";
-  updatedAt?: string;
-}
-
-export interface PublicMenuItem {
-  id: string;
-  label: string;
-  href: string;
-  enabled: boolean;
-  children?: PublicMenuItem[];
-}
-
-export interface DashboardMetric {
-  id: string;
-  label: string;
-  value: string;
-  trend: string;
-  tone: "blue" | "green" | "amber" | "red";
-}
-
-export interface IntegrationStatus {
-  service: "Sheets" | "Drive" | "Docs";
-  status: IntegrationState;
-  detail: string;
-  lastSync: string;
 }
 
 export interface RolePermission {
@@ -208,119 +107,4 @@ export interface PublicHomeSnapshot {
   eventItems: CalendarEvent[];
   media: MediaAsset[];
   generatedAt: string;
-}
-
-export type PublicContentListKind = "news" | "announcements" | "blog";
-
-export interface PublicContentListSnapshot {
-  kind: PublicContentListKind;
-  items: ContentItem[];
-  pageItems?: ContentItem[];
-  media: MediaAsset[];
-  siteSettings: SiteSettings;
-  homepageSettings: HomepageSettings;
-  displaySettings?: DisplaySettings;
-  menu: PublicMenuItem[];
-  generatedAt: string;
-}
-
-export interface PublicProgramListSnapshot {
-  items: ContentItem[];
-  media: MediaAsset[];
-  siteSettings: SiteSettings;
-  homepageSettings: HomepageSettings;
-  displaySettings?: DisplaySettings;
-  menu: PublicMenuItem[];
-  generatedAt: string;
-}
-
-export interface PublicSearchIndexSnapshot {
-  items: ContentItem[];
-  siteSettings: SiteSettings;
-  homepageSettings: HomepageSettings;
-  displaySettings?: DisplaySettings;
-  menu: PublicMenuItem[];
-  generatedAt: string;
-}
-
-export interface DisplaySettings {
-  dateFormat: string;
-  timeMode: "24h" | "12h";
-}
-
-export interface HomepageIntroGateSettings {
-  enabled: boolean;
-  imageUrl: string;
-  imageAlt: string;
-  primaryButtonLabel: string;
-  secondaryButtonLabel: string;
-  secondaryButtonUrl: string;
-  storageKey: string;
-}
-
-export interface HomepageMarqueeSettings {
-  enabled: boolean;
-  label: string;
-  text: string;
-  speedSeconds: number;
-}
-
-export interface HomepageIntroVideoSettings {
-  enabled: boolean;
-  title: string;
-  youtubeEmbedUrl: string;
-}
-
-export interface HomepageCarouselSettings {
-  autoplayEnabled: boolean;
-  autoplayIntervalSeconds: number;
-}
-
-export interface HomepageSettings {
-  carousel: HomepageCarouselSettings;
-  introGate: HomepageIntroGateSettings;
-  marquee: HomepageMarqueeSettings;
-  introVideo: HomepageIntroVideoSettings;
-}
-
-export interface FooterDirectoryLink {
-  label: string;
-  href: string;
-  enabled: boolean;
-}
-
-export interface FooterDirectoryGroup {
-  title: string;
-  links: FooterDirectoryLink[];
-}
-
-export interface SiteSettings {
-  siteName: string;
-  eyebrow: string;
-  intro: string;
-  campus: string;
-  phone: string;
-  fax: string;
-  email: string;
-  address: string;
-  admissionUrl: string;
-  facebookUrl: string;
-  youtubeUrl: string;
-  tiktokUrl: string;
-  heroTitle: string;
-  heroDescription: string;
-  heroChip: string;
-  heroImageUrl: string;
-  directorName: string;
-  directorTitle: string;
-  directorDescription: string;
-  directorImageUrl: string;
-  mapUrl: string;
-  mapEmbedUrl: string;
-  footerTitle: string;
-  footerDescription: string;
-  footerDirectoryGroups: FooterDirectoryGroup[];
-  messengerUrl: string;
-  messengerLabel: string;
-  messengerEnabled: boolean;
 }

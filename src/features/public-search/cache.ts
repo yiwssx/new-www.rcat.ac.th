@@ -1,4 +1,4 @@
-import type { PublicSearchIndexSnapshot } from "../../types";
+import type { PublicSearchIndexSnapshot } from "./types";
 import { readPublicCache, removePublicCache, writePublicCache } from "../../services/publicCmsCache";
 
 export const PUBLIC_SEARCH_INDEX_CACHE_KEY = "rcat.cms.public.search-index";

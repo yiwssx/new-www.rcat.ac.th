@@ -1,4 +1,4 @@
-import type { PublicContentListKind, PublicContentListSnapshot } from "../../types";
+import type { PublicContentListKind, PublicContentListSnapshot } from "./types";
 import {
   PUBLIC_CONTENT_DETAIL_CACHE_PREFIX,
   PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS,

@@ -1,4 +1,4 @@
-import type { PublicProgramListSnapshot } from "../../types";
+import type { PublicProgramListSnapshot } from "./types";
 import { readPublicCache, removePublicCache, writePublicCache } from "../../services/publicCmsCache";
 
 export const PUBLIC_PROGRAM_LIST_CACHE_KEY = "rcat.cms.public.program-list";

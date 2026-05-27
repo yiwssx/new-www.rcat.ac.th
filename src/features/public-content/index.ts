@@ -10,3 +10,10 @@ export {
   setPublicContentDetailCache,
   setPublicContentListCache
 } from "./cache";
+export type {
+  ContentItem,
+  ContentStatus,
+  ContentType,
+  PublicContentListKind,
+  PublicContentListSnapshot
+} from "./types";
