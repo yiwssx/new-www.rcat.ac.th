@@ -8,8 +8,7 @@ import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
 import { getGoogleAppsScriptUrl, projectSettings } from "../../config/projectSettings";
-import { checkGoogleConnection } from "../../services/googleApi";
-import { IntegrationStatus } from "../../types";
+import { checkGoogleConnection, type IntegrationStatus } from "../../features/cms-integrations";
 import { formatDisplayDateTime } from "../../utils/dateDisplay";
 import { integrationServiceLabels } from "../../utils/thaiLabels";
 

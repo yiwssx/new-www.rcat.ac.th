@@ -3,7 +3,7 @@ import { alpha } from "@mui/material/styles";
 import { Backdrop, Box, CircularProgress, LinearProgress, Stack, Typography } from "@mui/material";
 import { useRouterState } from "@tanstack/react-router";
 import { useAuth } from "../../context/authSessionContext";
-import { getGoogleApiActivityCount, subscribeGoogleApiActivity } from "../../services/googleApi";
+import { getGoogleApiActivityCount, subscribeGoogleApiActivity } from "../../shared/api/activity";
 
 const showDelayMs = 120;
 const minVisibleMs = 320;
