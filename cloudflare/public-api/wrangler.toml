@@ -1,0 +1,10 @@
+name = "rcat-public-api"
+main = "src/index.ts"
+compatibility_date = "2026-05-27"
+
+# D1 is intentionally deferred until M2. Add the real binding only when a
+# database has been provisioned and the schema phase is explicitly scoped.
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "rcat-public-api"
+# database_id = "<add-in-m2>"
