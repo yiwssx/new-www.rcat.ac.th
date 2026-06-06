@@ -1,0 +1,35 @@
+{
+  "sampleOnly": true,
+  "format": "m2-document-row-sample",
+  "notes": "Fake local-only document rows for static schema safety tests. Do not treat this as production data or a public API response.",
+  "rows": [
+    {
+      "id": "sample-public-document-001",
+      "title": "Sample public handbook",
+      "description": "Fake local-only public document row for D1 mapping tests.",
+      "category": "sample",
+      "file_url": "https://files.example.test/rcat/sample-public-handbook.pdf",
+      "file_name": "sample-public-handbook.pdf",
+      "media_id": "sample-media-001",
+      "published_at": "2026-01-01T00:00:00.000Z",
+      "status": "published",
+      "sort_order": 10,
+      "pinned": 1,
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "sample-public-document-002",
+      "title": "Sample meeting notice",
+      "description": "Second fake row to exercise ordering and non-pinned documents.",
+      "category": "sample",
+      "file_url": "https://files.example.test/rcat/sample-meeting-notice.pdf",
+      "file_name": "sample-meeting-notice.pdf",
+      "media_id": null,
+      "published_at": "2026-01-02T00:00:00.000Z",
+      "status": "published",
+      "sort_order": 20,
+      "pinned": 0,
+      "updated_at": "2026-01-02T00:00:00.000Z"
+    }
+  ]
+}

@@ -2,9 +2,10 @@ name = "rcat-public-api"
 main = "src/index.ts"
 compatibility_date = "2026-05-27"
 
-# D1 is intentionally deferred until M2. Add the real binding only when a
-# database has been provisioned and the schema phase is explicitly scoped.
+# D1 binding remains deferred in M2. The schema checkpoint lives in
+# migrations/0001_public_read_schema.sql, but no local/preview/production
+# database is provisioned by this skeleton.
 # [[d1_databases]]
 # binding = "DB"
 # database_name = "rcat-public-api"
-# database_id = "<add-in-m2>"
+# database_id = "<future-non-production-d1-id>"
