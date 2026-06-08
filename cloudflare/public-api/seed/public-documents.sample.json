@@ -1,6 +1,6 @@
 {
   "sampleOnly": true,
-  "format": "m2-document-row-sample",
+  "format": "m2.1-document-row-sample",
   "notes": "Fake local-only document rows for static schema safety tests. Do not treat this as production data or a public API response.",
   "rows": [
     {
@@ -24,7 +24,7 @@
       "category": "sample",
       "file_url": "https://files.example.test/rcat/sample-meeting-notice.pdf",
       "file_name": "sample-meeting-notice.pdf",
-      "media_id": null,
+      "media_id": "",
       "published_at": "2026-01-02T00:00:00.000Z",
       "status": "published",
       "sort_order": 20,

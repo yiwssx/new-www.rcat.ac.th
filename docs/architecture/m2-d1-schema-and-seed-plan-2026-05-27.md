@@ -50,6 +50,22 @@ The migration is intentionally schema-only. It contains no `INSERT` statements, 
 
 The contract test verifies these columns match the `documents` migration table. This keeps the first M3 query explicit before any response-shape adapter is implemented.
 
+## M2.1 Schema Alignment
+
+M2.1 revises `cloudflare/public-api/migrations/0001_public_read_schema.sql` instead of adding `0002` because no real local, preview, or production D1 database is configured in `wrangler.toml`, and there is no evidence that M2 was applied to a tracked D1 database. The schema is still a planning checkpoint, not an applied production migration.
+
+The alignment is compatibility-first:
+
+- `contents` now maps directly toward `ContentItem` fields with `type`, `body_snapshot`, `category`, `tags_json`, `seo_title`, `seo_description`, `canonical_url`, `body_doc_id`, `body_doc_url`, `featured_media_id`, `media_ids_json`, `view_count`, `last_viewed_at`, and `publish_at`.
+- `media_assets` now maps toward `MediaAsset` fields with `type`, `size`, `owner`, `drive_url`, `file_id`, `mime_type`, `preview_url`, `embed_url`, `thumbnail_url`, and `updated_at`.
+- `menu_items`, `carousel_slides`, `external_services`, and `events` use names that are closer to the current public contracts.
+- visitor and content-view tables use `created_at`, `day`, `total_views`, `online_users`, and `slug` fields that better fit the current public-home and view-count semantics.
+- `sync_runs` now carries row counts and `metadata_json` for future import observability.
+
+`site_settings`, `homepage_settings`, and `display_settings` use `settings_json` in phase 1. This preserves the current `SiteSettings`, `HomepageSettings`, and `DisplaySettings` shapes without forcing an early normalization redesign before public route adapters exist.
+
+M2.1 still does not implement real routes. M3 remains responsible for querying D1, adapting rows back to the existing Apps Script-compatible response shapes, and proving `public-document-list` before any provider switch.
+
 ## Route Boundary
 
 `GET /api/public/documents` still returns HTTP `501` with the M1 not-implemented payload. The dormant `documentsRepository` is not imported by the router, and D1 is not queried by any Worker route in M2.

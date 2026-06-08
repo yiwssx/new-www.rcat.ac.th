@@ -5,7 +5,7 @@ export interface DocumentRow {
   category: string;
   file_url: string;
   file_name: string;
-  media_id: string | null;
+  media_id: string;
   published_at: string;
   status: "draft" | "published";
   sort_order: number;
@@ -31,149 +31,311 @@ export const DOCUMENT_ROW_COLUMNS = [
 export interface ContentRow {
   id: string;
   slug: string;
+  type: string;
+  status: string;
   title: string;
-  content_type: string;
-  status: "draft" | "published" | "archived";
   summary: string;
-  body_json: string;
-  cover_media_id: string | null;
-  owner: string;
-  published_at: string | null;
-  sort_order: number;
+  body_snapshot: string;
+  category: string;
+  tags_json: string;
+  seo_title: string;
+  seo_description: string;
+  canonical_url: string;
   featured: 0 | 1;
+  reading_minutes: number;
+  template: string;
+  body_doc_id: string;
+  body_doc_url: string;
+  featured_media_id: string;
+  media_ids_json: string;
+  view_count: number;
+  last_viewed_at: string;
   updated_at: string;
+  publish_at: string;
 }
+
+export const CONTENT_ROW_COLUMNS = [
+  "id",
+  "slug",
+  "type",
+  "status",
+  "title",
+  "summary",
+  "body_snapshot",
+  "category",
+  "tags_json",
+  "seo_title",
+  "seo_description",
+  "canonical_url",
+  "featured",
+  "reading_minutes",
+  "template",
+  "body_doc_id",
+  "body_doc_url",
+  "featured_media_id",
+  "media_ids_json",
+  "view_count",
+  "last_viewed_at",
+  "updated_at",
+  "publish_at"
+] as const satisfies readonly (keyof ContentRow)[];
 
 export interface MediaAssetRow {
   id: string;
   name: string;
-  media_type: string;
-  mime_type: string;
-  size_bytes: number;
-  drive_file_id: string | null;
-  drive_url: string | null;
-  public_url: string | null;
-  alt_text: string;
+  type: string;
+  size: string;
   owner: string;
-  created_at: string;
+  drive_url: string;
+  file_id: string;
+  mime_type: string;
+  preview_url: string;
+  embed_url: string;
+  thumbnail_url: string;
   updated_at: string;
 }
+
+export const MEDIA_ASSET_ROW_COLUMNS = [
+  "id",
+  "name",
+  "type",
+  "size",
+  "owner",
+  "drive_url",
+  "file_id",
+  "mime_type",
+  "preview_url",
+  "embed_url",
+  "thumbnail_url",
+  "updated_at"
+] as const satisfies readonly (keyof MediaAssetRow)[];
 
 export interface SiteSettingsRow {
   id: string;
-  site_name: string;
-  public_site_url: string;
-  logo_media_id: string | null;
-  contact_json: string;
-  social_links_json: string;
+  settings_json: string;
   updated_at: string;
 }
+
+export const SITE_SETTINGS_ROW_COLUMNS = [
+  "id",
+  "settings_json",
+  "updated_at"
+] as const satisfies readonly (keyof SiteSettingsRow)[];
 
 export interface HomepageSettingsRow {
   id: string;
-  hero_content_id: string | null;
-  intro_video_url: string | null;
-  director_message_content_id: string | null;
-  layout_json: string;
+  settings_json: string;
   updated_at: string;
 }
+
+export const HOMEPAGE_SETTINGS_ROW_COLUMNS = [
+  "id",
+  "settings_json",
+  "updated_at"
+] as const satisfies readonly (keyof HomepageSettingsRow)[];
 
 export interface DisplaySettingsRow {
   id: string;
-  locale: string;
-  timezone: string;
-  date_format: string;
-  time_format: string;
+  settings_json: string;
   updated_at: string;
 }
 
+export const DISPLAY_SETTINGS_ROW_COLUMNS = [
+  "id",
+  "settings_json",
+  "updated_at"
+] as const satisfies readonly (keyof DisplaySettingsRow)[];
+
 export interface MenuItemRow {
   id: string;
-  parent_id: string | null;
+  parent_id: string;
   label: string;
   href: string;
-  content_id: string | null;
-  target: string;
-  status: "draft" | "published";
+  enabled: 0 | 1;
   sort_order: number;
+  children_json: string;
   updated_at: string;
 }
+
+export const MENU_ITEM_ROW_COLUMNS = [
+  "id",
+  "parent_id",
+  "label",
+  "href",
+  "enabled",
+  "sort_order",
+  "children_json",
+  "updated_at"
+] as const satisfies readonly (keyof MenuItemRow)[];
 
 export interface CarouselSlideRow {
   id: string;
   title: string;
   subtitle: string;
-  image_media_id: string | null;
-  image_url: string | null;
+  chip: string;
+  image_url: string;
+  image_alt: string;
+  button_label: string;
   href: string;
   enabled: 0 | 1;
   sort_order: number;
-  starts_at: string | null;
-  ends_at: string | null;
+  start_at: string;
+  end_at: string;
   updated_at: string;
 }
+
+export const CAROUSEL_SLIDE_ROW_COLUMNS = [
+  "id",
+  "title",
+  "subtitle",
+  "chip",
+  "image_url",
+  "image_alt",
+  "button_label",
+  "href",
+  "enabled",
+  "sort_order",
+  "start_at",
+  "end_at",
+  "updated_at"
+] as const satisfies readonly (keyof CarouselSlideRow)[];
 
 export interface ExternalServiceRow {
   id: string;
   title: string;
   description: string;
-  icon_url: string | null;
   href: string;
+  tone: string;
+  icon_key: string;
   enabled: 0 | 1;
   sort_order: number;
   updated_at: string;
 }
 
+export const EXTERNAL_SERVICE_ROW_COLUMNS = [
+  "id",
+  "title",
+  "description",
+  "href",
+  "tone",
+  "icon_key",
+  "enabled",
+  "sort_order",
+  "updated_at"
+] as const satisfies readonly (keyof ExternalServiceRow)[];
+
 export interface EventRow {
   id: string;
   title: string;
-  description: string;
-  location: string;
+  date: string;
+  end_date: string;
   audience: string;
-  start_at: string;
-  end_at: string | null;
-  status: "draft" | "published" | "cancelled";
+  status: string;
+  location: string;
+  description: string;
+  category: string;
+  visibility: string;
   updated_at: string;
 }
+
+export const EVENT_ROW_COLUMNS = [
+  "id",
+  "title",
+  "date",
+  "end_date",
+  "audience",
+  "status",
+  "location",
+  "description",
+  "category",
+  "visibility",
+  "updated_at"
+] as const satisfies readonly (keyof EventRow)[];
 
 export interface VisitorEventRow {
   id: string;
-  session_hash: string;
+  visitor_id: string;
   path: string;
-  referrer: string | null;
-  user_agent_hash: string | null;
-  occurred_at: string;
+  referrer_origin: string;
+  page_title: string;
+  created_at: string;
 }
 
+export const VISITOR_EVENT_ROW_COLUMNS = [
+  "id",
+  "visitor_id",
+  "path",
+  "referrer_origin",
+  "page_title",
+  "created_at"
+] as const satisfies readonly (keyof VisitorEventRow)[];
+
 export interface VisitorDailyStatsRow {
-  stat_date: string;
-  page_views: number;
+  day: string;
+  total_views: number;
   unique_visitors: number;
+  online_users: number;
   updated_at: string;
 }
+
+export const VISITOR_DAILY_STATS_ROW_COLUMNS = [
+  "day",
+  "total_views",
+  "unique_visitors",
+  "online_users",
+  "updated_at"
+] as const satisfies readonly (keyof VisitorDailyStatsRow)[];
 
 export interface ContentViewEventRow {
   id: string;
   content_id: string;
-  session_hash: string;
-  occurred_at: string;
+  slug: string;
+  created_at: string;
 }
 
+export const CONTENT_VIEW_EVENT_ROW_COLUMNS = [
+  "id",
+  "content_id",
+  "slug",
+  "created_at"
+] as const satisfies readonly (keyof ContentViewEventRow)[];
+
 export interface ContentViewDailyStatsRow {
+  day: string;
   content_id: string;
-  stat_date: string;
+  slug: string;
   view_count: number;
-  unique_viewers: number;
   updated_at: string;
 }
+
+export const CONTENT_VIEW_DAILY_STATS_ROW_COLUMNS = [
+  "day",
+  "content_id",
+  "slug",
+  "view_count",
+  "updated_at"
+] as const satisfies readonly (keyof ContentViewDailyStatsRow)[];
 
 export interface SyncRunRow {
   id: string;
   source: string;
-  phase: string;
-  status: "started" | "succeeded" | "failed";
+  status: string;
   started_at: string;
-  finished_at: string | null;
-  summary_json: string;
-  error_message: string | null;
+  finished_at: string;
+  records_read: number;
+  records_written: number;
+  error: string;
+  metadata_json: string;
 }
+
+export const SYNC_RUN_ROW_COLUMNS = [
+  "id",
+  "source",
+  "status",
+  "started_at",
+  "finished_at",
+  "records_read",
+  "records_written",
+  "error",
+  "metadata_json"
+] as const satisfies readonly (keyof SyncRunRow)[];
