@@ -79,14 +79,14 @@ describe("M2.2 local D1 fake seed contract", () => {
     });
   });
 
-  it("keeps the public documents route at 501 while local D1 is only provisioned", async () => {
+  it("keeps the public documents route from serving fake data when DB is missing", async () => {
     const response = await worker.fetch(new Request("https://public-api.example.test/api/public/documents"), {});
 
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
-      error: "public-document-list is not implemented in M1 skeleton",
+      error: "D1 DB binding is not configured",
       resource: "public-document-list",
-      phase: "M1"
+      phase: "M3"
     });
   });
 });

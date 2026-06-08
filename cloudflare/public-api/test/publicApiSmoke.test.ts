@@ -1,13 +1,48 @@
 import { describe, expect, it } from "vitest";
+import type { DocumentRow } from "../src/db/schema";
 import worker from "../src/index";
 
 const localEnv = {};
+const documentRows: DocumentRow[] = [
+  {
+    id: "sample-public-document-001",
+    title: "Sample public handbook",
+    description: "Fake local-only public document row.",
+    category: "sample",
+    file_url: "https://files.example.test/rcat/sample-public-handbook.pdf",
+    file_name: "sample-public-handbook.pdf",
+    media_id: "sample-media-001",
+    published_at: "2026-01-01T00:00:00.000Z",
+    status: "published",
+    sort_order: 10,
+    pinned: 1,
+    updated_at: "2026-01-03T00:00:00.000Z"
+  }
+];
 
 async function getJson(response: Response) {
   return response.json() as Promise<Record<string, unknown>>;
 }
 
-describe("rcat public API Worker M1 skeleton", () => {
+function createMockDb(rows: DocumentRow[]) {
+  return {
+    prepare() {
+      return {
+        bind() {
+          return this;
+        },
+        async all<T>() {
+          return {
+            results: rows as T[],
+            success: true
+          };
+        }
+      };
+    }
+  } as unknown as D1Database;
+}
+
+describe("rcat public API Worker", () => {
   it("returns the M1 service health payload from /health", async () => {
     const response = await worker.fetch(new Request("https://public-api.example.test/health"), localEnv);
     const payload = await getJson(response);
@@ -29,14 +64,39 @@ describe("rcat public API Worker M1 skeleton", () => {
     expect(payload.ok).toBe(true);
   });
 
-  it("returns an explicit 501 skeleton response for public documents", async () => {
+  it("returns the M3 public documents snapshot when DB is configured", async () => {
+    const response = await worker.fetch(new Request("https://public-api.example.test/api/public/documents"), {
+      DB: createMockDb(documentRows)
+    });
+    const payload = await getJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      items: [
+        {
+          id: "sample-public-document-001",
+          title: "Sample public handbook",
+          fileUrl: "https://files.example.test/rcat/sample-public-handbook.pdf",
+          fileName: "sample-public-handbook.pdf",
+          mediaId: "sample-media-001",
+          publishedAt: "2026-01-01T00:00:00.000Z",
+          order: 10,
+          pinned: true,
+          updatedAt: "2026-01-03T00:00:00.000Z"
+        }
+      ]
+    });
+    expect(new Date(String(payload.generatedAt)).toISOString()).toBe(payload.generatedAt);
+  });
+
+  it("returns 503 for public documents when DB is missing", async () => {
     const response = await worker.fetch(new Request("https://public-api.example.test/api/public/documents"), localEnv);
 
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(503);
     await expect(getJson(response)).resolves.toEqual({
-      error: "public-document-list is not implemented in M1 skeleton",
+      error: "D1 DB binding is not configured",
       resource: "public-document-list",
-      phase: "M1"
+      phase: "M3"
     });
   });
 

@@ -1,72 +1,95 @@
 # RCAT Public API Worker
 
-This directory contains the isolated Cloudflare Worker skeleton for a future public-read API. The current frontend and production backend still use Google Apps Script.
+This directory contains the isolated Cloudflare Worker for the future public-read API. The current React frontend and production backend still use Google Apps Script.
+
+## Current M3 Routes
+
+| Method    | Route                   | Behavior                                                                                        |
+| --------- | ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `GET`     | `/health`               | Returns the Worker service health payload                                                       |
+| `GET`     | `/api/health`           | Returns the Worker service health payload                                                       |
+| `GET`     | `/api/public/documents` | Reads local D1 `documents` rows and returns the existing public document list snapshot contract |
+| `OPTIONS` | Any path                | Returns HTTP `204` with GET-only CORS headers                                                   |
+
+`GET /api/public/documents` requires the optional `DB` binding. If the binding is missing, it returns HTTP `503` with:
+
+```json
+{
+  "error": "D1 DB binding is not configured",
+  "resource": "public-document-list",
+  "phase": "M3"
+}
+```
+
+The route does not return fake fallback data when D1 is unavailable. Unexpected D1 failures return a safe HTTP `500` payload without stack traces or internal database details.
+
+## Public Document Contract
+
+The M3 route preserves the existing Apps Script public-document-list response shape:
+
+```ts
+interface PublicDocumentListSnapshot {
+  items: PublicDocumentItem[];
+  generatedAt: string;
+}
+```
+
+Each item exposes only camelCase public fields: `id`, `title`, `description`, `category`, `fileUrl`, `fileName`, `mediaId`, `publishedAt`, `order`, `pinned`, and `updatedAt`.
+
+Worker-local D1 rows stay snake_case inside `src/db/schema.ts` and `src/db/documentsRepository.ts`. `src/adapters/publicDocumentsAdapter.ts` maps rows back to the public response contract and intentionally omits D1-only fields such as `status`.
 
 ## M1 Scope
 
-The skeleton proves Worker routing, JSON responses, GET-only CORS behavior, local execution, and dry-run deployment:
-
-- `GET /health`
-- `GET /api/health`
-- `GET /api/public/documents`
-- `OPTIONS` preflight handling
-
-`GET /api/public/documents` intentionally returns HTTP `501`. It does not return fake CMS data or a `PublicDocumentListSnapshot`-shaped payload.
+M1 proved Worker routing, JSON responses, GET-only CORS behavior, local execution, and dry-run deployment. At that checkpoint, `GET /api/public/documents` returned an explicit `501` skeleton response and did not resemble `PublicDocumentListSnapshot`.
 
 ## M2 Scope
 
-M2 adds a schema and seed-plan checkpoint without wiring D1 into runtime routes:
+M2 added the schema and local-only seed plan without exposing D1 through runtime routes:
 
 - `migrations/0001_public_read_schema.sql` defines the ordered public-read D1 schema.
 - `src/db/schema.ts` defines Worker-local snake_case row interfaces.
-- `src/db/documentsRepository.ts` is dormant and is not imported by the router.
+- `src/db/documentsRepository.ts` defines the explicit public document query.
 - `src/db/healthRepository.ts` is dormant and only reports whether an optional `DB` binding exists.
 - `seed/public-documents.sample.json` contains fake row-shaped sample data with `sampleOnly: true` and `example.test` URLs.
-- `test/schemaContract.test.ts` verifies the schema, document row column contract, sample safety, and unchanged 501 route boundary.
+- `seed/public-documents.seed.sql` repeatably inserts only fake `sample-*` rows in local D1.
+- Static tests verify schema, sample, seed, and local-only safety rules.
 
-The active D1 binding in `wrangler.toml` uses the local-only `local-placeholder` database ID. No real preview/production `database_id`, real import script, or production data is included.
+The active D1 binding in `wrangler.toml` uses the local-only `local-placeholder` database ID. No real preview or production `database_id`, real import script, or production data is included.
 
-## M2.1 Scope
+## M3 Scope
 
-M2.1 aligns the same `0001` schema checkpoint with the existing public and CMS TypeScript contracts before M3 route work:
+M3 wires only `GET /api/public/documents` to local D1:
 
-- `contents` now uses compatibility-first fields such as `type`, `body_snapshot`, `tags_json`, `body_doc_id`, `featured_media_id`, `media_ids_json`, and `publish_at`.
-- `media_assets` now mirrors metadata fields such as `type`, `size`, `drive_url`, `file_id`, `preview_url`, `embed_url`, and `thumbnail_url`.
-- Settings tables use `settings_json` snapshots for phase 1 instead of early normalized columns.
-- Route behavior remains unchanged; `GET /api/public/documents` still returns `501`.
+- The route queries `documents` rows with explicit `DOCUMENT_ROW_COLUMNS`.
+- SQL filters `status = "published"`.
+- SQL order is `pinned DESC, sort_order ASC, published_at DESC, updated_at DESC`.
+- The adapter converts snake_case D1 rows to the existing camelCase public API contract.
+- Missing D1 binding returns HTTP `503` instead of fake data.
+- D1 query failures return a safe HTTP `500`.
 
-## M2.2 Scope
-
-M2.2 makes the compatibility-first schema executable in local development only:
-
-- `wrangler.toml` includes a `DB` binding named `rcat-public-api-local` with `database_id = "local-placeholder"`.
-- `seed/public-documents.seed.sql` repeatably deletes and inserts only `sample-%` rows in the `documents` table.
-- Local D1 scripts apply the migration, seed fake public document rows, and inspect the local document order.
-- `test/seedContract.test.ts` verifies seed safety, fake URLs, document-only writes, local-only config, and unchanged route behavior.
-
-The binding is not a production database. Do not replace the placeholder with a real preview or production `database_id` until that environment is explicitly scoped.
+No other public route is implemented in M3.
 
 ## Intentionally Deferred
 
 - Preview/production D1 provisioning and real database binding
 - Applying migrations to preview or production databases
-- Real public document queries or response-shape adapters
 - Real import scripts and real data imports
 - Apps Script sync or import jobs
 - Frontend provider switching or cutover
+- Public home, content list, content detail, search, site view, or visitor stats routes
 - Admin writes, auth, users, media uploads, and Google Drive changes
 
-The optional `DB` environment type still lets health checks run without real data. Apps Script remains the production provider and source of truth.
+Apps Script remains the production provider and source of truth. Google Drive remains file storage.
 
 ## Local Commands
 
 ```bash
 pnpm worker:typecheck
 pnpm worker:deploy:dry
-pnpm worker:dev
 pnpm worker:d1:migrate:local
 pnpm worker:d1:seed:local
 pnpm worker:d1:list:local
+pnpm worker:dev
 ```
 
 With the local Worker running:
@@ -78,18 +101,15 @@ curl -i http://127.0.0.1:8787/api/public/documents
 curl -i -X OPTIONS http://127.0.0.1:8787/api/public/documents
 ```
 
-To reset the local fake document snapshot:
+After `pnpm worker:d1:migrate:local` and `pnpm worker:d1:seed:local`, `GET /api/public/documents` should return the fake local-only sample rows as a `PublicDocumentListSnapshot`. Without a configured `DB` binding, the route returns the M3 `503` payload shown above.
 
-```bash
-pnpm worker:d1:migrate:local
-pnpm worker:d1:seed:local
-pnpm worker:d1:list:local
-```
+## Cutover And Rollback
 
-`GET /api/public/documents` still returns `501`; the local D1 data is not exposed through any route in M2.2.
+No frontend cutover has happened. The React app still calls Apps Script through the existing provider path. This Worker can be disabled or ignored without changing current production behavior.
 
 ## Next Phases
 
-- M3: implement the first real public route, `public-document-list`, while preserving the existing Apps Script response shape.
+- M3.1: add parity comparison fixtures against Apps Script sample output if needed.
+- M4: design a preview-only provider switch after contract parity is proven.
 
-No frontend cutover has happened. Apps Script remains the production provider and rollback path.
+Do not point the frontend at this Worker until a separate preview cutover phase is explicitly scoped.

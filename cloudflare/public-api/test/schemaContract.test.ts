@@ -298,14 +298,14 @@ describe("M2.1 D1 schema and sample safety contract", () => {
     expect(sampleText).not.toMatch(/rcat\.ac\.th|script\.google\.com|drive\.google\.com/i);
   });
 
-  it("keeps the public documents route at an explicit 501 until M3 wiring", async () => {
+  it("keeps the public documents route from falling back to fake data without DB", async () => {
     const response = await worker.fetch(new Request("https://public-api.example.test/api/public/documents"), {});
 
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
-      error: "public-document-list is not implemented in M1 skeleton",
+      error: "D1 DB binding is not configured",
       resource: "public-document-list",
-      phase: "M1"
+      phase: "M3"
     });
   });
 });

@@ -3,7 +3,7 @@ import { methodNotAllowed, notFound } from "./responses";
 import { health } from "./routes/health";
 import { publicDocuments } from "./routes/publicDocuments";
 
-export function routeRequest(request: Request, env: Env) {
+export async function routeRequest(request: Request, env: Env) {
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204
@@ -23,7 +23,7 @@ export function routeRequest(request: Request, env: Env) {
   }
 
   if (pathname === "/api/public/documents") {
-    return publicDocuments();
+    return publicDocuments(env);
   }
 
   return notFound();
