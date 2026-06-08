@@ -26,6 +26,15 @@ M2 adds a schema and seed-plan checkpoint without wiring D1 into runtime routes:
 
 The D1 binding block in `wrangler.toml` remains commented. No real `database_id`, schema application, seed script, import script, or production data is included.
 
+## M2.1 Scope
+
+M2.1 aligns the same `0001` schema checkpoint with the existing public and CMS TypeScript contracts before M3 route work:
+
+- `contents` now uses compatibility-first fields such as `type`, `body_snapshot`, `tags_json`, `body_doc_id`, `featured_media_id`, `media_ids_json`, and `publish_at`.
+- `media_assets` now mirrors metadata fields such as `type`, `size`, `drive_url`, `file_id`, `preview_url`, `embed_url`, and `thumbnail_url`.
+- Settings tables use `settings_json` snapshots for phase 1 instead of early normalized columns.
+- Route behavior remains unchanged; `GET /api/public/documents` still returns `501`.
+
 ## Intentionally Deferred
 
 - D1 provisioning and real database binding
@@ -57,7 +66,7 @@ curl -i -X OPTIONS http://127.0.0.1:8787/api/public/documents
 
 ## Next Phases
 
-- M2.1: add local D1 provisioning and non-production seed tooling if that becomes the next readiness gap.
+- M2.2: add local D1 provisioning and non-production seed tooling if that becomes the next readiness gap.
 - M3: implement the first real public route, `public-document-list`, while preserving the existing Apps Script response shape.
 
 No frontend cutover has happened. Apps Script remains the production provider and rollback path.
