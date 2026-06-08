@@ -232,10 +232,11 @@ describe("M2.1 D1 schema and sample safety contract", () => {
     expect(migrationSql).not.toMatch(/\bINSERT\s+INTO\b/i);
   });
 
-  it("keeps the D1 binding deferred in Wrangler config", () => {
-    expect(wranglerToml).toMatch(/^# \[\[d1_databases\]\]/m);
-    expect(wranglerToml).not.toMatch(/^\s*\[\[d1_databases\]\]/m);
-    expect(wranglerToml).not.toMatch(/^\s*database_id\s*=\s*"[^<][^"]+"/m);
+  it("keeps the D1 binding local-only with no real production database id", () => {
+    expect(wranglerToml).toMatch(/^\[\[d1_databases\]\]/m);
+    expect(wranglerToml).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-local"\s*$/m);
+    expect(wranglerToml).toMatch(/^\s*database_id\s*=\s*"local-placeholder"\s*$/m);
+    expect(wranglerToml).not.toMatch(/^\s*database_id\s*=\s*"[0-9a-f-]{32,}"\s*$/m);
   });
 
   it("keeps Worker row column constants aligned to the migration", () => {

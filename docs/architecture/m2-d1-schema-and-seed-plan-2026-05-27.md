@@ -1,6 +1,6 @@
 # M2 D1 Schema And Seed Plan - 2026-05-27
 
-Status: schema and local seed plan only. This checkpoint does not change frontend or production backend behavior.
+Status: schema, local D1 provisioning, and fake local seed tooling only. This checkpoint does not change frontend or production backend behavior.
 
 ## Purpose
 
@@ -16,7 +16,9 @@ M2 prepares the isolated Cloudflare public API Worker for a future public-read D
 | `cloudflare/public-api/src/db/healthRepository.ts`             | Dormant DB binding status helper                    |
 | `cloudflare/public-api/seed/README.md`                         | Local-only seed/import plan                         |
 | `cloudflare/public-api/seed/public-documents.sample.json`      | Fake sample rows marked `sampleOnly: true`          |
+| `cloudflare/public-api/seed/public-documents.seed.sql`         | Repeatable fake local D1 document seed              |
 | `cloudflare/public-api/test/schemaContract.test.ts`            | Static migration, contract, sample, and route tests |
+| `cloudflare/public-api/test/seedContract.test.ts`              | Static M2.2 seed safety and local tooling tests     |
 | `docs/architecture/m2-d1-schema-and-seed-plan-2026-05-27.md`   | This architecture checkpoint                        |
 
 `cloudflare/public-api/README.md` and `cloudflare/public-api/wrangler.toml` were updated to describe the M2 boundary and deferred D1 binding.
@@ -66,15 +68,31 @@ The alignment is compatibility-first:
 
 M2.1 still does not implement real routes. M3 remains responsible for querying D1, adapting rows back to the existing Apps Script-compatible response shapes, and proving `public-document-list` before any provider switch.
 
+## M2.2 Local D1 Provisioning
+
+M2.2 adds a local-only D1 execution path without creating a production database:
+
+- `cloudflare/public-api/wrangler.toml` now declares `binding = "DB"`, `database_name = "rcat-public-api-local"`, and `database_id = "local-placeholder"`.
+- The placeholder database ID is intentionally not a real Cloudflare D1 ID and must not be replaced with preview or production credentials until that environment is explicitly scoped.
+- `pnpm worker:d1:migrate:local` applies `0001_public_read_schema.sql` to the local Wrangler D1 store.
+- `pnpm worker:d1:seed:local` runs `seed/public-documents.seed.sql`.
+- `pnpm worker:d1:list:local` inspects local fake document rows in the future public order.
+
+The fake seed tooling is documents-only. It deletes `sample-%` rows from `documents`, inserts fake `sample-*` rows, uses `example.test` URLs, and contains no real school data, Apps Script URLs, Google Drive URLs, private records, auth data, admin data, or media upload data.
+
+`GET /api/public/documents` remains an explicit `501` skeleton response. The dormant repository is still not imported by the router, and no Worker route queries D1 in M2.2.
+
 ## Route Boundary
 
-`GET /api/public/documents` still returns HTTP `501` with the M1 not-implemented payload. The dormant `documentsRepository` is not imported by the router, and D1 is not queried by any Worker route in M2.
+`GET /api/public/documents` still returns HTTP `501` with the M1 not-implemented payload. The dormant `documentsRepository` is not imported by the router, and D1 is not queried by any Worker route in M2.2.
 
 This is deliberate: M2 validates schema shape and safety rails, while M3 can implement `public-document-list` with the existing public response shape when that work is ready.
 
 ## Sample Safety
 
-`seed/public-documents.sample.json` is fake, local-only, and marked `sampleOnly: true`. It uses `example.test` URLs and row-shaped snake_case keys. It is not a `PublicDocumentListSnapshot`, not production data, and not a seed script.
+`seed/public-documents.sample.json` is fake, local-only, and marked `sampleOnly: true`. It uses `example.test` URLs and row-shaped snake_case keys. It is not a `PublicDocumentListSnapshot` and not production data.
+
+`seed/public-documents.seed.sql` is also fake and local-only. It exists to prove the M2.1 schema can be applied and populated locally before M3 route work.
 
 ## Production Impact
 
@@ -86,9 +104,6 @@ This is deliberate: M2 validates schema shape and safety rails, while M3 can imp
 
 ## Next Recommended Step
 
-Proceed to either:
-
-- M2.1 local D1 provisioning and non-production seed tooling, if local database execution is the next readiness gap.
-- M3 `public-document-list` implementation, if the response-shape adapter and comparison tests are ready.
+After M2.2, proceed to M3 `public-document-list` implementation if the local migration and seed commands pass and the response-shape adapter/comparison tests are ready.
 
 Any M3 route implementation must preserve the current public API response contract before a preview provider switch is considered.
