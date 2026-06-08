@@ -1,6 +1,6 @@
 {
   "sampleOnly": true,
-  "format": "m2.1-document-row-sample",
+  "format": "m2.2-document-row-sample",
   "notes": "Fake local-only document rows for static schema safety tests. Do not treat this as production data or a public API response.",
   "rows": [
     {

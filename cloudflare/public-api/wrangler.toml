@@ -2,10 +2,11 @@ name = "rcat-public-api"
 main = "src/index.ts"
 compatibility_date = "2026-05-27"
 
-# D1 binding remains deferred in M2. The schema checkpoint lives in
-# migrations/0001_public_read_schema.sql, but no local/preview/production
-# database is provisioned by this skeleton.
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "rcat-public-api"
-# database_id = "<future-non-production-d1-id>"
+# M2.2 local/non-production D1 binding.
+# This placeholder exists so `wrangler dev`, local migrations, and fake local
+# seed commands can exercise the Worker binding shape. Do not commit a real
+# preview or production database_id until that environment is explicitly scoped.
+[[d1_databases]]
+binding = "DB"
+database_name = "rcat-public-api-local"
+database_id = "local-placeholder"

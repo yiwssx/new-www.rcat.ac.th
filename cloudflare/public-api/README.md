@@ -24,7 +24,7 @@ M2 adds a schema and seed-plan checkpoint without wiring D1 into runtime routes:
 - `seed/public-documents.sample.json` contains fake row-shaped sample data with `sampleOnly: true` and `example.test` URLs.
 - `test/schemaContract.test.ts` verifies the schema, document row column contract, sample safety, and unchanged 501 route boundary.
 
-The D1 binding block in `wrangler.toml` remains commented. No real `database_id`, schema application, seed script, import script, or production data is included.
+The active D1 binding in `wrangler.toml` uses the local-only `local-placeholder` database ID. No real preview/production `database_id`, real import script, or production data is included.
 
 ## M2.1 Scope
 
@@ -35,17 +35,28 @@ M2.1 aligns the same `0001` schema checkpoint with the existing public and CMS T
 - Settings tables use `settings_json` snapshots for phase 1 instead of early normalized columns.
 - Route behavior remains unchanged; `GET /api/public/documents` still returns `501`.
 
+## M2.2 Scope
+
+M2.2 makes the compatibility-first schema executable in local development only:
+
+- `wrangler.toml` includes a `DB` binding named `rcat-public-api-local` with `database_id = "local-placeholder"`.
+- `seed/public-documents.seed.sql` repeatably deletes and inserts only `sample-%` rows in the `documents` table.
+- Local D1 scripts apply the migration, seed fake public document rows, and inspect the local document order.
+- `test/seedContract.test.ts` verifies seed safety, fake URLs, document-only writes, local-only config, and unchanged route behavior.
+
+The binding is not a production database. Do not replace the placeholder with a real preview or production `database_id` until that environment is explicitly scoped.
+
 ## Intentionally Deferred
 
-- D1 provisioning and real database binding
-- Applying migrations to a local, preview, or production database
+- Preview/production D1 provisioning and real database binding
+- Applying migrations to preview or production databases
 - Real public document queries or response-shape adapters
-- Seed/import scripts and real data imports
+- Real import scripts and real data imports
 - Apps Script sync or import jobs
 - Frontend provider switching or cutover
 - Admin writes, auth, users, media uploads, and Google Drive changes
 
-The optional `DB` environment type lets health checks run without a database. Apps Script remains the production provider and source of truth.
+The optional `DB` environment type still lets health checks run without real data. Apps Script remains the production provider and source of truth.
 
 ## Local Commands
 
@@ -53,6 +64,9 @@ The optional `DB` environment type lets health checks run without a database. Ap
 pnpm worker:typecheck
 pnpm worker:deploy:dry
 pnpm worker:dev
+pnpm worker:d1:migrate:local
+pnpm worker:d1:seed:local
+pnpm worker:d1:list:local
 ```
 
 With the local Worker running:
@@ -64,9 +78,18 @@ curl -i http://127.0.0.1:8787/api/public/documents
 curl -i -X OPTIONS http://127.0.0.1:8787/api/public/documents
 ```
 
+To reset the local fake document snapshot:
+
+```bash
+pnpm worker:d1:migrate:local
+pnpm worker:d1:seed:local
+pnpm worker:d1:list:local
+```
+
+`GET /api/public/documents` still returns `501`; the local D1 data is not exposed through any route in M2.2.
+
 ## Next Phases
 
-- M2.2: add local D1 provisioning and non-production seed tooling if that becomes the next readiness gap.
 - M3: implement the first real public route, `public-document-list`, while preserving the existing Apps Script response shape.
 
 No frontend cutover has happened. Apps Script remains the production provider and rollback path.
