@@ -1,0 +1,31 @@
+{
+  "items": [
+    {
+      "id": "sample-public-document-001",
+      "title": "Sample public handbook",
+      "description": "Fake local-only public document row for parity checks.",
+      "category": "sample",
+      "fileUrl": "https://files.example.test/rcat/sample-public-handbook.pdf",
+      "fileName": "sample-public-handbook.pdf",
+      "mediaId": "sample-media-001",
+      "publishedAt": "2026-01-01T00:00:00.000Z",
+      "order": 10,
+      "pinned": true,
+      "updatedAt": "2026-01-03T00:00:00.000Z"
+    },
+    {
+      "id": "sample-public-document-002",
+      "title": "Sample meeting notice",
+      "description": "Second fake local-only row for parity ordering checks.",
+      "category": "sample",
+      "fileUrl": "https://files.example.test/rcat/sample-meeting-notice.pdf",
+      "fileName": "sample-meeting-notice.pdf",
+      "mediaId": "",
+      "publishedAt": "2026-01-02T00:00:00.000Z",
+      "order": 20,
+      "pinned": false,
+      "updatedAt": "2026-01-04T00:00:00.000Z"
+    }
+  ],
+  "generatedAt": "2026-05-27T00:00:00.000Z"
+}

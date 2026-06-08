@@ -69,6 +69,17 @@ M3 wires only `GET /api/public/documents` to local D1:
 
 No other public route is implemented in M3.
 
+## M3.1 Scope
+
+M3.1 adds parity fixtures and assertions for the existing Apps Script public-document-list contract:
+
+- `test/fixtures/publicDocuments/appsScriptSnapshot.sample.json` is a fake Apps Script-shaped `PublicDocumentListSnapshot`.
+- `test/fixtures/publicDocuments/d1Rows.sample.json` is fake D1 `DocumentRow` data that maps exactly to the Apps Script-shaped fixture.
+- `test/helpers/publicDocumentsParity.ts` validates exact top-level keys, exact item keys, ISO `generatedAt`, no snake_case D1 fields, no `status` or `sampleOnly`, and no forbidden production URLs.
+- `test/publicDocumentsParity.test.ts` proves adapter output and Worker route output match the public contract while preserving missing-DB `503` and safe D1-error `500` behavior.
+
+The fixtures are sanitized sample-only contract fixtures. They must not be replaced with committed live Apps Script captures unless every real URL and record is removed or converted to fake `example.test` values.
+
 ## Intentionally Deferred
 
 - Preview/production D1 provisioning and real database binding
@@ -109,7 +120,6 @@ No frontend cutover has happened. The React app still calls Apps Script through 
 
 ## Next Phases
 
-- M3.1: add parity comparison fixtures against Apps Script sample output if needed.
 - M4: design a preview-only provider switch after contract parity is proven.
 
 Do not point the frontend at this Worker until a separate preview cutover phase is explicitly scoped.
