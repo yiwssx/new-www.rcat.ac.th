@@ -131,12 +131,16 @@ Completed on 2026-06-08:
 - `pnpm worker:d1:seed:local` executed the fake local-only seed successfully in sandboxed mode, but Wrangler could not write its debug log outside the workspace.
 - `pnpm worker:d1:list:local` returned `sample-public-document-001` and `sample-public-document-002` in sandboxed mode, but Wrangler could not write its debug log outside the workspace.
 
-Blocked in the current Codex session:
+Follow-up rerun completed manually after Codex sandbox/usage-limit block:
 
-- `pnpm worker:deploy:dry` failed in sandboxed mode because Wrangler could not write its debug log outside the workspace and could not resolve the Worker entry under sandbox restrictions. A clean escalated rerun was blocked by the session approval/usage limit.
-- Manual `pnpm worker:dev` smoke could not be started because the required process-launch approval was blocked by the same session approval/usage limit.
+- pnpm worker:deploy:dry passed.
+- pnpm worker:dev started successfully.
+- GET /health returned HTTP 200 with ok: true.
+- GET /api/health returned HTTP 200 with ok: true.
+- GET /api/public/documents returned HTTP 200 with PublicDocumentListSnapshot shape.
+- OPTIONS /api/public/documents returned HTTP 204 with CORS headers.
 
-The blocked commands must be rerun before using this checkpoint as a merge or preview-readiness gate.
+M3.1 is now closed as preview-readiness parity checkpoint.
 
 ## Next Recommended Step
 
