@@ -131,6 +131,28 @@ or remove `VITE_PUBLIC_API_PROVIDER` entirely. The default provider remains Apps
 - No admin/auth/media/provider-wide migration.
 - No UI or route change.
 
+## Verification
+
+Completed follow-up local preview smoke:
+
+- `pnpm quality` passed.
+- `pnpm worker:typecheck` passed.
+- `pnpm worker:deploy:dry` passed.
+- `pnpm worker:d1:migrate:local` passed.
+- `pnpm worker:d1:seed:local` passed.
+- `pnpm worker:d1:list:local` returned the fake local public document rows.
+- `pnpm worker:dev` started successfully.
+- Frontend local dev started with:
+  - `VITE_PUBLIC_API_PROVIDER=cloudflare`
+  - `VITE_CLOUDFLARE_PUBLIC_API_URL=http://127.0.0.1:8787`
+- Frontend called `http://127.0.0.1:8787/api/public/documents`.
+- Frontend loaded the public document list successfully.
+- Worker response was accepted as `PublicDocumentListSnapshot`.
+- UI behavior remained unchanged.
+- Resetting/removing `VITE_PUBLIC_API_PROVIDER` keeps Apps Script as the default provider.
+
+M4 is now closed as preview-only public-document-list provider switch checkpoint.
+
 ## Next Recommended Step
 
 M5 should be a controlled preview environment exercise: provision a non-production D1 binding, import sanitized preview data through an explicitly scoped path, and run browser/network smoke against the preview provider before any production cutover discussion.
