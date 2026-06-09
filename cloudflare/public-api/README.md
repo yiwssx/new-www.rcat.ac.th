@@ -109,6 +109,8 @@ M6 is the actual non-production Worker + D1 preview smoke checkpoint. The reposi
 The checkpoint document is `docs/architecture/m6-preview-worker-d1-smoke-2026-05-27.md`.
 The external provisioning checklist is `docs/architecture/m6-1-preview-resource-provisioning-2026-05-27.md`.
 
+M6.2 rechecked the gate on 2026-06-10 and remains blocked because the non-production D1 name/id, HTTPS preview Worker URL, Vercel preview frontend URL, and Vercel preview env access were not available.
+
 When external preview resources are available, run the preview migration, sanitized preview seed, preview Worker deploy, Vercel preview env configuration, and browser/network smoke from that document. Keep real preview identifiers and URLs outside git unless a separate preview-only provisioning change explicitly approves them.
 
 ## Intentionally Deferred

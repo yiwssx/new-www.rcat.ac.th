@@ -129,6 +129,9 @@ describe("M5 non-production D1 preview safety", () => {
 describe("M6 preview smoke safety", () => {
   it("records preview smoke status without committing production identifiers or URLs", () => {
     expect(m6PreviewSmokeDoc).toMatch(/Preview Resource Status:\s*(Blocked|Completed)/i);
+    expect(m6PreviewSmokeDoc).toMatch(/M6\.2 Attempt/i);
+    expect(m6PreviewSmokeDoc).toMatch(/Required External Input Check/i);
+    expect(m6PreviewSmokeDoc).toMatch(/Remote Preview Commands/i);
     expect(m6PreviewSmokeDoc).toMatch(/Migration Result/i);
     expect(m6PreviewSmokeDoc).toMatch(/Preview Seed Result/i);
     expect(m6PreviewSmokeDoc).toMatch(/Preview Worker URL/i);
