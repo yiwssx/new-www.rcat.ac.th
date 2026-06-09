@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PublicDocumentListSnapshot } from "./types";
 import {
   PUBLIC_DOCUMENT_LIST_CACHE_KEY,
@@ -44,6 +44,11 @@ import { getPublicDocumentListFromCloudflare } from "./cloudflareApi";
 
 const appsScriptMock = vi.mocked(getPublicDocumentListFromAppsScript);
 const cloudflareMock = vi.mocked(getPublicDocumentListFromCloudflare);
+
+beforeEach(() => {
+  vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "");
+  vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
+});
 
 afterEach(() => {
   vi.unstubAllEnvs();

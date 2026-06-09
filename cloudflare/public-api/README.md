@@ -91,10 +91,21 @@ VITE_CLOUDFLARE_PUBLIC_API_URL=http://127.0.0.1:8787
 
 The default remains Apps Script when the provider env is missing, empty, unknown, or explicitly set to `apps-script`. This Worker README does not define production frontend env, production D1 IDs, or a production cutover.
 
+## M5 Non-Production D1 Preview
+
+M5 adds a preview-only Worker environment placeholder and a sanitized fake preview seed path:
+
+- `wrangler.toml` includes `[env.preview]` with `database_id = "preview-placeholder"`.
+- `seed/public-documents.preview.seed.sql` inserts only fake `preview-*` public document rows.
+- Preview seed URLs use `example.test` only.
+- No real preview database id, production database id, production data, Google Drive URL, or secret is committed.
+
+After a real non-production D1 preview database is created outside git, apply the existing migration and sanitized preview seed with Wrangler preview commands documented in `docs/architecture/m5-non-production-d1-preview-2026-05-27.md`.
+
 ## Intentionally Deferred
 
-- Preview/production D1 provisioning and real database binding
-- Applying migrations to preview or production databases
+- Production D1 provisioning and real production database binding
+- Applying migrations to production databases
 - Real import scripts and real data imports
 - Apps Script sync or import jobs
 - Production frontend cutover
@@ -131,6 +142,6 @@ No frontend cutover has happened. The React app still calls Apps Script through 
 
 ## Next Phases
 
-- M5: provision and test non-production D1 data for preview after the M4 provider switch is verified.
+- M6: run an actual non-production preview smoke after a real preview D1 database and Worker URL are available outside git.
 
 Do not point production frontend traffic at this Worker until a separate production cutover phase is explicitly scoped.

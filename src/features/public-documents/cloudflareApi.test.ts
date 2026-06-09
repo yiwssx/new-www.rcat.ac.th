@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getPublicDocumentListFromCloudflare } from "./cloudflareApi";
 import { assertPublicDocumentListSnapshot, isPublicDocumentListSnapshot } from "./contract";
 import type { PublicDocumentListSnapshot } from "./types";
@@ -30,6 +30,10 @@ function jsonResponse(data: unknown, status = 200) {
     }
   });
 }
+
+beforeEach(() => {
+  vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
+});
 
 afterEach(() => {
   vi.unstubAllEnvs();

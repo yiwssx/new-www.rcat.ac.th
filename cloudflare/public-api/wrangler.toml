@@ -10,3 +10,15 @@ compatibility_date = "2026-05-27"
 binding = "DB"
 database_name = "rcat-public-api-local"
 database_id = "local-placeholder"
+
+# M5 preview-only binding placeholder.
+# This env is for non-production Cloudflare Worker preview testing only.
+# Replace `preview-placeholder` outside git when a real preview D1 database is
+# created. Never use this section for production traffic or real school data.
+[env.preview]
+name = "rcat-public-api-preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "rcat-public-api-preview"
+database_id = "preview-placeholder"
