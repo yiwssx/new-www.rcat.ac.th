@@ -4,6 +4,8 @@ interface ImportMetaEnv {
   readonly VITE_GOOGLE_APPS_SCRIPT_URL?: string;
   readonly VITE_PUBLIC_SITE_URL?: string;
   readonly VITE_CMS_SITE_NAME?: string;
+  readonly VITE_PUBLIC_API_PROVIDER?: string;
+  readonly VITE_CLOUDFLARE_PUBLIC_API_URL?: string;
   readonly VITE_PUBLIC_ANALYTICS_STRATEGY?: "gtm" | "gtag" | "both";
 }
 

@@ -80,13 +80,24 @@ M3.1 adds parity fixtures and assertions for the existing Apps Script public-doc
 
 The fixtures are sanitized sample-only contract fixtures. They must not be replaced with committed live Apps Script captures unless every real URL and record is removed or converted to fake `example.test` values.
 
+## M4 Preview Frontend Provider
+
+M4 adds a frontend-only, preview-scoped provider switch for `public-document-list`. Local or preview frontend builds can set:
+
+```bash
+VITE_PUBLIC_API_PROVIDER=cloudflare
+VITE_CLOUDFLARE_PUBLIC_API_URL=http://127.0.0.1:8787
+```
+
+The default remains Apps Script when the provider env is missing, empty, unknown, or explicitly set to `apps-script`. This Worker README does not define production frontend env, production D1 IDs, or a production cutover.
+
 ## Intentionally Deferred
 
 - Preview/production D1 provisioning and real database binding
 - Applying migrations to preview or production databases
 - Real import scripts and real data imports
 - Apps Script sync or import jobs
-- Frontend provider switching or cutover
+- Production frontend cutover
 - Public home, content list, content detail, search, site view, or visitor stats routes
 - Admin writes, auth, users, media uploads, and Google Drive changes
 
@@ -120,6 +131,6 @@ No frontend cutover has happened. The React app still calls Apps Script through 
 
 ## Next Phases
 
-- M4: design a preview-only provider switch after contract parity is proven.
+- M5: provision and test non-production D1 data for preview after the M4 provider switch is verified.
 
-Do not point the frontend at this Worker until a separate preview cutover phase is explicitly scoped.
+Do not point production frontend traffic at this Worker until a separate production cutover phase is explicitly scoped.
