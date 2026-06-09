@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
+import m6PreviewSmokeDoc from "../../../docs/architecture/m6-preview-worker-d1-smoke-2026-05-27.md?raw";
 import previewSeedSql from "../seed/public-documents.preview.seed.sql?raw";
 import wranglerToml from "../wrangler.toml?raw";
 import { DOCUMENT_ROW_COLUMNS } from "../src/db/schema";
 import worker from "../src/index";
 
 const forbiddenProductionPatterns = /rcat\.ac\.th|script\.google\.com|drive\.google\.com|workers\.dev/i;
+const forbiddenProductionUrlPatterns =
+  /https?:\/\/[^\s)"']*(?:rcat\.ac\.th|script\.google\.com|drive\.google\.com|workers\.dev)/i;
+const committedD1DatabaseIdPattern = /^\s*database_id\s*=\s*"[0-9a-f-]{32,}"\s*$/im;
 
 function getPreviewConfigBlock(toml: string) {
   const match = /\[env\.preview\][\s\S]*?(?=\n\[env\.|\n\[\[d1_databases\]\]|$)/.exec(toml);
@@ -118,5 +122,27 @@ describe("M5 non-production D1 preview safety", () => {
         updatedAt: "2026-05-27T00:00:00.000Z"
       }
     ]);
+  });
+});
+
+describe("M6 preview smoke safety", () => {
+  it("records preview smoke status without committing production identifiers or URLs", () => {
+    expect(m6PreviewSmokeDoc).toMatch(/Preview Resource Status:\s*(Blocked|Completed)/i);
+    expect(m6PreviewSmokeDoc).toMatch(/Migration Result/i);
+    expect(m6PreviewSmokeDoc).toMatch(/Preview Seed Result/i);
+    expect(m6PreviewSmokeDoc).toMatch(/Preview Worker URL/i);
+    expect(m6PreviewSmokeDoc).toMatch(/Vercel Preview Env/i);
+    expect(m6PreviewSmokeDoc).toMatch(/Browser And Network Smoke Result/i);
+    expect(m6PreviewSmokeDoc).toMatch(/Rollback/i);
+    expect(m6PreviewSmokeDoc).toMatch(/no production cutover/i);
+    expect(m6PreviewSmokeDoc).not.toMatch(committedD1DatabaseIdPattern);
+    expect(m6PreviewSmokeDoc).not.toMatch(forbiddenProductionUrlPatterns);
+    expect(wranglerToml).not.toMatch(committedD1DatabaseIdPattern);
+  });
+
+  it("keeps the preview seed documents-only for M6 smoke data", () => {
+    expect(previewSeedSql).toMatch(/\bINSERT\s+INTO\s+documents\b/i);
+    expect(previewSeedSql).not.toMatch(/\b(?:INSERT\s+INTO|DELETE\s+FROM|UPDATE)\s+(?!documents\b)[a-z_]+/i);
+    expect(previewSeedSql).not.toMatch(forbiddenProductionUrlPatterns);
   });
 });
