@@ -111,6 +111,14 @@ The external provisioning checklist is `docs/architecture/m6-1-preview-resource-
 
 M6.2 rechecked the gate on 2026-06-10 and remains blocked because the non-production D1 name/id, HTTPS preview Worker URL, Vercel preview frontend URL, and Vercel preview env access were not available.
 
+M6.3 adds a local preflight checker for those external values:
+
+```bash
+pnpm worker:preview:preflight
+```
+
+The preflight reads `RCAT_PREVIEW_D1_DATABASE_NAME`, `RCAT_PREVIEW_D1_DATABASE_ID`, `RCAT_PREVIEW_WORKER_URL`, and `RCAT_VERCEL_PREVIEW_URL`, then prints `READY` or `BLOCKED`. It does not run remote D1 commands, deploy Workers, configure Vercel env, or open browser smoke. The checkpoint document is `docs/architecture/m6-3-preview-smoke-preflight-2026-05-27.md`.
+
 When external preview resources are available, run the preview migration, sanitized preview seed, preview Worker deploy, Vercel preview env configuration, and browser/network smoke from that document. Keep real preview identifiers and URLs outside git unless a separate preview-only provisioning change explicitly approves them.
 
 ## Intentionally Deferred
@@ -133,6 +141,7 @@ pnpm worker:deploy:dry
 pnpm worker:d1:migrate:local
 pnpm worker:d1:seed:local
 pnpm worker:d1:list:local
+pnpm worker:preview:preflight
 pnpm worker:dev
 ```
 

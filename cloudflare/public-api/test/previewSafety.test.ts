@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import m61ProvisioningDoc from "../../../docs/architecture/m6-1-preview-resource-provisioning-2026-05-27.md?raw";
+import m63PreflightDoc from "../../../docs/architecture/m6-3-preview-smoke-preflight-2026-05-27.md?raw";
 import m6PreviewSmokeDoc from "../../../docs/architecture/m6-preview-worker-d1-smoke-2026-05-27.md?raw";
 import previewSeedSql from "../seed/public-documents.preview.seed.sql?raw";
 import wranglerToml from "../wrangler.toml?raw";
@@ -177,5 +178,24 @@ describe("M6.1 preview resource provisioning safety", () => {
     expect(previewSeedSql).toMatch(/\bINSERT\s+INTO\s+documents\b/i);
     expect(previewSeedSql).not.toMatch(/\b(?:INSERT\s+INTO|DELETE\s+FROM|UPDATE)\s+(?!documents\b)[a-z_]+/i);
     expect(previewSeedSql).not.toMatch(forbiddenProductionPatterns);
+  });
+});
+
+describe("M6.3 preview smoke preflight safety", () => {
+  it("documents the local preflight gate without committing production values", () => {
+    expect(m63PreflightDoc).toMatch(/Purpose/i);
+    expect(m63PreflightDoc).toMatch(/Required Env Vars/i);
+    expect(m63PreflightDoc).toMatch(/Safe Example/i);
+    expect(m63PreflightDoc).toMatch(/READY And BLOCKED/i);
+    expect(m63PreflightDoc).toMatch(/M6\.4 actual non-production preview smoke/i);
+    expect(m63PreflightDoc).toMatch(/No Worker deploy or remote D1 command is run by the preflight/i);
+    expect(m63PreflightDoc).toContain("RCAT_PREVIEW_D1_DATABASE_NAME");
+    expect(m63PreflightDoc).toContain("RCAT_PREVIEW_D1_DATABASE_ID");
+    expect(m63PreflightDoc).toContain("RCAT_PREVIEW_WORKER_URL");
+    expect(m63PreflightDoc).toContain("RCAT_VERCEL_PREVIEW_URL");
+    expect(m63PreflightDoc).toContain("VITE_PUBLIC_API_PROVIDER=cloudflare");
+    expect(m63PreflightDoc).toContain("VITE_CLOUDFLARE_PUBLIC_API_URL=<preview-worker-https-url>");
+    expect(m63PreflightDoc).not.toMatch(committedD1DatabaseIdPattern);
+    expect(m63PreflightDoc).not.toMatch(forbiddenProductionUrlPatterns);
   });
 });
