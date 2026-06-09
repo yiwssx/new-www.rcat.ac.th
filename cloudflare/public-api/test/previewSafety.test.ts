@@ -131,6 +131,12 @@ describe("M6 preview smoke safety", () => {
   it("records preview smoke status without committing production identifiers or URLs", () => {
     expect(m6PreviewSmokeDoc).toMatch(/Preview Resource Status:\s*(Blocked|Completed)/i);
     expect(m6PreviewSmokeDoc).toMatch(/M6\.2 Attempt/i);
+    expect(m6PreviewSmokeDoc).toMatch(/M6\.4 Attempt/i);
+    expect(m6PreviewSmokeDoc).toMatch(/Preflight Result/i);
+    expect(m6PreviewSmokeDoc).toContain("RCAT_PREVIEW_D1_DATABASE_NAME");
+    expect(m6PreviewSmokeDoc).toContain("RCAT_PREVIEW_D1_DATABASE_ID");
+    expect(m6PreviewSmokeDoc).toContain("RCAT_PREVIEW_WORKER_URL");
+    expect(m6PreviewSmokeDoc).toContain("RCAT_VERCEL_PREVIEW_URL");
     expect(m6PreviewSmokeDoc).toMatch(/Required External Input Check/i);
     expect(m6PreviewSmokeDoc).toMatch(/Remote Preview Commands/i);
     expect(m6PreviewSmokeDoc).toMatch(/Migration Result/i);

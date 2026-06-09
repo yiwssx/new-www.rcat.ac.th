@@ -51,6 +51,71 @@ pnpm wrangler d1 execute <preview-d1-database-name> --remote --env preview --fil
 pnpm wrangler deploy --env preview --config cloudflare/public-api/wrangler.toml
 ```
 
+## M6.4 Attempt - 2026-06-10
+
+M6.4 ran only the local preview smoke preflight gate and stopped before any remote operation.
+
+### Preflight Result
+
+BLOCKED.
+
+Missing env vars:
+
+- `RCAT_PREVIEW_D1_DATABASE_NAME`
+- `RCAT_PREVIEW_D1_DATABASE_ID`
+- `RCAT_PREVIEW_WORKER_URL`
+- `RCAT_VERCEL_PREVIEW_URL`
+
+### Remote Preview Commands
+
+Not run.
+
+Reason: the preflight result was `BLOCKED`, so running remote preview commands would risk targeting an unverified environment.
+
+### Migration Result
+
+Not run.
+
+Reason: no confirmed non-production D1 database name or id was available through the required preflight env values.
+
+### Preview Seed Result
+
+Not run.
+
+Reason: seeding requires a confirmed non-production D1 preview binding.
+
+### Preview Worker Deploy Result
+
+Not run.
+
+Reason: no confirmed HTTPS preview Worker URL or non-production D1 binding was available.
+
+### Vercel Preview Env Result
+
+Not set.
+
+Reason: no confirmed Vercel preview frontend URL or preview env access was available through the required preflight env values.
+
+### Browser And Network Smoke Result
+
+Not run.
+
+Reason: no HTTPS preview Worker URL or Vercel preview frontend URL was available.
+
+### Rollback Result
+
+Not needed because no env changed.
+
+### Production Safety Confirmation
+
+- no production cutover
+- no production D1 id
+- no production data
+- no secrets
+- no Apps Script change
+- no `src/services/googleApi.ts` change
+- no UI, route, cache key, or cache TTL change
+
 ## Preview D1 Name And Id Handling
 
 The intended non-production preview database name is:
