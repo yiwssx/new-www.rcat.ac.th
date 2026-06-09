@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import m61ProvisioningDoc from "../../../docs/architecture/m6-1-preview-resource-provisioning-2026-05-27.md?raw";
 import m6PreviewSmokeDoc from "../../../docs/architecture/m6-preview-worker-d1-smoke-2026-05-27.md?raw";
 import previewSeedSql from "../seed/public-documents.preview.seed.sql?raw";
 import wranglerToml from "../wrangler.toml?raw";
@@ -144,5 +145,34 @@ describe("M6 preview smoke safety", () => {
     expect(previewSeedSql).toMatch(/\bINSERT\s+INTO\s+documents\b/i);
     expect(previewSeedSql).not.toMatch(/\b(?:INSERT\s+INTO|DELETE\s+FROM|UPDATE)\s+(?!documents\b)[a-z_]+/i);
     expect(previewSeedSql).not.toMatch(forbiddenProductionUrlPatterns);
+  });
+});
+
+describe("M6.1 preview resource provisioning safety", () => {
+  it("documents the external preview resource checklist with placeholders only", () => {
+    expect(m61ProvisioningDoc).toMatch(/Cloudflare Account And Project Confirmation/i);
+    expect(m61ProvisioningDoc).toMatch(/Non-Production D1 Database Name/i);
+    expect(m61ProvisioningDoc).toMatch(/Non-Production D1 Database Id Handling/i);
+    expect(m61ProvisioningDoc).toMatch(/HTTPS Preview Worker URL/i);
+    expect(m61ProvisioningDoc).toMatch(/Vercel Preview Frontend URL/i);
+    expect(m61ProvisioningDoc).toMatch(/Vercel Preview Env Vars/i);
+    expect(m61ProvisioningDoc).toMatch(/Rollback/i);
+    expect(m61ProvisioningDoc).toContain("<preview-d1-database-id>");
+    expect(m61ProvisioningDoc).toContain("<preview-worker-https-url>");
+    expect(m61ProvisioningDoc).toContain("<vercel-preview-url>");
+    expect(m61ProvisioningDoc).toContain("VITE_PUBLIC_API_PROVIDER=cloudflare");
+    expect(m61ProvisioningDoc).toContain("VITE_CLOUDFLARE_PUBLIC_API_URL=<preview-worker-https-url>");
+    expect(m61ProvisioningDoc).toMatch(/M6 remains blocked/i);
+    expect(m61ProvisioningDoc).toMatch(/public-document-list/i);
+    expect(m61ProvisioningDoc).toMatch(/no production cutover/i);
+    expect(m61ProvisioningDoc).not.toMatch(committedD1DatabaseIdPattern);
+    expect(m61ProvisioningDoc).not.toMatch(forbiddenProductionPatterns);
+  });
+
+  it("keeps the committed preview binding and seed in placeholder-only preview mode", () => {
+    expect(getPreviewConfigBlock(wranglerToml)).toMatch(/^\s*database_id\s*=\s*"preview-placeholder"\s*$/m);
+    expect(previewSeedSql).toMatch(/\bINSERT\s+INTO\s+documents\b/i);
+    expect(previewSeedSql).not.toMatch(/\b(?:INSERT\s+INTO|DELETE\s+FROM|UPDATE)\s+(?!documents\b)[a-z_]+/i);
+    expect(previewSeedSql).not.toMatch(forbiddenProductionPatterns);
   });
 });

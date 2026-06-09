@@ -107,6 +107,7 @@ After a real non-production D1 preview database is created outside git, apply th
 M6 is the actual non-production Worker + D1 preview smoke checkpoint. The repository is still blocked from running the remote smoke because no real non-production D1 database id, HTTPS preview Worker URL, or Vercel preview URL has been provided in git or in the M6 request.
 
 The checkpoint document is `docs/architecture/m6-preview-worker-d1-smoke-2026-05-27.md`.
+The external provisioning checklist is `docs/architecture/m6-1-preview-resource-provisioning-2026-05-27.md`.
 
 When external preview resources are available, run the preview migration, sanitized preview seed, preview Worker deploy, Vercel preview env configuration, and browser/network smoke from that document. Keep real preview identifiers and URLs outside git unless a separate preview-only provisioning change explicitly approves them.
 
@@ -150,6 +151,6 @@ No frontend cutover has happened. The React app still calls Apps Script through 
 
 ## Next Phases
 
-- M6 follow-up: run the actual non-production preview smoke after a real preview D1 database, HTTPS Worker URL, and Vercel preview URL are available outside git.
+- M6 follow-up: run the actual non-production preview smoke after the M6.1 external resource checklist has a real non-production preview D1 database, HTTPS Worker URL, and Vercel preview URL available outside git.
 
 Do not point production frontend traffic at this Worker until a separate production cutover phase is explicitly scoped.
