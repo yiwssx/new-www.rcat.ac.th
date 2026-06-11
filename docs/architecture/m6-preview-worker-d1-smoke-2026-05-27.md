@@ -1,8 +1,8 @@
 # M6 Preview Worker D1 Smoke - 2026-05-27
 
-Status: actual non-production preview smoke is blocked by missing external preview resources. This is not a production cutover.
+Status: actual non-production preview smoke is pass.
 
-Preview Resource Status: Blocked
+Preview Resource Status: Ready
 
 ## Purpose
 
