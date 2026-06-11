@@ -23,6 +23,7 @@
     "worker:d1:list:local": "wrangler d1 execute rcat-public-api-local --local --command \"SELECT id, title, status, pinned, sort_order FROM documents ORDER BY pinned DESC, sort_order ASC, published_at DESC\" --config cloudflare/public-api/wrangler.toml",
     "worker:preview:preflight": "node cloudflare/public-api/scripts/preview-smoke-preflight.mjs",
     "worker:production:preflight": "node cloudflare/public-api/scripts/production-cutover-preflight.mjs",
+    "worker:public-documents:import:dry-run": "node cloudflare/public-api/scripts/public-documents-import-dry-run.mjs",
     "test": "vitest run",
     "test:unit": "vitest run --exclude src/test/integration/**",
     "test:integration": "vitest run src/test/integration",

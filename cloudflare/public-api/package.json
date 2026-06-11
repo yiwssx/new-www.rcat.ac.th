@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "public-documents:import:dry-run": "node scripts/public-documents-import-dry-run.mjs",
     "worker:production:preflight": "node scripts/production-cutover-preflight.mjs"
   }
 }
