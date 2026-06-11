@@ -574,7 +574,7 @@ export async function runPublicDocumentsImportDryRun(args = [], options = {}) {
   let snapshot;
 
   try {
-    snapshot = createPublicDocumentListSnapshotFromImportRows(rows);
+    snapshot = createPublicDocumentListSnapshotFromImportRows(rows, options.generatedAt || new Date());
   } catch (error) {
     return makeBlockedResult(inputPathForSummary, [
       { index: null, messages: [error instanceof Error ? error.message : "snapshot creation failed"] }

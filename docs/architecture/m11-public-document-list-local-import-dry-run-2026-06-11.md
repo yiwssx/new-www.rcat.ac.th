@@ -76,6 +76,24 @@ The dry-run validates:
 
 The public snapshot must expose only `items` and `generatedAt` at the top level. Public items must expose only camelCase public document fields and must not expose `status` or snake_case D1 fields.
 
+## M11.1 Dry-Run Parity Guard
+
+M11.1 keeps the CLI local-only and adds parity tests so the dry-run cannot quietly drift away from the canonical TypeScript import module.
+
+The canonical module remains source of transformation and validation expectations. The parity tests compare CLI output to `cloudflare/public-api/src/import/publicDocumentsImport.ts` using the same fake fixture and a fixed generated timestamp.
+
+Parity coverage includes:
+
+- Sorting: pinned first, then order ascending, then published timestamp descending, then updated timestamp descending.
+- Counts: source records, transformed rows, public items, excluded draft/inactive rows, and first public item ids.
+- Snapshot contract keys and public item keys.
+- Invalid source record behavior.
+- Invalid D1 row behavior.
+- Safe summary and JSON leakage checks.
+- Local-only CLI source checks.
+
+This guard reduces future drift risk between the `.mjs` dry-run CLI and the TypeScript import module without running D1 writes, network calls, production import, deployment, or production cutover.
+
 ## No-Go Conditions
 
 Any condition below blocks future import work:

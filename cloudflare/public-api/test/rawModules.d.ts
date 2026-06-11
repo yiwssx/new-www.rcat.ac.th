@@ -17,6 +17,7 @@ declare module "*.mjs" {
     args?: string[],
     options?: {
       cwd?: string;
+      generatedAt?: Date;
       readFile?: (inputPath: string, encoding: string) => Promise<string>;
     }
   ) => Promise<{
@@ -34,4 +35,5 @@ declare module "*.mjs" {
     validationIssues: Array<{ index: number | null; messages: string[] }>;
     snapshot: { items: Array<Record<string, unknown>>; generatedAt: string | null };
   }>;
+  export const validatePublicDocumentD1ImportRow: (row: Record<string, unknown>) => string[];
 }
