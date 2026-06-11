@@ -1,8 +1,10 @@
 # M6 Preview Worker D1 Smoke - 2026-05-27
 
-Status: actual non-production preview smoke is pass.
+Status: actual non-production preview smoke remains blocked. This is not a production cutover.
 
-Preview Resource Status: Ready
+Preview Resource Status: Blocked
+
+M6.4 correction: previous header incorrectly marked the checkpoint as Ready/pass while the detailed results still showed BLOCKED. The checkpoint remains blocked until actual preview smoke evidence is recorded.
 
 ## Purpose
 

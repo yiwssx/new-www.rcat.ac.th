@@ -28,6 +28,49 @@ function getInsertColumns(sql: string) {
   return match?.[1].split(",").map((column) => column.trim().replaceAll('"', ""));
 }
 
+function getM64AttemptBlock(markdown: string) {
+  const match = /## M6\.4 Attempt[\s\S]*?(?=\n## |$)/.exec(markdown);
+
+  expect(match, "M6 preview smoke doc should include an M6.4 attempt block").not.toBeNull();
+
+  return match?.[0] ?? "";
+}
+
+function getPreviewResourceStatus(markdown: string) {
+  const match = /^Preview Resource Status:\s*(.+)$/im.exec(markdown);
+
+  expect(match, "M6 preview smoke doc should declare a preview resource status").not.toBeNull();
+
+  return match?.[1].trim() ?? "";
+}
+
+function m64DetailsAreBlocked(block: string) {
+  return (
+    /### Preflight Result[\s\S]*?\bBLOCKED\b/i.test(block) &&
+    /### Remote Preview Commands[\s\S]*?\bNot run\b/i.test(block) &&
+    /### Migration Result[\s\S]*?\bNot run\b/i.test(block) &&
+    /### Preview Seed Result[\s\S]*?\bNot run\b/i.test(block) &&
+    /### Preview Worker Deploy Result[\s\S]*?\bNot run\b/i.test(block) &&
+    /### Vercel Preview Env Result[\s\S]*?\bNot set\b/i.test(block) &&
+    /### Browser And Network Smoke Result[\s\S]*?\bNot run\b/i.test(block) &&
+    /### Rollback Result[\s\S]*?\bNot needed\b/i.test(block)
+  );
+}
+
+function m64DetailsAreCompleted(block: string) {
+  return (
+    /### Preflight Result[\s\S]*?\bREADY\b/i.test(block) &&
+    /### Remote Preview Commands[\s\S]*?\bRun against confirmed non-production preview only\b/i.test(block) &&
+    /### Migration Result[\s\S]*?\bPassed\b/i.test(block) &&
+    /### Preview Seed Result[\s\S]*?\bPassed\b/i.test(block) &&
+    /### Preview Worker Deploy Result[\s\S]*?\bPassed\b/i.test(block) &&
+    /### Vercel Preview Env Result[\s\S]*?\bPassed\b/i.test(block) &&
+    /### Browser And Network Smoke Result[\s\S]*?\bPassed\b/i.test(block) &&
+    /### Rollback Result[\s\S]*?\bPassed\b/i.test(block) &&
+    /### Production Safety Confirmation[\s\S]*?\bPassed\b/i.test(block)
+  );
+}
+
 describe("M5 non-production D1 preview safety", () => {
   it("documents a preview-only D1 binding with a non-production placeholder id", () => {
     const previewBlock = getPreviewConfigBlock(wranglerToml);
@@ -129,7 +172,25 @@ describe("M5 non-production D1 preview safety", () => {
 
 describe("M6 preview smoke safety", () => {
   it("records preview smoke status without committing production identifiers or URLs", () => {
-    expect(m6PreviewSmokeDoc).toMatch(/Preview Resource Status:\s*(Blocked|Completed)/i);
+    const previewResourceStatus = getPreviewResourceStatus(m6PreviewSmokeDoc);
+    const m64AttemptBlock = getM64AttemptBlock(m6PreviewSmokeDoc);
+    const m64Blocked = m64DetailsAreBlocked(m64AttemptBlock);
+    const m64Completed = m64DetailsAreCompleted(m64AttemptBlock);
+
+    expect(previewResourceStatus).not.toBe("Ready");
+    expect(previewResourceStatus).toMatch(/^(Blocked|Completed)$/);
+    expect(m64Blocked || m64Completed).toBe(true);
+
+    if (m64Blocked) {
+      expect(previewResourceStatus).toBe("Blocked");
+      expect(m6PreviewSmokeDoc).toMatch(/Status: actual non-production preview smoke remains blocked\./i);
+    }
+
+    if (m64Completed) {
+      expect(previewResourceStatus).toBe("Completed");
+      expect(m6PreviewSmokeDoc).toMatch(/Status: actual non-production preview smoke completed successfully\./i);
+    }
+
     expect(m6PreviewSmokeDoc).toMatch(/M6\.2 Attempt/i);
     expect(m6PreviewSmokeDoc).toMatch(/M6\.4 Attempt/i);
     expect(m6PreviewSmokeDoc).toMatch(/Preflight Result/i);
