@@ -51,6 +51,26 @@ The validator checks:
 
 Only records with active internal status are included in the public snapshot. Draft or inactive records remain excluded.
 
+## M10.1 Validator Hardening
+
+M10.1 keeps this checkpoint local-only and fake-data-only while tightening the import validator before any future import pipeline work.
+
+Allowed internal statuses are `published`, `draft`, and `inactive`. Invalid statuses fail validation and are not silently remapped. Public snapshots include only `published` rows; `draft` and `inactive` remain valid internal states but are excluded from public output.
+
+Source records reject unknown fields outside `id`, `title`, `description`, `category`, `fileUrl`, `fileName`, `mediaId`, `publishedAt`, `order`, `pinned`, `updatedAt`, and `status`. D1 import rows reject unknown fields outside `id`, `title`, `description`, `category`, `file_url`, `file_name`, `media_id`, `published_at`, `sort_order`, `pinned`, `updated_at`, and `status`.
+
+Required string fields must be non-empty. File URLs must be valid HTTPS URLs, must not use localhost, must not use forbidden production hosts, and must not include token-like query parameters such as `token`, `key`, `secret`, `signature`, `sig`, or `auth`.
+
+File names must be non-empty, must not include path separators, traversal, or query strings, and must use a safe document-like extension: `.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.ppt`, `.pptx`, or `.txt`.
+
+Media ids must be non-empty, must not be URL-like, must not include forbidden hosts, and must not contain D1 id-looking values.
+
+`order` and `sort_order` must be finite non-negative integers. Source `pinned` accepts only booleans or `0` / `1`; D1 `pinned` accepts only `0` / `1`. Dates remain strict ISO strings where `new Date(value).toISOString() === value`.
+
+Invalid source records fail before transformation with safe validation details that do not print full record contents. Invalid D1 rows fail before snapshot creation, so no partial public snapshot is emitted from invalid rows.
+
+M10.1 does not run production import, migration, seed, deploy, Vercel environment changes, or cutover.
+
 ## Contract Parity
 
 The output must match `PublicDocumentListSnapshot`.
