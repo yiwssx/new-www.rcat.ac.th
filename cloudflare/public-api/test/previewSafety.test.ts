@@ -67,7 +67,7 @@ function m64DetailsAreCompleted(block: string) {
     /### Vercel Preview Env Result[\s\S]*?\bPassed\b/i.test(block) &&
     /### Browser And Network Smoke Result[\s\S]*?\bPassed\b/i.test(block) &&
     /### Rollback Result[\s\S]*?\bPassed\b/i.test(block) &&
-    /### Production Safety Confirmation[\s\S]*?\bPassed\b/i.test(block)
+    /### (?:Production|Committed Repository) Safety Confirmation[\s\S]*?\bPassed\b/i.test(block)
   );
 }
 
@@ -188,7 +188,10 @@ describe("M6 preview smoke safety", () => {
 
     if (m64Completed) {
       expect(previewResourceStatus).toBe("Completed");
-      expect(m6PreviewSmokeDoc).toMatch(/Status: actual non-production preview smoke completed successfully\./i);
+      expect(m6PreviewSmokeDoc).toMatch(
+        /Status: actual non-production preview smoke completed successfully using external non-committed preview resources\./i
+      );
+      expect(m6PreviewSmokeDoc).toMatch(/Committed Repository State:\s*Safe placeholder state/i);
     }
 
     expect(m6PreviewSmokeDoc).toMatch(/M6\.2 Attempt/i);
@@ -207,8 +210,23 @@ describe("M6 preview smoke safety", () => {
     expect(m6PreviewSmokeDoc).toMatch(/Browser And Network Smoke Result/i);
     expect(m6PreviewSmokeDoc).toMatch(/Rollback/i);
     expect(m6PreviewSmokeDoc).toMatch(/no production cutover/i);
+    expect(m6PreviewSmokeDoc).not.toMatch(/production cutover\s*(?:completed|passed|enabled|active)/i);
     expect(m6PreviewSmokeDoc).not.toMatch(committedD1DatabaseIdPattern);
     expect(m6PreviewSmokeDoc).not.toMatch(forbiddenProductionUrlPatterns);
+    expect(wranglerToml).not.toMatch(committedD1DatabaseIdPattern);
+  });
+
+  it("allows completed external smoke while the committed preview D1 id remains a placeholder", () => {
+    const previewResourceStatus = getPreviewResourceStatus(m6PreviewSmokeDoc);
+    const previewBlock = getPreviewConfigBlock(wranglerToml);
+    const m64AttemptBlock = getM64AttemptBlock(m6PreviewSmokeDoc);
+
+    expect(previewResourceStatus).toBe("Completed");
+    expect(m64DetailsAreCompleted(m64AttemptBlock)).toBe(true);
+    expect(m6PreviewSmokeDoc).toMatch(/external non-committed preview resources/i);
+    expect(m6PreviewSmokeDoc).toMatch(/real preview D1 id was used only outside git/i);
+    expect(m6PreviewSmokeDoc).toMatch(/intentionally reverted to `preview-placeholder` before commit/i);
+    expect(previewBlock).toMatch(/^\s*database_id\s*=\s*"preview-placeholder"\s*$/m);
     expect(wranglerToml).not.toMatch(committedD1DatabaseIdPattern);
   });
 

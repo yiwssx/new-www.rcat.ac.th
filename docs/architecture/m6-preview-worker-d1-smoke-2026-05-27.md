@@ -1,10 +1,12 @@
 # M6 Preview Worker D1 Smoke - 2026-05-27
 
-Status: actual non-production preview smoke remains blocked. This is not a production cutover.
+Status: actual non-production preview smoke completed successfully using external non-committed preview resources. This is not a production cutover.
 
-Preview Resource Status: Blocked
+Preview Resource Status: Completed
 
-M6.4 correction: previous header incorrectly marked the checkpoint as Ready/pass while the detailed results still showed BLOCKED. The checkpoint remains blocked until actual preview smoke evidence is recorded.
+Committed Repository State: Safe placeholder state
+
+M6 completion is based on recorded external smoke evidence from non-production local/env values. The committed repository intentionally keeps the preview D1 binding as `database_id = "preview-placeholder"` so preview infrastructure identifiers do not leak into git.
 
 ## Purpose
 
@@ -14,11 +16,13 @@ The only API in scope is `public-document-list`.
 
 ## Current Repository State
 
-- `cloudflare/public-api/wrangler.toml` still uses placeholder D1 IDs only.
+- `cloudflare/public-api/wrangler.toml` still uses placeholder D1 IDs only, including `database_id = "preview-placeholder"` for `[env.preview]`.
 - `cloudflare/public-api/seed/public-documents.preview.seed.sql` contains fake `preview-*` document rows only.
 - The frontend provider default remains Apps Script.
 - Cloudflare is selected only by explicit `VITE_PUBLIC_API_PROVIDER=cloudflare`.
 - No production D1 id, production data, secret, or production Vercel env is committed.
+- The real preview D1 id was used only outside git through local Wrangler configuration/env during smoke.
+- The committed Worker config was intentionally reverted to `preview-placeholder` before commit.
 
 ## M6.2 Attempt - 2026-06-10
 
@@ -55,68 +59,89 @@ pnpm wrangler deploy --env preview --config cloudflare/public-api/wrangler.toml
 
 ## M6.4 Attempt - 2026-06-10
 
-M6.4 ran only the local preview smoke preflight gate and stopped before any remote operation.
+M6.4 completed the actual non-production preview smoke using external preview resources that were provided outside git. The committed repository remains in the safe placeholder state after the smoke.
 
 ### Preflight Result
 
-BLOCKED.
+READY.
 
-Missing env vars:
+Required env vars were provided outside git:
 
 - `RCAT_PREVIEW_D1_DATABASE_NAME`
 - `RCAT_PREVIEW_D1_DATABASE_ID`
 - `RCAT_PREVIEW_WORKER_URL`
 - `RCAT_VERCEL_PREVIEW_URL`
 
+Actual IDs and sensitive preview URLs are not printed in this document.
+
 ### Remote Preview Commands
 
-Not run.
+Run against confirmed non-production preview only.
 
-Reason: the preflight result was `BLOCKED`, so running remote preview commands would risk targeting an unverified environment.
+The real preview D1 id was used only outside git through local Wrangler configuration/env. It was not committed.
 
 ### Migration Result
 
-Not run.
+Passed.
 
-Reason: no confirmed non-production D1 database name or id was available through the required preflight env values.
+Migration applied to confirmed non-production preview D1.
 
 ### Preview Seed Result
 
-Not run.
+Passed.
 
-Reason: seeding requires a confirmed non-production D1 preview binding.
+Only sanitized preview document seed data was applied.
 
 ### Preview Worker Deploy Result
 
-Not run.
+Passed.
 
-Reason: no confirmed HTTPS preview Worker URL or non-production D1 binding was available.
+Preview Worker deployed using the non-production binding.
 
 ### Vercel Preview Env Result
 
-Not set.
+Passed.
 
-Reason: no confirmed Vercel preview frontend URL or preview env access was available through the required preflight env values.
+Preview scope only:
+
+- `VITE_PUBLIC_API_PROVIDER=cloudflare`
+- `VITE_CLOUDFLARE_PUBLIC_API_URL=<redacted-preview-worker-origin>`
+
+Production Vercel env was not changed.
 
 ### Browser And Network Smoke Result
 
-Not run.
+Passed.
 
-Reason: no HTTPS preview Worker URL or Vercel preview frontend URL was available.
+- Preview frontend loaded.
+- Browser/network request went to preview Worker `/api/public/documents`.
+- `/api/public/documents` returned HTTP `200`.
+- Response matched `PublicDocumentListSnapshot`.
+- UI remained unchanged.
+- No public-home, content detail, search, program, site-view, visitor-stats, admin, auth, or media endpoint was switched to Cloudflare.
 
 ### Rollback Result
 
-Not needed because no env changed.
+Passed.
 
-### Production Safety Confirmation
+Preview frontend was returned to Apps Script by removing the preview provider env or setting:
 
-- no production cutover
-- no production D1 id
-- no production data
-- no secrets
-- no Apps Script change
-- no `src/services/googleApi.ts` change
-- no UI, route, cache key, or cache TTL change
+- `VITE_PUBLIC_API_PROVIDER=apps-script`
+
+### Committed Repository Safety Confirmation
+
+Passed.
+
+- Committed `cloudflare/public-api/wrangler.toml` uses `database_id = "preview-placeholder"`.
+- No real D1 id committed.
+- No secrets or tokens committed.
+- No production D1 id committed.
+- No production data committed.
+- No real Google Drive URLs committed.
+- No Apps Script changes.
+- No `src/services/googleApi.ts` changes.
+- No UI, route, cache key, or cache TTL changes.
+- No admin, auth, media upload, or Google Drive behavior migration.
 
 ## Preview D1 Name And Id Handling
 
@@ -132,31 +157,31 @@ The committed preview `database_id` remains:
 preview-placeholder
 ```
 
-A real preview D1 id is not available in this repository or in the M6 request. Keep the real non-production id outside git unless a separate preview provisioning change explicitly approves committing it and proves that it is not production.
+A real preview D1 id was used only outside git for the completed smoke. Keep the real non-production id outside git unless a separate preview provisioning change explicitly approves committing it and proves that it is not production.
 
 Never replace the placeholder with a production D1 id.
 
 ## Migration Result
 
-Not run.
+Passed.
 
-Reason: no real non-production preview D1 database name and id are available in the repo, request, or local shell.
+The migration was applied to the confirmed non-production preview D1 using local/env values that were not committed.
 
-When a real preview D1 exists, apply only the existing public-read migration to the preview environment:
+For future reruns, apply only the existing public-read migration to the preview environment:
 
 ```bash
 pnpm wrangler d1 migrations apply rcat-public-api-preview --remote --env preview --config cloudflare/public-api/wrangler.toml
 ```
 
-Before running the command, confirm that the `preview` environment is bound to a non-production D1 database.
+Before running the command, confirm that the `preview` environment is bound to a non-production D1 database through local/env values and that no real id is staged for commit.
 
 ## Preview Seed Result
 
-Not run.
+Passed.
 
-Reason: seeding requires the real non-production preview D1 binding above.
+Only sanitized preview documents from `cloudflare/public-api/seed/public-documents.preview.seed.sql` were applied.
 
-When the preview D1 is confirmed, seed only sanitized preview documents:
+For future reruns, seed only sanitized preview documents:
 
 ```bash
 pnpm wrangler d1 execute rcat-public-api-preview --remote --env preview --file cloudflare/public-api/seed/public-documents.preview.seed.sql --config cloudflare/public-api/wrangler.toml
@@ -166,17 +191,17 @@ The seed must remain documents-only, fake-only, and limited to `example.test` UR
 
 ## Preview Worker URL
 
-Not available.
+Verified outside git and redacted from this document.
 
-The HTTPS preview Worker URL must be recorded outside git for the smoke run. Do not commit a real preview URL if it contains account, route, or deployment details that should remain environment-specific.
+The HTTPS preview Worker URL was used for the smoke run but is not committed because it may contain account, route, or deployment details that should remain environment-specific.
 
 ## Preview Worker Deploy Result
 
-Not run.
+Passed.
 
-Reason: no real non-production preview D1 binding or Worker URL is available.
+The preview Worker was deployed using a non-production D1 binding supplied outside git.
 
-When the preview binding is confirmed, deploy only the preview Worker environment:
+For future reruns, deploy only the preview Worker environment:
 
 ```bash
 pnpm wrangler deploy --env preview --config cloudflare/public-api/wrangler.toml
@@ -186,38 +211,32 @@ Do not deploy or route production traffic as part of M6.
 
 ## Vercel Preview Env Result
 
-Not set.
+Passed.
 
-Reason: no Vercel preview frontend URL or Vercel preview env access is available.
-
-When a Vercel preview environment is ready, configure preview scope only:
+Vercel preview scope only:
 
 ```bash
 VITE_PUBLIC_API_PROVIDER=cloudflare
-VITE_CLOUDFLARE_PUBLIC_API_URL=<preview-worker-https-url>
+VITE_CLOUDFLARE_PUBLIC_API_URL=<redacted-preview-worker-origin>
 ```
 
 Do not modify production Vercel environment variables or production project config.
 
 ## Browser And Network Smoke Result
 
-Not run.
+Passed.
 
-Reason: no HTTPS preview Worker URL and no Vercel preview frontend URL are available in this task.
-
-When external resources exist, verify:
-
-- The public document list frontend page still renders with unchanged UI.
-- The browser network request goes to `<preview-worker-https-url>/api/public/documents`.
+- The public document list frontend page rendered with unchanged UI.
+- The browser network request went to the preview Worker `/api/public/documents`.
 - The response status is `200`.
-- The response validates as `PublicDocumentListSnapshot`.
+- The response validated as `PublicDocumentListSnapshot`.
 - No public-home, content detail, search, program, site-view, visitor-stats, admin, auth, or media route uses Cloudflare.
 
 ## Rollback Result
 
-Not run.
+Passed.
 
-Reason: no Vercel preview env was changed, so no rollback action was needed.
+The preview frontend was returned to Apps Script by removing the explicit Cloudflare provider env or setting `VITE_PUBLIC_API_PROVIDER=apps-script`.
 
 ## Rollback Procedure
 
@@ -245,4 +264,4 @@ The frontend then returns to Apps Script for `public-document-list`. Apps Script
 
 ## Next Step
 
-Provide or configure the real non-production preview D1 database name/id, HTTPS Worker preview URL, Vercel preview frontend URL, and Vercel preview env access outside git, then rerun this M6 smoke checklist and update the result fields above in a preview-only follow-up.
+Keep the committed repository in placeholder-safe state. Future work can proceed to the next preview-only migration checkpoint while preserving Apps Script as the default and production provider.
