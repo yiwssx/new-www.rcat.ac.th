@@ -1,0 +1,8 @@
+{
+  "name": "rcat-public-api-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "worker:production:preflight": "node scripts/production-cutover-preflight.mjs"
+  }
+}
