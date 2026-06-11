@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import m61ProvisioningDoc from "../../../docs/architecture/m6-1-preview-resource-provisioning-2026-05-27.md?raw";
 import m63PreflightDoc from "../../../docs/architecture/m6-3-preview-smoke-preflight-2026-05-27.md?raw";
 import m6PreviewSmokeDoc from "../../../docs/architecture/m6-preview-worker-d1-smoke-2026-05-27.md?raw";
+import m7ProductionReadinessDoc from "../../../docs/architecture/m7-public-document-list-production-readiness-2026-06-11.md?raw";
+import publicApiProviderSource from "../../../src/config/publicApiProvider.ts?raw";
 import previewSeedSql from "../seed/public-documents.preview.seed.sql?raw";
 import wranglerToml from "../wrangler.toml?raw";
 import { DOCUMENT_ROW_COLUMNS } from "../src/db/schema";
@@ -282,5 +284,39 @@ describe("M6.3 preview smoke preflight safety", () => {
     expect(m63PreflightDoc).toContain("VITE_CLOUDFLARE_PUBLIC_API_URL=<preview-worker-https-url>");
     expect(m63PreflightDoc).not.toMatch(committedD1DatabaseIdPattern);
     expect(m63PreflightDoc).not.toMatch(forbiddenProductionUrlPatterns);
+  });
+});
+
+describe("M7 production-readiness gate safety", () => {
+  it("documents the public-document-list production readiness gate without approving cutover", () => {
+    expect(m7ProductionReadinessDoc).toMatch(
+      /Status: production-readiness gate only\. Production cutover is not approved\./i
+    );
+    expect(m7ProductionReadinessDoc).toMatch(/public-document-list/i);
+    expect(m7ProductionReadinessDoc).toMatch(/Production Cutover Preconditions/i);
+    expect(m7ProductionReadinessDoc).toMatch(/Required Evidence Before Cutover/i);
+    expect(m7ProductionReadinessDoc).toMatch(/Cutover Plan Draft/i);
+    expect(m7ProductionReadinessDoc).toMatch(/Draft only\. Do not execute in M7\./i);
+    expect(m7ProductionReadinessDoc).toMatch(/Rollback Plan/i);
+    expect(m7ProductionReadinessDoc).toMatch(/No-Go Conditions/i);
+    expect(m7ProductionReadinessDoc).toMatch(/Production Safety Confirmation/i);
+    expect(m7ProductionReadinessDoc).toMatch(/Apps Script remains production source of truth/i);
+    expect(m7ProductionReadinessDoc).toMatch(/M6\.4/i);
+    expect(m7ProductionReadinessDoc).toMatch(/preview-placeholder/i);
+    expect(m7ProductionReadinessDoc).not.toMatch(/production cutover\s*(?:completed|passed|enabled|active|approved)/i);
+    expect(m7ProductionReadinessDoc).not.toMatch(/automatically\s+(?:set|change|deploy|execute|run)/i);
+    expect(m7ProductionReadinessDoc).not.toMatch(committedD1DatabaseIdPattern);
+    expect(m7ProductionReadinessDoc).not.toMatch(forbiddenProductionUrlPatterns);
+  });
+
+  it("keeps the committed provider and Worker config safe while M7 is only a gate", () => {
+    const previewBlock = getPreviewConfigBlock(wranglerToml);
+
+    expect(previewBlock).toMatch(/^\s*database_id\s*=\s*"preview-placeholder"\s*$/m);
+    expect(wranglerToml).not.toMatch(committedD1DatabaseIdPattern);
+    expect(publicApiProviderSource).toMatch(/provider === "cloudflare" \? "cloudflare" : "apps-script"/);
+    expect(publicApiProviderSource).toMatch(/VITE_PUBLIC_API_PROVIDER/);
+    expect(publicApiProviderSource).toMatch(/VITE_CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).not.toMatch(/production-cloudflare/);
   });
 });
