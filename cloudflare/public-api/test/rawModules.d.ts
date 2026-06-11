@@ -36,4 +36,42 @@ declare module "*.mjs" {
     snapshot: { items: Array<Record<string, unknown>>; generatedAt: string | null };
   }>;
   export const validatePublicDocumentD1ImportRow: (row: Record<string, unknown>) => string[];
+  export const formatPublicDocumentsImportManifestDryRunResult: (
+    result: {
+      status: string;
+      manifest: Record<string, unknown>;
+    },
+    options?: { json?: boolean }
+  ) => string;
+  export const runPublicDocumentsImportManifestDryRun: (
+    args?: string[],
+    options?: {
+      readFile?: (inputPath: string, encoding: string) => Promise<string>;
+    }
+  ) => Promise<{
+    status: string;
+    manifest: {
+      manifestVersion: number;
+      checkpoint: string;
+      scope: string;
+      status: string;
+      input: {
+        path: string;
+        sha256: string | null;
+        sourceType: string;
+      };
+      dryRun: {
+        sourceRecordCount: number;
+        transformedRowCount: number;
+        publicItemCount: number;
+        excludedDraftInactiveCount: number;
+        validationErrorCount: number;
+        firstPublicItemIds: string[];
+        generatedAt: string | null;
+      };
+      checks: Record<string, string>;
+      safety: Record<string, boolean>;
+      validationIssues: Array<{ index: number | null; messages: string[] }>;
+    };
+  }>;
 }

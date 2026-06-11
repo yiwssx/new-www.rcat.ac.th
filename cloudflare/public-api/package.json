@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "public-documents:import:dry-run": "node scripts/public-documents-import-dry-run.mjs",
+    "public-documents:import:manifest": "node scripts/public-documents-import-manifest-dry-run.mjs",
     "worker:production:preflight": "node scripts/production-cutover-preflight.mjs"
   }
 }
