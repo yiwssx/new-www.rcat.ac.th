@@ -5,6 +5,7 @@
   "scripts": {
     "public-documents:import:dry-run": "node scripts/public-documents-import-dry-run.mjs",
     "public-documents:import:manifest": "node scripts/public-documents-import-manifest-dry-run.mjs",
+    "public-documents:import:prod": "node scripts/public-documents-production-import.mjs",
     "worker:production:preflight": "node scripts/production-cutover-preflight.mjs"
   }
 }

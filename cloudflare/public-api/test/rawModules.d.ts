@@ -74,4 +74,45 @@ declare module "*.mjs" {
       validationIssues: Array<{ index: number | null; messages: string[] }>;
     };
   }>;
+  export const formatPublicDocumentsProductionImportResult: (
+    result: {
+      status: string;
+      manifest: Record<string, unknown>;
+    },
+    options?: { json?: boolean }
+  ) => string;
+  export const runPublicDocumentsProductionImport: (
+    args?: string[],
+    options?: {
+      env?: Record<string, string | undefined>;
+      readFile?: (inputPath: string, encoding: string) => Promise<string>;
+      execute?: (input: { command: string; args: string[] }) => Promise<{ code: number }>;
+      writeTempSql?: (sql: string) => Promise<string>;
+      cleanupTempSql?: (filePath: string) => Promise<void>;
+    }
+  ) => Promise<{
+    status: string;
+    manifest: {
+      checkpoint: string;
+      scope: string;
+      mode: string;
+      status: string;
+      input: {
+        pathLabel: string;
+        sha256: string | null;
+        sourceRecordCount: number;
+      };
+      validation: Record<string, string>;
+      import: {
+        targetDatabaseNameLabel: string;
+        targetDatabaseIdRedacted: string | null;
+        rowCount: number;
+        batchCount: number;
+        executedAt: string | null;
+      };
+      firstPublicItemIds: string[];
+      safety: Record<string, boolean>;
+      validationIssues: Array<{ index: number | null; messages: string[] }>;
+    };
+  }>;
 }

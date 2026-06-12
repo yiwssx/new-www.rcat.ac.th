@@ -25,6 +25,7 @@
     "worker:production:preflight": "node cloudflare/public-api/scripts/production-cutover-preflight.mjs",
     "worker:public-documents:import:dry-run": "node cloudflare/public-api/scripts/public-documents-import-dry-run.mjs",
     "worker:public-documents:import:manifest": "node cloudflare/public-api/scripts/public-documents-import-manifest-dry-run.mjs",
+    "worker:public-documents:import:prod": "node cloudflare/public-api/scripts/public-documents-production-import.mjs",
     "test": "vitest run",
     "test:unit": "vitest run --exclude src/test/integration/**",
     "test:integration": "vitest run src/test/integration",
