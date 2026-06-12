@@ -81,6 +81,8 @@ declare module "*.mjs" {
     },
     options?: { json?: boolean }
   ) => string;
+  export const getProductionImportExitCode: (status: string) => number;
+  export const isProductionImportInputPathAllowed: (inputPath: string, repoRoot?: string) => boolean;
   export const runPublicDocumentsProductionImport: (
     args?: string[],
     options?: {

@@ -70,6 +70,27 @@ Input requirements:
 - repository-local input is blocked unless it is under an ignored temp path
 - validation happens before any write-capable command
 
+## M13.1 Hardening
+
+M13.1 hardens the controlled import runner before any real production execution.
+
+Exit code behavior:
+
+- `READY_DRY_RUN` and `IMPORTED` exit successfully.
+- `BLOCKED` and `FAILED` exit with non-zero code.
+- Any unexpected status exits with non-zero code.
+
+Input path safety:
+
+- cross-platform input path safety was hardened.
+- external secure local paths are allowed, including POSIX absolute paths and Windows-like absolute paths.
+- repo-tracked input paths are blocked.
+- repo temp/ignored paths are allowed, including `tmp/`, `temp/`, `.tmp/`, and `cloudflare/public-api/tmp/`.
+
+No real import was executed in M13.1.
+
+Production frontend cutover remains not approved.
+
 ## Import Validation Gates
 
 The runner blocks before execute if any gate fails:

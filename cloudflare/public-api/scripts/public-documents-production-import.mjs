@@ -22,6 +22,7 @@ const NON_PROD_NAME_PATTERN = /\b(preview|local|dev|test|staging|sandbox)\b/i;
 const PROD_NAME_PATTERN = /(prod|production)/i;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STRICT_ISO_MESSAGE = "--generated-at must be a strict ISO string";
+const SUCCESS_STATUSES = new Set(["READY_DRY_RUN", "IMPORTED"]);
 const PUBLIC_ITEM_KEYS = [
   "id",
   "title",
@@ -130,15 +131,59 @@ function makePathLabel(inputPath) {
   return inputPath ? path.basename(inputPath) : "not-provided";
 }
 
-function normalizePathForCheck(inputPath) {
-  return path.relative(REPO_ROOT, inputPath).replaceAll(path.sep, "/");
+function normalizePolicyPath(inputPath) {
+  const normalized = path.posix.normalize(String(inputPath).replaceAll("\\", "/"));
+
+  if (normalized === ".") {
+    return "";
+  }
+
+  return normalized.length > 1 ? normalized.replace(/\/+$/, "") : normalized;
 }
 
-function isInputPathAllowed(inputPath) {
-  const relativePath = normalizePathForCheck(inputPath);
+function isPolicyAbsolutePath(inputPath) {
+  return inputPath.startsWith("/") || /^[A-Za-z]:\//.test(inputPath);
+}
 
-  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
-    return true;
+function comparePolicyPath(inputPath, repoRoot) {
+  const hasWindowsDrive = /^[A-Za-z]:/.test(inputPath) || /^[A-Za-z]:/.test(repoRoot);
+
+  return hasWindowsDrive ? inputPath.toLowerCase() : inputPath;
+}
+
+function resolvePolicyPath(inputPath, repoRoot) {
+  const normalizedInput = normalizePolicyPath(inputPath);
+
+  if (isPolicyAbsolutePath(normalizedInput)) {
+    return normalizedInput;
+  }
+
+  return normalizePolicyPath(`${normalizePolicyPath(repoRoot)}/${normalizedInput}`);
+}
+
+function getRepositoryRelativePolicyPath(inputPath, repoRoot) {
+  const resolvedInput = resolvePolicyPath(inputPath, repoRoot);
+  const normalizedRepoRoot = normalizePolicyPath(repoRoot);
+  const comparableInput = comparePolicyPath(resolvedInput, normalizedRepoRoot);
+  const comparableRepoRoot = comparePolicyPath(normalizedRepoRoot, normalizedRepoRoot);
+
+  if (comparableInput === comparableRepoRoot) {
+    return "";
+  }
+
+  if (comparableInput.startsWith(`${comparableRepoRoot}/`)) {
+    return resolvedInput.slice(normalizedRepoRoot.length + 1);
+  }
+
+  return null;
+}
+
+export function isProductionImportInputPathAllowed(inputPath, repoRoot = REPO_ROOT) {
+  const normalizedInput = normalizePolicyPath(inputPath);
+  const relativePath = getRepositoryRelativePolicyPath(normalizedInput, repoRoot);
+
+  if (relativePath === null) {
+    return isPolicyAbsolutePath(normalizedInput);
   }
 
   return (
@@ -147,6 +192,18 @@ function isInputPathAllowed(inputPath) {
     relativePath.startsWith(".tmp/") ||
     relativePath.startsWith("cloudflare/public-api/tmp/")
   );
+}
+
+export function getProductionImportExitCode(status) {
+  return SUCCESS_STATUSES.has(status) ? 0 : 1;
+}
+
+function isInputPathAllowed(inputPath) {
+  if (isProductionImportInputPathAllowed(inputPath)) {
+    return true;
+  }
+
+  return false;
 }
 
 function redactedD1Id(value) {
@@ -710,9 +767,7 @@ export async function main() {
     })
   );
 
-  if (result.status === "FAILED") {
-    process.exitCode = 1;
-  }
+  process.exitCode = getProductionImportExitCode(result.status);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

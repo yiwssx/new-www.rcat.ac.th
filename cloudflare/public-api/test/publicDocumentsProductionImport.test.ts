@@ -4,6 +4,8 @@ import rootPackageJsonSource from "../../../package.json?raw";
 import publicApiProviderSource from "../../../src/config/publicApiProvider.ts?raw";
 import {
   formatPublicDocumentsProductionImportResult,
+  getProductionImportExitCode,
+  isProductionImportInputPathAllowed,
   runPublicDocumentsProductionImport
 } from "../scripts/public-documents-production-import.mjs";
 import productionImportSource from "../scripts/public-documents-production-import.mjs?raw";
@@ -161,6 +163,14 @@ describe("M13 controlled public document production import runner", () => {
     expectSafeOutput(output);
   });
 
+  it("maps production import statuses to safe CLI exit codes", () => {
+    expect(getProductionImportExitCode("READY_DRY_RUN")).toBe(0);
+    expect(getProductionImportExitCode("IMPORTED")).toBe(0);
+    expect(getProductionImportExitCode("BLOCKED")).toBe(1);
+    expect(getProductionImportExitCode("FAILED")).toBe(1);
+    expect(getProductionImportExitCode("UNEXPECTED")).toBe(1);
+  });
+
   it("blocks execute without required env vars or exact approval phrase", async () => {
     const execute = vi.fn();
     const missingEnv = await runWithRecords(validRecords, ["--execute"], { execute });
@@ -182,6 +192,7 @@ describe("M13 controlled public document production import runner", () => {
       index: null,
       messages: ["RCAT_PROD_IMPORT_APPROVAL must exactly match APPROVED_PRODUCTION_D1_IMPORT"]
     });
+    expect(getProductionImportExitCode(missingEnv.status)).toBe(1);
     expect(execute).not.toHaveBeenCalled();
   });
 
@@ -285,6 +296,32 @@ describe("M13 controlled public document production import runner", () => {
     expect(allowed.status).toBe("READY_DRY_RUN");
   });
 
+  it("classifies production import input paths explicitly across platforms", () => {
+    const repoRoot = "C:/repo/new-www.example.test";
+
+    expect(isProductionImportInputPathAllowed("/tmp/public-documents-prod-export.redacted.json", repoRoot)).toBe(true);
+    expect(
+      isProductionImportInputPathAllowed("C:/operator/secure/public-documents-prod-export.redacted.json", repoRoot)
+    ).toBe(true);
+    expect(
+      isProductionImportInputPathAllowed(
+        "cloudflare/public-api/test/fixtures/public-documents.import-source.redacted.json",
+        repoRoot
+      )
+    ).toBe(false);
+    expect(isProductionImportInputPathAllowed("tmp/public-documents-prod.redacted.json", repoRoot)).toBe(true);
+    expect(isProductionImportInputPathAllowed(".tmp/public-documents-prod.redacted.json", repoRoot)).toBe(true);
+    expect(
+      isProductionImportInputPathAllowed("cloudflare/public-api/tmp/public-documents-prod.redacted.json", repoRoot)
+    ).toBe(true);
+    expect(
+      isProductionImportInputPathAllowed(
+        "C:/repo/new-www.example.test/cloudflare/public-api/test/fixtures/public-documents.import-source.redacted.json",
+        repoRoot
+      )
+    ).toBe(false);
+  });
+
   it("mock execute path calls injected dependencies only after gates pass and uses remote Wrangler execution", async () => {
     const execute = vi.fn(async () => ({ code: 0 }));
     const cleanupTempSql = vi.fn(async () => undefined);
@@ -363,6 +400,10 @@ describe("M13 controlled public document production import runner", () => {
     expect(m13Doc).toMatch(/does not deploy production Worker/i);
     expect(m13Doc).toMatch(/Apps Script remains production source of truth/i);
     expect(m13Doc).toMatch(/does not authorize M14\/M15/i);
+    expect(m13Doc).toMatch(/## M13\.1 Hardening/i);
+    expect(m13Doc).toMatch(/`BLOCKED` and `FAILED` exit with non-zero code/i);
+    expect(m13Doc).toMatch(/cross-platform input path safety was hardened/i);
+    expect(m13Doc).toMatch(/no real import was executed in M13\.1/i);
     expect(m13Doc).not.toMatch(forbiddenProductionPattern);
     expect(m13Doc).not.toMatch(realD1IdPattern);
   });
