@@ -260,3 +260,51 @@ Completion requires:
 - rollback verification passed or rollback readiness was explicitly confirmed
 - redacted result evidence recorded
 - no production safety guardrail breach
+
+## M15.1 Dry-Run Cutover And Rollback Validation
+
+The M15.1 dry-run validation was performed as documentation and safety evidence only.
+
+The root filter command was attempted first:
+
+```bash
+pnpm --filter rcat-public-api-worker public-documents:cutover -- --cutover
+pnpm --filter rcat-public-api-worker public-documents:cutover -- --rollback
+```
+
+The filter command matched no workspace project, so the package-local commands were run from `cloudflare/public-api`.
+
+Dry-run cutover command used:
+
+```bash
+pnpm public-documents:cutover -- --cutover
+```
+
+Dry-run rollback command used:
+
+```bash
+pnpm public-documents:cutover -- --rollback
+```
+
+Dry-run cutover result: `BLOCKED`, safely.
+
+Dry-run rollback result: `BLOCKED`, safely.
+
+Missing required environment values:
+
+- `RCAT_PROD_FRONTEND_URL`
+- `RCAT_PROD_WORKER_URL`
+
+Gate result: blocked-safe. The missing environment values were not bypassed.
+
+No `--execute` was run.
+
+No production Vercel env was changed.
+
+No Worker deploy was run.
+
+No D1 write, import, or migration was run.
+
+Rollback remains Apps Script.
+
+M15.2 is the next step only after explicit operator approval and an approved production monitoring window.
