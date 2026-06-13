@@ -163,4 +163,56 @@ declare module "*.mjs" {
       validationIssues: Array<{ index: number | null; messages: string[] }>;
     };
   }>;
+  export const formatPublicDocumentsProductionCutoverResult: (
+    result: {
+      status: string;
+      manifest: Record<string, unknown>;
+    },
+    options?: { json?: boolean }
+  ) => string;
+  export const getProductionCutoverExitCode: (status: string) => number;
+  export const runPublicDocumentsProductionCutover: (
+    args?: string[],
+    options?: {
+      env?: Record<string, string | undefined>;
+      fetch?: (
+        input: string,
+        init?: Record<string, unknown>
+      ) => Promise<{
+        ok: boolean;
+        status: number;
+        headers?: { get: (name: string) => string | null };
+        json: () => Promise<unknown>;
+        text: () => Promise<string>;
+      }>;
+      executeCommand?: (input: {
+        command: string;
+        args: string[];
+        env?: Record<string, string>;
+      }) => Promise<{ code: number }>;
+    }
+  ) => Promise<{
+    status: string;
+    manifest: {
+      checkpoint: string;
+      scope: string;
+      mode: string;
+      status: string;
+      target: {
+        frontendUrlLabel: string;
+        workerUrlLabel: string;
+        providerBefore: string;
+        providerTarget: string;
+      };
+      checks: Record<string, string>;
+      verification: {
+        itemCount: number;
+        expectedMinCount: number;
+        firstPublicItemIds: string[];
+        generatedAt: string | null;
+      };
+      safety: Record<string, boolean>;
+      validationIssues: Array<{ index: number | null; messages: string[] }>;
+    };
+  }>;
 }

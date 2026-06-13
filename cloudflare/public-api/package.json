@@ -7,6 +7,7 @@
     "public-documents:import:manifest": "node scripts/public-documents-import-manifest-dry-run.mjs",
     "public-documents:import:prod": "node scripts/public-documents-production-import.mjs",
     "public-documents:worker-smoke": "node scripts/public-documents-production-worker-smoke.mjs",
+    "public-documents:cutover": "node scripts/public-documents-production-cutover.mjs",
     "worker:production:preflight": "node scripts/production-cutover-preflight.mjs"
   }
 }
