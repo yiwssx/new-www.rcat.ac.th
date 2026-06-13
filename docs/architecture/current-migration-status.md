@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M16.
+Current milestone: M17.
 
 ## Summary
 
@@ -13,6 +13,8 @@ M15: Production frontend cutover and rollback gate added. Actual production cuto
 M15.1: Operator-accepted under domain-management constraint. Technical dry-run gate blocked safely because the replacement system cannot use the real production domain while the old live production system remains on that domain. This is accepted as sufficient to proceed to M16 planning. No production mutation occurred.
 
 M16: Cloudflare-first backend migration reset. The replacement system is now moving toward Cloudflare Worker + D1 as the primary application backend, while Apps Script is reduced to the target role of Google Drive media-file bridge only.
+
+M17: Cloudflare Core Public Read Batch Migration. The public read layer is now planned as one grouped Cloudflare API foundation instead of separate endpoint-by-endpoint mini-milestones.
 
 ## M15.1 Dry-Run Result
 
@@ -65,13 +67,19 @@ Apps Script target role: media-file bridge only.
 
 ## Next Action
 
-Next action: M16 endpoint-by-endpoint Cloudflare migration planning and implementation.
+Next action: continue M17 public read parity implementation in dev/preview, then move to M18 Admin + D1 Write Batch Migration when the public read layer is stable.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
+
+M17 goal: build the Cloudflare Core Public Read API foundation, preserve existing `public-document-list`, add safe public read route skeletons, and document parity requirements for home, content, search, programs, and visitor stats.
+
+M17 status: public read API foundation, route skeleton, and parity plan.
 
 M15.2 real execute cutover remains deferred until the replacement system is complete, the production domain can be moved safely, explicit operator approval is recorded, and an approved production monitoring window exists.
 
 M16 architecture checkpoint: `docs/architecture/m16-cloudflare-first-backend-reset-2026-06-13.md`.
+
+M17 architecture checkpoint: `docs/architecture/m17-cloudflare-core-public-read-batch-2026-06-13.md`.
 
 ## Safety
 

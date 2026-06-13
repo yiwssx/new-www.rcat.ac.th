@@ -2,6 +2,8 @@ import type { Env } from "./env";
 import { methodNotAllowed, notFound } from "./responses";
 import { health } from "./routes/health";
 import { publicDocuments } from "./routes/publicDocuments";
+import { getM17SkeletonResource } from "./routes/publicReadRegistry";
+import { publicReadNotImplemented } from "./routes/publicReadSkeleton";
 
 export async function routeRequest(request: Request, env: Env) {
   if (request.method === "OPTIONS") {
@@ -24,6 +26,12 @@ export async function routeRequest(request: Request, env: Env) {
 
   if (pathname === "/api/public/documents") {
     return publicDocuments(env);
+  }
+
+  const m17SkeletonResource = getM17SkeletonResource(pathname);
+
+  if (m17SkeletonResource) {
+    return publicReadNotImplemented(m17SkeletonResource);
   }
 
   return notFound();
