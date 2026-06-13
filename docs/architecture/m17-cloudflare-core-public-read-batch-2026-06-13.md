@@ -1,6 +1,6 @@
 # M17 Cloudflare Core Public Read Batch Migration
 
-Status: M17-B public read route batch implemented for dev/preview Worker origins. This is not a production cutover.
+Status: M17-C preview smoke and contract freeze added for the implemented public read route batch. This is not a production cutover.
 
 ## Purpose
 
@@ -20,23 +20,49 @@ Replacement-system endpoints before final cutover: dev/preview Worker origins on
 
 The old live system remains on the real production domain until final cutover is explicitly approved.
 
-No production Vercel environment mutation, Worker production deploy, D1 production migration, D1 production import, or D1 production write occurs in M17-B.
+No production Vercel environment mutation, Worker production deploy, D1 production migration, D1 production import, or D1 production write occurs in M17-C.
 
 ## Dev/Preview Enforcement
 
-M17-B uses the M16 policy:
+M17-C uses the M16 policy:
 
 - `VITE_BACKEND_MIGRATION_MODE=cloudflare-first-preview`
 - `VITE_PUBLIC_API_PROVIDER=cloudflare`
 - `VITE_CLOUDFLARE_PUBLIC_API_URL=<dev-or-preview-worker-origin>`
 
-M17-B does not weaken M15 production validation.
+M17-C does not weaken M15 production validation.
 
 Vercel preview URLs must not pass as production frontend URLs.
 
 Preview, staging, dev, test, or sandbox Worker origins must not pass as production Worker URLs.
 
 Apps Script fallback remains available until each public read endpoint is parity-verified and a later cutover gate is explicitly approved.
+
+## M17-C Scope
+
+In scope:
+
+- approval-gated dev/preview smoke runner for the grouped public read route batch
+- minimum public response contract freeze for all M17 public read endpoints
+- safe redacted smoke summary output
+- tests proving approval gates, URL safety, 501 failure, server-error failure, leakage failure, and valid safe response success
+- current-status and M17 architecture documentation
+
+Out of scope:
+
+- new endpoint migration scope
+- endpoint-specific milestone documents
+- M18 admin write implementation
+- admin write routes
+- media upload/delete
+- Apps Script modification
+- `src/services/googleApi.ts` rewrite
+- removing Apps Script fallback
+- production Vercel environment mutation
+- Worker production deploy
+- production D1 migration, import, or write
+- any command requiring an execute flag
+- weakening M15 production safety gates
 
 ## M17-B Scope
 
@@ -64,6 +90,39 @@ Out of scope:
 - `src/services/googleApi.ts` rewrite
 - removing Apps Script fallback
 - broad UI behavior changes
+
+## M17-C Preview Smoke
+
+M17-C adds the smoke runner:
+
+```bash
+pnpm worker:public-read:preview-smoke
+```
+
+It requires:
+
+- `RCAT_M17_PUBLIC_READ_SMOKE_APPROVAL=APPROVED_M17_PUBLIC_READ_PREVIEW_SMOKE`
+- `RCAT_PREVIEW_WORKER_URL=<dev-or-preview-worker-origin>`
+
+The runner is fetch-only. It does not run Wrangler, does not deploy Worker code, does not mutate Vercel env, and does not write D1.
+
+It verifies these routes:
+
+| Request Path                              | Acceptable Result                         |
+| ----------------------------------------- | ----------------------------------------- |
+| `/api/public/documents`                   | 2xx public JSON                           |
+| `/api/public/home`                        | 2xx public JSON                           |
+| `/api/public/content`                     | 2xx public JSON                           |
+| `/api/public/content/sample-preview-news` | 2xx public JSON or safe 404 if not seeded |
+| `/api/public/search?q=sample`             | 2xx public JSON                           |
+| `/api/public/programs`                    | 2xx public JSON                           |
+| `/api/public/visitor-stats`               | 2xx public JSON                           |
+
+The runner fails if any scoped endpoint returns 501, returns a server error, leaks unsafe implementation details, leaks production endpoint evidence, or fails the minimum public response contract.
+
+The runner prints only a redacted summary: Worker host label, endpoint labels, HTTP status, item counts, generated timestamps, checks, and validation issue labels.
+
+Actual dev/preview smoke must use an approved dev/preview Worker origin. Production-domain smoke and production cutover remain out of scope.
 
 ## Route Contract Plan
 
@@ -101,6 +160,20 @@ Repository row interfaces remain Worker-local and snake_case.
 `OPTIONS` returns CORS headers and no body.
 
 Non-GET methods return 405 with `Allow: GET, OPTIONS`.
+
+## M17-C Contract Freeze
+
+M17-C freezes the minimum public read contracts:
+
+- documents: `items`, `generatedAt`
+- home: `sections`, `featuredContent`, `featuredDocuments`, `programs`, `generatedAt`
+- content list: `items`, `generatedAt`
+- content detail: `item`, `generatedAt`, or safe 404
+- search: `items`, `query`, `generatedAt`
+- programs: `items`, `generatedAt`
+- visitor stats: `total`, `today`, `generatedAt`
+
+The freeze is intentionally minimum-shape only. It does not require exact production data and does not bundle real records.
 
 ## Remaining Parity Work
 
@@ -144,14 +217,18 @@ For dev/preview testing, rollback means removing the explicit Cloudflare provide
 
 For production cutover work, M15 rollback safety remains unchanged and M15.2 remains deferred.
 
-## Acceptance For M17-B
+## Acceptance For M17-C
 
-M17-B is accepted when:
+M17-C is accepted when:
 
 - grouped public read route registry exists and all M17-B routes are marked implemented
 - `public-document-list` still works as before
 - public read routes for home, content list, content detail, search, programs, and visitor stats return public JSON responses
 - tests prove the grouped routes no longer return the M17 safe 501 skeleton
+- preview smoke runner exists and is exposed by package scripts
+- preview smoke runner blocks without exact approval and a safe dev/preview Worker origin
+- preview smoke runner fails 501, server errors, unsafe leakage, and invalid public response shapes
+- contract freeze tests cover all grouped public read endpoints
 - tests prove no stack, SQL, internal field, production endpoint, Google Drive endpoint, Apps Script endpoint, or secret leakage
 - M16 dev/preview policy remains strict
 - Apps Script fallback remains available
@@ -161,4 +238,4 @@ M17-B is accepted when:
 
 M18: Admin + D1 Write Batch Migration.
 
-M18 should start only after public read parity work is sufficiently stable in dev/preview, and it must not remove the media bridge role until media upload/delete has a dedicated migration plan.
+M18 should start only after the M17-C smoke/parity freeze passes in dev/preview, and it must not remove the media bridge role until media upload/delete has a dedicated migration plan.
