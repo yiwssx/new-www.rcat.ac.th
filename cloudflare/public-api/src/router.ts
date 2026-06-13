@@ -1,9 +1,14 @@
 import type { Env } from "./env";
 import { methodNotAllowed, notFound } from "./responses";
 import { health } from "./routes/health";
+import { publicContentDetail, publicContentList } from "./routes/publicContent";
 import { publicDocuments } from "./routes/publicDocuments";
-import { getM17SkeletonResource } from "./routes/publicReadRegistry";
-import { publicReadNotImplemented } from "./routes/publicReadSkeleton";
+import { publicHome } from "./routes/publicHome";
+import { publicPrograms } from "./routes/publicPrograms";
+import { publicSearch } from "./routes/publicSearch";
+import { publicVisitorStats } from "./routes/publicVisitorStats";
+
+const CONTENT_DETAIL_PREFIX = "/api/public/content/";
 
 export async function routeRequest(request: Request, env: Env) {
   if (request.method === "OPTIONS") {
@@ -28,10 +33,28 @@ export async function routeRequest(request: Request, env: Env) {
     return publicDocuments(env);
   }
 
-  const m17SkeletonResource = getM17SkeletonResource(pathname);
+  if (pathname === "/api/public/home") {
+    return publicHome(env);
+  }
 
-  if (m17SkeletonResource) {
-    return publicReadNotImplemented(m17SkeletonResource);
+  if (pathname === "/api/public/content") {
+    return publicContentList(env);
+  }
+
+  if (pathname.startsWith(CONTENT_DETAIL_PREFIX) && pathname.length > CONTENT_DETAIL_PREFIX.length) {
+    return publicContentDetail(env, decodeURIComponent(pathname.slice(CONTENT_DETAIL_PREFIX.length)));
+  }
+
+  if (pathname === "/api/public/search") {
+    return publicSearch(request, env);
+  }
+
+  if (pathname === "/api/public/programs") {
+    return publicPrograms(env);
+  }
+
+  if (pathname === "/api/public/visitor-stats") {
+    return publicVisitorStats(env);
   }
 
   return notFound();

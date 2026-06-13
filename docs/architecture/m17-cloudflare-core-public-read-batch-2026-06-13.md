@@ -1,6 +1,6 @@
 # M17 Cloudflare Core Public Read Batch Migration
 
-Status: public read API foundation, route skeleton, and parity plan. This is not a production cutover.
+Status: M17-B public read route batch implemented for dev/preview Worker origins. This is not a production cutover.
 
 ## Purpose
 
@@ -20,32 +20,33 @@ Replacement-system endpoints before final cutover: dev/preview Worker origins on
 
 The old live system remains on the real production domain until final cutover is explicitly approved.
 
-No production Vercel environment mutation, Worker production deploy, D1 production migration, D1 production import, or D1 production write occurs in M17.
+No production Vercel environment mutation, Worker production deploy, D1 production migration, D1 production import, or D1 production write occurs in M17-B.
 
 ## Dev/Preview Enforcement
 
-M17 uses the M16 policy:
+M17-B uses the M16 policy:
 
 - `VITE_BACKEND_MIGRATION_MODE=cloudflare-first-preview`
 - `VITE_PUBLIC_API_PROVIDER=cloudflare`
 - `VITE_CLOUDFLARE_PUBLIC_API_URL=<dev-or-preview-worker-origin>`
 
-M17 does not weaken M15 production validation.
+M17-B does not weaken M15 production validation.
 
 Vercel preview URLs must not pass as production frontend URLs.
 
 Preview, staging, dev, test, or sandbox Worker origins must not pass as production Worker URLs.
 
-Apps Script fallback remains available until each public read endpoint is fully implemented and parity-verified.
+Apps Script fallback remains available until each public read endpoint is parity-verified and a later cutover gate is explicitly approved.
 
-## M17 Scope
+## M17-B Scope
 
 In scope:
 
-- Cloudflare Worker route skeletons for the public read layer
-- typed route contract registry
-- safe 501 responses for routes not implemented yet
+- D1-backed Worker routes for the core public read layer
+- typed route contract registry marked implemented for the grouped route batch
 - existing `public-document-list` route preserved
+- additive D1 migration for home-section projection and read indexes
+- fake local/dev seed data for home, documents, content, programs, and visitor stats
 - route availability and leak-safety tests
 - architecture and current status documentation
 
@@ -66,29 +67,53 @@ Out of scope:
 
 ## Route Contract Plan
 
-All public read routes allow `GET` and `OPTIONS` only in M17.
+All public read routes allow `GET` and `OPTIONS` only in M17-B.
 
-Unimplemented routes return:
+The grouped public read routes now return public JSON responses from D1-backed repositories in the Worker. They no longer return the M17 safe 501 skeleton response in Worker tests.
 
-```json
-{
-  "error": "Not implemented",
-  "resource": "<resource-name>",
-  "phase": "M17"
-}
-```
+| Route                           | Resource               | Response Type                 | Target D1 Tables                                | Fallback Behavior                                                  | M17-B Behavior |
+| ------------------------------- | ---------------------- | ----------------------------- | ----------------------------------------------- | ------------------------------------------------------------------ | -------------- |
+| `GET /api/public/documents`     | `public-document-list` | `PublicDocumentListSnapshot`  | `documents`                                     | Apps Script fallback remains available in frontend provider switch | implemented    |
+| `GET /api/public/home`          | `public-home`          | `PublicHomeSnapshot`          | `public_home_sections`, `contents`, `documents` | Apps Script until D1 parity is accepted                            | implemented    |
+| `GET /api/public/content`       | `content-list`         | `PublicContentListSnapshot`   | `contents`                                      | Apps Script until D1 parity is accepted                            | implemented    |
+| `GET /api/public/content/:slug` | `content-detail`       | `PublicContentDetailSnapshot` | `contents`                                      | Apps Script until D1 parity is accepted                            | implemented    |
+| `GET /api/public/search`        | `search`               | `PublicSearchSnapshot`        | `contents`                                      | Apps Script until D1 parity is accepted                            | implemented    |
+| `GET /api/public/programs`      | `program`              | `PublicProgramListSnapshot`   | `contents`                                      | Apps Script until D1 parity is accepted                            | implemented    |
+| `GET /api/public/visitor-stats` | `visitor-stats`        | `PublicVisitorStatsSnapshot`  | `visitor_daily_stats`                           | Apps Script until D1 parity is accepted                            | implemented    |
 
-The response is intentionally not shaped like a successful production snapshot.
+## M17-B Implementation Notes
 
-| Route                           | Resource               | Expected Response Type            | Current Source                                            | Target D1 Tables                                                                                                                        | Fallback Behavior                                                  | Parity Test Requirement                                     | M17 Behavior |
-| ------------------------------- | ---------------------- | --------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- | ------------ |
-| `GET /api/public/documents`     | `public-document-list` | `PublicDocumentListSnapshot`      | Cloudflare D1 route with Apps Script fallback in frontend | `documents`                                                                                                                             | Apps Script fallback remains available in frontend provider switch | shape, ordering, count, public fields, no internal row keys | implemented  |
-| `GET /api/public/home`          | `public-home`          | `PublicHomeSnapshot`              | Apps Script                                               | site settings, homepage settings, display settings, menu, carousel, external services, content, documents, events, media, visitor stats | Apps Script until D1 parity exists                                 | full homepage snapshot parity and UI smoke                  | safe 501     |
-| `GET /api/public/content`       | `content-list`         | `PublicContentListSnapshot`       | Apps Script                                               | content, media, site settings, homepage settings, display settings, menu                                                                | Apps Script until D1 parity exists                                 | type/status/order parity and public fields only             | safe 501     |
-| `GET /api/public/content/:slug` | `content-detail`       | `ContentItem` public detail shape | Apps Script                                               | content, media metadata, content view stats                                                                                             | Apps Script until D1 parity exists                                 | slug parity, public body fields, no internal document ids   | safe 501     |
-| `GET /api/public/search`        | `search`               | `PublicSearchIndexSnapshot`       | Apps Script                                               | content search projection, site settings, homepage settings, display settings, menu                                                     | Apps Script until D1 parity exists                                 | query parity and no private fields                          | safe 501     |
-| `GET /api/public/programs`      | `program`              | `PublicProgramListSnapshot`       | Apps Script                                               | content/program projection, media, site settings, homepage settings, display settings, menu                                             | Apps Script until D1 parity exists                                 | program list parity and public media metadata               | safe 501     |
-| `GET /api/public/visitor-stats` | `visitor-stats`        | `VisitorStatsSettings`            | Apps Script                                               | visitor daily stats and aggregate view                                                                                                  | Apps Script until D1 parity exists                                 | counter parity and cache behavior                           | safe 501     |
+The Worker now has route handlers, repositories, contracts, and adapters for:
+
+- public home
+- public content list
+- public content detail
+- public search
+- public programs
+- public visitor stats
+
+The response contracts intentionally expose public camelCase fields only.
+
+Repository row interfaces remain Worker-local and snake_case.
+
+`/api/public/content/:slug` returns a safe 404 for missing public content.
+
+`OPTIONS` returns CORS headers and no body.
+
+Non-GET methods return 405 with `Allow: GET, OPTIONS`.
+
+## Remaining Parity Work
+
+M17-B is a working public-read route batch, not final parity acceptance.
+
+Known follow-up areas before any production-domain traffic switch:
+
+- verify route responses against real approved public snapshots in dev/preview
+- confirm homepage parity beyond the minimum M17-B core shape
+- confirm search ranking and filtering parity
+- confirm visitor-stat aggregation parity
+- run browser smoke with explicit Cloudflare provider env values only
+- keep rollback to Apps Script available
 
 ## Field Safety
 
@@ -109,7 +134,7 @@ Committed fixtures and tests must not include:
 
 ## Site View
 
-Site-view read/write is planned with the public read batch, but no write migration is implemented in M17.
+Site-view read/write is planned with the public read batch, but no write migration is implemented in M17-B.
 
 The first safe write path should be designed separately with throttling, privacy-safe fields, replay protection, and non-production verification.
 
@@ -119,14 +144,14 @@ For dev/preview testing, rollback means removing the explicit Cloudflare provide
 
 For production cutover work, M15 rollback safety remains unchanged and M15.2 remains deferred.
 
-## Acceptance For M17
+## Acceptance For M17-B
 
-M17 is accepted when:
+M17-B is accepted when:
 
-- grouped public read route registry exists
+- grouped public read route registry exists and all M17-B routes are marked implemented
 - `public-document-list` still works as before
-- public read skeleton routes exist for home, content list, content detail, search, programs, and visitor stats
-- unimplemented routes return safe 501 responses
+- public read routes for home, content list, content detail, search, programs, and visitor stats return public JSON responses
+- tests prove the grouped routes no longer return the M17 safe 501 skeleton
 - tests prove no stack, SQL, internal field, production endpoint, Google Drive endpoint, Apps Script endpoint, or secret leakage
 - M16 dev/preview policy remains strict
 - Apps Script fallback remains available

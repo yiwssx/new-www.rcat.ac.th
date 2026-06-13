@@ -80,6 +80,28 @@ export const CONTENT_ROW_COLUMNS = [
   "publish_at"
 ] as const satisfies readonly (keyof ContentRow)[];
 
+export interface PublicHomeSectionRow {
+  id: string;
+  section_key: string;
+  title: string;
+  summary: string;
+  href: string;
+  sort_order: number;
+  enabled: 0 | 1;
+  updated_at: string;
+}
+
+export const PUBLIC_HOME_SECTION_ROW_COLUMNS = [
+  "id",
+  "section_key",
+  "title",
+  "summary",
+  "href",
+  "sort_order",
+  "enabled",
+  "updated_at"
+] as const satisfies readonly (keyof PublicHomeSectionRow)[];
+
 export interface MediaAssetRow {
   id: string;
   name: string;

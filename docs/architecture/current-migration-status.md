@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M17.
+Current milestone: M17-B.
 
 ## Summary
 
@@ -15,6 +15,8 @@ M15.1: Operator-accepted under domain-management constraint. Technical dry-run g
 M16: Cloudflare-first backend migration reset. The replacement system is now moving toward Cloudflare Worker + D1 as the primary application backend, while Apps Script is reduced to the target role of Google Drive media-file bridge only.
 
 M17: Cloudflare Core Public Read Batch Migration. The public read layer is now planned as one grouped Cloudflare API foundation instead of separate endpoint-by-endpoint mini-milestones.
+
+M17-B: Cloudflare Core Public Read API routes are implemented for dev/preview Worker use with D1-backed public responses. This is not a production cutover.
 
 ## M15.1 Dry-Run Result
 
@@ -67,13 +69,13 @@ Apps Script target role: media-file bridge only.
 
 ## Next Action
 
-Next action: continue M17 public read parity implementation in dev/preview, then move to M18 Admin + D1 Write Batch Migration when the public read layer is stable.
+Next action: run dev/preview parity smoke for the M17-B public read route batch, then move to M18 Admin + D1 Write Batch Migration when the public read layer is stable.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 
-M17 goal: build the Cloudflare Core Public Read API foundation, preserve existing `public-document-list`, add safe public read route skeletons, and document parity requirements for home, content, search, programs, and visitor stats.
+M17 goal: build the Cloudflare Core Public Read API foundation, preserve existing `public-document-list`, implement D1-backed public read routes for home, content, search, programs, and visitor stats, and document remaining parity requirements.
 
-M17 status: public read API foundation, route skeleton, and parity plan.
+M17 status: public read API foundation implemented for dev/preview Worker origins. The grouped routes no longer return M17 safe 501 skeleton responses in Worker tests, but Apps Script fallback remains available until parity smoke and final cutover gates are approved.
 
 M15.2 real execute cutover remains deferred until the replacement system is complete, the production domain can be moved safely, explicit operator approval is recorded, and an approved production monitoring window exists.
 

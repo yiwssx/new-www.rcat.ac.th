@@ -11,20 +11,14 @@ export interface PublicReadRouteContract {
   resource: PublicReadResource;
   method: "GET";
   pathPattern: string;
-  phase: "M17";
+  phase: "M17-B";
   responseType:
     | "PublicDocumentListSnapshot"
     | "PublicHomeSnapshot"
     | "PublicContentListSnapshot"
-    | "ContentItem"
-    | "PublicSearchIndexSnapshot"
+    | "PublicContentDetailSnapshot"
+    | "PublicSearchSnapshot"
     | "PublicProgramListSnapshot"
-    | "VisitorStatsSettings";
+    | "PublicVisitorStatsSnapshot";
   implemented: boolean;
-}
-
-export interface PublicReadNotImplementedContract {
-  error: "Not implemented";
-  resource: Exclude<PublicReadResource, "public-document-list">;
-  phase: "M17";
 }

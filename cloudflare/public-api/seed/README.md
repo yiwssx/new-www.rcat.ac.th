@@ -7,6 +7,7 @@ This directory contains local-only D1 seed planning and fake seed fixtures. It d
 - `public-documents.sample.json` is fake row-shaped data for contract and safety tests only.
 - `public-documents.seed.sql` is a repeatable fake local D1 seed for the `documents` table only.
 - `public-documents.preview.seed.sql` is a repeatable fake preview-only D1 seed for non-production Worker smoke tests.
+- `public-read-core.seed.sql` is a fake local/dev seed for the M17-B public read route batch.
 - Every external URL uses `example.test`.
 - The sample is marked with `sampleOnly: true`.
 
@@ -18,7 +19,7 @@ This directory contains local-only D1 seed planning and fake seed fixtures. It d
 - inserts fake `sample-*` rows into `documents`
 - does not touch users, auth, admin, media upload, or other public-read tables
 - uses `example.test` URLs only
-- contains no `rcat.ac.th`, `script.google.com`, or `drive.google.com` URLs
+- contains no production domain URLs, Apps Script endpoint URLs, or Google Drive file URLs
 
 Run it after applying the local migration:
 
@@ -28,7 +29,24 @@ pnpm worker:d1:seed:local
 pnpm worker:d1:list:local
 ```
 
-The seed is for local D1 development and M3 preparation only. `GET /api/public/documents` still returns `501` in M2.2.
+The seed is for local D1 development and M3 preparation only. M17-B routes use the later `public-read-core.seed.sql` for broader local/dev coverage.
+
+## M17-B Public Read Core Seed
+
+`public-read-core.seed.sql` is intentionally fake and narrow:
+
+- deletes only `sample-public-read-*` rows plus two fake visitor-stat sample days
+- inserts fake rows for home sections, public documents, content, programs, and visitor stats
+- uses `example.test` URLs only
+- contains no real school data, Apps Script URLs, Google Drive URLs, production records, users, auth records, or admin data
+- supports local/dev verification of the M17-B public read route batch without changing production behavior
+
+Apply it only after the additive M17-B migration:
+
+```bash
+pnpm wrangler d1 migrations apply <local-d1-database-name> --local --config cloudflare/public-api/wrangler.toml
+pnpm wrangler d1 execute <local-d1-database-name> --local --file cloudflare/public-api/seed/public-read-core.seed.sql --config cloudflare/public-api/wrangler.toml
+```
 
 ## M5 Fake Preview Seed Strategy
 
