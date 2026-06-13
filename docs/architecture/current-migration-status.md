@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M15.1.
+Current milestone: M16.
 
 ## Summary
 
@@ -11,6 +11,8 @@ M14: Passed externally per operator confirmation. The repository contains a dire
 M15: Production frontend cutover and rollback gate added. Actual production cutover has not been executed from this repository commit history.
 
 M15.1: Operator-accepted under domain-management constraint. Technical dry-run gate blocked safely because the replacement system cannot use the real production domain while the old live production system remains on that domain. This is accepted as sufficient to proceed to M16 planning. No production mutation occurred.
+
+M16: Cloudflare-first backend migration reset. The replacement system is now moving toward Cloudflare Worker + D1 as the primary application backend, while Apps Script is reduced to the target role of Google Drive media-file bridge only.
 
 ## M15.1 Dry-Run Result
 
@@ -53,13 +55,23 @@ Target provider after approved cutover: Cloudflare public API for `public-docume
 
 Rollback provider: Apps Script.
 
+M15.2 real execute cutover: deferred.
+
+Current real production domain: old live system.
+
+Replacement-system Cloudflare endpoints before final cutover: dev/preview Worker origins only.
+
+Apps Script target role: media-file bridge only.
+
 ## Next Action
 
-Next action: M16 Cloudflare-first backend migration reset.
+Next action: M16 endpoint-by-endpoint Cloudflare migration planning and implementation.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 
 M15.2 real execute cutover remains deferred until the replacement system is complete, the production domain can be moved safely, explicit operator approval is recorded, and an approved production monitoring window exists.
+
+M16 architecture checkpoint: `docs/architecture/m16-cloudflare-first-backend-reset-2026-06-13.md`.
 
 ## Safety
 
