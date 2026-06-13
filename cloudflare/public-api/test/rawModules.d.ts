@@ -117,4 +117,50 @@ declare module "*.mjs" {
       validationIssues: Array<{ index: number | null; messages: string[] }>;
     };
   }>;
+  export const formatPublicDocumentsProductionWorkerSmokeResult: (
+    result: {
+      status: string;
+      manifest: Record<string, unknown>;
+    },
+    options?: { json?: boolean }
+  ) => string;
+  export const getProductionWorkerSmokeExitCode: (status: string) => number;
+  export const runPublicDocumentsProductionWorkerSmoke: (
+    args?: string[],
+    options?: {
+      env?: Record<string, string | undefined>;
+      fetch?: (
+        input: string,
+        init?: Record<string, unknown>
+      ) => Promise<{
+        ok: boolean;
+        status: number;
+        json: () => Promise<unknown>;
+      }>;
+    }
+  ) => Promise<{
+    status: string;
+    manifest: {
+      checkpoint: string;
+      scope: string;
+      status: string;
+      target: {
+        workerUrlLabel: string;
+        endpoint: string;
+      };
+      http: {
+        status: number | null;
+        ok: boolean;
+      };
+      snapshot: {
+        itemCount: number;
+        expectedMinCount: number;
+        firstPublicItemIds: string[];
+        generatedAt: string | null;
+      };
+      checks: Record<string, string>;
+      safety: Record<string, boolean>;
+      validationIssues: Array<{ index: number | null; messages: string[] }>;
+    };
+  }>;
 }
