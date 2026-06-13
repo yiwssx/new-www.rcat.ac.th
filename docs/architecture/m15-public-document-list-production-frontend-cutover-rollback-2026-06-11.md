@@ -308,3 +308,45 @@ No D1 write, import, or migration was run.
 Rollback remains Apps Script.
 
 M15.2 is the next step only after explicit operator approval and an approved production monitoring window.
+
+## M15.1 Operator Decision
+
+The old production system remains live at the real public school production domain. The exact domain is intentionally not repeated here because this repository checkpoint must not commit production URLs.
+
+The replacement project is still under development, so the real production frontend domain cannot be pointed at this project yet.
+
+The cutover gate correctly treats a Vercel preview frontend as non-production and must not treat it as a production frontend target.
+
+The cutover gate also correctly blocks preview, staging, dev, test, or sandbox-looking Worker origins for production cutover.
+
+Technical dry-run result: `BLOCKED`, safely.
+
+Operator decision: `ACCEPTED` for planning.
+
+The operator accepts the blocked-safe result as sufficient to proceed to M16 planning because the production-domain constraint is external to the cutover runner and expected while the old system remains live.
+
+M15.2 real execute cutover is deferred.
+
+Real production frontend cutover: `NOT EXECUTED`.
+
+Future domain cutover is deferred until the replacement system is complete and the real production domain can be moved safely.
+
+No `--execute` was run.
+
+No production Vercel env was changed.
+
+No Worker deploy was run.
+
+No D1 write, import, or migration was run.
+
+No Apps Script change was made.
+
+No `src/services/googleApi.ts` change was made.
+
+No UI, route, cache key, or cache TTL change was made.
+
+## M16 Direction
+
+M16 is the Cloudflare-first backend migration reset.
+
+M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.

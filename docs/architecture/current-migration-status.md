@@ -10,7 +10,7 @@ M14: Passed externally per operator confirmation. The repository contains a dire
 
 M15: Production frontend cutover and rollback gate added. Actual production cutover has not been executed from this repository commit history.
 
-M15.1: Dry-run cutover and rollback validation was attempted. The pnpm filter command matched no workspace project, so package-local dry-runs were run from `cloudflare/public-api`.
+M15.1: Operator-accepted under domain-management constraint. Technical dry-run gate blocked safely because the replacement system cannot use the real production domain while the old live production system remains on that domain. This is accepted as sufficient to proceed to M16 planning. No production mutation occurred.
 
 ## M15.1 Dry-Run Result
 
@@ -26,14 +26,22 @@ Dry-run rollback command used:
 pnpm public-documents:cutover -- --rollback
 ```
 
-Dry-run cutover result: `BLOCKED`, safely.
+Technical dry-run cutover result: `BLOCKED`, safely.
 
-Dry-run rollback result: `BLOCKED`, safely.
+Technical dry-run rollback result: `BLOCKED`, safely.
 
-Missing required environment values:
+Earlier local dry-run attempts were blocked by missing required environment values:
 
 - `RCAT_PROD_FRONTEND_URL`
 - `RCAT_PROD_WORKER_URL`
+
+The operator decision update records the deployment reality: available replacement-system endpoints are not the real production frontend domain. A Vercel preview frontend cannot be treated as production by the gate, and preview, staging, dev, test, or sandbox-looking Worker origins must remain blocked.
+
+Operator decision: `ACCEPTED` for planning.
+
+Real production cutover: `NOT EXECUTED`.
+
+Future domain cutover: deferred until the replacement system is complete and the old live system can safely be moved.
 
 No `--execute` command was run.
 
@@ -47,7 +55,11 @@ Rollback provider: Apps Script.
 
 ## Next Action
 
-Next action: M15.2 execute cutover only after explicit operator approval and an approved production monitoring window.
+Next action: M16 Cloudflare-first backend migration reset.
+
+M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
+
+M15.2 real execute cutover remains deferred until the replacement system is complete, the production domain can be moved safely, explicit operator approval is recorded, and an approved production monitoring window exists.
 
 ## Safety
 
