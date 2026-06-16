@@ -22,3 +22,11 @@ name = "rcat-public-api-preview"
 binding = "DB"
 database_name = "rcat-public-api-preview"
 database_id = "preview-placeholder"
+
+[env.production]
+name = "rcat-public-api-production"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "rcat-public-api-production"
+database_id = "production-placeholder"
