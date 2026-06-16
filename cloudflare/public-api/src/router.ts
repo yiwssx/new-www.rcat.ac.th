@@ -1,5 +1,6 @@
 import type { Env } from "./env";
 import { methodNotAllowed, notFound } from "./responses";
+import { adminWrite } from "./routes/adminWrite";
 import { health } from "./routes/health";
 import { publicContentDetail, publicContentList } from "./routes/publicContent";
 import { publicDocuments } from "./routes/publicDocuments";
@@ -11,6 +12,12 @@ import { publicVisitorStats } from "./routes/publicVisitorStats";
 const CONTENT_DETAIL_PREFIX = "/api/public/content/";
 
 export async function routeRequest(request: Request, env: Env) {
+  const adminResponse = await adminWrite(request, env);
+
+  if (adminResponse) {
+    return adminResponse;
+  }
+
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204

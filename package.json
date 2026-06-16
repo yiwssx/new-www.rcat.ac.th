@@ -29,6 +29,7 @@
     "worker:public-documents:worker-smoke": "node cloudflare/public-api/scripts/public-documents-production-worker-smoke.mjs",
     "worker:public-documents:cutover": "node cloudflare/public-api/scripts/public-documents-production-cutover.mjs",
     "worker:public-read:preview-smoke": "node cloudflare/public-api/scripts/public-read-preview-smoke.mjs",
+    "worker:admin-write:preview-smoke": "node cloudflare/public-api/scripts/admin-write-preview-smoke.mjs",
     "test": "vitest run",
     "test:unit": "vitest run --exclude src/test/integration/**",
     "test:integration": "vitest run src/test/integration",

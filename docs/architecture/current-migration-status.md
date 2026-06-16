@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M17-C completed; ready for M18 planning.
+Current milestone: M18 repository implementation complete; external preview smoke remains `BLOCKED_SAFE`.
 
 ## Summary
 
@@ -19,6 +19,8 @@ M17: Cloudflare Core Public Read Batch Migration. The public read layer is now p
 M17-B: Cloudflare Core Public Read API routes are implemented for dev/preview Worker use with D1-backed public responses. This is not a production cutover.
 
 M17-C: `PASSED` through an externally executed, operator-approved dev/preview smoke run. The grouped Cloudflare public-read endpoints passed the M17-C smoke and minimum contract gate after the preview Worker was updated to the current M17 route implementation. The successful run used a non-production dev/preview Worker origin; the actual Worker URL remains redacted and uncommitted. This is not a production cutover.
+
+M18: Admin + D1 Write Batch Migration repository implementation is complete as one cohesive milestone. It moves structured admin writes for M17 public-read data toward Cloudflare Worker + D1 in dev/preview mode while Apps Script remains production fallback and Google Drive media-file bridge. External preview smoke remains `BLOCKED_SAFE` until non-production Worker URL and preview admin token values are supplied outside git.
 
 ## M15.1 Dry-Run Result
 
@@ -102,9 +104,35 @@ Recorded result:
 
 M17 is completed for the current preview smoke and contract-freeze checkpoint.
 
+## M18 Repository Implementation Result
+
+Status: repository implementation complete; external preview smoke `BLOCKED_SAFE`.
+
+M18 added:
+
+- additive D1 migration for structured admin write metadata and audit rows
+- preview-gated Worker admin routes for content, document metadata, public-home sections, visitor daily stats, and admin snapshot readback
+- explicit frontend admin write provider that defaults to Apps Script and switches to Cloudflare only in preview migration mode
+- Apps Script media-file bridge boundary, keeping upload/delete operations on Apps Script
+- approval-gated preview smoke runner for one sanitized admin write lifecycle
+- tests for provider defaults, preview-only Cloudflare routing, Worker write validation, public-read visibility, redaction, and safe blocked smoke behavior
+
+External preview smoke was not executed from this repository state because non-production execution values are not committed and were not supplied to the local environment.
+
+Next operator action when non-production preview resources are ready:
+
+```bash
+RCAT_M18_ADMIN_WRITE_SMOKE_APPROVAL=APPROVED_M18_ADMIN_WRITE_PREVIEW_SMOKE
+RCAT_PREVIEW_WORKER_URL=<dev-or-preview-worker-origin>
+RCAT_M18_ADMIN_WRITE_TOKEN=<preview-admin-token>
+pnpm worker:admin-write:preview-smoke
+```
+
+No production cutover, production Worker deploy, production D1 migration/import/write, production Vercel environment mutation, Apps Script change, `src/services/googleApi.ts` change, UI change, route change, cache key change, or cache TTL change is part of M18.
+
 ## Next Action
 
-Next action: begin M18 planning for Admin + D1 Write Batch Migration. M18 implementation has not started in this documentation update.
+Next action: run the M18 external preview smoke only when approved non-production Worker URL and preview admin token values are supplied outside git.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 
@@ -117,6 +145,8 @@ M15.2 real execute cutover remains deferred until the replacement system is comp
 M16 architecture checkpoint: `docs/architecture/m16-cloudflare-first-backend-reset-2026-06-13.md`.
 
 M17 architecture checkpoint: `docs/architecture/m17-cloudflare-core-public-read-batch-2026-06-13.md`.
+
+M18 architecture checkpoint: `docs/architecture/m18-admin-d1-write-batch-migration-2026-06-16.md`.
 
 ## Safety
 

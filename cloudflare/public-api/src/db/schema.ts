@@ -11,6 +11,11 @@ export interface DocumentRow {
   sort_order: number;
   pinned: 0 | 1;
   updated_at: string;
+  created_at?: string;
+  deleted_at?: string;
+  created_by?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const DOCUMENT_ROW_COLUMNS = [
@@ -28,11 +33,21 @@ export const DOCUMENT_ROW_COLUMNS = [
   "updated_at"
 ] as const satisfies readonly (keyof DocumentRow)[];
 
+export const DOCUMENT_ADMIN_ROW_COLUMNS = [
+  ...DOCUMENT_ROW_COLUMNS,
+  "created_at",
+  "deleted_at",
+  "created_by",
+  "updated_by",
+  "revision"
+] as const satisfies readonly (keyof DocumentRow)[];
+
 export interface ContentRow {
   id: string;
   slug: string;
   type: string;
   status: string;
+  owner?: string;
   title: string;
   summary: string;
   body_snapshot: string;
@@ -52,6 +67,11 @@ export interface ContentRow {
   last_viewed_at: string;
   updated_at: string;
   publish_at: string;
+  created_at?: string;
+  deleted_at?: string;
+  created_by?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const CONTENT_ROW_COLUMNS = [
@@ -80,6 +100,16 @@ export const CONTENT_ROW_COLUMNS = [
   "publish_at"
 ] as const satisfies readonly (keyof ContentRow)[];
 
+export const CONTENT_ADMIN_ROW_COLUMNS = [
+  ...CONTENT_ROW_COLUMNS,
+  "owner",
+  "created_at",
+  "deleted_at",
+  "created_by",
+  "updated_by",
+  "revision"
+] as const satisfies readonly (keyof ContentRow)[];
+
 export interface PublicHomeSectionRow {
   id: string;
   section_key: string;
@@ -89,6 +119,11 @@ export interface PublicHomeSectionRow {
   sort_order: number;
   enabled: 0 | 1;
   updated_at: string;
+  created_at?: string;
+  deleted_at?: string;
+  created_by?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const PUBLIC_HOME_SECTION_ROW_COLUMNS = [
@@ -100,6 +135,15 @@ export const PUBLIC_HOME_SECTION_ROW_COLUMNS = [
   "sort_order",
   "enabled",
   "updated_at"
+] as const satisfies readonly (keyof PublicHomeSectionRow)[];
+
+export const PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS = [
+  ...PUBLIC_HOME_SECTION_ROW_COLUMNS,
+  "created_at",
+  "deleted_at",
+  "created_by",
+  "updated_by",
+  "revision"
 ] as const satisfies readonly (keyof PublicHomeSectionRow)[];
 
 export interface MediaAssetRow {
@@ -298,6 +342,9 @@ export interface VisitorDailyStatsRow {
   unique_visitors: number;
   online_users: number;
   updated_at: string;
+  created_at?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const VISITOR_DAILY_STATS_ROW_COLUMNS = [
@@ -307,6 +354,33 @@ export const VISITOR_DAILY_STATS_ROW_COLUMNS = [
   "online_users",
   "updated_at"
 ] as const satisfies readonly (keyof VisitorDailyStatsRow)[];
+
+export const VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS = [
+  ...VISITOR_DAILY_STATS_ROW_COLUMNS,
+  "created_at",
+  "updated_by",
+  "revision"
+] as const satisfies readonly (keyof VisitorDailyStatsRow)[];
+
+export interface AdminAuditLogRow {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  actor: string;
+  created_at: string;
+  metadata_json: string;
+}
+
+export const ADMIN_AUDIT_LOG_ROW_COLUMNS = [
+  "id",
+  "entity_type",
+  "entity_id",
+  "action",
+  "actor",
+  "created_at",
+  "metadata_json"
+] as const satisfies readonly (keyof AdminAuditLogRow)[];
 
 export interface ContentViewEventRow {
   id: string;

@@ -9,6 +9,7 @@ export async function listPublishedHomeSectionRows(env: Env): Promise<PublicHome
       `SELECT ${PUBLIC_HOME_SECTION_ROW_COLUMNS.join(", ")}
        FROM public_home_sections
        WHERE enabled = ?
+         AND COALESCE(deleted_at, '') = ''
        ORDER BY sort_order ASC, updated_at DESC`
     )
     .bind(1)

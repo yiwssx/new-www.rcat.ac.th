@@ -31,6 +31,7 @@ export async function listPublishedContentRows(env: Env): Promise<PublicContentR
        FROM contents
        WHERE status = ?
          AND type <> ?
+         AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
     .bind(PUBLISHED_STATUS, PROGRAM_TYPE)
@@ -48,6 +49,7 @@ export async function listFeaturedContentRows(env: Env): Promise<PublicContentRe
        WHERE status = ?
          AND featured = ?
          AND type <> ?
+         AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC
        LIMIT 6`
     )
@@ -66,6 +68,7 @@ export async function getPublishedContentRowBySlug(env: Env, slug: string): Prom
        WHERE status = ?
          AND slug = ?
          AND type <> ?
+         AND COALESCE(deleted_at, '') = ''
        LIMIT 1`
     )
     .bind(PUBLISHED_STATUS, slug, PROGRAM_TYPE)
@@ -89,6 +92,7 @@ export async function searchPublishedContentRows(env: Env, query: string): Promi
        FROM contents
        WHERE status = ?
          AND type <> ?
+         AND COALESCE(deleted_at, '') = ''
          AND (
            title LIKE ?
            OR summary LIKE ?

@@ -16,6 +16,7 @@ export async function listPublishedDocumentRows(env: Env): Promise<DocumentRow[]
       `SELECT ${DOCUMENT_ROW_COLUMNS.join(", ")}
        FROM documents
        WHERE status = ?
+         AND COALESCE(deleted_at, '') = ''
        ORDER BY pinned DESC, sort_order ASC, published_at DESC, updated_at DESC`
     )
     .bind("published")

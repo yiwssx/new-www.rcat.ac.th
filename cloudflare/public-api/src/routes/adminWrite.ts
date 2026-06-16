@@ -1,0 +1,1124 @@
+import { createPublicContentListSnapshot } from "../adapters/publicContentAdapter";
+import { createPublicDocumentListSnapshot } from "../adapters/publicDocumentsAdapter";
+import { listPublishedContentRows } from "../db/contentRepository";
+import { requireD1Database } from "../db/documentsRepository";
+import { listPublishedDocumentRows } from "../db/documentsRepository";
+import {
+  CONTENT_ADMIN_ROW_COLUMNS,
+  DOCUMENT_ADMIN_ROW_COLUMNS,
+  PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS,
+  VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS,
+  type ContentRow,
+  type DocumentRow,
+  type PublicHomeSectionRow,
+  type VisitorDailyStatsRow
+} from "../db/schema";
+import type { Env } from "../env";
+import { json, jsonError, methodNotAllowed } from "../responses";
+
+const ADMIN_PREFIX = "/api/admin/";
+const ADMIN_ALLOW = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
+const TOKEN_HEADER = "X-RCAT-Admin-Write-Token";
+const CONTENT_TYPES = new Set(["page", "news", "program", "announcement", "blog"]);
+const CONTENT_STATUSES = new Set(["draft", "review", "scheduled", "published"]);
+const DOCUMENT_STATUSES = new Set(["draft", "published"]);
+const PRODUCTION_CONTEXT_PATTERN = /(^|[-_.])(prod|production|live)([-_.]|$)/i;
+
+type JsonRecord = Record<string, unknown>;
+
+class AdminHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = "AdminHttpError";
+    Object.setPrototypeOf(this, AdminHttpError.prototype);
+  }
+}
+
+function isAdminHttpError(error: unknown): error is AdminHttpError {
+  return (
+    isRecord(error) &&
+    typeof error.message === "string" &&
+    typeof error.status === "number" &&
+    Number.isInteger(error.status) &&
+    error.status >= 400 &&
+    error.status < 500
+  );
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function trimString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function optionalString(value: unknown, fallback = "") {
+  const trimmed = trimString(value);
+
+  return trimmed || fallback;
+}
+
+function normalizeBoolean(value: unknown) {
+  return value === true || value === 1 || value === "true" || value === "TRUE";
+}
+
+function normalizeInteger(value: unknown, fallback = 0) {
+  const numeric = Number(value);
+
+  return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : fallback;
+}
+
+function parseJsonArray(value: string | undefined) {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function serializeStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return "[]";
+  }
+
+  return JSON.stringify(value.map((item) => String(item || "").trim()).filter(Boolean));
+}
+
+function makeId(prefix: string) {
+  return `${prefix}-${Date.now()}`;
+}
+
+function getActor(request: Request) {
+  return optionalString(request.headers.get("X-RCAT-Admin-Actor"), "preview-admin");
+}
+
+function getEnvironmentValue(env: Env, key: string) {
+  const value = (env as unknown as Record<string, unknown>)[key];
+
+  return typeof value === "string" ? value : "";
+}
+
+function hasProductionContext(env: Env) {
+  return ["ENVIRONMENT", "ENV", "CF_PAGES_BRANCH"].some((key) =>
+    PRODUCTION_CONTEXT_PATTERN.test(getEnvironmentValue(env, key))
+  );
+}
+
+function requireAdminWriteGate(request: Request, env: Env) {
+  if (request.method === "OPTIONS") {
+    return null;
+  }
+
+  if (env.ADMIN_WRITE_PREVIEW_ENABLED !== "true") {
+    return jsonError("admin write preview gate is disabled", 403, {
+      resource: "admin-structured-data"
+    });
+  }
+
+  if (hasProductionContext(env)) {
+    return jsonError("admin write preview gate is not available for production-like context", 403, {
+      resource: "admin-structured-data"
+    });
+  }
+
+  const configuredToken = trimString(env.ADMIN_WRITE_TOKEN);
+
+  if (!configuredToken) {
+    return jsonError("admin write credential is not configured", 403, {
+      resource: "admin-structured-data"
+    });
+  }
+
+  const requestToken = trimString(request.headers.get(TOKEN_HEADER));
+
+  if (!requestToken) {
+    return jsonError("admin write credential is required", 401, {
+      resource: "admin-structured-data"
+    });
+  }
+
+  if (requestToken !== configuredToken) {
+    return jsonError("admin write credential is invalid", 403, {
+      resource: "admin-structured-data"
+    });
+  }
+
+  return null;
+}
+
+async function parseJsonBody(request: Request) {
+  try {
+    const body = await request.json();
+
+    if (!isRecord(body)) {
+      throw new AdminHttpError("request body must be a JSON object", 400);
+    }
+
+    return body;
+  } catch (error) {
+    if (error instanceof AdminHttpError) {
+      throw error;
+    }
+
+    throw new AdminHttpError("malformed JSON request body", 400);
+  }
+}
+
+function requireValue(body: JsonRecord, key: string) {
+  const value = trimString(body[key]);
+
+  if (!value) {
+    throw new AdminHttpError(`missing required field: ${key}`, 400);
+  }
+
+  return value;
+}
+
+function assertAllowedValue(value: string, allowed: Set<string>, label: string) {
+  if (!allowed.has(value)) {
+    throw new AdminHttpError(`invalid ${label}`, 400);
+  }
+
+  return value;
+}
+
+function getExpectedRevision(body: JsonRecord) {
+  if (body.expectedRevision === undefined || body.expectedRevision === null || body.expectedRevision === "") {
+    return null;
+  }
+
+  const revision = Number(body.expectedRevision);
+
+  if (!Number.isInteger(revision) || revision < 0) {
+    throw new AdminHttpError("expectedRevision must be a non-negative integer", 400);
+  }
+
+  return revision;
+}
+
+function assertFreshRevision(row: { revision?: number } | null, body: JsonRecord) {
+  const expectedRevision = getExpectedRevision(body);
+
+  if (expectedRevision !== null && Number(row?.revision ?? 0) !== expectedRevision) {
+    throw new AdminHttpError("stale write conflict", 409);
+  }
+}
+
+function mapContentRowToAdminItem(row: ContentRow) {
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    type: row.type,
+    status: row.status,
+    owner: row.owner ?? "",
+    summary: row.summary,
+    body: row.body_snapshot,
+    category: row.category,
+    tags: parseJsonArray(row.tags_json).map(String),
+    seoTitle: row.seo_title,
+    seoDescription: row.seo_description,
+    canonicalUrl: row.canonical_url,
+    featured: row.featured === 1,
+    readingMinutes: row.reading_minutes,
+    template: row.template,
+    bodyDocId: row.body_doc_id,
+    bodyDocUrl: row.body_doc_url,
+    featuredMediaId: row.featured_media_id,
+    mediaIds: parseJsonArray(row.media_ids_json).map(String),
+    viewCount: row.view_count,
+    lastViewedAt: row.last_viewed_at,
+    updatedAt: row.updated_at,
+    publishAt: row.publish_at,
+    revision: Number(row.revision ?? 0)
+  };
+}
+
+function mapDocumentRowToAdminItem(row: DocumentRow) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    fileUrl: row.file_url,
+    fileName: row.file_name,
+    mediaId: row.media_id,
+    publishedAt: row.published_at,
+    status: row.status,
+    order: row.sort_order,
+    pinned: row.pinned === 1,
+    updatedAt: row.updated_at,
+    revision: Number(row.revision ?? 0)
+  };
+}
+
+function mapHomeSectionRowToAdminItem(row: PublicHomeSectionRow) {
+  return {
+    id: row.id,
+    key: row.section_key,
+    title: row.title,
+    summary: row.summary,
+    href: row.href,
+    order: row.sort_order,
+    enabled: row.enabled === 1,
+    updatedAt: row.updated_at,
+    revision: Number(row.revision ?? 0)
+  };
+}
+
+function mapVisitorDailyStatsRowToAdminItem(row: VisitorDailyStatsRow) {
+  return {
+    day: row.day,
+    total: row.total_views,
+    uniqueVisitors: row.unique_visitors,
+    onlineUsers: row.online_users,
+    updatedAt: row.updated_at,
+    revision: Number(row.revision ?? 0)
+  };
+}
+
+async function getFirst<T>(env: Env, query: string, ...bindings: unknown[]) {
+  const db = requireD1Database(env);
+
+  return db
+    .prepare(query)
+    .bind(...bindings)
+    .first<T>();
+}
+
+async function getAll<T>(env: Env, query: string, ...bindings: unknown[]) {
+  const db = requireD1Database(env);
+  const result = await db
+    .prepare(query)
+    .bind(...bindings)
+    .all<T>();
+
+  return result.results ?? [];
+}
+
+async function run(env: Env, query: string, ...bindings: unknown[]) {
+  const db = requireD1Database(env);
+
+  return db
+    .prepare(query)
+    .bind(...bindings)
+    .run();
+}
+
+async function insertAudit(
+  env: Env,
+  input: { entityType: string; entityId: string; action: string; actor: string; now: string }
+) {
+  await run(
+    env,
+    `INSERT INTO admin_audit_log (id, entity_type, entity_id, action, actor, created_at, metadata_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    makeId("audit"),
+    input.entityType,
+    input.entityId,
+    input.action,
+    input.actor,
+    input.now,
+    "{}"
+  );
+}
+
+function createContentRow(body: JsonRecord, existing: ContentRow | null, actor: string, now: string): ContentRow {
+  const status = assertAllowedValue(
+    optionalString(body.status, existing?.status ?? "draft"),
+    CONTENT_STATUSES,
+    "content status"
+  );
+  const type = assertAllowedValue(optionalString(body.type, existing?.type ?? ""), CONTENT_TYPES, "content type");
+  const id = optionalString(body.id, existing?.id ?? makeId("content"));
+
+  return {
+    id,
+    slug: requireValue(body, "slug"),
+    type,
+    status,
+    owner: requireValue(body, "owner"),
+    title: requireValue(body, "title"),
+    summary: optionalString(body.summary, existing?.summary ?? ""),
+    body_snapshot: optionalString(body.body, existing?.body_snapshot ?? ""),
+    category: optionalString(body.category, existing?.category ?? ""),
+    tags_json: serializeStringArray(body.tags ?? parseJsonArray(existing?.tags_json)),
+    seo_title: optionalString(body.seoTitle, existing?.seo_title ?? ""),
+    seo_description: optionalString(body.seoDescription, existing?.seo_description ?? ""),
+    canonical_url: optionalString(body.canonicalUrl, existing?.canonical_url ?? ""),
+    featured: normalizeBoolean(body.featured ?? existing?.featured) ? 1 : 0,
+    reading_minutes: normalizeInteger(body.readingMinutes, existing?.reading_minutes ?? 0),
+    template: optionalString(body.template, existing?.template ?? "standard"),
+    body_doc_id: optionalString(body.bodyDocId, existing?.body_doc_id ?? ""),
+    body_doc_url: optionalString(body.bodyDocUrl, existing?.body_doc_url ?? ""),
+    featured_media_id: optionalString(body.featuredMediaId, existing?.featured_media_id ?? ""),
+    media_ids_json: serializeStringArray(body.mediaIds ?? parseJsonArray(existing?.media_ids_json)),
+    view_count: normalizeInteger(existing?.view_count, 0),
+    last_viewed_at: optionalString(existing?.last_viewed_at, ""),
+    updated_at: now,
+    publish_at: optionalString(body.publishAt, existing?.publish_at ?? now),
+    created_at: optionalString(existing?.created_at, now),
+    deleted_at: "",
+    created_by: optionalString(existing?.created_by, actor),
+    updated_by: actor,
+    revision: existing ? Number(existing.revision ?? 0) + 1 : 0
+  };
+}
+
+function createDocumentRow(body: JsonRecord, existing: DocumentRow | null, actor: string, now: string): DocumentRow {
+  const status = assertAllowedValue(
+    optionalString(body.status, existing?.status ?? "draft"),
+    DOCUMENT_STATUSES,
+    "document status"
+  ) as "draft" | "published";
+  const publishedAt = optionalString(body.publishedAt, existing?.published_at ?? (status === "published" ? now : ""));
+
+  return {
+    id: optionalString(body.id, existing?.id ?? makeId("document")),
+    title: requireValue(body, "title"),
+    description: optionalString(body.description, existing?.description ?? ""),
+    category: optionalString(body.category, existing?.category ?? ""),
+    file_url: requireValue(body, "fileUrl"),
+    file_name: optionalString(body.fileName, existing?.file_name ?? ""),
+    media_id: optionalString(body.mediaId, existing?.media_id ?? ""),
+    published_at: publishedAt,
+    status,
+    sort_order: normalizeInteger(body.order, existing?.sort_order ?? 0),
+    pinned: normalizeBoolean(body.pinned ?? existing?.pinned) ? 1 : 0,
+    updated_at: now,
+    created_at: optionalString(existing?.created_at, now),
+    deleted_at: "",
+    created_by: optionalString(existing?.created_by, actor),
+    updated_by: actor,
+    revision: existing ? Number(existing.revision ?? 0) + 1 : 0
+  };
+}
+
+function createHomeSectionRow(
+  body: JsonRecord,
+  existing: PublicHomeSectionRow | null,
+  actor: string,
+  now: string
+): PublicHomeSectionRow {
+  return {
+    id: optionalString(body.id, existing?.id ?? makeId("home-section")),
+    section_key: requireValue(body, "key"),
+    title: requireValue(body, "title"),
+    summary: optionalString(body.summary, existing?.summary ?? ""),
+    href: optionalString(body.href, existing?.href ?? ""),
+    sort_order: normalizeInteger(body.order, existing?.sort_order ?? 0),
+    enabled: normalizeBoolean(body.enabled ?? existing?.enabled ?? true) ? 1 : 0,
+    updated_at: now,
+    created_at: optionalString(existing?.created_at, now),
+    deleted_at: "",
+    created_by: optionalString(existing?.created_by, actor),
+    updated_by: actor,
+    revision: existing ? Number(existing.revision ?? 0) + 1 : 0
+  };
+}
+
+function createVisitorStatsRow(
+  day: string,
+  body: JsonRecord,
+  existing: VisitorDailyStatsRow | null,
+  actor: string,
+  now: string
+): VisitorDailyStatsRow {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+    throw new AdminHttpError("invalid visitor stats day", 400);
+  }
+
+  return {
+    day,
+    total_views: normalizeInteger(body.total, existing?.total_views ?? 0),
+    unique_visitors: normalizeInteger(body.uniqueVisitors, existing?.unique_visitors ?? 0),
+    online_users: normalizeInteger(body.onlineUsers, existing?.online_users ?? 0),
+    updated_at: now,
+    created_at: optionalString(existing?.created_at, now),
+    updated_by: actor,
+    revision: existing ? Number(existing.revision ?? 0) + 1 : 0
+  };
+}
+
+async function assertUniqueContentSlug(env: Env, slug: string, id: string) {
+  const duplicate = await getFirst<ContentRow>(
+    env,
+    `SELECT ${CONTENT_ADMIN_ROW_COLUMNS.join(", ")}
+     FROM contents
+     WHERE slug = ?
+       AND id <> ?
+       AND COALESCE(deleted_at, '') = ''
+     LIMIT 1`,
+    slug,
+    id
+  );
+
+  if (duplicate) {
+    throw new AdminHttpError("duplicate content slug", 409);
+  }
+}
+
+async function assertUniqueHomeSectionKey(env: Env, sectionKey: string, id: string) {
+  const duplicate = await getFirst<PublicHomeSectionRow>(
+    env,
+    `SELECT ${PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.join(", ")}
+     FROM public_home_sections
+     WHERE section_key = ?
+       AND id <> ?
+       AND COALESCE(deleted_at, '') = ''
+     LIMIT 1`,
+    sectionKey,
+    id
+  );
+
+  if (duplicate) {
+    throw new AdminHttpError("duplicate home section key", 409);
+  }
+}
+
+async function upsertContentRow(env: Env, row: ContentRow) {
+  await run(
+    env,
+    `INSERT INTO contents (${CONTENT_ADMIN_ROW_COLUMNS.join(", ")})
+     VALUES (${CONTENT_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})
+     ON CONFLICT(id) DO UPDATE SET
+       slug = excluded.slug,
+       type = excluded.type,
+       status = excluded.status,
+       owner = excluded.owner,
+       title = excluded.title,
+       summary = excluded.summary,
+       body_snapshot = excluded.body_snapshot,
+       category = excluded.category,
+       tags_json = excluded.tags_json,
+       seo_title = excluded.seo_title,
+       seo_description = excluded.seo_description,
+       canonical_url = excluded.canonical_url,
+       featured = excluded.featured,
+       reading_minutes = excluded.reading_minutes,
+       template = excluded.template,
+       body_doc_id = excluded.body_doc_id,
+       body_doc_url = excluded.body_doc_url,
+       featured_media_id = excluded.featured_media_id,
+       media_ids_json = excluded.media_ids_json,
+       view_count = excluded.view_count,
+       last_viewed_at = excluded.last_viewed_at,
+       updated_at = excluded.updated_at,
+       publish_at = excluded.publish_at,
+       deleted_at = excluded.deleted_at,
+       updated_by = excluded.updated_by,
+       revision = excluded.revision`,
+    ...CONTENT_ADMIN_ROW_COLUMNS.map((column) => row[column])
+  );
+}
+
+async function upsertDocumentRow(env: Env, row: DocumentRow) {
+  await run(
+    env,
+    `INSERT INTO documents (${DOCUMENT_ADMIN_ROW_COLUMNS.join(", ")})
+     VALUES (${DOCUMENT_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})
+     ON CONFLICT(id) DO UPDATE SET
+       title = excluded.title,
+       description = excluded.description,
+       category = excluded.category,
+       file_url = excluded.file_url,
+       file_name = excluded.file_name,
+       media_id = excluded.media_id,
+       published_at = excluded.published_at,
+       status = excluded.status,
+       sort_order = excluded.sort_order,
+       pinned = excluded.pinned,
+       updated_at = excluded.updated_at,
+       deleted_at = excluded.deleted_at,
+       updated_by = excluded.updated_by,
+       revision = excluded.revision`,
+    ...DOCUMENT_ADMIN_ROW_COLUMNS.map((column) => row[column])
+  );
+}
+
+async function upsertHomeSectionRow(env: Env, row: PublicHomeSectionRow) {
+  await run(
+    env,
+    `INSERT INTO public_home_sections (${PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.join(", ")})
+     VALUES (${PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})
+     ON CONFLICT(id) DO UPDATE SET
+       section_key = excluded.section_key,
+       title = excluded.title,
+       summary = excluded.summary,
+       href = excluded.href,
+       sort_order = excluded.sort_order,
+       enabled = excluded.enabled,
+       updated_at = excluded.updated_at,
+       deleted_at = excluded.deleted_at,
+       updated_by = excluded.updated_by,
+       revision = excluded.revision`,
+    ...PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.map((column) => row[column])
+  );
+}
+
+async function upsertVisitorDailyStatsRow(env: Env, row: VisitorDailyStatsRow) {
+  await run(
+    env,
+    `INSERT INTO visitor_daily_stats (${VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS.join(", ")})
+     VALUES (${VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})
+     ON CONFLICT(day) DO UPDATE SET
+       total_views = excluded.total_views,
+       unique_visitors = excluded.unique_visitors,
+       online_users = excluded.online_users,
+       updated_at = excluded.updated_at,
+       updated_by = excluded.updated_by,
+       revision = excluded.revision`,
+    ...VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS.map((column) => row[column])
+  );
+}
+
+async function getContentById(env: Env, id: string) {
+  return getFirst<ContentRow>(
+    env,
+    `SELECT ${CONTENT_ADMIN_ROW_COLUMNS.join(", ")}
+     FROM contents
+     WHERE id = ?
+       AND COALESCE(deleted_at, '') = ''
+     LIMIT 1`,
+    id
+  );
+}
+
+async function getDocumentById(env: Env, id: string) {
+  return getFirst<DocumentRow>(
+    env,
+    `SELECT ${DOCUMENT_ADMIN_ROW_COLUMNS.join(", ")}
+     FROM documents
+     WHERE id = ?
+       AND COALESCE(deleted_at, '') = ''
+     LIMIT 1`,
+    id
+  );
+}
+
+async function getHomeSectionById(env: Env, id: string) {
+  return getFirst<PublicHomeSectionRow>(
+    env,
+    `SELECT ${PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.join(", ")}
+     FROM public_home_sections
+     WHERE id = ?
+       AND COALESCE(deleted_at, '') = ''
+     LIMIT 1`,
+    id
+  );
+}
+
+async function getVisitorDailyStatsByDay(env: Env, day: string) {
+  return getFirst<VisitorDailyStatsRow>(
+    env,
+    `SELECT ${VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS.join(", ")}
+     FROM visitor_daily_stats
+     WHERE day = ?
+     LIMIT 1`,
+    day
+  );
+}
+
+async function handleContent(request: Request, env: Env, segments: string[]) {
+  const actor = getActor(request);
+  const now = new Date().toISOString();
+
+  if (segments.length === 1 && request.method === "GET") {
+    const rows = await getAll<ContentRow>(
+      env,
+      `SELECT ${CONTENT_ADMIN_ROW_COLUMNS.join(", ")}
+       FROM contents
+       WHERE COALESCE(deleted_at, '') = ''
+       ORDER BY updated_at DESC`
+    );
+    return json({ items: rows.map(mapContentRowToAdminItem), generatedAt: now });
+  }
+
+  if (segments.length === 1 && request.method === "POST") {
+    const body = await parseJsonBody(request);
+    const existing = body.id ? await getContentById(env, String(body.id)) : null;
+    const row = createContentRow(body, existing, actor, now);
+
+    await assertUniqueContentSlug(env, row.slug, row.id);
+    await upsertContentRow(env, row);
+    await insertAudit(env, {
+      entityType: "content",
+      entityId: row.id,
+      action: existing ? "upsert" : "create",
+      actor,
+      now
+    });
+    return json({ item: mapContentRowToAdminItem(row) }, { status: existing ? 200 : 201 });
+  }
+
+  if (segments.length === 1) {
+    return adminMethodNotAllowed();
+  }
+
+  const id = segments[1];
+  const action = segments[2];
+
+  if (!id) {
+    return notFoundAdmin();
+  }
+
+  if (segments.length === 2 && request.method === "GET") {
+    const row = await getContentById(env, id);
+
+    return row ? json({ item: mapContentRowToAdminItem(row) }) : notFoundAdmin();
+  }
+
+  if (segments.length === 2 && request.method === "PATCH") {
+    const existing = await getContentById(env, id);
+
+    if (!existing) {
+      return notFoundAdmin();
+    }
+
+    const body = await parseJsonBody(request);
+    assertFreshRevision(existing, body);
+    const row = createContentRow({ ...mapContentRowToAdminItem(existing), ...body, id }, existing, actor, now);
+
+    await assertUniqueContentSlug(env, row.slug, row.id);
+    await upsertContentRow(env, row);
+    await insertAudit(env, { entityType: "content", entityId: row.id, action: "update", actor, now });
+    return json({ item: mapContentRowToAdminItem(row) });
+  }
+
+  if (segments.length === 2 && request.method === "DELETE") {
+    const existing = await getContentById(env, id);
+
+    if (!existing) {
+      return notFoundAdmin();
+    }
+
+    await run(
+      env,
+      `UPDATE contents
+       SET deleted_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
+       WHERE id = ?`,
+      now,
+      now,
+      actor,
+      id
+    );
+    await insertAudit(env, { entityType: "content", entityId: id, action: "archive", actor, now });
+    return json({ id, deleted: true });
+  }
+
+  if (segments.length === 3 && request.method === "POST" && (action === "publish" || action === "unpublish")) {
+    const existing = await getContentById(env, id);
+
+    if (!existing) {
+      return notFoundAdmin();
+    }
+
+    const status = action === "publish" ? "published" : "draft";
+    await run(
+      env,
+      `UPDATE contents
+       SET status = ?, publish_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
+       WHERE id = ?`,
+      status,
+      action === "publish" ? existing.publish_at || now : existing.publish_at || "",
+      now,
+      actor,
+      id
+    );
+    await insertAudit(env, { entityType: "content", entityId: id, action, actor, now });
+    return json({ id, published: action === "publish" });
+  }
+
+  return adminMethodNotAllowed();
+}
+
+async function handleDocuments(request: Request, env: Env, segments: string[]) {
+  const actor = getActor(request);
+  const now = new Date().toISOString();
+
+  if (segments.length === 1 && request.method === "GET") {
+    const rows = await getAll<DocumentRow>(
+      env,
+      `SELECT ${DOCUMENT_ADMIN_ROW_COLUMNS.join(", ")}
+       FROM documents
+       WHERE COALESCE(deleted_at, '') = ''
+       ORDER BY pinned DESC, sort_order ASC, published_at DESC, updated_at DESC`
+    );
+    return json({ items: rows.map(mapDocumentRowToAdminItem), generatedAt: now });
+  }
+
+  if (segments.length === 1 && request.method === "POST") {
+    const body = await parseJsonBody(request);
+    const existing = body.id ? await getDocumentById(env, String(body.id)) : null;
+    const row = createDocumentRow(body, existing, actor, now);
+
+    await upsertDocumentRow(env, row);
+    await insertAudit(env, {
+      entityType: "document",
+      entityId: row.id,
+      action: existing ? "upsert" : "create",
+      actor,
+      now
+    });
+    return json({ item: mapDocumentRowToAdminItem(row) }, { status: existing ? 200 : 201 });
+  }
+
+  if (segments.length === 1) {
+    return adminMethodNotAllowed();
+  }
+
+  const id = segments[1];
+  const action = segments[2];
+
+  if (!id) {
+    return notFoundAdmin();
+  }
+
+  if (segments.length === 2 && request.method === "GET") {
+    const row = await getDocumentById(env, id);
+
+    return row ? json({ item: mapDocumentRowToAdminItem(row) }) : notFoundAdmin();
+  }
+
+  if (segments.length === 2 && request.method === "PATCH") {
+    const existing = await getDocumentById(env, id);
+
+    if (!existing) {
+      return notFoundAdmin();
+    }
+
+    const body = await parseJsonBody(request);
+    assertFreshRevision(existing, body);
+    const row = createDocumentRow({ ...mapDocumentRowToAdminItem(existing), ...body, id }, existing, actor, now);
+
+    await upsertDocumentRow(env, row);
+    await insertAudit(env, { entityType: "document", entityId: row.id, action: "update", actor, now });
+    return json({ item: mapDocumentRowToAdminItem(row) });
+  }
+
+  if (segments.length === 2 && request.method === "DELETE") {
+    const existing = await getDocumentById(env, id);
+
+    if (!existing) {
+      return notFoundAdmin();
+    }
+
+    await run(
+      env,
+      `UPDATE documents
+       SET deleted_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
+       WHERE id = ?`,
+      now,
+      now,
+      actor,
+      id
+    );
+    await insertAudit(env, { entityType: "document", entityId: id, action: "archive", actor, now });
+    return json({ id, deleted: true });
+  }
+
+  if (segments.length === 3 && request.method === "POST" && (action === "publish" || action === "unpublish")) {
+    const existing = await getDocumentById(env, id);
+
+    if (!existing) {
+      return notFoundAdmin();
+    }
+
+    const status = action === "publish" ? "published" : "draft";
+    await run(
+      env,
+      `UPDATE documents
+       SET status = ?, published_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
+       WHERE id = ?`,
+      status,
+      action === "publish" ? existing.published_at || now : existing.published_at || "",
+      now,
+      actor,
+      id
+    );
+    await insertAudit(env, { entityType: "document", entityId: id, action, actor, now });
+    return json({ id, published: action === "publish" });
+  }
+
+  return adminMethodNotAllowed();
+}
+
+async function handleHomeSections(request: Request, env: Env, segments: string[]) {
+  const actor = getActor(request);
+  const now = new Date().toISOString();
+
+  if (segments.length === 1 && request.method === "GET") {
+    const rows = await getAll<PublicHomeSectionRow>(
+      env,
+      `SELECT ${PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.join(", ")}
+       FROM public_home_sections
+       WHERE COALESCE(deleted_at, '') = ''
+       ORDER BY sort_order ASC, updated_at DESC`
+    );
+    return json({ items: rows.map(mapHomeSectionRowToAdminItem), generatedAt: now });
+  }
+
+  if (segments.length === 1 && request.method === "POST") {
+    const body = await parseJsonBody(request);
+    const existing = body.id ? await getHomeSectionById(env, String(body.id)) : null;
+    const row = createHomeSectionRow(body, existing, actor, now);
+
+    await assertUniqueHomeSectionKey(env, row.section_key, row.id);
+    await upsertHomeSectionRow(env, row);
+    await insertAudit(env, {
+      entityType: "home-section",
+      entityId: row.id,
+      action: existing ? "upsert" : "create",
+      actor,
+      now
+    });
+    return json({ item: mapHomeSectionRowToAdminItem(row) }, { status: existing ? 200 : 201 });
+  }
+
+  const id = segments[1];
+
+  if (!id) {
+    return notFoundAdmin();
+  }
+
+  if (segments.length === 2 && request.method === "PATCH") {
+    const existing = await getHomeSectionById(env, id);
+
+    if (!existing) {
+      return notFoundAdmin();
+    }
+
+    const body = await parseJsonBody(request);
+    assertFreshRevision(existing, body);
+    const row = createHomeSectionRow({ ...mapHomeSectionRowToAdminItem(existing), ...body, id }, existing, actor, now);
+
+    await assertUniqueHomeSectionKey(env, row.section_key, row.id);
+    await upsertHomeSectionRow(env, row);
+    await insertAudit(env, { entityType: "home-section", entityId: row.id, action: "update", actor, now });
+    return json({ item: mapHomeSectionRowToAdminItem(row) });
+  }
+
+  if (segments.length === 2 && request.method === "DELETE") {
+    const existing = await getHomeSectionById(env, id);
+
+    if (!existing) {
+      return notFoundAdmin();
+    }
+
+    await run(
+      env,
+      `UPDATE public_home_sections
+       SET enabled = ?, deleted_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
+       WHERE id = ?`,
+      0,
+      now,
+      now,
+      actor,
+      id
+    );
+    await insertAudit(env, { entityType: "home-section", entityId: id, action: "archive", actor, now });
+    return json({ id, deleted: true });
+  }
+
+  return adminMethodNotAllowed();
+}
+
+async function handleVisitorStats(request: Request, env: Env, segments: string[]) {
+  const actor = getActor(request);
+  const now = new Date().toISOString();
+
+  if (segments[1] !== "daily") {
+    return notFoundAdmin();
+  }
+
+  if (segments.length === 2 && request.method === "GET") {
+    const rows = await getAll<VisitorDailyStatsRow>(
+      env,
+      `SELECT ${VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS.join(", ")}
+       FROM visitor_daily_stats
+       ORDER BY day DESC`
+    );
+    return json({ items: rows.map(mapVisitorDailyStatsRowToAdminItem), generatedAt: now });
+  }
+
+  const day = segments[2];
+
+  if (!day) {
+    return notFoundAdmin();
+  }
+
+  if (segments.length === 3 && request.method === "PUT") {
+    const existing = await getVisitorDailyStatsByDay(env, day);
+    const body = await parseJsonBody(request);
+    assertFreshRevision(existing, body);
+    const row = createVisitorStatsRow(day, body, existing, actor, now);
+
+    await upsertVisitorDailyStatsRow(env, row);
+    await insertAudit(env, {
+      entityType: "visitor-daily-stats",
+      entityId: day,
+      action: existing ? "update" : "create",
+      actor,
+      now
+    });
+    return json({ item: mapVisitorDailyStatsRowToAdminItem(row) }, { status: existing ? 200 : 200 });
+  }
+
+  if (segments.length === 3 && request.method === "DELETE") {
+    await run(env, `DELETE FROM visitor_daily_stats WHERE day = ?`, day);
+    await insertAudit(env, { entityType: "visitor-daily-stats", entityId: day, action: "delete", actor, now });
+    return json({ id: day, deleted: true });
+  }
+
+  return adminMethodNotAllowed();
+}
+
+async function handleSnapshot(env: Env) {
+  const [contentRows, documentRows] = await Promise.all([
+    getAll<ContentRow>(
+      env,
+      `SELECT ${CONTENT_ADMIN_ROW_COLUMNS.join(", ")}
+       FROM contents
+       WHERE COALESCE(deleted_at, '') = ''
+       ORDER BY updated_at DESC`
+    ),
+    getAll<DocumentRow>(
+      env,
+      `SELECT ${DOCUMENT_ADMIN_ROW_COLUMNS.join(", ")}
+       FROM documents
+       WHERE COALESCE(deleted_at, '') = ''
+       ORDER BY pinned DESC, sort_order ASC, published_at DESC, updated_at DESC`
+    )
+  ]);
+
+  return json({
+    metrics: [],
+    content: contentRows.map(mapContentRowToAdminItem),
+    documents: documentRows.map(mapDocumentRowToAdminItem),
+    media: [],
+    events: [],
+    menu: [],
+    carouselSlides: [],
+    externalServices: [],
+    generatedAt: new Date().toISOString()
+  });
+}
+
+function adminMethodNotAllowed() {
+  const response = methodNotAllowed();
+  response.headers.set("Allow", ADMIN_ALLOW);
+  return response;
+}
+
+function notFoundAdmin() {
+  return jsonError("not found", 404, {
+    resource: "admin-structured-data"
+  });
+}
+
+function safeAdminError(error: unknown) {
+  if (isAdminHttpError(error)) {
+    return jsonError(error.message, error.status, {
+      resource: "admin-structured-data"
+    });
+  }
+
+  const message = error instanceof Error ? error.message : "";
+
+  if (message === "stale write conflict" || message.includes("duplicate ")) {
+    return jsonError(message, 409, {
+      resource: "admin-structured-data"
+    });
+  }
+
+  if (
+    message.startsWith("missing required field:") ||
+    message.startsWith("invalid ") ||
+    message.includes("malformed JSON") ||
+    message.includes("request body must be")
+  ) {
+    return jsonError(message, 400, {
+      resource: "admin-structured-data"
+    });
+  }
+
+  return jsonError("admin structured write failed", 500, {
+    resource: "admin-structured-data"
+  });
+}
+
+export async function adminWrite(request: Request, env: Env): Promise<Response | null> {
+  const { pathname } = new URL(request.url);
+
+  if (!pathname.startsWith(ADMIN_PREFIX)) {
+    return null;
+  }
+
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204 });
+  }
+
+  if (!["GET", "POST", "PATCH", "PUT", "DELETE"].includes(request.method)) {
+    return adminMethodNotAllowed();
+  }
+
+  const gateResponse = requireAdminWriteGate(request, env);
+
+  if (gateResponse) {
+    return gateResponse;
+  }
+
+  if (!env.DB) {
+    return jsonError("database binding is not configured", 503, {
+      resource: "admin-structured-data"
+    });
+  }
+
+  const segments = pathname.slice(ADMIN_PREFIX.length).split("/").filter(Boolean);
+
+  try {
+    if (segments[0] === "snapshot" && segments.length === 1 && request.method === "GET") {
+      return await handleSnapshot(env);
+    }
+
+    if (segments[0] === "content") {
+      return await handleContent(request, env, segments);
+    }
+
+    if (segments[0] === "documents") {
+      return await handleDocuments(request, env, segments);
+    }
+
+    if (segments[0] === "home-sections") {
+      return await handleHomeSections(request, env, segments);
+    }
+
+    if (segments[0] === "visitor-stats") {
+      return await handleVisitorStats(request, env, segments);
+    }
+
+    if (segments[0] === "public-content-contract" && request.method === "GET") {
+      const rows = await listPublishedContentRows(env);
+      return json(createPublicContentListSnapshot(rows));
+    }
+
+    if (segments[0] === "public-document-contract" && request.method === "GET") {
+      const rows = await listPublishedDocumentRows(env);
+      return json(createPublicDocumentListSnapshot(rows));
+    }
+
+    return notFoundAdmin();
+  } catch (error) {
+    return safeAdminError(error);
+  }
+}
