@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M17-C.
+Current milestone: M17-C completed; ready for M18 planning.
 
 ## Summary
 
@@ -18,7 +18,7 @@ M17: Cloudflare Core Public Read Batch Migration. The public read layer is now p
 
 M17-B: Cloudflare Core Public Read API routes are implemented for dev/preview Worker use with D1-backed public responses. This is not a production cutover.
 
-M17-C: Public Read Preview Smoke and Contract Freeze. The repository now contains an approval-gated dev/preview smoke runner for the grouped M17 public read routes and tests that freeze the minimum public response contracts. This is not a production cutover.
+M17-C: `PASSED` through an externally executed, operator-approved dev/preview smoke run. The grouped Cloudflare public-read endpoints passed the M17-C smoke and minimum contract gate after the preview Worker was updated to the current M17 route implementation. The successful run used a non-production dev/preview Worker origin; the actual Worker URL remains redacted and uncommitted. This is not a production cutover.
 
 ## M15.1 Dry-Run Result
 
@@ -69,15 +69,48 @@ Replacement-system Cloudflare endpoints before final cutover: dev/preview Worker
 
 Apps Script target role: media-file bridge only.
 
+## M17-C Actual Preview Smoke Result
+
+Status: `PASSED`.
+
+Evidence source: external operator-confirmed dev/preview smoke execution.
+
+Command:
+
+```bash
+pnpm worker:public-read:preview-smoke
+```
+
+The operator confirmed the earlier failed attempt was caused by the preview Worker still running an older deployment. After the required non-production preview migration and sanitized seed were applied, and after the current preview Worker was deployed, the operator reran the smoke command successfully.
+
+Recorded result:
+
+- grouped public-read smoke passed
+- minimum public response contracts passed
+- approval gate passed
+- preview Worker URL safety gate passed
+- leakage checks passed
+- preview Worker URL remains redacted and uncommitted
+- no exact D1 database name, D1 id, account id, deployment id, token, secret, record payload, item count, or generated timestamp is committed
+- no production cutover occurred
+- no production Vercel environment mutation occurred
+- no production Worker deployment occurred
+- no production D1 migration, import, or write occurred
+- Apps Script remains the current production provider
+- Apps Script remains the planned Google Drive media-file bridge
+- M15.2 remains deferred
+
+M17 is completed for the current preview smoke and contract-freeze checkpoint.
+
 ## Next Action
 
-Next action: run the M17-C dev/preview smoke gate with explicit preview approval and a dev/preview Worker origin. Move to M18 Admin + D1 Write Batch Migration only after M17-C smoke passes.
+Next action: begin M18 planning for Admin + D1 Write Batch Migration. M18 implementation has not started in this documentation update.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 
 M17 goal: build the Cloudflare Core Public Read API foundation, preserve existing `public-document-list`, implement D1-backed public read routes for home, content, search, programs, and visitor stats, and document remaining parity requirements.
 
-M17 status: public read API foundation implemented for dev/preview Worker origins, with M17-C preview smoke and contract freeze added. The grouped routes no longer return M17 safe 501 skeleton responses in Worker tests, but Apps Script fallback remains available until parity smoke and final cutover gates are approved.
+M17 status: public read API foundation implemented for dev/preview Worker origins, with M17-C preview smoke and contract freeze passed through externally confirmed operator execution. The grouped routes no longer return M17 safe 501 skeleton responses in Worker tests, but Apps Script fallback remains available until final cutover gates are approved.
 
 M15.2 real execute cutover remains deferred until the replacement system is complete, the production domain can be moved safely, explicit operator approval is recorded, and an approved production monitoring window exists.
 
@@ -127,3 +160,5 @@ The gate verifies:
 The smoke gate fails on 501, server errors, unsafe leakage, invalid public response shape, production-looking origins, Apps Script origins, Google Drive origins, or the real production school domain.
 
 Actual dev/preview smoke must be run only against an approved dev/preview Worker origin. No production cutover, production environment mutation, Worker deploy, D1 migration/import/write, Apps Script change, `src/services/googleApi.ts` change, UI change, route change, cache key change, or cache TTL change is part of M17-C.
+
+M17-C actual dev/preview smoke has now passed through operator-confirmed external execution. The successful run used a non-production dev/preview Worker origin, and the actual Worker URL remains redacted and uncommitted.

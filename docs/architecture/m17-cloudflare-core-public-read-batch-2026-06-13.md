@@ -1,6 +1,6 @@
 # M17 Cloudflare Core Public Read Batch Migration
 
-Status: M17-C preview smoke and contract freeze added for the implemented public read route batch. This is not a production cutover.
+Status: M17-C preview smoke and contract freeze passed through externally confirmed operator execution. This is not a production cutover.
 
 ## Purpose
 
@@ -124,6 +124,36 @@ The runner prints only a redacted summary: Worker host label, endpoint labels, H
 
 Actual dev/preview smoke must use an approved dev/preview Worker origin. Production-domain smoke and production cutover remain out of scope.
 
+## M17-C Actual Preview Smoke Result
+
+Status: `PASSED`.
+
+Evidence source: external operator-confirmed dev/preview smoke execution.
+
+Command:
+
+```bash
+pnpm worker:public-read:preview-smoke
+```
+
+Recorded outcome:
+
+- approval gate passed
+- preview Worker URL safety gate passed
+- grouped public-read smoke passed
+- minimum public response contracts passed
+- leakage checks passed
+- the preview Worker had been updated to the current M17 route implementation before the successful rerun
+- no exact Worker URL, D1 id, account id, deployment id, token, secret, record payload, item count, or generated timestamp is committed
+- no production cutover or production mutation occurred
+- Apps Script fallback remains available
+- M15.2 remains deferred
+- M17-C acceptance criteria are now satisfied
+
+The operator confirmed the previous failed attempt was caused by the preview Worker still running the older deployment. The successful rerun happened after the required non-production preview migration and sanitized seed were applied and the current preview Worker was deployed.
+
+Next phase: M18 Admin + D1 Write Batch Migration.
+
 ## Route Contract Plan
 
 All public read routes allow `GET` and `OPTIONS` only in M17-B.
@@ -177,11 +207,10 @@ The freeze is intentionally minimum-shape only. It does not require exact produc
 
 ## Remaining Parity Work
 
-M17-B is a working public-read route batch, not final parity acceptance.
+M17-B is a working public-read route batch. M17-C preview smoke and minimum contract freeze have passed through external operator-confirmed dev/preview execution.
 
 Known follow-up areas before any production-domain traffic switch:
 
-- verify route responses against real approved public snapshots in dev/preview
 - confirm homepage parity beyond the minimum M17-B core shape
 - confirm search ranking and filtering parity
 - confirm visitor-stat aggregation parity
@@ -219,7 +248,9 @@ For production cutover work, M15 rollback safety remains unchanged and M15.2 rem
 
 ## Acceptance For M17-C
 
-M17-C is accepted when:
+M17-C is accepted. The checkpoint is satisfied by the implemented route batch, contract-freeze tests, and the external operator-confirmed dev/preview smoke pass.
+
+Acceptance evidence:
 
 - grouped public read route registry exists and all M17-B routes are marked implemented
 - `public-document-list` still works as before
@@ -238,4 +269,4 @@ M17-C is accepted when:
 
 M18: Admin + D1 Write Batch Migration.
 
-M18 should start only after the M17-C smoke/parity freeze passes in dev/preview, and it must not remove the media bridge role until media upload/delete has a dedicated migration plan.
+M18 planning may begin after the M17-C smoke and contract freeze pass. M18 implementation has not started in this checkpoint, and it must not remove the media bridge role until media upload/delete has a dedicated migration plan.
