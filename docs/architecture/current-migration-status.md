@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M18 repository implementation complete; external preview smoke remains `BLOCKED_SAFE`.
+Current milestone: M18 repository implementation hardened; external preview smoke pending.
 
 ## Summary
 
@@ -20,7 +20,7 @@ M17-B: Cloudflare Core Public Read API routes are implemented for dev/preview Wo
 
 M17-C: `PASSED` through an externally executed, operator-approved dev/preview smoke run. The grouped Cloudflare public-read endpoints passed the M17-C smoke and minimum contract gate after the preview Worker was updated to the current M17 route implementation. The successful run used a non-production dev/preview Worker origin; the actual Worker URL remains redacted and uncommitted. This is not a production cutover.
 
-M18: Admin + D1 Write Batch Migration repository implementation is complete as one cohesive milestone. It moves structured admin writes for M17 public-read data toward Cloudflare Worker + D1 in dev/preview mode while Apps Script remains production fallback and Google Drive media-file bridge. External preview smoke remains `BLOCKED_SAFE` until non-production Worker URL and preview admin token values are supplied outside git.
+M18: Admin + D1 Write Batch Migration repository implementation is hardened as one cohesive milestone. It moves structured admin writes for M17 public-read data toward Cloudflare Worker + D1 in dev/preview mode while Apps Script remains production fallback and Google Drive media-file bridge. Browser preview admin writes now require Cloudflare Access, CLI smoke uses a separate uncommitted smoke token, audit writes are trigger-backed and atomic, and external preview smoke remains pending until the corrected Worker is deployed and configured outside git.
 
 ## M15.1 Dry-Run Result
 
@@ -106,25 +106,27 @@ M17 is completed for the current preview smoke and contract-freeze checkpoint.
 
 ## M18 Repository Implementation Result
 
-Status: repository implementation complete; external preview smoke `BLOCKED_SAFE`.
+Status: repository implementation hardened; external preview smoke pending.
 
 M18 added:
 
-- additive D1 migration for structured admin write metadata and audit rows
+- additive D1 migrations for structured admin write metadata and trigger-backed atomic audit rows
 - preview-gated Worker admin routes for content, document metadata, public-home sections, visitor daily stats, and admin snapshot readback
-- explicit frontend admin write provider that defaults to Apps Script and switches to Cloudflare only in preview migration mode
+- Cloudflare Access browser authentication for preview admin writes
+- separate non-browser smoke-token authentication for the M18 preview smoke runner
+- explicit frontend admin write provider that defaults to Apps Script and switches to Cloudflare only in preview migration mode with `cloudflare-access`
 - Apps Script media-file bridge boundary, keeping upload/delete operations on Apps Script
-- approval-gated preview smoke runner for one sanitized admin write lifecycle
-- tests for provider defaults, preview-only Cloudflare routing, Worker write validation, public-read visibility, redaction, and safe blocked smoke behavior
+- approval-gated preview smoke runner for one sanitized admin write lifecycle with unique IDs and best-effort cleanup
+- tests for provider defaults, Cloudflare Access authentication, smoke-token separation, Worker write validation, trigger audit safety, revision conflicts, public-read visibility, redaction, and safe blocked smoke behavior
 
-External preview smoke was not executed from this repository state because non-production execution values are not committed and were not supplied to the local environment.
+External preview smoke was not executed from this repository state because the corrected non-production Worker deployment, Cloudflare Access configuration, and smoke credentials remain external and uncommitted.
 
 Next operator action when non-production preview resources are ready:
 
 ```bash
 RCAT_M18_ADMIN_WRITE_SMOKE_APPROVAL=APPROVED_M18_ADMIN_WRITE_PREVIEW_SMOKE
 RCAT_PREVIEW_WORKER_URL=<dev-or-preview-worker-origin>
-RCAT_M18_ADMIN_WRITE_TOKEN=<preview-admin-token>
+RCAT_M18_ADMIN_WRITE_SMOKE_TOKEN=<preview-smoke-token>
 pnpm worker:admin-write:preview-smoke
 ```
 
@@ -132,7 +134,7 @@ No production cutover, production Worker deploy, production D1 migration/import/
 
 ## Next Action
 
-Next action: run the M18 external preview smoke only when approved non-production Worker URL and preview admin token values are supplied outside git.
+Next action: deploy/configure the corrected non-production Worker with Cloudflare Access and smoke credentials outside git, then run the M18 external preview smoke.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 

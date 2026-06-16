@@ -54,7 +54,7 @@ function setAppsScriptEnv() {
   vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "");
   vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_WRITE_TOKEN", "");
+  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "");
 }
 
 function setCloudflareEnv() {
@@ -62,7 +62,7 @@ function setCloudflareEnv() {
   vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "cloudflare");
   vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://preview-worker.example.test");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_WRITE_TOKEN", "preview-admin-token");
+  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "cloudflare-access");
 }
 
 function jsonResponse(payload: unknown, status = 200) {
@@ -129,10 +129,9 @@ describe("M18 admin structured write provider", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/content");
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       method: "POST",
-      headers: expect.objectContaining({
-        "X-RCAT-Admin-Write-Token": "preview-admin-token"
-      })
+      credentials: "include"
     });
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).not.toHaveProperty(["X-RCAT", "Admin", "Write", "Token"].join("-"));
     expect(googleApiMocks.saveContentItem).not.toHaveBeenCalled();
     expect(googleApiMocks.saveDocumentToApi).not.toHaveBeenCalled();
   });

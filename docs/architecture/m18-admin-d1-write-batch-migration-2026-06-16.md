@@ -1,6 +1,6 @@
 # M18 Admin + D1 Write Batch Migration
 
-Status: M18 repository implementation complete. External preview smoke is `BLOCKED_SAFE` until non-production execution values are supplied. This is one cohesive milestone, not a production cutover.
+Status: M18 repository implementation hardened; external preview smoke is pending until the corrected Worker is deployed and configured with non-production execution values. This is one cohesive milestone, not a production cutover.
 
 ## Objective
 
@@ -27,7 +27,7 @@ Internal implementation phases are allowed inside M18, but the repository work i
 | `deleteDocumentFromApi`           | `document-delete`                                | `deleteDocument`                                  | `DELETE /api/admin/documents/:id`                             | `documents`             | existing id, soft archive                                                  | removes document from public documents/home                                                                          | Drive file deletion is not migrated                      |
 | public-home section configuration | not currently exposed as a dedicated UI mutation | public snapshot composition                       | `GET/POST/PATCH/DELETE /api/admin/home-sections`              | `public_home_sections`  | key, title, order, enabled, duplicate key, optional revision               | `/api/public/home`                                                                                                   | not applicable                                           |
 | visitor daily stats adjustment    | `visitor-stats` settings write                   | `updateVisitorStats` plus visitor stats storage   | `GET/PUT/DELETE /api/admin/visitor-stats/daily/:day`          | `visitor_daily_stats`   | day, total, unique visitors, online users, optional revision               | `/api/public/visitor-stats`                                                                                          | not applicable                                           |
-| admin structured snapshot         | `snapshot-admin`                                 | `getSnapshot({ includeUnpublished: true })`       | `GET /api/admin/snapshot`                                     | `contents`, `documents` | preview token gate                                                         | admin list/detail readback                                                                                           | media arrays remain empty until media metadata migration |
+| admin structured snapshot         | `snapshot-admin`                                 | `getSnapshot({ includeUnpublished: true })`       | `GET /api/admin/snapshot`                                     | `contents`, `documents` | Cloudflare Access or smoke-token preview gate                              | admin list/detail readback                                                                                           | media arrays remain empty until media metadata migration |
 | media upload/delete               | `media`, `media-delete`                          | `upsertMedia`, `deleteMedia`, Drive file handling | not migrated in M18                                           | not changed             | Apps Script auth/session remains                                           | public responses may consume existing media references                                                               | Apps Script remains owner                                |
 
 ## Implemented Route Matrix
@@ -50,7 +50,10 @@ Internal implementation phases are allowed inside M18, but the repository work i
 
 ## D1 Schema And Migration Summary
 
-Migration: `cloudflare/public-api/migrations/0003_admin_write_batch.sql`.
+Migrations:
+
+- `cloudflare/public-api/migrations/0003_admin_write_batch.sql`
+- `cloudflare/public-api/migrations/0004_admin_write_hardening.sql`
 
 The migration is additive only:
 
@@ -60,20 +63,36 @@ The migration is additive only:
 - adds active-record indexes for content slug and public-home section key
 - adds admin updated/revision indexes
 
-The migration does not drop tables, drop columns, import data, seed production data, or commit any D1 identifier.
+The hardening migration adds trigger-backed audit logging for `contents`, `documents`, `public_home_sections`, and `visitor_daily_stats`. Audit rows are now written inside the same D1 statement/transaction as the structured mutation. The application route no longer performs separate mutation-then-audit writes.
+
+The migrations do not drop tables, drop columns, import data, seed production data, or commit any D1 identifier.
 
 ## Preview Security Gate
 
 Admin write routes are closed by default.
 
-The Worker requires all of:
+Browser preview admin requests require Cloudflare Access:
 
 - `ADMIN_WRITE_PREVIEW_ENABLED=true`
-- `ADMIN_WRITE_TOKEN` supplied outside git
-- request header `X-RCAT-Admin-Write-Token`
+- `ADMIN_WRITE_AUTH_MODE=cloudflare-access`
+- `ADMIN_WRITE_ACCESS_TEAM_DOMAIN`
+- `ADMIN_WRITE_ACCESS_AUD`
+- optional `ADMIN_WRITE_ALLOWED_EMAILS`
+- request header `Cf-Access-Jwt-Assertion`
+- allowed browser `Origin` from `ADMIN_WRITE_ALLOWED_ORIGINS`
 - non-production-like Worker environment context
 
-Missing credentials return safe `401` or `403` responses. The token is never stored in D1, never printed, and never committed.
+The Worker validates the Access JWT signature through JWKS, issuer, audience, expiration, and authenticated email. The audit actor is derived from the verified Access identity; browser-supplied actor headers are not trusted.
+
+CLI smoke requests use a separate uncommitted smoke credential:
+
+- `ADMIN_WRITE_SMOKE_ENABLED=true`
+- `ADMIN_WRITE_SMOKE_TOKEN` supplied outside git
+- request header `X-RCAT-Admin-Smoke-Token`
+- no `Origin` header
+- non-production-like Worker environment context
+
+Missing or invalid credentials return safe `401` or `403` responses. JWT contents, key material, audience values, team domains, smoke tokens, stacks, and SQL are never returned in API errors.
 
 Admin CORS is separate from public CORS. Admin CORS supports restricted preview origins through `ADMIN_WRITE_ALLOWED_ORIGINS` and does not use a wildcard fallback.
 
@@ -86,9 +105,11 @@ Cloudflare admin structured writes require:
 - `VITE_BACKEND_MIGRATION_MODE=cloudflare-first-preview`
 - `VITE_ADMIN_WRITE_PROVIDER=cloudflare`
 - `VITE_CLOUDFLARE_PUBLIC_API_URL=<dev-or-preview-worker-origin>` or `VITE_CLOUDFLARE_ADMIN_API_URL=<dev-or-preview-worker-origin>`
-- `VITE_CLOUDFLARE_ADMIN_WRITE_TOKEN=<preview-admin-token>`
+- `VITE_CLOUDFLARE_ADMIN_AUTH_MODE=cloudflare-access`
 
 Unknown, missing, empty, or invalid provider values fall back to Apps Script.
+
+No browser-visible `VITE_*` variable contains an admin write secret. Browser requests rely on the Cloudflare Access session and use `credentials: "include"`.
 
 The provider wiring is focused on structured content and document mutations plus structured admin snapshot readback. Media upload/delete functions remain Apps Script-backed.
 
@@ -110,9 +131,14 @@ Structured D1 records may store already-provided media/document references. The 
 M18 tests cover:
 
 - Worker admin gate disabled, missing credential, invalid credential, and valid credential
+- Cloudflare Access missing JWT, invalid JWT, wrong audience, expired JWT, disallowed email, and verified identity
+- smoke token accepted only when smoke mode is enabled and no browser `Origin` is present
+- disallowed admin `Origin` rejected before D1 mutation
 - admin CORS and unsupported methods
 - malformed JSON, missing required fields, invalid status values, duplicate slug conflicts
 - stale revision conflict
+- mutation-level revision checks for update, publish, unpublish, and archive operations
+- trigger-backed audit rows and no separate application audit insert
 - content create, update, publish, unpublish, and archive
 - document metadata create, publish, deterministic ordering, and archive
 - public home section writes
@@ -122,7 +148,7 @@ M18 tests cover:
 - frontend Apps Script default and fallback behavior
 - explicit Cloudflare preview structured writes
 - Apps Script media upload/delete retention
-- M18 preview smoke runner gates, URL safety, write lifecycle, cleanup, and redaction
+- M18 preview smoke runner gates, URL safety, unique IDs/slugs, semantic public-read checks, best-effort cleanup, and redaction
 
 ## Local Verification
 
@@ -162,9 +188,11 @@ Required environment:
 
 - `RCAT_M18_ADMIN_WRITE_SMOKE_APPROVAL=APPROVED_M18_ADMIN_WRITE_PREVIEW_SMOKE`
 - `RCAT_PREVIEW_WORKER_URL=<dev-or-preview-worker-origin>`
-- `RCAT_M18_ADMIN_WRITE_TOKEN=<preview-admin-token>`
+- `RCAT_M18_ADMIN_WRITE_SMOKE_TOKEN=<preview-smoke-token>`
 
-The smoke runner creates one uniquely identifiable sanitized M18 preview content record, verifies admin read-after-write, updates it, publishes it, verifies public visibility, unpublishes it, verifies public disappearance, archives it, and prints only redacted status.
+The smoke runner creates one uniquely identifiable sanitized M18 preview content record, verifies admin read-after-write, updates it using the current revision, publishes it using the current revision, verifies exact public visibility, unpublishes it using the current revision, verifies exact public disappearance, archives only the run-created record, verifies admin archive/not-active state, verifies public cleanup, and prints only redacted status.
+
+Cleanup is attempted in a `finally` path whenever creation succeeded. Cleanup failure makes the smoke result `FAILED`.
 
 It does not deploy Worker code, mutate Vercel environment, run Wrangler, apply D1 migrations, seed remote D1, or touch production.
 
@@ -174,15 +202,16 @@ Preview rollback is environment-only:
 
 - remove `VITE_ADMIN_WRITE_PROVIDER`
 - or set `VITE_ADMIN_WRITE_PROVIDER=apps-script`
-- remove the preview admin token from the frontend preview environment
+- remove the Cloudflare Access preview route/session requirement from the preview frontend path if configured externally
+- remove the smoke token from Worker preview secrets if no longer needed
 
 Apps Script routes remain present. Production provider remains Apps Script. No production rollback action is required for M18.
 
 ## Known External Execution Status
 
-M18 repository implementation is complete without remote preview credentials.
+M18 repository implementation is hardened without remote preview credentials.
 
-External preview smoke status for this checkpoint is `BLOCKED_SAFE` until the operator supplies non-production Worker URL, preview admin token, and approved execution environment.
+External preview smoke status for this checkpoint is pending until the corrected non-production Worker is deployed, Cloudflare Access is configured, smoke credentials are supplied outside git, and the operator runs the smoke command.
 
 This blocked-safe state is not a new milestone.
 
@@ -191,7 +220,7 @@ Next operator action when non-production preview resources are ready:
 ```bash
 RCAT_M18_ADMIN_WRITE_SMOKE_APPROVAL=APPROVED_M18_ADMIN_WRITE_PREVIEW_SMOKE
 RCAT_PREVIEW_WORKER_URL=<dev-or-preview-worker-origin>
-RCAT_M18_ADMIN_WRITE_TOKEN=<preview-admin-token>
+RCAT_M18_ADMIN_WRITE_SMOKE_TOKEN=<preview-smoke-token>
 pnpm worker:admin-write:preview-smoke
 ```
 
@@ -221,6 +250,11 @@ M18 repository implementation is accepted when:
 - additive D1 migration exists
 - structured admin Worker routes are implemented
 - preview-only write security gate is implemented and tested
+- browser `VITE_*` admin write token is removed
+- browser preview auth uses Cloudflare Access
+- CLI smoke auth uses a separate uncommitted smoke token
+- audit writes are atomic through D1 triggers
+- stale revision checks are mutation-level
 - frontend structured-write provider exists
 - Apps Script remains default and fallback
 - Apps Script remains responsible for media-file operations
@@ -229,6 +263,7 @@ M18 repository implementation is accepted when:
 - validation, conflict, safe failure, and leakage tests pass
 - M17 public-read tests remain passing
 - approval-gated M18 preview smoke runner exists
+- smoke records use unique IDs and cleanup is always attempted after creation
 - rollback to Apps Script is documented
 - no production mutation occurs
 - no secret or infrastructure identifier is committed

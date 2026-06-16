@@ -12,17 +12,21 @@ describe("admin structured write provider", () => {
     expect(resolveAdminWriteProvider({ VITE_ADMIN_WRITE_PROVIDER: "worker" })).toBe("apps-script");
   });
 
-  it("selects Cloudflare only for explicit cloudflare-first preview mode", () => {
+  it("selects Cloudflare only for explicit cloudflare-first preview mode and Access auth", () => {
     expect(
       resolveAdminWriteProvider({
         VITE_ADMIN_WRITE_PROVIDER: "cloudflare",
-        VITE_BACKEND_MIGRATION_MODE: "legacy-apps-script"
+        VITE_BACKEND_MIGRATION_MODE: "legacy-apps-script",
+        VITE_CLOUDFLARE_PUBLIC_API_URL: "https://preview-worker.example.test",
+        VITE_CLOUDFLARE_ADMIN_AUTH_MODE: "cloudflare-access"
       })
     ).toBe("apps-script");
     expect(
       resolveAdminWriteProvider({
         VITE_ADMIN_WRITE_PROVIDER: "cloudflare",
-        VITE_BACKEND_MIGRATION_MODE: "cloudflare-first-preview"
+        VITE_BACKEND_MIGRATION_MODE: "cloudflare-first-preview",
+        VITE_CLOUDFLARE_PUBLIC_API_URL: "https://preview-worker.example.test",
+        VITE_CLOUDFLARE_ADMIN_AUTH_MODE: "cloudflare-access"
       })
     ).toBe("cloudflare");
   });
@@ -31,38 +35,38 @@ describe("admin structured write provider", () => {
     expect(
       resolveCloudflareAdminWriteConfig({
         VITE_CLOUDFLARE_PUBLIC_API_URL: "https://preview-worker.example.test///",
-        VITE_CLOUDFLARE_ADMIN_WRITE_TOKEN: "preview-token"
+        VITE_CLOUDFLARE_ADMIN_AUTH_MODE: "cloudflare-access"
       })
     ).toEqual({
       baseUrl: "https://preview-worker.example.test",
-      token: "preview-token"
+      authMode: "cloudflare-access"
     });
 
     expect(
       resolveCloudflareAdminWriteConfig({
         VITE_CLOUDFLARE_PUBLIC_API_URL: "https://preview-worker.example.test",
         VITE_CLOUDFLARE_ADMIN_API_URL: "https://preview-admin.example.test/",
-        VITE_CLOUDFLARE_ADMIN_WRITE_TOKEN: "preview-token"
+        VITE_CLOUDFLARE_ADMIN_AUTH_MODE: "cloudflare-access"
       })
     ).toEqual({
       baseUrl: "https://preview-admin.example.test",
-      token: "preview-token"
+      authMode: "cloudflare-access"
     });
   });
 
-  it("requires a preview admin token only when Cloudflare admin writes are selected", () => {
+  it("requires Cloudflare Access auth mode instead of a browser-visible secret", () => {
     expect(() =>
       resolveCloudflareAdminWriteConfig({
         VITE_CLOUDFLARE_PUBLIC_API_URL: "https://preview-worker.example.test"
       })
-    ).toThrow("VITE_CLOUDFLARE_ADMIN_WRITE_TOKEN");
+    ).toThrow("VITE_CLOUDFLARE_ADMIN_AUTH_MODE");
   });
 
   it("builds admin route URLs without changing cache keys or public provider settings", () => {
     expect(
       buildCloudflareAdminApiUrl("/api/admin/content", {
         VITE_CLOUDFLARE_PUBLIC_API_URL: "https://preview-worker.example.test/",
-        VITE_CLOUDFLARE_ADMIN_WRITE_TOKEN: "preview-token"
+        VITE_CLOUDFLARE_ADMIN_AUTH_MODE: "cloudflare-access"
       })
     ).toBe("https://preview-worker.example.test/api/admin/content");
   });

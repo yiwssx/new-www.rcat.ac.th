@@ -11,7 +11,7 @@ import smokeScriptSource from "../scripts/admin-write-preview-smoke.mjs?raw";
 
 const approvalPhrase = "APPROVED_M18_ADMIN_WRITE_PREVIEW_SMOKE";
 const previewWorkerOrigin = "https://preview-worker.example.test";
-const previewToken = "m18-preview-token";
+const previewSmokeToken = "m18-preview-smoke-token";
 const forbiddenUrlPattern = new RegExp(
   [`${"script"}.${"google"}.com`, `${"drive"}.${"google"}.com`, `${"rcat"}.ac.th`]
     .map((value) => value.replaceAll(".", "\\."))
@@ -22,7 +22,7 @@ const forbiddenUrlPattern = new RegExp(
 const validEnv = {
   RCAT_M18_ADMIN_WRITE_SMOKE_APPROVAL: approvalPhrase,
   RCAT_PREVIEW_WORKER_URL: previewWorkerOrigin,
-  RCAT_M18_ADMIN_WRITE_TOKEN: previewToken
+  RCAT_M18_ADMIN_WRITE_SMOKE_TOKEN: previewSmokeToken
 };
 
 function jsonResponse(body, status = 200) {
@@ -37,20 +37,28 @@ function jsonResponse(body, status = 200) {
 function createFetchForHappyPath() {
   const state = {
     published: false,
-    deleted: false
+    deleted: false,
+    id: "",
+    slug: ""
   };
 
   return vi.fn(async (url, init = {}) => {
     const parsed = new URL(url);
 
-    expect(init.headers?.["X-RCAT-Admin-Write-Token"]).toBe(previewToken);
+    expect(init.headers?.["X-RCAT-Admin-Smoke-Token"]).toBe(previewSmokeToken);
 
     if (parsed.pathname === "/api/admin/content" && init.method === "POST") {
+      const body = JSON.parse(String(init.body ?? "{}"));
+      state.id = body.id;
+      state.slug = body.slug;
+      expect(state.id).toMatch(/^m18-preview-smoke-[a-z0-9-]+$/);
+      expect(state.slug).toBe(state.id);
+      expect(state.id).not.toBe("m18-preview-smoke-redacted");
       return jsonResponse(
         {
           item: {
-            id: "m18-preview-smoke-redacted",
-            slug: "m18-preview-smoke-redacted",
+            id: state.id,
+            slug: state.slug,
             status: "draft",
             revision: 0
           }
@@ -59,14 +67,18 @@ function createFetchForHappyPath() {
       );
     }
 
-    if (parsed.pathname === "/api/admin/content/m18-preview-smoke-redacted") {
+    if (parsed.pathname === `/api/admin/content/${state.id}`) {
       if (init.method === "GET") {
+        if (state.deleted) {
+          return jsonResponse({ error: "not found" }, 404);
+        }
+
         return jsonResponse({
           item: {
-            id: "m18-preview-smoke-redacted",
-            slug: "m18-preview-smoke-redacted",
+            id: state.id,
+            slug: state.slug,
             status: state.published ? "published" : "draft",
-            revision: 1
+            revision: state.published ? 2 : 1
           }
         });
       }
@@ -74,8 +86,8 @@ function createFetchForHappyPath() {
       if (init.method === "PATCH") {
         return jsonResponse({
           item: {
-            id: "m18-preview-smoke-redacted",
-            slug: "m18-preview-smoke-redacted",
+            id: state.id,
+            slug: state.slug,
             title: "M18 preview smoke updated",
             status: "draft",
             revision: 1
@@ -85,18 +97,18 @@ function createFetchForHappyPath() {
 
       if (init.method === "DELETE") {
         state.deleted = true;
-        return jsonResponse({ id: "m18-preview-smoke-redacted", deleted: true });
+        return jsonResponse({ id: state.id, deleted: true });
       }
     }
 
-    if (parsed.pathname === "/api/admin/content/m18-preview-smoke-redacted/publish") {
+    if (parsed.pathname === `/api/admin/content/${state.id}/publish`) {
       state.published = true;
-      return jsonResponse({ id: "m18-preview-smoke-redacted", published: true });
+      return jsonResponse({ id: state.id, published: true });
     }
 
-    if (parsed.pathname === "/api/admin/content/m18-preview-smoke-redacted/unpublish") {
+    if (parsed.pathname === `/api/admin/content/${state.id}/unpublish`) {
       state.published = false;
-      return jsonResponse({ id: "m18-preview-smoke-redacted", published: false });
+      return jsonResponse({ id: state.id, published: false });
     }
 
     if (parsed.pathname === "/api/public/content") {
@@ -105,8 +117,8 @@ function createFetchForHappyPath() {
           state.published && !state.deleted
             ? [
                 {
-                  id: "m18-preview-smoke-redacted",
-                  slug: "m18-preview-smoke-redacted"
+                  id: state.id,
+                  slug: state.slug
                 }
               ]
             : [],
@@ -120,7 +132,7 @@ function createFetchForHappyPath() {
 
 function expectRedactedOutput(output) {
   expect(output).not.toContain(previewWorkerOrigin);
-  expect(output).not.toContain(previewToken);
+  expect(output).not.toContain(previewSmokeToken);
   expect(output).not.toContain("Fake M18 preview smoke body");
   expect(output).not.toContain("https://files.example.test");
   expect(output).not.toMatch(forbiddenUrlPattern);
@@ -186,18 +198,120 @@ describe("M18 admin write preview smoke", () => {
     const jsonOutput = formatAdminWritePreviewSmokeResult(result, { json: true });
 
     expect(result.status).toBe("PASSED");
-    expect(fetchImpl.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
+    const paths = fetchImpl.mock.calls.map(([url]) => new URL(url).pathname);
+    const smokeId = paths[1].replace("/api/admin/content/", "");
+
+    expect(paths).toEqual([
       "/api/admin/content",
-      "/api/admin/content/m18-preview-smoke-redacted",
-      "/api/admin/content/m18-preview-smoke-redacted",
-      "/api/admin/content/m18-preview-smoke-redacted/publish",
+      `/api/admin/content/${smokeId}`,
+      `/api/admin/content/${smokeId}`,
+      `/api/admin/content/${smokeId}/publish`,
       "/api/public/content",
-      "/api/admin/content/m18-preview-smoke-redacted/unpublish",
+      `/api/admin/content/${smokeId}/unpublish`,
       "/api/public/content",
-      "/api/admin/content/m18-preview-smoke-redacted"
+      `/api/admin/content/${smokeId}`,
+      `/api/admin/content/${smokeId}`,
+      "/api/public/content"
     ]);
+    expect(result.manifest.checks.publicReadAfterPublish).toBe("passed");
+    expect(result.manifest.checks.publicReadAfterUnpublish).toBe("passed");
+    expect(result.manifest.checks.cleanup).toBe("passed");
     expectRedactedOutput(textOutput);
     expectRedactedOutput(jsonOutput);
+  });
+
+  it("uses a unique smoke identity per run and never hard-codes the redacted placeholder as the record identity", async () => {
+    const firstFetch = createFetchForHappyPath();
+    const secondFetch = createFetchForHappyPath();
+    const first = await runAdminWritePreviewSmoke([], {
+      env: validEnv,
+      fetch: firstFetch
+    });
+    const second = await runAdminWritePreviewSmoke([], {
+      env: validEnv,
+      fetch: secondFetch
+    });
+    const firstId = new URL(firstFetch.mock.calls[1][0]).pathname.replace("/api/admin/content/", "");
+    const secondId = new URL(secondFetch.mock.calls[1][0]).pathname.replace("/api/admin/content/", "");
+
+    expect(first.status).toBe("PASSED");
+    expect(second.status).toBe("PASSED");
+    expect(firstId).not.toBe(secondId);
+    expect(firstId).not.toBe("m18-preview-smoke-redacted");
+    expect(secondId).not.toBe("m18-preview-smoke-redacted");
+  });
+
+  it("attempts cleanup for the current run record after a post-create failure", async () => {
+    let smokeId = "";
+    let deleted = false;
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      const parsed = new URL(url);
+
+      if (parsed.pathname === "/api/admin/content" && init.method === "POST") {
+        const body = JSON.parse(String(init.body ?? "{}"));
+        smokeId = body.id;
+        return jsonResponse({ item: { id: smokeId, slug: body.slug, revision: 0 } }, 201);
+      }
+
+      if (parsed.pathname === `/api/admin/content/${smokeId}` && init.method === "GET") {
+        if (deleted) {
+          return jsonResponse({ error: "not found" }, 404);
+        }
+
+        return jsonResponse({ error: "read failed" }, 500);
+      }
+
+      if (parsed.pathname === `/api/admin/content/${smokeId}` && init.method === "DELETE") {
+        deleted = true;
+        return jsonResponse({ id: smokeId, deleted: true });
+      }
+
+      if (parsed.pathname === "/api/public/content") {
+        return jsonResponse({ items: [] });
+      }
+
+      return jsonResponse({ error: "unexpected path" }, 404);
+    });
+    const result = await runAdminWritePreviewSmoke([], {
+      env: validEnv,
+      fetch: fetchImpl
+    });
+
+    expect(result.status).toBe("FAILED");
+    expect(fetchImpl.mock.calls.map(([url]) => new URL(url).pathname)).toContain(`/api/admin/content/${smokeId}`);
+    expect(result.manifest.checks.cleanupAttempted).toBe("passed");
+    expect(result.manifest.checks.cleanup).toBe("passed");
+  });
+
+  it("fails the overall result when cleanup fails", async () => {
+    let smokeId = "";
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      const parsed = new URL(url);
+
+      if (parsed.pathname === "/api/admin/content" && init.method === "POST") {
+        const body = JSON.parse(String(init.body ?? "{}"));
+        smokeId = body.id;
+        return jsonResponse({ item: { id: smokeId, slug: body.slug, revision: 0 } }, 201);
+      }
+
+      if (parsed.pathname === `/api/admin/content/${smokeId}` && init.method === "GET") {
+        return jsonResponse({ error: "read failed" }, 500);
+      }
+
+      if (parsed.pathname === `/api/admin/content/${smokeId}` && init.method === "DELETE") {
+        return jsonResponse({ error: "cleanup failed" }, 500);
+      }
+
+      return jsonResponse({ error: "unexpected path" }, 404);
+    });
+    const result = await runAdminWritePreviewSmoke([], {
+      env: validEnv,
+      fetch: fetchImpl
+    });
+
+    expect(result.status).toBe("FAILED");
+    expect(result.manifest.checks.cleanupAttempted).toBe("passed");
+    expect(result.manifest.checks.cleanup).toBe("blocked");
   });
 
   it("fails safely when a lifecycle step returns 501, 500, leakage, or invalid public visibility", async () => {

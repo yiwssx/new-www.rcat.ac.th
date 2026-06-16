@@ -1,3 +1,5 @@
+// @vitest-environment node
+import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import m18Doc from "../../../docs/architecture/m18-admin-d1-write-batch-migration-2026-06-16.md?raw";
 import worker from "../src/index";
@@ -5,15 +7,20 @@ import worker from "../src/index";
 type Row = Record<string, unknown>;
 type TableName = "contents" | "documents" | "public_home_sections" | "visitor_daily_stats" | "admin_audit_log";
 
-const adminToken = "m18-preview-admin-token";
-const adminHeaders = {
+const smokeToken = "m18-preview-smoke-token";
+const smokeHeaders = {
   "Content-Type": "application/json",
-  "X-RCAT-Admin-Write-Token": adminToken
+  "X-RCAT-Admin-Smoke-Token": smokeToken
 };
-const adminEnvBase = {
+const smokeEnvBase = {
   ADMIN_WRITE_PREVIEW_ENABLED: "true",
-  ADMIN_WRITE_TOKEN: adminToken
+  ADMIN_WRITE_SMOKE_ENABLED: "true",
+  ADMIN_WRITE_SMOKE_TOKEN: smokeToken,
+  ENVIRONMENT: "preview"
 };
+const accessTeamDomain = "preview-team.example.test";
+const accessAudience = "m18-preview-audience";
+const accessEmail = "preview-editor";
 
 const contentInput = {
   id: "m18-preview-content-001",
@@ -184,13 +191,16 @@ function createAdminWriteMockDb(options: { failRuns?: boolean } = {}) {
 
     if (currentIndex === -1) {
       tables[table].push(nextRow);
+      appendAudit(table, nextRow, "create");
       return;
     }
 
+    const oldRow = tables[table][currentIndex];
     tables[table][currentIndex] = {
-      ...tables[table][currentIndex],
+      ...oldRow,
       ...nextRow
     };
+    appendAudit(table, tables[table][currentIndex], inferUpdateAuditAction(table, oldRow, tables[table][currentIndex]));
   }
 
   function updateRow(query: string, bindings: unknown[]) {
@@ -201,12 +211,23 @@ function createAdminWriteMockDb(options: { failRuns?: boolean } = {}) {
     }
 
     const idColumn = table === "visitor_daily_stats" ? "day" : "id";
-    const id = String(bindings[bindings.length - 1] ?? "");
+    const hasRevisionGuard = /\?\s+IS\s+NULL\s+OR\s+revision\s*=\s*\?/i.test(query);
+    const id = String(bindings[bindings.length - (hasRevisionGuard ? 3 : 1)] ?? "");
     const row = tables[table].find((item) => String(item[idColumn] ?? "") === id);
 
     if (!row) {
       return;
     }
+
+    if (hasRevisionGuard) {
+      const expectedRevision = bindings[bindings.length - 2];
+
+      if (expectedRevision !== null && Number(row.revision ?? 0) !== Number(expectedRevision)) {
+        return;
+      }
+    }
+
+    const oldRow = { ...row };
 
     let bindingIndex = 0;
     parseUpdateAssignments(query).forEach((assignment) => {
@@ -225,6 +246,82 @@ function createAdminWriteMockDb(options: { failRuns?: boolean } = {}) {
       if (/revision\s*\+\s*1/i.test(rawValue ?? "")) {
         row.revision = Number(row.revision ?? 0) + 1;
       }
+    });
+    appendAudit(table, row, inferUpdateAuditAction(table, oldRow, row));
+  }
+
+  function deleteRow(query: string, bindings: unknown[]) {
+    const table = tableFromQuery(query);
+
+    if (table !== "visitor_daily_stats") {
+      return;
+    }
+
+    const hasRevisionGuard = /\?\s+IS\s+NULL\s+OR\s+revision\s*=\s*\?/i.test(query);
+    const day = String(bindings[0] ?? "");
+    const rowIndex = tables.visitor_daily_stats.findIndex((row) => row.day === day);
+
+    if (rowIndex === -1) {
+      return;
+    }
+
+    const row = tables.visitor_daily_stats[rowIndex];
+    const expectedRevision = hasRevisionGuard ? bindings[1] : null;
+
+    if (expectedRevision !== null && Number(row.revision ?? 0) !== Number(expectedRevision)) {
+      return;
+    }
+
+    tables.visitor_daily_stats.splice(rowIndex, 1);
+    appendAudit("visitor_daily_stats", row, "delete");
+  }
+
+  function inferUpdateAuditAction(table: TableName, oldRow: Row, newRow: Row) {
+    if (table === "contents" || table === "documents") {
+      if (String(oldRow.deleted_at ?? "") === "" && String(newRow.deleted_at ?? "") !== "") {
+        return "archive";
+      }
+
+      if (oldRow.status !== "published" && newRow.status === "published") {
+        return "publish";
+      }
+
+      if (oldRow.status === "published" && newRow.status !== "published") {
+        return "unpublish";
+      }
+    }
+
+    if (
+      table === "public_home_sections" &&
+      String(oldRow.deleted_at ?? "") === "" &&
+      String(newRow.deleted_at ?? "") !== ""
+    ) {
+      return "archive";
+    }
+
+    return "update";
+  }
+
+  function appendAudit(table: TableName, row: Row, action: string) {
+    if (table === "admin_audit_log") {
+      return;
+    }
+
+    const entityTypes: Record<Exclude<TableName, "admin_audit_log">, string> = {
+      contents: "content",
+      documents: "document",
+      public_home_sections: "home-section",
+      visitor_daily_stats: "visitor-daily-stats"
+    };
+
+    tables.admin_audit_log.push({
+      id: `audit-${tables.admin_audit_log.length + 1}`,
+      entity_type: entityTypes[table],
+      entity_id: rowId(row),
+      action,
+      actor: row.updated_by ?? row.created_by ?? "",
+      created_at: row.updated_at ?? "",
+      metadata_json: "{}"
     });
   }
 
@@ -258,6 +355,8 @@ function createAdminWriteMockDb(options: { failRuns?: boolean } = {}) {
               throw new Error("D1 failure leaked SQL SELECT stack secret");
             }
 
+            const before = JSON.stringify(tables);
+
             if (/^\s*INSERT\s+/i.test(query)) {
               upsertRow(query, call.bindings);
             }
@@ -266,10 +365,16 @@ function createAdminWriteMockDb(options: { failRuns?: boolean } = {}) {
               updateRow(query, call.bindings);
             }
 
+            if (/^\s*DELETE\s+/i.test(query)) {
+              deleteRow(query, call.bindings);
+            }
+
+            const changed = before === JSON.stringify(tables) ? 0 : 1;
+
             return {
               success: true,
               meta: {
-                changes: 1
+                changes: tableFromQuery(query) ? changed : 0
               }
             };
           }
@@ -286,6 +391,36 @@ async function readJson(response: Response) {
   return response.json() as Promise<Record<string, unknown>>;
 }
 
+async function createAccessFixture(input: { email?: string; aud?: string; exp?: number | string } = {}) {
+  const { publicKey, privateKey } = await generateKeyPair("ES256");
+  const publicJwk = await exportJWK(publicKey);
+  const token = await new SignJWT({
+    email: input.email ?? accessEmail
+  })
+    .setProtectedHeader({ alg: "ES256", kid: "m18-preview-key" })
+    .setIssuer(`https://${accessTeamDomain}.cloudflareaccess.com`)
+    .setAudience(input.aud ?? accessAudience)
+    .setExpirationTime(input.exp ?? "5m")
+    .setIssuedAt()
+    .sign(privateKey);
+
+  return {
+    header: {
+      "Cf-Access-Jwt-Assertion": token
+    },
+    jwksJson: JSON.stringify({
+      keys: [
+        {
+          ...publicJwk,
+          kid: "m18-preview-key",
+          alg: "ES256",
+          use: "sig"
+        }
+      ]
+    })
+  };
+}
+
 function makeRequest(path: string, init: RequestInit = {}) {
   return new Request(`https://preview-worker.example.test${path}`, init);
 }
@@ -295,7 +430,7 @@ function makeJsonRequest(path: string, body: unknown, init: RequestInit = {}) {
     ...init,
     method: init.method ?? "POST",
     headers: {
-      ...adminHeaders,
+      ...smokeHeaders,
       ...(init.headers ?? {})
     },
     body: JSON.stringify(body)
@@ -304,7 +439,21 @@ function makeJsonRequest(path: string, body: unknown, init: RequestInit = {}) {
 
 function makeEnv(db: D1Database | undefined = createAdminWriteMockDb().db) {
   return {
-    ...adminEnvBase,
+    ...smokeEnvBase,
+    DB: db
+  };
+}
+
+function makeAccessEnv(db: D1Database | undefined = createAdminWriteMockDb().db, jwksJson = "") {
+  return {
+    ADMIN_WRITE_PREVIEW_ENABLED: "true",
+    ADMIN_WRITE_AUTH_MODE: "cloudflare-access",
+    ADMIN_WRITE_ACCESS_TEAM_DOMAIN: accessTeamDomain,
+    ADMIN_WRITE_ACCESS_AUD: accessAudience,
+    ADMIN_WRITE_ALLOWED_EMAILS: accessEmail,
+    ADMIN_WRITE_ALLOWED_ORIGINS: "https://preview-admin.example.test",
+    ADMIN_WRITE_ACCESS_JWKS_JSON: jwksJson,
+    ENVIRONMENT: "preview",
     DB: db
   };
 }
@@ -319,7 +468,7 @@ describe("M18 admin structured write routes", () => {
     expect(m18Doc).not.toMatch(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
   });
 
-  it("keeps preview admin writes closed unless the gate and credential are valid", async () => {
+  it("keeps preview admin writes closed unless the smoke gate and credential are valid", async () => {
     const disabledResponse = await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), {
       DB: createAdminWriteMockDb().db
     });
@@ -332,7 +481,7 @@ describe("M18 admin structured write routes", () => {
         body: JSON.stringify(contentInput)
       }),
       {
-        ...adminEnvBase,
+        ...smokeEnvBase,
         DB: createAdminWriteMockDb().db
       }
     );
@@ -340,7 +489,7 @@ describe("M18 admin structured write routes", () => {
       makeJsonRequest("/api/admin/content", contentInput, {
         headers: {
           "Content-Type": "application/json",
-          "X-RCAT-Admin-Write-Token": "wrong-token"
+          "X-RCAT-Admin-Smoke-Token": "wrong-token"
         }
       }),
       makeEnv()
@@ -360,7 +509,7 @@ describe("M18 admin structured write routes", () => {
         }
       }),
       {
-        ...adminEnvBase,
+        ...smokeEnvBase,
         ADMIN_WRITE_ALLOWED_ORIGINS: "https://preview-admin.example.test",
         DB: createAdminWriteMockDb().db
       }
@@ -368,7 +517,7 @@ describe("M18 admin structured write routes", () => {
     const unsupportedResponse = await worker.fetch(
       makeRequest("/api/admin/content", {
         method: "PUT",
-        headers: adminHeaders
+        headers: smokeHeaders
       }),
       makeEnv()
     );
@@ -376,9 +525,110 @@ describe("M18 admin structured write routes", () => {
     expect(optionsResponse.status).toBe(204);
     expect(optionsResponse.headers.get("Access-Control-Allow-Origin")).toBe("https://preview-admin.example.test");
     expect(optionsResponse.headers.get("Access-Control-Allow-Methods")).toBe("GET, POST, PATCH, PUT, DELETE, OPTIONS");
-    expect(optionsResponse.headers.get("Access-Control-Allow-Headers")).toContain("X-RCAT-Admin-Write-Token");
+    expect(optionsResponse.headers.get("Access-Control-Allow-Headers")).toContain("Cf-Access-Jwt-Assertion");
+    expect(optionsResponse.headers.get("Access-Control-Allow-Headers")).toContain("X-RCAT-Admin-Smoke-Token");
     expect(unsupportedResponse.status).toBe(405);
     expect(unsupportedResponse.headers.get("Allow")).toBe("GET, POST, PATCH, PUT, DELETE, OPTIONS");
+  });
+
+  it("requires Cloudflare Access for browser-origin admin writes and derives the actor from the verified identity", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const access = await createAccessFixture();
+    const missingResponse = await worker.fetch(
+      makeJsonRequest("/api/admin/content", contentInput, {
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "https://preview-admin.example.test"
+        }
+      }),
+      makeAccessEnv(db, access.jwksJson)
+    );
+    const spoofedActorResponse = await worker.fetch(
+      makeJsonRequest("/api/admin/content", contentInput, {
+        headers: {
+          ...access.header,
+          Origin: "https://preview-admin.example.test",
+          "X-RCAT-Admin-Actor": "spoofed-browser-actor"
+        }
+      }),
+      makeAccessEnv(db, access.jwksJson)
+    );
+
+    expect(missingResponse.status).toBe(401);
+    expect(spoofedActorResponse.status).toBe(201);
+    expect(tables.contents[0]?.updated_by).toBe(accessEmail);
+    expect(tables.admin_audit_log[0]?.actor).toBe(accessEmail);
+  });
+
+  it("rejects invalid Access JWT claims and disallowed browser origins before D1 mutation", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const wrongAudience = await createAccessFixture({ aud: "wrong-audience" });
+    const expired = await createAccessFixture({ exp: Math.floor(Date.now() / 1000) - 60 });
+    const disallowedEmail = await createAccessFixture({ email: "other-identity" });
+    const valid = await createAccessFixture();
+
+    const wrongAudienceResponse = await worker.fetch(
+      makeJsonRequest("/api/admin/content", contentInput, {
+        headers: {
+          ...wrongAudience.header,
+          Origin: "https://preview-admin.example.test"
+        }
+      }),
+      makeAccessEnv(db, wrongAudience.jwksJson)
+    );
+    const expiredResponse = await worker.fetch(
+      makeJsonRequest("/api/admin/content", contentInput, {
+        headers: {
+          ...expired.header,
+          Origin: "https://preview-admin.example.test"
+        }
+      }),
+      makeAccessEnv(db, expired.jwksJson)
+    );
+    const disallowedEmailResponse = await worker.fetch(
+      makeJsonRequest("/api/admin/content", contentInput, {
+        headers: {
+          ...disallowedEmail.header,
+          Origin: "https://preview-admin.example.test"
+        }
+      }),
+      makeAccessEnv(db, disallowedEmail.jwksJson)
+    );
+    const disallowedOriginResponse = await worker.fetch(
+      makeJsonRequest("/api/admin/content", contentInput, {
+        headers: {
+          ...valid.header,
+          Origin: "https://evil.example.test"
+        }
+      }),
+      makeAccessEnv(db, valid.jwksJson)
+    );
+
+    expect(wrongAudienceResponse.status).toBe(403);
+    expect(expiredResponse.status).toBe(403);
+    expect(disallowedEmailResponse.status).toBe(403);
+    expect(disallowedOriginResponse.status).toBe(403);
+    expect(tables.contents).toHaveLength(0);
+    expect(tables.admin_audit_log).toHaveLength(0);
+  });
+
+  it("rejects smoke-token authentication for browser-origin requests and production-like environments", async () => {
+    const originResponse = await worker.fetch(
+      makeJsonRequest("/api/admin/content", contentInput, {
+        headers: {
+          ...smokeHeaders,
+          Origin: "https://preview-admin.example.test"
+        }
+      }),
+      makeEnv()
+    );
+    const productionResponse = await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), {
+      ...makeEnv(),
+      ENVIRONMENT: "production"
+    });
+
+    expect(originResponse.status).toBe(403);
+    expect(productionResponse.status).toBe(403);
   });
 
   it("creates, updates, publishes, unpublishes, and archives content while public reads reflect only published records", async () => {
@@ -423,7 +673,7 @@ describe("M18 admin structured write routes", () => {
     const deleteResponse = await worker.fetch(
       makeRequest("/api/admin/content/m18-preview-content-001", {
         method: "DELETE",
-        headers: adminHeaders
+        headers: smokeHeaders
       }),
       env
     );
@@ -473,7 +723,7 @@ describe("M18 admin structured write routes", () => {
     const malformedResponse = await worker.fetch(
       makeRequest("/api/admin/content", {
         method: "POST",
-        headers: adminHeaders,
+        headers: smokeHeaders,
         body: "{"
       }),
       env
@@ -525,7 +775,7 @@ describe("M18 admin structured write routes", () => {
     const archiveResponse = await worker.fetch(
       makeRequest("/api/admin/documents/m18-preview-document-001", {
         method: "DELETE",
-        headers: adminHeaders
+        headers: smokeHeaders
       }),
       env
     );
@@ -590,6 +840,6 @@ describe("M18 admin structured write routes", () => {
     const text = await response.text();
 
     expect(response.status).toBe(500);
-    expect(text).not.toMatch(/SELECT|stack|D1 failure|secret|token|m18-preview-admin-token/i);
+    expect(text).not.toMatch(/SELECT|stack|D1 failure|secret|token|m18-preview-smoke-token/i);
   });
 });

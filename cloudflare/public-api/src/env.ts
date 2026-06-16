@@ -3,7 +3,13 @@ export interface Env {
   PUBLIC_API_VERSION?: string;
   ADMIN_WRITE_ALLOWED_ORIGINS?: string;
   ADMIN_WRITE_PREVIEW_ENABLED?: string;
-  ADMIN_WRITE_TOKEN?: string;
+  ADMIN_WRITE_AUTH_MODE?: string;
+  ADMIN_WRITE_ACCESS_TEAM_DOMAIN?: string;
+  ADMIN_WRITE_ACCESS_AUD?: string;
+  ADMIN_WRITE_ALLOWED_EMAILS?: string;
+  ADMIN_WRITE_ACCESS_JWKS_JSON?: string;
+  ADMIN_WRITE_SMOKE_ENABLED?: string;
+  ADMIN_WRITE_SMOKE_TOKEN?: string;
   ENVIRONMENT?: string;
   DB?: D1Database;
 }

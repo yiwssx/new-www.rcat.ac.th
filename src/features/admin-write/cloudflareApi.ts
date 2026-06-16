@@ -1,4 +1,4 @@
-import { buildCloudflareAdminApiUrl, getCloudflareAdminWriteToken } from "../../config/adminWriteProvider";
+import { buildCloudflareAdminApiUrl } from "../../config/adminWriteProvider";
 import type { CmsSnapshot } from "../../types";
 import type { CmsDocumentItem } from "../cms-documents/types";
 import type { ContentItem } from "../public-content/types";
@@ -14,13 +14,12 @@ function createCloudflareAdminError(message: string, cause: unknown) {
 }
 
 async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getCloudflareAdminWriteToken();
   const response = await fetch(buildCloudflareAdminApiUrl(path), {
     ...init,
+    credentials: "include",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "X-RCAT-Admin-Write-Token": token,
       ...(init.headers ?? {})
     }
   });

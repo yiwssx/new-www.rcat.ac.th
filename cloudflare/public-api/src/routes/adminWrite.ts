@@ -1,5 +1,6 @@
 import { createPublicContentListSnapshot } from "../adapters/publicContentAdapter";
 import { createPublicDocumentListSnapshot } from "../adapters/publicDocumentsAdapter";
+import { authenticateAdminRequest, type AdminIdentity } from "../auth/adminAccess";
 import { listPublishedContentRows } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
@@ -18,11 +19,9 @@ import { json, jsonError, methodNotAllowed } from "../responses";
 
 const ADMIN_PREFIX = "/api/admin/";
 const ADMIN_ALLOW = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
-const TOKEN_HEADER = "X-RCAT-Admin-Write-Token";
 const CONTENT_TYPES = new Set(["page", "news", "program", "announcement", "blog"]);
 const CONTENT_STATUSES = new Set(["draft", "review", "scheduled", "published"]);
 const DOCUMENT_STATUSES = new Set(["draft", "published"]);
-const PRODUCTION_CONTEXT_PATTERN = /(^|[-_.])(prod|production|live)([-_.]|$)/i;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -95,65 +94,7 @@ function serializeStringArray(value: unknown) {
 }
 
 function makeId(prefix: string) {
-  return `${prefix}-${Date.now()}`;
-}
-
-function getActor(request: Request) {
-  return optionalString(request.headers.get("X-RCAT-Admin-Actor"), "preview-admin");
-}
-
-function getEnvironmentValue(env: Env, key: string) {
-  const value = (env as unknown as Record<string, unknown>)[key];
-
-  return typeof value === "string" ? value : "";
-}
-
-function hasProductionContext(env: Env) {
-  return ["ENVIRONMENT", "ENV", "CF_PAGES_BRANCH"].some((key) =>
-    PRODUCTION_CONTEXT_PATTERN.test(getEnvironmentValue(env, key))
-  );
-}
-
-function requireAdminWriteGate(request: Request, env: Env) {
-  if (request.method === "OPTIONS") {
-    return null;
-  }
-
-  if (env.ADMIN_WRITE_PREVIEW_ENABLED !== "true") {
-    return jsonError("admin write preview gate is disabled", 403, {
-      resource: "admin-structured-data"
-    });
-  }
-
-  if (hasProductionContext(env)) {
-    return jsonError("admin write preview gate is not available for production-like context", 403, {
-      resource: "admin-structured-data"
-    });
-  }
-
-  const configuredToken = trimString(env.ADMIN_WRITE_TOKEN);
-
-  if (!configuredToken) {
-    return jsonError("admin write credential is not configured", 403, {
-      resource: "admin-structured-data"
-    });
-  }
-
-  const requestToken = trimString(request.headers.get(TOKEN_HEADER));
-
-  if (!requestToken) {
-    return jsonError("admin write credential is required", 401, {
-      resource: "admin-structured-data"
-    });
-  }
-
-  if (requestToken !== configuredToken) {
-    return jsonError("admin write credential is invalid", 403, {
-      resource: "admin-structured-data"
-    });
-  }
-
-  return null;
+  return `${prefix}-${crypto.randomUUID()}`;
 }
 
 async function parseJsonBody(request: Request) {
@@ -192,12 +133,12 @@ function assertAllowedValue(value: string, allowed: Set<string>, label: string) 
   return value;
 }
 
-function getExpectedRevision(body: JsonRecord) {
-  if (body.expectedRevision === undefined || body.expectedRevision === null || body.expectedRevision === "") {
+function parseRevisionValue(value: unknown) {
+  if (value === undefined || value === null || value === "") {
     return null;
   }
 
-  const revision = Number(body.expectedRevision);
+  const revision = Number(value);
 
   if (!Number.isInteger(revision) || revision < 0) {
     throw new AdminHttpError("expectedRevision must be a non-negative integer", 400);
@@ -206,12 +147,34 @@ function getExpectedRevision(body: JsonRecord) {
   return revision;
 }
 
-function assertFreshRevision(row: { revision?: number } | null, body: JsonRecord) {
-  const expectedRevision = getExpectedRevision(body);
+function getExpectedRevisionFromRequest(request: Request, body: JsonRecord = {}) {
+  const header = request.headers.get("If-Match");
+  const normalizedHeader = header?.replace(/^W\//, "").replaceAll('"', "").trim();
 
-  if (expectedRevision !== null && Number(row?.revision ?? 0) !== expectedRevision) {
-    throw new AdminHttpError("stale write conflict", 409);
+  return parseRevisionValue(normalizedHeader || body.expectedRevision);
+}
+
+function getConfiguredOrigins(value: string | undefined) {
+  return (value ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function requireAllowedAdminOrigin(request: Request, env: Env) {
+  const origin = request.headers.get("Origin");
+
+  if (!origin) {
+    return null;
   }
+
+  if (!getConfiguredOrigins(env.ADMIN_WRITE_ALLOWED_ORIGINS).includes(origin)) {
+    return jsonError("admin origin is not allowed", 403, {
+      resource: "admin-structured-data"
+    });
+  }
+
+  return null;
 }
 
 function mapContentRowToAdminItem(row: ContentRow) {
@@ -315,22 +278,16 @@ async function run(env: Env, query: string, ...bindings: unknown[]) {
     .run();
 }
 
-async function insertAudit(
-  env: Env,
-  input: { entityType: string; entityId: string; action: string; actor: string; now: string }
-) {
-  await run(
-    env,
-    `INSERT INTO admin_audit_log (id, entity_type, entity_id, action, actor, created_at, metadata_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    makeId("audit"),
-    input.entityType,
-    input.entityId,
-    input.action,
-    input.actor,
-    input.now,
-    "{}"
-  );
+function getChangedRows(result: D1Result<unknown>) {
+  const meta = result.meta as { changes?: number; rows_written?: number } | undefined;
+
+  return Number(meta?.changes ?? meta?.rows_written ?? 0);
+}
+
+function assertMutationChanged(result: D1Result<unknown>) {
+  if (getChangedRows(result) === 0) {
+    throw new AdminHttpError("stale write conflict", 409);
+  }
 }
 
 function createContentRow(body: JsonRecord, existing: ContentRow | null, actor: string, now: string): ContentRow {
@@ -486,84 +443,176 @@ async function assertUniqueHomeSectionKey(env: Env, sectionKey: string, id: stri
   }
 }
 
-async function upsertContentRow(env: Env, row: ContentRow) {
+async function insertContentRow(env: Env, row: ContentRow) {
   await run(
     env,
     `INSERT INTO contents (${CONTENT_ADMIN_ROW_COLUMNS.join(", ")})
-     VALUES (${CONTENT_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})
-     ON CONFLICT(id) DO UPDATE SET
-       slug = excluded.slug,
-       type = excluded.type,
-       status = excluded.status,
-       owner = excluded.owner,
-       title = excluded.title,
-       summary = excluded.summary,
-       body_snapshot = excluded.body_snapshot,
-       category = excluded.category,
-       tags_json = excluded.tags_json,
-       seo_title = excluded.seo_title,
-       seo_description = excluded.seo_description,
-       canonical_url = excluded.canonical_url,
-       featured = excluded.featured,
-       reading_minutes = excluded.reading_minutes,
-       template = excluded.template,
-       body_doc_id = excluded.body_doc_id,
-       body_doc_url = excluded.body_doc_url,
-       featured_media_id = excluded.featured_media_id,
-       media_ids_json = excluded.media_ids_json,
-       view_count = excluded.view_count,
-       last_viewed_at = excluded.last_viewed_at,
-       updated_at = excluded.updated_at,
-       publish_at = excluded.publish_at,
-       deleted_at = excluded.deleted_at,
-       updated_by = excluded.updated_by,
-       revision = excluded.revision`,
+     VALUES (${CONTENT_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})`,
     ...CONTENT_ADMIN_ROW_COLUMNS.map((column) => row[column])
   );
 }
 
-async function upsertDocumentRow(env: Env, row: DocumentRow) {
+async function updateContentRow(env: Env, row: ContentRow, expectedRevision: number | null) {
+  const result = await run(
+    env,
+    `UPDATE contents
+     SET
+       slug = ?,
+       type = ?,
+       status = ?,
+       owner = ?,
+       title = ?,
+       summary = ?,
+       body_snapshot = ?,
+       category = ?,
+       tags_json = ?,
+       seo_title = ?,
+       seo_description = ?,
+       canonical_url = ?,
+       featured = ?,
+       reading_minutes = ?,
+       template = ?,
+       body_doc_id = ?,
+       body_doc_url = ?,
+       featured_media_id = ?,
+       media_ids_json = ?,
+       view_count = ?,
+       last_viewed_at = ?,
+       updated_at = ?,
+       publish_at = ?,
+       deleted_at = ?,
+       updated_by = ?,
+       revision = ?
+     WHERE id = ?
+       AND COALESCE(deleted_at, '') = ''
+       AND (? IS NULL OR revision = ?)`,
+    row.slug,
+    row.type,
+    row.status,
+    row.owner,
+    row.title,
+    row.summary,
+    row.body_snapshot,
+    row.category,
+    row.tags_json,
+    row.seo_title,
+    row.seo_description,
+    row.canonical_url,
+    row.featured,
+    row.reading_minutes,
+    row.template,
+    row.body_doc_id,
+    row.body_doc_url,
+    row.featured_media_id,
+    row.media_ids_json,
+    row.view_count,
+    row.last_viewed_at,
+    row.updated_at,
+    row.publish_at,
+    row.deleted_at,
+    row.updated_by,
+    row.revision,
+    row.id,
+    expectedRevision,
+    expectedRevision
+  );
+  assertMutationChanged(result);
+}
+
+async function insertDocumentRow(env: Env, row: DocumentRow) {
   await run(
     env,
     `INSERT INTO documents (${DOCUMENT_ADMIN_ROW_COLUMNS.join(", ")})
-     VALUES (${DOCUMENT_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})
-     ON CONFLICT(id) DO UPDATE SET
-       title = excluded.title,
-       description = excluded.description,
-       category = excluded.category,
-       file_url = excluded.file_url,
-       file_name = excluded.file_name,
-       media_id = excluded.media_id,
-       published_at = excluded.published_at,
-       status = excluded.status,
-       sort_order = excluded.sort_order,
-       pinned = excluded.pinned,
-       updated_at = excluded.updated_at,
-       deleted_at = excluded.deleted_at,
-       updated_by = excluded.updated_by,
-       revision = excluded.revision`,
+     VALUES (${DOCUMENT_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})`,
     ...DOCUMENT_ADMIN_ROW_COLUMNS.map((column) => row[column])
   );
 }
 
-async function upsertHomeSectionRow(env: Env, row: PublicHomeSectionRow) {
+async function updateDocumentRow(env: Env, row: DocumentRow, expectedRevision: number | null) {
+  const result = await run(
+    env,
+    `UPDATE documents
+     SET
+       title = ?,
+       description = ?,
+       category = ?,
+       file_url = ?,
+       file_name = ?,
+       media_id = ?,
+       published_at = ?,
+       status = ?,
+       sort_order = ?,
+       pinned = ?,
+       updated_at = ?,
+       deleted_at = ?,
+       updated_by = ?,
+       revision = ?
+     WHERE id = ?
+       AND COALESCE(deleted_at, '') = ''
+       AND (? IS NULL OR revision = ?)`,
+    row.title,
+    row.description,
+    row.category,
+    row.file_url,
+    row.file_name,
+    row.media_id,
+    row.published_at,
+    row.status,
+    row.sort_order,
+    row.pinned,
+    row.updated_at,
+    row.deleted_at,
+    row.updated_by,
+    row.revision,
+    row.id,
+    expectedRevision,
+    expectedRevision
+  );
+  assertMutationChanged(result);
+}
+
+async function insertHomeSectionRow(env: Env, row: PublicHomeSectionRow) {
   await run(
     env,
     `INSERT INTO public_home_sections (${PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.join(", ")})
-     VALUES (${PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})
-     ON CONFLICT(id) DO UPDATE SET
-       section_key = excluded.section_key,
-       title = excluded.title,
-       summary = excluded.summary,
-       href = excluded.href,
-       sort_order = excluded.sort_order,
-       enabled = excluded.enabled,
-       updated_at = excluded.updated_at,
-       deleted_at = excluded.deleted_at,
-       updated_by = excluded.updated_by,
-       revision = excluded.revision`,
+     VALUES (${PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})`,
     ...PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.map((column) => row[column])
   );
+}
+
+async function updateHomeSectionRow(env: Env, row: PublicHomeSectionRow, expectedRevision: number | null) {
+  const result = await run(
+    env,
+    `UPDATE public_home_sections
+     SET
+       section_key = ?,
+       title = ?,
+       summary = ?,
+       href = ?,
+       sort_order = ?,
+       enabled = ?,
+       updated_at = ?,
+       deleted_at = ?,
+       updated_by = ?,
+       revision = ?
+     WHERE id = ?
+       AND COALESCE(deleted_at, '') = ''
+       AND (? IS NULL OR revision = ?)`,
+    row.section_key,
+    row.title,
+    row.summary,
+    row.href,
+    row.sort_order,
+    row.enabled,
+    row.updated_at,
+    row.deleted_at,
+    row.updated_by,
+    row.revision,
+    row.id,
+    expectedRevision,
+    expectedRevision
+  );
+  assertMutationChanged(result);
 }
 
 async function upsertVisitorDailyStatsRow(env: Env, row: VisitorDailyStatsRow) {
@@ -594,6 +643,17 @@ async function getContentById(env: Env, id: string) {
   );
 }
 
+async function getContentByIdAny(env: Env, id: string) {
+  return getFirst<ContentRow>(
+    env,
+    `SELECT ${CONTENT_ADMIN_ROW_COLUMNS.join(", ")}
+     FROM contents
+     WHERE id = ?
+     LIMIT 1`,
+    id
+  );
+}
+
 async function getDocumentById(env: Env, id: string) {
   return getFirst<DocumentRow>(
     env,
@@ -601,6 +661,17 @@ async function getDocumentById(env: Env, id: string) {
      FROM documents
      WHERE id = ?
        AND COALESCE(deleted_at, '') = ''
+     LIMIT 1`,
+    id
+  );
+}
+
+async function getDocumentByIdAny(env: Env, id: string) {
+  return getFirst<DocumentRow>(
+    env,
+    `SELECT ${DOCUMENT_ADMIN_ROW_COLUMNS.join(", ")}
+     FROM documents
+     WHERE id = ?
      LIMIT 1`,
     id
   );
@@ -618,6 +689,17 @@ async function getHomeSectionById(env: Env, id: string) {
   );
 }
 
+async function getHomeSectionByIdAny(env: Env, id: string) {
+  return getFirst<PublicHomeSectionRow>(
+    env,
+    `SELECT ${PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS.join(", ")}
+     FROM public_home_sections
+     WHERE id = ?
+     LIMIT 1`,
+    id
+  );
+}
+
 async function getVisitorDailyStatsByDay(env: Env, day: string) {
   return getFirst<VisitorDailyStatsRow>(
     env,
@@ -629,8 +711,8 @@ async function getVisitorDailyStatsByDay(env: Env, day: string) {
   );
 }
 
-async function handleContent(request: Request, env: Env, segments: string[]) {
-  const actor = getActor(request);
+async function handleContent(request: Request, env: Env, segments: string[], identity: AdminIdentity) {
+  const actor = identity.actor;
   const now = new Date().toISOString();
 
   if (segments.length === 1 && request.method === "GET") {
@@ -646,19 +728,17 @@ async function handleContent(request: Request, env: Env, segments: string[]) {
 
   if (segments.length === 1 && request.method === "POST") {
     const body = await parseJsonBody(request);
-    const existing = body.id ? await getContentById(env, String(body.id)) : null;
-    const row = createContentRow(body, existing, actor, now);
+    const existing = body.id ? await getContentByIdAny(env, String(body.id)) : null;
+
+    if (existing) {
+      throw new AdminHttpError("duplicate content id", 409);
+    }
+
+    const row = createContentRow(body, null, actor, now);
 
     await assertUniqueContentSlug(env, row.slug, row.id);
-    await upsertContentRow(env, row);
-    await insertAudit(env, {
-      entityType: "content",
-      entityId: row.id,
-      action: existing ? "upsert" : "create",
-      actor,
-      now
-    });
-    return json({ item: mapContentRowToAdminItem(row) }, { status: existing ? 200 : 201 });
+    await insertContentRow(env, row);
+    return json({ item: mapContentRowToAdminItem(row) }, { status: 201 });
   }
 
   if (segments.length === 1) {
@@ -686,12 +766,11 @@ async function handleContent(request: Request, env: Env, segments: string[]) {
     }
 
     const body = await parseJsonBody(request);
-    assertFreshRevision(existing, body);
+    const expectedRevision = getExpectedRevisionFromRequest(request, body);
     const row = createContentRow({ ...mapContentRowToAdminItem(existing), ...body, id }, existing, actor, now);
 
     await assertUniqueContentSlug(env, row.slug, row.id);
-    await upsertContentRow(env, row);
-    await insertAudit(env, { entityType: "content", entityId: row.id, action: "update", actor, now });
+    await updateContentRow(env, row, expectedRevision);
     return json({ item: mapContentRowToAdminItem(row) });
   }
 
@@ -702,17 +781,22 @@ async function handleContent(request: Request, env: Env, segments: string[]) {
       return notFoundAdmin();
     }
 
-    await run(
+    const expectedRevision = getExpectedRevisionFromRequest(request);
+    const result = await run(
       env,
       `UPDATE contents
        SET deleted_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
-       WHERE id = ?`,
+       WHERE id = ?
+         AND COALESCE(deleted_at, '') = ''
+         AND (? IS NULL OR revision = ?)`,
       now,
       now,
       actor,
-      id
+      id,
+      expectedRevision,
+      expectedRevision
     );
-    await insertAudit(env, { entityType: "content", entityId: id, action: "archive", actor, now });
+    assertMutationChanged(result);
     return json({ id, deleted: true });
   }
 
@@ -724,26 +808,32 @@ async function handleContent(request: Request, env: Env, segments: string[]) {
     }
 
     const status = action === "publish" ? "published" : "draft";
-    await run(
+    const body = await parseJsonBody(request);
+    const expectedRevision = getExpectedRevisionFromRequest(request, body);
+    const result = await run(
       env,
       `UPDATE contents
        SET status = ?, publish_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
-       WHERE id = ?`,
+       WHERE id = ?
+         AND COALESCE(deleted_at, '') = ''
+         AND (? IS NULL OR revision = ?)`,
       status,
       action === "publish" ? existing.publish_at || now : existing.publish_at || "",
       now,
       actor,
-      id
+      id,
+      expectedRevision,
+      expectedRevision
     );
-    await insertAudit(env, { entityType: "content", entityId: id, action, actor, now });
+    assertMutationChanged(result);
     return json({ id, published: action === "publish" });
   }
 
   return adminMethodNotAllowed();
 }
 
-async function handleDocuments(request: Request, env: Env, segments: string[]) {
-  const actor = getActor(request);
+async function handleDocuments(request: Request, env: Env, segments: string[], identity: AdminIdentity) {
+  const actor = identity.actor;
   const now = new Date().toISOString();
 
   if (segments.length === 1 && request.method === "GET") {
@@ -759,18 +849,16 @@ async function handleDocuments(request: Request, env: Env, segments: string[]) {
 
   if (segments.length === 1 && request.method === "POST") {
     const body = await parseJsonBody(request);
-    const existing = body.id ? await getDocumentById(env, String(body.id)) : null;
-    const row = createDocumentRow(body, existing, actor, now);
+    const existing = body.id ? await getDocumentByIdAny(env, String(body.id)) : null;
 
-    await upsertDocumentRow(env, row);
-    await insertAudit(env, {
-      entityType: "document",
-      entityId: row.id,
-      action: existing ? "upsert" : "create",
-      actor,
-      now
-    });
-    return json({ item: mapDocumentRowToAdminItem(row) }, { status: existing ? 200 : 201 });
+    if (existing) {
+      throw new AdminHttpError("duplicate document id", 409);
+    }
+
+    const row = createDocumentRow(body, null, actor, now);
+
+    await insertDocumentRow(env, row);
+    return json({ item: mapDocumentRowToAdminItem(row) }, { status: 201 });
   }
 
   if (segments.length === 1) {
@@ -798,11 +886,10 @@ async function handleDocuments(request: Request, env: Env, segments: string[]) {
     }
 
     const body = await parseJsonBody(request);
-    assertFreshRevision(existing, body);
+    const expectedRevision = getExpectedRevisionFromRequest(request, body);
     const row = createDocumentRow({ ...mapDocumentRowToAdminItem(existing), ...body, id }, existing, actor, now);
 
-    await upsertDocumentRow(env, row);
-    await insertAudit(env, { entityType: "document", entityId: row.id, action: "update", actor, now });
+    await updateDocumentRow(env, row, expectedRevision);
     return json({ item: mapDocumentRowToAdminItem(row) });
   }
 
@@ -813,17 +900,22 @@ async function handleDocuments(request: Request, env: Env, segments: string[]) {
       return notFoundAdmin();
     }
 
-    await run(
+    const expectedRevision = getExpectedRevisionFromRequest(request);
+    const result = await run(
       env,
       `UPDATE documents
        SET deleted_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
-       WHERE id = ?`,
+       WHERE id = ?
+         AND COALESCE(deleted_at, '') = ''
+         AND (? IS NULL OR revision = ?)`,
       now,
       now,
       actor,
-      id
+      id,
+      expectedRevision,
+      expectedRevision
     );
-    await insertAudit(env, { entityType: "document", entityId: id, action: "archive", actor, now });
+    assertMutationChanged(result);
     return json({ id, deleted: true });
   }
 
@@ -835,26 +927,32 @@ async function handleDocuments(request: Request, env: Env, segments: string[]) {
     }
 
     const status = action === "publish" ? "published" : "draft";
-    await run(
+    const body = await parseJsonBody(request);
+    const expectedRevision = getExpectedRevisionFromRequest(request, body);
+    const result = await run(
       env,
       `UPDATE documents
        SET status = ?, published_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
-       WHERE id = ?`,
+       WHERE id = ?
+         AND COALESCE(deleted_at, '') = ''
+         AND (? IS NULL OR revision = ?)`,
       status,
       action === "publish" ? existing.published_at || now : existing.published_at || "",
       now,
       actor,
-      id
+      id,
+      expectedRevision,
+      expectedRevision
     );
-    await insertAudit(env, { entityType: "document", entityId: id, action, actor, now });
+    assertMutationChanged(result);
     return json({ id, published: action === "publish" });
   }
 
   return adminMethodNotAllowed();
 }
 
-async function handleHomeSections(request: Request, env: Env, segments: string[]) {
-  const actor = getActor(request);
+async function handleHomeSections(request: Request, env: Env, segments: string[], identity: AdminIdentity) {
+  const actor = identity.actor;
   const now = new Date().toISOString();
 
   if (segments.length === 1 && request.method === "GET") {
@@ -870,19 +968,17 @@ async function handleHomeSections(request: Request, env: Env, segments: string[]
 
   if (segments.length === 1 && request.method === "POST") {
     const body = await parseJsonBody(request);
-    const existing = body.id ? await getHomeSectionById(env, String(body.id)) : null;
-    const row = createHomeSectionRow(body, existing, actor, now);
+    const existing = body.id ? await getHomeSectionByIdAny(env, String(body.id)) : null;
+
+    if (existing) {
+      throw new AdminHttpError("duplicate home section id", 409);
+    }
+
+    const row = createHomeSectionRow(body, null, actor, now);
 
     await assertUniqueHomeSectionKey(env, row.section_key, row.id);
-    await upsertHomeSectionRow(env, row);
-    await insertAudit(env, {
-      entityType: "home-section",
-      entityId: row.id,
-      action: existing ? "upsert" : "create",
-      actor,
-      now
-    });
-    return json({ item: mapHomeSectionRowToAdminItem(row) }, { status: existing ? 200 : 201 });
+    await insertHomeSectionRow(env, row);
+    return json({ item: mapHomeSectionRowToAdminItem(row) }, { status: 201 });
   }
 
   const id = segments[1];
@@ -899,12 +995,11 @@ async function handleHomeSections(request: Request, env: Env, segments: string[]
     }
 
     const body = await parseJsonBody(request);
-    assertFreshRevision(existing, body);
+    const expectedRevision = getExpectedRevisionFromRequest(request, body);
     const row = createHomeSectionRow({ ...mapHomeSectionRowToAdminItem(existing), ...body, id }, existing, actor, now);
 
     await assertUniqueHomeSectionKey(env, row.section_key, row.id);
-    await upsertHomeSectionRow(env, row);
-    await insertAudit(env, { entityType: "home-section", entityId: row.id, action: "update", actor, now });
+    await updateHomeSectionRow(env, row, expectedRevision);
     return json({ item: mapHomeSectionRowToAdminItem(row) });
   }
 
@@ -915,26 +1010,31 @@ async function handleHomeSections(request: Request, env: Env, segments: string[]
       return notFoundAdmin();
     }
 
-    await run(
+    const expectedRevision = getExpectedRevisionFromRequest(request);
+    const result = await run(
       env,
       `UPDATE public_home_sections
        SET enabled = ?, deleted_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
-       WHERE id = ?`,
+       WHERE id = ?
+         AND COALESCE(deleted_at, '') = ''
+         AND (? IS NULL OR revision = ?)`,
       0,
       now,
       now,
       actor,
-      id
+      id,
+      expectedRevision,
+      expectedRevision
     );
-    await insertAudit(env, { entityType: "home-section", entityId: id, action: "archive", actor, now });
+    assertMutationChanged(result);
     return json({ id, deleted: true });
   }
 
   return adminMethodNotAllowed();
 }
 
-async function handleVisitorStats(request: Request, env: Env, segments: string[]) {
-  const actor = getActor(request);
+async function handleVisitorStats(request: Request, env: Env, segments: string[], identity: AdminIdentity) {
+  const actor = identity.actor;
   const now = new Date().toISOString();
 
   if (segments[1] !== "daily") {
@@ -960,23 +1060,25 @@ async function handleVisitorStats(request: Request, env: Env, segments: string[]
   if (segments.length === 3 && request.method === "PUT") {
     const existing = await getVisitorDailyStatsByDay(env, day);
     const body = await parseJsonBody(request);
-    assertFreshRevision(existing, body);
     const row = createVisitorStatsRow(day, body, existing, actor, now);
 
     await upsertVisitorDailyStatsRow(env, row);
-    await insertAudit(env, {
-      entityType: "visitor-daily-stats",
-      entityId: day,
-      action: existing ? "update" : "create",
-      actor,
-      now
-    });
     return json({ item: mapVisitorDailyStatsRowToAdminItem(row) }, { status: existing ? 200 : 200 });
   }
 
   if (segments.length === 3 && request.method === "DELETE") {
-    await run(env, `DELETE FROM visitor_daily_stats WHERE day = ?`, day);
-    await insertAudit(env, { entityType: "visitor-daily-stats", entityId: day, action: "delete", actor, now });
+    const expectedRevision = getExpectedRevisionFromRequest(request);
+    const result = await run(
+      env,
+      `DELETE FROM visitor_daily_stats
+       WHERE day = ?
+         AND (? IS NULL OR revision = ?)`,
+      day,
+      expectedRevision,
+      expectedRevision
+    );
+
+    assertMutationChanged(result);
     return json({ id: day, deleted: true });
   }
 
@@ -1072,10 +1174,21 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
     return adminMethodNotAllowed();
   }
 
-  const gateResponse = requireAdminWriteGate(request, env);
+  const originResponse = requireAllowedAdminOrigin(request, env);
 
-  if (gateResponse) {
-    return gateResponse;
+  if (originResponse) {
+    return originResponse;
+  }
+
+  const authResult = await authenticateAdminRequest(request, env);
+
+  if (authResult.response || !authResult.identity) {
+    return (
+      authResult.response ??
+      jsonError("admin authentication failed", 403, {
+        resource: "admin-structured-data"
+      })
+    );
   }
 
   if (!env.DB) {
@@ -1092,19 +1205,19 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
     }
 
     if (segments[0] === "content") {
-      return await handleContent(request, env, segments);
+      return await handleContent(request, env, segments, authResult.identity);
     }
 
     if (segments[0] === "documents") {
-      return await handleDocuments(request, env, segments);
+      return await handleDocuments(request, env, segments, authResult.identity);
     }
 
     if (segments[0] === "home-sections") {
-      return await handleHomeSections(request, env, segments);
+      return await handleHomeSections(request, env, segments, authResult.identity);
     }
 
     if (segments[0] === "visitor-stats") {
-      return await handleVisitorStats(request, env, segments);
+      return await handleVisitorStats(request, env, segments, authResult.identity);
     }
 
     if (segments[0] === "public-content-contract" && request.method === "GET") {

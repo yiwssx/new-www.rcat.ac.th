@@ -1,10 +1,14 @@
-/* global AbortController, clearTimeout, console, fetch, process, setTimeout, URL */
+/* global AbortController, clearTimeout, console, crypto, fetch, process, setTimeout, URL */
 import { pathToFileURL } from "node:url";
 
 const CHECKPOINT = "M18";
 const SCOPE = "admin-d1-write-batch";
 const APPROVAL_PHRASE = "APPROVED_M18_ADMIN_WRITE_PREVIEW_SMOKE";
-const REQUIRED_ENV = ["RCAT_M18_ADMIN_WRITE_SMOKE_APPROVAL", "RCAT_PREVIEW_WORKER_URL", "RCAT_M18_ADMIN_WRITE_TOKEN"];
+const REQUIRED_ENV = [
+  "RCAT_M18_ADMIN_WRITE_SMOKE_APPROVAL",
+  "RCAT_PREVIEW_WORKER_URL",
+  "RCAT_M18_ADMIN_WRITE_SMOKE_TOKEN"
+];
 const SUCCESS_STATUSES = new Set(["PASSED"]);
 const LOCAL_HOST_PATTERN = /(^localhost$|^127\.|^0\.0\.0\.0$|^\[?::1\]?$|\.localhost$)/i;
 const PRODUCTION_HOST_PATTERN = /(^|[-_.])(prod|production|live)([-_.]|$)/i;
@@ -104,10 +108,12 @@ function makeChecks(value) {
     approvalGate: value,
     urlSafety: value,
     credentialProvided: value,
+    authMode: value,
     adminWrite: value,
     adminReadAfterWrite: value,
     publicReadAfterPublish: value,
     publicReadAfterUnpublish: value,
+    cleanupAttempted: value,
     cleanup: value,
     leakage: value
   };
@@ -140,14 +146,14 @@ function makeManifest({ status, workerUrlLabel = "not-provided", runId = null, i
 }
 
 function makeRunId() {
-  return `m18-preview-smoke-${Date.now()}`;
+  return `m18-preview-smoke-${crypto.randomUUID().replaceAll("-", "").toLowerCase()}`;
 }
 
 function makeSmokeContent(runId) {
   return {
-    id: "m18-preview-smoke-redacted",
+    id: runId,
     title: `M18 preview smoke ${runId}`,
-    slug: "m18-preview-smoke-redacted",
+    slug: runId,
     type: "news",
     status: "draft",
     owner: "preview-smoke",
@@ -196,7 +202,7 @@ async function requestJson({ workerUrl, path, method, token, body, fetchImpl, ti
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          "X-RCAT-Admin-Write-Token": token
+          "X-RCAT-Admin-Smoke-Token": token
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal
@@ -236,7 +242,8 @@ function operation(name, result) {
   return {
     name,
     status: result.status,
-    ok: result.issues.length === 0 && result.status >= 200 && result.status < 300
+    ok: result.issues.length === 0 && result.status >= 200 && result.status < 300,
+    semanticOk: false
   };
 }
 
@@ -281,20 +288,26 @@ export async function runAdminWritePreviewSmoke(args = [], options = {}) {
   const operations = [];
   const validationIssues = [];
 
-  async function step(name, path, method, body) {
+  async function step(name, path, method, body, acceptedStatuses = null) {
     try {
       const result = await requestJson({
         workerUrl: envValues.RCAT_PREVIEW_WORKER_URL,
         path,
         method,
-        token: envValues.RCAT_M18_ADMIN_WRITE_TOKEN,
+        token: envValues.RCAT_M18_ADMIN_WRITE_SMOKE_TOKEN,
         body,
         fetchImpl,
         timeoutMs
       });
-      operations.push(operation(name, result));
+      const accepted = Array.isArray(acceptedStatuses)
+        ? acceptedStatuses.includes(result.status)
+        : result.status >= 200 && result.status < 300;
+      const entry = operation(name, result);
 
-      if (result.issues.length > 0 || result.status < 200 || result.status >= 300) {
+      entry.ok = result.issues.length === 0 && accepted;
+      operations.push(entry);
+
+      if (result.issues.length > 0 || !accepted) {
         validationIssues.push(`${name}: ${result.issues.concat(`HTTP ${result.status}`).map(redactIssue).join("; ")}`);
       }
 
@@ -306,47 +319,106 @@ export async function runAdminWritePreviewSmoke(args = [], options = {}) {
     }
   }
 
-  const createResult = await step("create-draft", "/api/admin/content", "POST", content);
-  const contentId = createResult.payload?.item?.id || content.id;
+  let created = false;
+  let contentId = content.id;
+  let revision = 0;
 
-  if (validationIssues.length === 0) {
-    await step("admin-read-after-write", `/api/admin/content/${encodeURIComponent(contentId)}`, "GET");
-  }
+  try {
+    const createResult = await step("create-draft", "/api/admin/content", "POST", content);
+    contentId = createResult.payload?.item?.id || content.id;
+    revision = Number(createResult.payload?.item?.revision ?? 0);
+    created = validationIssues.length === 0 && contentId === content.id;
 
-  if (validationIssues.length === 0) {
-    await step("update-draft", `/api/admin/content/${encodeURIComponent(contentId)}`, "PATCH", {
-      ...content,
-      title: "M18 preview smoke updated",
-      expectedRevision: 0
-    });
-  }
-
-  if (validationIssues.length === 0) {
-    await step("publish", `/api/admin/content/${encodeURIComponent(contentId)}/publish`, "POST", {});
-  }
-
-  if (validationIssues.length === 0) {
-    const publicAfterPublish = await step("public-read-after-publish", "/api/public/content", "GET");
-
-    if (!contentAppearsInPublic(publicAfterPublish.payload, contentId)) {
-      validationIssues.push("public-read-after-publish: smoke record was not visible");
+    if (validationIssues.length === 0) {
+      const adminRead = await step(
+        "admin-read-after-write",
+        `/api/admin/content/${encodeURIComponent(contentId)}`,
+        "GET"
+      );
+      revision = Number(adminRead.payload?.item?.revision ?? revision);
     }
-  }
 
-  if (validationIssues.length === 0) {
-    await step("unpublish", `/api/admin/content/${encodeURIComponent(contentId)}/unpublish`, "POST", {});
-  }
-
-  if (validationIssues.length === 0) {
-    const publicAfterUnpublish = await step("public-read-after-unpublish", "/api/public/content", "GET");
-
-    if (contentAppearsInPublic(publicAfterUnpublish.payload, contentId)) {
-      validationIssues.push("public-read-after-unpublish: smoke record remained visible");
+    if (validationIssues.length === 0) {
+      const updateResult = await step("update-draft", `/api/admin/content/${encodeURIComponent(contentId)}`, "PATCH", {
+        ...content,
+        title: "M18 preview smoke updated",
+        expectedRevision: revision
+      });
+      revision = Number(updateResult.payload?.item?.revision ?? revision + 1);
     }
-  }
 
-  if (validationIssues.length === 0) {
-    await step("archive-cleanup", `/api/admin/content/${encodeURIComponent(contentId)}`, "DELETE");
+    if (validationIssues.length === 0) {
+      await step("publish", `/api/admin/content/${encodeURIComponent(contentId)}/publish`, "POST", {
+        expectedRevision: revision
+      });
+      revision += 1;
+    }
+
+    if (validationIssues.length === 0) {
+      const publicAfterPublish = await step("public-read-after-publish", "/api/public/content", "GET");
+      const visible = contentAppearsInPublic(publicAfterPublish.payload, contentId);
+      const lastOperation = operations.at(-1);
+
+      if (lastOperation) {
+        lastOperation.semanticOk = visible;
+      }
+
+      if (!visible) {
+        validationIssues.push("public-read-after-publish: smoke record was not visible");
+      }
+    }
+
+    if (validationIssues.length === 0) {
+      await step("unpublish", `/api/admin/content/${encodeURIComponent(contentId)}/unpublish`, "POST", {
+        expectedRevision: revision
+      });
+      revision += 1;
+    }
+
+    if (validationIssues.length === 0) {
+      const publicAfterUnpublish = await step("public-read-after-unpublish", "/api/public/content", "GET");
+      const absent = !contentAppearsInPublic(publicAfterUnpublish.payload, contentId);
+      const lastOperation = operations.at(-1);
+
+      if (lastOperation) {
+        lastOperation.semanticOk = absent;
+      }
+
+      if (!absent) {
+        validationIssues.push("public-read-after-unpublish: smoke record remained visible");
+      }
+    }
+  } finally {
+    if (created) {
+      const cleanupResult = await step(
+        "archive-cleanup",
+        `/api/admin/content/${encodeURIComponent(contentId)}`,
+        "DELETE",
+        { expectedRevision: revision }
+      );
+
+      if (cleanupResult.status < 200 || cleanupResult.status >= 300 || cleanupResult.issues.length > 0) {
+        validationIssues.push("archive-cleanup: cleanup failed");
+      }
+
+      const cleanupAdminVerify = await step(
+        "verify-cleanup-admin-archived",
+        `/api/admin/content/${encodeURIComponent(contentId)}`,
+        "GET",
+        undefined,
+        [404]
+      );
+
+      if (cleanupAdminVerify.status !== 404) {
+        validationIssues.push("verify-cleanup-admin-archived: smoke record remained active");
+      }
+
+      const cleanupVerify = await step("verify-cleanup-public-absence", "/api/public/content", "GET");
+
+      if (contentAppearsInPublic(cleanupVerify.payload, contentId)) {
+        validationIssues.push("verify-cleanup-public-absence: smoke record remained public");
+      }
+    }
   }
 
   const status = validationIssues.length === 0 ? "PASSED" : "FAILED";
@@ -363,16 +435,22 @@ export async function runAdminWritePreviewSmoke(args = [], options = {}) {
     approvalGate: "passed",
     urlSafety: "passed",
     credentialProvided: "passed",
+    authMode: "smoke-token",
     adminWrite: operations.some((item) => item.name === "create-draft" && item.ok) ? "passed" : "blocked",
     adminReadAfterWrite: operations.some((item) => item.name === "admin-read-after-write" && item.ok)
       ? "passed"
       : "blocked",
-    publicReadAfterPublish: operations.some((item) => item.name === "public-read-after-publish" && item.ok)
+    publicReadAfterPublish: operations.some(
+      (item) => item.name === "public-read-after-publish" && item.ok && item.semanticOk
+    )
       ? "passed"
       : "blocked",
-    publicReadAfterUnpublish: operations.some((item) => item.name === "public-read-after-unpublish" && item.ok)
+    publicReadAfterUnpublish: operations.some(
+      (item) => item.name === "public-read-after-unpublish" && item.ok && item.semanticOk
+    )
       ? "passed"
       : "blocked",
+    cleanupAttempted: operations.some((item) => item.name === "archive-cleanup") ? "passed" : "blocked",
     cleanup: operations.some((item) => item.name === "archive-cleanup" && item.ok) ? "passed" : "blocked",
     leakage: validationIssues.some((issue) => issue.includes("leakage")) ? "blocked" : "passed"
   };
