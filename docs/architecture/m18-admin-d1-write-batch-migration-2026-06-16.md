@@ -1,8 +1,10 @@
 # M18 Admin + D1 Write Batch Migration
 
-Status: M18 repository implementation hardened; external preview smoke is pending until the corrected Worker is deployed and configured with non-production execution values. This is one cohesive milestone, not a production cutover.
+Status: M18 repository implementation hardened with a parser-safe D1 audit migration; external preview migration and smoke remain pending until the corrected Worker is deployed and configured with non-production execution values. This is one cohesive milestone, not a production cutover.
 
-Latest hardening correction: the committed production Worker environment now has explicit safe placeholder-only vars that mark it as production and disable M18 preview write/smoke gates. The preview smoke cleanup path now sends the latest revision through `If-Match` instead of relying on a DELETE JSON body.
+Latest D1-safe correction: the previous `0004_admin_write_hardening.sql` trigger design used nested `CASE ... END` expressions inside `CREATE TRIGGER ... BEGIN ... END` bodies. Fresh isolated local Wrangler D1 accepted that SQL, which proves it was not a SQLite syntax error. The external Preview failure reported `incomplete input`, consistent with a remote migration parser/splitter hazard around nested `END` tokens in trigger bodies. The committed `0004` now avoids that shape entirely by using separate, mutually exclusive `WHEN`-guarded triggers for archive, publish, unpublish, and normal update audit actions.
+
+Previous hardening correction: the committed production Worker environment now has explicit safe placeholder-only vars that mark it as production and disable M18 preview write/smoke gates. The preview smoke cleanup path now sends the latest revision through `If-Match` instead of relying on a DELETE JSON body.
 
 ## Objective
 
@@ -66,6 +68,18 @@ The migration is additive only:
 - adds admin updated/revision indexes
 
 The hardening migration adds trigger-backed audit logging for `contents`, `documents`, `public_home_sections`, and `visitor_daily_stats`. Audit rows are now written inside the same D1 statement/transaction as the structured mutation. The application route no longer performs separate mutation-then-audit writes.
+
+The hardening migration is parser-safe for D1 remote migration application:
+
+- no trigger body contains nested `CASE ... END`
+- all triggers use `CREATE TRIGGER IF NOT EXISTS`
+- content update audit is split into `archive`, `publish`, `unpublish`, and normal `update` triggers
+- document update audit is split into `archive`, `publish`, `unpublish`, and normal `update` triggers
+- public-home section update audit is split into `archive` and normal `update` triggers
+- visitor daily stats retain direct `create`, `update`, and `delete` triggers
+- archive triggers have priority when a status change and archive happen in the same mutation
+- trigger `WHEN` clauses are mutually exclusive, so one successful mutation creates exactly one audit row
+- stale no-op mutations and failed D1 mutations create no audit row
 
 The migrations do not drop tables, drop columns, import data, seed production data, or commit any D1 identifier.
 
@@ -149,11 +163,14 @@ M18 tests cover:
 - malformed JSON, missing required fields, invalid status values, duplicate slug conflicts
 - stale revision conflict
 - mutation-level revision checks for update, publish, unpublish, and archive operations
-- trigger-backed audit rows and no separate application audit insert
+- parser-safe trigger-backed audit rows and no separate application audit insert
+- no nested `CASE ... END` inside trigger bodies
+- split audit triggers with mutually exclusive `WHEN` clauses
 - content create, update, publish, unpublish, and archive
 - document metadata create, publish, deterministic ordering, and archive
 - public home section writes
 - visitor daily stat writes
+- one audit row per successful mutation and no audit row for stale or failed mutations
 - D1 failure safe errors without stack, SQL, token, or secret leakage
 - public reads reflecting published D1 writes and excluding draft/unpublished/archived records
 - frontend Apps Script default and fallback behavior
@@ -186,6 +203,18 @@ Local D1 migration may be applied only to the local development database:
 ```bash
 pnpm worker:d1:migrate:local
 ```
+
+Fresh isolated local D1 acceptance was also run with Wrangler `--local --persist-to <temp-dir>`:
+
+- first apply recorded `0001_public_read_schema.sql` through `0004_admin_write_hardening.sql`
+- `sqlite_master` contained all 16 expected audit triggers
+- a second apply against the same isolated state returned no migrations to apply
+- SQL semantic smoke produced the expected action sequences:
+  - content: `create update publish unpublish archive`
+  - document: `create update publish unpublish archive`
+  - public home section: `create update archive`
+  - visitor daily stats: `create update delete`
+  - archive priority cases: `create archive`
 
 ## Preview Smoke Command
 
@@ -228,7 +257,9 @@ Apps Script routes remain present. Production provider remains Apps Script. No p
 
 M18 repository implementation is hardened without remote preview credentials.
 
-External preview smoke status for this checkpoint is pending until the corrected non-production Worker is deployed, Cloudflare Access is configured, smoke credentials are supplied outside git, and the operator runs the smoke command.
+The previously reported external Preview D1 migration failure remains an external blocked-safe execution until the operator applies this corrected migration to the non-production Preview D1 database. The repository now contains the parser-safe migration, but this document does not claim that external Preview `0004` has passed.
+
+External preview smoke status for this checkpoint is pending until the corrected non-production Worker is deployed, Cloudflare Access is configured, smoke credentials are supplied outside git, the corrected `0004` migration is applied to Preview D1, and the operator runs the smoke command.
 
 This blocked-safe state is not a new milestone.
 
@@ -271,6 +302,9 @@ M18 repository implementation is accepted when:
 - browser preview auth uses Cloudflare Access
 - CLI smoke auth uses a separate uncommitted smoke token
 - audit writes are atomic through D1 triggers
+- D1 audit triggers are parser-safe for remote migration application
+- fresh isolated local D1 migration acceptance passes for `0001` through `0004`
+- SQL semantic smoke confirms exactly one audit row per successful mutation
 - stale revision checks are mutation-level
 - frontend structured-write provider exists
 - Apps Script remains default and fallback

@@ -460,6 +460,30 @@ function makeAccessEnv(db: D1Database | undefined = createAdminWriteMockDb().db,
   };
 }
 
+type MockTables = ReturnType<typeof createAdminWriteMockDb>["tables"];
+
+async function expectSingleAuditMutation(
+  responsePromise: Promise<Response>,
+  tables: MockTables,
+  expectedAudit: Pick<Row, "entity_type" | "entity_id" | "action">
+) {
+  const beforeCount = tables.admin_audit_log.length;
+  const response = await responsePromise;
+
+  expect(response.status).toBeGreaterThanOrEqual(200);
+  expect(response.status).toBeLessThan(300);
+  expect(tables.admin_audit_log).toHaveLength(beforeCount + 1);
+  expect(tables.admin_audit_log.at(-1)).toMatchObject(expectedAudit);
+
+  return response;
+}
+
+function auditActionsFor(tables: MockTables, entityType: string, entityId: string) {
+  return tables.admin_audit_log
+    .filter((row) => row.entity_type === entityType && row.entity_id === entityId)
+    .map((row) => row.action);
+}
+
 describe("M18 admin structured write routes", () => {
   it("declares explicit production environment vars that keep preview admin writes disabled", async () => {
     expect(wranglerToml).toMatch(/\[env\.production\.vars\]/);
@@ -770,6 +794,217 @@ describe("M18 admin structured write routes", () => {
     expect(archiveResponse.status).toBe(200);
   });
 
+  it("records exactly one audit action for each successful structured mutation", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const env = makeEnv(db);
+    const homeSectionInput = {
+      id: "m18-audit-home-section-001",
+      key: "m18-audit-home",
+      title: "M18 audit home section",
+      summary: "Fake audit home section.",
+      href: "https://preview.example.test/m18-audit",
+      enabled: true,
+      order: 1
+    };
+    const visitorStatsInput = {
+      total: 9,
+      uniqueVisitors: 4,
+      onlineUsers: 1
+    };
+
+    await expectSingleAuditMutation(worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env), tables, {
+      entity_type: "content",
+      entity_id: "m18-preview-content-001",
+      action: "create"
+    });
+    await expectSingleAuditMutation(
+      worker.fetch(
+        makeJsonRequest(
+          "/api/admin/content/m18-preview-content-001",
+          {
+            ...contentInput,
+            title: "M18 audit content updated",
+            expectedRevision: 0
+          },
+          { method: "PATCH" }
+        ),
+        env
+      ),
+      tables,
+      { entity_type: "content", entity_id: "m18-preview-content-001", action: "update" }
+    );
+    await expectSingleAuditMutation(
+      worker.fetch(makeJsonRequest("/api/admin/content/m18-preview-content-001/publish", {}), env),
+      tables,
+      { entity_type: "content", entity_id: "m18-preview-content-001", action: "publish" }
+    );
+
+    const beforeStaleConflict = tables.admin_audit_log.length;
+    const staleConflictResponse = await worker.fetch(
+      makeJsonRequest(
+        "/api/admin/content/m18-preview-content-001",
+        {
+          ...contentInput,
+          title: "M18 stale audit update",
+          expectedRevision: 0
+        },
+        { method: "PATCH" }
+      ),
+      env
+    );
+
+    expect(staleConflictResponse.status).toBe(409);
+    expect(tables.admin_audit_log).toHaveLength(beforeStaleConflict);
+
+    await expectSingleAuditMutation(
+      worker.fetch(makeJsonRequest("/api/admin/content/m18-preview-content-001/unpublish", {}), env),
+      tables,
+      { entity_type: "content", entity_id: "m18-preview-content-001", action: "unpublish" }
+    );
+    await expectSingleAuditMutation(
+      worker.fetch(
+        makeRequest("/api/admin/content/m18-preview-content-001", {
+          method: "DELETE",
+          headers: smokeHeaders
+        }),
+        env
+      ),
+      tables,
+      { entity_type: "content", entity_id: "m18-preview-content-001", action: "archive" }
+    );
+
+    await expectSingleAuditMutation(worker.fetch(makeJsonRequest("/api/admin/documents", documentInput), env), tables, {
+      entity_type: "document",
+      entity_id: "m18-preview-document-001",
+      action: "create"
+    });
+    await expectSingleAuditMutation(
+      worker.fetch(
+        makeJsonRequest(
+          "/api/admin/documents/m18-preview-document-001",
+          {
+            ...documentInput,
+            title: "M18 audit document updated",
+            expectedRevision: 0
+          },
+          { method: "PATCH" }
+        ),
+        env
+      ),
+      tables,
+      { entity_type: "document", entity_id: "m18-preview-document-001", action: "update" }
+    );
+    await expectSingleAuditMutation(
+      worker.fetch(makeJsonRequest("/api/admin/documents/m18-preview-document-001/publish", {}), env),
+      tables,
+      { entity_type: "document", entity_id: "m18-preview-document-001", action: "publish" }
+    );
+    await expectSingleAuditMutation(
+      worker.fetch(makeJsonRequest("/api/admin/documents/m18-preview-document-001/unpublish", {}), env),
+      tables,
+      { entity_type: "document", entity_id: "m18-preview-document-001", action: "unpublish" }
+    );
+    await expectSingleAuditMutation(
+      worker.fetch(
+        makeRequest("/api/admin/documents/m18-preview-document-001", {
+          method: "DELETE",
+          headers: smokeHeaders
+        }),
+        env
+      ),
+      tables,
+      { entity_type: "document", entity_id: "m18-preview-document-001", action: "archive" }
+    );
+
+    await expectSingleAuditMutation(
+      worker.fetch(makeJsonRequest("/api/admin/home-sections", homeSectionInput), env),
+      tables,
+      { entity_type: "home-section", entity_id: "m18-audit-home-section-001", action: "create" }
+    );
+    await expectSingleAuditMutation(
+      worker.fetch(
+        makeJsonRequest(
+          "/api/admin/home-sections/m18-audit-home-section-001",
+          {
+            title: "M18 audit home section updated",
+            expectedRevision: 0
+          },
+          { method: "PATCH" }
+        ),
+        env
+      ),
+      tables,
+      { entity_type: "home-section", entity_id: "m18-audit-home-section-001", action: "update" }
+    );
+    await expectSingleAuditMutation(
+      worker.fetch(
+        makeRequest("/api/admin/home-sections/m18-audit-home-section-001", {
+          method: "DELETE",
+          headers: smokeHeaders
+        }),
+        env
+      ),
+      tables,
+      { entity_type: "home-section", entity_id: "m18-audit-home-section-001", action: "archive" }
+    );
+
+    await expectSingleAuditMutation(
+      worker.fetch(
+        makeJsonRequest("/api/admin/visitor-stats/daily/2026-06-16", visitorStatsInput, { method: "PUT" }),
+        env
+      ),
+      tables,
+      { entity_type: "visitor-daily-stats", entity_id: "2026-06-16", action: "create" }
+    );
+    await expectSingleAuditMutation(
+      worker.fetch(
+        makeJsonRequest(
+          "/api/admin/visitor-stats/daily/2026-06-16",
+          {
+            ...visitorStatsInput,
+            total: 11
+          },
+          { method: "PUT" }
+        ),
+        env
+      ),
+      tables,
+      { entity_type: "visitor-daily-stats", entity_id: "2026-06-16", action: "update" }
+    );
+    await expectSingleAuditMutation(
+      worker.fetch(
+        makeRequest("/api/admin/visitor-stats/daily/2026-06-16", {
+          method: "DELETE",
+          headers: smokeHeaders
+        }),
+        env
+      ),
+      tables,
+      { entity_type: "visitor-daily-stats", entity_id: "2026-06-16", action: "delete" }
+    );
+
+    expect(auditActionsFor(tables, "content", "m18-preview-content-001")).toEqual([
+      "create",
+      "update",
+      "publish",
+      "unpublish",
+      "archive"
+    ]);
+    expect(auditActionsFor(tables, "document", "m18-preview-document-001")).toEqual([
+      "create",
+      "update",
+      "publish",
+      "unpublish",
+      "archive"
+    ]);
+    expect(auditActionsFor(tables, "home-section", "m18-audit-home-section-001")).toEqual([
+      "create",
+      "update",
+      "archive"
+    ]);
+    expect(auditActionsFor(tables, "visitor-daily-stats", "2026-06-16")).toEqual(["create", "update", "delete"]);
+  });
+
   it("rejects malformed JSON, missing fields, invalid statuses, and duplicate slugs safely", async () => {
     const { db } = createAdminWriteMockDb();
     const env = makeEnv(db);
@@ -889,11 +1124,12 @@ describe("M18 admin structured write routes", () => {
   });
 
   it("returns safe errors without stack, SQL, D1 identifiers, tokens, or secrets when D1 fails", async () => {
-    const { db } = createAdminWriteMockDb({ failRuns: true });
+    const { db, tables } = createAdminWriteMockDb({ failRuns: true });
     const response = await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), makeEnv(db));
     const text = await response.text();
 
     expect(response.status).toBe(500);
     expect(text).not.toMatch(/SELECT|stack|D1 failure|secret|token|m18-preview-smoke-token/i);
+    expect(tables.admin_audit_log).toHaveLength(0);
   });
 });
