@@ -26,6 +26,11 @@ database_id = "preview-placeholder"
 [env.production]
 name = "rcat-public-api-production"
 
+[env.production.vars]
+ENVIRONMENT = "production"
+ADMIN_WRITE_PREVIEW_ENABLED = "false"
+ADMIN_WRITE_SMOKE_ENABLED = "false"
+
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "rcat-public-api-production"

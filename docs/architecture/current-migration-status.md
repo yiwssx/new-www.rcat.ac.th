@@ -20,7 +20,7 @@ M17-B: Cloudflare Core Public Read API routes are implemented for dev/preview Wo
 
 M17-C: `PASSED` through an externally executed, operator-approved dev/preview smoke run. The grouped Cloudflare public-read endpoints passed the M17-C smoke and minimum contract gate after the preview Worker was updated to the current M17 route implementation. The successful run used a non-production dev/preview Worker origin; the actual Worker URL remains redacted and uncommitted. This is not a production cutover.
 
-M18: Admin + D1 Write Batch Migration repository implementation is hardened as one cohesive milestone. It moves structured admin writes for M17 public-read data toward Cloudflare Worker + D1 in dev/preview mode while Apps Script remains production fallback and Google Drive media-file bridge. Browser preview admin writes now require Cloudflare Access, CLI smoke uses a separate uncommitted smoke token, audit writes are trigger-backed and atomic, and external preview smoke remains pending until the corrected Worker is deployed and configured outside git.
+M18: Admin + D1 Write Batch Migration repository implementation is hardened as one cohesive milestone. It moves structured admin writes for M17 public-read data toward Cloudflare Worker + D1 in dev/preview mode while Apps Script remains production fallback and Google Drive media-file bridge. Browser preview admin writes now require Cloudflare Access, CLI smoke uses a separate uncommitted smoke token, audit writes are trigger-backed and atomic, production Worker env config now carries an explicit production marker with preview write gates disabled, smoke cleanup uses `If-Match` revision guarding, and external preview smoke remains pending until the corrected Worker is deployed and configured outside git.
 
 ## M15.1 Dry-Run Result
 
@@ -114,12 +114,15 @@ M18 added:
 - preview-gated Worker admin routes for content, document metadata, public-home sections, visitor daily stats, and admin snapshot readback
 - Cloudflare Access browser authentication for preview admin writes
 - separate non-browser smoke-token authentication for the M18 preview smoke runner
+- explicit production Worker environment vars that mark `ENVIRONMENT=production` and keep preview write and smoke gates disabled
 - explicit frontend admin write provider that defaults to Apps Script and switches to Cloudflare only in preview migration mode with `cloudflare-access`
 - Apps Script media-file bridge boundary, keeping upload/delete operations on Apps Script
-- approval-gated preview smoke runner for one sanitized admin write lifecycle with unique IDs and best-effort cleanup
+- approval-gated preview smoke runner for one sanitized admin write lifecycle with unique IDs and `If-Match` guarded cleanup in `finally`
 - tests for provider defaults, Cloudflare Access authentication, smoke-token separation, Worker write validation, trigger audit safety, revision conflicts, public-read visibility, redaction, and safe blocked smoke behavior
 
 External preview smoke was not executed from this repository state because the corrected non-production Worker deployment, Cloudflare Access configuration, and smoke credentials remain external and uncommitted.
+
+The production context guard is explicit in committed Worker config through safe placeholder-only production vars. No real production D1 id, URL, account id, token, secret, or data is committed.
 
 Next operator action when non-production preview resources are ready:
 

@@ -2,6 +2,8 @@
 
 Status: M18 repository implementation hardened; external preview smoke is pending until the corrected Worker is deployed and configured with non-production execution values. This is one cohesive milestone, not a production cutover.
 
+Latest hardening correction: the committed production Worker environment now has explicit safe placeholder-only vars that mark it as production and disable M18 preview write/smoke gates. The preview smoke cleanup path now sends the latest revision through `If-Match` instead of relying on a DELETE JSON body.
+
 ## Objective
 
 Move the structured admin write path that maintains the M17 public-read data toward Cloudflare Worker + D1 in dev/preview mode.
@@ -91,6 +93,15 @@ CLI smoke requests use a separate uncommitted smoke credential:
 - request header `X-RCAT-Admin-Smoke-Token`
 - no `Origin` header
 - non-production-like Worker environment context
+
+Committed production Worker config is intentionally placeholder-only and explicit:
+
+- `ENVIRONMENT=production`
+- `ADMIN_WRITE_PREVIEW_ENABLED=false`
+- `ADMIN_WRITE_SMOKE_ENABLED=false`
+- production D1 binding remains `production-placeholder`
+
+This makes a Worker deployed with the production environment unambiguously production-like to `hasProductionContext()` and keeps M18 preview admin writes rejected. No real production D1 id, URL, token, account id, or secret is committed.
 
 Missing or invalid credentials return safe `401` or `403` responses. JWT contents, key material, audience values, team domains, smoke tokens, stacks, and SQL are never returned in API errors.
 
@@ -190,9 +201,15 @@ Required environment:
 - `RCAT_PREVIEW_WORKER_URL=<dev-or-preview-worker-origin>`
 - `RCAT_M18_ADMIN_WRITE_SMOKE_TOKEN=<preview-smoke-token>`
 
-The smoke runner creates one uniquely identifiable sanitized M18 preview content record, verifies admin read-after-write, updates it using the current revision, publishes it using the current revision, verifies exact public visibility, unpublishes it using the current revision, verifies exact public disappearance, archives only the run-created record, verifies admin archive/not-active state, verifies public cleanup, and prints only redacted status.
+The smoke runner creates one uniquely identifiable sanitized M18 preview content record, verifies admin read-after-write, updates it using the current revision, publishes it using the current revision, verifies exact public visibility, unpublishes it using the current revision, verifies exact public disappearance, archives only the run-created record using an `If-Match` header with the latest revision, verifies admin archive/not-active state, verifies public cleanup, and prints only redacted status.
 
 Cleanup is attempted in a `finally` path whenever creation succeeded. Cleanup failure makes the smoke result `FAILED`.
+
+Cleanup DELETE requests do not rely on a JSON body for optimistic concurrency. The revision is sent as an HTTP precondition header, for example:
+
+```http
+If-Match: "4"
+```
 
 It does not deploy Worker code, mutate Vercel environment, run Wrangler, apply D1 migrations, seed remote D1, or touch production.
 
@@ -264,6 +281,8 @@ M18 repository implementation is accepted when:
 - M17 public-read tests remain passing
 - approval-gated M18 preview smoke runner exists
 - smoke records use unique IDs and cleanup is always attempted after creation
+- smoke cleanup uses `If-Match` revision guarding and fails the smoke result if cleanup fails
+- production Worker env config explicitly marks production context and disables M18 preview write/smoke gates
 - rollback to Apps Script is documented
 - no production mutation occurs
 - no secret or infrastructure identifier is committed

@@ -220,6 +220,70 @@ describe("M18 admin write preview smoke", () => {
     expectRedactedOutput(jsonOutput);
   });
 
+  it("sends the latest cleanup revision through If-Match without a DELETE JSON body", async () => {
+    let smokeId = "";
+    let published = false;
+    let deleted = false;
+    const deleteHeaders = [];
+    const deleteBodies = [];
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      const parsed = new URL(url);
+
+      expect(init.headers?.["X-RCAT-Admin-Smoke-Token"]).toBe(previewSmokeToken);
+
+      if (parsed.pathname === "/api/admin/content" && init.method === "POST") {
+        const body = JSON.parse(String(init.body ?? "{}"));
+        smokeId = body.id;
+        return jsonResponse({ item: { id: smokeId, slug: body.slug, status: "draft", revision: 0 } }, 201);
+      }
+
+      if (parsed.pathname === `/api/admin/content/${smokeId}` && init.method === "GET") {
+        if (deleted) {
+          return jsonResponse({ error: "not found" }, 404);
+        }
+
+        return jsonResponse({ item: { id: smokeId, slug: smokeId, status: "draft", revision: 1 } });
+      }
+
+      if (parsed.pathname === `/api/admin/content/${smokeId}` && init.method === "PATCH") {
+        return jsonResponse({ item: { id: smokeId, slug: smokeId, status: "draft", revision: 2 } });
+      }
+
+      if (parsed.pathname === `/api/admin/content/${smokeId}/publish`) {
+        published = true;
+        return jsonResponse({ id: smokeId, published: true });
+      }
+
+      if (parsed.pathname === `/api/admin/content/${smokeId}/unpublish`) {
+        published = false;
+        return jsonResponse({ id: smokeId, published: false });
+      }
+
+      if (parsed.pathname === `/api/admin/content/${smokeId}` && init.method === "DELETE") {
+        deleted = true;
+        deleteHeaders.push(init.headers);
+        deleteBodies.push(init.body);
+        return jsonResponse({ id: smokeId, deleted: true });
+      }
+
+      if (parsed.pathname === "/api/public/content") {
+        return jsonResponse({ items: published ? [{ id: smokeId, slug: smokeId }] : [] });
+      }
+
+      return jsonResponse({ error: "not found" }, 404);
+    });
+
+    const result = await runAdminWritePreviewSmoke([], {
+      env: validEnv,
+      fetch: fetchImpl
+    });
+
+    expect(result.status).toBe("PASSED");
+    expect(deleteHeaders).toHaveLength(1);
+    expect(deleteHeaders[0]?.["If-Match"]).toBe('"4"');
+    expect(deleteBodies).toEqual([undefined]);
+  });
+
   it("uses a unique smoke identity per run and never hard-codes the redacted placeholder as the record identity", async () => {
     const firstFetch = createFetchForHappyPath();
     const secondFetch = createFetchForHappyPath();

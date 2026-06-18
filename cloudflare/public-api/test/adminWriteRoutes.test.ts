@@ -2,7 +2,9 @@
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import m18Doc from "../../../docs/architecture/m18-admin-d1-write-batch-migration-2026-06-16.md?raw";
+import { hasProductionContext } from "../src/auth/adminAccess";
 import worker from "../src/index";
+import wranglerToml from "../wrangler.toml?raw";
 
 type Row = Record<string, unknown>;
 type TableName = "contents" | "documents" | "public_home_sections" | "visitor_daily_stats" | "admin_audit_log";
@@ -459,6 +461,27 @@ function makeAccessEnv(db: D1Database | undefined = createAdminWriteMockDb().db,
 }
 
 describe("M18 admin structured write routes", () => {
+  it("declares explicit production environment vars that keep preview admin writes disabled", async () => {
+    expect(wranglerToml).toMatch(/\[env\.production\.vars\]/);
+    expect(wranglerToml).toMatch(/ENVIRONMENT\s*=\s*"production"/);
+    expect(wranglerToml).toMatch(/ADMIN_WRITE_PREVIEW_ENABLED\s*=\s*"false"/);
+    expect(wranglerToml).toMatch(/ADMIN_WRITE_SMOKE_ENABLED\s*=\s*"false"/);
+    expect(wranglerToml).toMatch(/database_id\s*=\s*"production-placeholder"/);
+    expect(wranglerToml).not.toMatch(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+
+    const productionEnv = {
+      ADMIN_WRITE_PREVIEW_ENABLED: "false",
+      ADMIN_WRITE_SMOKE_ENABLED: "false",
+      ADMIN_WRITE_SMOKE_TOKEN: smokeToken,
+      ENVIRONMENT: "production",
+      DB: createAdminWriteMockDb().db
+    };
+    const response = await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), productionEnv);
+
+    expect(hasProductionContext(productionEnv)).toBe(true);
+    expect(response.status).toBe(403);
+  });
+
   it("documents one cohesive M18 milestone without infrastructure leakage", () => {
     expect(m18Doc).toMatch(/Admin \+ D1 Write Batch Migration/i);
     expect(m18Doc).toMatch(/single milestone/i);
@@ -714,6 +737,37 @@ describe("M18 admin structured write routes", () => {
       id: "m18-preview-content-001",
       deleted: true
     });
+  });
+
+  it("uses If-Match to enforce stale revision conflicts on content archive", async () => {
+    const { db } = createAdminWriteMockDb();
+    const env = makeEnv(db);
+
+    await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env);
+
+    const staleResponse = await worker.fetch(
+      makeRequest("/api/admin/content/m18-preview-content-001", {
+        method: "DELETE",
+        headers: {
+          ...smokeHeaders,
+          "If-Match": '"9"'
+        }
+      }),
+      env
+    );
+    const archiveResponse = await worker.fetch(
+      makeRequest("/api/admin/content/m18-preview-content-001", {
+        method: "DELETE",
+        headers: {
+          ...smokeHeaders,
+          "If-Match": '"0"'
+        }
+      }),
+      env
+    );
+
+    expect(staleResponse.status).toBe(409);
+    expect(archiveResponse.status).toBe(200);
   });
 
   it("rejects malformed JSON, missing fields, invalid statuses, and duplicate slugs safely", async () => {

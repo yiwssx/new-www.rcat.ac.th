@@ -194,7 +194,7 @@ function withTimeout(fetchPromise, timeoutMs) {
   };
 }
 
-async function requestJson({ workerUrl, path, method, token, body, fetchImpl, timeoutMs }) {
+async function requestJson({ workerUrl, path, method, token, body, headers = {}, fetchImpl, timeoutMs }) {
   const timed = withTimeout(
     (signal) =>
       fetchImpl(buildUrl(workerUrl, path), {
@@ -202,7 +202,8 @@ async function requestJson({ workerUrl, path, method, token, body, fetchImpl, ti
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          "X-RCAT-Admin-Smoke-Token": token
+          "X-RCAT-Admin-Smoke-Token": token,
+          ...headers
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal
@@ -288,7 +289,7 @@ export async function runAdminWritePreviewSmoke(args = [], options = {}) {
   const operations = [];
   const validationIssues = [];
 
-  async function step(name, path, method, body, acceptedStatuses = null) {
+  async function step(name, path, method, body, acceptedStatuses = null, headers = {}) {
     try {
       const result = await requestJson({
         workerUrl: envValues.RCAT_PREVIEW_WORKER_URL,
@@ -296,6 +297,7 @@ export async function runAdminWritePreviewSmoke(args = [], options = {}) {
         method,
         token: envValues.RCAT_M18_ADMIN_WRITE_SMOKE_TOKEN,
         body,
+        headers,
         fetchImpl,
         timeoutMs
       });
@@ -394,7 +396,11 @@ export async function runAdminWritePreviewSmoke(args = [], options = {}) {
         "archive-cleanup",
         `/api/admin/content/${encodeURIComponent(contentId)}`,
         "DELETE",
-        { expectedRevision: revision }
+        undefined,
+        null,
+        {
+          "If-Match": `"${revision}"`
+        }
       );
 
       if (cleanupResult.status < 200 || cleanupResult.status >= 300 || cleanupResult.issues.length > 0) {
