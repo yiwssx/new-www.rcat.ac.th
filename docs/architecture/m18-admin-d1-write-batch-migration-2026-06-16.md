@@ -1,6 +1,6 @@
 # M18 Admin + D1 Write Batch Migration
 
-Status: M18 repository implementation hardened with a parser-safe D1 audit migration; external preview migration and smoke remain pending until the corrected Worker is deployed and configured with non-production execution values. This is one cohesive milestone, not a production cutover.
+Status: M18 completed. External non-production Preview D1 migration and admin write lifecycle smoke passed by operator-confirmed external execution. This is one cohesive milestone, not a production cutover.
 
 Latest D1-safe correction: the previous `0004_admin_write_hardening.sql` trigger design used nested `CASE ... END` expressions inside `CREATE TRIGGER ... BEGIN ... END` bodies. Fresh isolated local Wrangler D1 accepted that SQL, which proves it was not a SQLite syntax error. The external Preview failure reported `incomplete input`, consistent with a remote migration parser/splitter hazard around nested `END` tokens in trigger bodies. The committed `0004` now avoids that shape entirely by using separate, mutually exclusive `WHEN`-guarded triggers for archive, publish, unpublish, and normal update audit actions.
 
@@ -242,6 +242,51 @@ If-Match: "4"
 
 It does not deploy Worker code, mutate Vercel environment, run Wrangler, apply D1 migrations, seed remote D1, or touch production.
 
+## External Preview Acceptance Result
+
+Status: `PASSED`.
+
+Target: non-production Preview Worker and non-production Preview D1.
+
+Evidence source: operator-confirmed external execution using redacted preview infrastructure values.
+
+The operator confirmed that the corrected `0004_admin_write_hardening.sql` migration was accepted by non-production Preview D1, the expected 16 audit triggers were verified, and the Preview Worker was deployed with the admin write preview gate enabled. Smoke authentication used the non-browser credential path with an operator-provided smoke credential kept outside git.
+
+The sanitized admin write lifecycle smoke passed:
+
+- create draft passed
+- admin read-after-write passed
+- revision-controlled update passed
+- publish passed
+- public visibility passed
+- unpublish passed
+- public disappearance passed
+- archive cleanup with `If-Match` passed
+- final admin cleanup verification passed
+- final public cleanup verification passed
+
+External acceptance checklist:
+
+- [x] Preview D1 migration applied
+- [x] Expected trigger set present
+- [x] Preview Worker deployed
+- [x] Admin smoke authentication accepted
+- [x] Draft creation passed
+- [x] Admin read-after-write passed
+- [x] Revision-controlled update passed
+- [x] Publish passed
+- [x] Public visibility passed
+- [x] Unpublish passed
+- [x] Public disappearance passed
+- [x] Archive cleanup with `If-Match` passed
+- [x] Final cleanup verification passed
+- [x] Leakage check passed
+- [x] No Production mutation occurred
+
+No public smoke record remained after cleanup. No sensitive response leakage was reported.
+
+M18 acceptance is not Production approval. It does not authorize M15.2 real production frontend cutover, a Production D1 migration, a Production D1 import, a Production Worker deploy, or any Production write. Production D1 identifiers, Access policy details, migration procedure, monitoring, and rollback execution remain out of scope for this document. Apps Script remains Production provider until a future approved cutover gate.
+
 ## Rollback Behavior
 
 Preview rollback is environment-only:
@@ -255,22 +300,24 @@ Apps Script routes remain present. Production provider remains Apps Script. No p
 
 ## Known External Execution Status
 
-M18 repository implementation is hardened without remote preview credentials.
+Status: `PASSED`.
 
-The previously reported external Preview D1 migration failure remains an external blocked-safe execution until the operator applies this corrected migration to the non-production Preview D1 database. The repository now contains the parser-safe migration, but this document does not claim that external Preview `0004` has passed.
+M18 repository implementation remains safe without remote preview credentials or infrastructure identifiers committed.
 
-External preview smoke status for this checkpoint is pending until the corrected non-production Worker is deployed, Cloudflare Access is configured, smoke credentials are supplied outside git, the corrected `0004` migration is applied to Preview D1, and the operator runs the smoke command.
+The previously reported external Preview D1 migration failure has been resolved for M18 acceptance by operator-confirmed external execution of the corrected parser-safe migration against non-production Preview D1.
 
-This blocked-safe state is not a new milestone.
+The operator confirmed:
 
-Next operator action when non-production preview resources are ready:
-
-```bash
-RCAT_M18_ADMIN_WRITE_SMOKE_APPROVAL=APPROVED_M18_ADMIN_WRITE_PREVIEW_SMOKE
-RCAT_PREVIEW_WORKER_URL=<dev-or-preview-worker-origin>
-RCAT_M18_ADMIN_WRITE_SMOKE_TOKEN=<preview-smoke-token>
-pnpm worker:admin-write:preview-smoke
-```
+- Preview D1 `0004` accepted.
+- The expected 16 trigger-backed audit triggers were verified.
+- Preview Worker deployment and Preview D1 binding were completed outside git.
+- Cloudflare Access browser boundary remained in place.
+- CLI smoke-token authentication remained separate from browser Access authentication.
+- `pnpm worker:admin-write:preview-smoke` returned `PASSED`.
+- Draft creation, admin read-after-write, revision-controlled update, publish, public visibility, unpublish, public disappearance, archive cleanup with `If-Match`, and final cleanup verification passed.
+- Cleanup left no active or public smoke record.
+- Apps Script media-file bridge behavior was unchanged.
+- No Production mutation occurred.
 
 ## Production Safety
 
@@ -292,7 +339,7 @@ No production URLs, preview Worker URLs, D1 ids, Cloudflare account ids, deploym
 
 ## M18 Acceptance Criteria
 
-M18 repository implementation is accepted when:
+M18 repository implementation and external Preview acceptance are complete because:
 
 - structured admin write inventory is documented
 - additive D1 migration exists
@@ -321,9 +368,12 @@ M18 repository implementation is accepted when:
 - no production mutation occurs
 - no secret or infrastructure identifier is committed
 - no M18 sub-milestone is created
+- external non-production Preview D1 migration passed by operator confirmation
+- external non-production Preview Worker admin write lifecycle smoke passed by operator confirmation
+- external acceptance evidence is recorded only in redacted form
 
 ## Next Milestone
 
-The next milestone should be named only after M18 is accepted.
+M18 is closed officially.
 
-Do not start the next milestone from this document while M18 preview smoke is still blocked-safe.
+The next work is a remaining parity and gap assessment to determine the scope of the next milestone. This document does not name or start that next milestone.

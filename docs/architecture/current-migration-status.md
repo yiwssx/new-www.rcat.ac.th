@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M18 repository implementation hardened with parser-safe D1 audit triggers; external preview migration and smoke pending.
+Current milestone: M18 completed through operator-confirmed external non-production Preview D1 migration and admin write lifecycle smoke.
 
 ## Summary
 
@@ -20,7 +20,7 @@ M17-B: Cloudflare Core Public Read API routes are implemented for dev/preview Wo
 
 M17-C: `PASSED` through an externally executed, operator-approved dev/preview smoke run. The grouped Cloudflare public-read endpoints passed the M17-C smoke and minimum contract gate after the preview Worker was updated to the current M17 route implementation. The successful run used a non-production dev/preview Worker origin; the actual Worker URL remains redacted and uncommitted. This is not a production cutover.
 
-M18: Admin + D1 Write Batch Migration repository implementation is hardened as one cohesive milestone. It moves structured admin writes for M17 public-read data toward Cloudflare Worker + D1 in dev/preview mode while Apps Script remains production fallback and Google Drive media-file bridge. Browser preview admin writes now require Cloudflare Access, CLI smoke uses a separate uncommitted smoke token, audit writes are trigger-backed and atomic, production Worker env config now carries an explicit production marker with preview write gates disabled, smoke cleanup uses `If-Match` revision guarding, and `0004_admin_write_hardening.sql` now uses parser-safe split audit triggers instead of nested `CASE ... END` trigger bodies. Fresh isolated local D1 migration acceptance for `0001` through `0004` passed, including trigger inspection and SQL semantic audit smoke. External Preview migration and smoke remain pending until the corrected migration is applied and the corrected Worker is deployed/configured outside git.
+M18: Admin + D1 Write Batch Migration completed as one cohesive milestone. It moves structured admin writes for M17 public-read data toward Cloudflare Worker + D1 in dev/preview mode while Apps Script remains production fallback and Google Drive media-file bridge. Browser preview admin writes require Cloudflare Access, CLI smoke uses a separate uncommitted smoke token, audit writes are trigger-backed and atomic, production Worker env config carries an explicit production marker with preview write gates disabled, smoke cleanup uses `If-Match` revision guarding, and `0004_admin_write_hardening.sql` uses parser-safe split audit triggers instead of nested `CASE ... END` trigger bodies. Fresh isolated local D1 migration acceptance for `0001` through `0004` passed, including trigger inspection and SQL semantic audit smoke. The operator confirmed external non-production Preview D1 migration acceptance and the external Preview Worker admin write lifecycle smoke passed with redacted infrastructure evidence. No production mutation occurred.
 
 ## M15.1 Dry-Run Result
 
@@ -106,7 +106,7 @@ M17 is completed for the current preview smoke and contract-freeze checkpoint.
 
 ## M18 Repository Implementation Result
 
-Status: repository implementation hardened with parser-safe D1 audit triggers; external preview migration and smoke pending.
+Status: M18 completed: external non-production Preview D1 migration and admin write lifecycle smoke passed.
 
 M18 added:
 
@@ -121,26 +121,32 @@ M18 added:
 - tests for provider defaults, Cloudflare Access authentication, smoke-token separation, Worker write validation, trigger audit safety, revision conflicts, public-read visibility, redaction, and safe blocked smoke behavior
 - fresh isolated local D1 acceptance for `0001` through `0004`, including all expected trigger creation and no-op second apply
 - SQL semantic audit smoke confirming content, document, public-home section, visitor daily stats, and archive-priority actions
+- operator-confirmed external non-production Preview D1 migration and Preview Worker admin write lifecycle smoke acceptance
 
-The earlier external Preview D1 migration failure reported `incomplete input`. Fresh isolated local Wrangler D1 accepted the previous SQL, so the repository issue was not invalid SQLite syntax. The committed correction removes the remote parser/splitter risk by avoiding nested `CASE ... END` inside trigger bodies. External Preview migration and smoke were not executed from this repository state because the corrected non-production Worker deployment, Preview D1 migration application, Cloudflare Access configuration, and smoke credentials remain external and uncommitted.
+The earlier external Preview D1 migration failure reported `incomplete input`. Fresh isolated local Wrangler D1 accepted the previous SQL, so the repository issue was not invalid SQLite syntax. The committed correction removes the remote parser/splitter risk by avoiding nested `CASE ... END` inside trigger bodies. The operator later confirmed that the corrected `0004_admin_write_hardening.sql` migration was applied successfully to non-production Preview D1 and the expected 16 audit triggers were present.
 
 The production context guard is explicit in committed Worker config through safe placeholder-only production vars. No real production D1 id, URL, account id, token, secret, or data is committed.
 
-Next operator action when non-production preview resources are ready:
+M18 external acceptance evidence is recorded in redacted form:
 
-```bash
-pnpm exec wrangler d1 migrations apply <preview-d1-name> --remote --env preview --config cloudflare/public-api/wrangler.toml
-RCAT_M18_ADMIN_WRITE_SMOKE_APPROVAL=APPROVED_M18_ADMIN_WRITE_PREVIEW_SMOKE
-RCAT_PREVIEW_WORKER_URL=<dev-or-preview-worker-origin>
-RCAT_M18_ADMIN_WRITE_SMOKE_TOKEN=<preview-smoke-token>
-pnpm worker:admin-write:preview-smoke
-```
+- Preview D1 `0004` migration accepted externally.
+- Expected 16 trigger-backed audit triggers were verified.
+- Preview Worker was deployed and bound to the non-production Preview D1 database outside git.
+- Smoke credential and Preview write gates were configured outside git.
+- `pnpm worker:admin-write:preview-smoke` returned `PASSED`.
+- Sanitized lifecycle passed: create draft, admin read-after-write, revision-controlled update, publish, public visibility, unpublish, public disappearance, archive cleanup with `If-Match`, and final admin/public cleanup verification.
+- Cleanup left no active or public smoke record.
+- No sensitive response leakage was reported.
+- The Access boundary remains in place for browser preview admin writes.
+- CLI smoke-token authentication remains separate and uncommitted.
+- Apps Script media-file bridge boundary is unchanged.
+- No production cutover, production Worker deploy, production D1 migration/import/write, Apps Script change, or Google Drive media mutation occurred.
 
 No production cutover, production Worker deploy, production D1 migration/import/write, production Vercel environment mutation, Apps Script change, `src/services/googleApi.ts` change, UI change, route change, cache key change, or cache TTL change is part of M18.
 
 ## Next Action
 
-Next action: apply the corrected `0004` migration to the non-production Preview D1 database, deploy/configure the corrected non-production Worker with Cloudflare Access and smoke credentials outside git, then run the M18 external preview smoke.
+M18 is closed officially. The next work is a remaining parity and gap assessment to determine the scope of the next milestone. This commit does not name or start the next milestone.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 
@@ -162,9 +168,11 @@ No production secrets, production URLs, D1 ids, tokens, full records, Google Dri
 
 No production Vercel environment was changed.
 
-No Worker deploy was run.
+No production Worker deploy was run.
 
-No D1 write, import, or migration was run.
+No production D1 write, import, or migration was run.
+
+The M18 external Preview migration, Preview Worker deployment, and Preview smoke were operator-confirmed outside git against non-production resources only. This documentation closeout did not run remote commands.
 
 No Apps Script change was made.
 
