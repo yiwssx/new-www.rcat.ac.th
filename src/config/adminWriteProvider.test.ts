@@ -70,4 +70,43 @@ describe("admin structured write provider", () => {
       })
     ).toBe("https://preview-worker.example.test/api/admin/content");
   });
+
+  it("selects Cloudflare server-proxy mode only with the safe same-origin proxy path", () => {
+    const env = {
+      VITE_ADMIN_WRITE_PROVIDER: "cloudflare",
+      VITE_BACKEND_MIGRATION_MODE: "cloudflare-first-preview",
+      VITE_CLOUDFLARE_ADMIN_AUTH_MODE: "server-proxy",
+      VITE_CLOUDFLARE_ADMIN_PROXY_URL: "/api/admin-proxy"
+    };
+
+    expect(resolveAdminWriteProvider(env)).toBe("cloudflare");
+    expect(resolveCloudflareAdminWriteConfig(env)).toEqual({
+      baseUrl: "/api/admin-proxy",
+      authMode: "server-proxy"
+    });
+    expect(buildCloudflareAdminApiUrl("/api/admin/snapshot", env)).toBe(
+      "/api/admin-proxy?path=%2Fapi%2Fadmin%2Fsnapshot"
+    );
+  });
+
+  it("rejects absolute or non-admin proxy URLs in server-proxy mode", () => {
+    const baseEnv = {
+      VITE_ADMIN_WRITE_PROVIDER: "cloudflare",
+      VITE_BACKEND_MIGRATION_MODE: "cloudflare-first-preview",
+      VITE_CLOUDFLARE_ADMIN_AUTH_MODE: "server-proxy"
+    };
+
+    expect(
+      resolveAdminWriteProvider({
+        ...baseEnv,
+        VITE_CLOUDFLARE_ADMIN_PROXY_URL: "https://preview-worker.example.test/api/admin-proxy"
+      })
+    ).toBe("apps-script");
+    expect(() =>
+      resolveCloudflareAdminWriteConfig({
+        ...baseEnv,
+        VITE_CLOUDFLARE_ADMIN_PROXY_URL: "/api/other-proxy"
+      })
+    ).toThrow("same-origin");
+  });
 });

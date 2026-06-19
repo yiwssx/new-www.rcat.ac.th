@@ -55,6 +55,7 @@ function setAppsScriptEnv() {
   vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "");
+  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "");
 }
 
 function setCloudflareEnv() {
@@ -63,6 +64,16 @@ function setCloudflareEnv() {
   vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://preview-worker.example.test");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "cloudflare-access");
+  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "");
+}
+
+function setServerProxyEnv() {
+  vi.stubEnv("VITE_BACKEND_MIGRATION_MODE", "cloudflare-first-preview");
+  vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "cloudflare");
+  vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
+  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
+  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "server-proxy");
+  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "/api/admin-proxy");
 }
 
 function jsonResponse(payload: unknown, status = 200) {
@@ -199,6 +210,36 @@ describe("M18 admin structured write provider", () => {
 
     expect(headers.get("Accept")).toBe("application/json");
     expect(headers.has("Content-Type")).toBe(false);
+  });
+
+  it("routes server-proxy admin reads through the same-origin cookie endpoint", async () => {
+    setServerProxyEnv();
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({
+        metrics: [],
+        content: [],
+        documents: [],
+        media: [],
+        events: [],
+        menu: [],
+        carouselSlides: [],
+        externalServices: [],
+        generatedAt: "2026-06-19T00:00:00.000Z"
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { getAdminCmsSnapshot } = await import("../cms-dashboard/api");
+
+    await expect(getAdminCmsSnapshot()).resolves.toMatchObject({ content: [], documents: [] });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/admin-proxy?path=%2Fapi%2Fadmin%2Fsnapshot");
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ credentials: "include" });
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+
+    expect(headers.get("Accept")).toBe("application/json");
+    expect(headers.has("Content-Type")).toBe(false);
+    expect(headers.has("X-RCAT-Admin-Smoke-Token")).toBe(false);
   });
 
   it("keeps existing mutation result shapes compatible for publish and delete", async () => {

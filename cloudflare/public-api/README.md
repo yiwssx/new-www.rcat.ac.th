@@ -121,6 +121,38 @@ The preflight reads `RCAT_PREVIEW_D1_DATABASE_NAME`, `RCAT_PREVIEW_D1_DATABASE_I
 
 When external preview resources are available, run the preview migration, sanitized preview seed, preview Worker deploy, Vercel preview env configuration, and browser/network smoke from that document. Keep real preview identifiers and URLs outside git unless a separate preview-only provisioning change explicitly approves them.
 
+## Admin Proxy Fallback (Preview Only)
+
+When a custom Worker hostname protected by Cloudflare Access is unavailable, the admin frontend may use the same-origin Vercel proxy. Browser requests authenticate with a short-lived signed HttpOnly cookie; the Vercel Function sends the Worker smoke token server-to-server without forwarding browser `Origin`, cookies, authorization, host, or referer headers.
+
+Set these non-secret frontend values for the Vercel preview deployment:
+
+```bash
+VITE_BACKEND_MIGRATION_MODE=cloudflare-first-preview
+VITE_ADMIN_WRITE_PROVIDER=cloudflare
+VITE_CLOUDFLARE_ADMIN_AUTH_MODE=server-proxy
+VITE_CLOUDFLARE_ADMIN_PROXY_URL=/api/admin-proxy
+```
+
+Set these server-only values in the Vercel preview environment. Never prefix them with `VITE_` and never commit their values:
+
+```bash
+CLOUDFLARE_ADMIN_API_URL=<preview-worker-https-origin>
+CLOUDFLARE_ADMIN_SMOKE_TOKEN=<random-shared-preview-token>
+ADMIN_PROXY_SESSION_SECRET=<random-secret-at-least-32-characters>
+ADMIN_PROXY_ALLOWED_EMAILS=<comma-separated-admin-emails>
+ADMIN_PROXY_PASSWORD_HASH=<bcrypt-hash-for-preview-admin-password>
+```
+
+The Worker preview environment must use the matching server-only token:
+
+```bash
+ADMIN_WRITE_SMOKE_ENABLED=true
+ADMIN_WRITE_SMOKE_TOKEN=<same-value-as-vercel-cloudflare-admin-smoke-token>
+```
+
+Deploy the Worker preview after setting its values, then redeploy the Vercel preview after setting its values. Direct browser-origin Worker requests still require Cloudflare Access, and the Worker continues to reject smoke-token authentication whenever an `Origin` header is present.
+
 ## Intentionally Deferred
 
 - Production D1 provisioning and real production database binding
@@ -129,7 +161,7 @@ When external preview resources are available, run the preview migration, saniti
 - Apps Script sync or import jobs
 - Production frontend cutover
 - Public home, content list, content detail, search, site view, or visitor stats routes
-- Admin writes, auth, users, media uploads, and Google Drive changes
+- Production admin writes, auth/users migration, media uploads, and Google Drive changes
 
 Apps Script remains the production provider and source of truth. Google Drive remains file storage.
 

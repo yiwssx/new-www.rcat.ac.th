@@ -137,7 +137,7 @@ export default function CmsShell() {
       return;
     }
 
-    logout();
+    await logout();
     void navigate({ to: "/login", replace: true });
   }
 

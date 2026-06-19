@@ -4,7 +4,7 @@ import { Session } from "../types";
 export interface AuthContextValue {
   session: Session | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

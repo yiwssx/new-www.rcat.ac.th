@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { projectSettings } from "../config/projectSettings";
 import { AuthProvider } from "./AuthContext";
@@ -18,6 +19,12 @@ const authModuleMock = vi.hoisted(() => ({
   }))
 }));
 
+const adminProxySessionMock = vi.hoisted(() => ({
+  enabled: false,
+  login: vi.fn(async () => undefined),
+  logout: vi.fn(async () => undefined)
+}));
+
 vi.mock("../services/auth", () => {
   authModuleMock.loaded = true;
   return {
@@ -25,10 +32,38 @@ vi.mock("../services/auth", () => {
   };
 });
 
+vi.mock("../services/adminProxySession", () => ({
+  isAdminProxySessionEnabled: () => adminProxySessionMock.enabled,
+  loginAdminProxySession: adminProxySessionMock.login,
+  logoutAdminProxySession: adminProxySessionMock.logout
+}));
+
 function LoginButton() {
   const { login } = useAuth();
 
   return <button onClick={() => void login("admin@example.com", "password")}>Login</button>;
+}
+
+function AuthStateControls() {
+  const { login, logout, session } = useAuth();
+  const [error, setError] = useState("");
+
+  async function handleLogin() {
+    try {
+      await login("admin@example.com", "password");
+    } catch (currentError) {
+      setError(currentError instanceof Error ? currentError.message : "Login failed");
+    }
+  }
+
+  return (
+    <div>
+      <span>{session ? "Signed in" : "Signed out"}</span>
+      <span>{error}</span>
+      <button onClick={() => void handleLogin()}>Login state</button>
+      <button onClick={() => void logout()}>Logout state</button>
+    </div>
+  );
 }
 
 describe("AuthProvider", () => {
@@ -36,6 +71,11 @@ describe("AuthProvider", () => {
     window.localStorage.clear();
     authModuleMock.loaded = false;
     authModuleMock.login.mockClear();
+    adminProxySessionMock.enabled = false;
+    adminProxySessionMock.login.mockReset();
+    adminProxySessionMock.login.mockResolvedValue(undefined);
+    adminProxySessionMock.logout.mockReset();
+    adminProxySessionMock.logout.mockResolvedValue(undefined);
   });
 
   it("restores session state without loading credential auth code", () => {
@@ -65,5 +105,64 @@ describe("AuthProvider", () => {
     });
     expect(authModuleMock.loaded).toBe(true);
     expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toContain("local.test.token");
+  });
+
+  it("establishes the server proxy session before persisting local admin state", async () => {
+    adminProxySessionMock.enabled = true;
+    adminProxySessionMock.login.mockImplementation(async () => {
+      expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
+    });
+    render(
+      <AuthProvider>
+        <AuthStateControls />
+      </AuthProvider>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Login state" }));
+
+    await waitFor(() => {
+      expect(adminProxySessionMock.login).toHaveBeenCalledWith("admin@example.com", "password");
+      expect(screen.getByText("Signed in")).toBeInTheDocument();
+    });
+    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toContain("local.test.token");
+  });
+
+  it("does not retain local admin state when the server proxy session login fails", async () => {
+    adminProxySessionMock.enabled = true;
+    adminProxySessionMock.login.mockRejectedValue(new Error("Admin proxy session login failed"));
+    render(
+      <AuthProvider>
+        <AuthStateControls />
+      </AuthProvider>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Login state" }));
+
+    await waitFor(() => {
+      expect(adminProxySessionMock.login).toHaveBeenCalled();
+      expect(adminProxySessionMock.logout).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Admin proxy session login failed")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Signed out")).toBeInTheDocument();
+    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
+  });
+
+  it("clears the server proxy session when logging out", async () => {
+    adminProxySessionMock.enabled = true;
+    window.localStorage.setItem(projectSettings.storageKeys.session, JSON.stringify(await authModuleMock.login()));
+    render(
+      <AuthProvider>
+        <AuthStateControls />
+      </AuthProvider>
+    );
+
+    expect(screen.getByText("Signed in")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Logout state" }));
+
+    await waitFor(() => {
+      expect(adminProxySessionMock.logout).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Signed out")).toBeInTheDocument();
+    });
+    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
   });
 });
