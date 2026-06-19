@@ -44,6 +44,10 @@ export function getCorsHeaders(request: Request, env: Env) {
 
   if (requestOrigin && configuredOrigins.includes(requestOrigin)) {
     headers.set("Access-Control-Allow-Origin", requestOrigin);
+
+    if (isAdmin) {
+      headers.set("Access-Control-Allow-Credentials", "true");
+    }
   }
 
   return headers;

@@ -110,6 +110,7 @@ describe("rcat public API Worker", () => {
 
     expect(response.status).toBe(204);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(response.headers.has("Access-Control-Allow-Credentials")).toBe(false);
     expect(response.headers.get("Access-Control-Allow-Methods")).toBe("GET, OPTIONS");
     expect(response.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
   });

@@ -547,7 +547,9 @@ describe("M18 admin structured write routes", () => {
     expect(invalidResponse.status).toBe(403);
   });
 
-  it("allows only required admin methods and returns preview CORS headers without wildcard fallback", async () => {
+  it("allows only required admin methods and returns credentialed preview CORS headers without wildcard fallback", async () => {
+    const { db } = createAdminWriteMockDb();
+    const access = await createAccessFixture();
     const optionsResponse = await worker.fetch(
       makeRequest("/api/admin/content", {
         method: "OPTIONS",
@@ -561,6 +563,16 @@ describe("M18 admin structured write routes", () => {
         DB: createAdminWriteMockDb().db
       }
     );
+    const snapshotResponse = await worker.fetch(
+      makeRequest("/api/admin/snapshot", {
+        method: "GET",
+        headers: {
+          ...access.header,
+          Origin: "https://preview-admin.example.test"
+        }
+      }),
+      makeAccessEnv(db, access.jwksJson)
+    );
     const unsupportedResponse = await worker.fetch(
       makeRequest("/api/admin/content", {
         method: "PUT",
@@ -571,9 +583,13 @@ describe("M18 admin structured write routes", () => {
 
     expect(optionsResponse.status).toBe(204);
     expect(optionsResponse.headers.get("Access-Control-Allow-Origin")).toBe("https://preview-admin.example.test");
+    expect(optionsResponse.headers.get("Access-Control-Allow-Credentials")).toBe("true");
     expect(optionsResponse.headers.get("Access-Control-Allow-Methods")).toBe("GET, POST, PATCH, PUT, DELETE, OPTIONS");
     expect(optionsResponse.headers.get("Access-Control-Allow-Headers")).toContain("Cf-Access-Jwt-Assertion");
     expect(optionsResponse.headers.get("Access-Control-Allow-Headers")).toContain("X-RCAT-Admin-Smoke-Token");
+    expect(snapshotResponse.status).toBe(200);
+    expect(snapshotResponse.headers.get("Access-Control-Allow-Origin")).toBe("https://preview-admin.example.test");
+    expect(snapshotResponse.headers.get("Access-Control-Allow-Credentials")).toBe("true");
     expect(unsupportedResponse.status).toBe(405);
     expect(unsupportedResponse.headers.get("Allow")).toBe("GET, POST, PATCH, PUT, DELETE, OPTIONS");
   });
@@ -655,6 +671,8 @@ describe("M18 admin structured write routes", () => {
     expect(expiredResponse.status).toBe(403);
     expect(disallowedEmailResponse.status).toBe(403);
     expect(disallowedOriginResponse.status).toBe(403);
+    expect(disallowedOriginResponse.headers.has("Access-Control-Allow-Origin")).toBe(false);
+    expect(disallowedOriginResponse.headers.has("Access-Control-Allow-Credentials")).toBe(false);
     expect(tables.contents).toHaveLength(0);
     expect(tables.admin_audit_log).toHaveLength(0);
   });

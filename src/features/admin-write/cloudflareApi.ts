@@ -13,15 +13,25 @@ function createCloudflareAdminError(message: string, cause: unknown) {
   return error;
 }
 
+function getCloudflareAdminHeaders(init: RequestInit) {
+  const headers = new Headers(init.headers);
+
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+
+  if (init.body !== undefined && init.body !== null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  return Object.fromEntries(headers.entries());
+}
+
 async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(buildCloudflareAdminApiUrl(path), {
     ...init,
     credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...(init.headers ?? {})
-    }
+    headers: getCloudflareAdminHeaders(init)
   });
 
   let payload: unknown;

@@ -167,6 +167,40 @@ describe("M18 admin structured write provider", () => {
     expect(googleApiMocks.deleteMediaAsset).toHaveBeenCalledWith("m18-preview-media-001");
   });
 
+  it("keeps Cloudflare admin snapshot GET credentialed without sending a JSON content type", async () => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({
+        metrics: [],
+        content: [],
+        documents: [],
+        media: [],
+        events: [],
+        menu: [],
+        carouselSlides: [],
+        externalServices: [],
+        generatedAt: "2026-06-19T00:00:00.000Z"
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { getAdminCmsSnapshot } = await import("../cms-dashboard/api");
+
+    await expect(getAdminCmsSnapshot()).resolves.toMatchObject({
+      content: [],
+      documents: []
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/snapshot");
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      credentials: "include"
+    });
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+
+    expect(headers.get("Accept")).toBe("application/json");
+    expect(headers.has("Content-Type")).toBe(false);
+  });
+
   it("keeps existing mutation result shapes compatible for publish and delete", async () => {
     setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
