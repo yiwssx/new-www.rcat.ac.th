@@ -264,7 +264,8 @@ function createUpstreamHeaders(request, smokeToken) {
 }
 
 async function defaultComparePassword(password, passwordHash) {
-  const bcrypt = await import("bcryptjs");
+  const bcryptModule = await import("bcryptjs");
+  const bcrypt = bcryptModule.default ?? bcryptModule;
 
   return bcrypt.compare(password, passwordHash);
 }

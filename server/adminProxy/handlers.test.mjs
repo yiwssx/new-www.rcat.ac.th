@@ -1,5 +1,6 @@
 // @vitest-environment node
 
+import { execFileSync } from "node:child_process";
 import { Readable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import { handleAdminProxyRequest, handleAdminProxySessionLogin, handleAdminProxySessionLogout } from "./handlers.mjs";
@@ -263,6 +264,54 @@ describe("Vercel admin proxy session", () => {
     expect(response.bodyText).not.toContain(SESSION_SECRET);
     expect(response.bodyText).not.toContain(env.CLOUDFLARE_ADMIN_SMOKE_TOKEN);
     expect(response.bodyText).not.toContain("$2b$04$fake-test-hash-not-used-directly");
+  });
+
+  it("validates credentials through the native Node bcryptjs comparison path", () => {
+    const script = `
+      import { Readable } from "node:stream";
+      import bcrypt from "bcryptjs";
+      import { handleAdminProxySessionLogin } from "./server/adminProxy/handlers.mjs";
+
+      const password = "test-password";
+      const passwordHash = await bcrypt.hash(password, 4);
+      const request = Readable.from([JSON.stringify({ email: "admin@example.test", password })]);
+      request.method = "POST";
+      request.url = "/api/admin-proxy-session/login";
+      request.headers = {};
+
+      const headers = new Map();
+      let body = Buffer.alloc(0);
+      const response = {
+        statusCode: 200,
+        setHeader(name, value) { headers.set(name.toLowerCase(), value); },
+        end(value) { body = value === undefined ? Buffer.alloc(0) : Buffer.from(value); }
+      };
+
+      await handleAdminProxySessionLogin(request, response, {
+        env: {
+          ADMIN_PROXY_ALLOWED_EMAILS: "admin@example.test",
+          ADMIN_PROXY_PASSWORD_HASH: passwordHash,
+          ADMIN_PROXY_SESSION_SECRET: "fake-admin-proxy-session-secret-32-characters"
+        },
+        nowMs: Date.parse("2026-06-19T05:00:00.000Z")
+      });
+
+      process.stdout.write(JSON.stringify({
+        statusCode: response.statusCode,
+        body: body.toString("utf8"),
+        hasSessionCookie: headers.has("set-cookie")
+      }));
+    `;
+    const output = execFileSync(process.execPath, ["--input-type=module", "--eval", script], {
+      cwd: process.cwd(),
+      encoding: "utf8"
+    });
+
+    expect(JSON.parse(output)).toEqual({
+      statusCode: 200,
+      body: JSON.stringify({ ok: true }),
+      hasSessionCookie: true
+    });
   });
 
   it("issues a secure HttpOnly cookie only after server-side credential validation", async () => {
