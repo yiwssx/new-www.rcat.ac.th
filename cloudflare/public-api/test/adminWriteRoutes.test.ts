@@ -594,6 +594,34 @@ describe("M18 admin structured write routes", () => {
     expect(unsupportedResponse.headers.get("Allow")).toBe("GET, POST, PATCH, PUT, DELETE, OPTIONS");
   });
 
+  it("normalizes admin allowed origins before matching the request Origin", async () => {
+    const requestOrigin = "https://preview-admin.example.test";
+    const configuredOriginCases = [`${requestOrigin}/`, `"${requestOrigin}"`, `'${requestOrigin}/admin/path'`];
+
+    for (const configuredOrigin of configuredOriginCases) {
+      const response = await worker.fetch(
+        makeRequest("/api/admin/snapshot", {
+          method: "OPTIONS",
+          headers: {
+            Origin: requestOrigin
+          }
+        }),
+        {
+          ADMIN_WRITE_ALLOWED_ORIGINS: configuredOrigin,
+          DB: createAdminWriteMockDb().db
+        }
+      );
+
+      expect(response.status, configuredOrigin).toBe(204);
+      expect(response.headers.get("Access-Control-Allow-Origin"), configuredOrigin).toBe(requestOrigin);
+      expect(response.headers.get("Access-Control-Allow-Credentials"), configuredOrigin).toBe("true");
+      expect(response.headers.get("Access-Control-Allow-Methods"), configuredOrigin).toBe(
+        "GET, POST, PATCH, PUT, DELETE, OPTIONS"
+      );
+      expect(response.headers.get("Access-Control-Allow-Headers"), configuredOrigin).toContain("If-Match");
+    }
+  });
+
   it("requires Cloudflare Access for browser-origin admin writes and derives the actor from the verified identity", async () => {
     const { db, tables } = createAdminWriteMockDb();
     const access = await createAccessFixture();
