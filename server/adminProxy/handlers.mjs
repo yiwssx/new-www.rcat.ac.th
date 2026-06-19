@@ -1,3 +1,4 @@
+import process from "node:process";
 import {
   clearAdminProxySessionCookie,
   createAdminProxySessionCookie,
@@ -12,7 +13,7 @@ const MAX_PROXY_BODY_BYTES = 1024 * 1024;
 const MAX_LOGIN_BODY_BYTES = 16 * 1024;
 
 function runtimeEnv() {
-  return globalThis.process?.env ?? {};
+  return process.env;
 }
 
 function getHeader(request, name) {
