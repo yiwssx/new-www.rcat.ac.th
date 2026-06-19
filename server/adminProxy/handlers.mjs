@@ -363,9 +363,22 @@ export async function handleAdminProxySessionLogin(request, response, options = 
   const env = options.env ?? runtimeEnv();
   const allowedEmails = getAdminProxyAllowedEmails(env.ADMIN_PROXY_ALLOWED_EMAILS);
   const passwordHash = typeof env.ADMIN_PROXY_PASSWORD_HASH === "string" ? env.ADMIN_PROXY_PASSWORD_HASH.trim() : "";
+  const missing = [];
 
-  if (allowedEmails.length === 0 || !passwordHash) {
-    sendJson(response, 503, { error: "admin proxy authentication is not configured" });
+  if (allowedEmails.length === 0) {
+    missing.push("ADMIN_PROXY_ALLOWED_EMAILS");
+  }
+
+  if (!passwordHash) {
+    missing.push("ADMIN_PROXY_PASSWORD_HASH");
+  }
+
+  if (missing.length > 0) {
+    sendJson(response, 503, {
+      error: "admin proxy authentication is not configured",
+      missing,
+      diagnostic: "admin-proxy-auth-env-v1"
+    });
     return;
   }
 

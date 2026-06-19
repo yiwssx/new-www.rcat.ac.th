@@ -232,6 +232,39 @@ describe("Vercel admin proxy", () => {
 });
 
 describe("Vercel admin proxy session", () => {
+  it.each([
+    [
+      "both auth keys",
+      { ADMIN_PROXY_ALLOWED_EMAILS: "", ADMIN_PROXY_PASSWORD_HASH: "" },
+      ["ADMIN_PROXY_ALLOWED_EMAILS", "ADMIN_PROXY_PASSWORD_HASH"]
+    ],
+    ["allowed email key", { ADMIN_PROXY_ALLOWED_EMAILS: "" }, ["ADMIN_PROXY_ALLOWED_EMAILS"]],
+    ["password hash key", { ADMIN_PROXY_PASSWORD_HASH: "" }, ["ADMIN_PROXY_PASSWORD_HASH"]]
+  ])("reports only missing key names when %s are not configured", async (_label, overrides, missing) => {
+    const env = createEnv(overrides);
+    const response = createResponse();
+
+    await handleAdminProxySessionLogin(
+      createRequest({
+        method: "POST",
+        url: "/api/admin-proxy-session/login",
+        body: { email: ALLOWED_EMAIL, password: "test-password" }
+      }),
+      response,
+      { env }
+    );
+
+    expect(response.statusCode).toBe(503);
+    expect(JSON.parse(response.bodyText)).toEqual({
+      error: "admin proxy authentication is not configured",
+      missing,
+      diagnostic: "admin-proxy-auth-env-v1"
+    });
+    expect(response.bodyText).not.toContain(SESSION_SECRET);
+    expect(response.bodyText).not.toContain(env.CLOUDFLARE_ADMIN_SMOKE_TOKEN);
+    expect(response.bodyText).not.toContain("$2b$04$fake-test-hash-not-used-directly");
+  });
+
   it("issues a secure HttpOnly cookie only after server-side credential validation", async () => {
     const comparePassword = vi.fn(async () => true);
     const response = createResponse();
