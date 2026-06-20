@@ -4,7 +4,7 @@ Status: M20-P0 repository-owned production readiness gate scaffolding only. M20 
 
 ## Current State After M19
 
-M19 is closed for repository-owned parity remediation and must not be reopened for M20-P0. Public-read parity, structured admin preview routes, provider adapters, and local readiness checks exist in the repository. Post-M19 external operator evidence records restored public frontend loading, verified preview admin proxy login and snapshot, and a passed preview admin write smoke. A distinct post-M19 public-read preview smoke result still requires operator evidence.
+M19 is closed for repository-owned parity remediation and must not be reopened for M20-P0. Public-read parity, structured admin preview routes, provider adapters, and local readiness checks exist in the repository. Post-M19 external operator evidence records restored public frontend loading, verified preview admin proxy login and snapshot, and passed public-read preview smoke, preview migration verification, and preview admin write smoke.
 
 Apps Script remains the fallback and rollback provider. Google Drive binary media operations remain in the Apps Script bridge. Ordered migration 0005_m19_structured_admin_parity.sql exists but is not applied by M20-P0.
 
@@ -52,9 +52,6 @@ Any local operator configuration outside git must stay uncommitted.
 
 The following items remain EXTERNAL_OPERATOR_BLOCKER before M20 execution can begin:
 
-- post-M19 public-read preview smoke evidence
-- preview-only migration verification evidence
-- preview admin write smoke evidence for the exact candidate deployment
 - full structured source-data inventory
 - cross-provider reconciliation report
 - media bridge ownership, permission, quota, compensation, and recovery approval
@@ -66,6 +63,8 @@ The following items remain EXTERNAL_OPERATOR_BLOCKER before M20 execution can be
 - final cutover authority, operator, and support-window approval
 
 These blockers require external evidence. Repository code must not invent values for them.
+
+The redacted status register for these blockers is `docs/operations/m20-external-evidence-pack.md`. A PENDING or BLOCKED section in that pack prevents production execution.
 
 ## Required Evidence Format
 
@@ -88,11 +87,11 @@ Evidence must not include live URLs, D1 ids, account ids, deployment ids, run id
 
 The required rehearsal flow is:
 
-1. Confirm pnpm worker:m20:readiness reports repository readiness.
-2. Confirm pnpm worker:m19:readiness still reports repository readiness.
-3. Run post-M19 public-read preview smoke against an approved preview Worker origin.
-4. Verify preview-only migrations against a confirmed non-production D1 database.
-5. Run preview admin write smoke against the exact candidate preview Worker.
+1. Confirm pnpm worker:m20:readiness reports repository readiness. Passed externally.
+2. Confirm pnpm worker:m19:readiness still reports repository readiness. Passed externally.
+3. Run post-M19 public-read preview smoke against an approved preview Worker origin. Passed externally.
+4. Verify preview-only migrations against a confirmed non-production D1 database. Passed externally.
+5. Run preview admin write smoke against the exact candidate preview Worker. Passed externally.
 6. Produce full structured data inventory from the current source of truth.
 7. Reconcile structured source data against Cloudflare D1 preview output.
 8. Verify the Apps Script media bridge remains operational and recoverable.

@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M19 repository-owned parity remediation is closed. Post-M19 external preview verification passed for admin proxy login, snapshot, and admin writes; public frontend data loading is restored. External operator blockers remain, M20 is blocked and not started, and production cutover readiness is not claimed.
+Current milestone: M19 repository-owned parity remediation is closed. M20 repository readiness, M19 continuity, post-M19 public-read preview smoke, preview migration verification, and preview admin write smoke passed externally. The M20 external evidence pack is open with unresolved operator gates, M20 remains blocked and not started, and production cutover readiness is not claimed.
 
 ## Summary
 
@@ -26,9 +26,9 @@ M18 preview admin proxy follow-up: the Vercel same-origin proxy login and proxie
 
 M19: `CLOSED` for repository-owned parity remediation. Public Worker contracts now match current React snapshot dependencies, all public-read feature adapters honor the existing explicit provider switch, structured settings/menu/carousel/service/event admin routes and frontend adapters exist behind the M18 preview gate, admin snapshot parity is filled, and ordered migration `0005` adds audit metadata for the new write-owned tables. Remaining items are external operator blockers, not hidden repository gaps.
 
-Post-M19 external verification: the replacement production Vercel frontend was configured outside git to select the existing public Cloudflare provider, and public frontend data loading and browser sanity were restored. Preview admin proxy login and snapshot were verified, and the preview admin write smoke passed. A distinct post-M19 public-read smoke result was not included in the operator output and remains pending; the earlier M17-C public-read smoke remains valid historical evidence. This evidence does not establish production cutover readiness.
+Post-M19 external verification: the replacement production Vercel frontend was configured outside git to select the existing public Cloudflare provider, and public frontend data loading and browser sanity were restored. Preview admin proxy login and snapshot were verified. The post-M19 public-read preview smoke, preview migration verification, and preview admin write smoke passed externally. This evidence does not establish production cutover readiness.
 
-M20-P0: Production Readiness Gate Scaffolding is added as repository-owned readiness preparation only. It includes the M20 readiness document, operations runbook, offline readiness script, and tests. M19 remains closed, M20 production execution remains BLOCKED, no production mutation occurred, and no cutover readiness is claimed.
+M20-P0: Production Readiness Gate Scaffolding is added as repository-owned readiness preparation only. It includes the M20 readiness document, operations runbook, offline readiness script, tests, and the redacted external evidence pack at `docs/operations/m20-external-evidence-pack.md`. M19 remains closed, M20 production execution remains BLOCKED, no production mutation occurred, and no cutover readiness is claimed.
 
 M20: `BLOCKED` and not started. Production identity/RBAC approval, sanitized full-data reconciliation, Drive bridge recovery ownership, representative migration/backup/restore/rollback rehearsal, production resources, monitoring thresholds, and cutover authority are still required outside git.
 
@@ -181,7 +181,7 @@ The M19 repository closure change executed no production cutover, D1 mutation, W
 
 ## Post-M19 External Verification
 
-Status: `PARTIALLY VERIFIED`; the supplied operator evidence passed the preview admin checks and public browser sanity, while a distinct post-M19 public-read smoke result is pending operator output.
+Status: `VERIFIED FOR PREVIEW PREREQUISITES`; the supplied operator evidence passed repository readiness, M19 continuity, public-read preview smoke, preview migration verification, preview admin checks, and preview admin write smoke.
 
 Evidence source: external operator report recorded without infrastructure identifiers, payloads, screenshots, exact timestamps, or secrets.
 
@@ -193,9 +193,10 @@ Recorded results:
 - preview admin proxy login: verified
 - preview admin snapshot: verified
 - preview admin write smoke: `PASSED`
-- post-M19 public-read smoke: `PENDING OPERATOR OUTPUT`
+- post-M19 public-read preview smoke: `PASSED`
+- preview migration verification: `PASSED`
 
-The successful browser data load is not substituted for the dedicated public-read smoke result. The previously recorded M17-C public-read smoke is historical evidence from before this post-M19 verification.
+The dedicated post-M19 public-read preview smoke is now recorded as passed. The previously recorded M17-C public-read smoke remains separate historical evidence.
 
 Safety boundary:
 
@@ -209,11 +210,11 @@ Safety boundary:
 
 ## Next Action
 
-M19 repository-owned remediation is closed. The next action is operator resolution and redacted evidence for the external blockers listed in the M19 closure ledger.
+M19 repository-owned remediation is closed. The next action is operator completion and approval of the PENDING and BLOCKED sections in `docs/operations/m20-external-evidence-pack.md`.
 
 M20 remains blocked and not started. It may begin only after those external identity, data, bridge, migration, operations, rollback, and cutover gates are approved; M19 closure alone is not sufficient.
 
-M20-P0 readiness gate scaffolding is added. Operators can run pnpm worker:m20:readiness for local repository-only checks, but production execution remains blocked until all external evidence and authority gates pass.
+M20-P0 readiness gate scaffolding and the redacted external evidence pack are added. Operators can run pnpm worker:m20:readiness for local repository-only checks, but production execution remains blocked until all evidence sections and authority gates pass.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 
