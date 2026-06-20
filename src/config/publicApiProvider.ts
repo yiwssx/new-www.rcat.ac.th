@@ -22,9 +22,7 @@ export function resolveCloudflarePublicApiBaseUrl(env: PublicApiProviderEnv = im
   const baseUrl = readEnvString(env, "VITE_CLOUDFLARE_PUBLIC_API_URL").replace(/\/+$/, "");
 
   if (!baseUrl) {
-    throw new Error(
-      "VITE_CLOUDFLARE_PUBLIC_API_URL is required when VITE_PUBLIC_API_PROVIDER=cloudflare for public-document-list"
-    );
+    throw new Error("VITE_CLOUDFLARE_PUBLIC_API_URL is required when VITE_PUBLIC_API_PROVIDER=cloudflare");
   }
 
   return baseUrl;

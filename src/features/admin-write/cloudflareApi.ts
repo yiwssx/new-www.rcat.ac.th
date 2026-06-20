@@ -1,5 +1,15 @@
 import { buildCloudflareAdminApiUrl } from "../../config/adminWriteProvider";
-import type { CmsSnapshot } from "../../types";
+import type {
+  CalendarEvent,
+  CarouselSlide,
+  CmsSnapshot,
+  DisplaySettings,
+  ExternalServiceLink,
+  HomepageSettings,
+  PublicMenuItem,
+  SiteSettings
+} from "../../types";
+import type { CalendarEventInput, CarouselSlideInput, ExternalServiceLinkInput } from "../../services/googleApi";
 import type { CmsDocumentItem } from "../cms-documents/types";
 import type { ContentItem } from "../public-content/types";
 
@@ -106,4 +116,59 @@ export async function deleteDocumentFromCloudflare(id: string): Promise<{ id: st
   return requestCloudflareAdmin<{ id: string; deleted: boolean }>(`/api/admin/documents/${encodeURIComponent(id)}`, {
     method: "DELETE"
   });
+}
+
+export function getDisplaySettingsFromCloudflare(): Promise<DisplaySettings> {
+  return requestCloudflareAdmin<DisplaySettings>("/api/admin/settings/display");
+}
+
+export function saveDisplaySettingsToCloudflare(settings: Partial<DisplaySettings>): Promise<DisplaySettings> {
+  return writeJson<DisplaySettings>("/api/admin/settings/display", "PUT", settings);
+}
+
+export function saveSiteSettingsToCloudflare(settings: Partial<SiteSettings>): Promise<SiteSettings> {
+  return writeJson<SiteSettings>("/api/admin/settings/site", "PUT", settings);
+}
+
+export function saveHomepageSettingsToCloudflare(settings: Partial<HomepageSettings>): Promise<HomepageSettings> {
+  return writeJson<HomepageSettings>("/api/admin/settings/homepage", "PUT", settings);
+}
+
+export async function getPublicMenuItemsFromCloudflare(): Promise<PublicMenuItem[]> {
+  const response = await requestCloudflareAdmin<{ items: PublicMenuItem[] }>("/api/admin/menu");
+  return response.items;
+}
+
+export async function savePublicMenuItemsToCloudflare(items: PublicMenuItem[]): Promise<PublicMenuItem[]> {
+  const response = await writeJson<{ items: PublicMenuItem[] }>("/api/admin/menu", "PUT", { items });
+  return response.items;
+}
+
+export async function saveCarouselSlideToCloudflare(input: CarouselSlideInput): Promise<CarouselSlide> {
+  const response = await writeJson<ItemEnvelope<CarouselSlide>>("/api/admin/carousel", "POST", input);
+  return response.item;
+}
+
+export function deleteCarouselSlideFromCloudflare(id: string): Promise<{ id: string; deleted: boolean }> {
+  return requestCloudflareAdmin(`/api/admin/carousel/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export async function saveExternalServiceLinkToCloudflare(
+  input: ExternalServiceLinkInput
+): Promise<ExternalServiceLink> {
+  const response = await writeJson<ItemEnvelope<ExternalServiceLink>>("/api/admin/external-services", "POST", input);
+  return response.item;
+}
+
+export function deleteExternalServiceLinkFromCloudflare(id: string): Promise<{ id: string; deleted: boolean }> {
+  return requestCloudflareAdmin(`/api/admin/external-services/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export async function saveCalendarEventToCloudflare(input: CalendarEventInput): Promise<CalendarEvent> {
+  const response = await writeJson<ItemEnvelope<CalendarEvent>>("/api/admin/events", "POST", input);
+  return response.item;
+}
+
+export function deleteCalendarEventFromCloudflare(id: string): Promise<{ id: string; deleted: boolean }> {
+  return requestCloudflareAdmin(`/api/admin/events/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

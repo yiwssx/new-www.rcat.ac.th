@@ -1,5 +1,7 @@
 import { createPublicProgramListSnapshot } from "../adapters/publicProgramsAdapter";
+import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { listPublishedProgramRows } from "../db/programsRepository";
+import { readPublicMetadataRows } from "../db/publicMetadataRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -15,8 +17,8 @@ export async function publicPrograms(env: Env) {
   }
 
   try {
-    const rows = await listPublishedProgramRows(env);
-    return json(createPublicProgramListSnapshot(rows));
+    const [rows, metadataRows] = await Promise.all([listPublishedProgramRows(env), readPublicMetadataRows(env)]);
+    return json(createPublicProgramListSnapshot(rows, createPublicMetadata(metadataRows)));
   } catch {
     return jsonError("Unable to load program", 500, {
       resource: RESOURCE,

@@ -7,34 +7,83 @@ const PROGRAM_TYPE = "program";
 
 export type PublicContentReadRow = Pick<
   ContentRow,
-  "id" | "slug" | "type" | "title" | "summary" | "body_snapshot" | "category" | "featured" | "publish_at" | "updated_at"
+  | "id"
+  | "slug"
+  | "type"
+  | "status"
+  | "owner"
+  | "title"
+  | "summary"
+  | "body_snapshot"
+  | "category"
+  | "tags_json"
+  | "seo_title"
+  | "seo_description"
+  | "canonical_url"
+  | "featured"
+  | "reading_minutes"
+  | "template"
+  | "featured_media_id"
+  | "media_ids_json"
+  | "view_count"
+  | "last_viewed_at"
+  | "publish_at"
+  | "updated_at"
 >;
 
 const PUBLIC_CONTENT_READ_COLUMNS = [
   "id",
   "slug",
   "type",
+  "status",
+  "owner",
   "title",
   "summary",
   "body_snapshot",
   "category",
+  "tags_json",
+  "seo_title",
+  "seo_description",
+  "canonical_url",
   "featured",
+  "reading_minutes",
+  "template",
+  "featured_media_id",
+  "media_ids_json",
+  "view_count",
+  "last_viewed_at",
   "publish_at",
   "updated_at"
 ] as const satisfies readonly (keyof PublicContentReadRow)[];
 
-export async function listPublishedContentRows(env: Env): Promise<PublicContentReadRow[]> {
+export async function listPublishedContentRows(env: Env, type: string): Promise<PublicContentReadRow[]> {
   const db = requireD1Database(env);
   const result = await db
     .prepare(
       `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
        FROM contents
        WHERE status = ?
-         AND type <> ?
+         AND type = ?
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
-    .bind(PUBLISHED_STATUS, PROGRAM_TYPE)
+    .bind(PUBLISHED_STATUS, type)
+    .all<PublicContentReadRow>();
+
+  return result.results ?? [];
+}
+
+export async function listAllPublishedContentRows(env: Env): Promise<PublicContentReadRow[]> {
+  const db = requireD1Database(env);
+  const result = await db
+    .prepare(
+      `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
+       FROM contents
+       WHERE status = ?
+         AND COALESCE(deleted_at, '') = ''
+       ORDER BY publish_at DESC, updated_at DESC`
+    )
+    .bind(PUBLISHED_STATUS)
     .all<PublicContentReadRow>();
 
   return result.results ?? [];
@@ -66,12 +115,11 @@ export async function getPublishedContentRowBySlug(env: Env, slug: string): Prom
       `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
        FROM contents
        WHERE status = ?
-         AND slug = ?
-         AND type <> ?
+         AND (slug = ? OR id = ?)
          AND COALESCE(deleted_at, '') = ''
        LIMIT 1`
     )
-    .bind(PUBLISHED_STATUS, slug, PROGRAM_TYPE)
+    .bind(PUBLISHED_STATUS, slug, slug)
     .all<PublicContentReadRow>();
 
   return result.results?.[0] ?? null;
@@ -81,7 +129,7 @@ export async function searchPublishedContentRows(env: Env, query: string): Promi
   const normalizedQuery = query.trim();
 
   if (!normalizedQuery) {
-    return [];
+    return listAllPublishedContentRows(env);
   }
 
   const pattern = `%${normalizedQuery}%`;
@@ -91,7 +139,6 @@ export async function searchPublishedContentRows(env: Env, query: string): Promi
       `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
        FROM contents
        WHERE status = ?
-         AND type <> ?
          AND COALESCE(deleted_at, '') = ''
          AND (
            title LIKE ?
@@ -102,12 +149,14 @@ export async function searchPublishedContentRows(env: Env, query: string): Promi
        ORDER BY publish_at DESC, updated_at DESC
        LIMIT 20`
     )
-    .bind(PUBLISHED_STATUS, PROGRAM_TYPE, pattern, pattern, pattern, pattern)
+    .bind(PUBLISHED_STATUS, pattern, pattern, pattern, pattern)
     .all<PublicContentReadRow>();
 
   return result.results ?? [];
 }
 
 export function validateContentReadColumnContract() {
-  return PUBLIC_CONTENT_READ_COLUMNS.every((column) => CONTENT_ROW_COLUMNS.includes(column));
+  return PUBLIC_CONTENT_READ_COLUMNS.filter((column) => column !== "owner").every((column) =>
+    CONTENT_ROW_COLUMNS.includes(column as (typeof CONTENT_ROW_COLUMNS)[number])
+  );
 }

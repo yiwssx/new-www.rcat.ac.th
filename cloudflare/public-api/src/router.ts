@@ -45,7 +45,7 @@ export async function routeRequest(request: Request, env: Env) {
   }
 
   if (pathname === "/api/public/content") {
-    return publicContentList(env);
+    return publicContentList(request, env);
   }
 
   if (pathname.startsWith(CONTENT_DETAIL_PREFIX) && pathname.length > CONTENT_DETAIL_PREFIX.length) {

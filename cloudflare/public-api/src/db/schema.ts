@@ -180,6 +180,9 @@ export interface SiteSettingsRow {
   id: string;
   settings_json: string;
   updated_at: string;
+  created_at?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const SITE_SETTINGS_ROW_COLUMNS = [
@@ -188,10 +191,20 @@ export const SITE_SETTINGS_ROW_COLUMNS = [
   "updated_at"
 ] as const satisfies readonly (keyof SiteSettingsRow)[];
 
+export const SITE_SETTINGS_ADMIN_ROW_COLUMNS = [
+  ...SITE_SETTINGS_ROW_COLUMNS,
+  "created_at",
+  "updated_by",
+  "revision"
+] as const satisfies readonly (keyof SiteSettingsRow)[];
+
 export interface HomepageSettingsRow {
   id: string;
   settings_json: string;
   updated_at: string;
+  created_at?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const HOMEPAGE_SETTINGS_ROW_COLUMNS = [
@@ -200,16 +213,33 @@ export const HOMEPAGE_SETTINGS_ROW_COLUMNS = [
   "updated_at"
 ] as const satisfies readonly (keyof HomepageSettingsRow)[];
 
+export const HOMEPAGE_SETTINGS_ADMIN_ROW_COLUMNS = [
+  ...HOMEPAGE_SETTINGS_ROW_COLUMNS,
+  "created_at",
+  "updated_by",
+  "revision"
+] as const satisfies readonly (keyof HomepageSettingsRow)[];
+
 export interface DisplaySettingsRow {
   id: string;
   settings_json: string;
   updated_at: string;
+  created_at?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const DISPLAY_SETTINGS_ROW_COLUMNS = [
   "id",
   "settings_json",
   "updated_at"
+] as const satisfies readonly (keyof DisplaySettingsRow)[];
+
+export const DISPLAY_SETTINGS_ADMIN_ROW_COLUMNS = [
+  ...DISPLAY_SETTINGS_ROW_COLUMNS,
+  "created_at",
+  "updated_by",
+  "revision"
 ] as const satisfies readonly (keyof DisplaySettingsRow)[];
 
 export interface MenuItemRow {
@@ -221,6 +251,9 @@ export interface MenuItemRow {
   sort_order: number;
   children_json: string;
   updated_at: string;
+  created_at?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const MENU_ITEM_ROW_COLUMNS = [
@@ -232,6 +265,13 @@ export const MENU_ITEM_ROW_COLUMNS = [
   "sort_order",
   "children_json",
   "updated_at"
+] as const satisfies readonly (keyof MenuItemRow)[];
+
+export const MENU_ITEM_ADMIN_ROW_COLUMNS = [
+  ...MENU_ITEM_ROW_COLUMNS,
+  "created_at",
+  "updated_by",
+  "revision"
 ] as const satisfies readonly (keyof MenuItemRow)[];
 
 export interface CarouselSlideRow {
@@ -248,6 +288,9 @@ export interface CarouselSlideRow {
   start_at: string;
   end_at: string;
   updated_at: string;
+  created_at?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const CAROUSEL_SLIDE_ROW_COLUMNS = [
@@ -266,6 +309,13 @@ export const CAROUSEL_SLIDE_ROW_COLUMNS = [
   "updated_at"
 ] as const satisfies readonly (keyof CarouselSlideRow)[];
 
+export const CAROUSEL_SLIDE_ADMIN_ROW_COLUMNS = [
+  ...CAROUSEL_SLIDE_ROW_COLUMNS,
+  "created_at",
+  "updated_by",
+  "revision"
+] as const satisfies readonly (keyof CarouselSlideRow)[];
+
 export interface ExternalServiceRow {
   id: string;
   title: string;
@@ -276,6 +326,9 @@ export interface ExternalServiceRow {
   enabled: 0 | 1;
   sort_order: number;
   updated_at: string;
+  created_at?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const EXTERNAL_SERVICE_ROW_COLUMNS = [
@@ -290,6 +343,13 @@ export const EXTERNAL_SERVICE_ROW_COLUMNS = [
   "updated_at"
 ] as const satisfies readonly (keyof ExternalServiceRow)[];
 
+export const EXTERNAL_SERVICE_ADMIN_ROW_COLUMNS = [
+  ...EXTERNAL_SERVICE_ROW_COLUMNS,
+  "created_at",
+  "updated_by",
+  "revision"
+] as const satisfies readonly (keyof ExternalServiceRow)[];
+
 export interface EventRow {
   id: string;
   title: string;
@@ -302,6 +362,9 @@ export interface EventRow {
   category: string;
   visibility: string;
   updated_at: string;
+  created_at?: string;
+  updated_by?: string;
+  revision?: number;
 }
 
 export const EVENT_ROW_COLUMNS = [
@@ -316,6 +379,13 @@ export const EVENT_ROW_COLUMNS = [
   "category",
   "visibility",
   "updated_at"
+] as const satisfies readonly (keyof EventRow)[];
+
+export const EVENT_ADMIN_ROW_COLUMNS = [
+  ...EVENT_ROW_COLUMNS,
+  "created_at",
+  "updated_by",
+  "revision"
 ] as const satisfies readonly (keyof EventRow)[];
 
 export interface VisitorEventRow {

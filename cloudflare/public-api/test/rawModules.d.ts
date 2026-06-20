@@ -4,6 +4,23 @@ declare module "*?raw" {
 }
 
 declare module "*.mjs" {
+  export const formatM19ParityReadiness: (result: {
+    status: string;
+    checks: Record<string, string>;
+    externalOperatorBlockers: string[];
+    safety: Record<string, boolean>;
+    validationIssues: string[];
+  }) => string;
+  export const runM19ParityReadiness: (options?: {
+    cwd?: string;
+    readFile?: (path: string, encoding: string) => Promise<string>;
+  }) => Promise<{
+    status: string;
+    checks: Record<string, string>;
+    externalOperatorBlockers: string[];
+    safety: Record<string, boolean>;
+    validationIssues: string[];
+  }>;
   export const formatPublicDocumentsImportDryRunResult: (
     result: {
       status: string;

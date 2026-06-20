@@ -4,12 +4,25 @@ import type { CmsDocumentItem } from "../cms-documents/types";
 
 const googleApiMocks = vi.hoisted(() => ({
   deleteContentItem: vi.fn(),
+  deleteCalendarEvent: vi.fn(),
+  deleteCarouselSlideFromApi: vi.fn(),
   deleteDocumentFromApi: vi.fn(),
+  deleteExternalServiceLinkFromApi: vi.fn(),
   getAdminCmsSnapshot: vi.fn(),
   getAdminContentDetail: vi.fn(),
+  getDisplaySettingsFromApi: vi.fn(),
+  getPublicMenuItems: vi.fn(),
   publishContent: vi.fn(),
+  saveCalendarEvent: vi.fn(),
+  saveCarouselSlideToApi: vi.fn(),
   saveContentItem: vi.fn(),
+  saveDisplaySettingsToApi: vi.fn(),
   saveDocumentToApi: vi.fn(),
+  saveExternalServiceLinkToApi: vi.fn(),
+  saveHomepageSettingsToApi: vi.fn(),
+  savePublicMenuItems: vi.fn(),
+  saveSiteSettingsToApi: vi.fn(),
+  saveVisitorStatsToApi: vi.fn(),
   saveMediaAsset: vi.fn(),
   uploadMediaAsset: vi.fn(),
   deleteMediaAsset: vi.fn()
@@ -266,5 +279,98 @@ describe("M18 admin structured write provider", () => {
       id: "m18-preview-content-001",
       deleted: true
     });
+  });
+
+  it("routes the remaining structured admin resources to Cloudflare only in explicit preview mode", async () => {
+    setCloudflareEnv();
+    const menu = [{ id: "menu-1", label: "Sample", href: "/sample", enabled: true }];
+    const carousel = {
+      id: "slide-1",
+      title: "Sample slide",
+      subtitle: "",
+      chip: "",
+      imageUrl: "https://images.example.test/slide.jpg",
+      imageAlt: "Sample",
+      buttonLabel: "Read",
+      href: "/sample",
+      enabled: true,
+      order: 1,
+      updatedAt: "2026-06-20T00:00:00.000Z"
+    };
+    const service = {
+      id: "service-1",
+      title: "Sample service",
+      description: "Sanitized preview service",
+      href: "https://service.example.test",
+      tone: "general" as const,
+      iconKey: "link" as const,
+      enabled: true,
+      order: 1,
+      updatedAt: "2026-06-20T00:00:00.000Z"
+    };
+    const event = {
+      id: "event-1",
+      title: "Sample event",
+      date: "2026-06-21T00:00:00.000Z",
+      audience: "public",
+      status: "confirmed" as const,
+      visibility: "public" as const,
+      updatedAt: "2026-06-20T00:00:00.000Z"
+    };
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const path = new URL(url).pathname;
+      const body = init?.body ? JSON.parse(String(init.body)) : {};
+
+      if (init?.method === "DELETE") {
+        const pathSegments = path.split("/");
+        const id = decodeURIComponent(pathSegments[pathSegments.length - 1] ?? "");
+        return jsonResponse({ id, deleted: true });
+      }
+
+      if (path.endsWith("/settings/display") && !init?.method) {
+        return jsonResponse({ dateFormat: "D MMMM YYYY", timeMode: "24h" });
+      }
+
+      if (path.endsWith("/menu") && !init?.method) {
+        return jsonResponse({ items: menu });
+      }
+
+      if (path.endsWith("/menu")) {
+        return jsonResponse({ items: body.items });
+      }
+
+      if (path.includes("/settings/")) {
+        return jsonResponse(body);
+      }
+
+      return jsonResponse({ item: body });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const settingsApi = await import("../cms-settings/api");
+    const navigationApi = await import("../cms-navigation/api");
+    const carouselApi = await import("../cms-carousel/api");
+    const servicesApi = await import("../cms-external-services/api");
+    const eventsApi = await import("../cms-events/api");
+
+    await settingsApi.getDisplaySettingsFromApi();
+    await settingsApi.saveDisplaySettingsToApi({ dateFormat: "D MMMM YYYY", timeMode: "24h" });
+    await settingsApi.saveSiteSettingsToApi({ siteName: "Sample school" });
+    await settingsApi.saveHomepageSettingsToApi({});
+    await navigationApi.getPublicMenuItems();
+    await navigationApi.savePublicMenuItems(menu);
+    await carouselApi.saveCarouselSlideToApi(carousel);
+    await carouselApi.deleteCarouselSlideFromApi(carousel.id);
+    await servicesApi.saveExternalServiceLinkToApi(service);
+    await servicesApi.deleteExternalServiceLinkFromApi(service.id);
+    await eventsApi.saveCalendarEvent(event);
+    await eventsApi.deleteCalendarEvent(event.id);
+
+    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(googleApiMocks.getDisplaySettingsFromApi).not.toHaveBeenCalled();
+    expect(googleApiMocks.saveSiteSettingsToApi).not.toHaveBeenCalled();
+    expect(googleApiMocks.savePublicMenuItems).not.toHaveBeenCalled();
+    expect(googleApiMocks.saveCarouselSlideToApi).not.toHaveBeenCalled();
+    expect(googleApiMocks.saveExternalServiceLinkToApi).not.toHaveBeenCalled();
+    expect(googleApiMocks.saveCalendarEvent).not.toHaveBeenCalled();
   });
 });

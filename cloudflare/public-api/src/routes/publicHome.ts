@@ -1,8 +1,11 @@
 import { createPublicHomeSnapshot } from "../adapters/publicHomeAdapter";
-import { listFeaturedContentRows } from "../db/contentRepository";
+import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
+import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
+import { listAllPublishedContentRows } from "../db/contentRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
 import { listPublishedHomeSectionRows } from "../db/homeRepository";
-import { listPublishedProgramRows } from "../db/programsRepository";
+import { readPublicMetadataRows } from "../db/publicMetadataRepository";
+import { listVisitorDailyStatsRows } from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -18,20 +21,26 @@ export async function publicHome(env: Env) {
   }
 
   try {
-    const [sections, featuredContent, featuredDocuments, programs] = await Promise.all([
+    const [sections, content, featuredDocuments, metadataRows, visitorRows] = await Promise.all([
       listPublishedHomeSectionRows(env),
-      listFeaturedContentRows(env),
+      listAllPublishedContentRows(env),
       listPublishedDocumentRows(env),
-      listPublishedProgramRows(env)
+      readPublicMetadataRows(env),
+      listVisitorDailyStatsRows(env)
     ]);
+    const generatedAt = new Date();
 
     return json(
-      createPublicHomeSnapshot({
-        sections,
-        featuredContent,
-        featuredDocuments,
-        programs
-      })
+      createPublicHomeSnapshot(
+        {
+          sections,
+          content,
+          featuredDocuments,
+          metadata: createPublicMetadata(metadataRows),
+          visitorStats: createPublicVisitorStatsSnapshot(visitorRows, generatedAt)
+        },
+        generatedAt
+      )
     );
   } catch {
     return jsonError("Unable to load public-home", 500, {

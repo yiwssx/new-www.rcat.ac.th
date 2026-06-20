@@ -1,199 +1,82 @@
 # RCAT Public API Worker
 
-This directory contains the isolated Cloudflare Worker for the future public-read API. The current React frontend and production backend still use Google Apps Script.
+This isolated Cloudflare Worker is the replacement system's D1-backed public-read and preview structured-admin API. Apps Script remains the production provider and the Google Drive media-file bridge. No production cutover is authorized by this directory.
 
-## Current M3 Routes
+## M19 Current Surface
 
-| Method    | Route                   | Behavior                                                                                        |
-| --------- | ----------------------- | ----------------------------------------------------------------------------------------------- |
-| `GET`     | `/health`               | Returns the Worker service health payload                                                       |
-| `GET`     | `/api/health`           | Returns the Worker service health payload                                                       |
-| `GET`     | `/api/public/documents` | Reads local D1 `documents` rows and returns the existing public document list snapshot contract |
-| `OPTIONS` | Any path                | Returns HTTP `204` with GET-only CORS headers                                                   |
+Public GET routes:
 
-`GET /api/public/documents` requires the optional `DB` binding. If the binding is missing, it returns HTTP `503` with:
+- `/health`
+- `/api/health`
+- `/api/public/documents`
+- `/api/public/home`
+- `/api/public/content?kind=<news|announcements|blog>`
+- `/api/public/content/:identifier`
+- `/api/public/search`
+- `/api/public/programs`
+- `/api/public/visitor-stats`
 
-```json
-{
-  "error": "D1 DB binding is not configured",
-  "resource": "public-document-list",
-  "phase": "M3"
-}
-```
+Public responses preserve the current React snapshot shapes. M17 compatibility fields remain where earlier smoke contracts used them. Public routes remain GET/OPTIONS-only and never receive credentialed wildcard CORS.
 
-The route does not return fake fallback data when D1 is unavailable. Unexpected D1 failures return a safe HTTP `500` payload without stack traces or internal database details.
+Preview-gated structured admin routes include:
 
-## Public Document Contract
+- snapshot, content, documents, home sections, and visitor daily stats from M18
+- site, homepage, and display settings
+- menu
+- carousel slides
+- external services
+- calendar events
 
-The M3 route preserves the existing Apps Script public-document-list response shape:
+All admin routes use the existing M18 authentication, allowlisted-origin CORS, preview enablement, and production-context block. Production admin writes remain disabled.
 
-```ts
-interface PublicDocumentListSnapshot {
-  items: PublicDocumentItem[];
-  generatedAt: string;
-}
-```
+## Provider Behavior
 
-Each item exposes only camelCase public fields: `id`, `title`, `description`, `category`, `fileUrl`, `fileName`, `mediaId`, `publishedAt`, `order`, `pinned`, and `updatedAt`.
+The frontend defaults remain:
 
-Worker-local D1 rows stay snake_case inside `src/db/schema.ts` and `src/db/documentsRepository.ts`. `src/adapters/publicDocumentsAdapter.ts` maps rows back to the public response contract and intentionally omits D1-only fields such as `status`.
+- `VITE_PUBLIC_API_PROVIDER`: Apps Script unless explicitly set to `cloudflare`
+- `VITE_ADMIN_WRITE_PROVIDER`: Apps Script unless the existing Cloudflare-first preview and admin authentication gates all pass
 
-## M1 Scope
+The public provider now covers documents, home, content list/detail, search, and programs. The admin provider covers the structured resources listed above. Removing the explicit provider values returns calls to Apps Script.
 
-M1 proved Worker routing, JSON responses, GET-only CORS behavior, local execution, and dry-run deployment. At that checkpoint, `GET /api/public/documents` returned an explicit `501` skeleton response and did not resemble `PublicDocumentListSnapshot`.
+Media upload/delete and visitor analytics settings mutation intentionally remain Apps Script-backed. The Worker reads D1 media metadata references but does not perform Google Drive binary operations.
 
-## M2 Scope
+## D1 Migrations
 
-M2 added the schema and local-only seed plan without exposing D1 through runtime routes:
+Ordered migrations are in `migrations/`:
 
-- `migrations/0001_public_read_schema.sql` defines the ordered public-read D1 schema.
-- `src/db/schema.ts` defines Worker-local snake_case row interfaces.
-- `src/db/documentsRepository.ts` defines the explicit public document query.
-- `src/db/healthRepository.ts` is dormant and only reports whether an optional `DB` binding exists.
-- `seed/public-documents.sample.json` contains fake row-shaped sample data with `sampleOnly: true` and `example.test` URLs.
-- `seed/public-documents.seed.sql` repeatably inserts only fake `sample-*` rows in local D1.
-- Static tests verify schema, sample, seed, and local-only safety rules.
+- `0001`: base public-read and shared metadata schema
+- `0002`: grouped public-read foundation
+- `0003`: M18 write metadata and audit table
+- `0004`: M18 parser-safe lifecycle audit triggers
+- `0005`: M19 settings/menu/carousel/service/event actor, revision, and audit hardening
 
-The active D1 binding in `wrangler.toml` uses the local-only `local-placeholder` database ID. No real preview or production `database_id`, real import script, or production data is included.
+Migration `0005` is repository code only until a separately approved non-production execution. No production migration or binding is included.
 
-## M3 Scope
+## Safety Boundary
 
-M3 wires only `GET /api/public/documents` to local D1:
+- Do not commit real D1 identifiers, account identifiers, credentials, live endpoints, or real records.
+- Do not apply migrations, seed data, or imports to production from normal test/build flows.
+- Do not deploy the Worker or mutate Vercel as part of repository validation.
+- Keep Apps Script as production fallback until a future approved gate.
+- Keep Google Drive binary operations in the approved Apps Script bridge.
+- Keep M20 blocked until M19 external operator blockers are resolved.
 
-- The route queries `documents` rows with explicit `DOCUMENT_ROW_COLUMNS`.
-- SQL filters `status = "published"`.
-- SQL order is `pinned DESC, sort_order ASC, published_at DESC, updated_at DESC`.
-- The adapter converts snake_case D1 rows to the existing camelCase public API contract.
-- Missing D1 binding returns HTTP `503` instead of fake data.
-- D1 query failures return a safe HTTP `500`.
-
-No other public route is implemented in M3.
-
-## M3.1 Scope
-
-M3.1 adds parity fixtures and assertions for the existing Apps Script public-document-list contract:
-
-- `test/fixtures/publicDocuments/appsScriptSnapshot.sample.json` is a fake Apps Script-shaped `PublicDocumentListSnapshot`.
-- `test/fixtures/publicDocuments/d1Rows.sample.json` is fake D1 `DocumentRow` data that maps exactly to the Apps Script-shaped fixture.
-- `test/helpers/publicDocumentsParity.ts` validates exact top-level keys, exact item keys, ISO `generatedAt`, no snake_case D1 fields, no `status` or `sampleOnly`, and no forbidden production URLs.
-- `test/publicDocumentsParity.test.ts` proves adapter output and Worker route output match the public contract while preserving missing-DB `503` and safe D1-error `500` behavior.
-
-The fixtures are sanitized sample-only contract fixtures. They must not be replaced with committed live Apps Script captures unless every real URL and record is removed or converted to fake `example.test` values.
-
-## M4 Preview Frontend Provider
-
-M4 adds a frontend-only, preview-scoped provider switch for `public-document-list`. Local or preview frontend builds can set:
-
-```bash
-VITE_PUBLIC_API_PROVIDER=cloudflare
-VITE_CLOUDFLARE_PUBLIC_API_URL=http://127.0.0.1:8787
-```
-
-The default remains Apps Script when the provider env is missing, empty, unknown, or explicitly set to `apps-script`. This Worker README does not define production frontend env, production D1 IDs, or a production cutover.
-
-## M5 Non-Production D1 Preview
-
-M5 adds a preview-only Worker environment placeholder and a sanitized fake preview seed path:
-
-- `wrangler.toml` includes `[env.preview]` with `database_id = "preview-placeholder"`.
-- `seed/public-documents.preview.seed.sql` inserts only fake `preview-*` public document rows.
-- Preview seed URLs use `example.test` only.
-- No real preview database id, production database id, production data, Google Drive URL, or secret is committed.
-
-After a real non-production D1 preview database is created outside git, apply the existing migration and sanitized preview seed with Wrangler preview commands documented in `docs/architecture/m5-non-production-d1-preview-2026-05-27.md`.
-
-## M6 Preview Smoke Status
-
-M6 is the actual non-production Worker + D1 preview smoke checkpoint. The repository is still blocked from running the remote smoke because no real non-production D1 database id, HTTPS preview Worker URL, or Vercel preview URL has been provided in git or in the M6 request.
-
-The checkpoint document is `docs/architecture/m6-preview-worker-d1-smoke-2026-05-27.md`.
-The external provisioning checklist is `docs/architecture/m6-1-preview-resource-provisioning-2026-05-27.md`.
-
-M6.2 rechecked the gate on 2026-06-10 and remains blocked because the non-production D1 name/id, HTTPS preview Worker URL, Vercel preview frontend URL, and Vercel preview env access were not available.
-
-M6.3 adds a local preflight checker for those external values:
-
-```bash
-pnpm worker:preview:preflight
-```
-
-The preflight reads `RCAT_PREVIEW_D1_DATABASE_NAME`, `RCAT_PREVIEW_D1_DATABASE_ID`, `RCAT_PREVIEW_WORKER_URL`, and `RCAT_VERCEL_PREVIEW_URL`, then prints `READY` or `BLOCKED`. It does not run remote D1 commands, deploy Workers, configure Vercel env, or open browser smoke. The checkpoint document is `docs/architecture/m6-3-preview-smoke-preflight-2026-05-27.md`.
-
-When external preview resources are available, run the preview migration, sanitized preview seed, preview Worker deploy, Vercel preview env configuration, and browser/network smoke from that document. Keep real preview identifiers and URLs outside git unless a separate preview-only provisioning change explicitly approves them.
-
-## Admin Proxy Fallback (Preview Only)
-
-When a custom Worker hostname protected by Cloudflare Access is unavailable, the admin frontend may use the same-origin Vercel proxy. Browser requests authenticate with a short-lived signed HttpOnly cookie; the Vercel Function sends the Worker smoke token server-to-server without forwarding browser `Origin`, cookies, authorization, host, or referer headers.
-
-Set these non-secret frontend values for the Vercel preview deployment:
-
-```bash
-VITE_BACKEND_MIGRATION_MODE=cloudflare-first-preview
-VITE_ADMIN_WRITE_PROVIDER=cloudflare
-VITE_CLOUDFLARE_ADMIN_AUTH_MODE=server-proxy
-VITE_CLOUDFLARE_ADMIN_PROXY_URL=/api/admin-proxy
-```
-
-Set these server-only values in the Vercel preview environment. Never prefix them with `VITE_` and never commit their values:
-
-```bash
-CLOUDFLARE_ADMIN_API_URL=<preview-worker-https-origin>
-CLOUDFLARE_ADMIN_SMOKE_TOKEN=<random-shared-preview-token>
-ADMIN_PROXY_SESSION_SECRET=<random-secret-at-least-32-characters>
-ADMIN_PROXY_ALLOWED_EMAILS=<comma-separated-admin-emails>
-ADMIN_PROXY_PASSWORD_HASH=<bcrypt-hash-for-preview-admin-password>
-```
-
-The Worker preview environment must use the matching server-only token:
-
-```bash
-ADMIN_WRITE_SMOKE_ENABLED=true
-ADMIN_WRITE_SMOKE_TOKEN=<same-value-as-vercel-cloudflare-admin-smoke-token>
-```
-
-Deploy the Worker preview after setting its values, then redeploy the Vercel preview after setting its values. Direct browser-origin Worker requests still require Cloudflare Access, and the Worker continues to reject smoke-token authentication whenever an `Origin` header is present.
-
-## Intentionally Deferred
-
-- Production D1 provisioning and real production database binding
-- Applying migrations to production databases
-- Real import scripts and real data imports
-- Apps Script sync or import jobs
-- Production frontend cutover
-- Public home, content list, content detail, search, site view, or visitor stats routes
-- Production admin writes, auth/users migration, media uploads, and Google Drive changes
-
-Apps Script remains the production provider and source of truth. Google Drive remains file storage.
-
-## Local Commands
+## Local Validation
 
 ```bash
 pnpm worker:typecheck
 pnpm worker:deploy:dry
-pnpm worker:d1:migrate:local
-pnpm worker:d1:seed:local
-pnpm worker:d1:list:local
-pnpm worker:preview:preflight
-pnpm worker:dev
+pnpm worker:m19:readiness
+pnpm test:unit
+pnpm test:integration
+pnpm build
+pnpm quality
 ```
 
-With the local Worker running:
+`pnpm worker:m19:readiness` reads repository files only. `REPOSITORY_READY` means repository-owned M19 remediation is present; it does not prove production data parity, production identity approval, external migration, deployment, monitoring, rollback, or cutover readiness.
 
-```bash
-curl http://127.0.0.1:8787/health
-curl http://127.0.0.1:8787/api/health
-curl -i http://127.0.0.1:8787/api/public/documents
-curl -i -X OPTIONS http://127.0.0.1:8787/api/public/documents
-```
+## M19 And M20
 
-After `pnpm worker:d1:migrate:local` and `pnpm worker:d1:seed:local`, `GET /api/public/documents` should return the fake local-only sample rows as a `PublicDocumentListSnapshot`. Without a configured `DB` binding, the route returns the M3 `503` payload shown above.
+M19 is closed for repository-owned parity remediation. The remaining blockers are external operator decisions and evidence for identity/RBAC, sanitized data reconciliation, media bridge recovery, production resources, monitoring, rollback, and cutover authority.
 
-## Cutover And Rollback
-
-No frontend cutover has happened. The React app still calls Apps Script through the existing provider path. This Worker can be disabled or ignored without changing current production behavior.
-
-## Next Phases
-
-- M6 follow-up: run the actual non-production preview smoke after the M6.1 external resource checklist has a real non-production preview D1 database, HTTPS Worker URL, and Vercel preview URL available outside git.
-
-Do not point production frontend traffic at this Worker until a separate production cutover phase is explicitly scoped.
+M20 is not started. It remains a future controlled production cutover preparation/gate and must not execute until those external blockers are approved and recorded safely.

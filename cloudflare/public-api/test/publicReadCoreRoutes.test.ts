@@ -30,6 +30,8 @@ const sampleContentRows = [
     summary: "Fake local-only news summary.",
     body_snapshot: "Fake local-only public content body.",
     category: "news",
+    featured_media_id: "sample-media-001",
+    media_ids_json: "[]",
     publish_at: "2026-02-01T00:00:00.000Z",
     updated_at: "2026-02-02T00:00:00.000Z",
     featured: 1
@@ -42,9 +44,56 @@ const sampleContentRows = [
     summary: "Fake local-only program summary.",
     body_snapshot: "Fake local-only program body.",
     category: "program",
+    featured_media_id: "sample-media-002",
+    media_ids_json: "[]",
     publish_at: "2026-03-01T00:00:00.000Z",
     updated_at: "2026-03-02T00:00:00.000Z",
     featured: 1
+  }
+];
+
+const sampleMediaRows = [
+  {
+    id: "sample-media-001",
+    name: "Sample news image",
+    type: "image",
+    size: "",
+    owner: "",
+    drive_url: "https://files.example.test/public/news.jpg",
+    file_id: "",
+    mime_type: "image/jpeg",
+    preview_url: "https://files.example.test/public/news.jpg",
+    embed_url: "",
+    thumbnail_url: "",
+    updated_at: "2026-02-02T00:00:00.000Z"
+  },
+  {
+    id: "sample-media-002",
+    name: "Sample program image",
+    type: "image",
+    size: "",
+    owner: "",
+    drive_url: "https://files.example.test/public/program.jpg",
+    file_id: "",
+    mime_type: "image/jpeg",
+    preview_url: "https://files.example.test/public/program.jpg",
+    embed_url: "",
+    thumbnail_url: "",
+    updated_at: "2026-03-02T00:00:00.000Z"
+  },
+  {
+    id: "sample-media-unreferenced",
+    name: "Unreferenced media",
+    type: "image",
+    size: "",
+    owner: "",
+    drive_url: "https://files.example.test/private/unreferenced.jpg",
+    file_id: "",
+    mime_type: "image/jpeg",
+    preview_url: "",
+    embed_url: "",
+    thumbnail_url: "",
+    updated_at: "2026-03-03T00:00:00.000Z"
   }
 ];
 
@@ -82,6 +131,7 @@ type MockDbOptions = {
   contentRows?: typeof sampleContentRows;
   documentRows?: DocumentRow[];
   homeSections?: typeof sampleHomeSections;
+  mediaRows?: typeof sampleMediaRows;
   visitorStatsRows?: typeof sampleVisitorStats;
 };
 
@@ -98,6 +148,7 @@ function createPublicReadMockDb(options: MockDbOptions = {}) {
   const contentRows = options.contentRows ?? sampleContentRows;
   const documentRows = options.documentRows ?? sampleDocuments;
   const homeSections = options.homeSections ?? sampleHomeSections;
+  const mediaRows = options.mediaRows ?? sampleMediaRows;
   const visitorStatsRows = options.visitorStatsRows ?? sampleVisitorStats;
   const calls: { query: string; bindings: unknown[] }[] = [];
 
@@ -126,12 +177,15 @@ function createPublicReadMockDb(options: MockDbOptions = {}) {
                 results = homeSections;
               } else if (/FROM\s+visitor_daily_stats/i.test(query)) {
                 results = visitorStatsRows;
+              } else if (/FROM\s+media_assets/i.test(query)) {
+                results = mediaRows;
               } else if (/FROM\s+contents/i.test(query)) {
                 if (/slug\s*=\s*\?/i.test(query)) {
                   const slug = String(call.bindings[1] ?? "");
-                  results = contentRows.filter((row) => row.slug === slug && row.type !== "program");
+                  results = contentRows.filter((row) => row.slug === slug || row.id === slug);
                 } else if (/type\s*=\s*\?/i.test(query)) {
-                  results = contentRows.filter((row) => row.type === "program");
+                  const type = String(call.bindings[1] ?? "");
+                  results = contentRows.filter((row) => row.type === type);
                 } else if (/LIKE/i.test(query)) {
                   const queryValue = String(call.bindings[2] ?? "")
                     .replaceAll("%", "")
@@ -146,7 +200,7 @@ function createPublicReadMockDb(options: MockDbOptions = {}) {
                 } else if (/featured\s*=\s*\?/i.test(query)) {
                   results = contentRows.filter((row) => row.type !== "program" && row.featured === 1);
                 } else {
-                  results = contentRows.filter((row) => row.type !== "program");
+                  results = contentRows;
                 }
               }
 
@@ -224,11 +278,31 @@ describe("M17 Cloudflare Core public read routes", () => {
 
     expect(response.status).toBe(200);
     expect(payload).toMatchObject({
+      siteSettings: expect.any(Object),
+      homepageSettings: expect.any(Object),
+      displaySettings: expect.any(Object),
+      menu: expect.any(Array),
+      carouselSlides: expect.any(Array),
+      externalServices: expect.any(Array),
+      visitorStats: expect.any(Object),
+      latestNews: [expect.objectContaining({ slug: "sample-news", type: "news" })],
+      latestAnnouncements: expect.any(Array),
+      procurementItems: expect.any(Array),
+      jobOpportunityItems: expect.any(Array),
+      achievementItems: expect.any(Array),
+      programItems: [expect.objectContaining({ slug: "sample-program", type: "program" })],
+      documentItems: expect.any(Array),
+      eventItems: expect.any(Array),
+      media: expect.any(Array),
       sections: [expect.objectContaining({ id: "sample-home-section-001", key: "intro" })],
       featuredContent: [expect.objectContaining({ slug: "sample-news" })],
       featuredDocuments: [expect.objectContaining({ id: "sample-public-document-001" })],
       programs: [expect.objectContaining({ slug: "sample-program" })]
     });
+    expect(payload.media).toEqual([
+      expect.objectContaining({ id: "sample-media-001" }),
+      expect.objectContaining({ id: "sample-media-002" })
+    ]);
     expectGeneratedAt(payload);
     expectNoLeakage(text);
   });
@@ -240,8 +314,24 @@ describe("M17 Cloudflare Core public read routes", () => {
 
     expect(response.status).toBe(200);
     expect(payload).toMatchObject({
-      items: [expect.objectContaining({ slug: "sample-news", content: "Fake local-only public content body." })]
+      kind: "news",
+      siteSettings: expect.any(Object),
+      homepageSettings: expect.any(Object),
+      displaySettings: expect.any(Object),
+      menu: expect.any(Array),
+      media: expect.any(Array),
+      items: [
+        expect.objectContaining({
+          slug: "sample-news",
+          type: "news",
+          status: "published",
+          owner: "",
+          body: "Fake local-only public content body.",
+          content: "Fake local-only public content body."
+        })
+      ]
     });
+    expect(payload.media).toEqual([expect.objectContaining({ id: "sample-media-001" })]);
     expect(JSON.stringify(payload)).not.toContain("sample-program");
     expectGeneratedAt(payload);
     expectNoLeakage(text);
@@ -261,7 +351,11 @@ describe("M17 Cloudflare Core public read routes", () => {
         id: "sample-news-001",
         slug: "sample-news",
         title: "Sample public news",
+        type: "news",
+        status: "published",
+        owner: "",
         summary: "Fake local-only news summary.",
+        body: "Fake local-only public content body.",
         content: "Fake local-only public content body.",
         category: "news",
         publishedAt: "2026-02-01T00:00:00.000Z",
@@ -287,6 +381,23 @@ describe("M17 Cloudflare Core public read routes", () => {
         resource: "content-detail"
       }
     });
+
+    const programResponse = await worker.fetch(
+      new Request("https://public-api.example.test/api/public/content/sample-program"),
+      env
+    );
+    const program = await readTextAndJson(programResponse);
+
+    expect(programResponse.status).toBe(200);
+    expect(program.payload).toMatchObject({
+      item: {
+        id: "sample-program-001",
+        slug: "sample-program",
+        type: "program",
+        status: "published"
+      }
+    });
+    expectNoLeakage(program.text);
   });
 
   it("returns a public search response instead of the M17 skeleton", async () => {
@@ -297,7 +408,11 @@ describe("M17 Cloudflare Core public read routes", () => {
     expect(response.status).toBe(200);
     expect(payload).toMatchObject({
       query: "news",
-      items: [expect.objectContaining({ slug: "sample-news" })]
+      siteSettings: expect.any(Object),
+      homepageSettings: expect.any(Object),
+      displaySettings: expect.any(Object),
+      menu: expect.any(Array),
+      items: [expect.objectContaining({ slug: "sample-news", type: "news", status: "published" })]
     });
     expectGeneratedAt(payload);
     expectNoLeakage(text);
@@ -310,8 +425,14 @@ describe("M17 Cloudflare Core public read routes", () => {
 
     expect(response.status).toBe(200);
     expect(payload).toMatchObject({
-      items: [expect.objectContaining({ slug: "sample-program" })]
+      siteSettings: expect.any(Object),
+      homepageSettings: expect.any(Object),
+      displaySettings: expect.any(Object),
+      menu: expect.any(Array),
+      media: expect.any(Array),
+      items: [expect.objectContaining({ slug: "sample-program", type: "program", status: "published" })]
     });
+    expect(payload.media).toEqual([expect.objectContaining({ id: "sample-media-002" })]);
     expectGeneratedAt(payload);
     expectNoLeakage(text);
   });
@@ -324,7 +445,16 @@ describe("M17 Cloudflare Core public read routes", () => {
     expect(response.status).toBe(200);
     expect(payload).toMatchObject({
       total: 20,
-      today: 12
+      today: 12,
+      enabled: true,
+      usersToday: 5,
+      usersYesterday: expect.any(Number),
+      usersThisMonth: expect.any(Number),
+      usersThisYear: expect.any(Number),
+      totalUsers: 9,
+      totalViews: 20,
+      onlineUsers: 2,
+      updatedAt: expect.any(String)
     });
     expectGeneratedAt(payload);
     expectNoLeakage(text);

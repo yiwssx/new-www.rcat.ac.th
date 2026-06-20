@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M19 parity and gap assessment started after M18 non-production preview acceptance. M19 is documentation/readiness work only and is not a production cutover.
+Current milestone: M19 repository-owned parity remediation is closed. External operator blockers remain, M20 is blocked and not started, and no production cutover occurred.
 
 ## Summary
 
@@ -24,7 +24,9 @@ M18: Admin + D1 Write Batch Migration completed as one cohesive milestone. It mo
 
 M18 preview admin proxy follow-up: the Vercel same-origin proxy login and proxied admin snapshot read now pass externally. Repository fixes cover Vercel runtime environment access, safe missing-key diagnostics, bcryptjs default-export interop, credentialed admin CORS, signed HttpOnly proxy sessions, and server-only Worker credential forwarding. This remains a non-production preview path.
 
-M19: Parity and gap assessment started. The assessment distinguishes implemented Worker/D1 foundations from actual React contract parity, frontend provider wiring, production data readiness, auth/RBAC parity, media bridge readiness, and operations readiness. M19 performs no production mutation and does not start M20.
+M19: `CLOSED` for repository-owned parity remediation. Public Worker contracts now match current React snapshot dependencies, all public-read feature adapters honor the existing explicit provider switch, structured settings/menu/carousel/service/event admin routes and frontend adapters exist behind the M18 preview gate, admin snapshot parity is filled, and ordered migration `0005` adds audit metadata for the new write-owned tables. Remaining items are external operator blockers, not hidden repository gaps.
+
+M20: `BLOCKED` and not started. Production identity/RBAC approval, sanitized full-data reconciliation, Drive bridge recovery ownership, representative migration/backup/restore/rollback rehearsal, production resources, monitoring thresholds, and cutover authority are still required outside git.
 
 ## M15.1 Dry-Run Result
 
@@ -63,9 +65,9 @@ No `--execute` command was run.
 
 Current production frontend provider: Apps Script until approved cutover.
 
-Current preview public provider capability: Cloudflare is explicitly selectable for `public-document-list` only. The remaining public frontend adapters still call Apps Script even though M17 Worker route foundations exist.
+Current preview public provider capability: Cloudflare is explicitly selectable for documents, public home, content list/detail, search, and programs. Public visitor stats are supplied through the Cloudflare public-home snapshot and direct Worker route. Default and unknown provider values remain Apps Script.
 
-Current preview admin provider capability: Cloudflare is explicitly selectable for dashboard snapshot plus content and document structured operations. Other admin features remain Apps Script-backed.
+Current preview admin provider capability: Cloudflare is explicitly selectable for dashboard snapshot, content, document metadata, site/homepage/display settings, menu, carousel, external services, and events. Media binary operations, visitor analytics settings mutation, users, and application auth remain Apps Script-backed under the documented bridge or external-blocker classifications.
 
 Target provider after eventual approved full cutover: Cloudflare Worker + D1 for accepted structured application data, with Apps Script retained only for the approved Google Drive media-file bridge.
 
@@ -154,30 +156,28 @@ No production cutover, production Worker deploy, production D1 migration/import/
 
 ## M19 Parity And Gap Assessment
 
-Status: `STARTED` as a documentation and readiness checkpoint. Operator acceptance is not yet recorded.
+Status: `CLOSED` for repository-owned parity remediation. External operator blockers remain. This is not production-cutover approval.
 
 Assessment document: `docs/architecture/m19-parity-gap-assessment-2026-06-19.md`.
 
-Confirmed high-priority gaps:
+Repository closure evidence:
 
-- only public documents have a frontend Cloudflare provider path
-- M17 home/content/search/program/visitor contracts are minimum Worker contracts and do not yet match the current React snapshot contracts
-- site-view and content-view Worker write routes are absent
-- M18 frontend wiring covers snapshot, content, and documents but not home sections, visitor daily stats, settings, menu, carousel, external services, events, media, or users
-- application auth/users/roles remain Apps Script-backed
-- the Google Drive media bridge has no Cloudflare orchestration/reconciliation path
-- controlled import tooling is public-document-specific; full import/export/sync/backup/restore parity is absent
-- production resources, production migration/deploy evidence, full rollback, and observability are not assumed
+- React-compatible public home, content list/detail, search, programs, visitor stats, settings, menu, events, and media-reference fields are composed from D1 rows.
+- Existing explicit public provider selection now covers every migrated public read; Apps Script remains the default.
+- Preview-gated settings, menu, carousel, external-service, and event admin lifecycles are implemented and frontend-wired.
+- Admin snapshot includes structured settings, navigation, media metadata, events, carousel, services, visitor stats, content, documents, and metrics.
+- Ordered migration `0005_m19_structured_admin_parity.sql` defines actor/revision metadata and audit triggers but was not applied remotely.
+- `pnpm worker:m19:readiness` verifies repository invariants without remote commands or mutations.
 
-M19 does not execute production cutover, production D1 mutation, production Worker deployment, Vercel production environment mutation, Apps Script mutation, or Google Drive media mutation.
+External blockers remain for production identity/RBAC, analytics policy, sanitized complete data inventory and reconciliation, Drive bridge compensation/recovery, production resources, migration rehearsal, backup/restore, monitoring, rollback, and cutover authority.
+
+M19 executed no production cutover, D1 mutation, Worker deployment, Vercel environment mutation, Apps Script mutation, or Google Drive mutation.
 
 ## Next Action
 
-M18 is closed officially. M19 is now the active assessment checkpoint.
+M19 repository-owned remediation is closed. The next action is operator resolution and redacted evidence for the external blockers listed in the M19 closure ledger.
 
-The operator should review the M19 acceptance checklist, approve the application-compatible public contract strategy, confirm the required first-release admin action inventory, and assign owners/evidence methods to all recorded unknowns.
-
-Blocking parity remediation must be completed and verified in non-production before a production cutover gate can begin. This status document does not invent or start a remediation milestone.
+M20 remains blocked and not started. It may begin only after those external identity, data, bridge, migration, operations, rollback, and cutover gates are approved; M19 closure alone is not sufficient.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 
@@ -187,7 +187,7 @@ M17 status: public read API foundation implemented for dev/preview Worker origin
 
 M15.2 real execute cutover remains deferred until the replacement system is complete, the production domain can be moved safely, explicit operator approval is recorded, and an approved production monitoring window exists.
 
-M20 is only a future controlled production cutover preparation/gate after M19 acceptance and closure of blocking parity gaps. M20 is not started.
+M20 is only a future controlled production cutover preparation/gate after external M19 blockers are resolved. M20 is not started.
 
 M16 architecture checkpoint: `docs/architecture/m16-cloudflare-first-backend-reset-2026-06-13.md`.
 

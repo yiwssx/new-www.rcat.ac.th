@@ -1,5 +1,7 @@
 import { createPublicContentListSnapshot } from "../adapters/publicContentAdapter";
 import { createPublicDocumentListSnapshot } from "../adapters/publicDocumentsAdapter";
+import { createEmptyPublicMetadata } from "../adapters/publicMetadataAdapter";
+import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
 import { authenticateAdminRequest, type AdminIdentity } from "../auth/adminAccess";
 import { listPublishedContentRows } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
@@ -16,6 +18,7 @@ import {
 } from "../db/schema";
 import type { Env } from "../env";
 import { json, jsonError, methodNotAllowed } from "../responses";
+import { handleAdminStructuredParity, readAdminStructuredSnapshot } from "./adminStructuredParity";
 
 const ADMIN_PREFIX = "/api/admin/";
 const ADMIN_ALLOW = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
@@ -1086,7 +1089,7 @@ async function handleVisitorStats(request: Request, env: Env, segments: string[]
 }
 
 async function handleSnapshot(env: Env) {
-  const [contentRows, documentRows] = await Promise.all([
+  const [contentRows, documentRows, visitorRows, structured] = await Promise.all([
     getAll<ContentRow>(
       env,
       `SELECT ${CONTENT_ADMIN_ROW_COLUMNS.join(", ")}
@@ -1100,18 +1103,46 @@ async function handleSnapshot(env: Env) {
        FROM documents
        WHERE COALESCE(deleted_at, '') = ''
        ORDER BY pinned DESC, sort_order ASC, published_at DESC, updated_at DESC`
-    )
+    ),
+    getAll<VisitorDailyStatsRow>(
+      env,
+      `SELECT ${VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS.join(", ")}
+       FROM visitor_daily_stats
+       ORDER BY day DESC`
+    ),
+    readAdminStructuredSnapshot(env)
   ]);
+  const publishedCount = contentRows.filter((row) => row.status === "published").length;
+  const reviewCount = contentRows.filter((row) => row.status === "review").length;
 
   return json({
-    metrics: [],
+    metrics: [
+      {
+        id: "published-content",
+        label: "Published content",
+        value: String(publishedCount),
+        trend: `${contentRows.length} total records`,
+        tone: "blue"
+      },
+      {
+        id: "review-queue",
+        label: "Review queue",
+        value: String(reviewCount),
+        trend: "D1 structured content",
+        tone: "amber"
+      },
+      {
+        id: "media-assets",
+        label: "Media metadata",
+        value: String(structured.media.length),
+        trend: "Drive bridge references",
+        tone: "green"
+      }
+    ],
     content: contentRows.map(mapContentRowToAdminItem),
     documents: documentRows.map(mapDocumentRowToAdminItem),
-    media: [],
-    events: [],
-    menu: [],
-    carouselSlides: [],
-    externalServices: [],
+    ...structured,
+    visitorStats: createPublicVisitorStatsSnapshot(visitorRows),
     generatedAt: new Date().toISOString()
   });
 }
@@ -1220,9 +1251,15 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
       return await handleVisitorStats(request, env, segments, authResult.identity);
     }
 
+    const structuredResponse = await handleAdminStructuredParity(request, env, segments, authResult.identity);
+
+    if (structuredResponse) {
+      return structuredResponse;
+    }
+
     if (segments[0] === "public-content-contract" && request.method === "GET") {
-      const rows = await listPublishedContentRows(env);
-      return json(createPublicContentListSnapshot(rows));
+      const rows = await listPublishedContentRows(env, "news");
+      return json(createPublicContentListSnapshot("news", rows, [], createEmptyPublicMetadata()));
     }
 
     if (segments[0] === "public-document-contract" && request.method === "GET") {

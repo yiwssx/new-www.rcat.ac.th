@@ -1,5 +1,7 @@
 import { createPublicSearchSnapshot } from "../adapters/publicSearchAdapter";
+import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { searchPublishedContentRows } from "../db/contentRepository";
+import { readPublicMetadataRows } from "../db/publicMetadataRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -17,8 +19,11 @@ export async function publicSearch(request: Request, env: Env) {
   const query = new URL(request.url).searchParams.get("q")?.trim() ?? "";
 
   try {
-    const rows = await searchPublishedContentRows(env, query);
-    return json(createPublicSearchSnapshot(query, rows));
+    const [rows, metadataRows] = await Promise.all([
+      searchPublishedContentRows(env, query),
+      readPublicMetadataRows(env)
+    ]);
+    return json(createPublicSearchSnapshot(query, rows, createPublicMetadata(metadataRows)));
   } catch {
     return jsonError("Unable to load search", 500, {
       resource: RESOURCE,
