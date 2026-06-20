@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M19 repository-owned parity remediation is closed. External operator blockers remain, M20 is blocked and not started, and no production cutover occurred.
+Current milestone: M19 repository-owned parity remediation is closed. Post-M19 external preview verification passed for admin proxy login, snapshot, and admin writes; public frontend data loading is restored. External operator blockers remain, M20 is blocked and not started, and production cutover readiness is not claimed.
 
 ## Summary
 
@@ -25,6 +25,8 @@ M18: Admin + D1 Write Batch Migration completed as one cohesive milestone. It mo
 M18 preview admin proxy follow-up: the Vercel same-origin proxy login and proxied admin snapshot read now pass externally. Repository fixes cover Vercel runtime environment access, safe missing-key diagnostics, bcryptjs default-export interop, credentialed admin CORS, signed HttpOnly proxy sessions, and server-only Worker credential forwarding. This remains a non-production preview path.
 
 M19: `CLOSED` for repository-owned parity remediation. Public Worker contracts now match current React snapshot dependencies, all public-read feature adapters honor the existing explicit provider switch, structured settings/menu/carousel/service/event admin routes and frontend adapters exist behind the M18 preview gate, admin snapshot parity is filled, and ordered migration `0005` adds audit metadata for the new write-owned tables. Remaining items are external operator blockers, not hidden repository gaps.
+
+Post-M19 external verification: the replacement production Vercel frontend was configured outside git to select the existing public Cloudflare provider, and public frontend data loading and browser sanity were restored. Preview admin proxy login and snapshot were verified, and the preview admin write smoke passed. A distinct post-M19 public-read smoke result was not included in the operator output and remains pending; the earlier M17-C public-read smoke remains valid historical evidence. This evidence does not establish production cutover readiness.
 
 M20: `BLOCKED` and not started. Production identity/RBAC approval, sanitized full-data reconciliation, Drive bridge recovery ownership, representative migration/backup/restore/rollback rehearsal, production resources, monitoring thresholds, and cutover authority are still required outside git.
 
@@ -63,7 +65,9 @@ No `--execute` command was run.
 
 ## Provider Status
 
-Current production frontend provider: Apps Script until approved cutover.
+Current replacement production Vercel frontend public-read provider: Cloudflare, selected through the existing environment-only provider setting after M19. This external provider configuration restored public data loading but does not establish production cutover readiness or start M20.
+
+Apps Script remains the fallback and rollback provider. Provider defaults and runtime behavior were not changed by this documentation update.
 
 Current preview public provider capability: Cloudflare is explicitly selectable for documents, public home, content list/detail, search, and programs. Public visitor stats are supplied through the Cloudflare public-home snapshot and direct Worker route. Default and unknown provider values remain Apps Script.
 
@@ -171,7 +175,35 @@ Repository closure evidence:
 
 External blockers remain for production identity/RBAC, analytics policy, sanitized complete data inventory and reconciliation, Drive bridge compensation/recovery, production resources, migration rehearsal, backup/restore, monitoring, rollback, and cutover authority.
 
-M19 executed no production cutover, D1 mutation, Worker deployment, Vercel environment mutation, Apps Script mutation, or Google Drive mutation.
+The M19 repository closure change executed no production cutover, D1 mutation, Worker deployment, Vercel environment mutation, Apps Script mutation, or Google Drive mutation. The later external Vercel public provider configuration is recorded separately below.
+
+## Post-M19 External Verification
+
+Status: `PARTIALLY VERIFIED`; the supplied operator evidence passed the preview admin checks and public browser sanity, while a distinct post-M19 public-read smoke result is pending operator output.
+
+Evidence source: external operator report recorded without infrastructure identifiers, payloads, screenshots, exact timestamps, or secrets.
+
+Recorded results:
+
+- replacement production Vercel frontend public Cloudflare provider environment: configured externally
+- public frontend data loading: restored
+- public browser sanity check: passed
+- preview admin proxy login: verified
+- preview admin snapshot: verified
+- preview admin write smoke: `PASSED`
+- post-M19 public-read smoke: `PENDING OPERATOR OUTPUT`
+
+The successful browser data load is not substituted for the dedicated public-read smoke result. The previously recorded M17-C public-read smoke is historical evidence from before this post-M19 verification.
+
+Safety boundary:
+
+- no production D1 migration, import, or write occurred
+- no production Worker deploy occurred
+- no Apps Script mutation occurred
+- no Google Drive mutation occurred
+- no runtime code, tests, provider behavior, UI, routes, cache keys, or cache TTL changed in this documentation update
+- no production cutover readiness is claimed
+- M20 remains blocked and not started
 
 ## Next Action
 
@@ -201,7 +233,7 @@ M19 architecture checkpoint: `docs/architecture/m19-parity-gap-assessment-2026-0
 
 No production secrets, production URLs, D1 ids, tokens, full records, Google Drive URLs, Apps Script URLs, account ids, or Worker URLs are committed.
 
-No production Vercel environment was changed.
+This documentation update did not change any Vercel environment. The post-M19 public provider environment configuration was performed externally and is recorded above without committing its values.
 
 No production Worker deploy was run.
 

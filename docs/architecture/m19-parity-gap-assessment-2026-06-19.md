@@ -1,12 +1,30 @@
 # M19 Parity And Gap Remediation Readiness
 
-Status: CLOSED for repository-owned M19 parity remediation. External operator blockers remain. This is not a production cutover, and M20 is not started.
+Status: CLOSED for repository-owned M19 parity remediation. Post-M19 external preview admin verification passed and public frontend data loading is restored; a distinct post-M19 public-read smoke result remains pending operator output. External operator blockers remain. This is not production cutover readiness, and M20 is not started.
 
 ## Decision
 
-M19 is closed at the repository boundary because every code, contract, provider, schema, test, and documentation gap that can be resolved safely without external infrastructure or production mutation is either fixed or already satisfied. Apps Script remains the production provider. Cloudflare remains explicit environment-only behavior for the replacement system.
+M19 is closed at the repository boundary because every code, contract, provider, schema, test, and documentation gap that can be resolved safely without external infrastructure or production mutation is either fixed or already satisfied. After M19 closure, the replacement production Vercel frontend was configured externally to select the existing public Cloudflare provider and public data loading was restored. Cloudflare selection remains environment-only; Apps Script remains the fallback and rollback provider.
 
 M19 closure does not claim production data parity, production identity approval, production resource readiness, deployment, migration execution, or cutover readiness. Those are external gates and keep M20 blocked.
+
+## Post-M19 External Verification
+
+Status: `PARTIALLY VERIFIED` from redacted operator output.
+
+Recorded external results:
+
+- replacement production Vercel frontend public Cloudflare provider environment: configured
+- public frontend data loading: restored
+- public browser sanity check: passed
+- preview admin proxy login: verified
+- preview admin snapshot: verified
+- preview admin write smoke: `PASSED`
+- distinct post-M19 public-read smoke: `PENDING OPERATOR OUTPUT`
+
+The browser sanity result confirms restored frontend loading but is not treated as the dedicated public-read smoke. The earlier M17-C public-read smoke remains separate historical evidence. No Worker URL, token, run id, D1 id, account id, deployment id, record payload, screenshot, exact timestamp, or secret is recorded here.
+
+This external verification did not include a production D1 migration, import, or write; production Worker deploy; Apps Script mutation; or Google Drive mutation. It does not clear the external blockers below, does not claim production cutover readiness, and does not start M20.
 
 ## Classification Model
 
@@ -105,7 +123,7 @@ These are true external dependencies. They are not silently converted into code 
 - No production D1 migration, import, query, or write occurred.
 - Migration `0005` was not applied remotely.
 - No Worker was deployed.
-- No Vercel environment was changed.
+- The M19 repository closure change did not mutate Vercel. The later external public provider environment configuration is recorded only in redacted form and did not change repository provider behavior.
 - No Apps Script or Google Drive mutation occurred.
 - No authentication or authorization gate was weakened.
 - No cache key, cache TTL, UI route, or page layout changed.
