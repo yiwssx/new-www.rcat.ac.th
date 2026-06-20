@@ -17,8 +17,6 @@ database_id = "local-placeholder"
 # created. Never use this section for production traffic or real school data.
 [env.preview]
 name = "rcat-public-api-preview"
-[env.preview]
-name = "rcat-public-api-preview"
 
 [env.preview.vars]
 ENVIRONMENT = "preview"
