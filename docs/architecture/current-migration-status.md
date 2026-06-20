@@ -28,6 +28,8 @@ M19: `CLOSED` for repository-owned parity remediation. Public Worker contracts n
 
 Post-M19 external verification: the replacement production Vercel frontend was configured outside git to select the existing public Cloudflare provider, and public frontend data loading and browser sanity were restored. Preview admin proxy login and snapshot were verified, and the preview admin write smoke passed. A distinct post-M19 public-read smoke result was not included in the operator output and remains pending; the earlier M17-C public-read smoke remains valid historical evidence. This evidence does not establish production cutover readiness.
 
+M20-P0: Production Readiness Gate Scaffolding is added as repository-owned readiness preparation only. It includes the M20 readiness document, operations runbook, offline readiness script, and tests. M19 remains closed, M20 production execution remains BLOCKED, no production mutation occurred, and no cutover readiness is claimed.
+
 M20: `BLOCKED` and not started. Production identity/RBAC approval, sanitized full-data reconciliation, Drive bridge recovery ownership, representative migration/backup/restore/rollback rehearsal, production resources, monitoring thresholds, and cutover authority are still required outside git.
 
 ## M15.1 Dry-Run Result
@@ -35,13 +37,13 @@ M20: `BLOCKED` and not started. Production identity/RBAC approval, sanitized ful
 Dry-run cutover command used:
 
 ```bash
-pnpm public-documents:cutover -- --cutover
+pnpm worker:public-documents:cutover -- --cutover
 ```
 
 Dry-run rollback command used:
 
 ```bash
-pnpm public-documents:cutover -- --rollback
+pnpm worker:public-documents:cutover -- --rollback
 ```
 
 Technical dry-run cutover result: `BLOCKED`, safely.
@@ -210,6 +212,8 @@ Safety boundary:
 M19 repository-owned remediation is closed. The next action is operator resolution and redacted evidence for the external blockers listed in the M19 closure ledger.
 
 M20 remains blocked and not started. It may begin only after those external identity, data, bridge, migration, operations, rollback, and cutover gates are approved; M19 closure alone is not sufficient.
+
+M20-P0 readiness gate scaffolding is added. Operators can run pnpm worker:m20:readiness for local repository-only checks, but production execution remains blocked until all external evidence and authority gates pass.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 

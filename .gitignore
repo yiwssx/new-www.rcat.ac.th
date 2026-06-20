@@ -42,3 +42,8 @@ Thumbs.db
 # Editor files
 .idea/
 .vscode/
+
+# Local Cloudflare operator config
+cloudflare/public-api/wrangler.*.local.toml
+cloudflare/public-api/.dev.vars
+cloudflare/public-api/.dev.vars.*

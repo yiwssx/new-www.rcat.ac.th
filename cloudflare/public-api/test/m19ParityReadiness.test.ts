@@ -15,7 +15,7 @@ describe("M19 repository parity readiness", () => {
     expect(m19Doc).toContain("EXTERNAL_OPERATOR_BLOCKER");
     expect(m19Doc).toContain("INTENTIONAL_NON_GOAL");
     expect(m19Doc).toMatch(/M20.*not started/i);
-    expect(m19Doc).toMatch(/Apps Script remains the production provider/i);
+    expect(m19Doc).toMatch(/Apps Script remains the fallback and rollback provider/i);
     expect(currentStatus).toMatch(/M19: `CLOSED` for repository-owned parity remediation/i);
     expect(currentStatus).toMatch(/M20: `BLOCKED` and not started/i);
     expect(workerReadme).toMatch(/M19 Current Surface/i);

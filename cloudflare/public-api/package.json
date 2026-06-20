@@ -11,6 +11,7 @@
     "public-read:preview-smoke": "node scripts/public-read-preview-smoke.mjs",
     "admin-write:preview-smoke": "node scripts/admin-write-preview-smoke.mjs",
     "worker:production:preflight": "node scripts/production-cutover-preflight.mjs",
-    "m19:readiness": "node scripts/m19-parity-readiness.mjs"
+    "m19:readiness": "node scripts/m19-parity-readiness.mjs",
+    "m20:readiness": "node scripts/m20-readiness-gate.mjs"
   }
 }

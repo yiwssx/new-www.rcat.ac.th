@@ -21,6 +21,23 @@ declare module "*.mjs" {
     safety: Record<string, boolean>;
     validationIssues: string[];
   }>;
+  export const formatM20ReadinessGate: (result: {
+    status: string;
+    checks: Record<string, string>;
+    externalOperatorBlockers: string[];
+    safety: Record<string, boolean>;
+    validationIssues: string[];
+  }) => string;
+  export const runM20ReadinessGate: (options?: {
+    cwd?: string;
+    readFile?: (path: string, encoding: string) => Promise<string>;
+  }) => Promise<{
+    status: string;
+    checks: Record<string, string>;
+    externalOperatorBlockers: string[];
+    safety: Record<string, boolean>;
+    validationIssues: string[];
+  }>;
   export const formatPublicDocumentsImportDryRunResult: (
     result: {
       status: string;

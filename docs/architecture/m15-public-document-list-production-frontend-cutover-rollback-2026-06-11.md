@@ -277,13 +277,13 @@ The filter command matched no workspace project, so the package-local commands w
 Dry-run cutover command used:
 
 ```bash
-pnpm public-documents:cutover -- --cutover
+pnpm worker:public-documents:cutover -- --cutover
 ```
 
 Dry-run rollback command used:
 
 ```bash
-pnpm public-documents:cutover -- --rollback
+pnpm worker:public-documents:cutover -- --rollback
 ```
 
 Dry-run cutover result: `BLOCKED`, safely.
