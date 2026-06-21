@@ -1,7 +1,7 @@
 import type { PublicSearchIndexSnapshot } from "./types";
 import { readPublicCache, removePublicCache, writePublicCache } from "../../services/publicCmsCache";
 
-export const PUBLIC_SEARCH_INDEX_CACHE_KEY = "rcat.cms.public.search-index";
+export const PUBLIC_SEARCH_INDEX_CACHE_KEY = "rcat.cms.public.search-index.v2";
 export const PUBLIC_SEARCH_INDEX_CACHE_TTL_MS = 15 * 60 * 1000;
 
 export function getPublicSearchIndexCache() {

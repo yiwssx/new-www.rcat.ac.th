@@ -38,7 +38,13 @@ import ContentEditorDialog from "../components/ContentEditorDialog";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
-import { deleteContentItem, getAdminContentDetail, publishContent, saveContentItem } from "../../features/cms-content";
+import {
+  deleteContentItem,
+  getAdminContentDetail,
+  isAdminStaleRevisionError,
+  publishContent,
+  saveContentItem
+} from "../../features/cms-content";
 import { saveMediaAsset, type MediaAssetInput } from "../../features/cms-media";
 import { CmsSnapshot, ContentItem, ContentStatus } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
@@ -354,6 +360,12 @@ export default function ContentPage() {
         timerProgressBar: true
       });
     } catch (currentError) {
+      if (isAdminStaleRevisionError(currentError)) {
+        if (currentError.latestItem) {
+          setSelectedItem(currentError.latestItem);
+        }
+        await queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] });
+      }
       setSaveError(currentError instanceof Error ? currentError.message : "กรุณาตรวจสอบรายละเอียดเนื้อหา");
     }
   }

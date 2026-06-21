@@ -399,7 +399,7 @@ export async function runAdminWritePreviewSmoke(args = [], options = {}) {
         undefined,
         null,
         {
-          "If-Match": `"${revision}"`
+          "X-RCAT-Expected-Revision": String(revision)
         }
       );
 

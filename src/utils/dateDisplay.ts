@@ -3,7 +3,12 @@ import "dayjs/locale/th";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { DisplaySettings } from "../types";
-import { defaultDisplaySettings, getStoredDisplaySettings } from "../services/displaySettings";
+import {
+  defaultDisplaySettings,
+  getStoredDisplaySettings,
+  normalizeDateFormat,
+  normalizeDisplaySettings
+} from "../services/displaySettings";
 
 const WORDPRESS_TO_DAYJS_MAP: Record<string, string> = {
   d: "DD",
@@ -37,10 +42,8 @@ function escapeLiteral(value: string) {
 }
 
 export function convertWordPressFormatToDayjs(format: string) {
-  const source = String(format || "").trim();
-  if (!source) {
-    return "D MMMM YYYY";
-  }
+  const rawFormat = String(format || "").trim();
+  const source = /YYYY|MMMM|MM|DD/.test(rawFormat) ? normalizeDateFormat(rawFormat) : rawFormat || "j F Y";
 
   let result = "";
   let escaped = false;
@@ -82,11 +85,11 @@ function getTimeWordPressFormat(timeMode: DisplaySettings["timeMode"]) {
 }
 
 function resolveDisplaySettings(override?: Partial<DisplaySettings>) {
-  return {
+  return normalizeDisplaySettings({
     ...defaultDisplaySettings,
     ...getStoredDisplaySettings(),
     ...override
-  };
+  });
 }
 
 export function formatDisplayDate(value: string | Date, settings?: Partial<DisplaySettings>) {

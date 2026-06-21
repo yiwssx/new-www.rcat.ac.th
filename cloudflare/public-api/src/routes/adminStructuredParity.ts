@@ -85,7 +85,7 @@ function numberValue(value: unknown, fallback = 0) {
 }
 
 function expectedRevision(request: Request) {
-  const raw = request.headers.get("If-Match")?.replace(/^W\//, "").replace(/^"|"$/g, "").trim();
+  const raw = request.headers.get("X-RCAT-Expected-Revision")?.trim();
 
   if (!raw) {
     return undefined;

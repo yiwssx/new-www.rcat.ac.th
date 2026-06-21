@@ -220,7 +220,7 @@ describe("M18 admin write preview smoke", () => {
     expectRedactedOutput(jsonOutput);
   });
 
-  it("sends the latest cleanup revision through If-Match without a DELETE JSON body", async () => {
+  it("sends the latest cleanup revision through the custom header without a DELETE JSON body", async () => {
     let smokeId = "";
     let published = false;
     let deleted = false;
@@ -280,7 +280,8 @@ describe("M18 admin write preview smoke", () => {
 
     expect(result.status).toBe("PASSED");
     expect(deleteHeaders).toHaveLength(1);
-    expect(deleteHeaders[0]?.["If-Match"]).toBe('"4"');
+    expect(deleteHeaders[0]?.["X-RCAT-Expected-Revision"]).toBe("4");
+    expect(deleteHeaders[0]?.["If-Match"]).toBeUndefined();
     expect(deleteBodies).toEqual([undefined]);
   });
 

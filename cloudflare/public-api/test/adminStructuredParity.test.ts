@@ -225,7 +225,7 @@ describe("M19 structured admin parity routes", () => {
     const carouselUpdateResponse = await worker.fetch(
       new Request("https://preview-worker.example.test/api/admin/carousel/slide-1", {
         method: "PATCH",
-        headers: { ...smokeHeaders, "If-Match": "0" },
+        headers: { ...smokeHeaders, "X-RCAT-Expected-Revision": "0" },
         body: JSON.stringify({
           title: "Updated slide",
           enabled: true,

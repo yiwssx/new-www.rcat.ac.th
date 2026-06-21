@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import PublicContentCard from "../public/components/PublicContentCard";
 import { DocumentListCard } from "../features/public-documents";
@@ -136,15 +137,19 @@ describe("public card layout regressions", () => {
     expect(within(documentLink).getByText("Policy")).toBeInTheDocument();
   });
 
-  it("keeps event list content inside the calendar card without introducing links", () => {
+  it("opens complete event details when a calendar item is clicked", async () => {
+    const user = userEvent.setup();
     const events: CalendarEvent[] = [
       {
         id: "event-1",
         title: "Orientation day",
         date: "2026-05-20T09:00:00.000Z",
+        endDate: "2026-05-20T11:00:00.000Z",
         audience: "public",
         status: "confirmed",
         location: "Main hall",
+        category: "Students",
+        description: "Full orientation schedule and preparation details.",
         visibility: "public"
       }
     ];
@@ -153,6 +158,13 @@ describe("public card layout regressions", () => {
 
     expect(screen.getByText("Orientation day").closest(".rcat-card")).not.toBeNull();
     expect(screen.getByText("Main hall")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Orientation day/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "ดูรายละเอียด Orientation day" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Orientation day" });
+    expect(within(dialog).getByText("Full orientation schedule and preparation details.")).toBeInTheDocument();
+    expect(within(dialog).getByText("Main hall")).toBeInTheDocument();
+    expect(within(dialog).getAllByText("public")).toHaveLength(2);
+    expect(within(dialog).getByText("Students")).toBeInTheDocument();
+    expect(within(dialog).getByText("confirmed")).toBeInTheDocument();
   });
 });

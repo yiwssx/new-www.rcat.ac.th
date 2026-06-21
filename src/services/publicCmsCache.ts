@@ -1,14 +1,14 @@
 import { CmsSnapshot, ContentItem } from "../types";
 
-export const PUBLIC_SNAPSHOT_CACHE_KEY = "rcat.cms.public.snapshot.v1";
-const PUBLIC_HOME_CACHE_KEY = "rcat.cms.public.home.snapshot";
+export const PUBLIC_SNAPSHOT_CACHE_KEY = "rcat.cms.public.snapshot.v2";
+const PUBLIC_HOME_CACHE_KEY = "rcat.cms.public.home.snapshot.v2";
 const PUBLIC_DOCUMENT_LIST_CACHE_KEY = "rcat.cms.public.document-list";
-const PUBLIC_CONTENT_LIST_CACHE_PREFIX = "rcat.cms.public.content-list.";
+const PUBLIC_CONTENT_LIST_CACHE_PREFIX = "rcat.cms.public.content-list.v2.";
 const PUBLIC_CONTENT_LIST_CACHE_KINDS = ["news", "announcements", "blog"];
-const PUBLIC_PROGRAM_LIST_CACHE_KEY = "rcat.cms.public.program-list";
-const PUBLIC_SEARCH_INDEX_CACHE_KEY = "rcat.cms.public.search-index";
+const PUBLIC_PROGRAM_LIST_CACHE_KEY = "rcat.cms.public.program-list.v2";
+const PUBLIC_SEARCH_INDEX_CACHE_KEY = "rcat.cms.public.search-index.v2";
 const PUBLIC_CACHE_ROOT_PREFIX = "rcat.cms.public.";
-export const PUBLIC_CONTENT_DETAIL_CACHE_PREFIX = "rcat.cms.public.content-detail.v1.";
+export const PUBLIC_CONTENT_DETAIL_CACHE_PREFIX = "rcat.cms.public.content-detail.v2.";
 export const PUBLIC_SNAPSHOT_CACHE_TTL_MS = 15 * 60 * 1000;
 export const PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS = 30 * 60 * 1000;
 

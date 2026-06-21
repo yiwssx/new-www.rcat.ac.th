@@ -1499,7 +1499,7 @@ function buildPreviewUrl(fileId, type) {
   }
 
   if (type === "image") {
-    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`;
   }
 
   return buildEmbedUrl(fileId);

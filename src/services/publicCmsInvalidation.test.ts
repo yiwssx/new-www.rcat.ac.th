@@ -21,17 +21,25 @@ describe("public CMS invalidation after admin mutations", () => {
     ];
 
     roots.forEach((root) => queryClient.setQueryData([root, "sample"], { stale: true }));
-    writePublicCache("rcat.cms.public.home.snapshot", { stale: true }, 60_000);
-    writePublicCache("rcat.cms.public.program-list", { stale: true }, 60_000);
-    writePublicCache("rcat.cms.public.content-detail.v1.sample", { stale: true }, 60_000);
+    const persistedKeys = [
+      "rcat.cms.public.snapshot.v2",
+      "rcat.cms.public.home.snapshot.v2",
+      "rcat.cms.public.program-list.v2",
+      "rcat.cms.public.content-list.v2.news",
+      "rcat.cms.public.content-detail.v2.sample",
+      "rcat.cms.public.search-index.v2",
+      "rcat.cms.public.home.snapshot",
+      "rcat.cms.public.program-list",
+      "rcat.cms.public.content-detail.v1.sample"
+    ];
+
+    persistedKeys.forEach((key) => writePublicCache(key, { stale: true }, 60_000));
 
     await invalidatePublicCmsData(queryClient);
 
     roots.forEach((root) => {
       expect(queryClient.getQueryState([root, "sample"])?.isInvalidated).toBe(true);
     });
-    expect(window.localStorage.getItem("rcat.cms.public.home.snapshot")).toBeNull();
-    expect(window.localStorage.getItem("rcat.cms.public.program-list")).toBeNull();
-    expect(window.localStorage.getItem("rcat.cms.public.content-detail.v1.sample")).toBeNull();
+    persistedKeys.forEach((key) => expect(window.localStorage.getItem(key)).toBeNull());
   });
 });

@@ -618,7 +618,10 @@ describe("M18 admin structured write routes", () => {
       expect(response.headers.get("Access-Control-Allow-Methods"), configuredOrigin).toBe(
         "GET, POST, PATCH, PUT, DELETE, OPTIONS"
       );
-      expect(response.headers.get("Access-Control-Allow-Headers"), configuredOrigin).toContain("If-Match");
+      expect(response.headers.get("Access-Control-Allow-Headers"), configuredOrigin).toContain(
+        "X-RCAT-Expected-Revision"
+      );
+      expect(response.headers.get("Access-Control-Allow-Headers"), configuredOrigin).not.toContain("If-Match");
     }
   });
 
@@ -809,7 +812,7 @@ describe("M18 admin structured write routes", () => {
     });
   });
 
-  it("uses If-Match to enforce stale revision conflicts on content archive", async () => {
+  it("uses the custom expected-revision header for content archive conflicts", async () => {
     const { db } = createAdminWriteMockDb();
     const env = makeEnv(db);
 
@@ -820,7 +823,7 @@ describe("M18 admin structured write routes", () => {
         method: "DELETE",
         headers: {
           ...smokeHeaders,
-          "If-Match": '"9"'
+          "X-RCAT-Expected-Revision": "9"
         }
       }),
       env
@@ -830,7 +833,7 @@ describe("M18 admin structured write routes", () => {
         method: "DELETE",
         headers: {
           ...smokeHeaders,
-          "If-Match": '"0"'
+          "X-RCAT-Expected-Revision": "0"
         }
       }),
       env
@@ -838,6 +841,42 @@ describe("M18 admin structured write routes", () => {
 
     expect(staleResponse.status).toBe(409);
     expect(archiveResponse.status).toBe(200);
+  });
+
+  it("removes a deleted program from the public list and public detail", async () => {
+    const { db } = createAdminWriteMockDb();
+    const env = makeEnv(db);
+    const program = {
+      ...contentInput,
+      id: "field-program-001",
+      slug: "field-program",
+      type: "program",
+      title: "Field program"
+    };
+
+    expect((await worker.fetch(makeJsonRequest("/api/admin/content", program), env)).status).toBe(201);
+    expect((await worker.fetch(makeJsonRequest("/api/admin/content/field-program-001/publish", {}), env)).status).toBe(
+      200
+    );
+
+    const publishedList = await worker.fetch(makeRequest("/api/public/programs"), env);
+    await expect(readJson(publishedList)).resolves.toMatchObject({
+      items: [expect.objectContaining({ id: "field-program-001", slug: "field-program" })]
+    });
+
+    const deleteResponse = await worker.fetch(
+      makeRequest("/api/admin/content/field-program-001", {
+        method: "DELETE",
+        headers: { ...smokeHeaders, "X-RCAT-Expected-Revision": "1" }
+      }),
+      env
+    );
+    const deletedList = await worker.fetch(makeRequest("/api/public/programs"), env);
+    const deletedDetail = await worker.fetch(makeRequest("/api/public/content/field-program"), env);
+
+    expect(deleteResponse.status).toBe(200);
+    await expect(readJson(deletedList)).resolves.toMatchObject({ items: [] });
+    expect(deletedDetail.status).toBe(404);
   });
 
   it("records exactly one audit action for each successful structured mutation", async () => {

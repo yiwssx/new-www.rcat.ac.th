@@ -288,11 +288,17 @@ function captureError(fn: () => void) {
 describe("Apps Script CMS helpers", () => {
   it("uploads original decoded bytes without resize or recompression", () => {
     const createDriveFileSource = /function createDriveFile\(asset\) \{([\s\S]*?)\n\}/.exec(cmsSource)?.[1] ?? "";
+    const upsertMediaSource = /function upsertMedia\(asset\) \{([\s\S]*?)\n\}/.exec(cmsSource)?.[1] ?? "";
+    const previewUrlSource = /function buildPreviewUrl\(fileId, type\) \{([\s\S]*?)\n\}/.exec(cmsSource)?.[1] ?? "";
 
     expect(createDriveFileSource).toMatch(/decodeUploadBytes\(asset\.fileBase64\)/);
     expect(createDriveFileSource).toMatch(/Utilities\.newBlob\(bytes, contentType, fileName\)/);
     expect(createDriveFileSource).toMatch(/uploadFolder\.createFile\(blob\)/);
     expect(createDriveFileSource).not.toMatch(/resize|compress|thumbnail|convert/i);
+    expect(upsertMediaSource).toMatch(/uploadedFile \? uploadedFile\.getUrl\(\)/);
+    expect(upsertMediaSource).toMatch(/uploadedFile \? formatBytes\(uploadedFile\.getSize\(\)\)/);
+    expect(previewUrlSource).toMatch(/\/uc\?export=view&id=/);
+    expect(previewUrlSource).not.toMatch(/thumbnail|w\d+/i);
   });
 
   it("normalizes slugs and rejects duplicate slugs for other content records", () => {

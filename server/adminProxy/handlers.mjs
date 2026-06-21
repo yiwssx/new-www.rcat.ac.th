@@ -250,14 +250,14 @@ function createUpstreamHeaders(request, smokeToken) {
     "X-RCAT-Admin-Smoke-Token": smokeToken
   });
   const contentType = getHeader(request, "content-type");
-  const ifMatch = getHeader(request, "if-match");
+  const expectedRevision = getHeader(request, "x-rcat-expected-revision");
 
   if (contentType) {
     headers.set("Content-Type", contentType);
   }
 
-  if (ifMatch) {
-    headers.set("If-Match", ifMatch);
+  if (expectedRevision) {
+    headers.set("X-RCAT-Expected-Revision", expectedRevision);
   }
 
   return headers;

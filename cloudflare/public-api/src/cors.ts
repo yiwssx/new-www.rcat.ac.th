@@ -3,7 +3,8 @@ import type { Env } from "./env";
 const ALLOWED_METHODS = "GET, POST, OPTIONS";
 const ALLOWED_HEADERS = "Content-Type";
 const ADMIN_ALLOWED_METHODS = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
-const ADMIN_ALLOWED_HEADERS = "Content-Type, Cf-Access-Jwt-Assertion, X-RCAT-Admin-Smoke-Token, If-Match";
+const ADMIN_ALLOWED_HEADERS =
+  "Content-Type, Cf-Access-Jwt-Assertion, X-RCAT-Admin-Smoke-Token, X-RCAT-Expected-Revision";
 
 function getConfiguredOrigins(value: string | undefined) {
   return (value ?? "")

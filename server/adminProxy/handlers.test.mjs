@@ -173,6 +173,7 @@ describe("Vercel admin proxy", () => {
           origin: "https://frontend-preview.example.test",
           referer: "https://frontend-preview.example.test/admin",
           "if-match": '"7"',
+          "x-rcat-expected-revision": "7",
           "x-client-secret": "must-not-pass"
         }
       }),
@@ -187,7 +188,8 @@ describe("Vercel admin proxy", () => {
     expect(upstreamUrl).toBe("https://preview-worker.example.test/api/admin/snapshot");
     expect(upstreamInit).toMatchObject({ method: "GET" });
     expect(upstreamHeaders.get("X-RCAT-Admin-Smoke-Token")).toBe(env.CLOUDFLARE_ADMIN_SMOKE_TOKEN);
-    expect(upstreamHeaders.get("If-Match")).toBe('"7"');
+    expect(upstreamHeaders.get("X-RCAT-Expected-Revision")).toBe("7");
+    expect(upstreamHeaders.has("If-Match")).toBe(false);
     expect(upstreamHeaders.has("Origin")).toBe(false);
     expect(upstreamHeaders.has("Cookie")).toBe(false);
     expect(upstreamHeaders.has("Host")).toBe(false);

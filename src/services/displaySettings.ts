@@ -15,26 +15,28 @@ export const dateFormatPresets = [
   { value: "d/m/Y", label: "27/04/2026 (d/m/Y)" }
 ];
 
+const canonicalDateFormats = new Set(dateFormatPresets.map((preset) => preset.value));
+const dayjsToWordPressDateFormats = new Map([
+  ["D MMMM YYYY", "j F Y"],
+  ["MMMM D, YYYY", "F j, Y"],
+  ["YYYY-MM-DD", "Y-m-d"],
+  ["MM/DD/YYYY", "m/d/Y"],
+  ["DD/MM/YYYY", "d/m/Y"]
+]);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function sanitizeDateFormat(value: unknown) {
+export function normalizeDateFormat(value: unknown) {
   const nextValue = String(value || "").trim();
+  const convertedDayjsFormat = dayjsToWordPressDateFormats.get(nextValue);
 
-  if (!nextValue) {
-    return defaultDisplaySettings.dateFormat;
+  if (convertedDayjsFormat) {
+    return convertedDayjsFormat;
   }
 
-  if (nextValue.length > 80) {
-    return defaultDisplaySettings.dateFormat;
-  }
-
-  if (/[^A-Za-z0-9 :/.,_[\]\\-]/.test(nextValue)) {
-    return defaultDisplaySettings.dateFormat;
-  }
-
-  return nextValue;
+  return canonicalDateFormats.has(nextValue) ? nextValue : defaultDisplaySettings.dateFormat;
 }
 
 function sanitizeTimeMode(value: unknown): DisplaySettings["timeMode"] {
@@ -48,7 +50,7 @@ export function normalizeDisplaySettings(input: unknown): DisplaySettings {
   }
 
   return {
-    dateFormat: sanitizeDateFormat(input.dateFormat),
+    dateFormat: normalizeDateFormat(input.dateFormat),
     timeMode: sanitizeTimeMode(input.timeMode)
   };
 }
@@ -75,7 +77,11 @@ function parseStoredDisplaySettings(): DisplaySettings | null {
 
   try {
     const parsed = JSON.parse(raw);
-    return normalizeDisplaySettings(parsed);
+    const normalized = normalizeDisplaySettings(parsed);
+    if (raw !== JSON.stringify(normalized)) {
+      persistDisplaySettings(normalized);
+    }
+    return normalized;
   } catch {
     return null;
   }

@@ -151,10 +151,9 @@ function parseRevisionValue(value: unknown) {
 }
 
 function getExpectedRevisionFromRequest(request: Request, body: JsonRecord = {}) {
-  const header = request.headers.get("If-Match");
-  const normalizedHeader = header?.replace(/^W\//, "").replaceAll('"', "").trim();
+  const header = request.headers.get("X-RCAT-Expected-Revision")?.trim();
 
-  return parseRevisionValue(normalizedHeader || body.expectedRevision);
+  return parseRevisionValue(header || body.expectedRevision);
 }
 
 function getConfiguredOrigins(value: string | undefined) {
@@ -289,7 +288,7 @@ function getChangedRows(result: D1Result<unknown>) {
 
 function assertMutationChanged(result: D1Result<unknown>) {
   if (getChangedRows(result) === 0) {
-    throw new AdminHttpError("stale write conflict", 409);
+    throw new AdminHttpError("stale revision", 409);
   }
 }
 
@@ -1168,7 +1167,7 @@ function safeAdminError(error: unknown) {
 
   const message = error instanceof Error ? error.message : "";
 
-  if (message === "stale write conflict" || message.includes("duplicate ")) {
+  if (message === "stale revision" || message.includes("duplicate ")) {
     return jsonError(message, 409, {
       resource: "admin-structured-data"
     });

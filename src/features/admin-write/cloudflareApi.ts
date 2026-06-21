@@ -15,6 +15,7 @@ import type { CmsDocumentItem } from "../cms-documents/types";
 import type { ContentItem } from "../public-content/types";
 import { mergeBridgeMediaAssets } from "../cms-media/bridgeCache";
 import { ADMIN_PROXY_SESSION_EXPIRED_MESSAGE, notifyAdminProxySessionExpired } from "../../services/adminProxySession";
+import { AdminStaleRevisionError } from "./errors";
 
 interface ItemEnvelope<T> {
   item: T;
@@ -52,6 +53,9 @@ async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): 
   try {
     payload = await response.json();
   } catch (error) {
+    if (response.status === 412) {
+      throw new AdminStaleRevisionError();
+    }
     throw createCloudflareAdminError("Cloudflare admin API returned invalid JSON", error);
   }
 
@@ -63,6 +67,10 @@ async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): 
     if (response.status === 401 && /admin proxy session is (?:required|invalid or expired)/i.test(errorMessage)) {
       notifyAdminProxySessionExpired();
       throw new Error(ADMIN_PROXY_SESSION_EXPIRED_MESSAGE);
+    }
+
+    if ((response.status === 409 && /stale revision/i.test(errorMessage)) || response.status === 412) {
+      throw new AdminStaleRevisionError();
     }
 
     throw new Error(errorMessage);
@@ -85,7 +93,9 @@ function writeJson<T>(
 }
 
 function getRevisionHeaders(revision: unknown) {
-  return Number.isInteger(revision) && Number(revision) >= 0 ? { "If-Match": `"${revision}"` } : undefined;
+  return Number.isInteger(revision) && Number(revision) >= 0
+    ? { "X-RCAT-Expected-Revision": String(revision) }
+    : undefined;
 }
 
 function getEntityIdentity(input: { id?: string; revision?: number }) {

@@ -34,6 +34,7 @@ import {
   dateFormatPresets,
   defaultDisplaySettings,
   loadDisplaySettings,
+  normalizeDisplaySettings,
   saveDisplaySettings
 } from "../../services/displaySettings";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
@@ -51,14 +52,6 @@ import {
 } from "../../types";
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
-
-function normalizeDisplaySettings(input: Partial<DisplaySettings>): DisplaySettings {
-  return {
-    dateFormat:
-      String(input.dateFormat || defaultDisplaySettings.dateFormat).trim() || defaultDisplaySettings.dateFormat,
-    timeMode: "24h"
-  };
-}
 
 function toNonNegativeInteger(value: unknown): number {
   const numeric = Number(value);

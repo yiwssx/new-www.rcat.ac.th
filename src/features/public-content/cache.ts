@@ -18,7 +18,7 @@ export {
 
 export const PUBLIC_CONTENT_LIST_CACHE_TTL_MS = 15 * 60 * 1000;
 
-const publicContentListCachePrefix = "rcat.cms.public.content-list.";
+const publicContentListCachePrefix = "rcat.cms.public.content-list.v2.";
 const publicContentListKinds: PublicContentListKind[] = ["news", "announcements", "blog"];
 
 export function getPublicContentListCacheKey(kind: PublicContentListKind) {

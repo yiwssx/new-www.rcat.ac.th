@@ -12,11 +12,26 @@ import {
   saveContentItem as saveContentItemToAppsScript
 } from "../../services/googleApi";
 import type { ContentItem } from "../public-content/types";
+import { isAdminStaleRevisionError } from "../admin-write/errors";
 
 export async function saveContentItem(item: ContentItem): Promise<ContentItem> {
-  return getAdminWriteProvider() === "cloudflare"
-    ? saveContentItemToCloudflare(item)
-    : saveContentItemToAppsScript(item);
+  if (getAdminWriteProvider() !== "cloudflare") {
+    return saveContentItemToAppsScript(item);
+  }
+
+  try {
+    return await saveContentItemToCloudflare(item);
+  } catch (error) {
+    if (isAdminStaleRevisionError(error) && item.id) {
+      try {
+        error.latestItem = await getAdminContentDetailFromCloudflare({ id: item.id });
+      } catch {
+        // Keep the stale-write message even if the refresh is temporarily unavailable.
+      }
+    }
+
+    throw error;
+  }
 }
 
 export async function getAdminContentDetail(input: { id?: string; slug?: string }): Promise<ContentItem> {

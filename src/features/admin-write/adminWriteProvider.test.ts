@@ -160,7 +160,7 @@ describe("M18 admin structured write provider", () => {
     expect(googleApiMocks.saveDocumentToApi).not.toHaveBeenCalled();
   });
 
-  it("uses PATCH with If-Match for existing content and documents", async () => {
+  it("uses PATCH with a custom revision header and never sends If-Match", async () => {
     setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body ?? "{}"));
@@ -184,23 +184,51 @@ describe("M18 admin structured write provider", () => {
     );
     fetchMock.mock.calls.forEach(([, init]) => {
       expect(init?.method).toBe("PATCH");
-      expect(new Headers(init?.headers).get("If-Match")).toBe('"3"');
+      expect(new Headers(init?.headers).get("X-RCAT-Expected-Revision")).toBe("3");
+      expect(new Headers(init?.headers).has("If-Match")).toBe(false);
       expect(JSON.parse(String(init?.body ?? "{}"))).not.toHaveProperty("id");
     });
   });
 
-  it.each([
-    ["duplicate content slug", 409],
-    ["stale revision", 409]
-  ])("surfaces Cloudflare edit conflict: %s", async (message, status) => {
+  it("surfaces a duplicate slug conflict without retrying as create", async () => {
     setCloudflareEnv();
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => jsonResponse({ error: message }, status))
+      vi.fn(async () => jsonResponse({ error: "duplicate content slug" }, 409))
     );
     const { saveContentItem } = await import("../cms-content/api");
 
-    await expect(saveContentItem({ ...sampleContent, revision: 2 })).rejects.toThrow(message);
+    await expect(saveContentItem({ ...sampleContent, revision: 2 })).rejects.toThrow("duplicate content slug");
+  });
+
+  it.each([
+    ["worker stale conflict", () => jsonResponse({ error: "stale revision" }, 409)],
+    ["proxy conditional response", () => new Response("precondition failed", { status: 412 })]
+  ])("refetches the current item and returns a Thai stale message for %s", async (_label, staleResponse) => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "PATCH") {
+        return staleResponse();
+      }
+
+      return jsonResponse({ item: { ...sampleContent, revision: 4, title: "Latest server title" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { isAdminStaleRevisionError, saveContentItem } = await import("../cms-content");
+
+    const error = await saveContentItem({ ...sampleContent, revision: 2 }).catch(
+      (currentError: unknown) => currentError
+    );
+
+    expect(isAdminStaleRevisionError(error)).toBe(true);
+    expect(error).toMatchObject({
+      message: "ข้อมูลนี้มีการเปลี่ยนแปลง ระบบโหลดข้อมูลล่าสุดแล้ว กรุณาตรวจสอบและบันทึกอีกครั้ง",
+      latestItem: expect.objectContaining({ revision: 4, title: "Latest server title" })
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001"
+    );
   });
 
   it("keeps media bytes on Apps Script while synchronizing returned metadata to Cloudflare", async () => {
@@ -451,7 +479,7 @@ describe("M18 admin structured write provider", () => {
     for (const callIndex of [6, 8, 10]) {
       expect(fetchMock.mock.calls[callIndex]?.[1]).toMatchObject({
         method: "PATCH",
-        headers: { "if-match": '"2"' }
+        headers: { "x-rcat-expected-revision": "2" }
       });
     }
     expect(googleApiMocks.getDisplaySettingsFromApi).not.toHaveBeenCalled();
