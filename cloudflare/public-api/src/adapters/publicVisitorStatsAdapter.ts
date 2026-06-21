@@ -3,7 +3,8 @@ import type { VisitorDailyStatsRow } from "../db/schema";
 
 export function createPublicVisitorStatsSnapshot(
   rows: VisitorDailyStatsRow[],
-  generatedAt = new Date()
+  generatedAt = new Date(),
+  currentOnlineUsers?: number
 ): PublicVisitorStatsSnapshotContract {
   const bangkokNow = new Date(generatedAt.getTime() + 7 * 60 * 60 * 1000);
   const today = bangkokNow.toISOString().slice(0, 10);
@@ -36,7 +37,7 @@ export function createPublicVisitorStatsSnapshot(
       .reduce((sum, row) => sum + Math.max(0, Number(row.unique_visitors) || 0), 0),
     totalUsers,
     totalViews: total,
-    onlineUsers: Math.max(0, Number(todayRow?.online_users) || 0),
+    onlineUsers: Math.max(0, Number(currentOnlineUsers ?? todayRow?.online_users) || 0),
     updatedAt: updatedAt || generatedAt.toISOString(),
     generatedAt: generatedAt.toISOString()
   };

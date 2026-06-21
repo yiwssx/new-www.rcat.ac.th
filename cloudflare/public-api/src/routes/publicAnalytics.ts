@@ -1,5 +1,6 @@
 import { getPublishedContentRowBySlug } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
+import { countOnlineVisitors } from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -58,30 +59,31 @@ export async function recordPublicSiteView(request: Request, env: Env) {
   const referrerOrigin = typeof body.referrerOrigin === "string" ? body.referrerOrigin.slice(0, 120) : "";
   const pageTitle = typeof body.pageTitle === "string" ? body.pageTitle.slice(0, 120) : "";
 
-  await db.batch([
-    db
-      .prepare(
-        `INSERT INTO visitor_events (id, visitor_id, path, referrer_origin, page_title, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      )
-      .bind(eventId, dailyVisitorId, path, referrerOrigin, pageTitle, createdAt),
-    db
-      .prepare(
-        `INSERT INTO visitor_daily_stats
-           (day, total_views, unique_visitors, online_users, updated_at, created_at, updated_by, revision)
-         VALUES (?, 1, ?, 0, ?, ?, 'public-site-view', 0)
-         ON CONFLICT(day) DO UPDATE SET
-           total_views = visitor_daily_stats.total_views + 1,
-           unique_visitors = visitor_daily_stats.unique_visitors + excluded.unique_visitors,
-           online_users = 0,
-           updated_at = excluded.updated_at,
-           updated_by = 'public-site-view',
-           revision = visitor_daily_stats.revision + 1`
-      )
-      .bind(day, uniqueIncrement, createdAt, createdAt)
-  ]);
+  await db
+    .prepare(
+      `INSERT INTO visitor_events (id, visitor_id, path, referrer_origin, page_title, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .bind(eventId, dailyVisitorId, path, referrerOrigin, pageTitle, createdAt)
+    .run();
+  const onlineUsers = await countOnlineVisitors(env, now);
+  await db
+    .prepare(
+      `INSERT INTO visitor_daily_stats
+         (day, total_views, unique_visitors, online_users, updated_at, created_at, updated_by, revision)
+       VALUES (?, 1, ?, ?, ?, ?, 'public-site-view', 0)
+       ON CONFLICT(day) DO UPDATE SET
+         total_views = visitor_daily_stats.total_views + 1,
+         unique_visitors = visitor_daily_stats.unique_visitors + excluded.unique_visitors,
+         online_users = excluded.online_users,
+         updated_at = excluded.updated_at,
+         updated_by = 'public-site-view',
+         revision = visitor_daily_stats.revision + 1`
+    )
+    .bind(day, uniqueIncrement, onlineUsers, createdAt, createdAt)
+    .run();
 
-  return json({ recorded: true, day }, { status: 201 });
+  return json({ recorded: true, day, onlineUsers }, { status: 201 });
 }
 
 export async function recordPublicContentView(request: Request, env: Env) {

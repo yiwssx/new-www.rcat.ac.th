@@ -5,7 +5,7 @@ import { listAllPublishedContentRows } from "../db/contentRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
 import { listPublishedHomeSectionRows } from "../db/homeRepository";
 import { readPublicMetadataRows } from "../db/publicMetadataRepository";
-import { listVisitorDailyStatsRows } from "../db/visitorStatsRepository";
+import { countOnlineVisitors, listVisitorDailyStatsRows } from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -21,14 +21,15 @@ export async function publicHome(env: Env) {
   }
 
   try {
-    const [sections, content, featuredDocuments, metadataRows, visitorRows] = await Promise.all([
+    const generatedAt = new Date();
+    const [sections, content, featuredDocuments, metadataRows, visitorRows, onlineUsers] = await Promise.all([
       listPublishedHomeSectionRows(env),
       listAllPublishedContentRows(env),
       listPublishedDocumentRows(env),
       readPublicMetadataRows(env),
-      listVisitorDailyStatsRows(env)
+      listVisitorDailyStatsRows(env),
+      countOnlineVisitors(env, generatedAt)
     ]);
-    const generatedAt = new Date();
 
     return json(
       createPublicHomeSnapshot(
@@ -37,7 +38,7 @@ export async function publicHome(env: Env) {
           content,
           featuredDocuments,
           metadata: createPublicMetadata(metadataRows),
-          visitorStats: createPublicVisitorStatsSnapshot(visitorRows, generatedAt)
+          visitorStats: createPublicVisitorStatsSnapshot(visitorRows, generatedAt, onlineUsers)
         },
         generatedAt
       )

@@ -155,7 +155,7 @@ const contentMetadataPresets: ContentMetadataPreset[] = [
 
 function createDraft(): ContentItem {
   return {
-    id: `content-${Date.now()}`,
+    id: "",
     title: "",
     slug: "",
     type: "page",

@@ -25,21 +25,34 @@ const ADMIN_ALLOW = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
 const CONTENT_TYPES = new Set(["page", "news", "program", "announcement", "blog"]);
 const CONTENT_STATUSES = new Set(["draft", "review", "scheduled", "published"]);
 const DOCUMENT_STATUSES = new Set(["draft", "published"]);
-const CONTENT_PUBLISH_REQUIRED_COLUMNS = ["deleted_at", "updated_by", "revision"] as const;
+const PREVIEW_WRITE_SCHEMA = {
+  contents: ["slug", "deleted_at", "updated_by", "revision"],
+  homepage_settings: ["id", "settings_json", "updated_at", "created_at", "updated_by", "revision"],
+  site_settings: ["id", "settings_json", "updated_at", "created_at", "updated_by", "revision"],
+  display_settings: ["id", "settings_json", "updated_at", "created_at", "updated_by", "revision"],
+  carousel_slides: ["id", "title", "image_url", "created_at", "updated_by", "revision"],
+  external_services: ["id", "title", "href", "created_at", "updated_by", "revision"],
+  events: ["id", "title", "date", "created_at", "updated_by", "revision"],
+  media_assets: ["id", "drive_url", "preview_url", "embed_url", "thumbnail_url"]
+} as const;
 
 type JsonRecord = Record<string, unknown>;
 type ContentPublishRoute = "content.publish" | "content.unpublish";
+type PreviewWriteTable = keyof typeof PREVIEW_WRITE_SCHEMA;
 
 interface AdminRouteErrorContext {
   contentId?: string;
   expectedRevisionPresent?: boolean;
+  operation: string;
   route?: ContentPublishRoute;
+  routeGroup: string;
 }
 
 class AdminHttpError extends Error {
   constructor(
     message: string,
-    readonly status: number
+    readonly status: number,
+    readonly details: JsonRecord = {}
   ) {
     super(message);
     this.name = "AdminHttpError";
@@ -91,20 +104,14 @@ function getErrorMessage(error: unknown) {
 
 function sanitizeDiagnosticText(value: string) {
   return value
-    .replace(/\b(SELECT|INSERT|UPDATE|DELETE)\b/gi, "[sql]")
+    .replace(/\b(SELECT|INSERT|UPDATE|DELETE)\b/gi, "[database-operation]")
     .replace(/\bstack\b/gi, "[trace]")
-    .replace(/\b(?:token|secret|cookie|authorization|cf-access-jwt-assertion)\b[^\s,;)]*/gi, "[redacted]")
+    .replace(/\bD1(?:_ERROR)?\b/gi, "database")
+    .replace(
+      /\b(?:token|secret|cookie|authorization|cf-access-jwt-assertion|headers?|bindings?|request body|fileBase64|appsScriptBridgeToken|mediaBridgeToken|password)\b[^\s,;)]*/gi,
+      "[redacted]"
+    )
     .slice(0, 300);
-}
-
-function getMissingContentPublishColumn(message: string) {
-  if (!/(?:no such column|has no column|unknown column)/i.test(message)) {
-    return null;
-  }
-
-  return CONTENT_PUBLISH_REQUIRED_COLUMNS.find((column) =>
-    new RegExp(`(?:^|[^a-z_])(?:contents\\.)?${column}(?:[^a-z_]|$)`, "i").test(message)
-  );
 }
 
 function shouldIncludePreviewDiagnostics(env: Env) {
@@ -117,6 +124,78 @@ async function withAdminRouteContext<T>(context: AdminRouteErrorContext, callbac
   } catch (error) {
     throw new AdminRouteContextError(context, error);
   }
+}
+
+function getAdminRouteContext(request: Request, segments: string[]): AdminRouteErrorContext {
+  const routeGroup = segments[0] || "unknown";
+  const action = segments[2];
+  let operation = request.method.toLowerCase();
+
+  if (routeGroup === "content") {
+    operation =
+      action === "publish" || action === "unpublish"
+        ? action
+        : request.method === "POST"
+          ? "create"
+          : request.method === "PATCH"
+            ? "update"
+            : request.method.toLowerCase();
+  } else if (routeGroup === "settings") {
+    operation = `${segments[1] || "unknown"}.save`;
+  } else if (["carousel", "external-services", "events"].includes(routeGroup)) {
+    operation =
+      request.method === "POST" ? "create" : request.method === "PATCH" ? "update" : request.method.toLowerCase();
+  }
+
+  return { routeGroup, operation };
+}
+
+function getPreviewWriteTable(segments: string[]): PreviewWriteTable | null {
+  if (segments[0] === "content") {
+    return "contents";
+  }
+
+  if (segments[0] === "settings") {
+    const tableBySetting: Record<string, PreviewWriteTable> = {
+      homepage: "homepage_settings",
+      site: "site_settings",
+      display: "display_settings"
+    };
+    return tableBySetting[segments[1] || ""] ?? null;
+  }
+
+  const tableByRoute: Record<string, PreviewWriteTable> = {
+    carousel: "carousel_slides",
+    "external-services": "external_services",
+    events: "events",
+    media: "media_assets"
+  };
+  return tableByRoute[segments[0] || ""] ?? null;
+}
+
+async function getPreviewSchemaMismatch(env: Env, request: Request, segments: string[]) {
+  if (request.method === "GET" || !shouldIncludePreviewDiagnostics(env)) {
+    return null;
+  }
+
+  const table = getPreviewWriteTable(segments);
+
+  if (!table) {
+    return null;
+  }
+
+  const db = requireD1Database(env);
+  const missingColumns: string[] = [];
+
+  for (const column of PREVIEW_WRITE_SCHEMA[table]) {
+    try {
+      await db.prepare(`SELECT ${column} FROM ${table} LIMIT 0`).all();
+    } catch {
+      missingColumns.push(column);
+    }
+  }
+
+  return missingColumns.length ? { table, missingColumns } : null;
 }
 
 function trimString(value: unknown) {
@@ -507,22 +586,57 @@ function createVisitorStatsRow(
   };
 }
 
-async function assertUniqueContentSlug(env: Env, slug: string, id: string) {
-  const duplicate = await getFirst<ContentRow>(
-    env,
-    `SELECT ${CONTENT_ADMIN_ROW_COLUMNS.join(", ")}
-     FROM contents
-     WHERE slug = ?
-       AND id <> ?
-       AND COALESCE(deleted_at, '') = ''
-     LIMIT 1`,
-    slug,
-    id
-  );
+async function findActiveContentSlug(env: Env, slug: string, id?: string) {
+  const duplicate = id
+    ? await getFirst<{ id: string }>(
+        env,
+        `SELECT id FROM contents
+         WHERE slug = ?
+           AND id <> ?
+           AND COALESCE(deleted_at, '') = ''
+         LIMIT 1`,
+        slug,
+        id
+      )
+    : await getFirst<{ id: string }>(
+        env,
+        `SELECT id FROM contents
+         WHERE slug = ?
+           AND COALESCE(deleted_at, '') = ''
+         LIMIT 1`,
+        slug
+      );
+
+  return duplicate;
+}
+
+function duplicateSlugError(detail?: string) {
+  return new AdminHttpError("duplicate slug", 409, {
+    resource: "content",
+    field: "slug",
+    ...(detail ? { detail } : {})
+  });
+}
+
+async function assertUniqueContentSlug(env: Env, slug: string, id?: string) {
+  const duplicate = await findActiveContentSlug(env, slug, id);
 
   if (duplicate) {
-    throw new AdminHttpError("duplicate content slug", 409);
+    throw duplicateSlugError();
   }
+}
+
+async function mapContentSlugConstraintError(env: Env, error: unknown, slug: string, id?: string): Promise<never> {
+  const message = getErrorMessage(error);
+
+  if (!/UNIQUE constraint failed:\s*contents\.slug/i.test(message)) {
+    throw error;
+  }
+
+  const activeDuplicate = await findActiveContentSlug(env, slug, id);
+  throw duplicateSlugError(
+    activeDuplicate ? undefined : "A deleted content row still owns this slug at the database constraint level"
+  );
 }
 
 async function assertUniqueHomeSectionKey(env: Env, sectionKey: string, id: string) {
@@ -544,18 +658,23 @@ async function assertUniqueHomeSectionKey(env: Env, sectionKey: string, id: stri
 }
 
 async function insertContentRow(env: Env, row: ContentRow) {
-  await run(
-    env,
-    `INSERT INTO contents (${CONTENT_ADMIN_ROW_COLUMNS.join(", ")})
-     VALUES (${CONTENT_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})`,
-    ...CONTENT_ADMIN_ROW_COLUMNS.map((column) => row[column])
-  );
+  try {
+    await run(
+      env,
+      `INSERT INTO contents (${CONTENT_ADMIN_ROW_COLUMNS.join(", ")})
+       VALUES (${CONTENT_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})`,
+      ...CONTENT_ADMIN_ROW_COLUMNS.map((column) => row[column])
+    );
+  } catch (error) {
+    await mapContentSlugConstraintError(env, error, row.slug);
+  }
 }
 
 async function updateContentRow(env: Env, row: ContentRow, expectedRevision: number | null) {
-  const result = await run(
-    env,
-    `UPDATE contents
+  try {
+    const result = await run(
+      env,
+      `UPDATE contents
      SET
        slug = ?,
        type = ?,
@@ -586,37 +705,40 @@ async function updateContentRow(env: Env, row: ContentRow, expectedRevision: num
      WHERE id = ?
        AND COALESCE(deleted_at, '') = ''
        AND (? IS NULL OR revision = ?)`,
-    row.slug,
-    row.type,
-    row.status,
-    row.owner,
-    row.title,
-    row.summary,
-    row.body_snapshot,
-    row.category,
-    row.tags_json,
-    row.seo_title,
-    row.seo_description,
-    row.canonical_url,
-    row.featured,
-    row.reading_minutes,
-    row.template,
-    row.body_doc_id,
-    row.body_doc_url,
-    row.featured_media_id,
-    row.media_ids_json,
-    row.view_count,
-    row.last_viewed_at,
-    row.updated_at,
-    row.publish_at,
-    row.deleted_at,
-    row.updated_by,
-    row.revision,
-    row.id,
-    expectedRevision,
-    expectedRevision
-  );
-  assertMutationChanged(result);
+      row.slug,
+      row.type,
+      row.status,
+      row.owner,
+      row.title,
+      row.summary,
+      row.body_snapshot,
+      row.category,
+      row.tags_json,
+      row.seo_title,
+      row.seo_description,
+      row.canonical_url,
+      row.featured,
+      row.reading_minutes,
+      row.template,
+      row.body_doc_id,
+      row.body_doc_url,
+      row.featured_media_id,
+      row.media_ids_json,
+      row.view_count,
+      row.last_viewed_at,
+      row.updated_at,
+      row.publish_at,
+      row.deleted_at,
+      row.updated_by,
+      row.revision,
+      row.id,
+      expectedRevision,
+      expectedRevision
+    );
+    assertMutationChanged(result);
+  } catch (error) {
+    await mapContentSlugConstraintError(env, error, row.slug, row.id);
+  }
 }
 
 async function insertDocumentRow(env: Env, row: DocumentRow) {
@@ -836,7 +958,7 @@ async function handleContent(request: Request, env: Env, segments: string[], ide
 
     const row = createContentRow(body, null, actor, now);
 
-    await assertUniqueContentSlug(env, row.slug, row.id);
+    await assertUniqueContentSlug(env, row.slug);
     await insertContentRow(env, row);
     return json({ item: mapContentRowToAdminItem(row) }, { status: 201 });
   }
@@ -906,6 +1028,8 @@ async function handleContent(request: Request, env: Env, segments: string[], ide
     const context: AdminRouteErrorContext = {
       contentId: id,
       expectedRevisionPresent: expectedRevision !== null,
+      operation: action,
+      routeGroup: "content",
       route: action === "publish" ? "content.publish" : "content.unpublish"
     };
 
@@ -1264,16 +1388,24 @@ function notFoundAdmin() {
   });
 }
 
-function safeAdminError(error: unknown, env: Env) {
+function safeAdminError(error: unknown, env: Env, fallbackContext: AdminRouteErrorContext) {
   const cause = getErrorCause(error);
 
   if (isAdminHttpError(cause)) {
     return jsonError(cause.message, cause.status, {
-      resource: "admin-structured-data"
+      resource: "admin-structured-data",
+      ...cause.details
     });
   }
 
   const message = getErrorMessage(cause);
+
+  if (/UNIQUE constraint failed:\s*contents\.slug/i.test(message) || message === "duplicate slug") {
+    return jsonError("duplicate slug", 409, {
+      resource: "content",
+      field: "slug"
+    });
+  }
 
   if (message === "stale revision" || message.includes("duplicate ")) {
     return jsonError(message, 409, {
@@ -1285,27 +1417,29 @@ function safeAdminError(error: unknown, env: Env) {
     message.startsWith("missing required field:") ||
     message.startsWith("invalid ") ||
     message.includes("malformed JSON") ||
-    message.includes("request body must be")
+    message.includes("request body must be") ||
+    message.endsWith(" is required")
   ) {
     return jsonError(message, 400, {
       resource: "admin-structured-data"
     });
   }
 
-  const context = getErrorContext(error);
+  const context = { ...fallbackContext, ...(getErrorContext(error) ?? {}) };
 
-  if (context?.route && shouldIncludePreviewDiagnostics(env)) {
-    const missingColumn = getMissingContentPublishColumn(message);
-
+  if (shouldIncludePreviewDiagnostics(env)) {
     return jsonError("admin structured write failed", 500, {
       resource: "admin-structured-data",
-      diagnostic: "admin-content-publish-unhandled-v1",
-      route: context.route,
-      contentId: context.contentId ?? "",
-      expectedRevisionPresent: context.expectedRevisionPresent === true,
+      diagnostic: "admin-structured-write-unhandled-v3",
+      routeGroup: context.routeGroup,
+      operation: context.operation,
       errorName: getErrorName(cause),
       errorMessage: sanitizeDiagnosticText(message),
-      ...(missingColumn ? { missingColumn } : {})
+      ...(context.route ? { route: context.route } : {}),
+      ...(context.contentId ? { contentId: context.contentId } : {}),
+      ...(context.expectedRevisionPresent === undefined
+        ? {}
+        : { expectedRevisionPresent: context.expectedRevisionPresent })
     });
   }
 
@@ -1353,8 +1487,20 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
   }
 
   const segments = pathname.slice(ADMIN_PREFIX.length).split("/").filter(Boolean);
+  const routeContext = getAdminRouteContext(request, segments);
 
   try {
+    const schemaMismatch = await getPreviewSchemaMismatch(env, request, segments);
+
+    if (schemaMismatch) {
+      return jsonError("admin structured write failed", 500, {
+        resource: "admin-structured-data",
+        diagnostic: "admin-structured-schema-mismatch-v1",
+        table: schemaMismatch.table,
+        missingColumns: schemaMismatch.missingColumns
+      });
+    }
+
     if (segments[0] === "snapshot" && segments.length === 1 && request.method === "GET") {
       return await handleSnapshot(env);
     }
@@ -1393,6 +1539,6 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
 
     return notFoundAdmin();
   } catch (error) {
-    return safeAdminError(error, env);
+    return safeAdminError(error, env, routeContext);
   }
 }

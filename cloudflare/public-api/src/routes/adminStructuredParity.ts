@@ -296,10 +296,10 @@ function createEntityRow(entity: EntityName, body: JsonRecord, now: string, acto
   if (entity === "carousel") {
     return {
       id,
-      title: requiredString(body.title, "carousel title"),
+      title: stringValue(body.title),
       subtitle: stringValue(body.subtitle),
       chip: stringValue(body.chip),
-      image_url: stringValue(body.imageUrl),
+      image_url: requiredString(body.imageUrl, "carousel image URL"),
       image_alt: stringValue(body.imageAlt),
       button_label: stringValue(body.buttonLabel),
       href: stringValue(body.href),
@@ -448,15 +448,32 @@ async function handleEntity(request: Request, env: Env, segments: string[], enti
   const config = entityConfig[entity];
 
   if (segments.length === 1 && request.method === "POST") {
-    const row = createEntityRow(entity, await readJsonBody(request), new Date().toISOString(), actor);
+    const body = await readJsonBody(request);
+    const row = createEntityRow(entity, body, new Date().toISOString(), actor);
+
+    if (entity === "carousel" && stringValue(body.id)) {
+      const existingRows = await getRows<{ id: string }>(
+        env,
+        `SELECT id FROM ${config.table} WHERE id = ? LIMIT 1`,
+        row.id
+      );
+
+      if (existingRows.length) {
+        return jsonError("duplicate carousel id", 409, { resource: entity });
+      }
+    }
+
+    const conflictClause =
+      entity === "carousel"
+        ? ""
+        : ` ON CONFLICT(id) DO UPDATE SET ${config.adminColumns
+            .filter((column) => column !== "id" && column !== "created_at" && column !== "revision")
+            .map((column) => `${column} = excluded.${column}`)
+            .join(", ")}, revision = ${config.table}.revision + 1`;
     await run(
       env,
       `INSERT INTO ${config.table} (${config.adminColumns.join(", ")})
-       VALUES (${config.adminColumns.map(() => "?").join(", ")})
-       ON CONFLICT(id) DO UPDATE SET ${config.adminColumns
-         .filter((column) => column !== "id" && column !== "created_at" && column !== "revision")
-         .map((column) => `${column} = excluded.${column}`)
-         .join(", ")}, revision = ${config.table}.revision + 1`,
+       VALUES (${config.adminColumns.map(() => "?").join(", ")})${conflictClause}`,
       ...config.adminColumns.map((column) => row[column as keyof typeof row])
     );
     return json({ item: mapEntity(entity, row) }, { status: 201 });

@@ -110,7 +110,12 @@ function normalizeDeleted(row: Row) {
 }
 
 function createAdminWriteMockDb(
-  options: { failRunQuery?: RegExp; failRuns?: boolean; missingContentColumn?: string } = {}
+  options: {
+    failRunMessage?: string;
+    failRunQuery?: RegExp;
+    failRuns?: boolean;
+    missingContentColumn?: string;
+  } = {}
 ) {
   const tables = createEmptyTables();
   const calls: { query: string; bindings: unknown[] }[] = [];
@@ -370,7 +375,7 @@ function createAdminWriteMockDb(
             maybeThrowMockD1Error(query);
 
             if (options.failRuns || options.failRunQuery?.test(query)) {
-              throw new Error("D1 failure leaked SQL SELECT stack secret");
+              throw new Error(options.failRunMessage ?? "D1 failure leaked SQL SELECT stack secret");
             }
 
             const before = JSON.stringify(tables);
@@ -976,11 +981,9 @@ describe("M18 admin structured write routes", () => {
 
       expect(response.status).toBe(500);
       expect(body).toMatchObject({
-        diagnostic: "admin-content-publish-unhandled-v1",
-        route: "content.publish",
-        contentId: "m18-preview-content-001",
-        expectedRevisionPresent: false,
-        missingColumn
+        diagnostic: "admin-structured-schema-mismatch-v1",
+        table: "contents",
+        missingColumns: [missingColumn]
       });
       expect(JSON.stringify(body)).not.toMatch(/m18-preview-smoke-token|SELECT|secret|token/i);
     }
@@ -1009,7 +1012,9 @@ describe("M18 admin structured write routes", () => {
 
     expect(response.status).toBe(500);
     expect(body).toMatchObject({
-      diagnostic: "admin-content-publish-unhandled-v1",
+      diagnostic: "admin-structured-write-unhandled-v3",
+      routeGroup: "content",
+      operation: "publish",
       route: "content.publish",
       contentId: "m18-preview-content-001",
       expectedRevisionPresent: true,
@@ -1351,6 +1356,67 @@ describe("M18 admin structured write routes", () => {
     expect(missingResponse.status).toBe(400);
     expect(invalidStatusResponse.status).toBe(400);
     expect(duplicateResponse.status).toBe(409);
+    await expect(readJson(duplicateResponse)).resolves.toMatchObject({
+      error: "duplicate slug",
+      resource: "content",
+      field: "slug"
+    });
+  });
+
+  it("allows an unchanged content slug but rejects another active content slug on update", async () => {
+    const { db } = createAdminWriteMockDb();
+    const env = makeEnv(db);
+    const secondContent = {
+      ...contentInput,
+      id: "m18-preview-content-002",
+      slug: "m18-preview-news-2",
+      title: "Second content"
+    };
+
+    await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env);
+    await worker.fetch(makeJsonRequest("/api/admin/content", secondContent), env);
+    const unchangedResponse = await worker.fetch(
+      makeJsonRequest(
+        "/api/admin/content/m18-preview-content-001",
+        { ...contentInput, title: "Updated title" },
+        { method: "PATCH" }
+      ),
+      env
+    );
+    const duplicateResponse = await worker.fetch(
+      makeJsonRequest(
+        "/api/admin/content/m18-preview-content-001",
+        { ...contentInput, slug: secondContent.slug },
+        { method: "PATCH" }
+      ),
+      env
+    );
+
+    expect(unchangedResponse.status).toBe(200);
+    expect(duplicateResponse.status).toBe(409);
+    await expect(readJson(duplicateResponse)).resolves.toMatchObject({ error: "duplicate slug", field: "slug" });
+  });
+
+  it("maps a physical deleted-row slug constraint to a clear conflict", async () => {
+    const { db, tables } = createAdminWriteMockDb({
+      failRunQuery: /^\s*INSERT\s+INTO\s+contents/i,
+      failRunMessage: "D1_ERROR: UNIQUE constraint failed: contents.slug"
+    });
+    tables.contents.push({
+      id: "deleted-content",
+      slug: contentInput.slug,
+      deleted_at: "2026-06-20T00:00:00.000Z"
+    });
+
+    const response = await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), makeEnv(db));
+
+    expect(response.status).toBe(409);
+    await expect(readJson(response)).resolves.toMatchObject({
+      error: "duplicate slug",
+      resource: "content",
+      field: "slug",
+      detail: "A deleted content row still owns this slug at the database constraint level"
+    });
   });
 
   it("writes document metadata, preserves deterministic public ordering, and archives without deleting media files", async () => {

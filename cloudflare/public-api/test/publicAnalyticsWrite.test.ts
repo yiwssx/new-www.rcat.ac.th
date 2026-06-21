@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 
 function createAnalyticsDb() {
-  const visitors = new Set<string>();
+  const visitorEvents: Array<{ id: string; visitorId: string; createdAt: string }> = [];
   const visitorRows = new Map<string, Record<string, unknown>>();
   let contentViewCount = 0;
   const contentRow = {
@@ -39,12 +39,20 @@ function createAnalyticsDb() {
         return this;
       },
       async first<T>() {
-        if (/FROM visitor_events/i.test(query)) {
-          return (visitors.has(String(this.bindings[0])) ? { id: "existing" } : null) as T | null;
+        if (/FROM visitor_events/i.test(query) && /visitor_id\s*=\s*\?/i.test(query)) {
+          const visitor = visitorEvents.find((event) => event.visitorId === String(this.bindings[0]));
+          return (visitor ? { id: visitor.id } : null) as T | null;
         }
         return null;
       },
       async all<T>() {
+        if (/COUNT\(DISTINCT visitor_id\)/i.test(query)) {
+          const onlineSince = String(this.bindings[0] ?? "");
+          const onlineVisitors = new Set(
+            visitorEvents.filter((event) => event.createdAt >= onlineSince).map((event) => event.visitorId)
+          );
+          return { results: [{ online_users: onlineVisitors.size }] as T[], success: true };
+        }
         if (/FROM visitor_daily_stats/i.test(query)) {
           return { results: [...visitorRows.values()] as T[], success: true };
         }
@@ -59,7 +67,11 @@ function createAnalyticsDb() {
       },
       async run() {
         if (/INSERT INTO visitor_events/i.test(query)) {
-          visitors.add(String(this.bindings[1]));
+          visitorEvents.push({
+            id: String(this.bindings[0]),
+            visitorId: String(this.bindings[1]),
+            createdAt: String(this.bindings[5])
+          });
         } else if (/INSERT INTO visitor_daily_stats/i.test(query)) {
           const day = String(this.bindings[0]);
           const uniqueIncrement = Number(this.bindings[1]);
@@ -68,8 +80,8 @@ function createAnalyticsDb() {
             day,
             total_views: Number(current?.total_views ?? 0) + 1,
             unique_visitors: Number(current?.unique_visitors ?? 0) + uniqueIncrement,
-            online_users: 0,
-            updated_at: String(this.bindings[2])
+            online_users: Number(this.bindings[2]),
+            updated_at: String(this.bindings[3])
           });
         } else if (/UPDATE contents/i.test(query)) {
           contentViewCount += 1;
@@ -87,8 +99,12 @@ function createAnalyticsDb() {
     }
   } as unknown as D1Database;
 
-  return { db, visitors, visitorRows, getContentViewCount: () => contentViewCount };
+  return { db, visitorEvents, visitorRows, getContentViewCount: () => contentViewCount };
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("Cloudflare public analytics writes", () => {
   it("records daily views and a day-bucketed unique approximation without raw identifiers", async () => {
@@ -116,10 +132,50 @@ describe("Cloudflare public analytics writes", () => {
     expect(stats.today).toBe(2);
     expect(stats.totalViews).toBe(2);
     expect(stats.usersToday).toBe(1);
-    expect(stats.onlineUsers).toBe(0);
-    expect([...state.visitors]).toHaveLength(1);
-    expect([...state.visitors][0]).toMatch(/^v1_[a-f0-9]{32}$/);
-    expect([...state.visitors][0]).not.toContain("abcdefghijkl");
+    expect(stats.onlineUsers).toBe(1);
+    expect(state.visitorEvents).toHaveLength(2);
+    expect(new Set(state.visitorEvents.map((event) => event.visitorId)).size).toBe(1);
+    expect(state.visitorEvents[0]?.visitorId).toMatch(/^v1_[a-f0-9]{32}$/);
+    expect(state.visitorEvents[0]?.visitorId).not.toContain("abcdefghijkl");
+  });
+
+  it("counts distinct visitors in the last five minutes and excludes stale events from snapshots", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-22T04:00:00.000Z"));
+    const state = createAnalyticsDb();
+    const request = (visitorId: string) =>
+      new Request("https://public-api.example.test/api/public/site-view", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitorId, path: "/news" })
+      });
+
+    const firstResponse = await worker.fetch(request("rcat_abcdefghijkl"), { DB: state.db });
+    await worker.fetch(request("rcat_mnopqrstuvwx"), { DB: state.db });
+    await worker.fetch(request("rcat_abcdefghijkl"), { DB: state.db });
+
+    expect(await readOnlineUsers(firstResponse)).toBe(1);
+    expect(Number([...state.visitorRows.values()][0]?.online_users)).toBe(2);
+
+    vi.setSystemTime(new Date("2026-06-22T04:06:00.000Z"));
+    const statsResponse = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), {
+      DB: state.db
+    });
+    expect(await readOnlineUsers(statsResponse)).toBe(0);
+  });
+
+  it("rejects invalid visitor identifiers", async () => {
+    const state = createAnalyticsDb();
+    const response = await worker.fetch(
+      new Request("https://public-api.example.test/api/public/site-view", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitorId: "invalid", path: "/news" })
+      }),
+      { DB: state.db }
+    );
+
+    expect(response.status).toBe(400);
   });
 
   it("records published content views in D1", async () => {
@@ -139,3 +195,8 @@ describe("Cloudflare public analytics writes", () => {
     expect(state.getContentViewCount()).toBe(1);
   });
 });
+
+async function readOnlineUsers(response: Response) {
+  const payload = (await response.json()) as { onlineUsers: number };
+  return payload.onlineUsers;
+}

@@ -151,7 +151,7 @@ describe("M18 admin structured write provider", () => {
     const { saveContentItem } = await import("../cms-content/api");
     const { saveDocumentToApi } = await import("../cms-documents/api");
 
-    await expect(saveContentItem(sampleContent)).resolves.toMatchObject({ id: sampleContent.id });
+    await expect(saveContentItem({ ...sampleContent, id: "" })).resolves.toMatchObject({ id: sampleContent.id });
     await expect(saveDocumentToApi(sampleDocument)).resolves.toMatchObject({ id: sampleDocument.id });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -195,15 +195,37 @@ describe("M18 admin structured write provider", () => {
     });
   });
 
+  it("uses PATCH for existing content without a revision and omits the revision header", async () => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      return jsonResponse({ item: { ...body, id: sampleContent.id } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { saveContentItem } = await import("../cms-content/api");
+
+    await saveContentItem(sampleContent);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001"
+    );
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PATCH");
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
+    expect(googleApiMocks.saveContentItem).not.toHaveBeenCalled();
+  });
+
   it("surfaces a duplicate slug conflict without retrying as create", async () => {
     setCloudflareEnv();
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => jsonResponse({ error: "duplicate content slug" }, 409))
+      vi.fn(async () => jsonResponse({ error: "duplicate slug", resource: "content", field: "slug" }, 409))
     );
     const { saveContentItem } = await import("../cms-content/api");
 
-    await expect(saveContentItem({ ...sampleContent, revision: 2 })).rejects.toThrow("duplicate content slug");
+    await expect(saveContentItem({ ...sampleContent, revision: 2 })).rejects.toThrow(
+      "Slug นี้ถูกใช้แล้ว กรุณาเปลี่ยน Slug"
+    );
   });
 
   it.each([
@@ -549,5 +571,33 @@ describe("M18 admin structured write provider", () => {
     expect(googleApiMocks.saveCarouselSlideToApi).not.toHaveBeenCalled();
     expect(googleApiMocks.saveExternalServiceLinkToApi).not.toHaveBeenCalled();
     expect(googleApiMocks.saveCalendarEvent).not.toHaveBeenCalled();
+  });
+
+  it("creates and edits carousel slides through the correct Cloudflare routes without Apps Script", async () => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      return jsonResponse({ item: { ...body, id: url.endsWith("/api/admin/carousel") ? "slide-new" : "slide-1" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { saveCarouselSlideToApi } = await import("../cms-carousel/api");
+    const baseSlide = {
+      title: "",
+      imageUrl: "https://images.example.test/slide.jpg",
+      enabled: true,
+      order: 1
+    };
+
+    await saveCarouselSlideToApi({ ...baseSlide, id: "" });
+    await saveCarouselSlideToApi({ ...baseSlide, id: "slide-1" });
+    await saveCarouselSlideToApi({ ...baseSlide, id: "slide-1", revision: 2 });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/carousel");
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("https://preview-worker.example.test/api/admin/carousel/slide-1");
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("PATCH");
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
+    expect(new Headers(fetchMock.mock.calls[2]?.[1]?.headers).get("X-RCAT-Expected-Revision")).toBe("2");
+    expect(googleApiMocks.saveCarouselSlideToApi).not.toHaveBeenCalled();
   });
 });

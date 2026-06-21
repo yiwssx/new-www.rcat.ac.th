@@ -78,7 +78,7 @@ function createCarouselDraft(order: number): CarouselSlide {
   const now = new Date().toISOString();
 
   return {
-    id: `carousel-${Date.now()}`,
+    id: "",
     title: "",
     subtitle: "",
     chip: "",

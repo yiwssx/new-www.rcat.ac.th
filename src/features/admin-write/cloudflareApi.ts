@@ -15,7 +15,7 @@ import type { CmsDocumentItem } from "../cms-documents/types";
 import type { ContentItem } from "../public-content/types";
 import { mergeBridgeMediaAssets } from "../cms-media/bridgeCache";
 import { ADMIN_PROXY_SESSION_EXPIRED_MESSAGE, notifyAdminProxySessionExpired } from "../../services/adminProxySession";
-import { AdminStaleRevisionError } from "./errors";
+import { AdminDuplicateSlugError, AdminStaleRevisionError } from "./errors";
 
 interface ItemEnvelope<T> {
   item: T;
@@ -73,6 +73,10 @@ async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): 
       throw new AdminStaleRevisionError();
     }
 
+    if (response.status === 409 && errorMessage === "duplicate slug") {
+      throw new AdminDuplicateSlugError();
+    }
+
     throw new Error(errorMessage);
   }
 
@@ -125,15 +129,14 @@ export async function getAdminContentDetailFromCloudflare(input: { id?: string; 
 
 export async function saveContentItemToCloudflare(item: ContentItem): Promise<ContentItem> {
   const { id, revision, body } = getEntityIdentity(item);
-  const response =
-    id && revision !== undefined
-      ? await writeJson<ItemEnvelope<ContentItem>>(
-          `/api/admin/content/${encodeURIComponent(id)}`,
-          "PATCH",
-          body,
-          getRevisionHeaders(revision)
-        )
-      : await writeJson<ItemEnvelope<ContentItem>>("/api/admin/content", "POST", body);
+  const response = id
+    ? await writeJson<ItemEnvelope<ContentItem>>(
+        `/api/admin/content/${encodeURIComponent(id)}`,
+        "PATCH",
+        body,
+        getRevisionHeaders(revision)
+      )
+    : await writeJson<ItemEnvelope<ContentItem>>("/api/admin/content", "POST", body);
 
   return response.item;
 }
@@ -220,15 +223,14 @@ export async function savePublicMenuItemsToCloudflare(items: PublicMenuItem[]): 
 
 export async function saveCarouselSlideToCloudflare(input: CarouselSlideInput): Promise<CarouselSlide> {
   const { id, revision, body } = getEntityIdentity(input);
-  const response =
-    id && revision !== undefined
-      ? await writeJson<ItemEnvelope<CarouselSlide>>(
-          `/api/admin/carousel/${encodeURIComponent(id)}`,
-          "PATCH",
-          body,
-          getRevisionHeaders(revision)
-        )
-      : await writeJson<ItemEnvelope<CarouselSlide>>("/api/admin/carousel", "POST", body);
+  const response = id
+    ? await writeJson<ItemEnvelope<CarouselSlide>>(
+        `/api/admin/carousel/${encodeURIComponent(id)}`,
+        "PATCH",
+        body,
+        getRevisionHeaders(revision)
+      )
+    : await writeJson<ItemEnvelope<CarouselSlide>>("/api/admin/carousel", "POST", body);
   return response.item;
 }
 

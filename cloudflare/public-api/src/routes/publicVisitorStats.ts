@@ -1,5 +1,5 @@
 import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
-import { listVisitorDailyStatsRows } from "../db/visitorStatsRepository";
+import { countOnlineVisitors, listVisitorDailyStatsRows } from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -15,8 +15,12 @@ export async function publicVisitorStats(env: Env) {
   }
 
   try {
-    const rows = await listVisitorDailyStatsRows(env);
-    return json(createPublicVisitorStatsSnapshot(rows));
+    const generatedAt = new Date();
+    const [rows, onlineUsers] = await Promise.all([
+      listVisitorDailyStatsRows(env),
+      countOnlineVisitors(env, generatedAt)
+    ]);
+    return json(createPublicVisitorStatsSnapshot(rows, generatedAt, onlineUsers));
   } catch {
     return jsonError("Unable to load visitor-stats", 500, {
       resource: RESOURCE,

@@ -30,7 +30,9 @@ function parseInsertColumns(query: string) {
   );
 }
 
-function createStructuredMockDb() {
+function createStructuredMockDb(
+  options: { failRunTable?: string; missingSchemaColumn?: { table: string; column: string } } = {}
+) {
   const tables: Record<string, Row[]> = {
     contents: [],
     documents: [],
@@ -57,6 +59,14 @@ function createStructuredMockDb() {
         },
         async all<T>() {
           const table = tableFromQuery(query);
+
+          if (
+            options.missingSchemaColumn?.table === table &&
+            new RegExp(`^\\s*SELECT\\s+${options.missingSchemaColumn.column}\\s+FROM`, "i").test(query)
+          ) {
+            throw new Error(`D1_ERROR: no such column: ${table}.${options.missingSchemaColumn.column}`);
+          }
+
           const rows = tables[table] ?? [];
           return {
             results: (/WHERE\s+id\s*=\s*\?/i.test(query) ? rows.filter((row) => row.id === bindings[0]) : rows) as T[],
@@ -69,6 +79,10 @@ function createStructuredMockDb() {
         },
         async run() {
           const table = tableFromQuery(query);
+
+          if (options.failRunTable === table) {
+            throw new Error("D1 failure leaked SELECT stack secret fileBase64 appsScriptBridgeToken");
+          }
 
           if (/^\s*DELETE\s+FROM/i.test(query)) {
             if (/WHERE\s+id\s*=\s*\?/i.test(query)) {
@@ -186,6 +200,7 @@ describe("M19 structured admin parity routes", () => {
       request("/api/admin/carousel", "POST", {
         id: "slide-1",
         title: "Sample slide",
+        imageUrl: "https://images.example.test/slide.jpg",
         enabled: true,
         order: 1
       }),
@@ -228,6 +243,7 @@ describe("M19 structured admin parity routes", () => {
         headers: { ...smokeHeaders, "X-RCAT-Expected-Revision": "0" },
         body: JSON.stringify({
           title: "Updated slide",
+          imageUrl: "https://images.example.test/slide.jpg",
           enabled: true,
           order: 1
         })
@@ -237,6 +253,19 @@ describe("M19 structured admin parity routes", () => {
     expect(carouselUpdateResponse.status).toBe(200);
     expect(await readJson(carouselUpdateResponse)).toMatchObject({
       item: { id: "slide-1", title: "Updated slide", revision: 1 }
+    });
+    const carouselUpdateWithoutRevisionResponse = await worker.fetch(
+      request("/api/admin/carousel/slide-1", "PATCH", {
+        title: "",
+        imageUrl: "https://images.example.test/slide.jpg",
+        enabled: true,
+        order: 1
+      }),
+      env
+    );
+    expect(carouselUpdateWithoutRevisionResponse.status).toBe(200);
+    expect(await readJson(carouselUpdateWithoutRevisionResponse)).toMatchObject({
+      item: { id: "slide-1", title: "", revision: 2 }
     });
     expect(snapshotResponse.status).toBe(200);
     expect(snapshot).toMatchObject({
@@ -256,6 +285,70 @@ describe("M19 structured admin parity routes", () => {
       expect(deleteResponse.status).toBe(200);
       expect(await readJson(deleteResponse)).toMatchObject({ deleted: true });
     }
+  });
+
+  it("accepts optional carousel titles but requires an image URL", async () => {
+    const { db } = createStructuredMockDb();
+    const env = { ...smokeEnvBase, DB: db };
+    const emptyTitleResponse = await worker.fetch(
+      request("/api/admin/carousel", "POST", {
+        title: "",
+        imageUrl: "https://images.example.test/title-optional.jpg"
+      }),
+      env
+    );
+    const titledResponse = await worker.fetch(
+      request("/api/admin/carousel", "POST", {
+        title: "Named slide",
+        imageUrl: "https://images.example.test/named.jpg"
+      }),
+      env
+    );
+    const missingImageResponse = await worker.fetch(
+      request("/api/admin/carousel", "POST", { title: "Missing image" }),
+      env
+    );
+
+    expect(emptyTitleResponse.status).toBe(201);
+    await expect(readJson(emptyTitleResponse)).resolves.toMatchObject({ item: { title: "" } });
+    expect(titledResponse.status).toBe(201);
+    expect(missingImageResponse.status).toBe(400);
+    await expect(readJson(missingImageResponse)).resolves.toMatchObject({
+      error: "carousel image URL is required"
+    });
+  });
+
+  it("returns shared preview diagnostics and schema mismatch details without sensitive values", async () => {
+    const runtimeState = createStructuredMockDb({ failRunTable: "homepage_settings" });
+    const runtimeResponse = await worker.fetch(request("/api/admin/settings/homepage", "PUT", { carousel: {} }), {
+      ...smokeEnvBase,
+      DB: runtimeState.db
+    });
+    const runtimeBody = await readJson(runtimeResponse);
+    const schemaState = createStructuredMockDb({
+      missingSchemaColumn: { table: "carousel_slides", column: "revision" }
+    });
+    const schemaResponse = await worker.fetch(
+      request("/api/admin/carousel", "POST", {
+        imageUrl: "https://images.example.test/schema.jpg"
+      }),
+      { ...smokeEnvBase, DB: schemaState.db }
+    );
+
+    expect(runtimeResponse.status).toBe(500);
+    expect(runtimeBody).toMatchObject({
+      diagnostic: "admin-structured-write-unhandled-v3",
+      routeGroup: "settings",
+      operation: "homepage.save",
+      errorName: "Error"
+    });
+    expect(JSON.stringify(runtimeBody)).not.toMatch(/SELECT|stack|secret|fileBase64|appsScriptBridgeToken/i);
+    expect(schemaResponse.status).toBe(500);
+    await expect(readJson(schemaResponse)).resolves.toMatchObject({
+      diagnostic: "admin-structured-schema-mismatch-v1",
+      table: "carousel_slides",
+      missingColumns: ["revision"]
+    });
   });
 
   it("persists only Drive-backed media metadata in D1", async () => {

@@ -6,7 +6,8 @@ const appsScriptMocks = vi.hoisted(() => ({
   getPublicContentListSnapshot: vi.fn(),
   getPublicHomeSnapshot: vi.fn(),
   getPublicProgramListSnapshot: vi.fn(),
-  getPublicSearchIndexSnapshot: vi.fn()
+  getPublicSearchIndexSnapshot: vi.fn(),
+  recordSiteView: vi.fn()
 }));
 
 vi.mock("../../services/googleApi", () => appsScriptMocks);
@@ -16,6 +17,7 @@ import { getPublicHomeSnapshot } from "../public-home/api";
 import { getPublicProgramListSnapshot } from "../public-programs/api";
 import { getPublicSearchIndexSnapshot } from "../public-search/api";
 import { getPublicCmsSnapshotForProvider } from "../../public/hooks/usePublicCmsSnapshot";
+import { recordSiteView } from "../site-view/api";
 
 const generatedAt = "2026-06-20T00:00:00.000Z";
 const publicItem = {
@@ -163,5 +165,25 @@ describe("M19 public read provider parity", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(appsScriptMocks.getCmsSnapshot).not.toHaveBeenCalled();
     expect(appsScriptMocks.getPublicHomeSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("records Cloudflare site views without calling Apps Script", () => {
+    vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
+    const fetchMock = installCloudflareFetch();
+    const input = {
+      visitorId: "rcat_abcdefghijkl",
+      path: "/news",
+      timestamp: "2026-06-22T00:00:00.000Z"
+    };
+
+    expect(recordSiteView(input)).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://public-api.example.test/api/public/site-view",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify(input)
+      })
+    );
+    expect(appsScriptMocks.recordSiteView).not.toHaveBeenCalled();
   });
 });

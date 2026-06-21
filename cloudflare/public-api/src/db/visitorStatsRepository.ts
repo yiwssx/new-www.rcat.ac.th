@@ -14,3 +14,18 @@ export async function listVisitorDailyStatsRows(env: Env): Promise<VisitorDailyS
 
   return result.results ?? [];
 }
+
+export async function countOnlineVisitors(env: Env, generatedAt = new Date()): Promise<number> {
+  const db = requireD1Database(env);
+  const onlineSince = new Date(generatedAt.getTime() - 5 * 60 * 1000).toISOString();
+  const result = await db
+    .prepare(
+      `SELECT COUNT(DISTINCT visitor_id) AS online_users
+       FROM visitor_events
+       WHERE created_at >= ?`
+    )
+    .bind(onlineSince)
+    .all<{ online_users: number }>();
+
+  return Math.max(0, Number(result.results?.[0]?.online_users) || 0);
+}

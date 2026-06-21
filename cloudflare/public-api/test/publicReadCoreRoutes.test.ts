@@ -114,7 +114,7 @@ const sampleHomeSections = [
 
 const sampleVisitorStats = [
   {
-    day: new Date().toISOString().slice(0, 10),
+    day: new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10),
     total_views: 12,
     unique_visitors: 5,
     online_users: 2,
@@ -134,6 +134,7 @@ type MockDbOptions = {
   documentRows?: DocumentRow[];
   homeSections?: typeof sampleHomeSections;
   mediaRows?: typeof sampleMediaRows;
+  onlineUsers?: number;
   visitorStatsRows?: typeof sampleVisitorStats;
 };
 
@@ -151,6 +152,7 @@ function createPublicReadMockDb(options: MockDbOptions = {}) {
   const documentRows = options.documentRows ?? sampleDocuments;
   const homeSections = options.homeSections ?? sampleHomeSections;
   const mediaRows = options.mediaRows ?? sampleMediaRows;
+  const onlineUsers = options.onlineUsers ?? 2;
   const visitorStatsRows = options.visitorStatsRows ?? sampleVisitorStats;
   const calls: { query: string; bindings: unknown[] }[] = [];
 
@@ -173,7 +175,9 @@ function createPublicReadMockDb(options: MockDbOptions = {}) {
             async all<T>() {
               let results: unknown[] = [];
 
-              if (/FROM\s+documents/i.test(query)) {
+              if (/COUNT\(DISTINCT visitor_id\)/i.test(query)) {
+                results = [{ online_users: onlineUsers }];
+              } else if (/FROM\s+documents/i.test(query)) {
                 results = documentRows;
               } else if (/FROM\s+public_home_sections/i.test(query)) {
                 results = homeSections;
