@@ -15,7 +15,7 @@ const forbiddenProductionUrlPatterns =
 const committedD1DatabaseIdPattern = /^\s*database_id\s*=\s*"[0-9a-f-]{32,}"\s*$/im;
 
 function getPreviewConfigBlock(toml: string) {
-  const match = /\[env\.preview\][\s\S]*?(?=\n\[env\.|\n\[\[d1_databases\]\]|$)/.exec(toml);
+  const match = /\[env\.preview\][\s\S]*?(?=\n\[env\.production\]|$)/.exec(toml);
 
   expect(match, "wrangler.toml should define an env.preview block").not.toBeNull();
 

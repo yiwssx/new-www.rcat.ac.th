@@ -57,8 +57,9 @@ function createStructuredMockDb() {
         },
         async all<T>() {
           const table = tableFromQuery(query);
+          const rows = tables[table] ?? [];
           return {
-            results: (tables[table] ?? []) as T[],
+            results: (/WHERE\s+id\s*=\s*\?/i.test(query) ? rows.filter((row) => row.id === bindings[0]) : rows) as T[],
             success: true
           };
         },
@@ -97,6 +98,27 @@ function createStructuredMockDb() {
               rows.push(row);
             }
 
+            return { success: true, meta: { changes: 1 } };
+          }
+
+          if (/^\s*UPDATE/i.test(query)) {
+            const assignments = query.match(/SET\s+([\s\S]+?)\s+WHERE/i)?.[1].split(",") ?? [];
+            const boundAssignments = assignments.filter((assignment) => /=\s*\?/i.test(assignment));
+            const id = bindings[boundAssignments.length];
+            const expectedRevision = bindings[boundAssignments.length + 1];
+            const row = (tables[table] ?? []).find((item) => item.id === id);
+
+            if (!row || (expectedRevision !== undefined && row.revision !== expectedRevision)) {
+              return { success: true, meta: { changes: 0 } };
+            }
+
+            boundAssignments.forEach((assignment, index) => {
+              const column = assignment.match(/^\s*([a-z_]+)/i)?.[1];
+              if (column) {
+                row[column] = bindings[index];
+              }
+            });
+            row.revision = Number(row.revision ?? 0) + 1;
             return { success: true, meta: { changes: 1 } };
           }
 
@@ -200,6 +222,22 @@ describe("M19 structured admin parity routes", () => {
     expect(carouselResponse.status).toBe(201);
     expect(serviceResponse.status).toBe(201);
     expect(eventResponse.status).toBe(201);
+    const carouselUpdateResponse = await worker.fetch(
+      new Request("https://preview-worker.example.test/api/admin/carousel/slide-1", {
+        method: "PATCH",
+        headers: { ...smokeHeaders, "If-Match": "0" },
+        body: JSON.stringify({
+          title: "Updated slide",
+          enabled: true,
+          order: 1
+        })
+      }),
+      env
+    );
+    expect(carouselUpdateResponse.status).toBe(200);
+    expect(await readJson(carouselUpdateResponse)).toMatchObject({
+      item: { id: "slide-1", title: "Updated slide", revision: 1 }
+    });
     expect(snapshotResponse.status).toBe(200);
     expect(snapshot).toMatchObject({
       siteSettings: { siteName: "Sample school" },
@@ -218,6 +256,37 @@ describe("M19 structured admin parity routes", () => {
       expect(deleteResponse.status).toBe(200);
       expect(await readJson(deleteResponse)).toMatchObject({ deleted: true });
     }
+  });
+
+  it("persists only Drive-backed media metadata in D1", async () => {
+    const { db, tables } = createStructuredMockDb();
+    const env = { ...smokeEnvBase, DB: db };
+    const media = {
+      id: "media-1",
+      name: "sample.pdf",
+      type: "document",
+      size: "12 KB",
+      owner: "Sample owner",
+      driveUrl: "https://drive.example.test/media-1",
+      fileId: "drive-file-1",
+      mimeType: "application/pdf",
+      previewUrl: "https://drive.example.test/media-1/preview",
+      embedUrl: "https://drive.example.test/media-1/embed",
+      updatedAt: "2026-06-21T08:30:00.000Z"
+    };
+
+    const saveResponse = await worker.fetch(request("/api/admin/media", "POST", media), env);
+    const snapshotResponse = await worker.fetch(request("/api/admin/snapshot"), env);
+
+    expect(saveResponse.status).toBe(200);
+    expect(await readJson(saveResponse)).toMatchObject({ item: media });
+    expect(tables.media_assets).toHaveLength(1);
+    expect(tables.media_assets[0]).not.toHaveProperty("bytes");
+    expect(await readJson(snapshotResponse)).toMatchObject({ media: [media] });
+
+    const deleteResponse = await worker.fetch(request("/api/admin/media/media-1", "DELETE"), env);
+    expect(deleteResponse.status).toBe(200);
+    expect(tables.media_assets).toHaveLength(0);
   });
 
   it("keeps the structured routes behind the existing preview authentication gate", async () => {

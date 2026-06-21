@@ -10,7 +10,7 @@ const googleApiMocks = vi.hoisted(() => ({
 let currentSnapshot: CmsSnapshot | undefined;
 let currentDetail: ContentItem | undefined;
 
-vi.mock("../services/googleApi", () => ({
+vi.mock("../features/site-view", () => ({
   recordContentView: googleApiMocks.recordContentView
 }));
 

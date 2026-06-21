@@ -33,9 +33,15 @@ import PageHeader from "../components/PageHeader";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { deleteCalendarEvent, saveCalendarEvent } from "../../features/cms-events";
 import { CalendarEvent } from "../../types";
-import { getCalendarDateRangeError, isEndDateTimeBeforeStart, toLocalDateTimeInputValue } from "../../utils/calendar";
+import {
+  fromLocalDateTimeInputValue,
+  getCalendarDateRangeError,
+  isEndDateTimeBeforeStart,
+  toLocalDateTimeInputValue
+} from "../../utils/calendar";
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
+import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { eventStatusLabels, visibilityLabels } from "../../utils/thaiLabels";
 
 interface EventFormState {
@@ -137,14 +143,14 @@ export default function CalendarPage() {
   const saveMutation = useMutation({
     mutationFn: saveCalendarEvent,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
+      await invalidatePublicCmsData(queryClient);
     }
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteCalendarEvent,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
+      await invalidatePublicCmsData(queryClient);
     }
   });
 
@@ -191,10 +197,11 @@ export default function CalendarPage() {
     try {
       await saveMutation.mutateAsync({
         id: editingEventId,
+        revision: editingEvent?.revision,
         title: form.title.trim(),
         audience: form.audience.trim(),
-        date: dayjs(form.dateTime).toISOString(),
-        endDate: form.endDateTime ? dayjs(form.endDateTime).toISOString() : "",
+        date: fromLocalDateTimeInputValue(form.dateTime),
+        endDate: fromLocalDateTimeInputValue(form.endDateTime),
         status: form.status,
         location: form.location.trim(),
         description: form.description.trim(),
@@ -466,7 +473,7 @@ export default function CalendarPage() {
                         };
                       })
                     }
-                    slotProps={{ inputLabel: { shrink: true } }}
+                    slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
                     required
                     fullWidth
                   />
@@ -479,7 +486,7 @@ export default function CalendarPage() {
                     onChange={(event) => setForm((current) => ({ ...current, endDateTime: event.target.value }))}
                     slotProps={{
                       inputLabel: { shrink: true },
-                      htmlInput: { min: form.dateTime || undefined }
+                      htmlInput: { min: form.dateTime || undefined, step: 60 }
                     }}
                     error={Boolean(endDateError)}
                     helperText={endDateError || "ไม่บังคับ"}

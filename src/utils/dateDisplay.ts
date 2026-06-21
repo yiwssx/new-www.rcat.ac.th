@@ -1,5 +1,7 @@
 import dayjs from "dayjs";
 import "dayjs/locale/th";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 import { DisplaySettings } from "../types";
 import { defaultDisplaySettings, getStoredDisplaySettings } from "../services/displaySettings";
 
@@ -24,7 +26,11 @@ const WORDPRESS_TO_DAYJS_MAP: Record<string, string> = {
   s: "ss"
 };
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.locale("th");
+
+const THAI_TIME_ZONE = "Asia/Bangkok";
 
 function escapeLiteral(value: string) {
   return value.replace(/\]/g, "\\]");
@@ -71,7 +77,8 @@ export function convertWordPressFormatToDayjs(format: string) {
 }
 
 function getTimeWordPressFormat(timeMode: DisplaySettings["timeMode"]) {
-  return timeMode === "12h" ? "g:i a" : "H:i";
+  void timeMode;
+  return "H:i";
 }
 
 function resolveDisplaySettings(override?: Partial<DisplaySettings>) {
@@ -84,12 +91,16 @@ function resolveDisplaySettings(override?: Partial<DisplaySettings>) {
 
 export function formatDisplayDate(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
-  return dayjs(value).locale("th").format(convertWordPressFormatToDayjs(normalizedSettings.dateFormat));
+  return dayjs(value)
+    .tz(THAI_TIME_ZONE)
+    .locale("th")
+    .format(convertWordPressFormatToDayjs(normalizedSettings.dateFormat));
 }
 
 export function formatDisplayTime(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
   return dayjs(value)
+    .tz(THAI_TIME_ZONE)
     .locale("th")
     .format(convertWordPressFormatToDayjs(getTimeWordPressFormat(normalizedSettings.timeMode)));
 }
@@ -97,6 +108,7 @@ export function formatDisplayTime(value: string | Date, settings?: Partial<Displ
 export function formatDisplayDateTime(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
   return dayjs(value)
+    .tz(THAI_TIME_ZONE)
     .locale("th")
     .format(
       `${convertWordPressFormatToDayjs(normalizedSettings.dateFormat)} ${convertWordPressFormatToDayjs(

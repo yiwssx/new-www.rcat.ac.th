@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getCmsSnapshot } from "../../services/googleApi";
+import { getPublicApiProvider } from "../../config/publicApiProvider";
+import { getPublicHomeSnapshot } from "../../features/public-home";
+import type { CmsSnapshot, ContentItem } from "../../types";
 import {
   getPublicSnapshotCache,
   PUBLIC_SNAPSHOT_CACHE_TTL_MS,
@@ -25,7 +28,7 @@ export function usePublicCmsSnapshot(options: UsePublicCmsSnapshotOptions = {}) 
   return useQuery({
     queryKey: ["cms-snapshot"],
     queryFn: async () => {
-      const snapshot = await getCmsSnapshot();
+      const snapshot = await getPublicCmsSnapshotForProvider();
       setPublicSnapshotCache(snapshot);
       return snapshot;
     },
@@ -38,4 +41,36 @@ export function usePublicCmsSnapshot(options: UsePublicCmsSnapshotOptions = {}) 
     refetchOnWindowFocus: false,
     refetchOnReconnect: true
   });
+}
+
+export async function getPublicCmsSnapshotForProvider(): Promise<CmsSnapshot> {
+  if (getPublicApiProvider() !== "cloudflare") {
+    return getCmsSnapshot();
+  }
+
+  const home = await getPublicHomeSnapshot();
+  const contentById = new Map<string, ContentItem>();
+
+  [
+    ...home.latestNews,
+    ...home.latestAnnouncements,
+    ...home.procurementItems,
+    ...home.jobOpportunityItems,
+    ...home.achievementItems,
+    ...home.programItems
+  ].forEach((item) => contentById.set(item.id, item));
+
+  return {
+    metrics: [],
+    content: [...contentById.values()],
+    media: home.media,
+    events: home.eventItems,
+    menu: home.menu,
+    carouselSlides: home.carouselSlides,
+    externalServices: home.externalServices,
+    displaySettings: home.displaySettings,
+    siteSettings: home.siteSettings,
+    homepageSettings: home.homepageSettings,
+    visitorStats: home.visitorStats
+  };
 }

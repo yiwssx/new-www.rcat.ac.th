@@ -37,6 +37,7 @@ import {
   serializeContentBlocksToBody
 } from "../../utils/contentBlocks";
 import { formatFileSize, readFileAsBase64 } from "../../utils/files";
+import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
 
 const contentTypes: ContentType[] = ["page", "news", "program", "announcement", "blog"];
 const contentStatuses: ContentStatus[] = ["draft", "review", "scheduled", "published"];
@@ -684,14 +685,14 @@ export default function ContentEditorDialog({
                 <TextField
                   label="วันที่เผยแพร่"
                   type="datetime-local"
-                  value={draft.publishAt ? draft.publishAt.slice(0, 16) : ""}
+                  value={toLocalDateTimeInputValue(draft.publishAt)}
                   onChange={(event) =>
                     updateDraft(
                       "publishAt",
-                      event.target.value ? new Date(event.target.value).toISOString() : new Date().toISOString()
+                      fromLocalDateTimeInputValue(event.target.value) || new Date().toISOString()
                     )
                   }
-                  slotProps={{ inputLabel: { shrink: true } }}
+                  slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
                   size="small"
                   fullWidth
                 />

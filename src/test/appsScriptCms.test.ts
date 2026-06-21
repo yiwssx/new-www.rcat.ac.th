@@ -286,6 +286,15 @@ function captureError(fn: () => void) {
 }
 
 describe("Apps Script CMS helpers", () => {
+  it("uploads original decoded bytes without resize or recompression", () => {
+    const createDriveFileSource = /function createDriveFile\(asset\) \{([\s\S]*?)\n\}/.exec(cmsSource)?.[1] ?? "";
+
+    expect(createDriveFileSource).toMatch(/decodeUploadBytes\(asset\.fileBase64\)/);
+    expect(createDriveFileSource).toMatch(/Utilities\.newBlob\(bytes, contentType, fileName\)/);
+    expect(createDriveFileSource).toMatch(/uploadFolder\.createFile\(blob\)/);
+    expect(createDriveFileSource).not.toMatch(/resize|compress|thumbnail|convert/i);
+  });
+
   it("normalizes slugs and rejects duplicate slugs for other content records", () => {
     const context = loadCmsScript();
     context.readObjects.mockReturnValue([

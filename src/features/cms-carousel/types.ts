@@ -12,4 +12,5 @@ export interface CarouselSlide {
   startAt?: string;
   endAt?: string;
   updatedAt: string;
+  revision?: number;
 }

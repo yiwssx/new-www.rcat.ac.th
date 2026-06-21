@@ -133,11 +133,11 @@ describe("M18 admin structured write provider", () => {
       const body = JSON.parse(String(init?.body ?? "{}"));
 
       if (url.endsWith("/api/admin/content")) {
-        return jsonResponse({ item: { ...body, updatedAt: sampleContent.updatedAt } }, 201);
+        return jsonResponse({ item: { ...body, id: sampleContent.id, updatedAt: sampleContent.updatedAt } }, 201);
       }
 
       if (url.endsWith("/api/admin/documents")) {
-        return jsonResponse({ item: { ...body, updatedAt: sampleDocument.updatedAt } }, 201);
+        return jsonResponse({ item: { ...body, id: sampleDocument.id, updatedAt: sampleDocument.updatedAt } }, 201);
       }
 
       return jsonResponse({ error: "not found" }, 404);
@@ -160,12 +160,71 @@ describe("M18 admin structured write provider", () => {
     expect(googleApiMocks.saveDocumentToApi).not.toHaveBeenCalled();
   });
 
-  it("keeps media upload and delete operations on Apps Script", async () => {
-    googleApiMocks.saveMediaAsset.mockResolvedValue({ id: "m18-preview-media-001" });
-    googleApiMocks.uploadMediaAsset.mockResolvedValue({ id: "m18-preview-media-002" });
+  it("uses PATCH with If-Match for existing content and documents", async () => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      const pathParts = url.split("/");
+      return jsonResponse({
+        item: { ...body, id: decodeURIComponent(pathParts[pathParts.length - 1] || ""), revision: 4 }
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { saveContentItem } = await import("../cms-content/api");
+    const { saveDocumentToApi } = await import("../cms-documents/api");
+
+    await saveContentItem({ ...sampleContent, revision: 3 });
+    await saveDocumentToApi({ ...sampleDocument, revision: 3 });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001"
+    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "https://preview-worker.example.test/api/admin/documents/m18-preview-document-001"
+    );
+    fetchMock.mock.calls.forEach(([, init]) => {
+      expect(init?.method).toBe("PATCH");
+      expect(new Headers(init?.headers).get("If-Match")).toBe('"3"');
+      expect(JSON.parse(String(init?.body ?? "{}"))).not.toHaveProperty("id");
+    });
+  });
+
+  it.each([
+    ["duplicate content slug", 409],
+    ["stale revision", 409]
+  ])("surfaces Cloudflare edit conflict: %s", async (message, status) => {
+    setCloudflareEnv();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ error: message }, status))
+    );
+    const { saveContentItem } = await import("../cms-content/api");
+
+    await expect(saveContentItem({ ...sampleContent, revision: 2 })).rejects.toThrow(message);
+  });
+
+  it("keeps media bytes on Apps Script while synchronizing returned metadata to Cloudflare", async () => {
+    const savedMedia = {
+      id: "m18-preview-media-001",
+      name: "M18 preview media",
+      type: "document" as const,
+      size: "1 MB",
+      owner: "preview-editor",
+      driveUrl: "https://files.example.test/media-1",
+      updatedAt: "2026-06-16T00:00:00.000Z"
+    };
+    const uploadedMedia = { ...savedMedia, id: "m18-preview-media-002" };
+    googleApiMocks.saveMediaAsset.mockResolvedValue(savedMedia);
+    googleApiMocks.uploadMediaAsset.mockResolvedValue(uploadedMedia);
     googleApiMocks.deleteMediaAsset.mockResolvedValue({ id: "m18-preview-media-001", deleted: true });
     setCloudflareEnv();
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "DELETE") {
+        return jsonResponse({ id: "m18-preview-media-001", deleted: true });
+      }
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      return jsonResponse({ item: body });
+    });
     vi.stubGlobal("fetch", fetchMock);
     const { saveMediaAsset, uploadMediaAsset, deleteMediaAsset } = await import("../cms-media/api");
 
@@ -185,10 +244,30 @@ describe("M18 admin structured write provider", () => {
     });
     await deleteMediaAsset("m18-preview-media-001");
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/media");
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
     expect(googleApiMocks.saveMediaAsset).toHaveBeenCalled();
     expect(googleApiMocks.uploadMediaAsset).toHaveBeenCalled();
     expect(googleApiMocks.deleteMediaAsset).toHaveBeenCalledWith("m18-preview-media-001");
+  });
+
+  it("converts a missing server-proxy session into a sign-in-again event", async () => {
+    setServerProxyEnv();
+    const eventListener = vi.fn();
+    window.addEventListener("rcat:admin-proxy-session-expired", eventListener);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ error: "admin proxy session is required" }, 401))
+    );
+    const { getAdminCmsSnapshot } = await import("../cms-dashboard/api");
+
+    await expect(getAdminCmsSnapshot()).rejects.toThrow("Session expired. Please sign in again.");
+    expect(eventListener).toHaveBeenCalledTimes(1);
+    expect(window.sessionStorage.getItem("rcat.admin.proxy.session.notice")).toBe(
+      "Session expired. Please sign in again."
+    );
+    window.removeEventListener("rcat:admin-proxy-session-expired", eventListener);
   });
 
   it("keeps Cloudflare admin snapshot GET credentialed without sending a JSON content type", async () => {
@@ -295,7 +374,8 @@ describe("M18 admin structured write provider", () => {
       href: "/sample",
       enabled: true,
       order: 1,
-      updatedAt: "2026-06-20T00:00:00.000Z"
+      updatedAt: "2026-06-20T00:00:00.000Z",
+      revision: 2
     };
     const service = {
       id: "service-1",
@@ -306,7 +386,8 @@ describe("M18 admin structured write provider", () => {
       iconKey: "link" as const,
       enabled: true,
       order: 1,
-      updatedAt: "2026-06-20T00:00:00.000Z"
+      updatedAt: "2026-06-20T00:00:00.000Z",
+      revision: 2
     };
     const event = {
       id: "event-1",
@@ -315,7 +396,8 @@ describe("M18 admin structured write provider", () => {
       audience: "public",
       status: "confirmed" as const,
       visibility: "public" as const,
-      updatedAt: "2026-06-20T00:00:00.000Z"
+      updatedAt: "2026-06-20T00:00:00.000Z",
+      revision: 2
     };
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       const path = new URL(url).pathname;
@@ -366,6 +448,12 @@ describe("M18 admin structured write provider", () => {
     await eventsApi.deleteCalendarEvent(event.id);
 
     expect(fetchMock).toHaveBeenCalledTimes(12);
+    for (const callIndex of [6, 8, 10]) {
+      expect(fetchMock.mock.calls[callIndex]?.[1]).toMatchObject({
+        method: "PATCH",
+        headers: { "if-match": '"2"' }
+      });
+    }
     expect(googleApiMocks.getDisplaySettingsFromApi).not.toHaveBeenCalled();
     expect(googleApiMocks.saveSiteSettingsToApi).not.toHaveBeenCalled();
     expect(googleApiMocks.savePublicMenuItems).not.toHaveBeenCalled();

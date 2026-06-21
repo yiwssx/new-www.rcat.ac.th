@@ -100,7 +100,7 @@ describe("rcat public API Worker", () => {
     });
   });
 
-  it("returns GET-only CORS headers for OPTIONS requests", async () => {
+  it("advertises the public analytics POST method for OPTIONS requests", async () => {
     const response = await worker.fetch(
       new Request("https://public-api.example.test/api/public/documents", {
         method: "OPTIONS"
@@ -111,7 +111,7 @@ describe("rcat public API Worker", () => {
     expect(response.status).toBe(204);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
     expect(response.headers.has("Access-Control-Allow-Credentials")).toBe(false);
-    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("GET, OPTIONS");
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("GET, POST, OPTIONS");
     expect(response.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
   });
 

@@ -8,6 +8,7 @@ import { publicHome } from "./routes/publicHome";
 import { publicPrograms } from "./routes/publicPrograms";
 import { publicSearch } from "./routes/publicSearch";
 import { publicVisitorStats } from "./routes/publicVisitorStats";
+import { recordPublicContentView, recordPublicSiteView } from "./routes/publicAnalytics";
 
 const CONTENT_DETAIL_PREFIX = "/api/public/content/";
 
@@ -24,13 +25,21 @@ export async function routeRequest(request: Request, env: Env) {
     });
   }
 
+  const { pathname } = new URL(request.url);
+
+  if (request.method === "POST" && pathname === "/api/public/site-view") {
+    return recordPublicSiteView(request, env);
+  }
+
+  if (request.method === "POST" && pathname === "/api/public/content-view") {
+    return recordPublicContentView(request, env);
+  }
+
   if (request.method !== "GET") {
     const response = methodNotAllowed();
     response.headers.set("Allow", "GET, OPTIONS");
     return response;
   }
-
-  const { pathname } = new URL(request.url);
 
   if (pathname === "/health" || pathname === "/api/health") {
     return health(env);

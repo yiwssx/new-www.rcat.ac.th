@@ -84,6 +84,17 @@ function numberValue(value: unknown, fallback = 0) {
   return Number.isFinite(number) ? Math.max(0, Math.floor(number)) : fallback;
 }
 
+function expectedRevision(request: Request) {
+  const raw = request.headers.get("If-Match")?.replace(/^W\//, "").replace(/^"|"$/g, "").trim();
+
+  if (!raw) {
+    return undefined;
+  }
+
+  const revision = Number(raw);
+  return Number.isSafeInteger(revision) && revision >= 0 ? revision : undefined;
+}
+
 function requiredString(value: unknown, field: string) {
   const normalized = stringValue(value);
 
@@ -343,12 +354,12 @@ function mapEntity(entity: EntityName, row: CarouselSlideRow | ExternalServiceRo
 
   if (entity === "carousel") {
     rows.carouselSlides = [row as CarouselSlideRow];
-    return createPublicMetadata(rows).carouselSlides[0];
+    return { ...createPublicMetadata(rows).carouselSlides[0], revision: row.revision };
   }
 
   if (entity === "external-services") {
     rows.externalServices = [row as ExternalServiceRow];
-    return createPublicMetadata(rows).externalServices[0];
+    return { ...createPublicMetadata(rows).externalServices[0], revision: row.revision };
   }
 
   const event = row as EventRow;
@@ -363,8 +374,73 @@ function mapEntity(entity: EntityName, row: CarouselSlideRow | ExternalServiceRo
     ...(event.description ? { description: event.description } : {}),
     ...(event.category ? { category: event.category } : {}),
     visibility: event.visibility,
-    updatedAt: event.updated_at
+    updatedAt: event.updated_at,
+    revision: event.revision
   };
+}
+
+function createMediaRow(body: JsonRecord, now: string): MediaAssetRow {
+  return {
+    id: requiredString(body.id, "media id"),
+    name: requiredString(body.name, "media name"),
+    type: requiredString(body.type, "media type"),
+    size: stringValue(body.size),
+    owner: stringValue(body.owner),
+    drive_url: stringValue(body.driveUrl),
+    file_id: stringValue(body.fileId),
+    mime_type: stringValue(body.mimeType),
+    preview_url: stringValue(body.previewUrl),
+    embed_url: stringValue(body.embedUrl),
+    thumbnail_url: stringValue(body.thumbnailUrl),
+    updated_at: stringValue(body.updatedAt, now)
+  };
+}
+
+function mapMediaRow(row: MediaAssetRow) {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    size: row.size,
+    owner: row.owner,
+    driveUrl: row.drive_url,
+    fileId: row.file_id,
+    mimeType: row.mime_type,
+    previewUrl: row.preview_url,
+    embedUrl: row.embed_url,
+    updatedAt: row.updated_at
+  };
+}
+
+async function handleMedia(request: Request, env: Env, segments: string[]) {
+  if (segments.length === 1 && request.method === "POST") {
+    const row = createMediaRow(await readJsonBody(request), new Date().toISOString());
+
+    await run(
+      env,
+      `INSERT INTO media_assets (${MEDIA_ASSET_ROW_COLUMNS.join(", ")})
+       VALUES (${MEDIA_ASSET_ROW_COLUMNS.map(() => "?").join(", ")})
+       ON CONFLICT(id) DO UPDATE SET ${MEDIA_ASSET_ROW_COLUMNS.filter((column) => column !== "id")
+         .map((column) => `${column} = excluded.${column}`)
+         .join(", ")}`,
+      ...MEDIA_ASSET_ROW_COLUMNS.map((column) => row[column])
+    );
+
+    return json({ item: mapMediaRow(row) });
+  }
+
+  if (segments.length === 2 && request.method === "DELETE") {
+    const id = decodeURIComponent(segments[1] || "");
+    const result = await run(env, "DELETE FROM media_assets WHERE id = ?", id);
+
+    if (!result.meta.changes) {
+      return jsonError("not found", 404, { resource: "media" });
+    }
+
+    return json({ id, deleted: true });
+  }
+
+  return null;
 }
 
 async function handleEntity(request: Request, env: Env, segments: string[], entity: EntityName, actor: string) {
@@ -383,6 +459,53 @@ async function handleEntity(request: Request, env: Env, segments: string[], enti
       ...config.adminColumns.map((column) => row[column as keyof typeof row])
     );
     return json({ item: mapEntity(entity, row) }, { status: 201 });
+  }
+
+  if (segments.length === 2 && request.method === "PATCH") {
+    const id = decodeURIComponent(segments[1] || "");
+    const currentRows = await getRows<CarouselSlideRow | ExternalServiceRow | EventRow>(
+      env,
+      `SELECT ${config.adminColumns.join(", ")} FROM ${config.table} WHERE id = ? LIMIT 1`,
+      id
+    );
+    const current = currentRows[0];
+
+    if (!current) {
+      return jsonError("not found", 404, { resource: entity });
+    }
+
+    const requestedRevision = expectedRevision(request);
+    const currentRevision = Number(current.revision ?? 0);
+
+    if (requestedRevision !== undefined && currentRevision !== requestedRevision) {
+      return jsonError("stale revision", 409, {
+        resource: entity,
+        expectedRevision: requestedRevision,
+        currentRevision
+      });
+    }
+
+    const row = createEntityRow(entity, { ...(await readJsonBody(request)), id }, new Date().toISOString(), actor);
+    row.created_at = current.created_at || row.created_at;
+    row.revision = currentRevision + 1;
+    const mutableColumns = config.adminColumns.filter(
+      (column) => column !== "id" && column !== "created_at" && column !== "revision"
+    );
+    const result = await run(
+      env,
+      `UPDATE ${config.table}
+       SET ${mutableColumns.map((column) => `${column} = ?`).join(", ")}, revision = revision + 1
+       WHERE id = ?${requestedRevision === undefined ? "" : " AND revision = ?"}`,
+      ...mutableColumns.map((column) => row[column as keyof typeof row]),
+      id,
+      ...(requestedRevision === undefined ? [] : [requestedRevision])
+    );
+
+    if (!result.meta.changes) {
+      return jsonError("stale revision", 409, { resource: entity });
+    }
+
+    return json({ item: mapEntity(entity, row) });
   }
 
   if (segments.length === 2 && request.method === "DELETE") {
@@ -411,6 +534,10 @@ export async function handleAdminStructuredParity(
 
   if (segments[0] === "menu") {
     return handleMenu(request, env, segments, identity.actor);
+  }
+
+  if (segments[0] === "media") {
+    return handleMedia(request, env, segments);
   }
 
   if (segments[0] === "carousel" || segments[0] === "external-services" || segments[0] === "events") {

@@ -105,6 +105,7 @@ export interface UserAccountInput {
 
 export interface CalendarEventInput {
   id?: string;
+  revision?: number;
   title: string;
   date: string;
   endDate?: string;

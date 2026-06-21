@@ -10,4 +10,5 @@ export interface CalendarEvent {
   category?: string;
   visibility?: "public" | "private";
   updatedAt?: string;
+  revision?: number;
 }

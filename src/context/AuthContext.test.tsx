@@ -33,6 +33,7 @@ vi.mock("../services/auth", () => {
 });
 
 vi.mock("../services/adminProxySession", () => ({
+  ADMIN_PROXY_SESSION_EXPIRED_EVENT: "rcat:admin-proxy-session-expired",
   isAdminProxySessionEnabled: () => adminProxySessionMock.enabled,
   loginAdminProxySession: adminProxySessionMock.login,
   logoutAdminProxySession: adminProxySessionMock.logout
@@ -164,5 +165,23 @@ describe("AuthProvider", () => {
       expect(screen.getByText("Signed out")).toBeInTheDocument();
     });
     expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
+  });
+
+  it("clears local auth immediately when the HttpOnly proxy session expires", async () => {
+    window.localStorage.setItem(projectSettings.storageKeys.session, JSON.stringify(await authModuleMock.login()));
+    render(
+      <AuthProvider>
+        <AuthStateControls />
+      </AuthProvider>
+    );
+
+    expect(screen.getByText("Signed in")).toBeInTheDocument();
+    window.dispatchEvent(new CustomEvent("rcat:admin-proxy-session-expired"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Signed out")).toBeInTheDocument();
+    });
+    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
+    expect(adminProxySessionMock.logout).not.toHaveBeenCalled();
   });
 });

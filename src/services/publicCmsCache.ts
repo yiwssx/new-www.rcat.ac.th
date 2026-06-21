@@ -7,11 +7,13 @@ const PUBLIC_CONTENT_LIST_CACHE_PREFIX = "rcat.cms.public.content-list.";
 const PUBLIC_CONTENT_LIST_CACHE_KINDS = ["news", "announcements", "blog"];
 const PUBLIC_PROGRAM_LIST_CACHE_KEY = "rcat.cms.public.program-list";
 const PUBLIC_SEARCH_INDEX_CACHE_KEY = "rcat.cms.public.search-index";
+const PUBLIC_CACHE_ROOT_PREFIX = "rcat.cms.public.";
 export const PUBLIC_CONTENT_DETAIL_CACHE_PREFIX = "rcat.cms.public.content-detail.v1.";
 export const PUBLIC_SNAPSHOT_CACHE_TTL_MS = 15 * 60 * 1000;
 export const PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS = 30 * 60 * 1000;
 
 const maxContentDetailCacheEntries = 20;
+const trackedPublicCacheKeys = new Set<string>();
 
 export type CacheEntry<T> = {
   data: T;
@@ -101,6 +103,8 @@ export function readPublicCache<T>(key: string): { data: T; savedAt: number } | 
     return null;
   }
 
+  trackedPublicCacheKeys.add(key);
+
   let parsed: unknown;
 
   try {
@@ -142,6 +146,7 @@ export function writePublicCache<T>(key: string, data: T, ttlMs: number): void {
 
   try {
     storage.setItem(key, JSON.stringify(entry));
+    trackedPublicCacheKeys.add(key);
   } catch {
     // Public cache is a performance hint. Quota or privacy-mode failures should not affect UI.
   }
@@ -156,6 +161,7 @@ export function removePublicCache(key: string): void {
 
   try {
     storage.removeItem(key);
+    trackedPublicCacheKeys.delete(key);
   } catch {
     // Ignore storage errors; the app can always fetch public data again.
   }
@@ -188,6 +194,7 @@ export function setPublicContentDetailCache(slug: string | undefined, content: C
 }
 
 export function clearPublicCmsCache() {
+  const trackedKeys = [...trackedPublicCacheKeys];
   removePublicCache(PUBLIC_SNAPSHOT_CACHE_KEY);
   removePublicCache(PUBLIC_HOME_CACHE_KEY);
   removePublicCache(PUBLIC_DOCUMENT_LIST_CACHE_KEY);
@@ -200,6 +207,12 @@ export function clearPublicCmsCache() {
     removePublicCache(key);
   });
   getKeysByPrefix(PUBLIC_CONTENT_DETAIL_CACHE_PREFIX).forEach((key) => {
+    removePublicCache(key);
+  });
+  getKeysByPrefix(PUBLIC_CACHE_ROOT_PREFIX).forEach((key) => {
+    removePublicCache(key);
+  });
+  trackedKeys.forEach((key) => {
     removePublicCache(key);
   });
 }

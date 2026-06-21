@@ -10,10 +10,10 @@ import {
 } from "@tanstack/react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublicSiteViewTracker } from "../features/site-view";
-import { recordSiteView, type SiteViewInput } from "../services/googleApi";
+import { recordSiteView, type SiteViewInput } from "../features/site-view/api";
 import { resetSiteViewTrackingForTests } from "../features/site-view";
 
-vi.mock("../services/googleApi", () => ({
+vi.mock("../features/site-view/api", () => ({
   recordSiteView: vi.fn(() => true)
 }));
 

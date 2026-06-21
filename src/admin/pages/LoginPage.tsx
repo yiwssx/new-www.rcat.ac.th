@@ -17,6 +17,7 @@ import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
 import { useAuth } from "../../context/authSessionContext";
 import { appSwal } from "../../utils/swal";
+import { consumeAdminProxySessionNotice } from "../../services/adminProxySession";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState(projectSettings.auth.loginPrefill.password);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [sessionNotice] = useState(() => consumeAdminProxySessionNotice());
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -95,6 +97,7 @@ export default function LoginPage() {
                   <Typography color="text.secondary">{"ระบบบริหารจัดการเนื้อหา"}</Typography>
                 </Box>
               </Stack>
+              {sessionNotice && <Alert severity="warning">{sessionNotice}</Alert>}
               {error && <Alert severity="error">{error}</Alert>}
               <Stack component="form" spacing={2.25} onSubmit={handleSubmit}>
                 <TextField

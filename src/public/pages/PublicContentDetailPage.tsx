@@ -9,7 +9,7 @@ import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutl
 import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
 import ContentBlocksRenderer from "../../shared/components/ContentBlocksRenderer";
 import EmptyState from "../../shared/components/EmptyState";
-import { recordContentView } from "../../services/googleApi";
+import { recordContentView } from "../../features/site-view";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";

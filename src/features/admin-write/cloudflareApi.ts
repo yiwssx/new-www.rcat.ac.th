@@ -6,12 +6,15 @@ import type {
   DisplaySettings,
   ExternalServiceLink,
   HomepageSettings,
+  MediaAsset,
   PublicMenuItem,
   SiteSettings
 } from "../../types";
 import type { CalendarEventInput, CarouselSlideInput, ExternalServiceLinkInput } from "../../services/googleApi";
 import type { CmsDocumentItem } from "../cms-documents/types";
 import type { ContentItem } from "../public-content/types";
+import { mergeBridgeMediaAssets } from "../cms-media/bridgeCache";
+import { ADMIN_PROXY_SESSION_EXPIRED_MESSAGE, notifyAdminProxySessionExpired } from "../../services/adminProxySession";
 
 interface ItemEnvelope<T> {
   item: T;
@@ -57,21 +60,45 @@ async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): 
       payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
         ? payload.error
         : `Cloudflare admin API request failed with status ${response.status}`;
+    if (response.status === 401 && /admin proxy session is (?:required|invalid or expired)/i.test(errorMessage)) {
+      notifyAdminProxySessionExpired();
+      throw new Error(ADMIN_PROXY_SESSION_EXPIRED_MESSAGE);
+    }
+
     throw new Error(errorMessage);
   }
 
   return payload as T;
 }
 
-function writeJson<T>(path: string, method: "POST" | "PATCH" | "PUT", body: unknown): Promise<T> {
+function writeJson<T>(
+  path: string,
+  method: "POST" | "PATCH" | "PUT",
+  body: unknown,
+  headers?: HeadersInit
+): Promise<T> {
   return requestCloudflareAdmin<T>(path, {
     method,
+    headers,
     body: JSON.stringify(body)
   });
 }
 
+function getRevisionHeaders(revision: unknown) {
+  return Number.isInteger(revision) && Number(revision) >= 0 ? { "If-Match": `"${revision}"` } : undefined;
+}
+
+function getEntityIdentity(input: { id?: string; revision?: number }) {
+  const { id, revision, ...body } = input;
+  return { id: id?.trim() || "", revision, body };
+}
+
 export async function getAdminCmsSnapshotFromCloudflare(): Promise<CmsSnapshot> {
-  return requestCloudflareAdmin<CmsSnapshot>("/api/admin/snapshot");
+  const snapshot = await requestCloudflareAdmin<CmsSnapshot>("/api/admin/snapshot");
+  return {
+    ...snapshot,
+    media: mergeBridgeMediaAssets(snapshot.media ?? [])
+  };
 }
 
 export async function getAdminContentDetailFromCloudflare(input: { id?: string; slug?: string }): Promise<ContentItem> {
@@ -87,29 +114,66 @@ export async function getAdminContentDetailFromCloudflare(input: { id?: string; 
 }
 
 export async function saveContentItemToCloudflare(item: ContentItem): Promise<ContentItem> {
-  const response = await writeJson<ItemEnvelope<ContentItem>>("/api/admin/content", "POST", item);
+  const { id, revision, body } = getEntityIdentity(item);
+  const response =
+    id && revision !== undefined
+      ? await writeJson<ItemEnvelope<ContentItem>>(
+          `/api/admin/content/${encodeURIComponent(id)}`,
+          "PATCH",
+          body,
+          getRevisionHeaders(revision)
+        )
+      : await writeJson<ItemEnvelope<ContentItem>>("/api/admin/content", "POST", body);
 
   return response.item;
 }
 
-export async function deleteContentItemFromCloudflare(id: string): Promise<{ id: string; deleted: boolean }> {
+export async function deleteContentItemFromCloudflare(
+  input: string | Pick<ContentItem, "id" | "revision">
+): Promise<{ id: string; deleted: boolean }> {
+  const id = typeof input === "string" ? input : input.id;
+  const revision = typeof input === "string" ? undefined : input.revision;
   return requestCloudflareAdmin<{ id: string; deleted: boolean }>(`/api/admin/content/${encodeURIComponent(id)}`, {
-    method: "DELETE"
+    method: "DELETE",
+    headers: getRevisionHeaders(revision)
   });
 }
 
-export async function publishContentFromCloudflare(id: string): Promise<{ id: string; published: boolean }> {
+export async function publishContentFromCloudflare(
+  input: string | Pick<ContentItem, "id" | "revision">
+): Promise<{ id: string; published: boolean }> {
+  const id = typeof input === "string" ? input : input.id;
+  const revision = typeof input === "string" ? undefined : input.revision;
   return writeJson<{ id: string; published: boolean }>(
     `/api/admin/content/${encodeURIComponent(id)}/publish`,
     "POST",
-    {}
+    {},
+    getRevisionHeaders(revision)
   );
 }
 
 export async function saveDocumentToCloudflare(document: Partial<CmsDocumentItem>): Promise<CmsDocumentItem> {
-  const response = await writeJson<ItemEnvelope<CmsDocumentItem>>("/api/admin/documents", "POST", document);
+  const { id, revision, body } = getEntityIdentity(document);
+  const response =
+    id && revision !== undefined
+      ? await writeJson<ItemEnvelope<CmsDocumentItem>>(
+          `/api/admin/documents/${encodeURIComponent(id)}`,
+          "PATCH",
+          body,
+          getRevisionHeaders(revision)
+        )
+      : await writeJson<ItemEnvelope<CmsDocumentItem>>("/api/admin/documents", "POST", body);
 
   return response.item;
+}
+
+export async function saveMediaMetadataToCloudflare(asset: MediaAsset): Promise<MediaAsset> {
+  const response = await writeJson<ItemEnvelope<MediaAsset>>("/api/admin/media", "POST", asset);
+  return response.item;
+}
+
+export function deleteMediaMetadataFromCloudflare(id: string): Promise<{ id: string; deleted: boolean }> {
+  return requestCloudflareAdmin(`/api/admin/media/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 export async function deleteDocumentFromCloudflare(id: string): Promise<{ id: string; deleted: boolean }> {
@@ -145,7 +209,16 @@ export async function savePublicMenuItemsToCloudflare(items: PublicMenuItem[]): 
 }
 
 export async function saveCarouselSlideToCloudflare(input: CarouselSlideInput): Promise<CarouselSlide> {
-  const response = await writeJson<ItemEnvelope<CarouselSlide>>("/api/admin/carousel", "POST", input);
+  const { id, revision, body } = getEntityIdentity(input);
+  const response =
+    id && revision !== undefined
+      ? await writeJson<ItemEnvelope<CarouselSlide>>(
+          `/api/admin/carousel/${encodeURIComponent(id)}`,
+          "PATCH",
+          body,
+          getRevisionHeaders(revision)
+        )
+      : await writeJson<ItemEnvelope<CarouselSlide>>("/api/admin/carousel", "POST", body);
   return response.item;
 }
 
@@ -156,7 +229,16 @@ export function deleteCarouselSlideFromCloudflare(id: string): Promise<{ id: str
 export async function saveExternalServiceLinkToCloudflare(
   input: ExternalServiceLinkInput
 ): Promise<ExternalServiceLink> {
-  const response = await writeJson<ItemEnvelope<ExternalServiceLink>>("/api/admin/external-services", "POST", input);
+  const { id, revision, body } = getEntityIdentity(input);
+  const response =
+    id && revision !== undefined
+      ? await writeJson<ItemEnvelope<ExternalServiceLink>>(
+          `/api/admin/external-services/${encodeURIComponent(id)}`,
+          "PATCH",
+          body,
+          getRevisionHeaders(revision)
+        )
+      : await writeJson<ItemEnvelope<ExternalServiceLink>>("/api/admin/external-services", "POST", body);
   return response.item;
 }
 
@@ -165,7 +247,16 @@ export function deleteExternalServiceLinkFromCloudflare(id: string): Promise<{ i
 }
 
 export async function saveCalendarEventToCloudflare(input: CalendarEventInput): Promise<CalendarEvent> {
-  const response = await writeJson<ItemEnvelope<CalendarEvent>>("/api/admin/events", "POST", input);
+  const { id, revision, body } = getEntityIdentity(input);
+  const response =
+    id && revision !== undefined
+      ? await writeJson<ItemEnvelope<CalendarEvent>>(
+          `/api/admin/events/${encodeURIComponent(id)}`,
+          "PATCH",
+          body,
+          getRevisionHeaders(revision)
+        )
+      : await writeJson<ItemEnvelope<CalendarEvent>>("/api/admin/events", "POST", body);
   return response.item;
 }
 

@@ -31,6 +31,7 @@ export interface ContentItem {
   lastViewedAt?: string;
   updatedAt: string;
   publishAt: string;
+  revision?: number;
 }
 
 export type PublicContentListKind = "news" | "announcements" | "blog";

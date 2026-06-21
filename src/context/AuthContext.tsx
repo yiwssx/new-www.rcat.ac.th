@@ -1,10 +1,11 @@
-import { ReactNode, useCallback, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { projectSettings } from "../config/projectSettings";
 import { restoreSession } from "../services/authSession";
 import {
   isAdminProxySessionEnabled,
   loginAdminProxySession,
-  logoutAdminProxySession
+  logoutAdminProxySession,
+  ADMIN_PROXY_SESSION_EXPIRED_EVENT
 } from "../services/adminProxySession";
 import { Session } from "../types";
 import { AuthContext } from "./authSessionContext";
@@ -19,6 +20,16 @@ function getInitialSession() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => getInitialSession());
+
+  useEffect(() => {
+    const handleProxySessionExpired = () => {
+      window.localStorage.removeItem(projectSettings.storageKeys.session);
+      setSession(null);
+    };
+
+    window.addEventListener(ADMIN_PROXY_SESSION_EXPIRED_EVENT, handleProxySessionExpired);
+    return () => window.removeEventListener(ADMIN_PROXY_SESSION_EXPIRED_EVENT, handleProxySessionExpired);
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const { login: requestLogin } = await import("../services/auth");

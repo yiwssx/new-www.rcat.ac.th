@@ -56,7 +56,7 @@ function normalizeDisplaySettings(input: Partial<DisplaySettings>): DisplaySetti
   return {
     dateFormat:
       String(input.dateFormat || defaultDisplaySettings.dateFormat).trim() || defaultDisplaySettings.dateFormat,
-    timeMode: input.timeMode === "12h" ? "12h" : "24h"
+    timeMode: "24h"
   };
 }
 
@@ -642,15 +642,14 @@ export default function SettingsPage() {
                       labelId="time-mode-label"
                       label="รูปแบบเวลา"
                       value={displaySettings.timeMode}
-                      onChange={(event) =>
+                      onChange={() =>
                         setDisplaySettings((current) => ({
                           ...current,
-                          timeMode: event.target.value === "12h" ? "12h" : "24h"
+                          timeMode: "24h"
                         }))
                       }
                     >
                       <MenuItem value="24h">24 ชั่วโมง (14:30)</MenuItem>
-                      <MenuItem value="12h">12 ชั่วโมง (2:30 pm)</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>

@@ -38,7 +38,8 @@ function sanitizeDateFormat(value: unknown) {
 }
 
 function sanitizeTimeMode(value: unknown): DisplaySettings["timeMode"] {
-  return value === "12h" ? "12h" : "24h";
+  void value;
+  return "24h";
 }
 
 export function normalizeDisplaySettings(input: unknown): DisplaySettings {

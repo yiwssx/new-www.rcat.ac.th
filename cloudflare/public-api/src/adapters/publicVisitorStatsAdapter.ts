@@ -5,9 +5,10 @@ export function createPublicVisitorStatsSnapshot(
   rows: VisitorDailyStatsRow[],
   generatedAt = new Date()
 ): PublicVisitorStatsSnapshotContract {
-  const today = generatedAt.toISOString().slice(0, 10);
-  const yesterdayDate = new Date(generatedAt);
-  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+  const bangkokNow = new Date(generatedAt.getTime() + 7 * 60 * 60 * 1000);
+  const today = bangkokNow.toISOString().slice(0, 10);
+  const yesterdayDate = new Date(bangkokNow);
+  yesterdayDate.setUTCDate(bangkokNow.getUTCDate() - 1);
   const yesterday = yesterdayDate.toISOString().slice(0, 10);
   const monthPrefix = today.slice(0, 7);
   const yearPrefix = today.slice(0, 4);

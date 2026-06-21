@@ -40,9 +40,11 @@ import StatusChip from "../components/StatusChip";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { deleteContentItem, getAdminContentDetail, publishContent, saveContentItem } from "../../features/cms-content";
 import { saveMediaAsset, type MediaAssetInput } from "../../features/cms-media";
-import { ContentItem, ContentStatus } from "../../types";
+import { CmsSnapshot, ContentItem, ContentStatus } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
+import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
+import { mergeBridgeMediaAssets } from "../../features/cms-media";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 
 const columnHelper = createColumnHelper<ContentItem>();
@@ -72,27 +74,35 @@ export default function ContentPage() {
   const saveMutation = useMutation({
     mutationFn: saveContentItem,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
+      await invalidatePublicCmsData(queryClient);
     }
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteContentItem,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
+      await invalidatePublicCmsData(queryClient);
     }
   });
 
   const publishMutation = useMutation({
     mutationFn: publishContent,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
+      await invalidatePublicCmsData(queryClient);
     }
   });
 
   const mediaMutation = useMutation({
     mutationFn: saveMediaAsset,
-    onSuccess: async () => {
+    onSuccess: async (asset) => {
+      queryClient.setQueryData<CmsSnapshot>(["cms-snapshot", "admin"], (snapshot) =>
+        snapshot
+          ? {
+              ...snapshot,
+              media: mergeBridgeMediaAssets([asset, ...snapshot.media])
+            }
+          : snapshot
+      );
       await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
     }
   });
@@ -133,7 +143,7 @@ export default function ContentPage() {
       }
 
       try {
-        await deleteMutation.mutateAsync(item.id);
+        await deleteMutation.mutateAsync(item);
         await appSwal.fire({
           toast: true,
           position: "top-end",
@@ -171,7 +181,7 @@ export default function ContentPage() {
       }
 
       try {
-        await publishMutation.mutateAsync(item.id);
+        await publishMutation.mutateAsync(item);
         await appSwal.fire({
           toast: true,
           position: "top-end",

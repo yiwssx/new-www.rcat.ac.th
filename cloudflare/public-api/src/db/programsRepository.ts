@@ -37,6 +37,7 @@ export async function listPublishedProgramRows(env: Env): Promise<PublicContentR
        FROM contents
        WHERE status = ?
          AND type = ?
+         AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
     .bind(PUBLISHED_STATUS, PROGRAM_TYPE)

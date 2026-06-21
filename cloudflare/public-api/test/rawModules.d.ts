@@ -24,7 +24,7 @@ declare module "*.mjs" {
   export const formatM20ReadinessGate: (result: {
     status: string;
     checks: Record<string, string>;
-    externalOperatorBlockers: string[];
+    futureProductionResponsibilities: string[];
     safety: Record<string, boolean>;
     validationIssues: string[];
   }) => string;
@@ -34,7 +34,7 @@ declare module "*.mjs" {
   }) => Promise<{
     status: string;
     checks: Record<string, string>;
-    externalOperatorBlockers: string[];
+    futureProductionResponsibilities: string[];
     safety: Record<string, boolean>;
     validationIssues: string[];
   }>;

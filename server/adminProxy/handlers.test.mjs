@@ -112,7 +112,7 @@ describe("Vercel admin proxy", () => {
         const cookie = await createAdminProxySessionCookie({
           email: ALLOWED_EMAIL,
           secret: env.ADMIN_PROXY_SESSION_SECRET,
-          nowMs: Date.parse("2026-06-19T03:00:00.000Z")
+          nowMs: Date.parse("2026-06-18T20:00:00.000Z")
         });
         return cookie.split(";", 1)[0];
       },
@@ -233,6 +233,19 @@ describe("Vercel admin proxy", () => {
 });
 
 describe("Vercel admin proxy session", () => {
+  it("uses an eight-hour field-verification session without weakening cookie flags", async () => {
+    const cookie = await createAdminProxySessionCookie({
+      email: ALLOWED_EMAIL,
+      secret: SESSION_SECRET,
+      nowMs: Date.parse("2026-06-19T05:00:00.000Z")
+    });
+
+    expect(cookie).toContain("Max-Age=28800");
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("Secure");
+    expect(cookie).toContain("SameSite=Lax");
+  });
+
   it.each([
     [
       "both auth keys",

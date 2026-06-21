@@ -12,7 +12,7 @@ import EmptyState from "../../shared/components/EmptyState";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
+import { usePublicHomeSnapshot } from "../hooks/usePublicHomeSnapshot";
 
 const focusVisibleSx = {
   "&:focus-visible": {
@@ -119,7 +119,7 @@ function TikTokIcon() {
 }
 
 export default function PublicContactPage() {
-  const { data } = usePublicCmsSnapshot();
+  const { data } = usePublicHomeSnapshot();
 
   if (!data) {
     return <PublicSiteShell>{null}</PublicSiteShell>;

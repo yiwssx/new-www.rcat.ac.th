@@ -25,12 +25,20 @@ export async function getAdminContentDetail(input: { id?: string; slug?: string 
     : getAdminContentDetailFromAppsScript(input);
 }
 
-export async function deleteContentItem(id: string): Promise<{ id: string; deleted: boolean }> {
+export async function deleteContentItem(
+  input: string | Pick<ContentItem, "id" | "revision">
+): Promise<{ id: string; deleted: boolean }> {
+  const id = typeof input === "string" ? input : input.id;
   return getAdminWriteProvider() === "cloudflare"
-    ? deleteContentItemFromCloudflare(id)
+    ? deleteContentItemFromCloudflare(input)
     : deleteContentItemFromAppsScript(id);
 }
 
-export async function publishContent(id: string): Promise<{ id: string; published: boolean }> {
-  return getAdminWriteProvider() === "cloudflare" ? publishContentFromCloudflare(id) : publishContentFromAppsScript(id);
+export async function publishContent(
+  input: string | Pick<ContentItem, "id" | "revision">
+): Promise<{ id: string; published: boolean }> {
+  const id = typeof input === "string" ? input : input.id;
+  return getAdminWriteProvider() === "cloudflare"
+    ? publishContentFromCloudflare(input)
+    : publishContentFromAppsScript(id);
 }

@@ -30,4 +30,5 @@ export interface ExternalServiceLink {
   enabled: boolean;
   order: number;
   updatedAt: string;
+  revision?: number;
 }

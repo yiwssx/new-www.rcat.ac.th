@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const appsScriptMocks = vi.hoisted(() => ({
+  getCmsSnapshot: vi.fn(),
   getContentDetail: vi.fn(),
   getPublicContentListSnapshot: vi.fn(),
   getPublicHomeSnapshot: vi.fn(),
@@ -14,6 +15,7 @@ import { getPublicContentListSnapshot, getContentDetail } from "../public-conten
 import { getPublicHomeSnapshot } from "../public-home/api";
 import { getPublicProgramListSnapshot } from "../public-programs/api";
 import { getPublicSearchIndexSnapshot } from "../public-search/api";
+import { getPublicCmsSnapshotForProvider } from "../../public/hooks/usePublicCmsSnapshot";
 
 const generatedAt = "2026-06-20T00:00:00.000Z";
 const publicItem = {
@@ -146,5 +148,20 @@ describe("M19 public read provider parity", () => {
     expect(appsScriptMocks.getContentDetail).not.toHaveBeenCalled();
     expect(appsScriptMocks.getPublicProgramListSnapshot).not.toHaveBeenCalled();
     expect(appsScriptMocks.getPublicSearchIndexSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("builds the Contact/public shell snapshot from Cloudflare without calling Apps Script", async () => {
+    vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
+    const fetchMock = installCloudflareFetch();
+
+    await expect(getPublicCmsSnapshotForProvider()).resolves.toMatchObject({
+      siteSettings: homeSnapshot.siteSettings,
+      homepageSettings: homeSnapshot.homepageSettings,
+      content: [publicItem]
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(appsScriptMocks.getCmsSnapshot).not.toHaveBeenCalled();
+    expect(appsScriptMocks.getPublicHomeSnapshot).not.toHaveBeenCalled();
   });
 });

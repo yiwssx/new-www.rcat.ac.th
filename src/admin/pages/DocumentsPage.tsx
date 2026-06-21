@@ -39,11 +39,12 @@ import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { deleteDocumentFromApi, saveDocumentToApi, type DocumentItemInput } from "../../features/cms-documents";
-import { clearPublicCmsCache } from "../../services/publicCmsCache";
+import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { CmsDocumentItem, DocumentStatus } from "../../types";
 import { formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal } from "../../utils/swal";
+import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
 
 const documentStatusOptions: Array<{ value: DocumentStatus; label: string }> = [
   { value: "draft", label: "ฉบับร่าง" },
@@ -62,25 +63,6 @@ function sortDocuments(items: CmsDocumentItem[]) {
 
     return Date.parse(right.publishedAt || "") - Date.parse(left.publishedAt || "");
   });
-}
-
-function toLocalDateTimeInputValue(value?: string) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
-}
-
-function fromLocalDateTimeInputValue(value: string) {
-  return value ? new Date(value).toISOString() : "";
 }
 
 function createDocumentDraft(order: number): CmsDocumentItem {
@@ -143,13 +125,7 @@ export default function DocumentsPage() {
   });
 
   async function invalidateDocumentData() {
-    clearPublicCmsCache();
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] }),
-      queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] }),
-      queryClient.invalidateQueries({ queryKey: ["public-home-snapshot"] }),
-      queryClient.invalidateQueries({ queryKey: ["public-document-list"] })
-    ]);
+    await invalidatePublicCmsData(queryClient);
   }
 
   function updateEditingDocument<K extends keyof CmsDocumentItem>(key: K, value: CmsDocumentItem[K]) {
@@ -471,7 +447,7 @@ export default function DocumentsPage() {
                   onChange={(event) =>
                     updateEditingDocument("publishedAt", fromLocalDateTimeInputValue(event.target.value))
                   }
-                  InputLabelProps={{ shrink: true }}
+                  slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
                   fullWidth
                 />
               </Grid>

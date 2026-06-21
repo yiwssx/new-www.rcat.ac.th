@@ -34,12 +34,13 @@ import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import PageHeader from "../components/PageHeader";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
-import { deleteMediaAsset, saveMediaAsset } from "../../features/cms-media";
-import { MediaAsset, MediaType } from "../../types";
+import { deleteMediaAsset, mergeBridgeMediaAssets, saveMediaAsset } from "../../features/cms-media";
+import { CmsSnapshot, MediaAsset, MediaType } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
 import { formatFileSize, readFileAsBase64 } from "../../utils/files";
 import { mediaTypeLabels } from "../../utils/thaiLabels";
+import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 
 interface MediaFormState {
   name: string;
@@ -124,15 +125,31 @@ export default function MediaPage() {
 
   const saveMutation = useMutation({
     mutationFn: saveMediaAsset,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
+    onSuccess: async (asset) => {
+      queryClient.setQueryData<CmsSnapshot>(["cms-snapshot", "admin"], (snapshot) =>
+        snapshot
+          ? {
+              ...snapshot,
+              media: mergeBridgeMediaAssets([asset, ...snapshot.media])
+            }
+          : snapshot
+      );
+      await invalidatePublicCmsData(queryClient);
     }
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteMediaAsset,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
+    onSuccess: async (_, id) => {
+      queryClient.setQueryData<CmsSnapshot>(["cms-snapshot", "admin"], (snapshot) =>
+        snapshot
+          ? {
+              ...snapshot,
+              media: snapshot.media.filter((asset) => asset.id !== id)
+            }
+          : snapshot
+      );
+      await invalidatePublicCmsData(queryClient);
     }
   });
 

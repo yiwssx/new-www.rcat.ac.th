@@ -18,7 +18,7 @@ let currentDetailQueryState = {
   isFetching: false
 };
 
-vi.mock("../services/googleApi", () => ({
+vi.mock("../features/site-view", () => ({
   recordContentView: googleApiMocks.recordContentView
 }));
 

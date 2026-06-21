@@ -9,6 +9,7 @@ import type {
   PublicProgramListSnapshot,
   PublicSearchIndexSnapshot
 } from "../../types";
+import type { ContentViewResponse, SiteViewInput } from "../../services/googleApi";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -52,6 +53,24 @@ async function getCloudflareJson(path: string, resource: string) {
   }
 
   return payload;
+}
+
+async function postCloudflareJson<T>(path: string, resource: string, body: unknown): Promise<T> {
+  const response = await fetch(buildCloudflarePublicApiUrl(path), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body),
+    keepalive: true
+  });
+
+  if (!response.ok) {
+    throw new Error(`Cloudflare ${resource} request failed with HTTP ${response.status}`);
+  }
+
+  return (await response.json()) as T;
 }
 
 function assertPublicSnapshot(value: Record<string, unknown>, resource: string, requiredArrays: string[]) {
@@ -128,4 +147,17 @@ export async function getPublicSearchIndexSnapshotFromCloudflare(): Promise<Publ
   assertPublicSnapshot(payload, "search", ["items", "menu"]);
   persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
   return payload as unknown as PublicSearchIndexSnapshot;
+}
+
+export function recordSiteViewToCloudflare(input: SiteViewInput): boolean {
+  try {
+    void postCloudflareJson("/api/public/site-view", "site-view", input).catch(() => undefined);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function recordContentViewToCloudflare(input: { id?: string; slug?: string }): Promise<ContentViewResponse> {
+  return postCloudflareJson<ContentViewResponse>("/api/public/content-view", "content-view", input);
 }

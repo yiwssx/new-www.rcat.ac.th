@@ -33,7 +33,8 @@ import PageHeader from "../components/PageHeader";
 import { deleteCarouselSlideFromApi, saveCarouselSlideToApi } from "../../features/cms-carousel";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { saveHomepageSettingsToApi } from "../../features/cms-settings";
-import { clearPublicCmsCache } from "../../services/publicCmsCache";
+import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
+import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
 import { CarouselSlide, HomepageCarouselSettings, MediaAsset } from "../../types";
 import { formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
@@ -71,25 +72,6 @@ function getCarouselImageMedia(mediaAssets: MediaAsset[]) {
 
 function isSelectedCarouselImage(slide: CarouselSlide, asset: MediaAsset) {
   return Boolean(slide.imageUrl && slide.imageUrl === getMediaImageUrl(asset));
-}
-
-function toLocalDateTimeInputValue(value?: string) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
-}
-
-function fromLocalDateTimeInputValue(value: string) {
-  return value ? new Date(value).toISOString() : "";
 }
 
 function createCarouselDraft(order: number): CarouselSlide {
@@ -252,11 +234,7 @@ export default function CarouselPage() {
   }
 
   async function invalidateCarouselData() {
-    clearPublicCmsCache();
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] }),
-      queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
-    ]);
+    await invalidatePublicCmsData(queryClient);
   }
 
   async function handleSaveCarouselSettings() {
@@ -733,7 +711,7 @@ export default function CarouselPage() {
                         onChange={(event) =>
                           updateEditingSlide("startAt", fromLocalDateTimeInputValue(event.target.value))
                         }
-                        slotProps={{ inputLabel: { shrink: true } }}
+                        slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
                         fullWidth
                       />
                     </Grid>
@@ -745,7 +723,7 @@ export default function CarouselPage() {
                         onChange={(event) =>
                           updateEditingSlide("endAt", fromLocalDateTimeInputValue(event.target.value))
                         }
-                        slotProps={{ inputLabel: { shrink: true } }}
+                        slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
                         fullWidth
                       />
                     </Grid>

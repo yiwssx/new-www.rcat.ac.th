@@ -153,7 +153,7 @@ export function createPublicMetadata(rows: PublicMetadataRows): PublicMetadataCo
     name: row.name || "",
     type: row.type || "document",
     size: row.size || "",
-    owner: "",
+    owner: row.owner || "",
     driveUrl: row.drive_url || "",
     ...(row.file_id ? { fileId: row.file_id } : {}),
     ...(row.mime_type ? { mimeType: row.mime_type } : {}),

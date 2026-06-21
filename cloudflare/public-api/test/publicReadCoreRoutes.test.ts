@@ -34,7 +34,8 @@ const sampleContentRows = [
     media_ids_json: "[]",
     publish_at: "2026-02-01T00:00:00.000Z",
     updated_at: "2026-02-02T00:00:00.000Z",
-    featured: 1
+    featured: 1,
+    deleted_at: ""
   },
   {
     id: "sample-program-001",
@@ -48,7 +49,8 @@ const sampleContentRows = [
     media_ids_json: "[]",
     publish_at: "2026-03-01T00:00:00.000Z",
     updated_at: "2026-03-02T00:00:00.000Z",
-    featured: 1
+    featured: 1,
+    deleted_at: ""
   }
 ];
 
@@ -180,17 +182,20 @@ function createPublicReadMockDb(options: MockDbOptions = {}) {
               } else if (/FROM\s+media_assets/i.test(query)) {
                 results = mediaRows;
               } else if (/FROM\s+contents/i.test(query)) {
+                const visibleContentRows = /deleted_at/i.test(query)
+                  ? contentRows.filter((row) => !row.deleted_at)
+                  : contentRows;
                 if (/slug\s*=\s*\?/i.test(query)) {
                   const slug = String(call.bindings[1] ?? "");
-                  results = contentRows.filter((row) => row.slug === slug || row.id === slug);
+                  results = visibleContentRows.filter((row) => row.slug === slug || row.id === slug);
                 } else if (/type\s*=\s*\?/i.test(query)) {
                   const type = String(call.bindings[1] ?? "");
-                  results = contentRows.filter((row) => row.type === type);
+                  results = visibleContentRows.filter((row) => row.type === type);
                 } else if (/LIKE/i.test(query)) {
                   const queryValue = String(call.bindings[2] ?? "")
                     .replaceAll("%", "")
                     .toLowerCase();
-                  results = contentRows.filter(
+                  results = visibleContentRows.filter(
                     (row) =>
                       row.type !== "program" &&
                       [row.title, row.summary, row.body_snapshot, row.category].some((value) =>
@@ -198,9 +203,9 @@ function createPublicReadMockDb(options: MockDbOptions = {}) {
                       )
                   );
                 } else if (/featured\s*=\s*\?/i.test(query)) {
-                  results = contentRows.filter((row) => row.type !== "program" && row.featured === 1);
+                  results = visibleContentRows.filter((row) => row.type !== "program" && row.featured === 1);
                 } else {
-                  results = contentRows;
+                  results = visibleContentRows;
                 }
               }
 
@@ -305,6 +310,17 @@ describe("M17 Cloudflare Core public read routes", () => {
     ]);
     expectGeneratedAt(payload);
     expectNoLeakage(text);
+  });
+
+  it("includes newly published news on the homepage without requiring featured metadata", async () => {
+    const publishedNews = { ...sampleContentRows[0], featured: 0 };
+    const { env } = createPublicReadMockDb({ contentRows: [publishedNews] });
+    const response = await worker.fetch(new Request("https://public-api.example.test/api/public/home"), env);
+    const { payload } = await readTextAndJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.latestNews).toEqual([expect.objectContaining({ id: publishedNews.id })]);
+    expect(payload.featuredContent).toEqual([]);
   });
 
   it("returns a public content list response instead of the M17 skeleton", async () => {
@@ -437,6 +453,25 @@ describe("M17 Cloudflare Core public read routes", () => {
     expectNoLeakage(text);
   });
 
+  it("excludes a soft-deleted program from both list and detail", async () => {
+    const deletedProgram = { ...sampleContentRows[1], deleted_at: "2026-06-21T00:00:00.000Z" };
+    const { env, calls } = createPublicReadMockDb({ contentRows: [sampleContentRows[0], deletedProgram] });
+
+    const listResponse = await worker.fetch(new Request("https://public-api.example.test/api/public/programs"), env);
+    const list = await readTextAndJson(listResponse);
+    const detailResponse = await worker.fetch(
+      new Request("https://public-api.example.test/api/public/content/sample-program"),
+      env
+    );
+
+    expect(listResponse.status).toBe(200);
+    expect(list.payload.items).toEqual([]);
+    expect(detailResponse.status).toBe(404);
+    expect(
+      calls.filter((call) => /FROM\s+contents/i.test(call.query)).every((call) => /deleted_at/i.test(call.query))
+    ).toBe(true);
+  });
+
   it("returns public visitor stats instead of the M17 skeleton", async () => {
     const { env } = createPublicReadMockDb();
     const response = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), env);
@@ -470,7 +505,7 @@ describe("M17 Cloudflare Core public read routes", () => {
 
     expect(response.status).toBe(204);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
-    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("GET, OPTIONS");
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("GET, POST, OPTIONS");
   });
 
   it("allows only GET and OPTIONS for the public read route foundation", async () => {
