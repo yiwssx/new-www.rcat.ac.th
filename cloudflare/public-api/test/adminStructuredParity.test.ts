@@ -270,6 +270,7 @@ describe("M19 structured admin parity routes", () => {
       driveUrl: "https://drive.example.test/media-1",
       fileId: "drive-file-1",
       mimeType: "application/pdf",
+      thumbnailUrl: "https://drive.example.test/media-1/thumbnail",
       previewUrl: "https://drive.example.test/media-1/preview",
       embedUrl: "https://drive.example.test/media-1/embed",
       updatedAt: "2026-06-21T08:30:00.000Z"

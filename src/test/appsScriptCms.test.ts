@@ -106,6 +106,7 @@ const TEST_MEDIA_HEADERS = [
   "driveUrl",
   "fileId",
   "mimeType",
+  "thumbnailUrl",
   "previewUrl",
   "embedUrl",
   "updatedAt"
@@ -294,11 +295,15 @@ describe("Apps Script CMS helpers", () => {
     expect(createDriveFileSource).toMatch(/decodeUploadBytes\(asset\.fileBase64\)/);
     expect(createDriveFileSource).toMatch(/Utilities\.newBlob\(bytes, contentType, fileName\)/);
     expect(createDriveFileSource).toMatch(/uploadFolder\.createFile\(blob\)/);
+    expect(createDriveFileSource).toMatch(
+      /file\.setSharing\(DriveApp\.Access\.ANYONE_WITH_LINK, DriveApp\.Permission\.VIEW\)/
+    );
     expect(createDriveFileSource).not.toMatch(/resize|compress|thumbnail|convert/i);
     expect(upsertMediaSource).toMatch(/uploadedFile \? uploadedFile\.getUrl\(\)/);
     expect(upsertMediaSource).toMatch(/uploadedFile \? formatBytes\(uploadedFile\.getSize\(\)\)/);
-    expect(previewUrlSource).toMatch(/\/uc\?export=view&id=/);
-    expect(previewUrlSource).not.toMatch(/thumbnail|w\d+/i);
+    expect(previewUrlSource).toMatch(/\/thumbnail\?id=/);
+    expect(previewUrlSource).toMatch(/sz=w1200/);
+    expect(previewUrlSource).not.toMatch(/\/uc\?export=view/);
   });
 
   it("normalizes slugs and rejects duplicate slugs for other content records", () => {
@@ -459,6 +464,7 @@ describe("Apps Script CMS helpers", () => {
       driveUrl: "https://drive.google.com/file/d/media-1/view",
       fileId: "media-1",
       mimeType: "image/png",
+      thumbnailUrl: "https://drive.google.com/thumbnail?id=media-1&sz=w1200",
       previewUrl: "https://drive.google.com/thumbnail?id=media-1",
       embedUrl: "https://drive.google.com/file/d/media-1/preview",
       updatedAt: "2026-04-28T00:00:00.000Z"
@@ -471,6 +477,7 @@ describe("Apps Script CMS helpers", () => {
       size: "",
       owner: "",
       driveUrl: "https://drive.google.com/file/d/media-1/view",
+      thumbnailUrl: "https://drive.google.com/thumbnail?id=media-1&sz=w1200",
       previewUrl: "https://drive.google.com/thumbnail?id=media-1",
       embedUrl: "https://drive.google.com/file/d/media-1/preview",
       updatedAt: ""

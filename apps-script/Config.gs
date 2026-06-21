@@ -121,6 +121,7 @@ const MEDIA_HEADERS = [
   "driveUrl",
   "fileId",
   "mimeType",
+  "thumbnailUrl",
   "previewUrl",
   "embedUrl",
   "updatedAt"

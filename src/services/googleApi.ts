@@ -126,6 +126,7 @@ export interface MediaAssetInput {
   driveUrl?: string;
   fileId?: string;
   mimeType?: string;
+  thumbnailUrl?: string;
   previewUrl?: string;
   embedUrl?: string;
   fileName?: string;

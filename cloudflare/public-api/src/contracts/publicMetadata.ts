@@ -78,6 +78,7 @@ export interface PublicMediaAssetContract {
   driveUrl: string;
   fileId?: string;
   mimeType?: string;
+  thumbnailUrl?: string;
   previewUrl?: string;
   embedUrl?: string;
   updatedAt: string;

@@ -75,6 +75,7 @@ const TEST_MEDIA_HEADERS = [
   "driveUrl",
   "fileId",
   "mimeType",
+  "thumbnailUrl",
   "previewUrl",
   "embedUrl",
   "updatedAt"

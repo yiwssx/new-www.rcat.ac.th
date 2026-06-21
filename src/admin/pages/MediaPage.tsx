@@ -106,6 +106,113 @@ function toFormState(asset: MediaAsset): MediaFormState {
   };
 }
 
+function MediaPreview({ asset }: { asset: MediaAsset }) {
+  const previewUrl = asset.thumbnailUrl || asset.previewUrl || "";
+  const [previewFailed, setPreviewFailed] = useState(false);
+
+  if (asset.type !== "image") {
+    return <Box sx={{ fontSize: 46, display: "grid", placeItems: "center" }}>{getMediaIcon(asset.type)}</Box>;
+  }
+
+  if (!previewUrl || previewFailed) {
+    return (
+      <Stack spacing={1} alignItems="center" sx={{ px: 2, textAlign: "center" }}>
+        <Box sx={{ fontSize: 40, display: "grid", placeItems: "center" }}>{getMediaIcon(asset.type)}</Box>
+        <Typography color="text.secondary" variant="body2">
+          ไม่สามารถแสดงตัวอย่างได้
+        </Typography>
+      </Stack>
+    );
+  }
+
+  return (
+    <Box
+      component="img"
+      src={previewUrl}
+      alt={asset.name}
+      onError={() => setPreviewFailed(true)}
+      sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+    />
+  );
+}
+
+interface MediaAssetCardProps {
+  asset: MediaAsset;
+  onEdit: (asset: MediaAsset) => void;
+  onDelete: (asset: MediaAsset) => void;
+}
+
+export function MediaAssetCard({ asset, onEdit, onDelete }: MediaAssetCardProps) {
+  const previewKey = `${asset.id}:${asset.thumbnailUrl || asset.previewUrl || "missing"}`;
+
+  return (
+    <Card sx={{ height: "100%" }}>
+      <CardContent>
+        <Box
+          sx={{
+            height: 170,
+            borderRadius: 2,
+            display: "grid",
+            placeItems: "center",
+            color: "primary.main",
+            backgroundColor: "primary.light",
+            overflow: "hidden",
+            mb: 2
+          }}
+        >
+          <MediaPreview key={previewKey} asset={asset} />
+        </Box>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="h3" sx={{ fontSize: "1.05rem" }} noWrap>
+              {asset.name}
+            </Typography>
+            <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
+              {asset.owner}
+            </Typography>
+          </Box>
+          <Chip label={mediaTypeLabels[asset.type]} size="small" />
+        </Stack>
+        <Stack direction="row" justifyContent="space-between" sx={{ mt: 1.6 }}>
+          <Typography color="text.secondary" variant="body2">
+            {asset.size || asset.mimeType || "Drive"}
+          </Typography>
+          <Typography color="text.secondary" variant="body2">
+            {formatDisplayDate(asset.updatedAt)}
+          </Typography>
+        </Stack>
+        <Stack direction="row" spacing={0.5} justifyContent="flex-end" sx={{ mt: 2 }}>
+          <Tooltip title={asset.driveUrl ? "เปิดใน Drive" : "ไม่มี URL ของ Drive"}>
+            <span>
+              <IconButton
+                aria-label="เปิดสื่อ"
+                component="a"
+                href={asset.driveUrl || undefined}
+                target="_blank"
+                rel="noreferrer"
+                disabled={!asset.driveUrl}
+                size="small"
+              >
+                <OpenInNewRoundedIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="แก้ไขสื่อ">
+            <IconButton aria-label="แก้ไขสื่อ" size="small" onClick={() => onEdit(asset)}>
+              <EditOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="ลบสื่อ">
+            <IconButton aria-label="ลบสื่อ" size="small" color="error" onClick={() => onDelete(asset)}>
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function MediaPage() {
   const queryClient = useQueryClient();
   const { data, error, isError, isLoading } = useQuery({
@@ -244,6 +351,7 @@ export default function MediaPage() {
         owner: form.owner.trim(),
         driveUrl: form.driveUrl.trim() || editingAsset?.driveUrl || "",
         fileId: editingAsset?.fileId,
+        thumbnailUrl: editingAsset?.thumbnailUrl,
         previewUrl: editingAsset?.previewUrl,
         embedUrl: editingAsset?.embedUrl,
         mimeType: editingAsset?.mimeType,
@@ -358,79 +466,11 @@ export default function MediaPage() {
       <Grid container spacing={2.5}>
         {filteredAssets.map((asset) => (
           <Grid size={{ xs: 12, sm: 6, lg: 4, xl: 3 }} key={asset.id}>
-            <Card sx={{ height: "100%" }}>
-              <CardContent>
-                <Box
-                  sx={{
-                    height: 170,
-                    borderRadius: 2,
-                    display: "grid",
-                    placeItems: "center",
-                    color: "primary.main",
-                    backgroundColor: "primary.light",
-                    overflow: "hidden",
-                    mb: 2
-                  }}
-                >
-                  {asset.type === "image" && asset.previewUrl ? (
-                    <Box
-                      component="img"
-                      src={asset.previewUrl}
-                      alt={asset.name}
-                      sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  ) : (
-                    <Box sx={{ fontSize: 46, display: "grid", placeItems: "center" }}>{getMediaIcon(asset.type)}</Box>
-                  )}
-                </Box>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="h3" sx={{ fontSize: "1.05rem" }} noWrap>
-                      {asset.name}
-                    </Typography>
-                    <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
-                      {asset.owner}
-                    </Typography>
-                  </Box>
-                  <Chip label={mediaTypeLabels[asset.type]} size="small" />
-                </Stack>
-                <Stack direction="row" justifyContent="space-between" sx={{ mt: 1.6 }}>
-                  <Typography color="text.secondary" variant="body2">
-                    {asset.size || asset.mimeType || "Drive"}
-                  </Typography>
-                  <Typography color="text.secondary" variant="body2">
-                    {formatDisplayDate(asset.updatedAt)}
-                  </Typography>
-                </Stack>
-                <Stack direction="row" spacing={0.5} justifyContent="flex-end" sx={{ mt: 2 }}>
-                  <Tooltip title={asset.driveUrl ? "เปิดใน Drive" : "ไม่มี URL ของ Drive"}>
-                    <span>
-                      <IconButton
-                        aria-label="เปิดสื่อ"
-                        component="a"
-                        href={asset.driveUrl || undefined}
-                        target="_blank"
-                        rel="noreferrer"
-                        disabled={!asset.driveUrl}
-                        size="small"
-                      >
-                        <OpenInNewRoundedIcon fontSize="small" />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                  <Tooltip title="แก้ไขสื่อ">
-                    <IconButton aria-label="แก้ไขสื่อ" size="small" onClick={() => handleOpenEdit(asset)}>
-                      <EditOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="ลบสื่อ">
-                    <IconButton aria-label="ลบสื่อ" size="small" color="error" onClick={() => void handleDelete(asset)}>
-                      <DeleteOutlineIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-              </CardContent>
-            </Card>
+            <MediaAssetCard
+              asset={asset}
+              onEdit={handleOpenEdit}
+              onDelete={(currentAsset) => void handleDelete(currentAsset)}
+            />
           </Grid>
         ))}
       </Grid>

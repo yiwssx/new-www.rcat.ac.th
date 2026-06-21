@@ -406,6 +406,7 @@ function mapMediaRow(row: MediaAssetRow) {
     driveUrl: row.drive_url,
     fileId: row.file_id,
     mimeType: row.mime_type,
+    thumbnailUrl: row.thumbnail_url,
     previewUrl: row.preview_url,
     embedUrl: row.embed_url,
     updatedAt: row.updated_at

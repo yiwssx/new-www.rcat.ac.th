@@ -476,6 +476,7 @@ function sanitizePublicMediaRecord(asset) {
     size: "",
     owner: "",
     driveUrl: normalizePublicMediaUrlOrEmpty(asset.driveUrl),
+    thumbnailUrl: normalizePublicMediaUrlOrEmpty(asset.thumbnailUrl, ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS),
     previewUrl: normalizePublicMediaUrlOrEmpty(asset.previewUrl, ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS),
     embedUrl: normalizePublicMediaUrlOrEmpty(asset.embedUrl, ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS),
     updatedAt: ""
@@ -913,8 +914,12 @@ function upsertMedia(asset) {
   const driveUrl = normalizePublicMediaUrl(uploadedFile ? uploadedFile.getUrl() : asset.driveUrl || "");
   const fileId = uploadedFile ? uploadedFile.getId() : asset.fileId || extractDriveFileId(driveUrl);
   const mimeType = uploadedFile ? uploadedFile.getMimeType() : asset.mimeType || "";
+  const thumbnailUrl = normalizePublicMediaUrl(
+    asset.thumbnailUrl || (asset.type === "image" ? buildPreviewUrl(fileId, asset.type) : ""),
+    ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS
+  );
   const previewUrl = normalizePublicMediaUrl(
-    asset.previewUrl || buildPreviewUrl(fileId, asset.type),
+    asset.previewUrl || thumbnailUrl || buildPreviewUrl(fileId, asset.type),
     ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS
   );
   const embedUrl = normalizePublicMediaUrl(asset.embedUrl || buildEmbedUrl(fileId), ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS);
@@ -927,6 +932,7 @@ function upsertMedia(asset) {
     driveUrl,
     fileId,
     mimeType,
+    thumbnailUrl,
     previewUrl,
     embedUrl,
     updatedAt: new Date().toISOString()
@@ -1499,7 +1505,7 @@ function buildPreviewUrl(fileId, type) {
   }
 
   if (type === "image") {
-    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`;
+    return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1200`;
   }
 
   return buildEmbedUrl(fileId);
