@@ -22,13 +22,18 @@ const googleApiMocks = vi.hoisted(() => ({
   saveHomepageSettingsToApi: vi.fn(),
   savePublicMenuItems: vi.fn(),
   saveSiteSettingsToApi: vi.fn(),
-  saveVisitorStatsToApi: vi.fn(),
-  saveMediaAsset: vi.fn(),
-  uploadMediaAsset: vi.fn(),
-  deleteMediaAsset: vi.fn()
+  saveVisitorStatsToApi: vi.fn()
 }));
 
 vi.mock("../../services/googleApi", () => googleApiMocks);
+
+const mediaBridgeMocks = vi.hoisted(() => ({
+  deleteMediaAssetFromBridge: vi.fn(),
+  saveMediaAssetToBridge: vi.fn(),
+  uploadMediaAssetToBridge: vi.fn()
+}));
+
+vi.mock("../cms-media/mediaBridgeClient", () => mediaBridgeMocks);
 
 const sampleContent: ContentItem = {
   id: "m18-preview-content-001",
@@ -242,9 +247,9 @@ describe("M18 admin structured write provider", () => {
       updatedAt: "2026-06-16T00:00:00.000Z"
     };
     const uploadedMedia = { ...savedMedia, id: "m18-preview-media-002" };
-    googleApiMocks.saveMediaAsset.mockResolvedValue(savedMedia);
-    googleApiMocks.uploadMediaAsset.mockResolvedValue(uploadedMedia);
-    googleApiMocks.deleteMediaAsset.mockResolvedValue({ id: "m18-preview-media-001", deleted: true });
+    mediaBridgeMocks.saveMediaAssetToBridge.mockResolvedValue(savedMedia);
+    mediaBridgeMocks.uploadMediaAssetToBridge.mockResolvedValue(uploadedMedia);
+    mediaBridgeMocks.deleteMediaAssetFromBridge.mockResolvedValue({ id: "m18-preview-media-001", deleted: true });
     setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (init?.method === "DELETE") {
@@ -275,9 +280,9 @@ describe("M18 admin structured write provider", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/media");
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
-    expect(googleApiMocks.saveMediaAsset).toHaveBeenCalled();
-    expect(googleApiMocks.uploadMediaAsset).toHaveBeenCalled();
-    expect(googleApiMocks.deleteMediaAsset).toHaveBeenCalledWith("m18-preview-media-001");
+    expect(mediaBridgeMocks.saveMediaAssetToBridge).toHaveBeenCalled();
+    expect(mediaBridgeMocks.uploadMediaAssetToBridge).toHaveBeenCalled();
+    expect(mediaBridgeMocks.deleteMediaAssetFromBridge).toHaveBeenCalledWith("m18-preview-media-001");
   });
 
   it("converts a missing server-proxy session into a sign-in-again event", async () => {

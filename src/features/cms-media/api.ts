@@ -1,12 +1,8 @@
 import { getAdminWriteProvider } from "../../config/adminWriteProvider";
-import {
-  deleteMediaAsset as deleteMediaAssetFromAppsScript,
-  saveMediaAsset as saveMediaAssetToAppsScript,
-  uploadMediaAsset as uploadMediaAssetToAppsScript,
-  type MediaAssetInput
-} from "../../services/googleApi";
+import type { MediaAssetInput } from "../../services/googleApi";
 import { deleteMediaMetadataFromCloudflare, saveMediaMetadataToCloudflare } from "../admin-write/cloudflareApi";
 import { cacheBridgeMediaAsset, removeBridgeMediaAsset } from "./bridgeCache";
+import { deleteMediaAssetFromBridge, saveMediaAssetToBridge, uploadMediaAssetToBridge } from "./mediaBridgeClient";
 import type { MediaAsset } from "./types";
 
 async function persistBridgeMetadata(asset: MediaAsset) {
@@ -25,15 +21,15 @@ async function persistBridgeMetadata(asset: MediaAsset) {
 }
 
 export async function saveMediaAsset(input: MediaAssetInput) {
-  return persistBridgeMetadata(await saveMediaAssetToAppsScript(input));
+  return persistBridgeMetadata(await saveMediaAssetToBridge(input));
 }
 
 export async function uploadMediaAsset(asset: MediaAsset) {
-  return persistBridgeMetadata(await uploadMediaAssetToAppsScript(asset));
+  return persistBridgeMetadata(await uploadMediaAssetToBridge(asset));
 }
 
 export async function deleteMediaAsset(id: string) {
-  const result = await deleteMediaAssetFromAppsScript(id);
+  const result = await deleteMediaAssetFromBridge(id);
 
   if (getAdminWriteProvider() === "cloudflare") {
     try {
