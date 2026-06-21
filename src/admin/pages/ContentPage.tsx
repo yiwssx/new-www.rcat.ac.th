@@ -198,6 +198,10 @@ export default function ContentPage() {
           timerProgressBar: true
         });
       } catch (currentError) {
+        if (isAdminStaleRevisionError(currentError)) {
+          await queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] });
+        }
+
         await appSwal.fire({
           icon: "error",
           title: "ไม่สามารถเผยแพร่เนื้อหาได้",
@@ -206,7 +210,7 @@ export default function ContentPage() {
         });
       }
     },
-    [publishMutation]
+    [publishMutation, queryClient]
   );
 
   const columns = useMemo(

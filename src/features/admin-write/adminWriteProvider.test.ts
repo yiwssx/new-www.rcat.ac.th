@@ -236,6 +236,62 @@ describe("M18 admin structured write provider", () => {
     );
   });
 
+  it("publishes Cloudflare content through the content publish route with only valid revision headers", async () => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({ id: sampleContent.id, published: true })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { publishContent } = await import("../cms-content/api");
+
+    await publishContent({ id: sampleContent.id, revision: 2 });
+    await publishContent({ id: sampleContent.id, revision: -1 });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001/publish"
+    );
+    expect(fetchMock.mock.calls[0]?.[0]).not.toContain("external-services");
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: "{}",
+      credentials: "include"
+    });
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("X-RCAT-Expected-Revision")).toBe("2");
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
+    expect(googleApiMocks.publishContent).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the current item when Cloudflare content publish returns stale revision", async () => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith("/api/admin/content/m18-preview-content-001/publish") && init?.method === "POST") {
+        return jsonResponse({ error: "stale revision" }, 409);
+      }
+
+      return jsonResponse({ item: { ...sampleContent, title: "Latest publish title", revision: 5 } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { isAdminStaleRevisionError, publishContent } = await import("../cms-content");
+
+    const error = await publishContent({ id: sampleContent.id, revision: 2 }).catch(
+      (currentError: unknown) => currentError
+    );
+
+    expect(isAdminStaleRevisionError(error)).toBe(true);
+    expect(error).toMatchObject({
+      latestItem: expect.objectContaining({ revision: 5, title: "Latest publish title" })
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001/publish"
+    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001"
+    );
+    expect(googleApiMocks.publishContent).not.toHaveBeenCalled();
+  });
+
   it("keeps media bytes on Apps Script while synchronizing returned metadata to Cloudflare", async () => {
     const savedMedia = {
       id: "m18-preview-media-001",

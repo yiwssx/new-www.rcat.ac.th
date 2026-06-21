@@ -53,7 +53,21 @@ export async function publishContent(
   input: string | Pick<ContentItem, "id" | "revision">
 ): Promise<{ id: string; published: boolean }> {
   const id = typeof input === "string" ? input : input.id;
-  return getAdminWriteProvider() === "cloudflare"
-    ? publishContentFromCloudflare(input)
-    : publishContentFromAppsScript(id);
+  if (getAdminWriteProvider() !== "cloudflare") {
+    return publishContentFromAppsScript(id);
+  }
+
+  try {
+    return await publishContentFromCloudflare(input);
+  } catch (error) {
+    if (isAdminStaleRevisionError(error) && id) {
+      try {
+        error.latestItem = await getAdminContentDetailFromCloudflare({ id });
+      } catch {
+        // Keep the stale-write message even if the refresh is temporarily unavailable.
+      }
+    }
+
+    throw error;
+  }
 }

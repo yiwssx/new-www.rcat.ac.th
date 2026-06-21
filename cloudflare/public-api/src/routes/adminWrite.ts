@@ -2,7 +2,7 @@ import { createPublicContentListSnapshot } from "../adapters/publicContentAdapte
 import { createPublicDocumentListSnapshot } from "../adapters/publicDocumentsAdapter";
 import { createEmptyPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
-import { authenticateAdminRequest, type AdminIdentity } from "../auth/adminAccess";
+import { authenticateAdminRequest, hasProductionContext, type AdminIdentity } from "../auth/adminAccess";
 import { listPublishedContentRows } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
@@ -25,8 +25,16 @@ const ADMIN_ALLOW = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
 const CONTENT_TYPES = new Set(["page", "news", "program", "announcement", "blog"]);
 const CONTENT_STATUSES = new Set(["draft", "review", "scheduled", "published"]);
 const DOCUMENT_STATUSES = new Set(["draft", "published"]);
+const CONTENT_PUBLISH_REQUIRED_COLUMNS = ["deleted_at", "updated_by", "revision"] as const;
 
 type JsonRecord = Record<string, unknown>;
+type ContentPublishRoute = "content.publish" | "content.unpublish";
+
+interface AdminRouteErrorContext {
+  contentId?: string;
+  expectedRevisionPresent?: boolean;
+  route?: ContentPublishRoute;
+}
 
 class AdminHttpError extends Error {
   constructor(
@@ -36,6 +44,17 @@ class AdminHttpError extends Error {
     super(message);
     this.name = "AdminHttpError";
     Object.setPrototypeOf(this, AdminHttpError.prototype);
+  }
+}
+
+class AdminRouteContextError extends Error {
+  constructor(
+    readonly context: AdminRouteErrorContext,
+    readonly cause: unknown
+  ) {
+    super(cause instanceof Error ? cause.message : String(cause));
+    this.name = "AdminRouteContextError";
+    Object.setPrototypeOf(this, AdminRouteContextError.prototype);
   }
 }
 
@@ -52,6 +71,52 @@ function isAdminHttpError(error: unknown): error is AdminHttpError {
 
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function getErrorCause(error: unknown) {
+  return error instanceof AdminRouteContextError ? error.cause : error;
+}
+
+function getErrorContext(error: unknown) {
+  return error instanceof AdminRouteContextError ? error.context : null;
+}
+
+function getErrorName(error: unknown) {
+  return error instanceof Error && error.name ? error.name : typeof error;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error || "");
+}
+
+function sanitizeDiagnosticText(value: string) {
+  return value
+    .replace(/\b(SELECT|INSERT|UPDATE|DELETE)\b/gi, "[sql]")
+    .replace(/\bstack\b/gi, "[trace]")
+    .replace(/\b(?:token|secret|cookie|authorization|cf-access-jwt-assertion)\b[^\s,;)]*/gi, "[redacted]")
+    .slice(0, 300);
+}
+
+function getMissingContentPublishColumn(message: string) {
+  if (!/(?:no such column|has no column|unknown column)/i.test(message)) {
+    return null;
+  }
+
+  return CONTENT_PUBLISH_REQUIRED_COLUMNS.find((column) =>
+    new RegExp(`(?:^|[^a-z_])(?:contents\\.)?${column}(?:[^a-z_]|$)`, "i").test(message)
+  );
+}
+
+function shouldIncludePreviewDiagnostics(env: Env) {
+  return env.ENVIRONMENT === "preview" && !hasProductionContext(env);
+}
+
+async function withAdminRouteContext<T>(context: AdminRouteErrorContext, callback: () => Promise<T>) {
+  try {
+    return await callback();
+  } catch (error) {
+    throw new AdminRouteContextError(context, error);
+  }
 }
 
 function trimString(value: unknown) {
@@ -290,6 +355,39 @@ function assertMutationChanged(result: D1Result<unknown>) {
   if (getChangedRows(result) === 0) {
     throw new AdminHttpError("stale revision", 409);
   }
+}
+
+function normalizeContentPublishAt(action: string, value: unknown, now: string) {
+  const currentPublishAt = trimString(value);
+
+  if (action === "publish") {
+    return currentPublishAt || now;
+  }
+
+  return currentPublishAt;
+}
+
+async function assertContentPublishChanged(
+  env: Env,
+  result: D1Result<unknown>,
+  id: string,
+  expectedRevision: number | null
+) {
+  if (getChangedRows(result) > 0) {
+    return;
+  }
+
+  const current = await getContentByIdAny(env, id);
+
+  if (!current || trimString(current.deleted_at)) {
+    throw new AdminHttpError("not found", 404);
+  }
+
+  if (expectedRevision !== null && Number(current.revision ?? 0) !== expectedRevision) {
+    throw new AdminHttpError("stale revision", 409);
+  }
+
+  throw new AdminHttpError("content publish did not update", 409);
 }
 
 function createContentRow(body: JsonRecord, existing: ContentRow | null, actor: string, now: string): ContentRow {
@@ -803,32 +901,40 @@ async function handleContent(request: Request, env: Env, segments: string[], ide
   }
 
   if (segments.length === 3 && request.method === "POST" && (action === "publish" || action === "unpublish")) {
-    const existing = await getContentById(env, id);
-
-    if (!existing) {
-      return notFoundAdmin();
-    }
-
-    const status = action === "publish" ? "published" : "draft";
     const body = await parseJsonBody(request);
     const expectedRevision = getExpectedRevisionFromRequest(request, body);
-    const result = await run(
-      env,
-      `UPDATE contents
+    const context: AdminRouteErrorContext = {
+      contentId: id,
+      expectedRevisionPresent: expectedRevision !== null,
+      route: action === "publish" ? "content.publish" : "content.unpublish"
+    };
+
+    return withAdminRouteContext(context, async () => {
+      const existing = await getContentById(env, id);
+
+      if (!existing) {
+        return notFoundAdmin();
+      }
+
+      const status = action === "publish" ? "published" : "draft";
+      const result = await run(
+        env,
+        `UPDATE contents
        SET status = ?, publish_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
        WHERE id = ?
          AND COALESCE(deleted_at, '') = ''
          AND (? IS NULL OR revision = ?)`,
-      status,
-      action === "publish" ? existing.publish_at || now : existing.publish_at || "",
-      now,
-      actor,
-      id,
-      expectedRevision,
-      expectedRevision
-    );
-    assertMutationChanged(result);
-    return json({ id, published: action === "publish" });
+        status,
+        normalizeContentPublishAt(action, existing.publish_at, now),
+        now,
+        actor,
+        id,
+        expectedRevision,
+        expectedRevision
+      );
+      await assertContentPublishChanged(env, result, id, expectedRevision);
+      return json({ id, published: action === "publish" });
+    });
   }
 
   return adminMethodNotAllowed();
@@ -1158,14 +1264,16 @@ function notFoundAdmin() {
   });
 }
 
-function safeAdminError(error: unknown) {
-  if (isAdminHttpError(error)) {
-    return jsonError(error.message, error.status, {
+function safeAdminError(error: unknown, env: Env) {
+  const cause = getErrorCause(error);
+
+  if (isAdminHttpError(cause)) {
+    return jsonError(cause.message, cause.status, {
       resource: "admin-structured-data"
     });
   }
 
-  const message = error instanceof Error ? error.message : "";
+  const message = getErrorMessage(cause);
 
   if (message === "stale revision" || message.includes("duplicate ")) {
     return jsonError(message, 409, {
@@ -1181,6 +1289,23 @@ function safeAdminError(error: unknown) {
   ) {
     return jsonError(message, 400, {
       resource: "admin-structured-data"
+    });
+  }
+
+  const context = getErrorContext(error);
+
+  if (context?.route && shouldIncludePreviewDiagnostics(env)) {
+    const missingColumn = getMissingContentPublishColumn(message);
+
+    return jsonError("admin structured write failed", 500, {
+      resource: "admin-structured-data",
+      diagnostic: "admin-content-publish-unhandled-v1",
+      route: context.route,
+      contentId: context.contentId ?? "",
+      expectedRevisionPresent: context.expectedRevisionPresent === true,
+      errorName: getErrorName(cause),
+      errorMessage: sanitizeDiagnosticText(message),
+      ...(missingColumn ? { missingColumn } : {})
     });
   }
 
@@ -1268,6 +1393,6 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
 
     return notFoundAdmin();
   } catch (error) {
-    return safeAdminError(error);
+    return safeAdminError(error, env);
   }
 }

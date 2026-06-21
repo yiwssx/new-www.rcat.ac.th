@@ -109,7 +109,9 @@ function normalizeDeleted(row: Row) {
   return String(row.deleted_at ?? "") === "";
 }
 
-function createAdminWriteMockDb(options: { failRuns?: boolean } = {}) {
+function createAdminWriteMockDb(
+  options: { failRunQuery?: RegExp; failRuns?: boolean; missingContentColumn?: string } = {}
+) {
   const tables = createEmptyTables();
   const calls: { query: string; bindings: unknown[] }[] = [];
 
@@ -327,6 +329,16 @@ function createAdminWriteMockDb(options: { failRuns?: boolean } = {}) {
     });
   }
 
+  function maybeThrowMockD1Error(query: string) {
+    if (
+      options.missingContentColumn &&
+      tableFromQuery(query) === "contents" &&
+      new RegExp(`(?:^|[^a-z_])(?:contents\\.)?${options.missingContentColumn}(?:[^a-z_]|$)`, "i").test(query)
+    ) {
+      throw new Error(`D1_ERROR: no such column: contents.${options.missingContentColumn}`);
+    }
+  }
+
   return {
     tables,
     calls,
@@ -344,16 +356,20 @@ function createAdminWriteMockDb(options: { failRuns?: boolean } = {}) {
             return this;
           },
           async all<T>() {
+            maybeThrowMockD1Error(query);
             return {
               results: selectRows(query, call.bindings) as T[],
               success: true
             };
           },
           async first<T>() {
+            maybeThrowMockD1Error(query);
             return (selectRows(query, call.bindings)[0] ?? null) as T | null;
           },
           async run() {
-            if (options.failRuns) {
+            maybeThrowMockD1Error(query);
+
+            if (options.failRuns || options.failRunQuery?.test(query)) {
               throw new Error("D1 failure leaked SQL SELECT stack secret");
             }
 
@@ -809,6 +825,215 @@ describe("M18 admin structured write routes", () => {
     await expect(readJson(deleteResponse)).resolves.toEqual({
       id: "m18-preview-content-001",
       deleted: true
+    });
+  });
+
+  it("publishes draft content with a matching expected revision header", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const env = makeEnv(db);
+
+    await worker.fetch(makeJsonRequest("/api/admin/content", { ...contentInput, publishAt: "" }), env);
+
+    const publishResponse = await worker.fetch(
+      makeJsonRequest(
+        "/api/admin/content/m18-preview-content-001/publish",
+        {},
+        {
+          headers: {
+            ...smokeHeaders,
+            "X-RCAT-Expected-Revision": "0"
+          }
+        }
+      ),
+      env
+    );
+
+    expect(publishResponse.status).toBe(200);
+    await expect(readJson(publishResponse)).resolves.toEqual({
+      id: "m18-preview-content-001",
+      published: true
+    });
+    expect(tables.contents[0]).toMatchObject({
+      status: "published",
+      revision: 1,
+      updated_by: "m18-preview-smoke"
+    });
+    expect(String(tables.contents[0]?.publish_at ?? "")).toBeTruthy();
+  });
+
+  it("publishes draft content without a frontend revision", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const env = makeEnv(db);
+
+    await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env);
+
+    const publishResponse = await worker.fetch(
+      makeJsonRequest("/api/admin/content/m18-preview-content-001/publish", {}),
+      env
+    );
+
+    expect(publishResponse.status).toBe(200);
+    expect(tables.contents[0]).toMatchObject({
+      status: "published",
+      revision: 1
+    });
+  });
+
+  it("returns stale revision for content publish conflicts instead of a generic write failure", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const env = makeEnv(db);
+
+    await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env);
+    tables.contents[0].revision = 7;
+
+    const staleResponse = await worker.fetch(
+      makeJsonRequest(
+        "/api/admin/content/m18-preview-content-001/publish",
+        {},
+        {
+          headers: {
+            ...smokeHeaders,
+            "X-RCAT-Expected-Revision": "0"
+          }
+        }
+      ),
+      env
+    );
+
+    expect(staleResponse.status).toBe(409);
+    await expect(readJson(staleResponse)).resolves.toMatchObject({
+      error: "stale revision",
+      resource: "admin-structured-data"
+    });
+  });
+
+  it("returns not found when publishing deleted content", async () => {
+    const { db } = createAdminWriteMockDb();
+    const env = makeEnv(db);
+
+    await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env);
+    await worker.fetch(
+      makeRequest("/api/admin/content/m18-preview-content-001", {
+        method: "DELETE",
+        headers: smokeHeaders
+      }),
+      env
+    );
+
+    const publishResponse = await worker.fetch(
+      makeJsonRequest("/api/admin/content/m18-preview-content-001/publish", {}),
+      env
+    );
+
+    expect(publishResponse.status).toBe(404);
+    await expect(readJson(publishResponse)).resolves.toMatchObject({
+      error: "not found"
+    });
+  });
+
+  it.each(["deleted_at", "updated_by", "revision"])(
+    "returns preview diagnostics when content publish is missing contents.%s",
+    async (missingColumn) => {
+      const { db, tables } = createAdminWriteMockDb({ missingContentColumn: missingColumn });
+      const env = makeEnv(db);
+      tables.contents.push({
+        id: "m18-preview-content-001",
+        slug: "m18-preview-news",
+        type: "news",
+        status: "draft",
+        owner: "preview-editor",
+        title: "M18 preview news",
+        summary: "",
+        body_snapshot: "",
+        category: "",
+        tags_json: "[]",
+        seo_title: "",
+        seo_description: "",
+        canonical_url: "",
+        featured: 0,
+        reading_minutes: 1,
+        template: "standard",
+        body_doc_id: "",
+        body_doc_url: "",
+        featured_media_id: "",
+        media_ids_json: "[]",
+        view_count: 0,
+        last_viewed_at: "",
+        updated_at: "2026-06-16T00:00:00.000Z",
+        publish_at: "",
+        created_at: "2026-06-16T00:00:00.000Z",
+        deleted_at: "",
+        created_by: "preview-editor",
+        updated_by: "preview-editor",
+        revision: 0
+      });
+
+      const response = await worker.fetch(
+        makeJsonRequest("/api/admin/content/m18-preview-content-001/publish", {}),
+        env
+      );
+      const body = await readJson(response);
+
+      expect(response.status).toBe(500);
+      expect(body).toMatchObject({
+        diagnostic: "admin-content-publish-unhandled-v1",
+        route: "content.publish",
+        contentId: "m18-preview-content-001",
+        expectedRevisionPresent: false,
+        missingColumn
+      });
+      expect(JSON.stringify(body)).not.toMatch(/m18-preview-smoke-token|SELECT|secret|token/i);
+    }
+  );
+
+  it("returns preview-safe content publish diagnostics for runtime D1 failures", async () => {
+    const { db } = createAdminWriteMockDb({ failRunQuery: /UPDATE\s+contents/i });
+    const env = makeEnv(db);
+
+    await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env);
+
+    const response = await worker.fetch(
+      makeJsonRequest(
+        "/api/admin/content/m18-preview-content-001/publish",
+        {},
+        {
+          headers: {
+            ...smokeHeaders,
+            "X-RCAT-Expected-Revision": "0"
+          }
+        }
+      ),
+      env
+    );
+    const body = await readJson(response);
+
+    expect(response.status).toBe(500);
+    expect(body).toMatchObject({
+      diagnostic: "admin-content-publish-unhandled-v1",
+      route: "content.publish",
+      contentId: "m18-preview-content-001",
+      expectedRevisionPresent: true,
+      errorName: "Error"
+    });
+    expect(JSON.stringify(body)).not.toMatch(/SELECT|stack|secret|token|m18-preview-smoke-token/i);
+  });
+
+  it("keeps non-preview content publish diagnostics masked for unknown D1 failures", async () => {
+    const { db } = createAdminWriteMockDb({ failRunQuery: /UPDATE\s+contents/i });
+    const env = {
+      ...makeEnv(db),
+      ENVIRONMENT: "staging"
+    };
+
+    await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env);
+
+    const response = await worker.fetch(makeJsonRequest("/api/admin/content/m18-preview-content-001/publish", {}), env);
+    const body = await readJson(response);
+
+    expect(response.status).toBe(500);
+    expect(body).toEqual({
+      error: "admin structured write failed",
+      resource: "admin-structured-data"
     });
   });
 
