@@ -1,5 +1,7 @@
+import { getAdminWriteProvider } from "../config/adminWriteProvider";
 import { getGoogleAppsScriptUrl, projectSettings } from "../config/projectSettings";
 import { Session, User } from "../types";
+import { isAdminProxySessionEnabled, loginCloudflareAdminProxySession } from "./adminProxySession";
 import { assertLocalAuthFallbackAllowed } from "./authRuntime";
 export { isTokenExpired, restoreSession } from "./authSession";
 
@@ -17,6 +19,14 @@ export async function hashPassword(password: string) {
 }
 
 export async function login(email: string, password: string): Promise<Session> {
+  if (isAdminProxySessionEnabled()) {
+    return loginCloudflareAdminProxySession(email, password);
+  }
+
+  if (getAdminWriteProvider() !== "apps-script") {
+    throw new Error("Credential login is unavailable for the configured Cloudflare admin authentication mode");
+  }
+
   if (getGoogleAppsScriptUrl()) {
     const { loginUserFromApi } = await import("./googleApi");
     return loginUserFromApi(email, password);

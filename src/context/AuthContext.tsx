@@ -3,7 +3,7 @@ import { projectSettings } from "../config/projectSettings";
 import { restoreSession } from "../services/authSession";
 import {
   isAdminProxySessionEnabled,
-  loginAdminProxySession,
+  loginCloudflareAdminProxySession,
   logoutAdminProxySession,
   ADMIN_PROXY_SESSION_EXPIRED_EVENT
 } from "../services/adminProxySession";
@@ -32,22 +32,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { login: requestLogin } = await import("../services/auth");
-    const nextSession = await requestLogin(email, password);
+    const proxySessionEnabled = isAdminProxySessionEnabled();
+    let nextSession: Session;
 
-    if (isAdminProxySessionEnabled()) {
-      try {
-        await loginAdminProxySession(email, password);
-      } catch (error) {
+    try {
+      if (proxySessionEnabled) {
+        nextSession = await loginCloudflareAdminProxySession(email, password);
+      } else {
+        const { login: requestLogin } = await import("../services/auth");
+        nextSession = await requestLogin(email, password);
+      }
+    } catch (error) {
+      if (proxySessionEnabled) {
         try {
           await logoutAdminProxySession();
         } catch {
           // Preserve the original login error after a best-effort cookie cleanup.
         }
-        window.localStorage.removeItem(projectSettings.storageKeys.session);
-        setSession(null);
-        throw error;
       }
+
+      window.localStorage.removeItem(projectSettings.storageKeys.session);
+      setSession(null);
+      throw error;
     }
 
     window.localStorage.setItem(projectSettings.storageKeys.session, JSON.stringify(nextSession));
@@ -55,12 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    if (isAdminProxySessionEnabled()) {
-      await logoutAdminProxySession();
+    try {
+      if (isAdminProxySessionEnabled()) {
+        await logoutAdminProxySession();
+      }
+    } finally {
+      window.localStorage.removeItem(projectSettings.storageKeys.session);
+      setSession(null);
     }
-
-    window.localStorage.removeItem(projectSettings.storageKeys.session);
-    setSession(null);
   }, []);
 
   const value = useMemo(

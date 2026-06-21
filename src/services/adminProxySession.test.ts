@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isAdminProxySessionEnabled, loginAdminProxySession, logoutAdminProxySession } from "./adminProxySession";
+import {
+  isAdminProxySessionEnabled,
+  loginAdminProxySession,
+  loginCloudflareAdminProxySession,
+  logoutAdminProxySession
+} from "./adminProxySession";
 
 describe("admin proxy browser session", () => {
   afterEach(() => {
@@ -71,6 +76,31 @@ describe("admin proxy browser session", () => {
 
     await expect(loginAdminProxySession("admin@example.test", "wrong-password")).rejects.toThrow(
       "invalid email or password"
+    );
+  });
+
+  it("creates an opaque local admin marker session after proxy login succeeds", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }))
+    );
+    const beforeLogin = Date.now();
+
+    const session = await loginCloudflareAdminProxySession(" Operator@Example.Test ", "test-password");
+
+    expect(session).toMatchObject({
+      user: {
+        id: "admin-proxy:operator@example.test",
+        name: "operator",
+        email: "operator@example.test",
+        role: "admin"
+      }
+    });
+    expect(session.token).toMatch(/^admin-proxy\.local\./);
+    expect(Date.parse(session.expiresAt)).toBeGreaterThan(beforeLogin + 7 * 60 * 60 * 1000);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/admin-proxy-session/login",
+      expect.objectContaining({ credentials: "include", method: "POST" })
     );
   });
 });

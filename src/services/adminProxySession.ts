@@ -1,11 +1,21 @@
 import { resolveAdminWriteProvider, resolveCloudflareAdminWriteConfig } from "../config/adminWriteProvider";
+import { projectSettings } from "../config/projectSettings";
 import type { PublicApiProviderEnv } from "../config/publicApiProvider";
+import type { Session } from "../types";
 
 const loginPath = "/api/admin-proxy-session/login";
 const logoutPath = "/api/admin-proxy-session/logout";
 export const ADMIN_PROXY_SESSION_EXPIRED_EVENT = "rcat:admin-proxy-session-expired";
 export const ADMIN_PROXY_SESSION_NOTICE_KEY = "rcat.admin.proxy.session.notice";
 export const ADMIN_PROXY_SESSION_EXPIRED_MESSAGE = "Session expired. Please sign in again.";
+
+function createAdminProxyMarkerToken() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `admin-proxy.local.${crypto.randomUUID().replace(/-/g, "")}.${Date.now()}`;
+  }
+
+  return `admin-proxy.local.${Math.random().toString(36).slice(2)}.${Date.now()}`;
+}
 
 async function readErrorMessage(response: Response, fallback: string) {
   try {
@@ -43,6 +53,25 @@ export async function loginAdminProxySession(email: string, password: string) {
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "Unable to establish the admin proxy session"));
   }
+}
+
+export async function loginCloudflareAdminProxySession(email: string, password: string): Promise<Session> {
+  await loginAdminProxySession(email, password);
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const name = normalizedEmail.split("@")[0] || "Administrator";
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * projectSettings.auth.sessionHours);
+
+  return {
+    user: {
+      id: `admin-proxy:${normalizedEmail}`,
+      name,
+      email: normalizedEmail,
+      role: "admin"
+    },
+    token: createAdminProxyMarkerToken(),
+    expiresAt: expiresAt.toISOString()
+  };
 }
 
 export async function logoutAdminProxySession() {

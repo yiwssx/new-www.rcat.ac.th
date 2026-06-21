@@ -2,7 +2,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { hashPassword, isTokenExpired, login, restoreSession } from "./auth";
 
 const authMocks = vi.hoisted(() => ({
+  adminProvider: "apps-script" as "apps-script" | "cloudflare",
   appsScriptUrl: "",
+  proxyEnabled: false,
+  proxyLogin: vi.fn(async (email: string) => ({
+    user: {
+      id: `admin-proxy:${email}`,
+      name: "admin",
+      email,
+      role: "admin" as const
+    },
+    token: "admin-proxy.local.test.token",
+    expiresAt: new Date(Date.now() + 60_000).toISOString()
+  })),
   authenticateUser: vi.fn(async (email: string) => ({
     id: "user-test",
     name: "Test User",
@@ -25,6 +37,10 @@ const authMocks = vi.hoisted(() => ({
   }))
 }));
 
+vi.mock("../config/adminWriteProvider", () => ({
+  getAdminWriteProvider: () => authMocks.adminProvider
+}));
+
 vi.mock("../config/projectSettings", () => ({
   getGoogleAppsScriptUrl: () => authMocks.appsScriptUrl,
   projectSettings: {
@@ -41,13 +57,21 @@ vi.mock("./googleApi", () => ({
   loginUserFromApi: authMocks.loginUserFromApi
 }));
 
+vi.mock("./adminProxySession", () => ({
+  isAdminProxySessionEnabled: () => authMocks.proxyEnabled,
+  loginCloudflareAdminProxySession: authMocks.proxyLogin
+}));
+
 vi.mock("./users", () => ({
   authenticateUser: authMocks.authenticateUser
 }));
 
 describe("auth service", () => {
   afterEach(() => {
+    authMocks.adminProvider = "apps-script";
     authMocks.appsScriptUrl = "";
+    authMocks.proxyEnabled = false;
+    authMocks.proxyLogin.mockClear();
     authMocks.authenticateUser.mockClear();
     authMocks.loginUserFromApi.mockClear();
     vi.unstubAllEnvs();
@@ -62,7 +86,7 @@ describe("auth service", () => {
     expect(authMocks.authenticateUser).toHaveBeenCalledWith("admin@example.com", "password");
   });
 
-  it("uses the Apps Script auth API path when configured", async () => {
+  it("uses the Apps Script auth API path only for the Apps Script admin provider", async () => {
     authMocks.appsScriptUrl = "https://script.google.com/macros/s/example/exec";
 
     const session = await login("editor@example.com", "password");
@@ -73,6 +97,33 @@ describe("auth service", () => {
       role: "editor"
     });
     expect(authMocks.loginUserFromApi).toHaveBeenCalledWith("editor@example.com", "password");
+    expect(authMocks.authenticateUser).not.toHaveBeenCalled();
+  });
+
+  it("uses only the server proxy login when Cloudflare preview auth is enabled", async () => {
+    authMocks.adminProvider = "cloudflare";
+    authMocks.appsScriptUrl = "https://script.google.com/macros/s/example/exec";
+    authMocks.proxyEnabled = true;
+
+    const session = await login("admin@example.com", "password");
+
+    expect(session).toMatchObject({
+      user: { email: "admin@example.com", role: "admin" },
+      token: "admin-proxy.local.test.token"
+    });
+    expect(authMocks.proxyLogin).toHaveBeenCalledWith("admin@example.com", "password");
+    expect(authMocks.loginUserFromApi).not.toHaveBeenCalled();
+    expect(authMocks.authenticateUser).not.toHaveBeenCalled();
+  });
+
+  it("does not fall back to Apps Script for other Cloudflare auth modes", async () => {
+    authMocks.adminProvider = "cloudflare";
+    authMocks.appsScriptUrl = "https://script.google.com/macros/s/example/exec";
+
+    await expect(login("admin@example.com", "password")).rejects.toThrow(
+      "Credential login is unavailable for the configured Cloudflare admin authentication mode"
+    );
+    expect(authMocks.loginUserFromApi).not.toHaveBeenCalled();
     expect(authMocks.authenticateUser).not.toHaveBeenCalled();
   });
 

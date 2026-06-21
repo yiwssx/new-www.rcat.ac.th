@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { projectSettings } from "../config/projectSettings";
@@ -21,7 +21,16 @@ const authModuleMock = vi.hoisted(() => ({
 
 const adminProxySessionMock = vi.hoisted(() => ({
   enabled: false,
-  login: vi.fn(async () => undefined),
+  login: vi.fn(async () => ({
+    user: {
+      id: "admin-proxy:admin@example.com",
+      name: "admin",
+      email: "admin@example.com",
+      role: "admin" as const
+    },
+    token: "admin-proxy.local.test.token",
+    expiresAt: new Date(Date.now() + 60_000).toISOString()
+  })),
   logout: vi.fn(async () => undefined)
 }));
 
@@ -35,7 +44,7 @@ vi.mock("../services/auth", () => {
 vi.mock("../services/adminProxySession", () => ({
   ADMIN_PROXY_SESSION_EXPIRED_EVENT: "rcat:admin-proxy-session-expired",
   isAdminProxySessionEnabled: () => adminProxySessionMock.enabled,
-  loginAdminProxySession: adminProxySessionMock.login,
+  loginCloudflareAdminProxySession: adminProxySessionMock.login,
   logoutAdminProxySession: adminProxySessionMock.logout
 }));
 
@@ -74,7 +83,16 @@ describe("AuthProvider", () => {
     authModuleMock.login.mockClear();
     adminProxySessionMock.enabled = false;
     adminProxySessionMock.login.mockReset();
-    adminProxySessionMock.login.mockResolvedValue(undefined);
+    adminProxySessionMock.login.mockResolvedValue({
+      user: {
+        id: "admin-proxy:admin@example.com",
+        name: "admin",
+        email: "admin@example.com",
+        role: "admin"
+      },
+      token: "admin-proxy.local.test.token",
+      expiresAt: new Date(Date.now() + 60_000).toISOString()
+    });
     adminProxySessionMock.logout.mockReset();
     adminProxySessionMock.logout.mockResolvedValue(undefined);
   });
@@ -112,6 +130,16 @@ describe("AuthProvider", () => {
     adminProxySessionMock.enabled = true;
     adminProxySessionMock.login.mockImplementation(async () => {
       expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
+      return {
+        user: {
+          id: "admin-proxy:admin@example.com",
+          name: "admin",
+          email: "admin@example.com",
+          role: "admin"
+        },
+        token: "admin-proxy.local.test.token",
+        expiresAt: new Date(Date.now() + 60_000).toISOString()
+      };
     });
     render(
       <AuthProvider>
@@ -125,18 +153,22 @@ describe("AuthProvider", () => {
       expect(adminProxySessionMock.login).toHaveBeenCalledWith("admin@example.com", "password");
       expect(screen.getByText("Signed in")).toBeInTheDocument();
     });
-    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toContain("local.test.token");
+    expect(authModuleMock.loaded).toBe(false);
+    expect(authModuleMock.login).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toContain("admin-proxy.local.test.token");
   });
 
   it("does not retain local admin state when the server proxy session login fails", async () => {
     adminProxySessionMock.enabled = true;
     adminProxySessionMock.login.mockRejectedValue(new Error("Admin proxy session login failed"));
+    window.localStorage.setItem(projectSettings.storageKeys.session, JSON.stringify(await authModuleMock.login()));
     render(
       <AuthProvider>
         <AuthStateControls />
       </AuthProvider>
     );
 
+    expect(screen.getByText("Signed in")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Login state" }));
 
     await waitFor(() => {
@@ -176,7 +208,9 @@ describe("AuthProvider", () => {
     );
 
     expect(screen.getByText("Signed in")).toBeInTheDocument();
-    window.dispatchEvent(new CustomEvent("rcat:admin-proxy-session-expired"));
+    act(() => {
+      window.dispatchEvent(new CustomEvent("rcat:admin-proxy-session-expired"));
+    });
 
     await waitFor(() => {
       expect(screen.getByText("Signed out")).toBeInTheDocument();
