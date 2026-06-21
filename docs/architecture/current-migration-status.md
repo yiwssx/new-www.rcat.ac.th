@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M19 repository-owned parity remediation is closed. M20 repository readiness, M19 continuity, post-M19 public-read preview smoke, preview migration verification, and preview admin write smoke passed externally. The M20 external evidence pack is open with unresolved operator gates, M20 remains blocked and not started, and production cutover readiness is not claimed.
+Current milestone: M19 repository-owned parity remediation is closed. M20 repository readiness, M19 continuity, post-M19 public-read preview smoke, preview migration verification, and preview admin write smoke passed externally. The operator has approved an M20 preview-backed Cloudflare field cutover for real field verification. Final production readiness is not claimed.
 
 ## Summary
 
@@ -28,9 +28,9 @@ M19: `CLOSED` for repository-owned parity remediation. Public Worker contracts n
 
 Post-M19 external verification: the replacement production Vercel frontend was configured outside git to select the existing public Cloudflare provider, and public frontend data loading and browser sanity were restored. Preview admin proxy login and snapshot were verified. The post-M19 public-read preview smoke, preview migration verification, and preview admin write smoke passed externally. This evidence does not establish production cutover readiness.
 
-M20-P0: Production Readiness Gate Scaffolding is added as repository-owned readiness preparation only. It includes the M20 readiness document, operations runbook, offline readiness script, tests, and the redacted external evidence pack at `docs/operations/m20-external-evidence-pack.md`. M19 remains closed, M20 production execution remains BLOCKED, no production mutation occurred, and no cutover readiness is claimed.
+M20-P0: Production Readiness Gate Scaffolding supplied the repository-owned readiness document, operations runbook, offline readiness script, tests, and redacted external evidence pack. The operator decision now advances the same M20 milestone to preview-backed field verification without claiming final production readiness.
 
-M20: `BLOCKED` and not started. Production identity/RBAC approval, sanitized full-data reconciliation, Drive bridge recovery ownership, representative migration/backup/restore/rollback rehearsal, production resources, monitoring thresholds, and cutover authority are still required outside git.
+M20: `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION`. Public client data and admin structured data use Cloudflare with preview D1 during field verification. Media, attachments, and files remain on Google Drive through the Apps Script bridge. Production D1 and final production cutover are deferred to a later operator decision after field verification.
 
 ## M15.1 Dry-Run Result
 
@@ -67,23 +67,27 @@ No `--execute` command was run.
 
 ## Provider Status
 
-Current replacement production Vercel frontend public-read provider: Cloudflare, selected through the existing environment-only provider setting after M19. This external provider configuration restored public data loading but does not establish production cutover readiness or start M20.
+Admin structured data provider: Cloudflare.
 
-Apps Script remains the fallback and rollback provider. Provider defaults and runtime behavior were not changed by this documentation update.
+Public client data provider: Cloudflare.
 
-Current preview public provider capability: Cloudflare is explicitly selectable for documents, public home, content list/detail, search, and programs. Public visitor stats are supplied through the Cloudflare public-home snapshot and direct Worker route. Default and unknown provider values remain Apps Script.
+Media/attachment/file provider: Google Drive via Apps Script bridge.
 
-Current preview admin provider capability: Cloudflare is explicitly selectable for dashboard snapshot, content, document metadata, site/homepage/display settings, menu, carousel, external services, and events. Media binary operations, visitor analytics settings mutation, users, and application auth remain Apps Script-backed under the documented bridge or external-blocker classifications.
+Database environment: preview D1 during field verification.
 
-Target provider after eventual approved full cutover: Cloudflare Worker + D1 for accepted structured application data, with Apps Script retained only for the approved Google Drive media-file bridge.
+Production D1 / final production cutover: explicitly deferred to operator decision after field verification.
 
-Rollback provider: Apps Script.
+The existing admin proxy/login path remains required for admin field verification. This approval does not change or weaken auth, RBAC, CORS, session, proxy, admin-gate, preview-write, or smoke-token boundaries.
+
+Cloudflare public capability covers documents, public home, content list/detail, search, programs, and visitor stats. Cloudflare admin structured-data capability covers dashboard snapshot, content, document metadata, site/homepage/display settings, menu, carousel, external services, and events. Media binary operations remain Apps Script-backed.
+
+Apps Script remains technically available in existing provider code, but rollback to Apps Script is not required for this operator-approved field cutover.
 
 M15.2 real execute cutover: deferred.
 
 Current real production domain: old live system.
 
-Replacement-system Cloudflare endpoints before final cutover: dev/preview Worker origins only.
+Replacement-system Cloudflare endpoints during field verification: approved preview Worker origin only.
 
 Apps Script target role: media-file bridge only.
 
@@ -175,7 +179,7 @@ Repository closure evidence:
 - Ordered migration `0005_m19_structured_admin_parity.sql` defines actor/revision metadata and audit triggers but was not applied remotely.
 - `pnpm worker:m19:readiness` verifies repository invariants without remote commands or mutations.
 
-External blockers remain for production identity/RBAC, analytics policy, sanitized complete data inventory and reconciliation, Drive bridge compensation/recovery, production resources, migration rehearsal, backup/restore, monitoring, rollback, and cutover authority.
+For the preview-backed field cutover, legacy structured data inventory and cross-provider reconciliation are not applicable, media remains excluded from Cloudflare, backup/restore and Apps Script rollback are not blocking, and monitoring is field observation only. Final production identity/RBAC, production-grade backup/restore, production monitoring, production resources, and final production authority remain future operator responsibilities.
 
 The M19 repository closure change executed no production cutover, D1 mutation, Worker deployment, Vercel environment mutation, Apps Script mutation, or Google Drive mutation. The later external Vercel public provider configuration is recorded separately below.
 
@@ -204,17 +208,17 @@ Safety boundary:
 - no production Worker deploy occurred
 - no Apps Script mutation occurred
 - no Google Drive mutation occurred
-- no runtime code, tests, provider behavior, UI, routes, cache keys, or cache TTL changed in this documentation update
-- no production cutover readiness is claimed
-- M20 remains blocked and not started
+- no application runtime code, provider behavior, UI, routes, cache keys, or cache TTL changed; only M20 governance validation and its focused test were aligned with the operator decision
+- no final production cutover readiness is claimed
+- M20 preview-backed field cutover is operator-approved for field verification only
 
 ## Next Action
 
-M19 repository-owned remediation is closed. The next action is operator completion and approval of the PENDING and BLOCKED sections in `docs/operations/m20-external-evidence-pack.md`.
+M19 repository-owned remediation is closed. The next action is M20 preview-backed field verification under the provider and safety boundaries in `docs/operations/m20-readiness-runbook.md`.
 
-M20 remains blocked and not started. It may begin only after those external identity, data, bridge, migration, operations, rollback, and cutover gates are approved; M19 closure alone is not sufficient.
+M20 is `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION`. No legacy public structured data migration or cross-provider reconciliation is required. The media bridge remains outside the Cloudflare cutover, and rollback to Apps Script is not required for this field-verification scope.
 
-M20-P0 readiness gate scaffolding and the redacted external evidence pack are added. Operators can run pnpm worker:m20:readiness for local repository-only checks, but production execution remains blocked until all evidence sections and authority gates pass.
+Operators must run `pnpm worker:m20:readiness` and `pnpm worker:m19:readiness`, use Cloudflare for public client and admin structured data with preview D1, preserve the existing admin proxy/login path, and keep media/files on the Apps Script / Google Drive bridge.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 
@@ -222,9 +226,9 @@ M17 goal: build the Cloudflare Core Public Read API foundation, preserve existin
 
 M17 status: public read API foundation implemented for dev/preview Worker origins, with M17-C preview smoke and contract freeze passed through externally confirmed operator execution. The grouped routes no longer return M17 safe 501 skeleton responses in Worker tests, but Apps Script fallback remains available until final cutover gates are approved.
 
-M15.2 real execute cutover remains deferred until the replacement system is complete, the production domain can be moved safely, explicit operator approval is recorded, and an approved production monitoring window exists.
+M15.2 final production execute cutover remains deferred to an explicit operator decision after field verification.
 
-M20 is only a future controlled production cutover preparation/gate after external M19 blockers are resolved. M20 is not started.
+M20 field verification is approved; production D1 provisioning, final production resource migration, production monitoring, and final production cutover remain operator-controlled future responsibilities.
 
 M16 architecture checkpoint: `docs/architecture/m16-cloudflare-first-backend-reset-2026-06-13.md`.
 

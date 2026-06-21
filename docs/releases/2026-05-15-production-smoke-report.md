@@ -8,7 +8,7 @@
 
 | รายการ                        | รายละเอียด                                                                  |
 | ----------------------------- | --------------------------------------------------------------------------- |
-| Deployment URL                | https://preview-placeholder.example.invalid/                                         |
+| Deployment URL                | https://preview-placeholder.example.invalid/                                |
 | Vercel Deployment ID หรือ URL | Deployment URL verified; exact Vercel deployment ID not recorded            |
 | Commit SHA                    | `a4da2a27e4946124d1ed52ba4857abad5c9ac5bd`                                  |
 | วันที่/เวลาที่ทดสอบ           | 2026-05-15, local quality gate and manual production verification completed |

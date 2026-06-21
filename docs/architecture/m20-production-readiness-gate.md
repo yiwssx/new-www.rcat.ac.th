@@ -1,168 +1,108 @@
 # M20 Production Readiness Gate
 
-Status: M20-P0 repository-owned production readiness gate scaffolding only. M20 remains BLOCKED until external operator gates pass. This is not production cutover readiness.
+Status: M20 preview-backed Cloudflare field cutover is `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION` by operator decision. This document does not claim final production readiness.
 
 ## Current State After M19
 
-M19 is closed for repository-owned parity remediation and must not be reopened for M20-P0. Public-read parity, structured admin preview routes, provider adapters, and local readiness checks exist in the repository. Post-M19 external operator evidence records restored public frontend loading, verified preview admin proxy login and snapshot, and passed public-read preview smoke, preview migration verification, and preview admin write smoke.
+M19 remains closed for repository-owned parity remediation. Repository readiness, M19 continuity, public-read preview smoke, preview migration verification, preview admin proxy/login verification, and preview admin write smoke have passed externally.
 
-Apps Script remains the fallback and rollback provider. Google Drive binary media operations remain in the Apps Script bridge. Ordered migration 0005_m19_structured_admin_parity.sql exists but is not applied by M20-P0.
+The operator has authorized the replacement site to use the existing preview Worker and preview D1 during real field verification. Production D1 and final production cutover are not authorized by this decision.
 
 ## Scope Of M20-P0
 
-M20-P0 creates repository-owned scaffolding for the future production readiness review:
+M20-P0 supplied the repository readiness scaffold. The current M20 operator decision advances that same milestone to a preview-backed field cutover without renaming it or claiming final production readiness.
 
-- readiness gate documentation
-- operator runbook
-- offline local readiness script
-- tests for the local readiness script
-- package scripts for local readiness checks
-- correction of root-level cutover command wording where existing docs were ambiguous
+## M20 Preview-Backed Field Cutover
 
-The only executable result of M20-P0 is a local repository readiness review. REPOSITORY_READY_FOR_M20_REVIEW means the repository contains the scaffolding needed for operator review; it does not mean production is ready.
+- Admin structured data provider: Cloudflare.
+- Public client data provider: Cloudflare.
+- Media/attachment/file provider: Google Drive via Apps Script bridge.
+- Database environment: preview D1 during field verification.
+- Production D1 / final production cutover: explicitly deferred to operator decision after field verification.
+
+The existing admin proxy/login path is mandatory for admin field verification. Existing authentication, authorization, CORS, session, proxy, admin-gate, preview-write, and smoke-token controls remain intact.
 
 ## Non-goals
 
-- no production cutover
-- no production Worker deploy
-- no production D1 migration, import, query, or write
-- no Vercel production environment mutation
-- no Apps Script mutation
-- no Google Drive mutation
-- no provider default change
-- no authentication, authorization, CORS, session, smoke-token, preview-gate, or production-context weakening
-- no UI, route, cache key, or cache TTL change
-- no movement of Google Drive binary media operations out of the Apps Script bridge
-- no commitment of live endpoints, ids, tokens, record payloads, screenshots, exact timestamps, or infrastructure identifiers
+- no production D1 provisioning or migration
+- no final production cutover or final production-readiness claim
+- no movement of media, attachments, or binary files to Cloudflare
+- no Apps Script or Google Drive mutation as part of this documentation change
+- no weakening of auth, RBAC, CORS, sessions, proxies, admin gates, preview gates, or smoke-token separation
+- no commitment of live endpoints, identifiers, tokens, secrets, payloads, screenshots, exact timestamps, exports, or backup artifacts
 
 ## Production Safety Boundaries
 
-M20-P0 may read repository files only. It must not run remote commands, perform network requests, write D1, deploy Workers, mutate Vercel, mutate Apps Script, mutate Google Drive, or start production traffic changes.
+The committed production Worker configuration remains placeholder-safe. Production markers remain explicit, preview writes and smoke-token gates remain disabled in production configuration, and no production D1 identifier is committed.
 
-The committed Worker production configuration must remain placeholder-safe:
-
-- production environment marker remains explicit
-- preview write gate remains disabled in production
-- smoke-token gate remains disabled in production
-- production D1 binding remains a placeholder in committed files
-
-Any local operator configuration outside git must stay uncommitted.
+This governance update performs no remote command, network request, D1 write, Worker deployment, Vercel mutation, Apps Script mutation, Google Drive mutation, or production cutover action.
 
 ## External Operator Blockers
 
-The following items remain EXTERNAL_OPERATOR_BLOCKER before M20 execution can begin:
+There are no remaining external operator blockers for the approved preview-backed field-verification scope.
 
-- full structured source-data inventory
-- cross-provider reconciliation report
-- media bridge ownership, permission, quota, compensation, and recovery approval
-- identity and RBAC approval, including MFA, role mapping, revocation, and emergency access
-- backup rehearsal evidence
-- restore rehearsal evidence
-- rollback rehearsal evidence
-- monitoring and alert threshold approval
-- final cutover authority, operator, and support-window approval
+The following remain future production responsibilities rather than field-cutover blockers:
 
-These blockers require external evidence. Repository code must not invent values for them.
+- final production identity and RBAC approval
+- production-grade backup and restore policy
+- production monitoring, alerting, support ownership, and acceptance thresholds
+- production Worker, D1, and frontend resource decisions
+- final production cutover authority
 
-The redacted status register for these blockers is `docs/operations/m20-external-evidence-pack.md`. A PENDING or BLOCKED section in that pack prevents production execution.
+## Operator Decision Dispositions
+
+| Gate                           | Field-cutover disposition                      |
+| ------------------------------ | ---------------------------------------------- |
+| Full structured data inventory | `NOT_APPLICABLE`                               |
+| Cross-provider reconciliation  | `NOT_APPLICABLE`                               |
+| Media bridge verification      | `EXCLUDED_FROM_CLOUDFLARE_CUTOVER`             |
+| Identity/RBAC                  | `APPROVED_FOR_PREVIEW_FIELD_VERIFICATION_ONLY` |
+| Backup/restore                 | `NOT_BLOCKING_PREVIEW_FIELD_VERIFICATION`      |
+| Rollback to Apps Script        | `NOT_REQUIRED_FOR_FIELD_CUTOVER`               |
+| Monitoring                     | `FIELD_VERIFICATION_OBSERVATION_ONLY`          |
+| Cutover authority              | `APPROVED_FOR_PREVIEW_FIELD_VERIFICATION_ONLY` |
+
+No legacy public structured dataset must be migrated or reconciled. Public structured content may be recreated in preview D1. Media/attachment/file handling remains on the existing Apps Script / Google Drive bridge.
 
 ## Required Evidence Format
 
-Evidence must be recorded in redacted form only. Each evidence item should include:
-
-- checkpoint label
-- environment label such as <preview> or <production-review>
-- operator role label
-- command label, not command output containing identifiers
-- pass, fail, or blocked result
-- redacted target labels
-- counts only when they do not expose records
-- first public item ids only when approved as non-sensitive
-- validation issue labels
-- rollback availability
-
-Evidence must not include live URLs, D1 ids, account ids, deployment ids, run ids, tokens, secrets, record payloads, screenshots, exact timestamps, Google Drive file URLs, Apps Script URLs, or infrastructure identifiers.
+Committed field-verification outcomes must use redacted labels and pass/fail observations only. They must not contain live URLs, D1 ids, account ids, deployment ids, run ids, tokens, secrets, exact timestamps, screenshots, Google Drive URLs, Apps Script URLs, raw exports, record payloads, backup artifacts, or infrastructure identifiers.
 
 ## Required Rehearsal Flow
 
-The required rehearsal flow is:
-
-1. Confirm pnpm worker:m20:readiness reports repository readiness. Passed externally.
-2. Confirm pnpm worker:m19:readiness still reports repository readiness. Passed externally.
-3. Run post-M19 public-read preview smoke against an approved preview Worker origin. Passed externally.
-4. Verify preview-only migrations against a confirmed non-production D1 database. Passed externally.
-5. Run preview admin write smoke against the exact candidate preview Worker. Passed externally.
-6. Produce full structured data inventory from the current source of truth.
-7. Reconcile structured source data against Cloudflare D1 preview output.
-8. Verify the Apps Script media bridge remains operational and recoverable.
-9. Obtain identity and RBAC approval.
-10. Rehearse backup, restore, and rollback.
-11. Approve monitoring thresholds and response ownership.
-12. Record cutover authority before any future production execution.
+For this field cutover, use the existing passed preview checks and follow the `M20 Preview-Backed Field Cutover` section in `docs/operations/m20-readiness-runbook.md`. Full legacy inventory, cross-provider reconciliation, production-grade backup/restore rehearsal, and rollback-to-Apps-Script rehearsal are not required.
 
 ## Backup / Restore / Rollback Expectations
 
-Before any future M20 production execution, the operator must provide:
+Backup and restore are not blocking preview-backed field verification. Production-grade backup and restore remain future production responsibilities.
 
-- backup procedure for D1 structured data
-- restore procedure tested against non-production data
-- rollback procedure to return frontend provider behavior to Apps Script
-- rollback procedure for Worker and D1 configuration
-- confirmation that rollback does not require Google Drive mutation
-- named support owner and escalation path
-- acceptable RTO and RPO values
-
-M20-P0 does not execute any backup, restore, or rollback command.
+Rollback to Apps Script is not required for this operator-approved field cutover. This document does not prescribe a final production rollback strategy.
 
 ## Cutover Authority Requirements
 
-Future production execution requires:
+The operator has granted cutover authority for preview-backed field verification only. The authority applies while public and admin structured data use Cloudflare with preview D1 and the existing admin proxy/login path, and while media remains on the Apps Script / Google Drive bridge.
 
-- explicit operator approval phrase for the exact checkpoint
-- approved monitoring window
-- confirmed owner for rollback authority
-- confirmed owner for identity/RBAC decisions
-- confirmed owner for Google Drive media bridge recovery
-- confirmed production Worker and D1 resources outside git
-- confirmed Vercel production environment change plan
-
-No approval is implied by this document.
+Production D1, production resource migration, final production identity approval, and final production cutover require a later operator decision after field verification.
 
 ## Go / No-Go Checklist
 
-Go requires every item below to be true:
+Field verification may proceed when:
 
 - M19 remains closed.
-- M20-P0 readiness gate reports repository readiness.
-- Post-M19 public-read preview smoke passed.
-- Preview-only migration verification passed.
-- Preview admin write smoke passed for the candidate deployment.
-- Full structured data inventory is approved.
-- Cross-provider reconciliation is approved.
-- Media bridge verification is approved.
-- Identity/RBAC approval is recorded.
-- Backup rehearsal passed.
-- Restore rehearsal passed.
-- Rollback rehearsal passed.
-- Monitoring thresholds are approved.
-- Final cutover authority is recorded.
+- `pnpm worker:m20:readiness` passes.
+- `pnpm worker:m19:readiness` passes.
+- public client data is configured for Cloudflare.
+- admin structured data is configured for Cloudflare through the existing admin proxy/login path.
+- the database target is the preview D1 environment.
+- media, attachments, and files remain on the Apps Script / Google Drive bridge.
+- production resources and identifiers remain uncommitted and untouched.
 
-No-go applies if any item is missing, blocked, stale, or unapproved.
+Stop field verification if provider boundaries or existing security gates are bypassed, or if media/file operations no longer use the existing bridge.
 
 ## Rollback Checklist
 
-Rollback must remain available before any future production cutover:
-
-- Apps Script fallback provider remains available.
-- Frontend provider can be returned to Apps Script by approved environment change.
-- Cloudflare provider can be disabled without UI, route, cache key, or cache TTL changes.
-- D1 structured data can be restored from approved backup.
-- Worker deployment can be reverted by approved platform process.
-- Google Drive media bridge remains unchanged.
-- Operator communications and support owner are ready.
+Rollback to Apps Script is `NOT_REQUIRED_FOR_FIELD_CUTOVER`. If field verification must stop, disable or pause the field-verification configuration through operator-controlled external configuration; do not weaken security controls, mutate production resources, or move media providers. A final production rollback design is deferred.
 
 ## Redacted Evidence Policy
 
-All committed evidence must be redacted. Commit only labels and outcomes, never values. Use placeholders such as <preview-worker-origin>, <preview-d1-database-name>, <redacted-count>, and <operator-role>.
-
-Evidence that contains a live endpoint, identifier, token, secret, record payload, screenshot, exact timestamp, or real infrastructure value must stay outside git.
+Record only provider labels, environment class, verification outcome, and non-sensitive issue labels. All live endpoints, infrastructure identifiers, credentials, exact timestamps, screenshots, exports, payloads, and artifacts remain outside git.

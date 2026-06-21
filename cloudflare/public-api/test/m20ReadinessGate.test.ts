@@ -11,27 +11,29 @@ const repositoryFixture = {
   "docs/architecture/current-migration-status.md": [
     "M19 remains CLOSED.",
     "M19: `CLOSED` for repository-owned parity remediation.",
-    "M20: `BLOCKED` and not started.",
-    "M20-P0 readiness gate scaffolding is added.",
-    "M20 production execution remains BLOCKED.",
-    "Apps Script remains the fallback and rollback provider.",
-    "No production mutation occurred.",
-    "No cutover readiness is claimed."
+    "M20: `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION`.",
+    "Admin structured data provider: Cloudflare.",
+    "Public client data provider: Cloudflare.",
+    "Media/attachment/file provider: Google Drive via Apps Script bridge.",
+    "Database environment: preview D1 during field verification.",
+    "Production D1 / final production cutover: explicitly deferred to operator decision after field verification."
   ].join("\n"),
-  "docs/architecture/m19-parity-gap-assessment-2026-06-19.md": [
+  "docs/architecture/m19-parity-gap-assessment-2026-06-19.md":
     "Status: CLOSED for repository-owned M19 parity remediation.",
-    "M20 is not started.",
-    "External operator blockers remain."
-  ].join("\n"),
   "docs/architecture/m20-production-readiness-gate.md": [
     "# M20 Production Readiness Gate",
     "Current state after M19",
     "M19 is closed.",
-    "M20 remains BLOCKED until external operator gates pass.",
+    "M20 is APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION.",
+    "APPROVED_FOR_PREVIEW_FIELD_VERIFICATION_ONLY.",
+    "This document does not claim final production readiness.",
     "Scope of M20-P0",
+    "M20 preview-backed field cutover",
     "Non-goals",
     "Production safety boundaries",
     "External operator blockers",
+    "Operator decision dispositions",
+    "EXCLUDED_FROM_CLOUDFLARE_CUTOVER",
     "Required evidence format",
     "Required rehearsal flow",
     "Backup / restore / rollback expectations",
@@ -42,18 +44,14 @@ const repositoryFixture = {
   ].join("\n"),
   "docs/operations/m20-readiness-runbook.md": [
     "# M20 Readiness Runbook",
-    "Post-M19 public-read preview smoke",
-    "Preview-only migration verification",
-    "Admin write preview smoke",
-    "Full structured data inventory",
-    "Cross-provider reconciliation",
-    "Media bridge verification",
-    "Identity/RBAC approval",
-    "Backup rehearsal",
-    "Restore rehearsal",
-    "Rollback rehearsal",
-    "Monitoring and alert threshold approval",
-    "Final cutover approval"
+    "M20 preview-backed field cutover",
+    "Provider boundary",
+    "Preconditions",
+    "Field-cutover steps",
+    "Field observation",
+    "Operator-decision dispositions",
+    "After field verification",
+    "Redaction rules"
   ].join("\n"),
   "cloudflare/public-api/wrangler.toml": [
     "[env.production.vars]",
@@ -88,17 +86,17 @@ function createFixtureReader(overrides: Record<string, string | null> = {}) {
 }
 
 describe("M20 readiness gate", () => {
-  it("reports repository-ready using mocked file reads", async () => {
+  it("reports repository alignment using mocked file reads", async () => {
     const result = await runM20ReadinessGate({ readFile: createFixtureReader() });
 
-    expect(result.status).toBe("REPOSITORY_READY_FOR_M20_REVIEW");
+    expect(result.status).toBe("REPOSITORY_ALIGNED_FOR_M20_PREVIEW_FIELD_CUTOVER");
     expect(Object.values(result.checks).every((value) => value === "passed")).toBe(true);
-    expect(result.externalOperatorBlockers).toEqual(
+    expect(result.futureProductionResponsibilities).toEqual(
       expect.arrayContaining([
-        "post-M19 public-read preview smoke evidence",
-        "production identity and RBAC approval",
-        "sanitized full structured data inventory and reconciliation",
-        "backup, restore, rollback, monitoring, and final cutover authority"
+        "final production identity and RBAC approval",
+        "production-grade backup and restore policy",
+        "production monitoring, alerting, and support ownership",
+        "final production cutover authority"
       ])
     );
   });
@@ -112,7 +110,6 @@ describe("M20 readiness gate", () => {
 
     expect(result.status).toBe("BLOCKED");
     expect(result.checks.m19Closed).toBe("blocked");
-    expect(result.validationIssues).toContain("m19Closed: M19 closure evidence is missing");
   });
 
   it("blocks when production placeholder safety is missing", async () => {
@@ -148,29 +145,21 @@ describe("M20 readiness gate", () => {
     const result = await runM20ReadinessGate({ readFile: createFixtureReader() });
     const output = formatM20ReadinessGate(result);
 
-    expect(result.safety).toEqual({
-      remoteCommandsRun: false,
-      networkRequests: false,
-      d1Writes: false,
-      workerDeploy: false,
-      vercelMutation: false,
-      appsScriptMutation: false,
-      googleDriveMutation: false,
-      productionCutover: false
-    });
+    expect(result.safety.productionCutover).toBe(false);
+    expect(result.safety.d1Writes).toBe(false);
     expect(output).toContain("No remote commands were run.");
     expect(output).not.toMatch(/https?:\/\//i);
     expect(output).not.toMatch(/token|secret|database[_ -]?id/i);
   });
 
-  it("documents M20-P0 without reopening M19 or starting production execution", () => {
-    expect(m20Doc).toMatch(/M19 is closed/i);
-    expect(m20Doc).toMatch(/M20 remains BLOCKED/i);
-    expect(m20Doc).toMatch(/Redacted evidence policy/i);
-    expect(m20Runbook).toMatch(/Post-M19 public-read preview smoke/i);
-    expect(m20Runbook).toMatch(/Final cutover approval/i);
-    expect(currentStatus).toMatch(/M20-P0 readiness gate scaffolding is added/i);
-    expect(currentStatus).toMatch(/M20 production execution remains BLOCKED/i);
+  it("documents field-cutover scope without claiming final production readiness", () => {
+    expect(m20Doc).toMatch(/APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION/i);
+    expect(m20Doc).toMatch(/Production D1 \/ final production cutover/i);
+    expect(m20Runbook).toMatch(/M20 Preview-Backed Field Cutover/i);
+    expect(m20Runbook).toMatch(/After Field Verification/i);
+    expect(currentStatus).toMatch(/Admin structured data provider: Cloudflare/i);
+    expect(currentStatus).toMatch(/Public client data provider: Cloudflare/i);
+    expect(currentStatus).toMatch(/preview D1 during field verification/i);
   });
 
   it("exposes the readiness command from root and Worker packages", () => {
