@@ -1,6 +1,4 @@
-import { projectSettings } from "../../config/projectSettings";
 import type { MediaAssetInput } from "../../services/googleApi";
-import type { Session } from "../../types";
 import type { MediaAsset } from "./types";
 
 const mediaBridgePath = "/api/apps-script-proxy";
@@ -11,22 +9,7 @@ type MediaBridgeEnvelope<T> = T & {
   statusCode?: number;
 };
 
-function readStoredSessionToken() {
-  try {
-    const raw = window.localStorage.getItem(projectSettings.storageKeys.session);
-    if (!raw) {
-      return "";
-    }
-
-    const session = JSON.parse(raw) as Session;
-    return session.token && Date.parse(session.expiresAt) > Date.now() ? session.token : "";
-  } catch {
-    return "";
-  }
-}
-
 async function requestMediaBridge<T>(resource: MediaBridgeResource, payload: Record<string, unknown>): Promise<T> {
-  const authToken = readStoredSessionToken();
   const response = await fetch(mediaBridgePath, {
     method: "POST",
     headers: {
@@ -34,10 +17,7 @@ async function requestMediaBridge<T>(resource: MediaBridgeResource, payload: Rec
     },
     body: JSON.stringify({
       resource,
-      payload: {
-        ...payload,
-        ...(authToken ? { authToken } : {})
-      }
+      payload
     }),
     cache: "no-store",
     credentials: "same-origin"

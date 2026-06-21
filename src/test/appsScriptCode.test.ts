@@ -81,7 +81,9 @@ type ThrowingWriteResource =
   | "users-reset";
 
 interface LoadCodeScriptOptions {
+  appsScriptBridgeToken?: string;
   lockAcquired?: boolean;
+  mediaBridgeToken?: string;
   throwingWriteResource?: ThrowingWriteResource;
 }
 
@@ -321,6 +323,11 @@ function loadCodeScript(input: LoadCodeScriptOptions = {}): CodeScriptContext {
       statusCode
     })
   );
+  const scriptSettings: Record<string, string> = {
+    APPS_SCRIPT_BRIDGE_TOKEN: input.appsScriptBridgeToken ?? "",
+    MEDIA_BRIDGE_TOKEN: input.mediaBridgeToken ?? "",
+    authTokenSecret: "secret"
+  };
   const createScriptExports = new Function(
     "ensureDefaultScriptProperties",
     "getResource",
@@ -383,13 +390,15 @@ return {
       event.resource || event.parameter?.resource || "",
     (event: { payload?: Record<string, unknown> }) => event.payload || {},
     (event: { query?: Record<string, unknown> }) => event.query || {},
-    (key: string) => (key === "authTokenSecret" ? "secret" : ""),
+    (key: string) => scriptSettings[key] ?? "",
     vi.fn(),
     {
       getUuid: () => "test-uuid"
     },
     {
-      authTokenSecret: "authTokenSecret"
+      appsScriptBridgeToken: "APPS_SCRIPT_BRIDGE_TOKEN",
+      authTokenSecret: "authTokenSecret",
+      mediaBridgeToken: "MEDIA_BRIDGE_TOKEN"
     },
     lockService,
     verifyAuthToken,
@@ -876,6 +885,94 @@ describe("Apps Script route auth handling", () => {
       expect(context.scriptLock.releaseLock).toHaveBeenCalledTimes(1);
       expect(context[route.mockName]).toHaveBeenCalled();
     });
+  });
+
+  it("allows media writes with a valid Apps Script bridge token and strips the token fields", () => {
+    const context = loadCodeScript({
+      appsScriptBridgeToken: "server-media-bridge-token"
+    });
+    const saveResult = context.routeRequest(
+      {
+        resource: "media",
+        payload: {
+          appsScriptBridgeToken: "server-media-bridge-token",
+          mediaBridgeToken: "browser-supplied-fallback-token",
+          name: "Media"
+        }
+      },
+      "POST"
+    );
+
+    expect(saveResult.statusCode).toBe(200);
+    expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.upsertMedia).toHaveBeenCalledWith({
+      name: "Media"
+    });
+
+    const deleteContext = loadCodeScript({
+      mediaBridgeToken: "fallback-media-bridge-token"
+    });
+    const deleteResult = deleteContext.routeRequest(
+      {
+        resource: "media-delete",
+        payload: {
+          id: "media-1",
+          mediaBridgeToken: "fallback-media-bridge-token"
+        }
+      },
+      "POST"
+    );
+
+    expect(deleteResult.statusCode).toBe(200);
+    expect(deleteContext.verifyAuthToken).not.toHaveBeenCalled();
+    expect(deleteContext.deleteMedia).toHaveBeenCalledWith("media-1", true);
+  });
+
+  it("rejects media writes with an invalid Apps Script bridge token", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadCodeScript({
+      appsScriptBridgeToken: "server-media-bridge-token"
+    });
+    const result = context.routeRequest(
+      {
+        resource: "media",
+        payload: {
+          appsScriptBridgeToken: "wrong-token",
+          name: "Media"
+        }
+      },
+      "POST"
+    );
+
+    expect(result.statusCode).toBe(401);
+    expect(result.body.error).toBe("Authentication is required.");
+    expect(context.verifyAuthToken).not.toHaveBeenCalled();
+    expect(context.upsertMedia).not.toHaveBeenCalled();
+    expect(context.lockService.getScriptLock).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("does not allow the Apps Script bridge token to access non-media write resources", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadCodeScript({
+      appsScriptBridgeToken: "server-media-bridge-token"
+    });
+    const result = context.routeRequest(
+      {
+        resource: "content",
+        payload: {
+          appsScriptBridgeToken: "server-media-bridge-token",
+          title: "Content"
+        }
+      },
+      "POST"
+    );
+
+    expect(result.statusCode).toBe(401);
+    expect(result.body.error).toBe("Authentication is required.");
+    expect(context.upsertContent).not.toHaveBeenCalled();
+    expect(context.lockService.getScriptLock).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 
   it("returns 503 and skips the write when the script lock is unavailable", () => {

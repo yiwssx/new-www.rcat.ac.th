@@ -1,4 +1,5 @@
 import process from "node:process";
+import { getAdminProxyAllowedEmails, verifyAdminProxySessionCookie } from "../adminProxy/session.mjs";
 
 const MAX_REQUEST_BODY_BYTES = 16 * 1024 * 1024;
 const APPS_SCRIPT_RESOURCES = new Map([
@@ -130,7 +131,77 @@ function readAppsScriptUrl(env) {
   }
 }
 
-export async function handleAppsScriptProxyRequest(request, response, { env = runtimeEnv(), fetchImpl = fetch } = {}) {
+function readBridgeToken(env) {
+  const value = typeof env.APPS_SCRIPT_BRIDGE_TOKEN === "string" ? env.APPS_SCRIPT_BRIDGE_TOKEN.trim() : "";
+  return value || null;
+}
+
+async function authenticateAdminProxySession(request, response, env, nowMs) {
+  const allowedEmails = getAdminProxyAllowedEmails(env.ADMIN_PROXY_ALLOWED_EMAILS);
+
+  if (allowedEmails.length === 0) {
+    sendJson(response, 503, { error: "admin proxy session is not configured" });
+    return null;
+  }
+
+  const result = await verifyAdminProxySessionCookie({
+    allowedEmails,
+    cookieHeader: getHeader(request, "cookie"),
+    nowMs,
+    secret: env.ADMIN_PROXY_SESSION_SECRET
+  });
+
+  if (result.status === "missing") {
+    sendJson(response, 401, { error: "admin proxy session is required" });
+    return null;
+  }
+
+  if (result.status === "forbidden") {
+    sendJson(response, 403, { error: "admin proxy identity is not allowed" });
+    return null;
+  }
+
+  if (result.status !== "valid") {
+    sendJson(response, 401, { error: "admin proxy session is invalid or expired" });
+    return null;
+  }
+
+  return result;
+}
+
+function sanitizeUpstreamBodySnippet(value, sensitiveValues) {
+  let snippet = String(value || "");
+
+  for (const sensitiveValue of sensitiveValues) {
+    if (typeof sensitiveValue === "string" && sensitiveValue) {
+      snippet = snippet.split(sensitiveValue).join("[redacted]");
+    }
+  }
+
+  snippet = snippet
+    .replace(/("(?:fileBase64|authToken|appsScriptBridgeToken|mediaBridgeToken)"\s*:\s*)"[^"]*"/gi, '$1"[redacted]"')
+    .replace(/((?:fileBase64|authToken|appsScriptBridgeToken|mediaBridgeToken)=)[^\s&"]+/gi, "$1[redacted]");
+
+  return snippet.slice(0, 300);
+}
+
+function createUpstreamPayload(payload, bridgeToken) {
+  const nextPayload = { ...payload };
+  delete nextPayload.authToken;
+  delete nextPayload.appsScriptBridgeToken;
+  delete nextPayload.mediaBridgeToken;
+
+  return {
+    ...nextPayload,
+    appsScriptBridgeToken: bridgeToken
+  };
+}
+
+export async function handleAppsScriptProxyRequest(
+  request,
+  response,
+  { env = runtimeEnv(), fetchImpl = fetch, nowMs = Date.now() } = {}
+) {
   if (request.method !== "POST") {
     response.setHeader("Allow", "POST");
     sendJson(response, 405, { error: "method not allowed" });
@@ -142,10 +213,23 @@ export async function handleAppsScriptProxyRequest(request, response, { env = ru
     return;
   }
 
+  const session = await authenticateAdminProxySession(request, response, env, nowMs);
+
+  if (!session) {
+    return;
+  }
+
   const appsScriptUrl = readAppsScriptUrl(env);
 
   if (!appsScriptUrl) {
     sendJson(response, 503, { error: "Apps Script URL is not configured" });
+    return;
+  }
+
+  const bridgeToken = readBridgeToken(env);
+
+  if (!bridgeToken) {
+    sendJson(response, 503, { error: "Apps Script bridge token is not configured" });
     return;
   }
 
@@ -171,6 +255,7 @@ export async function handleAppsScriptProxyRequest(request, response, { env = ru
   }
 
   appsScriptUrl.searchParams.set("resource", upstreamResource);
+  const upstreamPayload = createUpstreamPayload(body.payload, bridgeToken);
 
   try {
     const upstreamResponse = await fetchImpl(appsScriptUrl, {
@@ -178,13 +263,26 @@ export async function handleAppsScriptProxyRequest(request, response, { env = ru
       headers: {
         "Content-Type": "text/plain;charset=utf-8"
       },
-      body: JSON.stringify(body.payload),
+      body: JSON.stringify(upstreamPayload),
       cache: "no-store",
       redirect: "follow"
     });
 
     if (!upstreamResponse.ok) {
-      sendJson(response, 502, { error: "Apps Script bridge failed" });
+      const upstreamBody = await upstreamResponse.text();
+      sendJson(response, 502, {
+        error: "Apps Script bridge failed",
+        diagnostic: "apps-script-bridge-upstream-v2",
+        upstreamStatus: upstreamResponse.status,
+        upstreamBodySnippet: sanitizeUpstreamBodySnippet(upstreamBody, [
+          body.payload.fileBase64,
+          body.payload.authToken,
+          body.payload.appsScriptBridgeToken,
+          body.payload.mediaBridgeToken,
+          bridgeToken
+        ]),
+        upstreamResource
+      });
       return;
     }
 

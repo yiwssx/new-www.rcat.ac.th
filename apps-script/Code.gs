@@ -25,6 +25,7 @@ const ADMIN_ONLY_RESOURCES = [
   "users-reset"
 ];
 const PUBLIC_POST_RESOURCES = ["content-view", "site-view"];
+const MEDIA_BRIDGE_RESOURCES = ["media", "media-delete"];
 
 const AUTH_SESSION_HOURS_FALLBACK = 8;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 10;
@@ -44,14 +45,20 @@ function routeRequest(event, method) {
     ensureAuthTokenSecret();
 
     const resource = getResource(event);
-    const payload = parsePayload(event);
+    let payload = parsePayload(event);
     const query = getQueryParams(event);
     const publicPerformanceDebugOptions = {
       debugPerformance: isPublicPerformanceDebugEnabled(query)
     };
-    const authContext = shouldReadAuthContext(method, resource) ? getRequestAuthContext(payload) : null;
+    const hasValidMediaBridgeToken = isMediaBridgeRequest(method, resource) && hasValidAppsScriptBridgeToken(payload);
+    const authContext =
+      shouldReadAuthContext(method, resource) && !hasValidMediaBridgeToken ? getRequestAuthContext(payload) : null;
 
-    assertRouteAccess(method, resource, authContext);
+    assertRouteAccess(method, resource, authContext, hasValidMediaBridgeToken);
+
+    if (hasValidMediaBridgeToken) {
+      payload = stripAppsScriptBridgeTokens(payload);
+    }
 
     if (method === "GET" && resource === "snapshot") {
       const snapshot = authContext
@@ -262,7 +269,7 @@ function shouldReadAuthContext(method, resource) {
   return method === "POST" && resource !== "auth-login" && PUBLIC_POST_RESOURCES.indexOf(resource) === -1;
 }
 
-function assertRouteAccess(method, resource, authContext) {
+function assertRouteAccess(method, resource, authContext, hasValidMediaBridgeToken) {
   if (method === "POST" && resource === "auth-login") {
     return;
   }
@@ -299,6 +306,10 @@ function assertRouteAccess(method, resource, authContext) {
   }
 
   if (method === "POST" && EDITOR_WRITE_RESOURCES.indexOf(resource) !== -1) {
+    if (hasValidMediaBridgeToken && isMediaBridgeRequest(method, resource)) {
+      return;
+    }
+
     requireMinimumRole(authContext, "editor");
   }
 }
@@ -336,6 +347,67 @@ function getRequestAuthContext(payload) {
   }
 
   return verifyAuthToken(token);
+}
+
+function isMediaBridgeRequest(method, resource) {
+  return method === "POST" && MEDIA_BRIDGE_RESOURCES.indexOf(resource) !== -1;
+}
+
+function readConfiguredAppsScriptBridgeTokens() {
+  const primaryToken = String(getSetting(SETTING_KEYS.appsScriptBridgeToken) || "").trim();
+  const fallbackToken = String(getSetting(SETTING_KEYS.mediaBridgeToken) || "").trim();
+  const tokens = [];
+
+  if (primaryToken) {
+    tokens.push(primaryToken);
+  }
+
+  if (fallbackToken && fallbackToken !== primaryToken) {
+    tokens.push(fallbackToken);
+  }
+
+  return tokens;
+}
+
+function readRequestAppsScriptBridgeToken(payload) {
+  if (!payload) {
+    return "";
+  }
+
+  const primaryToken = payload.appsScriptBridgeToken ? String(payload.appsScriptBridgeToken).trim() : "";
+
+  if (primaryToken) {
+    return primaryToken;
+  }
+
+  return payload.mediaBridgeToken ? String(payload.mediaBridgeToken).trim() : "";
+}
+
+function tokensMatch(actual, expected) {
+  if (!actual || !expected) {
+    return false;
+  }
+
+  const maxLength = Math.max(actual.length, expected.length);
+  let difference = actual.length === expected.length ? 0 : 1;
+
+  for (let index = 0; index < maxLength; index += 1) {
+    difference |= (actual.charCodeAt(index) || 0) ^ (expected.charCodeAt(index) || 0);
+  }
+
+  return difference === 0;
+}
+
+function hasValidAppsScriptBridgeToken(payload) {
+  const requestToken = readRequestAppsScriptBridgeToken(payload);
+  return readConfiguredAppsScriptBridgeTokens().some((configuredToken) => tokensMatch(requestToken, configuredToken));
+}
+
+function stripAppsScriptBridgeTokens(payload) {
+  const sanitizedPayload = Object.assign({}, payload);
+  delete sanitizedPayload.appsScriptBridgeToken;
+  delete sanitizedPayload.mediaBridgeToken;
+  return sanitizedPayload;
 }
 
 function extractAuthToken(payload) {

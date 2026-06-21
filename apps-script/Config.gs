@@ -11,6 +11,8 @@ const SETTING_KEYS = {
   defaultAdminEmail: "defaultAdminEmail",
   defaultAdminPasswordHash: "defaultAdminPasswordHash",
   authTokenSecret: "authTokenSecret",
+  appsScriptBridgeToken: "APPS_SCRIPT_BRIDGE_TOKEN",
+  mediaBridgeToken: "MEDIA_BRIDGE_TOKEN",
   authSessionHours: "authSessionHours",
   dateDisplayFormat: "dateDisplayFormat",
   timeDisplayMode: "timeDisplayMode",

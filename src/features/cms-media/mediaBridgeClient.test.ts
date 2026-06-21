@@ -24,6 +24,19 @@ describe("same-origin Apps Script media bridge client", () => {
   it("saves an uploaded original file through the same-origin proxy without changing base64 or size", async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => Response.json(uploadedAsset));
     vi.stubGlobal("fetch", fetchMock);
+    window.localStorage.setItem(
+      "rcat.cms.session",
+      JSON.stringify({
+        user: {
+          id: "admin-proxy:admin@example.test",
+          email: "admin@example.test",
+          name: "Admin",
+          role: "admin"
+        },
+        token: "admin-proxy.local.test-marker-token",
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+      })
+    );
 
     await expect(
       saveMediaAssetToBridge({
@@ -48,6 +61,7 @@ describe("same-origin Apps Script media bridge client", () => {
       }
     });
     expect(JSON.stringify(requestBody)).not.toContain("script.google.com");
+    expect(requestBody.payload.authToken).toBeUndefined();
   });
 
   it("uploads existing media bridge assets through the same-origin proxy", async () => {
