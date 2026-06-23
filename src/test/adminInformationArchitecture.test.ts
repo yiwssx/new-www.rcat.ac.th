@@ -26,6 +26,13 @@ if (!runtimeProcess) {
 
 const stylesSource = readFileSync(join(runtimeProcess.cwd(), "src/styles.css"), "utf8");
 
+function extractCssRule(selector: string) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = stylesSource.match(new RegExp(`${escapedSelector}\\s*\\{(?<body>[\\s\\S]*?)\\n\\s*\\}`));
+
+  return match?.groups?.body ?? "";
+}
+
 describe("M20 admin information architecture", () => {
   it("moves user management to an admin-only users route and sidebar item", () => {
     expect(usersPageSource).toContain("<UserManagementCard />");
@@ -60,26 +67,48 @@ describe("M20 admin information architecture", () => {
     expect(cmsShellSource).not.toContain("rcat-mourning-mode");
   });
 
-  it("scopes comprehensive mourning styles to the public shell only", () => {
+  it("scopes readable mourning styles to the public shell only", () => {
+    const mourningRootRule = extractCssRule(".rcat-page.rcat-mourning-mode");
+
     expect(stylesSource).toContain(".rcat-page.rcat-mourning-mode");
     expect(stylesSource).not.toContain("body.rcat-mourning-mode");
     expect(stylesSource).not.toContain("html.rcat-mourning-mode");
+    expect(mourningRootRule).not.toContain("filter:");
+    expect(stylesSource).not.toContain(
+      ".rcat-page.rcat-mourning-mode :where(button, a, svg, img, picture, video, iframe, canvas)"
+    );
 
     [
-      "filter: grayscale(1) saturate(0)",
+      "--rcat-mourning-bg",
+      "--rcat-mourning-surface",
+      "--rcat-mourning-surface-strong",
+      "--rcat-mourning-text",
+      "--rcat-mourning-muted",
+      "--rcat-mourning-border",
+      "--rcat-mourning-inverse-bg",
+      "--rcat-mourning-inverse-text",
       ".MuiButton-root",
       ".MuiChip-root",
       ".MuiSvgIcon-root",
       ".MuiFab-root",
+      ".MuiIconButton-root",
+      ".MuiInputBase-root",
       ".MuiPaper-root",
       ".MuiCard-root",
       ".MuiAppBar-root",
       ".MuiAlert-root",
       ".MuiLinearProgress-root",
       "background-image: none",
-      "box-shadow: none"
+      "box-shadow: none",
+      "outline: 3px solid",
+      "color: var(--rcat-mourning-inverse-text)",
+      "background-color: var(--rcat-mourning-inverse-bg)"
     ].forEach((expectedRule) => {
       expect(stylesSource).toContain(expectedRule);
     });
+
+    expect(stylesSource).toMatch(
+      /\.rcat-page\.rcat-mourning-mode :where\(img, picture, video, iframe, canvas\)[\s\S]*?filter: grayscale\(1\) saturate\(0\)/
+    );
   });
 });
