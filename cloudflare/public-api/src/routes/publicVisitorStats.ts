@@ -31,7 +31,7 @@ export async function publicVisitorStats(env: Env) {
         resource: RESOURCE,
         phase: PHASE,
         diagnostic: "visitor-presence-schema-missing-v1",
-        suggestedMigration: "run D1 migrations"
+        suggestedMigration: "run 0006_m20_visitor_presence.sql"
       });
     }
 

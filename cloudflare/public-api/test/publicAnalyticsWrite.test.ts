@@ -240,7 +240,7 @@ describe("Cloudflare public analytics writes", () => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toMatchObject({
       diagnostic: "visitor-presence-schema-missing-v1",
-      suggestedMigration: "run D1 migrations"
+      suggestedMigration: "run 0006_m20_visitor_presence.sql"
     });
   });
 

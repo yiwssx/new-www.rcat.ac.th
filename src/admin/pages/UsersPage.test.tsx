@@ -16,6 +16,7 @@ describe("UsersPage", () => {
 
     expect(screen.getByRole("heading", { name: "ผู้ใช้" })).toBeInTheDocument();
     expect(screen.getByTestId("user-management-card")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Legacy user management");
     expect(screen.getByRole("alert")).toHaveTextContent("การจัดการผู้ใช้เดิมยังต้องใช้การเชื่อมต่อ Apps Script โดยตรง");
     expect(screen.getByRole("alert")).not.toHaveTextContent("production auth requires Apps Script");
   });

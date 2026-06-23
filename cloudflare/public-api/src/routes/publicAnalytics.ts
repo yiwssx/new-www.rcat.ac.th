@@ -41,7 +41,7 @@ function visitorPresenceSchemaError(resource: string) {
   return jsonError("visitor presence schema is not available", 503, {
     resource,
     diagnostic: "visitor-presence-schema-missing-v1",
-    suggestedMigration: "run D1 migrations"
+    suggestedMigration: "run 0006_m20_visitor_presence.sql"
   });
 }
 

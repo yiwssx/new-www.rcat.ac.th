@@ -87,6 +87,55 @@ describe("Vercel Apps Script media proxy", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
+  it("accepts APPS_SCRIPT_WEB_APP_URL as the server-side Apps Script URL", async () => {
+    const fetchImpl = vi.fn();
+    const response = createResponse();
+    const baseEnv = createEnv();
+    const env = {
+      ...baseEnv,
+      GOOGLE_APPS_SCRIPT_URL: "",
+      APPS_SCRIPT_WEB_APP_URL: baseEnv.GOOGLE_APPS_SCRIPT_URL
+    };
+
+    await handleAppsScriptProxyRequest(await createAuthenticatedRequest({ method: "GET", env }), response, {
+      env,
+      fetchImpl
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyJson).toMatchObject({
+      configured: true,
+      appsScriptUrlConfigured: true,
+      bridgeTokenConfigured: true
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("does not treat VITE_GOOGLE_APPS_SCRIPT_URL as server proxy configuration", async () => {
+    const fetchImpl = vi.fn();
+    const response = createResponse();
+    const baseEnv = createEnv();
+    const env = {
+      ...baseEnv,
+      GOOGLE_APPS_SCRIPT_URL: "",
+      APPS_SCRIPT_WEB_APP_URL: "",
+      VITE_GOOGLE_APPS_SCRIPT_URL: baseEnv.GOOGLE_APPS_SCRIPT_URL
+    };
+
+    await handleAppsScriptProxyRequest(await createAuthenticatedRequest({ method: "GET", env }), response, {
+      env,
+      fetchImpl
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyJson).toMatchObject({
+      configured: false,
+      appsScriptUrlConfigured: false,
+      bridgeTokenConfigured: true
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("reports missing server bridge configuration without exposing values", async () => {
     const response = createResponse();
     const env = { ...createEnv(), APPS_SCRIPT_BRIDGE_TOKEN: "" };

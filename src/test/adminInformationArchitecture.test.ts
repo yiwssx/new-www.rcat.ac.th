@@ -5,6 +5,10 @@ import integrationsPageSource from "../admin/pages/IntegrationsPage.tsx?raw";
 import cmsShellSource from "../admin/layout/CmsShell.tsx?raw";
 import routesSource from "../routes.tsx?raw";
 import publicShellSource from "../public/components/PublicSiteShell.tsx?raw";
+import siteViewApiSource from "../features/site-view/api.ts?raw";
+import cloudflarePublicApiSource from "../features/public-read/cloudflareApi.ts?raw";
+import adminCloudflareApiSource from "../features/admin-write/cloudflareApi.ts?raw";
+import mediaBridgeClientSource from "../features/cms-media/mediaBridgeClient.ts?raw";
 
 describe("M20 admin information architecture", () => {
   it("moves user management to an admin-only users route and sidebar item", () => {
@@ -21,6 +25,13 @@ describe("M20 admin information architecture", () => {
     expect(integrationsPageSource).toContain("Cloudflare");
     expect(integrationsPageSource).not.toContain("VITE_GOOGLE_APPS_SCRIPT_URL");
     expect(settingsPageSource).not.toContain("production auth requires Apps Script");
+  });
+
+  it("keeps public analytics and Cloudflare admin structured writes off direct Apps Script imports", () => {
+    expect(siteViewApiSource).not.toContain("services/googleApi");
+    expect(cloudflarePublicApiSource).not.toContain("services/googleApi");
+    expect(adminCloudflareApiSource).not.toContain("services/googleApi");
+    expect(mediaBridgeClientSource).toContain('const mediaBridgePath = "/api/apps-script-proxy"');
   });
 
   it("keeps mourning mode public-only and persists it through the existing site settings save path", () => {

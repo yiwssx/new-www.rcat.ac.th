@@ -10,12 +10,15 @@ import type {
   PublicMenuItem,
   SiteSettings
 } from "../../types";
-import type { CalendarEventInput, CarouselSlideInput, ExternalServiceLinkInput } from "../../services/googleApi";
 import type { CmsDocumentItem } from "../cms-documents/types";
 import type { ContentItem } from "../public-content/types";
 import { mergeBridgeMediaAssets } from "../cms-media/bridgeCache";
 import { ADMIN_PROXY_SESSION_EXPIRED_MESSAGE, notifyAdminProxySessionExpired } from "../../services/adminProxySession";
 import { AdminDuplicateSlugError, AdminStaleRevisionError } from "./errors";
+
+type CalendarEventInput = Partial<CalendarEvent> & { id?: string; revision?: number };
+type CarouselSlideInput = Partial<CarouselSlide> & { id?: string; revision?: number };
+type ExternalServiceLinkInput = Partial<ExternalServiceLink> & { id?: string; revision?: number };
 
 interface ItemEnvelope<T> {
   item: T;

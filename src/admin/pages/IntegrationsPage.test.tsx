@@ -54,6 +54,17 @@ describe("IntegrationsPage", () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("สะพานสื่อยังไม่พร้อม"));
-    expect(screen.getByRole("alert")).toHaveTextContent("Vercel server environment");
+    expect(screen.getByRole("alert")).toHaveTextContent("appsScriptUrlConfigured");
+    expect(screen.getByRole("alert")).toHaveTextContent("bridgeTokenConfigured");
+  });
+
+  it("shows a sign-in-again message when media bridge status is forbidden by session state", async () => {
+    checkMediaBridgeStatusMock.mockRejectedValue(new Error("admin proxy session is required"));
+
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("กรุณาเข้าสู่ระบบใหม่เพื่อตรวจสอบสถานะสะพานสื่อ")
+    );
   });
 });

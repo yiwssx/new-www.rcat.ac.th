@@ -16,6 +16,10 @@ export default function IntegrationsPage() {
     queryFn: checkMediaBridgeStatus
   });
   const bridgeConfigured = bridgeQuery.data?.configured === true;
+  const bridgeStatusError = bridgeQuery.error instanceof Error ? bridgeQuery.error.message : "";
+  const bridgeSessionExpired = /admin proxy session is (?:required|invalid or expired)|identity is not allowed/i.test(
+    bridgeStatusError
+  );
 
   return (
     <Box>
@@ -26,14 +30,16 @@ export default function IntegrationsPage() {
       {bridgeQuery.isLoading && <LinearProgress sx={{ mb: 3 }} />}
       {bridgeQuery.isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {bridgeQuery.error instanceof Error
-            ? bridgeQuery.error.message
-            : "ไม่สามารถตรวจสอบ Vercel Apps Script Proxy ได้"}
+          {bridgeSessionExpired
+            ? "กรุณาเข้าสู่ระบบใหม่เพื่อตรวจสอบสถานะสะพานสื่อ"
+            : bridgeStatusError || "ไม่สามารถตรวจสอบ Vercel Apps Script Proxy ได้"}
         </Alert>
       )}
       {bridgeQuery.data && !bridgeConfigured && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          สะพานสื่อยังไม่พร้อม: กรุณาตรวจสอบ URL ของ Apps Script และ bridge token ใน Vercel server environment
+          สะพานสื่อยังไม่พร้อม: กรุณาตรวจสอบ Vercel server environment keys: appsScriptUrlConfigured=
+          {String(bridgeQuery.data.appsScriptUrlConfigured)}, bridgeTokenConfigured=
+          {String(bridgeQuery.data.bridgeTokenConfigured)}
         </Alert>
       )}
 

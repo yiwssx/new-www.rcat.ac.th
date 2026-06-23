@@ -12,8 +12,8 @@ export default function UsersPage() {
       <Stack spacing={2.5}>
         {!userManagementConfigured && (
           <Alert severity="warning">
-            การจัดการผู้ใช้เดิมยังต้องใช้การเชื่อมต่อ Apps Script โดยตรง ส่วนการเข้าสู่ระบบผู้ดูแลและข้อมูลโครงสร้างใช้
-            Cloudflare ผ่านพร็อกซีแล้ว
+            Legacy user management: การจัดการผู้ใช้เดิมยังต้องใช้การเชื่อมต่อ Apps Script โดยตรง
+            ส่วนการเข้าสู่ระบบผู้ดูแลใช้ admin proxy และข้อมูลโครงสร้างใช้ Cloudflare แล้ว
           </Alert>
         )}
         <UserManagementCard />

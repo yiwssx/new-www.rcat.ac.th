@@ -9,11 +9,59 @@ import type {
   PublicProgramListSnapshot,
   PublicSearchIndexSnapshot
 } from "../../types";
-import type { ContentViewResponse, SiteViewInput } from "../../services/googleApi";
+import type { ContentViewResponse, SiteViewInput } from "../site-view/types";
 import type { VisitorStatsSettings } from "../visitor-stats";
+
+const PRESENCE_FAILURE_BACKOFF_MS = 5 * 60 * 1000;
+let presenceBackoffUntil = 0;
+
+class CloudflarePublicApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly diagnostic = "",
+    readonly suggestedMigration = ""
+  ) {
+    super(message);
+  }
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readErrorDetail(payload: unknown) {
+  if (!isRecord(payload)) {
+    return { error: "", diagnostic: "", suggestedMigration: "" };
+  }
+
+  return {
+    error: typeof payload.error === "string" ? payload.error : "",
+    diagnostic: typeof payload.diagnostic === "string" ? payload.diagnostic : "",
+    suggestedMigration: typeof payload.suggestedMigration === "string" ? payload.suggestedMigration : ""
+  };
+}
+
+function isVisitorPresenceUnavailable(error: unknown) {
+  return (
+    error instanceof CloudflarePublicApiError &&
+    (error.diagnostic === "visitor-presence-schema-missing-v1" ||
+      /visitor[- ]presence[- ]schema[- ]missing|visitor presence schema/i.test(error.message))
+  );
+}
+
+function warnPublicPresenceBackoff(error: unknown) {
+  if (!import.meta.env.DEV) {
+    return;
+  }
+
+  const detail =
+    error instanceof CloudflarePublicApiError && error.suggestedMigration ? ` ${error.suggestedMigration}` : "";
+  console.warn(`Public presence tracking is temporarily disabled.${detail}`);
+}
+
+export function resetCloudflarePublicApiBackoffForTests() {
+  presenceBackoffUntil = 0;
 }
 
 function persistDisplaySettings(displaySettings?: DisplaySettings) {
@@ -34,7 +82,21 @@ async function getCloudflareJson(path: string, resource: string) {
   });
 
   if (!response.ok) {
-    throw new Error(`Cloudflare ${resource} request failed with HTTP ${response.status}`);
+    let payload: unknown = null;
+
+    try {
+      payload = await response.json();
+    } catch {
+      // Keep the generic HTTP status message below when the body is not JSON.
+    }
+
+    const detail = readErrorDetail(payload);
+    throw new CloudflarePublicApiError(
+      detail.error || `Cloudflare ${resource} request failed with HTTP ${response.status}`,
+      response.status,
+      detail.diagnostic,
+      detail.suggestedMigration
+    );
   }
 
   let payload: unknown;
@@ -68,7 +130,21 @@ async function postCloudflareJson<T>(path: string, resource: string, body: unkno
   });
 
   if (!response.ok) {
-    throw new Error(`Cloudflare ${resource} request failed with HTTP ${response.status}`);
+    let payload: unknown = null;
+
+    try {
+      payload = await response.json();
+    } catch {
+      // Keep the generic HTTP status message below when the body is not JSON.
+    }
+
+    const detail = readErrorDetail(payload);
+    throw new CloudflarePublicApiError(
+      detail.error || `Cloudflare ${resource} request failed with HTTP ${response.status}`,
+      response.status,
+      detail.diagnostic,
+      detail.suggestedMigration
+    );
   }
 
   return (await response.json()) as T;
@@ -176,7 +252,16 @@ export function recordSiteViewToCloudflare(input: SiteViewInput): boolean {
 
 export function recordPresenceToCloudflare(input: Pick<SiteViewInput, "visitorId" | "path">): boolean {
   try {
-    void postCloudflareJson("/api/public/presence", "presence", input).catch(() => undefined);
+    if (Date.now() < presenceBackoffUntil) {
+      return false;
+    }
+
+    void postCloudflareJson("/api/public/presence", "presence", input).catch((error) => {
+      if (isVisitorPresenceUnavailable(error)) {
+        presenceBackoffUntil = Date.now() + PRESENCE_FAILURE_BACKOFF_MS;
+        warnPublicPresenceBackoff(error);
+      }
+    });
     return true;
   } catch {
     return false;

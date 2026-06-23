@@ -103,9 +103,7 @@ async function readJsonBody(request) {
 }
 
 function readAppsScriptUrl(env) {
-  const value = String(
-    env.GOOGLE_APPS_SCRIPT_URL || env.APPS_SCRIPT_WEB_APP_URL || env.VITE_GOOGLE_APPS_SCRIPT_URL || ""
-  ).trim();
+  const value = String(env.GOOGLE_APPS_SCRIPT_URL || env.APPS_SCRIPT_WEB_APP_URL || "").trim();
 
   if (!value) {
     return null;
