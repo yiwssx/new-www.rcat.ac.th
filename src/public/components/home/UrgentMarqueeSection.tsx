@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Box, Chip, Container, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
@@ -7,23 +6,13 @@ import type { HomepageMarqueeSettings } from "../../../types";
 
 const defaultMarqueeSpeedSeconds = 60;
 
-const marqueeEntry = keyframes`
-  from {
-    transform: translate3d(100%, 0, 0);
-  }
-
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-`;
-
 const marqueeScroll = keyframes`
   from {
-    transform: translate3d(0, 0, 0);
+    transform: translateX(100vw);
   }
 
   to {
-    transform: translate3d(-50%, 0, 0);
+    transform: translateX(-100%);
   }
 `;
 
@@ -42,8 +31,6 @@ function getReducedMotionMarqueeSpeedSeconds(speedSeconds: number) {
 }
 
 export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeSettings }) {
-  const [isEntering, setIsEntering] = useState(true);
-
   if (!settings?.enabled || !settings.text.trim()) {
     return null;
   }
@@ -51,7 +38,6 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
   const marqueeText = settings.text.trim();
   const speedSeconds = getMarqueeSpeedSeconds(settings.speedSeconds);
   const reducedMotionSpeedSeconds = getReducedMotionMarqueeSpeedSeconds(speedSeconds);
-  const tickerItems = [marqueeText, marqueeText, marqueeText];
 
   return (
     <Box component="section" aria-label="ประกาศด่วน" sx={{ py: { xs: 1, md: 1.2 }, bgcolor: "background.default" }}>
@@ -68,11 +54,11 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
             boxShadow: "0 8px 22px rgba(31, 90, 44, 0.08)",
             px: { xs: 1.2, sm: 1.5, md: 2 },
             py: { xs: 0.85, md: 0.95 },
-            "&:hover .marqueeTrack": {
+            "&:hover .rcat-marquee-track": {
               animationPlayState: "paused"
             },
             "@media (prefers-reduced-motion: reduce)": {
-              "& .marqueeTrack": {
+              "& .rcat-marquee-track": {
                 // This is an urgent public notice, so reduced motion slows the ticker instead of stopping it.
                 animationDuration: `${reducedMotionSpeedSeconds}s`
               }
@@ -95,54 +81,31 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
           />
           <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
             <Box
-              className="marqueeTrack"
-              onAnimationEnd={() => {
-                if (isEntering) {
-                  setIsEntering(false);
-                }
-              }}
+              className="rcat-marquee-track"
               sx={{
-                display: "flex",
+                display: "inline-flex",
                 width: "max-content",
                 whiteSpace: "nowrap",
-                animationName: `${isEntering ? marqueeEntry : marqueeScroll}`,
+                animationName: `${marqueeScroll}`,
                 animationDuration: `${speedSeconds}s`,
                 animationTimingFunction: "linear",
-                animationIterationCount: isEntering ? 1 : "infinite",
+                animationIterationCount: "infinite",
                 animationDelay: "0s",
-                animationFillMode: isEntering ? "forwards" : undefined,
                 willChange: "transform"
               }}
             >
-              {[false, true].map((isDuplicate) => (
-                <Box
-                  key={isDuplicate ? "duplicate" : "primary"}
-                  data-testid="urgent-marquee-group"
-                  aria-hidden={isDuplicate ? "true" : undefined}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    flexShrink: 0,
-                    pr: { xs: 4, md: 6 }
-                  }}
-                >
-                  {tickerItems.map((item, index) => (
-                    <Typography
-                      key={`${isDuplicate ? "duplicate" : "primary"}-${index}`}
-                      component="span"
-                      aria-hidden={index > 0 ? "true" : undefined}
-                      sx={{
-                        color: "primary.dark",
-                        fontWeight: 900,
-                        fontSize: { xs: "0.88rem", md: "0.98rem" }
-                      }}
-                    >
-                      {index > 0 ? " \u00a0 • \u00a0 " : ""}
-                      {item}
-                    </Typography>
-                  ))}
-                </Box>
-              ))}
+              <Typography
+                component="span"
+                data-testid="urgent-marquee-group"
+                sx={{
+                  color: "primary.dark",
+                  fontWeight: 900,
+                  fontSize: { xs: "0.88rem", md: "0.98rem" },
+                  pr: { xs: 4, md: 6 }
+                }}
+              >
+                {marqueeText}
+              </Typography>
             </Box>
           </Box>
         </Stack>

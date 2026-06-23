@@ -10,6 +10,22 @@ import cloudflarePublicApiSource from "../features/public-read/cloudflareApi.ts?
 import adminCloudflareApiSource from "../features/admin-write/cloudflareApi.ts?raw";
 import mediaBridgeClientSource from "../features/cms-media/mediaBridgeClient.ts?raw";
 
+const nodeFsSpecifier = "node:fs";
+const nodePathSpecifier = "node:path";
+const { readFileSync } = (await import(/* @vite-ignore */ nodeFsSpecifier)) as {
+  readFileSync: (path: string, encoding: string) => string;
+};
+const { join } = (await import(/* @vite-ignore */ nodePathSpecifier)) as {
+  join: (...paths: string[]) => string;
+};
+const runtimeProcess = (globalThis as { process?: { cwd: () => string } }).process;
+
+if (!runtimeProcess) {
+  throw new Error("Node process is required for source guardrail tests.");
+}
+
+const stylesSource = readFileSync(join(runtimeProcess.cwd(), "src/styles.css"), "utf8");
+
 describe("M20 admin information architecture", () => {
   it("moves user management to an admin-only users route and sidebar item", () => {
     expect(usersPageSource).toContain("<UserManagementCard />");
@@ -38,7 +54,32 @@ describe("M20 admin information architecture", () => {
     expect(settingsPageSource).toContain("checked={siteSettings.mourningModeEnabled}");
     expect(settingsPageSource).toContain('handleSiteSettingsChange("mourningModeNotice"');
     expect(settingsPageSource).toContain("saveSiteSettingsMutation.mutateAsync");
+    expect(settingsPageSource).toContain("invalidatePublicCmsData");
+    expect(settingsPageSource).toContain("invalidatePublicCmsData(queryClient)");
     expect(publicShellSource).toContain("rcat-mourning-mode");
     expect(cmsShellSource).not.toContain("rcat-mourning-mode");
+  });
+
+  it("scopes comprehensive mourning styles to the public shell only", () => {
+    expect(stylesSource).toContain(".rcat-page.rcat-mourning-mode");
+    expect(stylesSource).not.toContain("body.rcat-mourning-mode");
+    expect(stylesSource).not.toContain("html.rcat-mourning-mode");
+
+    [
+      "filter: grayscale(1) saturate(0)",
+      ".MuiButton-root",
+      ".MuiChip-root",
+      ".MuiSvgIcon-root",
+      ".MuiFab-root",
+      ".MuiPaper-root",
+      ".MuiCard-root",
+      ".MuiAppBar-root",
+      ".MuiAlert-root",
+      ".MuiLinearProgress-root",
+      "background-image: none",
+      "box-shadow: none"
+    ].forEach((expectedRule) => {
+      expect(stylesSource).toContain(expectedRule);
+    });
   });
 });

@@ -119,16 +119,90 @@ a {
     @apply overflow-hidden rounded-lg bg-rcat-green/10 text-rcat-green;
   }
 
-  .rcat-mourning-mode {
+  .rcat-page.rcat-mourning-mode {
     color-scheme: light;
+    --rcat-primary: #111827;
+    --rcat-primary-hover: #000000;
+    --rcat-secondary: #374151;
+    --rcat-primary-soft: #f3f4f6;
+    --rcat-primary-tint: #e5e7eb;
+    --rcat-accent: #4b5563;
+    --rcat-accent-soft: #f9fafb;
+    --rcat-surface: #ffffff;
+    --rcat-page-bg: #f5f5f5;
+    --rcat-border: #d1d5db;
+    --rcat-text: #111827;
+    --rcat-muted: #4b5563;
+    --rcat-shadow-sm: none;
+    --rcat-shadow-md: none;
+    filter: grayscale(1) saturate(0);
+    background: #f5f5f5 !important;
   }
 
-  .rcat-mourning-mode > :not(.rcat-container),
-  .rcat-mourning-mode .rcat-container :where(img, picture, video, canvas, button, .MuiChip-root) {
-    filter: grayscale(1);
+  .rcat-page.rcat-mourning-mode,
+  .rcat-page.rcat-mourning-mode :where(button, a, svg, img, picture, video, iframe, canvas) {
+    filter: grayscale(1) saturate(0);
   }
 
-  .rcat-mourning-mode :focus-visible {
+  .rcat-page.rcat-mourning-mode :where(*) {
+    border-color: rgba(17, 24, 39, 0.22) !important;
+    text-shadow: none !important;
+  }
+
+  .rcat-page.rcat-mourning-mode
+    :where(
+      .MuiButton-root,
+      .MuiChip-root,
+      .MuiSvgIcon-root,
+      .MuiPaper-root,
+      .MuiCard-root,
+      .MuiAppBar-root,
+      .MuiAlert-root,
+      .MuiLinearProgress-root,
+      .MuiFab-root,
+      .MuiIconButton-root
+    ) {
+    filter: grayscale(1) saturate(0);
+    box-shadow: none !important;
+  }
+
+  .rcat-page.rcat-mourning-mode
+    :where(
+      .MuiPaper-root,
+      .MuiCard-root,
+      .MuiAppBar-root,
+      .MuiAlert-root,
+      .MuiButton-root,
+      .MuiChip-root,
+      .MuiFab-root,
+      .MuiIconButton-root
+    ),
+  .rcat-page.rcat-mourning-mode :where(header, nav, footer, section, main) {
+    background-image: none !important;
+  }
+
+  .rcat-page.rcat-mourning-mode :where(.MuiButton-contained, .MuiFab-root, .MuiChip-filled) {
+    background-color: #111827 !important;
+    color: #ffffff !important;
+  }
+
+  .rcat-page.rcat-mourning-mode :where(.MuiButton-outlined, .MuiButton-text, a) {
+    color: #111827 !important;
+  }
+
+  .rcat-page.rcat-mourning-mode :where(.MuiLinearProgress-bar) {
+    background-color: #111827 !important;
+  }
+
+  .rcat-page.rcat-mourning-mode :where(img, picture, video, iframe, canvas, .MuiSvgIcon-root, .svg-inline--fa) {
+    filter: grayscale(1) saturate(0) !important;
+  }
+
+  .rcat-page.rcat-mourning-mode :where(.rcat-marquee-track) {
+    filter: none;
+  }
+
+  .rcat-page.rcat-mourning-mode :focus-visible {
     outline: 3px solid #111;
     outline-offset: 3px;
   }

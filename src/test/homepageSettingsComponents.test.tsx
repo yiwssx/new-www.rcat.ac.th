@@ -150,7 +150,7 @@ describe("homepage settings public sections", () => {
     ).toBeNull();
   });
 
-  it("renders UrgentMarqueeSection as a seamless duplicated ticker", () => {
+  it("renders UrgentMarqueeSection as a right-to-left ticker that starts offscreen", () => {
     render(
       <UrgentMarqueeSection
         settings={{
@@ -166,22 +166,13 @@ describe("homepage settings public sections", () => {
     expect(screen.getByRole("region", { name: "ประกาศด่วน" })).toBeInTheDocument();
     expect(screen.getByText("Notice")).toBeInTheDocument();
 
-    const tickerGroups = screen.getAllByTestId("urgent-marquee-group");
+    const marqueeTrack = document.querySelector(".rcat-marquee-track") as HTMLElement;
+    const injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
 
-    expect(tickerGroups).toHaveLength(2);
-    expect(tickerGroups[0]).toHaveTextContent("Campus announcement");
-    expect(tickerGroups[1]).toHaveTextContent("Campus announcement");
-    expect(tickerGroups[1]).toHaveAttribute("aria-hidden", "true");
-
-    const marqueeTrack = document.querySelector(".marqueeTrack") as HTMLElement;
-    let injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
-
-    expect(marqueeTrack).not.toBeNull();
-    expect(injectedStyles).toContain("translate3d(100%,0,0)");
-    expect(injectedStyles).toContain("animation-iteration-count:1");
-    fireEvent.animationEnd(marqueeTrack);
-    injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
-    expect(injectedStyles).toContain("translate3d(-50%,0,0)");
+    expect(screen.getByTestId("urgent-marquee-group")).toHaveTextContent("Campus announcement");
+    expect(marqueeTrack).toBeInTheDocument();
+    expect(injectedStyles).toContain("translateX(100vw)");
+    expect(injectedStyles).toContain("translateX(-100%)");
     expect(injectedStyles).toContain("animation-duration:60s");
     expect(injectedStyles).toContain("animation-timing-function:linear");
     expect(injectedStyles).toContain("animation-iteration-count:infinite");

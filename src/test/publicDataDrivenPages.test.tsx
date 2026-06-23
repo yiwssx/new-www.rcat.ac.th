@@ -414,6 +414,65 @@ describe("public data-driven pages", () => {
     expect(container.querySelector(".rcat-mourning-mode")).toHaveAttribute("data-mourning-mode", "true");
   });
 
+  it("removes mourning mode immediately when the latest shell settings disable it", () => {
+    currentSnapshot = createSnapshot({
+      siteSettings: {
+        ...createSnapshot().siteSettings!,
+        mourningModeEnabled: true,
+        mourningModeNotice: "ร่วมแสดงความอาลัย"
+      }
+    });
+
+    const { container, rerender } = render(
+      <PublicSiteShell>
+        <div>Public content</div>
+      </PublicSiteShell>
+    );
+
+    expect(container.querySelector(".rcat-page")).toHaveClass("rcat-mourning-mode");
+    expect(container.querySelector(".rcat-page")).toHaveAttribute("data-mourning-mode", "true");
+
+    currentSnapshot = createSnapshot({
+      siteSettings: {
+        ...createSnapshot().siteSettings!,
+        mourningModeEnabled: false,
+        mourningModeNotice: ""
+      }
+    });
+
+    rerender(
+      <PublicSiteShell>
+        <div>Public content</div>
+      </PublicSiteShell>
+    );
+
+    expect(container.querySelector(".rcat-page")).not.toHaveClass("rcat-mourning-mode");
+    expect(container.querySelector(".rcat-page")).toHaveAttribute("data-mourning-mode", "false");
+    expect(document.body).not.toHaveClass("rcat-mourning-mode");
+    expect(document.documentElement).not.toHaveClass("rcat-mourning-mode");
+    expect(screen.queryByText("ร่วมแสดงความอาลัย")).not.toBeInTheDocument();
+  });
+
+  it("renders the shared marquee on non-home public pages when enabled", () => {
+    currentContentListSnapshot = createContentListSnapshot({
+      homepageSettings: {
+        ...createHomeSnapshot().homepageSettings,
+        marquee: {
+          enabled: true,
+          label: "ประกาศ",
+          text: "ประกาศสำหรับทุกหน้า",
+          speedSeconds: 60
+        }
+      }
+    });
+
+    render(<PublicAnnouncementsPage />);
+
+    expect(screen.getAllByRole("region", { name: "ประกาศด่วน" })).toHaveLength(1);
+    expect(screen.getByText("ประกาศสำหรับทุกหน้า")).toBeInTheDocument();
+    expect(document.querySelector(".rcat-marquee-track")).toBeInTheDocument();
+  });
+
   it("defers below-the-fold homepage sections until they approach the viewport", async () => {
     const originalIntersectionObserver = window.IntersectionObserver;
     const observerCallbacks: IntersectionObserverCallback[] = [];

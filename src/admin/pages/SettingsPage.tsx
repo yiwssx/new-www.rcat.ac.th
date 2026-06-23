@@ -37,7 +37,7 @@ import {
   saveDisplaySettings
 } from "../../services/displaySettings";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
-import { clearPublicCmsCache } from "../../services/publicCmsCache";
+import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { defaultSiteSettings, normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeVisitorStats } from "../../services/visitorStats";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
@@ -524,9 +524,8 @@ export default function SettingsPage() {
 
       const saved = await saveSiteSettingsMutation.mutateAsync(normalizeSiteSettings(siteSettings));
       setSiteSettings(normalizeSiteSettings(saved));
-      clearPublicCmsCache();
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] }),
+        invalidatePublicCmsData(queryClient),
         queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
       ]);
       await appSwal.fire({
@@ -549,9 +548,8 @@ export default function SettingsPage() {
       const nextSettings = normalizeHomepageSettings(homepageSettings);
       const saved = await saveHomepageSettingsMutation.mutateAsync(nextSettings);
       setHomepageSettings(normalizeHomepageSettings(saved));
-      clearPublicCmsCache();
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] }),
+        invalidatePublicCmsData(queryClient),
         queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
       ]);
       await appSwal.fire({
@@ -576,9 +574,8 @@ export default function SettingsPage() {
       });
       const saved = await saveVisitorStatsMutation.mutateAsync(nextStats);
       setVisitorStats(normalizeVisitorStats(saved));
-      clearPublicCmsCache();
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] }),
+        invalidatePublicCmsData(queryClient),
         queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
       ]);
       await appSwal.fire({
