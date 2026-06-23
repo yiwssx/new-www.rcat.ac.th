@@ -376,7 +376,6 @@ function FooterDirectory({ groups }: { groups: FooterDirectoryGroup[] }) {
   return (
     <Box
       component="section"
-      className="rcat-public-footer-directory"
       aria-label="ไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์"
       sx={{
         bgcolor: "primary.light",
@@ -532,7 +531,6 @@ export default function PublicSiteShell({
     >
       <PublicIntroGate settings={homepageSettings.introGate} />
       <Box
-        className="rcat-public-topbar"
         sx={{
           bgcolor: "primary.dark",
           color: "white",
@@ -557,7 +555,7 @@ export default function PublicSiteShell({
         </Container>
       </Box>
 
-      <Box className="rcat-public-header" sx={{ bgcolor: "white", borderBottom: "1px solid rgba(31, 90, 44, 0.14)" }}>
+      <Box sx={{ bgcolor: "white", borderBottom: "1px solid rgba(31, 90, 44, 0.14)" }}>
         <Container maxWidth="xl">
           <Stack
             direction={{ xs: "column", lg: "row" }}
@@ -726,7 +724,6 @@ export default function PublicSiteShell({
 
       {showPageHeader && (
         <Box
-          className="rcat-public-page-header"
           sx={(theme) => ({
             bgcolor: "white",
             borderBottom: "1px solid rgba(31, 90, 44, 0.12)",
@@ -761,11 +758,7 @@ export default function PublicSiteShell({
 
       <FooterDirectory groups={siteSettings.footerDirectoryGroups} />
 
-      <Box
-        component="footer"
-        className="rcat-public-footer"
-        sx={{ py: 4, bgcolor: "primary.dark", color: "white", mt: 2 }}
-      >
+      <Box component="footer" sx={{ py: 4, bgcolor: "primary.dark", color: "white", mt: 2 }}>
         <Container maxWidth="xl">
           <Stack
             direction={{ xs: "column", md: "row" }}
