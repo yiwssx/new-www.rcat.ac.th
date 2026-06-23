@@ -30,6 +30,7 @@ import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlin
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import dayjs from "dayjs";
 import PageHeader from "../components/PageHeader";
+import { useAuth } from "../../context/authSessionContext";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { deleteCalendarEvent, saveCalendarEvent } from "../../features/cms-events";
 import { CalendarEvent } from "../../types";
@@ -43,6 +44,7 @@ import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../
 import { appSwal } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { eventStatusLabels, visibilityLabels } from "../../utils/thaiLabels";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
 
 interface EventFormState {
   title: string;
@@ -104,6 +106,8 @@ function getStatusColor(status: CalendarEvent["status"]) {
 
 export default function CalendarPage() {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const canManage = canManageAdminData(session?.user);
   const { data, error, isError, isLoading } = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot
@@ -155,6 +159,10 @@ export default function CalendarPage() {
   });
 
   function handleCreate() {
+    if (!canManage) {
+      return;
+    }
+
     setEditingEventId(undefined);
     setForm(emptyForm);
     setFormError("");
@@ -163,6 +171,10 @@ export default function CalendarPage() {
   }
 
   function handleEdit(event: CalendarEvent) {
+    if (!canManage) {
+      return;
+    }
+
     setEditingEventId(event.id);
     setForm(toFormState(event));
     setFormError("");
@@ -179,6 +191,11 @@ export default function CalendarPage() {
   }
 
   function handleSave() {
+    if (!canManage) {
+      setFormError(ADMIN_READ_ONLY_NOTICE);
+      return;
+    }
+
     if (!form.title.trim() || !form.audience.trim() || !form.dateTime) {
       setFormError("ต้องระบุชื่อกิจกรรม กลุ่มเป้าหมาย และวันที่เริ่มต้น");
       return;
@@ -194,6 +211,11 @@ export default function CalendarPage() {
   }
 
   async function handleConfirmSave() {
+    if (!canManage) {
+      setFormError(ADMIN_READ_ONLY_NOTICE);
+      return;
+    }
+
     try {
       await saveMutation.mutateAsync({
         id: editingEventId,
@@ -226,6 +248,10 @@ export default function CalendarPage() {
   }
 
   async function handleDelete(event: CalendarEvent) {
+    if (!canManage) {
+      return;
+    }
+
     const result = await appSwal.fire({
       title: "ลบกิจกรรมในปฏิทิน?",
       text: event.title,
@@ -266,11 +292,18 @@ export default function CalendarPage() {
         title="ปฏิทินกิจกรรม"
         description="สร้าง ตั้งเวลา เผยแพร่ ยกเลิก และลบกิจกรรมปฏิทินสาธารณะ"
         action={
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
-            เพิ่มกิจกรรม
-          </Button>
+          canManage ? (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
+              เพิ่มกิจกรรม
+            </Button>
+          ) : undefined
         }
       />
+      {!canManage && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {ADMIN_READ_ONLY_NOTICE}
+        </Alert>
+      )}
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           {error instanceof Error ? error.message : "ไม่สามารถโหลดกิจกรรมปฏิทินได้ในขณะนี้"}
@@ -387,23 +420,25 @@ export default function CalendarPage() {
                       {event.endDate ? ` - ${formatDisplayTime(event.endDate)}` : ""}
                     </Typography>
                   </Box>
-                  <Stack direction="row" spacing={0.5}>
-                    <Tooltip title="แก้ไขกิจกรรม">
-                      <IconButton aria-label="แก้ไขกิจกรรม" size="small" onClick={() => handleEdit(event)}>
-                        <EditOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="ลบกิจกรรม">
-                      <IconButton
-                        aria-label="ลบกิจกรรม"
-                        size="small"
-                        color="error"
-                        onClick={() => void handleDelete(event)}
-                      >
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
+                  {canManage && (
+                    <Stack direction="row" spacing={0.5}>
+                      <Tooltip title="แก้ไขกิจกรรม">
+                        <IconButton aria-label="แก้ไขกิจกรรม" size="small" onClick={() => handleEdit(event)}>
+                          <EditOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="ลบกิจกรรม">
+                        <IconButton
+                          aria-label="ลบกิจกรรม"
+                          size="small"
+                          color="error"
+                          onClick={() => void handleDelete(event)}
+                        >
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  )}
                 </Stack>
               </Stack>
             </CardContent>
@@ -559,7 +594,11 @@ export default function CalendarPage() {
               <Button color="inherit" onClick={() => setConfirming(false)} disabled={saveMutation.isPending}>
                 กลับ
               </Button>
-              <Button variant="contained" disabled={saveMutation.isPending} onClick={() => void handleConfirmSave()}>
+              <Button
+                variant="contained"
+                disabled={!canManage || saveMutation.isPending}
+                onClick={() => void handleConfirmSave()}
+              >
                 {saveMutation.isPending ? "กำลังบันทึก" : isEditing ? "บันทึก" : "เพิ่มกิจกรรม"}
               </Button>
             </>
@@ -571,7 +610,7 @@ export default function CalendarPage() {
               <Button
                 variant="contained"
                 startIcon={<EventAvailableOutlinedIcon />}
-                disabled={saveMutation.isPending}
+                disabled={!canManage || saveMutation.isPending}
                 onClick={handleSave}
               >
                 ดำเนินการต่อ

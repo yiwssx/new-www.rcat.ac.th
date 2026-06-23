@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -25,9 +26,11 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SubdirectoryArrowRightRoundedIcon from "@mui/icons-material/SubdirectoryArrowRightRounded";
 import PageHeader from "../components/PageHeader";
+import { useAuth } from "../../context/authSessionContext";
 import { getPublicMenuItems, savePublicMenuItems } from "../../features/cms-navigation";
 import { PublicMenuItem } from "../../types";
 import { appSwal } from "../../utils/swal";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
 
 interface MenuFormState {
   label: string;
@@ -188,13 +191,14 @@ function createMenuItem(form: MenuFormState): PublicMenuItem {
 interface MenuTreeProps {
   items: PublicMenuItem[];
   depth?: number;
+  canManage: boolean;
   onAddChild: (parentId?: string) => void;
   onEdit: (id: string) => void;
   onRemove: (id: string) => void;
   onMove: (id: string, direction: -1 | 1) => void;
 }
 
-function MenuTree({ items, depth = 0, onAddChild, onEdit, onRemove, onMove }: MenuTreeProps) {
+function MenuTree({ items, depth = 0, canManage, onAddChild, onEdit, onRemove, onMove }: MenuTreeProps) {
   return (
     <Stack spacing={1.2}>
       {items.map((item) => (
@@ -228,33 +232,35 @@ function MenuTree({ items, depth = 0, onAddChild, onEdit, onRemove, onMove }: Me
                   )}
                 </Box>
               </Stack>
-              <Stack direction="row" spacing={0.5} justifyContent={{ xs: "flex-start", md: "flex-end" }}>
-                <Tooltip title="เลื่อนขึ้น">
-                  <IconButton aria-label="เลื่อนขึ้น" size="small" onClick={() => onMove(item.id, -1)}>
-                    <ArrowUpwardRoundedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="เลื่อนลง">
-                  <IconButton aria-label="เลื่อนลง" size="small" onClick={() => onMove(item.id, 1)}>
-                    <ArrowDownwardRoundedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="เพิ่มเมนูย่อย">
-                  <IconButton aria-label="เพิ่มเมนูย่อย" size="small" onClick={() => onAddChild(item.id)}>
-                    <AddIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="แก้ไข">
-                  <IconButton aria-label="แก้ไข" size="small" onClick={() => onEdit(item.id)}>
-                    <EditOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="ลบ">
-                  <IconButton aria-label="ลบ" size="small" color="error" onClick={() => onRemove(item.id)}>
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
+              {canManage && (
+                <Stack direction="row" spacing={0.5} justifyContent={{ xs: "flex-start", md: "flex-end" }}>
+                  <Tooltip title="เลื่อนขึ้น">
+                    <IconButton aria-label="เลื่อนขึ้น" size="small" onClick={() => onMove(item.id, -1)}>
+                      <ArrowUpwardRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="เลื่อนลง">
+                    <IconButton aria-label="เลื่อนลง" size="small" onClick={() => onMove(item.id, 1)}>
+                      <ArrowDownwardRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="เพิ่มเมนูย่อย">
+                    <IconButton aria-label="เพิ่มเมนูย่อย" size="small" onClick={() => onAddChild(item.id)}>
+                      <AddIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="แก้ไข">
+                    <IconButton aria-label="แก้ไข" size="small" onClick={() => onEdit(item.id)}>
+                      <EditOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="ลบ">
+                    <IconButton aria-label="ลบ" size="small" color="error" onClick={() => onRemove(item.id)}>
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              )}
             </Stack>
           </Box>
           {item.children?.length ? (
@@ -262,6 +268,7 @@ function MenuTree({ items, depth = 0, onAddChild, onEdit, onRemove, onMove }: Me
               <MenuTree
                 items={item.children}
                 depth={depth + 1}
+                canManage={canManage}
                 onAddChild={onAddChild}
                 onEdit={onEdit}
                 onRemove={onRemove}
@@ -277,6 +284,8 @@ function MenuTree({ items, depth = 0, onAddChild, onEdit, onRemove, onMove }: Me
 
 export default function MenuPage() {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const canManage = canManageAdminData(session?.user);
   const {
     data = [],
     error,
@@ -301,6 +310,10 @@ export default function MenuPage() {
   }
 
   function handleAdd(parent?: string) {
+    if (!canManage) {
+      return;
+    }
+
     setParentId(parent);
     setEditingId(undefined);
     setForm(emptyForm);
@@ -308,6 +321,10 @@ export default function MenuPage() {
   }
 
   function handleEdit(id: string) {
+    if (!canManage) {
+      return;
+    }
+
     const item = findMenuItem(items, id);
 
     if (!item) {
@@ -328,6 +345,10 @@ export default function MenuPage() {
   }
 
   async function handleSaveItem() {
+    if (!canManage) {
+      return;
+    }
+
     const normalizedHref = normalizeMenuHref(form.href);
 
     if (!form.label.trim() || !normalizedHref) {
@@ -365,6 +386,10 @@ export default function MenuPage() {
   }
 
   async function handleRemove(id: string) {
+    if (!canManage) {
+      return;
+    }
+
     const item = findMenuItem(items, id);
     const result = await appSwal.fire({
       title: "ลบรายการเมนู?",
@@ -383,6 +408,10 @@ export default function MenuPage() {
   }
 
   async function handlePublishMenu() {
+    if (!canManage) {
+      return;
+    }
+
     try {
       const savedItems = await savePublicMenuItems(items);
       setItems(cloneMenu(savedItems));
@@ -407,7 +436,19 @@ export default function MenuPage() {
   }
 
   function handleResetDraft() {
+    if (!canManage) {
+      return;
+    }
+
     setItems([]);
+  }
+
+  function handleMove(id: string, direction: -1 | 1) {
+    if (!canManage) {
+      return;
+    }
+
+    setItems((current) => moveMenuItem(current, id, direction));
   }
 
   return (
@@ -416,16 +457,23 @@ export default function MenuPage() {
         title="เมนู"
         description="จัดการเมนูเว็บไซต์สาธารณะ เมนูย่อย เส้นทาง และการแสดงผล"
         action={
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-            <Button variant="outlined" color="inherit" onClick={handleResetDraft}>
-              ล้างแบบร่าง
-            </Button>
-            <Button variant="contained" startIcon={<SaveOutlinedIcon />} onClick={() => void handlePublishMenu()}>
-              บันทึกเมนู
-            </Button>
-          </Stack>
+          canManage ? (
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+              <Button variant="outlined" color="inherit" onClick={handleResetDraft}>
+                ล้างแบบร่าง
+              </Button>
+              <Button variant="contained" startIcon={<SaveOutlinedIcon />} onClick={() => void handlePublishMenu()}>
+                บันทึกเมนู
+              </Button>
+            </Stack>
+          ) : undefined
         }
       />
+      {!canManage && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {ADMIN_READ_ONLY_NOTICE}
+        </Alert>
+      )}
       {isError && (
         <Typography color="error" sx={{ mb: 2 }}>
           {error instanceof Error ? error.message : "ไม่สามารถโหลดรายการเมนูได้ในขณะนี้"}
@@ -445,16 +493,19 @@ export default function MenuPage() {
               <Typography variant="h3">เมนูหลักสาธารณะ</Typography>
               <Typography color="text.secondary">เพิ่มเมนูระดับบน เพิ่มเมนูย่อย ซ่อนรายการ และจัดลำดับเมนู</Typography>
             </Box>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleAdd()}>
-              เพิ่มเมนูหลัก
-            </Button>
+            {canManage && (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleAdd()}>
+                เพิ่มเมนูหลัก
+              </Button>
+            )}
           </Stack>
           <MenuTree
             items={items}
+            canManage={canManage}
             onAddChild={handleAdd}
             onEdit={handleEdit}
             onRemove={(id) => void handleRemove(id)}
-            onMove={(id, direction) => setItems((current) => moveMenuItem(current, id, direction))}
+            onMove={handleMove}
           />
         </CardContent>
       </Card>
@@ -466,6 +517,7 @@ export default function MenuPage() {
               label="ชื่อเมนู"
               value={form.label}
               onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
+              disabled={!canManage}
               fullWidth
               required
             />
@@ -474,6 +526,7 @@ export default function MenuPage() {
               value={form.href}
               onChange={(event) => setForm((current) => ({ ...current, href: event.target.value }))}
               helperText="ใช้ /news, /announcements, /blog หรือ slug เนื้อหา เช่น my-post รองรับ URL ภายนอกด้วย"
+              disabled={!canManage}
               fullWidth
               required
             />
@@ -481,6 +534,7 @@ export default function MenuPage() {
               <Checkbox
                 checked={form.enabled}
                 onChange={(event) => setForm((current) => ({ ...current, enabled: event.target.checked }))}
+                disabled={!canManage}
               />
               <Typography>แสดงในเมนูสาธารณะ</Typography>
             </Stack>
@@ -490,7 +544,7 @@ export default function MenuPage() {
           <Button color="inherit" onClick={handleClose}>
             ยกเลิก
           </Button>
-          <Button variant="contained" onClick={() => void handleSaveItem()}>
+          <Button variant="contained" disabled={!canManage} onClick={() => void handleSaveItem()}>
             บันทึกรายการ
           </Button>
         </DialogActions>

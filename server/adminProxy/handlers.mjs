@@ -133,6 +133,59 @@ function normalizeEmail(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+function getRoleEmails(value) {
+  return getAdminProxyAllowedEmails(value);
+}
+
+function getAdminProxyRbac(env) {
+  return {
+    admin: getRoleEmails(env.ADMIN_RBAC_ADMINS),
+    editor: getRoleEmails(env.ADMIN_RBAC_EDITORS),
+    viewer: getRoleEmails(env.ADMIN_RBAC_VIEWERS)
+  };
+}
+
+function hasDuplicateRoleAssignment(roleEmails) {
+  const seen = new Map();
+
+  for (const [role, emails] of Object.entries(roleEmails)) {
+    for (const email of emails) {
+      const existingRole = seen.get(email);
+
+      if (existingRole && existingRole !== role) {
+        return true;
+      }
+
+      seen.set(email, role);
+    }
+  }
+
+  return false;
+}
+
+function resolveAdminProxyRole(email, env) {
+  const normalizedEmail = normalizeEmail(email);
+  const roleEmails = getAdminProxyRbac(env);
+
+  if (!normalizedEmail || hasDuplicateRoleAssignment(roleEmails)) {
+    return "";
+  }
+
+  if (roleEmails.admin.includes(normalizedEmail)) {
+    return "admin";
+  }
+
+  if (roleEmails.editor.includes(normalizedEmail)) {
+    return "editor";
+  }
+
+  if (roleEmails.viewer.includes(normalizedEmail)) {
+    return "viewer";
+  }
+
+  return "";
+}
+
 function validateTargetPath(value) {
   if (
     typeof value !== "string" ||
@@ -291,6 +344,11 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
     return;
   }
 
+  if (BODY_METHODS.has(method) && session.role !== "admin") {
+    sendJson(response, 403, { error: "admin role is required" });
+    return;
+  }
+
   const targetPath = readTargetPath(request);
 
   if (!targetPath) {
@@ -415,11 +473,19 @@ export async function handleAdminProxySessionLogin(request, response, options = 
     return;
   }
 
+  const role = resolveAdminProxyRole(email, env);
+
+  if (!role) {
+    sendJson(response, 401, { error: "invalid email or password" });
+    return;
+  }
+
   let cookie;
 
   try {
     cookie = await createAdminProxySessionCookie({
       email,
+      role,
       secret: env.ADMIN_PROXY_SESSION_SECRET,
       nowMs: options.nowMs ?? Date.now()
     });
@@ -429,7 +495,7 @@ export async function handleAdminProxySessionLogin(request, response, options = 
   }
 
   response.setHeader("Set-Cookie", cookie);
-  sendJson(response, 200, { ok: true });
+  sendJson(response, 200, { ok: true, role });
 }
 
 export async function handleAdminProxySessionLogout(request, response) {

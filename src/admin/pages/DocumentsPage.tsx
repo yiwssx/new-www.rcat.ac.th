@@ -37,6 +37,7 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
+import { useAuth } from "../../context/authSessionContext";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { deleteDocumentFromApi, saveDocumentToApi, type DocumentItemInput } from "../../features/cms-documents";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
@@ -45,6 +46,7 @@ import { formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal } from "../../utils/swal";
 import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
 
 const documentStatusOptions: Array<{ value: DocumentStatus; label: string }> = [
   { value: "draft", label: "ฉบับร่าง" },
@@ -104,6 +106,8 @@ function normalizeDocumentDraft(item: CmsDocumentItem): DocumentItemInput {
 
 export default function DocumentsPage() {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const canManage = canManageAdminData(session?.user);
   const adminSnapshotQuery = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot
@@ -140,6 +144,10 @@ export default function DocumentsPage() {
   }
 
   function handleAddDocument() {
+    if (!canManage) {
+      return;
+    }
+
     setSaveError("");
     setEditingDocument(createDocumentDraft(documents.length + 1));
     setIsCreating(true);
@@ -147,6 +155,10 @@ export default function DocumentsPage() {
   }
 
   function handleEditDocument(document: CmsDocumentItem) {
+    if (!canManage) {
+      return;
+    }
+
     setSaveError("");
     setEditingDocument({
       ...document,
@@ -168,6 +180,11 @@ export default function DocumentsPage() {
   }
 
   async function handleSaveDocument() {
+    if (!canManage) {
+      setSaveError(ADMIN_READ_ONLY_NOTICE);
+      return;
+    }
+
     if (!editingDocument) {
       return;
     }
@@ -198,6 +215,10 @@ export default function DocumentsPage() {
   }
 
   async function handleDeleteDocument(document: CmsDocumentItem) {
+    if (!canManage) {
+      return;
+    }
+
     const result = await appSwal.fire({
       title: "ลบเอกสารเผยแพร่?",
       text: document.title,
@@ -239,11 +260,19 @@ export default function DocumentsPage() {
         title="เอกสารเผยแพร่"
         description="จัดการไฟล์เอกสารที่แสดงในหน้าแรกและรายการเอกสารสาธารณะ"
         action={
-          <Button startIcon={<AddOutlinedIcon />} variant="contained" onClick={handleAddDocument}>
-            เพิ่มเอกสาร
-          </Button>
+          canManage ? (
+            <Button startIcon={<AddOutlinedIcon />} variant="contained" onClick={handleAddDocument}>
+              เพิ่มเอกสาร
+            </Button>
+          ) : undefined
         }
       />
+
+      {!canManage && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {ADMIN_READ_ONLY_NOTICE}
+        </Alert>
+      )}
 
       {adminSnapshotQuery.isLoading && <LinearProgress sx={{ mb: 2 }} />}
       {adminSnapshotQuery.isError && (
@@ -311,16 +340,20 @@ export default function DocumentsPage() {
                           </IconButton>
                         </span>
                       </Tooltip>
-                      <Tooltip title="แก้ไข">
-                        <IconButton onClick={() => handleEditDocument(document)}>
-                          <EditOutlinedIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="ลบ">
-                        <IconButton color="error" onClick={() => void handleDeleteDocument(document)}>
-                          <DeleteOutlineOutlinedIcon />
-                        </IconButton>
-                      </Tooltip>
+                      {canManage && (
+                        <>
+                          <Tooltip title="แก้ไข">
+                            <IconButton onClick={() => handleEditDocument(document)}>
+                              <EditOutlinedIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="ลบ">
+                            <IconButton color="error" onClick={() => void handleDeleteDocument(document)}>
+                              <DeleteOutlineOutlinedIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -460,7 +493,7 @@ export default function DocumentsPage() {
             startIcon={<SaveOutlinedIcon />}
             variant="contained"
             onClick={() => void handleSaveDocument()}
-            disabled={saveMutation.isPending}
+            disabled={!canManage || saveMutation.isPending}
           >
             บันทึก
           </Button>

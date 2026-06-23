@@ -474,6 +474,9 @@ function makeAccessEnv(db: D1Database | undefined = createAdminWriteMockDb().db,
     ADMIN_WRITE_ACCESS_TEAM_DOMAIN: accessTeamDomain,
     ADMIN_WRITE_ACCESS_AUD: accessAudience,
     ADMIN_WRITE_ALLOWED_EMAILS: accessEmail,
+    ADMIN_RBAC_ADMINS: accessEmail,
+    ADMIN_RBAC_EDITORS: "",
+    ADMIN_RBAC_VIEWERS: "",
     ADMIN_WRITE_ALLOWED_ORIGINS: "https://preview-admin.example.test",
     ADMIN_WRITE_ACCESS_JWKS_JSON: jwksJson,
     ENVIRONMENT: "preview",
@@ -644,6 +647,111 @@ describe("M18 admin structured write routes", () => {
       );
       expect(response.headers.get("Access-Control-Allow-Headers"), configuredOrigin).not.toContain("If-Match");
     }
+  });
+
+  it("maps Cloudflare Access emails to RBAC roles and allows read routes for editor and viewer", async () => {
+    const db = createAdminWriteMockDb().db;
+    const editorAccess = await createAccessFixture({ email: "editor@example.invalid" });
+    const viewerAccess = await createAccessFixture({ email: "viewer@example.invalid" });
+    const env = {
+      ...makeAccessEnv(db, editorAccess.jwksJson),
+      ADMIN_WRITE_ALLOWED_EMAILS: "",
+      ADMIN_RBAC_ADMINS: accessEmail,
+      ADMIN_RBAC_EDITORS: "editor@example.invalid",
+      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
+    };
+
+    const editorResponse = await worker.fetch(
+      makeRequest("/api/admin/snapshot", {
+        method: "GET",
+        headers: editorAccess.header
+      }),
+      env
+    );
+    const viewerResponse = await worker.fetch(
+      makeRequest("/api/admin/snapshot", {
+        method: "GET",
+        headers: viewerAccess.header
+      }),
+      {
+        ...env,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
+      }
+    );
+
+    expect(editorResponse.status).toBe(200);
+    expect(viewerResponse.status).toBe(200);
+  });
+
+  it("denies unknown Cloudflare Access identities and duplicate RBAC role assignments", async () => {
+    const unknownAccess = await createAccessFixture({ email: "unknown@example.invalid" });
+    const duplicateAccess = await createAccessFixture({ email: "duplicate@example.invalid" });
+    const baseEnv = {
+      ...makeAccessEnv(createAdminWriteMockDb().db, unknownAccess.jwksJson),
+      ADMIN_WRITE_ALLOWED_EMAILS: "",
+      ADMIN_RBAC_ADMINS: accessEmail,
+      ADMIN_RBAC_EDITORS: "editor@example.invalid",
+      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
+    };
+    const unknownResponse = await worker.fetch(
+      makeRequest("/api/admin/snapshot", {
+        method: "GET",
+        headers: unknownAccess.header
+      }),
+      baseEnv
+    );
+    const duplicateResponse = await worker.fetch(
+      makeRequest("/api/admin/snapshot", {
+        method: "GET",
+        headers: duplicateAccess.header
+      }),
+      {
+        ...baseEnv,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: duplicateAccess.jwksJson,
+        ADMIN_RBAC_ADMINS: `${accessEmail}, duplicate@example.invalid`,
+        ADMIN_RBAC_EDITORS: "duplicate@example.invalid"
+      }
+    );
+
+    expect(unknownResponse.status).toBe(403);
+    await expect(readJson(unknownResponse)).resolves.toMatchObject({
+      error: "admin access identity is not allowed"
+    });
+    expect(duplicateResponse.status).toBe(403);
+    await expect(readJson(duplicateResponse)).resolves.toMatchObject({
+      error: "admin access role configuration is invalid"
+    });
+  });
+
+  it("rejects Cloudflare Access editor and viewer write methods before D1 mutation", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const editorAccess = await createAccessFixture({ email: "editor@example.invalid" });
+    const env = {
+      ...makeAccessEnv(db, editorAccess.jwksJson),
+      ADMIN_WRITE_ALLOWED_EMAILS: "",
+      ADMIN_RBAC_ADMINS: accessEmail,
+      ADMIN_RBAC_EDITORS: "editor@example.invalid",
+      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
+    };
+
+    const response = await worker.fetch(
+      makeRequest("/api/admin/content", {
+        method: "POST",
+        headers: {
+          ...editorAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(contentInput)
+      }),
+      env
+    );
+
+    expect(response.status).toBe(403);
+    await expect(readJson(response)).resolves.toMatchObject({
+      error: "admin role is required"
+    });
+    expect(tables.contents).toHaveLength(0);
+    expect(tables.admin_audit_log).toHaveLength(0);
   });
 
   it("requires Cloudflare Access for browser-origin admin writes and derives the actor from the verified identity", async () => {

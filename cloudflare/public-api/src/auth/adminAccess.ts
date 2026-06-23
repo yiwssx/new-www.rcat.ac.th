@@ -8,8 +8,12 @@ const PRODUCTION_CONTEXT_PATTERN = /(^|[-_.])(prod|production|live)([-_.]|$)/i;
 
 export interface AdminIdentity {
   actor: string;
+  email: string;
   mode: "cloudflare-access" | "smoke-token";
+  role: AdminRole;
 }
+
+export type AdminRole = "admin" | "editor" | "viewer";
 
 export interface AdminAuthResult {
   identity: AdminIdentity | null;
@@ -37,6 +41,67 @@ function getAllowedEmails(value: string | undefined) {
     .split(",")
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
+}
+
+function getRoleEmails(env: Env) {
+  return {
+    admin: getAllowedEmails(env.ADMIN_RBAC_ADMINS),
+    editor: getAllowedEmails(env.ADMIN_RBAC_EDITORS),
+    viewer: getAllowedEmails(env.ADMIN_RBAC_VIEWERS)
+  } satisfies Record<AdminRole, string[]>;
+}
+
+function getDuplicateRoleEmails(roleEmails: Record<AdminRole, string[]>) {
+  const seen = new Map<string, AdminRole>();
+  const duplicates = new Set<string>();
+
+  (Object.entries(roleEmails) as Array<[AdminRole, string[]]>).forEach(([role, emails]) => {
+    emails.forEach((email) => {
+      const existingRole = seen.get(email);
+
+      if (existingRole && existingRole !== role) {
+        duplicates.add(email);
+        return;
+      }
+
+      seen.set(email, role);
+    });
+  });
+
+  return duplicates;
+}
+
+function resolveAdminRole(email: string, env: Env) {
+  const roleEmails = getRoleEmails(env);
+  const duplicates = getDuplicateRoleEmails(roleEmails);
+
+  if (duplicates.size > 0) {
+    return {
+      role: null,
+      response: jsonError("admin access role configuration is invalid", 403, {
+        resource: "admin-structured-data"
+      })
+    };
+  }
+
+  if (roleEmails.admin.includes(email)) {
+    return { role: "admin" as const, response: null };
+  }
+
+  if (roleEmails.editor.includes(email)) {
+    return { role: "editor" as const, response: null };
+  }
+
+  if (roleEmails.viewer.includes(email)) {
+    return { role: "viewer" as const, response: null };
+  }
+
+  return {
+    role: null,
+    response: jsonError("admin access identity is not allowed", 403, {
+      resource: "admin-structured-data"
+    })
+  };
 }
 
 function getIssuer(teamDomain: string) {
@@ -102,10 +167,21 @@ async function verifyCloudflareAccess(request: Request, env: Env): Promise<Admin
       };
     }
 
+    const roleResult = resolveAdminRole(email, env);
+
+    if (roleResult.response || !roleResult.role) {
+      return {
+        identity: null,
+        response: roleResult.response
+      };
+    }
+
     return {
       identity: {
         actor: email,
-        mode: "cloudflare-access"
+        email,
+        mode: "cloudflare-access",
+        role: roleResult.role
       },
       response: null
     };
@@ -172,10 +248,24 @@ function verifySmokeToken(request: Request, env: Env): AdminAuthResult {
   return {
     identity: {
       actor: "m18-preview-smoke",
-      mode: "smoke-token"
+      email: "m18-preview-smoke",
+      mode: "smoke-token",
+      role: "admin"
     },
     response: null
   };
+}
+
+export function isAdmin(identity: AdminIdentity) {
+  return identity.role === "admin";
+}
+
+export function requireAdminRole(identity: AdminIdentity) {
+  return isAdmin(identity)
+    ? null
+    : jsonError("admin role is required", 403, {
+        resource: "admin-structured-data"
+      });
 }
 
 export async function authenticateAdminRequest(request: Request, env: Env): Promise<AdminAuthResult> {

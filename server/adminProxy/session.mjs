@@ -3,9 +3,16 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 const COOKIE_NAME = "__Host-rcat_admin_proxy_session";
 const SESSION_TTL_SECONDS = 8 * 60 * 60;
 const MINIMUM_SECRET_LENGTH = 32;
+const ADMIN_ROLES = new Set(["admin", "editor", "viewer"]);
 
 function normalizeEmail(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function normalizeRole(value) {
+  const role = typeof value === "string" ? value.trim().toLowerCase() : "";
+
+  return ADMIN_ROLES.has(role) ? role : "";
 }
 
 function requireSessionSecret(secret) {
@@ -59,11 +66,16 @@ export function getAdminProxyAllowedEmails(value) {
   return [...new Set((typeof value === "string" ? value : "").split(",").map(normalizeEmail).filter(Boolean))];
 }
 
-export async function createAdminProxySessionCookie({ email, secret, nowMs = Date.now() }) {
+export async function createAdminProxySessionCookie({ email, role = "admin", secret, nowMs = Date.now() }) {
   const normalizedEmail = normalizeEmail(email);
+  const normalizedRole = normalizeRole(role);
 
   if (!normalizedEmail) {
     throw new Error("admin proxy session email is required");
+  }
+
+  if (!normalizedRole) {
+    throw new Error("admin proxy session role is required");
   }
 
   const issuedAt = Math.floor(nowMs / 1000);
@@ -71,7 +83,7 @@ export async function createAdminProxySessionCookie({ email, secret, nowMs = Dat
     email: normalizedEmail,
     exp: issuedAt + SESSION_TTL_SECONDS,
     iat: issuedAt,
-    role: "admin",
+    role: normalizedRole,
     version: 1
   };
   const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
@@ -108,11 +120,12 @@ export async function verifyAdminProxySessionCookie({ allowedEmails, cookieHeade
 
     const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8"));
     const email = normalizeEmail(payload.email);
+    const role = normalizeRole(payload.role);
     const nowSeconds = Math.floor(nowMs / 1000);
 
     if (
       payload.version !== 1 ||
-      payload.role !== "admin" ||
+      !role ||
       !email ||
       !Number.isInteger(payload.iat) ||
       !Number.isInteger(payload.exp) ||
@@ -126,7 +139,7 @@ export async function verifyAdminProxySessionCookie({ allowedEmails, cookieHeade
       return { email, status: "forbidden" };
     }
 
-    return { email, status: "valid" };
+    return { email, role, status: "valid" };
   } catch {
     return { email: null, status: "invalid" };
   }

@@ -79,10 +79,10 @@ describe("admin proxy browser session", () => {
     );
   });
 
-  it("creates an opaque local admin marker session after proxy login succeeds", async () => {
+  it("creates an opaque local marker session with the role returned by proxy login", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }))
+      vi.fn(async () => new Response(JSON.stringify({ ok: true, role: "editor" }), { status: 200 }))
     );
     const beforeLogin = Date.now();
 
@@ -93,7 +93,7 @@ describe("admin proxy browser session", () => {
         id: "admin-proxy:operator@example.test",
         name: "operator",
         email: "operator@example.test",
-        role: "admin"
+        role: "editor"
       }
     });
     expect(session.token).toMatch(/^admin-proxy\.local\./);

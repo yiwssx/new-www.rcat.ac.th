@@ -38,6 +38,7 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import PageHeader from "../components/PageHeader";
+import { useAuth } from "../../context/authSessionContext";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { deleteExternalServiceLinkFromApi, saveExternalServiceLinkToApi } from "../../features/cms-external-services";
 import { clearPublicCmsCache } from "../../services/publicCmsCache";
@@ -45,6 +46,7 @@ import { ExternalServiceIconKey, ExternalServiceLink, ExternalServiceTone } from
 import { getExternalServiceToneStyle } from "../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal } from "../../utils/swal";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
 
 const externalServiceToneOptions: Array<{ value: ExternalServiceTone; label: string }> = [
   { value: "student", label: "นักเรียน / นักศึกษา" },
@@ -155,6 +157,8 @@ function isExampleHref(href: string) {
 
 export default function ExternalServicesPage() {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const canManage = canManageAdminData(session?.user);
   const adminSnapshotQuery = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot
@@ -175,6 +179,10 @@ export default function ExternalServicesPage() {
   });
 
   function updateEditingService<K extends keyof ExternalServiceLink>(key: K, value: ExternalServiceLink[K]) {
+    if (!canManage) {
+      return;
+    }
+
     setEditingService((current) =>
       current
         ? {
@@ -186,12 +194,20 @@ export default function ExternalServicesPage() {
   }
 
   function handleAddService() {
+    if (!canManage) {
+      return;
+    }
+
     setEditingService(createExternalServiceDraft(services.length + 1));
     setIsCreating(true);
     setDialogOpen(true);
   }
 
   function handleEditService(service: ExternalServiceLink) {
+    if (!canManage) {
+      return;
+    }
+
     setEditingService({ ...service });
     setIsCreating(false);
     setDialogOpen(true);
@@ -216,6 +232,10 @@ export default function ExternalServicesPage() {
   }
 
   async function handleSaveExternalService() {
+    if (!canManage) {
+      return;
+    }
+
     if (!editingService) {
       return;
     }
@@ -281,6 +301,10 @@ export default function ExternalServicesPage() {
   }
 
   async function handleDeleteExternalService(service: ExternalServiceLink) {
+    if (!canManage) {
+      return;
+    }
+
     const result = await appSwal.fire({
       icon: "warning",
       title: "ลบลิงก์ E-Service?",
@@ -342,16 +366,24 @@ export default function ExternalServicesPage() {
         title="E-Service"
         description="จัดการลิงก์บริการออนไลน์ที่แสดงในหน้าเว็บไซต์สาธารณะ"
         action={
-          <Button
-            variant="contained"
-            startIcon={<AddOutlinedIcon />}
-            onClick={handleAddService}
-            sx={externalServicePrimaryButtonSx}
-          >
-            เพิ่มลิงก์บริการ
-          </Button>
+          canManage ? (
+            <Button
+              variant="contained"
+              startIcon={<AddOutlinedIcon />}
+              onClick={handleAddService}
+              sx={externalServicePrimaryButtonSx}
+            >
+              เพิ่มลิงก์บริการ
+            </Button>
+          ) : undefined
         }
       />
+
+      {!canManage && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {ADMIN_READ_ONLY_NOTICE}
+        </Alert>
+      )}
 
       {adminSnapshotQuery.isLoading && (
         <Card sx={{ mb: 3, borderColor: "var(--rcat-border)", bgcolor: "var(--rcat-surface)" }}>
@@ -382,14 +414,16 @@ export default function ExternalServicesPage() {
                   เพิ่มลิงก์บริการออนไลน์เพื่อแสดงในหน้าเว็บไซต์สาธารณะ
                 </Typography>
               </Box>
-              <Button
-                variant="contained"
-                startIcon={<AddOutlinedIcon />}
-                onClick={handleAddService}
-                sx={externalServicePrimaryButtonSx}
-              >
-                เพิ่มลิงก์บริการ
-              </Button>
+              {canManage && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddOutlinedIcon />}
+                  onClick={handleAddService}
+                  sx={externalServicePrimaryButtonSx}
+                >
+                  เพิ่มลิงก์บริการ
+                </Button>
+              )}
             </Stack>
           </CardContent>
         </Card>
@@ -423,22 +457,26 @@ export default function ExternalServicesPage() {
                           <OpenInNewOutlinedIcon fontSize="small" />
                         </IconButton>
                       )}
-                      <IconButton
-                        aria-label={`แก้ไขลิงก์ E-Service ${service.title}`}
-                        onClick={() => handleEditService(service)}
-                        size="small"
-                      >
-                        <EditOutlinedIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        aria-label={`ลบลิงก์ E-Service ${service.title}`}
-                        color="error"
-                        disabled={deleteExternalServiceMutation.isPending}
-                        onClick={() => void handleDeleteExternalService(service)}
-                        size="small"
-                      >
-                        <DeleteOutlineOutlinedIcon fontSize="small" />
-                      </IconButton>
+                      {canManage && (
+                        <>
+                          <IconButton
+                            aria-label={`แก้ไขลิงก์ E-Service ${service.title}`}
+                            onClick={() => handleEditService(service)}
+                            size="small"
+                          >
+                            <EditOutlinedIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            aria-label={`ลบลิงก์ E-Service ${service.title}`}
+                            color="error"
+                            disabled={deleteExternalServiceMutation.isPending}
+                            onClick={() => void handleDeleteExternalService(service)}
+                            size="small"
+                          >
+                            <DeleteOutlineOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </>
+                      )}
                     </Stack>
                   </Stack>
 
@@ -487,6 +525,7 @@ export default function ExternalServicesPage() {
                       <Switch
                         checked={editingService.enabled}
                         onChange={(event) => updateEditingService("enabled", event.target.checked)}
+                        disabled={!canManage}
                       />
                     }
                     label="เปิดใช้งาน"
@@ -497,6 +536,7 @@ export default function ExternalServicesPage() {
                     onChange={(event) => updateEditingService("title", event.target.value)}
                     helperText="ชื่อบริการที่จะแสดงบนหน้าเว็บไซต์"
                     required
+                    disabled={!canManage}
                     fullWidth
                   />
                   <TextField
@@ -505,6 +545,7 @@ export default function ExternalServicesPage() {
                     onChange={(event) => updateEditingService("description", event.target.value)}
                     minRows={3}
                     multiline
+                    disabled={!canManage}
                     fullWidth
                   />
                   <TextField
@@ -513,6 +554,7 @@ export default function ExternalServicesPage() {
                     onChange={(event) => updateEditingService("href", event.target.value)}
                     helperText="กรอก URL จริงของระบบบริการ เช่น https://..."
                     required
+                    disabled={!canManage}
                     fullWidth
                   />
                   <Grid container spacing={1.5}>
@@ -524,6 +566,7 @@ export default function ExternalServicesPage() {
                           label="ประเภทสี"
                           value={editingService.tone}
                           onChange={(event) => updateEditingService("tone", event.target.value as ExternalServiceTone)}
+                          disabled={!canManage}
                         >
                           {externalServiceToneOptions.map((option) => (
                             <MenuItem key={option.value} value={option.value}>
@@ -543,6 +586,7 @@ export default function ExternalServicesPage() {
                           onChange={(event) =>
                             updateEditingService("iconKey", event.target.value as ExternalServiceIconKey)
                           }
+                          disabled={!canManage}
                         >
                           {externalServiceIconOptions.map((option) => (
                             <MenuItem key={option.value} value={option.value}>
@@ -559,6 +603,7 @@ export default function ExternalServicesPage() {
                         value={editingService.order}
                         onChange={(event) => updateEditingService("order", Number(event.target.value))}
                         helperText="ตัวเลขน้อยจะแสดงก่อน"
+                        disabled={!canManage}
                         fullWidth
                       />
                     </Grid>
@@ -599,7 +644,7 @@ export default function ExternalServicesPage() {
           <Button
             variant="contained"
             startIcon={<SaveOutlinedIcon />}
-            disabled={saveExternalServiceMutation.isPending}
+            disabled={!canManage || saveExternalServiceMutation.isPending}
             onClick={() => void handleSaveExternalService()}
             sx={externalServicePrimaryButtonSx}
           >

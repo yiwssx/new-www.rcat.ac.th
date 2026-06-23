@@ -30,6 +30,7 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import PageHeader from "../components/PageHeader";
+import { useAuth } from "../../context/authSessionContext";
 import { deleteCarouselSlideFromApi, saveCarouselSlideToApi } from "../../features/cms-carousel";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { saveHomepageSettingsToApi } from "../../features/cms-settings";
@@ -46,6 +47,7 @@ import {
   getCarouselSlideValidationMessage,
   normalizeCarouselAutoplayInterval
 } from "../utils/carousel";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
 
 function sortCarouselSlides(slides: CarouselSlide[]) {
   return [...slides].sort((left, right) => {
@@ -132,6 +134,8 @@ function getDateRangeLabel(slide: CarouselSlide) {
 
 export default function CarouselPage() {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const canManage = canManageAdminData(session?.user);
   const adminSnapshotQuery = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot
@@ -165,6 +169,10 @@ export default function CarouselPage() {
   });
 
   function updateEditingSlide<K extends keyof CarouselSlide>(key: K, value: CarouselSlide[K]) {
+    if (!canManage) {
+      return;
+    }
+
     setEditingSlide((current) =>
       current
         ? {
@@ -179,6 +187,10 @@ export default function CarouselPage() {
     key: K,
     value: HomepageCarouselSettings[K]
   ) {
+    if (!canManage) {
+      return;
+    }
+
     setCarouselSettingsDraft((current) => {
       const baseSettings = current ?? homepageSettings.carousel;
 
@@ -190,12 +202,20 @@ export default function CarouselPage() {
   }
 
   function handleAddSlide() {
+    if (!canManage) {
+      return;
+    }
+
     setEditingSlide(createCarouselDraft(slides.length + 1));
     setIsCreating(true);
     setDialogOpen(true);
   }
 
   function handleEditSlide(slide: CarouselSlide) {
+    if (!canManage) {
+      return;
+    }
+
     setEditingSlide({
       ...slide,
       startAt: slide.startAt || "",
@@ -216,6 +236,10 @@ export default function CarouselPage() {
   }
 
   function handleSelectMediaImage(asset: MediaAsset) {
+    if (!canManage) {
+      return;
+    }
+
     const imageUrl = getMediaImageUrl(asset);
 
     if (!imageUrl) {
@@ -238,6 +262,10 @@ export default function CarouselPage() {
   }
 
   async function handleSaveCarouselSettings() {
+    if (!canManage) {
+      return;
+    }
+
     try {
       const nextSettings = normalizeHomepageSettings({
         ...homepageSettings,
@@ -262,6 +290,10 @@ export default function CarouselPage() {
   }
 
   async function handleSaveCarouselSlide() {
+    if (!canManage) {
+      return;
+    }
+
     if (!editingSlide) {
       return;
     }
@@ -300,6 +332,10 @@ export default function CarouselPage() {
   }
 
   async function handleDeleteCarouselSlide(slide: CarouselSlide) {
+    if (!canManage) {
+      return;
+    }
+
     const result = await appSwal.fire({
       icon: "warning",
       title: "ลบสไลด์หน้าแรก?",
@@ -337,11 +373,18 @@ export default function CarouselPage() {
         title="สไลด์หน้าแรก"
         description="จัดการสไลด์ประชาสัมพันธ์ที่แสดงใน Carousel หน้าแรก"
         action={
-          <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleAddSlide}>
-            เพิ่มสไลด์
-          </Button>
+          canManage ? (
+            <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleAddSlide}>
+              เพิ่มสไลด์
+            </Button>
+          ) : undefined
         }
       />
+      {!canManage && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {ADMIN_READ_ONLY_NOTICE}
+        </Alert>
+      )}
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -358,7 +401,7 @@ export default function CarouselPage() {
               <Button
                 variant="contained"
                 startIcon={<SaveOutlinedIcon />}
-                disabled={saveHomepageSettingsMutation.isPending || adminSnapshotQuery.isLoading}
+                disabled={!canManage || saveHomepageSettingsMutation.isPending || adminSnapshotQuery.isLoading}
                 onClick={() => void handleSaveCarouselSettings()}
               >
                 {saveHomepageSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกการตั้งค่า"}
@@ -371,6 +414,7 @@ export default function CarouselPage() {
                     <Switch
                       checked={carouselSettings.autoplayEnabled}
                       onChange={(event) => updateCarouselSettings("autoplayEnabled", event.target.checked)}
+                      disabled={!canManage}
                     />
                   }
                   label="เปิดเล่นสไลด์อัตโนมัติ"
@@ -385,6 +429,7 @@ export default function CarouselPage() {
                   helperText="กำหนดได้ตั้งแต่ 3 ถึง 30 วินาที"
                   inputProps={{ min: 3, max: 30 }}
                   size="small"
+                  disabled={!canManage}
                   fullWidth
                 />
               </Grid>
@@ -422,9 +467,11 @@ export default function CarouselPage() {
                   เพิ่มสไลด์เพื่อแสดงภาพประชาสัมพันธ์ใน Carousel หน้าแรก
                 </Typography>
               </Box>
-              <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleAddSlide}>
-                เพิ่มสไลด์
-              </Button>
+              {canManage && (
+                <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleAddSlide}>
+                  เพิ่มสไลด์
+                </Button>
+              )}
             </Stack>
           </CardContent>
         </Card>
@@ -489,20 +536,22 @@ export default function CarouselPage() {
                         {slide.href}
                       </Typography>
                     )}
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      <IconButton aria-label="แก้ไขสไลด์หน้าแรก" onClick={() => handleEditSlide(slide)} size="small">
-                        <EditOutlinedIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        aria-label="ลบสไลด์หน้าแรก"
-                        color="error"
-                        disabled={deleteCarouselMutation.isPending}
-                        onClick={() => void handleDeleteCarouselSlide(slide)}
-                        size="small"
-                      >
-                        <DeleteOutlineOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
+                    {canManage && (
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <IconButton aria-label="แก้ไขสไลด์หน้าแรก" onClick={() => handleEditSlide(slide)} size="small">
+                          <EditOutlinedIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          aria-label="ลบสไลด์หน้าแรก"
+                          color="error"
+                          disabled={deleteCarouselMutation.isPending}
+                          onClick={() => void handleDeleteCarouselSlide(slide)}
+                          size="small"
+                        >
+                          <DeleteOutlineOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
+                    )}
                   </Stack>
                 </CardContent>
               </Card>
@@ -523,6 +572,7 @@ export default function CarouselPage() {
                       <Switch
                         checked={editingSlide.enabled}
                         onChange={(event) => updateEditingSlide("enabled", event.target.checked)}
+                        disabled={!canManage}
                       />
                     }
                     label="เปิดใช้งาน"
@@ -532,6 +582,7 @@ export default function CarouselPage() {
                     value={editingSlide.title}
                     onChange={(event) => updateEditingSlide("title", event.target.value)}
                     helperText="ใช้เป็นคำอธิบายภายในและข้อความสำรองสำหรับรูปภาพ"
+                    disabled={!canManage}
                     fullWidth
                   />
                   <TextField
@@ -540,12 +591,14 @@ export default function CarouselPage() {
                     onChange={(event) => updateEditingSlide("subtitle", event.target.value)}
                     minRows={3}
                     multiline
+                    disabled={!canManage}
                     fullWidth
                   />
                   <TextField
                     label="ป้ายกำกับเดิม (ไม่บังคับ)"
                     value={editingSlide.chip}
                     onChange={(event) => updateEditingSlide("chip", event.target.value)}
+                    disabled={!canManage}
                     fullWidth
                   />
                   <TextField
@@ -554,6 +607,7 @@ export default function CarouselPage() {
                     onChange={(event) => updateEditingSlide("imageUrl", event.target.value)}
                     helperText="กรอก URL รูปภาพเอง หรือเลือกจากคลังสื่อด้านล่าง"
                     required
+                    disabled={!canManage}
                     fullWidth
                   />
                   <Box
@@ -654,6 +708,7 @@ export default function CarouselPage() {
                                           <Button
                                             variant="outlined"
                                             size="small"
+                                            disabled={!canManage}
                                             onClick={() => handleSelectMediaImage(asset)}
                                           >
                                             เลือกภาพนี้
@@ -675,6 +730,7 @@ export default function CarouselPage() {
                     value={editingSlide.imageAlt}
                     onChange={(event) => updateEditingSlide("imageAlt", event.target.value)}
                     helperText="ถ้าเว้นว่าง ระบบจะใช้ชื่อสไลด์ หรือข้อความสำรองสำหรับผู้อ่านหน้าจอ"
+                    disabled={!canManage}
                     fullWidth
                   />
                   <Grid container spacing={1.5}>
@@ -683,6 +739,7 @@ export default function CarouselPage() {
                         label="ข้อความปุ่มเดิม (ไม่บังคับ)"
                         value={editingSlide.buttonLabel}
                         onChange={(event) => updateEditingSlide("buttonLabel", event.target.value)}
+                        disabled={!canManage}
                         fullWidth
                       />
                     </Grid>
@@ -691,6 +748,7 @@ export default function CarouselPage() {
                         label="ลิงก์ปลายทางเดิม (ไม่บังคับ)"
                         value={editingSlide.href}
                         onChange={(event) => updateEditingSlide("href", event.target.value)}
+                        disabled={!canManage}
                         fullWidth
                       />
                     </Grid>
@@ -700,6 +758,7 @@ export default function CarouselPage() {
                         type="number"
                         value={editingSlide.order}
                         onChange={(event) => updateEditingSlide("order", Number(event.target.value))}
+                        disabled={!canManage}
                         fullWidth
                       />
                     </Grid>
@@ -712,6 +771,7 @@ export default function CarouselPage() {
                           updateEditingSlide("startAt", fromLocalDateTimeInputValue(event.target.value))
                         }
                         slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
+                        disabled={!canManage}
                         fullWidth
                       />
                     </Grid>
@@ -724,6 +784,7 @@ export default function CarouselPage() {
                           updateEditingSlide("endAt", fromLocalDateTimeInputValue(event.target.value))
                         }
                         slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
+                        disabled={!canManage}
                         fullWidth
                       />
                     </Grid>
@@ -773,7 +834,7 @@ export default function CarouselPage() {
           <Button
             variant="contained"
             startIcon={<SaveOutlinedIcon />}
-            disabled={saveCarouselMutation.isPending}
+            disabled={!canManage || saveCarouselMutation.isPending}
             onClick={() => void handleSaveCarouselSlide()}
           >
             {saveCarouselMutation.isPending ? "กำลังบันทึก" : "บันทึกสไลด์หน้าแรก"}

@@ -2,7 +2,12 @@ import { createPublicContentListSnapshot } from "../adapters/publicContentAdapte
 import { createPublicDocumentListSnapshot } from "../adapters/publicDocumentsAdapter";
 import { createEmptyPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
-import { authenticateAdminRequest, hasProductionContext, type AdminIdentity } from "../auth/adminAccess";
+import {
+  authenticateAdminRequest,
+  hasProductionContext,
+  requireAdminRole,
+  type AdminIdentity
+} from "../auth/adminAccess";
 import { listPublishedContentRows } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
@@ -1488,6 +1493,14 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
 
   const segments = pathname.slice(ADMIN_PREFIX.length).split("/").filter(Boolean);
   const routeContext = getAdminRouteContext(request, segments);
+
+  if (request.method !== "GET") {
+    const roleResponse = requireAdminRole(authResult.identity);
+
+    if (roleResponse) {
+      return roleResponse;
+    }
+  }
 
   try {
     const schemaMismatch = await getPreviewSchemaMismatch(env, request, segments);

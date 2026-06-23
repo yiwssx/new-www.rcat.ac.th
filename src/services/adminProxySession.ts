@@ -2,6 +2,7 @@ import { resolveAdminWriteProvider, resolveCloudflareAdminWriteConfig } from "..
 import { projectSettings } from "../config/projectSettings";
 import type { PublicApiProviderEnv } from "../config/publicApiProvider";
 import type { Session } from "../types";
+import type { User } from "../types";
 
 const loginPath = "/api/admin-proxy-session/login";
 const logoutPath = "/api/admin-proxy-session/logout";
@@ -17,14 +18,24 @@ function createAdminProxyMarkerToken() {
   return `admin-proxy.local.${Math.random().toString(36).slice(2)}.${Date.now()}`;
 }
 
-async function readErrorMessage(response: Response, fallback: string) {
-  try {
-    const payload = (await response.json()) as { error?: unknown };
+type AdminRole = User["role"];
 
-    return typeof payload.error === "string" && payload.error.trim() ? payload.error : fallback;
+function normalizeAdminRole(value: unknown): AdminRole {
+  return value === "admin" || value === "editor" || value === "viewer" ? value : "viewer";
+}
+
+async function readJsonPayload(response: Response) {
+  try {
+    return (await response.json()) as { error?: unknown; role?: unknown };
   } catch {
-    return fallback;
+    return {};
   }
+}
+
+async function readErrorMessage(response: Response, fallback: string) {
+  const payload = await readJsonPayload(response);
+
+  return typeof payload.error === "string" && payload.error.trim() ? payload.error : fallback;
 }
 
 export function isAdminProxySessionEnabled(env: PublicApiProviderEnv = import.meta.env) {
@@ -39,7 +50,7 @@ export function isAdminProxySessionEnabled(env: PublicApiProviderEnv = import.me
   }
 }
 
-export async function loginAdminProxySession(email: string, password: string) {
+export async function loginAdminProxySession(email: string, password: string): Promise<{ role: AdminRole }> {
   const response = await fetch(loginPath, {
     method: "POST",
     credentials: "include",
@@ -53,10 +64,16 @@ export async function loginAdminProxySession(email: string, password: string) {
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "Unable to establish the admin proxy session"));
   }
+
+  const payload = await readJsonPayload(response);
+
+  return {
+    role: normalizeAdminRole(payload.role)
+  };
 }
 
 export async function loginCloudflareAdminProxySession(email: string, password: string): Promise<Session> {
-  await loginAdminProxySession(email, password);
+  const { role } = await loginAdminProxySession(email, password);
 
   const normalizedEmail = email.trim().toLowerCase();
   const name = normalizedEmail.split("@")[0] || "Administrator";
@@ -67,7 +84,7 @@ export async function loginCloudflareAdminProxySession(email: string, password: 
       id: `admin-proxy:${normalizedEmail}`,
       name,
       email: normalizedEmail,
-      role: "admin"
+      role
     },
     token: createAdminProxyMarkerToken(),
     expiresAt: expiresAt.toISOString()

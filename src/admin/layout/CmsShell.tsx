@@ -34,6 +34,7 @@ import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
 import { useAuth } from "../../context/authSessionContext";
 import { appSwal } from "../../utils/swal";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData, canReadAdminData } from "../utils/rbac";
 
 const drawerWidth = 280;
 
@@ -52,7 +53,6 @@ interface NavItem {
     | "/admin/users"
     | "/admin/settings";
   icon: ReactNode;
-  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -94,26 +94,22 @@ const navItems: NavItem[] = [
   {
     label: "เมนู",
     to: "/admin/menus",
-    icon: <AccountTreeOutlinedIcon />,
-    adminOnly: true
+    icon: <AccountTreeOutlinedIcon />
   },
   {
     label: "ผู้ใช้",
     to: "/admin/users",
-    icon: <ManageAccountsOutlinedIcon />,
-    adminOnly: true
+    icon: <ManageAccountsOutlinedIcon />
   },
   {
     label: "Google APIs",
     to: "/admin/integrations",
-    icon: <CloudSyncOutlinedIcon />,
-    adminOnly: true
+    icon: <CloudSyncOutlinedIcon />
   },
   {
     label: "ตั้งค่า",
     to: "/admin/settings",
-    icon: <SettingsOutlinedIcon />,
-    adminOnly: true
+    icon: <SettingsOutlinedIcon />
   }
 ];
 
@@ -124,7 +120,9 @@ export default function CmsShell() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { session, logout } = useAuth();
-  const visibleNavItems = navItems.filter((item) => !item.adminOnly || session?.user.role === "admin");
+  const canRead = canReadAdminData(session?.user);
+  const canManage = canManageAdminData(session?.user);
+  const visibleNavItems = canRead ? navItems : [];
 
   function handleNavigate(to: NavItem["to"]) {
     void navigate({ to });
@@ -205,6 +203,9 @@ export default function CmsShell() {
           </Typography>
           <Typography color="text.secondary" variant="body2" noWrap>
             {session?.user.email}
+          </Typography>
+          <Typography color="text.secondary" variant="caption" noWrap>
+            {canManage ? "สิทธิ์จัดการข้อมูล" : ADMIN_READ_ONLY_NOTICE}
           </Typography>
         </Box>
         <Tooltip title="ออกจากระบบ">

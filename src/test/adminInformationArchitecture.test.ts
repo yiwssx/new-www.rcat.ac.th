@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import usersPageSource from "../admin/pages/UsersPage.tsx?raw";
+import userManagementCardSource from "../admin/components/UserManagementCard.tsx?raw";
 import settingsPageSource from "../admin/pages/SettingsPage.tsx?raw";
 import integrationsPageSource from "../admin/pages/IntegrationsPage.tsx?raw";
 import cmsShellSource from "../admin/layout/CmsShell.tsx?raw";
@@ -34,13 +35,33 @@ function extractCssRule(selector: string) {
 }
 
 describe("M20 admin information architecture", () => {
-  it("moves user management to an admin-only users route and sidebar item", () => {
+  it("moves user management to a Cloudflare RBAC users route and sidebar item", () => {
     expect(usersPageSource).toContain("<UserManagementCard />");
-    expect(usersPageSource).toContain("เพิ่ม แก้ไข ปิดใช้งาน และลบบัญชีผู้ใช้ระบบจัดการเว็บไซต์");
+    expect(usersPageSource).toContain("ผู้ใช้และสิทธิ์การเข้าถึง");
+    expect(usersPageSource).not.toContain("getGoogleAppsScriptUrl");
+    expect(usersPageSource).not.toContain("Legacy user management");
+    expect(userManagementCardSource).toContain("Cloudflare Access");
+    expect(userManagementCardSource).toContain("ADMIN_RBAC_ADMINS");
+    expect(userManagementCardSource).toContain("admin@example.invalid");
+    expect(userManagementCardSource).not.toContain("getUserAccounts");
+    expect(userManagementCardSource).not.toContain("saveUserAccount");
+    expect(userManagementCardSource).not.toContain("deleteUserAccount");
+    expect(userManagementCardSource).not.toContain("resetUserAccounts");
+    expect(userManagementCardSource).not.toContain('type="password"');
     expect(settingsPageSource).not.toContain("<UserManagementCard />");
     expect(cmsShellSource).toContain('label: "ผู้ใช้"');
     expect(cmsShellSource).toContain('to: "/admin/users"');
-    expect(routesSource).toMatch(/path:\s*"users"[\s\S]*?<AdminOnlyPage>[\s\S]*?<UsersPage\s*\/>/);
+    expect(routesSource).toMatch(/path:\s*"users"[\s\S]*?component:\s*UsersPage/);
+    expect(routesSource).not.toMatch(/path:\s*"users"[\s\S]*?<AdminOnlyPage>[\s\S]*?<UsersPage\s*\/>/);
+  });
+
+  it("centralizes read-only admin RBAC for mutation controls", () => {
+    expect(cmsShellSource).toContain("canReadAdminData");
+    expect(cmsShellSource).toContain("canManageAdminData");
+    expect(cmsShellSource).not.toContain('session?.user.role === "admin"');
+    expect(routesSource).toMatch(/path:\s*"settings"[\s\S]*?component:\s*SettingsPage/);
+    expect(routesSource).toMatch(/path:\s*"menus"[\s\S]*?component:\s*MenuPage/);
+    expect(routesSource).not.toMatch(/path:\s*"settings"[\s\S]*?<AdminOnlyPage>[\s\S]*?<SettingsPage\s*\/>/);
   });
 
   it("describes the proxy media bridge without a browser VITE Apps Script warning", () => {

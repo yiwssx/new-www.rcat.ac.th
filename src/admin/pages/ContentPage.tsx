@@ -37,6 +37,7 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ContentEditorDialog from "../components/ContentEditorDialog";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
+import { useAuth } from "../../context/authSessionContext";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import {
   deleteContentItem,
@@ -52,6 +53,7 @@ import { appSwal } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { mergeBridgeMediaAssets } from "../../features/cms-media";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
 
 const columnHelper = createColumnHelper<ContentItem>();
 type FilterStatus = ContentStatus | "all";
@@ -64,6 +66,8 @@ function waitForDialogTransition() {
 
 export default function ContentPage() {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const canManage = canManageAdminData(session?.user);
   const { data, error, isError, isLoading } = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot
@@ -113,28 +117,39 @@ export default function ContentPage() {
     }
   });
 
-  const handleEdit = useCallback(async (item: ContentItem) => {
-    setSaveError("");
-    setLoadingEditorItem(true);
+  const handleEdit = useCallback(
+    async (item: ContentItem) => {
+      if (!canManage) {
+        return;
+      }
 
-    try {
-      const detail = await getAdminContentDetail({ id: item.id });
-      setSelectedItem(detail);
-      setEditorOpen(true);
-    } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถเปิดตัวแก้ไขได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
-    } finally {
-      setLoadingEditorItem(false);
-    }
-  }, []);
+      setSaveError("");
+      setLoadingEditorItem(true);
+
+      try {
+        const detail = await getAdminContentDetail({ id: item.id });
+        setSelectedItem(detail);
+        setEditorOpen(true);
+      } catch (error) {
+        await appSwal.fire({
+          icon: "error",
+          title: "ไม่สามารถเปิดตัวแก้ไขได้",
+          text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
+          confirmButtonText: "ตกลง"
+        });
+      } finally {
+        setLoadingEditorItem(false);
+      }
+    },
+    [canManage]
+  );
 
   const handleDelete = useCallback(
     async (item: ContentItem) => {
+      if (!canManage) {
+        return;
+      }
+
       const result = await appSwal.fire({
         title: "ลบเนื้อหา?",
         text: item.title,
@@ -168,11 +183,15 @@ export default function ContentPage() {
         });
       }
     },
-    [deleteMutation]
+    [canManage, deleteMutation]
   );
 
   const handlePublish = useCallback(
     async (item: ContentItem) => {
+      if (!canManage) {
+        return;
+      }
+
       const result = await appSwal.fire({
         title: "เผยแพร่เนื้อหา?",
         text: item.title,
@@ -210,7 +229,7 @@ export default function ContentPage() {
         });
       }
     },
-    [publishMutation, queryClient]
+    [canManage, publishMutation, queryClient]
   );
 
   const columns = useMemo(
@@ -276,43 +295,47 @@ export default function ContentPage() {
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title="แก้ไข">
-              <IconButton
-                aria-label="แก้ไข"
-                size="small"
-                disabled={loadingEditorItem}
-                onClick={() => void handleEdit(info.row.original)}
-              >
-                <EditOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            {info.row.original.status !== "published" && (
-              <Tooltip title="เผยแพร่">
-                <IconButton
-                  aria-label="เผยแพร่"
-                  size="small"
-                  color="primary"
-                  onClick={() => void handlePublish(info.row.original)}
-                >
-                  <PublishOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+            {canManage && (
+              <>
+                <Tooltip title="แก้ไข">
+                  <IconButton
+                    aria-label="แก้ไข"
+                    size="small"
+                    disabled={loadingEditorItem}
+                    onClick={() => void handleEdit(info.row.original)}
+                  >
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                {info.row.original.status !== "published" && (
+                  <Tooltip title="เผยแพร่">
+                    <IconButton
+                      aria-label="เผยแพร่"
+                      size="small"
+                      color="primary"
+                      onClick={() => void handlePublish(info.row.original)}
+                    >
+                      <PublishOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <Tooltip title="ลบ">
+                  <IconButton
+                    aria-label="ลบ"
+                    size="small"
+                    color="error"
+                    onClick={() => void handleDelete(info.row.original)}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </>
             )}
-            <Tooltip title="ลบ">
-              <IconButton
-                aria-label="ลบ"
-                size="small"
-                color="error"
-                onClick={() => void handleDelete(info.row.original)}
-              >
-                <DeleteOutlineIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
           </Stack>
         )
       })
     ],
-    [handleDelete, handleEdit, handlePublish, loadingEditorItem]
+    [canManage, handleDelete, handleEdit, handlePublish, loadingEditorItem]
   );
 
   const filteredItems = useMemo(() => {
@@ -342,12 +365,21 @@ export default function ContentPage() {
   });
 
   function handleCreate() {
+    if (!canManage) {
+      return;
+    }
+
     setSaveError("");
     setSelectedItem(null);
     setEditorOpen(true);
   }
 
   async function handleSave(item: ContentItem) {
+    if (!canManage) {
+      setSaveError(ADMIN_READ_ONLY_NOTICE);
+      return;
+    }
+
     try {
       setSaveError("");
       await saveMutation.mutateAsync(item);
@@ -375,6 +407,10 @@ export default function ContentPage() {
   }
 
   async function handleUploadMedia(input: MediaAssetInput) {
+    if (!canManage) {
+      throw new Error(ADMIN_READ_ONLY_NOTICE);
+    }
+
     return mediaMutation.mutateAsync(input);
   }
 
@@ -384,11 +420,18 @@ export default function ContentPage() {
         title="เนื้อหา"
         description="สร้างและดูแลหน้าเว็บ บทความ ข้อมูลหลักสูตร ข่าว และประกาศ"
         action={
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
-            เพิ่มเนื้อหา
-          </Button>
+          canManage ? (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
+              เพิ่มเนื้อหา
+            </Button>
+          ) : undefined
         }
       />
+      {!canManage && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {ADMIN_READ_ONLY_NOTICE}
+        </Alert>
+      )}
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           {error instanceof Error ? error.message : "ไม่สามารถโหลดเนื้อหาได้ในขณะนี้"}

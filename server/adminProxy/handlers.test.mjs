@@ -8,12 +8,16 @@ import { createAdminProxySessionCookie, getAdminProxySessionCookieName } from ".
 
 const SESSION_SECRET = "fake-admin-proxy-session-secret-32-characters";
 const ALLOWED_EMAIL = "admin@example.test";
+const EDITOR_EMAIL = "editor@example.invalid";
 
 function createEnv(overrides = {}) {
   return {
     ADMIN_PROXY_ALLOWED_EMAILS: ALLOWED_EMAIL,
     ADMIN_PROXY_PASSWORD_HASH: "$2b$04$fake-test-hash-not-used-directly",
     ADMIN_PROXY_SESSION_SECRET: SESSION_SECRET,
+    ADMIN_RBAC_ADMINS: ALLOWED_EMAIL,
+    ADMIN_RBAC_EDITORS: "",
+    ADMIN_RBAC_VIEWERS: "",
     CLOUDFLARE_ADMIN_API_URL: "https://preview-worker.example.test",
     CLOUDFLARE_ADMIN_SMOKE_TOKEN: "fake-server-only-smoke-token",
     ...overrides
@@ -56,6 +60,7 @@ function proxyUrl(path) {
 async function createSessionHeader(env = createEnv()) {
   const cookie = await createAdminProxySessionCookie({
     email: ALLOWED_EMAIL,
+    role: "admin",
     secret: env.ADMIN_PROXY_SESSION_SECRET,
     nowMs: Date.parse("2026-06-19T05:00:00.000Z")
   });
@@ -232,6 +237,55 @@ describe("Vercel admin proxy", () => {
     expect(upstreamInit.body).toBe(body);
     expect(new Headers(upstreamInit.headers).get("Content-Type")).toBe("application/json");
   });
+
+  it("allows read-only proxy sessions to read but blocks write methods before calling the Worker", async () => {
+    const env = createEnv({
+      ADMIN_PROXY_ALLOWED_EMAILS: `${ALLOWED_EMAIL},${EDITOR_EMAIL}`,
+      ADMIN_RBAC_EDITORS: EDITOR_EMAIL
+    });
+    const editorCookie = await createAdminProxySessionCookie({
+      email: EDITOR_EMAIL,
+      role: "editor",
+      secret: env.ADMIN_PROXY_SESSION_SECRET,
+      nowMs: Date.parse("2026-06-19T05:00:00.000Z")
+    });
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ content: [], documents: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" }
+        })
+    );
+    const readResponse = createResponse();
+    const writeResponse = createResponse();
+
+    await handleAdminProxyRequest(
+      createRequest({
+        url: proxyUrl("/api/admin/snapshot"),
+        headers: { cookie: editorCookie.split(";", 1)[0] }
+      }),
+      readResponse,
+      { env, fetchImpl, nowMs: Date.parse("2026-06-19T05:01:00.000Z") }
+    );
+    await handleAdminProxyRequest(
+      createRequest({
+        method: "PATCH",
+        url: proxyUrl("/api/admin/content/preview-content"),
+        body: { title: "Should not mutate" },
+        headers: {
+          cookie: editorCookie.split(";", 1)[0],
+          "content-type": "application/json"
+        }
+      }),
+      writeResponse,
+      { env, fetchImpl, nowMs: Date.parse("2026-06-19T05:01:00.000Z") }
+    );
+
+    expect(readResponse.statusCode).toBe(200);
+    expect(writeResponse.statusCode).toBe(403);
+    expect(JSON.parse(writeResponse.bodyText)).toEqual({ error: "admin role is required" });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("Vercel admin proxy session", () => {
@@ -306,7 +360,10 @@ describe("Vercel admin proxy session", () => {
         env: {
           ADMIN_PROXY_ALLOWED_EMAILS: "admin@example.test",
           ADMIN_PROXY_PASSWORD_HASH: passwordHash,
-          ADMIN_PROXY_SESSION_SECRET: "fake-admin-proxy-session-secret-32-characters"
+          ADMIN_PROXY_SESSION_SECRET: "fake-admin-proxy-session-secret-32-characters",
+          ADMIN_RBAC_ADMINS: "admin@example.test",
+          ADMIN_RBAC_EDITORS: "",
+          ADMIN_RBAC_VIEWERS: ""
         },
         nowMs: Date.parse("2026-06-19T05:00:00.000Z")
       });
@@ -324,7 +381,7 @@ describe("Vercel admin proxy session", () => {
 
     expect(JSON.parse(output)).toEqual({
       statusCode: 200,
-      body: JSON.stringify({ ok: true }),
+      body: JSON.stringify({ ok: true, role: "admin" }),
       hasSessionCookie: true
     });
   });
@@ -350,12 +407,42 @@ describe("Vercel admin proxy session", () => {
 
     expect(response.statusCode).toBe(200);
     expect(comparePassword).toHaveBeenCalledWith("test-password", createEnv().ADMIN_PROXY_PASSWORD_HASH);
+    expect(JSON.parse(response.bodyText)).toEqual({ ok: true, role: "admin" });
     expect(response.getHeader("set-cookie")).toContain(`${getAdminProxySessionCookieName()}=`);
     expect(response.getHeader("set-cookie")).toContain("HttpOnly");
     expect(response.getHeader("set-cookie")).toContain("Secure");
     expect(response.getHeader("set-cookie")).toContain("SameSite=Lax");
     expect(response.bodyText).not.toContain(SESSION_SECRET);
     expect(response.bodyText).not.toContain(createEnv().CLOUDFLARE_ADMIN_SMOKE_TOKEN);
+  });
+
+  it("returns the configured Cloudflare RBAC role during login without exposing role maps", async () => {
+    const comparePassword = vi.fn(async () => true);
+    const response = createResponse();
+    const env = createEnv({
+      ADMIN_PROXY_ALLOWED_EMAILS: `${ALLOWED_EMAIL},${EDITOR_EMAIL}`,
+      ADMIN_RBAC_EDITORS: EDITOR_EMAIL
+    });
+
+    await handleAdminProxySessionLogin(
+      createRequest({
+        method: "POST",
+        url: "/api/admin-proxy-session/login",
+        body: { email: EDITOR_EMAIL, password: "test-password" },
+        headers: { "content-type": "application/json" }
+      }),
+      response,
+      {
+        env,
+        comparePassword,
+        nowMs: Date.parse("2026-06-19T05:00:00.000Z")
+      }
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.bodyText)).toEqual({ ok: true, role: "editor" });
+    expect(response.bodyText).not.toContain(EDITOR_EMAIL);
+    expect(response.bodyText).not.toContain(SESSION_SECRET);
   });
 
   it("rejects an email outside the server allowlist without revealing it through the password-check path", async () => {

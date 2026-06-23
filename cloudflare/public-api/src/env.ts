@@ -7,6 +7,9 @@ export interface Env {
   ADMIN_WRITE_ACCESS_TEAM_DOMAIN?: string;
   ADMIN_WRITE_ACCESS_AUD?: string;
   ADMIN_WRITE_ALLOWED_EMAILS?: string;
+  ADMIN_RBAC_ADMINS?: string;
+  ADMIN_RBAC_EDITORS?: string;
+  ADMIN_RBAC_VIEWERS?: string;
   ADMIN_WRITE_ACCESS_JWKS_JSON?: string;
   ADMIN_WRITE_SMOKE_ENABLED?: string;
   ADMIN_WRITE_SMOKE_TOKEN?: string;

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -28,6 +29,7 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PageHeader from "../components/PageHeader";
+import { useAuth } from "../../context/authSessionContext";
 import { projectSettings } from "../../config/projectSettings";
 import {
   dateFormatPresets,
@@ -51,6 +53,7 @@ import {
 } from "../../types";
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
 
 function toNonNegativeInteger(value: unknown): number {
   const numeric = Number(value);
@@ -273,6 +276,8 @@ const visitorStatsFields: Array<{
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const canManage = canManageAdminData(session?.user);
   const rolePermissions = projectSettings.roles;
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(defaultDisplaySettings);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(defaultSiteSettings);
@@ -338,6 +343,10 @@ export default function SettingsPage() {
   }, [displaySettings]);
 
   async function handleSaveDisplaySettings() {
+    if (!canManage) {
+      return;
+    }
+
     try {
       const nextSettings = normalizeDisplaySettings(displaySettings);
       const saved = await saveDisplaySettingsMutation.mutateAsync(nextSettings);
@@ -362,6 +371,10 @@ export default function SettingsPage() {
     key: SiteSettingTextKey | "messengerUrl" | "messengerLabel" | "mourningModeLabel" | "mourningModeNotice",
     value: string
   ) {
+    if (!canManage) {
+      return;
+    }
+
     setSiteSettings((current) => ({
       ...current,
       [key]: value
@@ -369,6 +382,10 @@ export default function SettingsPage() {
   }
 
   function handleMessengerEnabledChange(value: boolean) {
+    if (!canManage) {
+      return;
+    }
+
     setSiteSettings((current) => ({
       ...current,
       messengerEnabled: value
@@ -376,6 +393,10 @@ export default function SettingsPage() {
   }
 
   function handleMourningModeEnabledChange(value: boolean) {
+    if (!canManage) {
+      return;
+    }
+
     setSiteSettings((current) => ({
       ...current,
       mourningModeEnabled: value
@@ -383,6 +404,10 @@ export default function SettingsPage() {
   }
 
   function handleFooterGroupTitleChange(groupIndex: number, value: string) {
+    if (!canManage) {
+      return;
+    }
+
     setSiteSettings((current) => ({
       ...current,
       footerDirectoryGroups: current.footerDirectoryGroups.map((group, index) =>
@@ -392,6 +417,10 @@ export default function SettingsPage() {
   }
 
   function handleAddFooterGroup() {
+    if (!canManage) {
+      return;
+    }
+
     setSiteSettings((current) => ({
       ...current,
       footerDirectoryGroups: [
@@ -405,6 +434,10 @@ export default function SettingsPage() {
   }
 
   function handleRemoveFooterGroup(groupIndex: number) {
+    if (!canManage) {
+      return;
+    }
+
     setSiteSettings((current) => ({
       ...current,
       footerDirectoryGroups: current.footerDirectoryGroups.filter((_, index) => index !== groupIndex)
@@ -412,6 +445,10 @@ export default function SettingsPage() {
   }
 
   function handleAddFooterLink(groupIndex: number) {
+    if (!canManage) {
+      return;
+    }
+
     setSiteSettings((current) => ({
       ...current,
       footerDirectoryGroups: current.footerDirectoryGroups.map((group, index) =>
@@ -433,6 +470,10 @@ export default function SettingsPage() {
   }
 
   function handleRemoveFooterLink(groupIndex: number, linkIndex: number) {
+    if (!canManage) {
+      return;
+    }
+
     setSiteSettings((current) => ({
       ...current,
       footerDirectoryGroups: current.footerDirectoryGroups.map((group, index) =>
@@ -449,6 +490,10 @@ export default function SettingsPage() {
     key: keyof FooterDirectoryLink,
     value: string | boolean
   ) {
+    if (!canManage) {
+      return;
+    }
+
     setSiteSettings((current) => ({
       ...current,
       footerDirectoryGroups: current.footerDirectoryGroups.map((group, index) =>
@@ -470,6 +515,10 @@ export default function SettingsPage() {
   }
 
   function handleHomepageIntroGateChange(key: keyof HomepageSettings["introGate"], value: string | boolean) {
+    if (!canManage) {
+      return;
+    }
+
     setHomepageSettings((current) => ({
       ...current,
       introGate: {
@@ -480,6 +529,10 @@ export default function SettingsPage() {
   }
 
   function handleHomepageMarqueeChange(key: keyof HomepageSettings["marquee"], value: string | boolean | number) {
+    if (!canManage) {
+      return;
+    }
+
     const nextValue = key === "speedSeconds" ? Math.min(180, Math.max(24, Number(value) || 60)) : value;
 
     setHomepageSettings((current) => ({
@@ -492,6 +545,10 @@ export default function SettingsPage() {
   }
 
   function handleHomepageIntroVideoChange(key: keyof HomepageSettings["introVideo"], value: string | boolean) {
+    if (!canManage) {
+      return;
+    }
+
     setHomepageSettings((current) => ({
       ...current,
       introVideo: {
@@ -502,6 +559,10 @@ export default function SettingsPage() {
   }
 
   function handleVisitorStatsChange(key: keyof VisitorStatsSettings, value: number | boolean) {
+    if (!canManage) {
+      return;
+    }
+
     setVisitorStats((current) => ({
       ...current,
       [key]: typeof value === "number" ? toNonNegativeInteger(value) : value
@@ -509,6 +570,10 @@ export default function SettingsPage() {
   }
 
   async function handleSaveSiteSettings() {
+    if (!canManage) {
+      return;
+    }
+
     try {
       const validationMessage = getSiteSettingsValidationMessage(siteSettings);
 
@@ -544,6 +609,10 @@ export default function SettingsPage() {
   }
 
   async function handleSaveHomepageSettings() {
+    if (!canManage) {
+      return;
+    }
+
     try {
       const nextSettings = normalizeHomepageSettings(homepageSettings);
       const saved = await saveHomepageSettingsMutation.mutateAsync(nextSettings);
@@ -568,6 +637,10 @@ export default function SettingsPage() {
   }
 
   async function handleSaveVisitorStats() {
+    if (!canManage) {
+      return;
+    }
+
     try {
       const nextStats = normalizeVisitorStats({
         enabled: visitorStats.enabled
@@ -596,6 +669,11 @@ export default function SettingsPage() {
   return (
     <Box>
       <PageHeader title="ตั้งค่า" description="สิทธิ์การเผยแพร่ การจัดการผู้ใช้ และรูปแบบการแสดงผล" />
+      {!canManage && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {ADMIN_READ_ONLY_NOTICE}
+        </Alert>
+      )}
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12 }}>
           <Card>
@@ -663,7 +741,7 @@ export default function SettingsPage() {
                     fullWidth
                     variant="contained"
                     startIcon={<SaveOutlinedIcon />}
-                    disabled={saveDisplaySettingsMutation.isPending}
+                    disabled={!canManage || saveDisplaySettingsMutation.isPending}
                     onClick={() => void handleSaveDisplaySettings()}
                     sx={{ height: "100%" }}
                   >
@@ -833,7 +911,7 @@ export default function SettingsPage() {
                       <Typography fontWeight={900} sx={{ flex: 1 }}>
                         ไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์
                       </Typography>
-                      <Button variant="outlined" onClick={handleAddFooterGroup}>
+                      <Button variant="outlined" disabled={!canManage} onClick={handleAddFooterGroup}>
                         เพิ่มกลุ่มลิงก์
                       </Button>
                     </Stack>
@@ -874,12 +952,17 @@ export default function SettingsPage() {
                             </Grid>
                             <Grid size={{ xs: 12, md: 4 }}>
                               <Stack direction="row" spacing={1} justifyContent={{ md: "flex-end" }}>
-                                <Button variant="outlined" onClick={() => handleAddFooterLink(groupIndex)}>
+                                <Button
+                                  variant="outlined"
+                                  disabled={!canManage}
+                                  onClick={() => handleAddFooterLink(groupIndex)}
+                                >
                                   เพิ่มลิงก์
                                 </Button>
                                 <Button
                                   color="error"
                                   variant="outlined"
+                                  disabled={!canManage}
                                   onClick={() => handleRemoveFooterGroup(groupIndex)}
                                 >
                                   ลบกลุ่ม
@@ -934,6 +1017,7 @@ export default function SettingsPage() {
                                 <Button
                                   color="error"
                                   variant="outlined"
+                                  disabled={!canManage}
                                   onClick={() => handleRemoveFooterLink(groupIndex, linkIndex)}
                                   fullWidth
                                 >
@@ -951,7 +1035,7 @@ export default function SettingsPage() {
                   <Button
                     variant="contained"
                     startIcon={<SaveOutlinedIcon />}
-                    disabled={saveSiteSettingsMutation.isPending}
+                    disabled={!canManage || saveSiteSettingsMutation.isPending}
                     onClick={() => void handleSaveSiteSettings()}
                   >
                     {saveSiteSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกข้อมูลเว็บไซต์"}
@@ -1171,7 +1255,7 @@ export default function SettingsPage() {
                 <Button
                   variant="contained"
                   startIcon={<SaveOutlinedIcon />}
-                  disabled={saveHomepageSettingsMutation.isPending}
+                  disabled={!canManage || saveHomepageSettingsMutation.isPending}
                   onClick={() => void handleSaveHomepageSettings()}
                 >
                   {saveHomepageSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกการตั้งค่าหน้าแรก"}
@@ -1229,7 +1313,7 @@ export default function SettingsPage() {
                   <Button
                     variant="contained"
                     startIcon={<SaveOutlinedIcon />}
-                    disabled={saveVisitorStatsMutation.isPending}
+                    disabled={!canManage || saveVisitorStatsMutation.isPending}
                     onClick={() => void handleSaveVisitorStats()}
                   >
                     {saveVisitorStatsMutation.isPending ? "กำลังบันทึก" : "บันทึกการแสดงผลสถิติผู้เข้าชม"}

@@ -1,6 +1,5 @@
 import { Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import {
-  AdminOnlyPage,
   CalendarPage,
   CarouselPage,
   ContentPage,
@@ -148,41 +147,25 @@ const adminCalendarRoute = createRoute({
 const adminMenuRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "menus",
-  component: () => (
-    <AdminOnlyPage>
-      <MenuPage />
-    </AdminOnlyPage>
-  )
+  component: MenuPage
 });
 
 const adminIntegrationsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "integrations",
-  component: () => (
-    <AdminOnlyPage>
-      <IntegrationsPage />
-    </AdminOnlyPage>
-  )
+  component: IntegrationsPage
 });
 
 const adminSettingsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "settings",
-  component: () => (
-    <AdminOnlyPage>
-      <SettingsPage />
-    </AdminOnlyPage>
-  )
+  component: SettingsPage
 });
 
 const adminUsersRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "users",
-  component: () => (
-    <AdminOnlyPage>
-      <UsersPage />
-    </AdminOnlyPage>
-  )
+  component: UsersPage
 });
 
 const routeTree = rootRoute.addChildren([

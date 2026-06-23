@@ -33,6 +33,7 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import PageHeader from "../components/PageHeader";
+import { useAuth } from "../../context/authSessionContext";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { deleteMediaAsset, mergeBridgeMediaAssets, saveMediaAsset } from "../../features/cms-media";
 import { CmsSnapshot, MediaAsset, MediaType } from "../../types";
@@ -41,6 +42,7 @@ import { appSwal } from "../../utils/swal";
 import { formatFileSize, readFileAsBase64 } from "../../utils/files";
 import { mediaTypeLabels } from "../../utils/thaiLabels";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
 
 interface MediaFormState {
   name: string;
@@ -138,11 +140,12 @@ function MediaPreview({ asset }: { asset: MediaAsset }) {
 
 interface MediaAssetCardProps {
   asset: MediaAsset;
+  canManage?: boolean;
   onEdit: (asset: MediaAsset) => void;
   onDelete: (asset: MediaAsset) => void;
 }
 
-export function MediaAssetCard({ asset, onEdit, onDelete }: MediaAssetCardProps) {
+export function MediaAssetCard({ asset, canManage = true, onEdit, onDelete }: MediaAssetCardProps) {
   const previewKey = `${asset.id}:${asset.thumbnailUrl || asset.previewUrl || "missing"}`;
 
   return (
@@ -197,16 +200,20 @@ export function MediaAssetCard({ asset, onEdit, onDelete }: MediaAssetCardProps)
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="แก้ไขสื่อ">
-            <IconButton aria-label="แก้ไขสื่อ" size="small" onClick={() => onEdit(asset)}>
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="ลบสื่อ">
-            <IconButton aria-label="ลบสื่อ" size="small" color="error" onClick={() => onDelete(asset)}>
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canManage && (
+            <>
+              <Tooltip title="แก้ไขสื่อ">
+                <IconButton aria-label="แก้ไขสื่อ" size="small" onClick={() => onEdit(asset)}>
+                  <EditOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="ลบสื่อ">
+                <IconButton aria-label="ลบสื่อ" size="small" color="error" onClick={() => onDelete(asset)}>
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
         </Stack>
       </CardContent>
     </Card>
@@ -215,6 +222,8 @@ export function MediaAssetCard({ asset, onEdit, onDelete }: MediaAssetCardProps)
 
 export default function MediaPage() {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const canManage = canManageAdminData(session?.user);
   const { data, error, isError, isLoading } = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot
@@ -276,6 +285,10 @@ export default function MediaPage() {
   }, [filter, mediaAssets, search]);
 
   function handleOpenCreate() {
+    if (!canManage) {
+      return;
+    }
+
     setEditingAsset(null);
     setForm(emptyForm);
     setFile(null);
@@ -285,6 +298,10 @@ export default function MediaPage() {
   }
 
   function handleOpenEdit(asset: MediaAsset) {
+    if (!canManage) {
+      return;
+    }
+
     setEditingAsset(asset);
     setForm(toFormState(asset));
     setFile(null);
@@ -303,6 +320,10 @@ export default function MediaPage() {
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    if (!canManage) {
+      return;
+    }
+
     const nextFile = event.target.files?.[0] ?? null;
     setFile(nextFile);
     setFormError("");
@@ -319,6 +340,11 @@ export default function MediaPage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!canManage) {
+      setFormError(ADMIN_READ_ONLY_NOTICE);
+      return;
+    }
+
     if (!form.name.trim() || !form.owner.trim()) {
       setFormError("ต้องระบุชื่อและผู้รับผิดชอบ");
       return;
@@ -334,6 +360,11 @@ export default function MediaPage() {
   }
 
   async function handleConfirmSave() {
+    if (!canManage) {
+      setFormError(ADMIN_READ_ONLY_NOTICE);
+      return;
+    }
+
     try {
       const filePayload = file
         ? {
@@ -376,6 +407,10 @@ export default function MediaPage() {
   }
 
   async function handleDelete(asset: MediaAsset) {
+    if (!canManage) {
+      return;
+    }
+
     const result = await appSwal.fire({
       title: "ลบสื่อ?",
       text: `${asset.name} จะถูกนำออกจากคลังและย้ายไปถังขยะใน Drive หากทำได้`,
@@ -416,11 +451,18 @@ export default function MediaPage() {
         title="คลังสื่อ"
         description="อัปโหลด แก้ไข ลบ และนำรูปภาพ วิดีโอ เอกสาร และตารางข้อมูลจาก Drive มาใช้ซ้ำ"
         action={
-          <Button variant="contained" startIcon={<UploadFileOutlinedIcon />} onClick={handleOpenCreate}>
-            เพิ่มสื่อ
-          </Button>
+          canManage ? (
+            <Button variant="contained" startIcon={<UploadFileOutlinedIcon />} onClick={handleOpenCreate}>
+              เพิ่มสื่อ
+            </Button>
+          ) : undefined
         }
       />
+      {!canManage && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {ADMIN_READ_ONLY_NOTICE}
+        </Alert>
+      )}
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           {error instanceof Error ? error.message : "ไม่สามารถโหลดรายการสื่อได้ในขณะนี้"}
@@ -468,6 +510,7 @@ export default function MediaPage() {
           <Grid size={{ xs: 12, sm: 6, lg: 4, xl: 3 }} key={asset.id}>
             <MediaAssetCard
               asset={asset}
+              canManage={canManage}
               onEdit={handleOpenEdit}
               onDelete={(currentAsset) => void handleDelete(currentAsset)}
             />
@@ -502,7 +545,12 @@ export default function MediaPage() {
             ) : (
               <Stack spacing={2.2} sx={{ pt: 1 }}>
                 {formError && <Alert severity="error">{formError}</Alert>}
-                <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />}>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  startIcon={<UploadFileOutlinedIcon />}
+                  disabled={!canManage}
+                >
                   {file ? "เปลี่ยนไฟล์" : "เลือกไฟล์"}
                   <input
                     hidden
@@ -562,7 +610,7 @@ export default function MediaPage() {
                   type="button"
                   color="inherit"
                   onClick={() => setConfirming(false)}
-                  disabled={saveMutation.isPending}
+                  disabled={!canManage || saveMutation.isPending}
                 >
                   กลับ
                 </Button>
@@ -580,7 +628,7 @@ export default function MediaPage() {
                 <Button type="button" color="inherit" onClick={handleCloseDialog} disabled={saveMutation.isPending}>
                   ยกเลิก
                 </Button>
-                <Button type="submit" variant="contained" disabled={saveMutation.isPending}>
+                <Button type="submit" variant="contained" disabled={!canManage || saveMutation.isPending}>
                   ดำเนินการต่อ
                 </Button>
               </>
