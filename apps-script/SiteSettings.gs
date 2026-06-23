@@ -28,7 +28,10 @@ const DEFAULT_SITE_SETTINGS = {
   footerDirectoryGroups: [],
   messengerUrl: "",
   messengerLabel: "แชทกับเจ้าหน้าที่",
-  messengerEnabled: false
+  messengerEnabled: false,
+  mourningModeEnabled: false,
+  mourningModeLabel: "โหมดไว้อาลัย",
+  mourningModeNotice: ""
 };
 
 const STARTER_PUBLIC_SITE_SETTINGS = {
@@ -63,7 +66,8 @@ const SITE_SETTINGS_LONG_TEXT_FIELDS = [
   "address",
   "heroDescription",
   "directorDescription",
-  "footerDescription"
+  "footerDescription",
+  "mourningModeNotice"
 ];
 
 const SITE_SETTINGS_TEXT_MAX_LENGTH = 120;
@@ -131,7 +135,7 @@ function normalizeSiteSettings(input, options) {
       return;
     }
 
-    if (key === "messengerEnabled") {
+    if (key === "messengerEnabled" || key === "mourningModeEnabled") {
       normalized[key] = normalizeSiteSettingsBoolean(source[key]);
       return;
     }

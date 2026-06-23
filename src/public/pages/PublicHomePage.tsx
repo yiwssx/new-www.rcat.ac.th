@@ -3,7 +3,6 @@ import { Box, Container, LinearProgress, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
-import { normalizeVisitorStats } from "../../services/visitorStats";
 import PublicHomeCarousel from "../components/PublicHomeCarousel";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
@@ -12,8 +11,8 @@ import { LatestAnnouncementsCard } from "../components/home/LatestAnnouncementsC
 import { HomeHeroSection } from "../components/home/HomeHeroSection";
 import { HomeIntroVideoSection } from "../components/home/HomeIntroVideoSection";
 import { LatestNewsSection } from "../components/home/LatestNewsSection";
-import { UrgentMarqueeSection } from "../components/home/UrgentMarqueeSection";
 import { VisitorStatsCard } from "../components/home/VisitorStatsCard";
+import { useLiveVisitorStats } from "../hooks/useLiveVisitorStats";
 import { usePublicHomeSnapshot } from "../hooks/usePublicHomeSnapshot";
 
 const LazyAchievementHighlightsSection = lazy(() =>
@@ -141,6 +140,7 @@ function DeferredHomeSection({
 
 export default function PublicHomePage() {
   const { data, isLoading, isFetching, isError, refetch } = usePublicHomeSnapshot();
+  const visitorStats = useLiveVisitorStats(data?.visitorStats);
 
   if (!data && (isLoading || isFetching)) {
     return (
@@ -175,7 +175,6 @@ export default function PublicHomePage() {
 
   const siteSettings = normalizeSiteSettings(data.siteSettings);
   const homepageSettings = normalizeHomepageSettings(data.homepageSettings);
-  const visitorStats = normalizeVisitorStats(data.visitorStats);
   const latestNews = data.latestNews ?? [];
   const latestAnnouncements = data.latestAnnouncements ?? [];
   const procurementItems = data.procurementItems ?? [];
@@ -201,7 +200,6 @@ export default function PublicHomePage() {
       preloadedMenu={data.menu}
     >
       {isFetching && <LinearProgress />}
-      <UrgentMarqueeSection settings={homepageSettings.marquee} />
       <PublicHomeCarousel slides={carouselSlides} settings={homepageSettings.carousel} />
       <Container maxWidth="xl" sx={{ pb: hasFloatingMessenger ? { xs: 9, md: 14 } : undefined }}>
         <HomeHeroSection siteSettings={siteSettings} />

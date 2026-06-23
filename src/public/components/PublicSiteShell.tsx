@@ -25,6 +25,7 @@ import PublicMainMenu from "./PublicMainMenu";
 import PublicErrorState from "./PublicErrorState";
 import FloatingMessengerButton from "./FloatingMessengerButton";
 import PublicIntroGate from "./PublicIntroGate";
+import { UrgentMarqueeSection } from "./home/UrgentMarqueeSection";
 import { projectSettings } from "../../config/projectSettings";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
@@ -522,7 +523,12 @@ export default function PublicSiteShell({
   }
 
   return (
-    <Box id="top" sx={{ minHeight: "100vh", bgcolor: "background.default" }} className="rcat-page">
+    <Box
+      id="top"
+      sx={{ minHeight: "100vh", bgcolor: "background.default" }}
+      className={`rcat-page${siteSettings.mourningModeEnabled ? " rcat-mourning-mode" : ""}`}
+      data-mourning-mode={siteSettings.mourningModeEnabled ? "true" : "false"}
+    >
       <PublicIntroGate settings={homepageSettings.introGate} />
       <Box
         sx={{
@@ -702,6 +708,17 @@ export default function PublicSiteShell({
       </Box>
 
       <PublicMainMenu preloadedMenu={preloadedMenu ?? data?.menu ?? (skipShellDataFetch ? [] : undefined)} />
+
+      <UrgentMarqueeSection settings={homepageSettings.marquee} />
+
+      {siteSettings.mourningModeEnabled && siteSettings.mourningModeNotice && (
+        <Box
+          role="status"
+          sx={{ bgcolor: "grey.900", color: "common.white", py: 1, px: 2, textAlign: "center", fontWeight: 800 }}
+        >
+          {siteSettings.mourningModeNotice}
+        </Box>
+      )}
 
       {isShellFetching && <LinearProgress sx={{ height: 3 }} />}
 

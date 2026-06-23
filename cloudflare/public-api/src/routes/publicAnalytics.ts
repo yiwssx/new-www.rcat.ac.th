@@ -1,6 +1,11 @@
 import { getPublishedContentRowBySlug } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
-import { countOnlineVisitors } from "../db/visitorStatsRepository";
+import {
+  countOnlineVisitors,
+  isVisitorPresenceSchemaMissing,
+  updateDailyOnlineVisitors,
+  upsertVisitorPresence
+} from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -32,16 +37,64 @@ async function hashDailyVisitorId(visitorId: string, day: string) {
     .slice(0, 32)}`;
 }
 
+function visitorPresenceSchemaError(resource: string) {
+  return jsonError("visitor presence schema is not available", 503, {
+    resource,
+    diagnostic: "visitor-presence-schema-missing-v1",
+    suggestedMigration: "run D1 migrations"
+  });
+}
+
+function parseVisitorInput(body: Record<string, unknown>) {
+  const visitorId = typeof body.visitorId === "string" ? body.visitorId.trim() : "";
+  const path = typeof body.path === "string" ? body.path.trim().slice(0, MAX_PATH_LENGTH) : "";
+
+  return VISITOR_ID_PATTERN.test(visitorId) && path.startsWith("/") ? { visitorId, path } : null;
+}
+
+async function refreshVisitorPresence(env: Env, visitorId: string, path: string, now: Date) {
+  const seenAt = now.toISOString();
+  const day = getBangkokDay(now);
+  const dailyVisitorId = await hashDailyVisitorId(visitorId, day);
+
+  await upsertVisitorPresence(env, { visitorId: dailyVisitorId, day, path, seenAt });
+  const onlineUsers = await countOnlineVisitors(env, now);
+  return { day, dailyVisitorId, onlineUsers, seenAt };
+}
+
+export async function recordPublicPresence(request: Request, env: Env) {
+  if (!env.DB) {
+    return jsonError("database binding is not configured", 503, { resource: "presence" });
+  }
+
+  const input = parseVisitorInput((await readBody(request)) ?? {});
+
+  if (!input) {
+    return jsonError("invalid presence", 400, { resource: "presence" });
+  }
+
+  try {
+    const presence = await refreshVisitorPresence(env, input.visitorId, input.path, new Date());
+    await updateDailyOnlineVisitors(env, presence.day, presence.onlineUsers, presence.seenAt);
+    return json({ recorded: true, day: presence.day, onlineUsers: presence.onlineUsers });
+  } catch (error) {
+    if (isVisitorPresenceSchemaMissing(error)) {
+      return visitorPresenceSchemaError("presence");
+    }
+
+    throw error;
+  }
+}
+
 export async function recordPublicSiteView(request: Request, env: Env) {
   if (!env.DB) {
     return jsonError("database binding is not configured", 503, { resource: "site-view" });
   }
 
   const body = (await readBody(request)) ?? {};
-  const visitorId = typeof body?.visitorId === "string" ? body.visitorId.trim() : "";
-  const path = typeof body?.path === "string" ? body.path.trim().slice(0, MAX_PATH_LENGTH) : "";
+  const input = parseVisitorInput(body);
 
-  if (!VISITOR_ID_PATTERN.test(visitorId) || !path.startsWith("/")) {
+  if (!input) {
     return jsonError("invalid site view", 400, { resource: "site-view" });
   }
 
@@ -49,7 +102,20 @@ export async function recordPublicSiteView(request: Request, env: Env) {
   const now = new Date();
   const createdAt = now.toISOString();
   const day = getBangkokDay(now);
-  const dailyVisitorId = await hashDailyVisitorId(visitorId, day);
+  let dailyVisitorId: string;
+  let onlineUsers: number;
+
+  try {
+    const presence = await refreshVisitorPresence(env, input.visitorId, input.path, now);
+    dailyVisitorId = presence.dailyVisitorId;
+    onlineUsers = presence.onlineUsers;
+  } catch (error) {
+    if (isVisitorPresenceSchemaMissing(error)) {
+      return visitorPresenceSchemaError("site-view");
+    }
+
+    throw error;
+  }
   const existingVisitor = await db
     .prepare("SELECT id FROM visitor_events WHERE visitor_id = ? LIMIT 1")
     .bind(dailyVisitorId)
@@ -64,9 +130,8 @@ export async function recordPublicSiteView(request: Request, env: Env) {
       `INSERT INTO visitor_events (id, visitor_id, path, referrer_origin, page_title, created_at)
        VALUES (?, ?, ?, ?, ?, ?)`
     )
-    .bind(eventId, dailyVisitorId, path, referrerOrigin, pageTitle, createdAt)
+    .bind(eventId, dailyVisitorId, input.path, referrerOrigin, pageTitle, createdAt)
     .run();
-  const onlineUsers = await countOnlineVisitors(env, now);
   await db
     .prepare(
       `INSERT INTO visitor_daily_stats

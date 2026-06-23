@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 
-function createAnalyticsDb() {
+function createAnalyticsDb(options: { presenceTableMissing?: boolean } = {}) {
   const visitorEvents: Array<{ id: string; visitorId: string; createdAt: string }> = [];
+  const visitorPresence = new Map<
+    string,
+    { id: string; visitorId: string; day: string; path: string; lastSeenAt: string; createdAt: string }
+  >();
   const visitorRows = new Map<string, Record<string, unknown>>();
   let contentViewCount = 0;
   const contentRow = {
@@ -46,10 +50,16 @@ function createAnalyticsDb() {
         return null;
       },
       async all<T>() {
-        if (/COUNT\(DISTINCT visitor_id\)/i.test(query)) {
+        if (/FROM visitor_presence/i.test(query)) {
+          if (options.presenceTableMissing) {
+            throw new Error("no such table: visitor_presence");
+          }
+
           const onlineSince = String(this.bindings[0] ?? "");
           const onlineVisitors = new Set(
-            visitorEvents.filter((event) => event.createdAt >= onlineSince).map((event) => event.visitorId)
+            [...visitorPresence.values()]
+              .filter((presence) => presence.lastSeenAt >= onlineSince)
+              .map((presence) => presence.visitorId)
           );
           return { results: [{ online_users: onlineVisitors.size }] as T[], success: true };
         }
@@ -66,11 +76,36 @@ function createAnalyticsDb() {
         return { results: [] as T[], success: true };
       },
       async run() {
-        if (/INSERT INTO visitor_events/i.test(query)) {
+        if (/INSERT INTO visitor_presence/i.test(query)) {
+          if (options.presenceTableMissing) {
+            throw new Error("no such table: visitor_presence");
+          }
+
+          const visitorId = String(this.bindings[1]);
+          const current = visitorPresence.get(visitorId);
+          visitorPresence.set(visitorId, {
+            id: current?.id ?? String(this.bindings[0]),
+            visitorId,
+            day: String(this.bindings[2]),
+            path: String(this.bindings[3]),
+            lastSeenAt: String(this.bindings[4]),
+            createdAt: current?.createdAt ?? String(this.bindings[5])
+          });
+        } else if (/INSERT INTO visitor_events/i.test(query)) {
           visitorEvents.push({
             id: String(this.bindings[0]),
             visitorId: String(this.bindings[1]),
             createdAt: String(this.bindings[5])
+          });
+        } else if (/INSERT INTO visitor_daily_stats/i.test(query) && /public-presence/i.test(query)) {
+          const day = String(this.bindings[0]);
+          const current = visitorRows.get(day);
+          visitorRows.set(day, {
+            day,
+            total_views: Number(current?.total_views ?? 0),
+            unique_visitors: Number(current?.unique_visitors ?? 0),
+            online_users: Number(this.bindings[1]),
+            updated_at: String(this.bindings[2])
           });
         } else if (/INSERT INTO visitor_daily_stats/i.test(query)) {
           const day = String(this.bindings[0]);
@@ -99,7 +134,7 @@ function createAnalyticsDb() {
     }
   } as unknown as D1Database;
 
-  return { db, visitorEvents, visitorRows, getContentViewCount: () => contentViewCount };
+  return { db, visitorEvents, visitorPresence, visitorRows, getContentViewCount: () => contentViewCount };
 }
 
 afterEach(() => {
@@ -139,7 +174,7 @@ describe("Cloudflare public analytics writes", () => {
     expect(state.visitorEvents[0]?.visitorId).not.toContain("abcdefghijkl");
   });
 
-  it("counts distinct visitors in the last five minutes and excludes stale events from snapshots", async () => {
+  it("counts distinct visitor presence in the last five minutes and excludes stale presence", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-22T04:00:00.000Z"));
     const state = createAnalyticsDb();
@@ -162,6 +197,51 @@ describe("Cloudflare public analytics writes", () => {
       DB: state.db
     });
     expect(await readOnlineUsers(statsResponse)).toBe(0);
+  });
+
+  it("updates presence without inflating page views", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-22T04:00:00.000Z"));
+    const state = createAnalyticsDb();
+    const heartbeat = (visitorId: string) =>
+      worker.fetch(
+        new Request("https://public-api.example.test/api/public/presence", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visitorId, path: "/news" })
+        }),
+        { DB: state.db }
+      );
+
+    expect(await readOnlineUsers(await heartbeat("rcat_abcdefghijkl"))).toBe(1);
+    expect(await readOnlineUsers(await heartbeat("rcat_abcdefghijkl"))).toBe(1);
+    expect(await readOnlineUsers(await heartbeat("rcat_mnopqrstuvwx"))).toBe(2);
+    expect(state.visitorPresence.size).toBe(2);
+    expect([...state.visitorRows.values()][0]?.total_views).toBe(0);
+
+    vi.setSystemTime(new Date("2026-06-22T04:06:00.000Z"));
+    const statsResponse = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), {
+      DB: state.db
+    });
+    expect(await readOnlineUsers(statsResponse)).toBe(0);
+  });
+
+  it("returns a migration diagnostic when visitor_presence is unavailable", async () => {
+    const state = createAnalyticsDb({ presenceTableMissing: true });
+    const response = await worker.fetch(
+      new Request("https://public-api.example.test/api/public/presence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitorId: "rcat_abcdefghijkl", path: "/news" })
+      }),
+      { DB: state.db }
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      diagnostic: "visitor-presence-schema-missing-v1",
+      suggestedMigration: "run D1 migrations"
+    });
   });
 
   it("rejects invalid visitor identifiers", async () => {

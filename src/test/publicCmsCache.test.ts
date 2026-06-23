@@ -93,7 +93,10 @@ function createPublicContentListSnapshot(
       footerDirectoryGroups: [],
       messengerUrl: "",
       messengerLabel: "แชทกับเจ้าหน้าที่",
-      messengerEnabled: false
+      messengerEnabled: false,
+      mourningModeEnabled: false,
+      mourningModeLabel: "โหมดไว้อาลัย",
+      mourningModeNotice: ""
     },
     homepageSettings: {
       carousel: {
@@ -246,7 +249,10 @@ describe("publicCmsCache", () => {
         footerDirectoryGroups: [],
         messengerUrl: "",
         messengerLabel: "แชทกับเจ้าหน้าที่",
-        messengerEnabled: false
+        messengerEnabled: false,
+        mourningModeEnabled: false,
+        mourningModeLabel: "โหมดไว้อาลัย",
+        mourningModeNotice: ""
       },
       homepageSettings: {
         carousel: {

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Box, Chip, Container, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
@@ -5,6 +6,16 @@ import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import type { HomepageMarqueeSettings } from "../../../types";
 
 const defaultMarqueeSpeedSeconds = 60;
+
+const marqueeEntry = keyframes`
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+`;
 
 const marqueeScroll = keyframes`
   from {
@@ -31,6 +42,8 @@ function getReducedMotionMarqueeSpeedSeconds(speedSeconds: number) {
 }
 
 export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeSettings }) {
+  const [isEntering, setIsEntering] = useState(true);
+
   if (!settings?.enabled || !settings.text.trim()) {
     return null;
   }
@@ -83,15 +96,21 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
           <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
             <Box
               className="marqueeTrack"
+              onAnimationEnd={() => {
+                if (isEntering) {
+                  setIsEntering(false);
+                }
+              }}
               sx={{
                 display: "flex",
                 width: "max-content",
                 whiteSpace: "nowrap",
-                animationName: `${marqueeScroll}`,
+                animationName: `${isEntering ? marqueeEntry : marqueeScroll}`,
                 animationDuration: `${speedSeconds}s`,
                 animationTimingFunction: "linear",
-                animationIterationCount: "infinite",
+                animationIterationCount: isEntering ? 1 : "infinite",
                 animationDelay: "0s",
+                animationFillMode: isEntering ? "forwards" : undefined,
                 willChange: "transform"
               }}
             >

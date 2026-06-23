@@ -28,6 +28,7 @@ export const PublicHomePage = lazy(() => import("./public/pages/PublicHomePage")
 export const PublicNewsPage = lazy(() => import("./public/pages/PublicNewsPage"));
 export const PublicSearchPage = lazy(() => import("./public/pages/PublicSearchPage"));
 export const SettingsPage = lazy(() => import("./admin/pages/SettingsPage"));
+export const UsersPage = lazy(() => import("./admin/pages/UsersPage"));
 
 export function RouteFallback() {
   return (

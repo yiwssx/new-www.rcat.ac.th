@@ -28,6 +28,7 @@ import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlin
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
+import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
@@ -48,6 +49,7 @@ interface NavItem {
     | "/admin/calendar"
     | "/admin/menus"
     | "/admin/integrations"
+    | "/admin/users"
     | "/admin/settings";
   icon: ReactNode;
   adminOnly?: boolean;
@@ -93,6 +95,12 @@ const navItems: NavItem[] = [
     label: "เมนู",
     to: "/admin/menus",
     icon: <AccountTreeOutlinedIcon />,
+    adminOnly: true
+  },
+  {
+    label: "ผู้ใช้",
+    to: "/admin/users",
+    icon: <ManageAccountsOutlinedIcon />,
     adminOnly: true
   },
   {

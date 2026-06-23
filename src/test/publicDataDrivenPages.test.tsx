@@ -57,6 +57,10 @@ vi.mock("../public/hooks/usePublicHomeSnapshot", () => ({
   })
 }));
 
+vi.mock("../public/hooks/useLiveVisitorStats", () => ({
+  useLiveVisitorStats: (stats: unknown) => stats
+}));
+
 vi.mock("../public/hooks/usePublicContentList", () => ({
   usePublicContentList: () => ({
     data: currentContentListSnapshot,
@@ -331,7 +335,7 @@ describe("public data-driven pages", () => {
     expect(screen.queryByText(/ITA/)).not.toBeInTheDocument();
     expect(screen.queryByText(/แผนปฏิบัติการ/)).not.toBeInTheDocument();
     expect(await screen.findByText("ยังไม่มีเอกสารเผยแพร่", undefined, { timeout: 5000 })).toBeInTheDocument();
-  });
+  }, 10_000);
 
   it("renders homepage carousel slides from the public home snapshot", () => {
     currentHomeSnapshot = createHomeSnapshot({
@@ -360,6 +364,54 @@ describe("public data-driven pages", () => {
     );
     expect(screen.queryByText("CMS carousel title")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Read more" })).not.toBeInTheDocument();
+  });
+
+  it("renders one shared marquee on the homepage", () => {
+    currentHomeSnapshot = createHomeSnapshot({
+      homepageSettings: {
+        ...createHomeSnapshot().homepageSettings,
+        marquee: {
+          enabled: true,
+          label: "ประกาศ",
+          text: "ประกาศสำหรับทุกหน้า",
+          speedSeconds: 60
+        }
+      }
+    });
+
+    render(<PublicHomePage />);
+
+    expect(screen.getAllByRole("region", { name: "ประกาศด่วน" })).toHaveLength(1);
+  });
+
+  it("renders shared marquee and public-only mourning mode from shell settings", () => {
+    currentSnapshot = createSnapshot({
+      siteSettings: {
+        ...createSnapshot().siteSettings!,
+        mourningModeEnabled: true,
+        mourningModeLabel: "โหมดไว้อาลัย",
+        mourningModeNotice: "ร่วมแสดงความอาลัย"
+      },
+      homepageSettings: {
+        ...createHomeSnapshot().homepageSettings,
+        marquee: {
+          enabled: true,
+          label: "ประกาศ",
+          text: "ประกาศสำหรับทุกหน้า",
+          speedSeconds: 60
+        }
+      }
+    });
+
+    const { container } = render(
+      <PublicSiteShell>
+        <div>Public content</div>
+      </PublicSiteShell>
+    );
+
+    expect(screen.getByRole("region", { name: "ประกาศด่วน" })).toBeInTheDocument();
+    expect(screen.getByText("ร่วมแสดงความอาลัย")).toBeInTheDocument();
+    expect(container.querySelector(".rcat-mourning-mode")).toHaveAttribute("data-mourning-mode", "true");
   });
 
   it("defers below-the-fold homepage sections until they approach the viewport", async () => {

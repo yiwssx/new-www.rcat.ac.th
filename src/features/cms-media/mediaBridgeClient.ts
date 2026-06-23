@@ -9,6 +9,29 @@ type MediaBridgeEnvelope<T> = T & {
   statusCode?: number;
 };
 
+export interface MediaBridgeStatus {
+  mode: "server-proxy";
+  configured: boolean;
+  appsScriptUrlConfigured: boolean;
+  bridgeTokenConfigured: boolean;
+}
+
+export async function checkMediaBridgeStatus(): Promise<MediaBridgeStatus> {
+  const response = await fetch(mediaBridgePath, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    credentials: "same-origin"
+  });
+  const result = (await response.json()) as MediaBridgeStatus & { error?: string };
+
+  if (!response.ok || result.error) {
+    throw new Error(result.error || `Apps Script media bridge status failed with status ${response.status}`);
+  }
+
+  return result;
+}
+
 async function requestMediaBridge<T>(resource: MediaBridgeResource, payload: Record<string, unknown>): Promise<T> {
   const response = await fetch(mediaBridgePath, {
     method: "POST",

@@ -66,6 +66,40 @@ async function createAuthenticatedRequest({ body, env = createEnv(), headers = {
 }
 
 describe("Vercel Apps Script media proxy", () => {
+  it("reports redacted server bridge readiness to an authenticated admin", async () => {
+    const fetchImpl = vi.fn();
+    const response = createResponse();
+
+    await handleAppsScriptProxyRequest(await createAuthenticatedRequest({ method: "GET" }), response, {
+      env: createEnv(),
+      fetchImpl
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyJson).toEqual({
+      mode: "server-proxy",
+      configured: true,
+      appsScriptUrlConfigured: true,
+      bridgeTokenConfigured: true
+    });
+    expect(JSON.stringify(response.bodyJson)).not.toContain("script.google.com");
+    expect(JSON.stringify(response.bodyJson)).not.toContain(BRIDGE_TOKEN);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("reports missing server bridge configuration without exposing values", async () => {
+    const response = createResponse();
+    const env = { ...createEnv(), APPS_SCRIPT_BRIDGE_TOKEN: "" };
+
+    await handleAppsScriptProxyRequest(await createAuthenticatedRequest({ method: "GET", env }), response, {
+      env,
+      fetchImpl: vi.fn()
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyJson).toMatchObject({ configured: false, bridgeTokenConfigured: false });
+  });
+
   it("rejects resources outside the explicit media allowlist", async () => {
     const fetchImpl = vi.fn();
     const response = createResponse();

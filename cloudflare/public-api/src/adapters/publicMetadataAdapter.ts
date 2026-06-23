@@ -40,7 +40,10 @@ const emptySiteSettings: PublicSiteSettingsContract = {
   footerDirectoryGroups: [],
   messengerUrl: "",
   messengerLabel: "",
-  messengerEnabled: false
+  messengerEnabled: false,
+  mourningModeEnabled: false,
+  mourningModeLabel: "",
+  mourningModeNotice: ""
 };
 
 const emptyHomepageSettings: PublicHomepageSettingsContract = {

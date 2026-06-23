@@ -20,7 +20,8 @@ const longTextFields = new Set<keyof SiteSettings>([
   "address",
   "heroDescription",
   "directorDescription",
-  "footerDescription"
+  "footerDescription",
+  "mourningModeNotice"
 ]);
 const googleDriveImageHosts = new Set(["drive.google.com", "www.drive.google.com"]);
 const googleDriveFileIdPattern = /^[a-zA-Z0-9_-]+$/;
@@ -53,7 +54,10 @@ export const defaultSiteSettings: SiteSettings = {
   footerDirectoryGroups: [],
   messengerUrl: "",
   messengerLabel: "แชทกับเจ้าหน้าที่",
-  messengerEnabled: false
+  messengerEnabled: false,
+  mourningModeEnabled: false,
+  mourningModeLabel: "โหมดไว้อาลัย",
+  mourningModeNotice: ""
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -249,8 +253,8 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
       return;
     }
 
-    if (key === "messengerEnabled") {
-      normalized.messengerEnabled = normalizeBoolean(source[key]);
+    if (key === "messengerEnabled" || key === "mourningModeEnabled") {
+      normalized[key] = normalizeBoolean(source[key]);
       return;
     }
 
@@ -291,6 +295,10 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
 
   if (!normalized.messengerLabel) {
     normalized.messengerLabel = defaultSiteSettings.messengerLabel;
+  }
+
+  if (!normalized.mourningModeLabel) {
+    normalized.mourningModeLabel = defaultSiteSettings.mourningModeLabel;
   }
 
   return normalized;

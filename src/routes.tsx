@@ -22,7 +22,8 @@ import {
   PublicNewsPage,
   PublicSearchPage,
   RootRouteLayout,
-  SettingsPage
+  SettingsPage,
+  UsersPage
 } from "./routeComponents";
 
 const rootRoute = createRootRoute({
@@ -174,6 +175,16 @@ const adminSettingsRoute = createRoute({
   )
 });
 
+const adminUsersRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "users",
+  component: () => (
+    <AdminOnlyPage>
+      <UsersPage />
+    </AdminOnlyPage>
+  )
+});
+
 const routeTree = rootRoute.addChildren([
   publicLayoutRoute.addChildren([
     publicHomeRoute,
@@ -197,7 +208,8 @@ const routeTree = rootRoute.addChildren([
     adminCalendarRoute,
     adminMenuRoute,
     adminIntegrationsRoute,
-    adminSettingsRoute
+    adminSettingsRoute,
+    adminUsersRoute
   ])
 ]);
 

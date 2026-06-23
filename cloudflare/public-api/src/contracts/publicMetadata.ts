@@ -27,6 +27,9 @@ export interface PublicSiteSettingsContract {
   messengerUrl: string;
   messengerLabel: string;
   messengerEnabled: boolean;
+  mourningModeEnabled: boolean;
+  mourningModeLabel: string;
+  mourningModeNotice: string;
 }
 
 export interface PublicHomepageSettingsContract {

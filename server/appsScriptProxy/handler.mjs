@@ -202,8 +202,8 @@ export async function handleAppsScriptProxyRequest(
   response,
   { env = runtimeEnv(), fetchImpl = fetch, nowMs = Date.now() } = {}
 ) {
-  if (request.method !== "POST") {
-    response.setHeader("Allow", "POST");
+  if (request.method !== "GET" && request.method !== "POST") {
+    response.setHeader("Allow", "GET, POST");
     sendJson(response, 405, { error: "method not allowed" });
     return;
   }
@@ -220,13 +220,22 @@ export async function handleAppsScriptProxyRequest(
   }
 
   const appsScriptUrl = readAppsScriptUrl(env);
+  const bridgeToken = readBridgeToken(env);
+
+  if (request.method === "GET") {
+    sendJson(response, 200, {
+      mode: "server-proxy",
+      configured: Boolean(appsScriptUrl && bridgeToken),
+      appsScriptUrlConfigured: Boolean(appsScriptUrl),
+      bridgeTokenConfigured: Boolean(bridgeToken)
+    });
+    return;
+  }
 
   if (!appsScriptUrl) {
     sendJson(response, 503, { error: "Apps Script URL is not configured" });
     return;
   }
-
-  const bridgeToken = readBridgeToken(env);
 
   if (!bridgeToken) {
     sendJson(response, 503, { error: "Apps Script bridge token is not configured" });

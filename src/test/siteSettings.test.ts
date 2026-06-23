@@ -25,6 +25,21 @@ describe("siteSettings", () => {
     expect(settings.messengerUrl).toBe("");
     expect(settings.messengerLabel).toBe("แชทกับเจ้าหน้าที่");
     expect(settings.messengerEnabled).toBe(false);
+    expect(settings.mourningModeEnabled).toBe(false);
+    expect(settings.mourningModeLabel).toBe("โหมดไว้อาลัย");
+    expect(settings.mourningModeNotice).toBe("");
+  });
+
+  it("normalizes public mourning mode settings", () => {
+    const settings = normalizeSiteSettings({
+      mourningModeEnabled: true,
+      mourningModeLabel: " ไว้อาลัย ",
+      mourningModeNotice: " ร่วมแสดงความอาลัย "
+    });
+
+    expect(settings.mourningModeEnabled).toBe(true);
+    expect(settings.mourningModeLabel).toBe("ไว้อาลัย");
+    expect(settings.mourningModeNotice).toBe("ร่วมแสดงความอาลัย");
   });
 
   it("normalizes footer directory groups and Messenger settings", () => {

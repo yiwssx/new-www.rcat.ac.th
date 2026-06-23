@@ -78,4 +78,7 @@ export interface SiteSettings {
   messengerUrl: string;
   messengerLabel: string;
   messengerEnabled: boolean;
+  mourningModeEnabled: boolean;
+  mourningModeLabel: string;
+  mourningModeNotice: string;
 }

@@ -8,7 +8,7 @@ import { publicHome } from "./routes/publicHome";
 import { publicPrograms } from "./routes/publicPrograms";
 import { publicSearch } from "./routes/publicSearch";
 import { publicVisitorStats } from "./routes/publicVisitorStats";
-import { recordPublicContentView, recordPublicSiteView } from "./routes/publicAnalytics";
+import { recordPublicContentView, recordPublicPresence, recordPublicSiteView } from "./routes/publicAnalytics";
 
 const CONTENT_DETAIL_PREFIX = "/api/public/content/";
 
@@ -29,6 +29,10 @@ export async function routeRequest(request: Request, env: Env) {
 
   if (request.method === "POST" && pathname === "/api/public/site-view") {
     return recordPublicSiteView(request, env);
+  }
+
+  if (request.method === "POST" && pathname === "/api/public/presence") {
+    return recordPublicPresence(request, env);
   }
 
   if (request.method === "POST" && pathname === "/api/public/content-view") {

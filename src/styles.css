@@ -119,6 +119,20 @@ a {
     @apply overflow-hidden rounded-lg bg-rcat-green/10 text-rcat-green;
   }
 
+  .rcat-mourning-mode {
+    color-scheme: light;
+  }
+
+  .rcat-mourning-mode > :not(.rcat-container),
+  .rcat-mourning-mode .rcat-container :where(img, picture, video, canvas, button, .MuiChip-root) {
+    filter: grayscale(1);
+  }
+
+  .rcat-mourning-mode :focus-visible {
+    outline: 3px solid #111;
+    outline-offset: 3px;
+  }
+
   .rcat-content-prose {
     @apply text-slate-800;
   }

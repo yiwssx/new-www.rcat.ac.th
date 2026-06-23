@@ -173,11 +173,14 @@ describe("homepage settings public sections", () => {
     expect(tickerGroups[1]).toHaveTextContent("Campus announcement");
     expect(tickerGroups[1]).toHaveAttribute("aria-hidden", "true");
 
-    const marqueeTrack = document.querySelector(".marqueeTrack");
-    const injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
+    const marqueeTrack = document.querySelector(".marqueeTrack") as HTMLElement;
+    let injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
 
     expect(marqueeTrack).not.toBeNull();
-    expect(injectedStyles).not.toContain("translateX(100%)");
+    expect(injectedStyles).toContain("translate3d(100%,0,0)");
+    expect(injectedStyles).toContain("animation-iteration-count:1");
+    fireEvent.animationEnd(marqueeTrack);
+    injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
     expect(injectedStyles).toContain("translate3d(-50%,0,0)");
     expect(injectedStyles).toContain("animation-duration:60s");
     expect(injectedStyles).toContain("animation-timing-function:linear");

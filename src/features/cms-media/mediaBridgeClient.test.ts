@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deleteMediaAssetFromBridge, saveMediaAssetToBridge, uploadMediaAssetToBridge } from "./mediaBridgeClient";
+import {
+  checkMediaBridgeStatus,
+  deleteMediaAssetFromBridge,
+  saveMediaAssetToBridge,
+  uploadMediaAssetToBridge
+} from "./mediaBridgeClient";
 
 const originalFileBase64 = "AAECAwQFBgcICQoLDA0ODw==";
 const uploadedAsset = {
@@ -19,6 +24,25 @@ describe("same-origin Apps Script media bridge client", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     window.localStorage.clear();
+  });
+
+  it("checks server-proxy bridge readiness without requiring a browser Apps Script URL", async () => {
+    const status = {
+      mode: "server-proxy" as const,
+      configured: true,
+      appsScriptUrlConfigured: true,
+      bridgeTokenConfigured: true
+    };
+    const fetchMock = vi.fn(async () => Response.json(status));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(checkMediaBridgeStatus()).resolves.toEqual(status);
+    expect(fetchMock).toHaveBeenCalledWith("/api/apps-script-proxy", {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      credentials: "same-origin"
+    });
   });
 
   it("saves an uploaded original file through the same-origin proxy without changing base64 or size", async () => {

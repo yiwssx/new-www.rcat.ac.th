@@ -28,7 +28,6 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PageHeader from "../components/PageHeader";
-import UserManagementCard from "../components/UserManagementCard";
 import { projectSettings } from "../../config/projectSettings";
 import {
   dateFormatPresets,
@@ -204,7 +203,13 @@ function getSiteSettingsValidationMessage(settings: SiteSettings): { title: stri
 
 type SiteSettingTextKey = Exclude<
   keyof SiteSettings,
-  "footerDirectoryGroups" | "messengerEnabled" | "messengerUrl" | "messengerLabel"
+  | "footerDirectoryGroups"
+  | "messengerEnabled"
+  | "messengerUrl"
+  | "messengerLabel"
+  | "mourningModeEnabled"
+  | "mourningModeLabel"
+  | "mourningModeNotice"
 >;
 
 const siteSettingFields: Array<{
@@ -353,7 +358,10 @@ export default function SettingsPage() {
     }
   }
 
-  function handleSiteSettingsChange(key: SiteSettingTextKey | "messengerUrl" | "messengerLabel", value: string) {
+  function handleSiteSettingsChange(
+    key: SiteSettingTextKey | "messengerUrl" | "messengerLabel" | "mourningModeLabel" | "mourningModeNotice",
+    value: string
+  ) {
     setSiteSettings((current) => ({
       ...current,
       [key]: value
@@ -364,6 +372,13 @@ export default function SettingsPage() {
     setSiteSettings((current) => ({
       ...current,
       messengerEnabled: value
+    }));
+  }
+
+  function handleMourningModeEnabledChange(value: boolean) {
+    setSiteSettings((current) => ({
+      ...current,
+      mourningModeEnabled: value
     }));
   }
 
@@ -733,6 +748,49 @@ export default function SettingsPage() {
                     )}
                   </Grid>
                 ))}
+                <Grid size={{ xs: 12 }}>
+                  <Card variant="outlined" sx={{ bgcolor: "grey.50", borderColor: "grey.300" }}>
+                    <CardContent>
+                      <Stack spacing={1.5}>
+                        <Box>
+                          <Typography fontWeight={900}>โหมดไว้อาลัย / Black-white theme</Typography>
+                          <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
+                            เมื่อเปิดใช้งาน เว็บไซต์สาธารณะจะแสดงผลแบบขาวดำเพื่อการไว้อาลัย
+                          </Typography>
+                        </Box>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={siteSettings.mourningModeEnabled}
+                              onChange={(event) => handleMourningModeEnabledChange(event.target.checked)}
+                            />
+                          }
+                          label="เปิดโหมดไว้อาลัย"
+                        />
+                        <Grid container spacing={1.5}>
+                          <Grid size={{ xs: 12, md: 5 }}>
+                            <TextField
+                              label="ชื่อโหมดไว้อาลัย"
+                              value={siteSettings.mourningModeLabel}
+                              onChange={(event) => handleSiteSettingsChange("mourningModeLabel", event.target.value)}
+                              size="small"
+                              fullWidth
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, md: 7 }}>
+                            <TextField
+                              label="ข้อความประกาศโหมดไว้อาลัย"
+                              value={siteSettings.mourningModeNotice}
+                              onChange={(event) => handleSiteSettingsChange("mourningModeNotice", event.target.value)}
+                              size="small"
+                              fullWidth
+                            />
+                          </Grid>
+                        </Grid>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Grid>
                 <Grid size={{ xs: 12 }}>
                   <Divider sx={{ my: 1 }} />
                   <Stack spacing={1}>
@@ -1183,9 +1241,6 @@ export default function SettingsPage() {
               </Grid>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <UserManagementCard />
         </Grid>
         <Grid size={{ xs: 12, lg: 7 }}>
           <Card>

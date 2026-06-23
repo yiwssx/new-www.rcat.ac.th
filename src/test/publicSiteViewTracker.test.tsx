@@ -10,14 +10,16 @@ import {
 } from "@tanstack/react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublicSiteViewTracker } from "../features/site-view";
-import { recordSiteView, type SiteViewInput } from "../features/site-view/api";
+import { recordPresence, recordSiteView, type SiteViewInput } from "../features/site-view/api";
 import { resetSiteViewTrackingForTests } from "../features/site-view";
 
 vi.mock("../features/site-view/api", () => ({
-  recordSiteView: vi.fn(() => true)
+  recordSiteView: vi.fn(() => true),
+  recordPresence: vi.fn(() => true)
 }));
 
 const recordSiteViewMock = vi.mocked(recordSiteView);
+const recordPresenceMock = vi.mocked(recordPresence);
 
 function TestRoot() {
   return (
@@ -111,6 +113,8 @@ beforeEach(() => {
   setDocumentReferrer("");
   recordSiteViewMock.mockReset();
   recordSiteViewMock.mockReturnValue(true);
+  recordPresenceMock.mockReset();
+  recordPresenceMock.mockReturnValue(true);
   resetSiteViewTrackingForTests();
 });
 
@@ -187,6 +191,47 @@ describe("PublicSiteViewTracker", () => {
       "/news",
       "/announcements"
     ]);
+  });
+
+  it("sends visible presence immediately, every 60 seconds, and on route changes", async () => {
+    vi.useFakeTimers();
+    const { router } = renderTrackedRouter("/news");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(recordPresenceMock).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "/news", visitorId: expect.stringMatching(/^rcat_/) })
+    );
+
+    const initialCalls = recordPresenceMock.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(recordPresenceMock.mock.calls.length).toBeGreaterThan(initialCalls);
+
+    await act(async () => {
+      await router.navigate({ to: "/announcements" });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(recordPresenceMock).toHaveBeenCalledWith(expect.objectContaining({ path: "/announcements" }));
+    vi.useRealTimers();
+  });
+
+  it("does not send scheduled presence while the document is hidden", async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
+    renderTrackedRouter("/news");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(120_000);
+    });
+    expect(recordPresenceMock).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(recordPresenceMock).toHaveBeenCalledWith(expect.objectContaining({ path: "/news" }));
+    vi.useRealTimers();
   });
 
   it("keeps rendering when site view recording fails", async () => {

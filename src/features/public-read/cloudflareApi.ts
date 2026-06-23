@@ -10,6 +10,7 @@ import type {
   PublicSearchIndexSnapshot
 } from "../../types";
 import type { ContentViewResponse, SiteViewInput } from "../../services/googleApi";
+import type { VisitorStatsSettings } from "../visitor-stats";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -149,9 +150,33 @@ export async function getPublicSearchIndexSnapshotFromCloudflare(): Promise<Publ
   return payload as unknown as PublicSearchIndexSnapshot;
 }
 
+export async function getVisitorStatsFromCloudflare(): Promise<VisitorStatsSettings> {
+  const payload = await getCloudflareJson("/api/public/visitor-stats", "visitor-stats");
+
+  if (
+    typeof payload.onlineUsers !== "number" ||
+    typeof payload.usersToday !== "number" ||
+    typeof payload.totalViews !== "number" ||
+    typeof payload.updatedAt !== "string"
+  ) {
+    throw new Error("Cloudflare visitor-stats returned an invalid response");
+  }
+
+  return payload as unknown as VisitorStatsSettings;
+}
+
 export function recordSiteViewToCloudflare(input: SiteViewInput): boolean {
   try {
     void postCloudflareJson("/api/public/site-view", "site-view", input).catch(() => undefined);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function recordPresenceToCloudflare(input: Pick<SiteViewInput, "visitorId" | "path">): boolean {
+  try {
+    void postCloudflareJson("/api/public/presence", "presence", input).catch(() => undefined);
     return true;
   } catch {
     return false;

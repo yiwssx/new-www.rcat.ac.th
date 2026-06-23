@@ -1,4 +1,4 @@
-import { recordSiteView, type SiteViewInput } from "./api";
+import { recordPresence, recordSiteView, type SiteViewInput } from "./api";
 
 export const SITE_VISITOR_ID_STORAGE_KEY = "rcat.site.visitor.id";
 
@@ -193,6 +193,23 @@ export function trackPublicSiteView(pathname: string, options: TrackSiteViewOpti
     }
 
     return recorder(payload);
+  } catch {
+    return false;
+  }
+}
+
+export function trackPublicPresence(pathname: string) {
+  const path = normalizePathname(pathname).slice(0, SITE_VIEW_MAX_PATH_LENGTH);
+
+  if (!isPublicSiteViewPath(path) || typeof window === "undefined" || typeof document === "undefined") {
+    return false;
+  }
+
+  try {
+    return recordPresence({
+      visitorId: getOrCreateAnonymousVisitorId(),
+      path
+    });
   } catch {
     return false;
   }

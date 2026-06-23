@@ -1,100 +1,102 @@
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Box, Card, CardContent, LinearProgress, Stack, TextField, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import CloudOutlinedIcon from "@mui/icons-material/CloudOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
-import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
-import { getGoogleAppsScriptUrl, projectSettings } from "../../config/projectSettings";
-import { checkGoogleConnection, type IntegrationStatus } from "../../features/cms-integrations";
-import { formatDisplayDateTime } from "../../utils/dateDisplay";
-import { integrationServiceLabels } from "../../utils/thaiLabels";
-
-function getIntegrationIcon(service: IntegrationStatus["service"]) {
-  if (service === "Sheets") {
-    return <TableChartOutlinedIcon />;
-  }
-
-  if (service === "Drive") {
-    return <DriveFolderUploadOutlinedIcon />;
-  }
-
-  return <DescriptionOutlinedIcon />;
-}
+import { getAdminWriteProvider } from "../../config/adminWriteProvider";
+import { checkMediaBridgeStatus } from "../../features/cms-media/mediaBridgeClient";
 
 export default function IntegrationsPage() {
-  const endpoint = getGoogleAppsScriptUrl();
-  const {
-    data = [],
-    error,
-    isError,
-    isLoading
-  } = useQuery({
-    queryKey: ["google-integrations"],
-    queryFn: checkGoogleConnection
+  const structuredDataUsesCloudflare = getAdminWriteProvider() === "cloudflare";
+  const bridgeQuery = useQuery({
+    queryKey: ["apps-script-media-bridge-status"],
+    queryFn: checkMediaBridgeStatus
   });
+  const bridgeConfigured = bridgeQuery.data?.configured === true;
 
   return (
     <Box>
       <PageHeader
-        title="Google APIs"
-        description="สถานะการเชื่อมต่อสำหรับเนื้อหาใน Sheets สื่อใน Drive และร่างเอกสารใน Docs"
+        title="การเชื่อมต่อระบบ"
+        description="Cloudflare จัดการข้อมูลโครงสร้าง ส่วน Apps Script และ Google Drive ทำหน้าที่เป็นสะพานสื่อและไฟล์"
       />
-      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
-      {isError && (
+      {bridgeQuery.isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {bridgeQuery.isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "ไม่สามารถตรวจสอบสถานะ Google Apps Script ได้"}
+          {bridgeQuery.error instanceof Error
+            ? bridgeQuery.error.message
+            : "ไม่สามารถตรวจสอบ Vercel Apps Script Proxy ได้"}
         </Alert>
       )}
+      {bridgeQuery.data && !bridgeConfigured && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          สะพานสื่อยังไม่พร้อม: กรุณาตรวจสอบ URL ของ Apps Script และ bridge token ใน Vercel server environment
+        </Alert>
+      )}
+
       <Grid container spacing={2.5}>
-        {data.map((integration) => (
-          <Grid size={{ xs: 12, md: 4 }} key={integration.service}>
-            <Card sx={{ height: "100%" }}>
-              <CardContent>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                  <Box
-                    sx={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: 2,
-                      display: "grid",
-                      placeItems: "center",
-                      color: "primary.main",
-                      backgroundColor: "primary.light"
-                    }}
-                  >
-                    {getIntegrationIcon(integration.service)}
-                  </Box>
-                  <StatusChip status={integration.status} />
-                </Stack>
-                <Typography variant="h3" sx={{ mt: 2 }}>
-                  {integrationServiceLabels[integration.service] ?? integration.service}
-                </Typography>
-                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-                  {integration.detail}
-                </Typography>
-                <Typography color="text.secondary" variant="body2" sx={{ mt: 2 }}>
-                  ซิงก์ล่าสุด:{" "}
-                  {integration.lastSync === "Not connected"
-                    ? "ยังไม่เชื่อมต่อ"
-                    : formatDisplayDateTime(integration.lastSync)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card sx={{ height: "100%" }}>
+            <CardContent>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                <CloudOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
+                <StatusChip status={structuredDataUsesCloudflare ? "connected" : "pending"} />
+              </Stack>
+              <Typography variant="h3" sx={{ mt: 2 }}>
+                Cloudflare structured data
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                ข้อมูลเว็บไซต์และการเขียนข้อมูลโครงสร้างของผู้ดูแลทำงานผ่าน Worker และ D1
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card sx={{ height: "100%" }}>
+            <CardContent>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                <CloudSyncOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
+                <StatusChip status={bridgeConfigured ? "connected" : "pending"} />
+              </Stack>
+              <Typography variant="h3" sx={{ mt: 2 }}>
+                Apps Script media bridge
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                เชื่อมต่อผ่าน Vercel Apps Script Proxy โดยใช้ค่าฝั่งเซิร์ฟเวอร์ ไม่ต้องเปิดเผยปลายทางต่อเบราว์เซอร์
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card sx={{ height: "100%" }}>
+            <CardContent>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                <DriveFolderUploadOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
+                <StatusChip status={bridgeConfigured ? "connected" : "pending"} />
+              </Stack>
+              <Typography variant="h3" sx={{ mt: 2 }}>
+                Google Drive media storage
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                ไฟล์ต้นฉบับยังจัดเก็บใน Google Drive ผ่านสะพานสื่อที่จำกัดเฉพาะคำสั่งไฟล์
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
+
       <Card sx={{ mt: 2.5 }}>
         <CardContent>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
             <CloudSyncOutlinedIcon color="primary" />
-            <Typography variant="h3">ปลายทาง Apps Script</Typography>
+            <Typography variant="h3">ช่องทางสะพานสื่อ</Typography>
           </Stack>
           <TextField
-            label="ปลายทาง"
-            value={endpoint || `ยังไม่ได้ตั้งค่า ${projectSettings.api.googleAppsScriptUrlEnv}`}
+            label="โหมดการเชื่อมต่อ"
+            value="เชื่อมต่อผ่าน Vercel Apps Script Proxy"
             slotProps={{ input: { readOnly: true } }}
             fullWidth
           />
