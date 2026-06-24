@@ -1,18 +1,16 @@
-@'
+# Apps Script Media/File Bridge
 
-# Apps Script Media Bridge Deployment Checklist
-
-Use this checklist only when a release changes `apps-script/`, Apps Script manifest/scopes, Google Drive media/file operations, or the Apps Script side of the Vercel media/file bridge.
+This Apps Script project is retained only for media/file bridge operations and Google Drive file access.
 
 Apps Script is not the current user-management backend.
 
 ## Current Scope
 
-Apps Script is retained for:
+Apps Script is used for:
 
-- media/file bridge operations
+- media/file operations
 - Google Drive file access
-- file upload/delete/list workflows behind the Vercel proxy
+- upload/delete/list workflows behind the Vercel proxy
 
 Apps Script must not be restored as:
 
@@ -21,19 +19,45 @@ Apps Script must not be restored as:
 - local bootstrap user fallback
 - password-hash user-account fallback
 
-## Deployment Overview
+## Runtime Ownership
 
-- Vercel frontend deployment and Apps Script deployment are separate release steps.
-- A Vercel deploy does not push, version, or redeploy Apps Script source.
-- Changes under `apps-script/` must be pushed to Google Apps Script, saved as a new version, and assigned to the intended Web App deployment.
-- The current production frontend should not depend on `VITE_GOOGLE_APPS_SCRIPT_URL` for admin auth or user management.
-- The server-side media bridge should use server-only Apps Script bridge configuration, such as `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`.
-- Prefer updating the existing Web App deployment. Creating a new Web App deployment usually changes the URL and requires a coordinated server-side environment update.
+Current active runtime ownership:
 
-## Pre-Deploy Checklist
+- Public structured reads: Cloudflare Worker and D1.
+- Admin structured reads and writes: Cloudflare Worker and D1.
+- Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
+- Admin session proxy: Vercel server-side admin proxy.
+- Media/file bridge: Apps Script behind the Vercel proxy.
+- File storage: Google Drive.
 
-- Confirm the current branch:
+## Deployment Notes
 
-  ```powershell
-  git branch --show-current
-  ```
+A Vercel deploy does not deploy Apps Script.
+
+When Apps Script media/file bridge code changes:
+
+1. Push Apps Script source.
+2. Create a new Apps Script version.
+3. Update the intended Web App deployment.
+4. Confirm the Web App URL remains the intended bridge URL.
+5. Confirm the server-side bridge environment still points to the intended deployment.
+
+Use the deployment checklist:
+
+- `docs/deployment/apps-script-deployment-checklist.md`
+
+## Required Server-Side Bridge Configuration
+
+Configure these outside the repository:
+
+- `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`
+- `APPS_SCRIPT_BRIDGE_TOKEN`
+
+Do not expose bridge tokens through `VITE_` variables.
+
+## Safety Rules
+
+- Do not commit real Apps Script deployment URLs for private environments.
+- Do not commit bridge tokens, spreadsheet IDs, private Drive URLs, or private configuration values.
+- Do not reintroduce Apps Script user-management routes as the active admin runtime.
+- Do not assume Vercel deployment updates Apps Script.
