@@ -238,14 +238,21 @@ describe("Vercel admin proxy", () => {
     expect(new Headers(upstreamInit.headers).get("Content-Type")).toBe("application/json");
   });
 
-  it("allows read-only proxy sessions to read but blocks write methods before calling the Worker", async () => {
+  it("enforces route-level RBAC before forwarding mutating proxy requests", async () => {
     const env = createEnv({
-      ADMIN_PROXY_ALLOWED_EMAILS: `${ALLOWED_EMAIL},${EDITOR_EMAIL}`,
-      ADMIN_RBAC_EDITORS: EDITOR_EMAIL
+      ADMIN_PROXY_ALLOWED_EMAILS: `${ALLOWED_EMAIL},${EDITOR_EMAIL},viewer@example.invalid`,
+      ADMIN_RBAC_EDITORS: EDITOR_EMAIL,
+      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
     });
     const editorCookie = await createAdminProxySessionCookie({
       email: EDITOR_EMAIL,
       role: "editor",
+      secret: env.ADMIN_PROXY_SESSION_SECRET,
+      nowMs: Date.parse("2026-06-19T05:00:00.000Z")
+    });
+    const viewerCookie = await createAdminProxySessionCookie({
+      email: "viewer@example.invalid",
+      role: "viewer",
       secret: env.ADMIN_PROXY_SESSION_SECRET,
       nowMs: Date.parse("2026-06-19T05:00:00.000Z")
     });
@@ -257,7 +264,9 @@ describe("Vercel admin proxy", () => {
         })
     );
     const readResponse = createResponse();
-    const writeResponse = createResponse();
+    const editorContentWriteResponse = createResponse();
+    const editorSettingsWriteResponse = createResponse();
+    const viewerWriteResponse = createResponse();
 
     await handleAdminProxyRequest(
       createRequest({
@@ -271,20 +280,51 @@ describe("Vercel admin proxy", () => {
       createRequest({
         method: "PATCH",
         url: proxyUrl("/api/admin/content/preview-content"),
-        body: { title: "Should not mutate" },
+        body: { title: "Editor content mutation" },
         headers: {
           cookie: editorCookie.split(";", 1)[0],
           "content-type": "application/json"
         }
       }),
-      writeResponse,
+      editorContentWriteResponse,
+      { env, fetchImpl, nowMs: Date.parse("2026-06-19T05:01:00.000Z") }
+    );
+    await handleAdminProxyRequest(
+      createRequest({
+        method: "PUT",
+        url: proxyUrl("/api/admin/settings/site"),
+        body: { siteName: "Editor must not mutate settings" },
+        headers: {
+          cookie: editorCookie.split(";", 1)[0],
+          "content-type": "application/json"
+        }
+      }),
+      editorSettingsWriteResponse,
+      { env, fetchImpl, nowMs: Date.parse("2026-06-19T05:01:00.000Z") }
+    );
+    await handleAdminProxyRequest(
+      createRequest({
+        method: "POST",
+        url: proxyUrl("/api/admin/content"),
+        body: { title: "Viewer must not mutate" },
+        headers: {
+          cookie: viewerCookie.split(";", 1)[0],
+          "content-type": "application/json"
+        }
+      }),
+      viewerWriteResponse,
       { env, fetchImpl, nowMs: Date.parse("2026-06-19T05:01:00.000Z") }
     );
 
     expect(readResponse.statusCode).toBe(200);
-    expect(writeResponse.statusCode).toBe(403);
-    expect(JSON.parse(writeResponse.bodyText)).toEqual({ error: "admin role is required" });
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(editorContentWriteResponse.statusCode).toBe(200);
+    expect(editorSettingsWriteResponse.statusCode).toBe(403);
+    expect(JSON.parse(editorSettingsWriteResponse.bodyText)).toEqual({
+      error: "website settings permission is required"
+    });
+    expect(viewerWriteResponse.statusCode).toBe(403);
+    expect(JSON.parse(viewerWriteResponse.bodyText)).toEqual({ error: "content management permission is required" });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });
 

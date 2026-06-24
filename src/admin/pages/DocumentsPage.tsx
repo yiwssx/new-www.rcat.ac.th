@@ -46,7 +46,7 @@ import { formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal } from "../../utils/swal";
 import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 
 const documentStatusOptions: Array<{ value: DocumentStatus; label: string }> = [
   { value: "draft", label: "ฉบับร่าง" },
@@ -107,7 +107,7 @@ function normalizeDocumentDraft(item: CmsDocumentItem): DocumentItemInput {
 export default function DocumentsPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const canManage = canManageAdminData(session?.user);
+  const canManage = canManageContent(session?.user);
   const adminSnapshotQuery = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot

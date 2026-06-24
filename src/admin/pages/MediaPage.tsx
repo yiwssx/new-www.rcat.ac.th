@@ -42,7 +42,7 @@ import { appSwal } from "../../utils/swal";
 import { formatFileSize, readFileAsBase64 } from "../../utils/files";
 import { mediaTypeLabels } from "../../utils/thaiLabels";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageMedia } from "../utils/rbac";
 
 interface MediaFormState {
   name: string;
@@ -223,7 +223,7 @@ export function MediaAssetCard({ asset, canManage = true, onEdit, onDelete }: Me
 export default function MediaPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const canManage = canManageAdminData(session?.user);
+  const canManage = canManageMedia(session?.user);
   const { data, error, isError, isLoading } = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot

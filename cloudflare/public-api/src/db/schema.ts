@@ -432,6 +432,32 @@ export const VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS = [
   "revision"
 ] as const satisfies readonly (keyof VisitorDailyStatsRow)[];
 
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  name: string;
+  role: "admin" | "editor" | "viewer";
+  status: "active" | "disabled";
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  updated_by: string;
+  revision: number;
+}
+
+export const ADMIN_USER_ROW_COLUMNS = [
+  "id",
+  "email",
+  "name",
+  "role",
+  "status",
+  "created_at",
+  "updated_at",
+  "created_by",
+  "updated_by",
+  "revision"
+] as const satisfies readonly (keyof AdminUserRow)[];
+
 export interface VisitorPresenceRow {
   id: string;
   visitor_id: string;

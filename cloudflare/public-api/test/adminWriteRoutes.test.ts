@@ -7,7 +7,13 @@ import worker from "../src/index";
 import wranglerToml from "../wrangler.toml?raw";
 
 type Row = Record<string, unknown>;
-type TableName = "contents" | "documents" | "public_home_sections" | "visitor_daily_stats" | "admin_audit_log";
+type TableName =
+  | "contents"
+  | "documents"
+  | "public_home_sections"
+  | "visitor_daily_stats"
+  | "app_admin_users"
+  | "admin_audit_log";
 
 const smokeToken = "m18-preview-smoke-token";
 const smokeHeaders = {
@@ -69,7 +75,14 @@ function tableFromQuery(query: string): TableName | null {
   const tableName = match?.[1] as TableName | undefined;
 
   return tableName &&
-    ["contents", "documents", "public_home_sections", "visitor_daily_stats", "admin_audit_log"].includes(tableName)
+    [
+      "contents",
+      "documents",
+      "public_home_sections",
+      "visitor_daily_stats",
+      "app_admin_users",
+      "admin_audit_log"
+    ].includes(tableName)
     ? tableName
     : null;
 }
@@ -101,6 +114,7 @@ function createEmptyTables(): Record<TableName, Row[]> {
     documents: [],
     public_home_sections: [],
     visitor_daily_stats: [],
+    app_admin_users: [],
     admin_audit_log: []
   };
 }
@@ -178,6 +192,22 @@ function createAdminWriteMockDb(
     if (table === "visitor_daily_stats") {
       if (/day\s*=\s*\?/i.test(query)) {
         return rows.filter((row) => row.day === bindings[0]);
+      }
+
+      return rows;
+    }
+
+    if (table === "app_admin_users") {
+      if (/email\s*=\s*\?/i.test(query)) {
+        return rows.filter((row) => row.email === bindings[0]);
+      }
+
+      if (/id\s*=\s*\?/i.test(query)) {
+        return rows.filter((row) => row.id === bindings[0]);
+      }
+
+      if (/role\s*=\s*\?/i.test(query) && /status\s*=\s*\?/i.test(query)) {
+        return rows.filter((row) => row.role === bindings[0] && row.status === bindings[1]);
       }
 
       return rows;
@@ -262,27 +292,28 @@ function createAdminWriteMockDb(
   function deleteRow(query: string, bindings: unknown[]) {
     const table = tableFromQuery(query);
 
-    if (table !== "visitor_daily_stats") {
+    if (table !== "visitor_daily_stats" && table !== "app_admin_users") {
       return;
     }
 
     const hasRevisionGuard = /\?\s+IS\s+NULL\s+OR\s+revision\s*=\s*\?/i.test(query);
-    const day = String(bindings[0] ?? "");
-    const rowIndex = tables.visitor_daily_stats.findIndex((row) => row.day === day);
+    const idColumn = table === "visitor_daily_stats" ? "day" : "id";
+    const id = String(bindings[0] ?? "");
+    const rowIndex = tables[table].findIndex((row) => row[idColumn] === id);
 
     if (rowIndex === -1) {
       return;
     }
 
-    const row = tables.visitor_daily_stats[rowIndex];
+    const row = tables[table][rowIndex];
     const expectedRevision = hasRevisionGuard ? bindings[1] : null;
 
     if (expectedRevision !== null && Number(row.revision ?? 0) !== Number(expectedRevision)) {
       return;
     }
 
-    tables.visitor_daily_stats.splice(rowIndex, 1);
-    appendAudit("visitor_daily_stats", row, "delete");
+    tables[table].splice(rowIndex, 1);
+    appendAudit(table, row, "delete");
   }
 
   function inferUpdateAuditAction(table: TableName, oldRow: Row, newRow: Row) {
@@ -320,7 +351,8 @@ function createAdminWriteMockDb(
       contents: "content",
       documents: "document",
       public_home_sections: "home-section",
-      visitor_daily_stats: "visitor-daily-stats"
+      visitor_daily_stats: "visitor-daily-stats",
+      app_admin_users: "admin-user"
     };
 
     tables.admin_audit_log.push({
@@ -723,9 +755,10 @@ describe("M18 admin structured write routes", () => {
     });
   });
 
-  it("rejects Cloudflare Access editor and viewer write methods before D1 mutation", async () => {
+  it("allows Cloudflare Access editors to mutate content while blocking viewers", async () => {
     const { db, tables } = createAdminWriteMockDb();
     const editorAccess = await createAccessFixture({ email: "editor@example.invalid" });
+    const viewerAccess = await createAccessFixture({ email: "viewer@example.invalid" });
     const env = {
       ...makeAccessEnv(db, editorAccess.jwksJson),
       ADMIN_WRITE_ALLOWED_EMAILS: "",
@@ -734,7 +767,7 @@ describe("M18 admin structured write routes", () => {
       ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
     };
 
-    const response = await worker.fetch(
+    const editorCreateResponse = await worker.fetch(
       makeRequest("/api/admin/content", {
         method: "POST",
         headers: {
@@ -745,13 +778,289 @@ describe("M18 admin structured write routes", () => {
       }),
       env
     );
+    const editorPublishResponse = await worker.fetch(
+      makeRequest("/api/admin/content/m18-preview-content-001/publish", {
+        method: "POST",
+        headers: {
+          ...editorAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({})
+      }),
+      env
+    );
+    const viewerCreateResponse = await worker.fetch(
+      makeRequest("/api/admin/content", {
+        method: "POST",
+        headers: {
+          ...viewerAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          ...contentInput,
+          id: "viewer-content",
+          slug: "viewer-content"
+        })
+      }),
+      {
+        ...env,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
+      }
+    );
 
-    expect(response.status).toBe(403);
-    await expect(readJson(response)).resolves.toMatchObject({
-      error: "admin role is required"
+    expect(editorCreateResponse.status).toBe(201);
+    expect(editorPublishResponse.status).toBe(200);
+    expect(viewerCreateResponse.status).toBe(403);
+    await expect(readJson(viewerCreateResponse)).resolves.toMatchObject({
+      error: "content management permission is required"
     });
-    expect(tables.contents).toHaveLength(0);
-    expect(tables.admin_audit_log).toHaveLength(0);
+    expect(tables.contents).toHaveLength(1);
+    expect(auditActionsFor(tables, "content", "m18-preview-content-001")).toEqual(["create", "publish"]);
+  });
+
+  it("keeps website settings and menu mutations admin-only while allowing editor content-related routes", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const adminAccess = await createAccessFixture({ email: accessEmail });
+    const editorAccess = await createAccessFixture({ email: "editor@example.invalid" });
+    const viewerAccess = await createAccessFixture({ email: "viewer@example.invalid" });
+    const baseEnv = {
+      ...makeAccessEnv(db, adminAccess.jwksJson),
+      ADMIN_WRITE_ALLOWED_EMAILS: "",
+      ADMIN_RBAC_ADMINS: accessEmail,
+      ADMIN_RBAC_EDITORS: "editor@example.invalid",
+      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
+    };
+    const adminSettingsResponse = await worker.fetch(
+      makeRequest("/api/admin/settings/site", {
+        method: "PUT",
+        headers: {
+          ...adminAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ siteName: "Preview school" })
+      }),
+      baseEnv
+    );
+    const editorSettingsResponse = await worker.fetch(
+      makeRequest("/api/admin/settings/site", {
+        method: "PUT",
+        headers: {
+          ...editorAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ siteName: "Editor must not save" })
+      }),
+      {
+        ...baseEnv,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
+      }
+    );
+    const editorMenuResponse = await worker.fetch(
+      makeRequest("/api/admin/menu", {
+        method: "PUT",
+        headers: {
+          ...editorAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ items: [] })
+      }),
+      {
+        ...baseEnv,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
+      }
+    );
+    const viewerCarouselResponse = await worker.fetch(
+      makeRequest("/api/admin/carousel", {
+        method: "POST",
+        headers: {
+          ...viewerAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: "viewer-slide",
+          title: "Viewer slide",
+          imageUrl: "https://files.example.test/viewer-slide.jpg"
+        })
+      }),
+      {
+        ...baseEnv,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
+      }
+    );
+
+    expect(adminSettingsResponse.status).toBe(200);
+    expect(editorSettingsResponse.status).toBe(403);
+    await expect(readJson(editorSettingsResponse)).resolves.toMatchObject({
+      error: "website settings permission is required"
+    });
+    expect(editorMenuResponse.status).toBe(403);
+    await expect(readJson(editorMenuResponse)).resolves.toMatchObject({
+      error: "menu management permission is required"
+    });
+    expect(viewerCarouselResponse.status).toBe(403);
+    await expect(readJson(viewerCarouselResponse)).resolves.toMatchObject({
+      error: "content management permission is required"
+    });
+    expect(tables.app_admin_users).toHaveLength(0);
+  });
+
+  it("enforces Cloudflare app-user profile permissions separately from content permissions", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const adminAccess = await createAccessFixture({ email: accessEmail });
+    const editorAccess = await createAccessFixture({ email: "editor@example.invalid" });
+    const viewerAccess = await createAccessFixture({ email: "viewer@example.invalid" });
+    const baseEnv = {
+      ...makeAccessEnv(db, adminAccess.jwksJson),
+      ADMIN_WRITE_ALLOWED_EMAILS: "",
+      ADMIN_RBAC_ADMINS: accessEmail,
+      ADMIN_RBAC_EDITORS: "editor@example.invalid",
+      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
+    };
+    tables.app_admin_users.push(
+      {
+        id: "admin-profile",
+        email: accessEmail,
+        name: "Preview Admin",
+        role: "admin",
+        status: "active",
+        created_at: "2026-06-24T00:00:00.000Z",
+        updated_at: "2026-06-24T00:00:00.000Z",
+        created_by: accessEmail,
+        updated_by: accessEmail,
+        revision: 0
+      },
+      {
+        id: "editor-profile",
+        email: "editor@example.invalid",
+        name: "Preview Editor",
+        role: "editor",
+        status: "active",
+        created_at: "2026-06-24T00:00:00.000Z",
+        updated_at: "2026-06-24T00:00:00.000Z",
+        created_by: accessEmail,
+        updated_by: accessEmail,
+        revision: 0
+      },
+      {
+        id: "viewer-profile",
+        email: "viewer@example.invalid",
+        name: "Preview Viewer",
+        role: "viewer",
+        status: "active",
+        created_at: "2026-06-24T00:00:00.000Z",
+        updated_at: "2026-06-24T00:00:00.000Z",
+        created_by: accessEmail,
+        updated_by: accessEmail,
+        revision: 0
+      }
+    );
+
+    const listResponse = await worker.fetch(
+      makeRequest("/api/admin/users", {
+        method: "GET",
+        headers: viewerAccess.header
+      }),
+      {
+        ...baseEnv,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
+      }
+    );
+    const adminCreateResponse = await worker.fetch(
+      makeRequest("/api/admin/users", {
+        method: "POST",
+        headers: {
+          ...adminAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: "new-user@example.invalid",
+          name: "New User",
+          role: "viewer",
+          status: "active"
+        })
+      }),
+      baseEnv
+    );
+    const editorSelfResponse = await worker.fetch(
+      makeRequest("/api/admin/users/editor-profile", {
+        method: "PATCH",
+        headers: {
+          ...editorAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: "Editor Self Update",
+          role: "admin",
+          status: "disabled"
+        })
+      }),
+      {
+        ...baseEnv,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
+      }
+    );
+    const editorOtherResponse = await worker.fetch(
+      makeRequest("/api/admin/users/viewer-profile", {
+        method: "PATCH",
+        headers: {
+          ...editorAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name: "Editor must not edit another user" })
+      }),
+      {
+        ...baseEnv,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
+      }
+    );
+    const editorDeleteSelfResponse = await worker.fetch(
+      makeRequest("/api/admin/users/editor-profile", {
+        method: "DELETE",
+        headers: editorAccess.header
+      }),
+      {
+        ...baseEnv,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
+      }
+    );
+    const adminDeleteSelfResponse = await worker.fetch(
+      makeRequest("/api/admin/users/admin-profile", {
+        method: "DELETE",
+        headers: adminAccess.header
+      }),
+      baseEnv
+    );
+
+    expect(listResponse.status).toBe(200);
+    await expect(readJson(listResponse)).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({ id: "admin-profile", email: accessEmail }),
+        expect.objectContaining({ id: "editor-profile", role: "editor" }),
+        expect.objectContaining({ id: "viewer-profile", role: "viewer" })
+      ]
+    });
+    expect(adminCreateResponse.status).toBe(201);
+    expect(editorSelfResponse.status).toBe(200);
+    await expect(readJson(editorSelfResponse)).resolves.toMatchObject({
+      item: expect.objectContaining({
+        id: "editor-profile",
+        name: "Editor Self Update",
+        role: "editor",
+        status: "active"
+      })
+    });
+    expect(editorOtherResponse.status).toBe(403);
+    await expect(readJson(editorOtherResponse)).resolves.toMatchObject({
+      error: "user management permission is required"
+    });
+    expect(editorDeleteSelfResponse.status).toBe(403);
+    await expect(readJson(editorDeleteSelfResponse)).resolves.toMatchObject({
+      error: "ไม่สามารถลบบัญชีของตนเองได้"
+    });
+    expect(adminDeleteSelfResponse.status).toBe(403);
+    await expect(readJson(adminDeleteSelfResponse)).resolves.toMatchObject({
+      error: "ไม่สามารถลบบัญชีของตนเองได้"
+    });
   });
 
   it("requires Cloudflare Access for browser-origin admin writes and derives the actor from the verified identity", async () => {

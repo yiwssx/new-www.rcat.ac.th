@@ -297,7 +297,40 @@ async function authenticateProxySession(request, response, env, nowMs) {
   return result;
 }
 
-function createUpstreamHeaders(request, smokeToken) {
+function getAdminProxyMutationPermissionError(role, method, targetPath) {
+  if (!BODY_METHODS.has(method)) {
+    return "";
+  }
+
+  const segments = targetPath.slice(ADMIN_PATH_PREFIX.length).split("/").filter(Boolean);
+  const route = segments[0] || "";
+
+  if (["content", "documents", "carousel", "external-services", "events", "media"].includes(route)) {
+    return role === "admin" || role === "editor" ? "" : "content management permission is required";
+  }
+
+  if (["settings", "home-sections", "visitor-stats"].includes(route)) {
+    return role === "admin" ? "" : "website settings permission is required";
+  }
+
+  if (route === "menu") {
+    return role === "admin" ? "" : "menu management permission is required";
+  }
+
+  if (route === "users") {
+    if (role === "admin") {
+      return "";
+    }
+
+    return role === "editor" && method === "PATCH" && segments.length === 2
+      ? ""
+      : "user management permission is required";
+  }
+
+  return role === "admin" ? "" : "admin role is required";
+}
+
+function createUpstreamHeaders(request, smokeToken, session) {
   const headers = new Headers({
     Accept: "application/json",
     "X-RCAT-Admin-Smoke-Token": smokeToken
@@ -311,6 +344,14 @@ function createUpstreamHeaders(request, smokeToken) {
 
   if (expectedRevision) {
     headers.set("X-RCAT-Expected-Revision", expectedRevision);
+  }
+
+  if (session?.email) {
+    headers.set("X-RCAT-Admin-Proxy-Email", session.email);
+  }
+
+  if (session?.role) {
+    headers.set("X-RCAT-Admin-Proxy-Role", session.role);
   }
 
   return headers;
@@ -344,15 +385,17 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
     return;
   }
 
-  if (BODY_METHODS.has(method) && session.role !== "admin") {
-    sendJson(response, 403, { error: "admin role is required" });
-    return;
-  }
-
   const targetPath = readTargetPath(request);
 
   if (!targetPath) {
     sendJson(response, 400, { error: "invalid admin proxy path" });
+    return;
+  }
+
+  const permissionError = getAdminProxyMutationPermissionError(session.role, method, targetPath);
+
+  if (permissionError) {
+    sendJson(response, 403, { error: permissionError });
     return;
   }
 
@@ -385,7 +428,7 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
   try {
     upstreamResponse = await fetchImpl(`${configuration.workerOrigin}${targetPath}`, {
       method,
-      headers: createUpstreamHeaders(request, configuration.smokeToken),
+      headers: createUpstreamHeaders(request, configuration.smokeToken, session),
       body: requestBody?.toString("utf8"),
       redirect: "error"
     });

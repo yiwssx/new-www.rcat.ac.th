@@ -4,7 +4,10 @@ import { jsonError } from "../responses";
 
 const ACCESS_JWT_HEADER = "Cf-Access-Jwt-Assertion";
 const SMOKE_TOKEN_HEADER = "X-RCAT-Admin-Smoke-Token";
+const PROXY_EMAIL_HEADER = "X-RCAT-Admin-Proxy-Email";
+const PROXY_ROLE_HEADER = "X-RCAT-Admin-Proxy-Role";
 const PRODUCTION_CONTEXT_PATTERN = /(^|[-_.])(prod|production|live)([-_.]|$)/i;
+const ADMIN_ROLES = new Set<AdminRole>(["admin", "editor", "viewer"]);
 
 export interface AdminIdentity {
   actor: string;
@@ -126,6 +129,12 @@ function getEmailClaim(payload: JWTPayload) {
   return typeof email === "string" ? email.trim().toLowerCase() : "";
 }
 
+function getProxyRole(request: Request) {
+  const role = trimString(request.headers.get(PROXY_ROLE_HEADER)).toLowerCase();
+
+  return ADMIN_ROLES.has(role as AdminRole) ? (role as AdminRole) : "admin";
+}
+
 async function verifyCloudflareAccess(request: Request, env: Env): Promise<AdminAuthResult> {
   const teamDomain = trimString(env.ADMIN_WRITE_ACCESS_TEAM_DOMAIN);
   const audience = trimString(env.ADMIN_WRITE_ACCESS_AUD);
@@ -245,12 +254,15 @@ function verifySmokeToken(request: Request, env: Env): AdminAuthResult {
     };
   }
 
+  const proxyEmail = trimString(request.headers.get(PROXY_EMAIL_HEADER)).toLowerCase();
+  const proxyRole = getProxyRole(request);
+
   return {
     identity: {
-      actor: "m18-preview-smoke",
-      email: "m18-preview-smoke",
+      actor: proxyEmail || "m18-preview-smoke",
+      email: proxyEmail || "m18-preview-smoke",
       mode: "smoke-token",
-      role: "admin"
+      role: proxyRole
     },
     response: null
   };
@@ -258,6 +270,59 @@ function verifySmokeToken(request: Request, env: Env): AdminAuthResult {
 
 export function isAdmin(identity: AdminIdentity) {
   return identity.role === "admin";
+}
+
+export function isEditor(identity: AdminIdentity) {
+  return identity.role === "editor";
+}
+
+export function canReadAdminData(identity: AdminIdentity) {
+  return identity.role === "admin" || identity.role === "editor" || identity.role === "viewer";
+}
+
+export function canManageContent(identity: AdminIdentity) {
+  return identity.role === "admin" || identity.role === "editor";
+}
+
+export function canPublishContent(identity: AdminIdentity) {
+  return canManageContent(identity);
+}
+
+export function canManageMedia(identity: AdminIdentity) {
+  return identity.role === "admin" || identity.role === "editor";
+}
+
+export function canManageWebsiteSettings(identity: AdminIdentity) {
+  return identity.role === "admin";
+}
+
+export function canManageMenu(identity: AdminIdentity) {
+  return identity.role === "admin";
+}
+
+export function canManageIntegrations(identity: AdminIdentity) {
+  return identity.role === "admin";
+}
+
+export function canManageUsers(identity: AdminIdentity) {
+  return identity.role === "admin";
+}
+
+export function canSelfEditUserProfile(identity: AdminIdentity) {
+  return identity.role === "admin" || identity.role === "editor";
+}
+
+export function requireAdminPermission(
+  identity: AdminIdentity,
+  predicate: (identity: AdminIdentity) => boolean,
+  message: string,
+  resource = "admin-structured-data"
+) {
+  return predicate(identity)
+    ? null
+    : jsonError(message, 403, {
+        resource
+      });
 }
 
 export function requireAdminRole(identity: AdminIdentity) {

@@ -19,6 +19,16 @@ import { AdminDuplicateSlugError, AdminStaleRevisionError } from "./errors";
 type CalendarEventInput = Partial<CalendarEvent> & { id?: string; revision?: number };
 type CarouselSlideInput = Partial<CarouselSlide> & { id?: string; revision?: number };
 type ExternalServiceLinkInput = Partial<ExternalServiceLink> & { id?: string; revision?: number };
+export interface AdminUserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: "admin" | "editor" | "viewer";
+  status: "active" | "disabled";
+  createdAt: string;
+  updatedAt: string;
+  revision?: number;
+}
 
 interface ItemEnvelope<T> {
   item: T;
@@ -277,4 +287,32 @@ export async function saveCalendarEventToCloudflare(input: CalendarEventInput): 
 
 export function deleteCalendarEventFromCloudflare(id: string): Promise<{ id: string; deleted: boolean }> {
   return requestCloudflareAdmin(`/api/admin/events/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export async function getAdminUsersFromCloudflare(): Promise<AdminUserProfile[]> {
+  const response = await requestCloudflareAdmin<{ items: AdminUserProfile[] }>("/api/admin/users");
+  return response.items;
+}
+
+export async function saveAdminUserProfileToCloudflare(input: Partial<AdminUserProfile>): Promise<AdminUserProfile> {
+  const { id, revision, ...body } = input;
+  const response = id
+    ? await writeJson<ItemEnvelope<AdminUserProfile>>(
+        `/api/admin/users/${encodeURIComponent(id)}`,
+        "PATCH",
+        body,
+        getRevisionHeaders(revision)
+      )
+    : await writeJson<ItemEnvelope<AdminUserProfile>>("/api/admin/users", "POST", body);
+
+  return response.item;
+}
+
+export function deleteAdminUserProfileFromCloudflare(
+  input: Pick<AdminUserProfile, "id" | "revision">
+): Promise<{ id: string; deleted: boolean }> {
+  return requestCloudflareAdmin(`/api/admin/users/${encodeURIComponent(input.id)}`, {
+    method: "DELETE",
+    headers: getRevisionHeaders(input.revision)
+  });
 }

@@ -34,7 +34,7 @@ import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
 import { useAuth } from "../../context/authSessionContext";
 import { appSwal } from "../../utils/swal";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData, canReadAdminData } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData, canManageContent, canReadAdminData } from "../utils/rbac";
 
 const drawerWidth = 280;
 
@@ -122,7 +122,13 @@ export default function CmsShell() {
   const { session, logout } = useAuth();
   const canRead = canReadAdminData(session?.user);
   const canManage = canManageAdminData(session?.user);
+  const canManageContentData = canManageContent(session?.user);
   const visibleNavItems = canRead ? navItems : [];
+  const permissionLabel = canManage
+    ? "สิทธิ์จัดการทั้งหมด"
+    : canManageContentData
+      ? "สิทธิ์จัดการเนื้อหา"
+      : ADMIN_READ_ONLY_NOTICE;
 
   function handleNavigate(to: NavItem["to"]) {
     void navigate({ to });
@@ -205,7 +211,7 @@ export default function CmsShell() {
             {session?.user.email}
           </Typography>
           <Typography color="text.secondary" variant="caption" noWrap>
-            {canManage ? "สิทธิ์จัดการข้อมูล" : ADMIN_READ_ONLY_NOTICE}
+            {permissionLabel}
           </Typography>
         </Box>
         <Tooltip title="ออกจากระบบ">

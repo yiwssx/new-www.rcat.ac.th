@@ -47,7 +47,7 @@ import {
   getCarouselSlideValidationMessage,
   normalizeCarouselAutoplayInterval
 } from "../utils/carousel";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 
 function sortCarouselSlides(slides: CarouselSlide[]) {
   return [...slides].sort((left, right) => {
@@ -135,7 +135,7 @@ function getDateRangeLabel(slide: CarouselSlide) {
 export default function CarouselPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const canManage = canManageAdminData(session?.user);
+  const canManage = canManageContent(session?.user);
   const adminSnapshotQuery = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot

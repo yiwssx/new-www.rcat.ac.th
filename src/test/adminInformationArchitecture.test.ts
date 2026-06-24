@@ -41,8 +41,11 @@ describe("M20 admin information architecture", () => {
     expect(usersPageSource).not.toContain("getGoogleAppsScriptUrl");
     expect(usersPageSource).not.toContain("Legacy user management");
     expect(userManagementCardSource).toContain("Cloudflare Access");
-    expect(userManagementCardSource).toContain("ADMIN_RBAC_ADMINS");
-    expect(userManagementCardSource).toContain("admin@example.invalid");
+    expect(userManagementCardSource).toContain("Cloudflare/D1");
+    expect(userManagementCardSource).toContain("getAdminUsersFromCloudflare");
+    expect(userManagementCardSource).toContain("saveAdminUserProfileToCloudflare");
+    expect(userManagementCardSource).toContain("deleteAdminUserProfileFromCloudflare");
+    expect(adminCloudflareApiSource).toContain("/api/admin/users");
     expect(userManagementCardSource).not.toContain("getUserAccounts");
     expect(userManagementCardSource).not.toContain("saveUserAccount");
     expect(userManagementCardSource).not.toContain("deleteUserAccount");
@@ -58,6 +61,10 @@ describe("M20 admin information architecture", () => {
   it("centralizes read-only admin RBAC for mutation controls", () => {
     expect(cmsShellSource).toContain("canReadAdminData");
     expect(cmsShellSource).toContain("canManageAdminData");
+    expect(cmsShellSource).toContain("canManageContent");
+    expect(userManagementCardSource).toContain("canManageUsers");
+    expect(userManagementCardSource).toContain("canSelfEditUserProfile");
+    expect(settingsPageSource).toContain("canManageAdminData");
     expect(cmsShellSource).not.toContain('session?.user.role === "admin"');
     expect(routesSource).toMatch(/path:\s*"settings"[\s\S]*?component:\s*SettingsPage/);
     expect(routesSource).toMatch(/path:\s*"menus"[\s\S]*?component:\s*MenuPage/);

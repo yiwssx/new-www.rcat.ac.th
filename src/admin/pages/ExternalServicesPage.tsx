@@ -46,7 +46,7 @@ import { ExternalServiceIconKey, ExternalServiceLink, ExternalServiceTone } from
 import { getExternalServiceToneStyle } from "../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal } from "../../utils/swal";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 
 const externalServiceToneOptions: Array<{ value: ExternalServiceTone; label: string }> = [
   { value: "student", label: "นักเรียน / นักศึกษา" },
@@ -158,7 +158,7 @@ function isExampleHref(href: string) {
 export default function ExternalServicesPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const canManage = canManageAdminData(session?.user);
+  const canManage = canManageContent(session?.user);
   const adminSnapshotQuery = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot

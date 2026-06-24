@@ -44,7 +44,7 @@ import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../
 import { appSwal } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { eventStatusLabels, visibilityLabels } from "../../utils/thaiLabels";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 
 interface EventFormState {
   title: string;
@@ -107,7 +107,7 @@ function getStatusColor(status: CalendarEvent["status"]) {
 export default function CalendarPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const canManage = canManageAdminData(session?.user);
+  const canManage = canManageContent(session?.user);
   const { data, error, isError, isLoading } = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot

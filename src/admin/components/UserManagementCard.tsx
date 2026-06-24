@@ -1,38 +1,195 @@
-import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Typography
+} from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import { useAuth } from "../../context/authSessionContext";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData, isReadOnlyAdminUser } from "../utils/rbac";
+import {
+  deleteAdminUserProfileFromCloudflare,
+  getAdminUsersFromCloudflare,
+  saveAdminUserProfileToCloudflare,
+  type AdminUserProfile
+} from "../../features/admin-write/cloudflareApi";
+import { ADMIN_READ_ONLY_NOTICE, canManageUsers, canSelfEditUserProfile, isReadOnlyAdminUser } from "../utils/rbac";
 import { userRoleLabels } from "../../utils/thaiLabels";
 import type { User } from "../../types";
+
+const cannotEditOtherUsersNotice = "บัญชีนี้ไม่มีสิทธิ์แก้ไขผู้ใช้อื่น";
+const cannotDeleteSelfNotice = "ไม่สามารถลบบัญชีของตนเองได้";
+const lastActiveAdminNotice = "ต้องมีผู้ดูแลระบบที่ใช้งานอย่างน้อยหนึ่งบัญชี";
+
+const emptyDraft: Partial<AdminUserProfile> = {
+  email: "",
+  name: "",
+  role: "viewer",
+  status: "active"
+};
 
 const roleRows: Array<{ role: User["role"]; description: string }> = [
   {
     role: "admin",
-    description: "จัดการได้ทุกอย่าง รวมถึงสร้าง แก้ไข ลบ เผยแพร่ อัปโหลด และบันทึกการตั้งค่า"
+    description: "จัดการผู้ใช้ เนื้อหา สื่อ เมนู การตั้งค่า และการเชื่อมต่อระบบได้ทั้งหมด"
   },
   {
     role: "editor",
-    description: "อ่านข้อมูลได้เท่านั้น ไม่สามารถแก้ไข เผยแพร่ อัปโหลด หรือลบข้อมูล"
+    description: "จัดการเนื้อหา เอกสาร สไลด์ E-Service สื่อ และปฏิทินได้ แต่แก้ไขผู้ใช้อื่นหรือการตั้งค่าเว็บไซต์ไม่ได้"
   },
   {
     role: "viewer",
-    description: "อ่านข้อมูลได้เท่านั้น ไม่สามารถแก้ไข เผยแพร่ อัปโหลด หรือลบข้อมูล"
+    description: "บัญชี viewer สามารถดูข้อมูลได้เท่านั้น"
   }
 ];
 
-const rbacEnvRows = [
-  { key: "ADMIN_RBAC_ADMINS", value: "admin@example.invalid" },
-  { key: "ADMIN_RBAC_EDITORS", value: "" },
-  { key: "ADMIN_RBAC_VIEWERS", value: "" }
-];
+function isSelfProfile(profile: Pick<AdminUserProfile, "email">, user: User | null | undefined) {
+  return profile.email.trim().toLowerCase() === (user?.email ?? "").trim().toLowerCase();
+}
+
+function getSafeRevision(profile: AdminUserProfile) {
+  return Number.isInteger(profile.revision) ? profile.revision : undefined;
+}
 
 export default function UserManagementCard() {
   const { session } = useAuth();
-  const role = session?.user.role;
-  const canManage = canManageAdminData(session?.user);
-  const readOnly = isReadOnlyAdminUser(session?.user);
+  const user = session?.user;
+  const canManage = canManageUsers(user);
+  const canSelfEdit = canSelfEditUserProfile(user);
+  const readOnly = isReadOnlyAdminUser(user);
+  const [users, setUsers] = useState<AdminUserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState("");
+  const [draft, setDraft] = useState<Partial<AdminUserProfile>>(emptyDraft);
+
+  const activeAdminCount = useMemo(
+    () => users.filter((profile) => profile.role === "admin" && profile.status === "active").length,
+    [users]
+  );
+  const editingUser = users.find((profile) => profile.id === editingId) ?? null;
+  const isCreating = editingId === "__new__";
+  const canEditCurrentDraft = isCreating
+    ? canManage
+    : Boolean(editingUser && (canManage || (canSelfEdit && isSelfProfile(editingUser, user))));
+  const showSelfEditOnlyNotice = !canManage && canSelfEdit && users.some((profile) => isSelfProfile(profile, user));
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadUsers() {
+      try {
+        const profiles = await getAdminUsersFromCloudflare();
+
+        if (active) {
+          setUsers(profiles);
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : "ไม่สามารถโหลดรายการผู้ใช้ได้");
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadUsers();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function startCreate() {
+    setEditingId("__new__");
+    setDraft(emptyDraft);
+    setError("");
+  }
+
+  function startEdit(profile: AdminUserProfile) {
+    setEditingId(profile.id);
+    setDraft(profile);
+    setError("");
+  }
+
+  function stopEditing() {
+    setEditingId("");
+    setDraft(emptyDraft);
+  }
+
+  async function saveDraft() {
+    if (!canEditCurrentDraft) {
+      setError(cannotEditOtherUsersNotice);
+      return;
+    }
+
+    try {
+      const payload =
+        !canManage && editingUser
+          ? {
+              id: editingUser.id,
+              name: draft.name,
+              revision: getSafeRevision(editingUser)
+            }
+          : {
+              ...draft,
+              id: isCreating ? undefined : editingUser?.id,
+              revision: editingUser ? getSafeRevision(editingUser) : undefined
+            };
+      const saved = await saveAdminUserProfileToCloudflare(payload);
+
+      setUsers((current) => {
+        const existingIndex = current.findIndex((profile) => profile.id === saved.id);
+
+        if (existingIndex === -1) {
+          return [...current, saved];
+        }
+
+        return current.map((profile) => (profile.id === saved.id ? saved : profile));
+      });
+      stopEditing();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "ไม่สามารถบันทึกผู้ใช้ได้");
+    }
+  }
+
+  async function deleteUser(profile: AdminUserProfile) {
+    if (isSelfProfile(profile, user)) {
+      setError(cannotDeleteSelfNotice);
+      return;
+    }
+
+    if (!canManage) {
+      setError(cannotEditOtherUsersNotice);
+      return;
+    }
+
+    if (profile.role === "admin" && profile.status === "active" && activeAdminCount <= 1) {
+      setError(lastActiveAdminNotice);
+      return;
+    }
+
+    try {
+      await deleteAdminUserProfileFromCloudflare({ id: profile.id, revision: getSafeRevision(profile) });
+      setUsers((current) => current.filter((item) => item.id !== profile.id));
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "ไม่สามารถลบผู้ใช้ได้");
+    }
+  }
 
   return (
     <Card>
@@ -44,72 +201,177 @@ export default function UserManagementCard() {
               <Box>
                 <Typography variant="h3">ผู้ใช้และสิทธิ์การเข้าถึง</Typography>
                 <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                  จัดการผู้ใช้ผ่าน Cloudflare Access และกำหนดสิทธิ์ด้วยค่าแวดล้อมของ Cloudflare
+                  จัดการโปรไฟล์ผู้ใช้ของระบบผ่าน Cloudflare/D1 โดยใช้ Cloudflare Access เป็นผู้ยืนยันตัวตน
                 </Typography>
               </Box>
             </Stack>
             <Chip
               color={canManage ? "success" : "default"}
-              label={role ? `บทบาทปัจจุบัน: ${userRoleLabels[role]}` : "ยังไม่มีเซสชันผู้ใช้"}
+              label={user?.role ? `บทบาทปัจจุบัน: ${userRoleLabels[user.role]}` : "ยังไม่มีเซสชันผู้ใช้"}
               sx={{ alignSelf: { xs: "flex-start", md: "center" } }}
             />
           </Stack>
 
           <Alert severity="info" icon={<SecurityOutlinedIcon />}>
-            ระบบนี้ย้ายการจัดการผู้ใช้ออกจาก Apps Script แล้ว ผู้ดูแลระบบต้องสร้างบัญชีและกำหนดกลุ่มผู้ใช้ผ่าน
-            Cloudflare Access หรือค่าแวดล้อมที่กำหนดใน Cloudflare โดยไม่บันทึกอีเมลจริงหรือข้อมูลลับลงใน Git
+            ระบบนี้ย้ายการจัดการผู้ใช้ออกจาก Apps Script แล้ว โปรไฟล์ผู้ใช้เก็บเฉพาะ metadata ใน Cloudflare D1
+            ไม่มีรหัสผ่าน ไม่มี password reset และไม่บันทึกอีเมลจริงหรือข้อมูลลับลงใน Git
           </Alert>
 
           {readOnly && <Alert severity="warning">{ADMIN_READ_ONLY_NOTICE}</Alert>}
+          {showSelfEditOnlyNotice && <Alert severity="warning">{cannotEditOtherUsersNotice}</Alert>}
+          {error && <Alert severity="error">{error}</Alert>}
 
-          <Grid container spacing={1.5}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Box
-                sx={{
-                  height: "100%",
-                  p: 2,
-                  borderRadius: 2,
-                  border: "1px solid rgba(31, 90, 44, 0.12)",
-                  bgcolor: "background.default"
-                }}
-              >
-                <Typography fontWeight={900}>ผู้ใช้ปัจจุบัน</Typography>
-                <Stack spacing={0.75} sx={{ mt: 1.5 }}>
-                  <Typography variant="body2">
-                    อีเมล: <strong>{session?.user.email ?? "ไม่พบข้อมูลเซสชัน"}</strong>
-                  </Typography>
-                  <Typography variant="body2">
-                    สิทธิ์: <strong>{role ? userRoleLabels[role] : "ไม่ทราบ"}</strong>
-                  </Typography>
-                  <Typography variant="body2">
-                    โหมดการยืนยันตัวตน: <strong>Cloudflare Access / Admin Proxy</strong>
-                  </Typography>
-                </Stack>
-              </Box>
-            </Grid>
+          <Box>
+            {canManage && (
+              <Button variant="contained" onClick={startCreate}>
+                เพิ่มผู้ใช้
+              </Button>
+            )}
+          </Box>
 
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Box
-                sx={{
-                  height: "100%",
-                  p: 2,
-                  borderRadius: 2,
-                  border: "1px solid rgba(31, 90, 44, 0.12)",
-                  bgcolor: "background.default"
-                }}
-              >
-                <Typography fontWeight={900}>ค่าแวดล้อม Cloudflare RBAC</Typography>
-                <Stack spacing={0.75} sx={{ mt: 1.5 }}>
-                  {rbacEnvRows.map((row) => (
-                    <Typography key={row.key} variant="body2" sx={{ fontFamily: "monospace" }}>
-                      {row.key}
-                      {row.value ? ` = "${row.value}"` : ' = ""'}
-                    </Typography>
-                  ))}
+          {editingId && (
+            <Box sx={{ p: 2, borderRadius: 2, border: "1px solid rgba(31, 90, 44, 0.12)" }}>
+              <Stack spacing={2}>
+                <Typography fontWeight={900}>{isCreating ? "เพิ่มผู้ใช้" : "แก้ไขผู้ใช้"}</Typography>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      label="ชื่อ"
+                      value={draft.name ?? ""}
+                      onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      disabled={!canManage || !isCreating}
+                      label="อีเมล"
+                      value={draft.email ?? ""}
+                      onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 2 }}>
+                    <FormControl fullWidth disabled={!canManage}>
+                      <InputLabel id="admin-user-role-label">สิทธิ์</InputLabel>
+                      <Select
+                        labelId="admin-user-role-label"
+                        label="สิทธิ์"
+                        value={draft.role ?? "viewer"}
+                        onChange={(event) =>
+                          setDraft((current) => ({ ...current, role: event.target.value as AdminUserProfile["role"] }))
+                        }
+                      >
+                        <MenuItem value="admin">admin</MenuItem>
+                        <MenuItem value="editor">editor</MenuItem>
+                        <MenuItem value="viewer">viewer</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 2 }}>
+                    <FormControl fullWidth disabled={!canManage}>
+                      <InputLabel id="admin-user-status-label">สถานะ</InputLabel>
+                      <Select
+                        labelId="admin-user-status-label"
+                        label="สถานะ"
+                        value={draft.status ?? "active"}
+                        onChange={(event) =>
+                          setDraft((current) => ({
+                            ...current,
+                            status: event.target.value as AdminUserProfile["status"]
+                          }))
+                        }
+                      >
+                        <MenuItem value="active">active</MenuItem>
+                        <MenuItem value="disabled">disabled</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </Grid>
+                <Stack direction="row" spacing={1}>
+                  <Button variant="contained" onClick={saveDraft} disabled={!canEditCurrentDraft}>
+                    บันทึกผู้ใช้
+                  </Button>
+                  <Button variant="outlined" onClick={stopEditing}>
+                    ยกเลิก
+                  </Button>
                 </Stack>
-              </Box>
-            </Grid>
-          </Grid>
+              </Stack>
+            </Box>
+          )}
+
+          <Stack spacing={1.25}>
+            {loading ? (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <CircularProgress size={20} />
+                <Typography color="text.secondary">กำลังโหลดผู้ใช้</Typography>
+              </Stack>
+            ) : (
+              users.map((profile) => {
+                const self = isSelfProfile(profile, user);
+                const canEdit = canManage || (canSelfEdit && self);
+                const deleteDisabled =
+                  self || (profile.role === "admin" && profile.status === "active" && activeAdminCount <= 1);
+
+                return (
+                  <Box
+                    key={profile.id}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      border: "1px solid rgba(31, 90, 44, 0.12)",
+                      bgcolor: self ? "primary.light" : "background.paper"
+                    }}
+                  >
+                    <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between">
+                      <Box>
+                        <Typography fontWeight={900}>{profile.name}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {profile.email}
+                        </Typography>
+                        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                          <Chip size="small" label={userRoleLabels[profile.role]} />
+                          <Chip size="small" label={profile.status === "active" ? "ใช้งาน" : "ปิดใช้งาน"} />
+                          {self && <Chip size="small" color="primary" label="บัญชีของคุณ" />}
+                        </Stack>
+                      </Box>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        {canEdit ? (
+                          <Button variant="outlined" onClick={() => startEdit(profile)}>
+                            แก้ไข
+                          </Button>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            {readOnly ? "บัญชี viewer สามารถดูข้อมูลได้เท่านั้น" : cannotEditOtherUsersNotice}
+                          </Typography>
+                        )}
+                        {canManage && (
+                          <Button
+                            color="error"
+                            disabled={deleteDisabled}
+                            variant="outlined"
+                            onClick={() => void deleteUser(profile)}
+                          >
+                            ลบผู้ใช้
+                          </Button>
+                        )}
+                      </Stack>
+                    </Stack>
+                    {self && canManage && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {cannotDeleteSelfNotice}
+                      </Typography>
+                    )}
+                    {profile.role === "admin" && profile.status === "active" && activeAdminCount <= 1 && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {lastActiveAdminNotice}
+                      </Typography>
+                    )}
+                  </Box>
+                );
+              })
+            )}
+          </Stack>
 
           <Box
             sx={{
@@ -126,7 +388,7 @@ export default function UserManagementCard() {
                 sx={{
                   p: 1.5,
                   borderTop: index === 0 ? 0 : "1px solid rgba(31, 90, 44, 0.12)",
-                  bgcolor: row.role === role ? "primary.light" : "background.paper"
+                  bgcolor: row.role === user?.role ? "primary.light" : "background.paper"
                 }}
               >
                 <Typography sx={{ minWidth: 120, fontWeight: 900 }}>{userRoleLabels[row.role]}</Typography>
@@ -134,12 +396,6 @@ export default function UserManagementCard() {
               </Stack>
             ))}
           </Box>
-
-          <Alert severity={canManage ? "success" : "warning"}>
-            {canManage
-              ? "บัญชี admin สามารถจัดการข้อมูลและการตั้งค่าทั้งหมดได้"
-              : "บัญชี editor และ viewer เป็นสิทธิ์อ่านอย่างเดียว ปุ่มเพิ่ม แก้ไข ลบ เผยแพร่ อัปโหลด และบันทึกการตั้งค่าต้องไม่สามารถใช้งานได้"}
-          </Alert>
         </Stack>
       </CardContent>
     </Card>

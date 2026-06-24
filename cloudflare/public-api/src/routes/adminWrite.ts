@@ -4,18 +4,24 @@ import { createEmptyPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
 import {
   authenticateAdminRequest,
+  canManageContent,
+  canManageMedia,
+  canManageMenu,
+  canManageWebsiteSettings,
   hasProductionContext,
-  requireAdminRole,
+  requireAdminPermission,
   type AdminIdentity
 } from "../auth/adminAccess";
 import { listPublishedContentRows } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
 import {
+  ADMIN_USER_ROW_COLUMNS,
   CONTENT_ADMIN_ROW_COLUMNS,
   DOCUMENT_ADMIN_ROW_COLUMNS,
   PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS,
   VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS,
+  type AdminUserRow,
   type ContentRow,
   type DocumentRow,
   type PublicHomeSectionRow,
@@ -30,6 +36,8 @@ const ADMIN_ALLOW = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
 const CONTENT_TYPES = new Set(["page", "news", "program", "announcement", "blog"]);
 const CONTENT_STATUSES = new Set(["draft", "review", "scheduled", "published"]);
 const DOCUMENT_STATUSES = new Set(["draft", "published"]);
+const ADMIN_USER_ROLES = new Set(["admin", "editor", "viewer"]);
+const ADMIN_USER_STATUSES = new Set(["active", "disabled"]);
 const PREVIEW_WRITE_SCHEMA = {
   contents: ["slug", "deleted_at", "updated_by", "revision"],
   homepage_settings: ["id", "settings_json", "updated_at", "created_at", "updated_by", "revision"],
@@ -38,7 +46,8 @@ const PREVIEW_WRITE_SCHEMA = {
   carousel_slides: ["id", "title", "image_url", "created_at", "updated_by", "revision"],
   external_services: ["id", "title", "href", "created_at", "updated_by", "revision"],
   events: ["id", "title", "date", "created_at", "updated_by", "revision"],
-  media_assets: ["id", "drive_url", "preview_url", "embed_url", "thumbnail_url"]
+  media_assets: ["id", "drive_url", "preview_url", "embed_url", "thumbnail_url"],
+  app_admin_users: ["id", "email", "name", "role", "status", "created_at", "updated_by", "revision"]
 } as const;
 
 type JsonRecord = Record<string, unknown>;
@@ -173,7 +182,8 @@ function getPreviewWriteTable(segments: string[]): PreviewWriteTable | null {
     carousel: "carousel_slides",
     "external-services": "external_services",
     events: "events",
-    media: "media_assets"
+    media: "media_assets",
+    users: "app_admin_users"
   };
   return tableByRoute[segments[0] || ""] ?? null;
 }
@@ -1322,6 +1332,263 @@ async function handleVisitorStats(request: Request, env: Env, segments: string[]
   return adminMethodNotAllowed();
 }
 
+function normalizeEmail(value: unknown) {
+  return trimString(value).toLowerCase();
+}
+
+function mapAdminUserRowToItem(row: AdminUserRow) {
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    role: row.role,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    revision: row.revision
+  };
+}
+
+async function getAdminUserById(env: Env, id: string) {
+  return getFirst<AdminUserRow>(
+    env,
+    `SELECT ${ADMIN_USER_ROW_COLUMNS.join(", ")}
+     FROM app_admin_users
+     WHERE id = ?
+     LIMIT 1`,
+    id
+  );
+}
+
+async function getAdminUserByEmail(env: Env, email: string) {
+  return getFirst<AdminUserRow>(
+    env,
+    `SELECT ${ADMIN_USER_ROW_COLUMNS.join(", ")}
+     FROM app_admin_users
+     WHERE email = ?
+     LIMIT 1`,
+    normalizeEmail(email)
+  );
+}
+
+async function getActiveAdminCount(env: Env) {
+  const rows = await getAll<Pick<AdminUserRow, "id">>(
+    env,
+    "SELECT id FROM app_admin_users WHERE role = ? AND status = ?",
+    "admin",
+    "active"
+  );
+
+  return rows.length;
+}
+
+async function assertUniqueAdminUserEmail(env: Env, email: string, excludedId = "") {
+  const existing = await getAdminUserByEmail(env, email);
+
+  if (existing && existing.id !== excludedId) {
+    throw new AdminHttpError("duplicate user email", 409, {
+      resource: "admin-users",
+      field: "email"
+    });
+  }
+}
+
+async function assertActiveAdminRemains(
+  env: Env,
+  current: AdminUserRow,
+  next: Pick<AdminUserRow, "role" | "status"> | null
+) {
+  const removesActiveAdmin =
+    current.role === "admin" &&
+    current.status === "active" &&
+    (!next || next.role !== "admin" || next.status !== "active");
+
+  if (removesActiveAdmin && (await getActiveAdminCount(env)) <= 1) {
+    throw new AdminHttpError("ต้องมีผู้ดูแลระบบที่ใช้งานอย่างน้อยหนึ่งบัญชี", 403, {
+      resource: "admin-users"
+    });
+  }
+}
+
+function createAdminUserRow(body: JsonRecord, existing: AdminUserRow | null, actor: string, now: string): AdminUserRow {
+  const id = optionalString(body.id, existing?.id ?? makeId("admin-user"));
+  const email = normalizeEmail(body.email ?? existing?.email);
+  const name = optionalString(body.name, existing?.name ?? "");
+  const role = assertAllowedValue(optionalString(body.role, existing?.role ?? "viewer"), ADMIN_USER_ROLES, "user role");
+  const status = assertAllowedValue(
+    optionalString(body.status, existing?.status ?? "active"),
+    ADMIN_USER_STATUSES,
+    "user status"
+  );
+
+  if (!email) {
+    throw new AdminHttpError("user email is required", 400, { resource: "admin-users", field: "email" });
+  }
+
+  if (!name) {
+    throw new AdminHttpError("user name is required", 400, { resource: "admin-users", field: "name" });
+  }
+
+  return {
+    id,
+    email,
+    name,
+    role: role as AdminUserRow["role"],
+    status: status as AdminUserRow["status"],
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+    created_by: existing?.created_by ?? actor,
+    updated_by: actor,
+    revision: existing?.revision ?? 0
+  };
+}
+
+async function insertAdminUserRow(env: Env, row: AdminUserRow) {
+  await run(
+    env,
+    `INSERT INTO app_admin_users (${ADMIN_USER_ROW_COLUMNS.join(", ")})
+     VALUES (${ADMIN_USER_ROW_COLUMNS.map(() => "?").join(", ")})`,
+    ...ADMIN_USER_ROW_COLUMNS.map((column) => row[column])
+  );
+}
+
+async function updateAdminUserRow(env: Env, row: AdminUserRow, expectedRevision: number | null) {
+  const result = await run(
+    env,
+    `UPDATE app_admin_users
+     SET email = ?, name = ?, role = ?, status = ?, updated_at = ?, updated_by = ?, revision = revision + 1
+     WHERE id = ?
+       AND (? IS NULL OR revision = ?)`,
+    row.email,
+    row.name,
+    row.role,
+    row.status,
+    row.updated_at,
+    row.updated_by,
+    row.id,
+    expectedRevision,
+    expectedRevision
+  );
+  assertMutationChanged(result);
+}
+
+async function deleteAdminUserRow(env: Env, row: AdminUserRow, expectedRevision: number | null) {
+  const result = await run(
+    env,
+    `DELETE FROM app_admin_users
+     WHERE id = ?
+       AND (? IS NULL OR revision = ?)`,
+    row.id,
+    expectedRevision,
+    expectedRevision
+  );
+  assertMutationChanged(result);
+}
+
+function isSelfUser(identity: AdminIdentity, row: AdminUserRow) {
+  return normalizeEmail(identity.email) === row.email;
+}
+
+function userManagementDenied() {
+  return jsonError("user management permission is required", 403, {
+    resource: "admin-users"
+  });
+}
+
+async function handleUsers(request: Request, env: Env, segments: string[], identity: AdminIdentity) {
+  const actor = identity.actor;
+  const now = new Date().toISOString();
+
+  if (segments.length === 1 && request.method === "GET") {
+    const rows = await getAll<AdminUserRow>(
+      env,
+      `SELECT ${ADMIN_USER_ROW_COLUMNS.join(", ")}
+       FROM app_admin_users
+       ORDER BY role ASC, email ASC`
+    );
+    return json({ items: rows.map(mapAdminUserRowToItem), generatedAt: now });
+  }
+
+  if (segments.length === 2 && segments[1] === "me" && request.method === "GET") {
+    const row = await getAdminUserByEmail(env, identity.email);
+    return row ? json({ item: mapAdminUserRowToItem(row) }) : notFoundAdmin();
+  }
+
+  if (segments.length === 1 && request.method === "POST") {
+    if (identity.role !== "admin") {
+      return userManagementDenied();
+    }
+
+    const body = await parseJsonBody(request);
+    const row = createAdminUserRow(body, null, actor, now);
+
+    await assertUniqueAdminUserEmail(env, row.email);
+    await insertAdminUserRow(env, row);
+    return json({ item: mapAdminUserRowToItem(row) }, { status: 201 });
+  }
+
+  const id = segments[1];
+
+  if (!id || segments.length !== 2) {
+    return notFoundAdmin();
+  }
+
+  const existing = await getAdminUserById(env, id);
+
+  if (!existing) {
+    return notFoundAdmin();
+  }
+
+  if (request.method === "GET") {
+    return json({ item: mapAdminUserRowToItem(existing) });
+  }
+
+  if (request.method === "PATCH") {
+    if (identity.role === "viewer") {
+      return userManagementDenied();
+    }
+
+    if (identity.role === "editor" && !isSelfUser(identity, existing)) {
+      return userManagementDenied();
+    }
+
+    const body = await parseJsonBody(request);
+    const expectedRevision = getExpectedRevisionFromRequest(request, body);
+    const permittedBody =
+      identity.role === "editor"
+        ? {
+            name: body.name ?? existing.name
+          }
+        : body;
+    const row = createAdminUserRow({ ...mapAdminUserRowToItem(existing), ...permittedBody, id }, existing, actor, now);
+
+    await assertUniqueAdminUserEmail(env, row.email, row.id);
+    await assertActiveAdminRemains(env, existing, row);
+    await updateAdminUserRow(env, row, expectedRevision);
+    return json({ item: mapAdminUserRowToItem(row) });
+  }
+
+  if (request.method === "DELETE") {
+    if (isSelfUser(identity, existing)) {
+      return jsonError("ไม่สามารถลบบัญชีของตนเองได้", 403, {
+        resource: "admin-users"
+      });
+    }
+
+    if (identity.role !== "admin") {
+      return userManagementDenied();
+    }
+
+    const expectedRevision = getExpectedRevisionFromRequest(request);
+
+    await assertActiveAdminRemains(env, existing, null);
+    await deleteAdminUserRow(env, existing, expectedRevision);
+    return json({ id, deleted: true });
+  }
+
+  return adminMethodNotAllowed();
+}
+
 async function handleSnapshot(env: Env) {
   const [contentRows, documentRows, visitorRows, structured] = await Promise.all([
     getAll<ContentRow>(
@@ -1391,6 +1658,42 @@ function notFoundAdmin() {
   return jsonError("not found", 404, {
     resource: "admin-structured-data"
   });
+}
+
+function getMutationPermissionResponse(segments: string[], method: string, identity: AdminIdentity) {
+  if (method === "GET") {
+    return null;
+  }
+
+  const route = segments[0] || "";
+
+  if (route === "users") {
+    return null;
+  }
+
+  if (
+    route === "content" ||
+    route === "documents" ||
+    route === "carousel" ||
+    route === "external-services" ||
+    route === "events"
+  ) {
+    return requireAdminPermission(identity, canManageContent, "content management permission is required");
+  }
+
+  if (route === "media") {
+    return requireAdminPermission(identity, canManageMedia, "content management permission is required");
+  }
+
+  if (route === "settings" || route === "home-sections" || route === "visitor-stats") {
+    return requireAdminPermission(identity, canManageWebsiteSettings, "website settings permission is required");
+  }
+
+  if (route === "menu") {
+    return requireAdminPermission(identity, canManageMenu, "menu management permission is required");
+  }
+
+  return requireAdminPermission(identity, canManageWebsiteSettings, "admin role is required");
 }
 
 function safeAdminError(error: unknown, env: Env, fallbackContext: AdminRouteErrorContext) {
@@ -1495,7 +1798,7 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
   const routeContext = getAdminRouteContext(request, segments);
 
   if (request.method !== "GET") {
-    const roleResponse = requireAdminRole(authResult.identity);
+    const roleResponse = getMutationPermissionResponse(segments, request.method, authResult.identity);
 
     if (roleResponse) {
       return roleResponse;
@@ -1532,6 +1835,10 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
 
     if (segments[0] === "visitor-stats") {
       return await handleVisitorStats(request, env, segments, authResult.identity);
+    }
+
+    if (segments[0] === "users") {
+      return await handleUsers(request, env, segments, authResult.identity);
     }
 
     const structuredResponse = await handleAdminStructuredParity(request, env, segments, authResult.identity);

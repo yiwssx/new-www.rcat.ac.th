@@ -53,7 +53,7 @@ import { appSwal } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { mergeBridgeMediaAssets } from "../../features/cms-media";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 
 const columnHelper = createColumnHelper<ContentItem>();
 type FilterStatus = ContentStatus | "all";
@@ -67,7 +67,7 @@ function waitForDialogTransition() {
 export default function ContentPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const canManage = canManageAdminData(session?.user);
+  const canManage = canManageContent(session?.user);
   const { data, error, isError, isLoading } = useQuery({
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot
