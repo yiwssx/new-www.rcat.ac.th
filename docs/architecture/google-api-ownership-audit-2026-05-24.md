@@ -1,3 +1,5 @@
+> Historical record. This document describes a previous migration state and is not the current runtime source of truth. Use docs/architecture/m20-cleanup-runtime-ownership.md for current runtime ownership.
+
 # Google API Ownership Audit - 2026-05-24
 
 Status: audit only. No source files were moved, no imports were changed, `src/services/googleApi.ts` remains intact, and `src/types.ts` remains intact.

@@ -1,3 +1,5 @@
+> Historical record. This document describes a previous migration state and is not the current runtime source of truth. Use docs/architecture/m20-cleanup-runtime-ownership.md for current runtime ownership.
+
 # Backend Migration Readiness Audit - 2026-05-27
 
 Status: documentation and readiness audit only. This checkpoint does not add a Cloudflare Worker, D1 schema file, Wrangler configuration, frontend provider switch, production configuration, or backend implementation change.
