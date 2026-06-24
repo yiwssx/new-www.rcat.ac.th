@@ -1,25 +1,67 @@
 # Environment Variables
 
-This Vite app only exposes browser-readable variables whose names start with `VITE_`. Treat every `VITE_` value as public because it can be bundled into client JavaScript.
+This Vite app only exposes browser-readable variables whose names start with `VITE_`.
 
-Do not commit real environment values, deployment URLs for private environments, tokens, passwords, cookies, service account data, or any other secret material. Use local `.env` files and deployment environment settings with placeholders in documentation.
+Treat every `VITE_` value as public because it can be bundled into client JavaScript.
 
-## Public Variables
+Do not commit real environment values, deployment URLs for private environments, tokens, passwords, cookies, service account data, Access AUD values, D1 IDs, or any other secret material.
 
-| Variable                         | Purpose                                                                                                                                    | Required                                                                                                   | Production notes                                                                                                                                                                                                             |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_GOOGLE_APPS_SCRIPT_URL`    | Google Apps Script web app endpoint used by the CMS API adapter.                                                                           | Required in production. Optional for local development when intentionally using project settings or tests. | Must be configured in production. An empty or missing value can block production auth and CMS data access. Use a deployed Apps Script web app URL, for example `https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec`. |
-| `VITE_PUBLIC_SITE_URL`           | Canonical public site URL used for generated links and metadata.                                                                           | Optional.                                                                                                  | Set to the deployed public website origin when it differs from the checked-in project setting, for example `https://www.example.ac.th`.                                                                                      |
-| `VITE_CMS_SITE_NAME`             | Public CMS/site display name override.                                                                                                     | Optional.                                                                                                  | Set only when the deployed environment needs a name different from `src/config/project-settings.json`.                                                                                                                       |
-| `VITE_PUBLIC_ANALYTICS_STRATEGY` | Selects the public analytics loader strategy used by `src/shared/utils/publicAnalytics.ts`. Supported values are `gtm`, `gtag`, or `both`. | Optional.                                                                                                  | Omit to use the built-in default strategy. Set only when changing the analytics loader mode for a deployment.                                                                                                                |
+## Public Frontend Variables
 
-## Example
+| Variable                         | Purpose                                                                                      | Required                                            | Notes                                                                                          |
+| -------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `VITE_CMS_SITE_NAME`             | Public CMS/site display name override.                                                       | Optional                                            | Use only when a deployment needs a name different from `src/config/project-settings.json`.     |
+| `VITE_PUBLIC_SITE_URL`           | Canonical public site URL used for generated links, sitemap, robots, and metadata.           | Optional                                            | Set to the deployed public website origin when it differs from the checked-in project setting. |
+| `VITE_PUBLIC_API_PROVIDER`       | Selects the public structured-data provider.                                                 | Required for Cloudflare-backed deployments          | Use `cloudflare` for the current Cloudflare Worker/D1 public read path.                        |
+| `VITE_CLOUDFLARE_PUBLIC_API_URL` | Cloudflare Worker public API origin.                                                         | Required when `VITE_PUBLIC_API_PROVIDER=cloudflare` | Must be a public Worker origin. Do not include secrets.                                        |
+| `VITE_PUBLIC_ANALYTICS_STRATEGY` | Selects the public analytics loader strategy. Supported values are `gtm`, `gtag`, or `both`. | Optional                                            | Omit to use the built-in default strategy.                                                     |
 
-```env
-VITE_GOOGLE_APPS_SCRIPT_URL="https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
-VITE_PUBLIC_SITE_URL="https://www.example.ac.th"
-VITE_CMS_SITE_NAME="Example College"
-VITE_PUBLIC_ANALYTICS_STRATEGY="gtm"
-```
+## Vercel Admin Proxy Variables
 
-Keep real production values in the hosting provider environment settings. The Apps Script URL is not a secret, but it is production-critical configuration and should be reviewed before release.
+Configure these in Vercel environment settings.
+
+| Variable                       | Purpose                                                      |
+| ------------------------------ | ------------------------------------------------------------ |
+| `ADMIN_PROXY_ALLOWED_EMAILS`   | Emails allowed to create admin proxy sessions.               |
+| `ADMIN_PROXY_PASSWORD_HASH`    | Password hash used by the admin proxy login endpoint.        |
+| `ADMIN_PROXY_SESSION_SECRET`   | Server-only secret used to sign admin proxy session cookies. |
+| `ADMIN_RBAC_ADMINS`            | Admin role email list.                                       |
+| `ADMIN_RBAC_EDITORS`           | Editor role email list.                                      |
+| `ADMIN_RBAC_VIEWERS`           | Viewer role email list.                                      |
+| `CLOUDFLARE_ADMIN_API_URL`     | Cloudflare Worker admin API origin.                          |
+| `CLOUDFLARE_ADMIN_SMOKE_TOKEN` | Server-only token forwarded from Vercel proxy to the Worker. |
+
+## Cloudflare Worker Variables
+
+Configure these in Cloudflare Worker environment settings.
+
+| Variable                         | Purpose                                                 |
+| -------------------------------- | ------------------------------------------------------- |
+| `ADMIN_RBAC_ADMINS`              | Admin role email list.                                  |
+| `ADMIN_RBAC_EDITORS`             | Editor role email list.                                 |
+| `ADMIN_RBAC_VIEWERS`             | Viewer role email list.                                 |
+| `ADMIN_WRITE_AUTH_MODE`          | Admin write authentication mode.                        |
+| `ADMIN_WRITE_ALLOWED_EMAILS`     | Allowed admin write emails.                             |
+| `ADMIN_WRITE_ALLOWED_ORIGINS`    | Allowed frontend/admin origins.                         |
+| `ADMIN_WRITE_PREVIEW_ENABLED`    | Enables preview admin write behavior where intended.    |
+| `ADMIN_WRITE_ACCESS_AUD`         | Cloudflare Access AUD when Access mode is used.         |
+| `ADMIN_WRITE_ACCESS_TEAM_DOMAIN` | Cloudflare Access team domain when Access mode is used. |
+| `DB`                             | D1 database binding.                                    |
+
+## Apps Script Media Bridge Variables
+
+Configure these as server-side variables only.
+
+| Variable                   | Purpose                                                            |
+| -------------------------- | ------------------------------------------------------------------ |
+| `GOOGLE_APPS_SCRIPT_URL`   | Apps Script Web App URL used by the server-side media/file bridge. |
+| `APPS_SCRIPT_WEB_APP_URL`  | Alternate Apps Script Web App URL variable accepted by the bridge. |
+| `APPS_SCRIPT_BRIDGE_TOKEN` | Server-only bridge token shared with Apps Script where required.   |
+
+Do not expose bridge tokens through `VITE_` variables.
+
+## Deprecated For Current Admin Runtime
+
+`VITE_GOOGLE_APPS_SCRIPT_URL` is not the current admin login or user-management configuration path.
+
+The current admin runtime uses Vercel admin proxy, Cloudflare Worker/D1, and RBAC environment variables.

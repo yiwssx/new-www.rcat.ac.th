@@ -1,306 +1,39 @@
-# Google Apps Script Backend
+@'
 
-This folder contains the zero-cost backend for the React CMS. It exposes a web app endpoint that the frontend calls through `VITE_GOOGLE_APPS_SCRIPT_URL`.
+# Apps Script Media Bridge Deployment Checklist
 
-## What It Provides
+Use this checklist only when a release changes `apps-script/`, Apps Script manifest/scopes, Google Drive media/file operations, or the Apps Script side of the Vercel media/file bridge.
 
-- `GET ?resource=snapshot` returns dashboard metrics, content, media, and events.
-- `GET ?resource=health` checks the spreadsheet connection.
-- `GET ?resource=menu` returns the public website menu tree.
-- `GET ?resource=content-detail&id=...` or `&slug=...` returns full content body from Google Docs.
-- `POST ?resource=auth-login` authenticates a CMS user and returns a signed session token.
-- `POST ?resource=snapshot-admin` returns the full admin snapshot, including unpublished content, for authenticated editors/admins.
-- `POST ?resource=content-detail-admin` returns full content detail, including draft/review/scheduled content, for authenticated editors/admins.
-- `POST ?resource=content` creates or updates one content item.
-- `POST ?resource=content-delete` deletes one content item.
-- `POST ?resource=media` creates or updates one media item.
-- `POST ?resource=media-delete` deletes one media item and moves its Drive file to trash when possible.
-- `POST ?resource=event` creates or updates one calendar event.
-- `POST ?resource=event-delete` deletes one calendar event.
-- `POST ?resource=publish` marks one content item as published.
-- `POST ?resource=menu` replaces the public website menu tree.
-- `POST ?resource=site-settings` updates public website settings for authenticated admins.
-- `POST ?resource=users` with `{ "action": "list", "authToken": "..." }` returns CMS user accounts for authenticated admins.
-- `POST ?resource=users` creates or updates one CMS user account for authenticated admins.
-- `POST ?resource=users-delete` deletes one CMS user account.
-- `POST ?resource=users-reset` restores the default admin user account.
+Apps Script is not the current user-management backend.
 
-Authenticated requests must send `authToken` in the JSON POST body only. Do not send
-`authToken` in URL query parameters; public `GET` routes ignore query-token auth.
+## Current Scope
 
-The data source is a Google Sheet with these tabs:
+Apps Script is retained for:
 
-- `Content`
-- `Media`
-- `Events`
-- `Menu`
-- `Users`
-- `Settings`
+- media/file bridge operations
+- Google Drive file access
+- file upload/delete/list workflows behind the Vercel proxy
 
-Backend configuration is now property-driven. Runtime settings are read from Apps Script
-Script Properties instead of hard-coded values in `Code.gs`.
+Apps Script must not be restored as:
 
-## Setup
+- frontend credential login backend
+- direct frontend user-management backend
+- local bootstrap user fallback
+- password-hash user-account fallback
 
-1. Open [script.google.com](https://script.google.com/) and create or choose the Apps Script project for this backend.
-2. Open Project Settings > Script Properties and optionally set:
-   - `publicSiteUrl`
-   - `spreadsheetName`
-   - `rootFolderName`
-   - `mediaFolderName`
-   - `docsFolderName`
-   - `authSessionHours` (token lifetime, default `8`)
-3. Set secure admin bootstrap Script Properties (required if you want automatic first admin creation):
-   - `defaultAdminName` (optional display name)
-   - `defaultAdminEmail` (required for bootstrap)
-   - `defaultAdminPasswordHash` (required for bootstrap)
-   - Use `createPasswordHash("your-password")` in Apps Script editor to generate a `sha256$...` hash value.
-4. Optional: set `authTokenSecret` manually. If omitted, the script auto-generates one on first request.
-5. Never commit real admin email/password hashes to source control.
+## Deployment Overview
 
-`setupCmsBackend` creates required sheets/folders.
-If `defaultAdminEmail` and `defaultAdminPasswordHash` are configured in Script Properties,
-it also seeds one admin user in `Users`.
-It does not seed sample content, media, events, documents, highlights, stats, or achievements.
-Add real public content through the CMS.
-Media uploads sent to `POST ?resource=media` are stored in the folder configured by `driveFolderId`
-(`mediaFolderName`, default `RCAT_MEDIA_STUFF`).
-Content body text is stored in Google Docs under `docsFolderId` (`docsFolderName`, default `RCAT_CONTENTS`), and
-the Sheet stores document links instead of long body text.
+- Vercel frontend deployment and Apps Script deployment are separate release steps.
+- A Vercel deploy does not push, version, or redeploy Apps Script source.
+- Changes under `apps-script/` must be pushed to Google Apps Script, saved as a new version, and assigned to the intended Web App deployment.
+- The current production frontend should not depend on `VITE_GOOGLE_APPS_SCRIPT_URL` for admin auth or user management.
+- The server-side media bridge should use server-only Apps Script bridge configuration, such as `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`.
+- Prefer updating the existing Web App deployment. Creating a new Web App deployment usually changes the URL and requires a coordinated server-side environment update.
 
-## Optional Starter Public Shell
+## Pre-Deploy Checklist
 
-For a first-time setup, you may run `seedStarterPublicSiteSettings` from the Apps Script editor
-after `setupCmsBackend`.
+- Confirm the current branch:
 
-This helper is safe to skip. When used, it only:
-
-- writes neutral `siteSettings` values when all known `siteSettings` fields are empty;
-- creates a minimal public menu when the `Menu` sheet has no rows:
-  - `หน้าแรก` -> `/`
-  - `ข่าวสาร` -> `/news`
-  - `ประกาศ` -> `/announcements`
-  - `หลักสูตร` -> `/departments`
-  - `ติดต่อ` -> `/contact`
-
-It never overwrites existing `siteSettings` or existing menu rows, and it never creates fake
-news, announcements, documents, statistics, highlights, achievements, media, or events.
-Create real school content through the CMS.
-
-## Deploy with clasp Recommended
-
-Use clasp as the primary deployment workflow so the local `.gs` files and `appsscript.json`
-are pushed together without opening each file in the Apps Script editor.
-
-Command context:
-
-- From repository root: package scripts such as `pnpm gas:push` are intended to be run here.
-- From `apps-script` directory: raw clasp commands are intended to be run here.
-
-1. Enable the Google Apps Script API at:
-
-```text
-https://script.google.com/home/usersettings
-```
-
-2. Log in to clasp:
-
-From repository root:
-
-```bash
-pnpm dlx @google/clasp login
-```
-
-3. Open the Apps Script directory:
-
-From repository root:
-
-```bash
-cd apps-script
-```
-
-4. Copy the local clasp template:
-
-From `apps-script` directory:
-
-macOS/Linux/Git Bash:
-
-```bash
-cp .clasp.example.json .clasp.json
-```
-
-Windows PowerShell:
-
-```powershell
-Copy-Item .clasp.example.json .clasp.json
-```
-
-Windows cmd:
-
-```bat
-copy .clasp.example.json .clasp.json
-```
-
-5. Put the real `scriptId` into `.clasp.json`.
-   The `scriptId` comes from the Apps Script project URL:
-
-```text
-https://script.google.com/home/projects/<SCRIPT_ID>/edit
-```
-
-6. Push the Apps Script source:
-
-From `apps-script` directory:
-
-```bash
-pnpm dlx @google/clasp push --force
-```
-
-7. After the first push, open the Apps Script editor, select `setupCmsBackend`, and click Run.
-   Approve the requested Google permissions, keep the returned `spreadsheetUrl` for direct Sheet inspection,
-   and run `setupCmsBackend` again after schema upgrades so new columns are added without deleting existing rows.
-
-8. Create a version and deploy it to the existing Web App deployment:
-
-From `apps-script` directory:
-
-```bash
-pnpm dlx @google/clasp deployments
-pnpm dlx @google/clasp version "release latest"
-pnpm dlx @google/clasp deploy --deploymentId <DEPLOYMENT_ID> --versionNumber <VERSION_NUMBER> --description "release latest"
-```
-
-Warnings:
-
-- `clasp push --force` replaces project source files but does not update Script Properties.
-- The existing Web App URL stays the same only when deploying to the existing `deploymentId`.
-- After `clasp push --force`, create a new version and deploy it; otherwise `/exec` may still run old code.
-- Do not commit `apps-script/.clasp.json`.
-
-## Deploy Web App
-
-Use this UI flow only to create the initial Web App deployment or to change Web App access settings.
-For source updates, use the clasp workflow above.
-
-1. Click Deploy > New deployment.
-2. Select type `Web app`.
-3. Set Execute as to `Me`.
-4. Set Who has access to `Anyone`.
-5. Click Deploy.
-6. Copy the Web app URL. It looks like:
-
-```text
-https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
-```
-
-Keep the deployment ID for later `clasp deploy --deploymentId <DEPLOYMENT_ID>` updates.
-
-## Manual Setup Fallback
-
-Use this only if clasp cannot be used on the workstation.
-
-1. Open the Apps Script editor for the project.
-2. Copy all `.gs` files from this folder into the Apps Script editor:
-   - `Config.gs`
-   - `ScriptProperties.gs`
-   - `Code.gs`
-   - `Cms.gs`
-   - `Cache.gs`
-   - `Menu.gs`
-   - `Users.gs`
-   - `Storage.gs`
-   - `SiteSettings.gs`
-   - `HttpUtils.gs`
-3. Open Project Settings, enable `Show appsscript.json manifest file in editor`, then copy `appsscript.json` into the manifest file.
-4. Select the `setupCmsBackend` function and click Run.
-5. Approve the requested Google permissions.
-6. Keep the returned `spreadsheetUrl` for direct Sheet inspection when needed.
-7. Run `setupCmsBackend` again after schema upgrades so new columns are added without deleting existing rows.
-
-## Connect The React App
-
-Create `.env.local` in the project root:
-
-```bash
-VITE_CMS_SITE_NAME="RCAT CMS"
-VITE_GOOGLE_APPS_SCRIPT_URL="https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
-VITE_PUBLIC_SITE_URL="https://preview-placeholder.example.invalid"
-```
-
-Restart Vite:
-
-```bash
-pnpm dev
-```
-
-On this Windows machine, use `pnpm.cmd dev` if PowerShell blocks the pnpm script shim.
-
-## Test The Endpoint
-
-Open this URL in a browser:
-
-```text
-https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?resource=health
-```
-
-Expected result:
-
-```json
-{
-  "ok": true,
-  "hasSpreadsheet": true,
-  "hasDriveFolder": true,
-  "hasDocsFolder": true,
-  "timestamp": "2026-04-23T00:00:00.000Z",
-  "statusCode": 200
-}
-```
-
-Then test content:
-
-```text
-https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?resource=snapshot
-```
-
-## Updating The Script
-
-After editing Apps Script code:
-
-1. Run `pnpm dlx @google/clasp push --force` from `apps-script`.
-2. Run `pnpm dlx @google/clasp version "release latest"`.
-3. Run `pnpm dlx @google/clasp deploy --deploymentId <DEPLOYMENT_ID> --versionNumber <VERSION_NUMBER> --description "release latest"`.
-4. Keep the same Web App URL in `.env.local` by deploying to the same existing `deploymentId`.
-
-## Final Verification Checklist
-
-Use the deployed Web App URL and verify:
-
-- `GET ?resource=health`
-- `GET ?resource=snapshot`
-- `POST ?resource=snapshot-admin`
-- `POST ?resource=site-settings` with `{ "authToken": "...", "siteName": "..." }` as an admin-only route
-- `POST ?resource=users` with `{ "action": "list", "authToken": "..." }`
-
-Optional Apps Script editor verification:
-
-- Run `smokeTestSiteSettings` and confirm it returns `{ "ok": true, ... }`.
-
-## Security Notes
-
-This backend now enforces signed server tokens for protected routes:
-
-- Authenticated routes read `authToken` from the JSON POST body only, never from the URL.
-- Public `GET` routes stay public and do not read `authToken` from query parameters.
-- `POST` write routes require a valid token in the request body.
-- `POST ?resource=snapshot-admin` and `POST ?resource=content-detail-admin` require editor/admin role.
-- Admin-only routes (`users`, `users-delete`, `users-reset`) require admin role in a verified token.
-- User listing is only available through `POST ?resource=users` with `{ "action": "list", "authToken": "..." }`.
-- Password hashes are never returned from user listing responses.
-- Login attempts are rate-limited per email via Apps Script cache.
-- Public `snapshot` responses are limited to published/public records. Use `POST ?resource=snapshot-admin` for authenticated admin reads.
-
-For production school data, still review:
-
-- Drive sharing policies for uploaded files and docs.
-- Script deployment access level in `appsscript.json`.
-- Password rotation/reset process for admin bootstrap credentials.
+  ```powershell
+  git branch --show-current
+  ```
