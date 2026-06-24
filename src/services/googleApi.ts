@@ -20,7 +20,6 @@ import {
   PublicSearchIndexSnapshot,
   Session,
   SiteSettings,
-  UserAccount,
   VisitorStatsSettings
 } from "../types";
 
@@ -45,7 +44,7 @@ const cacheFriendlyPublicGetResources = new Set<GoogleResource>([
   "displaySettings",
   "contentDetail"
 ]);
-const unauthenticatedPostResources = new Set<GoogleResource>(["authLogin", "contentView", "siteView"]);
+const unauthenticatedPostResources = new Set<GoogleResource>(["contentView", "siteView"]);
 
 let activeGoogleApiRequestCount = 0;
 const googleApiActivitySubscribers = new Set<GoogleApiActivitySubscriber>();
@@ -90,17 +89,6 @@ export function subscribeGoogleApiActivity(subscriber: GoogleApiActivitySubscrib
   return () => {
     googleApiActivitySubscribers.delete(subscriber);
   };
-}
-
-export interface UserAccountInput {
-  id?: string;
-  name: string;
-  email: string;
-  role: UserAccount["role"];
-  status: UserAccount["status"];
-  password?: string;
-  passwordHash?: string;
-  avatarUrl?: string;
 }
 
 export interface CalendarEventInput {
@@ -261,13 +249,6 @@ function postJson<T>(resource: GoogleResource, body: unknown) {
       "Content-Type": "text/plain;charset=utf-8"
     },
     body: JSON.stringify(payload)
-  });
-}
-
-export async function loginUserFromApi(email: string, password: string): Promise<Session> {
-  return postJson<Session>("authLogin", {
-    email,
-    password
   });
 }
 
@@ -483,24 +464,6 @@ export async function saveHomepageSettingsToApi(settings: Partial<HomepageSettin
 
 export async function saveVisitorStatsToApi(stats: Partial<VisitorStatsSettings>): Promise<VisitorStatsSettings> {
   return postJson<VisitorStatsSettings>("visitorStats", stats);
-}
-
-export async function getUserAccountsFromApi(): Promise<UserAccount[]> {
-  const response = await postJson<{ items: UserAccount[] }>("users", { action: "list" });
-  return response.items;
-}
-
-export async function saveUserAccountToApi(input: UserAccountInput): Promise<UserAccount> {
-  return postJson<UserAccount>("users", input);
-}
-
-export async function deleteUserAccountFromApi(id: string): Promise<{ id: string; deleted: boolean }> {
-  return postJson<{ id: string; deleted: boolean }>("deleteUser", { id });
-}
-
-export async function resetUserAccountsFromApi(): Promise<UserAccount[]> {
-  const response = await postJson<{ items: UserAccount[] }>("resetUsers", {});
-  return response.items;
 }
 
 export async function checkGoogleConnection(): Promise<IntegrationStatus[]> {

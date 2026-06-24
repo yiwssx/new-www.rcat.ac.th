@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://preview-placeholder.example.invalid/sitemap.xml
+Sitemap: https://www.rcat.ac.th/sitemap.xml

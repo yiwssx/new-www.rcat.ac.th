@@ -1,7 +1,7 @@
 {
   "site": {
     "name": "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
-    "publicSiteUrl": "https://preview-placeholder.example.invalid",
+    "publicSiteUrl": "https://www.rcat.ac.th",
     "language": "th",
     "locale": "th-TH",
     "logoPath": "/rcat-logo-128.png",
@@ -19,7 +19,6 @@
       "publicSearchIndex": "public-search-index",
       "adminSnapshot": "snapshot-admin",
       "health": "health",
-      "authLogin": "auth-login",
       "content": "content",
       "contentDetail": "content-detail",
       "adminContentDetail": "content-detail-admin",
@@ -41,10 +40,7 @@
       "displaySettings": "display-settings",
       "siteSettings": "site-settings",
       "homepageSettings": "homepage-settings",
-      "visitorStats": "visitor-stats",
-      "users": "users",
-      "deleteUser": "users-delete",
-      "resetUsers": "users-reset"
+      "visitorStats": "visitor-stats"
     }
   },
   "query": {
@@ -57,16 +53,10 @@
   },
   "storageKeys": {
     "session": "rcat.cms.session",
-    "users": "rcat.cms.user.accounts",
     "displaySettings": "rcat.cms.display.settings"
   },
   "auth": {
-    "sessionHours": 8,
-    "loginPrefill": {
-      "email": "",
-      "password": ""
-    },
-    "bootstrapUsers": []
+    "sessionHours": 8
   },
   "roles": [
     {

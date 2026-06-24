@@ -1,35 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://preview-placeholder.example.invalid/</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://www.rcat.ac.th/</loc>
+    <lastmod>2026-06-24</lastmod>
   </url>
   <url>
-    <loc>https://preview-placeholder.example.invalid/news</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://www.rcat.ac.th/news</loc>
+    <lastmod>2026-06-24</lastmod>
   </url>
   <url>
-    <loc>https://preview-placeholder.example.invalid/announcements</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://www.rcat.ac.th/announcements</loc>
+    <lastmod>2026-06-24</lastmod>
   </url>
   <url>
-    <loc>https://preview-placeholder.example.invalid/departments</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://www.rcat.ac.th/departments</loc>
+    <lastmod>2026-06-24</lastmod>
   </url>
   <url>
-    <loc>https://preview-placeholder.example.invalid/blog</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://www.rcat.ac.th/blog</loc>
+    <lastmod>2026-06-24</lastmod>
   </url>
   <url>
-    <loc>https://preview-placeholder.example.invalid/contact</loc>
-    <lastmod>2026-06-20</lastmod>
-  </url>
-  <url>
-    <loc>https://preview-placeholder.example.invalid/content/orientation2026</loc>
-    <lastmod>2026-06-20</lastmod>
-  </url>
-  <url>
-    <loc>https://preview-placeholder.example.invalid/orientation2026</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://www.rcat.ac.th/contact</loc>
+    <lastmod>2026-06-24</lastmod>
   </url>
 </urlset>

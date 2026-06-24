@@ -1,5 +1,5 @@
 import projectSettingsData from "./project-settings.json";
-import type { RolePermission, UserAccount } from "../types";
+import type { RolePermission } from "../types";
 
 interface ProjectSettings {
   site: {
@@ -22,7 +22,6 @@ interface ProjectSettings {
       publicSearchIndex: string;
       adminSnapshot: string;
       health: string;
-      authLogin: string;
       content: string;
       contentDetail: string;
       adminContentDetail: string;
@@ -45,9 +44,6 @@ interface ProjectSettings {
       siteSettings: string;
       homepageSettings: string;
       visitorStats: string;
-      users: string;
-      deleteUser: string;
-      resetUsers: string;
     };
   };
   query: {
@@ -60,16 +56,10 @@ interface ProjectSettings {
   };
   storageKeys: {
     session: string;
-    users: string;
     displaySettings: string;
   };
   auth: {
     sessionHours: number;
-    loginPrefill: {
-      email: string;
-      password: string;
-    };
-    bootstrapUsers: UserAccount[];
   };
   roles: RolePermission[];
   theme: {

@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
+import { getCmsSiteName } from "../../config/projectSettings";
 import { useAuth } from "../../context/authSessionContext";
 import { appSwal } from "../../utils/swal";
 import { consumeAdminProxySessionNotice } from "../../services/adminProxySession";
@@ -22,8 +22,8 @@ import { consumeAdminProxySessionNotice } from "../../services/adminProxySession
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail] = useState(projectSettings.auth.loginPrefill.email);
-  const [password, setPassword] = useState(projectSettings.auth.loginPrefill.password);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sessionNotice] = useState(() => consumeAdminProxySessionNotice());

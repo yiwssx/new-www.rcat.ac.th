@@ -10,7 +10,6 @@ vi.mock("../../config/projectSettings", () => ({
         snapshot: "snapshot",
         adminSnapshot: "snapshot-admin",
         health: "health",
-        authLogin: "auth-login",
         content: "content",
         contentDetail: "content-detail",
         adminContentDetail: "content-detail-admin",
@@ -29,10 +28,7 @@ vi.mock("../../config/projectSettings", () => ({
         deleteEvent: "event-delete",
         displaySettings: "display-settings",
         siteSettings: "site-settings",
-        homepageSettings: "homepage-settings",
-        users: "users",
-        deleteUser: "users-delete",
-        resetUsers: "users-reset"
+        homepageSettings: "homepage-settings"
       }
     },
     storageKeys: {
