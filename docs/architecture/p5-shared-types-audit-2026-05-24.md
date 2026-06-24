@@ -1,3 +1,5 @@
+> Historical record. This document describes a previous migration state and is not the current runtime source of truth. Use docs/architecture/m20-cleanup-runtime-ownership.md for current runtime ownership.
+
 # P5 Shared Types Audit - 2026-05-24
 
 Status: audit only. No types were moved, no imports were changed, and `src/types.ts` remains intact.

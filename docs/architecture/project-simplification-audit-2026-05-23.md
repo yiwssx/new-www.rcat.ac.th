@@ -1,3 +1,5 @@
+> Historical record. This document describes a previous migration state and is not the current runtime source of truth. Use docs/architecture/m20-cleanup-runtime-ownership.md for current runtime ownership.
+
 # Project Simplification Audit
 
 Date: 2026-05-23
