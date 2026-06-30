@@ -76,6 +76,7 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
   const activeSettings = settings;
   const showImageLoadingState = hasSafeImage && imageStatus === "loading";
   const showImageErrorState = !hasSafeImage || imageStatus === "failed";
+  const imageViewportMaxHeight = "calc(100dvh - 140px)";
 
   return (
     <Box
@@ -86,93 +87,97 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
         position: "fixed",
         inset: 0,
         zIndex: theme.zIndex.modal + 20,
-        minHeight: "100dvh",
-        display: "grid",
-        placeItems: "center",
-        bgcolor: alpha(theme.palette.common.black, 0.72),
-        background: `linear-gradient(145deg, ${alpha(theme.palette.primary.dark, 0.88)} 0%, ${alpha(
-          theme.palette.common.black,
-          0.72
-        )} 48%, ${alpha(theme.palette.secondary.dark, 0.72)} 100%)`,
-        px: { xs: 1, sm: 2, md: 3 },
-        py: { xs: 1.25, sm: 2, md: 3 },
-        overflow: "auto"
+        width: "100vw",
+        height: "100dvh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        bgcolor: alpha(theme.palette.common.black, 0.78),
+        px: { xs: 1, sm: 2 },
+        py: { xs: 1, sm: 2 },
+        overflow: "hidden"
       })}
     >
       <Stack
-        spacing={{ xs: 1, sm: 1.25, md: 1.5 }}
+        spacing={{ xs: 1.25, sm: 1.5 }}
         alignItems="center"
+        justifyContent="center"
         sx={{
           width: "100%",
-          maxWidth: { xs: "100%", sm: 760, md: 980, lg: 1180, xl: 1320 },
-          mx: "auto"
+          height: "100%",
+          maxWidth: "100vw",
+          maxHeight: "100dvh",
+          margin: 0
         }}
       >
         <Box
-          sx={(theme) => ({
+          sx={{
             position: "relative",
-            display: "grid",
-            placeItems: "center",
-            width: "100%",
-            maxHeight: { xs: "78dvh", sm: "80dvh", md: "82dvh" },
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "fit-content",
+            maxWidth: "94vw",
+            maxHeight: imageViewportMaxHeight,
             overflow: "hidden",
-            borderRadius: { xs: 1.25, sm: 2, md: 2.5 },
-            bgcolor: alpha(theme.palette.common.white, 0.96),
-            border: `1px solid ${alpha(theme.palette.common.white, 0.38)}`,
-            boxShadow: `0 28px 90px ${alpha(theme.palette.common.black, 0.38)}`,
-            color: "text.secondary",
-            textAlign: "center",
-            "&::before": showImageLoadingState
-              ? {
-                  content: '""',
-                  position: "absolute",
-                  inset: 0,
-                  background: `linear-gradient(110deg, ${alpha(theme.palette.common.white, 0.24)} 8%, ${alpha(
-                    theme.palette.secondary.light,
-                    0.36
-                  )} 18%, ${alpha(theme.palette.common.white, 0.24)} 33%)`,
-                  backgroundSize: "200% 100%",
-                  animation: "introGateImageLoading 1.35s ease-in-out infinite"
-                }
-              : undefined,
-            "@keyframes introGateImageLoading": {
-              "0%": {
-                backgroundPosition: "100% 0"
-              },
-              "100%": {
-                backgroundPosition: "-100% 0"
-              }
-            }
-          })}
+            borderRadius: 2,
+            bgcolor: "transparent",
+            boxShadow: "0 18px 60px rgba(0,0,0,0.42)"
+          }}
         >
           {showImageLoadingState && (
-            <Typography
-              aria-live="polite"
+            <Box
               sx={{
-                position: "relative",
-                zIndex: 1,
-                px: 2,
-                py: 8,
-                fontSize: { xs: "0.86rem", sm: "0.95rem" },
-                fontWeight: 700
+                width: "min(94vw, 960px)",
+                height: "min(70vh, 720px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 2,
+                bgcolor: "rgba(255,255,255,0.08)"
               }}
             >
-              กำลังโหลดภาพประชาสัมพันธ์
-            </Typography>
+              <Typography
+                aria-live="polite"
+                sx={{
+                  px: 2,
+                  py: 4,
+                  fontSize: { xs: "0.9rem", sm: "1rem" },
+                  fontWeight: 700,
+                  color: "#fff"
+                }}
+              >
+                กำลังโหลดภาพประชาสัมพันธ์
+              </Typography>
+            </Box>
           )}
 
           {showImageErrorState && (
-            <Typography
-              role="status"
+            <Box
               sx={{
-                px: 2,
-                py: 8,
-                fontSize: { xs: "0.86rem", sm: "0.95rem" },
-                fontWeight: 700
+                width: "min(94vw, 960px)",
+                height: "min(70vh, 720px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 2,
+                bgcolor: "rgba(255,255,255,0.08)"
               }}
             >
-              ไม่สามารถโหลดภาพประชาสัมพันธ์ได้
-            </Typography>
+              <Typography
+                role="status"
+                sx={{
+                  px: 2,
+                  py: 4,
+                  fontSize: { xs: "0.9rem", sm: "1rem" },
+                  fontWeight: 700,
+                  color: "#fff",
+                  textAlign: "center"
+                }}
+              >
+                ไม่สามารถโหลดภาพประชาสัมพันธ์ได้
+              </Typography>
+            </Box>
           )}
 
           {hasSafeImage && imageStatus !== "failed" && (
@@ -180,7 +185,7 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
               component="img"
               src={imageSrc}
               srcSet={imageSrcSet || undefined}
-              sizes="(max-width: 600px) 96vw, (max-width: 1200px) 94vw, 1320px"
+              sizes="94vw"
               alt={activeSettings.imageAlt}
               loading="eager"
               decoding="async"
@@ -189,10 +194,12 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
               {...({ fetchpriority: "high" } as Record<string, string>)}
               sx={{
                 display: "block",
-                width: "100%",
+                width: "auto",
                 height: "auto",
-                maxHeight: { xs: "78dvh", sm: "80dvh", md: "82dvh" },
+                maxWidth: "94vw",
+                maxHeight: imageViewportMaxHeight,
                 objectFit: "contain",
+                borderRadius: 2,
                 opacity: imageStatus === "loaded" ? 1 : 0,
                 transition: "opacity 180ms ease"
               }}
@@ -202,13 +209,13 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
 
         <Stack
           direction={{ xs: "column", sm: "row" }}
-          spacing={{ xs: 0.75, sm: 1, md: 1.25 }}
+          spacing={{ xs: 1, sm: 1.25 }}
           justifyContent="center"
           alignItems="stretch"
           sx={{
             width: "100%",
-            maxWidth: hasSecondaryButton ? { xs: "100%", sm: 560, md: 680 } : { xs: "100%", sm: 340 },
-            mx: "auto"
+            maxWidth: hasSecondaryButton ? 560 : 320,
+            flexShrink: 0
           }}
         >
           {hasSecondaryButton && (
@@ -223,12 +230,10 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
               fullWidth
               endIcon={<OpenInNewRoundedIcon />}
               sx={(theme) => ({
-                minHeight: { xs: 44, sm: 46, md: 48 },
-                px: { xs: 1.5, sm: 2, md: 2.5 },
-                fontSize: { xs: "0.86rem", sm: "0.92rem", md: "0.98rem" },
+                minHeight: 46,
                 fontWeight: 800,
-                bgcolor: alpha(theme.palette.common.white, 0.92),
-                borderColor: alpha(theme.palette.common.white, 0.72),
+                bgcolor: alpha(theme.palette.common.white, 0.96),
+                borderColor: alpha(theme.palette.common.white, 0.8),
                 color: theme.palette.primary.dark,
                 "&:hover": {
                   bgcolor: theme.palette.common.white,
@@ -249,11 +254,9 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
             startIcon={<LoginRoundedIcon />}
             onClick={handleEnterSite}
             sx={{
-              minHeight: { xs: 44, sm: 46, md: 48 },
-              px: { xs: 1.5, sm: 2, md: 2.5 },
-              fontSize: { xs: "0.86rem", sm: "0.92rem", md: "0.98rem" },
+              minHeight: 46,
               fontWeight: 900,
-              boxShadow: "0 14px 32px rgba(0,0,0,0.28)"
+              boxShadow: "0 10px 30px rgba(0,0,0,0.28)"
             }}
           >
             {activeSettings.primaryButtonLabel}
