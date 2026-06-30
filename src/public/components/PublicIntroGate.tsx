@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
@@ -59,6 +59,34 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
   const storageKey = getIntroGateStorageKey(settings);
   const isVisible = getInitialVisibility(settings) && !isDismissedInSession(storageKey, dismissedKeys);
 
+  useEffect(() => {
+    if (!isVisible || typeof document === "undefined" || typeof window === "undefined") {
+      return;
+    }
+
+    const scrollY = window.scrollY;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyPosition = document.body.style.position;
+    const previousBodyTop = document.body.style.top;
+    const previousBodyWidth = document.body.style.width;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.position = previousBodyPosition;
+      document.body.style.top = previousBodyTop;
+      document.body.style.width = previousBodyWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isVisible]);
+
   function handleEnterSite() {
     try {
       window.sessionStorage.setItem(storageKey, "dismissed");
@@ -92,22 +120,23 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        bgcolor: alpha(theme.palette.common.black, 0.78),
+        bgcolor: alpha(theme.palette.common.black, 0.82),
         px: { xs: 1, sm: 2 },
         py: { xs: 1, sm: 2 },
-        overflow: "hidden"
+        overflow: "hidden",
+        overscrollBehavior: "none",
+        touchAction: "none"
       })}
     >
       <Stack
-        spacing={{ xs: 1.25, sm: 1.5 }}
+        spacing={{ xs: 1, sm: 1.25 }}
         alignItems="center"
         justifyContent="center"
         sx={{
           width: "100%",
           height: "100%",
           maxWidth: "100vw",
-          maxHeight: "100dvh",
-          margin: 0
+          maxHeight: "100dvh"
         }}
       >
         <Box
@@ -116,25 +145,26 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: "fit-content",
-            maxWidth: "94vw",
-            maxHeight: imageViewportMaxHeight,
+            width: "auto",
+            maxWidth: "96vw",
+            maxHeight: hasSecondaryButton ? "calc(100dvh - 132px)" : "calc(100dvh - 92px)",
             overflow: "hidden",
-            borderRadius: 2,
+            borderRadius: { xs: 1.5, sm: 2 },
             bgcolor: "transparent",
-            boxShadow: "0 18px 60px rgba(0,0,0,0.42)"
+            boxShadow: "0 24px 80px rgba(0,0,0,0.46)"
           }}
         >
           {showImageLoadingState && (
             <Box
               sx={{
-                width: "min(94vw, 960px)",
-                height: "min(70vh, 720px)",
+                width: "min(96vw, 960px)",
+                height: hasSecondaryButton ? "calc(100dvh - 132px)" : "calc(100dvh - 92px)",
+                maxHeight: 720,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                borderRadius: 2,
-                bgcolor: "rgba(255,255,255,0.08)"
+                borderRadius: { xs: 1.5, sm: 2 },
+                bgcolor: "rgba(255,255,255,0.1)"
               }}
             >
               <Typography
@@ -144,7 +174,8 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
                   py: 4,
                   fontSize: { xs: "0.9rem", sm: "1rem" },
                   fontWeight: 700,
-                  color: "#fff"
+                  color: "#fff",
+                  textAlign: "center"
                 }}
               >
                 กำลังโหลดภาพประชาสัมพันธ์
@@ -155,13 +186,14 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
           {showImageErrorState && (
             <Box
               sx={{
-                width: "min(94vw, 960px)",
-                height: "min(70vh, 720px)",
+                width: "min(96vw, 960px)",
+                height: hasSecondaryButton ? "calc(100dvh - 132px)" : "calc(100dvh - 92px)",
+                maxHeight: 720,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                borderRadius: 2,
-                bgcolor: "rgba(255,255,255,0.08)"
+                borderRadius: { xs: 1.5, sm: 2 },
+                bgcolor: "rgba(255,255,255,0.1)"
               }}
             >
               <Typography
@@ -185,7 +217,7 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
               component="img"
               src={imageSrc}
               srcSet={imageSrcSet || undefined}
-              sizes="94vw"
+              sizes="96vw"
               alt={activeSettings.imageAlt}
               loading="eager"
               decoding="async"
@@ -196,12 +228,13 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
                 display: "block",
                 width: "auto",
                 height: "auto",
-                maxWidth: "94vw",
-                maxHeight: imageViewportMaxHeight,
+                maxWidth: "96vw",
+                maxHeight: hasSecondaryButton ? "calc(100dvh - 132px)" : "calc(100dvh - 92px)",
                 objectFit: "contain",
-                borderRadius: 2,
+                borderRadius: { xs: 1.5, sm: 2 },
                 opacity: imageStatus === "loaded" ? 1 : 0,
-                transition: "opacity 180ms ease"
+                transition: "opacity 180ms ease",
+                pointerEvents: "auto"
               }}
             />
           )}
@@ -209,13 +242,14 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
 
         <Stack
           direction={{ xs: "column", sm: "row" }}
-          spacing={{ xs: 1, sm: 1.25 }}
+          spacing={{ xs: 0.75, sm: 1 }}
           justifyContent="center"
           alignItems="stretch"
           sx={{
             width: "100%",
-            maxWidth: hasSecondaryButton ? 560 : 320,
-            flexShrink: 0
+            maxWidth: hasSecondaryButton ? { xs: "96vw", sm: 560 } : { xs: "96vw", sm: 320 },
+            flexShrink: 0,
+            pointerEvents: "auto"
           }}
         >
           {hasSecondaryButton && (
@@ -256,7 +290,7 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
             sx={{
               minHeight: 46,
               fontWeight: 900,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.28)"
+              boxShadow: "0 10px 30px rgba(0,0,0,0.32)"
             }}
           >
             {activeSettings.primaryButtonLabel}
