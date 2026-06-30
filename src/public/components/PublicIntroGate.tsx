@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Box, Button, Container, Paper, Stack, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import { alpha } from "@mui/material/styles";
@@ -89,191 +89,177 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
         minHeight: "100dvh",
         display: "grid",
         placeItems: "center",
-        bgcolor: "background.default",
-        background: `radial-gradient(circle at top, ${alpha(theme.palette.secondary.light, 0.55)} 0%, ${theme.palette.background.default} 48%, ${alpha(theme.palette.primary.light, 0.38)} 100%)`,
-        px: { xs: 1.5, sm: 2 },
-        py: { xs: 2, md: 4 },
-        overflowY: "auto"
+        bgcolor: alpha(theme.palette.common.black, 0.72),
+        background: `linear-gradient(145deg, ${alpha(theme.palette.primary.dark, 0.88)} 0%, ${alpha(
+          theme.palette.common.black,
+          0.72
+        )} 48%, ${alpha(theme.palette.secondary.dark, 0.72)} 100%)`,
+        px: { xs: 1, sm: 2, md: 3 },
+        py: { xs: 1.25, sm: 2, md: 3 },
+        overflow: "auto"
       })}
     >
-      <Container maxWidth="xl">
-        <Paper
-          elevation={0}
+      <Stack
+        spacing={{ xs: 1, sm: 1.25, md: 1.5 }}
+        alignItems="center"
+        sx={{
+          width: "100%",
+          maxWidth: { xs: "100%", sm: 760, md: 980, lg: 1180, xl: 1320 },
+          mx: "auto"
+        }}
+      >
+        <Box
           sx={(theme) => ({
-            borderRadius: { xs: 1.5, md: 2 },
-            border: `1px solid ${alpha(theme.palette.secondary.dark, 0.24)}`,
-            bgcolor: alpha(theme.palette.background.paper, 0.92),
-            boxShadow: `0 26px 80px ${alpha(theme.palette.primary.dark, 0.18)}`,
-            px: { xs: 0.75, sm: 1.25, md: 1.5 },
-            py: { xs: 1, md: 1.5 }
+            position: "relative",
+            display: "grid",
+            placeItems: "center",
+            width: "100%",
+            maxHeight: { xs: "78dvh", sm: "80dvh", md: "82dvh" },
+            overflow: "hidden",
+            borderRadius: { xs: 1.25, sm: 2, md: 2.5 },
+            bgcolor: alpha(theme.palette.common.white, 0.96),
+            border: `1px solid ${alpha(theme.palette.common.white, 0.38)}`,
+            boxShadow: `0 28px 90px ${alpha(theme.palette.common.black, 0.38)}`,
+            color: "text.secondary",
+            textAlign: "center",
+            "&::before": showImageLoadingState
+              ? {
+                  content: '""',
+                  position: "absolute",
+                  inset: 0,
+                  background: `linear-gradient(110deg, ${alpha(theme.palette.common.white, 0.24)} 8%, ${alpha(
+                    theme.palette.secondary.light,
+                    0.36
+                  )} 18%, ${alpha(theme.palette.common.white, 0.24)} 33%)`,
+                  backgroundSize: "200% 100%",
+                  animation: "introGateImageLoading 1.35s ease-in-out infinite"
+                }
+              : undefined,
+            "@keyframes introGateImageLoading": {
+              "0%": {
+                backgroundPosition: "100% 0"
+              },
+              "100%": {
+                backgroundPosition: "-100% 0"
+              }
+            }
           })}
         >
-          <Stack spacing={{ xs: 1, md: 1.4 }} alignItems="center">
-            <Box
-              sx={(theme) => ({
+          {showImageLoadingState && (
+            <Typography
+              aria-live="polite"
+              sx={{
                 position: "relative",
-                display: "grid",
-                placeItems: "center",
+                zIndex: 1,
+                px: 2,
+                py: 8,
+                fontSize: { xs: "0.86rem", sm: "0.95rem" },
+                fontWeight: 700
+              }}
+            >
+              กำลังโหลดภาพประชาสัมพันธ์
+            </Typography>
+          )}
+
+          {showImageErrorState && (
+            <Typography
+              role="status"
+              sx={{
+                px: 2,
+                py: 8,
+                fontSize: { xs: "0.86rem", sm: "0.95rem" },
+                fontWeight: 700
+              }}
+            >
+              ไม่สามารถโหลดภาพประชาสัมพันธ์ได้
+            </Typography>
+          )}
+
+          {hasSafeImage && imageStatus !== "failed" && (
+            <Box
+              component="img"
+              src={imageSrc}
+              srcSet={imageSrcSet || undefined}
+              sizes="(max-width: 600px) 96vw, (max-width: 1200px) 94vw, 1320px"
+              alt={activeSettings.imageAlt}
+              loading="eager"
+              decoding="async"
+              onLoad={() => setImageState({ src: imageSrc, status: "loaded" })}
+              onError={() => setImageState({ src: imageSrc, status: "failed" })}
+              {...({ fetchpriority: "high" } as Record<string, string>)}
+              sx={{
+                display: "block",
                 width: "100%",
-                minHeight: { xs: 220, sm: 280, md: 340 },
-                maxHeight: { xs: "70vh", sm: "74vh", md: "78vh", lg: "82vh" },
-                overflow: "hidden",
-                borderRadius: { xs: 1, md: 1.5 },
-                bgcolor: "rgba(255,255,255,0.72)",
-                border: "1px solid rgba(184, 135, 0, 0.28)",
-                boxShadow: "0 18px 46px rgba(122, 89, 0, 0.16)",
-                color: "text.secondary",
-                textAlign: "center",
-                "&::before": showImageLoadingState
-                  ? {
-                      content: '""',
-                      position: "absolute",
-                      inset: 0,
-                      background: `linear-gradient(110deg, ${alpha(theme.palette.common.white, 0.24)} 8%, ${alpha(
-                        theme.palette.secondary.light,
-                        0.36
-                      )} 18%, ${alpha(theme.palette.common.white, 0.24)} 33%)`,
-                      backgroundSize: "200% 100%",
-                      animation: "introGateImageLoading 1.35s ease-in-out infinite"
-                    }
-                  : undefined,
-                "@keyframes introGateImageLoading": {
-                  "0%": {
-                    backgroundPosition: "100% 0"
-                  },
-                  "100%": {
-                    backgroundPosition: "-100% 0"
-                  }
+                height: "auto",
+                maxHeight: { xs: "78dvh", sm: "80dvh", md: "82dvh" },
+                objectFit: "contain",
+                opacity: imageStatus === "loaded" ? 1 : 0,
+                transition: "opacity 180ms ease"
+              }}
+            />
+          )}
+        </Box>
+
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={{ xs: 0.75, sm: 1, md: 1.25 }}
+          justifyContent="center"
+          alignItems="stretch"
+          sx={{
+            width: "100%",
+            maxWidth: hasSecondaryButton ? { xs: "100%", sm: 560, md: 680 } : { xs: "100%", sm: 340 },
+            mx: "auto"
+          }}
+        >
+          {hasSecondaryButton && (
+            <Button
+              component="a"
+              href={normalizeSafeHref(activeSettings.secondaryButtonUrl)}
+              target="_blank"
+              rel="noreferrer"
+              variant="outlined"
+              color="inherit"
+              size="large"
+              fullWidth
+              endIcon={<OpenInNewRoundedIcon />}
+              sx={(theme) => ({
+                minHeight: { xs: 44, sm: 46, md: 48 },
+                px: { xs: 1.5, sm: 2, md: 2.5 },
+                fontSize: { xs: "0.86rem", sm: "0.92rem", md: "0.98rem" },
+                fontWeight: 800,
+                bgcolor: alpha(theme.palette.common.white, 0.92),
+                borderColor: alpha(theme.palette.common.white, 0.72),
+                color: theme.palette.primary.dark,
+                "&:hover": {
+                  bgcolor: theme.palette.common.white,
+                  borderColor: theme.palette.common.white
                 }
               })}
             >
-              {showImageLoadingState && (
-                <Typography
-                  aria-live="polite"
-                  sx={{
-                    position: "relative",
-                    zIndex: 1,
-                    px: 2,
-                    fontSize: { xs: "0.86rem", sm: "0.95rem" },
-                    fontWeight: 700
-                  }}
-                >
-                  กำลังโหลดภาพประชาสัมพันธ์
-                </Typography>
-              )}
-              {showImageErrorState && (
-                <Typography
-                  role="status"
-                  sx={{
-                    px: 2,
-                    fontSize: { xs: "0.86rem", sm: "0.95rem" },
-                    fontWeight: 700
-                  }}
-                >
-                  ไม่สามารถโหลดภาพประชาสัมพันธ์ได้
-                </Typography>
-              )}
-              {hasSafeImage && imageStatus !== "failed" && (
-                <Box
-                  component="img"
-                  src={imageSrc}
-                  srcSet={imageSrcSet || undefined}
-                  sizes="(max-width: 600px) 94vw, (max-width: 1200px) 92vw, 1280px"
-                  alt={activeSettings.imageAlt}
-                  loading="eager"
-                  decoding="async"
-                  onLoad={() => setImageState({ src: imageSrc, status: "loaded" })}
-                  onError={() => setImageState({ src: imageSrc, status: "failed" })}
-                  {...({ fetchpriority: "high" } as Record<string, string>)}
-                  sx={{
-                    display: "block",
-                    width: "100%",
-                    height: "auto",
-                    maxHeight: { xs: "70vh", sm: "74vh", md: "78vh", lg: "82vh" },
-                    objectFit: "contain",
-                    opacity: imageStatus === "loaded" ? 1 : 0,
-                    transition: "opacity 160ms ease"
-                  }}
-                />
-              )}
-            </Box>
+              {activeSettings.secondaryButtonLabel}
+            </Button>
+          )}
 
-            <Stack
-              direction="row"
-              spacing={{ xs: 0.75, sm: 1, md: 1.2 }}
-              justifyContent="center"
-              alignItems="stretch"
-              sx={{
-                width: "100%",
-                maxWidth: hasSecondaryButton ? { xs: 360, sm: 520, md: 620 } : { xs: 280, sm: 320 },
-                mx: "auto",
-                flexWrap: "nowrap"
-              }}
-            >
-              {hasSecondaryButton && (
-                <Button
-                  component="a"
-                  href={normalizeSafeHref(activeSettings.secondaryButtonUrl)}
-                  target="_blank"
-                  rel="noreferrer"
-                  variant="outlined"
-                  color="primary"
-                  size="medium"
-                  fullWidth
-                  endIcon={<OpenInNewRoundedIcon />}
-                  sx={{
-                    minWidth: 0,
-                    flex: "1 1 0",
-                    minHeight: { xs: 36, sm: 40, md: 46 },
-                    px: { xs: 0.75, sm: 1.4, md: 2.4 },
-                    fontSize: { xs: "0.72rem", sm: "0.84rem", md: "0.95rem" },
-                    fontWeight: 800,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    "& .MuiButton-startIcon, & .MuiButton-endIcon": {
-                      mx: { xs: 0.25, sm: 0.5 },
-                      "& svg": {
-                        fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" }
-                      }
-                    }
-                  }}
-                >
-                  {activeSettings.secondaryButtonLabel}
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="contained"
-                color="primary"
-                size="medium"
-                fullWidth={hasSecondaryButton}
-                startIcon={<LoginRoundedIcon />}
-                onClick={handleEnterSite}
-                sx={{
-                  minWidth: 0,
-                  flex: hasSecondaryButton ? "1 1 0" : "0 1 auto",
-                  minHeight: { xs: 36, sm: 40, md: 46 },
-                  px: { xs: 0.75, sm: 1.4, md: 2.4 },
-                  fontSize: { xs: "0.72rem", sm: "0.84rem", md: "0.95rem" },
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  "& .MuiButton-startIcon, & .MuiButton-endIcon": {
-                    mx: { xs: 0.25, sm: 0.5 },
-                    "& svg": {
-                      fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" }
-                    }
-                  }
-                }}
-              >
-                {activeSettings.primaryButtonLabel}
-              </Button>
-            </Stack>
-          </Stack>
-        </Paper>
-      </Container>
+          <Button
+            type="button"
+            variant="contained"
+            color="primary"
+            size="large"
+            fullWidth
+            startIcon={<LoginRoundedIcon />}
+            onClick={handleEnterSite}
+            sx={{
+              minHeight: { xs: 44, sm: 46, md: 48 },
+              px: { xs: 1.5, sm: 2, md: 2.5 },
+              fontSize: { xs: "0.86rem", sm: "0.92rem", md: "0.98rem" },
+              fontWeight: 900,
+              boxShadow: "0 14px 32px rgba(0,0,0,0.28)"
+            }}
+          >
+            {activeSettings.primaryButtonLabel}
+          </Button>
+        </Stack>
+      </Stack>
     </Box>
   );
 }
