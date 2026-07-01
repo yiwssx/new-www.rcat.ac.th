@@ -1,5 +1,4 @@
-import type { MediaAssetInput } from "../../services/googleApi";
-import type { MediaAsset } from "./types";
+import type { MediaAsset, MediaAssetInput } from "./types";
 
 const mediaBridgePath = "/api/apps-script-proxy";
 

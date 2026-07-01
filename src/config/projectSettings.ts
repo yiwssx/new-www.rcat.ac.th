@@ -10,41 +10,6 @@ interface ProjectSettings {
     logoPath: string;
     logoAlt: string;
   };
-  api: {
-    googleAppsScriptUrl: string;
-    googleAppsScriptUrlEnv: string;
-    resources: {
-      snapshot: string;
-      publicHome: string;
-      publicContentList: string;
-      publicDocumentList: string;
-      publicProgramList: string;
-      publicSearchIndex: string;
-      adminSnapshot: string;
-      content: string;
-      contentDetail: string;
-      adminContentDetail: string;
-      contentView: string;
-      siteView: string;
-      deleteContent: string;
-      document: string;
-      deleteDocument: string;
-      carousel: string;
-      deleteCarousel: string;
-      externalService: string;
-      deleteExternalService: string;
-      media: string;
-      deleteMedia: string;
-      publish: string;
-      menu: string;
-      event: string;
-      deleteEvent: string;
-      displaySettings: string;
-      siteSettings: string;
-      homepageSettings: string;
-      visitorStats: string;
-    };
-  };
   query: {
     staleTimeMs: number;
     gcTimeMs: number;
@@ -76,10 +41,6 @@ export const projectSettings = projectSettingsData as ProjectSettings;
 
 export function getCmsSiteName() {
   return import.meta.env.VITE_CMS_SITE_NAME?.trim() || projectSettings.site.name;
-}
-
-export function getGoogleAppsScriptUrl() {
-  return import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL?.trim() || projectSettings.api.googleAppsScriptUrl.trim();
 }
 
 export function getPublicSiteUrl() {

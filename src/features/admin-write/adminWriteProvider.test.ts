@@ -2,31 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContentItem } from "../public-content/types";
 import type { CmsDocumentItem } from "../cms-documents/types";
 
-const googleApiMocks = vi.hoisted(() => ({
-  deleteContentItem: vi.fn(),
-  deleteCalendarEvent: vi.fn(),
-  deleteCarouselSlideFromApi: vi.fn(),
-  deleteDocumentFromApi: vi.fn(),
-  deleteExternalServiceLinkFromApi: vi.fn(),
-  getAdminCmsSnapshot: vi.fn(),
-  getAdminContentDetail: vi.fn(),
-  getDisplaySettingsFromApi: vi.fn(),
-  getPublicMenuItems: vi.fn(),
-  publishContent: vi.fn(),
-  saveCalendarEvent: vi.fn(),
-  saveCarouselSlideToApi: vi.fn(),
-  saveContentItem: vi.fn(),
-  saveDisplaySettingsToApi: vi.fn(),
-  saveDocumentToApi: vi.fn(),
-  saveExternalServiceLinkToApi: vi.fn(),
-  saveHomepageSettingsToApi: vi.fn(),
-  savePublicMenuItems: vi.fn(),
-  saveSiteSettingsToApi: vi.fn(),
-  saveVisitorStatsToApi: vi.fn()
-}));
-
-vi.mock("../../services/googleApi", () => googleApiMocks);
-
 const mediaBridgeMocks = vi.hoisted(() => ({
   deleteMediaAssetFromBridge: vi.fn(),
   saveMediaAssetToBridge: vi.fn(),
@@ -112,24 +87,22 @@ describe("M18 admin structured write provider", () => {
     setAppsScriptEnv();
   });
 
-  it("keeps Apps Script as the default structured write provider", async () => {
-    googleApiMocks.saveContentItem.mockResolvedValue(sampleContent);
+  it("fails closed when Cloudflare admin config is missing", async () => {
     const { saveContentItem } = await import("../cms-content/api");
 
-    await expect(saveContentItem(sampleContent)).resolves.toEqual(sampleContent);
-
-    expect(googleApiMocks.saveContentItem).toHaveBeenCalledWith(sampleContent);
+    await expect(saveContentItem(sampleContent)).rejects.toThrow(
+      "A dev or preview Cloudflare admin API URL is required"
+    );
   });
 
-  it("falls back to Apps Script for invalid Cloudflare provider configuration", async () => {
+  it("does not fall back to Apps Script for legacy provider configuration", async () => {
     vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "cloudflare");
     vi.stubEnv("VITE_BACKEND_MIGRATION_MODE", "legacy-apps-script");
-    googleApiMocks.saveDocumentToApi.mockResolvedValue(sampleDocument);
     const { saveDocumentToApi } = await import("../cms-documents/api");
 
-    await expect(saveDocumentToApi(sampleDocument)).resolves.toEqual(sampleDocument);
-
-    expect(googleApiMocks.saveDocumentToApi).toHaveBeenCalledWith(sampleDocument);
+    await expect(saveDocumentToApi(sampleDocument)).rejects.toThrow(
+      "A dev or preview Cloudflare admin API URL is required"
+    );
   });
 
   it("routes content and document structured writes to Cloudflare only in explicit preview mode", async () => {
@@ -161,8 +134,6 @@ describe("M18 admin structured write provider", () => {
       credentials: "include"
     });
     expect(fetchMock.mock.calls[0]?.[1]?.headers).not.toHaveProperty(["X-RCAT", "Admin", "Write", "Token"].join("-"));
-    expect(googleApiMocks.saveContentItem).not.toHaveBeenCalled();
-    expect(googleApiMocks.saveDocumentToApi).not.toHaveBeenCalled();
   });
 
   it("uses PATCH with a custom revision header and never sends If-Match", async () => {
@@ -212,7 +183,6 @@ describe("M18 admin structured write provider", () => {
     );
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PATCH");
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
-    expect(googleApiMocks.saveContentItem).not.toHaveBeenCalled();
   });
 
   it("surfaces a duplicate slug conflict without retrying as create", async () => {
@@ -281,7 +251,6 @@ describe("M18 admin structured write provider", () => {
     });
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("X-RCAT-Expected-Revision")).toBe("2");
     expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
-    expect(googleApiMocks.publishContent).not.toHaveBeenCalled();
   });
 
   it("refreshes the current item when Cloudflare content publish returns stale revision", async () => {
@@ -311,7 +280,6 @@ describe("M18 admin structured write provider", () => {
     expect(fetchMock.mock.calls[1]?.[0]).toBe(
       "https://preview-worker.example.test/api/admin/content/m18-preview-content-001"
     );
-    expect(googleApiMocks.publishContent).not.toHaveBeenCalled();
   });
 
   it("keeps media bytes on Apps Script while synchronizing returned metadata to Cloudflare", async () => {
@@ -532,6 +500,18 @@ describe("M18 admin structured write provider", () => {
         return jsonResponse({ items: body.items });
       }
 
+      if (path.includes("/visitor-stats/daily/")) {
+        return jsonResponse({
+          item: {
+            day: "2026-06-20",
+            total: body.total,
+            uniqueVisitors: body.uniqueVisitors,
+            onlineUsers: body.onlineUsers,
+            updatedAt: "2026-06-20T00:00:00.000Z"
+          }
+        });
+      }
+
       if (path.includes("/settings/")) {
         return jsonResponse(body);
       }
@@ -549,6 +529,7 @@ describe("M18 admin structured write provider", () => {
     await settingsApi.saveDisplaySettingsToApi({ dateFormat: "D MMMM YYYY", timeMode: "24h" });
     await settingsApi.saveSiteSettingsToApi({ siteName: "Sample school" });
     await settingsApi.saveHomepageSettingsToApi({});
+    await settingsApi.saveVisitorStatsToApi({ enabled: true, usersToday: 3, totalViews: 9, onlineUsers: 1 });
     await navigationApi.getPublicMenuItems();
     await navigationApi.savePublicMenuItems(menu);
     await carouselApi.saveCarouselSlideToApi(carousel);
@@ -558,19 +539,22 @@ describe("M18 admin structured write provider", () => {
     await eventsApi.saveCalendarEvent(event);
     await eventsApi.deleteCalendarEvent(event.id);
 
-    expect(fetchMock).toHaveBeenCalledTimes(12);
-    for (const callIndex of [6, 8, 10]) {
+    expect(fetchMock).toHaveBeenCalledTimes(13);
+    expect(fetchMock.mock.calls[4]?.[0]).toContain("/api/admin/visitor-stats/daily/");
+    expect(fetchMock.mock.calls[4]?.[1]).toMatchObject({
+      method: "PUT",
+      body: JSON.stringify({
+        total: 9,
+        uniqueVisitors: 3,
+        onlineUsers: 1
+      })
+    });
+    for (const callIndex of [7, 9, 11]) {
       expect(fetchMock.mock.calls[callIndex]?.[1]).toMatchObject({
         method: "PATCH",
         headers: { "x-rcat-expected-revision": "2" }
       });
     }
-    expect(googleApiMocks.getDisplaySettingsFromApi).not.toHaveBeenCalled();
-    expect(googleApiMocks.saveSiteSettingsToApi).not.toHaveBeenCalled();
-    expect(googleApiMocks.savePublicMenuItems).not.toHaveBeenCalled();
-    expect(googleApiMocks.saveCarouselSlideToApi).not.toHaveBeenCalled();
-    expect(googleApiMocks.saveExternalServiceLinkToApi).not.toHaveBeenCalled();
-    expect(googleApiMocks.saveCalendarEvent).not.toHaveBeenCalled();
   });
 
   it("creates and edits carousel slides through the correct Cloudflare routes without Apps Script", async () => {
@@ -598,6 +582,5 @@ describe("M18 admin structured write provider", () => {
     expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("PATCH");
     expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
     expect(new Headers(fetchMock.mock.calls[2]?.[1]?.headers).get("X-RCAT-Expected-Revision")).toBe("2");
-    expect(googleApiMocks.saveCarouselSlideToApi).not.toHaveBeenCalled();
   });
 });

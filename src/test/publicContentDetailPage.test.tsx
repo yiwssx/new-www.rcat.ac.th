@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicContentDetailPage from "../public/pages/PublicContentDetailPage";
 import { CmsSnapshot, ContentItem } from "../types";
 
-const googleApiMocks = vi.hoisted(() => ({
+const siteViewMocks = vi.hoisted(() => ({
   recordContentView: vi.fn()
 }));
 
@@ -19,7 +19,7 @@ let currentDetailQueryState = {
 };
 
 vi.mock("../features/site-view", () => ({
-  recordContentView: googleApiMocks.recordContentView
+  recordContentView: siteViewMocks.recordContentView
 }));
 
 vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
@@ -88,8 +88,8 @@ beforeEach(() => {
     isLoading: false,
     isFetching: false
   };
-  googleApiMocks.recordContentView.mockReset();
-  googleApiMocks.recordContentView.mockResolvedValue({
+  siteViewMocks.recordContentView.mockReset();
+  siteViewMocks.recordContentView.mockResolvedValue({
     id: "content-1",
     slug: "announcement-1",
     viewCount: 13,
@@ -162,7 +162,7 @@ describe("PublicContentDetailPage", () => {
     expect(within(article).queryByText("งานทะเบียน")).not.toBeInTheDocument();
 
     await waitFor(() =>
-      expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
+      expect(siteViewMocks.recordContentView).toHaveBeenCalledWith({
         id: "content-1",
         slug: "announcement-1"
       })
@@ -189,14 +189,14 @@ describe("PublicContentDetailPage", () => {
   });
 
   it("does not debounce failed content view attempts", async () => {
-    googleApiMocks.recordContentView.mockRejectedValueOnce(new Error("offline"));
+    siteViewMocks.recordContentView.mockRejectedValueOnce(new Error("offline"));
     currentDetail = createContent();
     currentSnapshot = createSnapshot(currentDetail);
 
     render(<PublicContentDetailPage slug="announcement-1" />);
 
     await waitFor(() =>
-      expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
+      expect(siteViewMocks.recordContentView).toHaveBeenCalledWith({
         id: "content-1",
         slug: "announcement-1"
       })
@@ -238,7 +238,7 @@ describe("PublicContentDetailPage", () => {
     );
     expect(screen.queryByText("กิจกรรม")).not.toBeInTheDocument();
     await waitFor(() =>
-      expect(googleApiMocks.recordContentView).toHaveBeenCalledWith({
+      expect(siteViewMocks.recordContentView).toHaveBeenCalledWith({
         id: "content-1",
         slug: "news-1"
       })

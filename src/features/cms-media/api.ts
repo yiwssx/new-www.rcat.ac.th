@@ -1,16 +1,10 @@
-import { getAdminWriteProvider } from "../../config/adminWriteProvider";
-import type { MediaAssetInput } from "../../services/googleApi";
 import { deleteMediaMetadataFromCloudflare, saveMediaMetadataToCloudflare } from "../admin-write/cloudflareApi";
 import { cacheBridgeMediaAsset, removeBridgeMediaAsset } from "./bridgeCache";
 import { deleteMediaAssetFromBridge, saveMediaAssetToBridge, uploadMediaAssetToBridge } from "./mediaBridgeClient";
-import type { MediaAsset } from "./types";
+import type { MediaAsset, MediaAssetInput } from "./types";
 
 async function persistBridgeMetadata(asset: MediaAsset) {
   cacheBridgeMediaAsset(asset);
-
-  if (getAdminWriteProvider() !== "cloudflare") {
-    return asset;
-  }
 
   try {
     return cacheBridgeMediaAsset(await saveMediaMetadataToCloudflare(asset));
@@ -31,16 +25,14 @@ export async function uploadMediaAsset(asset: MediaAsset) {
 export async function deleteMediaAsset(id: string) {
   const result = await deleteMediaAssetFromBridge(id);
 
-  if (getAdminWriteProvider() === "cloudflare") {
-    try {
-      await deleteMediaMetadataFromCloudflare(id);
-    } catch {
-      // The Drive delete succeeded; remove the local bridge entry even if D1 metadata cleanup must be retried.
-    }
+  try {
+    await deleteMediaMetadataFromCloudflare(id);
+  } catch {
+    // The Drive delete succeeded; remove the local bridge entry even if D1 metadata cleanup must be retried.
   }
 
   removeBridgeMediaAsset(id);
   return result;
 }
 
-export type { MediaAssetInput } from "../../services/googleApi";
+export type { MediaAssetInput } from "./types";

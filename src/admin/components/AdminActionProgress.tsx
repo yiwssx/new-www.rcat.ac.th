@@ -3,19 +3,19 @@ import { alpha } from "@mui/material/styles";
 import { Backdrop, Box, CircularProgress, LinearProgress, Stack, Typography } from "@mui/material";
 import { useRouterState } from "@tanstack/react-router";
 import { useAuth } from "../../context/authSessionContext";
-import { getGoogleApiActivityCount, subscribeGoogleApiActivity } from "../../shared/api/activity";
+import { getApiActivityCount, subscribeApiActivity } from "../../shared/api/activity";
 
 const showDelayMs = 120;
 const minVisibleMs = 320;
 
-function useGoogleApiActivityCount() {
-  return useSyncExternalStore(subscribeGoogleApiActivity, getGoogleApiActivityCount, () => 0);
+function useApiActivityCount() {
+  return useSyncExternalStore(subscribeApiActivity, getApiActivityCount, () => 0);
 }
 
 export default function AdminActionProgress() {
   const { session } = useAuth();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const activeRequestCount = useGoogleApiActivityCount();
+  const activeRequestCount = useApiActivityCount();
   const [open, setOpen] = useState(false);
   const shownAtRef = useRef<number | null>(null);
 

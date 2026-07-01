@@ -1,23 +1,14 @@
-import { getAdminWriteProvider } from "../../config/adminWriteProvider";
-import {
-  deleteExternalServiceLinkFromApi as deleteExternalServiceLinkFromAppsScript,
-  saveExternalServiceLinkToApi as saveExternalServiceLinkToAppsScript
-} from "../../services/googleApi";
 import {
   deleteExternalServiceLinkFromCloudflare,
   saveExternalServiceLinkToCloudflare
 } from "../admin-write/cloudflareApi";
-export type { ExternalServiceLinkInput } from "../../services/googleApi";
-import type { ExternalServiceLinkInput } from "../../services/googleApi";
+import type { ExternalServiceLinkInput } from "./types";
+export type { ExternalServiceLinkInput } from "./types";
 
 export function saveExternalServiceLinkToApi(input: ExternalServiceLinkInput) {
-  return getAdminWriteProvider() === "cloudflare"
-    ? saveExternalServiceLinkToCloudflare(input)
-    : saveExternalServiceLinkToAppsScript(input);
+  return saveExternalServiceLinkToCloudflare(input);
 }
 
 export function deleteExternalServiceLinkFromApi(id: string) {
-  return getAdminWriteProvider() === "cloudflare"
-    ? deleteExternalServiceLinkFromCloudflare(id)
-    : deleteExternalServiceLinkFromAppsScript(id);
+  return deleteExternalServiceLinkFromCloudflare(id);
 }

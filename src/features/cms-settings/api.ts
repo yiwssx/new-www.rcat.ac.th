@@ -1,41 +1,29 @@
-import { getAdminWriteProvider } from "../../config/adminWriteProvider";
-import {
-  getDisplaySettingsFromApi as getDisplaySettingsFromAppsScript,
-  saveDisplaySettingsToApi as saveDisplaySettingsToAppsScript,
-  saveHomepageSettingsToApi as saveHomepageSettingsToAppsScript,
-  saveSiteSettingsToApi as saveSiteSettingsToAppsScript
-} from "../../services/googleApi";
-import { saveVisitorStatsToApi } from "../../services/googleApi";
 import {
   getDisplaySettingsFromCloudflare,
   saveDisplaySettingsToCloudflare,
   saveHomepageSettingsToCloudflare,
-  saveSiteSettingsToCloudflare
+  saveSiteSettingsToCloudflare,
+  saveVisitorStatsToCloudflare
 } from "../admin-write/cloudflareApi";
 import type { DisplaySettings, HomepageSettings, SiteSettings } from "./types";
+import type { VisitorStatsSettings } from "../visitor-stats/types";
 
 export function getDisplaySettingsFromApi() {
-  return getAdminWriteProvider() === "cloudflare"
-    ? getDisplaySettingsFromCloudflare()
-    : getDisplaySettingsFromAppsScript();
+  return getDisplaySettingsFromCloudflare();
 }
 
 export function saveDisplaySettingsToApi(settings: Partial<DisplaySettings>) {
-  return getAdminWriteProvider() === "cloudflare"
-    ? saveDisplaySettingsToCloudflare(settings)
-    : saveDisplaySettingsToAppsScript(settings);
+  return saveDisplaySettingsToCloudflare(settings);
 }
 
 export function saveSiteSettingsToApi(settings: Partial<SiteSettings>) {
-  return getAdminWriteProvider() === "cloudflare"
-    ? saveSiteSettingsToCloudflare(settings)
-    : saveSiteSettingsToAppsScript(settings);
+  return saveSiteSettingsToCloudflare(settings);
 }
 
 export function saveHomepageSettingsToApi(settings: Partial<HomepageSettings>) {
-  return getAdminWriteProvider() === "cloudflare"
-    ? saveHomepageSettingsToCloudflare(settings)
-    : saveHomepageSettingsToAppsScript(settings);
+  return saveHomepageSettingsToCloudflare(settings);
 }
 
-export { saveVisitorStatsToApi };
+export function saveVisitorStatsToApi(stats: Partial<VisitorStatsSettings>) {
+  return saveVisitorStatsToCloudflare(stats);
+}

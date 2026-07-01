@@ -7,10 +7,6 @@ import {
   setPublicDocumentListCache
 } from "./publicDocumentListCache";
 
-const appsScriptSnapshot: PublicDocumentListSnapshot = {
-  items: [],
-  generatedAt: "2026-05-27T00:00:00.000Z"
-};
 const cloudflareSnapshot: PublicDocumentListSnapshot = {
   items: [
     {
@@ -30,19 +26,13 @@ const cloudflareSnapshot: PublicDocumentListSnapshot = {
   generatedAt: "2026-05-29T00:00:00.000Z"
 };
 
-vi.mock("../../services/googleApi", () => ({
-  getPublicDocumentList: vi.fn()
-}));
-
 vi.mock("./cloudflareApi", () => ({
   getPublicDocumentListFromCloudflare: vi.fn()
 }));
 
-import { getPublicDocumentList as getPublicDocumentListFromAppsScript } from "../../services/googleApi";
 import { getPublicDocumentList } from "./api";
 import { getPublicDocumentListFromCloudflare } from "./cloudflareApi";
 
-const appsScriptMock = vi.mocked(getPublicDocumentListFromAppsScript);
 const cloudflareMock = vi.mocked(getPublicDocumentListFromCloudflare);
 
 beforeEach(() => {
@@ -52,44 +42,24 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
-  appsScriptMock.mockReset();
   cloudflareMock.mockReset();
   window.localStorage.clear();
 });
 
-describe("public document provider switch", () => {
-  it("keeps the default public document provider on Apps Script", async () => {
-    appsScriptMock.mockResolvedValue(appsScriptSnapshot);
-
-    await expect(getPublicDocumentList()).resolves.toEqual(appsScriptSnapshot);
-    expect(appsScriptMock).toHaveBeenCalledTimes(1);
-    expect(cloudflareMock).not.toHaveBeenCalled();
-  });
-
-  it("keeps unknown provider values on Apps Script", async () => {
-    vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "worker");
-    appsScriptMock.mockResolvedValue(appsScriptSnapshot);
-
-    await expect(getPublicDocumentList()).resolves.toEqual(appsScriptSnapshot);
-    expect(appsScriptMock).toHaveBeenCalledTimes(1);
-    expect(cloudflareMock).not.toHaveBeenCalled();
-  });
-
-  it("uses Cloudflare only when explicitly selected", async () => {
-    vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
+describe("public document API wrapper", () => {
+  it("uses the Cloudflare public document list API", async () => {
     cloudflareMock.mockResolvedValue(cloudflareSnapshot);
 
     await expect(getPublicDocumentList()).resolves.toEqual(cloudflareSnapshot);
     expect(cloudflareMock).toHaveBeenCalledTimes(1);
-    expect(appsScriptMock).not.toHaveBeenCalled();
   });
 
   it("keeps the exported return shape compatible with PublicDocumentListSnapshot", async () => {
-    appsScriptMock.mockResolvedValue(appsScriptSnapshot);
+    cloudflareMock.mockResolvedValue(cloudflareSnapshot);
 
     const snapshot: PublicDocumentListSnapshot = await getPublicDocumentList();
 
-    expect(snapshot).toEqual(appsScriptSnapshot);
+    expect(snapshot).toEqual(cloudflareSnapshot);
   });
 
   it("preserves the public document cache key and TTL", () => {

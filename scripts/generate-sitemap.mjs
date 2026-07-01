@@ -9,6 +9,7 @@ const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const SITEMAP_PATH = path.join(PUBLIC_DIR, "sitemap.xml");
 const ROBOTS_PATH = path.join(PUBLIC_DIR, "robots.txt");
 const STATIC_ROUTES = ["/", "/news", "/announcements", "/departments", "/blog", "/contact"];
+const PUBLIC_CONTENT_KINDS = ["news", "announcements", "blog"];
 
 function parseEnvFile(content) {
   return content
@@ -171,40 +172,55 @@ async function readProjectSettings() {
   return JSON.parse(await readFile(SETTINGS_PATH, "utf8"));
 }
 
-async function fetchPublicSnapshot(appsScriptUrl, resource) {
-  if (!appsScriptUrl) {
+function buildCloudflarePublicApiUrl(baseUrl, path) {
+  const normalizedBaseUrl = trimTrailingSlash(baseUrl);
+
+  if (!normalizedBaseUrl) {
+    return "";
+  }
+
+  return `${normalizedBaseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+async function fetchCloudflarePublicContent(baseUrl) {
+  if (!baseUrl) {
     return undefined;
   }
 
-  const url = new URL(appsScriptUrl);
-  url.searchParams.set("resource", resource || "snapshot");
+  const snapshots = await Promise.all(
+    PUBLIC_CONTENT_KINDS.map(async (kind) => {
+      const url = new URL(buildCloudflarePublicApiUrl(baseUrl, "/api/public/content"));
+      url.searchParams.set("kind", kind);
+      const response = await fetch(url);
 
-  const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Cloudflare content ${kind} request failed with ${response.status}`);
+      }
 
-  if (!response.ok) {
-    throw new Error(`Snapshot request failed with ${response.status}`);
-  }
+      const data = await response.json();
 
-  const data = await response.json();
+      if (data?.error || (data?.statusCode && data.statusCode >= 400)) {
+        throw new Error(data.error || `Cloudflare content ${kind} request failed with ${data.statusCode}`);
+      }
 
-  if (data?.error || (data?.statusCode && data.statusCode >= 400)) {
-    throw new Error(data.error || `Snapshot request failed with ${data.statusCode}`);
-  }
+      return data;
+    })
+  );
 
-  return data;
+  return snapshots.flatMap((snapshot) => [
+    ...(Array.isArray(snapshot?.items) ? snapshot.items : []),
+    ...(Array.isArray(snapshot?.pageItems) ? snapshot.pageItems : [])
+  ]);
 }
 
 async function main() {
   const [settings, localEnv] = await Promise.all([readProjectSettings(), loadLocalEnv()]);
   const siteUrl = normalizeSiteUrl(getEnvValue(localEnv, "VITE_PUBLIC_SITE_URL"), settings.site?.publicSiteUrl);
-  const appsScriptUrl =
-    getEnvValue(localEnv, "VITE_GOOGLE_APPS_SCRIPT_URL") || trimTrailingSlash(settings.api?.googleAppsScriptUrl);
-  const snapshotResource = settings.api?.resources?.snapshot || "snapshot";
+  const cloudflarePublicApiUrl = getEnvValue(localEnv, "VITE_CLOUDFLARE_PUBLIC_API_URL");
   let content = [];
 
   try {
-    const snapshot = await fetchPublicSnapshot(appsScriptUrl, snapshotResource);
-    content = Array.isArray(snapshot?.content) ? snapshot.content : [];
+    content = (await fetchCloudflarePublicContent(cloudflarePublicApiUrl)) ?? [];
   } catch (error) {
     console.warn(`Sitemap generator used static routes only: ${error.message}`);
   }

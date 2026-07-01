@@ -60,10 +60,8 @@ Configure these as server-side variables only.
 
 Do not expose bridge tokens through `VITE_` variables.
 
-## Deprecated For Current Admin Runtime
+## Removed From Current Frontend Runtime
 
-`VITE_GOOGLE_APPS_SCRIPT_URL` is not the current admin login or user-management configuration path.
+`VITE_GOOGLE_APPS_SCRIPT_URL` is not part of the current frontend runtime.
 
-The current admin runtime uses Vercel admin proxy, Cloudflare Worker/D1, and RBAC environment variables.
-
-`VITE_GOOGLE_APPS_SCRIPT_URL` may still appear in legacy/direct Apps Script compatibility code and local sitemap generation, but it must not be used for the current admin login, user management, or the server-side media bridge.
+The current admin runtime uses Vercel admin proxy, Cloudflare Worker/D1, and RBAC environment variables. The public frontend uses the Cloudflare public API URL for structured data and sitemap enrichment. Apps Script remains server-side only for the media/file bridge through `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`.

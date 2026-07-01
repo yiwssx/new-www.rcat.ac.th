@@ -1,24 +1,22 @@
 import { buildCloudflareAdminApiUrl } from "../../config/adminWriteProvider";
 import type {
-  CalendarEvent,
-  CarouselSlide,
   CmsSnapshot,
   DisplaySettings,
-  ExternalServiceLink,
   HomepageSettings,
   MediaAsset,
   PublicMenuItem,
   SiteSettings
 } from "../../types";
+import type { CarouselSlide, CarouselSlideInput } from "../cms-carousel/types";
 import type { CmsDocumentItem } from "../cms-documents/types";
+import type { CalendarEvent, CalendarEventInput } from "../cms-events/types";
+import type { ExternalServiceLink, ExternalServiceLinkInput } from "../cms-external-services/types";
 import type { ContentItem } from "../public-content/types";
+import type { VisitorStatsSettings } from "../visitor-stats/types";
 import { mergeBridgeMediaAssets } from "../cms-media/bridgeCache";
 import { ADMIN_PROXY_SESSION_EXPIRED_MESSAGE, notifyAdminProxySessionExpired } from "../../services/adminProxySession";
 import { AdminDuplicateSlugError, AdminStaleRevisionError } from "./errors";
 
-type CalendarEventInput = Partial<CalendarEvent> & { id?: string; revision?: number };
-type CarouselSlideInput = Partial<CarouselSlide> & { id?: string; revision?: number };
-type ExternalServiceLinkInput = Partial<ExternalServiceLink> & { id?: string; revision?: number };
 export interface AdminUserProfile {
   id: string;
   email: string;
@@ -32,6 +30,19 @@ export interface AdminUserProfile {
 
 interface ItemEnvelope<T> {
   item: T;
+}
+
+interface VisitorDailyStatsItem {
+  day: string;
+  total: number;
+  uniqueVisitors: number;
+  onlineUsers: number;
+  updatedAt: string;
+  revision?: number;
+}
+
+function getBangkokDay(date = new Date()) {
+  return new Date(date.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 function createCloudflareAdminError(message: string, cause: unknown) {
@@ -222,6 +233,34 @@ export function saveSiteSettingsToCloudflare(settings: Partial<SiteSettings>): P
 
 export function saveHomepageSettingsToCloudflare(settings: Partial<HomepageSettings>): Promise<HomepageSettings> {
   return writeJson<HomepageSettings>("/api/admin/settings/homepage", "PUT", settings);
+}
+
+export async function saveVisitorStatsToCloudflare(
+  stats: Partial<VisitorStatsSettings>
+): Promise<VisitorStatsSettings> {
+  const day = getBangkokDay();
+  const response = await writeJson<ItemEnvelope<VisitorDailyStatsItem>>(
+    `/api/admin/visitor-stats/daily/${day}`,
+    "PUT",
+    {
+      total: stats.totalViews ?? 0,
+      uniqueVisitors: stats.usersToday ?? stats.totalUsers ?? 0,
+      onlineUsers: stats.onlineUsers ?? 0
+    }
+  );
+  const saved = response.item;
+
+  return {
+    enabled: stats.enabled === true,
+    usersToday: saved.uniqueVisitors,
+    usersYesterday: stats.usersYesterday ?? 0,
+    usersThisMonth: stats.usersThisMonth ?? saved.uniqueVisitors,
+    usersThisYear: stats.usersThisYear ?? saved.uniqueVisitors,
+    totalUsers: stats.totalUsers ?? saved.uniqueVisitors,
+    totalViews: saved.total,
+    onlineUsers: saved.onlineUsers,
+    updatedAt: saved.updatedAt
+  };
 }
 
 export async function getPublicMenuItemsFromCloudflare(): Promise<PublicMenuItem[]> {

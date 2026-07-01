@@ -19,7 +19,6 @@ export type {
   ExternalServiceLink,
   ExternalServiceTone
 } from "./features/cms-external-services/types";
-export type { IntegrationState } from "./features/cms-integrations/types";
 export type { MediaAsset, MediaType } from "./features/cms-media/types";
 export type { PublicMenuItem } from "./features/cms-navigation/types";
 export type {
@@ -44,6 +43,8 @@ export type { PublicDocumentItem, PublicDocumentListSnapshot } from "./features/
 export type { PublicProgramListSnapshot } from "./features/public-programs/types";
 export type { PublicSearchIndexSnapshot } from "./features/public-search/types";
 export type { VisitorStatsSettings } from "./features/visitor-stats/types";
+
+export type IntegrationState = "connected" | "pending" | "error";
 
 export interface User {
   id: string;

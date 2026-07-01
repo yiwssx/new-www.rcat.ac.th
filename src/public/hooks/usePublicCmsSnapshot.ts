@@ -1,7 +1,5 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getCmsSnapshot } from "../../services/googleApi";
-import { getPublicApiProvider } from "../../config/publicApiProvider";
 import { getPublicHomeSnapshot } from "../../features/public-home";
 import type { CmsSnapshot, ContentItem } from "../../types";
 import {
@@ -44,10 +42,6 @@ export function usePublicCmsSnapshot(options: UsePublicCmsSnapshotOptions = {}) 
 }
 
 export async function getPublicCmsSnapshotForProvider(): Promise<CmsSnapshot> {
-  if (getPublicApiProvider() !== "cloudflare") {
-    return getCmsSnapshot();
-  }
-
   const home = await getPublicHomeSnapshot();
   const contentById = new Map<string, ContentItem>();
 

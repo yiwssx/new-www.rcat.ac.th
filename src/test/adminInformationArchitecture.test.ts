@@ -7,9 +7,43 @@ import cmsShellSource from "../admin/layout/CmsShell.tsx?raw";
 import routesSource from "../routes.tsx?raw";
 import publicShellSource from "../public/components/PublicSiteShell.tsx?raw";
 import siteViewApiSource from "../features/site-view/api.ts?raw";
+import publicHomeApiSource from "../features/public-home/api.ts?raw";
+import publicContentApiSource from "../features/public-content/api.ts?raw";
+import publicDocumentsApiSource from "../features/public-documents/api.ts?raw";
+import publicProgramsApiSource from "../features/public-programs/api.ts?raw";
+import publicSearchApiSource from "../features/public-search/api.ts?raw";
+import publicCmsSnapshotHookSource from "../public/hooks/usePublicCmsSnapshot.ts?raw";
+import cmsDashboardApiSource from "../features/cms-dashboard/api.ts?raw";
+import cmsContentApiSource from "../features/cms-content/api.ts?raw";
+import cmsDocumentsApiSource from "../features/cms-documents/api.ts?raw";
+import cmsCarouselApiSource from "../features/cms-carousel/api.ts?raw";
+import cmsExternalServicesApiSource from "../features/cms-external-services/api.ts?raw";
+import cmsEventsApiSource from "../features/cms-events/api.ts?raw";
+import cmsSettingsApiSource from "../features/cms-settings/api.ts?raw";
+import cmsNavigationApiSource from "../features/cms-navigation/api.ts?raw";
+import cmsMediaApiSource from "../features/cms-media/api.ts?raw";
 import cloudflarePublicApiSource from "../features/public-read/cloudflareApi.ts?raw";
 import adminCloudflareApiSource from "../features/admin-write/cloudflareApi.ts?raw";
 import mediaBridgeClientSource from "../features/cms-media/mediaBridgeClient.ts?raw";
+import projectSettings from "../config/project-settings.json";
+
+const browserStructuredDataSources = {
+  publicHomeApiSource,
+  publicContentApiSource,
+  publicDocumentsApiSource,
+  publicProgramsApiSource,
+  publicSearchApiSource,
+  publicCmsSnapshotHookSource,
+  cmsDashboardApiSource,
+  cmsContentApiSource,
+  cmsDocumentsApiSource,
+  cmsCarouselApiSource,
+  cmsExternalServicesApiSource,
+  cmsEventsApiSource,
+  cmsSettingsApiSource,
+  cmsNavigationApiSource,
+  cmsMediaApiSource
+};
 
 const nodeFsSpecifier = "node:fs";
 const nodePathSpecifier = "node:path";
@@ -83,6 +117,17 @@ describe("M20 admin information architecture", () => {
     expect(cloudflarePublicApiSource).not.toContain("services/googleApi");
     expect(adminCloudflareApiSource).not.toContain("services/googleApi");
     expect(mediaBridgeClientSource).toContain('const mediaBridgePath = "/api/apps-script-proxy"');
+  });
+
+  it("keeps active browser structured data off the legacy Apps Script adapter", () => {
+    Object.entries(browserStructuredDataSources).forEach(([sourceName, source]) => {
+      expect(source, sourceName).not.toContain("services/googleApi");
+      expect(source, sourceName).not.toContain("getGoogleAppsScriptUrl");
+      expect(source, sourceName).not.toContain("VITE_GOOGLE_APPS_SCRIPT_URL");
+      expect(source, sourceName).not.toContain("FromAppsScript");
+    });
+
+    expect(projectSettings).not.toHaveProperty("api");
   });
 
   it("keeps mourning mode public-only and persists it through the existing site settings save path", () => {

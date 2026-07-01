@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicContentDetailPage from "../public/pages/PublicContentDetailPage";
 import { CmsSnapshot, ContentItem } from "../types";
 
-const googleApiMocks = vi.hoisted(() => ({
+const siteViewMocks = vi.hoisted(() => ({
   recordContentView: vi.fn()
 }));
 
@@ -11,7 +11,7 @@ let currentSnapshot: CmsSnapshot | undefined;
 let currentDetail: ContentItem | undefined;
 
 vi.mock("../features/site-view", () => ({
-  recordContentView: googleApiMocks.recordContentView
+  recordContentView: siteViewMocks.recordContentView
 }));
 
 vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
@@ -74,8 +74,8 @@ function createSnapshot(content: ContentItem, related: ContentItem): CmsSnapshot
 
 beforeEach(() => {
   window.localStorage.clear();
-  googleApiMocks.recordContentView.mockReset();
-  googleApiMocks.recordContentView.mockResolvedValue({
+  siteViewMocks.recordContentView.mockReset();
+  siteViewMocks.recordContentView.mockResolvedValue({
     id: "news-1",
     slug: "open-house-news",
     viewCount: 43,

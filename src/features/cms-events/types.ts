@@ -12,3 +12,17 @@ export interface CalendarEvent {
   updatedAt?: string;
   revision?: number;
 }
+
+export interface CalendarEventInput {
+  id?: string;
+  revision?: number;
+  title: string;
+  date: string;
+  endDate?: string;
+  audience: string;
+  status: CalendarEvent["status"];
+  location?: string;
+  description?: string;
+  category?: string;
+  visibility?: CalendarEvent["visibility"];
+}

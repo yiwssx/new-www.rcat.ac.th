@@ -32,3 +32,5 @@ export interface ExternalServiceLink {
   updatedAt: string;
   revision?: number;
 }
+
+export type ExternalServiceLinkInput = Partial<ExternalServiceLink>;

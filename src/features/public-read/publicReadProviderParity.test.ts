@@ -1,18 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const appsScriptMocks = vi.hoisted(() => ({
-  getCmsSnapshot: vi.fn(),
-  getContentDetail: vi.fn(),
-  getPublicContentListSnapshot: vi.fn(),
-  getPublicHomeSnapshot: vi.fn(),
-  getPublicProgramListSnapshot: vi.fn(),
-  getPublicSearchIndexSnapshot: vi.fn(),
-  recordContentView: vi.fn(),
-  recordSiteView: vi.fn()
-}));
-
-vi.mock("../../services/googleApi", () => appsScriptMocks);
-
 import { getPublicContentListSnapshot, getContentDetail } from "../public-content/api";
 import { getPublicHomeSnapshot } from "../public-home/api";
 import { getPublicProgramListSnapshot } from "../public-programs/api";
@@ -145,26 +132,8 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-describe("M19 public read provider parity", () => {
-  it("keeps every migrated public read on Apps Script by default", async () => {
-    appsScriptMocks.getPublicHomeSnapshot.mockResolvedValue(homeSnapshot);
-    appsScriptMocks.getPublicContentListSnapshot.mockResolvedValue(contentSnapshot);
-    appsScriptMocks.getContentDetail.mockResolvedValue(publicItem);
-    appsScriptMocks.getPublicProgramListSnapshot.mockResolvedValue(programSnapshot);
-    appsScriptMocks.getPublicSearchIndexSnapshot.mockResolvedValue(searchSnapshot);
-    const fetchMock = installCloudflareFetch();
-
-    await expect(getPublicHomeSnapshot()).resolves.toEqual(homeSnapshot);
-    await expect(getPublicContentListSnapshot("news")).resolves.toEqual(contentSnapshot);
-    await expect(getContentDetail({ slug: "sample-news" })).resolves.toEqual(publicItem);
-    await expect(getPublicProgramListSnapshot()).resolves.toEqual(programSnapshot);
-    await expect(getPublicSearchIndexSnapshot()).resolves.toEqual(searchSnapshot);
-
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("uses Cloudflare for every migrated public read only when explicitly selected", async () => {
-    vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
+describe("M20 public read provider parity", () => {
+  it("uses Cloudflare for every migrated public structured read", async () => {
     const fetchMock = installCloudflareFetch();
 
     await expect(getPublicHomeSnapshot()).resolves.toEqual(homeSnapshot);
@@ -174,15 +143,9 @@ describe("M19 public read provider parity", () => {
     await expect(getPublicSearchIndexSnapshot()).resolves.toEqual(searchSnapshot);
 
     expect(fetchMock).toHaveBeenCalledTimes(5);
-    expect(appsScriptMocks.getPublicHomeSnapshot).not.toHaveBeenCalled();
-    expect(appsScriptMocks.getPublicContentListSnapshot).not.toHaveBeenCalled();
-    expect(appsScriptMocks.getContentDetail).not.toHaveBeenCalled();
-    expect(appsScriptMocks.getPublicProgramListSnapshot).not.toHaveBeenCalled();
-    expect(appsScriptMocks.getPublicSearchIndexSnapshot).not.toHaveBeenCalled();
   });
 
   it("builds the Contact/public shell snapshot from Cloudflare without calling Apps Script", async () => {
-    vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
     const fetchMock = installCloudflareFetch();
 
     await expect(getPublicCmsSnapshotForProvider()).resolves.toMatchObject({
@@ -192,8 +155,6 @@ describe("M19 public read provider parity", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(appsScriptMocks.getCmsSnapshot).not.toHaveBeenCalled();
-    expect(appsScriptMocks.getPublicHomeSnapshot).not.toHaveBeenCalled();
   });
 
   it("records Cloudflare site views without calling Apps Script", () => {
@@ -213,7 +174,6 @@ describe("M19 public read provider parity", () => {
         body: JSON.stringify(input)
       })
     );
-    expect(appsScriptMocks.recordSiteView).not.toHaveBeenCalled();
   });
 
   it("treats public analytics as Cloudflare-only and no-ops when the provider is not Cloudflare", async () => {
@@ -231,8 +191,6 @@ describe("M19 public read provider parity", () => {
     );
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(appsScriptMocks.recordSiteView).not.toHaveBeenCalled();
-    expect(appsScriptMocks.recordContentView).not.toHaveBeenCalled();
   });
 
   it("backs off Cloudflare presence writes after the preview presence schema is missing", async () => {
@@ -281,6 +239,5 @@ describe("M19 public read provider parity", () => {
       "https://public-api.example.test/api/public/content-view",
       expect.objectContaining({ method: "POST" })
     );
-    expect(appsScriptMocks.recordContentView).not.toHaveBeenCalled();
   });
 });

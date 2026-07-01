@@ -1,20 +1,11 @@
-import { getAdminWriteProvider } from "../../config/adminWriteProvider";
-import {
-  deleteCalendarEvent as deleteCalendarEventFromAppsScript,
-  saveCalendarEvent as saveCalendarEventFromAppsScript
-} from "../../services/googleApi";
 import { deleteCalendarEventFromCloudflare, saveCalendarEventToCloudflare } from "../admin-write/cloudflareApi";
-export type { CalendarEventInput } from "../../services/googleApi";
-import type { CalendarEventInput } from "../../services/googleApi";
+import type { CalendarEventInput } from "./types";
+export type { CalendarEventInput } from "./types";
 
 export function saveCalendarEvent(input: CalendarEventInput) {
-  return getAdminWriteProvider() === "cloudflare"
-    ? saveCalendarEventToCloudflare(input)
-    : saveCalendarEventFromAppsScript(input);
+  return saveCalendarEventToCloudflare(input);
 }
 
 export function deleteCalendarEvent(id: string) {
-  return getAdminWriteProvider() === "cloudflare"
-    ? deleteCalendarEventFromCloudflare(id)
-    : deleteCalendarEventFromAppsScript(id);
+  return deleteCalendarEventFromCloudflare(id);
 }

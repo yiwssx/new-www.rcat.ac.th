@@ -1,6 +1,6 @@
-import { getGoogleAppsScriptUrl, projectSettings } from "../config/projectSettings";
+import { projectSettings } from "../config/projectSettings";
 import { DisplaySettings } from "../types";
-import { getDisplaySettingsFromApi, saveDisplaySettingsToApi } from "./googleApi";
+import { getDisplaySettingsFromApi, saveDisplaySettingsToApi } from "../features/cms-settings";
 
 export const defaultDisplaySettings: DisplaySettings = {
   dateFormat: "j F Y",
@@ -87,19 +87,11 @@ function parseStoredDisplaySettings(): DisplaySettings | null {
   }
 }
 
-function usingBackendDisplaySettings() {
-  return Boolean(getGoogleAppsScriptUrl());
-}
-
 export function getStoredDisplaySettings() {
   return parseStoredDisplaySettings() || defaultDisplaySettings;
 }
 
 export async function loadDisplaySettings(): Promise<DisplaySettings> {
-  if (!usingBackendDisplaySettings()) {
-    return getStoredDisplaySettings();
-  }
-
   try {
     const settings = normalizeDisplaySettings(await getDisplaySettingsFromApi());
     persistDisplaySettings(settings);
@@ -115,12 +107,7 @@ export async function saveDisplaySettings(input: Partial<DisplaySettings>): Prom
     ...input
   });
 
-  if (usingBackendDisplaySettings()) {
-    const saved = normalizeDisplaySettings(await saveDisplaySettingsToApi(settings));
-    persistDisplaySettings(saved);
-    return saved;
-  }
-
-  persistDisplaySettings(settings);
-  return settings;
+  const saved = normalizeDisplaySettings(await saveDisplaySettingsToApi(settings));
+  persistDisplaySettings(saved);
+  return saved;
 }

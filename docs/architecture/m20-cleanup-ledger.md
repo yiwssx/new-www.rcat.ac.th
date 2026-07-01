@@ -4,6 +4,81 @@ Date: 2026-06-24
 
 Status: cleanup in progress. M20 production cutover remains gated.
 
+## 2026-07-01 Apps Script Surface Trim
+
+This pass removes the remaining active browser-side Apps Script structured-data adapter while keeping the Apps Script media/file bridge intact.
+
+### Files Removed
+
+- `src/services/googleApi.ts`
+- `src/test/integration/googleApi.integration.test.ts`
+- `src/test/siteViewTracking.test.ts`
+- `src/features/cms-integrations/types.ts`
+
+### Code Removed
+
+- Browser-side Apps Script structured public reads for:
+  - public home
+  - public content list/detail
+  - public documents
+  - public programs
+  - public search
+  - public aggregate CMS snapshot
+- Browser-side Apps Script structured admin reads/writes for:
+  - dashboard snapshot
+  - content
+  - documents
+  - carousel
+  - external services
+  - events
+  - menu
+  - display/site/homepage settings
+  - visitor stats settings mutation
+- Active runtime config keys for direct browser Apps Script:
+  - `projectSettings.api.googleAppsScriptUrl`
+  - `projectSettings.api.googleAppsScriptUrlEnv`
+  - `projectSettings.api.resources.*`
+  - `VITE_GOOGLE_APPS_SCRIPT_URL`
+
+### Code Moved
+
+- Feature input contracts moved out of `src/services/googleApi.ts` into owning feature type files:
+  - `CalendarEventInput`
+  - `CarouselSlideInput`
+  - `DocumentItemInput`
+  - `ExternalServiceLinkInput`
+  - `MediaAssetInput`
+- The admin progress activity facade now lives independently in `src/shared/api/activity.ts` instead of re-exporting Google API activity state.
+
+### Evidence
+
+- `src/test/adminInformationArchitecture.test.ts` now guards active browser structured-data wrappers against `services/googleApi`, `getGoogleAppsScriptUrl`, `VITE_GOOGLE_APPS_SCRIPT_URL`, and `FromAppsScript` references.
+- `rg` showed no active source imports for `services/googleApi`, `cms-integrations`, `authRuntime`, `services/users`, or browser-side Apps Script structured read/write fallbacks after the cleanup.
+- Public and admin feature wrappers now call Cloudflare Worker APIs directly for structured data.
+- `scripts/generate-sitemap.mjs` now enriches sitemap content from `VITE_CLOUDFLARE_PUBLIC_API_URL` and falls back to static routes when unavailable.
+
+### Intentionally Retained
+
+- `apps-script/`
+
+  Retained for the media/file bridge and Google Drive file operations.
+
+- `server/appsScriptProxy/`
+
+  Retained as the Vercel server-side media/file proxy. Its allowlist remains scoped to `media` and `deleteMedia`.
+
+- `src/features/cms-media/mediaBridgeClient.ts`
+
+  Retained as the active frontend client for `/api/apps-script-proxy` media upload/delete operations.
+
+- `cloudflare/public-api/migrations/`
+
+  Retained because D1 migration history is append-only.
+
+- Historical architecture and release records
+
+  Retained unless clearly obsolete active guidance was updated.
+
 ## 2026-07-01 Follow-Up Cleanup
 
 This follow-up keeps the existing runtime ownership unchanged while pruning unused frontend compatibility code and stale generated guidance.
@@ -60,7 +135,7 @@ The cleanup does not perform production cutover.
 
 - `src/services/googleApi.ts`
 
-  Retained because Apps Script is still used for the media/file bridge and Google Drive file operations. Only legacy auth and user-management wrappers were removed.
+  Retained only during the initial legacy user cleanup because media bridge typing still depended on it at that point. It was removed in the 2026-07-01 Apps Script surface trim above after media bridge types moved to `src/features/cms-media/types.ts`.
 
 - `apps-script/`
 

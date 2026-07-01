@@ -14,3 +14,19 @@ export interface MediaAsset {
   embedUrl?: string;
   updatedAt: string;
 }
+
+export interface MediaAssetInput {
+  id?: string;
+  name: string;
+  type: MediaType;
+  size?: string;
+  owner: string;
+  driveUrl?: string;
+  fileId?: string;
+  mimeType?: string;
+  thumbnailUrl?: string;
+  previewUrl?: string;
+  embedUrl?: string;
+  fileName?: string;
+  fileBase64?: string;
+}

@@ -14,3 +14,5 @@ export interface CarouselSlide {
   updatedAt: string;
   revision?: number;
 }
+
+export type CarouselSlideInput = Partial<CarouselSlide>;

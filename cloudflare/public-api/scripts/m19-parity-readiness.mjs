@@ -57,7 +57,7 @@ const repositoryChecks = [
   {
     name: "mediaBridgeBoundary",
     file: "src/features/cms-media/api.ts",
-    patterns: [/services\/googleApi/]
+    patterns: [/saveMediaAssetToBridge/, /uploadMediaAssetToBridge/, /deleteMediaAssetFromBridge/]
   }
 ];
 

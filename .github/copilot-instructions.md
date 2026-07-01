@@ -23,10 +23,11 @@ Use these files as current runtime references:
 ## Do Not Reintroduce
 
 - Direct frontend Apps Script user management.
+- Direct frontend Apps Script structured-data reads or writes.
 - Local bootstrap users.
 - Local password-hash user fallback.
 - Legacy Apps Script credential login.
-- Production auth that depends on `VITE_GOOGLE_APPS_SCRIPT_URL`.
+- Production auth that depends on direct frontend Apps Script.
 
 ## Safety Rules
 
