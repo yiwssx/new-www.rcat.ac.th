@@ -21,7 +21,6 @@ interface ProjectSettings {
       publicProgramList: string;
       publicSearchIndex: string;
       adminSnapshot: string;
-      health: string;
       content: string;
       contentDetail: string;
       adminContentDetail: string;

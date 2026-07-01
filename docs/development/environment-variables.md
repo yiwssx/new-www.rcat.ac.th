@@ -65,3 +65,5 @@ Do not expose bridge tokens through `VITE_` variables.
 `VITE_GOOGLE_APPS_SCRIPT_URL` is not the current admin login or user-management configuration path.
 
 The current admin runtime uses Vercel admin proxy, Cloudflare Worker/D1, and RBAC environment variables.
+
+`VITE_GOOGLE_APPS_SCRIPT_URL` may still appear in legacy/direct Apps Script compatibility code and local sitemap generation, but it must not be used for the current admin login, user management, or the server-side media bridge.

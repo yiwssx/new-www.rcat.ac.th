@@ -9,7 +9,6 @@ vi.mock("../../config/projectSettings", () => ({
       resources: {
         snapshot: "snapshot",
         adminSnapshot: "snapshot-admin",
-        health: "health",
         content: "content",
         contentDetail: "content-detail",
         adminContentDetail: "content-detail-admin",

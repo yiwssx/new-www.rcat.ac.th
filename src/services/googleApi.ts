@@ -7,7 +7,6 @@ import {
   DisplaySettings,
   ExternalServiceLink,
   HomepageSettings,
-  IntegrationStatus,
   MediaAsset,
   MediaType,
   CmsDocumentItem,
@@ -48,14 +47,6 @@ const unauthenticatedPostResources = new Set<GoogleResource>(["contentView", "si
 
 let activeGoogleApiRequestCount = 0;
 const googleApiActivitySubscribers = new Set<GoogleApiActivitySubscriber>();
-
-interface HealthResponse {
-  ok: boolean;
-  hasSpreadsheet: boolean;
-  hasDriveFolder: boolean;
-  hasDocsFolder: boolean;
-  timestamp: string;
-}
 
 function notifyGoogleApiActivitySubscribers() {
   googleApiActivitySubscribers.forEach((subscriber) => {
@@ -464,30 +455,4 @@ export async function saveHomepageSettingsToApi(settings: Partial<HomepageSettin
 
 export async function saveVisitorStatsToApi(stats: Partial<VisitorStatsSettings>): Promise<VisitorStatsSettings> {
   return postJson<VisitorStatsSettings>("visitorStats", stats);
-}
-
-export async function checkGoogleConnection(): Promise<IntegrationStatus[]> {
-  const health = await googleFetch<HealthResponse>("health");
-  const lastSync = health.timestamp;
-
-  return [
-    {
-      service: "Sheets",
-      status: health.ok && health.hasSpreadsheet ? "connected" : "error",
-      detail: health.hasSpreadsheet ? "ตั้งค่า Spreadsheet แล้ว" : "ยังไม่ได้เชื่อมต่อ Spreadsheet",
-      lastSync
-    },
-    {
-      service: "Drive",
-      status: health.hasDriveFolder ? "connected" : "pending",
-      detail: health.hasDriveFolder ? "ตั้งค่าโฟลเดอร์ Drive แล้ว" : "ยังไม่ได้ตั้งค่าโฟลเดอร์ Drive",
-      lastSync: health.hasDriveFolder ? lastSync : "Not connected"
-    },
-    {
-      service: "Docs",
-      status: health.hasDocsFolder ? "connected" : "pending",
-      detail: health.hasDocsFolder ? "ตั้งค่าโฟลเดอร์ Docs แล้ว" : "ยังไม่ได้ตั้งค่าโฟลเดอร์ Docs",
-      lastSync: health.hasDocsFolder ? lastSync : "Not connected"
-    }
-  ];
 }

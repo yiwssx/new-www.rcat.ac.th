@@ -197,7 +197,7 @@ describe("M18 admin structured write provider", () => {
 
   it("uses PATCH for existing content without a revision and omits the revision header", async () => {
     setCloudflareEnv();
-    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body ?? "{}"));
       return jsonResponse({ item: { ...body, id: sampleContent.id } });
     });
@@ -329,7 +329,7 @@ describe("M18 admin structured write provider", () => {
     mediaBridgeMocks.uploadMediaAssetToBridge.mockResolvedValue(uploadedMedia);
     mediaBridgeMocks.deleteMediaAssetFromBridge.mockResolvedValue({ id: "m18-preview-media-001", deleted: true });
     setCloudflareEnv();
-    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       if (init?.method === "DELETE") {
         return jsonResponse({ id: "m18-preview-media-001", deleted: true });
       }

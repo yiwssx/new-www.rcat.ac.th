@@ -19,7 +19,7 @@ export type {
   ExternalServiceLink,
   ExternalServiceTone
 } from "./features/cms-external-services/types";
-export type { IntegrationState, IntegrationStatus } from "./features/cms-integrations/types";
+export type { IntegrationState } from "./features/cms-integrations/types";
 export type { MediaAsset, MediaType } from "./features/cms-media/types";
 export type { PublicMenuItem } from "./features/cms-navigation/types";
 export type {

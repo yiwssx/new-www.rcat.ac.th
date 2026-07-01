@@ -69,10 +69,7 @@ describe("PublicIntroGate regressions", () => {
         "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w1600 1600w"
       ].join(", ")
     );
-    expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute(
-      "sizes",
-      "(max-width: 600px) 94vw, (max-width: 1200px) 92vw, 1280px"
-    );
+    expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute("sizes", "96vw");
   });
 
   it("accepts an existing Google Drive thumbnail image URL", () => {

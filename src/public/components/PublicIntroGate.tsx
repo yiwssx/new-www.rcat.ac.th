@@ -104,7 +104,6 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
   const activeSettings = settings;
   const showImageLoadingState = hasSafeImage && imageStatus === "loading";
   const showImageErrorState = !hasSafeImage || imageStatus === "failed";
-  const imageViewportMaxHeight = "calc(100dvh - 140px)";
 
   return (
     <Box

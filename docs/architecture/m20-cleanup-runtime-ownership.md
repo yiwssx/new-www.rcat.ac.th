@@ -18,6 +18,12 @@ Apps Script is retained only for the Google Drive media/file bridge and related 
 
 Apps Script is no longer the active user-management backend.
 
+The CMS Integrations page no longer uses the legacy browser-side Google connection health facade. It reports:
+
+- Cloudflare structured-data status from the configured admin write provider.
+- Apps Script media bridge readiness from Vercel `/api/apps-script-proxy`.
+- Google Drive media storage readiness through the same authenticated bridge status.
+
 Removed legacy user-management paths:
 
 - Direct Apps Script user account CRUD from frontend services.
@@ -117,6 +123,7 @@ Do not delete old migrations.
 - Public site-view, content-view, and presence calls become safe no-ops outside Cloudflare provider mode.
 - The Vercel Apps Script media bridge no longer reads `VITE_GOOGLE_APPS_SCRIPT_URL` as server configuration.
 - Admin user management no longer uses direct Apps Script user CRUD.
+- The legacy browser-side `checkGoogleConnection()` integrations health mapper is removed from the frontend.
 
 ## Safety State
 

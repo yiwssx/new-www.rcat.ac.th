@@ -4,6 +4,34 @@ Date: 2026-06-24
 
 Status: cleanup in progress. M20 production cutover remains gated.
 
+## 2026-07-01 Follow-Up Cleanup
+
+This follow-up keeps the existing runtime ownership unchanged while pruning unused frontend compatibility code and stale generated guidance.
+
+### Files Removed
+
+- `.github/copilot-instructions.md.bak`
+- `src/features/cms-integrations/api.ts`
+- `src/features/cms-integrations/index.ts`
+- `src/services/authRuntime.ts`
+- `src/shared/api/index.ts`
+
+### Code Removed
+
+- Unused `PublicIntroGate` local layout constant.
+- Unused test callback parameter names in admin write provider tests.
+- Legacy browser-side Google connection health facade:
+  - `checkGoogleConnection()`
+  - `IntegrationStatus`
+  - frontend `projectSettings.api.resources.health`
+
+### Evidence
+
+- Import graph showed the removed TypeScript files had no active static importers outside historical docs.
+- `rg checkGoogleConnection` and `rg IntegrationStatus` showed active references only in the removed facade/type path plus historical architecture records.
+- The active Integrations page now reports Cloudflare structured-data status from provider configuration and Apps Script media bridge status from Vercel `/api/apps-script-proxy`.
+- The stale `.github/copilot-instructions.md.bak` file was unreferenced and described obsolete Apps Script backend/user-service ownership.
+
 ## Cleanup Scope
 
 This cleanup removes stale legacy user-management code and synchronizes documentation with the current Cloudflare-first runtime ownership.
