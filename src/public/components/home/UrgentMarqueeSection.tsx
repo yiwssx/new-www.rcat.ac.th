@@ -1,43 +1,100 @@
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Box, Chip, Container, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import type { HomepageMarqueeSettings } from "../../../types";
+import {
+  formatMarqueeSeconds,
+  getFallbackMarqueeMotion,
+  getMarqueeMotion,
+  getMarqueePixelsPerSecond,
+  type MarqueeMotion
+} from "./urgentMarqueeMotion";
 
-const defaultMarqueeSpeedSeconds = 60;
+const useEnhancedEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 const marqueeScroll = keyframes`
   from {
-    transform: translateX(100vw);
+    transform: translateX(var(--rcat-marquee-start-x));
   }
 
   to {
-    transform: translateX(-100%);
+    transform: translateX(var(--rcat-marquee-end-x));
   }
 `;
 
-function getMarqueeSpeedSeconds(value: unknown) {
-  const numericValue = typeof value === "number" ? value : Number(value);
-
-  if (!Number.isFinite(numericValue)) {
-    return defaultMarqueeSpeedSeconds;
-  }
-
-  return Math.min(180, Math.max(24, numericValue));
-}
-
-function getReducedMotionMarqueeSpeedSeconds(speedSeconds: number) {
-  return Math.min(240, Math.max(speedSeconds * 2, 120));
+function isSameMotion(current: MarqueeMotion, next: MarqueeMotion) {
+  return (
+    current.startX === next.startX &&
+    current.endX === next.endX &&
+    current.durationSeconds === next.durationSeconds &&
+    current.reducedMotionDurationSeconds === next.reducedMotionDurationSeconds
+  );
 }
 
 export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeSettings }) {
-  if (!settings?.enabled || !settings.text.trim()) {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const marqueeText = settings?.text.trim() ?? "";
+  const pixelsPerSecond = getMarqueePixelsPerSecond(settings?.speedSeconds);
+  const [motion, setMotion] = useState(() => getFallbackMarqueeMotion(pixelsPerSecond));
+
+  useEnhancedEffect(() => {
+    if (!settings?.enabled || !marqueeText) {
+      return undefined;
+    }
+
+    let isActive = true;
+    const viewportElement = viewportRef.current;
+    const trackElement = trackRef.current;
+
+    if (!viewportElement || !trackElement) {
+      return undefined;
+    }
+
+    const measuredViewportElement: HTMLDivElement = viewportElement;
+    const measuredTrackElement: HTMLDivElement = trackElement;
+
+    function measure() {
+      if (!isActive) {
+        return;
+      }
+
+      const viewportWidth = measuredViewportElement.getBoundingClientRect().width;
+      const trackWidth = Math.max(measuredTrackElement.scrollWidth, measuredTrackElement.getBoundingClientRect().width);
+      const nextMotion = getMarqueeMotion(viewportWidth, trackWidth, pixelsPerSecond);
+
+      setMotion((currentMotion) => (isSameMotion(currentMotion, nextMotion) ? currentMotion : nextMotion));
+    }
+
+    measure();
+
+    const resizeObserver =
+      typeof window !== "undefined" && typeof window.ResizeObserver !== "undefined"
+        ? new window.ResizeObserver(measure)
+        : null;
+
+    resizeObserver?.observe(measuredViewportElement);
+    resizeObserver?.observe(measuredTrackElement);
+    window.addEventListener("resize", measure);
+
+    if (typeof document !== "undefined" && "fonts" in document) {
+      void document.fonts.ready.then(() => {
+        measure();
+      });
+    }
+
+    return () => {
+      isActive = false;
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [marqueeText, pixelsPerSecond, settings?.enabled]);
+
+  if (!settings?.enabled || !marqueeText) {
     return null;
   }
-
-  const marqueeText = settings.text.trim();
-  const speedSeconds = getMarqueeSpeedSeconds(settings.speedSeconds);
-  const reducedMotionSpeedSeconds = getReducedMotionMarqueeSpeedSeconds(speedSeconds);
 
   return (
     <Box component="section" aria-label="ประกาศด่วน" sx={{ py: { xs: 1, md: 1.2 }, bgcolor: "background.default" }}>
@@ -60,7 +117,7 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
             "@media (prefers-reduced-motion: reduce)": {
               "& .rcat-marquee-track": {
                 // This is an urgent public notice, so reduced motion slows the ticker instead of stopping it.
-                animationDuration: `${reducedMotionSpeedSeconds}s`
+                animationDuration: "var(--rcat-marquee-reduced-motion-duration)"
               }
             }
           })}
@@ -79,15 +136,26 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
               }
             }}
           />
-          <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+          <Box ref={viewportRef} className="rcat-marquee-viewport" sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
             <Box
+              ref={trackRef}
               className="rcat-marquee-track"
+              style={
+                {
+                  "--rcat-marquee-start-x": motion.startX,
+                  "--rcat-marquee-end-x": motion.endX,
+                  "--rcat-marquee-duration": `${formatMarqueeSeconds(motion.durationSeconds)}s`,
+                  "--rcat-marquee-reduced-motion-duration": `${formatMarqueeSeconds(
+                    motion.reducedMotionDurationSeconds
+                  )}s`
+                } as CSSProperties
+              }
               sx={{
                 display: "inline-flex",
                 width: "max-content",
                 whiteSpace: "nowrap",
                 animationName: `${marqueeScroll}`,
-                animationDuration: `${speedSeconds}s`,
+                animationDuration: "var(--rcat-marquee-duration)",
                 animationTimingFunction: "linear",
                 animationIterationCount: "infinite",
                 animationDelay: "0s",

@@ -9,6 +9,11 @@ import { DirectorHeroCard } from "../public/components/home/DirectorHeroCard";
 import { ExternalServicesSection } from "../public/components/home/ExternalServicesSection";
 import { HomeIntroVideoSection } from "../public/components/home/HomeIntroVideoSection";
 import { UrgentMarqueeSection } from "../public/components/home/UrgentMarqueeSection";
+import {
+  defaultMarqueePixelsPerSecond,
+  getMarqueeMotion,
+  getMarqueePixelsPerSecond
+} from "../public/components/home/urgentMarqueeMotion";
 import { VisitorStatsCard } from "../public/components/home/VisitorStatsCard";
 import { shouldStartCarouselAutoplay } from "../public/utils/homeCarousel";
 import { DEFAULT_HOMEPAGE_SETTINGS } from "../services/homepageSettings";
@@ -25,6 +30,58 @@ function createIntroGateSettings(overrides: Partial<HomepageIntroGateSettings> =
     storageKey: "intro-test",
     ...overrides
   };
+}
+
+function mockMarqueeMeasurements({ viewportWidth, trackWidth }: { viewportWidth: number; trackWidth: number }) {
+  const boundingRectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+    this: HTMLElement
+  ) {
+    const element = this as HTMLElement;
+    const width = element.classList.contains("rcat-marquee-viewport")
+      ? viewportWidth
+      : element.classList.contains("rcat-marquee-track")
+        ? trackWidth
+        : 0;
+
+    return {
+      x: 0,
+      y: 0,
+      width,
+      height: 24,
+      top: 0,
+      right: width,
+      bottom: 24,
+      left: 0,
+      toJSON: () => ({})
+    } as DOMRect;
+  });
+  const scrollWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollWidth");
+
+  Object.defineProperty(HTMLElement.prototype, "scrollWidth", {
+    configurable: true,
+    get() {
+      return (this as HTMLElement).classList.contains("rcat-marquee-track") ? trackWidth : 0;
+    }
+  });
+
+  return () => {
+    boundingRectSpy.mockRestore();
+
+    if (scrollWidthDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, "scrollWidth", scrollWidthDescriptor);
+      return;
+    }
+
+    delete (HTMLElement.prototype as { scrollWidth?: number }).scrollWidth;
+  };
+}
+
+function expectMotionSpeed(
+  motion: ReturnType<typeof getMarqueeMotion>,
+  totalDistancePx: number,
+  expectedPixelsPerSecond: number
+) {
+  expect(totalDistancePx / motion.durationSeconds).toBeCloseTo(expectedPixelsPerSecond, 5);
 }
 
 afterEach(() => {
@@ -150,7 +207,49 @@ describe("homepage settings public sections", () => {
     ).toBeNull();
   });
 
+  it("maps stored marquee speedSeconds to bounded pixels per second", () => {
+    expect(getMarqueePixelsPerSecond(60)).toBe(defaultMarqueePixelsPerSecond);
+    expect(getMarqueePixelsPerSecond(24)).toBe(180);
+    expect(getMarqueePixelsPerSecond(180)).toBe(35);
+    expect(getMarqueePixelsPerSecond(Number.NaN)).toBe(defaultMarqueePixelsPerSecond);
+  });
+
+  it("calculates different desktop and mobile durations with the same pixels-per-second ratio", () => {
+    const mobile = getMarqueeMotion(320, 680, 80);
+    const desktop = getMarqueeMotion(1440, 680, 80);
+
+    expect(mobile.durationSeconds).not.toBe(desktop.durationSeconds);
+    expectMotionSpeed(mobile, 1000, 80);
+    expectMotionSpeed(desktop, 2120, 80);
+  });
+
+  it("increases marquee duration when measured distance increases", () => {
+    const shortDistance = getMarqueeMotion(320, 480, 80);
+    const longDistance = getMarqueeMotion(1280, 920, 80);
+
+    expect(longDistance.durationSeconds).toBeGreaterThan(shortDistance.durationSeconds);
+    expectMotionSpeed(shortDistance, 800, 80);
+    expectMotionSpeed(longDistance, 2200, 80);
+  });
+
+  it("keeps speed stable for the same pixels-per-second setting", () => {
+    const first = getMarqueeMotion(480, 720, 120);
+    const second = getMarqueeMotion(960, 1080, 120);
+
+    expectMotionSpeed(first, 1200, 120);
+    expectMotionSpeed(second, 2040, 120);
+  });
+
+  it("uses a longer reduced-motion duration while keeping the ticker animated", () => {
+    const motion = getMarqueeMotion(400, 600, 80);
+
+    expect(motion.reducedMotionDurationSeconds).toBeGreaterThan(motion.durationSeconds);
+    expect(1000 / motion.reducedMotionDurationSeconds).toBeLessThan(80);
+  });
+
   it("renders UrgentMarqueeSection as a right-to-left ticker that starts offscreen", () => {
+    const restoreMeasurements = mockMarqueeMeasurements({ viewportWidth: 360, trackWidth: 640 });
+
     render(
       <UrgentMarqueeSection
         settings={{
@@ -171,19 +270,25 @@ describe("homepage settings public sections", () => {
 
     expect(screen.getByTestId("urgent-marquee-group")).toHaveTextContent("Campus announcement");
     expect(marqueeTrack).toBeInTheDocument();
-    expect(injectedStyles).toContain("translateX(100vw)");
-    expect(injectedStyles).toContain("translateX(-100%)");
-    expect(injectedStyles).toContain("animation-duration:60s");
+    expect(document.querySelector(".rcat-marquee-viewport")).toBeInTheDocument();
+    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-start-x")).toBe("360px");
+    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-end-x")).toBe("-640px");
+    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-duration")).toBe("12.5s");
+    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-reduced-motion-duration")).toBe("25s");
+    expect(injectedStyles).toContain("translateX(var(--rcat-marquee-start-x))");
+    expect(injectedStyles).toContain("translateX(var(--rcat-marquee-end-x))");
+    expect(injectedStyles).toContain("animation-duration:var(--rcat-marquee-duration)");
     expect(injectedStyles).toContain("animation-timing-function:linear");
     expect(injectedStyles).toContain("animation-iteration-count:infinite");
     expect(injectedStyles).toContain("animation-delay:0s");
     expect(injectedStyles).toContain("animation-play-state:paused");
     expect(injectedStyles).toContain("will-change:transform");
     expect(injectedStyles).toContain("prefers-reduced-motion:reduce");
-    expect(injectedStyles).toContain("animation-duration:120s");
+    expect(injectedStyles).toContain("animation-duration:var(--rcat-marquee-reduced-motion-duration)");
     expect(injectedStyles).not.toContain("animation:none");
     expect(injectedStyles).not.toContain("animation:none!important");
     expect(injectedStyles).not.toContain("animation-name:none");
+    restoreMeasurements();
   });
 
   it("falls back to a calm marquee speed when speedSeconds is invalid", () => {
@@ -199,11 +304,13 @@ describe("homepage settings public sections", () => {
       />
     );
 
-    expect((document.head.textContent || "").replace(/\s/g, "")).toContain("animation-duration:60s");
-    expect((document.head.textContent || "").replace(/\s/g, "")).toContain("animation-duration:120s");
+    const marqueeTrack = document.querySelector(".rcat-marquee-track") as HTMLElement;
+
+    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-duration")).toBe("60s");
+    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-reduced-motion-duration")).toBe("120s");
   });
 
-  it("caps reduced-motion marquee speed while keeping the ticker animated", () => {
+  it("slows reduced-motion marquee speed while keeping the ticker animated", () => {
     render(
       <UrgentMarqueeSection
         settings={{
@@ -216,11 +323,14 @@ describe("homepage settings public sections", () => {
       />
     );
 
+    const marqueeTrack = document.querySelector(".rcat-marquee-track") as HTMLElement;
     const injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
 
     expect(injectedStyles).toContain("prefers-reduced-motion:reduce");
-    expect(injectedStyles).toContain("animation-duration:180s");
-    expect(injectedStyles).toContain("animation-duration:240s");
+    expect(
+      Number.parseFloat(marqueeTrack.style.getPropertyValue("--rcat-marquee-reduced-motion-duration"))
+    ).toBeGreaterThan(Number.parseFloat(marqueeTrack.style.getPropertyValue("--rcat-marquee-duration")));
+    expect(injectedStyles).toContain("animation-duration:var(--rcat-marquee-reduced-motion-duration)");
     expect(injectedStyles).not.toContain("animation:none");
   });
 
