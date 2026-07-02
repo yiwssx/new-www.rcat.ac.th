@@ -49,7 +49,7 @@ import {
 import { saveMediaAsset, type MediaAssetInput } from "../../features/cms-media";
 import { CmsSnapshot, ContentItem, ContentStatus } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
-import { appSwal } from "../../utils/swal";
+import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { mergeBridgeMediaAssets } from "../../features/cms-media";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
@@ -116,10 +116,11 @@ export default function ContentPage() {
       await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
     }
   });
+  const contentWritePending = saveMutation.isPending || deleteMutation.isPending || publishMutation.isPending;
 
   const handleEdit = useCallback(
     async (item: ContentItem) => {
-      if (!canManage) {
+      if (!canManage || contentWritePending) {
         return;
       }
 
@@ -141,12 +142,12 @@ export default function ContentPage() {
         setLoadingEditorItem(false);
       }
     },
-    [canManage]
+    [canManage, contentWritePending]
   );
 
   const handleDelete = useCallback(
     async (item: ContentItem) => {
-      if (!canManage) {
+      if (!canManage || contentWritePending) {
         return;
       }
 
@@ -163,32 +164,23 @@ export default function ContentPage() {
         return;
       }
 
+      showBlockingLoading("กำลังลบเนื้อหา");
+
       try {
         await deleteMutation.mutateAsync(item);
-        await appSwal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "ลบเนื้อหาแล้ว",
-          showConfirmButton: false,
-          timer: 1400,
-          timerProgressBar: true
-        });
+        await appSwal.close();
+        await showSuccessResult("ลบเนื้อหาสำเร็จ");
       } catch (currentError) {
-        await appSwal.fire({
-          icon: "error",
-          title: "ไม่สามารถลบเนื้อหาได้",
-          text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
-          confirmButtonText: "ตกลง"
-        });
+        await appSwal.close();
+        await showErrorResult("ไม่สามารถลบเนื้อหาได้", currentError, "กรุณาลองอีกครั้ง");
       }
     },
-    [canManage, deleteMutation]
+    [canManage, contentWritePending, deleteMutation]
   );
 
   const handlePublish = useCallback(
     async (item: ContentItem) => {
-      if (!canManage) {
+      if (!canManage || contentWritePending) {
         return;
       }
 
@@ -205,31 +197,22 @@ export default function ContentPage() {
         return;
       }
 
+      showBlockingLoading("กำลังเผยแพร่เนื้อหา");
+
       try {
         await publishMutation.mutateAsync(item);
-        await appSwal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "เผยแพร่เนื้อหาแล้ว",
-          showConfirmButton: false,
-          timer: 1400,
-          timerProgressBar: true
-        });
+        await appSwal.close();
+        await showSuccessResult("เผยแพร่เนื้อหาสำเร็จ");
       } catch (currentError) {
         if (isAdminStaleRevisionError(currentError)) {
           await queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] });
         }
 
-        await appSwal.fire({
-          icon: "error",
-          title: "ไม่สามารถเผยแพร่เนื้อหาได้",
-          text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
-          confirmButtonText: "ตกลง"
-        });
+        await appSwal.close();
+        await showErrorResult("ไม่สามารถเผยแพร่เนื้อหาได้", currentError, "กรุณาลองอีกครั้ง");
       }
     },
-    [canManage, publishMutation, queryClient]
+    [canManage, contentWritePending, publishMutation, queryClient]
   );
 
   const columns = useMemo(
@@ -298,36 +281,44 @@ export default function ContentPage() {
             {canManage && (
               <>
                 <Tooltip title="แก้ไข">
-                  <IconButton
-                    aria-label="แก้ไข"
-                    size="small"
-                    disabled={loadingEditorItem}
-                    onClick={() => void handleEdit(info.row.original)}
-                  >
-                    <EditOutlinedIcon fontSize="small" />
-                  </IconButton>
+                  <span>
+                    <IconButton
+                      aria-label="แก้ไข"
+                      size="small"
+                      disabled={loadingEditorItem || contentWritePending}
+                      onClick={() => void handleEdit(info.row.original)}
+                    >
+                      <EditOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </span>
                 </Tooltip>
                 {info.row.original.status !== "published" && (
                   <Tooltip title="เผยแพร่">
-                    <IconButton
-                      aria-label="เผยแพร่"
-                      size="small"
-                      color="primary"
-                      onClick={() => void handlePublish(info.row.original)}
-                    >
-                      <PublishOutlinedIcon fontSize="small" />
-                    </IconButton>
+                    <span>
+                      <IconButton
+                        aria-label="เผยแพร่"
+                        size="small"
+                        color="primary"
+                        disabled={contentWritePending}
+                        onClick={() => void handlePublish(info.row.original)}
+                      >
+                        <PublishOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </span>
                   </Tooltip>
                 )}
                 <Tooltip title="ลบ">
-                  <IconButton
-                    aria-label="ลบ"
-                    size="small"
-                    color="error"
-                    onClick={() => void handleDelete(info.row.original)}
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
+                  <span>
+                    <IconButton
+                      aria-label="ลบ"
+                      size="small"
+                      color="error"
+                      disabled={contentWritePending}
+                      onClick={() => void handleDelete(info.row.original)}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </span>
                 </Tooltip>
               </>
             )}
@@ -335,7 +326,7 @@ export default function ContentPage() {
         )
       })
     ],
-    [canManage, handleDelete, handleEdit, handlePublish, loadingEditorItem]
+    [canManage, contentWritePending, handleDelete, handleEdit, handlePublish, loadingEditorItem]
   );
 
   const filteredItems = useMemo(() => {
@@ -365,7 +356,7 @@ export default function ContentPage() {
   });
 
   function handleCreate() {
-    if (!canManage) {
+    if (!canManage || contentWritePending) {
       return;
     }
 
@@ -380,21 +371,20 @@ export default function ContentPage() {
       return;
     }
 
+    if (contentWritePending) {
+      return;
+    }
+
+    showBlockingLoading("กำลังบันทึกเนื้อหา");
+
     try {
       setSaveError("");
       await saveMutation.mutateAsync(item);
+      await appSwal.close();
       setEditorOpen(false);
       setSelectedItem(null);
       await waitForDialogTransition();
-      await appSwal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "บันทึกเนื้อหาแล้ว",
-        showConfirmButton: false,
-        timer: 1400,
-        timerProgressBar: true
-      });
+      await showSuccessResult("บันทึกเนื้อหาสำเร็จ");
     } catch (currentError) {
       if (isAdminStaleRevisionError(currentError)) {
         if (currentError.latestItem) {
@@ -402,7 +392,9 @@ export default function ContentPage() {
         }
         await queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] });
       }
-      setSaveError(currentError instanceof Error ? currentError.message : "กรุณาตรวจสอบรายละเอียดเนื้อหา");
+      await appSwal.close();
+      setSaveError(getSwalErrorText(currentError, "กรุณาตรวจสอบรายละเอียดเนื้อหา"));
+      await showErrorResult("ไม่สามารถบันทึกเนื้อหาได้", currentError, "กรุณาตรวจสอบรายละเอียดเนื้อหา");
     }
   }
 
@@ -421,7 +413,7 @@ export default function ContentPage() {
         description="สร้างและดูแลหน้าเว็บ บทความ ข้อมูลหลักสูตร ข่าว และประกาศ"
         action={
           canManage ? (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
+            <Button variant="contained" startIcon={<AddIcon />} disabled={contentWritePending} onClick={handleCreate}>
               เพิ่มเนื้อหา
             </Button>
           ) : undefined

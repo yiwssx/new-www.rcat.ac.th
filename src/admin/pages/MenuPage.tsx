@@ -29,7 +29,7 @@ import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
 import { getPublicMenuItems, savePublicMenuItems } from "../../features/cms-navigation";
 import { PublicMenuItem } from "../../types";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
 
 interface MenuFormState {
@@ -301,8 +301,10 @@ export default function MenuPage() {
   const [editingId, setEditingId] = useState<string | undefined>();
   const [parentId, setParentId] = useState<string | undefined>();
   const [form, setForm] = useState<MenuFormState>(emptyForm);
+  const [publishingMenu, setPublishingMenu] = useState(false);
 
   const editingItem = findMenuItem(items, editingId);
+  const canEditMenu = canManage && !publishingMenu;
 
   if (itemsSource !== data) {
     setItemsSource(data);
@@ -310,7 +312,7 @@ export default function MenuPage() {
   }
 
   function handleAdd(parent?: string) {
-    if (!canManage) {
+    if (!canEditMenu) {
       return;
     }
 
@@ -321,7 +323,7 @@ export default function MenuPage() {
   }
 
   function handleEdit(id: string) {
-    if (!canManage) {
+    if (!canEditMenu) {
       return;
     }
 
@@ -345,7 +347,7 @@ export default function MenuPage() {
   }
 
   async function handleSaveItem() {
-    if (!canManage) {
+    if (!canEditMenu) {
       return;
     }
 
@@ -386,7 +388,7 @@ export default function MenuPage() {
   }
 
   async function handleRemove(id: string) {
-    if (!canManage) {
+    if (!canEditMenu) {
       return;
     }
 
@@ -408,35 +410,42 @@ export default function MenuPage() {
   }
 
   async function handlePublishMenu() {
-    if (!canManage) {
+    if (!canEditMenu) {
       return;
     }
+
+    setPublishingMenu(true);
+    showBlockingLoading("กำลังบันทึกเมนู");
 
     try {
       const savedItems = await savePublicMenuItems(items);
       setItems(cloneMenu(savedItems));
       await queryClient.invalidateQueries({ queryKey: ["public-menu"] });
-      await appSwal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "บันทึกเมนูแล้ว",
-        showConfirmButton: false,
-        timer: 1400,
-        timerProgressBar: true
-      });
+      await appSwal.close();
+      await showSuccessResult("บันทึกเมนูสำเร็จ");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถบันทึกเมนูได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกเมนูได้", error, "กรุณาลองอีกครั้ง");
+    } finally {
+      setPublishingMenu(false);
     }
   }
 
-  function handleResetDraft() {
-    if (!canManage) {
+  async function handleResetDraft() {
+    if (!canEditMenu) {
+      return;
+    }
+
+    const result = await appSwal.fire({
+      icon: "warning",
+      title: "ล้างแบบร่างเมนู?",
+      text: "รายการเมนูที่แก้ไขไว้ในหน้านี้จะถูกล้างออก",
+      showCancelButton: true,
+      confirmButtonText: "ล้างแบบร่าง",
+      cancelButtonText: "ยกเลิก"
+    });
+
+    if (!result.isConfirmed) {
       return;
     }
 
@@ -444,7 +453,7 @@ export default function MenuPage() {
   }
 
   function handleMove(id: string, direction: -1 | 1) {
-    if (!canManage) {
+    if (!canEditMenu) {
       return;
     }
 
@@ -459,11 +468,21 @@ export default function MenuPage() {
         action={
           canManage ? (
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-              <Button variant="outlined" color="inherit" onClick={handleResetDraft}>
+              <Button
+                variant="outlined"
+                color="inherit"
+                disabled={publishingMenu}
+                onClick={() => void handleResetDraft()}
+              >
                 ล้างแบบร่าง
               </Button>
-              <Button variant="contained" startIcon={<SaveOutlinedIcon />} onClick={() => void handlePublishMenu()}>
-                บันทึกเมนู
+              <Button
+                variant="contained"
+                startIcon={<SaveOutlinedIcon />}
+                disabled={publishingMenu}
+                onClick={() => void handlePublishMenu()}
+              >
+                {publishingMenu ? "กำลังบันทึก" : "บันทึกเมนู"}
               </Button>
             </Stack>
           ) : undefined
@@ -501,7 +520,7 @@ export default function MenuPage() {
           </Stack>
           <MenuTree
             items={items}
-            canManage={canManage}
+            canManage={canEditMenu}
             onAddChild={handleAdd}
             onEdit={handleEdit}
             onRemove={(id) => void handleRemove(id)}
@@ -517,7 +536,7 @@ export default function MenuPage() {
               label="ชื่อเมนู"
               value={form.label}
               onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
-              disabled={!canManage}
+              disabled={!canEditMenu}
               fullWidth
               required
             />
@@ -526,7 +545,7 @@ export default function MenuPage() {
               value={form.href}
               onChange={(event) => setForm((current) => ({ ...current, href: event.target.value }))}
               helperText="ใช้ /news, /announcements, /blog หรือ slug เนื้อหา เช่น my-post รองรับ URL ภายนอกด้วย"
-              disabled={!canManage}
+              disabled={!canEditMenu}
               fullWidth
               required
             />
@@ -534,17 +553,17 @@ export default function MenuPage() {
               <Checkbox
                 checked={form.enabled}
                 onChange={(event) => setForm((current) => ({ ...current, enabled: event.target.checked }))}
-                disabled={!canManage}
+                disabled={!canEditMenu}
               />
               <Typography>แสดงในเมนูสาธารณะ</Typography>
             </Stack>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button color="inherit" onClick={handleClose}>
+          <Button color="inherit" onClick={handleClose} disabled={publishingMenu}>
             ยกเลิก
           </Button>
-          <Button variant="contained" disabled={!canManage} onClick={() => void handleSaveItem()}>
+          <Button variant="contained" disabled={!canEditMenu} onClick={() => void handleSaveItem()}>
             บันทึกรายการ
           </Button>
         </DialogActions>

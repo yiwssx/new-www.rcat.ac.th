@@ -44,7 +44,7 @@ import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { CmsDocumentItem, DocumentStatus } from "../../types";
 import { formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
-import { appSwal } from "../../utils/swal";
+import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
 import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 
@@ -127,6 +127,7 @@ export default function DocumentsPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteDocumentFromApi
   });
+  const documentWritePending = saveMutation.isPending || deleteMutation.isPending;
 
   async function invalidateDocumentData() {
     await invalidatePublicCmsData(queryClient);
@@ -144,7 +145,7 @@ export default function DocumentsPage() {
   }
 
   function handleAddDocument() {
-    if (!canManage) {
+    if (!canManage || documentWritePending) {
       return;
     }
 
@@ -155,7 +156,7 @@ export default function DocumentsPage() {
   }
 
   function handleEditDocument(document: CmsDocumentItem) {
-    if (!canManage) {
+    if (!canManage || documentWritePending) {
       return;
     }
 
@@ -185,6 +186,10 @@ export default function DocumentsPage() {
       return;
     }
 
+    if (documentWritePending) {
+      return;
+    }
+
     if (!editingDocument) {
       return;
     }
@@ -196,26 +201,23 @@ export default function DocumentsPage() {
       return;
     }
 
+    showBlockingLoading("กำลังบันทึกเอกสาร");
+
     try {
       await saveMutation.mutateAsync(nextDocument);
       await invalidateDocumentData();
+      await appSwal.close();
       handleCloseDialog();
-      await appSwal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "บันทึกเอกสารแล้ว",
-        showConfirmButton: false,
-        timer: 1400,
-        timerProgressBar: true
-      });
+      await showSuccessResult("บันทึกเอกสารสำเร็จ");
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "ไม่สามารถบันทึกเอกสารได้");
+      await appSwal.close();
+      setSaveError(getSwalErrorText(error, "ไม่สามารถบันทึกเอกสารได้"));
+      await showErrorResult("ไม่สามารถบันทึกเอกสารได้", error, "กรุณาตรวจสอบรายละเอียดเอกสาร");
     }
   }
 
   async function handleDeleteDocument(document: CmsDocumentItem) {
-    if (!canManage) {
+    if (!canManage || documentWritePending) {
       return;
     }
 
@@ -232,25 +234,16 @@ export default function DocumentsPage() {
       return;
     }
 
+    showBlockingLoading("กำลังลบเอกสาร");
+
     try {
       await deleteMutation.mutateAsync(document.id);
       await invalidateDocumentData();
-      await appSwal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "ลบเอกสารแล้ว",
-        showConfirmButton: false,
-        timer: 1400,
-        timerProgressBar: true
-      });
+      await appSwal.close();
+      await showSuccessResult("ลบเอกสารสำเร็จ");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถลบเอกสารได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถลบเอกสารได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -261,7 +254,12 @@ export default function DocumentsPage() {
         description="จัดการไฟล์เอกสารที่แสดงในหน้าแรกและรายการเอกสารสาธารณะ"
         action={
           canManage ? (
-            <Button startIcon={<AddOutlinedIcon />} variant="contained" onClick={handleAddDocument}>
+            <Button
+              startIcon={<AddOutlinedIcon />}
+              variant="contained"
+              disabled={documentWritePending}
+              onClick={handleAddDocument}
+            >
               เพิ่มเอกสาร
             </Button>
           ) : undefined
@@ -343,14 +341,27 @@ export default function DocumentsPage() {
                       {canManage && (
                         <>
                           <Tooltip title="แก้ไข">
-                            <IconButton onClick={() => handleEditDocument(document)}>
-                              <EditOutlinedIcon />
-                            </IconButton>
+                            <span>
+                              <IconButton
+                                aria-label="แก้ไข"
+                                disabled={documentWritePending}
+                                onClick={() => handleEditDocument(document)}
+                              >
+                                <EditOutlinedIcon />
+                              </IconButton>
+                            </span>
                           </Tooltip>
                           <Tooltip title="ลบ">
-                            <IconButton color="error" onClick={() => void handleDeleteDocument(document)}>
-                              <DeleteOutlineOutlinedIcon />
-                            </IconButton>
+                            <span>
+                              <IconButton
+                                aria-label="ลบ"
+                                color="error"
+                                disabled={documentWritePending}
+                                onClick={() => void handleDeleteDocument(document)}
+                              >
+                                <DeleteOutlineOutlinedIcon />
+                              </IconButton>
+                            </span>
                           </Tooltip>
                         </>
                       )}
@@ -488,14 +499,16 @@ export default function DocumentsPage() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>ยกเลิก</Button>
+          <Button onClick={handleCloseDialog} disabled={saveMutation.isPending}>
+            ยกเลิก
+          </Button>
           <Button
             startIcon={<SaveOutlinedIcon />}
             variant="contained"
             onClick={() => void handleSaveDocument()}
             disabled={!canManage || saveMutation.isPending}
           >
-            บันทึก
+            {saveMutation.isPending ? "กำลังบันทึก" : "บันทึก"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -28,6 +28,7 @@ import {
 import { ADMIN_READ_ONLY_NOTICE, canManageUsers, canSelfEditUserProfile, isReadOnlyAdminUser } from "../utils/rbac";
 import { userRoleLabels } from "../../utils/thaiLabels";
 import type { User } from "../../types";
+import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const cannotEditOtherUsersNotice = "บัญชีนี้ไม่มีสิทธิ์แก้ไขผู้ใช้อื่น";
 const cannotDeleteSelfNotice = "ไม่สามารถลบบัญชีของตนเองได้";
@@ -74,6 +75,8 @@ export default function UserManagementCard() {
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState("");
   const [draft, setDraft] = useState<Partial<AdminUserProfile>>(emptyDraft);
+  const [savingUser, setSavingUser] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const activeAdminCount = useMemo(
     () => users.filter((profile) => profile.role === "admin" && profile.status === "active").length,
@@ -85,6 +88,7 @@ export default function UserManagementCard() {
     ? canManage
     : Boolean(editingUser && (canManage || (canSelfEdit && isSelfProfile(editingUser, user))));
   const showSelfEditOnlyNotice = !canManage && canSelfEdit && users.some((profile) => isSelfProfile(profile, user));
+  const userOperationPending = savingUser || deletingUserId !== null;
 
   useEffect(() => {
     let active = true;
@@ -115,18 +119,30 @@ export default function UserManagementCard() {
   }, []);
 
   function startCreate() {
+    if (userOperationPending) {
+      return;
+    }
+
     setEditingId("__new__");
     setDraft(emptyDraft);
     setError("");
   }
 
   function startEdit(profile: AdminUserProfile) {
+    if (userOperationPending) {
+      return;
+    }
+
     setEditingId(profile.id);
     setDraft(profile);
     setError("");
   }
 
   function stopEditing() {
+    if (userOperationPending) {
+      return;
+    }
+
     setEditingId("");
     setDraft(emptyDraft);
   }
@@ -136,6 +152,14 @@ export default function UserManagementCard() {
       setError(cannotEditOtherUsersNotice);
       return;
     }
+
+    if (userOperationPending) {
+      return;
+    }
+
+    setSavingUser(true);
+    setError("");
+    showBlockingLoading("กำลังบันทึกผู้ใช้");
 
     try {
       const payload =
@@ -152,6 +176,7 @@ export default function UserManagementCard() {
             };
       const saved = await saveAdminUserProfileToCloudflare(payload);
 
+      await appSwal.close();
       setUsers((current) => {
         const existingIndex = current.findIndex((profile) => profile.id === saved.id);
 
@@ -161,13 +186,23 @@ export default function UserManagementCard() {
 
         return current.map((profile) => (profile.id === saved.id ? saved : profile));
       });
-      stopEditing();
+      setEditingId("");
+      setDraft(emptyDraft);
+      await showSuccessResult("บันทึกผู้ใช้สำเร็จ");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "ไม่สามารถบันทึกผู้ใช้ได้");
+      await appSwal.close();
+      setError(getSwalErrorText(saveError, "ไม่สามารถบันทึกผู้ใช้ได้"));
+      await showErrorResult("ไม่สามารถบันทึกผู้ใช้ได้", saveError, "กรุณาลองอีกครั้ง");
+    } finally {
+      setSavingUser(false);
     }
   }
 
   async function deleteUser(profile: AdminUserProfile) {
+    if (userOperationPending) {
+      return;
+    }
+
     if (isSelfProfile(profile, user)) {
       setError(cannotDeleteSelfNotice);
       return;
@@ -183,11 +218,21 @@ export default function UserManagementCard() {
       return;
     }
 
+    setDeletingUserId(profile.id);
+    setError("");
+    showBlockingLoading("กำลังลบผู้ใช้");
+
     try {
       await deleteAdminUserProfileFromCloudflare({ id: profile.id, revision: getSafeRevision(profile) });
+      await appSwal.close();
       setUsers((current) => current.filter((item) => item.id !== profile.id));
+      await showSuccessResult("ลบผู้ใช้สำเร็จ");
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "ไม่สามารถลบผู้ใช้ได้");
+      await appSwal.close();
+      setError(getSwalErrorText(deleteError, "ไม่สามารถลบผู้ใช้ได้"));
+      await showErrorResult("ไม่สามารถลบผู้ใช้ได้", deleteError, "กรุณาลองอีกครั้ง");
+    } finally {
+      setDeletingUserId(null);
     }
   }
 
@@ -223,7 +268,7 @@ export default function UserManagementCard() {
 
           <Box>
             {canManage && (
-              <Button variant="contained" onClick={startCreate}>
+              <Button variant="contained" disabled={userOperationPending} onClick={startCreate}>
                 เพิ่มผู้ใช้
               </Button>
             )}
@@ -240,19 +285,20 @@ export default function UserManagementCard() {
                       label="ชื่อ"
                       value={draft.name ?? ""}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+                      disabled={userOperationPending}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
                       fullWidth
-                      disabled={!canManage || !isCreating}
+                      disabled={userOperationPending || !canManage || !isCreating}
                       label="อีเมล"
                       value={draft.email ?? ""}
                       onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 2 }}>
-                    <FormControl fullWidth disabled={!canManage}>
+                    <FormControl fullWidth disabled={userOperationPending || !canManage}>
                       <InputLabel id="admin-user-role-label">สิทธิ์</InputLabel>
                       <Select
                         labelId="admin-user-role-label"
@@ -269,7 +315,7 @@ export default function UserManagementCard() {
                     </FormControl>
                   </Grid>
                   <Grid size={{ xs: 12, md: 2 }}>
-                    <FormControl fullWidth disabled={!canManage}>
+                    <FormControl fullWidth disabled={userOperationPending || !canManage}>
                       <InputLabel id="admin-user-status-label">สถานะ</InputLabel>
                       <Select
                         labelId="admin-user-status-label"
@@ -289,10 +335,14 @@ export default function UserManagementCard() {
                   </Grid>
                 </Grid>
                 <Stack direction="row" spacing={1}>
-                  <Button variant="contained" onClick={saveDraft} disabled={!canEditCurrentDraft}>
-                    บันทึกผู้ใช้
+                  <Button
+                    variant="contained"
+                    onClick={saveDraft}
+                    disabled={!canEditCurrentDraft || userOperationPending}
+                  >
+                    {savingUser ? "กำลังบันทึก" : "บันทึกผู้ใช้"}
                   </Button>
-                  <Button variant="outlined" onClick={stopEditing}>
+                  <Button variant="outlined" onClick={stopEditing} disabled={userOperationPending}>
                     ยกเลิก
                   </Button>
                 </Stack>
@@ -337,7 +387,7 @@ export default function UserManagementCard() {
                       </Box>
                       <Stack direction="row" spacing={1} alignItems="center">
                         {canEdit ? (
-                          <Button variant="outlined" onClick={() => startEdit(profile)}>
+                          <Button variant="outlined" disabled={userOperationPending} onClick={() => startEdit(profile)}>
                             แก้ไข
                           </Button>
                         ) : (
@@ -348,7 +398,7 @@ export default function UserManagementCard() {
                         {canManage && (
                           <Button
                             color="error"
-                            disabled={deleteDisabled}
+                            disabled={deleteDisabled || userOperationPending}
                             variant="outlined"
                             onClick={() => void deleteUser(profile)}
                           >

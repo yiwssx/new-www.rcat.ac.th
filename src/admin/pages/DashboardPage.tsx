@@ -16,7 +16,7 @@ import StatusChip from "../components/StatusChip";
 import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { publishContent } from "../../features/cms-content";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const metricIcons = [
   <ArticleOutlinedIcon key="content" />,
@@ -67,27 +67,18 @@ export default function DashboardPage() {
       return;
     }
 
+    showBlockingLoading("กำลังเผยแพร่คิว");
+
     try {
       for (const item of pendingItems) {
         await publishMutation.mutateAsync(item.id);
       }
       await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
-      await appSwal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "เผยแพร่คิวแล้ว",
-        showConfirmButton: false,
-        timer: 1400,
-        timerProgressBar: true
-      });
+      await appSwal.close();
+      await showSuccessResult("เผยแพร่คิวสำเร็จ");
     } catch (currentError) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถเผยแพร่คิวได้",
-        text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถเผยแพร่คิวได้", currentError, "กรุณาลองอีกครั้ง");
     }
   }
 

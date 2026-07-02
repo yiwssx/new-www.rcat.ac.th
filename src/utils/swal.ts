@@ -11,6 +11,8 @@ interface LazyAppSwal {
   showLoading(): Promise<void>;
 }
 
+const defaultBlockingLoadingText = "กรุณารอสักครู่ อย่าปิดหน้านี้";
+
 let appSwalPromise: Promise<AppSwalInstance> | null = null;
 
 async function getAppSwal() {
@@ -47,3 +49,38 @@ export const appSwal: LazyAppSwal = {
     swal.showLoading();
   }
 };
+
+export function getSwalErrorText(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+export function showBlockingLoading(title: string, text = defaultBlockingLoadingText) {
+  void appSwal.fire({
+    title,
+    text,
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    didOpen: () => {
+      void appSwal.showLoading();
+    }
+  });
+}
+
+export async function showSuccessResult(title: string, text?: string) {
+  await appSwal.fire({
+    icon: "success",
+    title,
+    ...(text ? { text } : {}),
+    confirmButtonText: "ตกลง"
+  });
+}
+
+export async function showErrorResult(title: string, error: unknown, fallback: string) {
+  await appSwal.fire({
+    icon: "error",
+    title,
+    text: getSwalErrorText(error, fallback),
+    confirmButtonText: "ตกลง"
+  });
+}

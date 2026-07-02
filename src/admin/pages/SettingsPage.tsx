@@ -52,7 +52,7 @@ import {
   VisitorStatsSettings
 } from "../../types";
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
 
 function toNonNegativeInteger(value: unknown): number {
@@ -347,23 +347,17 @@ export default function SettingsPage() {
       return;
     }
 
+    showBlockingLoading("กำลังบันทึกการแสดงผล");
+
     try {
       const nextSettings = normalizeDisplaySettings(displaySettings);
       const saved = await saveDisplaySettingsMutation.mutateAsync(nextSettings);
       setDisplaySettings(normalizeDisplaySettings(saved));
-      await appSwal.fire({
-        icon: "success",
-        title: "บันทึกการแสดงผลแล้ว",
-        text: "รูปแบบวันที่และเวลาได้รับการอัปเดตสำหรับ CMS นี้",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showSuccessResult("บันทึกการแสดงผลแล้ว", "รูปแบบวันที่และเวลาได้รับการอัปเดตสำหรับ CMS นี้");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถบันทึกการแสดงผลได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกการแสดงผลได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -574,37 +568,32 @@ export default function SettingsPage() {
       return;
     }
 
+    const validationMessage = getSiteSettingsValidationMessage(siteSettings);
+
+    if (validationMessage) {
+      await appSwal.fire({
+        icon: "warning",
+        title: validationMessage.title,
+        text: validationMessage.text,
+        confirmButtonText: "ตกลง"
+      });
+      return;
+    }
+
+    showBlockingLoading("กำลังบันทึกข้อมูลเว็บไซต์สาธารณะ");
+
     try {
-      const validationMessage = getSiteSettingsValidationMessage(siteSettings);
-
-      if (validationMessage) {
-        await appSwal.fire({
-          icon: "warning",
-          title: validationMessage.title,
-          text: validationMessage.text,
-          confirmButtonText: "ตกลง"
-        });
-        return;
-      }
-
       const saved = await saveSiteSettingsMutation.mutateAsync(normalizeSiteSettings(siteSettings));
       setSiteSettings(normalizeSiteSettings(saved));
       await Promise.all([
         invalidatePublicCmsData(queryClient),
         queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
       ]);
-      await appSwal.fire({
-        icon: "success",
-        title: "บันทึกข้อมูลเว็บไซต์สาธารณะแล้ว",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showSuccessResult("บันทึกข้อมูลเว็บไซต์สาธารณะแล้ว");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถบันทึกข้อมูลเว็บไซต์สาธารณะได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกข้อมูลเว็บไซต์สาธารณะได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -612,6 +601,8 @@ export default function SettingsPage() {
     if (!canManage) {
       return;
     }
+
+    showBlockingLoading("กำลังบันทึกการตั้งค่าหน้าแรก");
 
     try {
       const nextSettings = normalizeHomepageSettings(homepageSettings);
@@ -621,18 +612,11 @@ export default function SettingsPage() {
         invalidatePublicCmsData(queryClient),
         queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
       ]);
-      await appSwal.fire({
-        icon: "success",
-        title: "บันทึกการตั้งค่าหน้าแรกแล้ว",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showSuccessResult("บันทึกการตั้งค่าหน้าแรกแล้ว");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถบันทึกการตั้งค่าหน้าแรกได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกการตั้งค่าหน้าแรกได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -640,6 +624,8 @@ export default function SettingsPage() {
     if (!canManage) {
       return;
     }
+
+    showBlockingLoading("กำลังบันทึกสถิติผู้เข้าชม");
 
     try {
       const nextStats = normalizeVisitorStats({
@@ -651,18 +637,11 @@ export default function SettingsPage() {
         invalidatePublicCmsData(queryClient),
         queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
       ]);
-      await appSwal.fire({
-        icon: "success",
-        title: "บันทึกสถิติผู้เข้าชมแล้ว",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showSuccessResult("บันทึกสถิติผู้เข้าชมแล้ว");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถบันทึกสถิติผู้เข้าชมได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกสถิติผู้เข้าชมได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 

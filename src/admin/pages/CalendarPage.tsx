@@ -41,7 +41,7 @@ import {
   toLocalDateTimeInputValue
 } from "../../utils/calendar";
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
-import { appSwal } from "../../utils/swal";
+import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { eventStatusLabels, visibilityLabels } from "../../utils/thaiLabels";
 import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
@@ -157,9 +157,10 @@ export default function CalendarPage() {
       await invalidatePublicCmsData(queryClient);
     }
   });
+  const calendarWritePending = saveMutation.isPending || deleteMutation.isPending;
 
   function handleCreate() {
-    if (!canManage) {
+    if (!canManage || calendarWritePending) {
       return;
     }
 
@@ -171,7 +172,7 @@ export default function CalendarPage() {
   }
 
   function handleEdit(event: CalendarEvent) {
-    if (!canManage) {
+    if (!canManage || calendarWritePending) {
       return;
     }
 
@@ -216,6 +217,12 @@ export default function CalendarPage() {
       return;
     }
 
+    if (calendarWritePending) {
+      return;
+    }
+
+    showBlockingLoading(isEditing ? "กำลังบันทึกกิจกรรม" : "กำลังเพิ่มกิจกรรม");
+
     try {
       await saveMutation.mutateAsync({
         id: editingEventId,
@@ -230,25 +237,20 @@ export default function CalendarPage() {
         category: form.category.trim(),
         visibility: form.visibility
       });
+      await appSwal.close();
       handleClose();
       await waitForDialogTransition();
-      await appSwal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: isEditing ? "อัปเดตกิจกรรมแล้ว" : "เพิ่มกิจกรรมแล้ว",
-        showConfirmButton: false,
-        timer: 1400,
-        timerProgressBar: true
-      });
+      await showSuccessResult(isEditing ? "บันทึกกิจกรรมสำเร็จ" : "เพิ่มกิจกรรมสำเร็จ");
     } catch (currentError) {
-      setFormError(currentError instanceof Error ? currentError.message : "กรุณาตรวจสอบรายละเอียดกิจกรรม");
+      await appSwal.close();
+      setFormError(getSwalErrorText(currentError, "กรุณาตรวจสอบรายละเอียดกิจกรรม"));
       setConfirming(false);
+      await showErrorResult("ไม่สามารถบันทึกกิจกรรมได้", currentError, "กรุณาตรวจสอบรายละเอียดกิจกรรม");
     }
   }
 
   async function handleDelete(event: CalendarEvent) {
-    if (!canManage) {
+    if (!canManage || calendarWritePending) {
       return;
     }
 
@@ -265,24 +267,15 @@ export default function CalendarPage() {
       return;
     }
 
+    showBlockingLoading("กำลังลบกิจกรรม");
+
     try {
       await deleteMutation.mutateAsync(event.id);
-      await appSwal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "ลบกิจกรรมแล้ว",
-        showConfirmButton: false,
-        timer: 1400,
-        timerProgressBar: true
-      });
+      await appSwal.close();
+      await showSuccessResult("ลบกิจกรรมสำเร็จ");
     } catch (currentError) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถลบกิจกรรมได้",
-        text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถลบกิจกรรมได้", currentError, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -293,7 +286,7 @@ export default function CalendarPage() {
         description="สร้าง ตั้งเวลา เผยแพร่ ยกเลิก และลบกิจกรรมปฏิทินสาธารณะ"
         action={
           canManage ? (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
+            <Button variant="contained" startIcon={<AddIcon />} disabled={calendarWritePending} onClick={handleCreate}>
               เพิ่มกิจกรรม
             </Button>
           ) : undefined
@@ -423,19 +416,29 @@ export default function CalendarPage() {
                   {canManage && (
                     <Stack direction="row" spacing={0.5}>
                       <Tooltip title="แก้ไขกิจกรรม">
-                        <IconButton aria-label="แก้ไขกิจกรรม" size="small" onClick={() => handleEdit(event)}>
-                          <EditOutlinedIcon fontSize="small" />
-                        </IconButton>
+                        <span>
+                          <IconButton
+                            aria-label="แก้ไขกิจกรรม"
+                            size="small"
+                            disabled={calendarWritePending}
+                            onClick={() => handleEdit(event)}
+                          >
+                            <EditOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </span>
                       </Tooltip>
                       <Tooltip title="ลบกิจกรรม">
-                        <IconButton
-                          aria-label="ลบกิจกรรม"
-                          size="small"
-                          color="error"
-                          onClick={() => void handleDelete(event)}
-                        >
-                          <DeleteOutlineIcon fontSize="small" />
-                        </IconButton>
+                        <span>
+                          <IconButton
+                            aria-label="ลบกิจกรรม"
+                            size="small"
+                            color="error"
+                            disabled={calendarWritePending}
+                            onClick={() => void handleDelete(event)}
+                          >
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </span>
                       </Tooltip>
                     </Stack>
                   )}

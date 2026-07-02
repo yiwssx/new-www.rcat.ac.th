@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import UsersPage from "./UsersPage";
 import type { AdminUserProfile } from "../../features/admin-write/cloudflareApi";
@@ -14,6 +14,20 @@ const cloudflareApiMock = vi.hoisted(() => ({
   saveAdminUserProfileToCloudflare: vi.fn(),
   deleteAdminUserProfileFromCloudflare: vi.fn()
 }));
+
+const swalInstance = vi.hoisted(() => ({
+  fire: vi.fn(),
+  close: vi.fn(),
+  showLoading: vi.fn()
+}));
+
+vi.mock("sweetalert2", () => ({
+  default: {
+    mixin: vi.fn(() => swalInstance)
+  }
+}));
+
+vi.mock("sweetalert2/dist/sweetalert2.min.css", () => ({}));
 
 vi.mock("../../features/admin-write/cloudflareApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../features/admin-write/cloudflareApi")>()),
@@ -58,6 +72,29 @@ function profile(role: User["role"], overrides: Partial<AdminUserProfile> = {}):
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
+function findSwalCall(predicate: (options: Record<string, unknown>) => boolean) {
+  const call = swalInstance.fire.mock.calls.find(([options]) => {
+    if (!options || typeof options !== "object") {
+      return false;
+    }
+
+    return predicate(options as Record<string, unknown>);
+  });
+
+  return call?.[0] as Record<string, unknown> | undefined;
+}
+
 describe("UsersPage", () => {
   beforeEach(() => {
     authMock.role = "admin";
@@ -66,6 +103,13 @@ describe("UsersPage", () => {
     cloudflareApiMock.saveAdminUserProfileToCloudflare.mockReset();
     cloudflareApiMock.deleteAdminUserProfileFromCloudflare.mockReset();
     cloudflareApiMock.getAdminUsersFromCloudflare.mockImplementation(async () => cloudflareApiMock.users);
+    cloudflareApiMock.saveAdminUserProfileToCloudflare.mockResolvedValue(profile("viewer", { id: "new-user" }));
+    cloudflareApiMock.deleteAdminUserProfileFromCloudflare.mockResolvedValue({ id: "editor-profile", deleted: true });
+    swalInstance.fire.mockReset();
+    swalInstance.fire.mockResolvedValue({ isConfirmed: true });
+    swalInstance.close.mockReset();
+    swalInstance.close.mockResolvedValue(undefined);
+    swalInstance.showLoading.mockReset();
   });
 
   it("uses Cloudflare/D1 app-user profiles without Apps Script or password fields", async () => {
@@ -116,5 +160,119 @@ describe("UsersPage", () => {
     expect(screen.queryByRole("button", { name: "แก้ไข" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ลบผู้ใช้" })).not.toBeInTheDocument();
     expect(screen.getAllByText("บัญชี viewer สามารถดูข้อมูลได้เท่านั้น").length).toBeGreaterThan(0);
+  });
+
+  it("shows loading and an acknowledged success modal when saving a user", async () => {
+    const save = deferred<AdminUserProfile>();
+    const savedProfile = profile("viewer", {
+      id: "new-user",
+      email: "new-user@example.invalid",
+      name: "New User"
+    });
+    cloudflareApiMock.saveAdminUserProfileToCloudflare.mockReturnValue(save.promise);
+    render(<UsersPage />);
+
+    await screen.findByText("Cloudflare editor");
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มผู้ใช้" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อ" }), {
+      target: { value: savedProfile.name }
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "อีเมล" }), {
+      target: { value: savedProfile.email }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกผู้ใช้" }));
+
+    await waitFor(() => expect(cloudflareApiMock.saveAdminUserProfileToCloudflare).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("button", { name: "กำลังบันทึก" })).toBeDisabled();
+    expect(findSwalCall((options) => options.title === "กำลังบันทึกผู้ใช้")).toEqual(
+      expect.objectContaining({
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false
+      })
+    );
+
+    save.resolve(savedProfile);
+
+    let successModal: Record<string, unknown> | undefined;
+    await waitFor(() => {
+      successModal = findSwalCall((options) => options.title === "บันทึกผู้ใช้สำเร็จ");
+      expect(successModal).toEqual(
+        expect.objectContaining({
+          icon: "success",
+          title: "บันทึกผู้ใช้สำเร็จ",
+          confirmButtonText: "ตกลง"
+        })
+      );
+    });
+    expect(successModal).not.toHaveProperty("toast");
+    expect(successModal).not.toHaveProperty("timer");
+  });
+
+  it("shows loading and an acknowledged success modal when deleting a user", async () => {
+    const deletion = deferred<{ id: string; deleted: boolean }>();
+    cloudflareApiMock.deleteAdminUserProfileFromCloudflare.mockReturnValue(deletion.promise);
+    render(<UsersPage />);
+
+    await screen.findByText("Cloudflare editor");
+    fireEvent.click(screen.getAllByRole("button", { name: "ลบผู้ใช้" })[1]);
+
+    await waitFor(() =>
+      expect(cloudflareApiMock.deleteAdminUserProfileFromCloudflare).toHaveBeenCalledWith({
+        id: "editor-profile",
+        revision: 0
+      })
+    );
+    expect(findSwalCall((options) => options.title === "กำลังลบผู้ใช้")).toEqual(
+      expect.objectContaining({
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false
+      })
+    );
+    for (const button of screen.getAllByRole("button", { name: "ลบผู้ใช้" })) {
+      expect(button).toBeDisabled();
+    }
+
+    deletion.resolve({ id: "editor-profile", deleted: true });
+
+    let successModal: Record<string, unknown> | undefined;
+    await waitFor(() => {
+      successModal = findSwalCall((options) => options.title === "ลบผู้ใช้สำเร็จ");
+      expect(successModal).toEqual(
+        expect.objectContaining({
+          icon: "success",
+          title: "ลบผู้ใช้สำเร็จ",
+          confirmButtonText: "ตกลง"
+        })
+      );
+    });
+    expect(successModal).not.toHaveProperty("toast");
+    expect(successModal).not.toHaveProperty("timer");
+  });
+
+  it("keeps the inline user error and shows an acknowledged error modal when saving fails", async () => {
+    cloudflareApiMock.saveAdminUserProfileToCloudflare.mockRejectedValue(new Error("User revision mismatch"));
+    render(<UsersPage />);
+
+    await screen.findByText("Cloudflare editor");
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มผู้ใช้" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อ" }), {
+      target: { value: "New User" }
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "อีเมล" }), {
+      target: { value: "new-user@example.invalid" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกผู้ใช้" }));
+
+    expect(await screen.findByText("User revision mismatch")).toBeInTheDocument();
+    expect(findSwalCall((options) => options.title === "ไม่สามารถบันทึกผู้ใช้ได้")).toEqual(
+      expect.objectContaining({
+        icon: "error",
+        title: "ไม่สามารถบันทึกผู้ใช้ได้",
+        text: "User revision mismatch",
+        confirmButtonText: "ตกลง"
+      })
+    );
   });
 });

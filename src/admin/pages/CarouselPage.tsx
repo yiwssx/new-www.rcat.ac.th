@@ -40,7 +40,7 @@ import { CarouselSlide, HomepageCarouselSettings, MediaAsset } from "../../types
 import { formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSafeHref } from "../../utils/safeUrl";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import {
   CAROUSEL_FALLBACK_TITLE,
   getCarouselSlideDisplayTitle,
@@ -266,6 +266,8 @@ export default function CarouselPage() {
       return;
     }
 
+    showBlockingLoading("กำลังบันทึกการตั้งค่าสไลด์หน้าแรก");
+
     try {
       const nextSettings = normalizeHomepageSettings({
         ...homepageSettings,
@@ -274,18 +276,11 @@ export default function CarouselPage() {
       const saved = await saveHomepageSettingsMutation.mutateAsync(nextSettings);
       setCarouselSettingsDraft(normalizeHomepageSettings(saved).carousel);
       await invalidateCarouselData();
-      await appSwal.fire({
-        icon: "success",
-        title: "บันทึกการตั้งค่าสไลด์หน้าแรกแล้ว",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showSuccessResult("บันทึกการตั้งค่าสไลด์หน้าแรกแล้ว");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถบันทึกการตั้งค่าสไลด์หน้าแรกได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกการตั้งค่าสไลด์หน้าแรกได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -311,23 +306,18 @@ export default function CarouselPage() {
       return;
     }
 
+    showBlockingLoading("กำลังบันทึกสไลด์หน้าแรก");
+
     try {
       const saved = await saveCarouselMutation.mutateAsync(nextSlide);
       setEditingSlide(saved);
       handleCloseDialog();
       await invalidateCarouselData();
-      await appSwal.fire({
-        icon: "success",
-        title: "บันทึกสไลด์หน้าแรกแล้ว",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showSuccessResult("บันทึกสไลด์หน้าแรกแล้ว");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถบันทึกสไลด์หน้าแรกได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกสไลด์หน้าแรกได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -349,21 +339,16 @@ export default function CarouselPage() {
       return;
     }
 
+    showBlockingLoading("กำลังลบสไลด์หน้าแรก");
+
     try {
       await deleteCarouselMutation.mutateAsync(slide.id);
       await invalidateCarouselData();
-      await appSwal.fire({
-        icon: "success",
-        title: "ลบสไลด์หน้าแรกแล้ว",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showSuccessResult("ลบสไลด์หน้าแรกแล้ว");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถลบสไลด์หน้าแรกได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถลบสไลด์หน้าแรกได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 

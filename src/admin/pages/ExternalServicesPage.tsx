@@ -45,7 +45,7 @@ import { clearPublicCmsCache } from "../../services/publicCmsCache";
 import { ExternalServiceIconKey, ExternalServiceLink, ExternalServiceTone } from "../../types";
 import { getExternalServiceToneStyle } from "../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../utils/safeUrl";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 
 const externalServiceToneOptions: Array<{ value: ExternalServiceTone; label: string }> = [
@@ -280,23 +280,18 @@ export default function ExternalServicesPage() {
       return;
     }
 
+    showBlockingLoading("กำลังบันทึกลิงก์ E-Service");
+
     try {
       const saved = await saveExternalServiceMutation.mutateAsync(nextService);
       setEditingService(saved);
       handleCloseDialog();
       await invalidateExternalServiceData();
-      await appSwal.fire({
-        icon: "success",
-        title: "บันทึกลิงก์ E-Service แล้ว",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showSuccessResult("บันทึกลิงก์ E-Service แล้ว");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถบันทึกลิงก์ E-Service ได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกลิงก์ E-Service ได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -318,21 +313,16 @@ export default function ExternalServicesPage() {
       return;
     }
 
+    showBlockingLoading("กำลังลบลิงก์ E-Service");
+
     try {
       await deleteExternalServiceMutation.mutateAsync(service.id);
       await invalidateExternalServiceData();
-      await appSwal.fire({
-        icon: "success",
-        title: "ลบลิงก์ E-Service แล้ว",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showSuccessResult("ลบลิงก์ E-Service แล้ว");
     } catch (error) {
-      await appSwal.fire({
-        icon: "error",
-        title: "ไม่สามารถลบลิงก์ E-Service ได้",
-        text: error instanceof Error ? error.message : "กรุณาลองอีกครั้ง",
-        confirmButtonText: "ตกลง"
-      });
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถลบลิงก์ E-Service ได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
