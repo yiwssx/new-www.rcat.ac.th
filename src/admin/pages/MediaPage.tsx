@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -141,12 +142,22 @@ function MediaPreview({ asset }: { asset: MediaAsset }) {
 interface MediaAssetCardProps {
   asset: MediaAsset;
   canManage?: boolean;
+  actionsDisabled?: boolean;
+  isDeleting?: boolean;
   onEdit: (asset: MediaAsset) => void;
   onDelete: (asset: MediaAsset) => void;
 }
 
-export function MediaAssetCard({ asset, canManage = true, onEdit, onDelete }: MediaAssetCardProps) {
+export function MediaAssetCard({
+  asset,
+  canManage = true,
+  actionsDisabled = false,
+  isDeleting = false,
+  onEdit,
+  onDelete
+}: MediaAssetCardProps) {
   const previewKey = `${asset.id}:${asset.thumbnailUrl || asset.previewUrl || "missing"}`;
+  const driveActionDisabled = actionsDisabled || !asset.driveUrl;
 
   return (
     <Card sx={{ height: "100%" }}>
@@ -190,10 +201,10 @@ export function MediaAssetCard({ asset, canManage = true, onEdit, onDelete }: Me
               <IconButton
                 aria-label="เปิดสื่อ"
                 component="a"
-                href={asset.driveUrl || undefined}
+                href={driveActionDisabled ? undefined : asset.driveUrl}
                 target="_blank"
                 rel="noreferrer"
-                disabled={!asset.driveUrl}
+                disabled={driveActionDisabled}
                 size="small"
               >
                 <OpenInNewRoundedIcon fontSize="small" />
@@ -203,14 +214,51 @@ export function MediaAssetCard({ asset, canManage = true, onEdit, onDelete }: Me
           {canManage && (
             <>
               <Tooltip title="แก้ไขสื่อ">
-                <IconButton aria-label="แก้ไขสื่อ" size="small" onClick={() => onEdit(asset)}>
-                  <EditOutlinedIcon fontSize="small" />
-                </IconButton>
+                <span>
+                  <IconButton
+                    aria-label="แก้ไขสื่อ"
+                    size="small"
+                    disabled={actionsDisabled}
+                    onClick={() => onEdit(asset)}
+                  >
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </span>
               </Tooltip>
-              <Tooltip title="ลบสื่อ">
-                <IconButton aria-label="ลบสื่อ" size="small" color="error" onClick={() => onDelete(asset)}>
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
+              <Tooltip title={isDeleting ? "กำลังลบ" : "ลบสื่อ"}>
+                <span>
+                  <IconButton
+                    aria-label="ลบสื่อ"
+                    size="small"
+                    color="error"
+                    disabled={actionsDisabled}
+                    onClick={() => onDelete(asset)}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <CircularProgress size={18} color="inherit" aria-hidden="true" />
+                        <Box
+                          component="span"
+                          sx={{
+                            position: "absolute",
+                            width: 1,
+                            height: 1,
+                            p: 0,
+                            m: -1,
+                            overflow: "hidden",
+                            clip: "rect(0 0 0 0)",
+                            whiteSpace: "nowrap",
+                            border: 0
+                          }}
+                        >
+                          กำลังลบ
+                        </Box>
+                      </>
+                    ) : (
+                      <DeleteOutlineIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </span>
               </Tooltip>
             </>
           )}
@@ -218,6 +266,43 @@ export function MediaAssetCard({ asset, canManage = true, onEdit, onDelete }: Me
       </CardContent>
     </Card>
   );
+}
+
+type MediaSaveOperation = "upload" | "update";
+
+const loadingModalText = "กรุณารอสักครู่ อย่าปิดหน้านี้";
+
+function getSaveLoadingTitle(operation: MediaSaveOperation) {
+  return operation === "update" ? "กำลังบันทึกข้อมูลสื่อ" : "กำลังอัปโหลดสื่อ";
+}
+
+function getSavePendingText(operation: MediaSaveOperation) {
+  return operation === "update" ? "กำลังบันทึกข้อมูลสื่อ" : "กำลังอัปโหลดไฟล์ไปยัง Drive และบันทึกข้อมูล";
+}
+
+function getSaveSuccessTitle(operation: MediaSaveOperation) {
+  return operation === "update" ? "อัปเดตสื่อสำเร็จ" : "อัปโหลดสื่อสำเร็จ";
+}
+
+function getSaveErrorTitle(operation: MediaSaveOperation) {
+  return operation === "update" ? "ไม่สามารถอัปเดตสื่อได้" : "ไม่สามารถอัปโหลดสื่อได้";
+}
+
+function getErrorMessage(currentError: unknown, fallback: string) {
+  return currentError instanceof Error ? currentError.message : fallback;
+}
+
+function showMediaLoadingModal(title: string) {
+  void appSwal.fire({
+    title,
+    text: loadingModalText,
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    didOpen: () => {
+      void appSwal.showLoading();
+    }
+  });
 }
 
 export default function MediaPage() {
@@ -235,6 +320,7 @@ export default function MediaPage() {
   const [file, setFile] = useState<File | null>(null);
   const [formError, setFormError] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<MediaFilter>("all");
   const isEditing = Boolean(editingAsset);
@@ -268,6 +354,8 @@ export default function MediaPage() {
       await invalidatePublicCmsData(queryClient);
     }
   });
+  const mediaActionsDisabled = saveMutation.isPending || deleteMutation.isPending || deletingMediaId !== null;
+  const saveOperation: MediaSaveOperation = isEditing ? "update" : "upload";
 
   const filteredAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -285,7 +373,7 @@ export default function MediaPage() {
   }, [filter, mediaAssets, search]);
 
   function handleOpenCreate() {
-    if (!canManage) {
+    if (!canManage || mediaActionsDisabled) {
       return;
     }
 
@@ -298,7 +386,7 @@ export default function MediaPage() {
   }
 
   function handleOpenEdit(asset: MediaAsset) {
-    if (!canManage) {
+    if (!canManage || mediaActionsDisabled) {
       return;
     }
 
@@ -320,7 +408,7 @@ export default function MediaPage() {
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    if (!canManage) {
+    if (!canManage || mediaActionsDisabled) {
       return;
     }
 
@@ -345,6 +433,10 @@ export default function MediaPage() {
       return;
     }
 
+    if (mediaActionsDisabled) {
+      return;
+    }
+
     if (!form.name.trim() || !form.owner.trim()) {
       setFormError("ต้องระบุชื่อและผู้รับผิดชอบ");
       return;
@@ -364,6 +456,12 @@ export default function MediaPage() {
       setFormError(ADMIN_READ_ONLY_NOTICE);
       return;
     }
+
+    if (mediaActionsDisabled) {
+      return;
+    }
+
+    showMediaLoadingModal(getSaveLoadingTitle(saveOperation));
 
     try {
       const filePayload = file
@@ -389,25 +487,33 @@ export default function MediaPage() {
         size: editingAsset?.size,
         ...filePayload
       });
+      await appSwal.close();
       handleCloseDialog();
       await waitForDialogTransition();
       await appSwal.fire({
         toast: true,
         position: "top-end",
         icon: "success",
-        title: isEditing ? "อัปเดตสื่อแล้ว" : "อัปโหลดสื่อแล้ว",
+        title: getSaveSuccessTitle(saveOperation),
         showConfirmButton: false,
-        timer: 1400,
+        timer: 2000,
         timerProgressBar: true
       });
     } catch (currentError) {
-      setFormError(currentError instanceof Error ? currentError.message : "กรุณาตรวจสอบรายละเอียดสื่อ");
-      setConfirming(false);
+      const message = getErrorMessage(currentError, "กรุณาตรวจสอบรายละเอียดสื่อ");
+      await appSwal.close();
+      setFormError(message);
+      await appSwal.fire({
+        icon: "error",
+        title: getSaveErrorTitle(saveOperation),
+        text: message,
+        confirmButtonText: "ตกลง"
+      });
     }
   }
 
   async function handleDelete(asset: MediaAsset) {
-    if (!canManage) {
+    if (!canManage || mediaActionsDisabled) {
       return;
     }
 
@@ -424,24 +530,32 @@ export default function MediaPage() {
       return;
     }
 
+    setDeletingMediaId(asset.id);
+    showMediaLoadingModal("กำลังลบสื่อ");
+
     try {
       await deleteMutation.mutateAsync(asset.id);
+      await appSwal.close();
       await appSwal.fire({
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "ลบสื่อแล้ว",
+        title: "ลบสื่อสำเร็จ",
         showConfirmButton: false,
-        timer: 1400,
+        timer: 2000,
         timerProgressBar: true
       });
     } catch (currentError) {
+      const message = getErrorMessage(currentError, "กรุณาลองอีกครั้ง");
+      await appSwal.close();
       await appSwal.fire({
         icon: "error",
         title: "ไม่สามารถลบสื่อได้",
-        text: currentError instanceof Error ? currentError.message : "กรุณาลองอีกครั้ง",
+        text: message,
         confirmButtonText: "ตกลง"
       });
+    } finally {
+      setDeletingMediaId(null);
     }
   }
 
@@ -452,7 +566,12 @@ export default function MediaPage() {
         description="อัปโหลด แก้ไข ลบ และนำรูปภาพ วิดีโอ เอกสาร และตารางข้อมูลจาก Drive มาใช้ซ้ำ"
         action={
           canManage ? (
-            <Button variant="contained" startIcon={<UploadFileOutlinedIcon />} onClick={handleOpenCreate}>
+            <Button
+              variant="contained"
+              startIcon={<UploadFileOutlinedIcon />}
+              disabled={mediaActionsDisabled}
+              onClick={handleOpenCreate}
+            >
               เพิ่มสื่อ
             </Button>
           ) : undefined
@@ -511,6 +630,8 @@ export default function MediaPage() {
             <MediaAssetCard
               asset={asset}
               canManage={canManage}
+              actionsDisabled={mediaActionsDisabled}
+              isDeleting={deletingMediaId === asset.id}
               onEdit={handleOpenEdit}
               onDelete={(currentAsset) => void handleDelete(currentAsset)}
             />
@@ -536,6 +657,12 @@ export default function MediaPage() {
             {confirming ? (
               <Stack spacing={1.5} sx={{ pt: 1 }}>
                 {formError && <Alert severity="error">{formError}</Alert>}
+                {saveMutation.isPending && (
+                  <Stack spacing={1}>
+                    <LinearProgress />
+                    <Typography color="text.secondary">{getSavePendingText(saveOperation)}</Typography>
+                  </Stack>
+                )}
                 <Typography color="text.secondary">ตรวจสอบสื่อนี้ก่อนบันทึก</Typography>
                 <Typography fontWeight={900}>{form.name}</Typography>
                 <Typography color="text.secondary">
@@ -549,7 +676,7 @@ export default function MediaPage() {
                   component="label"
                   variant="outlined"
                   startIcon={<UploadFileOutlinedIcon />}
-                  disabled={!canManage}
+                  disabled={!canManage || mediaActionsDisabled}
                 >
                   {file ? "เปลี่ยนไฟล์" : "เลือกไฟล์"}
                   <input
@@ -570,6 +697,7 @@ export default function MediaPage() {
                   onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
                   required
                   fullWidth
+                  disabled={mediaActionsDisabled}
                 />
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                   <TextField
@@ -578,6 +706,7 @@ export default function MediaPage() {
                     onChange={(event) => setForm((current) => ({ ...current, type: event.target.value as MediaType }))}
                     select
                     fullWidth
+                    disabled={mediaActionsDisabled}
                   >
                     {mediaTypes.map((type) => (
                       <MenuItem key={type} value={type} sx={{ textTransform: "capitalize" }}>
@@ -591,6 +720,7 @@ export default function MediaPage() {
                     onChange={(event) => setForm((current) => ({ ...current, owner: event.target.value }))}
                     required
                     fullWidth
+                    disabled={mediaActionsDisabled}
                   />
                 </Stack>
                 <TextField
@@ -599,6 +729,7 @@ export default function MediaPage() {
                   onChange={(event) => setForm((current) => ({ ...current, driveUrl: event.target.value }))}
                   placeholder="เว้นว่างเพื่อให้ Apps Script สร้าง URL ของ Drive"
                   fullWidth
+                  disabled={mediaActionsDisabled}
                 />
               </Stack>
             )}

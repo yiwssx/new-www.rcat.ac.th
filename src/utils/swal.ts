@@ -7,6 +7,8 @@ type FireArgs = [SweetAlertOptions] | [string, string?, SweetAlertIcon?];
 interface LazyAppSwal {
   fire(options: SweetAlertOptions): Promise<SweetAlertResult>;
   fire(title: string, html?: string, icon?: SweetAlertIcon): Promise<SweetAlertResult>;
+  close(): Promise<void>;
+  showLoading(): Promise<void>;
 }
 
 let appSwalPromise: Promise<AppSwalInstance> | null = null;
@@ -35,5 +37,13 @@ export const appSwal: LazyAppSwal = {
     }
 
     return swal.fire(args[0]);
+  },
+  async close() {
+    const swal = await getAppSwal();
+    swal.close();
+  },
+  async showLoading() {
+    const swal = await getAppSwal();
+    swal.showLoading();
   }
 };
