@@ -4,6 +4,61 @@ Date: 2026-06-24
 
 Status: cleanup in progress. M20 production cutover remains gated.
 
+## 2026-07-02 Final Dead-Code Cleanup
+
+This pass removes the no-op admin progress runtime surface left behind after the Apps Script structured-data adapter was removed. It does not close M20.
+
+### Files Removed
+
+- `src/admin/components/AdminActionProgress.tsx`
+- `src/shared/api/activity.ts`
+
+### Code Removed
+
+- `AdminActionProgress` lazy import from `src/routeComponents.tsx`.
+- `AdminActionProgressBoundary` from `src/routeComponents.tsx`.
+- Root route rendering of the admin action progress boundary.
+- The no-op API activity facade whose `getApiActivityCount()` always returned `0` and whose `subscribeApiActivity()` never emitted updates.
+
+### Test Script Audit
+
+- `src/test/integration/` still contains `router-auth.integration.test.tsx`.
+- `test:integration`, `test:all`, and `quality` remain because the integration script is not empty.
+- No `--passWithNoTests` fallback was added.
+
+### Evidence
+
+- `src/test/adminInformationArchitecture.test.ts` now guards against reintroducing the deleted admin progress files and route wiring.
+- Active source grep showed no remaining imports for:
+  - `AdminActionProgress`
+  - `shared/api/activity`
+  - `services/googleApi`
+  - `cms-integrations`
+  - `authRuntime`
+  - `VITE_GOOGLE_APPS_SCRIPT_URL`
+
+### Intentionally Retained
+
+- `apps-script/`
+
+  Retained for the Apps Script media/file bridge and clasp deployment workflow.
+
+- `server/appsScriptProxy/`
+
+  Retained as the Vercel server-side bridge for Apps Script media/file operations.
+
+- `package.json` `gas:*` scripts
+
+  Retained because the Apps Script media bridge still needs clasp-based deployment commands.
+
+- `cloudflare/public-api/migrations/`
+
+  Retained because D1 migration history remains append-only.
+
+- M20 readiness docs and runbooks
+
+  Retained because M20 remains gated and has not been closed.
+
 ## 2026-07-01 Apps Script Surface Trim
 
 This pass removes the remaining active browser-side Apps Script structured-data adapter while keeping the Apps Script media/file bridge intact.
@@ -49,6 +104,8 @@ This pass removes the remaining active browser-side Apps Script structured-data 
   - `ExternalServiceLinkInput`
   - `MediaAssetInput`
 - The admin progress activity facade now lives independently in `src/shared/api/activity.ts` instead of re-exporting Google API activity state.
+
+  Superseded on 2026-07-02: the independent activity facade was removed after confirming it was a no-op with no active request producer.
 
 ### Evidence
 

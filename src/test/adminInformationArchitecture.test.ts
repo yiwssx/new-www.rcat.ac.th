@@ -5,6 +5,7 @@ import settingsPageSource from "../admin/pages/SettingsPage.tsx?raw";
 import integrationsPageSource from "../admin/pages/IntegrationsPage.tsx?raw";
 import cmsShellSource from "../admin/layout/CmsShell.tsx?raw";
 import routesSource from "../routes.tsx?raw";
+import routeComponentsSource from "../routeComponents.tsx?raw";
 import publicShellSource from "../public/components/PublicSiteShell.tsx?raw";
 import siteViewApiSource from "../features/site-view/api.ts?raw";
 import publicHomeApiSource from "../features/public-home/api.ts?raw";
@@ -47,7 +48,8 @@ const browserStructuredDataSources = {
 
 const nodeFsSpecifier = "node:fs";
 const nodePathSpecifier = "node:path";
-const { readFileSync } = (await import(/* @vite-ignore */ nodeFsSpecifier)) as {
+const { existsSync, readFileSync } = (await import(/* @vite-ignore */ nodeFsSpecifier)) as {
+  existsSync: (path: string) => boolean;
   readFileSync: (path: string, encoding: string) => string;
 };
 const { join } = (await import(/* @vite-ignore */ nodePathSpecifier)) as {
@@ -128,6 +130,12 @@ describe("M20 admin information architecture", () => {
     });
 
     expect(projectSettings).not.toHaveProperty("api");
+  });
+
+  it("removes the no-op admin action progress surface", () => {
+    expect(routeComponentsSource).not.toContain("AdminActionProgress");
+    expect(existsSync(join(runtimeProcess.cwd(), "src/admin/components/AdminActionProgress.tsx"))).toBe(false);
+    expect(existsSync(join(runtimeProcess.cwd(), "src/shared/api/activity.ts"))).toBe(false);
   });
 
   it("keeps mourning mode public-only and persists it through the existing site settings save path", () => {
