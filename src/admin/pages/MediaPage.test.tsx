@@ -155,6 +155,18 @@ async function openUploadConfirmation() {
   expect(screen.getByRole("heading", { name: "อัปโหลดสื่อ?" })).toBeInTheDocument();
 }
 
+function findSwalCall(predicate: (options: Record<string, unknown>) => boolean) {
+  const call = swalMock.fire.mock.calls.find(([options]) => {
+    if (!options || typeof options !== "object") {
+      return false;
+    }
+
+    return predicate(options as Record<string, unknown>);
+  });
+
+  return call?.[0] as Record<string, unknown> | undefined;
+}
+
 describe("MediaAssetCard", () => {
   it("uses display-only preview metadata while keeping the original Drive link and size", () => {
     const { rerender } = render(<MediaAssetCard asset={asset} onEdit={vi.fn()} onDelete={vi.fn()} />);
@@ -215,21 +227,61 @@ describe("MediaPage media mutation feedback", () => {
     );
   });
 
-  it("shows a clear upload success toast after upload finishes", async () => {
+  it("shows a clear upload success modal after upload finishes", async () => {
     await openUploadConfirmation();
 
     fireEvent.click(screen.getByRole("button", { name: "อัปโหลด" }));
 
-    await waitFor(() =>
-      expect(swalMock.fire).toHaveBeenCalledWith(
+    let successModal: Record<string, unknown> | undefined;
+    await waitFor(() => {
+      successModal = findSwalCall((options) => options.icon === "success" && options.title === "อัปโหลดสื่อสำเร็จ");
+      expect(successModal).toEqual(
         expect.objectContaining({
-          toast: true,
           icon: "success",
           title: "อัปโหลดสื่อสำเร็จ",
-          timer: 2000
+          text: "ระบบบันทึกสื่อและอัปเดตรายการเรียบร้อยแล้ว",
+          confirmButtonText: "ตกลง"
         })
-      )
-    );
+      );
+    });
+
+    expect(successModal).not.toHaveProperty("toast");
+    expect(successModal).not.toHaveProperty("timer");
+    expect(
+      await screen.findByText("อัปโหลดสื่อสำเร็จ: ระบบบันทึกสื่อและอัปเดตรายการเรียบร้อยแล้ว")
+    ).toBeInTheDocument();
+    expect(swalMock.close).toHaveBeenCalled();
+  });
+
+  it("shows a clear update success modal after media metadata changes", async () => {
+    renderMediaPage();
+
+    await screen.findByText(asset.name);
+    fireEvent.click(screen.getByRole("button", { name: "แก้ไขสื่อ" }));
+    fireEvent.change(screen.getByRole("textbox", { name: /ผู้รับผิดชอบ/ }), {
+      target: { value: "งานประชาสัมพันธ์" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ดำเนินการต่อ" }));
+
+    expect(screen.getByRole("heading", { name: "บันทึกการแก้ไขสื่อ?" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "บันทึก" }));
+
+    let successModal: Record<string, unknown> | undefined;
+    await waitFor(() => {
+      successModal = findSwalCall((options) => options.icon === "success" && options.title === "อัปเดตสื่อสำเร็จ");
+      expect(successModal).toEqual(
+        expect.objectContaining({
+          icon: "success",
+          title: "อัปเดตสื่อสำเร็จ",
+          text: "ระบบบันทึกการแก้ไขข้อมูลสื่อเรียบร้อยแล้ว",
+          confirmButtonText: "ตกลง"
+        })
+      );
+    });
+
+    expect(successModal).not.toHaveProperty("toast");
+    expect(successModal).not.toHaveProperty("timer");
+    expect(await screen.findByText("อัปเดตสื่อสำเร็จ: ระบบบันทึกการแก้ไขข้อมูลสื่อเรียบร้อยแล้ว")).toBeInTheDocument();
     expect(swalMock.close).toHaveBeenCalled();
   });
 
@@ -246,7 +298,8 @@ describe("MediaPage media mutation feedback", () => {
       expect.objectContaining({
         icon: "error",
         title: "ไม่สามารถอัปโหลดสื่อได้",
-        text: "Apps Script bridge unavailable"
+        text: "Apps Script bridge unavailable",
+        confirmButtonText: "ตกลง"
       })
     );
   });
@@ -269,22 +322,28 @@ describe("MediaPage media mutation feedback", () => {
     deletion.resolve({ id: asset.id, deleted: true });
   });
 
-  it("shows a clear delete success toast after delete finishes", async () => {
+  it("shows a clear delete success modal after delete finishes", async () => {
     renderMediaPage();
 
     await screen.findByText(asset.name);
     fireEvent.click(screen.getByRole("button", { name: "ลบสื่อ" }));
 
-    await waitFor(() =>
-      expect(swalMock.fire).toHaveBeenCalledWith(
+    let successModal: Record<string, unknown> | undefined;
+    await waitFor(() => {
+      successModal = findSwalCall((options) => options.icon === "success" && options.title === "ลบสื่อสำเร็จ");
+      expect(successModal).toEqual(
         expect.objectContaining({
-          toast: true,
           icon: "success",
           title: "ลบสื่อสำเร็จ",
-          timer: 2000
+          text: "ระบบนำสื่อออกจากคลังเรียบร้อยแล้ว",
+          confirmButtonText: "ตกลง"
         })
-      )
-    );
+      );
+    });
+
+    expect(successModal).not.toHaveProperty("toast");
+    expect(successModal).not.toHaveProperty("timer");
+    expect(await screen.findByText("ลบสื่อสำเร็จ: ระบบนำสื่อออกจากคลังเรียบร้อยแล้ว")).toBeInTheDocument();
     expect(swalMock.close).toHaveBeenCalled();
   });
 

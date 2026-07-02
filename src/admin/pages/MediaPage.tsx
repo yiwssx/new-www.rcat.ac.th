@@ -269,8 +269,14 @@ export function MediaAssetCard({
 }
 
 type MediaSaveOperation = "upload" | "update";
+type OperationNotice = {
+  severity: "success" | "error";
+  message: string;
+};
 
 const loadingModalText = "กรุณารอสักครู่ อย่าปิดหน้านี้";
+const deleteSuccessTitle = "ลบสื่อสำเร็จ";
+const deleteSuccessText = "ระบบนำสื่อออกจากคลังเรียบร้อยแล้ว";
 
 function getSaveLoadingTitle(operation: MediaSaveOperation) {
   return operation === "update" ? "กำลังบันทึกข้อมูลสื่อ" : "กำลังอัปโหลดสื่อ";
@@ -284,8 +290,18 @@ function getSaveSuccessTitle(operation: MediaSaveOperation) {
   return operation === "update" ? "อัปเดตสื่อสำเร็จ" : "อัปโหลดสื่อสำเร็จ";
 }
 
+function getSaveSuccessText(operation: MediaSaveOperation) {
+  return operation === "update"
+    ? "ระบบบันทึกการแก้ไขข้อมูลสื่อเรียบร้อยแล้ว"
+    : "ระบบบันทึกสื่อและอัปเดตรายการเรียบร้อยแล้ว";
+}
+
 function getSaveErrorTitle(operation: MediaSaveOperation) {
   return operation === "update" ? "ไม่สามารถอัปเดตสื่อได้" : "ไม่สามารถอัปโหลดสื่อได้";
+}
+
+function formatOperationNotice(title: string, text: string) {
+  return `${title}: ${text}`;
 }
 
 function getErrorMessage(currentError: unknown, fallback: string) {
@@ -321,6 +337,7 @@ export default function MediaPage() {
   const [formError, setFormError] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
+  const [operationNotice, setOperationNotice] = useState<OperationNotice | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<MediaFilter>("all");
   const isEditing = Boolean(editingAsset);
@@ -382,6 +399,7 @@ export default function MediaPage() {
     setFile(null);
     setFormError("");
     setConfirming(false);
+    setOperationNotice(null);
     setDialogOpen(true);
   }
 
@@ -395,6 +413,7 @@ export default function MediaPage() {
     setFile(null);
     setFormError("");
     setConfirming(false);
+    setOperationNotice(null);
     setDialogOpen(true);
   }
 
@@ -437,6 +456,8 @@ export default function MediaPage() {
       return;
     }
 
+    setOperationNotice(null);
+
     if (!form.name.trim() || !form.owner.trim()) {
       setFormError("ต้องระบุชื่อและผู้รับผิดชอบ");
       return;
@@ -461,7 +482,8 @@ export default function MediaPage() {
       return;
     }
 
-    showMediaLoadingModal(getSaveLoadingTitle(saveOperation));
+    const currentOperation = saveOperation;
+    showMediaLoadingModal(getSaveLoadingTitle(currentOperation));
 
     try {
       const filePayload = file
@@ -488,24 +510,32 @@ export default function MediaPage() {
         ...filePayload
       });
       await appSwal.close();
+      const successTitle = getSaveSuccessTitle(currentOperation);
+      const successText = getSaveSuccessText(currentOperation);
       handleCloseDialog();
+      setOperationNotice({
+        severity: "success",
+        message: formatOperationNotice(successTitle, successText)
+      });
       await waitForDialogTransition();
       await appSwal.fire({
-        toast: true,
-        position: "top-end",
         icon: "success",
-        title: getSaveSuccessTitle(saveOperation),
-        showConfirmButton: false,
-        timer: 2000,
-        timerProgressBar: true
+        title: successTitle,
+        text: successText,
+        confirmButtonText: "ตกลง"
       });
     } catch (currentError) {
       const message = getErrorMessage(currentError, "กรุณาตรวจสอบรายละเอียดสื่อ");
+      const errorTitle = getSaveErrorTitle(currentOperation);
       await appSwal.close();
       setFormError(message);
+      setOperationNotice({
+        severity: "error",
+        message: formatOperationNotice(errorTitle, message)
+      });
       await appSwal.fire({
         icon: "error",
-        title: getSaveErrorTitle(saveOperation),
+        title: errorTitle,
         text: message,
         confirmButtonText: "ตกลง"
       });
@@ -531,26 +561,33 @@ export default function MediaPage() {
     }
 
     setDeletingMediaId(asset.id);
+    setOperationNotice(null);
     showMediaLoadingModal("กำลังลบสื่อ");
 
     try {
       await deleteMutation.mutateAsync(asset.id);
       await appSwal.close();
+      setOperationNotice({
+        severity: "success",
+        message: formatOperationNotice(deleteSuccessTitle, deleteSuccessText)
+      });
       await appSwal.fire({
-        toast: true,
-        position: "top-end",
         icon: "success",
-        title: "ลบสื่อสำเร็จ",
-        showConfirmButton: false,
-        timer: 2000,
-        timerProgressBar: true
+        title: deleteSuccessTitle,
+        text: deleteSuccessText,
+        confirmButtonText: "ตกลง"
       });
     } catch (currentError) {
       const message = getErrorMessage(currentError, "กรุณาลองอีกครั้ง");
+      const errorTitle = "ไม่สามารถลบสื่อได้";
       await appSwal.close();
+      setOperationNotice({
+        severity: "error",
+        message: formatOperationNotice(errorTitle, message)
+      });
       await appSwal.fire({
         icon: "error",
-        title: "ไม่สามารถลบสื่อได้",
+        title: errorTitle,
         text: message,
         confirmButtonText: "ตกลง"
       });
@@ -624,6 +661,11 @@ export default function MediaPage() {
           ))}
         </ToggleButtonGroup>
       </Stack>
+      {operationNotice && (
+        <Alert severity={operationNotice.severity} sx={{ mb: 2 }}>
+          {operationNotice.message}
+        </Alert>
+      )}
       <Grid container spacing={2.5}>
         {filteredAssets.map((asset) => (
           <Grid size={{ xs: 12, sm: 6, lg: 4, xl: 3 }} key={asset.id}>
