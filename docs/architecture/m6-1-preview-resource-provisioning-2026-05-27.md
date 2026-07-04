@@ -1,5 +1,7 @@
 # M6.1 Preview Resource Provisioning - 2026-05-27
 
+> Historical note, 2026-07-04: This checkpoint describes an early preview resource planning state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 Status: provisioning record only. M6 remains blocked until external non-production preview resources exist.
 
 ## Purpose

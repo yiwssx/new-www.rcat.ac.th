@@ -1,5 +1,7 @@
 # M17 Cloudflare Core Public Read Batch Migration
 
+> Historical note, 2026-07-04: This checkpoint remains a historical record of the grouped public-read migration. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 Status: M17-C preview smoke and contract freeze passed through externally confirmed operator execution. This is not a production cutover.
 
 ## Purpose

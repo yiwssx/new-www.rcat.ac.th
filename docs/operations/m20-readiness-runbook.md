@@ -1,6 +1,6 @@
 # M20 Readiness Runbook
 
-Status: operator runbook for the approved M20 preview-backed Cloudflare field cutover. It does not authorize final production resource migration or claim final production readiness.
+Status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. This is the operator runbook for the approved M20 preview-backed Cloudflare field cutover; it does not authorize final production resource migration or claim final production readiness.
 
 ## M20 Preview-Backed Field Cutover
 
@@ -11,6 +11,16 @@ Status: operator runbook for the approved M20 preview-backed Cloudflare field cu
 - Media/attachment/file provider: Google Drive via Apps Script bridge.
 - Database environment: preview D1 during field verification.
 - Production D1 / final production cutover: explicitly deferred to operator decision after field verification.
+
+### Current Runtime Ownership
+
+- Public structured reads: Cloudflare Worker and D1.
+- Public analytics, site view, content view, visitor presence, and live visitor stats: Cloudflare Worker and D1.
+- Admin structured reads and writes: Cloudflare Worker and D1.
+- Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
+- Admin CMS session/proxy: Vercel server-side proxy.
+- Media/file bridge: Vercel `/api/apps-script-proxy` to Apps Script.
+- File storage: Google Drive behind the Apps Script media/file bridge.
 
 ### Preconditions
 
@@ -30,7 +40,28 @@ Status: operator runbook for the approved M20 preview-backed Cloudflare field cu
 5. Verify public pages read recreated structured content from Cloudflare.
 6. Verify an authorized admin can log in, read the admin snapshot, and perform the approved structured-data lifecycle through the proxy path.
 7. Verify media and file operations continue to use the existing bridge.
-8. Record only redacted pass/fail observations and non-sensitive issue labels.
+8. Verify admin write feedback shows a blocking loading modal while pending and centered success/error modals requiring acknowledgment.
+9. Verify urgent marquee speed is readable across desktop, tablet, and mobile, including reduced-motion behavior.
+10. Record only redacted pass/fail observations and non-sensitive issue labels.
+
+### Preview Field Verification Checklist
+
+- [ ] public home
+- [ ] marquee
+- [ ] carousel
+- [ ] menu
+- [ ] content/news/announcements
+- [ ] documents
+- [ ] E-Service
+- [ ] calendar
+- [ ] media upload/delete
+- [ ] admin content save/publish/delete
+- [ ] settings save
+- [ ] mourning mode
+- [ ] visitor stats / Who's Online
+- [ ] user management
+- [ ] Apps Script media bridge status
+- [ ] Cloudflare public/admin structured status
 
 ### Field Observation
 

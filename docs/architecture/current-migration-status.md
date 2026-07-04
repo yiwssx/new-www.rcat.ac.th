@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: M19 repository-owned parity remediation is closed. M20 repository readiness, M19 continuity, post-M19 public-read preview smoke, preview migration verification, and preview admin write smoke passed externally. The operator has approved an M20 preview-backed Cloudflare field cutover for real field verification. Final production readiness is not claimed.
+Current milestone: cleanup completed; preview field verification in progress. M20 production cutover remains gated. M19 repository-owned parity remediation is closed, M20 repository readiness and preview prerequisites have passed externally, and the operator has approved an M20 preview-backed Cloudflare field cutover for real field verification. Final production readiness is not claimed.
 
 ## Summary
 
@@ -30,7 +30,13 @@ Post-M19 external verification: the replacement production Vercel frontend was c
 
 M20-P0: Production Readiness Gate Scaffolding supplied the repository-owned readiness document, operations runbook, offline readiness script, tests, and redacted external evidence pack. The operator decision now advances the same M20 milestone to preview-backed field verification without claiming final production readiness.
 
-M20: `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION`. Public client data and admin structured data use Cloudflare with preview D1 during field verification. Media, attachments, and files remain on Google Drive through the Apps Script bridge. Production D1 and final production cutover are deferred to a later operator decision after field verification.
+M20: cleanup completed; preview field verification in progress. M20 production cutover remains gated. Public client data and admin structured data use Cloudflare with preview D1 during field verification. Media, attachments, and files remain on Google Drive through the Apps Script bridge. Production D1 and final production cutover are deferred to a later operator decision after field verification.
+
+M20 cleanup follow-up: legacy browser-side Apps Script structured-data code, direct frontend Apps Script user CRUD, local user fallback paths, no-op admin request progress UI, and stale structured Apps Script runtime config were removed. Apps Script remains only for the Vercel-proxied Google Drive media/file bridge.
+
+Admin operation feedback has been standardized across Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings: blocking loading modal while pending, centered success/error result modals requiring acknowledgment, and no short auto-dismiss success toast for final admin write results.
+
+Public UX follow-up: urgent marquee speed is now device-independent through distance-based duration and pixels-per-second mapping. Reduced-motion slows the ticker rather than disabling it.
 
 ## M15.1 Dry-Run Result
 
@@ -81,7 +87,7 @@ The existing admin proxy/login path remains required for admin field verificatio
 
 Cloudflare public capability covers documents, public home, content list/detail, search, programs, and visitor stats. Cloudflare admin structured-data capability covers dashboard snapshot, content, document metadata, site/homepage/display settings, menu, carousel, external services, and events. Media binary operations remain Apps Script-backed.
 
-Apps Script remains technically available in existing provider code, but rollback to Apps Script is not required for this operator-approved field cutover.
+Apps Script remains available only for the media/file bridge and Google Drive operations. Rollback to Apps Script for structured data is not required for this operator-approved field cutover.
 
 M15.2 real execute cutover: deferred.
 

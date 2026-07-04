@@ -1,5 +1,7 @@
 # M3 Public Document List Route - 2026-05-27
 
+> Historical note, 2026-07-04: This checkpoint describes an early public-document Worker route state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 Status: local Worker D1 route only. This checkpoint does not cut over the frontend or change production backend behavior.
 
 ## Purpose

@@ -1,5 +1,7 @@
 # M12 Public Document List Import Artifact Manifest Dry-Run
 
+> Historical note, 2026-07-04: This checkpoint describes a previous public-document migration state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 Status: local import artifact manifest dry-run only. No D1 writes, production import, deployment, or cutover is executed.
 
 ## Purpose

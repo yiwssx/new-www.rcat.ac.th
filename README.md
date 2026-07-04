@@ -5,12 +5,33 @@ React/Vite public website and CMS for Roi-Et College of Agriculture and Technolo
 ## Current Runtime Ownership
 
 - Public structured reads: Cloudflare Worker and D1.
-- Public analytics: Cloudflare Worker and D1.
+- Public analytics, site view, content view, visitor presence, and live visitor stats: Cloudflare Worker and D1.
 - Admin structured reads and writes: Cloudflare Worker and D1.
 - Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
 - Admin session proxy: Vercel server-side admin proxy.
 - Media/file bridge: Apps Script behind the Vercel proxy.
 - File storage: Google Drive behind the Apps Script media/file bridge.
+
+## Current Project Status
+
+cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+
+M20 is not closed and production is not approved. Apps Script is retained only for the media/file bridge and Google Drive operations. Browser-side direct Apps Script structured reads/writes and legacy Apps Script user-management paths have been removed.
+
+## Admin Operation Feedback
+
+Admin CMS write operations now use blocking loading modals while pending, centered success modals requiring acknowledgment, and centered error modals requiring acknowledgment. Final admin write results must not use short auto-dismiss success toasts.
+
+The standardized feedback applies to Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings. It was completed by:
+
+- `7f5f95083b5df18c5c73939bf2b1e251c3880a97` `fix(admin): make media operation results explicit`
+- `8aa55b3b22dd6a121fbaa799899670766f776abb` `fix(admin): standardize operation feedback`
+
+## Public UX Updates
+
+Urgent marquee speed is device-independent. The ticker uses distance-based animation duration, reduced-motion slows the ticker instead of disabling it, and the change did not require Worker, D1, or Apps Script updates.
+
+- `4b8f01a2162ef8de002a8c2c46c69110f7b749e2` `fix(ui): normalize marquee speed across devices`
 
 ## Stack
 

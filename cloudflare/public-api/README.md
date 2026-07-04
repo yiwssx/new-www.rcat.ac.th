@@ -2,6 +2,8 @@
 
 This isolated Cloudflare Worker is the D1-backed public-read, public analytics, and structured-admin API. Apps Script remains only for the server-side media/file bridge to Google Drive. No production mutation or cutover is authorized by this directory.
 
+Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+
 ## M19 Current Surface
 
 Public GET routes:
@@ -50,6 +52,7 @@ Ordered migrations are in `migrations/`:
 - `0004`: M18 parser-safe lifecycle audit triggers
 - `0005`: M19 settings/menu/carousel/service/event actor, revision, and audit hardening
 - `0006`: M20 visitor presence schema
+- `0007`: M20 admin user profile metadata
 
 Migrations remain append-only. No production migration or binding mutation is included in repository validation.
 
@@ -60,7 +63,7 @@ Migrations remain append-only. No production migration or binding mutation is in
 - Do not deploy the Worker or mutate Vercel as part of repository validation.
 - Keep Apps Script scoped to the approved media/file bridge.
 - Keep Google Drive binary operations in the approved Apps Script bridge.
-- Keep M20 blocked until M19 external operator blockers are resolved.
+- M20 preview field verification may proceed only within the approved preview boundary; final production cutover remains gated.
 
 ## Local Validation
 
@@ -80,4 +83,4 @@ pnpm quality
 
 M19 is closed for repository-owned parity remediation. The remaining blockers are external operator decisions and evidence for identity/RBAC, sanitized data reconciliation, media bridge recovery, production resources, monitoring, rollback, and cutover authority.
 
-M20 cleanup is in progress. Do not close M20 or mutate production resources until the external blockers are approved and recorded safely.
+M20 cleanup is completed enough for preview field verification. Do not close M20, claim production approval, or mutate production resources until a later operator decision approves final production cutover.

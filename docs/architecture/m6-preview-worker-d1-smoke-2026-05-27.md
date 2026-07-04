@@ -1,5 +1,7 @@
 # M6 Preview Worker D1 Smoke - 2026-05-27
 
+> Historical note, 2026-07-04: This checkpoint describes an early preview Worker/D1 smoke state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 Status: actual non-production preview smoke completed successfully using external non-committed preview resources. This is not a production cutover.
 
 Preview Resource Status: Completed

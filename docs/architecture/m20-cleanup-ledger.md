@@ -2,7 +2,77 @@
 
 Date: 2026-06-24
 
-Status: cleanup in progress. M20 production cutover remains gated.
+Status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+
+M20 is not closed and production is not approved.
+
+## 2026-07-04 Project-Wide Documentation Synchronization
+
+This pass synchronizes active project documentation with the current runtime truth after the Apps Script structured-data cleanup, urgent marquee speed fix, media operation feedback fix, and broader admin operation feedback standardization.
+
+### Current Runtime Ownership
+
+- Public structured reads: Cloudflare Worker and D1.
+- Public analytics, site view, content view, visitor presence, and live visitor stats: Cloudflare Worker and D1.
+- Admin structured reads and writes: Cloudflare Worker and D1.
+- Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
+- Admin CMS session/proxy: Vercel server-side proxy.
+- Media/file bridge: Vercel `/api/apps-script-proxy` to Apps Script.
+- File storage: Google Drive behind the Apps Script media/file bridge.
+
+### Admin Operation Feedback Standardization
+
+The current admin write feedback standard was completed by:
+
+- `7f5f95083b5df18c5c73939bf2b1e251c3880a97` `fix(admin): make media operation results explicit`
+- `8aa55b3b22dd6a121fbaa799899670766f776abb` `fix(admin): standardize operation feedback`
+
+Admin write operations now use:
+
+- blocking loading modal while pending
+- centered success modal requiring acknowledgment
+- centered error modal requiring acknowledgment
+- no short auto-dismiss toast for final admin write results
+
+Affected areas: Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings.
+
+### Public UX Updates
+
+The urgent marquee speed consistency fix was completed by:
+
+- `4b8f01a2162ef8de002a8c2c46c69110f7b749e2` `fix(ui): normalize marquee speed across devices`
+
+Current behavior:
+
+- visual marquee speed is device-independent
+- animation duration is calculated from measured travel distance and pixels per second
+- reduced-motion still slows the ticker instead of disabling it
+- no Worker, D1, or Apps Script change was required
+
+### Preview Field Verification Checklist
+
+- [ ] public home
+- [ ] marquee
+- [ ] carousel
+- [ ] menu
+- [ ] content/news/announcements
+- [ ] documents
+- [ ] E-Service
+- [ ] calendar
+- [ ] media upload/delete
+- [ ] admin content save/publish/delete
+- [ ] settings save
+- [ ] mourning mode
+- [ ] visitor stats / Who's Online
+- [ ] user management
+- [ ] Apps Script media bridge status
+- [ ] Cloudflare public/admin structured status
+
+### Stale Guidance Handling
+
+- Active docs now distinguish Cloudflare Worker/D1 structured data from the retained Apps Script media/file bridge.
+- Historical checkpoint docs are retained as history. Where they still describe obsolete active runtime ownership, they should be read with the current runtime ownership above and the M20 production gate.
+- `VITE_GOOGLE_APPS_SCRIPT_URL` must not be used as server runtime config. Media bridge deployments use server-only `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL` plus `APPS_SCRIPT_BRIDGE_TOKEN`.
 
 ## 2026-07-02 Final Dead-Code Cleanup
 

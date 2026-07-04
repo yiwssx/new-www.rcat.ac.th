@@ -1,5 +1,7 @@
 # Wave 1 Public Read Ownership Checkpoint - 2026-05-25
 
+> Historical note, 2026-07-04: This checkpoint describes a previous migration state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 ## Executive Summary
 
 Wave 1 public-read ownership consolidation is clean and behavior-preserving. The public read API/cache entry points now live behind feature boundaries for public content, public home, public programs, and public search, while the previous service cache modules remain as compatibility shims.

@@ -4,6 +4,8 @@
 
 This runbook is for entering and verifying real production data before public launch. It should be used by staff, editors, reviewers, and admins while preparing the school website for real visitors.
 
+Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. This runbook does not approve production cutover.
+
 - Do not use mock data.
 - Do not use `example.com`.
 - Do not use `href="#"`.
@@ -13,15 +15,15 @@ When unsure, keep a section disabled or leave an optional field empty. Empty is 
 
 ## Roles
 
-| Role              | What they verify                                                                                                                                    |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin             | Deployments, Apps Script setup, settings, accounts, permissions, footer links, Messenger, map/contact, visitor stats, and final launch sign-off.    |
-| Editor            | Media uploads, carousel slides, E-Service links, CMS content, categories, tags, featured media, publish dates, and search/discovery metadata.       |
-| Reviewer/Approver | Accuracy of public facts, official links, contact details, map location, approved announcements, spelling, mobile layout, and final public page QA. |
+| Role              | What they verify                                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Admin             | Deployments, Cloudflare/D1 status, Apps Script media bridge status, settings, accounts, permissions, footer links, Messenger, map/contact, visitor stats, and final launch sign-off. |
+| Editor            | Media uploads, carousel slides, E-Service links, CMS content, categories, tags, featured media, publish dates, and search/discovery metadata.                                        |
+| Reviewer/Approver | Accuracy of public facts, official links, contact details, map location, approved announcements, spelling, mobile layout, and final public page QA.                                  |
 
 ## Pre-launch order of operations
 
-1. Deploy latest Apps Script.
+1. Confirm approved Cloudflare Worker/D1 structured runtime configuration.
 2. Verify admin/editor login.
 3. Configure site settings.
 4. Configure homepage settings.
@@ -34,6 +36,8 @@ When unsure, keep a section disabled or leave an optional field empty. Empty is 
 11. Apply category/tag presets.
 12. Verify public pages.
 13. Final mobile/tablet/desktop QA.
+
+Deploy Apps Script only when media/file bridge code under `apps-script/` changed.
 
 ## Site Settings Data Entry
 
@@ -109,6 +113,8 @@ Verify on public homepage:
 - [ ] Marquee appears only when enabled.
 - [ ] Text is accurate and approved.
 - [ ] Animation speed is readable.
+- [ ] Animation speed is consistent across desktop, tablet, and mobile.
+- [ ] Reduced-motion slows the ticker instead of disabling it.
 - [ ] No outdated announcement is visible.
 
 ### Intro Video
@@ -182,7 +188,7 @@ Validation:
 
 ## Visitor Stats Data Entry
 
-Visitor stats are manual/CMS-backed, not real-time analytics.
+Visitor stats / Who's Online are generated through the Cloudflare analytics path and may be cache-delayed.
 
 Fields:
 
@@ -196,9 +202,9 @@ Fields:
 
 Rules:
 
-- Enable only if numbers are approved.
-- Keep disabled if real numbers are unavailable.
-- Record who approved the numbers and when they should be updated.
+- Enable only if public display of the generated values is approved.
+- Keep disabled if analytics behavior or display policy is not approved.
+- Record who approved public display and when it should be reviewed.
 
 ## Footer and Messenger Data Entry
 
@@ -306,6 +312,7 @@ For each admin page, verify:
 - [ ] Viewer/non-admin restrictions are correct
 - [ ] Save action works
 - [ ] Public cache refreshes after save
+- [ ] Save/delete/publish actions show blocking loading and centered success/error modals requiring acknowledgment
 
 Pages:
 
@@ -336,5 +343,5 @@ Pages:
 
 - Revert frontend commit if UI issue.
 - Redeploy previous Vercel deployment if needed.
-- Redeploy previous Apps Script version if backend issue.
-- Backup/export Google Sheet before major data updates.
+- Redeploy previous Apps Script version only for media bridge issues.
+- Follow the operator-approved Cloudflare/D1 pause or rollback path for structured data issues.

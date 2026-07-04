@@ -1,6 +1,8 @@
 # M2 Local Seed Plan
 
-This directory contains local-only D1 seed planning and fake seed fixtures. It does not import real data and does not change the production Apps Script source of truth.
+This directory contains local-only D1 seed planning and fake seed fixtures. It does not import real data and does not change production or preview field-verification data.
+
+Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. Structured public/admin data is owned by Cloudflare Worker + D1; Apps Script is retained only for the media/file bridge and Google Drive operations.
 
 ## Current Contents
 
@@ -96,4 +98,4 @@ The first mapping target is the `documents` table in `migrations/0001_public_rea
 
 Future import work should preserve the current public API response shape at the route boundary, but this sample is intentionally not a `PublicDocumentListSnapshot`.
 
-D1 public data remains a snapshot until a separate admin-write migration exists. Apps Script remains the production source of truth.
+Historical note: earlier seed planning described D1 public data as a snapshot while Apps Script remained the production source of truth. That note is superseded by the current runtime ownership above; these seed files remain fake local/dev fixtures and must not be treated as production data.

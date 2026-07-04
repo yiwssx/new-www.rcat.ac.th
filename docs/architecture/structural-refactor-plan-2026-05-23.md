@@ -1,5 +1,7 @@
 # Structural Refactor Plan - 2026-05-23
 
+> Historical note, 2026-07-04: This plan describes a previous Apps Script-centered migration state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 This is a documentation-only plan for reducing structural risk in the RCAT public website, CMS admin, and Apps Script backend. It does not propose a rewrite, framework migration, schema change, API response change, cache behavior change, or UI redesign.
 
 ## Goals

@@ -1,6 +1,8 @@
 # M20 Cleanup Runtime Ownership
 
-Status: cleanup and documentation synchronization. M20 production cutover is still gated and not closed.
+Status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+
+M20 is not closed and production is not approved.
 
 ## Current Runtime Ownership
 
@@ -11,6 +13,44 @@ Status: cleanup and documentation synchronization. M20 production cutover is sti
 - Admin proxy session: Vercel server-side proxy authenticates the CMS login session and forwards role/email context to the Worker.
 - Media and file bridge: Vercel `/api/apps-script-proxy` forwards authenticated media/file requests to Apps Script.
 - File storage: Google Drive remains the media/document storage target behind the Apps Script media bridge.
+
+## Admin Operation Feedback Standardization
+
+The current CMS write-feedback standard was established by:
+
+- `7f5f95083b5df18c5c73939bf2b1e251c3880a97` `fix(admin): make media operation results explicit`
+- `8aa55b3b22dd6a121fbaa799899670766f776abb` `fix(admin): standardize operation feedback`
+
+CMS write operations use a blocking loading modal while pending, a centered success modal requiring acknowledgment, and a centered error modal requiring acknowledgment. Final admin write results must not use short auto-dismiss success toasts.
+
+Affected areas: Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings.
+
+## Public UX Updates
+
+The urgent marquee speed normalization was established by:
+
+- `4b8f01a2162ef8de002a8c2c46c69110f7b749e2` `fix(ui): normalize marquee speed across devices`
+
+The marquee uses measured distance and pixels per second for device-independent visual speed. Reduced-motion still slows the ticker instead of disabling it. This was a frontend-only UI change and did not require Worker, D1, or Apps Script deployment.
+
+## Preview Field Verification Checklist
+
+- [ ] public home
+- [ ] marquee
+- [ ] carousel
+- [ ] menu
+- [ ] content/news/announcements
+- [ ] documents
+- [ ] E-Service
+- [ ] calendar
+- [ ] media upload/delete
+- [ ] admin content save/publish/delete
+- [ ] settings save
+- [ ] mourning mode
+- [ ] visitor stats / Who's Online
+- [ ] user management
+- [ ] Apps Script media bridge status
+- [ ] Cloudflare public/admin structured status
 
 ## Apps Script Scope
 
@@ -104,7 +144,7 @@ The table must not store:
 - `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`
 - `APPS_SCRIPT_BRIDGE_TOKEN`
 
-Do not expose bridge tokens through `VITE_` variables.
+Do not expose bridge URLs or bridge tokens through `VITE_` variables. `VITE_GOOGLE_APPS_SCRIPT_URL` is not server runtime configuration and must not be restored for the media bridge.
 
 ## Required D1 Migrations
 

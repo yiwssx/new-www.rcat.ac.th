@@ -2,6 +2,8 @@
 
 This repository is a React/Vite public website and CMS with Cloudflare Worker/D1 backend paths, Vercel admin proxy paths, and an Apps Script media/file bridge.
 
+Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. Do not mark M20 closed or claim production approval.
+
 ## Current Source Of Truth
 
 Use these files as current runtime references:
@@ -13,12 +15,18 @@ Use these files as current runtime references:
 ## Current Runtime Ownership
 
 - Public structured reads: Cloudflare Worker and D1.
-- Public analytics: Cloudflare Worker and D1.
+- Public analytics, site view, content view, visitor presence, and live visitor stats: Cloudflare Worker and D1.
 - Admin structured reads and writes: Cloudflare Worker and D1.
 - Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
 - Admin session proxy: Vercel server-side proxy.
 - Media/file bridge: Apps Script behind the Vercel proxy.
 - File storage: Google Drive.
+
+## Current Feedback And UX Standards
+
+- Admin write operations use blocking loading modals while pending, centered success modals requiring acknowledgment, centered error modals requiring acknowledgment, and no short auto-dismiss final-result success toast.
+- This standard applies to Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings.
+- Urgent marquee speed is normalized by pixels per second with distance-based duration. Reduced motion slows the ticker instead of disabling it.
 
 ## Do Not Reintroduce
 

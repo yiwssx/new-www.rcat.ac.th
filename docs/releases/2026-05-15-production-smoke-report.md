@@ -1,5 +1,7 @@
 # Production Smoke Test Report: 2026-05-15
 
+> Historical note, 2026-07-04: This smoke report describes a previous production verification state. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 รายงานนี้บันทึกผล smoke test สำหรับ deployment ปัจจุบัน โดยอ้างอิงจาก [Production Smoke Checklist](../production-smoke-checklist.md) และ [Production Smoke Test Report Template](../production-smoke-test-report-template.md)
 
 > Manual production smoke verification completed against https://preview-placeholder.example.invalid/. Follow-up mobile IntroGate image issue was traced to Google Drive file sharing permission; after the file was shared publicly with anyone who has the link, the IntroGate image appears correctly.

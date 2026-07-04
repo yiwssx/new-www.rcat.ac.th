@@ -1,5 +1,7 @@
 # Public API Cache Diagnostics - 2026-05-20
 
+> Historical note, 2026-07-04: This report describes diagnostics for the former Apps Script public structured API. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 ## Observed Issue
 
 Chrome DevTools showed every public `script.google.com` request taking 7+ seconds across public pages. The affected routes are broader than the homepage, so the bottleneck is the Google Apps Script public API layer.

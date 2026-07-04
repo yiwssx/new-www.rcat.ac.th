@@ -1,5 +1,7 @@
 # Refactor Checkpoint P1-P4 - 2026-05-24
 
+> Historical note, 2026-07-04: This checkpoint describes a previous migration state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 Status: architecture checkpoint audit. This report documents the post-refactor state after P1 through P4. It does not change runtime behavior, UI, routes, Apps Script behavior, API response shapes, cache behavior, auth, analytics, CMS schema, dependencies, or shared types.
 
 Related documents:

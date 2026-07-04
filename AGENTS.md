@@ -5,12 +5,29 @@ This project is a React/Vite public website and CMS for Roi-Et College of Agricu
 ## Current Runtime Ownership
 
 - Public structured reads: Cloudflare Worker and D1.
-- Public analytics: Cloudflare Worker and D1.
+- Public analytics, site view, content view, visitor presence, and live visitor stats: Cloudflare Worker and D1.
 - Admin structured reads and writes: Cloudflare Worker and D1.
 - Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
 - Admin session proxy: Vercel server-side admin proxy.
 - Media/file bridge: Apps Script behind the Vercel proxy.
 - File storage: Google Drive behind the Apps Script media/file bridge.
+
+## Current Project Status
+
+cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+
+Do not mark M20 closed, do not claim production approval, and do not restore browser-side direct Apps Script structured reads/writes. Apps Script is retained only for media/file bridge and Google Drive operations.
+
+## Admin Operation Feedback Standard
+
+Admin write operations use:
+
+- blocking loading modal while pending
+- centered success modal requiring acknowledgment
+- centered error modal requiring acknowledgment
+- no short auto-dismiss toast for final admin write results
+
+The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings.
 
 ## Keep
 

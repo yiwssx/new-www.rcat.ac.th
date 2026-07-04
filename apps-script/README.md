@@ -2,7 +2,9 @@
 
 This Apps Script project is retained only for media/file bridge operations and Google Drive file access.
 
-Apps Script is not the current user-management backend.
+Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+
+Apps Script is not the current structured public/admin data backend and is not the current user-management backend.
 
 ## Current Scope
 
@@ -53,7 +55,7 @@ Configure these outside the repository:
 - `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`
 - `APPS_SCRIPT_BRIDGE_TOKEN`
 
-Do not expose bridge tokens through `VITE_` variables.
+Do not expose bridge URLs or bridge tokens through `VITE_` variables. `VITE_GOOGLE_APPS_SCRIPT_URL` must not be restored as server runtime configuration.
 
 ## Safety Rules
 

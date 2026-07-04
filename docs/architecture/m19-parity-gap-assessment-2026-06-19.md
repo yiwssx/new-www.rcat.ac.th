@@ -1,6 +1,8 @@
 # M19 Parity And Gap Remediation Readiness
 
-Status: CLOSED for repository-owned M19 parity remediation. Post-M19 external preview admin verification passed and public frontend data loading is restored; a distinct post-M19 public-read smoke result remains pending operator output. External operator blockers remain. This is not production cutover readiness, and M20 is not started.
+> Historical note, 2026-07-04: This checkpoint remains the M19 closure record. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
+Status: CLOSED for repository-owned M19 parity remediation. Later post-M19 and M20 preview prerequisites passed externally. This is not production cutover readiness.
 
 ## Decision
 

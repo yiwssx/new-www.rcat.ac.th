@@ -1,6 +1,6 @@
 # M20 Production Readiness Gate
 
-Status: M20 preview-backed Cloudflare field cutover is `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION` by operator decision. This document does not claim final production readiness.
+Status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. M20 preview-backed Cloudflare field cutover is `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION` by operator decision, but this document does not claim final production readiness.
 
 ## Current State After M19
 
@@ -21,6 +21,35 @@ M20-P0 supplied the repository readiness scaffold. The current M20 operator deci
 - Production D1 / final production cutover: explicitly deferred to operator decision after field verification.
 
 The existing admin proxy/login path is mandatory for admin field verification. Existing authentication, authorization, CORS, session, proxy, admin-gate, preview-write, and smoke-token controls remain intact.
+
+## Current Runtime Ownership
+
+- Public structured reads: Cloudflare Worker and D1.
+- Public analytics, site view, content view, visitor presence, and live visitor stats: Cloudflare Worker and D1.
+- Admin structured reads and writes: Cloudflare Worker and D1.
+- Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
+- Admin CMS session/proxy: Vercel server-side proxy.
+- Media/file bridge: Vercel `/api/apps-script-proxy` to Apps Script.
+- File storage: Google Drive behind the Apps Script media/file bridge.
+
+## Preview Field Verification Checklist
+
+- [ ] public home
+- [ ] marquee
+- [ ] carousel
+- [ ] menu
+- [ ] content/news/announcements
+- [ ] documents
+- [ ] E-Service
+- [ ] calendar
+- [ ] media upload/delete
+- [ ] admin content save/publish/delete
+- [ ] settings save
+- [ ] mourning mode
+- [ ] visitor stats / Who's Online
+- [ ] user management
+- [ ] Apps Script media bridge status
+- [ ] Cloudflare public/admin structured status
 
 ## Non-goals
 

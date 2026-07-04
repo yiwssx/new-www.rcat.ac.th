@@ -1,5 +1,7 @@
 # M18 Admin + D1 Write Batch Migration
 
+> Historical note, 2026-07-04: This checkpoint remains a historical record of the admin write migration. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 Status: M18 completed. External non-production Preview D1 migration and admin write lifecycle smoke passed by operator-confirmed external execution. This is one cohesive milestone, not a production cutover.
 
 Latest D1-safe correction: the previous `0004_admin_write_hardening.sql` trigger design used nested `CASE ... END` expressions inside `CREATE TRIGGER ... BEGIN ... END` bodies. Fresh isolated local Wrangler D1 accepted that SQL, which proves it was not a SQLite syntax error. The external Preview failure reported `incomplete input`, consistent with a remote migration parser/splitter hazard around nested `END` tokens in trigger bodies. The committed `0004` now avoids that shape entirely by using separate, mutually exclusive `WHEN`-guarded triggers for archive, publish, unpublish, and normal update audit actions.

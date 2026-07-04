@@ -1,5 +1,7 @@
 # Vercel Speed Investigation: 2026-05-15
 
+> Historical note, 2026-07-04: This report describes a previous Apps Script structured-data runtime and an old `AdminActionProgress` bundle. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 ## Scope
 
 - Production URL: https://preview-placeholder.example.invalid/

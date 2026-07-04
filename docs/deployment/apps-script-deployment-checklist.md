@@ -2,7 +2,9 @@
 
 Use this checklist only when a release changes `apps-script/`, Apps Script manifest/scopes, Google Drive media/file operations, or the Apps Script side of the Vercel media/file bridge.
 
-Apps Script is not the current user-management backend.
+Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+
+Apps Script is not the current structured public/admin data backend and is not the current user-management backend.
 
 ## Current Scope
 
@@ -26,6 +28,7 @@ Apps Script must not be restored as:
 - Changes under `apps-script/` must be pushed to Google Apps Script, saved as a new version, and assigned to the intended Web App deployment.
 - The current production frontend should not depend on `VITE_GOOGLE_APPS_SCRIPT_URL` for admin auth or user management.
 - The server-side media bridge should use server-only Apps Script bridge configuration, such as `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`.
+- `VITE_GOOGLE_APPS_SCRIPT_URL` must not be used as server runtime configuration.
 - Prefer updating the existing Web App deployment. Creating a new Web App deployment usually changes the URL and requires a coordinated server-side environment update.
 
 ## Pre-Deploy Checklist

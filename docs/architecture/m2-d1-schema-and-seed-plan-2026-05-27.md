@@ -1,5 +1,7 @@
 # M2 D1 Schema And Seed Plan - 2026-05-27
 
+> Historical note, 2026-07-04: This checkpoint describes an early D1 planning state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+
 Status: schema, local D1 provisioning, and fake local seed tooling only. This checkpoint does not change frontend or production backend behavior.
 
 ## Purpose

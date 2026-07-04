@@ -2,6 +2,8 @@
 
 ใช้เอกสารนี้บันทึกผลตรวจจริงหลัง Deploy โดยอ้างอิงจาก [Production Smoke Checklist](./production-smoke-checklist.md)
 
+สถานะปัจจุบัน: cleanup completed; preview field verification in progress. M20 production cutover remains gated. เอกสารนี้ไม่ใช่การอนุมัติ production cutover
+
 ## 1. Deployment Information
 
 | รายการ                        | รายละเอียด |
@@ -17,15 +19,17 @@
 
 ## 2. Environment Variables Checked
 
-| Environment variable / setting            | ตรวจแล้ว | ค่า/แหล่งอ้างอิง | หมายเหตุ |
-| ----------------------------------------- | -------- | ---------------- | -------- |
-| Google Apps Script URL                    | [ ]      |                  |          |
-| Public site URL                           | [ ]      |                  |          |
-| Analytics strategy                        | [ ]      |                  |          |
-| GTM ID                                    | [ ]      |                  |          |
-| GA4 Measurement ID                        | [ ]      |                  |          |
-| Vercel Analytics / Speed Insights setting | [ ]      |                  |          |
-| อื่น ๆ                                    | [ ]      |                  |          |
+| Environment variable / setting            | ตรวจแล้ว | ค่า/แหล่งอ้างอิง | หมายเหตุ                                   |
+| ----------------------------------------- | -------- | ---------------- | ------------------------------------------ |
+| Cloudflare public API provider/URL        | [ ]      |                  | Record only source label, not private URLs |
+| Cloudflare admin proxy/provider settings  | [ ]      |                  | Record only source label, not secrets      |
+| Apps Script media bridge server settings  | [ ]      |                  | Record only status, not bridge URL/token   |
+| Public site URL                           | [ ]      |                  |                                            |
+| Analytics strategy                        | [ ]      |                  |                                            |
+| GTM ID                                    | [ ]      |                  |                                            |
+| GA4 Measurement ID                        | [ ]      |                  |                                            |
+| Vercel Analytics / Speed Insights setting | [ ]      |                  |                                            |
+| อื่น ๆ                                    | [ ]      |                  |                                            |
 
 ## 3. Quality Command Results
 
@@ -49,6 +53,8 @@
 - [ ] ไม่มี console error จากโค้ดของแอปเรา
 - [ ] Route หน้าแรกใช้งานได้หลัง hard refresh
 - [ ] First load performance ยังยอมรับได้
+- [ ] Marquee speed readable on desktop/tablet/mobile
+- [ ] Reduced-motion marquee still moves slowly
 
 **Evidence / notes:**
 
@@ -151,11 +157,15 @@
 - [ ] Edit content works
 - [ ] Publish/unpublish status works
 - [ ] Media selection works
+- [ ] Media upload/delete shows blocking loading and acknowledged success/error result
+- [ ] Content save/publish/delete shows blocking loading and acknowledged success/error result
+- [ ] Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings use acknowledged result modals for writes
 - [ ] Carousel slide management works
 - [ ] Intro gate settings can be saved
 - [ ] Facebook post content block accepts a valid permalink URL
 - [ ] Unsupported Facebook URLs display fallback on the public page
-- [ ] No unexpected Apps Script write errors
+- [ ] No unexpected Apps Script media bridge errors
+- [ ] No browser-side direct Apps Script structured read/write observed
 
 **Evidence / notes:**
 

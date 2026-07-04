@@ -1,6 +1,6 @@
 # M20 External Evidence Pack
 
-Status: `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION` by operator decision. This approval is limited to the M20 preview-backed Cloudflare field cutover and is not final production readiness or final production cutover approval.
+Status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION` by operator decision. This approval is limited to the M20 preview-backed Cloudflare field cutover and is not final production readiness or final production cutover approval.
 
 ## Approved Field-Cutover Boundary
 
@@ -13,6 +13,35 @@ Status: `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION` by operator decision. T
 The existing admin proxy/login path remains required for admin access. Existing auth, RBAC, CORS, session, proxy, admin-gate, preview-write, and smoke-token boundaries remain unchanged.
 
 No live URL, D1 id, account id, deployment id, run id, token, secret, exact timestamp, screenshot, Google Drive URL, Apps Script URL, raw export, record payload, backup artifact, or infrastructure identifier is recorded here.
+
+## Current Runtime Ownership
+
+- Public structured reads: Cloudflare Worker and D1.
+- Public analytics, site view, content view, visitor presence, and live visitor stats: Cloudflare Worker and D1.
+- Admin structured reads and writes: Cloudflare Worker and D1.
+- Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
+- Admin CMS session/proxy: Vercel server-side proxy.
+- Media/file bridge: Vercel `/api/apps-script-proxy` to Apps Script.
+- File storage: Google Drive behind the Apps Script media/file bridge.
+
+## Preview Field Verification Checklist
+
+- [ ] public home
+- [ ] marquee
+- [ ] carousel
+- [ ] menu
+- [ ] content/news/announcements
+- [ ] documents
+- [ ] E-Service
+- [ ] calendar
+- [ ] media upload/delete
+- [ ] admin content save/publish/delete
+- [ ] settings save
+- [ ] mourning mode
+- [ ] visitor stats / Who's Online
+- [ ] user management
+- [ ] Apps Script media bridge status
+- [ ] Cloudflare public/admin structured status
 
 ## Status Summary
 

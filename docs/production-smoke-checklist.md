@@ -2,6 +2,8 @@
 
 ใช้เช็กลิสต์นี้หลัง Deploy ทุกครั้ง เพื่อยืนยันว่าเว็บไซต์สาธารณะและ CMS ยังทำงานได้ครบตามจุดเสี่ยงหลักก่อนประกาศใช้งานจริง
 
+สถานะปัจจุบัน: cleanup completed; preview field verification in progress. M20 production cutover remains gated. เช็กลิสต์นี้ไม่ใช่การอนุมัติ production cutover
+
 ## 1. Quality Gate ก่อน Deploy
 
 - [ ] รัน `pnpm format:check` และต้องผ่าน
@@ -26,6 +28,8 @@
 - [ ] Carousel autoplay ทำงานเมื่อเปิดใช้งาน
 - [ ] Carousel ไม่ autoplay เมื่อปิดใช้งาน
 - [ ] รูปแรกของ Carousel ถูก prioritize ถูกต้องเมื่อเป็นรูปที่มองเห็นทันทีบนหน้า
+- [ ] Marquee เริ่มจากด้านขวานอกพื้นที่ที่มองเห็นและเลื่อนไปซ้ายอย่างสม่ำเสมอบน desktop/tablet/mobile
+- [ ] Marquee ใน reduced-motion ยังเลื่อนช้าลง ไม่หยุดนิ่ง
 
 ## 3. Public Content Detail Smoke Checks
 
@@ -64,6 +68,7 @@
 - [ ] หน้า login และ admin routes ไม่ส่ง public analytics `page_view`
 - [ ] ตรวจ public `page_view` ใน GTM หรือ GA4 debug tools ถ้ามีสิทธิ์เข้าถึง
 - [ ] ตรวจว่า Vercel Analytics และ Speed Insights โหลดเฉพาะจุดที่คาดไว้
+- [ ] Visitor stats / Who's Online อ่านค่าจาก Cloudflare analytics path และไม่ใช้ browser-side direct Apps Script structured write
 
 ## 6. Admin CMS Smoke Checks
 
@@ -73,11 +78,15 @@
 - [ ] แก้ไข content เดิมได้
 - [ ] เปลี่ยนสถานะ publish/unpublish ได้
 - [ ] เลือก media จาก CMS ได้
+- [ ] Media upload/delete แสดง loading modal และ success/error modal ที่ต้องกดรับทราบ
+- [ ] Content save/publish/delete แสดง loading modal และ success/error modal ที่ต้องกดรับทราบ
+- [ ] Documents, Menu, Users, Calendar, Carousel, E-Service, และ Settings ใช้รูปแบบ feedback เดียวกัน
 - [ ] จัดการ Carousel slides ได้
 - [ ] บันทึก Intro gate settings ได้
 - [ ] Facebook post content block รับ permalink URL ที่รองรับได้
 - [ ] Facebook URL ที่ไม่รองรับแสดง fallback บนหน้าสาธารณะ
-- [ ] ไม่มี Apps Script write error ที่ไม่คาดคิด
+- [ ] ไม่มี Apps Script media bridge error ที่ไม่คาดคิด
+- [ ] ไม่มีการเรียก browser-side direct Apps Script structured read/write
 
 ## 7. Vercel Deployment Checks
 

@@ -1,7 +1,9 @@
 # Site View Tracking
 
-The public website records lightweight, privacy-friendly site view counters through the Google Apps Script public API.
+The public website records lightweight, privacy-friendly site view counters through the Cloudflare Worker and D1 public analytics path.
 This replaces manual visitor statistic entry for the `Website Visitors / สถิติผู้เข้าชมเว็บไซต์` card.
+
+Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
 
 ## What Is Counted
 
@@ -44,19 +46,19 @@ Only public routes are tracked. These routes are excluded:
 
 The tracker runs on route changes and sends the request with `navigator.sendBeacon()` when available. If beacon is unavailable, it falls back to `fetch()` with `keepalive: true`. The request is fire-and-forget; page rendering does not wait for it, and failures are ignored silently.
 
-The frontend throttles duplicate tracking for the same path for 30 minutes to avoid React StrictMode double effects and repeated refreshes. The Apps Script backend also throttles the same visitor id and same path within a 30-minute window.
+The frontend throttles duplicate tracking for the same path for 30 minutes to avoid React StrictMode double effects and repeated refreshes. The Cloudflare Worker/D1 analytics path also enforces server-side throttling and aggregation rules for site view, content view, visitor presence, and live visitor stats.
 
 ## Backend Storage
 
-Apps Script accepts unauthenticated public `POST ?resource=site-view` requests. The endpoint updates only visitor stats storage and does not rebuild CMS snapshots.
+The Cloudflare Worker accepts public analytics writes for approved public routes and stores aggregate counters in D1. The endpoint updates analytics storage only and does not rebuild CMS snapshots.
 
-Storage uses the `VisitorStats` sheet with one compact row per anonymous visitor id. Each row stores first/last seen timestamps, the last path, total accepted views, and compact day/month/year keys used for unique counts.
+Storage uses D1 analytics tables for privacy-safe aggregate counters and presence windows. The system must not store email, name, login state, raw user agent, API tokens, or secrets in these public analytics records.
 
 ## Cache And Staleness
 
 `site-view` does not call `invalidatePublicSnapshotCache()`. This is intentional: invalidating public snapshots on every page view would recreate the slow public API behavior the cache is meant to avoid.
 
-The homepage visitor card reads stats from the public-home snapshot, so visible stats can be stale until the public cache expires. This keeps page load fast and avoids blocking public rendering.
+The homepage visitor card reads stats from the Cloudflare public home/visitor stats responses, so visible stats can be stale until the public cache expires. This keeps page load fast and avoids blocking public rendering.
 
 ## Admin Behavior
 
@@ -64,28 +66,23 @@ Admins can enable or disable the public display of the visitor stats card. Count
 
 ## Deployment Steps
 
-Deploy both the frontend and Apps Script changes.
-Use the full Apps Script release checklist in [`docs/deployment/apps-script-deployment-checklist.md`](../deployment/apps-script-deployment-checklist.md) for versioning, deployment update, production verification, and rollback steps.
+Deploy the frontend and Worker only when those surfaces changed. Apps Script deployment is not required for site-view tracking unless the separate media/file bridge code changed.
 
 ```powershell
+pnpm worker:typecheck
 pnpm build
-pnpm gas:push
-pnpm gas:version
-pnpm gas:deployments
-cd apps-script
-pnpm dlx @google/clasp deploy --deploymentId <WEB_APP_DEPLOYMENT_ID> --versionNumber <NEW_VERSION_NUMBER> --description "automatic site view tracking"
 ```
 
-Confirm the frontend `VITE_GOOGLE_APPS_SCRIPT_URL` points to the updated web app deployment.
+Confirm the public frontend uses `VITE_PUBLIC_API_PROVIDER=cloudflare` and a non-secret `VITE_CLOUDFLARE_PUBLIC_API_URL` for the approved environment. Do not configure site-view tracking through `VITE_GOOGLE_APPS_SCRIPT_URL`.
 
 ## Manual Verification
 
 1. Deploy the frontend.
-2. Deploy Apps Script.
+2. Confirm the approved Cloudflare Worker/D1 environment is configured.
 3. Open a public page in a normal browser.
-4. In DevTools Network, filter for `script.google.com`.
-5. Confirm a non-blocking `POST` request with `resource=site-view`.
+4. In DevTools Network, filter for the approved public Worker origin.
+5. Confirm a non-blocking public analytics request.
 6. Refresh the same path repeatedly and confirm the 30-minute throttle prevents excessive increments.
 7. Visit a different public route and confirm a new accepted view is counted.
-8. Visit `/login` and `/admin` and confirm no `site-view` request is sent.
+8. Visit `/login` and `/admin` and confirm no public analytics request is sent.
 9. Confirm the visitor stats card updates after the public-home cache window expires.
