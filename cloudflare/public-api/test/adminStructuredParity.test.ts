@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
+import { createPublicMetadata } from "../src/adapters/publicMetadataAdapter";
 import m19Migration from "../migrations/0005_m19_structured_admin_parity.sql?raw";
 import worker from "../src/index";
 
@@ -68,8 +69,16 @@ function createStructuredMockDb(
           }
 
           const rows = tables[table] ?? [];
+          const selectedRows = /WHERE\s+id\s*=\s*\?/i.test(query)
+            ? rows.filter((row) => row.id === bindings[0])
+            : [...rows];
+
+          if (/ORDER\s+BY\s+sort_order\s+ASC/i.test(query)) {
+            selectedRows.sort((left, right) => Number(left.sort_order ?? 0) - Number(right.sort_order ?? 0));
+          }
+
           return {
-            results: (/WHERE\s+id\s*=\s*\?/i.test(query) ? rows.filter((row) => row.id === bindings[0]) : rows) as T[],
+            results: selectedRows as T[],
             success: true
           };
         },
@@ -285,6 +294,190 @@ describe("M19 structured admin parity routes", () => {
       expect(deleteResponse.status).toBe(200);
       expect(await readJson(deleteResponse)).toMatchObject({ deleted: true });
     }
+  });
+
+  it("returns admin snapshot E-Service revisions without adding revisions to public metadata", async () => {
+    const { db, tables } = createStructuredMockDb();
+    const env = { ...smokeEnvBase, DB: db };
+
+    const saveResponse = await worker.fetch(
+      request("/api/admin/external-services", "POST", {
+        id: "service-1",
+        title: "Student portal",
+        href: "https://service.example.test/student",
+        enabled: true,
+        order: 1
+      }),
+      env
+    );
+    const snapshotResponse = await worker.fetch(request("/api/admin/snapshot"), env);
+    const snapshot = await readJson(snapshotResponse);
+    const publicMetadata = createPublicMetadata({
+      siteSettings: null,
+      homepageSettings: null,
+      displaySettings: null,
+      menu: [],
+      media: [],
+      carouselSlides: [],
+      externalServices: tables.external_services as never[],
+      events: []
+    });
+
+    expect(saveResponse.status).toBe(201);
+    expect(snapshotResponse.status).toBe(200);
+    expect(snapshot.externalServices).toEqual([expect.objectContaining({ id: "service-1", revision: 0 })]);
+    expect(publicMetadata.externalServices[0]).not.toHaveProperty("revision");
+  });
+
+  it("batch saves flat E-Service links with sequential order, preserved ids, new ids, and omitted deletes", async () => {
+    const { db, tables } = createStructuredMockDb();
+    const env = { ...smokeEnvBase, DB: db };
+
+    await worker.fetch(
+      request("/api/admin/external-services", "POST", {
+        id: "service-delete",
+        title: "Delete me",
+        href: "https://service.example.test/delete",
+        enabled: true,
+        order: 1
+      }),
+      env
+    );
+    await worker.fetch(
+      request("/api/admin/external-services", "POST", {
+        id: "service-keep",
+        title: "Keep me",
+        href: "https://service.example.test/keep",
+        enabled: true,
+        order: 1
+      }),
+      env
+    );
+    const existingCreatedAt = tables.external_services.find((row) => row.id === "service-keep")?.created_at;
+
+    const response = await worker.fetch(
+      request("/api/admin/external-services", "PUT", {
+        items: [
+          {
+            id: "service-keep",
+            title: "Kept and moved",
+            href: "https://service.example.test/keep-updated",
+            enabled: true,
+            order: 99,
+            revision: 0
+          },
+          {
+            title: "New service",
+            href: "https://service.example.test/new",
+            enabled: false,
+            order: 99
+          }
+        ]
+      }),
+      env
+    );
+    const body = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(body.items).toEqual([
+      expect.objectContaining({ id: "service-keep", title: "Kept and moved", order: 1, revision: 1 }),
+      expect.objectContaining({ title: "New service", order: 2, revision: 0 })
+    ]);
+    expect(tables.external_services).toHaveLength(2);
+    expect(tables.external_services.some((row) => row.id === "service-delete")).toBe(false);
+    expect(tables.external_services.find((row) => row.id === "service-keep")).toMatchObject({
+      created_at: existingCreatedAt,
+      revision: 1,
+      sort_order: 1
+    });
+    expect(tables.external_services.filter((row) => row.id === "service-keep")).toHaveLength(1);
+    expect(new Set((body.items as Array<{ order: number }>).map((item) => item.order))).toEqual(new Set([1, 2]));
+  });
+
+  it("rejects nested E-Service children in the flat batch endpoint", async () => {
+    const { db } = createStructuredMockDb();
+    const response = await worker.fetch(
+      request("/api/admin/external-services", "PUT", {
+        items: [
+          {
+            title: "Nested service",
+            href: "https://service.example.test/nested",
+            children: []
+          }
+        ]
+      }),
+      { ...smokeEnvBase, DB: db }
+    );
+
+    expect(response.status).toBe(400);
+    await expect(readJson(response)).resolves.toMatchObject({
+      error: "external services must be a flat list"
+    });
+  });
+
+  it("returns stale revision for batch E-Service saves when a submitted revision mismatches", async () => {
+    const { db } = createStructuredMockDb();
+    const env = { ...smokeEnvBase, DB: db };
+
+    await worker.fetch(
+      request("/api/admin/external-services", "POST", {
+        id: "service-1",
+        title: "Student portal",
+        href: "https://service.example.test/student",
+        enabled: true,
+        order: 1
+      }),
+      env
+    );
+    const response = await worker.fetch(
+      request("/api/admin/external-services", "PUT", {
+        items: [
+          {
+            id: "service-1",
+            title: "Student portal",
+            href: "https://service.example.test/student",
+            enabled: true,
+            order: 1,
+            revision: 9
+          }
+        ]
+      }),
+      env
+    );
+
+    expect(response.status).toBe(409);
+    await expect(readJson(response)).resolves.toMatchObject({ error: "stale revision" });
+  });
+
+  it("keeps PATCH /api/admin/external-services/:id updating existing rows without duplicating", async () => {
+    const { db, tables } = createStructuredMockDb();
+    const env = { ...smokeEnvBase, DB: db };
+
+    await worker.fetch(
+      request("/api/admin/external-services", "POST", {
+        id: "service-1",
+        title: "Student portal",
+        href: "https://service.example.test/student",
+        enabled: true,
+        order: 1
+      }),
+      env
+    );
+    const response = await worker.fetch(
+      request("/api/admin/external-services/service-1", "PATCH", {
+        title: "Updated student portal",
+        href: "https://service.example.test/student-updated",
+        enabled: true,
+        order: 3
+      }),
+      env
+    );
+
+    expect(response.status).toBe(200);
+    expect(await readJson(response)).toMatchObject({
+      item: { id: "service-1", title: "Updated student portal", revision: 1 }
+    });
+    expect(tables.external_services.filter((row) => row.id === "service-1")).toHaveLength(1);
   });
 
   it("accepts optional carousel titles but requires an image URL", async () => {

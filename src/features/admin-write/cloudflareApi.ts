@@ -294,16 +294,24 @@ export async function saveExternalServiceLinkToCloudflare(
   input: ExternalServiceLinkInput
 ): Promise<ExternalServiceLink> {
   const { id, revision, body } = getEntityIdentity(input);
-  const response =
-    id && revision !== undefined
-      ? await writeJson<ItemEnvelope<ExternalServiceLink>>(
-          `/api/admin/external-services/${encodeURIComponent(id)}`,
-          "PATCH",
-          body,
-          getRevisionHeaders(revision)
-        )
-      : await writeJson<ItemEnvelope<ExternalServiceLink>>("/api/admin/external-services", "POST", body);
+  const response = id
+    ? await writeJson<ItemEnvelope<ExternalServiceLink>>(
+        `/api/admin/external-services/${encodeURIComponent(id)}`,
+        "PATCH",
+        body,
+        getRevisionHeaders(revision)
+      )
+    : await writeJson<ItemEnvelope<ExternalServiceLink>>("/api/admin/external-services", "POST", body);
   return response.item;
+}
+
+export async function saveExternalServiceLinksToCloudflare(
+  items: ExternalServiceLinkInput[]
+): Promise<ExternalServiceLink[]> {
+  const response = await writeJson<{ items: ExternalServiceLink[] }>("/api/admin/external-services", "PUT", {
+    items
+  });
+  return response.items;
 }
 
 export function deleteExternalServiceLinkFromCloudflare(id: string): Promise<{ id: string; deleted: boolean }> {

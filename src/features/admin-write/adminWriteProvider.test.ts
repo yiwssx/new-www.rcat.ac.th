@@ -185,6 +185,115 @@ describe("M18 admin structured write provider", () => {
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
   });
 
+  it("uses PATCH for existing E-Service links with an id even when revision is missing", async () => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      return jsonResponse({ item: { ...body, id: url.split("/").pop(), revision: 3 } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { saveExternalServiceLinkToApi } = await import("../cms-external-services/api");
+
+    await saveExternalServiceLinkToApi({
+      id: "service-1",
+      title: "Student portal",
+      href: "https://service.example.test/student",
+      enabled: true,
+      order: 2
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://preview-worker.example.test/api/admin/external-services/service-1"
+    );
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PATCH");
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"))).not.toHaveProperty("id");
+  });
+
+  it("uses PATCH with a revision header for existing E-Service links when revision is present", async () => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      return jsonResponse({ item: { ...body, id: url.split("/").pop(), revision: 5 } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { saveExternalServiceLinkToApi } = await import("../cms-external-services/api");
+
+    await saveExternalServiceLinkToApi({
+      id: "service-1",
+      title: "Student portal",
+      href: "https://service.example.test/student",
+      enabled: true,
+      order: 2,
+      revision: 4
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://preview-worker.example.test/api/admin/external-services/service-1"
+    );
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PATCH");
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("X-RCAT-Expected-Revision")).toBe("4");
+  });
+
+  it("uses POST for new E-Service links without an id", async () => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      return jsonResponse({ item: { ...body, id: "service-new", revision: 0 } }, 201);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { saveExternalServiceLinkToApi } = await import("../cms-external-services/api");
+
+    await saveExternalServiceLinkToApi({
+      title: "New service",
+      href: "https://service.example.test/new",
+      enabled: true,
+      order: 1
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/external-services");
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
+  });
+
+  it("batch saves E-Service links through PUT /api/admin/external-services", async () => {
+    setCloudflareEnv();
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      return jsonResponse({ items: body.items });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { saveExternalServiceLinksToApi } = await import("../cms-external-services/api");
+
+    await saveExternalServiceLinksToApi([
+      {
+        id: "service-1",
+        title: "Student portal",
+        href: "https://service.example.test/student",
+        enabled: true,
+        order: 1,
+        revision: 2
+      }
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/external-services");
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "PUT",
+      credentials: "include"
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"))).toEqual({
+      items: [
+        expect.objectContaining({
+          id: "service-1",
+          order: 1
+        })
+      ]
+    });
+  });
+
   it("surfaces a duplicate slug conflict without retrying as create", async () => {
     setCloudflareEnv();
     vi.stubGlobal(

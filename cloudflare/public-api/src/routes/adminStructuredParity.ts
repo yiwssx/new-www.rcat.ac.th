@@ -379,6 +379,141 @@ function mapEntity(entity: EntityName, row: CarouselSlideRow | ExternalServiceRo
   };
 }
 
+function isAllowedExternalServiceHref(href: string) {
+  return /^(https?:\/\/|mailto:|tel:|\/)/i.test(href);
+}
+
+function submittedRevision(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const revision = Number(value);
+
+  if (!Number.isSafeInteger(revision) || revision < 0) {
+    throw new Error("invalid external service revision");
+  }
+
+  return revision;
+}
+
+function createExternalServiceBatchRow(
+  body: JsonRecord,
+  existing: ExternalServiceRow | undefined,
+  now: string,
+  actor: string,
+  index: number
+) {
+  const href = requiredString(body.href, "external service href");
+
+  if (!isAllowedExternalServiceHref(href)) {
+    throw new Error("invalid external service href");
+  }
+
+  return {
+    id: stringValue(body.id) || existing?.id || makeId("external-services"),
+    title: requiredString(body.title, "external service title"),
+    description: stringValue(body.description, existing?.description || ""),
+    href,
+    tone: stringValue(body.tone, existing?.tone || "general"),
+    icon_key: stringValue(body.iconKey, existing?.icon_key || "link"),
+    enabled: booleanValue(body.enabled, existing ? existing.enabled === 1 : true) ? 1 : 0,
+    sort_order: index + 1,
+    updated_at: now,
+    created_at: existing?.created_at || now,
+    updated_by: actor,
+    revision: existing ? Number(existing.revision ?? 0) + 1 : 0
+  } satisfies ExternalServiceRow;
+}
+
+async function handleExternalServicesBatch(request: Request, env: Env, actor: string) {
+  const body = await readJsonBody(request);
+
+  if (!Array.isArray(body.items)) {
+    return jsonError("external services items must be an array", 400, {
+      resource: "external-services"
+    });
+  }
+
+  const currentRows = await getRows<ExternalServiceRow>(
+    env,
+    `SELECT ${EXTERNAL_SERVICE_ADMIN_ROW_COLUMNS.join(", ")} FROM external_services ORDER BY sort_order ASC`
+  );
+  const currentById = new Map(currentRows.map((row) => [row.id, row]));
+  const submittedIds = new Set<string>();
+  const now = new Date().toISOString();
+  const rows: ExternalServiceRow[] = [];
+
+  for (const [index, value] of body.items.entries()) {
+    if (!isRecord(value)) {
+      return jsonError("invalid external service item", 400, {
+        resource: "external-services"
+      });
+    }
+
+    if ("children" in value || "parentId" in value || "parent_id" in value) {
+      return jsonError("external services must be a flat list", 400, {
+        resource: "external-services"
+      });
+    }
+
+    const id = stringValue(value.id);
+
+    if (id && submittedIds.has(id)) {
+      return jsonError("duplicate external service id", 409, {
+        resource: "external-services"
+      });
+    }
+
+    const existing = id ? currentById.get(id) : undefined;
+    const revision = submittedRevision(value.revision);
+
+    if (existing && revision !== undefined && Number(existing.revision ?? 0) !== revision) {
+      return jsonError("stale revision", 409, {
+        resource: "external-services",
+        expectedRevision: revision,
+        currentRevision: Number(existing.revision ?? 0)
+      });
+    }
+
+    const row = createExternalServiceBatchRow(value, existing, now, actor, index);
+    submittedIds.add(row.id);
+    rows.push(row);
+  }
+
+  const db = requireD1Database(env);
+  const mutableColumns = EXTERNAL_SERVICE_ADMIN_ROW_COLUMNS.filter(
+    (column) => column !== "id" && column !== "created_at" && column !== "revision"
+  );
+  const statements = rows.map((row) =>
+    db
+      .prepare(
+        `INSERT INTO external_services (${EXTERNAL_SERVICE_ADMIN_ROW_COLUMNS.join(", ")})
+         VALUES (${EXTERNAL_SERVICE_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})
+         ON CONFLICT(id) DO UPDATE SET ${mutableColumns
+           .map((column) => `${column} = excluded.${column}`)
+           .join(", ")}, revision = excluded.revision`
+      )
+      .bind(...EXTERNAL_SERVICE_ADMIN_ROW_COLUMNS.map((column) => row[column]))
+  );
+
+  currentRows
+    .filter((row) => !submittedIds.has(row.id))
+    .forEach((row) => {
+      statements.push(db.prepare("DELETE FROM external_services WHERE id = ?").bind(row.id));
+    });
+
+  if (statements.length) {
+    await db.batch(statements);
+  }
+
+  return json({
+    items: rows
+      .sort((left, right) => left.sort_order - right.sort_order)
+      .map((row) => mapEntity("external-services", row))
+  });
+}
+
 function createMediaRow(body: JsonRecord, now: string): MediaAssetRow {
   return {
     id: requiredString(body.id, "media id"),
@@ -446,6 +581,10 @@ async function handleMedia(request: Request, env: Env, segments: string[]) {
 
 async function handleEntity(request: Request, env: Env, segments: string[], entity: EntityName, actor: string) {
   const config = entityConfig[entity];
+
+  if (entity === "external-services" && segments.length === 1 && request.method === "PUT") {
+    return handleExternalServicesBatch(request, env, actor);
+  }
 
   if (segments.length === 1 && request.method === "POST") {
     const body = await readJsonBody(request);
@@ -590,7 +729,7 @@ export async function readAdminStructuredSnapshot(env: Env) {
     ),
     getRows<ExternalServiceRow>(
       env,
-      `SELECT ${EXTERNAL_SERVICE_ROW_COLUMNS.join(", ")} FROM external_services ORDER BY sort_order ASC`
+      `SELECT ${EXTERNAL_SERVICE_ADMIN_ROW_COLUMNS.join(", ")} FROM external_services ORDER BY sort_order ASC`
     ),
     getRows<EventRow>(env, `SELECT ${EVENT_ROW_COLUMNS.join(", ")} FROM events ORDER BY date ASC`)
   ]);
@@ -612,7 +751,7 @@ export async function readAdminStructuredSnapshot(env: Env) {
     menu: metadata.menu,
     media: metadata.media,
     carouselSlides: metadata.carouselSlides,
-    externalServices: metadata.externalServices,
+    externalServices: externalServices.map((row) => mapEntity("external-services", row)),
     events: events.map((row) => mapEntity("events", row))
   };
 }

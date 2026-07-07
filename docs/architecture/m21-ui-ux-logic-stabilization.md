@@ -19,6 +19,11 @@ Stabilize the public website and admin CMS user experience after the M20 runtime
 - Carousel and marquee behavior.
 - Calendar display.
 - External services display.
+  - E-Service ordering is managed by flat list position.
+  - Manual numeric order input was removed.
+  - Duplicate order values are normalized.
+  - Existing E-Service edits no longer create duplicate/copy records.
+  - Drag-and-drop is deferred; move up/down controls are the supported ordering UI in this pass.
 - Media library UX.
 - Admin loading, error, and empty states.
 - Admin validation behavior.
