@@ -14,7 +14,7 @@ Base commit after patch/minor updates: `88c3b040d1e9cc959bda9826913afbd7325b9dce
 | MUI platform          | `@mui/material`, `@mui/icons-material`                   | 6.5.x                                     | 9.2.x                                                | Defer until React 19 and MUI migration notes are reviewed together.                                                             |
 | Vite/Vitest platform  | `vite`, `@vitejs/plugin-react`, `vitest`, `jsdom`        | Vite 6, Vitest 3, jsdom 26                | Vite 8, plugin-react 6, Vitest 4, jsdom 29           | Trial as an isolated tooling group because it may clear audit findings, but keep only if the full quality gate passes.          |
 | Worker types          | `@cloudflare/workers-types`                              | 4.20260702.1                              | 5.20260707.1                                         | Trial separately with `pnpm worker:typecheck`; revert if Worker contracts change.                                               |
-| Commit tooling        | `@commitlint/cli`, `@commitlint/config-conventional`     | 15.0.0                                    | 21.2.0                                               | Trial separately; expected to clear the `semver` advisory.                                                                      |
+| Commit tooling        | `@commitlint/cli`, `@commitlint/config-conventional`     | 15.0.0                                    | 21.2.0                                               | Accepted in this pass; clears the `semver` advisory. Requires Node >=22.12 for local commitlint use.                            |
 | Git hook tooling      | `lint-staged`                                            | 15.5.2                                    | 17.0.8                                               | Trial separately with a normal commit hook path.                                                                                |
 | Repository AI tooling | `sigmap`                                                 | 6.15.0                                    | 8.9.1                                                | Defer unless `pnpm ai:health` and the Sigmap workflow are included in scope.                                                    |
 | Runtime auth utility  | `bcryptjs` and `@types/bcryptjs`                         | `bcryptjs` 2.4.3, `@types/bcryptjs` 2.4.6 | `bcryptjs` 3.0.3, deprecated `@types/bcryptjs` 3.0.0 | Defer. Requires explicit server auth smoke testing and likely removing deprecated external types if bundled types are adequate. |
@@ -29,6 +29,18 @@ Base commit after patch/minor updates: `88c3b040d1e9cc959bda9826913afbd7325b9dce
 - Low: `@babel/core` via `@vitejs/plugin-react`.
 
 The commitlint and Vite/Vitest tooling trials should be prioritized because they directly target two of the three remaining advisory families.
+
+After accepting the commit tooling major update, `pnpm audit` reports 2 advisories:
+
+- Moderate: `brace-expansion` via ESLint/minimatch dependency paths.
+- Low: `@babel/core` via `@vitejs/plugin-react`.
+
+## Accepted Major Groups
+
+- Commit tooling: `@commitlint/cli` and `@commitlint/config-conventional` were updated to `21.2.0`.
+- Validation: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm commitlint --from HEAD~3 --to HEAD`, and `pnpm format:check` passed.
+- Audit impact: the `semver` advisory was removed.
+- Environment note: commitlint 21 declares `node >=22.12.0`; the local validation environment was Node `v25.8.2`.
 
 ## Trial Order
 
