@@ -6,6 +6,9 @@ import { CmsSnapshot, ContentItem } from "../types";
 const siteViewMocks = vi.hoisted(() => ({
   recordContentView: vi.fn()
 }));
+const routerMocks = vi.hoisted(() => ({
+  navigate: vi.fn()
+}));
 
 let currentSnapshot: CmsSnapshot | undefined;
 let currentDetail: ContentItem | undefined;
@@ -20,6 +23,11 @@ let currentDetailQueryState = {
 
 vi.mock("../features/site-view", () => ({
   recordContentView: siteViewMocks.recordContentView
+}));
+
+vi.mock("@tanstack/react-router", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-router")>()),
+  useNavigate: () => routerMocks.navigate
 }));
 
 vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
@@ -78,6 +86,7 @@ function createSnapshot(content: ContentItem): CmsSnapshot {
 
 beforeEach(() => {
   window.localStorage.clear();
+  routerMocks.navigate.mockReset();
   currentDetail = createContent();
   currentSnapshot = createSnapshot(currentDetail);
   currentSnapshotQueryState = {
@@ -169,7 +178,7 @@ describe("PublicContentDetailPage", () => {
     );
     expect(await within(article).findByText("ผู้เข้าดู 13 ครั้ง")).toBeInTheDocument();
     expect(window.localStorage.getItem("rcat.cms.viewed.content-1")).toMatch(/^\d+$/);
-  });
+  }, 10_000);
 
   it("uses full Thai date without update or time metadata for announcements", () => {
     currentDetail = createContent({

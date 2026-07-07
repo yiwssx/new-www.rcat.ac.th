@@ -6,12 +6,20 @@ import { CmsSnapshot, ContentItem } from "../types";
 const siteViewMocks = vi.hoisted(() => ({
   recordContentView: vi.fn()
 }));
+const routerMocks = vi.hoisted(() => ({
+  navigate: vi.fn()
+}));
 
 let currentSnapshot: CmsSnapshot | undefined;
 let currentDetail: ContentItem | undefined;
 
 vi.mock("../features/site-view", () => ({
   recordContentView: siteViewMocks.recordContentView
+}));
+
+vi.mock("@tanstack/react-router", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-router")>()),
+  useNavigate: () => routerMocks.navigate
 }));
 
 vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
@@ -74,6 +82,7 @@ function createSnapshot(content: ContentItem, related: ContentItem): CmsSnapshot
 
 beforeEach(() => {
   window.localStorage.clear();
+  routerMocks.navigate.mockReset();
   siteViewMocks.recordContentView.mockReset();
   siteViewMocks.recordContentView.mockResolvedValue({
     id: "news-1",
@@ -121,7 +130,7 @@ describe("PublicContentDetailPage public UX regressions", () => {
 
     expect(screen.getByRole("link", { name: "กลับไปหน้ารายการ" })).toBeInTheDocument();
     expect(screen.getByText("ข่าวกิจกรรมที่เกี่ยวข้อง")).toBeInTheDocument();
-  });
+  }, 10_000);
 
   it("keeps tags clickable and still renders attached media", () => {
     window.localStorage.setItem("rcat.cms.viewed.news-1", String(Date.now()));

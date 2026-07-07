@@ -13,7 +13,7 @@ type IdleCallbackHandle =
     }
   | {
       type: "timeout";
-      id: ReturnType<typeof window.setTimeout>;
+      id: number;
     };
 
 type AnalyticsWindow = Window & {

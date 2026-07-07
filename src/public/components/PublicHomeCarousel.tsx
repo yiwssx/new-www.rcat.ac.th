@@ -109,7 +109,7 @@ export default function PublicHomeCarousel({
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
-  const autoplayRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
+  const autoplayRef = useRef<number | null>(null);
   const autoplayEnabled = settings?.autoplayEnabled ?? true;
   const autoplayIntervalMs = normalizeCarouselAutoplayIntervalSeconds(settings?.autoplayIntervalSeconds) * 1000;
 

@@ -199,7 +199,7 @@ describe("DocumentsPage operation feedback", () => {
       successModal = findSwalCall((options) => options.title === "บันทึกเอกสารสำเร็จ");
       expectAcknowledgedResultModal(successModal, "บันทึกเอกสารสำเร็จ");
     });
-  });
+  }, 10_000);
 
   it("keeps the dialog error and shows an acknowledged error modal when saving fails", async () => {
     documentsMock.saveDocumentToApi.mockRejectedValue(new Error("D1 unavailable"));

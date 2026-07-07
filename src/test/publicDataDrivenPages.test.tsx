@@ -9,6 +9,9 @@ import { defaultSiteSettings } from "../services/siteSettings";
 import { CmsSnapshot, PublicContentListSnapshot, PublicHomeSnapshot, PublicProgramListSnapshot } from "../types";
 
 const usePublicCmsSnapshotMock = vi.hoisted(() => vi.fn());
+const routerMocks = vi.hoisted(() => ({
+  navigate: vi.fn()
+}));
 
 let currentSnapshot: CmsSnapshot | undefined;
 let currentHomeSnapshot: PublicHomeSnapshot | undefined;
@@ -48,6 +51,11 @@ vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
       ...currentQueryState
     };
   }
+}));
+
+vi.mock("@tanstack/react-router", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-router")>()),
+  useNavigate: () => routerMocks.navigate
 }));
 
 vi.mock("../public/hooks/usePublicHomeSnapshot", () => ({
@@ -206,6 +214,7 @@ function createProgramListSnapshot(overrides: Partial<PublicProgramListSnapshot>
 }
 
 beforeEach(() => {
+  routerMocks.navigate.mockReset();
   currentSnapshot = createSnapshot();
   currentHomeSnapshot = createHomeSnapshot();
   currentContentListSnapshot = createContentListSnapshot();
