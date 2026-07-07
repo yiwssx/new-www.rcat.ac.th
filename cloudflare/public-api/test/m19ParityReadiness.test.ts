@@ -8,7 +8,7 @@ import workerPackage from "../package.json";
 import { formatM19ParityReadiness, runM19ParityReadiness } from "../scripts/m19-parity-readiness.mjs";
 
 describe("M19 repository parity readiness", () => {
-  it("keeps M19 closed while M20 proceeds under the approved preview field-cutover decision", () => {
+  it("keeps M19 closed while M20 is closed for migration runtime domain scope", () => {
     expect(m19Doc).toMatch(/Status: CLOSED for repository-owned M19 parity remediation/i);
     expect(m19Doc).toContain("FIXED_IN_THIS_CHANGE");
     expect(m19Doc).toContain("ALREADY_SATISFIED");
@@ -17,8 +17,8 @@ describe("M19 repository parity readiness", () => {
     expect(m19Doc).toMatch(/M20.*not started/i);
     expect(m19Doc).toMatch(/Apps Script remains the fallback and rollback provider/i);
     expect(currentStatus).toMatch(/M19: `CLOSED` for repository-owned parity remediation/i);
-    expect(currentStatus).toMatch(/M20: cleanup completed; preview field verification in progress/i);
-    expect(currentStatus).toMatch(/M20 production cutover remains gated/i);
+    expect(currentStatus).toMatch(/M20: `CLOSED` for migration\/runtime\/domain-cutover scope/i);
+    expect(currentStatus).toMatch(/M21: `OPEN` for UI\/UX and logic stabilization/i);
     expect(workerReadme).toMatch(/M19 Current Surface/i);
     expect(workerReadme).not.toMatch(/Current M3 Routes/i);
   });

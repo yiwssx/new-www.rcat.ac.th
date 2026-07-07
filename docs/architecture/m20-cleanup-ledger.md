@@ -2,13 +2,32 @@
 
 Date: 2026-06-24
 
-Status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+Status: M20 migration/runtime/domain-cutover scope is closed.
 
-M20 is not closed and production is not approved.
+M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
+
+M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final.
+
+## 2026-07-07 M20 Migration Runtime Closure
+
+### Closure Note
+
+- The custom domain `www.rcat.ac.th` is connected to the Vercel production deployment.
+- The Cloudflare/Vercel redirect loop was resolved at the provider configuration layer.
+- Cloudflare Worker allowed origins include the production custom domain.
+- Cloudflare Worker and D1 own structured public and admin data.
+- Apps Script remains only the media/file bridge for Google Drive file operations.
+- No D1 migration blocker remains for M20 migration/runtime ownership.
+- No Apps Script structured-data blocker remains.
+- No runtime ownership blocker remains.
+
+### M21 Handoff
+
+Remaining UI/UX, business logic, workflow, usability, validation, layout, content-presentation, Thai wording, and user-facing error issues move to `docs/architecture/m21-ui-ux-logic-stabilization.md`.
 
 ## 2026-07-07 Apps Script Active Source Prune
 
-This pass prunes the active `apps-script/` deployment source to the retained media/file bridge only. It does not close M20.
+This pass pruned the active `apps-script/` deployment source to the retained media/file bridge only. M20 is now closed separately by the migration/runtime/domain closure note above.
 
 ### Removed From Active Apps Script Source
 
@@ -71,7 +90,7 @@ This pass prunes the active `apps-script/` deployment source to the retained med
 - `apps-script/` and `package.json` `gas:*` scripts, because the media/file bridge still needs clasp deployment.
 - `server/appsScriptProxy/`, because Vercel remains the server-side bridge to Apps Script media/file operations.
 - Cloudflare Worker source and D1 migrations, unchanged in this pass.
-- M20 readiness docs and runbooks, because M20 remains gated and has not been closed.
+- M20 readiness docs and runbooks, because they remain the migration/runtime/domain closure record.
 
 ## 2026-07-04 Project-Wide Documentation Synchronization
 
@@ -116,7 +135,7 @@ Current behavior:
 - reduced-motion still slows the ticker instead of disabling it
 - no Worker, D1, or Apps Script change was required
 
-### Preview Field Verification Checklist
+### M21 Stabilization Handoff Checklist
 
 - [ ] public home
 - [ ] marquee
@@ -138,12 +157,12 @@ Current behavior:
 ### Stale Guidance Handling
 
 - Active docs now distinguish Cloudflare Worker/D1 structured data from the retained Apps Script media/file bridge.
-- Historical checkpoint docs are retained as history. Where they still describe obsolete active runtime ownership, they should be read with the current runtime ownership above and the M20 production gate.
+- Historical checkpoint docs are retained as history. Where they still describe obsolete active runtime ownership, they should be read with the current runtime ownership above and the M20 closure note.
 - `VITE_GOOGLE_APPS_SCRIPT_URL` must not be used as server runtime config. Media bridge deployments use server-only `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL` plus `APPS_SCRIPT_BRIDGE_TOKEN`.
 
 ## 2026-07-02 Final Dead-Code Cleanup
 
-This pass removes the no-op admin progress runtime surface left behind after the Apps Script structured-data adapter was removed. It does not close M20.
+This pass removed the no-op admin progress runtime surface left behind after the Apps Script structured-data adapter was removed. M20 is now closed separately by the migration/runtime/domain closure note above.
 
 ### Files Removed
 
@@ -194,7 +213,7 @@ This pass removes the no-op admin progress runtime surface left behind after the
 
 - M20 readiness docs and runbooks
 
-  Retained because M20 remains gated and has not been closed.
+  Retained because they remain the migration/runtime/domain closure record.
 
 ## 2026-07-01 Apps Script Surface Trim
 
@@ -345,7 +364,7 @@ The cleanup does not perform production cutover.
 
 - `cloudflare/public-api/scripts/m20-readiness-gate.mjs`
 
-  Retained because M20 production readiness remains gated.
+  Retained because they remain the migration/runtime/domain closure record.
 
 ## Legacy Paths Removed
 
@@ -368,7 +387,8 @@ The cleanup does not perform production cutover.
 - Google Drive file operations.
 - Historical Apps Script architecture and migration notes, where still useful as records.
 - D1 migration history.
-- M19 and M20 readiness gates.
+- M19 and M20 readiness records.
+- M21 UI/UX and logic stabilization tracking.
 
 ## Current Runtime Ownership
 

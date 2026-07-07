@@ -14,9 +14,11 @@ React/Vite public website and CMS for Roi-Et College of Agriculture and Technolo
 
 ## Current Project Status
 
-cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
 
-M20 is not closed and production is not approved. Apps Script is retained only for the media/file bridge and Google Drive operations. Browser-side direct Apps Script structured reads/writes and legacy Apps Script user-management paths have been removed.
+M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final. Remaining public, admin, workflow, validation, layout, Thai wording, and user-facing error issues are tracked under M21.
+
+The production custom domain `www.rcat.ac.th` is connected to the Vercel production deployment, the Cloudflare/Vercel redirect loop was resolved at the provider configuration layer, and the Cloudflare Worker allowed origins include the production custom domain. Apps Script is retained only for the media/file bridge and Google Drive operations. Browser-side direct Apps Script structured reads/writes and legacy Apps Script user-management paths have been removed.
 
 ## Admin Operation Feedback
 

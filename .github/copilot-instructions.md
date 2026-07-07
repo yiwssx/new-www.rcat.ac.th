@@ -2,7 +2,9 @@
 
 This repository is a React/Vite public website and CMS with Cloudflare Worker/D1 backend paths, Vercel admin proxy paths, and an Apps Script media/file bridge.
 
-Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. Do not mark M20 closed or claim production approval.
+Current status: M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
+
+M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final. Remaining public, admin, workflow, validation, layout, Thai wording, and user-facing error issues are tracked under M21.
 
 ## Current Source Of Truth
 
@@ -10,6 +12,7 @@ Use these files as current runtime references:
 
 - `docs/architecture/m20-cleanup-runtime-ownership.md`
 - `docs/architecture/m20-cleanup-ledger.md`
+- `docs/architecture/m21-ui-ux-logic-stabilization.md`
 - `AGENTS.md`
 
 ## Current Runtime Ownership

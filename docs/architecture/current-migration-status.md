@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current milestone: cleanup completed; preview field verification in progress. M20 production cutover remains gated. M19 repository-owned parity remediation is closed, M20 repository readiness and preview prerequisites have passed externally, and the operator has approved an M20 preview-backed Cloudflare field cutover for real field verification. Final production readiness is not claimed.
+Current milestone: M20 migration/runtime/domain-cutover scope is closed. M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization. M20 closure does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final.
 
 ## Summary
 
@@ -28,9 +28,11 @@ M19: `CLOSED` for repository-owned parity remediation. Public Worker contracts n
 
 Post-M19 external verification: the replacement production Vercel frontend was configured outside git to select the existing public Cloudflare provider, and public frontend data loading and browser sanity were restored. Preview admin proxy login and snapshot were verified. The post-M19 public-read preview smoke, preview migration verification, and preview admin write smoke passed externally. This evidence does not establish production cutover readiness.
 
-M20-P0: Production Readiness Gate Scaffolding supplied the repository-owned readiness document, operations runbook, offline readiness script, tests, and redacted external evidence pack. The operator decision now advances the same M20 milestone to preview-backed field verification without claiming final production readiness.
+M20-P0: Production Readiness Gate Scaffolding supplied the repository-owned readiness document, operations runbook, offline readiness script, tests, and redacted external evidence pack. Later closure records now complete the M20 migration/runtime/domain-cutover scope without claiming UI/UX completion or defect-free production behavior.
 
-M20: cleanup completed; preview field verification in progress. M20 production cutover remains gated. Public client data and admin structured data use Cloudflare with preview D1 during field verification. Media, attachments, and files remain on Google Drive through the Apps Script bridge. Production D1 and final production cutover are deferred to a later operator decision after field verification.
+M20: `CLOSED` for migration/runtime/domain-cutover scope. The custom domain `www.rcat.ac.th` is connected to the Vercel production deployment, the Cloudflare/Vercel redirect loop was resolved at the provider configuration layer, and Cloudflare Worker allowed origins include the production custom domain. Public client data and admin structured data use Cloudflare Worker and D1. Media, attachments, and files remain on Google Drive through the Apps Script bridge. No D1 migration blocker, Apps Script structured-data blocker, or runtime ownership blocker remains for M20.
+
+M21: `OPEN` for UI/UX and logic stabilization. Remaining issues are UI/UX, business logic, workflow, usability, validation, layout, content-presentation, Thai wording, and user-facing error issues. M21 does not reopen the Cloudflare Worker + D1 migration or restore Apps Script structured data.
 
 M20 cleanup follow-up: legacy browser-side Apps Script structured-data code, direct frontend Apps Script user CRUD, local user fallback paths, no-op admin request progress UI, and stale structured Apps Script runtime config were removed. Apps Script remains only for the Vercel-proxied Google Drive media/file bridge.
 
@@ -79,21 +81,21 @@ Public client data provider: Cloudflare.
 
 Media/attachment/file provider: Google Drive via Apps Script bridge.
 
-Database environment: preview D1 during field verification.
+Database provider: D1.
 
-Production D1 / final production cutover: explicitly deferred to operator decision after field verification.
+Production custom domain: `www.rcat.ac.th` connected to Vercel production.
 
-The existing admin proxy/login path remains required for admin field verification. This approval does not change or weaken auth, RBAC, CORS, session, proxy, admin-gate, preview-write, or smoke-token boundaries.
+The existing admin proxy/login path remains required for admin access. M20 closure does not change or weaken auth, RBAC, CORS, session, proxy, admin-gate, preview-write, or smoke-token boundaries.
 
 Cloudflare public capability covers documents, public home, content list/detail, search, programs, and visitor stats. Cloudflare admin structured-data capability covers dashboard snapshot, content, document metadata, site/homepage/display settings, menu, carousel, external services, and events. Media binary operations remain Apps Script-backed.
 
-Apps Script remains available only for the media/file bridge and Google Drive operations. Rollback to Apps Script for structured data is not required for this operator-approved field cutover.
+Apps Script remains available only for the media/file bridge and Google Drive operations. Rollback to Apps Script for structured data is not required for the closed M20 migration/runtime/domain scope.
 
 M15.2 real execute cutover: deferred.
 
-Current real production domain: old live system.
+Current real production domain: `www.rcat.ac.th` connected to Vercel production.
 
-Replacement-system Cloudflare endpoints during field verification: approved preview Worker origin only.
+Replacement-system structured endpoints: Cloudflare Worker and D1.
 
 Apps Script target role: media-file bridge only.
 
@@ -185,7 +187,7 @@ Repository closure evidence:
 - Ordered migration `0005_m19_structured_admin_parity.sql` defines actor/revision metadata and audit triggers but was not applied remotely.
 - `pnpm worker:m19:readiness` verifies repository invariants without remote commands or mutations.
 
-For the preview-backed field cutover, legacy structured data inventory and cross-provider reconciliation are not applicable, media remains excluded from Cloudflare, backup/restore and Apps Script rollback are not blocking, and monitoring is field observation only. Final production identity/RBAC, production-grade backup/restore, production monitoring, production resources, and final production authority remain future operator responsibilities.
+For M20 closure, legacy structured data inventory and cross-provider reconciliation are not applicable, media remains excluded from Cloudflare, backup/restore and Apps Script rollback are not blocking, and runtime ownership is complete. UI/UX and logic stabilization move to M21.
 
 The M19 repository closure change executed no production cutover, D1 mutation, Worker deployment, Vercel environment mutation, Apps Script mutation, or Google Drive mutation. The later external Vercel public provider configuration is recorded separately below.
 
@@ -215,16 +217,16 @@ Safety boundary:
 - no Apps Script mutation occurred
 - no Google Drive mutation occurred
 - no application runtime code, provider behavior, UI, routes, cache keys, or cache TTL changed; only M20 governance validation and its focused test were aligned with the operator decision
-- no final production cutover readiness is claimed
-- M20 preview-backed field cutover is operator-approved for field verification only
+- M20 closure is limited to migration/runtime/domain-cutover scope
+- UI/UX completion, business workflow completion, and defect-free production behavior are not claimed
 
 ## Next Action
 
-M19 repository-owned remediation is closed. The next action is M20 preview-backed field verification under the provider and safety boundaries in `docs/operations/m20-readiness-runbook.md`.
+M19 repository-owned remediation is closed. M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
 
-M20 is `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION`. No legacy public structured data migration or cross-provider reconciliation is required. The media bridge remains outside the Cloudflare cutover, and rollback to Apps Script is not required for this field-verification scope.
+M20 is `CLOSED_FOR_MIGRATION_RUNTIME_DOMAIN_SCOPE`. No legacy public structured data migration or cross-provider reconciliation is required. The media bridge remains outside the Cloudflare cutover, and rollback to Apps Script structured data is not required for this scope.
 
-Operators must run `pnpm worker:m20:readiness` and `pnpm worker:m19:readiness`, use Cloudflare for public client and admin structured data with preview D1, preserve the existing admin proxy/login path, and keep media/files on the Apps Script / Google Drive bridge.
+Operators must preserve Cloudflare Worker and D1 for public client and admin structured data, preserve the existing admin proxy/login path, and keep media/files on the Apps Script / Google Drive bridge.
 
 M16 goal: move the replacement system toward Cloudflare as the primary backend for all application data, while keeping Apps Script only as a Google Drive media-file bridge until final domain cutover.
 
@@ -232,9 +234,9 @@ M17 goal: build the Cloudflare Core Public Read API foundation, preserve existin
 
 M17 status: public read API foundation implemented for dev/preview Worker origins, with M17-C preview smoke and contract freeze passed through externally confirmed operator execution. The grouped routes no longer return M17 safe 501 skeleton responses in Worker tests, but Apps Script fallback remains available until final cutover gates are approved.
 
-M15.2 final production execute cutover remains deferred to an explicit operator decision after field verification.
+M15.2 historical final production execute cutover gate is superseded by the M20 migration/runtime/domain closure record.
 
-M20 field verification is approved; production D1 provisioning, final production resource migration, production monitoring, and final production cutover remain operator-controlled future responsibilities.
+M21 owns remaining public/admin UI/UX, logic, workflow, validation, responsive layout, accessibility, Thai wording, and user-facing error-message stabilization.
 
 M16 architecture checkpoint: `docs/architecture/m16-cloudflare-first-backend-reset-2026-06-13.md`.
 

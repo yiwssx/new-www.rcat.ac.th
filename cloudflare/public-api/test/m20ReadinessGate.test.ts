@@ -11,12 +11,13 @@ const repositoryFixture = {
   "docs/architecture/current-migration-status.md": [
     "M19 remains CLOSED.",
     "M19: `CLOSED` for repository-owned parity remediation.",
-    "M20: `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION`.",
+    "M20: `CLOSED` for migration/runtime/domain-cutover scope.",
+    "M21: `OPEN` for UI/UX and logic stabilization.",
     "Admin structured data provider: Cloudflare.",
     "Public client data provider: Cloudflare.",
     "Media/attachment/file provider: Google Drive via Apps Script bridge.",
-    "Database environment: preview D1 during field verification.",
-    "Production D1 / final production cutover: explicitly deferred to operator decision after field verification."
+    "Database provider: D1.",
+    "Production custom domain: `www.rcat.ac.th` connected to Vercel production."
   ].join("\n"),
   "docs/architecture/m19-parity-gap-assessment-2026-06-19.md":
     "Status: CLOSED for repository-owned M19 parity remediation.",
@@ -24,18 +25,22 @@ const repositoryFixture = {
     "# M20 Production Readiness Gate",
     "Current state after M19",
     "M19 is closed.",
-    "M20 is APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION.",
-    "APPROVED_FOR_PREVIEW_FIELD_VERIFICATION_ONLY.",
-    "This document does not claim final production readiness.",
+    "M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.",
+    "CLOSED_FOR_MIGRATION_RUNTIME_DOMAIN_SCOPE.",
+    "M20 closure does not mean the UI/UX is complete, the system is defect-free.",
     "Scope of M20-P0",
-    "M20 preview-backed field cutover",
+    "M20 closure note",
+    "The Cloudflare/Vercel redirect loop was resolved.",
+    "No D1 migration blocker remains.",
+    "No Apps Script structured-data blocker remains.",
+    "No runtime ownership blocker remains.",
     "Non-goals",
     "Production safety boundaries",
     "External operator blockers",
     "Operator decision dispositions",
     "EXCLUDED_FROM_CLOUDFLARE_CUTOVER",
     "Required evidence format",
-    "Required rehearsal flow",
+    "Required verification flow",
     "Backup / restore / rollback expectations",
     "Cutover authority requirements",
     "Go / No-Go checklist",
@@ -44,13 +49,13 @@ const repositoryFixture = {
   ].join("\n"),
   "docs/operations/m20-readiness-runbook.md": [
     "# M20 Readiness Runbook",
-    "M20 preview-backed field cutover",
+    "M20 closure runbook",
     "Provider boundary",
     "Preconditions",
-    "Field-cutover steps",
-    "Field observation",
+    "Closure steps",
+    "Post-closure observation",
     "Operator-decision dispositions",
-    "After field verification",
+    "After M20 closure",
     "Redaction rules"
   ].join("\n"),
   "cloudflare/public-api/wrangler.toml": [
@@ -63,7 +68,8 @@ const repositoryFixture = {
   ].join("\n"),
   "src/config/publicApiProvider.ts": 'provider === "cloudflare" ? "cloudflare" : "apps-script"',
   "src/features/cms-media/api.ts":
-    'export { deleteMediaAsset, saveMediaAsset, uploadMediaAsset } from "../../services/googleApi";',
+    'import { deleteMediaAssetFromBridge, saveMediaAssetToBridge, uploadMediaAssetToBridge } from "./mediaBridgeClient";',
+  "src/features/cms-media/mediaBridgeClient.ts": 'const mediaBridgePath = "/api/apps-script-proxy";',
   "package.json": '"worker:m20:readiness": "node cloudflare/public-api/scripts/m20-readiness-gate.mjs"',
   "cloudflare/public-api/package.json": '"m20:readiness": "node scripts/m20-readiness-gate.mjs"'
 };
@@ -89,14 +95,14 @@ describe("M20 readiness gate", () => {
   it("reports repository alignment using mocked file reads", async () => {
     const result = await runM20ReadinessGate({ readFile: createFixtureReader() });
 
-    expect(result.status).toBe("REPOSITORY_ALIGNED_FOR_M20_PREVIEW_FIELD_CUTOVER");
+    expect(result.status).toBe("REPOSITORY_ALIGNED_FOR_M20_MIGRATION_RUNTIME_DOMAIN_CLOSURE");
     expect(Object.values(result.checks).every((value) => value === "passed")).toBe(true);
     expect(result.futureProductionResponsibilities).toEqual(
       expect.arrayContaining([
         "final production identity and RBAC approval",
         "production-grade backup and restore policy",
         "production monitoring, alerting, and support ownership",
-        "final production cutover authority"
+        "M21 UI/UX and logic stabilization"
       ])
     );
   });
@@ -152,14 +158,15 @@ describe("M20 readiness gate", () => {
     expect(output).not.toMatch(/token|secret|database[_ -]?id/i);
   });
 
-  it("documents field-cutover scope without claiming final production readiness", () => {
-    expect(m20Doc).toMatch(/APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION/i);
-    expect(m20Doc).toMatch(/Production D1 \/ final production cutover/i);
-    expect(m20Runbook).toMatch(/M20 Preview-Backed Field Cutover/i);
-    expect(m20Runbook).toMatch(/After Field Verification/i);
+  it("documents M20 closure scope without claiming UI/UX completion", () => {
+    expect(m20Doc).toMatch(/CLOSED_FOR_MIGRATION_RUNTIME_DOMAIN_SCOPE/i);
+    expect(m20Doc).toMatch(/No D1 migration blocker remains/i);
+    expect(m20Runbook).toMatch(/M20 Closure Runbook/i);
+    expect(m20Runbook).toMatch(/After M20 Closure/i);
     expect(currentStatus).toMatch(/Admin structured data provider: Cloudflare/i);
     expect(currentStatus).toMatch(/Public client data provider: Cloudflare/i);
-    expect(currentStatus).toMatch(/preview D1 during field verification/i);
+    expect(currentStatus).toMatch(/Database provider: D1/i);
+    expect(currentStatus).toMatch(/M21 owns remaining UI\/UX/i);
   });
 
   it("exposes the readiness command from root and Worker packages", () => {

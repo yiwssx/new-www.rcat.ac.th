@@ -14,9 +14,9 @@ This project is a React/Vite public website and CMS for Roi-Et College of Agricu
 
 ## Current Project Status
 
-cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
 
-Do not mark M20 closed, do not claim production approval, and do not restore browser-side direct Apps Script structured reads/writes. Apps Script is retained only for media/file bridge and Google Drive operations.
+M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final. Remaining public, admin, workflow, validation, layout, Thai wording, and user-facing error issues are tracked under M21. Do not restore browser-side direct Apps Script structured reads/writes. Apps Script is retained only for media/file bridge and Google Drive operations.
 
 ## Admin Operation Feedback Standard
 
@@ -36,7 +36,8 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Apps Script media/file bridge.
 - Google Drive file storage bridge.
 - D1 migration history.
-- M19 and M20 readiness gates.
+- M19 and M20 readiness records.
+- M21 UI/UX and logic stabilization tracking.
 - Sigmap AI helper workflow.
 
 ## Do Not Restore

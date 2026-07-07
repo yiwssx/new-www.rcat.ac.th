@@ -8,7 +8,7 @@ const futureProductionResponsibilities = [
   "production-grade backup and restore policy",
   "production monitoring, alerting, and support ownership",
   "production Worker, D1, and frontend resource decisions",
-  "final production cutover authority"
+  "M21 UI/UX and logic stabilization"
 ];
 
 const requiredFiles = {
@@ -19,6 +19,7 @@ const requiredFiles = {
   wrangler: "cloudflare/public-api/wrangler.toml",
   publicProvider: "src/config/publicApiProvider.ts",
   mediaApi: "src/features/cms-media/api.ts",
+  mediaBridgeClient: "src/features/cms-media/mediaBridgeClient.ts",
   rootPackage: "package.json",
   workerPackage: "cloudflare/public-api/package.json"
 };
@@ -26,13 +27,13 @@ const requiredFiles = {
 const requiredM20DocSections = [
   /Current state after M19/i,
   /Scope of M20-P0/i,
-  /M20 preview-backed field cutover/i,
+  /M20 closure note/i,
   /Non-goals/i,
   /Production safety boundaries/i,
   /External operator blockers/i,
   /Operator decision dispositions/i,
   /Required evidence format/i,
-  /Required rehearsal flow/i,
+  /Required verification flow/i,
   /Backup \/ restore \/ rollback expectations/i,
   /Cutover authority requirements/i,
   /Go \/ No-Go checklist/i,
@@ -41,13 +42,13 @@ const requiredM20DocSections = [
 ];
 
 const requiredRunbookSections = [
-  /M20 preview-backed field cutover/i,
+  /M20 closure runbook/i,
   /Provider boundary/i,
   /Preconditions/i,
-  /Field-cutover steps/i,
-  /Field observation/i,
+  /Closure steps/i,
+  /Post-closure observation/i,
   /Operator-decision dispositions/i,
-  /After field verification/i,
+  /After M20 closure/i,
   /Redaction rules/i
 ];
 
@@ -76,10 +77,12 @@ function evaluateChecks(sources) {
     m19Closed:
       /Status:\s*CLOSED for repository-owned M19 parity remediation/i.test(sources.m19Doc) &&
       /M19:[\s\S]*CLOSED[\s\S]*repository-owned parity remediation/i.test(sources.currentStatus),
-    m20FieldCutoverApproved:
-      /M20:\s*`APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION`/i.test(sources.currentStatus) &&
-      /APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION/i.test(sources.m20Doc) &&
-      /APPROVED_FOR_PREVIEW_FIELD_VERIFICATION_ONLY/i.test(sources.m20Doc),
+    m20MigrationRuntimeClosed:
+      /M20:\s*`CLOSED` for migration\/runtime\/domain-cutover scope/i.test(sources.currentStatus) &&
+      /M20 is closed for migration\/runtime ownership\. M21 owns remaining UI\/UX and logic stabilization\./i.test(
+        sources.m20Doc
+      ) &&
+      /CLOSED_FOR_MIGRATION_RUNTIME_DOMAIN_SCOPE/i.test(sources.m20Doc),
     productionPlaceholderSafety:
       /database_id\s*=\s*"production-placeholder"/.test(sources.wrangler) &&
       /\[env\.production\.vars\][\s\S]*ENVIRONMENT\s*=\s*"production"/.test(sources.wrangler) &&
@@ -88,15 +91,19 @@ function evaluateChecks(sources) {
     providerAssignment:
       /Admin structured data provider: Cloudflare/i.test(sources.currentStatus) &&
       /Public client data provider: Cloudflare/i.test(sources.currentStatus) &&
-      /Database environment: preview D1 during field verification/i.test(sources.currentStatus),
+      /Database provider: D1/i.test(sources.currentStatus),
     mediaBridgeBoundary:
-      /services\/googleApi/.test(sources.mediaApi) &&
+      /mediaBridgeClient/.test(sources.mediaApi) &&
+      /\/api\/apps-script-proxy/.test(sources.mediaBridgeClient) &&
       /Media\/attachment\/file provider: Google Drive via Apps Script bridge/i.test(sources.currentStatus) &&
       /EXCLUDED_FROM_CLOUDFLARE_CUTOVER/i.test(sources.m20Doc),
-    productionDeferred:
-      /Production D1 \/ final production cutover: explicitly deferred to operator decision after field verification/i.test(
-        sources.currentStatus
-      ) && /does not claim final production readiness/i.test(sources.m20Doc),
+    closureBoundary:
+      /www\.rcat\.ac\.th`? connected to Vercel production/i.test(sources.currentStatus) &&
+      /Cloudflare\/Vercel redirect loop was resolved/i.test(sources.m20Doc) &&
+      /No D1 migration blocker remains/i.test(sources.m20Doc) &&
+      /No Apps Script structured-data blocker remains/i.test(sources.m20Doc) &&
+      /No runtime ownership blocker remains/i.test(sources.m20Doc) &&
+      /does not mean the UI\/UX is complete, the system is defect-free/i.test(sources.m20Doc),
     publicProviderSafety: /provider === "cloudflare" \? "cloudflare" : "apps-script"/.test(sources.publicProvider),
     m20ReadinessDocument: hasAll(sources.m20Doc, requiredM20DocSections),
     m20OperationsRunbook: hasAll(sources.m20Runbook, requiredRunbookSections),
@@ -111,11 +118,11 @@ function buildValidationIssues(checks, readIssues) {
   const validationIssues = [...readIssues];
   const issueByCheck = {
     m19Closed: "m19Closed: M19 closure evidence is missing",
-    m20FieldCutoverApproved: "m20FieldCutoverApproved: operator-approved preview field-cutover evidence is missing",
+    m20MigrationRuntimeClosed: "m20MigrationRuntimeClosed: M20 closure evidence is missing",
     productionPlaceholderSafety: "productionPlaceholderSafety: production placeholder safety is missing",
-    providerAssignment: "providerAssignment: M20 field-cutover provider assignment is missing",
+    providerAssignment: "providerAssignment: M20 closure provider assignment is missing",
     mediaBridgeBoundary: "mediaBridgeBoundary: media binary bridge evidence is missing",
-    productionDeferred: "productionDeferred: final production deferral evidence is missing",
+    closureBoundary: "closureBoundary: M20 closure boundary evidence is missing",
     publicProviderSafety: "publicProviderSafety: provider safety invariant is missing",
     m20ReadinessDocument: "m20ReadinessDocument: M20 readiness document is incomplete or unavailable",
     m20OperationsRunbook: "m20OperationsRunbook: M20 operations runbook is incomplete or unavailable",
@@ -143,7 +150,7 @@ export async function runM20ReadinessGate(options = {}) {
 
   return {
     checkpoint: "M20",
-    status: validationIssues.length ? "BLOCKED" : "REPOSITORY_ALIGNED_FOR_M20_PREVIEW_FIELD_CUTOVER",
+    status: validationIssues.length ? "BLOCKED" : "REPOSITORY_ALIGNED_FOR_M20_MIGRATION_RUNTIME_DOMAIN_CLOSURE",
     checks,
     futureProductionResponsibilities,
     safety: {
@@ -185,7 +192,7 @@ export function formatM20ReadinessGate(result) {
 export async function main() {
   const result = await runM20ReadinessGate();
   console.log(formatM20ReadinessGate(result));
-  process.exitCode = result.status === "REPOSITORY_ALIGNED_FOR_M20_PREVIEW_FIELD_CUTOVER" ? 0 : 1;
+  process.exitCode = result.status === "REPOSITORY_ALIGNED_FOR_M20_MIGRATION_RUNTIME_DOMAIN_CLOSURE" ? 0 : 1;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

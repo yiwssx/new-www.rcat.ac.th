@@ -1,14 +1,18 @@
 # M20 External Evidence Pack
 
-Status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. `APPROVED_FOR_PREVIEW_BACKED_FIELD_VERIFICATION` by operator decision. This approval is limited to the M20 preview-backed Cloudflare field cutover and is not final production readiness or final production cutover approval.
+Status: M20 migration/runtime/domain-cutover scope is closed.
 
-## Approved Field-Cutover Boundary
+M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
+
+M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final.
+
+## Closed Field-Cutover Boundary
 
 - Admin structured data provider: Cloudflare.
 - Public client data provider: Cloudflare.
 - Media/attachment/file provider: Google Drive via Apps Script bridge.
-- Database environment: preview D1 during field verification.
-- Production D1 / final production cutover: explicitly deferred to operator decision after field verification.
+- Structured database provider: D1.
+- Production custom domain: `www.rcat.ac.th` connected to Vercel production.
 
 The existing admin proxy/login path remains required for admin access. Existing auth, RBAC, CORS, session, proxy, admin-gate, preview-write, and smoke-token boundaries remain unchanged.
 
@@ -24,7 +28,19 @@ No live URL, D1 id, account id, deployment id, run id, token, secret, exact time
 - Media/file bridge: Vercel `/api/apps-script-proxy` to Apps Script.
 - File storage: Google Drive behind the Apps Script media/file bridge.
 
-## Preview Field Verification Checklist
+## M20 Closure Note
+
+- The custom domain `www.rcat.ac.th` is connected to the Vercel production deployment.
+- The Cloudflare/Vercel redirect loop was resolved at the provider configuration layer.
+- Cloudflare Worker allowed origins include the production custom domain.
+- Cloudflare Worker and D1 own structured public and admin data.
+- Apps Script remains only the media/file bridge for Google Drive file operations.
+- No D1 migration blocker remains.
+- No Apps Script structured-data blocker remains.
+- No runtime ownership blocker remains.
+- Remaining UI/UX, business logic, workflow, usability, validation, layout, content-presentation, Thai wording, and user-facing error issues move to M21.
+
+## M21 Stabilization Handoff Checklist
 
 - [ ] public home
 - [ ] marquee
@@ -45,22 +61,22 @@ No live URL, D1 id, account id, deployment id, run id, token, secret, exact time
 
 ## Status Summary
 
-| Evidence section               | Field-cutover status                           |
-| ------------------------------ | ---------------------------------------------- |
-| Full structured data inventory | `NOT_APPLICABLE`                               |
-| Cross-provider reconciliation  | `NOT_APPLICABLE`                               |
-| Media bridge verification      | `EXCLUDED_FROM_CLOUDFLARE_CUTOVER`             |
-| Identity/RBAC approval         | `APPROVED_FOR_PREVIEW_FIELD_VERIFICATION_ONLY` |
-| Backup rehearsal               | `NOT_BLOCKING_PREVIEW_FIELD_VERIFICATION`      |
-| Restore rehearsal              | `NOT_BLOCKING_PREVIEW_FIELD_VERIFICATION`      |
-| Rollback rehearsal             | `NOT_REQUIRED_FOR_FIELD_CUTOVER`               |
-| Monitoring threshold approval  | `FIELD_VERIFICATION_OBSERVATION_ONLY`          |
-| Final cutover authority        | `APPROVED_FOR_PREVIEW_FIELD_VERIFICATION_ONLY` |
+| Evidence section               | M20 closure status                           |
+| ------------------------------ | -------------------------------------------- |
+| Full structured data inventory | `NOT_APPLICABLE`                             |
+| Cross-provider reconciliation  | `NOT_APPLICABLE`                             |
+| Media bridge verification      | `EXCLUDED_FROM_CLOUDFLARE_CUTOVER`           |
+| Identity/RBAC approval         | `KEPT_ON_EXISTING_ADMIN_PROXY_AND_RBAC_PATH` |
+| Backup rehearsal               | `MOVED_TO_POST_CUTOVER_OPERATIONS`           |
+| Restore rehearsal              | `MOVED_TO_POST_CUTOVER_OPERATIONS`           |
+| Rollback rehearsal             | `NOT_REQUIRED_FOR_FIELD_CUTOVER`             |
+| Monitoring threshold approval  | `MOVED_TO_POST_CUTOVER_OPERATIONS`           |
+| Final cutover authority        | `CLOSED_FOR_MIGRATION_RUNTIME_DOMAIN_SCOPE`  |
 
 ## 1. Full Structured Data Inventory
 
 - **Status:** `NOT_APPLICABLE`
-- **Operator decision:** There is no legacy public structured data that must be migrated before this field cutover. Public structured content may be recreated in preview D1.
+- **Operator decision:** There is no legacy public structured data that must be migrated before this field cutover. Cloudflare Worker and D1 own structured public and admin data.
 - **Future production boundary:** This disposition does not approve any later production resource migration.
 
 ## 2. Cross-Provider Reconciliation
@@ -77,20 +93,20 @@ No live URL, D1 id, account id, deployment id, run id, token, secret, exact time
 
 ## 4. Identity/RBAC Approval
 
-- **Status:** `APPROVED_FOR_PREVIEW_FIELD_VERIFICATION_ONLY`
-- **Operator decision:** Preview-backed field verification may use the existing admin proxy/login path and its existing authorization controls.
-- **Limitation:** This is not final production identity or RBAC approval. No auth, CORS, session, proxy, admin gate, or smoke-token boundary is weakened.
+- **Status:** `KEPT_ON_EXISTING_ADMIN_PROXY_AND_RBAC_PATH`
+- **Operator decision:** Admin access remains on the existing admin proxy/login path and its existing authorization controls.
+- **Limitation:** No auth, CORS, session, proxy, admin gate, or smoke-token boundary is weakened.
 
 ## 5. Backup Rehearsal
 
-- **Status:** `NOT_BLOCKING_PREVIEW_FIELD_VERIFICATION`
-- **Operator decision:** Production-grade backup planning is not a prerequisite for the preview-backed field verification window.
+- **Status:** `MOVED_TO_POST_CUTOVER_OPERATIONS`
+- **Operator decision:** Production-grade backup planning is not part of M20 migration/runtime/domain closure.
 - **Future production boundary:** Production-grade backup policy and evidence remain a future production responsibility.
 
 ## 6. Restore Rehearsal
 
-- **Status:** `NOT_BLOCKING_PREVIEW_FIELD_VERIFICATION`
-- **Operator decision:** Production-grade restore rehearsal is not a prerequisite for the preview-backed field verification window.
+- **Status:** `MOVED_TO_POST_CUTOVER_OPERATIONS`
+- **Operator decision:** Production-grade restore rehearsal is not part of M20 migration/runtime/domain closure.
 - **Future production boundary:** Production-grade restore policy and evidence remain a future production responsibility.
 
 ## 7. Rollback Rehearsal
@@ -101,18 +117,18 @@ No live URL, D1 id, account id, deployment id, run id, token, secret, exact time
 
 ## 8. Monitoring Threshold Approval
 
-- **Status:** `FIELD_VERIFICATION_OBSERVATION_ONLY`
-- **Operator decision:** Operators observe public reads, admin structured-data operations, and the unchanged media bridge during field verification.
+- **Status:** `MOVED_TO_POST_CUTOVER_OPERATIONS`
+- **Operator decision:** Operators observe public reads, admin structured-data operations, UI/UX issues, and the unchanged media bridge after M20 closure.
 - **Future production boundary:** Production monitoring, alerting, thresholds, ownership, and support coverage remain a future production responsibility.
 
 ## 9. Final Cutover Authority
 
-- **Status:** `APPROVED_FOR_PREVIEW_FIELD_VERIFICATION_ONLY`
-- **Operator decision:** The replacement site is approved to use Cloudflare for public client data and admin structured data backed by preview D1 during real field verification.
-- **Limitation:** Production D1 provisioning, production resource migration, and final production cutover remain explicitly deferred to a later operator decision after field verification.
+- **Status:** `CLOSED_FOR_MIGRATION_RUNTIME_DOMAIN_SCOPE`
+- **Operator decision:** M20 migration/runtime/domain cutover is closed. Cloudflare owns public client data and admin structured data backed by D1, and `www.rcat.ac.th` is connected to Vercel production.
+- **Limitation:** This does not claim UI/UX completion, business workflow completion, or defect-free production behavior.
 
 ## Governance Decision
 
-M20 preview-backed field cutover is operator-approved for field verification. This approval removes legacy inventory, cross-provider reconciliation, Apps Script rollback rehearsal, production-grade backup/restore, and production monitoring as blockers for this field-verification scope only.
+M20 migration/runtime/domain-cutover scope is closed. Closure removes legacy inventory, cross-provider reconciliation, Apps Script rollback rehearsal, D1 migration blockers, Apps Script structured-data blockers, and runtime ownership blockers from M20.
 
-Final production readiness is not claimed. Production D1 and final production resource migration remain operator-controlled and deferred until after field verification.
+UI/UX completion, business workflow completion, and defect-free production behavior are not claimed. Remaining issues move to M21.

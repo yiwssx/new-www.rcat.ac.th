@@ -1,8 +1,22 @@
 # M20 Cleanup Runtime Ownership
 
-Status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+Status: M20 migration/runtime/domain-cutover scope is closed.
 
-M20 is not closed and production is not approved.
+M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
+
+M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final.
+
+## M20 Closure Note
+
+- The custom domain `www.rcat.ac.th` is connected to the Vercel production deployment.
+- The Cloudflare/Vercel redirect loop was resolved at the provider configuration layer.
+- Cloudflare Worker allowed origins include the production custom domain.
+- Cloudflare Worker and D1 own structured public and admin data.
+- Apps Script remains only the media/file bridge for Google Drive file operations.
+- No D1 migration blocker remains for M20 migration/runtime ownership.
+- No Apps Script structured-data blocker remains.
+- No runtime ownership blocker remains.
+- Remaining UI/UX, business logic, workflow, usability, validation, layout, content-presentation, Thai wording, and user-facing error issues move to M21.
 
 ## Current Runtime Ownership
 
@@ -33,7 +47,7 @@ The urgent marquee speed normalization was established by:
 
 The marquee uses measured distance and pixels per second for device-independent visual speed. Reduced-motion still slows the ticker instead of disabling it. This was a frontend-only UI change and did not require Worker, D1, or Apps Script deployment.
 
-## Preview Field Verification Checklist
+## M21 Stabilization Handoff Checklist
 
 - [ ] public home
 - [ ] marquee
@@ -168,7 +182,8 @@ Do not delete old migrations.
 ## Safety State
 
 - M19 remains closed.
-- M20 production execution remains gated.
-- This cleanup does not approve production cutover.
+- M20 is closed for migration/runtime ownership.
+- M21 owns remaining UI/UX and logic stabilization.
+- M20 closure does not certify defect-free production behavior.
 - This cleanup does not mutate Cloudflare, Vercel, Apps Script, Google Drive, D1, or production runtime.
 - No secrets, real tokens, real D1 ids, real Access AUD values, or private credentials belong in this document.
