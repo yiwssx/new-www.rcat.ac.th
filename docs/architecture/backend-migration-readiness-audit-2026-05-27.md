@@ -356,16 +356,16 @@ Repository note: the requested inspection list named `apps-script/Media.gs`, but
 
 ## Search Command Summary
 
-| Command                                                   | Summary                                                                                                                                                                                                             |
+| Command | Summary |
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------- | ---------------------------------------------------------------------------------------------- |
 | `rg` public resource names across `src` and `apps-script` | Confirmed public-home, content list, documents, programs, search, content detail, site-view, and visitor-stats resource ownership in config, frontend facades/hooks, Apps Script routes, cache wrappers, and tests. |
-| `rg` Apps Script URL/resource config in `src`             | Confirmed `VITE_GOOGLE_APPS_SCRIPT_URL`, `projectSettings.api.resources`, and central resource lookup in `googleApi.ts`. No Cloudflare provider variables exist yet.                                                |
-| `rg` public contracts across `src`                        | Confirmed compatibility contracts and current owners for snapshots, content, documents, and visitor stats.                                                                                                          |
+| `rg` Apps Script URL/resource config in `src` | Confirmed `VITE_GOOGLE_APPS_SCRIPT_URL`, `projectSettings.api.resources`, and central resource lookup in `googleApi.ts`. No Cloudflare provider variables exist yet. |
+| `rg` public contracts across `src` | Confirmed compatibility contracts and current owners for snapshots, content, documents, and visitor stats. |
 | `rg "CacheService                                         | SpreadsheetApp                                                                                                                                                                                                      | DriveApp | UrlFetchApp" apps-script` | Confirmed Apps Script cache, Sheets, and Drive dependencies. No `UrlFetchApp` usage was found. |
-| `rg` frontend public wrapper functions                    | Confirmed feature facades delegate to `googleApi.ts`; remaining compatibility callers include `getCmsSnapshot` and `recordContentView`.                                                                             |
-| `rg` Apps Script public payload builders                  | Confirmed `Code.gs` dispatch, `Cache.gs` wrappers, `Cms.gs` public snapshot/list/detail builders, and `Cms.Documents.gs` document list builder.                                                                     |
-| `rg --files apps-script`                                  | Confirmed current Apps Script files. `apps-script/Media.gs` is not present; media behavior lives in `Cms.gs`.                                                                                                       |
-| `rg` performance diagnostics and latency docs             | Confirmed 7+ second public `script.google.com` observation and `debugPerformance=1` diagnostics documentation.                                                                                                      |
+| `rg` frontend public wrapper functions | Confirmed feature facades delegate to `googleApi.ts`; remaining compatibility callers include `getCmsSnapshot` and `recordContentView`. |
+| `rg` Apps Script public payload builders | Confirmed `Code.gs` dispatch, `Cache.gs` wrappers, `Cms.gs` public snapshot/list/detail builders, and `Cms.Documents.gs` document list builder. |
+| `rg --files apps-script` | Confirmed current Apps Script files. `apps-script/Media.gs` is not present; media behavior lives in `Cms.gs`. |
+| `rg` performance diagnostics and latency docs | Confirmed 7+ second public `script.google.com` observation and `debugPerformance=1` diagnostics documentation. |
 
 ## Verification Commands
 

@@ -8,12 +8,7 @@ import wranglerToml from "../wrangler.toml?raw";
 
 type Row = Record<string, unknown>;
 type TableName =
-  | "contents"
-  | "documents"
-  | "public_home_sections"
-  | "visitor_daily_stats"
-  | "app_admin_users"
-  | "admin_audit_log";
+  "contents" | "documents" | "public_home_sections" | "visitor_daily_stats" | "app_admin_users" | "admin_audit_log";
 
 const smokeToken = "m18-preview-smoke-token";
 const smokeHeaders = {

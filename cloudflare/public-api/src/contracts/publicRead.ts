@@ -1,11 +1,5 @@
 export type PublicReadResource =
-  | "public-document-list"
-  | "public-home"
-  | "content-list"
-  | "content-detail"
-  | "search"
-  | "program"
-  | "visitor-stats";
+  "public-document-list" | "public-home" | "content-list" | "content-detail" | "search" | "program" | "visitor-stats";
 
 export interface PublicReadRouteContract {
   resource: PublicReadResource;

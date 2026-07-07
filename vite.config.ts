@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
+import checker from "vite-plugin-checker";
 
 function utf8HtmlCharset(): Plugin {
   return {
@@ -27,14 +28,12 @@ function utf8HtmlCharset(): Plugin {
   };
 }
 
-export default defineConfig(async ({ command }) => {
+export default defineConfig(({ command }) => {
   const plugins = [react(), utf8HtmlCharset()] as Plugin[];
 
   // Enable vite-plugin-checker only during the dev server to provide
   // fast TypeScript feedback without affecting production builds.
   if (command === "serve") {
-    const { default: checker } = await import("vite-plugin-checker");
-
     plugins.push(
       checker({
         typescript: {

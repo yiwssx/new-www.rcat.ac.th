@@ -1,24 +1,8 @@
 export type ExternalServiceTone =
-  | "student"
-  | "homeroom"
-  | "management"
-  | "learning"
-  | "calendar"
-  | "check"
-  | "admission"
-  | "career"
-  | "general";
+  "student" | "homeroom" | "management" | "learning" | "calendar" | "check" | "admission" | "career" | "general";
 
 export type ExternalServiceIconKey =
-  | "apps"
-  | "calendar"
-  | "check"
-  | "groups"
-  | "handshake"
-  | "registration"
-  | "book"
-  | "school"
-  | "link";
+  "apps" | "calendar" | "check" | "groups" | "handshake" | "registration" | "book" | "school" | "link";
 
 export interface ExternalServiceLink {
   id: string;

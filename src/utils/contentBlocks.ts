@@ -1,15 +1,7 @@
 export const CONTENT_BLOCKS_MARKER = "[[RCAT_BLOCKS_V1]]";
 
 export type ContentBlockType =
-  | "paragraph"
-  | "heading"
-  | "quote"
-  | "checklist"
-  | "image"
-  | "video"
-  | "facebookPost"
-  | "button"
-  | "divider";
+  "paragraph" | "heading" | "quote" | "checklist" | "image" | "video" | "facebookPost" | "button" | "divider";
 
 interface ContentBlockBase {
   id: string;
