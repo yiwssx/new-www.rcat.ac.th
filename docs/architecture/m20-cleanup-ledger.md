@@ -6,6 +6,73 @@ Status: cleanup completed; preview field verification in progress. M20 productio
 
 M20 is not closed and production is not approved.
 
+## 2026-07-07 Apps Script Active Source Prune
+
+This pass prunes the active `apps-script/` deployment source to the retained media/file bridge only. It does not close M20.
+
+### Removed From Active Apps Script Source
+
+- Legacy structured public/admin routes:
+  - `auth-login`
+  - `snapshot`
+  - `public-home`
+  - `public-content-list`
+  - `public-document-list`
+  - `public-program-list`
+  - `public-search-index`
+  - `content`
+  - `content-delete`
+  - `document`
+  - `document-delete`
+  - `carousel`
+  - `carousel-delete`
+  - `external-service`
+  - `external-service-delete`
+  - `event`
+  - `event-delete`
+  - `publish`
+  - `menu`
+  - `display-settings`
+  - `site-settings`
+  - `homepage-settings`
+  - `visitor-stats`
+  - `users`
+  - `users-delete`
+  - `users-reset`
+- Spreadsheet-backed structured CMS helpers, public cache helpers, legacy Apps Script user/auth helpers, menu helpers, site settings helpers, visitor stats helpers, and document-specific CMS helpers.
+- Apps Script manifest scopes for spreadsheets, Google Docs, and external requests. The retained active bridge uses Google Drive.
+
+### Remaining Apps Script Scope
+
+- `doGet` status response with no structured data.
+- `POST ?resource=media` for Drive upload/update metadata normalization.
+- `POST ?resource=media-delete` for Drive file trashing.
+- Apps Script bridge token validation with server-provided `APPS_SCRIPT_BRIDGE_TOKEN` or `MEDIA_BRIDGE_TOKEN`.
+- Script property access for bridge token and Drive folder configuration.
+- Drive folder resolution/creation for the managed media folder.
+- Upload MIME/size validation, Drive file creation, public Drive URL normalization, and media response normalization.
+- Script lock protection around media mutations.
+
+### Frontend/Proxy Contract
+
+- `server/appsScriptProxy/` remains scoped to browser/admin `media` -> Apps Script `media` and `deleteMedia` -> Apps Script `media-delete`.
+- Media delete now sends the media asset Drive `fileId` when available so Apps Script no longer needs a spreadsheet media lookup to trash the Drive file.
+- Cloudflare Worker and D1 remain source of truth for public/admin structured data and media metadata persistence.
+
+### Tests Updated
+
+- `src/test/appsScriptCode.test.ts` now guards the media-only Apps Script route contract and verifies structured resources are rejected.
+- Removed legacy Apps Script tests that asserted spreadsheet-backed CMS/cache/documents/site settings/visitor stats ownership.
+- `server/appsScriptProxy/handler.test.mjs` verifies structured resources are rejected by the Vercel proxy allowlist.
+- `src/features/cms-media/mediaBridgeClient.test.ts` verifies delete payloads include the Drive `fileId` when available.
+
+### Intentionally Retained
+
+- `apps-script/` and `package.json` `gas:*` scripts, because the media/file bridge still needs clasp deployment.
+- `server/appsScriptProxy/`, because Vercel remains the server-side bridge to Apps Script media/file operations.
+- Cloudflare Worker source and D1 migrations, unchanged in this pass.
+- M20 readiness docs and runbooks, because M20 remains gated and has not been closed.
+
 ## 2026-07-04 Project-Wide Documentation Synchronization
 
 This pass synchronizes active project documentation with the current runtime truth after the Apps Script structured-data cleanup, urgent marquee speed fix, media operation feedback fix, and broader admin operation feedback standardization.

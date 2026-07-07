@@ -10,9 +10,24 @@ Apps Script is not the current structured public/admin data backend and is not t
 
 Apps Script is used for:
 
-- media/file operations
+- media upload/update operations
+- media delete operations
 - Google Drive file access
-- upload/delete/list workflows behind the Vercel proxy
+- upload/delete workflows behind the Vercel proxy
+
+## Active Web App Routes
+
+The active Apps Script deployment source is pruned to these routes only:
+
+- `POST ?resource=media`
+- `POST ?resource=media-delete`
+
+Structured data routes were removed from Apps Script source. Requests such as `snapshot`, `public-home`, `content`, `users`, `menu`, `site-settings`, `homepage-settings`, `visitor-stats`, and `publish` must be rejected by Apps Script and must remain owned by Cloudflare Worker and D1.
+
+The Vercel proxy keeps the public contract narrow:
+
+- browser/admin client `media` -> Apps Script `media`
+- browser/admin client `deleteMedia` -> Apps Script `media-delete`
 
 Apps Script must not be restored as:
 
@@ -31,6 +46,8 @@ Current active runtime ownership:
 - Admin session proxy: Vercel server-side admin proxy.
 - Media/file bridge: Apps Script behind the Vercel proxy.
 - File storage: Google Drive.
+
+Apps Script no longer owns spreadsheet-backed CMS records, user profiles, public snapshots, public analytics counters, settings, menu, content, documents, carousel, E-Service, or calendar data.
 
 ## Deployment Notes
 
@@ -62,4 +79,5 @@ Do not expose bridge URLs or bridge tokens through `VITE_` variables. `VITE_GOOG
 - Do not commit real Apps Script deployment URLs for private environments.
 - Do not commit bridge tokens, spreadsheet IDs, private Drive URLs, or private configuration values.
 - Do not reintroduce Apps Script user-management routes as the active admin runtime.
+- Do not reintroduce Apps Script structured CMS routes as the active public/admin runtime.
 - Do not assume Vercel deployment updates Apps Script.

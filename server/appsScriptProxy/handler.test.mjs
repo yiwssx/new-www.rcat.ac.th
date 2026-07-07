@@ -149,19 +149,21 @@ describe("Vercel Apps Script media proxy", () => {
     expect(response.bodyJson).toMatchObject({ configured: false, bridgeTokenConfigured: false });
   });
 
-  it("rejects resources outside the explicit media allowlist", async () => {
-    const fetchImpl = vi.fn();
-    const response = createResponse();
+  it("rejects structured resources outside the explicit media allowlist", async () => {
+    for (const resource of ["content", "users", "snapshot", "public-home"]) {
+      const fetchImpl = vi.fn();
+      const response = createResponse();
 
-    await handleAppsScriptProxyRequest(
-      await createAuthenticatedRequest({ body: { resource: "users", payload: { action: "list" } } }),
-      response,
-      { env: createEnv(), fetchImpl }
-    );
+      await handleAppsScriptProxyRequest(
+        await createAuthenticatedRequest({ body: { resource, payload: { action: "list" } } }),
+        response,
+        { env: createEnv(), fetchImpl }
+      );
 
-    expect(response.statusCode).toBe(400);
-    expect(response.getHeader("cache-control")).toBe("no-store");
-    expect(fetchImpl).not.toHaveBeenCalled();
+      expect(response.statusCode).toBe(400);
+      expect(response.getHeader("cache-control")).toBe("no-store");
+      expect(fetchImpl).not.toHaveBeenCalled();
+    }
   });
 
   it("rejects a request without a signed admin proxy session", async () => {

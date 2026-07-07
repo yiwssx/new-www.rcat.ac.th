@@ -68,6 +68,18 @@ export function saveMediaAssetToBridge(asset: MediaAssetInput): Promise<MediaAss
   return requestMediaBridge<MediaAsset>("media", asset as unknown as Record<string, unknown>);
 }
 
-export function deleteMediaAssetFromBridge(id: string): Promise<{ id: string; deleted: boolean }> {
-  return requestMediaBridge("deleteMedia", { id, deleteDriveFile: true });
+export function deleteMediaAssetFromBridge(
+  asset: string | Pick<MediaAsset, "id" | "fileId" | "driveUrl" | "previewUrl" | "embedUrl">
+): Promise<{ id: string; deleted: boolean }> {
+  const payload = typeof asset === "string" ? { id: asset } : asset;
+  const fileId = "fileId" in payload ? payload.fileId : "";
+
+  return requestMediaBridge("deleteMedia", {
+    id: payload.id,
+    ...(fileId ? { fileId } : {}),
+    ...(!fileId && "driveUrl" in payload && payload.driveUrl ? { driveUrl: payload.driveUrl } : {}),
+    ...(!fileId && "previewUrl" in payload && payload.previewUrl ? { previewUrl: payload.previewUrl } : {}),
+    ...(!fileId && "embedUrl" in payload && payload.embedUrl ? { embedUrl: payload.embedUrl } : {}),
+    deleteDriveFile: true
+  });
 }

@@ -1,59 +1,30 @@
-﻿function getResource(event) {
-  return (event.parameter && event.parameter.resource) || "snapshot";
-}
-
-function getQueryParams(event) {
-  return (event && event.parameter) || {};
+function getResource(event) {
+  return String((event && event.resource) || (event && event.parameter && event.parameter.resource) || "").trim();
 }
 
 function parsePayload(event) {
-  if (!event.postData || !event.postData.contents) {
+  if (event && event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)) {
+    return event.payload;
+  }
+
+  if (!event || !event.postData || !event.postData.contents) {
     return {};
   }
 
   try {
-    return JSON.parse(event.postData.contents);
+    const parsed = JSON.parse(event.postData.contents);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch (error) {
-    throw new Error("Request body must be valid JSON.");
+    throw createHttpError("Request body must be valid JSON.", 400);
   }
 }
 
 function validateRequired(value, keys) {
   keys.forEach((key) => {
-    if (!value[key]) {
-      throw new Error(`Missing required field: ${key}`);
+    if (!value || !value[key]) {
+      throw createHttpError(`Missing required field: ${key}`, 400);
     }
   });
-}
-
-function validateEventDateRange(startDateValue, endDateValue) {
-  const startDate = parseEventDateValue(startDateValue, "start date");
-
-  if (!endDateValue) {
-    return;
-  }
-
-  const endDate = parseEventDateValue(endDateValue, "end date");
-  const startDay = formatDateKey(startDate);
-  const endDay = formatDateKey(endDate);
-
-  if (endDay < startDay) {
-    throw new Error("End date must be the same as or after the start date.");
-  }
-}
-
-function parseEventDateValue(value, label) {
-  const parsedDate = new Date(value);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    throw new Error(`Invalid ${label}.`);
-  }
-
-  return parsedDate;
-}
-
-function formatDateKey(dateValue) {
-  return Utilities.formatDate(dateValue, Session.getScriptTimeZone(), "yyyy-MM-dd");
 }
 
 function jsonResponse(payload, statusCode) {

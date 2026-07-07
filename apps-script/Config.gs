@@ -1,206 +1,37 @@
 const SETTING_KEYS = {
-  spreadsheetId: "spreadsheetId",
-  spreadsheetName: "spreadsheetName",
   driveFolderId: "driveFolderId",
-  docsFolderId: "docsFolderId",
-  publicSiteUrl: "publicSiteUrl",
   rootFolderName: "rootFolderName",
   mediaFolderName: "mediaFolderName",
-  docsFolderName: "docsFolderName",
-  defaultAdminName: "defaultAdminName",
-  defaultAdminEmail: "defaultAdminEmail",
-  defaultAdminPasswordHash: "defaultAdminPasswordHash",
-  authTokenSecret: "authTokenSecret",
   appsScriptBridgeToken: "APPS_SCRIPT_BRIDGE_TOKEN",
-  mediaBridgeToken: "MEDIA_BRIDGE_TOKEN",
-  authSessionHours: "authSessionHours",
-  dateDisplayFormat: "dateDisplayFormat",
-  timeDisplayMode: "timeDisplayMode",
-  siteSettings: "siteSettings",
-  homepageSettings: "homepageSettings",
-  visitorStats: "visitorStats"
-};
-
-const DEFAULT_HOMEPAGE_SETTINGS = {
-  carousel: {
-    autoplayEnabled: true,
-    autoplayIntervalSeconds: 5
-  },
-  introGate: {
-    enabled: false,
-    imageUrl: "",
-    imageAlt: "ภาพแนะนำ",
-    primaryButtonLabel: "เข้าสู่เว็บไซต์หลัก",
-    secondaryButtonLabel: "",
-    secondaryButtonUrl: "",
-    storageKey: "public-intro-gate"
-  },
-  marquee: {
-    enabled: false,
-    label: "ประชาสัมพันธ์",
-    text: "",
-    speedSeconds: 60
-  },
-  introVideo: {
-    enabled: false,
-    title: "วีดิทัศน์แนะนำสถานศึกษา",
-    youtubeEmbedUrl: ""
-  }
-};
-
-const DEFAULT_VISITOR_STATS = {
-  enabled: false,
-  usersToday: 0,
-  usersYesterday: 0,
-  usersThisMonth: 0,
-  usersThisYear: 0,
-  totalUsers: 0,
-  totalViews: 0,
-  onlineUsers: 0,
-  updatedAt: ""
+  mediaBridgeToken: "MEDIA_BRIDGE_TOKEN"
 };
 
 const DEFAULT_SCRIPT_PROPERTIES = {
-  [SETTING_KEYS.spreadsheetName]: "RCAT_DATABASE",
-  [SETTING_KEYS.publicSiteUrl]: "",
   [SETTING_KEYS.rootFolderName]: "RCAT_BACKEND_DATABASE",
-  [SETTING_KEYS.mediaFolderName]: "RCAT_MEDIA_STUFF",
-  [SETTING_KEYS.docsFolderName]: "RCAT_CONTENTS",
-  [SETTING_KEYS.defaultAdminName]: "ผู้ดูแลระบบ",
-  [SETTING_KEYS.defaultAdminEmail]: "",
-  [SETTING_KEYS.defaultAdminPasswordHash]: "",
-  [SETTING_KEYS.authSessionHours]: "8",
-  [SETTING_KEYS.dateDisplayFormat]: "j F Y",
-  [SETTING_KEYS.timeDisplayMode]: "24h"
+  [SETTING_KEYS.mediaFolderName]: "RCAT_MEDIA_STUFF"
 };
 
-const SHEETS = {
-  content: "Content",
-  carousel: "Carousel",
-  externalServices: "ExternalServices",
-  media: "Media",
-  events: "Events",
-  documents: "Documents",
-  menu: "Menu",
-  users: "Users",
-  settings: "Settings",
-  visitorStats: "VisitorStats"
-};
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-const CONTENT_HEADERS = [
-  "id",
-  "title",
-  "slug",
-  "type",
-  "status",
-  "owner",
-  "summary",
-  "category",
-  "tags",
-  "seoTitle",
-  "seoDescription",
-  "canonicalUrl",
-  "featured",
-  "readingMinutes",
-  "template",
-  "body",
-  "bodyDocId",
-  "bodyDocUrl",
-  "featuredMediaId",
-  "mediaIds",
-  "updatedAt",
-  "publishAt",
-  "viewCount",
-  "lastViewedAt"
+const ALLOWED_MEDIA_TYPES = ["image", "document", "sheet", "video"];
+
+const ALLOWED_EXACT_UPLOAD_MIME_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.oasis.opendocument.spreadsheet",
+  "text/csv",
+  "application/csv"
 ];
 
-const MEDIA_HEADERS = [
-  "id",
-  "name",
-  "type",
-  "size",
-  "owner",
-  "driveUrl",
-  "fileId",
-  "mimeType",
-  "thumbnailUrl",
-  "previewUrl",
-  "embedUrl",
-  "updatedAt"
-];
-
-const CAROUSEL_HEADERS = [
-  "id",
-  "title",
-  "subtitle",
-  "chip",
-  "imageUrl",
-  "imageAlt",
-  "buttonLabel",
-  "href",
-  "enabled",
-  "order",
-  "startAt",
-  "endAt",
-  "updatedAt"
-];
-
-const EXTERNAL_SERVICE_HEADERS = [
-  "id",
-  "title",
-  "description",
-  "href",
-  "tone",
-  "iconKey",
-  "enabled",
-  "order",
-  "updatedAt"
-];
-
-const EVENT_HEADERS = [
-  "id",
-  "title",
-  "date",
-  "endDate",
-  "audience",
-  "status",
-  "location",
-  "description",
-  "category",
-  "visibility",
-  "updatedAt"
-];
-
-const DOCUMENT_HEADERS = [
-  "id",
-  "title",
-  "description",
-  "category",
-  "fileUrl",
-  "fileName",
-  "mediaId",
-  "publishedAt",
-  "status",
-  "order",
-  "pinned",
-  "updatedAt"
-];
-
-const MENU_HEADERS = ["id", "parentId", "labelTh", "href", "order", "enabled"];
-
-const USER_HEADERS = ["id", "name", "email", "role", "status", "passwordHash", "avatarUrl", "createdAt", "updatedAt"];
-
-const VISITOR_STATS_HEADERS = [
-  "visitorId",
-  "firstSeenAt",
-  "lastSeenAt",
-  "lastPath",
-  "lastPathAt",
-  "totalViews",
-  "dateKeys",
-  "monthKeys",
-  "yearKeys",
-  "updatedAt"
+const ALLOWED_PUBLIC_MEDIA_EMBED_HOSTS = [
+  "drive.google.com",
+  "docs.google.com",
+  "youtube.com",
+  "www.youtube.com",
+  "youtu.be"
 ];
 
 function ensureDefaultScriptProperties() {

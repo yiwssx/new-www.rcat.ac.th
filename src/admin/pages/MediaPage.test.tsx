@@ -313,7 +313,7 @@ describe("MediaPage media mutation feedback", () => {
     await screen.findByText(asset.name);
     fireEvent.click(screen.getAllByRole("button", { name: "ลบสื่อ" })[0]);
 
-    await waitFor(() => expect(mediaMock.deleteMediaAsset).toHaveBeenCalledWith(asset.id, expect.anything()));
+    await waitFor(() => expect(mediaMock.deleteMediaAsset).toHaveBeenCalledWith(asset, expect.anything()));
     expect(screen.getByText("กำลังลบ")).toBeInTheDocument();
     for (const button of screen.getAllByRole("button", { name: "ลบสื่อ" })) {
       expect(button).toBeDisabled();

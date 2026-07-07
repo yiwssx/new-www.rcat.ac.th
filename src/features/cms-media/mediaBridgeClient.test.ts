@@ -112,18 +112,18 @@ describe("same-origin Apps Script media bridge client", () => {
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({ resource: "media" });
   });
 
-  it("deletes media through the same-origin proxy", async () => {
+  it("deletes media through the same-origin proxy with the Drive file id", async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       Response.json({ id: uploadedAsset.id, deleted: true })
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await deleteMediaAssetFromBridge(uploadedAsset.id);
+    await deleteMediaAssetFromBridge(uploadedAsset);
 
     expect(fetchMock.mock.calls[0][0]).toBe("/api/apps-script-proxy");
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
       resource: "deleteMedia",
-      payload: { id: uploadedAsset.id, deleteDriveFile: true }
+      payload: { id: uploadedAsset.id, fileId: uploadedAsset.fileId, deleteDriveFile: true }
     });
   });
 });

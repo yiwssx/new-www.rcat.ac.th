@@ -359,12 +359,12 @@ export default function MediaPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteMediaAsset,
-    onSuccess: async (_, id) => {
+    onSuccess: async (result) => {
       queryClient.setQueryData<CmsSnapshot>(["cms-snapshot", "admin"], (snapshot) =>
         snapshot
           ? {
               ...snapshot,
-              media: snapshot.media.filter((asset) => asset.id !== id)
+              media: snapshot.media.filter((asset) => asset.id !== result.id)
             }
           : snapshot
       );
@@ -565,7 +565,7 @@ export default function MediaPage() {
     showMediaLoadingModal("กำลังลบสื่อ");
 
     try {
-      await deleteMutation.mutateAsync(asset.id);
+      await deleteMutation.mutateAsync(asset);
       await appSwal.close();
       setOperationNotice({
         severity: "success",

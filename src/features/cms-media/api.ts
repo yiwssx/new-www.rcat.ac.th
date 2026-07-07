@@ -22,8 +22,13 @@ export async function uploadMediaAsset(asset: MediaAsset) {
   return persistBridgeMetadata(await uploadMediaAssetToBridge(asset));
 }
 
-export async function deleteMediaAsset(id: string) {
-  const result = await deleteMediaAssetFromBridge(id);
+function getMediaAssetId(asset: string | Pick<MediaAsset, "id">) {
+  return typeof asset === "string" ? asset : asset.id;
+}
+
+export async function deleteMediaAsset(asset: string | MediaAsset) {
+  const id = getMediaAssetId(asset);
+  const result = await deleteMediaAssetFromBridge(asset);
 
   try {
     await deleteMediaMetadataFromCloudflare(id);
