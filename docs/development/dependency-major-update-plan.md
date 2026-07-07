@@ -13,7 +13,7 @@ Base commit after patch/minor updates: `88c3b040d1e9cc959bda9826913afbd7325b9dce
 | React platform        | `react`, `react-dom`, `@types/react`, `@types/react-dom` | React 18, React types 18                  | React 19, React types 19                             | Defer to a dedicated React 19 compatibility pass.                                                                               |
 | MUI platform          | `@mui/material`, `@mui/icons-material`                   | 6.5.x                                     | 9.2.x                                                | Defer until React 19 and MUI migration notes are reviewed together.                                                             |
 | Vite/Vitest platform  | `vite`, `@vitejs/plugin-react`, `vitest`, `jsdom`        | Vite 6, Vitest 3, jsdom 26                | Vite 8, plugin-react 6, Vitest 4, jsdom 29           | Trial as an isolated tooling group because it may clear audit findings, but keep only if the full quality gate passes.          |
-| Worker types          | `@cloudflare/workers-types`                              | 4.20260702.1                              | 5.20260707.1                                         | Trial separately with `pnpm worker:typecheck`; revert if Worker contracts change.                                               |
+| Worker types          | `@cloudflare/workers-types`                              | 4.20260702.1                              | 5.20260707.1                                         | Blocked in this pass by the current Wrangler peer range; keep v4 until Wrangler accepts v5.                                     |
 | Commit tooling        | `@commitlint/cli`, `@commitlint/config-conventional`     | 15.0.0                                    | 21.2.0                                               | Accepted in this pass; clears the `semver` advisory. Requires Node >=22.12 for local commitlint use.                            |
 | Git hook tooling      | `lint-staged`                                            | 15.5.2                                    | 17.0.8                                               | Trial separately with a normal commit hook path.                                                                                |
 | Repository AI tooling | `sigmap`                                                 | 6.15.0                                    | 8.9.1                                                | Defer unless `pnpm ai:health` and the Sigmap workflow are included in scope.                                                    |
@@ -41,6 +41,10 @@ After accepting the commit tooling major update, `pnpm audit` reports 2 advisori
 - Validation: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm commitlint --from HEAD~3 --to HEAD`, and `pnpm format:check` passed.
 - Audit impact: the `semver` advisory was removed.
 - Environment note: commitlint 21 declares `node >=22.12.0`; the local validation environment was Node `v25.8.2`.
+
+## Blocked Major Groups
+
+- Worker types: `@cloudflare/workers-types@5.20260706.1` passed `pnpm worker:typecheck` and the Worker unit-test subset, but `pnpm peers check` failed because `wrangler@4.107.0` requires `@cloudflare/workers-types@^4.20260701.1`. The v5 trial was reverted.
 
 ## Trial Order
 
