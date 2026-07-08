@@ -14,9 +14,11 @@ import {
   ProtectedLayout,
   PublicAnnouncementsPage,
   PublicBlogPage,
+  PublicCalendarPage,
   PublicContactPage,
   PublicContentDetailRoute,
   PublicDepartmentsPage,
+  PublicDocumentsPage,
   PublicHomePage,
   PublicNewsPage,
   PublicSearchPage,
@@ -64,6 +66,18 @@ const publicBlogRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "blog",
   component: PublicBlogPage
+});
+
+const publicDocumentsRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "documents",
+  component: PublicDocumentsPage
+});
+
+const publicCalendarRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "calendar",
+  component: PublicCalendarPage
 });
 
 const publicContactRoute = createRoute({
@@ -175,6 +189,8 @@ const routeTree = rootRoute.addChildren([
     publicNewsRoute,
     publicAnnouncementsRoute,
     publicBlogRoute,
+    publicDocumentsRoute,
+    publicCalendarRoute,
     publicContactRoute,
     publicSearchRoute,
     publicContentDetailRoute,

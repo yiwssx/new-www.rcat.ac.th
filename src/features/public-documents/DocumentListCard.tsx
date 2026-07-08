@@ -1,5 +1,6 @@
-import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
 import EmptyState from "../../shared/components/EmptyState";
 import type { ContentItem } from "../../types";
@@ -8,6 +9,14 @@ import { HomeSectionHeading } from "../../public/components/home/HomeSectionHead
 import type { PublicDocumentItem } from "./types";
 
 type DocumentListItem = ContentItem | PublicDocumentItem;
+
+interface DocumentListCardProps {
+  items: DocumentListItem[];
+  limit?: number;
+  viewAllHref?: string;
+  viewAllLabel?: string;
+  emptyTitle?: string;
+}
 
 function getDocumentHref(item: DocumentListItem) {
   if ("fileUrl" in item && item.fileUrl) {
@@ -21,14 +30,30 @@ function getDocumentHref(item: DocumentListItem) {
   return "#";
 }
 
-export function DocumentListCard({ items }: { items: DocumentListItem[] }) {
+function getVisibleItems(items: DocumentListItem[], limit: number | undefined) {
+  if (limit === undefined) {
+    return items;
+  }
+
+  return items.slice(0, Math.max(0, Math.floor(limit)));
+}
+
+export function DocumentListCard({
+  items,
+  limit,
+  viewAllHref,
+  viewAllLabel = "ดูทั้งหมด",
+  emptyTitle = "ยังไม่มีเอกสารเผยแพร่"
+}: DocumentListCardProps) {
+  const visibleItems = getVisibleItems(items, limit);
+
   return (
     <Card id="documents" className="rcat-card h-full">
       <CardContent sx={{ p: 2.5 }}>
         <HomeSectionHeading label="เอกสาร" title="เอกสารเผยแพร่" />
-        {items.length ? (
+        {visibleItems.length ? (
           <Stack spacing={1.1}>
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <Box
                 key={item.id}
                 component="a"
@@ -52,7 +77,18 @@ export function DocumentListCard({ items }: { items: DocumentListItem[] }) {
             ))}
           </Stack>
         ) : (
-          <EmptyState title="ยังไม่มีเอกสารเผยแพร่" icon={<DescriptionOutlinedIcon />} />
+          <EmptyState title={emptyTitle} icon={<DescriptionOutlinedIcon />} />
+        )}
+        {viewAllHref && (
+          <Button
+            href={normalizeSafeHref(viewAllHref)}
+            aria-label="ดูเอกสารเผยแพร่ทั้งหมด"
+            endIcon={<ArrowForwardOutlinedIcon />}
+            sx={{ mt: 1.6 }}
+            fullWidth
+          >
+            {viewAllLabel}
+          </Button>
         )}
       </CardContent>
     </Card>

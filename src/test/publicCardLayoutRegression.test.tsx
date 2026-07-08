@@ -137,6 +137,28 @@ describe("public card layout regressions", () => {
     expect(within(documentLink).getByText("Policy")).toBeInTheDocument();
   });
 
+  it("supports compact document lists with an accessible view-all CTA", () => {
+    render(
+      <DocumentListCard
+        items={[
+          createPublicDocumentItem({ id: "document-1", title: "Document one" }),
+          createPublicDocumentItem({ id: "document-2", title: "Document two" }),
+          createPublicDocumentItem({ id: "document-3", title: "Document three" }),
+          createPublicDocumentItem({ id: "document-4", title: "Document four" })
+        ]}
+        limit={3}
+        viewAllHref="/documents"
+        viewAllLabel="ดูเอกสารทั้งหมด"
+      />
+    );
+
+    expect(screen.getByText("Document one")).toBeInTheDocument();
+    expect(screen.getByText("Document two")).toBeInTheDocument();
+    expect(screen.getByText("Document three")).toBeInTheDocument();
+    expect(screen.queryByText("Document four")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "ดูเอกสารเผยแพร่ทั้งหมด" })).toHaveAttribute("href", "/documents");
+  });
+
   it("opens complete event details when a calendar item is clicked", async () => {
     const user = userEvent.setup();
     const events: CalendarEvent[] = [
@@ -166,5 +188,50 @@ describe("public card layout regressions", () => {
     expect(within(dialog).getAllByText("public")).toHaveLength(2);
     expect(within(dialog).getByText("Students")).toBeInTheDocument();
     expect(within(dialog).getByText("confirmed")).toBeInTheDocument();
+  });
+
+  it("supports compact event lists with an accessible view-all CTA", () => {
+    const events: CalendarEvent[] = [
+      {
+        id: "event-1",
+        title: "Event one",
+        date: "2026-05-20T09:00:00.000Z",
+        audience: "public",
+        status: "confirmed",
+        visibility: "public"
+      },
+      {
+        id: "event-2",
+        title: "Event two",
+        date: "2026-05-21T09:00:00.000Z",
+        audience: "public",
+        status: "confirmed",
+        visibility: "public"
+      },
+      {
+        id: "event-3",
+        title: "Event three",
+        date: "2026-05-22T09:00:00.000Z",
+        audience: "public",
+        status: "confirmed",
+        visibility: "public"
+      },
+      {
+        id: "event-4",
+        title: "Event four",
+        date: "2026-05-23T09:00:00.000Z",
+        audience: "public",
+        status: "confirmed",
+        visibility: "public"
+      }
+    ];
+
+    render(<EventListCard items={events} limit={3} viewAllHref="/calendar" viewAllLabel="ดูกำหนดการทั้งหมด" />);
+
+    expect(screen.getByText("Event one")).toBeInTheDocument();
+    expect(screen.getByText("Event two")).toBeInTheDocument();
+    expect(screen.getByText("Event three")).toBeInTheDocument();
+    expect(screen.queryByText("Event four")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "ดูกำหนดการทั้งหมด" })).toHaveAttribute("href", "/calendar");
   });
 });

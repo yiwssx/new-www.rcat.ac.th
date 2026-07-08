@@ -72,7 +72,11 @@ export async function readPublicMetadataRows(env: Env): Promise<PublicMetadataRo
       ),
       readRows<EventRow>(
         env,
-        `SELECT ${EVENT_ROW_COLUMNS.join(", ")} FROM events WHERE visibility = ? AND status = ? ORDER BY date ASC`,
+        `SELECT ${EVENT_ROW_COLUMNS.join(", ")}
+         FROM events
+         WHERE visibility = ?
+           AND status = ?
+         ORDER BY date ASC, updated_at DESC`,
         ["public", "confirmed"]
       )
     ]);

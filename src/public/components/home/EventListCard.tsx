@@ -13,11 +13,21 @@ import {
   Stack,
   Typography
 } from "@mui/material";
+import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import EmptyState from "../../../shared/components/EmptyState";
 import { CalendarEvent } from "../../../types";
 import { formatDisplayDateTime } from "../../../utils/dateDisplay";
+import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
+
+interface EventListCardProps {
+  items: CalendarEvent[];
+  limit?: number;
+  viewAllHref?: string;
+  viewAllLabel?: string;
+  emptyTitle?: string;
+}
 
 function EventDetail({ label, value }: { label: string; value: string }) {
   return (
@@ -30,17 +40,32 @@ function EventDetail({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function EventListCard({ items }: { items: CalendarEvent[] }) {
+function getVisibleItems(items: CalendarEvent[], limit: number | undefined) {
+  if (limit === undefined) {
+    return items;
+  }
+
+  return items.slice(0, Math.max(0, Math.floor(limit)));
+}
+
+export function EventListCard({
+  items,
+  limit,
+  viewAllHref,
+  viewAllLabel = "ดูทั้งหมด",
+  emptyTitle = "ยังไม่มีกิจกรรมที่เผยแพร่"
+}: EventListCardProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const visibleItems = getVisibleItems(items, limit);
 
   return (
     <>
       <Card id="calendar" className="rcat-card h-full">
         <CardContent sx={{ p: 2.5 }}>
           <HomeSectionHeading label="กำหนดการ" title="กำหนดการ" />
-          {items.length ? (
+          {visibleItems.length ? (
             <Stack divider={<Divider flexItem />} spacing={0}>
-              {items.map((event) => (
+              {visibleItems.map((event) => (
                 <ButtonBase
                   key={event.id}
                   aria-label={`ดูรายละเอียด ${event.title}`}
@@ -66,7 +91,18 @@ export function EventListCard({ items }: { items: CalendarEvent[] }) {
               ))}
             </Stack>
           ) : (
-            <EmptyState title="ยังไม่มีกิจกรรมที่เผยแพร่" icon={<EventAvailableOutlinedIcon />} />
+            <EmptyState title={emptyTitle} icon={<EventAvailableOutlinedIcon />} />
+          )}
+          {viewAllHref && (
+            <Button
+              href={normalizeSafeHref(viewAllHref)}
+              aria-label="ดูกำหนดการทั้งหมด"
+              endIcon={<ArrowForwardOutlinedIcon />}
+              sx={{ mt: 1.6 }}
+              fullWidth
+            >
+              {viewAllLabel}
+            </Button>
           )}
         </CardContent>
       </Card>

@@ -15,6 +15,7 @@ describe("public CMS invalidation after admin mutations", () => {
       "content-detail",
       "public-content-list",
       "public-document-list",
+      "public-event-list",
       "public-home-snapshot",
       "public-program-list",
       "public-search-index"
@@ -24,6 +25,7 @@ describe("public CMS invalidation after admin mutations", () => {
     const persistedKeys = [
       "rcat.cms.public.snapshot.v2",
       "rcat.cms.public.home.snapshot.v2",
+      "rcat.cms.public.event-list",
       "rcat.cms.public.program-list.v2",
       "rcat.cms.public.content-list.v2.news",
       "rcat.cms.public.content-detail.v2.sample",

@@ -233,10 +233,20 @@ export default function PublicHomePage() {
               <Stack spacing={2.5}>
                 <LatestAnnouncementsCard items={latestAnnouncements} />
                 <DeferredHomeSection minHeight={220}>
-                  <LazyEventListCard items={eventItems} />
+                  <LazyEventListCard
+                    items={eventItems}
+                    limit={3}
+                    viewAllHref="/calendar"
+                    viewAllLabel="ดูกำหนดการทั้งหมด"
+                  />
                 </DeferredHomeSection>
                 <DeferredHomeSection minHeight={220}>
-                  <LazyDocumentListCard items={documentItems} />
+                  <LazyDocumentListCard
+                    items={documentItems}
+                    limit={3}
+                    viewAllHref="/documents"
+                    viewAllLabel="ดูเอกสารทั้งหมด"
+                  />
                 </DeferredHomeSection>
                 <DeferredHomeSection minHeight={260}>
                   <Box sx={{ display: { xs: "block", lg: "none" } }}>

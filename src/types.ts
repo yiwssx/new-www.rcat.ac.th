@@ -40,6 +40,7 @@ export type {
   PublicContentListSnapshot
 } from "./features/public-content/types";
 export type { PublicDocumentItem, PublicDocumentListSnapshot } from "./features/public-documents/types";
+export type { PublicEventListSnapshot } from "./features/public-events/types";
 export type { PublicProgramListSnapshot } from "./features/public-programs/types";
 export type { PublicSearchIndexSnapshot } from "./features/public-search/types";
 export type { VisitorStatsSettings } from "./features/visitor-stats/types";

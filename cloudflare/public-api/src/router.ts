@@ -4,6 +4,7 @@ import { adminWrite } from "./routes/adminWrite";
 import { health } from "./routes/health";
 import { publicContentDetail, publicContentList } from "./routes/publicContent";
 import { publicDocuments } from "./routes/publicDocuments";
+import { publicEvents } from "./routes/publicEvents";
 import { publicHome } from "./routes/publicHome";
 import { publicPrograms } from "./routes/publicPrograms";
 import { publicSearch } from "./routes/publicSearch";
@@ -51,6 +52,10 @@ export async function routeRequest(request: Request, env: Env) {
 
   if (pathname === "/api/public/documents") {
     return publicDocuments(env);
+  }
+
+  if (pathname === "/api/public/events") {
+    return publicEvents(env);
   }
 
   if (pathname === "/api/public/home") {

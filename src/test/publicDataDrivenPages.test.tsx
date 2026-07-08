@@ -1,12 +1,22 @@
 import { act, cleanup, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicSiteShell from "../public/components/PublicSiteShell";
 import PublicAnnouncementsPage from "../public/pages/PublicAnnouncementsPage";
+import PublicCalendarPage from "../public/pages/PublicCalendarPage";
 import PublicDepartmentsPage from "../public/pages/PublicDepartmentsPage";
+import PublicDocumentsPage from "../public/pages/PublicDocumentsPage";
 import PublicHomePage from "../public/pages/PublicHomePage";
 import { projectSettings } from "../config/projectSettings";
 import { defaultSiteSettings } from "../services/siteSettings";
-import { CmsSnapshot, PublicContentListSnapshot, PublicHomeSnapshot, PublicProgramListSnapshot } from "../types";
+import {
+  CmsSnapshot,
+  PublicContentListSnapshot,
+  PublicDocumentListSnapshot,
+  PublicEventListSnapshot,
+  PublicHomeSnapshot,
+  PublicProgramListSnapshot
+} from "../types";
 
 const usePublicCmsSnapshotMock = vi.hoisted(() => vi.fn());
 const routerMocks = vi.hoisted(() => ({
@@ -17,6 +27,8 @@ let currentSnapshot: CmsSnapshot | undefined;
 let currentHomeSnapshot: PublicHomeSnapshot | undefined;
 let currentContentListSnapshot: PublicContentListSnapshot | undefined;
 let currentProgramListSnapshot: PublicProgramListSnapshot | undefined;
+let currentDocumentListSnapshot: PublicDocumentListSnapshot | undefined;
+let currentEventListSnapshot: PublicEventListSnapshot | undefined;
 let currentQueryState = {
   isLoading: false,
   isFetching: false,
@@ -36,6 +48,18 @@ let currentContentListQueryState = {
   refetch: vi.fn()
 };
 let currentProgramListQueryState = {
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  refetch: vi.fn()
+};
+let currentDocumentListQueryState = {
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  refetch: vi.fn()
+};
+let currentEventListQueryState = {
   isLoading: false,
   isFetching: false,
   isError: false,
@@ -80,6 +104,20 @@ vi.mock("../public/hooks/usePublicProgramList", () => ({
   usePublicProgramList: () => ({
     data: currentProgramListSnapshot,
     ...currentProgramListQueryState
+  })
+}));
+
+vi.mock("../public/hooks/usePublicDocumentList", () => ({
+  usePublicDocumentList: () => ({
+    data: currentDocumentListSnapshot,
+    ...currentDocumentListQueryState
+  })
+}));
+
+vi.mock("../public/hooks/usePublicEventList", () => ({
+  usePublicEventList: () => ({
+    data: currentEventListSnapshot,
+    ...currentEventListQueryState
   })
 }));
 
@@ -213,12 +251,30 @@ function createProgramListSnapshot(overrides: Partial<PublicProgramListSnapshot>
   };
 }
 
+function createDocumentListSnapshot(overrides: Partial<PublicDocumentListSnapshot> = {}): PublicDocumentListSnapshot {
+  return {
+    items: [],
+    generatedAt: "2026-05-12T00:00:00.000Z",
+    ...overrides
+  };
+}
+
+function createEventListSnapshot(overrides: Partial<PublicEventListSnapshot> = {}): PublicEventListSnapshot {
+  return {
+    items: [],
+    generatedAt: "2026-05-12T00:00:00.000Z",
+    ...overrides
+  };
+}
+
 beforeEach(() => {
   routerMocks.navigate.mockReset();
   currentSnapshot = createSnapshot();
   currentHomeSnapshot = createHomeSnapshot();
   currentContentListSnapshot = createContentListSnapshot();
   currentProgramListSnapshot = createProgramListSnapshot();
+  currentDocumentListSnapshot = createDocumentListSnapshot();
+  currentEventListSnapshot = createEventListSnapshot();
   currentQueryState = {
     isLoading: false,
     isFetching: false,
@@ -238,6 +294,18 @@ beforeEach(() => {
     refetch: vi.fn()
   };
   currentProgramListQueryState = {
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn()
+  };
+  currentDocumentListQueryState = {
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn()
+  };
+  currentEventListQueryState = {
     isLoading: false,
     isFetching: false,
     isError: false,
@@ -344,6 +412,129 @@ describe("public data-driven pages", () => {
     expect(screen.queryByText(/ITA/)).not.toBeInTheDocument();
     expect(screen.queryByText(/แผนปฏิบัติการ/)).not.toBeInTheDocument();
     expect(await screen.findByText("ยังไม่มีเอกสารเผยแพร่", undefined, { timeout: 5000 })).toBeInTheDocument();
+  }, 10_000);
+
+  it("limits homepage documents to three items and links to the full document page", async () => {
+    currentHomeSnapshot = createHomeSnapshot({
+      documentItems: [
+        {
+          id: "document-1",
+          title: "เอกสารเผยแพร่ลำดับ 1",
+          description: "",
+          category: "แผนงาน",
+          fileUrl: "https://example.edu/document-1.pdf",
+          fileName: "document-1.pdf",
+          mediaId: "",
+          publishedAt: "2026-05-01T00:00:00.000Z",
+          order: 1,
+          pinned: true,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        },
+        {
+          id: "document-2",
+          title: "เอกสารเผยแพร่ลำดับ 2",
+          description: "",
+          category: "แผนงาน",
+          fileUrl: "https://example.edu/document-2.pdf",
+          fileName: "document-2.pdf",
+          mediaId: "",
+          publishedAt: "2026-05-02T00:00:00.000Z",
+          order: 2,
+          pinned: false,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        },
+        {
+          id: "document-3",
+          title: "เอกสารเผยแพร่ลำดับ 3",
+          description: "",
+          category: "แผนงาน",
+          fileUrl: "https://example.edu/document-3.pdf",
+          fileName: "document-3.pdf",
+          mediaId: "",
+          publishedAt: "2026-05-03T00:00:00.000Z",
+          order: 3,
+          pinned: false,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        },
+        {
+          id: "document-4",
+          title: "เอกสารเผยแพร่ลำดับ 4",
+          description: "",
+          category: "แผนงาน",
+          fileUrl: "https://example.edu/document-4.pdf",
+          fileName: "document-4.pdf",
+          mediaId: "",
+          publishedAt: "2026-05-04T00:00:00.000Z",
+          order: 4,
+          pinned: false,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        }
+      ]
+    });
+
+    render(<PublicHomePage />);
+    expect(await screen.findByText("เอกสารเผยแพร่ลำดับ 1", undefined, { timeout: 5000 })).toBeInTheDocument();
+
+    const documentsCard = screen.getByText("เอกสารเผยแพร่").closest(".rcat-card") as HTMLElement;
+    expect(documentsCard).not.toBeNull();
+    expect(within(documentsCard).getByText("เอกสารเผยแพร่ลำดับ 1")).toBeInTheDocument();
+    expect(within(documentsCard).getByText("เอกสารเผยแพร่ลำดับ 2")).toBeInTheDocument();
+    expect(within(documentsCard).getByText("เอกสารเผยแพร่ลำดับ 3")).toBeInTheDocument();
+    expect(within(documentsCard).queryByText("เอกสารเผยแพร่ลำดับ 4")).not.toBeInTheDocument();
+    expect(within(documentsCard).getByRole("link", { name: "ดูเอกสารเผยแพร่ทั้งหมด" })).toHaveAttribute(
+      "href",
+      "/documents"
+    );
+  }, 10_000);
+
+  it("limits homepage schedule items to three events and links to the full calendar page", async () => {
+    currentHomeSnapshot = createHomeSnapshot({
+      eventItems: [
+        {
+          id: "event-1",
+          title: "กำหนดการลำดับ 1",
+          date: "2026-05-01T09:00:00.000Z",
+          audience: "public",
+          status: "confirmed",
+          visibility: "public"
+        },
+        {
+          id: "event-2",
+          title: "กำหนดการลำดับ 2",
+          date: "2026-05-02T09:00:00.000Z",
+          audience: "public",
+          status: "confirmed",
+          visibility: "public"
+        },
+        {
+          id: "event-3",
+          title: "กำหนดการลำดับ 3",
+          date: "2026-05-03T09:00:00.000Z",
+          audience: "public",
+          status: "confirmed",
+          visibility: "public"
+        },
+        {
+          id: "event-4",
+          title: "กำหนดการลำดับ 4",
+          date: "2026-05-04T09:00:00.000Z",
+          audience: "public",
+          status: "confirmed",
+          visibility: "public"
+        }
+      ]
+    });
+
+    render(<PublicHomePage />);
+    expect(await screen.findByText("กำหนดการลำดับ 1", undefined, { timeout: 5000 })).toBeInTheDocument();
+
+    const calendarCard = screen.getByText("กำหนดการ").closest(".rcat-card") as HTMLElement;
+    expect(calendarCard).not.toBeNull();
+    expect(within(calendarCard).getByText("กำหนดการลำดับ 1")).toBeInTheDocument();
+    expect(within(calendarCard).getByText("กำหนดการลำดับ 2")).toBeInTheDocument();
+    expect(within(calendarCard).getByText("กำหนดการลำดับ 3")).toBeInTheDocument();
+    expect(within(calendarCard).queryByText("กำหนดการลำดับ 4")).not.toBeInTheDocument();
+    expect(within(calendarCard).getByRole("link", { name: "ดูกำหนดการทั้งหมด" })).toHaveAttribute("href", "/calendar");
   }, 10_000);
 
   it("renders homepage carousel slides from the public home snapshot", () => {
@@ -676,6 +867,228 @@ describe("public data-driven pages", () => {
 
     expect(screen.getByText("CMS program from list")).toBeInTheDocument();
     expect(screen.getByText("Program loaded without the full snapshot")).toBeInTheDocument();
+  });
+
+  it("renders all published documents on the public document archive page", () => {
+    currentDocumentListSnapshot = createDocumentListSnapshot({
+      items: [
+        {
+          id: "document-pinned",
+          title: "เอกสารปักหมุด",
+          description: "ประกาศสำคัญ",
+          category: "ประกาศ",
+          fileUrl: "https://example.edu/pinned.pdf",
+          fileName: "pinned.pdf",
+          mediaId: "",
+          publishedAt: "2026-05-01T00:00:00.000Z",
+          order: 1,
+          pinned: true,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        },
+        {
+          id: "document-general-1",
+          title: "เอกสารทั่วไปลำดับ 1",
+          description: "คู่มือสำหรับนักเรียน",
+          category: "คู่มือ",
+          fileUrl: "https://example.edu/general-1.pdf",
+          fileName: "general-1.pdf",
+          mediaId: "",
+          publishedAt: "2026-05-02T00:00:00.000Z",
+          order: 2,
+          pinned: false,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        },
+        {
+          id: "document-general-2",
+          title: "เอกสารทั่วไปลำดับ 2",
+          description: "แบบฟอร์ม",
+          category: "แบบฟอร์ม",
+          fileUrl: "https://example.edu/general-2.pdf",
+          fileName: "general-2.pdf",
+          mediaId: "",
+          publishedAt: "2026-05-03T00:00:00.000Z",
+          order: 3,
+          pinned: false,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        },
+        {
+          id: "document-general-3",
+          title: "เอกสารทั่วไปลำดับ 3",
+          description: "แผนงาน",
+          category: "แผนงาน",
+          fileUrl: "https://example.edu/general-3.pdf",
+          fileName: "general-3.pdf",
+          mediaId: "",
+          publishedAt: "2026-05-04T00:00:00.000Z",
+          order: 4,
+          pinned: false,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        }
+      ]
+    });
+
+    render(<PublicDocumentsPage />);
+
+    const documentLinks = screen.getAllByRole("link", { name: /อ่านเอกสาร/ });
+    expect(documentLinks.map((link) => link.textContent)).toEqual([
+      expect.stringContaining("เอกสารปักหมุด"),
+      expect.stringContaining("เอกสารทั่วไปลำดับ 1"),
+      expect.stringContaining("เอกสารทั่วไปลำดับ 2"),
+      expect.stringContaining("เอกสารทั่วไปลำดับ 3")
+    ]);
+  });
+
+  it("filters the public document archive by search text", async () => {
+    const user = userEvent.setup();
+    currentDocumentListSnapshot = createDocumentListSnapshot({
+      items: [
+        {
+          id: "document-plan",
+          title: "แผนปฏิบัติการประจำปี",
+          description: "",
+          category: "แผนงาน",
+          fileUrl: "https://example.edu/plan.pdf",
+          fileName: "plan.pdf",
+          mediaId: "",
+          publishedAt: "2026-05-01T00:00:00.000Z",
+          order: 1,
+          pinned: false,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        },
+        {
+          id: "document-form",
+          title: "แบบฟอร์มนักเรียน",
+          description: "",
+          category: "แบบฟอร์ม",
+          fileUrl: "https://example.edu/student-form.pdf",
+          fileName: "student-form.pdf",
+          mediaId: "",
+          publishedAt: "2026-05-02T00:00:00.000Z",
+          order: 2,
+          pinned: false,
+          updatedAt: "2026-05-04T00:00:00.000Z"
+        }
+      ]
+    });
+
+    render(<PublicDocumentsPage />);
+    await user.type(screen.getByRole("searchbox", { name: "ค้นหาเอกสารเผยแพร่" }), "student-form");
+
+    expect(screen.queryByText("แผนปฏิบัติการประจำปี")).not.toBeInTheDocument();
+    expect(screen.getByText("แบบฟอร์มนักเรียน")).toBeInTheDocument();
+  });
+
+  it("shows public document archive empty and error states", () => {
+    currentDocumentListSnapshot = createDocumentListSnapshot({ items: [] });
+    const { rerender } = render(<PublicDocumentsPage />);
+
+    expect(screen.getByText("ยังไม่มีเอกสารเผยแพร่")).toBeInTheDocument();
+
+    currentDocumentListSnapshot = undefined;
+    currentDocumentListQueryState = {
+      ...currentDocumentListQueryState,
+      isError: true
+    };
+    rerender(<PublicDocumentsPage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("ไม่สามารถโหลดข้อมูลได้");
+    expect(screen.getByRole("button", { name: "ลองอีกครั้ง" })).toBeInTheDocument();
+  });
+
+  it("renders all public confirmed events on the public calendar page and keeps detail dialogs", async () => {
+    const user = userEvent.setup();
+    currentEventListSnapshot = createEventListSnapshot({
+      items: [
+        {
+          id: "event-public-1",
+          title: "เปิดภาคเรียน",
+          date: "2026-05-01T09:00:00.000Z",
+          audience: "นักเรียน",
+          status: "confirmed",
+          location: "วิทยาลัย",
+          description: "รายละเอียดเปิดภาคเรียน",
+          visibility: "public"
+        },
+        {
+          id: "event-public-2",
+          title: "ประชุมผู้ปกครอง",
+          date: "2026-05-02T09:00:00.000Z",
+          audience: "ผู้ปกครอง",
+          status: "confirmed",
+          visibility: "public"
+        },
+        {
+          id: "event-public-3",
+          title: "กิจกรรมอาชีวะ",
+          date: "2026-05-03T09:00:00.000Z",
+          audience: "public",
+          status: "confirmed",
+          visibility: "public"
+        },
+        {
+          id: "event-public-4",
+          title: "วันแนะแนว",
+          date: "2026-05-04T09:00:00.000Z",
+          audience: "public",
+          status: "confirmed",
+          visibility: "public"
+        },
+        {
+          id: "event-draft",
+          title: "กำหนดการฉบับร่าง",
+          date: "2026-05-05T09:00:00.000Z",
+          audience: "internal",
+          status: "draft",
+          visibility: "public"
+        },
+        {
+          id: "event-private",
+          title: "ประชุมภายใน",
+          date: "2026-05-06T09:00:00.000Z",
+          audience: "staff",
+          status: "confirmed",
+          visibility: "private"
+        },
+        {
+          id: "event-cancelled",
+          title: "กิจกรรมยกเลิก",
+          date: "2026-05-07T09:00:00.000Z",
+          audience: "public",
+          status: "cancelled",
+          visibility: "public"
+        }
+      ]
+    });
+
+    render(<PublicCalendarPage />);
+
+    expect(screen.getByText("เปิดภาคเรียน")).toBeInTheDocument();
+    expect(screen.getByText("ประชุมผู้ปกครอง")).toBeInTheDocument();
+    expect(screen.getByText("กิจกรรมอาชีวะ")).toBeInTheDocument();
+    expect(screen.getByText("วันแนะแนว")).toBeInTheDocument();
+    expect(screen.queryByText("กำหนดการฉบับร่าง")).not.toBeInTheDocument();
+    expect(screen.queryByText("ประชุมภายใน")).not.toBeInTheDocument();
+    expect(screen.queryByText("กิจกรรมยกเลิก")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "ดูรายละเอียด เปิดภาคเรียน" }));
+    expect(screen.getByRole("dialog", { name: "เปิดภาคเรียน" })).toHaveTextContent("รายละเอียดเปิดภาคเรียน");
+  });
+
+  it("shows public calendar empty and error states", () => {
+    currentEventListSnapshot = createEventListSnapshot({ items: [] });
+    const { rerender } = render(<PublicCalendarPage />);
+
+    expect(screen.getByText("ยังไม่มีกำหนดการเผยแพร่")).toBeInTheDocument();
+
+    currentEventListSnapshot = undefined;
+    currentEventListQueryState = {
+      ...currentEventListQueryState,
+      isError: true
+    };
+    rerender(<PublicCalendarPage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("ไม่สามารถโหลดข้อมูลได้");
+    expect(screen.getByRole("button", { name: "ลองอีกครั้ง" })).toBeInTheDocument();
   });
 
   it("renders the approved homepage information architecture", async () => {

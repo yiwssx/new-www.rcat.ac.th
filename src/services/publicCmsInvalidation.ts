@@ -6,6 +6,7 @@ const PUBLIC_QUERY_ROOTS = new Set([
   "content-detail",
   "public-content-list",
   "public-document-list",
+  "public-event-list",
   "public-home-snapshot",
   "public-program-list",
   "public-search-index"

@@ -1,7 +1,6 @@
 import type {
   PublicCarouselSlideContract,
   PublicDisplaySettingsContract,
-  PublicEventContract,
   PublicExternalServiceContract,
   PublicHomepageSettingsContract,
   PublicMediaAssetContract,
@@ -11,6 +10,7 @@ import type {
 } from "../contracts/publicMetadata";
 import type { PublicMetadataRows } from "../db/publicMetadataRepository";
 import type { MenuItemRow } from "../db/schema";
+import { mapEventRowToPublicEventItem } from "./publicEventsAdapter";
 
 const emptySiteSettings: PublicSiteSettingsContract = {
   siteName: "",
@@ -191,19 +191,7 @@ export function createPublicMetadata(rows: PublicMetadataRows): PublicMetadataCo
     order: Math.max(0, Number(row.sort_order) || 0),
     updatedAt: row.updated_at || ""
   }));
-  const events: PublicEventContract[] = rows.events.map((row) => ({
-    id: row.id || "",
-    title: row.title || "",
-    date: row.date || "",
-    ...(row.end_date ? { endDate: row.end_date } : {}),
-    audience: row.audience || "",
-    status: "confirmed",
-    ...(row.location ? { location: row.location } : {}),
-    ...(row.description ? { description: row.description } : {}),
-    ...(row.category ? { category: row.category } : {}),
-    visibility: "public",
-    updatedAt: row.updated_at || ""
-  }));
+  const events = rows.events.map(mapEventRowToPublicEventItem);
 
   return {
     siteSettings: parseSettings(rows.siteSettings?.settings_json, emptySiteSettings),
