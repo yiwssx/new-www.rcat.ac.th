@@ -28,6 +28,26 @@ export interface AdminUserProfile {
   revision?: number;
 }
 
+export interface AdminBackupTableCount {
+  name: string;
+  rowCount: number;
+  status: "ok" | "missing" | "error";
+  message?: string;
+}
+
+export interface AdminBackupCounts {
+  generatedAt: string;
+  environment: "preview" | "production" | "unknown";
+  tables: AdminBackupTableCount[];
+  counts: Record<string, number>;
+  warnings: string[];
+}
+
+export interface AdminBackupDownload {
+  blob: Blob;
+  filename: string;
+}
+
 interface ItemEnvelope<T> {
   item: T;
 }
@@ -65,12 +85,49 @@ function getCloudflareAdminHeaders(init: RequestInit) {
   return Object.fromEntries(headers.entries());
 }
 
-async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(buildCloudflareAdminApiUrl(path), {
+async function fetchCloudflareAdmin(path: string, init: RequestInit = {}) {
+  return fetch(buildCloudflareAdminApiUrl(path), {
     ...init,
     credentials: "include",
     headers: getCloudflareAdminHeaders(init)
   });
+}
+
+function getCloudflareAdminErrorMessage(response: Response, payload: unknown) {
+  return payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
+    ? payload.error
+    : `Cloudflare admin API request failed with status ${response.status}`;
+}
+
+function maybeNotifyExpiredAdminProxySession(response: Response, errorMessage: string) {
+  if (response.status === 401 && /admin proxy session is (?:required|invalid or expired)/i.test(errorMessage)) {
+    notifyAdminProxySessionExpired();
+    throw new Error(ADMIN_PROXY_SESSION_EXPIRED_MESSAGE);
+  }
+}
+
+async function requestCloudflareAdminResponse(path: string, init: RequestInit = {}) {
+  const response = await fetchCloudflareAdmin(path, init);
+
+  if (response.ok) {
+    return response;
+  }
+
+  let payload: unknown;
+
+  try {
+    payload = await response.clone().json();
+  } catch {
+    payload = null;
+  }
+
+  const errorMessage = getCloudflareAdminErrorMessage(response, payload);
+  maybeNotifyExpiredAdminProxySession(response, errorMessage);
+  throw new Error(errorMessage);
+}
+
+async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await fetchCloudflareAdmin(path, init);
 
   let payload: unknown;
 
@@ -84,14 +141,8 @@ async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): 
   }
 
   if (!response.ok) {
-    const errorMessage =
-      payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
-        ? payload.error
-        : `Cloudflare admin API request failed with status ${response.status}`;
-    if (response.status === 401 && /admin proxy session is (?:required|invalid or expired)/i.test(errorMessage)) {
-      notifyAdminProxySessionExpired();
-      throw new Error(ADMIN_PROXY_SESSION_EXPIRED_MESSAGE);
-    }
+    const errorMessage = getCloudflareAdminErrorMessage(response, payload);
+    maybeNotifyExpiredAdminProxySession(response, errorMessage);
 
     if ((response.status === 409 && /stale revision/i.test(errorMessage)) || response.status === 412) {
       throw new AdminStaleRevisionError();
@@ -105,6 +156,31 @@ async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): 
   }
 
   return payload as T;
+}
+
+function getFilenameFromContentDisposition(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const utf8Match = value.match(/filename\*=UTF-8''([^;]+)/i);
+
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].trim());
+    } catch {
+      return utf8Match[1].trim();
+    }
+  }
+
+  const quotedMatch = value.match(/filename="([^"]+)"/i);
+
+  if (quotedMatch?.[1]) {
+    return quotedMatch[1].trim();
+  }
+
+  const bareMatch = value.match(/filename=([^;]+)/i);
+  return bareMatch?.[1]?.trim() ?? "";
 }
 
 function writeJson<T>(
@@ -136,6 +212,21 @@ export async function getAdminCmsSnapshotFromCloudflare(): Promise<CmsSnapshot> 
   return {
     ...snapshot,
     media: mergeBridgeMediaAssets(snapshot.media ?? [])
+  };
+}
+
+export function getD1BackupCountsFromCloudflare(): Promise<AdminBackupCounts> {
+  return requestCloudflareAdmin<AdminBackupCounts>("/api/admin/backup/counts");
+}
+
+export async function downloadD1BackupFromCloudflare(): Promise<AdminBackupDownload> {
+  const response = await requestCloudflareAdminResponse("/api/admin/backup/download");
+  const filename =
+    getFilenameFromContentDisposition(response.headers.get("Content-Disposition")) || "rcat-d1-backup.json";
+
+  return {
+    filename,
+    blob: await response.blob()
   };
 }
 

@@ -308,6 +308,10 @@ export function canManageUsers(identity: AdminIdentity) {
   return identity.role === "admin";
 }
 
+export function canManageSystemBackup(identity: AdminIdentity) {
+  return identity.role === "admin";
+}
+
 export function canSelfEditUserProfile(identity: AdminIdentity) {
   return identity.role === "admin" || identity.role === "editor";
 }

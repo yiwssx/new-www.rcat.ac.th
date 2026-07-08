@@ -7,6 +7,7 @@ import { VercelInsights } from "./shared/components/VercelInsights";
 import { useAuth } from "./context/authSessionContext";
 
 export const CalendarPage = lazy(() => import("./admin/pages/CalendarPage"));
+export const BackupPage = lazy(() => import("./admin/pages/BackupPage"));
 export const CarouselPage = lazy(() => import("./admin/pages/CarouselPage"));
 export const CmsShell = lazy(() => import("./admin/layout/CmsShell"));
 export const ContentPage = lazy(() => import("./admin/pages/ContentPage"));

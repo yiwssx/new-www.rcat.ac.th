@@ -21,6 +21,7 @@ import {
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
+import BackupOutlinedIcon from "@mui/icons-material/BackupOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
@@ -51,6 +52,7 @@ interface NavItem {
     | "/admin/menus"
     | "/admin/integrations"
     | "/admin/users"
+    | "/admin/backup"
     | "/admin/settings";
   icon: ReactNode;
 }
@@ -100,6 +102,11 @@ const navItems: NavItem[] = [
     label: "ผู้ใช้",
     to: "/admin/users",
     icon: <ManageAccountsOutlinedIcon />
+  },
+  {
+    label: "สำรองข้อมูล",
+    to: "/admin/backup",
+    icon: <BackupOutlinedIcon />
   },
   {
     label: "Google APIs",

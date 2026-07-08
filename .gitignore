@@ -8,6 +8,14 @@ coverage/
 .vite/
 *.tsbuildinfo
 
+# Local/generated database backups
+backups/
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+*.backup.json
+
 # Runtime and debug logs
 *.log
 npm-debug.log*

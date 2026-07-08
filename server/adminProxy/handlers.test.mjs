@@ -68,6 +68,17 @@ async function createSessionHeader(env = createEnv()) {
   return cookie.split(";", 1)[0];
 }
 
+async function createRoleSessionHeader(env, email, role) {
+  const cookie = await createAdminProxySessionCookie({
+    email,
+    role,
+    secret: env.ADMIN_PROXY_SESSION_SECRET,
+    nowMs: Date.parse("2026-06-19T05:00:00.000Z")
+  });
+
+  return cookie.split(";", 1)[0];
+}
+
 describe("Vercel admin proxy", () => {
   it("rejects a request without a signed admin proxy session", async () => {
     const fetchImpl = vi.fn();
@@ -325,6 +336,67 @@ describe("Vercel admin proxy", () => {
     expect(viewerWriteResponse.statusCode).toBe(403);
     expect(JSON.parse(viewerWriteResponse.bodyText)).toEqual({ error: "content management permission is required" });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("requires an admin role for backup reads before forwarding to the Worker", async () => {
+    const env = createEnv({
+      ADMIN_PROXY_ALLOWED_EMAILS: `${ALLOWED_EMAIL},${EDITOR_EMAIL}`,
+      ADMIN_RBAC_EDITORS: EDITOR_EMAIL
+    });
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ counts: {} }), { status: 200 }));
+    const editorResponse = createResponse();
+    const adminResponse = createResponse();
+
+    await handleAdminProxyRequest(
+      createRequest({
+        url: proxyUrl("/api/admin/backup/download"),
+        headers: { cookie: await createRoleSessionHeader(env, EDITOR_EMAIL, "editor") }
+      }),
+      editorResponse,
+      { env, fetchImpl, nowMs: Date.parse("2026-06-19T05:01:00.000Z") }
+    );
+    await handleAdminProxyRequest(
+      createRequest({
+        url: proxyUrl("/api/admin/backup/counts"),
+        headers: { cookie: await createSessionHeader(env) }
+      }),
+      adminResponse,
+      { env, fetchImpl, nowMs: Date.parse("2026-06-19T05:01:00.000Z") }
+    );
+
+    expect(editorResponse.statusCode).toBe(403);
+    expect(JSON.parse(editorResponse.bodyText)).toEqual({ error: "admin role is required" });
+    expect(adminResponse.statusCode).toBe(200);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/backup/counts");
+  });
+
+  it("forwards backup attachment headers needed by the browser download flow", async () => {
+    const env = createEnv();
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ schemaVersion: 1 }), {
+          status: 200,
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "content-disposition": 'attachment; filename="rcat-d1-backup-preview-2026.json"'
+          }
+        })
+    );
+    const response = createResponse();
+
+    await handleAdminProxyRequest(
+      createRequest({
+        url: proxyUrl("/api/admin/backup/download"),
+        headers: { cookie: await createSessionHeader(env) }
+      }),
+      response,
+      { env, fetchImpl, nowMs: Date.parse("2026-06-19T05:01:00.000Z") }
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(response.getHeader("content-type")).toBe("application/json; charset=utf-8");
+    expect(response.getHeader("content-disposition")).toBe('attachment; filename="rcat-d1-backup-preview-2026.json"');
   });
 });
 

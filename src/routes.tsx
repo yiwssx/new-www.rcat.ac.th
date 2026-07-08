@@ -1,5 +1,6 @@
 import { Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import {
+  BackupPage,
   CalendarPage,
   CarouselPage,
   ContentPage,
@@ -182,6 +183,12 @@ const adminUsersRoute = createRoute({
   component: UsersPage
 });
 
+const adminBackupRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "backup",
+  component: BackupPage
+});
+
 const routeTree = rootRoute.addChildren([
   publicLayoutRoute.addChildren([
     publicHomeRoute,
@@ -208,7 +215,8 @@ const routeTree = rootRoute.addChildren([
     adminMenuRoute,
     adminIntegrationsRoute,
     adminSettingsRoute,
-    adminUsersRoute
+    adminUsersRoute,
+    adminBackupRoute
   ])
 ]);
 

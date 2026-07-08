@@ -41,6 +41,10 @@ export function canManageUsers(user: RoleCarrier) {
   return user?.role === "admin";
 }
 
+export function canManageSystemBackup(user: RoleCarrier) {
+  return user?.role === "admin";
+}
+
 export function canSelfEditUserProfile(user: RoleCarrier) {
   return user?.role === "admin" || user?.role === "editor";
 }

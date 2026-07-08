@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import usersPageSource from "../admin/pages/UsersPage.tsx?raw";
+import backupPageSource from "../admin/pages/BackupPage.tsx?raw";
 import userManagementCardSource from "../admin/components/UserManagementCard.tsx?raw";
 import settingsPageSource from "../admin/pages/SettingsPage.tsx?raw";
 import integrationsPageSource from "../admin/pages/IntegrationsPage.tsx?raw";
@@ -92,6 +93,20 @@ describe("M20 admin information architecture", () => {
     expect(cmsShellSource).toContain('to: "/admin/users"');
     expect(routesSource).toMatch(/path:\s*"users"[\s\S]*?component:\s*UsersPage/);
     expect(routesSource).not.toMatch(/path:\s*"users"[\s\S]*?<AdminOnlyPage>[\s\S]*?<UsersPage\s*\/>/);
+  });
+
+  it("adds an admin-only D1 backup route and sidebar item without restore controls", () => {
+    expect(backupPageSource).toContain("สำรองข้อมูลระบบ");
+    expect(backupPageSource).toContain("ตรวจนับข้อมูล");
+    expect(backupPageSource).toContain("ดาวน์โหลดไฟล์สำรองข้อมูล");
+    expect(backupPageSource).toContain("canManageSystemBackup");
+    expect(backupPageSource).toContain("downloadD1BackupFromCloudflare");
+    expect(backupPageSource).toContain("getD1BackupCountsFromCloudflare");
+    expect(backupPageSource).not.toMatch(/restore|นำเข้า|อัปโหลดไฟล์สำรอง/i);
+    expect(cmsShellSource).toContain('label: "สำรองข้อมูล"');
+    expect(cmsShellSource).toContain('to: "/admin/backup"');
+    expect(routeComponentsSource).toContain('export const BackupPage = lazy(() => import("./admin/pages/BackupPage"))');
+    expect(routesSource).toMatch(/path:\s*"backup"[\s\S]*?component:\s*BackupPage/);
   });
 
   it("centralizes read-only admin RBAC for mutation controls", () => {

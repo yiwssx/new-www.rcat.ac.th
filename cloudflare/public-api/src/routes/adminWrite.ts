@@ -29,6 +29,7 @@ import {
 } from "../db/schema";
 import type { Env } from "../env";
 import { json, jsonError, methodNotAllowed } from "../responses";
+import { handleAdminBackup } from "./adminBackup";
 import { handleAdminStructuredParity, readAdminStructuredSnapshot } from "./adminStructuredParity";
 
 const ADMIN_PREFIX = "/api/admin/";
@@ -1819,6 +1820,12 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
 
     if (segments[0] === "snapshot" && segments.length === 1 && request.method === "GET") {
       return await handleSnapshot(env);
+    }
+
+    const backupResponse = await handleAdminBackup(request, env, segments, authResult.identity);
+
+    if (backupResponse) {
+      return backupResponse;
     }
 
     if (segments[0] === "content") {

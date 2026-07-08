@@ -330,6 +330,17 @@ function getAdminProxyMutationPermissionError(role, method, targetPath) {
   return role === "admin" ? "" : "admin role is required";
 }
 
+function getAdminProxyPermissionError(role, method, targetPath) {
+  const segments = targetPath.slice(ADMIN_PATH_PREFIX.length).split("/").filter(Boolean);
+  const route = segments[0] || "";
+
+  if (route === "backup") {
+    return role === "admin" ? "" : "admin role is required";
+  }
+
+  return getAdminProxyMutationPermissionError(role, method, targetPath);
+}
+
 function createUpstreamHeaders(request, smokeToken, session) {
   const headers = new Headers({
     Accept: "application/json",
@@ -392,7 +403,7 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
     return;
   }
 
-  const permissionError = getAdminProxyMutationPermissionError(session.role, method, targetPath);
+  const permissionError = getAdminProxyPermissionError(session.role, method, targetPath);
 
   if (permissionError) {
     sendJson(response, 403, { error: permissionError });
@@ -440,7 +451,7 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
   response.statusCode = upstreamResponse.status;
   response.setHeader("Cache-Control", "no-store");
 
-  for (const headerName of ["content-type", "etag"]) {
+  for (const headerName of ["content-type", "content-disposition", "etag"]) {
     const value = upstreamResponse.headers.get(headerName);
 
     if (value) {

@@ -5,6 +5,7 @@ import {
   canManageIntegrations,
   canManageMedia,
   canManageMenu,
+  canManageSystemBackup,
   canManageUsers,
   canManageWebsiteSettings,
   canPublishContent,
@@ -52,6 +53,9 @@ describe("admin RBAC helpers", () => {
     expect(canManageMenu(user("editor"))).toBe(false);
     expect(canManageIntegrations(user("editor"))).toBe(false);
     expect(canManageUsers(user("editor"))).toBe(false);
+    expect(canManageSystemBackup(user("admin"))).toBe(true);
+    expect(canManageSystemBackup(user("editor"))).toBe(false);
+    expect(canManageSystemBackup(user("viewer"))).toBe(false);
     expect(canSelfEditUserProfile(user("editor"))).toBe(true);
     expect(canSelfEditUserProfile(user("viewer"))).toBe(false);
   });
