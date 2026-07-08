@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -33,6 +34,8 @@ import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ExpandLessOutlinedIcon from "@mui/icons-material/ExpandLessOutlined";
+import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PageHeader from "../components/PageHeader";
@@ -51,6 +54,20 @@ import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 const documentStatusOptions: Array<{ value: DocumentStatus; label: string }> = [
   { value: "draft", label: "ฉบับร่าง" },
   { value: "published", label: "เผยแพร่" }
+];
+
+type DocumentStatusFilter = "all" | DocumentStatus;
+type DocumentPinnedFilter = "all" | "pinned" | "unpinned";
+
+const statusFilterOptions: Array<{ value: DocumentStatusFilter; label: string }> = [
+  { value: "all", label: "ทั้งหมด" },
+  ...documentStatusOptions
+];
+
+const pinnedFilterOptions: Array<{ value: DocumentPinnedFilter; label: string }> = [
+  { value: "all", label: "ทั้งหมด" },
+  { value: "pinned", label: "ปักหมุด" },
+  { value: "unpinned", label: "ไม่ปักหมุด" }
 ];
 
 function sortDocuments(items: CmsDocumentItem[]) {
@@ -84,6 +101,16 @@ function createDocumentDraft(order: number): CmsDocumentItem {
     pinned: false,
     updatedAt: now
   };
+}
+
+function documentMatchesSearch(document: CmsDocumentItem, query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [document.title, document.description, document.fileName, document.fileUrl, document.category].some((value) =>
+    value.toLocaleLowerCase().includes(query)
+  );
 }
 
 function normalizeDocumentDraft(item: CmsDocumentItem): DocumentItemInput {
@@ -120,6 +147,25 @@ export default function DocumentsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<DocumentStatusFilter>("all");
+  const [pinnedFilter, setPinnedFilter] = useState<DocumentPinnedFilter>("all");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
+  const filteredDocuments = useMemo(
+    () =>
+      documents.filter((document) => {
+        const matchesSearch = documentMatchesSearch(document, normalizedSearchQuery);
+        const matchesStatus = statusFilter === "all" || document.status === statusFilter;
+        const matchesPinned =
+          pinnedFilter === "all" ||
+          (pinnedFilter === "pinned" && document.pinned) ||
+          (pinnedFilter === "unpinned" && !document.pinned);
+
+        return matchesSearch && matchesStatus && matchesPinned;
+      }),
+    [documents, normalizedSearchQuery, pinnedFilter, statusFilter]
+  );
 
   const saveMutation = useMutation({
     mutationFn: saveDocumentToApi
@@ -151,6 +197,7 @@ export default function DocumentsPage() {
 
     setSaveError("");
     setEditingDocument(createDocumentDraft(documents.length + 1));
+    setAdvancedOpen(false);
     setIsCreating(true);
     setDialogOpen(true);
   }
@@ -165,6 +212,7 @@ export default function DocumentsPage() {
       ...document,
       publishedAt: document.publishedAt || ""
     });
+    setAdvancedOpen(false);
     setIsCreating(false);
     setDialogOpen(true);
   }
@@ -178,6 +226,7 @@ export default function DocumentsPage() {
     setEditingDocument(null);
     setIsCreating(false);
     setSaveError("");
+    setAdvancedOpen(false);
   }
 
   async function handleSaveDocument() {
@@ -283,6 +332,58 @@ export default function DocumentsPage() {
 
       <Card className="rcat-card">
         <CardContent sx={{ p: 0 }}>
+          <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  placeholder="ค้นหาเอกสาร"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  fullWidth
+                  size="small"
+                  slotProps={{
+                    htmlInput: {
+                      "aria-label": "ค้นหาเอกสาร"
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 3 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="document-status-filter-label">สถานะ</InputLabel>
+                  <Select
+                    labelId="document-status-filter-label"
+                    label="สถานะ"
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value as DocumentStatusFilter)}
+                  >
+                    {statusFilterOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, md: 3 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="document-pinned-filter-label">การปักหมุด</InputLabel>
+                  <Select
+                    labelId="document-pinned-filter-label"
+                    label="การปักหมุด"
+                    value={pinnedFilter}
+                    onChange={(event) => setPinnedFilter(event.target.value as DocumentPinnedFilter)}
+                  >
+                    {pinnedFilterOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Box>
           <Box className="table-scroll">
             <MuiTable>
               <TableHead>
@@ -290,37 +391,52 @@ export default function DocumentsPage() {
                   <TableCell>เอกสาร</TableCell>
                   <TableCell>หมวดหมู่</TableCell>
                   <TableCell>สถานะ</TableCell>
-                  <TableCell>ลำดับ</TableCell>
+                  <TableCell>ลำดับ / ปักหมุด</TableCell>
                   <TableCell>วันที่เผยแพร่</TableCell>
                   <TableCell align="right">จัดการ</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {documents.map((document) => (
+                {filteredDocuments.map((document) => (
                   <TableRow key={document.id} hover>
                     <TableCell>
                       <Stack direction="row" spacing={1.2} alignItems="flex-start">
                         <DescriptionOutlinedIcon color="primary" sx={{ mt: 0.4 }} />
-                        <Box>
+                        <Box sx={{ minWidth: 0 }}>
                           <Typography fontWeight={800}>{document.title || "ไม่มีชื่อเอกสาร"}</Typography>
-                          <Typography color="text.secondary" variant="body2" className="content-summary">
-                            {document.description || document.fileName || document.fileUrl}
-                          </Typography>
+                          <Stack spacing={0.35} sx={{ mt: 0.35 }}>
+                            {document.description && (
+                              <Typography
+                                color="text.secondary"
+                                variant="body2"
+                                className="content-summary"
+                                sx={{ overflowWrap: "anywhere" }}
+                              >
+                                {document.description}
+                              </Typography>
+                            )}
+                            {document.fileName && (
+                              <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                                {document.fileName}
+                              </Typography>
+                            )}
+                            {document.fileUrl && (
+                              <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                                {document.fileUrl}
+                              </Typography>
+                            )}
+                          </Stack>
                         </Box>
                       </Stack>
                     </TableCell>
-                    <TableCell>{document.category || "-"}</TableCell>
+                    <TableCell sx={{ overflowWrap: "anywhere" }}>{document.category || "-"}</TableCell>
                     <TableCell>
                       <StatusChip status={document.status} />
                     </TableCell>
                     <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography>{document.order}</Typography>
-                        {document.pinned && (
-                          <Typography color="secondary.dark" variant="caption">
-                            ปักหมุด
-                          </Typography>
-                        )}
+                      <Stack spacing={0.6} alignItems="flex-start">
+                        <Typography fontWeight={700}>{document.order}</Typography>
+                        {document.pinned && <Chip label="ปักหมุด" color="secondary" size="small" variant="outlined" />}
                       </Stack>
                     </TableCell>
                     <TableCell>{document.publishedAt ? formatDisplayDateTime(document.publishedAt) : "-"}</TableCell>
@@ -368,12 +484,14 @@ export default function DocumentsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!documents.length && !adminSnapshotQuery.isLoading && (
+                {!filteredDocuments.length && !adminSnapshotQuery.isLoading && (
                   <TableRow>
                     <TableCell colSpan={6}>
                       <Box sx={{ py: 5, textAlign: "center" }}>
                         <DescriptionOutlinedIcon color="disabled" sx={{ fontSize: 42, mb: 1 }} />
-                        <Typography color="text.secondary">ยังไม่มีเอกสารเผยแพร่</Typography>
+                        <Typography color="text.secondary">
+                          {documents.length ? "ไม่พบเอกสารที่ตรงกับเงื่อนไขการค้นหา" : "ยังไม่มีเอกสารเผยแพร่"}
+                        </Typography>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -444,19 +562,25 @@ export default function DocumentsPage() {
                   type="number"
                   value={editingDocument.order}
                   onChange={(event) => updateEditingDocument("order", Number(event.target.value))}
+                  helperText="ใช้จัดลำดับภายในกลุ่มเอกสาร เอกสารที่ปักหมุดจะแสดงก่อนเสมอ"
                   fullWidth
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 3 }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={editingDocument.pinned}
-                      onChange={(event) => updateEditingDocument("pinned", event.target.checked)}
-                    />
-                  }
-                  label="ปักหมุด"
-                />
+                <Stack spacing={0.5}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={editingDocument.pinned}
+                        onChange={(event) => updateEditingDocument("pinned", event.target.checked)}
+                      />
+                    }
+                    label="ปักหมุด"
+                  />
+                  <Typography color="text.secondary" variant="caption">
+                    เอกสารที่ปักหมุดจะแสดงก่อนเอกสารทั่วไป
+                  </Typography>
+                </Stack>
               </Grid>
               <Grid size={{ xs: 12 }}>
                 <TextField
@@ -464,6 +588,7 @@ export default function DocumentsPage() {
                   value={editingDocument.fileUrl}
                   onChange={(event) => updateEditingDocument("fileUrl", event.target.value)}
                   required
+                  helperText="กรอก URL ของไฟล์ที่เปิดอ่านหรือดาวน์โหลดได้ เช่น Google Drive หรือไฟล์สาธารณะ"
                   fullWidth
                 />
               </Grid>
@@ -472,14 +597,6 @@ export default function DocumentsPage() {
                   label="ชื่อไฟล์"
                   value={editingDocument.fileName}
                   onChange={(event) => updateEditingDocument("fileName", event.target.value)}
-                  fullWidth
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  label="Media ID"
-                  value={editingDocument.mediaId}
-                  onChange={(event) => updateEditingDocument("mediaId", event.target.value)}
                   fullWidth
                 />
               </Grid>
@@ -494,6 +611,29 @@ export default function DocumentsPage() {
                   slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
                   fullWidth
                 />
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <Stack spacing={1.25} sx={{ pt: 1, borderTop: 1, borderColor: "divider" }}>
+                  <Button
+                    type="button"
+                    variant="text"
+                    endIcon={advancedOpen ? <ExpandLessOutlinedIcon /> : <ExpandMoreOutlinedIcon />}
+                    aria-expanded={advancedOpen}
+                    onClick={() => setAdvancedOpen((current) => !current)}
+                    sx={{ alignSelf: "flex-start" }}
+                  >
+                    ข้อมูลขั้นสูง
+                  </Button>
+                  {advancedOpen && (
+                    <TextField
+                      label="Media ID"
+                      value={editingDocument.mediaId}
+                      onChange={(event) => updateEditingDocument("mediaId", event.target.value)}
+                      helperText="ใช้เมื่อเชื่อมโยงกับไฟล์ในคลังสื่อ ระบบทั่วไปไม่จำเป็นต้องกรอกเอง"
+                      fullWidth
+                    />
+                  )}
+                </Stack>
               </Grid>
             </Grid>
           )}
