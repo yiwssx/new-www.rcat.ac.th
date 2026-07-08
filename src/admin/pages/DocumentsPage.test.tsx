@@ -119,6 +119,37 @@ const pinnedDocumentItem: CmsDocumentItem = {
   revision: 1
 };
 
+const secondPinnedDocumentItem: CmsDocumentItem = {
+  id: "document-4",
+  title: "แผนปฏิบัติการ",
+  description: "เอกสารแผนงานประจำปี",
+  category: "แผนงาน",
+  fileUrl: "https://example.invalid/action-plan.pdf",
+  fileName: "action-plan.pdf",
+  mediaId: "",
+  publishedAt: "2026-06-25T00:00:00.000Z",
+  status: "published",
+  order: 2,
+  pinned: true,
+  updatedAt: "2026-06-25T00:00:00.000Z",
+  revision: 1
+};
+
+function orderingDocuments() {
+  return [
+    {
+      ...pinnedDocumentItem,
+      order: 1
+    },
+    secondPinnedDocumentItem,
+    {
+      ...documentItem,
+      order: 1
+    },
+    draftDocumentItem
+  ];
+}
+
 function snapshot(documents: CmsDocumentItem[] = [documentItem]): CmsSnapshot {
   return {
     metrics: [],
@@ -182,6 +213,13 @@ function expectAcknowledgedResultModal(options: Record<string, unknown> | undefi
   expect(options).not.toHaveProperty("timer");
 }
 
+function expectTextBefore(leftText: string, rightText: string) {
+  const left = screen.getByText(leftText);
+  const right = screen.getByText(rightText);
+
+  expect(left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+}
+
 beforeEach(() => {
   authMock.role = "editor";
   dashboardMock.getAdminCmsSnapshot.mockReset();
@@ -197,6 +235,147 @@ beforeEach(() => {
   swalInstance.close.mockReset();
   swalInstance.close.mockResolvedValue(undefined);
   swalInstance.showLoading.mockReset();
+});
+
+describe("DocumentsPage ordering workflow", () => {
+  it("renders pinned and unpinned documents under separate group headings", async () => {
+    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
+    renderDocumentsPage();
+
+    await screen.findByText(pinnedDocumentItem.title);
+
+    expect(screen.getByText("เอกสารปักหมุด")).toBeInTheDocument();
+    expect(screen.getByText("เอกสารทั่วไป")).toBeInTheDocument();
+    expectTextBefore("เอกสารปักหมุด", pinnedDocumentItem.title);
+    expectTextBefore(pinnedDocumentItem.title, secondPinnedDocumentItem.title);
+    expectTextBefore(secondPinnedDocumentItem.title, "เอกสารทั่วไป");
+    expectTextBefore("เอกสารทั่วไป", documentItem.title);
+    expectTextBefore(documentItem.title, draftDocumentItem.title);
+  });
+
+  it("moves documents up and down only within their pinned group and disables group boundaries", async () => {
+    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
+    renderDocumentsPage();
+
+    await screen.findByText(pinnedDocumentItem.title);
+
+    expect(screen.getByRole("button", { name: `เลื่อนขึ้น ${pinnedDocumentItem.title}` })).toBeDisabled();
+    expect(screen.getByRole("button", { name: `เลื่อนลง ${secondPinnedDocumentItem.title}` })).toBeDisabled();
+    expect(screen.getByRole("button", { name: `เลื่อนขึ้น ${documentItem.title}` })).toBeDisabled();
+    expect(screen.getByRole("button", { name: `เลื่อนลง ${draftDocumentItem.title}` })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: `เลื่อนขึ้น ${secondPinnedDocumentItem.title}` }));
+
+    expectTextBefore(secondPinnedDocumentItem.title, pinnedDocumentItem.title);
+    expectTextBefore(pinnedDocumentItem.title, "เอกสารทั่วไป");
+    expectTextBefore(documentItem.title, draftDocumentItem.title);
+
+    fireEvent.click(screen.getByRole("button", { name: `เลื่อนลง ${documentItem.title}` }));
+
+    expectTextBefore(draftDocumentItem.title, documentItem.title);
+    expectTextBefore(pinnedDocumentItem.title, "เอกสารทั่วไป");
+    expectTextBefore("เอกสารทั่วไป", draftDocumentItem.title);
+  });
+
+  it("enables save after moving and can reset the local ordering draft", async () => {
+    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
+    renderDocumentsPage();
+
+    await screen.findByText(pinnedDocumentItem.title);
+    expect(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: `เลื่อนขึ้น ${secondPinnedDocumentItem.title}` }));
+
+    expect(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" })).toBeEnabled();
+    expectTextBefore(secondPinnedDocumentItem.title, pinnedDocumentItem.title);
+
+    fireEvent.click(screen.getByRole("button", { name: "ยกเลิกการจัดลำดับ" }));
+
+    expect(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" })).toBeDisabled();
+    expectTextBefore(pinnedDocumentItem.title, secondPinnedDocumentItem.title);
+  });
+
+  it("saves only changed document order values and invalidates public CMS data", async () => {
+    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
+    documentsMock.saveDocumentToApi.mockImplementation(async (document: CmsDocumentItem) => document);
+    renderDocumentsPage();
+
+    await screen.findByText(pinnedDocumentItem.title);
+    fireEvent.click(screen.getByRole("button", { name: `เลื่อนขึ้น ${secondPinnedDocumentItem.title}` }));
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" }));
+
+    await waitFor(() => expect(documentsMock.saveDocumentToApi).toHaveBeenCalledTimes(2));
+    expect(documentsMock.saveDocumentToApi).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        id: secondPinnedDocumentItem.id,
+        order: 1,
+        pinned: true
+      })
+    );
+    expect(documentsMock.saveDocumentToApi).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        id: pinnedDocumentItem.id,
+        order: 2,
+        pinned: true
+      })
+    );
+    expect(documentsMock.saveDocumentToApi).not.toHaveBeenCalledWith(expect.objectContaining({ id: documentItem.id }));
+    expect(publicInvalidationMock.invalidatePublicCmsData).toHaveBeenCalledTimes(1);
+    expect(findSwalCall((options) => options.title === "บันทึกลำดับเอกสารสำเร็จ")).toEqual(
+      expect.objectContaining({
+        icon: "success",
+        confirmButtonText: "ตกลง"
+      })
+    );
+  });
+
+  it("keeps local order draft and shows an error modal when order save fails", async () => {
+    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
+    documentsMock.saveDocumentToApi.mockRejectedValue(new Error("D1 unavailable"));
+    renderDocumentsPage();
+
+    await screen.findByText(pinnedDocumentItem.title);
+    fireEvent.click(screen.getByRole("button", { name: `เลื่อนขึ้น ${secondPinnedDocumentItem.title}` }));
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" }));
+
+    expect(await screen.findByText(secondPinnedDocumentItem.title)).toBeInTheDocument();
+    expectTextBefore(secondPinnedDocumentItem.title, pinnedDocumentItem.title);
+    expect(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" })).toBeEnabled();
+    expect(findSwalCall((options) => options.title === "ไม่สามารถบันทึกลำดับเอกสารได้")).toEqual(
+      expect.objectContaining({
+        icon: "error",
+        text: "D1 unavailable",
+        confirmButtonText: "ตกลง"
+      })
+    );
+  });
+
+  it("hides reorder controls and shows a notice while filters are active", async () => {
+    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
+    renderDocumentsPage();
+
+    await screen.findByText(pinnedDocumentItem.title);
+    fireEvent.change(screen.getByPlaceholderText("ค้นหาเอกสาร"), { target: { value: "คู่มือ" } });
+
+    expect(screen.getByText("ปิดตัวกรองเพื่อจัดลำดับเอกสารทั้งหมด")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `เลื่อนขึ้น ${documentItem.title}` })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "บันทึกลำดับเอกสาร" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "แก้ไข" })).toBeInTheDocument();
+  });
+
+  it("does not expose editable raw order in the main document dialog", async () => {
+    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
+    renderDocumentsPage();
+
+    await screen.findByText(pinnedDocumentItem.title);
+    fireEvent.click(screen.getAllByRole("button", { name: "แก้ไข" })[0]);
+
+    expect(screen.queryByRole("spinbutton", { name: "ลำดับ" })).not.toBeInTheDocument();
+    expect(screen.getByText("ลำดับในกลุ่ม: 1")).toBeInTheDocument();
+    expect(screen.getByText("ปรับลำดับจากรายการเอกสารด้านนอกด้วยปุ่มเลื่อนขึ้น/เลื่อนลง")).toBeInTheDocument();
+  });
 });
 
 describe("DocumentsPage filters and form guidance", () => {
@@ -298,8 +477,10 @@ describe("DocumentsPage filters and form guidance", () => {
     await screen.findByText(documentItem.title);
     fireEvent.click(screen.getByRole("button", { name: "เพิ่มเอกสาร" }));
 
-    expect(screen.getByText("ใช้จัดลำดับภายในกลุ่มเอกสาร เอกสารที่ปักหมุดจะแสดงก่อนเสมอ")).toBeInTheDocument();
-    expect(screen.getByText("เอกสารที่ปักหมุดจะแสดงก่อนเอกสารทั่วไป")).toBeInTheDocument();
+    expect(screen.getByText("ปรับลำดับจากรายการเอกสารด้านนอกด้วยปุ่มเลื่อนขึ้น/เลื่อนลง")).toBeInTheDocument();
+    expect(
+      screen.getByText("เมื่อเปลี่ยนการปักหมุด รายการจะถูกจัดอยู่ในกลุ่มเอกสารปักหมุดหรือเอกสารทั่วไป")
+    ).toBeInTheDocument();
   });
 });
 

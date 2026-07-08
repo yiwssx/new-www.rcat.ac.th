@@ -31,12 +31,15 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
+import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandLessOutlinedIcon from "@mui/icons-material/ExpandLessOutlined";
 import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
+import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
@@ -84,6 +87,24 @@ function sortDocuments(items: CmsDocumentItem[]) {
   });
 }
 
+function normalizeDocumentOrdersInCurrentOrder(items: CmsDocumentItem[]) {
+  let pinnedOrder = 0;
+  let unpinnedOrder = 0;
+
+  return items.map((item) => {
+    const order = item.pinned ? ++pinnedOrder : ++unpinnedOrder;
+
+    return {
+      ...item,
+      order
+    };
+  });
+}
+
+function toOrderedDocumentDraft(items: CmsDocumentItem[]) {
+  return normalizeDocumentOrdersInCurrentOrder(sortDocuments(items));
+}
+
 function createDocumentDraft(order: number): CmsDocumentItem {
   const now = new Date().toISOString();
 
@@ -113,6 +134,66 @@ function documentMatchesSearch(document: CmsDocumentItem, query: string) {
   );
 }
 
+function areDocumentOrdersEqual(left: CmsDocumentItem[], right: CmsDocumentItem[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((leftItem, index) => {
+    const rightItem = right[index];
+
+    return (
+      rightItem &&
+      leftItem.id === rightItem.id &&
+      leftItem.order === rightItem.order &&
+      leftItem.pinned === rightItem.pinned
+    );
+  });
+}
+
+function moveDocumentWithinGroup(items: CmsDocumentItem[], document: CmsDocumentItem, direction: -1 | 1) {
+  const groupItems = items.filter((item) => item.pinned === document.pinned);
+  const groupIndex = groupItems.findIndex((item) => item.id === document.id);
+  const nextGroupIndex = groupIndex + direction;
+
+  if (groupIndex < 0 || nextGroupIndex < 0 || nextGroupIndex >= groupItems.length) {
+    return items;
+  }
+
+  const nextGroupItems = [...groupItems];
+  const [movedDocument] = nextGroupItems.splice(groupIndex, 1);
+
+  if (!movedDocument) {
+    return items;
+  }
+
+  nextGroupItems.splice(nextGroupIndex, 0, movedDocument);
+
+  let nextGroupCursor = 0;
+  const nextItems = items.map((item) => {
+    if (item.pinned !== document.pinned) {
+      return item;
+    }
+
+    const nextGroupItem = nextGroupItems[nextGroupCursor++];
+    return nextGroupItem ?? item;
+  });
+
+  return normalizeDocumentOrdersInCurrentOrder(nextItems);
+}
+
+function getChangedOrderDocuments(currentDocuments: CmsDocumentItem[], snapshotDocuments: CmsDocumentItem[]) {
+  const snapshotById = new Map(snapshotDocuments.map((document) => [document.id, document]));
+
+  return currentDocuments.filter((document) => {
+    const snapshotDocument = snapshotById.get(document.id);
+
+    return (
+      snapshotDocument && (document.order !== snapshotDocument.order || document.pinned !== snapshotDocument.pinned)
+    );
+  });
+}
+
 function normalizeDocumentDraft(item: CmsDocumentItem): DocumentItemInput {
   const order = Number(item.order);
 
@@ -139,10 +220,12 @@ export default function DocumentsPage() {
     queryKey: ["cms-snapshot", "admin"],
     queryFn: getAdminCmsSnapshot
   });
-  const documents = useMemo(
-    () => sortDocuments(adminSnapshotQuery.data?.documents ?? []),
+  const snapshotDocuments = useMemo(
+    () => toOrderedDocumentDraft(adminSnapshotQuery.data?.documents ?? []),
     [adminSnapshotQuery.data?.documents]
   );
+  const [draftDocuments, setDraftDocuments] = useState<CmsDocumentItem[] | null>(null);
+  const documents = draftDocuments ?? snapshotDocuments;
   const [editingDocument, setEditingDocument] = useState<CmsDocumentItem | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -152,6 +235,8 @@ export default function DocumentsPage() {
   const [pinnedFilter, setPinnedFilter] = useState<DocumentPinnedFilter>("all");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
+  const filtersActive = Boolean(normalizedSearchQuery) || statusFilter !== "all" || pinnedFilter !== "all";
+  const documentOrderDirty = draftDocuments !== null && !areDocumentOrdersEqual(draftDocuments, snapshotDocuments);
   const filteredDocuments = useMemo(
     () =>
       documents.filter((document) => {
@@ -166,6 +251,10 @@ export default function DocumentsPage() {
       }),
     [documents, normalizedSearchQuery, pinnedFilter, statusFilter]
   );
+  const pinnedDocuments = documents.filter((document) => document.pinned);
+  const unpinnedDocuments = documents.filter((document) => !document.pinned);
+  const filteredPinnedDocuments = filteredDocuments.filter((document) => document.pinned);
+  const filteredUnpinnedDocuments = filteredDocuments.filter((document) => !document.pinned);
 
   const saveMutation = useMutation({
     mutationFn: saveDocumentToApi
@@ -173,7 +262,18 @@ export default function DocumentsPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteDocumentFromApi
   });
-  const documentWritePending = saveMutation.isPending || deleteMutation.isPending;
+  const saveOrderMutation = useMutation({
+    mutationFn: async (changedDocuments: CmsDocumentItem[]) => {
+      const savedDocuments: CmsDocumentItem[] = [];
+
+      for (const document of changedDocuments) {
+        savedDocuments.push(await saveDocumentToApi(normalizeDocumentDraft(document)));
+      }
+
+      return savedDocuments;
+    }
+  });
+  const documentWritePending = saveMutation.isPending || deleteMutation.isPending || saveOrderMutation.isPending;
 
   async function invalidateDocumentData() {
     await invalidatePublicCmsData(queryClient);
@@ -196,7 +296,7 @@ export default function DocumentsPage() {
     }
 
     setSaveError("");
-    setEditingDocument(createDocumentDraft(documents.length + 1));
+    setEditingDocument(createDocumentDraft(unpinnedDocuments.length + 1));
     setAdvancedOpen(false);
     setIsCreating(true);
     setDialogOpen(true);
@@ -244,10 +344,17 @@ export default function DocumentsPage() {
     }
 
     const nextDocument = normalizeDocumentDraft(editingDocument);
+    const savedSnapshotDocument = documents.find((document) => document.id === editingDocument.id);
 
     if (!nextDocument.title || !nextDocument.fileUrl) {
       setSaveError("กรุณาระบุชื่อเอกสารและลิงก์ไฟล์");
       return;
+    }
+
+    if (!savedSnapshotDocument || savedSnapshotDocument.pinned !== nextDocument.pinned) {
+      nextDocument.order =
+        documents.filter((document) => document.pinned === nextDocument.pinned && document.id !== nextDocument.id)
+          .length + 1;
     }
 
     showBlockingLoading("กำลังบันทึกเอกสาร");
@@ -255,6 +362,7 @@ export default function DocumentsPage() {
     try {
       await saveMutation.mutateAsync(nextDocument);
       await invalidateDocumentData();
+      setDraftDocuments(null);
       await appSwal.close();
       handleCloseDialog();
       await showSuccessResult("บันทึกเอกสารสำเร็จ");
@@ -293,6 +401,53 @@ export default function DocumentsPage() {
     } catch (error) {
       await appSwal.close();
       await showErrorResult("ไม่สามารถลบเอกสารได้", error, "กรุณาลองอีกครั้ง");
+    }
+  }
+
+  function handleMoveDocument(document: CmsDocumentItem, direction: -1 | 1) {
+    if (!canManage || documentWritePending || filtersActive) {
+      return;
+    }
+
+    setDraftDocuments((current) => {
+      const currentDocuments = current ?? snapshotDocuments;
+      const nextDocuments = moveDocumentWithinGroup(currentDocuments, document, direction);
+
+      return areDocumentOrdersEqual(nextDocuments, snapshotDocuments) ? null : nextDocuments;
+    });
+  }
+
+  function handleResetDocumentOrder() {
+    if (!canManage || documentWritePending) {
+      return;
+    }
+
+    setDraftDocuments(null);
+  }
+
+  async function handleSaveDocumentOrder() {
+    if (!canManage || documentWritePending || !draftDocuments || !documentOrderDirty || filtersActive) {
+      return;
+    }
+
+    const changedDocuments = getChangedOrderDocuments(draftDocuments, snapshotDocuments);
+
+    if (!changedDocuments.length) {
+      setDraftDocuments(null);
+      return;
+    }
+
+    showBlockingLoading("กำลังบันทึกลำดับเอกสาร");
+
+    try {
+      await saveOrderMutation.mutateAsync(changedDocuments);
+      await invalidateDocumentData();
+      setDraftDocuments(null);
+      await appSwal.close();
+      await showSuccessResult("บันทึกลำดับเอกสารสำเร็จ");
+    } catch (error) {
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกลำดับเอกสารได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -383,6 +538,37 @@ export default function DocumentsPage() {
                 </FormControl>
               </Grid>
             </Grid>
+            {canManage && !filtersActive && (
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "stretch", sm: "center" }}
+                sx={{ mt: 2 }}
+              >
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<RestartAltOutlinedIcon />}
+                  onClick={handleResetDocumentOrder}
+                  disabled={!documentOrderDirty || documentWritePending}
+                >
+                  ยกเลิกการจัดลำดับ
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<SaveOutlinedIcon />}
+                  onClick={() => void handleSaveDocumentOrder()}
+                  disabled={!documentOrderDirty || documentWritePending}
+                >
+                  {saveOrderMutation.isPending ? "กำลังบันทึก" : "บันทึกลำดับเอกสาร"}
+                </Button>
+              </Stack>
+            )}
+            {canManage && filtersActive && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                ปิดตัวกรองเพื่อจัดลำดับเอกสารทั้งหมด
+              </Alert>
+            )}
           </Box>
           <Box className="table-scroll">
             <MuiTable>
@@ -391,99 +577,261 @@ export default function DocumentsPage() {
                   <TableCell>เอกสาร</TableCell>
                   <TableCell>หมวดหมู่</TableCell>
                   <TableCell>สถานะ</TableCell>
-                  <TableCell>ลำดับ / ปักหมุด</TableCell>
+                  <TableCell>ลำดับในกลุ่ม</TableCell>
                   <TableCell>วันที่เผยแพร่</TableCell>
                   <TableCell align="right">จัดการ</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredDocuments.map((document) => (
-                  <TableRow key={document.id} hover>
-                    <TableCell>
-                      <Stack direction="row" spacing={1.2} alignItems="flex-start">
-                        <DescriptionOutlinedIcon color="primary" sx={{ mt: 0.4 }} />
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography fontWeight={800}>{document.title || "ไม่มีชื่อเอกสาร"}</Typography>
-                          <Stack spacing={0.35} sx={{ mt: 0.35 }}>
-                            {document.description && (
-                              <Typography
-                                color="text.secondary"
-                                variant="body2"
-                                className="content-summary"
-                                sx={{ overflowWrap: "anywhere" }}
-                              >
-                                {document.description}
-                              </Typography>
-                            )}
-                            {document.fileName && (
-                              <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
-                                {document.fileName}
-                              </Typography>
-                            )}
-                            {document.fileUrl && (
-                              <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
-                                {document.fileUrl}
-                              </Typography>
-                            )}
-                          </Stack>
-                        </Box>
-                      </Stack>
-                    </TableCell>
-                    <TableCell sx={{ overflowWrap: "anywhere" }}>{document.category || "-"}</TableCell>
-                    <TableCell>
-                      <StatusChip status={document.status} />
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.6} alignItems="flex-start">
-                        <Typography fontWeight={700}>{document.order}</Typography>
-                        {document.pinned && <Chip label="ปักหมุด" color="secondary" size="small" variant="outlined" />}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{document.publishedAt ? formatDisplayDateTime(document.publishedAt) : "-"}</TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="เปิดไฟล์">
-                        <span>
-                          <IconButton
-                            component="a"
-                            href={normalizeSafeHref(document.fileUrl)}
-                            target="_blank"
-                            rel="noreferrer"
-                            disabled={!document.fileUrl}
-                          >
-                            <OpenInNewOutlinedIcon />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                      {canManage && (
-                        <>
-                          <Tooltip title="แก้ไข">
-                            <span>
-                              <IconButton
-                                aria-label="แก้ไข"
-                                disabled={documentWritePending}
-                                onClick={() => handleEditDocument(document)}
-                              >
-                                <EditOutlinedIcon />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                          <Tooltip title="ลบ">
-                            <span>
-                              <IconButton
-                                aria-label="ลบ"
-                                color="error"
-                                disabled={documentWritePending}
-                                onClick={() => void handleDeleteDocument(document)}
-                              >
-                                <DeleteOutlineOutlinedIcon />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </>
-                      )}
+                {filteredPinnedDocuments.length > 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} sx={{ bgcolor: "background.default" }}>
+                      <Typography fontWeight={900} color="text.secondary" variant="body2">
+                        เอกสารปักหมุด
+                      </Typography>
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
+                {filteredPinnedDocuments.map((document) => {
+                  const groupIndex = pinnedDocuments.findIndex((item) => item.id === document.id);
+
+                  return (
+                    <TableRow key={document.id} hover>
+                      <TableCell>
+                        <Stack direction="row" spacing={1.2} alignItems="flex-start">
+                          <DescriptionOutlinedIcon color="primary" sx={{ mt: 0.4 }} />
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography fontWeight={800}>{document.title || "ไม่มีชื่อเอกสาร"}</Typography>
+                            <Stack spacing={0.35} sx={{ mt: 0.35 }}>
+                              {document.description && (
+                                <Typography
+                                  color="text.secondary"
+                                  variant="body2"
+                                  className="content-summary"
+                                  sx={{ overflowWrap: "anywhere" }}
+                                >
+                                  {document.description}
+                                </Typography>
+                              )}
+                              {document.fileName && (
+                                <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                                  {document.fileName}
+                                </Typography>
+                              )}
+                              {document.fileUrl && (
+                                <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                                  {document.fileUrl}
+                                </Typography>
+                              )}
+                            </Stack>
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell sx={{ overflowWrap: "anywhere" }}>{document.category || "-"}</TableCell>
+                      <TableCell>
+                        <StatusChip status={document.status} />
+                      </TableCell>
+                      <TableCell>
+                        <Stack spacing={0.6} alignItems="flex-start">
+                          <Typography fontWeight={700}>{document.order}</Typography>
+                          <Chip label="ปักหมุด" color="secondary" size="small" variant="outlined" />
+                        </Stack>
+                      </TableCell>
+                      <TableCell>{document.publishedAt ? formatDisplayDateTime(document.publishedAt) : "-"}</TableCell>
+                      <TableCell align="right">
+                        {canManage && !filtersActive && (
+                          <>
+                            <Tooltip title="เลื่อนขึ้น">
+                              <span>
+                                <IconButton
+                                  aria-label={`เลื่อนขึ้น ${document.title || `ลำดับ ${document.order}`}`}
+                                  disabled={documentWritePending || groupIndex === 0}
+                                  onClick={() => handleMoveDocument(document, -1)}
+                                >
+                                  <ArrowUpwardOutlinedIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            <Tooltip title="เลื่อนลง">
+                              <span>
+                                <IconButton
+                                  aria-label={`เลื่อนลง ${document.title || `ลำดับ ${document.order}`}`}
+                                  disabled={documentWritePending || groupIndex === pinnedDocuments.length - 1}
+                                  onClick={() => handleMoveDocument(document, 1)}
+                                >
+                                  <ArrowDownwardOutlinedIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </>
+                        )}
+                        <Tooltip title="เปิดไฟล์">
+                          <span>
+                            <IconButton
+                              component="a"
+                              href={normalizeSafeHref(document.fileUrl)}
+                              target="_blank"
+                              rel="noreferrer"
+                              disabled={!document.fileUrl}
+                            >
+                              <OpenInNewOutlinedIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        {canManage && (
+                          <>
+                            <Tooltip title="แก้ไข">
+                              <span>
+                                <IconButton
+                                  aria-label="แก้ไข"
+                                  disabled={documentWritePending}
+                                  onClick={() => handleEditDocument(document)}
+                                >
+                                  <EditOutlinedIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            <Tooltip title="ลบ">
+                              <span>
+                                <IconButton
+                                  aria-label="ลบ"
+                                  color="error"
+                                  disabled={documentWritePending}
+                                  onClick={() => void handleDeleteDocument(document)}
+                                >
+                                  <DeleteOutlineOutlinedIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {filteredUnpinnedDocuments.length > 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} sx={{ bgcolor: "background.default" }}>
+                      <Typography fontWeight={900} color="text.secondary" variant="body2">
+                        เอกสารทั่วไป
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {filteredUnpinnedDocuments.map((document) => {
+                  const groupIndex = unpinnedDocuments.findIndex((item) => item.id === document.id);
+
+                  return (
+                    <TableRow key={document.id} hover>
+                      <TableCell>
+                        <Stack direction="row" spacing={1.2} alignItems="flex-start">
+                          <DescriptionOutlinedIcon color="primary" sx={{ mt: 0.4 }} />
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography fontWeight={800}>{document.title || "ไม่มีชื่อเอกสาร"}</Typography>
+                            <Stack spacing={0.35} sx={{ mt: 0.35 }}>
+                              {document.description && (
+                                <Typography
+                                  color="text.secondary"
+                                  variant="body2"
+                                  className="content-summary"
+                                  sx={{ overflowWrap: "anywhere" }}
+                                >
+                                  {document.description}
+                                </Typography>
+                              )}
+                              {document.fileName && (
+                                <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                                  {document.fileName}
+                                </Typography>
+                              )}
+                              {document.fileUrl && (
+                                <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                                  {document.fileUrl}
+                                </Typography>
+                              )}
+                            </Stack>
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell sx={{ overflowWrap: "anywhere" }}>{document.category || "-"}</TableCell>
+                      <TableCell>
+                        <StatusChip status={document.status} />
+                      </TableCell>
+                      <TableCell>
+                        <Typography fontWeight={700}>{document.order}</Typography>
+                      </TableCell>
+                      <TableCell>{document.publishedAt ? formatDisplayDateTime(document.publishedAt) : "-"}</TableCell>
+                      <TableCell align="right">
+                        {canManage && !filtersActive && (
+                          <>
+                            <Tooltip title="เลื่อนขึ้น">
+                              <span>
+                                <IconButton
+                                  aria-label={`เลื่อนขึ้น ${document.title || `ลำดับ ${document.order}`}`}
+                                  disabled={documentWritePending || groupIndex === 0}
+                                  onClick={() => handleMoveDocument(document, -1)}
+                                >
+                                  <ArrowUpwardOutlinedIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            <Tooltip title="เลื่อนลง">
+                              <span>
+                                <IconButton
+                                  aria-label={`เลื่อนลง ${document.title || `ลำดับ ${document.order}`}`}
+                                  disabled={documentWritePending || groupIndex === unpinnedDocuments.length - 1}
+                                  onClick={() => handleMoveDocument(document, 1)}
+                                >
+                                  <ArrowDownwardOutlinedIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </>
+                        )}
+                        <Tooltip title="เปิดไฟล์">
+                          <span>
+                            <IconButton
+                              component="a"
+                              href={normalizeSafeHref(document.fileUrl)}
+                              target="_blank"
+                              rel="noreferrer"
+                              disabled={!document.fileUrl}
+                            >
+                              <OpenInNewOutlinedIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        {canManage && (
+                          <>
+                            <Tooltip title="แก้ไข">
+                              <span>
+                                <IconButton
+                                  aria-label="แก้ไข"
+                                  disabled={documentWritePending}
+                                  onClick={() => handleEditDocument(document)}
+                                >
+                                  <EditOutlinedIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            <Tooltip title="ลบ">
+                              <span>
+                                <IconButton
+                                  aria-label="ลบ"
+                                  color="error"
+                                  disabled={documentWritePending}
+                                  onClick={() => void handleDeleteDocument(document)}
+                                >
+                                  <DeleteOutlineOutlinedIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {!filteredDocuments.length && !adminSnapshotQuery.isLoading && (
                   <TableRow>
                     <TableCell colSpan={6}>
@@ -557,14 +905,12 @@ export default function DocumentsPage() {
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 3 }}>
-                <TextField
-                  label="ลำดับ"
-                  type="number"
-                  value={editingDocument.order}
-                  onChange={(event) => updateEditingDocument("order", Number(event.target.value))}
-                  helperText="ใช้จัดลำดับภายในกลุ่มเอกสาร เอกสารที่ปักหมุดจะแสดงก่อนเสมอ"
-                  fullWidth
-                />
+                <Stack spacing={0.75} alignItems="flex-start">
+                  <Chip label={`ลำดับในกลุ่ม: ${editingDocument.order}`} size="small" variant="outlined" />
+                  <Typography color="text.secondary" variant="caption">
+                    ปรับลำดับจากรายการเอกสารด้านนอกด้วยปุ่มเลื่อนขึ้น/เลื่อนลง
+                  </Typography>
+                </Stack>
               </Grid>
               <Grid size={{ xs: 12, md: 3 }}>
                 <Stack spacing={0.5}>
@@ -578,7 +924,7 @@ export default function DocumentsPage() {
                     label="ปักหมุด"
                   />
                   <Typography color="text.secondary" variant="caption">
-                    เอกสารที่ปักหมุดจะแสดงก่อนเอกสารทั่วไป
+                    เมื่อเปลี่ยนการปักหมุด รายการจะถูกจัดอยู่ในกลุ่มเอกสารปักหมุดหรือเอกสารทั่วไป
                   </Typography>
                 </Stack>
               </Grid>
