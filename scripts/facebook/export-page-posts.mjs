@@ -2,18 +2,29 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_GRAPH_VERSION = "v25.0";
-const DEFAULT_LIMIT = 100;
-const GRAPH_FIELDS = [
-  "id",
-  "message",
-  "story",
-  "created_time",
-  "permalink_url",
-  "full_picture",
-  "attachments{media,type,url,subattachments}",
-  "status_type"
-].join(",");
+const DEFAULT_LIMIT = 25;
+const DEFAULT_CHUNK_DAYS = 30;
+const ALLOWED_LIMITS = new Set([10, 25, 50]);
+const BOOLEAN_FLAGS = new Set(["include-attachments"]);
+const MINIMAL_GRAPH_FIELDS = ["id", "message", "story", "created_time", "permalink_url", "full_picture", "status_type"];
+const ATTACHMENTS_GRAPH_FIELD = "attachments{media,type,url,subattachments}";
+const NOOP_LOGGER = {
+  log() {}
+};
+
+class FacebookApiRequestError extends Error {
+  constructor(payload, token, limit) {
+    super(createApiErrorMessage(payload, token));
+    this.name = "FacebookApiRequestError";
+    this.payload = maskSensitive(payload, token);
+    this.code = payload?.error?.code;
+    this.apiMessage = typeof payload?.error?.message === "string" ? payload.error.message : "";
+    this.limit = limit;
+    this.isReduceDataError = isReduceDataErrorPayload(payload);
+  }
+}
 
 function parseCliArgs(argv) {
   const parsed = {};
@@ -26,6 +37,12 @@ function parseCliArgs(argv) {
     }
 
     const key = arg.slice(2);
+
+    if (BOOLEAN_FLAGS.has(key)) {
+      parsed[key] = true;
+      continue;
+    }
+
     const value = argv[index + 1];
 
     if (!value || value.startsWith("--")) {
@@ -53,7 +70,7 @@ function normalizeGraphVersion(value) {
   return version.startsWith("v") ? version : `v${version}`;
 }
 
-function parsePositiveInteger(value, fallback) {
+function parsePositiveInteger(value, fallback, label) {
   if (value === undefined || value === null || value === "") {
     return fallback;
   }
@@ -61,40 +78,109 @@ function parsePositiveInteger(value, fallback) {
   const parsed = Number(value);
 
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error("--limit must be a positive integer");
+    throw new Error(`${label} must be a positive integer`);
   }
 
   return parsed;
 }
 
-function parseDateBoundary(value, label, endOfDay = false) {
+function parseLimit(value) {
+  const limit = parsePositiveInteger(value, DEFAULT_LIMIT, "--limit");
+
+  if (!ALLOWED_LIMITS.has(limit)) {
+    throw new Error("--limit must be one of: 10, 25, 50");
+  }
+
+  return limit;
+}
+
+function parseChunkDays(value) {
+  return parsePositiveInteger(value, DEFAULT_CHUNK_DAYS, "--chunk-days");
+}
+
+function parseDateBoundary(value, label) {
   const dateText = requireNonEmpty(value, label);
 
   if (!/^\d{4}-\d{2}-\d{2}$/u.test(dateText)) {
     throw new Error(`${label} must use YYYY-MM-DD`);
   }
 
-  const suffix = endOfDay ? "T23:59:59.999Z" : "T00:00:00.000Z";
-  const timestamp = Date.parse(`${dateText}${suffix}`);
+  const [year, month, day] = dateText.split("-").map(Number);
+  const dayStartTimestamp = Date.UTC(year, month - 1, day);
 
-  if (!Number.isFinite(timestamp)) {
+  if (!Number.isFinite(dayStartTimestamp) || formatDate(dayStartTimestamp) !== dateText) {
     throw new Error(`${label} must be a valid date`);
   }
 
   return {
     text: dateText,
-    timestamp
+    dayStartTimestamp
   };
+}
+
+function formatDate(timestamp) {
+  return new Date(timestamp).toISOString().slice(0, 10);
 }
 
 function unixSeconds(timestamp) {
   return Math.floor(timestamp / 1000).toString();
 }
 
-function buildInitialPostsUrl({ graphVersion, pageId, token, since, until, limit }) {
+function createGraphFields(includeAttachments) {
+  return includeAttachments
+    ? [...MINIMAL_GRAPH_FIELDS.slice(0, 6), ATTACHMENTS_GRAPH_FIELD, MINIMAL_GRAPH_FIELDS[6]].join(",")
+    : MINIMAL_GRAPH_FIELDS.join(",");
+}
+
+function createChunk(startDayTimestamp, endDayTimestamp) {
+  return {
+    since: {
+      text: formatDate(startDayTimestamp),
+      timestamp: startDayTimestamp
+    },
+    until: {
+      text: formatDate(endDayTimestamp),
+      timestamp: endDayTimestamp + DAY_MS - 1
+    },
+    startDayTimestamp,
+    endDayTimestamp
+  };
+}
+
+function createDateChunks(since, until, chunkDays) {
+  if (since.dayStartTimestamp > until.dayStartTimestamp) {
+    throw new Error("--since must be before or equal to --until");
+  }
+
+  const chunks = [];
+  let cursor = since.dayStartTimestamp;
+
+  while (cursor <= until.dayStartTimestamp) {
+    const chunkEnd = Math.min(cursor + chunkDays * DAY_MS, until.dayStartTimestamp);
+
+    chunks.push(createChunk(cursor, chunkEnd));
+    cursor = chunkEnd + DAY_MS;
+  }
+
+  return chunks;
+}
+
+function splitChunk(chunk) {
+  if (chunk.startDayTimestamp >= chunk.endDayTimestamp) {
+    return null;
+  }
+
+  const daysInRange = Math.floor((chunk.endDayTimestamp - chunk.startDayTimestamp) / DAY_MS);
+  const firstEnd = chunk.startDayTimestamp + Math.floor(daysInRange / 2) * DAY_MS;
+  const secondStart = firstEnd + DAY_MS;
+
+  return [createChunk(chunk.startDayTimestamp, firstEnd), createChunk(secondStart, chunk.endDayTimestamp)];
+}
+
+function buildInitialPostsUrl({ graphVersion, pageId, token, since, until, limit, fields }) {
   const url = new URL(`https://graph.facebook.com/${graphVersion}/${pageId}/posts`);
 
-  url.searchParams.set("fields", GRAPH_FIELDS);
+  url.searchParams.set("fields", fields);
   url.searchParams.set("since", unixSeconds(since.timestamp));
   url.searchParams.set("until", unixSeconds(until.timestamp));
   url.searchParams.set("limit", String(limit));
@@ -124,6 +210,13 @@ function maskSensitive(value, token) {
   return value;
 }
 
+function isReduceDataErrorPayload(payload) {
+  const error = payload?.error;
+  const message = typeof error?.message === "string" ? error.message : "";
+
+  return error?.code === 1 && /reduce|amount of data/iu.test(message);
+}
+
 function createApiErrorMessage(payload, token) {
   const sanitizedPayload = maskSensitive(payload, token);
   const error = payload?.error;
@@ -148,6 +241,116 @@ function postIsInRange(post, since, until) {
   return timestamp >= since.timestamp && timestamp <= until.timestamp;
 }
 
+function nextSmallerLimit(limit) {
+  if (limit > 25) {
+    return 25;
+  }
+
+  if (limit > 10) {
+    return 10;
+  }
+
+  return null;
+}
+
+function createChunkError(chunk, error, limit) {
+  return {
+    since: chunk.since.text,
+    until: chunk.until.text,
+    limit,
+    code: error.code ?? null,
+    message: error.apiMessage || error.message,
+    payload: error.payload ?? null
+  };
+}
+
+async function readJsonResponse(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {
+      error: {
+        message: `Facebook API returned non-JSON response with HTTP status ${response.status}`
+      }
+    };
+  }
+}
+
+async function fetchChunkAttempt({ chunk, fetchImpl, fields, graphVersion, limit, pageId, token }) {
+  const posts = [];
+  let nextUrl = buildInitialPostsUrl({
+    graphVersion,
+    pageId,
+    token,
+    since: chunk.since,
+    until: chunk.until,
+    limit,
+    fields
+  });
+
+  while (nextUrl) {
+    const response = await fetchImpl(nextUrl);
+    const payload = await readJsonResponse(response);
+
+    if (!response.ok || payload?.error) {
+      throw new FacebookApiRequestError(payload, token, limit);
+    }
+
+    if (Array.isArray(payload.data)) {
+      posts.push(...payload.data.filter((post) => postIsInRange(post, chunk.since, chunk.until)));
+    }
+
+    nextUrl = typeof payload.paging?.next === "string" && payload.paging.next.trim() !== "" ? payload.paging.next : "";
+  }
+
+  return posts;
+}
+
+async function fetchChunkWithRetries(context) {
+  try {
+    return {
+      posts: await fetchChunkAttempt(context),
+      errors: []
+    };
+  } catch (error) {
+    if (!(error instanceof FacebookApiRequestError) || !error.isReduceDataError) {
+      throw error;
+    }
+
+    const smallerLimit = nextSmallerLimit(context.limit);
+
+    if (smallerLimit) {
+      return fetchChunkWithRetries({
+        ...context,
+        limit: smallerLimit
+      });
+    }
+
+    const splitChunks = splitChunk(context.chunk);
+
+    if (splitChunks) {
+      const first = await fetchChunkWithRetries({
+        ...context,
+        chunk: splitChunks[0]
+      });
+      const second = await fetchChunkWithRetries({
+        ...context,
+        chunk: splitChunks[1]
+      });
+
+      return {
+        posts: [...first.posts, ...second.posts],
+        errors: [...first.errors, ...second.errors]
+      };
+    }
+
+    return {
+      posts: [],
+      errors: [createChunkError(context.chunk, error, context.limit)]
+    };
+  }
+}
+
 export async function exportFacebookPagePosts(options) {
   const token = requireNonEmpty(
     options?.token,
@@ -157,31 +360,45 @@ export async function exportFacebookPagePosts(options) {
   const pageId = requireNonEmpty(options?.pageId, "META_PAGE_ID", "META_PAGE_ID");
   const graphVersion = normalizeGraphVersion(options?.graphVersion);
   const since = parseDateBoundary(options?.since, "--since");
-  const until = parseDateBoundary(options?.until, "--until", true);
-  const limit = parsePositiveInteger(options?.limit, DEFAULT_LIMIT);
+  const until = parseDateBoundary(options?.until, "--until");
+  const chunkDays = parseChunkDays(options?.chunkDays);
+  const limit = parseLimit(options?.limit);
+  const includeAttachments = Boolean(options?.includeAttachments);
+  const fields = createGraphFields(includeAttachments);
+  const fieldsMode = includeAttachments ? "attachments" : "minimal";
   const fetchImpl = options?.fetchImpl ?? globalThis.fetch;
   const now = options?.now ?? (() => new Date());
+  const logger = options?.logger ?? NOOP_LOGGER;
 
   if (typeof fetchImpl !== "function") {
     throw new Error("fetch is not available in this Node runtime");
   }
 
-  const posts = [];
-  let nextUrl = buildInitialPostsUrl({ graphVersion, pageId, token, since, until, limit });
+  const postsById = new Map();
+  const errors = [];
+  const chunks = createDateChunks(since, until, chunkDays);
 
-  while (nextUrl) {
-    const response = await fetchImpl(nextUrl);
-    const payload = await response.json();
+  for (const chunk of chunks) {
+    logger.log(`Exporting chunk ${chunk.since.text} to ${chunk.until.text} ...`);
 
-    if (!response.ok || payload?.error) {
-      throw new Error(createApiErrorMessage(payload, token));
-    }
+    const result = await fetchChunkWithRetries({
+      chunk,
+      fetchImpl,
+      fields,
+      graphVersion,
+      limit,
+      pageId,
+      token
+    });
 
-    if (Array.isArray(payload.data)) {
-      posts.push(...payload.data.filter((post) => postIsInRange(post, since, until)));
-    }
+    result.posts.forEach((post) => {
+      if (typeof post?.id === "string" && !postsById.has(post.id)) {
+        postsById.set(post.id, post);
+      }
+    });
+    errors.push(...result.errors);
 
-    nextUrl = typeof payload.paging?.next === "string" && payload.paging.next.trim() !== "" ? payload.paging.next : "";
+    logger.log(`Fetched ${result.posts.length} posts`);
   }
 
   return {
@@ -189,8 +406,11 @@ export async function exportFacebookPagePosts(options) {
     pageId,
     since: since.text,
     until: until.text,
+    chunkDays,
     generatedAt: now().toISOString(),
-    posts
+    fieldsMode,
+    posts: Array.from(postsById.values()),
+    errors
   };
 }
 
@@ -208,11 +428,16 @@ async function runCli() {
     graphVersion: process.env.META_GRAPH_VERSION,
     since: args.since,
     until: args.until,
-    limit: args.limit
+    chunkDays: args["chunk-days"],
+    limit: args.limit,
+    includeAttachments: Boolean(args["include-attachments"]),
+    logger: console
   });
 
   await writeJson(outputPath, result);
-  console.log(`Exported ${result.posts.length} Facebook post(s) to ${outputPath}`);
+  console.log(
+    `Exported ${result.posts.length} Facebook post(s) with ${result.errors.length} chunk error(s) to ${outputPath}`
+  );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

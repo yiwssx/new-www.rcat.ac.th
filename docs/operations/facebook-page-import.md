@@ -44,6 +44,20 @@ export META_GRAPH_VERSION="v25.0"
 pnpm facebook:export:posts
 ```
 
+The default export uses 30-day chunks, `limit=25`, and minimal Graph API fields:
+
+```text
+id,message,story,created_time,permalink_url,full_picture,status_type
+```
+
+For a smaller smoke export:
+
+```bash
+pnpm facebook:export:posts:small
+```
+
+To include attachment metadata, run the exporter directly with `--include-attachments`.
+
 This writes:
 
 ```text
