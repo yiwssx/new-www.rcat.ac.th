@@ -244,6 +244,23 @@ describe("ContentPage operation feedback", () => {
     });
   });
 
+  it("shows a Facebook Embed label for imported facebook-embed content", async () => {
+    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(
+      snapshot([
+        {
+          ...contentItem,
+          template: "facebook-embed",
+          canonicalUrl: "https://www.facebook.com/100063746585360/posts/111"
+        }
+      ])
+    );
+
+    renderContentPage();
+
+    await screen.findByText(contentItem.title);
+    expect(screen.getByText("Facebook Embed")).toBeInTheDocument();
+  });
+
   it("shows loading and an acknowledged success modal when publishing content", async () => {
     const publish = deferred<{ id: string; published: boolean }>();
     contentMock.publishContent.mockReturnValue(publish.promise);

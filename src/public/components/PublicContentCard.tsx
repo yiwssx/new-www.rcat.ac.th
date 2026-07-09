@@ -3,6 +3,7 @@ import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import { ContentItem, MediaAsset } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
+import { isFacebookEmbedContent } from "../../utils/facebookContent";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 
@@ -29,6 +30,7 @@ export default function PublicContentCard({
   const featuredMedia = mediaAssets.find((asset) => asset.id === item.featuredMediaId);
   const featuredMediaPreviewUrl = normalizeSafeResourceUrl(featuredMedia?.previewUrl);
   const categories = normalizeCategories(item.category);
+  const isFacebookEmbed = isFacebookEmbedContent(item);
 
   return (
     <Card
@@ -70,6 +72,7 @@ export default function PublicContentCard({
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
               <Chip label={contentTypeLabels[item.type]} size="small" />
               <Chip label={contentStatusLabels[item.status]} size="small" variant="outlined" />
+              {isFacebookEmbed && <Chip label="Facebook" size="small" color="primary" variant="outlined" />}
               {item.featured && <Chip label="แนะนำ" size="small" color="secondary" />}
               {categories.slice(0, 2).map((category) => (
                 <Chip key={category} label={category} size="small" variant="outlined" />

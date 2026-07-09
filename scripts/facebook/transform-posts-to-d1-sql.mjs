@@ -4,14 +4,11 @@ import { pathToFileURL } from "node:url";
 
 const FALLBACK_TITLE = "ข่าวประชาสัมพันธ์จากวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด";
 const FALLBACK_SUMMARY = "ข่าวประชาสัมพันธ์จากวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด เผยแพร่จากเพจ Facebook อย่างเป็นทางการ";
-const SOURCE_LABEL = "ที่มา: Facebook วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด";
 const DEFAULT_STATUS = "published";
 const DEFAULT_CREATED_BY = "facebook-import";
 const DEFAULT_OWNER = "facebook-import";
 const DEFAULT_BATCH_SIZE = 100;
-const DEFAULT_MAX_BODY_CHARS = 12000;
-const BODY_CHARACTERS_PER_MINUTE = 1000;
-const TRUNCATION_NOTICE = "[ข้อความถูกย่อจากโพสต์ต้นทาง โปรดดูฉบับเต็มที่ลิงก์ Facebook]";
+const SUMMARY_MAX_LENGTH = 210;
 const SQL_COMPAT_COMMENT =
   "-- D1 remote execute compatibility: explicit SQL transaction control statements are intentionally omitted; one INSERT per post avoids SQLITE_TOOBIG on D1 remote import.";
 
@@ -246,14 +243,20 @@ function createTitle(postText) {
   return limitText(line, 110) || FALLBACK_TITLE;
 }
 
-function createSummary(postText) {
+function createSummaryInfo(postText) {
   const cleaned = normalizeWhitespace(stripHashtags(stripUrls(postText)));
 
   if (meaningfulCharacterCount(cleaned) < 20) {
-    return FALLBACK_SUMMARY;
+    return { summary: FALLBACK_SUMMARY, truncated: false };
   }
 
-  return limitText(cleaned, 210);
+  const truncated = Array.from(cleaned).length > SUMMARY_MAX_LENGTH;
+
+  return { summary: limitText(cleaned, SUMMARY_MAX_LENGTH), truncated };
+}
+
+function createSummary(postText) {
+  return createSummaryInfo(postText).summary;
 }
 
 function classifyCategory(postText) {
@@ -289,95 +292,33 @@ function createTagsJson(postText, category) {
   return JSON.stringify(Array.from(tags).slice(0, 12));
 }
 
-function characterLength(value) {
-  return Array.from(value).length;
+function createBodySnapshot(sourceUrl) {
+  return `โพสต์นี้แสดงจาก Facebook ต้นฉบับ\n\nที่มา: ${sourceUrl}`;
 }
 
-function truncateCharacters(value, maxLength) {
-  if (maxLength <= 0) {
-    return "";
-  }
-
-  const characters = Array.from(value);
-
-  if (characters.length <= maxLength) {
-    return value;
-  }
-
-  const clipped = characters.slice(0, maxLength).join("");
-  const lastSpace = clipped.lastIndexOf(" ");
-  const safeClip = lastSpace >= Math.floor(maxLength * 0.65) ? clipped.slice(0, lastSpace) : clipped;
-
-  return safeClip.replace(/[,\s.]+$/u, "");
+function hasPostPermalink(post) {
+  return typeof post?.permalink_url === "string" && post.permalink_url.trim() !== "";
 }
 
-function isBodyTruncated(postText, maxBodyChars = DEFAULT_MAX_BODY_CHARS) {
-  const normalizedMaxBodyChars = normalizePositiveInteger(maxBodyChars, DEFAULT_MAX_BODY_CHARS, "maxBodyChars");
-
-  return characterLength(postText.trim()) > normalizedMaxBodyChars;
-}
-
-function createBodySnapshot(postText, sourceUrl, maxBodyChars = DEFAULT_MAX_BODY_CHARS) {
-  const normalizedMaxBodyChars = normalizePositiveInteger(maxBodyChars, DEFAULT_MAX_BODY_CHARS, "maxBodyChars");
-  const sourceBlock = sourceUrl ? `${SOURCE_LABEL}\n${sourceUrl}` : SOURCE_LABEL;
-  const bodyText = postText.trim();
-
-  if (!bodyText) {
-    return sourceBlock;
-  }
-
-  if (!isBodyTruncated(bodyText, normalizedMaxBodyChars)) {
-    return `${bodyText}\n\n${sourceBlock}`;
-  }
-
-  const suffix = `\n\n${TRUNCATION_NOTICE}\n\n${sourceBlock}`;
-  const bodyBudget = Math.max(0, normalizedMaxBodyChars - characterLength(suffix));
-  const truncatedBody = truncateCharacters(bodyText, bodyBudget);
-
-  return `${truncatedBody}${suffix}`;
-}
-
-function estimateReadingMinutes(body) {
-  return Math.max(1, Math.ceil(Array.from(body).length / BODY_CHARACTERS_PER_MINUTE));
-}
-
-function hasPostImage(post) {
-  if (typeof post.full_picture === "string" && post.full_picture.trim() !== "") {
-    return true;
-  }
-
-  const attachments = post.attachments?.data;
-
-  if (!Array.isArray(attachments)) {
-    return false;
-  }
-
-  return attachments.some((attachment) => {
-    if (attachment?.media?.image?.src || attachment?.media?.source) {
-      return true;
-    }
-
-    const subattachments = attachment?.subattachments?.data;
-
-    return Array.isArray(subattachments) && subattachments.some((subattachment) => subattachment?.media?.image?.src);
-  });
-}
-
-function warningForPost(post, options = {}) {
+function warningForPost(post) {
   const warnings = [];
   const postText = getPostText(post);
-  const maxBodyChars = normalizePositiveInteger(options.maxBodyChars, DEFAULT_MAX_BODY_CHARS, "maxBodyChars");
+  const sourceUrlMissing = !hasPostPermalink(post);
 
   if (postText.trim() === "") {
     warnings.push("missing_message");
   }
 
-  if (typeof post.permalink_url !== "string" || post.permalink_url.trim() === "") {
-    warnings.push("missing_permalink");
+  if (sourceUrlMissing) {
+    warnings.push("missing_permalink", "skipped_missing_permalink");
   }
 
-  if (isBodyTruncated(postText, maxBodyChars)) {
-    warnings.push("body_truncated");
+  if (createTitle(postText) === FALLBACK_TITLE) {
+    warnings.push("fallback_title");
+  }
+
+  if (createSummaryInfo(postText).truncated) {
+    warnings.push("summary_truncated");
   }
 
   return warnings.join("|");
@@ -387,18 +328,18 @@ export function transformFacebookPostToContentRow(post, options = {}) {
   const generatedAt = normalizeGeneratedAt(options.generatedAt);
   const status = options.status ?? DEFAULT_STATUS;
   const createdBy = options.createdBy ?? DEFAULT_CREATED_BY;
-  const maxBodyChars = normalizePositiveInteger(options.maxBodyChars, DEFAULT_MAX_BODY_CHARS, "maxBodyChars");
+  const owner = options.owner ?? DEFAULT_OWNER;
 
   assertStatus(status);
 
   const sourceId = requireString(post?.id, "Facebook post id");
   const sanitizedPostId = sanitizePostId(sourceId);
   const postText = getPostText(post);
-  const sourceUrl = typeof post.permalink_url === "string" ? post.permalink_url.trim() : "";
+  const sourceUrl = requireString(post?.permalink_url, "Facebook permalink_url");
   const publishAt = normalizeFacebookTimestamp(post.created_time, generatedAt);
   const title = createTitle(postText);
   const summary = createSummary(postText);
-  const bodySnapshot = createBodySnapshot(postText, sourceUrl, maxBodyChars);
+  const bodySnapshot = createBodySnapshot(sourceUrl);
   const category = classifyCategory(postText);
 
   return {
@@ -413,10 +354,10 @@ export function transformFacebookPostToContentRow(post, options = {}) {
     tags_json: createTagsJson(postText, category),
     seo_title: title,
     seo_description: summary,
-    canonical_url: "",
+    canonical_url: sourceUrl,
     featured: 0,
-    reading_minutes: estimateReadingMinutes(bodySnapshot),
-    template: "article",
+    reading_minutes: 1,
+    template: "facebook-embed",
     body_doc_id: "",
     body_doc_url: "",
     featured_media_id: "",
@@ -425,7 +366,7 @@ export function transformFacebookPostToContentRow(post, options = {}) {
     last_viewed_at: "",
     updated_at: generatedAt,
     publish_at: publishAt,
-    owner: DEFAULT_OWNER,
+    owner,
     created_at: publishAt,
     deleted_at: "",
     created_by: createdBy,
@@ -441,13 +382,15 @@ export function transformFacebookPostsToContentRows(rawExport, options = {}) {
 
   const generatedAt = normalizeGeneratedAt(options.generatedAt ?? rawExport.generatedAt);
 
-  return rawExport.posts.map((post) =>
-    transformFacebookPostToContentRow(post, {
-      ...options,
-      generatedAt,
-      pageId: options.pageId ?? rawExport.pageId
-    })
-  );
+  return rawExport.posts
+    .filter((post) => hasPostPermalink(post))
+    .map((post) =>
+      transformFacebookPostToContentRow(post, {
+        ...options,
+        generatedAt,
+        pageId: options.pageId ?? rawExport.pageId
+      })
+    );
 }
 
 function toSqlLiteral(value) {
@@ -596,25 +539,29 @@ function csvValue(value) {
 export function createFacebookImportReportCsv(rawExport, rows, options = {}) {
   const resolvedRows = rows ?? transformFacebookPostsToContentRows(rawExport, options);
   const rowBySourceId = new Map(resolvedRows.map((row) => [row.id.replace(/^facebook-post-/u, ""), row]));
-  const lines = ["source_id,publish_at,title,category,status,slug,source_url,has_message,has_image,warning"];
+  const lines = [
+    "source_id,publish_at,title,category,status,slug,source_url,template,has_message,has_permalink,warning"
+  ];
 
   rawExport.posts.forEach((post) => {
     const sanitizedPostId = sanitizePostId(post.id);
     const row = rowBySourceId.get(sanitizedPostId);
     const postText = getPostText(post);
+    const postHasPermalink = hasPostPermalink(post);
 
     lines.push(
       [
         post.id,
         row?.publish_at ?? normalizeFacebookTimestamp(post.created_time, ""),
-        row?.title ?? "",
-        row?.category ?? "",
-        row?.status ?? "",
-        row?.slug ?? "",
-        post.permalink_url ?? "",
+        row?.title ?? createTitle(postText),
+        row?.category ?? classifyCategory(postText),
+        row?.status ?? options.status ?? DEFAULT_STATUS,
+        row?.slug ?? `facebook-${sanitizedPostId}`,
+        row?.canonical_url ?? post.permalink_url ?? "",
+        row?.template ?? "facebook-embed",
         postText.trim() ? "yes" : "no",
-        hasPostImage(post) ? "yes" : "no",
-        warningForPost(post, options)
+        postHasPermalink ? "yes" : "no",
+        warningForPost(post)
       ]
         .map(csvValue)
         .join(",")
@@ -645,9 +592,9 @@ async function runCli() {
   const outputPath = requireString(args.output, "--output");
   const status = args.status ?? DEFAULT_STATUS;
   const createdBy = args["created-by"] ?? DEFAULT_CREATED_BY;
+  const owner = args.owner ?? DEFAULT_OWNER;
   const reportOutputPath = args["report-output"] ?? defaultReportPath(outputPath);
   const batchSize = normalizePositiveInteger(args["batch-size"], DEFAULT_BATCH_SIZE, "--batch-size");
-  const maxBodyChars = normalizePositiveInteger(args["max-body-chars"], DEFAULT_MAX_BODY_CHARS, "--max-body-chars");
 
   assertStatus(status);
 
@@ -658,7 +605,7 @@ async function runCli() {
     createdBy,
     generatedAt,
     inputPath,
-    maxBodyChars,
+    owner,
     outputPath,
     status
   });
@@ -666,7 +613,7 @@ async function runCli() {
   await writeTextFile(outputPath, artifacts.sql);
   await Promise.all(artifacts.files.map((file) => writeTextFile(file.path, file.sql)));
   await writeTextFile(artifacts.manifestPath, `${JSON.stringify(artifacts.manifest, null, 2)}\n`);
-  await writeTextFile(reportOutputPath, createFacebookImportReportCsv(rawExport, artifacts.rows, { maxBodyChars }));
+  await writeTextFile(reportOutputPath, createFacebookImportReportCsv(rawExport, artifacts.rows, { status }));
 
   console.log(`Generated ${artifacts.rows.length} SQL row(s): ${outputPath}`);
   console.log(`Generated ${artifacts.files.length} SQL batch file(s): ${artifacts.manifestPath}`);

@@ -13,6 +13,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   IconButton,
   InputAdornment,
   LinearProgress,
@@ -52,6 +53,7 @@ import { formatDisplayDate } from "../../utils/dateDisplay";
 import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { mergeBridgeMediaAssets } from "../../features/cms-media";
+import { FACEBOOK_EMBED_LABEL, isFacebookEmbedContent } from "../../utils/facebookContent";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 
@@ -230,6 +232,9 @@ export default function ContentPage() {
                 <Typography color="text.secondary" variant="caption">
                   {info.row.original.category}
                 </Typography>
+              )}
+              {isFacebookEmbedContent(info.row.original) && (
+                <Chip label={FACEBOOK_EMBED_LABEL} size="small" color="primary" variant="outlined" />
               )}
               {!!info.row.original.tags?.length && (
                 <Typography color="text.secondary" variant="caption">

@@ -1,4 +1,4 @@
-const allowedFacebookHosts = new Set(["facebook.com", "www.facebook.com", "m.facebook.com"]);
+const allowedFacebookHosts = new Set(["facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"]);
 const facebookPostPluginBaseUrl = "https://www.facebook.com/plugins/post.php";
 const defaultFacebookPostWidth = 500;
 const minimumFacebookPostWidth = 350;
@@ -123,6 +123,22 @@ export function isUnsupportedFacebookUrl(value: string): boolean {
 
     // It's a valid Facebook URL but not supported for iframe
     return isValidButUnsupportedFacebookPath(parsed.pathname, parsed.searchParams);
+  } catch {
+    return false;
+  }
+}
+
+export function isFacebookUrl(value: string): boolean {
+  const url = String(value || "").trim();
+
+  if (!url || url === "#" || hasUnsafeUrlCharacter(url) || url.toLowerCase().includes("example.com")) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(url);
+
+    return parsed.protocol === "https:" && allowedFacebookHosts.has(parsed.hostname.toLowerCase());
   } catch {
     return false;
   }

@@ -7,6 +7,7 @@ import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
+import FacebookPostEmbed from "../../components/embeds/FacebookPostEmbed";
 import ContentBlocksRenderer from "../../shared/components/ContentBlocksRenderer";
 import EmptyState from "../../shared/components/EmptyState";
 import { recordContentView } from "../../features/site-view";
@@ -16,6 +17,7 @@ import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { usePublicContentDetail } from "../hooks/usePublicContentDetail";
 import { parseContentBodyToBlocks } from "../../utils/contentBlocks";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
+import { isFacebookEmbedContent } from "../../utils/facebookContent";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { ContentItem, MediaAsset } from "../../types";
 
@@ -336,6 +338,75 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
     recordedViewCountState.storageKey === viewCountStorageKey ? recordedViewCountState.count : null;
   const displayedViewCount = recordedViewCount ?? item.viewCount ?? 0;
   const tagList = normalizeTags(item.tags);
+  const isFacebookEmbed = isFacebookEmbedContent(item);
+  const categoryList = normalizeCategoryList(item.category);
+
+  if (isFacebookEmbed) {
+    return (
+      <PublicSiteShell
+        hidePageHeader
+        title={item.title}
+        description={item.summary}
+        seoTitle={item.seoTitle || item.title}
+        seoDescription={item.seoDescription || item.summary}
+        canonicalUrl={item.canonicalUrl}
+        canonicalPath={`/content/${item.slug || slug || ""}`}
+      >
+        <Box className="rcat-content-detail-shell">
+          <Card component="article" className="rcat-card">
+            <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
+              <Stack spacing={2.5}>
+                <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
+                <Box>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1.5 }}>
+                    <Chip label="Facebook" color="primary" variant="outlined" />
+                    {categoryList.map((category) => (
+                      <Chip key={category} label={category} variant="outlined" />
+                    ))}
+                  </Stack>
+                  <Typography variant="h2" sx={{ fontSize: { xs: "1.55rem", md: "2rem" } }}>
+                    {item.seoTitle || item.title}
+                  </Typography>
+                  {(item.seoDescription || item.summary) && (
+                    <Typography color="text.secondary" sx={{ mt: 1.5, fontSize: "1.05rem" }}>
+                      {item.seoDescription || item.summary}
+                    </Typography>
+                  )}
+                </Box>
+                <Divider />
+                <FacebookPostEmbed postUrl={item.canonicalUrl || ""} title={`โพสต์ Facebook: ${item.title}`} />
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Box sx={{ mt: 2.5 }}>
+            <Button
+              href={getReturnPath(item.type)}
+              startIcon={<ArrowBackOutlinedIcon />}
+              sx={{ width: { xs: "100%", sm: "auto" }, ...focusVisibleSx }}
+            >
+              กลับไปหน้ารายการ
+            </Button>
+          </Box>
+
+          {relatedItems.length > 0 && (
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h2" sx={{ fontSize: "1.65rem", mb: 2 }}>
+                เนื้อหาที่เกี่ยวข้อง
+              </Typography>
+              <Grid container spacing={2.5}>
+                {relatedItems.map((relatedItem) => (
+                  <Grid size={{ xs: 12, md: 4 }} key={relatedItem.id}>
+                    <PublicContentCard item={relatedItem} mediaAssets={mediaAssets} />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+        </Box>
+      </PublicSiteShell>
+    );
+  }
 
   if (item.type === "announcement") {
     return (

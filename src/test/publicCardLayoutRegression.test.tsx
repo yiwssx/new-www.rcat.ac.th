@@ -79,6 +79,20 @@ describe("public card layout regressions", () => {
     expect(within(cardLink).getByText("Public team")).toBeInTheDocument();
   });
 
+  it("shows a Facebook badge for Facebook imported content without rendering an iframe in cards", () => {
+    const item = createContentItem({
+      template: "facebook-embed",
+      canonicalUrl: "https://www.facebook.com/100063746585360/posts/111"
+    });
+
+    const { container } = render(<PublicContentCard item={item} mediaAssets={[]} />);
+
+    const cardLink = screen.getByRole("link", { name: /Public card title/ });
+
+    expect(within(cardLink).getByText("Facebook")).toBeInTheDocument();
+    expect(container.querySelector("iframe")).not.toBeInTheDocument();
+  });
+
   it("keeps compact announcement rows as accessible focused links inside a public card", () => {
     render(
       <LatestAnnouncementsCard

@@ -82,7 +82,25 @@ imports/facebook-news-2023-2026.manifest.json
 imports/facebook-news-2023-2026.report.csv
 ```
 
+The transform stores each Facebook post as CMS news metadata with `template = "facebook-embed"` and `canonical_url` set to the Facebook permalink. `body_snapshot` is only a minimal fallback that points back to Facebook; it does not copy the full post text or attachment JSON into article body content.
+
 The SQL uses one `INSERT OR IGNORE` statement per post so repeated imports avoid duplicate rows without creating an oversized D1 remote import statement. It intentionally omits explicit transaction statements and writes batch part files plus a manifest. Review the CSV report before importing.
+
+## Preview Cleanup
+
+Do not run cleanup against production. For preview re-imports, back up first:
+
+1. Open Admin > สำรองข้อมูล.
+2. Download and keep the backup file.
+3. Delete only preview Facebook import records when you are ready to re-import:
+
+```powershell
+pnpm wrangler d1 execute rcat-public-api-preview `
+  --remote `
+  --env preview `
+  --config cloudflare/public-api/wrangler.toml `
+  --command "DELETE FROM contents WHERE owner = 'facebook-import';"
+```
 
 ## Preview Import
 
@@ -90,7 +108,17 @@ The SQL uses one `INSERT OR IGNORE` statement per post so repeated imports avoid
 pnpm facebook:import:preview:part1
 ```
 
-This imports the first generated SQL part into the preview D1 database only. Continue manually with later `.part-NNN.sql` files after reviewing the manifest and report.
+This imports the first generated SQL part into the preview D1 database only:
+
+```powershell
+pnpm wrangler d1 execute rcat-public-api-preview `
+  --remote `
+  --env preview `
+  --config cloudflare/public-api/wrangler.toml `
+  --file .\imports\facebook-news-2023-2026.part-001.sql
+```
+
+Continue manually with later `.part-NNN.sql` files after reviewing the manifest and report. Import multiple part files in numeric order.
 
 ## Production Backup
 
@@ -98,7 +126,7 @@ Before production import, create and store a D1 backup/export using the current 
 
 ## Production Import
 
-Run this manually only after reviewing the SQL, report CSV, and production backup.
+Run this manually only after preview has been checked and after reviewing the SQL, report CSV, and production backup. Do not delete production `facebook-import` records unless explicitly approved.
 
 ```powershell
 pnpm wrangler d1 execute rcat-public-api-production `

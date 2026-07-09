@@ -16,7 +16,7 @@ import {
 const generatedAt = "2026-07-09T00:00:00.000Z";
 const [announcementPost, activityPost, procurementPost, shortPost, quotedPost] = fixture.posts;
 const execFileAsync = promisify(execFile);
-const truncationNotice = "[ข้อความถูกย่อจากโพสต์ต้นทาง โปรดดูฉบับเต็มที่ลิงก์ Facebook]";
+const minimalFacebookBody = "โพสต์นี้แสดงจาก Facebook ต้นฉบับ";
 
 function rowFor(post, options = {}) {
   return transformFacebookPostToContentRow(post, {
@@ -48,13 +48,32 @@ describe("Facebook post D1 content transform", () => {
     expect(rowFor(procurementPost).category).toBe("จัดซื้อจัดจ้าง");
   });
 
-  it("includes the original Facebook URL in the body", () => {
-    expect(rowFor(activityPost).body_snapshot).toContain("ที่มา: Facebook วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด");
+  it("stores Facebook imports as embed metadata with a minimal fallback body", () => {
+    const row = rowFor(activityPost);
+
+    expect(row.template).toBe("facebook-embed");
+    expect(row.canonical_url).toBe(activityPost.permalink_url);
+    expect(row.reading_minutes).toBe(1);
+    expect(row.featured).toBe(0);
+    expect(row.owner).toBe("facebook-import");
+    expect(row.featured_media_id).toBe("");
+    expect(row.media_ids_json).toBe("[]");
+    expect(row.body_snapshot).toBe(`${minimalFacebookBody}\n\nที่มา: ${activityPost.permalink_url}`);
+    expect(row.body_snapshot).toContain(activityPost.permalink_url);
+    expect(row.body_snapshot).not.toContain(activityPost.message);
+  });
+
+  it("keeps the original Facebook URL in the minimal body fallback", () => {
+    expect(rowFor(activityPost).body_snapshot).toContain(minimalFacebookBody);
     expect(rowFor(activityPost).body_snapshot).toContain(activityPost.permalink_url);
   });
 
   it("sets imported rows to published status by default", () => {
     expect(rowFor(activityPost).status).toBe("published");
+  });
+
+  it("allows the import owner to be overridden", () => {
+    expect(rowFor(activityPost, { owner: "facebook-preview-import" }).owner).toBe("facebook-preview-import");
   });
 
   it("escapes single quotes safely in generated SQL", () => {
@@ -111,7 +130,7 @@ describe("Facebook post D1 content transform", () => {
     });
   });
 
-  it("creates report CSV rows with expected import warnings", () => {
+  it("creates report CSV rows with template, permalink flags, and expected import warnings", () => {
     const warningFixture = {
       ...fixture,
       posts: [
@@ -126,13 +145,14 @@ describe("Facebook post D1 content transform", () => {
     const csv = createFacebookImportReportCsv(warningFixture, rows);
 
     expect(csv.split("\n")[0]).toBe(
-      "source_id,publish_at,title,category,status,slug,source_url,has_message,has_image,warning"
+      "source_id,publish_at,title,category,status,slug,source_url,template,has_message,has_permalink,warning"
     );
     expect(csv).toContain("100063746585360_444");
-    expect(csv).toContain("missing_message|missing_permalink");
+    expect(csv).toContain("facebook-embed");
+    expect(csv).toContain("no,no,missing_message|missing_permalink|skipped_missing_permalink|fallback_title");
   });
 
-  it("truncates long bodies with a warning while preserving the Facebook source URL", () => {
+  it("does not articleize long Facebook messages into body_snapshot and warns when summary is truncated", () => {
     const longPost = {
       ...activityPost,
       id: "100063746585360_999",
@@ -148,12 +168,35 @@ describe("Facebook post D1 content transform", () => {
       maxBodyChars: 120,
       status: "published"
     });
-    const csv = createFacebookImportReportCsv(longFixture, rows, { maxBodyChars: 120 });
+    const csv = createFacebookImportReportCsv(longFixture, rows);
 
-    expect(rows[0].body_snapshot).toContain(truncationNotice);
+    expect(rows[0].body_snapshot).toBe(`${minimalFacebookBody}\n\nที่มา: ${longPost.permalink_url}`);
     expect(rows[0].body_snapshot).toContain(longPost.permalink_url);
     expect(rows[0].body_snapshot).not.toContain("ข้อความท้ายที่ไม่ควรอยู่หลังการย่อ");
-    expect(csv).toContain("body_truncated");
+    expect(rows[0].summary.length).toBeLessThanOrEqual(213);
+    expect(csv).toContain("summary_truncated");
+  });
+
+  it("skips rows with missing Facebook permalinks while keeping the report warning", () => {
+    const missingPermalinkFixture = {
+      ...fixture,
+      posts: [
+        {
+          ...activityPost,
+          permalink_url: ""
+        }
+      ]
+    };
+
+    expect(transformFacebookPostsToContentRows(missingPermalinkFixture, { generatedAt, status: "published" })).toEqual(
+      []
+    );
+    expect(createFacebookPostsSql(missingPermalinkFixture, { generatedAt, status: "published" })).not.toContain(
+      "INSERT OR IGNORE INTO contents"
+    );
+    expect(createFacebookImportReportCsv(missingPermalinkFixture)).toContain(
+      "missing_permalink|skipped_missing_permalink"
+    );
   });
 
   it("writes batch SQL part files and a manifest according to batch-size", async () => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildFacebookPostPluginUrl,
   clampFacebookPostPluginWidth,
+  isFacebookUrl,
   isValidFacebookPostUrl,
   normalizeFacebookPostUrl
 } from "./facebookEmbed";
@@ -16,6 +17,9 @@ describe("facebookEmbed", () => {
     );
     expect(normalizeFacebookPostUrl("https://m.facebook.com/story.php?story_fbid=123&id=456")).toBe(
       "https://m.facebook.com/story.php?story_fbid=123&id=456"
+    );
+    expect(normalizeFacebookPostUrl("https://web.facebook.com/rcat/posts/12345")).toBe(
+      "https://web.facebook.com/rcat/posts/12345"
     );
   });
 
@@ -35,6 +39,13 @@ describe("facebookEmbed", () => {
     expect(normalizeFacebookPostUrl("https://www.facebook.com/settings")).toBe("");
     expect(isValidFacebookPostUrl("https://www.facebook.com/rcat/posts/12345")).toBe(true);
     expect(isValidFacebookPostUrl("https://example.com/rcat/posts/12345")).toBe(false);
+  });
+
+  it("identifies safe Facebook URLs even when they are not plugin-compatible post URLs", () => {
+    expect(isFacebookUrl("https://www.facebook.com/settings")).toBe(true);
+    expect(isValidFacebookPostUrl("https://www.facebook.com/settings")).toBe(false);
+    expect(isFacebookUrl("http://www.facebook.com/settings")).toBe(false);
+    expect(isFacebookUrl("https://example.com/settings")).toBe(false);
   });
 
   it("builds an encoded iframe plugin URL from the original post URL", () => {

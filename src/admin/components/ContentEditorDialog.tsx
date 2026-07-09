@@ -29,6 +29,7 @@ import ContentBlockBuilder from "./ContentBlockBuilder";
 import { ContentItem, ContentStatus, ContentType, MediaAsset, MediaType } from "../../types";
 import type { MediaAssetInput } from "../../features/cms-media";
 import { contentStatusLabels, contentTypeLabels, mediaTypeLabels } from "../../utils/thaiLabels";
+import { FACEBOOK_EMBED_LABEL, FACEBOOK_EMBED_TEMPLATE, isFacebookEmbedContent } from "../../utils/facebookContent";
 import {
   ContentBlock,
   createContentBlock,
@@ -42,7 +43,7 @@ import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../ut
 const contentTypes: ContentType[] = ["page", "news", "program", "announcement", "blog"];
 const contentStatuses: ContentStatus[] = ["draft", "review", "scheduled", "published"];
 const mediaTypes: MediaType[] = ["image", "document", "sheet", "video"];
-const contentTemplates = ["standard", "feature", "update"];
+const contentTemplates = ["standard", "feature", "update", FACEBOOK_EMBED_TEMPLATE];
 
 type ContentMetadataPreset = {
   label: string;
@@ -313,6 +314,10 @@ function mediaIcon(type: MediaType) {
   return <InsertDriveFileOutlinedIcon />;
 }
 
+function getContentTemplateLabel(template: string) {
+  return template === FACEBOOK_EMBED_TEMPLATE ? FACEBOOK_EMBED_LABEL : template;
+}
+
 interface ContentEditorDialogProps {
   open: boolean;
   item: ContentItem | null;
@@ -355,6 +360,8 @@ export default function ContentEditorDialog({
     return Array.from(map.values());
   }, [mediaAssets, uploadedAssets]);
   const categorySlugs = useMemo(() => categoryToSlugList(draft.category), [draft.category]);
+  const isDraftFacebookEmbed = isFacebookEmbedContent(draft);
+  const isPendingDraftFacebookEmbed = isFacebookEmbedContent(pendingDraft);
   const metadataPresetGroups = useMemo(
     () => groupMetadataPresets(getAvailableMetadataPresets(draft.type)),
     [draft.type]
@@ -559,7 +566,7 @@ export default function ContentEditorDialog({
     <Dialog open={open} onClose={saving || uploading ? undefined : handleClose} fullWidth maxWidth="lg">
       <form onSubmit={handleSubmit}>
         <DialogTitle>
-          <Typography variant="h2" sx={{ fontSize: "1.45rem" }}>
+          <Typography component="span" variant="h2" sx={{ display: "block", fontSize: "1.45rem" }}>
             {confirming ? confirmTitle : title}
           </Typography>
           {!confirming && (
@@ -578,6 +585,17 @@ export default function ContentEditorDialog({
                 {contentTypeLabels[pendingDraft.type]} / {contentStatusLabels[pendingDraft.status]} /{" "}
                 {pendingDraft.owner}
               </Typography>
+              {isPendingDraftFacebookEmbed && (
+                <Stack spacing={1}>
+                  <Chip label={FACEBOOK_EMBED_LABEL} color="primary" variant="outlined" sx={{ alignSelf: "start" }} />
+                  <Alert severity="info">รายการนี้จะแสดงเป็นโพสต์ Facebook แบบฝังในหน้าเว็บไซต์สาธารณะ</Alert>
+                  {pendingDraft.canonicalUrl ? (
+                    <Typography color="text.secondary">{pendingDraft.canonicalUrl}</Typography>
+                  ) : (
+                    <Alert severity="warning">ยังไม่มี URL หลักสำหรับฝังโพสต์ Facebook</Alert>
+                  )}
+                </Stack>
+              )}
               {!!pendingDraft.category && (
                 <Typography color="text.secondary">หมวดหมู่: {pendingDraft.category}</Typography>
               )}
@@ -619,11 +637,20 @@ export default function ContentEditorDialog({
                   required
                   fullWidth
                 />
-                <ContentBlockBuilder
-                  blocks={bodyBlocks}
-                  mediaAssets={availableMedia}
-                  onChange={handleBodyBlocksChange}
-                />
+                {isDraftFacebookEmbed ? (
+                  <Stack spacing={1}>
+                    <Alert severity="info">รายการนี้จะแสดงเป็นโพสต์ Facebook แบบฝังในหน้าเว็บไซต์สาธารณะ</Alert>
+                    {!draft.canonicalUrl?.trim() && (
+                      <Alert severity="warning">ยังไม่มี URL หลักสำหรับฝังโพสต์ Facebook</Alert>
+                    )}
+                  </Stack>
+                ) : (
+                  <ContentBlockBuilder
+                    blocks={bodyBlocks}
+                    mediaAssets={availableMedia}
+                    onChange={handleBodyBlocksChange}
+                  />
+                )}
                 <TextField
                   label="สรุปย่อ"
                   value={draft.summary}
@@ -816,7 +843,7 @@ export default function ContentEditorDialog({
                   >
                     {contentTemplates.map((template) => (
                       <MenuItem key={template} value={template}>
-                        {template}
+                        {getContentTemplateLabel(template)}
                       </MenuItem>
                     ))}
                   </Select>

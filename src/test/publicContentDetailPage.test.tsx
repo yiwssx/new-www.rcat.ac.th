@@ -9,6 +9,7 @@ const siteViewMocks = vi.hoisted(() => ({
 const routerMocks = vi.hoisted(() => ({
   navigate: vi.fn()
 }));
+const facebookPostUrl = "https://www.facebook.com/100063746585360/posts/111";
 
 let currentSnapshot: CmsSnapshot | undefined;
 let currentDetail: ContentItem | undefined;
@@ -252,5 +253,71 @@ describe("PublicContentDetailPage", () => {
         slug: "news-1"
       })
     );
+  });
+
+  it("renders facebook-embed content as the original Facebook post instead of article body text", () => {
+    window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
+    currentDetail = createContent({
+      type: "news",
+      title: "ข่าวกิจกรรมจาก Facebook",
+      slug: "facebook-news-1",
+      template: "facebook-embed",
+      canonicalUrl: facebookPostUrl,
+      body: "ข้อความโพสต์ Facebook ต้นฉบับที่ไม่ควรถูกแสดงเป็นบทความยาว",
+      category: "กิจกรรม",
+      summary: "สรุปข่าวกิจกรรมจาก Facebook"
+    });
+    currentSnapshot = createSnapshot(currentDetail);
+
+    render(<PublicContentDetailPage slug="facebook-news-1" />);
+
+    const iframe = screen.getByTitle("โพสต์ Facebook: ข่าวกิจกรรมจาก Facebook");
+    const pluginUrl = new URL(iframe.getAttribute("src") || "");
+
+    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
+    expect(pluginUrl.searchParams.get("href")).toBe(facebookPostUrl);
+    expect(screen.getByText("Facebook")).toBeInTheDocument();
+    expect(screen.getByText("กิจกรรม")).toBeInTheDocument();
+    expect(screen.getByText("สรุปข่าวกิจกรรมจาก Facebook")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
+    expect(screen.queryByText("ข้อความโพสต์ Facebook ต้นฉบับที่ไม่ควรถูกแสดงเป็นบทความยาว")).not.toBeInTheDocument();
+  });
+
+  it("renders a Facebook canonical URL as an embed even when template is not set", () => {
+    window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
+    currentDetail = createContent({
+      type: "news",
+      title: "ข่าวจาก canonical URL",
+      slug: "facebook-canonical-news",
+      template: "standard",
+      canonicalUrl: facebookPostUrl,
+      body: "เนื้อหาปกติที่ไม่ควรแสดงเมื่อ canonical URL เป็น Facebook"
+    });
+    currentSnapshot = createSnapshot(currentDetail);
+
+    render(<PublicContentDetailPage slug="facebook-canonical-news" />);
+
+    expect(screen.getByTitle("โพสต์ Facebook: ข่าวจาก canonical URL")).toBeInTheDocument();
+    expect(screen.queryByText("เนื้อหาปกติที่ไม่ควรแสดงเมื่อ canonical URL เป็น Facebook")).not.toBeInTheDocument();
+  });
+
+  it("shows a Facebook embed fallback when imported content is missing canonical_url", () => {
+    window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
+    currentDetail = createContent({
+      type: "news",
+      title: "ข่าว Facebook ไม่มี URL",
+      slug: "facebook-missing-url",
+      template: "facebook-embed",
+      canonicalUrl: "",
+      body: "โพสต์นี้แสดงจาก Facebook ต้นฉบับ\n\nที่มา:",
+      summary: "สรุปข่าว Facebook ไม่มี URL"
+    });
+    currentSnapshot = createSnapshot(currentDetail);
+
+    render(<PublicContentDetailPage slug="facebook-missing-url" />);
+
+    expect(screen.getByText("ไม่สามารถแสดงโพสต์ Facebook แบบฝังได้")).toBeInTheDocument();
+    expect(screen.queryByTitle("โพสต์ Facebook: ข่าว Facebook ไม่มี URL")).not.toBeInTheDocument();
+    expect(screen.getByText("สรุปข่าว Facebook ไม่มี URL")).toBeInTheDocument();
   });
 });
