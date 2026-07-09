@@ -410,13 +410,14 @@ export function createFacebookPostsSql(rawExport, options = {}) {
   const since = createSqlCommentValue(rawExport.since ?? "");
   const until = createSqlCommentValue(rawExport.until ?? "");
   const header = [
+    "-- D1 remote execute compatibility: explicit SQL transaction control statements are intentionally omitted.",
     `-- source page id: ${sourcePageId}`,
     `-- date range: ${since} to ${until}`,
     `-- generated at: ${generatedAt}`,
     `-- total rows: ${rows.length}`,
     ""
   ];
-  const statements = ["BEGIN TRANSACTION;"];
+  const statements = [];
 
   if (rows.length > 0) {
     statements.push(
@@ -427,7 +428,7 @@ export function createFacebookPostsSql(rawExport, options = {}) {
     );
   }
 
-  statements.push("COMMIT;", "");
+  statements.push("");
 
   return [...header, ...statements].join("\n");
 }

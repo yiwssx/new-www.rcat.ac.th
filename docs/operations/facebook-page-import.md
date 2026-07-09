@@ -79,7 +79,7 @@ imports/facebook-news-2023-2026.sql
 imports/facebook-news-2023-2026.report.csv
 ```
 
-The SQL uses `INSERT OR IGNORE` inside a transaction so repeated imports avoid duplicate rows. Review the CSV report before importing.
+The SQL uses `INSERT OR IGNORE` so repeated imports avoid duplicate rows. It intentionally omits explicit transaction statements for Cloudflare D1 remote execute compatibility. Review the CSV report before importing.
 
 ## Preview Import
 

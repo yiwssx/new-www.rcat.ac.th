@@ -65,9 +65,15 @@ describe("Facebook post D1 content transform", () => {
   it("uses duplicate-safe INSERT OR IGNORE statements", () => {
     const sql = createFacebookPostsSql(fixture, { generatedAt, status: "published" });
 
-    expect(sql).toContain("BEGIN TRANSACTION;");
+    expect(sql).toMatch(
+      /^-- D1 remote execute compatibility: explicit SQL transaction control statements are intentionally omitted\./u
+    );
     expect(sql).toContain("INSERT OR IGNORE INTO contents");
-    expect(sql).toContain("COMMIT;");
+    expect(sql).not.toMatch(/^\s*BEGIN\s+TRANSACTION\s*;/imu);
+    expect(sql).not.toMatch(/^\s*COMMIT\s*;/imu);
+    expect(sql).not.toMatch(/^\s*SAVEPOINT\b/imu);
+    expect(sql).not.toMatch(/^\s*RELEASE\b/imu);
+    expect(sql).not.toMatch(/^\s*ROLLBACK\b/imu);
     expect(sql).not.toMatch(/\bDELETE\b/i);
   });
 
