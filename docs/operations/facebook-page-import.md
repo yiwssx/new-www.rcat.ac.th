@@ -76,18 +76,21 @@ This writes:
 
 ```text
 imports/facebook-news-2023-2026.sql
+imports/facebook-news-2023-2026.part-001.sql
+imports/facebook-news-2023-2026.part-002.sql
+imports/facebook-news-2023-2026.manifest.json
 imports/facebook-news-2023-2026.report.csv
 ```
 
-The SQL uses `INSERT OR IGNORE` so repeated imports avoid duplicate rows. It intentionally omits explicit transaction statements for Cloudflare D1 remote execute compatibility. Review the CSV report before importing.
+The SQL uses one `INSERT OR IGNORE` statement per post so repeated imports avoid duplicate rows without creating an oversized D1 remote import statement. It intentionally omits explicit transaction statements and writes batch part files plus a manifest. Review the CSV report before importing.
 
 ## Preview Import
 
 ```bash
-pnpm facebook:import:preview
+pnpm facebook:import:preview:part1
 ```
 
-This imports the generated SQL into the preview D1 database only.
+This imports the first generated SQL part into the preview D1 database only. Continue manually with later `.part-NNN.sql` files after reviewing the manifest and report.
 
 ## Production Backup
 
@@ -102,7 +105,7 @@ pnpm wrangler d1 execute rcat-public-api-production `
   --remote `
   --env production `
   --config cloudflare/public-api/wrangler.toml `
-  --file .\imports\facebook-news-2023-2026.sql
+  --file .\imports\facebook-news-2023-2026.part-001.sql
 ```
 
 ## Troubleshooting

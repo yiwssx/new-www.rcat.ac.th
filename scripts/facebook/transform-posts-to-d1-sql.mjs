@@ -8,7 +8,12 @@ const SOURCE_LABEL = "ที่มา: Facebook วิทยาลัยเก�
 const DEFAULT_STATUS = "published";
 const DEFAULT_CREATED_BY = "facebook-import";
 const DEFAULT_OWNER = "facebook-import";
+const DEFAULT_BATCH_SIZE = 100;
+const DEFAULT_MAX_BODY_CHARS = 12000;
 const BODY_CHARACTERS_PER_MINUTE = 1000;
+const TRUNCATION_NOTICE = "[ข้อความถูกย่อจากโพสต์ต้นทาง โปรดดูฉบับเต็มที่ลิงก์ Facebook]";
+const SQL_COMPAT_COMMENT =
+  "-- D1 remote execute compatibility: explicit SQL transaction control statements are intentionally omitted; one INSERT per post avoids SQLITE_TOOBIG on D1 remote import.";
 
 const CONTENT_COLUMNS = [
   "id",
@@ -117,6 +122,20 @@ function assertStatus(value) {
   }
 }
 
+function normalizePositiveInteger(value, defaultValue, label) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  const parsed = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+
+  return parsed;
+}
+
 function normalizeGeneratedAt(value) {
   if (value instanceof Date) {
     return value.toISOString();
@@ -157,12 +176,19 @@ function sanitizePostId(value) {
   return sanitized;
 }
 
+function stripBase64Data(value) {
+  return value.replace(/data:[^\s,;]+(?:;[^\s,;]+)*;base64,[A-Za-z0-9+/=_-]+/giu, "[base64 data removed]");
+}
+
 function getPostText(post) {
-  return typeof post.message === "string" && post.message.trim() !== ""
-    ? post.message
-    : typeof post.story === "string"
-      ? post.story
-      : "";
+  const text =
+    typeof post.message === "string" && post.message.trim() !== ""
+      ? post.message
+      : typeof post.story === "string"
+        ? post.story
+        : "";
+
+  return stripBase64Data(text);
 }
 
 function stripUrls(value) {
@@ -263,11 +289,52 @@ function createTagsJson(postText, category) {
   return JSON.stringify(Array.from(tags).slice(0, 12));
 }
 
-function createBodySnapshot(postText, sourceUrl) {
+function characterLength(value) {
+  return Array.from(value).length;
+}
+
+function truncateCharacters(value, maxLength) {
+  if (maxLength <= 0) {
+    return "";
+  }
+
+  const characters = Array.from(value);
+
+  if (characters.length <= maxLength) {
+    return value;
+  }
+
+  const clipped = characters.slice(0, maxLength).join("");
+  const lastSpace = clipped.lastIndexOf(" ");
+  const safeClip = lastSpace >= Math.floor(maxLength * 0.65) ? clipped.slice(0, lastSpace) : clipped;
+
+  return safeClip.replace(/[,\s.]+$/u, "");
+}
+
+function isBodyTruncated(postText, maxBodyChars = DEFAULT_MAX_BODY_CHARS) {
+  const normalizedMaxBodyChars = normalizePositiveInteger(maxBodyChars, DEFAULT_MAX_BODY_CHARS, "maxBodyChars");
+
+  return characterLength(postText.trim()) > normalizedMaxBodyChars;
+}
+
+function createBodySnapshot(postText, sourceUrl, maxBodyChars = DEFAULT_MAX_BODY_CHARS) {
+  const normalizedMaxBodyChars = normalizePositiveInteger(maxBodyChars, DEFAULT_MAX_BODY_CHARS, "maxBodyChars");
   const sourceBlock = sourceUrl ? `${SOURCE_LABEL}\n${sourceUrl}` : SOURCE_LABEL;
   const bodyText = postText.trim();
 
-  return bodyText ? `${bodyText}\n\n${sourceBlock}` : sourceBlock;
+  if (!bodyText) {
+    return sourceBlock;
+  }
+
+  if (!isBodyTruncated(bodyText, normalizedMaxBodyChars)) {
+    return `${bodyText}\n\n${sourceBlock}`;
+  }
+
+  const suffix = `\n\n${TRUNCATION_NOTICE}\n\n${sourceBlock}`;
+  const bodyBudget = Math.max(0, normalizedMaxBodyChars - characterLength(suffix));
+  const truncatedBody = truncateCharacters(bodyText, bodyBudget);
+
+  return `${truncatedBody}${suffix}`;
 }
 
 function estimateReadingMinutes(body) {
@@ -296,20 +363,21 @@ function hasPostImage(post) {
   });
 }
 
-function warningForPost(post) {
+function warningForPost(post, options = {}) {
   const warnings = [];
   const postText = getPostText(post);
+  const maxBodyChars = normalizePositiveInteger(options.maxBodyChars, DEFAULT_MAX_BODY_CHARS, "maxBodyChars");
 
-  if (meaningfulCharacterCount(cleanTextForTitle(postText)) < 8) {
-    warnings.push("short_or_missing_message");
+  if (postText.trim() === "") {
+    warnings.push("missing_message");
   }
 
   if (typeof post.permalink_url !== "string" || post.permalink_url.trim() === "") {
-    warnings.push("missing_permalink_url");
+    warnings.push("missing_permalink");
   }
 
-  if (typeof post.created_time !== "string" || post.created_time.trim() === "") {
-    warnings.push("missing_created_time");
+  if (isBodyTruncated(postText, maxBodyChars)) {
+    warnings.push("body_truncated");
   }
 
   return warnings.join("|");
@@ -319,6 +387,7 @@ export function transformFacebookPostToContentRow(post, options = {}) {
   const generatedAt = normalizeGeneratedAt(options.generatedAt);
   const status = options.status ?? DEFAULT_STATUS;
   const createdBy = options.createdBy ?? DEFAULT_CREATED_BY;
+  const maxBodyChars = normalizePositiveInteger(options.maxBodyChars, DEFAULT_MAX_BODY_CHARS, "maxBodyChars");
 
   assertStatus(status);
 
@@ -329,7 +398,7 @@ export function transformFacebookPostToContentRow(post, options = {}) {
   const publishAt = normalizeFacebookTimestamp(post.created_time, generatedAt);
   const title = createTitle(postText);
   const summary = createSummary(postText);
-  const bodySnapshot = createBodySnapshot(postText, sourceUrl);
+  const bodySnapshot = createBodySnapshot(postText, sourceUrl, maxBodyChars);
   const category = classifyCategory(postText);
 
   return {
@@ -403,34 +472,115 @@ function createSqlCommentValue(value) {
     .trim();
 }
 
-export function createFacebookPostsSql(rawExport, options = {}) {
-  const generatedAt = normalizeGeneratedAt(options.generatedAt ?? rawExport?.generatedAt);
-  const rows = transformFacebookPostsToContentRows(rawExport, { ...options, generatedAt });
+function createSqlHeader(rawExport, rows, generatedAt, options = {}) {
   const sourcePageId = createSqlCommentValue(rawExport.pageId ?? options.pageId ?? "");
   const since = createSqlCommentValue(rawExport.since ?? "");
   const until = createSqlCommentValue(rawExport.until ?? "");
   const header = [
-    "-- D1 remote execute compatibility: explicit SQL transaction control statements are intentionally omitted.",
+    SQL_COMPAT_COMMENT,
     `-- source page id: ${sourcePageId}`,
     `-- date range: ${since} to ${until}`,
     `-- generated at: ${generatedAt}`,
-    `-- total rows: ${rows.length}`,
-    ""
+    `-- total rows: ${rows.length}`
   ];
+
+  if (options.batchIndex !== undefined && options.batchTotal !== undefined) {
+    header.push(`-- batch: ${options.batchIndex} of ${options.batchTotal}`, `-- batch rows: ${rows.length}`);
+  }
+
+  header.push("");
+
+  return header;
+}
+
+function createInsertStatement(row) {
+  return `INSERT OR IGNORE INTO contents (${CONTENT_COLUMNS.join(", ")}) VALUES (${CONTENT_COLUMNS.map((column) => toSqlLiteral(row[column])).join(", ")});`;
+}
+
+function createFacebookPostsSqlFromRows(rawExport, rows, generatedAt, options = {}) {
+  const header = createSqlHeader(rawExport, rows, generatedAt, options);
   const statements = [];
 
-  if (rows.length > 0) {
-    statements.push(
-      `INSERT OR IGNORE INTO contents (${CONTENT_COLUMNS.join(", ")}) VALUES`,
-      `${rows
-        .map((row) => `  (${CONTENT_COLUMNS.map((column) => toSqlLiteral(row[column])).join(", ")})`)
-        .join(",\n")};`
-    );
-  }
+  rows.forEach((row) => {
+    statements.push(createInsertStatement(row));
+  });
 
   statements.push("");
 
   return [...header, ...statements].join("\n");
+}
+
+export function createFacebookPostsSql(rawExport, options = {}) {
+  const generatedAt = normalizeGeneratedAt(options.generatedAt ?? rawExport?.generatedAt);
+  const rows = transformFacebookPostsToContentRows(rawExport, { ...options, generatedAt });
+
+  return createFacebookPostsSqlFromRows(rawExport, rows, generatedAt, options);
+}
+
+function partOutputPath(outputPath, index) {
+  const parsed = path.parse(outputPath);
+  const partNumber = String(index + 1).padStart(3, "0");
+
+  return path.join(parsed.dir, `${parsed.name}.part-${partNumber}.sql`);
+}
+
+function manifestOutputPath(outputPath) {
+  const parsed = path.parse(outputPath);
+
+  return path.join(parsed.dir, `${parsed.name}.manifest.json`);
+}
+
+function toManifestPath(filePath) {
+  return filePath.replaceAll("\\", "/");
+}
+
+function chunkRows(rows, batchSize) {
+  const chunks = [];
+
+  for (let index = 0; index < rows.length; index += batchSize) {
+    chunks.push(rows.slice(index, index + batchSize));
+  }
+
+  return chunks;
+}
+
+export function createFacebookPostsSqlArtifacts(rawExport, options = {}) {
+  const outputPath = requireString(options.outputPath, "outputPath");
+  const inputPath = options.inputPath ?? "";
+  const generatedAt = normalizeGeneratedAt(options.generatedAt ?? rawExport?.generatedAt);
+  const batchSize = normalizePositiveInteger(options.batchSize, DEFAULT_BATCH_SIZE, "batchSize");
+  const rows = transformFacebookPostsToContentRows(rawExport, { ...options, generatedAt });
+  const rowBatches = chunkRows(rows, batchSize);
+  const files = rowBatches.map((batchRows, index) => {
+    const filePath = partOutputPath(outputPath, index);
+
+    return {
+      path: filePath,
+      rows: batchRows.length,
+      sql: createFacebookPostsSqlFromRows(rawExport, batchRows, generatedAt, {
+        ...options,
+        batchIndex: index + 1,
+        batchTotal: rowBatches.length
+      })
+    };
+  });
+
+  return {
+    sql: createFacebookPostsSqlFromRows(rawExport, rows, generatedAt, options),
+    rows,
+    files,
+    manifestPath: manifestOutputPath(outputPath),
+    manifest: {
+      generatedAt,
+      input: toManifestPath(inputPath),
+      totalRows: rows.length,
+      batchSize,
+      files: files.map((file) => ({
+        path: toManifestPath(file.path),
+        rows: file.rows
+      }))
+    }
+  };
 }
 
 function csvValue(value) {
@@ -443,8 +593,9 @@ function csvValue(value) {
   return text;
 }
 
-export function createFacebookImportReportCsv(rawExport, rows = transformFacebookPostsToContentRows(rawExport)) {
-  const rowBySourceId = new Map(rows.map((row) => [row.id.replace(/^facebook-post-/u, ""), row]));
+export function createFacebookImportReportCsv(rawExport, rows, options = {}) {
+  const resolvedRows = rows ?? transformFacebookPostsToContentRows(rawExport, options);
+  const rowBySourceId = new Map(resolvedRows.map((row) => [row.id.replace(/^facebook-post-/u, ""), row]));
   const lines = ["source_id,publish_at,title,category,status,slug,source_url,has_message,has_image,warning"];
 
   rawExport.posts.forEach((post) => {
@@ -463,7 +614,7 @@ export function createFacebookImportReportCsv(rawExport, rows = transformFaceboo
         post.permalink_url ?? "",
         postText.trim() ? "yes" : "no",
         hasPostImage(post) ? "yes" : "no",
-        warningForPost(post)
+        warningForPost(post, options)
       ]
         .map(csvValue)
         .join(",")
@@ -495,17 +646,30 @@ async function runCli() {
   const status = args.status ?? DEFAULT_STATUS;
   const createdBy = args["created-by"] ?? DEFAULT_CREATED_BY;
   const reportOutputPath = args["report-output"] ?? defaultReportPath(outputPath);
+  const batchSize = normalizePositiveInteger(args["batch-size"], DEFAULT_BATCH_SIZE, "--batch-size");
+  const maxBodyChars = normalizePositiveInteger(args["max-body-chars"], DEFAULT_MAX_BODY_CHARS, "--max-body-chars");
 
   assertStatus(status);
 
   const rawExport = await readJson(inputPath);
   const generatedAt = new Date().toISOString();
-  const rows = transformFacebookPostsToContentRows(rawExport, { generatedAt, status, createdBy });
+  const artifacts = createFacebookPostsSqlArtifacts(rawExport, {
+    batchSize,
+    createdBy,
+    generatedAt,
+    inputPath,
+    maxBodyChars,
+    outputPath,
+    status
+  });
 
-  await writeTextFile(outputPath, createFacebookPostsSql(rawExport, { generatedAt, status, createdBy }));
-  await writeTextFile(reportOutputPath, createFacebookImportReportCsv(rawExport, rows));
+  await writeTextFile(outputPath, artifacts.sql);
+  await Promise.all(artifacts.files.map((file) => writeTextFile(file.path, file.sql)));
+  await writeTextFile(artifacts.manifestPath, `${JSON.stringify(artifacts.manifest, null, 2)}\n`);
+  await writeTextFile(reportOutputPath, createFacebookImportReportCsv(rawExport, artifacts.rows, { maxBodyChars }));
 
-  console.log(`Generated ${rows.length} SQL row(s): ${outputPath}`);
+  console.log(`Generated ${artifacts.rows.length} SQL row(s): ${outputPath}`);
+  console.log(`Generated ${artifacts.files.length} SQL batch file(s): ${artifacts.manifestPath}`);
   console.log(`Generated import report: ${reportOutputPath}`);
 }
 
