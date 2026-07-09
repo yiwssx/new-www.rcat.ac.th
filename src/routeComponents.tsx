@@ -19,6 +19,7 @@ export const LoginPage = lazy(() => import("./admin/pages/LoginPage"));
 export const MediaPage = lazy(() => import("./admin/pages/MediaPage"));
 export const MenuPage = lazy(() => import("./admin/pages/MenuPage"));
 export const NotFoundPage = lazy(() => import("./shared/pages/NotFoundPage"));
+export const PublicAchievementsPage = lazy(() => import("./public/pages/PublicAchievementsPage"));
 export const PublicAnnouncementsPage = lazy(() => import("./public/pages/PublicAnnouncementsPage"));
 export const PublicBlogPage = lazy(() => import("./public/pages/PublicBlogPage"));
 export const PublicCalendarPage = lazy(() => import("./public/pages/PublicCalendarPage"));

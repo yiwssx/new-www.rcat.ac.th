@@ -1,11 +1,15 @@
 import { mapContentRowToPublicContentItem } from "./publicContentAdapter";
 import { mapDocumentRowToPublicDocumentItem } from "./publicDocumentsAdapter";
 import { filterPublicMedia } from "./publicMetadataAdapter";
+import type { PublicContentItemContract } from "../contracts/publicContent";
 import type { PublicHomeSectionContract, PublicHomeSnapshotContract } from "../contracts/publicHome";
 import type { PublicMetadataContract } from "../contracts/publicMetadata";
 import type { PublicVisitorStatsSnapshotContract } from "../contracts/publicVisitorStats";
 import type { PublicContentReadRow } from "../db/contentRepository";
 import type { DocumentRow, PublicHomeSectionRow } from "../db/schema";
+
+const HOME_ACHIEVEMENT_LIMIT = 6;
+const ACHIEVEMENT_PATTERN = /achievement|award|รางวัล|ผลงาน|ความสำเร็จ|ความภาคภูมิใจ|ชนะเลิศ|รองชนะเลิศ|เหรียญ/i;
 
 function normalizePublicOrder(value: number) {
   if (!Number.isFinite(value)) {
@@ -13,6 +17,21 @@ function normalizePublicOrder(value: number) {
   }
 
   return Math.max(0, Math.floor(value));
+}
+
+function compareContentPublishAtDesc(left: PublicContentItemContract, right: PublicContentItemContract) {
+  const leftTime = Date.parse(left.publishAt);
+  const rightTime = Date.parse(right.publishAt);
+
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+    return rightTime - leftTime;
+  }
+
+  return String(right.publishAt || "").localeCompare(String(left.publishAt || "")) || right.id.localeCompare(left.id);
+}
+
+function isAchievementItem(item: PublicContentItemContract) {
+  return ACHIEVEMENT_PATTERN.test([item.title, item.summary, item.category, ...item.tags].join(" "));
 }
 
 export function mapHomeSectionRowToPublicHomeSection(row: PublicHomeSectionRow): PublicHomeSectionContract {
@@ -42,6 +61,10 @@ export function createPublicHomeSnapshot(
   const latestAnnouncements = content.filter((item) => item.type === "announcement").slice(0, 8);
   const programs = content.filter((item) => item.type === "program").slice(0, 8);
   const featuredContent = content.filter((item) => item.type !== "program" && item.featured).slice(0, 6);
+  const achievementItems = content
+    .filter(isAchievementItem)
+    .sort(compareContentPublishAtDesc)
+    .slice(0, HOME_ACHIEVEMENT_LIMIT);
   const publicDocuments = input.featuredDocuments.map(mapDocumentRowToPublicDocumentItem);
   const homeContent = [...latestNews, ...latestAnnouncements, ...programs, ...featuredContent];
 
@@ -65,11 +88,7 @@ export function createPublicHomeSnapshot(
         [item.title, item.summary, item.category, ...item.tags].join(" ")
       )
     ),
-    achievementItems: content.filter((item) =>
-      /achievement|award|รางวัล|ผลงาน|ความสำเร็จ/i.test(
-        [item.title, item.summary, item.category, ...item.tags].join(" ")
-      )
-    ),
+    achievementItems,
     programItems: programs,
     documentItems: publicDocuments,
     eventItems: input.metadata.events,

@@ -7,9 +7,13 @@ import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
+import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicContentList } from "../hooks/usePublicContentList";
+import { usePublicPagination } from "../hooks/usePublicPagination";
 import { normalizeSafeHref } from "../../utils/safeUrl";
+
+const NEWS_PAGE_SIZE = 12;
 
 function readSearchParam(name: string) {
   if (typeof window === "undefined") {
@@ -44,6 +48,11 @@ export default function PublicNewsPage() {
   );
 
   const [featuredItem, ...secondaryItems] = filteredNewsItems;
+  const newsPagination = usePublicPagination(secondaryItems, {
+    pageSize: NEWS_PAGE_SIZE,
+    resetKeys: [activeTag, activeCategory],
+    scrollTargetId: "news-list-heading"
+  });
 
   if (!data && (isLoading || isFetching)) {
     return (
@@ -90,7 +99,7 @@ export default function PublicNewsPage() {
           featured
         />
       )}
-      <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
+      <Stack id="news-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
         <ArticleOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           ข่าวทั้งหมด
@@ -106,12 +115,21 @@ export default function PublicNewsPage() {
         </Stack>
       )}
       <Grid container spacing={2.5}>
-        {secondaryItems.map((item) => (
+        {newsPagination.paginatedItems.map((item) => (
           <Grid size={{ xs: 12, md: 6 }} key={item.id}>
             <PublicContentCard item={item} mediaAssets={mediaAssets} />
           </Grid>
         ))}
       </Grid>
+      {secondaryItems.length > 0 && (
+        <PublicPagination
+          page={newsPagination.page}
+          pageCount={newsPagination.pageCount}
+          pageSize={newsPagination.pageSize}
+          totalItems={newsPagination.totalItems}
+          onPageChange={(nextPage) => newsPagination.setPage(nextPage, { scroll: true })}
+        />
+      )}
       {!filteredNewsItems.length && (
         <EmptyState
           title={hasActiveFilter ? "ไม่พบข่าวตามตัวกรองที่เลือก" : "ยังไม่มีข่าวที่เผยแพร่"}

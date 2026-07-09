@@ -4,9 +4,13 @@ import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlin
 import type { CalendarEvent } from "../../types";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
+import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { EventListCard } from "../components/home/EventListCard";
+import { usePublicPagination } from "../hooks/usePublicPagination";
 import { usePublicEventList } from "../hooks/usePublicEventList";
+
+const CALENDAR_PAGE_SIZE = 12;
 
 function compareEventDate(left: CalendarEvent, right: CalendarEvent) {
   const leftTime = Date.parse(left.date);
@@ -31,6 +35,10 @@ export default function PublicCalendarPage() {
     () => [...(data?.items ?? [])].filter(isPublicConfirmedEvent).sort(compareEventDate),
     [data?.items]
   );
+  const eventsPagination = usePublicPagination(events, {
+    pageSize: CALENDAR_PAGE_SIZE,
+    scrollTargetId: "calendar-list-heading"
+  });
 
   if (!data && (isLoading || isFetching)) {
     return (
@@ -68,13 +76,22 @@ export default function PublicCalendarPage() {
       canonicalPath="/calendar"
     >
       {isFetching && <LinearProgress sx={{ mb: 3 }} />}
-      <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
+      <Stack id="calendar-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <EventAvailableOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           กำหนดการทั้งหมด
         </Typography>
       </Stack>
-      <EventListCard items={events} emptyTitle="ยังไม่มีกำหนดการเผยแพร่" />
+      <EventListCard items={eventsPagination.paginatedItems} emptyTitle="ยังไม่มีกำหนดการเผยแพร่" />
+      {events.length > 0 && (
+        <PublicPagination
+          page={eventsPagination.page}
+          pageCount={eventsPagination.pageCount}
+          pageSize={eventsPagination.pageSize}
+          totalItems={eventsPagination.totalItems}
+          onPageChange={(nextPage) => eventsPagination.setPage(nextPage, { scroll: true })}
+        />
+      )}
     </PublicSiteShell>
   );
 }

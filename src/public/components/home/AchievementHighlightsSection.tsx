@@ -1,6 +1,7 @@
-import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { alpha } from "@mui/material/styles";
+import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
@@ -45,7 +46,42 @@ function getAchievementCategory(item: ContentItem) {
   return item.category || item.tags?.[0] || "ผลงาน";
 }
 
-export function AchievementHighlightsSection({ items }: { items: ContentItem[] }) {
+function compareContentPublishAtDesc(left: ContentItem, right: ContentItem) {
+  const leftTime = Date.parse(left.publishAt);
+  const rightTime = Date.parse(right.publishAt);
+
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+    return rightTime - leftTime;
+  }
+
+  return String(right.publishAt || "").localeCompare(String(left.publishAt || "")) || right.id.localeCompare(left.id);
+}
+
+function getVisibleItems(items: ContentItem[], limit: number | undefined) {
+  const sortedItems = [...items].sort(compareContentPublishAtDesc);
+
+  if (limit === undefined) {
+    return sortedItems;
+  }
+
+  return sortedItems.slice(0, Math.max(0, Math.floor(limit)));
+}
+
+interface AchievementHighlightsSectionProps {
+  items: ContentItem[];
+  limit?: number;
+  viewAllHref?: string;
+  viewAllLabel?: string;
+}
+
+export function AchievementHighlightsSection({
+  items,
+  limit = 6,
+  viewAllHref,
+  viewAllLabel = "ดูผลงานทั้งหมด"
+}: AchievementHighlightsSectionProps) {
+  const visibleItems = getVisibleItems(items, limit);
+
   if (items.length === 0) {
     return null;
   }
@@ -58,7 +94,7 @@ export function AchievementHighlightsSection({ items }: { items: ContentItem[] }
         description="รวมผลงานเด่น รางวัล และความภาคภูมิใจของนักเรียนนักศึกษา ครู บุคลากร และสถานศึกษา"
       />
       <Grid container spacing={2.5}>
-        {items.map((item) => {
+        {visibleItems.map((item) => {
           const thaiYear = getThaiYear(item.publishAt);
           const href = normalizeSafeHref(`/content/${item.slug}`);
 
@@ -135,6 +171,13 @@ export function AchievementHighlightsSection({ items }: { items: ContentItem[] }
           );
         })}
       </Grid>
+      {viewAllHref && (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 2.5 }}>
+          <Button href={normalizeSafeHref(viewAllHref)} endIcon={<ArrowForwardOutlinedIcon />}>
+            {viewAllLabel}
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 }

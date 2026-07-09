@@ -6,8 +6,12 @@ import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
+import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicContentList } from "../hooks/usePublicContentList";
+import { usePublicPagination } from "../hooks/usePublicPagination";
+
+const BLOG_PAGE_SIZE = 12;
 
 export default function PublicBlogPage() {
   const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("blog");
@@ -15,6 +19,10 @@ export default function PublicBlogPage() {
   const mediaAssets = data?.media ?? [];
 
   const [featuredItem, ...secondaryItems] = blogItems;
+  const blogPagination = usePublicPagination(secondaryItems, {
+    pageSize: BLOG_PAGE_SIZE,
+    scrollTargetId: "blog-list-heading"
+  });
 
   if (!data && (isLoading || isFetching)) {
     return (
@@ -64,14 +72,14 @@ export default function PublicBlogPage() {
       {!blogItems.length && <EmptyState title="ยังไม่มีบทความที่เผยแพร่" icon={<EditNoteOutlinedIcon />} />}
       {!!secondaryItems.length && (
         <>
-          <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
+          <Stack id="blog-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
             <EditNoteOutlinedIcon color="primary" />
             <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
               บทความล่าสุด
             </Typography>
           </Stack>
           <Grid container spacing={2.5}>
-            {secondaryItems.map((item) => (
+            {blogPagination.paginatedItems.map((item) => (
               <Grid size={{ xs: 12, md: 6 }} key={item.id}>
                 <PublicContentCard
                   item={item}
@@ -81,6 +89,13 @@ export default function PublicBlogPage() {
               </Grid>
             ))}
           </Grid>
+          <PublicPagination
+            page={blogPagination.page}
+            pageCount={blogPagination.pageCount}
+            pageSize={blogPagination.pageSize}
+            totalItems={blogPagination.totalItems}
+            onPageChange={(nextPage) => blogPagination.setPage(nextPage, { scroll: true })}
+          />
         </>
       )}
     </PublicSiteShell>

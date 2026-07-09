@@ -5,8 +5,12 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import { DocumentListCard } from "../../features/public-documents";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
+import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicDocumentList } from "../hooks/usePublicDocumentList";
+import { usePublicPagination } from "../hooks/usePublicPagination";
+
+const DOCUMENTS_PAGE_SIZE = 15;
 
 function normalizeText(value: string) {
   return value.trim().toLocaleLowerCase("th-TH");
@@ -35,6 +39,11 @@ export default function PublicDocumentsPage() {
     [categoryFilter, documents, normalizedSearch]
   );
   const hasActiveFilter = Boolean(normalizedSearch || categoryFilter);
+  const documentsPagination = usePublicPagination(filteredDocuments, {
+    pageSize: DOCUMENTS_PAGE_SIZE,
+    resetKeys: [normalizedSearch, categoryFilter],
+    scrollTargetId: "documents-list-heading"
+  });
 
   if (!data && (isLoading || isFetching)) {
     return (
@@ -72,7 +81,7 @@ export default function PublicDocumentsPage() {
       canonicalPath="/documents"
     >
       {isFetching && <LinearProgress sx={{ mb: 3 }} />}
-      <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
+      <Stack id="documents-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <DescriptionOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           เอกสารทั้งหมด
@@ -122,10 +131,19 @@ export default function PublicDocumentsPage() {
       </Stack>
       <Box sx={{ mt: 2.5 }}>
         <DocumentListCard
-          items={filteredDocuments}
+          items={documentsPagination.paginatedItems}
           emptyTitle={hasActiveFilter ? "ไม่พบเอกสารตามคำค้นหาหรือตัวกรองที่เลือก" : "ยังไม่มีเอกสารเผยแพร่"}
         />
       </Box>
+      {filteredDocuments.length > 0 && (
+        <PublicPagination
+          page={documentsPagination.page}
+          pageCount={documentsPagination.pageCount}
+          pageSize={documentsPagination.pageSize}
+          totalItems={documentsPagination.totalItems}
+          onPageChange={(nextPage) => documentsPagination.setPage(nextPage, { scroll: true })}
+        />
+      )}
     </PublicSiteShell>
   );
 }

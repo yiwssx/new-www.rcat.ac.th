@@ -327,6 +327,38 @@ describe("M17 Cloudflare Core public read routes", () => {
     expect(payload.featuredContent).toEqual([]);
   });
 
+  it("limits public home achievements to the latest six items", async () => {
+    const achievementRows = Array.from({ length: 8 }, (_, index) => {
+      const number = index + 1;
+      const day = String(number).padStart(2, "0");
+
+      return {
+        ...sampleContentRows[0],
+        id: `sample-achievement-${number}`,
+        slug: `sample-achievement-${number}`,
+        title: `Achievement ${number}`,
+        summary: "Award achievement",
+        category: "award",
+        publish_at: `2026-05-${day}T00:00:00.000Z`,
+        updated_at: `2026-05-${day}T00:00:00.000Z`,
+        featured: 0
+      };
+    }).reverse();
+    const { env } = createPublicReadMockDb({ contentRows: achievementRows });
+    const response = await worker.fetch(new Request("https://public-api.example.test/api/public/home"), env);
+    const { payload } = await readTextAndJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.achievementItems).toEqual(
+      [8, 7, 6, 5, 4, 3].map((number) =>
+        expect.objectContaining({
+          id: `sample-achievement-${number}`,
+          title: `Achievement ${number}`
+        })
+      )
+    );
+  });
+
   it("returns a public content list response instead of the M17 skeleton", async () => {
     const { env } = createPublicReadMockDb();
     const response = await worker.fetch(new Request("https://public-api.example.test/api/public/content"), env);

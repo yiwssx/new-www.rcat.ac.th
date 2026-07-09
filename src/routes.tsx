@@ -13,6 +13,7 @@ import {
   MenuPage,
   NotFoundPage,
   ProtectedLayout,
+  PublicAchievementsPage,
   PublicAnnouncementsPage,
   PublicBlogPage,
   PublicCalendarPage,
@@ -61,6 +62,12 @@ const publicAnnouncementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "announcements",
   component: PublicAnnouncementsPage
+});
+
+const publicAchievementsRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "achievements",
+  component: PublicAchievementsPage
 });
 
 const publicBlogRoute = createRoute({
@@ -195,6 +202,7 @@ const routeTree = rootRoute.addChildren([
     publicDepartmentsRoute,
     publicNewsRoute,
     publicAnnouncementsRoute,
+    publicAchievementsRoute,
     publicBlogRoute,
     publicDocumentsRoute,
     publicCalendarRoute,

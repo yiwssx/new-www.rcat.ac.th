@@ -7,9 +7,14 @@ import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
+import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicContentList } from "../hooks/usePublicContentList";
+import { usePublicPagination } from "../hooks/usePublicPagination";
 import { normalizeSafeHref } from "../../utils/safeUrl";
+
+const ANNOUNCEMENTS_PAGE_SIZE = 12;
+const PUBLIC_PAGES_PAGE_SIZE = 12;
 
 function readSearchParam(name: string) {
   if (typeof window === "undefined") {
@@ -43,6 +48,17 @@ export default function PublicAnnouncementsPage() {
       }),
     [activeCategory, activeTag, announcementItems]
   );
+  const announcementsPagination = usePublicPagination(filteredAnnouncementItems, {
+    pageSize: ANNOUNCEMENTS_PAGE_SIZE,
+    queryParam: "announcementsPage",
+    resetKeys: [activeTag, activeCategory],
+    scrollTargetId: "announcements-list-heading"
+  });
+  const pagesPagination = usePublicPagination(pageItems, {
+    pageSize: PUBLIC_PAGES_PAGE_SIZE,
+    queryParam: "pagesPage",
+    scrollTargetId: "public-pages-list-heading"
+  });
 
   if (!data && (isLoading || isFetching)) {
     return (
@@ -81,7 +97,7 @@ export default function PublicAnnouncementsPage() {
       preloadedMenu={data.menu}
     >
       {isFetching && <LinearProgress sx={{ mb: 3 }} />}
-      <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
+      <Stack id="announcements-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <CampaignOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           ประกาศราชการ
@@ -97,7 +113,7 @@ export default function PublicAnnouncementsPage() {
         </Stack>
       )}
       <Grid container spacing={2.5}>
-        {filteredAnnouncementItems.map((item) => (
+        {announcementsPagination.paginatedItems.map((item) => (
           <Grid size={{ xs: 12, md: 6 }} key={item.id}>
             <PublicContentCard
               item={item}
@@ -107,6 +123,15 @@ export default function PublicAnnouncementsPage() {
           </Grid>
         ))}
       </Grid>
+      {filteredAnnouncementItems.length > 0 && (
+        <PublicPagination
+          page={announcementsPagination.page}
+          pageCount={announcementsPagination.pageCount}
+          pageSize={announcementsPagination.pageSize}
+          totalItems={announcementsPagination.totalItems}
+          onPageChange={(nextPage) => announcementsPagination.setPage(nextPage, { scroll: true })}
+        />
+      )}
       {!filteredAnnouncementItems.length && (
         <EmptyState
           title={hasActiveFilter ? "ไม่พบประกาศตามตัวกรองที่เลือก" : "ยังไม่มีประกาศที่เผยแพร่"}
@@ -114,14 +139,14 @@ export default function PublicAnnouncementsPage() {
         />
       )}
 
-      <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
+      <Stack id="public-pages-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
         <DescriptionOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           หน้าข้อมูลสาธารณะ
         </Typography>
       </Stack>
       <Grid container spacing={2.5}>
-        {pageItems.map((item) => (
+        {pagesPagination.paginatedItems.map((item) => (
           <Grid size={{ xs: 12, md: 6 }} key={item.id}>
             <PublicContentCard
               item={item}
@@ -131,6 +156,15 @@ export default function PublicAnnouncementsPage() {
           </Grid>
         ))}
       </Grid>
+      {pageItems.length > 0 && (
+        <PublicPagination
+          page={pagesPagination.page}
+          pageCount={pagesPagination.pageCount}
+          pageSize={pagesPagination.pageSize}
+          totalItems={pagesPagination.totalItems}
+          onPageChange={(nextPage) => pagesPagination.setPage(nextPage, { scroll: true })}
+        />
+      )}
       {!pageItems.length && <EmptyState title="ยังไม่มีเอกสารเผยแพร่" icon={<DescriptionOutlinedIcon />} />}
     </PublicSiteShell>
   );

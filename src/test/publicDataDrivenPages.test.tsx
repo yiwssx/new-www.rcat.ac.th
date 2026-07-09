@@ -2,25 +2,33 @@ import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicSiteShell from "../public/components/PublicSiteShell";
+import PublicAchievementsPage from "../public/pages/PublicAchievementsPage";
 import PublicAnnouncementsPage from "../public/pages/PublicAnnouncementsPage";
 import PublicCalendarPage from "../public/pages/PublicCalendarPage";
 import PublicDepartmentsPage from "../public/pages/PublicDepartmentsPage";
 import PublicDocumentsPage from "../public/pages/PublicDocumentsPage";
 import PublicHomePage from "../public/pages/PublicHomePage";
+import PublicNewsPage from "../public/pages/PublicNewsPage";
+import PublicSearchPage from "../public/pages/PublicSearchPage";
 import { projectSettings } from "../config/projectSettings";
 import { defaultSiteSettings } from "../services/siteSettings";
 import {
   CmsSnapshot,
+  CalendarEvent,
+  ContentItem,
   PublicContentListSnapshot,
   PublicDocumentListSnapshot,
+  PublicDocumentItem,
   PublicEventListSnapshot,
   PublicHomeSnapshot,
-  PublicProgramListSnapshot
+  PublicProgramListSnapshot,
+  PublicSearchIndexSnapshot
 } from "../types";
 
 const usePublicCmsSnapshotMock = vi.hoisted(() => vi.fn());
 const routerMocks = vi.hoisted(() => ({
-  navigate: vi.fn()
+  navigate: vi.fn(),
+  search: {} as Record<string, unknown>
 }));
 
 let currentSnapshot: CmsSnapshot | undefined;
@@ -29,6 +37,7 @@ let currentContentListSnapshot: PublicContentListSnapshot | undefined;
 let currentProgramListSnapshot: PublicProgramListSnapshot | undefined;
 let currentDocumentListSnapshot: PublicDocumentListSnapshot | undefined;
 let currentEventListSnapshot: PublicEventListSnapshot | undefined;
+let currentSearchIndexSnapshot: PublicSearchIndexSnapshot | undefined;
 let currentQueryState = {
   isLoading: false,
   isFetching: false,
@@ -65,6 +74,12 @@ let currentEventListQueryState = {
   isError: false,
   refetch: vi.fn()
 };
+let currentSearchIndexQueryState = {
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  refetch: vi.fn()
+};
 
 vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
   usePublicCmsSnapshot: (options?: { enabled?: boolean }) => {
@@ -79,7 +94,16 @@ vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-router")>()),
-  useNavigate: () => routerMocks.navigate
+  useNavigate: () => routerMocks.navigate,
+  useRouterState: (options?: { select?: (state: { location: { search: Record<string, unknown> } }) => unknown }) => {
+    const state = {
+      location: {
+        search: routerMocks.search
+      }
+    };
+
+    return options?.select ? options.select(state) : state;
+  }
 }));
 
 vi.mock("../public/hooks/usePublicHomeSnapshot", () => ({
@@ -121,6 +145,13 @@ vi.mock("../public/hooks/usePublicEventList", () => ({
   })
 }));
 
+vi.mock("../public/hooks/usePublicSearchIndex", () => ({
+  usePublicSearchIndex: () => ({
+    data: currentSearchIndexSnapshot,
+    ...currentSearchIndexQueryState
+  })
+}));
+
 function createSnapshot(overrides: Partial<CmsSnapshot> = {}): CmsSnapshot {
   return {
     metrics: [],
@@ -155,6 +186,23 @@ function createSnapshot(overrides: Partial<CmsSnapshot> = {}): CmsSnapshot {
       footerTitle: "CMS public site",
       footerDescription: ""
     },
+    ...overrides
+  };
+}
+
+function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
+  return {
+    id: "content-1",
+    title: "Published content",
+    slug: "published-content",
+    type: "news",
+    status: "published",
+    owner: "Admin",
+    summary: "Published content summary",
+    category: "ทั่วไป",
+    tags: [],
+    updatedAt: "2026-05-03T00:00:00.000Z",
+    publishAt: "2026-05-03T00:00:00.000Z",
     ...overrides
   };
 }
@@ -267,14 +315,102 @@ function createEventListSnapshot(overrides: Partial<PublicEventListSnapshot> = {
   };
 }
 
+function createSearchIndexSnapshot(overrides: Partial<PublicSearchIndexSnapshot> = {}): PublicSearchIndexSnapshot {
+  const snapshot = createSnapshot();
+
+  return {
+    items: [],
+    siteSettings: snapshot.siteSettings!,
+    homepageSettings: createHomeSnapshot().homepageSettings,
+    displaySettings: snapshot.displaySettings,
+    menu: snapshot.menu ?? [],
+    generatedAt: "2026-05-12T00:00:00.000Z",
+    ...overrides
+  };
+}
+
+function createNumberedContentItems({
+  count,
+  prefix,
+  titlePrefix,
+  type = "news",
+  category = "ทั่วไป",
+  tags = [],
+  summary = "Published content summary"
+}: {
+  count: number;
+  prefix: string;
+  titlePrefix: string;
+  type?: ContentItem["type"];
+  category?: string;
+  tags?: string[];
+  summary?: string;
+}) {
+  return Array.from({ length: count }, (_, index) => {
+    const number = index + 1;
+    const day = String(number).padStart(2, "0");
+
+    return createContentItem({
+      id: `${prefix}-${number}`,
+      title: `${titlePrefix} ${number}`,
+      slug: `${prefix}-${number}`,
+      type,
+      category,
+      tags,
+      summary,
+      publishAt: `2026-05-${day}T00:00:00.000Z`,
+      updatedAt: `2026-05-${day}T00:00:00.000Z`
+    });
+  });
+}
+
+function createNumberedDocuments(count: number): PublicDocumentItem[] {
+  return Array.from({ length: count }, (_, index) => {
+    const number = index + 1;
+    const day = String(number).padStart(2, "0");
+
+    return {
+      id: `document-${number}`,
+      title: `เอกสารเผยแพร่ลำดับ ${number}`,
+      description: "",
+      category: number % 2 === 0 ? "คู่มือ" : "แผนงาน",
+      fileUrl: `https://example.edu/document-${number}.pdf`,
+      fileName: `document-${number}.pdf`,
+      mediaId: "",
+      publishedAt: `2026-05-${day}T00:00:00.000Z`,
+      order: number,
+      pinned: false,
+      updatedAt: `2026-05-${day}T00:00:00.000Z`
+    };
+  });
+}
+
+function createNumberedEvents(count: number): CalendarEvent[] {
+  return Array.from({ length: count }, (_, index) => {
+    const number = index + 1;
+    const day = String(number).padStart(2, "0");
+
+    return {
+      id: `event-${number}`,
+      title: `กำหนดการลำดับ ${number}`,
+      date: `2026-05-${day}T09:00:00.000Z`,
+      audience: "public",
+      status: "confirmed",
+      visibility: "public"
+    };
+  });
+}
+
 beforeEach(() => {
   routerMocks.navigate.mockReset();
+  routerMocks.search = {};
   currentSnapshot = createSnapshot();
   currentHomeSnapshot = createHomeSnapshot();
   currentContentListSnapshot = createContentListSnapshot();
   currentProgramListSnapshot = createProgramListSnapshot();
   currentDocumentListSnapshot = createDocumentListSnapshot();
   currentEventListSnapshot = createEventListSnapshot();
+  currentSearchIndexSnapshot = createSearchIndexSnapshot();
   currentQueryState = {
     isLoading: false,
     isFetching: false,
@@ -306,6 +442,12 @@ beforeEach(() => {
     refetch: vi.fn()
   };
   currentEventListQueryState = {
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn()
+  };
+  currentSearchIndexQueryState = {
     isLoading: false,
     isFetching: false,
     isError: false,
@@ -535,6 +677,26 @@ describe("public data-driven pages", () => {
     expect(within(calendarCard).getByText("กำหนดการลำดับ 3")).toBeInTheDocument();
     expect(within(calendarCard).queryByText("กำหนดการลำดับ 4")).not.toBeInTheDocument();
     expect(within(calendarCard).getByRole("link", { name: "ดูกำหนดการทั้งหมด" })).toHaveAttribute("href", "/calendar");
+  }, 10_000);
+
+  it("limits homepage achievements to the latest six items and links to the archive", async () => {
+    currentHomeSnapshot = createHomeSnapshot({
+      achievementItems: createNumberedContentItems({
+        count: 8,
+        prefix: "achievement",
+        titlePrefix: "ผลงานลำดับ",
+        type: "page",
+        category: "ผลงาน"
+      })
+    });
+
+    render(<PublicHomePage />);
+
+    expect(await screen.findByText("ผลงานลำดับ 8", undefined, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.getByText("ผลงานลำดับ 3")).toBeInTheDocument();
+    expect(screen.queryByText("ผลงานลำดับ 2")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /อ่านผลงาน/ })).toHaveLength(6);
+    expect(screen.getByRole("link", { name: "ดูผลงานทั้งหมด" })).toHaveAttribute("href", "/achievements");
   }, 10_000);
 
   it("renders homepage carousel slides from the public home snapshot", () => {
@@ -869,6 +1031,134 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("Program loaded without the full snapshot")).toBeInTheDocument();
   });
 
+  it("paginates public departments at twelve items", () => {
+    currentProgramListSnapshot = createProgramListSnapshot({
+      items: createNumberedContentItems({
+        count: 13,
+        prefix: "program",
+        titlePrefix: "หลักสูตรลำดับ",
+        type: "program"
+      })
+    });
+
+    render(<PublicDepartmentsPage />);
+
+    expect(screen.getByText("หลักสูตรลำดับ 12")).toBeInTheDocument();
+    expect(screen.queryByText("หลักสูตรลำดับ 13")).not.toBeInTheDocument();
+    expect(screen.getByText("แสดง 1–12 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
+  });
+
+  it("renders the public achievements archive and paginates at twelve items", () => {
+    currentSearchIndexSnapshot = createSearchIndexSnapshot({
+      items: [
+        ...createNumberedContentItems({
+          count: 13,
+          prefix: "achievement-archive",
+          titlePrefix: "ผลงานเกียรติยศ",
+          type: "page",
+          category: "รางวัล",
+          summary: "award achievement"
+        }),
+        createContentItem({
+          id: "regular-news",
+          title: "ข่าวทั่วไป",
+          slug: "regular-news",
+          category: "ข่าว",
+          summary: "general news"
+        })
+      ]
+    });
+
+    render(<PublicAchievementsPage />);
+
+    expect(screen.getByText("ผลงานและความภาคภูมิใจ")).toBeInTheDocument();
+    expect(screen.getByText("ผลงานเกียรติยศ 13")).toBeInTheDocument();
+    expect(screen.getByText("ผลงานเกียรติยศ 2")).toBeInTheDocument();
+    expect(screen.queryByText("ผลงานเกียรติยศ 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("ข่าวทั่วไป")).not.toBeInTheDocument();
+    expect(screen.getByText("แสดง 1–12 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
+  });
+
+  it("uses the page query parameter on the achievements archive", () => {
+    window.history.pushState({}, "", "/achievements?page=2");
+    currentSearchIndexSnapshot = createSearchIndexSnapshot({
+      items: createNumberedContentItems({
+        count: 13,
+        prefix: "achievement-query",
+        titlePrefix: "ผลงานหน้าที่",
+        type: "page",
+        category: "ผลงาน"
+      })
+    });
+
+    render(<PublicAchievementsPage />);
+
+    expect(screen.getByText("ผลงานหน้าที่ 1")).toBeInTheDocument();
+    expect(screen.queryByText("ผลงานหน้าที่ 13")).not.toBeInTheDocument();
+    expect(screen.getByText("แสดง 13–13 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
+  });
+
+  it("paginates the news list without duplicating the featured item or rendering all cards", () => {
+    currentContentListSnapshot = createContentListSnapshot({
+      kind: "news",
+      items: createNumberedContentItems({
+        count: 14,
+        prefix: "news",
+        titlePrefix: "ข่าวลำดับ",
+        type: "news"
+      })
+    });
+
+    render(<PublicNewsPage />);
+
+    expect(screen.getByText("ข่าวลำดับ 1")).toBeInTheDocument();
+    expect(screen.getByText("ข่าวลำดับ 13")).toBeInTheDocument();
+    expect(screen.queryByText("ข่าวลำดับ 14")).not.toBeInTheDocument();
+    expect(screen.getByText("แสดง 1–12 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
+  });
+
+  it("paginates public search results at twelve items", () => {
+    routerMocks.search = { q: "award" };
+    window.history.pushState({}, "", "/search?q=award");
+    currentSearchIndexSnapshot = createSearchIndexSnapshot({
+      items: createNumberedContentItems({
+        count: 13,
+        prefix: "search-award",
+        titlePrefix: "Award result",
+        type: "news",
+        category: "award",
+        summary: "award result"
+      })
+    });
+
+    render(<PublicSearchPage />);
+
+    expect(screen.getByText('พบ 13 รายการสำหรับ "award"')).toBeInTheDocument();
+    expect(screen.getByText("Award result 13")).toBeInTheDocument();
+    expect(screen.getByText("Award result 2")).toBeInTheDocument();
+    expect(screen.queryByText("Award result 1")).not.toBeInTheDocument();
+    expect(screen.getByText("แสดง 1–12 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
+  });
+
+  it("paginates the public announcement list", () => {
+    currentContentListSnapshot = createContentListSnapshot({
+      kind: "announcements",
+      items: createNumberedContentItems({
+        count: 13,
+        prefix: "announcement",
+        titlePrefix: "ประกาศลำดับ",
+        type: "announcement"
+      }),
+      pageItems: []
+    });
+
+    render(<PublicAnnouncementsPage />);
+
+    expect(screen.getByText("ประกาศลำดับ 12")).toBeInTheDocument();
+    expect(screen.queryByText("ประกาศลำดับ 13")).not.toBeInTheDocument();
+    expect(screen.getByText("แสดง 1–12 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
+  });
+
   it("renders all published documents on the public document archive page", () => {
     currentDocumentListSnapshot = createDocumentListSnapshot({
       items: [
@@ -978,6 +1268,32 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("แบบฟอร์มนักเรียน")).toBeInTheDocument();
   });
 
+  it("uses the page query parameter on the public document archive", () => {
+    window.history.pushState({}, "", "/documents?page=2");
+    currentDocumentListSnapshot = createDocumentListSnapshot({
+      items: createNumberedDocuments(16)
+    });
+
+    render(<PublicDocumentsPage />);
+
+    expect(screen.getByText("เอกสารเผยแพร่ลำดับ 16")).toBeInTheDocument();
+    expect(screen.queryByText("เอกสารเผยแพร่ลำดับ 1")).not.toBeInTheDocument();
+    expect(screen.getByText("แสดง 16–16 จากทั้งหมด 16 รายการ")).toBeInTheDocument();
+  });
+
+  it("clamps invalid document page queries safely", () => {
+    window.history.pushState({}, "", "/documents?page=invalid");
+    currentDocumentListSnapshot = createDocumentListSnapshot({
+      items: createNumberedDocuments(16)
+    });
+
+    render(<PublicDocumentsPage />);
+
+    expect(screen.getByText("เอกสารเผยแพร่ลำดับ 1")).toBeInTheDocument();
+    expect(screen.queryByText("เอกสารเผยแพร่ลำดับ 16")).not.toBeInTheDocument();
+    expect(screen.getByText("แสดง 1–15 จากทั้งหมด 16 รายการ")).toBeInTheDocument();
+  });
+
   it("shows public document archive empty and error states", () => {
     currentDocumentListSnapshot = createDocumentListSnapshot({ items: [] });
     const { rerender } = render(<PublicDocumentsPage />);
@@ -993,6 +1309,19 @@ describe("public data-driven pages", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("ไม่สามารถโหลดข้อมูลได้");
     expect(screen.getByRole("button", { name: "ลองอีกครั้ง" })).toBeInTheDocument();
+  });
+
+  it("paginates public confirmed calendar events", () => {
+    currentEventListSnapshot = createEventListSnapshot({
+      items: createNumberedEvents(13)
+    });
+
+    render(<PublicCalendarPage />);
+
+    expect(screen.getByText("กำหนดการลำดับ 1")).toBeInTheDocument();
+    expect(screen.getByText("กำหนดการลำดับ 12")).toBeInTheDocument();
+    expect(screen.queryByText("กำหนดการลำดับ 13")).not.toBeInTheDocument();
+    expect(screen.getByText("แสดง 1–12 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
   });
 
   it("renders all public confirmed events on the public calendar page and keeps detail dialogs", async () => {

@@ -7,12 +7,16 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
+import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
+import { usePublicPagination } from "../hooks/usePublicPagination";
 import { usePublicSearchIndex } from "../hooks/usePublicSearchIndex";
 import { ContentItem } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { searchPublishedContent } from "../../utils/search";
+
+const SEARCH_PAGE_SIZE = 12;
 
 function getSearchQueryFromLocation(search: Record<string, unknown>) {
   const value = search.q;
@@ -45,7 +49,11 @@ export default function PublicSearchPage() {
   const [draftQuery, setDraftQuery] = useState(query);
 
   const results = useMemo(() => searchPublishedContent(data?.items ?? [], query), [data?.items, query]);
-  const visibleResults = results.slice(0, 30);
+  const resultsPagination = usePublicPagination(results, {
+    pageSize: SEARCH_PAGE_SIZE,
+    resetKeys: [query],
+    scrollTargetId: "search-results-heading"
+  });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -156,11 +164,13 @@ export default function PublicSearchPage() {
       {query && results.length > 0 && (
         <Stack spacing={2.2}>
           <Typography variant="h2" sx={{ fontSize: { xs: "1.35rem", md: "1.75rem" } }}>
-            พบ {results.length} รายการสำหรับ "{query}"
+            <span id="search-results-heading">
+              พบ {results.length} รายการสำหรับ "{query}"
+            </span>
           </Typography>
 
           <Grid container spacing={2.2}>
-            {visibleResults.map((item) => (
+            {resultsPagination.paginatedItems.map((item) => (
               <Grid key={item.id} size={{ xs: 12, md: 6 }}>
                 <Card
                   sx={{
@@ -229,6 +239,13 @@ export default function PublicSearchPage() {
               </Grid>
             ))}
           </Grid>
+          <PublicPagination
+            page={resultsPagination.page}
+            pageCount={resultsPagination.pageCount}
+            pageSize={resultsPagination.pageSize}
+            totalItems={resultsPagination.totalItems}
+            onPageChange={(nextPage) => resultsPagination.setPage(nextPage, { scroll: true })}
+          />
         </Stack>
       )}
     </PublicSiteShell>
