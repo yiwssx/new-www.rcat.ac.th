@@ -10,6 +10,9 @@ coverage/
 
 # Local/generated database backups
 backups/
+imports/*.raw.json
+imports/*.sql
+imports/*.report.csv
 *.sqlite
 *.sqlite3
 *.db
