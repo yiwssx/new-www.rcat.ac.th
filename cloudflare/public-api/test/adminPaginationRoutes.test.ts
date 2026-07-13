@@ -240,22 +240,27 @@ function createPaginationDb(initial: Record<string, Row[]> = {}) {
           if (/^\s*UPDATE\s+contents/i.test(query)) {
             let changes = 0;
             const results: Array<{ id: unknown }> = [];
-            const reviewStatus = String(call.bindings[4]);
-            const scheduledStatus = String(call.bindings[5]);
-            const now = String(call.bindings[6]);
+            const reviewStatus = String(call.bindings[1]);
+            const reviewPublishAt = String(call.bindings[2]);
+            const updatedAt = String(call.bindings[3]);
+            const updatedBy = String(call.bindings[4]);
+            const eligibleReviewStatus = String(call.bindings[5]);
+            const scheduledStatus = String(call.bindings[6]);
+            const now = String(call.bindings[7]);
 
             tables.contents.forEach((row) => {
+              const currentStatus = String(row.status);
               const publishable =
-                row.status === reviewStatus ||
-                (row.status === scheduledStatus &&
+                currentStatus === eligibleReviewStatus ||
+                (currentStatus === scheduledStatus &&
                   String(row.publish_at ?? "") !== "" &&
                   String(row.publish_at) <= now);
 
               if (String(row.deleted_at ?? "") === "" && publishable) {
                 row.status = "published";
-                row.publish_at = row.publish_at || call.bindings[1];
-                row.updated_at = call.bindings[2];
-                row.updated_by = call.bindings[3];
+                row.publish_at = currentStatus === reviewStatus ? reviewPublishAt : row.publish_at;
+                row.updated_at = updatedAt;
+                row.updated_by = updatedBy;
                 row.revision = Number(row.revision ?? 0) + 1;
                 changes += 1;
                 results.push({ id: row.id });
@@ -526,14 +531,7 @@ async function jsonBody(response: Response) {
 }
 
 function compactOrderItems(entity: string, tables: Record<string, Row[]>) {
-  const table =
-    entity === "documents"
-      ? "documents"
-      : entity === "menu"
-        ? "menu_items"
-        : entity === "carousel"
-          ? "carousel_slides"
-          : "external_services";
+  const table = orderTable(entity);
 
   return activeRows(table, tables[table] ?? []).map((row) => ({
     id: row.id,
@@ -544,10 +542,47 @@ function compactOrderItems(entity: string, tables: Record<string, Row[]>) {
   }));
 }
 
+function orderTable(entity: string) {
+  return entity === "documents"
+    ? "documents"
+    : entity === "menu"
+      ? "menu_items"
+      : entity === "carousel"
+        ? "carousel_slides"
+        : "external_services";
+}
+
+function twoOrderRows(entity: string) {
+  const tables: Record<string, Row[]> = allEntityRows();
+  const table = orderTable(entity);
+  const first = tables[table]?.[0];
+
+  if (!first) {
+    throw new Error(`missing ${entity} ordering fixture`);
+  }
+
+  const second = {
+    ...first,
+    id: `${String(first.id)}-second`,
+    sort_order: 1,
+    revision: 0,
+    ...(entity === "menu" ? { label: "Second menu item" } : { title: `Second ${entity} item` })
+  };
+  tables[table] = [first, second];
+  return tables;
+}
+
+function reorderedCompactItems(entity: string, tables: Record<string, Row[]>) {
+  const items = compactOrderItems(entity, tables);
+  return items.map((item, index) => ({ ...item, order: items.length - index }));
+}
+
 describe("admin server pagination routes", () => {
-  it("keeps list routes authenticated and preserves viewer read/editor write RBAC", async () => {
+  it("keeps list routes authenticated and preserves viewer read plus editor/admin publish RBAC", async () => {
     const state = createPaginationDb({ contents: [contentRow(1, { status: "review" })] });
     const env = { ...baseEnv, DB: state.db };
+    const adminState = createPaginationDb({ contents: [contentRow(2, { status: "review" })] });
+    const adminEnv = { ...baseEnv, DB: adminState.db };
     const unauthenticated = await worker.fetch(
       new Request("https://preview-worker.example.invalid/api/admin/content"),
       env
@@ -561,12 +596,18 @@ describe("admin server pagination routes", () => {
       request("/api/admin/content/publish-pending", { method: "POST", role: "editor", body: "{}" }),
       env
     );
+    const adminPublish = await worker.fetch(
+      request("/api/admin/content/publish-pending", { method: "POST", role: "admin", body: "{}" }),
+      adminEnv
+    );
 
     expect(unauthenticated.status).toBe(401);
     expect(viewerList.status).toBe(200);
     expect(viewerPublish.status).toBe(403);
     expect(editorPublish.status).toBe(200);
+    expect(adminPublish.status).toBe(200);
     await expect(jsonBody(editorPublish)).resolves.toEqual({ publishedCount: 1 });
+    await expect(jsonBody(adminPublish)).resolves.toEqual({ publishedCount: 1 });
   });
 
   it("enforces ordering permissions at the Worker boundary for every compact collection", async () => {
@@ -636,14 +677,22 @@ describe("admin server pagination routes", () => {
     const state = createPaginationDb({
       contents: [
         contentRow(1, { status: "review", publish_at: "" }),
-        contentRow(2, { status: "draft", publish_at: "" }),
-        contentRow(3, { status: "scheduled", publish_at: past }),
-        contentRow(4, { status: "scheduled", publish_at: future }),
-        contentRow(5, { status: "published", publish_at: past }),
-        contentRow(6, { status: "archived", publish_at: past })
+        contentRow(2, { status: "review", publish_at: future }),
+        contentRow(3, { status: "draft", publish_at: "" }),
+        contentRow(4, { status: "scheduled", publish_at: past }),
+        contentRow(5, { status: "scheduled", publish_at: future }),
+        contentRow(6, { status: "published", publish_at: past }),
+        contentRow(7, { status: "archived", publish_at: past }),
+        contentRow(8, { status: "review", publish_at: future, deleted_at: past })
       ]
     });
     const env = { ...baseEnv, DB: state.db };
+    const untouchedBefore = new Map(
+      ["content-003", "content-005", "content-006", "content-007", "content-008"].map((id) => [
+        id,
+        JSON.stringify(state.tables.contents.find((row) => row.id === id))
+      ])
+    );
     const dashboardResponse = await worker.fetch(request("/api/admin/dashboard-summary"), env);
     const dashboard = await jsonBody(dashboardResponse);
     const viewerResponse = await worker.fetch(
@@ -656,23 +705,125 @@ describe("admin server pagination routes", () => {
     );
     const publishBody = await jsonBody(publishResponse);
     const rowsById = new Map(state.tables.contents.map((row) => [String(row.id), row]));
+    const updateCall = state.calls.find((call) => /^\s*UPDATE\s+contents/i.test(call.query));
+    const mutationNow = String(updateCall?.bindings[2] ?? "");
 
     expect(dashboardResponse.status).toBe(200);
-    expect(dashboard.publishableCount).toBe(2);
-    expect((dashboard.content as Row[]).map((row) => row.id).sort()).toEqual(["content-001", "content-003"]);
-    expect((dashboard.content as Row[]).some((row) => row.id === "content-004")).toBe(false);
+    expect(dashboard.publishableCount).toBe(3);
+    expect((dashboard.content as Row[]).map((row) => row.id).sort()).toEqual([
+      "content-001",
+      "content-002",
+      "content-004"
+    ]);
+    expect((dashboard.content as Row[]).some((row) => row.id === "content-005")).toBe(false);
     expect(viewerResponse.status).toBe(403);
     await expect(jsonBody(viewerResponse)).resolves.toMatchObject({ resource: "content-publish-queue" });
     expect(publishResponse.status).toBe(200);
     expect(publishResponse.headers.get("Cache-Control")).toBe("no-store");
-    expect(publishBody).toEqual({ publishedCount: 2 });
-    expect(rowsById.get("content-001")?.status).toBe("published");
-    expect(rowsById.get("content-001")?.publish_at).not.toBe("");
-    expect(rowsById.get("content-002")?.status).toBe("draft");
-    expect(rowsById.get("content-003")).toMatchObject({ status: "published", publish_at: past });
-    expect(rowsById.get("content-004")).toMatchObject({ status: "scheduled", publish_at: future });
-    expect(rowsById.get("content-005")?.status).toBe("published");
-    expect(rowsById.get("content-006")?.status).toBe("archived");
+    expect(publishBody).toEqual({ publishedCount: 3 });
+    expect(mutationNow).not.toBe("");
+    expect(updateCall?.bindings[3]).toBe(mutationNow);
+    expect(updateCall?.bindings[7]).toBe(mutationNow);
+    expect(rowsById.get("content-001")).toMatchObject({ status: "published", publish_at: mutationNow, revision: 1 });
+    expect(rowsById.get("content-002")).toMatchObject({ status: "published", publish_at: mutationNow, revision: 1 });
+    expect(rowsById.get("content-004")).toMatchObject({ status: "published", publish_at: past, revision: 1 });
+    untouchedBefore.forEach((snapshot, id) => {
+      expect(JSON.stringify(rowsById.get(id)), id).toBe(snapshot);
+    });
+  });
+
+  it("rejects empty ordering payloads for non-empty collections and accepts genuinely empty collections", async () => {
+    for (const entity of ["documents", "menu", "carousel", "external-services"]) {
+      const nonEmptyState = createPaginationDb(allEntityRows());
+      const table = orderTable(entity);
+      const before = JSON.stringify(nonEmptyState.tables[table]);
+      const rejected = await worker.fetch(
+        request(`/api/admin/${entity}/order`, {
+          method: "PUT",
+          role: "admin",
+          body: JSON.stringify({ items: [] })
+        }),
+        { ...baseEnv, DB: nonEmptyState.db }
+      );
+
+      expect(rejected.status, `non-empty ${entity}`).toBe(409);
+      expect(rejected.headers.get("Cache-Control"), `non-empty ${entity}`).toBe("no-store");
+      await expect(jsonBody(rejected)).resolves.toMatchObject({ error: "stale revision", resource: `${entity}-order` });
+      expect(JSON.stringify(nonEmptyState.tables[table]), `unchanged ${entity}`).toBe(before);
+      expect(
+        nonEmptyState.calls.some((call) => /^\s*WITH\s+submitted/i.test(call.query)),
+        entity
+      ).toBe(false);
+
+      const emptyState = createPaginationDb();
+      const accepted = await worker.fetch(
+        request(`/api/admin/${entity}/order`, {
+          method: "PUT",
+          role: "admin",
+          body: JSON.stringify({ items: [] })
+        }),
+        { ...baseEnv, DB: emptyState.db }
+      );
+      const acceptedBody = await jsonBody(accepted);
+
+      expect(accepted.status, `empty ${entity}`).toBe(200);
+      expect(accepted.headers.get("Cache-Control"), `empty ${entity}`).toBe("no-store");
+      expect(acceptedBody.items, `empty ${entity}`).toEqual([]);
+      expect(
+        emptyState.calls.some((call) => /^\s*WITH\s+submitted/i.test(call.query)),
+        entity
+      ).toBe(false);
+    }
+  });
+
+  it("keeps complete-set and stale-revision protection for every ordering collection", async () => {
+    for (const entity of ["documents", "menu", "carousel", "external-services"]) {
+      const state = createPaginationDb(twoOrderRows(entity));
+      const env = { ...baseEnv, DB: state.db };
+      const table = orderTable(entity);
+      const completeItems = reorderedCompactItems(entity, state.tables);
+      const complete = await worker.fetch(
+        request(`/api/admin/${entity}/order`, {
+          method: "PUT",
+          role: "admin",
+          body: JSON.stringify({ items: completeItems })
+        }),
+        env
+      );
+
+      expect(complete.status, `complete ${entity}`).toBe(200);
+      expect(
+        state.tables[table].every((row) => row.revision === 1),
+        `revisions ${entity}`
+      ).toBe(true);
+      const afterComplete = JSON.stringify(state.tables[table]);
+
+      const stale = await worker.fetch(
+        request(`/api/admin/${entity}/order`, {
+          method: "PUT",
+          role: "admin",
+          body: JSON.stringify({ items: completeItems })
+        }),
+        env
+      );
+      const incompleteItems = compactOrderItems(entity, state.tables).slice(0, 1);
+      const incomplete = await worker.fetch(
+        request(`/api/admin/${entity}/order`, {
+          method: "PUT",
+          role: "admin",
+          body: JSON.stringify({ items: incompleteItems })
+        }),
+        env
+      );
+
+      expect(stale.status, `stale ${entity}`).toBe(409);
+      expect(stale.headers.get("Cache-Control"), `stale ${entity}`).toBe("no-store");
+      await expect(jsonBody(stale)).resolves.toMatchObject({ resource: `${entity}-order` });
+      expect(incomplete.status, `incomplete ${entity}`).toBe(409);
+      expect(incomplete.headers.get("Cache-Control"), `incomplete ${entity}`).toBe("no-store");
+      await expect(jsonBody(incomplete)).resolves.toMatchObject({ resource: `${entity}-order` });
+      expect(JSON.stringify(state.tables[table]), `protected ${entity}`).toBe(afterComplete);
+    }
   });
 
   it("uses COUNT plus LIMIT/OFFSET, returns metadata, clamps pages, and caps page size", async () => {

@@ -1123,10 +1123,6 @@ async function handleOrderSave(request: Request, env: Env, entity: string, ident
     return parsed.response ?? noStoreError("invalid order request", 400);
   }
 
-  if (!parsed.items.length) {
-    return handleOrderList(entity, env);
-  }
-
   const config =
     entity === "documents"
       ? {
@@ -1167,6 +1163,22 @@ async function handleOrderSave(request: Request, env: Env, entity: string, ident
               parentClause: "",
               updateActiveClause: ""
             };
+
+  if (!parsed.items.length) {
+    const activeCountRows = await readAdminRows<{ total: number | string }>(
+      env,
+      `SELECT COUNT(*) AS total
+       FROM ${config.table}
+       ${config.completeSetClause}`
+    );
+
+    if (singleCount(activeCountRows) > 0) {
+      return noStoreError("stale revision", 409, { resource });
+    }
+
+    return handleOrderList(entity, env);
+  }
+
   const submitted = parsed.items.map((item) => ({
     id: item.id,
     order: item.order,
@@ -1559,7 +1571,7 @@ async function handlePublishPending(env: Env, identity: AdminIdentity) {
       `UPDATE contents
        SET
          status = ?,
-         publish_at = CASE WHEN COALESCE(publish_at, '') = '' THEN ? ELSE publish_at END,
+         publish_at = CASE WHEN status = ? THEN ? ELSE publish_at END,
          updated_at = ?,
          updated_by = ?,
          revision = revision + 1
@@ -1567,7 +1579,7 @@ async function handlePublishPending(env: Env, identity: AdminIdentity) {
          AND ${PUBLISHABLE_CONTENT_SQL}
        RETURNING id`
     )
-    .bind("published", now, now, identity.actor, ...publishableContentBindings(now))
+    .bind("published", REVIEW_CONTENT_STATUS, now, now, identity.actor, ...publishableContentBindings(now))
     .run<{ id: string }>();
 
   return noStoreJson({ publishedCount: result.results?.length ?? changedRows(result) });
