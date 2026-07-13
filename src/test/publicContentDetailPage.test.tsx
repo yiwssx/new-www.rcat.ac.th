@@ -12,7 +12,7 @@ const routerMocks = vi.hoisted(() => ({
 const facebookPostUrl = "https://www.facebook.com/100063746585360/posts/111";
 
 let currentSnapshot: CmsSnapshot | undefined;
-let currentDetail: ContentItem | undefined;
+let currentDetail: ContentItem | null | undefined;
 let currentSnapshotQueryState = {
   isLoading: false,
   isFetching: false
@@ -131,6 +131,27 @@ describe("PublicContentDetailPage", () => {
     expect(document.body).not.toHaveTextContent("กำลังเชื่อมต่อระบบฐานข้อมูล");
     expect(document.title).not.toContain("กำลังโหลดข้อมูล");
     expect(screen.queryByText(/ไม่พบเนื้อหา/)).not.toBeInTheDocument();
+  });
+
+  it("renders not found without stale content, embeds, or view tracking after confirmed deletion", () => {
+    const deletedContent = createContent({
+      title: "ข่าวที่ถูกลบ",
+      slug: "deleted-facebook-news",
+      template: "facebook-embed",
+      canonicalUrl: facebookPostUrl,
+      body: "เนื้อหาเก่าที่ต้องไม่แสดง"
+    });
+    currentSnapshot = createSnapshot(deletedContent);
+    currentDetail = null;
+
+    render(<PublicContentDetailPage slug={deletedContent.slug} />);
+
+    expect(screen.getByText("ไม่พบเนื้อหา")).toBeInTheDocument();
+    expect(screen.getByText("เนื้อหาอาจยังไม่เผยแพร่ ถูกย้าย หรือไม่พร้อมให้แสดงต่อสาธารณะ")).toBeInTheDocument();
+    expect(screen.queryByText(deletedContent.title)).not.toBeInTheDocument();
+    expect(screen.queryByText(deletedContent.body || "")).not.toBeInTheDocument();
+    expect(screen.queryByTitle(`โพสต์ Facebook: ${deletedContent.title}`)).not.toBeInTheDocument();
+    expect(siteViewMocks.recordContentView).not.toHaveBeenCalled();
   });
 
   it("renders announcements as an article without the generic detail sidebar", async () => {

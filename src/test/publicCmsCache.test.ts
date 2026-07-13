@@ -6,6 +6,7 @@ import {
   PUBLIC_SNAPSHOT_CACHE_KEY,
   readPublicCache,
   removePublicCache,
+  removePublicContentDetailCache,
   setPublicContentDetailCache,
   setPublicSnapshotCache,
   writePublicCache
@@ -211,6 +212,31 @@ describe("publicCmsCache", () => {
 
     expect(window.localStorage.getItem(expectedKey)).not.toBeNull();
     expect(getPublicContentDetailCache(slug)?.data).toEqual(content);
+  });
+
+  it("removes only the requested encoded content detail cache", () => {
+    const deletedSlug = "ข่าว/รับสมัคร 2026?รอบ=1";
+    const otherSlug = "ข่าวประชาสัมพันธ์";
+    const deletedKey = `${PUBLIC_CONTENT_DETAIL_CACHE_PREFIX}${encodeURIComponent(deletedSlug)}`;
+    const otherKey = `${PUBLIC_CONTENT_DETAIL_CACHE_PREFIX}${encodeURIComponent(otherSlug)}`;
+    const doubleEncodedKey = `${PUBLIC_CONTENT_DETAIL_CACHE_PREFIX}${encodeURIComponent(encodeURIComponent(deletedSlug))}`;
+    const deletedContent = createContentItem({ id: "deleted-content", slug: deletedSlug });
+    const otherContent = createContentItem({ id: "other-content", slug: otherSlug });
+
+    setPublicContentDetailCache(deletedSlug, deletedContent);
+    setPublicContentDetailCache(otherSlug, otherContent);
+    removePublicContentDetailCache(deletedSlug);
+
+    expect(window.localStorage.getItem(deletedKey)).toBeNull();
+    expect(window.localStorage.getItem(doubleEncodedKey)).toBeNull();
+    expect(getPublicContentDetailCache(deletedSlug)).toBeNull();
+    expect(window.localStorage.getItem(otherKey)).not.toBeNull();
+    expect(getPublicContentDetailCache(otherSlug)?.data).toEqual(otherContent);
+  });
+
+  it("ignores empty content detail cache removals", () => {
+    expect(() => removePublicContentDetailCache("")).not.toThrow();
+    expect(() => removePublicContentDetailCache(undefined)).not.toThrow();
   });
 
   it("keeps public home cache separate and clears it with public CMS cache", () => {

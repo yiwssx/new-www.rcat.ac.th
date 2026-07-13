@@ -21,6 +21,7 @@ const contentMock = vi.hoisted(() => ({
 }));
 
 const publicInvalidationMock = vi.hoisted(() => ({
+  invalidateDeletedPublicContent: vi.fn(),
   invalidatePublicCmsData: vi.fn()
 }));
 
@@ -93,6 +94,7 @@ vi.mock("../../features/cms-content", async (importOriginal) => ({
 }));
 
 vi.mock("../../services/publicCmsInvalidation", () => ({
+  invalidateDeletedPublicContent: publicInvalidationMock.invalidateDeletedPublicContent,
   invalidatePublicCmsData: publicInvalidationMock.invalidatePublicCmsData
 }));
 
@@ -220,6 +222,8 @@ describe("ContentPage operation feedback", () => {
     contentMock.publishContent.mockResolvedValue({ id: contentItem.id, published: true });
     publicInvalidationMock.invalidatePublicCmsData.mockReset();
     publicInvalidationMock.invalidatePublicCmsData.mockResolvedValue(undefined);
+    publicInvalidationMock.invalidateDeletedPublicContent.mockReset();
+    publicInvalidationMock.invalidateDeletedPublicContent.mockResolvedValue(undefined);
     swalInstance.fire.mockReset();
     swalInstance.fire.mockResolvedValue({ isConfirmed: true });
     swalInstance.close.mockReset();
@@ -252,6 +256,8 @@ describe("ContentPage operation feedback", () => {
       successModal = findSwalCall((options) => options.title === "บันทึกเนื้อหาสำเร็จ");
       expectAcknowledgedResultModal(successModal, "บันทึกเนื้อหาสำเร็จ");
     });
+    expect(publicInvalidationMock.invalidatePublicCmsData).toHaveBeenCalledTimes(1);
+    expect(publicInvalidationMock.invalidateDeletedPublicContent).not.toHaveBeenCalled();
   });
 
   it("shows a Facebook Embed label for imported facebook-embed content", async () => {
@@ -293,6 +299,8 @@ describe("ContentPage operation feedback", () => {
       successModal = findSwalCall((options) => options.title === "เผยแพร่เนื้อหาสำเร็จ");
       expectAcknowledgedResultModal(successModal, "เผยแพร่เนื้อหาสำเร็จ");
     });
+    expect(publicInvalidationMock.invalidatePublicCmsData).toHaveBeenCalledTimes(1);
+    expect(publicInvalidationMock.invalidateDeletedPublicContent).not.toHaveBeenCalled();
   });
 
   it("shows loading and an acknowledged success modal when deleting content", async () => {
@@ -319,5 +327,36 @@ describe("ContentPage operation feedback", () => {
       successModal = findSwalCall((options) => options.title === "ลบเนื้อหาสำเร็จ");
       expectAcknowledgedResultModal(successModal, "ลบเนื้อหาสำเร็จ");
     });
+    expect(paginationMock.invalidateAdminListQueries).toHaveBeenCalledWith(expect.any(QueryClient), "content");
+    expect(publicInvalidationMock.invalidateDeletedPublicContent).toHaveBeenCalledWith(
+      expect.any(QueryClient),
+      contentItem.slug
+    );
+    expect(publicInvalidationMock.invalidatePublicCmsData).not.toHaveBeenCalled();
+  });
+
+  it("does not invalidate deleted content when deletion is cancelled", async () => {
+    swalInstance.fire.mockResolvedValueOnce({ isConfirmed: false });
+    renderContentPage();
+
+    await screen.findByText(contentItem.title);
+    fireEvent.click(screen.getByRole("button", { name: "ลบ" }));
+
+    await waitFor(() => expect(swalInstance.fire).toHaveBeenCalledTimes(1));
+    expect(contentMock.deleteContentItem).not.toHaveBeenCalled();
+    expect(paginationMock.invalidateAdminListQueries).not.toHaveBeenCalled();
+    expect(publicInvalidationMock.invalidateDeletedPublicContent).not.toHaveBeenCalled();
+  });
+
+  it("does not invalidate deleted content when backend deletion fails", async () => {
+    contentMock.deleteContentItem.mockRejectedValueOnce(new Error("delete failed"));
+    renderContentPage();
+
+    await screen.findByText(contentItem.title);
+    fireEvent.click(screen.getByRole("button", { name: "ลบ" }));
+
+    await waitFor(() => expect(findSwalCall((options) => options.title === "ไม่สามารถลบเนื้อหาได้")).toBeDefined());
+    expect(paginationMock.invalidateAdminListQueries).not.toHaveBeenCalled();
+    expect(publicInvalidationMock.invalidateDeletedPublicContent).not.toHaveBeenCalled();
   });
 });

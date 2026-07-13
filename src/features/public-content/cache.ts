@@ -4,6 +4,7 @@ import {
   PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS,
   getPublicContentDetailCache,
   readPublicCache,
+  removePublicContentDetailCache,
   removePublicCache,
   setPublicContentDetailCache,
   writePublicCache
@@ -13,6 +14,7 @@ export {
   getPublicContentDetailCache,
   PUBLIC_CONTENT_DETAIL_CACHE_PREFIX,
   PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS,
+  removePublicContentDetailCache,
   setPublicContentDetailCache
 };
 

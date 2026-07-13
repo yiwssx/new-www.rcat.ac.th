@@ -1,4 +1,4 @@
-export { getContentDetail, getPublicContentListSnapshot } from "./api";
+export { getContentDetail, getPublicContentListSnapshot, isPublicContentNotFoundError } from "./api";
 export {
   clearPublicContentListCache,
   getPublicContentDetailCache,
@@ -7,6 +7,7 @@ export {
   PUBLIC_CONTENT_DETAIL_CACHE_PREFIX,
   PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS,
   PUBLIC_CONTENT_LIST_CACHE_TTL_MS,
+  removePublicContentDetailCache,
   setPublicContentDetailCache,
   setPublicContentListCache
 } from "./cache";

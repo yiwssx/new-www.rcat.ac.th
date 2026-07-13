@@ -193,6 +193,14 @@ export function setPublicContentDetailCache(slug: string | undefined, content: C
   cleanupPublicContentDetailCache(maxContentDetailCacheEntries);
 }
 
+export function removePublicContentDetailCache(slug: string | undefined) {
+  if (!slug) {
+    return;
+  }
+
+  removePublicCache(getPublicContentDetailCacheKey(slug));
+}
+
 export function clearPublicCmsCache() {
   const trackedKeys = [...trackedPublicCacheKeys];
   removePublicCache(PUBLIC_SNAPSHOT_CACHE_KEY);

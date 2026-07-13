@@ -61,7 +61,7 @@ import {
 } from "../../features/admin-pagination";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
-import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
+import { invalidateDeletedPublicContent, invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { FACEBOOK_EMBED_LABEL, isFacebookEmbedContent } from "../../utils/facebookContent";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
@@ -207,7 +207,10 @@ export default function ContentPage() {
           }
         }
 
-        await Promise.all([invalidateAdminListQueries(queryClient, "content"), invalidatePublicCmsData(queryClient)]);
+        await Promise.all([
+          invalidateAdminListQueries(queryClient, "content"),
+          invalidateDeletedPublicContent(queryClient, item.slug)
+        ]);
         await appSwal.close();
         await showSuccessResult("ลบเนื้อหาสำเร็จ");
       } catch (currentError) {

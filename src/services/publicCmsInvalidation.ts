@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { clearPublicCmsCache } from "./publicCmsCache";
+import { clearPublicCmsCache, removePublicContentDetailCache } from "./publicCmsCache";
 
 const PUBLIC_QUERY_ROOTS = new Set([
   "cms-snapshot",
@@ -17,4 +17,13 @@ export async function invalidatePublicCmsData(queryClient: QueryClient) {
   await queryClient.invalidateQueries({
     predicate: (query) => PUBLIC_QUERY_ROOTS.has(String(query.queryKey[0] ?? ""))
   });
+}
+
+export async function invalidateDeletedPublicContent(queryClient: QueryClient, slug: string | undefined) {
+  if (slug) {
+    removePublicContentDetailCache(slug);
+    queryClient.removeQueries({ queryKey: ["content-detail", slug], exact: true });
+  }
+
+  await invalidatePublicCmsData(queryClient);
 }

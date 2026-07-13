@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getContentDetail,
   getPublicContentDetailCache,
+  isPublicContentNotFoundError,
   PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS,
+  removePublicContentDetailCache,
   setPublicContentDetailCache
 } from "../../features/public-content";
 
@@ -25,9 +27,18 @@ export function usePublicContentDetail(input: { slug?: string }) {
         throw new Error("Content slug is required.");
       }
 
-      const content = await getContentDetail({ slug });
-      setPublicContentDetailCache(slug, content);
-      return content;
+      try {
+        const content = await getContentDetail({ slug });
+        setPublicContentDetailCache(slug, content);
+        return content;
+      } catch (error) {
+        if (isPublicContentNotFoundError(error)) {
+          removePublicContentDetailCache(slug);
+          return null;
+        }
+
+        throw error;
+      }
     },
     enabled: Boolean(slug),
     initialData: cachedContent?.data,

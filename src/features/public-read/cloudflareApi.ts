@@ -26,6 +26,10 @@ class CloudflarePublicApiError extends Error {
   }
 }
 
+export function isCloudflarePublicApiNotFoundError(error: unknown) {
+  return error instanceof CloudflarePublicApiError && error.status === 404;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
