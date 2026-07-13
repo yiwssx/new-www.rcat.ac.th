@@ -300,6 +300,10 @@ const MENU_SORTS = {
 
 const MEDIA_BY_IDS_LIMIT = 50;
 const ORDER_SAVE_ITEM_LIMIT = 2_000;
+const PUBLISHABLE_CONTENT_SQL =
+  "(status = ? OR (status = ? AND COALESCE(publish_at, '') <> '' AND datetime(publish_at) <= datetime(?)))";
+const REVIEW_CONTENT_STATUS = "review";
+const SCHEDULED_CONTENT_STATUS = "scheduled";
 
 interface CompactOrderInput {
   enabled?: boolean;
@@ -393,6 +397,26 @@ function orderBy(
   const direction: SortDirection =
     requestedDirection === "asc" ? "ASC" : requestedDirection === "desc" ? "DESC" : option.defaultDirection;
   return `${option.column} ${direction}, ${tieBreaker}`;
+}
+
+function documentOrderBy(searchParams: URLSearchParams) {
+  const requestedSort = trimmedParam(searchParams, "sortBy", 40);
+
+  if (requestedSort !== "pinned") {
+    return orderBy(
+      searchParams,
+      DOCUMENT_SORTS,
+      "pinned DESC, sort_order ASC, published_at DESC, updated_at DESC, id ASC"
+    );
+  }
+
+  const requestedDirection = trimmedParam(searchParams, "sortDirection", 10).toLowerCase();
+  const direction: SortDirection = requestedDirection === "asc" ? "ASC" : "DESC";
+  return `pinned ${direction}, sort_order ASC, published_at DESC, updated_at DESC, id ASC`;
+}
+
+function publishableContentBindings(now: string) {
+  return [REVIEW_CONTENT_STATUS, SCHEDULED_CONTENT_STATUS, now] as const;
 }
 
 function mapContent(row: ContentListRow) {
@@ -857,11 +881,7 @@ function documentSql(searchParams: URLSearchParams): AdminPageSql {
       exactFilter(searchParams, "category", "category"),
       booleanFilter(searchParams, "pinned", "pinned")
     ]),
-    orderBy: orderBy(
-      searchParams,
-      DOCUMENT_SORTS,
-      "pinned DESC, sort_order ASC, published_at DESC, updated_at DESC, id ASC"
-    )
+    orderBy: documentOrderBy(searchParams)
   };
 }
 
@@ -1086,6 +1106,17 @@ function changedRows(result: D1Result<unknown>) {
 }
 
 async function handleOrderSave(request: Request, env: Env, entity: string, identity: AdminIdentity) {
+  const resource = `${entity}-order`;
+  const allowed = entity === "menu" ? canManageMenu(identity) : canManageContent(identity);
+
+  if (!allowed) {
+    return noStoreError(
+      entity === "menu" ? "menu management permission is required" : "content management permission is required",
+      403,
+      { resource }
+    );
+  }
+
   const parsed = await parseCompactOrderItems(request, entity);
 
   if ("response" in parsed) {
@@ -1185,7 +1216,7 @@ async function handleOrderSave(request: Request, env: Env, entity: string, ident
     .run<{ id: string }>();
 
   if ((result.results?.length ?? changedRows(result)) < submitted.length) {
-    return noStoreError("stale revision", 409, { resource: `${entity}-order` });
+    return noStoreError("stale revision", 409, { resource });
   }
 
   return handleOrderList(entity, env);
@@ -1293,6 +1324,7 @@ function singleCount(rows: Array<{ total: number | string }>) {
 }
 
 async function handleDashboardSummary(env: Env) {
+  const now = new Date().toISOString();
   const bangkokNow = new Date(Date.now() + 7 * 60 * 60 * 1000);
   const today = bangkokNow.toISOString().slice(0, 10);
   const [
@@ -1304,6 +1336,7 @@ async function handleDashboardSummary(env: Env) {
     carouselCountsRows,
     externalServiceCountsRows,
     menuCountsRows,
+    publishableCountRows,
     pendingContentRows,
     recentContentRows,
     recentDocumentRows,
@@ -1344,14 +1377,23 @@ async function handleDashboardSummary(env: Env) {
       env,
       "SELECT enabled AS key, COUNT(*) AS total FROM menu_items GROUP BY enabled"
     ),
+    readAdminRows<{ total: number | string }>(
+      env,
+      `SELECT COUNT(*) AS total
+       FROM contents
+       WHERE COALESCE(deleted_at, '') = ''
+         AND ${PUBLISHABLE_CONTENT_SQL}`,
+      publishableContentBindings(now)
+    ),
     readAdminRows<ContentListRow>(
       env,
       `SELECT ${CONTENT_LIST_COLUMNS.join(", ")}
        FROM contents
-       WHERE COALESCE(deleted_at, '') = '' AND status <> ?
+       WHERE COALESCE(deleted_at, '') = ''
+         AND ${PUBLISHABLE_CONTENT_SQL}
        ORDER BY updated_at DESC, id ASC
        LIMIT 10`,
-      ["published"]
+      publishableContentBindings(now)
     ),
     readAdminRows<ContentListRow>(
       env,
@@ -1387,6 +1429,7 @@ async function handleDashboardSummary(env: Env) {
   const externalServiceGroups = groupedCounts(externalServiceCountsRows);
   const menuGroups = groupedCounts(menuCountsRows);
   const mediaTotal = singleCount(mediaCountRows);
+  const publishableCount = singleCount(publishableCountRows);
   const content = pendingContentRows.map(mapContent);
   const recentContent = recentContentRows.map(mapContent);
   const documents = recentDocumentRows.map(mapDocument);
@@ -1403,9 +1446,9 @@ async function handleDashboardSummary(env: Env) {
       },
       {
         id: "review-queue",
-        label: "Review queue",
-        value: String(contentCounts.review ?? 0),
-        trend: `${content.length} recent pending records`,
+        label: "Publishable queue",
+        value: String(publishableCount),
+        trend: `${content.length} recent publishable records`,
         tone: "amber"
       },
       {
@@ -1445,6 +1488,7 @@ async function handleDashboardSummary(env: Env) {
         disabled: menuGroups["0"] ?? 0
       }
     },
+    publishableCount,
     content,
     recentContent,
     documents,
@@ -1505,7 +1549,7 @@ async function handleVisitorStatsSummary(env: Env) {
 async function handlePublishPending(env: Env, identity: AdminIdentity) {
   if (!canManageContent(identity)) {
     return noStoreError("content management permission is required", 403, {
-      resource: "admin-structured-data"
+      resource: "content-publish-queue"
     });
   }
 
@@ -1520,10 +1564,10 @@ async function handlePublishPending(env: Env, identity: AdminIdentity) {
          updated_by = ?,
          revision = revision + 1
        WHERE COALESCE(deleted_at, '') = ''
-         AND status <> ?
+         AND ${PUBLISHABLE_CONTENT_SQL}
        RETURNING id`
     )
-    .bind("published", now, now, identity.actor, "published")
+    .bind("published", now, now, identity.actor, ...publishableContentBindings(now))
     .run<{ id: string }>();
 
   return noStoreJson({ publishedCount: result.results?.length ?? changedRows(result) });

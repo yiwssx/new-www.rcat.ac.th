@@ -47,6 +47,21 @@ function filterContentRows(query: string, bindings: unknown[], source: Row[]) {
     bindingIndex += likeCount;
   }
 
+  const filtersPublishableQueue =
+    /status\s*=\s*\?\s+OR\s+\(status\s*=\s*\?[\s\S]*datetime\(publish_at\)\s*<=\s*datetime\(\?\)/i.test(query);
+
+  if (filtersPublishableQueue) {
+    const reviewStatus = String(bindings[bindingIndex]);
+    const scheduledStatus = String(bindings[bindingIndex + 1]);
+    const now = String(bindings[bindingIndex + 2]);
+    rows = rows.filter(
+      (row) =>
+        row.status === reviewStatus ||
+        (row.status === scheduledStatus && String(row.publish_at ?? "") !== "" && String(row.publish_at) <= now)
+    );
+    bindingIndex += 3;
+  }
+
   const exactFilters: Array<[RegExp, string]> = [
     [/\bstatus\s*=\s*\?/i, "status"],
     [/\btype\s*=\s*\?/i, "type"],
@@ -56,7 +71,7 @@ function filterContentRows(query: string, bindings: unknown[], source: Row[]) {
   ];
 
   exactFilters.forEach(([pattern, field]) => {
-    if (pattern.test(query)) {
+    if (pattern.test(query) && !(field === "status" && filtersPublishableQueue)) {
       const expected = bindings[bindingIndex];
       bindingIndex += 1;
       rows = rows.filter((row) => row[field] === expected);
@@ -164,10 +179,19 @@ function createPaginationDb(initial: Record<string, Row[]> = {}) {
           String(left.parent_id).localeCompare(String(right.parent_id)) ||
           Number(left.sort_order) - Number(right.sort_order)
       );
-    } else if (/ORDER BY\s+pinned\s+DESC/i.test(query)) {
+    } else if (/ORDER BY\s+pinned\s+(?:ASC|DESC),\s*sort_order\s+ASC/i.test(query)) {
+      const descending = /ORDER BY\s+pinned\s+DESC/i.test(query);
       rows.sort(
         (left, right) =>
-          Number(right.pinned) - Number(left.pinned) || Number(left.sort_order) - Number(right.sort_order)
+          (descending ? Number(right.pinned) - Number(left.pinned) : Number(left.pinned) - Number(right.pinned)) ||
+          Number(left.sort_order) - Number(right.sort_order)
+      );
+    } else if (/ORDER BY\s+pinned\s+(?:ASC|DESC)/i.test(query)) {
+      const descending = /ORDER BY\s+pinned\s+DESC/i.test(query);
+      rows.sort(
+        (left, right) =>
+          (descending ? Number(right.pinned) - Number(left.pinned) : Number(left.pinned) - Number(right.pinned)) ||
+          String(left.id).localeCompare(String(right.id))
       );
     } else if (/ORDER BY\s+sort_order\s+ASC/i.test(query)) {
       rows.sort((left, right) => Number(left.sort_order) - Number(right.sort_order));
@@ -216,9 +240,18 @@ function createPaginationDb(initial: Record<string, Row[]> = {}) {
           if (/^\s*UPDATE\s+contents/i.test(query)) {
             let changes = 0;
             const results: Array<{ id: unknown }> = [];
+            const reviewStatus = String(call.bindings[4]);
+            const scheduledStatus = String(call.bindings[5]);
+            const now = String(call.bindings[6]);
 
             tables.contents.forEach((row) => {
-              if (String(row.deleted_at ?? "") === "" && row.status !== "published") {
+              const publishable =
+                row.status === reviewStatus ||
+                (row.status === scheduledStatus &&
+                  String(row.publish_at ?? "") !== "" &&
+                  String(row.publish_at) <= now);
+
+              if (String(row.deleted_at ?? "") === "" && publishable) {
                 row.status = "published";
                 row.publish_at = row.publish_at || call.bindings[1];
                 row.updated_at = call.bindings[2];
@@ -492,9 +525,28 @@ async function jsonBody(response: Response) {
   return response.json() as Promise<Record<string, unknown>>;
 }
 
+function compactOrderItems(entity: string, tables: Record<string, Row[]>) {
+  const table =
+    entity === "documents"
+      ? "documents"
+      : entity === "menu"
+        ? "menu_items"
+        : entity === "carousel"
+          ? "carousel_slides"
+          : "external_services";
+
+  return activeRows(table, tables[table] ?? []).map((row) => ({
+    id: row.id,
+    order: row.sort_order,
+    revision: Number(row.revision ?? 0),
+    ...(entity === "documents" ? { pinned: row.pinned === 1 } : { enabled: row.enabled === 1 }),
+    ...(entity === "menu" ? { parentId: row.parent_id || null } : {})
+  }));
+}
+
 describe("admin server pagination routes", () => {
   it("keeps list routes authenticated and preserves viewer read/editor write RBAC", async () => {
-    const state = createPaginationDb({ contents: [contentRow(1)] });
+    const state = createPaginationDb({ contents: [contentRow(1, { status: "review" })] });
     const env = { ...baseEnv, DB: state.db };
     const unauthenticated = await worker.fetch(
       new Request("https://preview-worker.example.invalid/api/admin/content"),
@@ -515,6 +567,112 @@ describe("admin server pagination routes", () => {
     expect(viewerPublish.status).toBe(403);
     expect(editorPublish.status).toBe(200);
     await expect(jsonBody(editorPublish)).resolves.toEqual({ publishedCount: 1 });
+  });
+
+  it("enforces ordering permissions at the Worker boundary for every compact collection", async () => {
+    const entities = ["documents", "menu", "carousel", "external-services"];
+
+    for (const entity of entities) {
+      const state = createPaginationDb(allEntityRows());
+      const response = await worker.fetch(
+        request(`/api/admin/${entity}/order`, {
+          method: "PUT",
+          role: "viewer",
+          body: JSON.stringify({ items: compactOrderItems(entity, state.tables) })
+        }),
+        { ...baseEnv, DB: state.db }
+      );
+
+      expect(response.status, `viewer ${entity}`).toBe(403);
+      expect(response.headers.get("Cache-Control"), `viewer ${entity}`).toBe("no-store");
+      await expect(jsonBody(response)).resolves.toMatchObject({ resource: `${entity}-order` });
+      expect(state.calls.some((call) => /^\s*WITH\s+submitted/i.test(call.query))).toBe(false);
+    }
+
+    const editorMenuState = createPaginationDb(allEntityRows());
+    const editorMenu = await worker.fetch(
+      request("/api/admin/menu/order", {
+        method: "PUT",
+        role: "editor",
+        body: JSON.stringify({ items: compactOrderItems("menu", editorMenuState.tables) })
+      }),
+      { ...baseEnv, DB: editorMenuState.db }
+    );
+    expect(editorMenu.status).toBe(403);
+    await expect(jsonBody(editorMenu)).resolves.toMatchObject({ resource: "menu-order" });
+
+    for (const entity of ["documents", "carousel", "external-services"]) {
+      const state = createPaginationDb(allEntityRows());
+      const response = await worker.fetch(
+        request(`/api/admin/${entity}/order`, {
+          method: "PUT",
+          role: "editor",
+          body: JSON.stringify({ items: compactOrderItems(entity, state.tables) })
+        }),
+        { ...baseEnv, DB: state.db }
+      );
+
+      expect(response.status, `editor ${entity}`).toBe(200);
+    }
+
+    for (const entity of entities) {
+      const state = createPaginationDb(allEntityRows());
+      const response = await worker.fetch(
+        request(`/api/admin/${entity}/order`, {
+          method: "PUT",
+          role: "admin",
+          body: JSON.stringify({ items: compactOrderItems(entity, state.tables) })
+        }),
+        { ...baseEnv, DB: state.db }
+      );
+
+      expect(response.status, `admin ${entity}`).toBe(200);
+    }
+  });
+
+  it("publishes only review and due scheduled content and reports the exact changed count", async () => {
+    const past = new Date(Date.now() - 60_000).toISOString();
+    const future = new Date(Date.now() + 60_000).toISOString();
+    const state = createPaginationDb({
+      contents: [
+        contentRow(1, { status: "review", publish_at: "" }),
+        contentRow(2, { status: "draft", publish_at: "" }),
+        contentRow(3, { status: "scheduled", publish_at: past }),
+        contentRow(4, { status: "scheduled", publish_at: future }),
+        contentRow(5, { status: "published", publish_at: past }),
+        contentRow(6, { status: "archived", publish_at: past })
+      ]
+    });
+    const env = { ...baseEnv, DB: state.db };
+    const dashboardResponse = await worker.fetch(request("/api/admin/dashboard-summary"), env);
+    const dashboard = await jsonBody(dashboardResponse);
+    const viewerResponse = await worker.fetch(
+      request("/api/admin/content/publish-pending", { method: "POST", role: "viewer", body: "{}" }),
+      env
+    );
+    const publishResponse = await worker.fetch(
+      request("/api/admin/content/publish-pending", { method: "POST", role: "editor", body: "{}" }),
+      env
+    );
+    const publishBody = await jsonBody(publishResponse);
+    const rowsById = new Map(state.tables.contents.map((row) => [String(row.id), row]));
+
+    expect(dashboardResponse.status).toBe(200);
+    expect(dashboard.publishableCount).toBe(2);
+    expect((dashboard.content as Row[]).map((row) => row.id).sort()).toEqual(["content-001", "content-003"]);
+    expect((dashboard.content as Row[]).some((row) => row.id === "content-004")).toBe(false);
+    expect(viewerResponse.status).toBe(403);
+    await expect(jsonBody(viewerResponse)).resolves.toMatchObject({ resource: "content-publish-queue" });
+    expect(publishResponse.status).toBe(200);
+    expect(publishResponse.headers.get("Cache-Control")).toBe("no-store");
+    expect(publishBody).toEqual({ publishedCount: 2 });
+    expect(rowsById.get("content-001")?.status).toBe("published");
+    expect(rowsById.get("content-001")?.publish_at).not.toBe("");
+    expect(rowsById.get("content-002")?.status).toBe("draft");
+    expect(rowsById.get("content-003")).toMatchObject({ status: "published", publish_at: past });
+    expect(rowsById.get("content-004")).toMatchObject({ status: "scheduled", publish_at: future });
+    expect(rowsById.get("content-005")?.status).toBe("published");
+    expect(rowsById.get("content-006")?.status).toBe("archived");
   });
 
   it("uses COUNT plus LIMIT/OFFSET, returns metadata, clamps pages, and caps page size", async () => {
@@ -587,6 +745,30 @@ describe("admin server pagination routes", () => {
     expect(tagsBody.items).toEqual([expect.objectContaining({ id: "content-003" })]);
     expect(tagsQuery?.query).toMatch(/tags_json LIKE \? ESCAPE/);
     expect(tagsQuery?.bindings).toContain("%agri-tag%");
+  });
+
+  it("keeps manual document order within pinned groups for default and pinned sorts", async () => {
+    const state = createPaginationDb({
+      documents: [
+        documentRow("pinned-a", { pinned: 1, sort_order: 30 }),
+        documentRow("pinned-z", { pinned: 1, sort_order: 10 }),
+        documentRow("pinned-m", { pinned: 1, sort_order: 20 }),
+        documentRow("regular", { pinned: 0, sort_order: 1 })
+      ]
+    });
+    const env = { ...baseEnv, DB: state.db };
+    const defaultBody = await jsonBody(await worker.fetch(request("/api/admin/documents"), env));
+    const pinnedBody = await jsonBody(
+      await worker.fetch(request("/api/admin/documents?sortBy=pinned&sortDirection=desc"), env)
+    );
+    const itemQueries = state.calls.filter(
+      (call) => /FROM documents/i.test(call.query) && /LIMIT \? OFFSET \?/i.test(call.query)
+    );
+
+    expect((defaultBody.items as Row[]).map((row) => row.id)).toEqual(["pinned-z", "pinned-m", "pinned-a", "regular"]);
+    expect((pinnedBody.items as Row[]).map((row) => row.id)).toEqual(["pinned-z", "pinned-m", "pinned-a", "regular"]);
+    expect(itemQueries).toHaveLength(2);
+    expect(itemQueries.every((call) => /ORDER BY pinned DESC, sort_order ASC/i.test(call.query))).toBe(true);
   });
 
   it("normalizes unsupported sorts, binds injection strings, escapes LIKE wildcards, and excludes heavy content", async () => {

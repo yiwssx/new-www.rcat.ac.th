@@ -1,5 +1,6 @@
 import { getPublishedContentRowBySlug } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
+import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } from "../db/publicContentVisibility";
 import {
   countOnlineVisitors,
   isVisitorPresenceSchemaMissing,
@@ -193,9 +194,11 @@ export async function recordPublicContentView(request: Request, env: Env) {
       .prepare(
         `UPDATE contents
          SET view_count = view_count + 1, last_viewed_at = ?
-         WHERE id = ? AND status = 'published' AND COALESCE(deleted_at, '') = ''`
+         WHERE id = ?
+           AND ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+           AND COALESCE(deleted_at, '') = ''`
       )
-      .bind(createdAt, row.id)
+      .bind(createdAt, row.id, ...publicPublishedContentBindings())
   ]);
 
   return json({

@@ -257,7 +257,7 @@ describe("DocumentsPage server pagination", () => {
 });
 
 describe("DocumentsPage compact ordering", () => {
-  it("loads the compact global order only on demand and saves changed revisions", async () => {
+  it("loads the compact global order only on demand and saves the complete revised collection", async () => {
     renderDocumentsPage();
     await screen.findByText(documentItem.title);
     expect(paginationMock.getAdminDocumentOrder).not.toHaveBeenCalled();
@@ -271,8 +271,9 @@ describe("DocumentsPage compact ordering", () => {
 
     await waitFor(() =>
       expect(paginationMock.saveAdminDocumentOrder).toHaveBeenCalledWith([
-        expect.objectContaining({ id: secondPinnedDocumentItem.id, order: 1, pinned: true, revision: 3 }),
-        expect.objectContaining({ id: pinnedDocumentItem.id, order: 2, pinned: true, revision: 2 })
+        { id: secondPinnedDocumentItem.id, order: 1, pinned: true, revision: 3 },
+        { id: pinnedDocumentItem.id, order: 2, pinned: true, revision: 2 },
+        { id: documentItem.id, order: 1, pinned: false, revision: 1 }
       ])
     );
     expect(publicInvalidationMock.invalidatePublicCmsData).toHaveBeenCalled();

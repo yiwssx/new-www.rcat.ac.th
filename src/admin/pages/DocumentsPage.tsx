@@ -57,7 +57,7 @@ import {
   useAdminDocumentListQuery,
   useAdminListUrlState,
   useDebouncedValue,
-  type AdminDocumentOrderItem
+  type AdminDocumentOrderInput
 } from "../../features/admin-pagination";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { CmsDocumentItem, DocumentStatus } from "../../types";
@@ -191,18 +191,6 @@ function moveDocumentWithinGroup(items: CmsDocumentItem[], document: CmsDocument
   return normalizeDocumentOrdersInCurrentOrder(nextItems);
 }
 
-function getChangedOrderDocuments(currentDocuments: CmsDocumentItem[], snapshotDocuments: CmsDocumentItem[]) {
-  const snapshotById = new Map(snapshotDocuments.map((document) => [document.id, document]));
-
-  return currentDocuments.filter((document) => {
-    const snapshotDocument = snapshotById.get(document.id);
-
-    return (
-      snapshotDocument && (document.order !== snapshotDocument.order || document.pinned !== snapshotDocument.pinned)
-    );
-  });
-}
-
 function normalizeDocumentDraft(item: CmsDocumentItem): DocumentItemInput {
   const order = Number(item.order);
 
@@ -303,7 +291,7 @@ export default function DocumentsPage() {
     mutationFn: deleteDocumentFromApi
   });
   const saveOrderMutation = useMutation({
-    mutationFn: (changedDocuments: AdminDocumentOrderItem[]) => saveAdminDocumentOrder(changedDocuments)
+    mutationFn: (orderedDocuments: AdminDocumentOrderInput[]) => saveAdminDocumentOrder(orderedDocuments)
   });
   const documentWritePending =
     saveMutation.isPending || deleteMutation.isPending || saveOrderMutation.isPending || listTransitioning;
@@ -512,25 +500,17 @@ export default function DocumentsPage() {
       return;
     }
 
-    const changedDocuments: AdminDocumentOrderItem[] = getChangedOrderDocuments(draftDocuments, snapshotDocuments).map(
-      (document) => ({
-        id: document.id,
-        title: document.title,
-        order: document.order,
-        pinned: document.pinned,
-        revision: document.revision ?? 0
-      })
-    );
-
-    if (!changedDocuments.length) {
-      setDraftDocuments(null);
-      return;
-    }
+    const orderedDocuments: AdminDocumentOrderInput[] = draftDocuments.map((document) => ({
+      id: document.id,
+      order: document.order,
+      pinned: document.pinned,
+      revision: document.revision ?? 0
+    }));
 
     showBlockingLoading("กำลังบันทึกลำดับเอกสาร");
 
     try {
-      await saveOrderMutation.mutateAsync(changedDocuments);
+      await saveOrderMutation.mutateAsync(orderedDocuments);
       await invalidateDocumentData();
       setDraftDocuments(null);
       await appSwal.close();

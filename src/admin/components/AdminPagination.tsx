@@ -46,6 +46,7 @@ export default function AdminPagination({
 }: AdminPaginationProps) {
   const selectLabelId = useId();
   const totalPages = Math.max(0, pagination.totalPages);
+  const isEmpty = pagination.totalItems <= 0 || totalPages === 0;
   const page = Math.min(Math.max(1, pagination.page), Math.max(1, totalPages));
 
   return (
@@ -71,12 +72,12 @@ export default function AdminPagination({
 
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
         <Typography variant="body2" color="text.secondary" textAlign={{ xs: "left", sm: "center" }}>
-          หน้าที่ {formatCount(page)} จาก {formatCount(totalPages)}
+          {isEmpty ? "ไม่มีรายการ" : `หน้าที่ ${formatCount(page)} จาก ${formatCount(totalPages)}`}
         </Typography>
         <Pagination
           page={page}
           count={Math.max(1, totalPages)}
-          disabled={disabled || totalPages === 0}
+          disabled={disabled || isEmpty}
           onChange={(_, nextPage) => onPageChange(nextPage)}
           color="primary"
           shape="rounded"
@@ -95,7 +96,7 @@ export default function AdminPagination({
           }}
           sx={{ alignSelf: { xs: "center", sm: "auto" } }}
         />
-        <FormControl size="small" sx={{ minWidth: 132 }} disabled={disabled}>
+        <FormControl size="small" sx={{ minWidth: 132 }} disabled={disabled || isEmpty}>
           <InputLabel id={selectLabelId}>รายการต่อหน้า</InputLabel>
           <Select<number>
             labelId={selectLabelId}

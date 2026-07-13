@@ -26,6 +26,7 @@ const sampleContentRows = [
     id: "sample-news-001",
     slug: "sample-news",
     type: "news",
+    status: "published",
     title: "Sample public news",
     summary: "Fake local-only news summary.",
     body_snapshot: "Fake local-only public content body.",
@@ -41,6 +42,7 @@ const sampleContentRows = [
     id: "sample-program-001",
     slug: "sample-program",
     type: "program",
+    status: "published",
     title: "Sample program",
     summary: "Fake local-only program summary.",
     body_snapshot: "Fake local-only program body.",
@@ -186,14 +188,25 @@ function createPublicReadMockDb(options: MockDbOptions = {}) {
               } else if (/FROM\s+media_assets/i.test(query)) {
                 results = mediaRows;
               } else if (/FROM\s+contents/i.test(query)) {
-                const visibleContentRows = /deleted_at/i.test(query)
+                let visibleContentRows = /deleted_at/i.test(query)
                   ? contentRows.filter((row) => !row.deleted_at)
                   : contentRows;
+
+                if (/status\s*=\s*\?/i.test(query)) {
+                  const expectedStatus = String(call.bindings[0] ?? "");
+                  const now = String(call.bindings[1] ?? "");
+                  visibleContentRows = visibleContentRows.filter(
+                    (row) =>
+                      row.status === expectedStatus &&
+                      (String(row.publish_at ?? "") === "" || String(row.publish_at) <= now)
+                  );
+                }
+
                 if (/slug\s*=\s*\?/i.test(query)) {
-                  const slug = String(call.bindings[1] ?? "");
+                  const slug = String(call.bindings[2] ?? "");
                   results = visibleContentRows.filter((row) => row.slug === slug || row.id === slug);
                 } else if (/type\s*=\s*\?/i.test(query)) {
-                  const type = String(call.bindings[1] ?? "");
+                  const type = String(call.bindings[2] ?? "");
                   results = visibleContentRows.filter((row) => row.type === type);
                 } else if (/LIKE/i.test(query)) {
                   const queryValue = String(call.bindings[2] ?? "")
@@ -505,6 +518,85 @@ describe("M17 Cloudflare Core public read routes", () => {
     expect(detailResponse.status).toBe(404);
     expect(
       calls.filter((call) => /FROM\s+contents/i.test(call.query)).every((call) => /deleted_at/i.test(call.query))
+    ).toBe(true);
+  });
+
+  it("excludes future-dated published content from every public content read", async () => {
+    const past = new Date(Date.now() - 60_000).toISOString();
+    const future = new Date(Date.now() + 60_000).toISOString();
+    const visibleWithoutDate = {
+      ...sampleContentRows[0],
+      id: "visible-without-date",
+      slug: "visible-without-date",
+      title: "Visible without date",
+      publish_at: ""
+    };
+    const visiblePast = {
+      ...sampleContentRows[0],
+      id: "visible-past",
+      slug: "visible-past",
+      title: "Visible past",
+      publish_at: past
+    };
+    const futureNews = {
+      ...sampleContentRows[0],
+      id: "future-news",
+      slug: "future-news",
+      title: "Future scheduled news",
+      publish_at: future
+    };
+    const visibleProgram = {
+      ...sampleContentRows[1],
+      id: "visible-program",
+      slug: "visible-program",
+      publish_at: past
+    };
+    const futureProgram = {
+      ...sampleContentRows[1],
+      id: "future-program",
+      slug: "future-program",
+      title: "Future program",
+      publish_at: future
+    };
+    const { env, calls } = createPublicReadMockDb({
+      contentRows: [visibleWithoutDate, visiblePast, futureNews, visibleProgram, futureProgram]
+    });
+    const list = await readTextAndJson(
+      await worker.fetch(new Request("https://public-api.example.test/api/public/content"), env)
+    );
+    const home = await readTextAndJson(
+      await worker.fetch(new Request("https://public-api.example.test/api/public/home"), env)
+    );
+    const search = await readTextAndJson(
+      await worker.fetch(new Request("https://public-api.example.test/api/public/search?q=Future"), env)
+    );
+    const futureDetail = await worker.fetch(
+      new Request("https://public-api.example.test/api/public/content/future-news"),
+      env
+    );
+    const visibleDetail = await worker.fetch(
+      new Request("https://public-api.example.test/api/public/content/visible-past"),
+      env
+    );
+    const programs = await readTextAndJson(
+      await worker.fetch(new Request("https://public-api.example.test/api/public/programs"), env)
+    );
+
+    expect((list.payload.items as Array<{ id: string }>).map((item) => item.id).sort()).toEqual([
+      "visible-past",
+      "visible-without-date"
+    ]);
+    expect((home.payload.latestNews as Array<{ id: string }>).some((item) => item.id === futureNews.id)).toBe(false);
+    expect(search.payload.items).toEqual([]);
+    expect(futureDetail.status).toBe(404);
+    expect(visibleDetail.status).toBe(200);
+    expect(programs.payload.items).toEqual([expect.objectContaining({ id: visibleProgram.id })]);
+    expect(
+      calls
+        .filter((call) => /FROM\s+contents/i.test(call.query))
+        .every((call) =>
+          /COALESCE\(publish_at, ''\) = '' OR datetime\(publish_at\) <= datetime\(\?\)/i.test(call.query)
+        )
     ).toBe(true);
   });
 

@@ -46,10 +46,7 @@ export default function DashboardPage() {
     }
   });
 
-  const contentCounts = data?.counts.content;
-  const countGroup =
-    contentCounts && typeof contentCounts === "object" && !Array.isArray(contentCounts) ? contentCounts : {};
-  const pendingTotal = Math.max(0, (countGroup.total ?? 0) - (countGroup.published ?? 0));
+  const publishableCount = Math.max(0, data?.publishableCount ?? 0);
   const queue = data?.content.slice(0, 4) ?? [];
   const events = data?.events.slice(0, 3) ?? [];
 
@@ -58,11 +55,11 @@ export default function DashboardPage() {
       return;
     }
 
-    if (!pendingTotal) {
+    if (!publishableCount) {
       await appSwal.fire({
         icon: "info",
         title: "ไม่มีรายการให้เผยแพร่",
-        text: "ไม่มีฉบับร่าง รายการรอตรวจสอบ หรือรายการตั้งเวลาในคิว",
+        text: "ไม่มีรายการรอตรวจสอบหรือรายการตั้งเวลาที่ถึงกำหนดเผยแพร่",
         confirmButtonText: "ตกลง"
       });
       return;
@@ -70,7 +67,7 @@ export default function DashboardPage() {
 
     const result = await appSwal.fire({
       title: "เผยแพร่คิว?",
-      text: `เผยแพร่เนื้อหา ${pendingTotal} รายการตอนนี้`,
+      text: `เผยแพร่เนื้อหา ${publishableCount} รายการตอนนี้`,
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "เผยแพร่",
@@ -162,7 +159,7 @@ export default function DashboardPage() {
                 ))}
                 {!queue.length && (
                   <Typography color="text.secondary">
-                    ไม่มีฉบับร่าง รายการรอตรวจสอบ หรือรายการตั้งเวลาที่รออยู่
+                    ไม่มีรายการรอตรวจสอบหรือรายการตั้งเวลาที่ถึงกำหนดเผยแพร่
                   </Typography>
                 )}
               </Stack>

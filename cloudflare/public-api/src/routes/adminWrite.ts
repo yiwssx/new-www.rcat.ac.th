@@ -1669,6 +1669,16 @@ function getMutationPermissionResponse(segments: string[], method: string, ident
 
   const route = segments[0] || "";
 
+  if (
+    (method === "PUT" &&
+      segments.length === 2 &&
+      segments[1] === "order" &&
+      ["documents", "menu", "carousel", "external-services"].includes(route)) ||
+    (method === "POST" && route === "content" && segments.length === 2 && segments[1] === "publish-pending")
+  ) {
+    return null;
+  }
+
   if (route === "users") {
     return null;
   }

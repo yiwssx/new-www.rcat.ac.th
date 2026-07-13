@@ -1,8 +1,8 @@
 import type { Env } from "../env";
 import { requireD1Database } from "./documentsRepository";
+import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } from "./publicContentVisibility";
 import { CONTENT_ROW_COLUMNS, type ContentRow } from "./schema";
 
-const PUBLISHED_STATUS = "published";
 const PROGRAM_TYPE = "program";
 
 export type PublicContentReadRow = Pick<
@@ -62,12 +62,12 @@ export async function listPublishedContentRows(env: Env, type: string): Promise<
     .prepare(
       `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
        FROM contents
-       WHERE status = ?
+       WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND type = ?
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
-    .bind(PUBLISHED_STATUS, type)
+    .bind(...publicPublishedContentBindings(type))
     .all<PublicContentReadRow>();
 
   return result.results ?? [];
@@ -79,11 +79,11 @@ export async function listAllPublishedContentRows(env: Env): Promise<PublicConte
     .prepare(
       `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
        FROM contents
-       WHERE status = ?
+       WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
-    .bind(PUBLISHED_STATUS)
+    .bind(...publicPublishedContentBindings())
     .all<PublicContentReadRow>();
 
   return result.results ?? [];
@@ -95,14 +95,14 @@ export async function listFeaturedContentRows(env: Env): Promise<PublicContentRe
     .prepare(
       `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
        FROM contents
-       WHERE status = ?
+       WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND featured = ?
          AND type <> ?
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC
        LIMIT 6`
     )
-    .bind(PUBLISHED_STATUS, 1, PROGRAM_TYPE)
+    .bind(...publicPublishedContentBindings(1, PROGRAM_TYPE))
     .all<PublicContentReadRow>();
 
   return result.results ?? [];
@@ -114,12 +114,12 @@ export async function getPublishedContentRowBySlug(env: Env, slug: string): Prom
     .prepare(
       `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
        FROM contents
-       WHERE status = ?
+       WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND (slug = ? OR id = ?)
          AND COALESCE(deleted_at, '') = ''
        LIMIT 1`
     )
-    .bind(PUBLISHED_STATUS, slug, slug)
+    .bind(...publicPublishedContentBindings(slug, slug))
     .all<PublicContentReadRow>();
 
   return result.results?.[0] ?? null;
@@ -138,7 +138,7 @@ export async function searchPublishedContentRows(env: Env, query: string): Promi
     .prepare(
       `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
        FROM contents
-       WHERE status = ?
+       WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND COALESCE(deleted_at, '') = ''
          AND (
            title LIKE ?
@@ -149,7 +149,7 @@ export async function searchPublishedContentRows(env: Env, query: string): Promi
        ORDER BY publish_at DESC, updated_at DESC
        LIMIT 20`
     )
-    .bind(PUBLISHED_STATUS, pattern, pattern, pattern, pattern)
+    .bind(...publicPublishedContentBindings(pattern, pattern, pattern, pattern))
     .all<PublicContentReadRow>();
 
   return result.results ?? [];

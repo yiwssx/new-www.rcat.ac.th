@@ -162,6 +162,7 @@ export type AdminDashboardCountValue = number | Record<string, number>;
 
 export interface AdminDashboardSummary {
   counts: Record<string, AdminDashboardCountValue>;
+  publishableCount: number;
   metrics: DashboardMetric[];
   content: AdminContentListItem[];
   recentContent: AdminContentListItem[];

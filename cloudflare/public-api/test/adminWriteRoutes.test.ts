@@ -146,9 +146,15 @@ function createAdminWriteMockDb(
 
       if (/status\s*=\s*\?/i.test(query)) {
         const status = String(bindings[0] ?? "");
-        const typeFilter = String(bindings[1] ?? "");
+        const now = String(bindings[1] ?? "");
+        const typeFilter = String(bindings[2] ?? "");
         return rows
-          .filter((row) => row.status === status && normalizeDeleted(row))
+          .filter(
+            (row) =>
+              row.status === status &&
+              normalizeDeleted(row) &&
+              (String(row.publish_at ?? "") === "" || String(row.publish_at) <= now)
+          )
           .filter((row) => (!/type\s*=\s*\?/i.test(query) ? row.type !== typeFilter : row.type === typeFilter));
       }
     }

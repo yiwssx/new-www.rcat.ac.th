@@ -54,7 +54,32 @@ describe("AdminPagination", () => {
     );
 
     expect(screen.getByText("แสดง 0 จากทั้งหมด 0 รายการ")).toBeInTheDocument();
-    expect(screen.getByText("หน้าที่ 1 จาก 0")).toBeInTheDocument();
+    expect(screen.getByText("ไม่มีรายการ")).toBeInTheDocument();
+    expect(screen.queryByText("หน้าที่ 1 จาก 0")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "หน้าปัจจุบัน หน้าที่ 1" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "รายการต่อหน้า" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("status", { name: "กำลังโหลดหน้ารายการ" })).toBeInTheDocument();
+  });
+
+  it("keeps a single-page result accurate and disables unavailable navigation", () => {
+    render(
+      <AdminPagination
+        pagination={{
+          page: 1,
+          pageSize: 25,
+          totalItems: 7,
+          totalPages: 1,
+          hasPreviousPage: false,
+          hasNextPage: false
+        }}
+        onPageChange={vi.fn()}
+        onPageSizeChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("แสดง 1–7 จากทั้งหมด 7 รายการ")).toBeInTheDocument();
+    expect(screen.getByText("หน้าที่ 1 จาก 1")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ไปหน้าถัดไป" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "รายการต่อหน้า" })).toBeEnabled();
   });
 });

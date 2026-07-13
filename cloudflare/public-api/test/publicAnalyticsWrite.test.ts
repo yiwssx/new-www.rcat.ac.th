@@ -67,7 +67,7 @@ function createAnalyticsDb(options: { presenceTableMissing?: boolean } = {}) {
           return { results: [...visitorRows.values()] as T[], success: true };
         }
         if (/FROM contents/i.test(query)) {
-          const identifier = String(this.bindings[1] ?? "");
+          const identifier = String(this.bindings[2] ?? "");
           return {
             results: (identifier === contentRow.slug || identifier === contentRow.id ? [contentRow] : []) as T[],
             success: true

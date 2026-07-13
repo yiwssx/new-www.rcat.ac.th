@@ -1,8 +1,8 @@
 import type { Env } from "../env";
 import { requireD1Database } from "./documentsRepository";
 import type { PublicContentReadRow } from "./contentRepository";
+import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } from "./publicContentVisibility";
 
-const PUBLISHED_STATUS = "published";
 const PROGRAM_TYPE = "program";
 const PROGRAM_COLUMNS = [
   "id",
@@ -35,12 +35,12 @@ export async function listPublishedProgramRows(env: Env): Promise<PublicContentR
     .prepare(
       `SELECT ${PROGRAM_COLUMNS.join(", ")}
        FROM contents
-       WHERE status = ?
+       WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND type = ?
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
-    .bind(PUBLISHED_STATUS, PROGRAM_TYPE)
+    .bind(...publicPublishedContentBindings(PROGRAM_TYPE))
     .all<PublicContentReadRow>();
 
   return result.results ?? [];
