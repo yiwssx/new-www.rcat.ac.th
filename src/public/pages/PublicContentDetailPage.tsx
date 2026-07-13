@@ -17,7 +17,7 @@ import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { usePublicContentDetail } from "../hooks/usePublicContentDetail";
 import { parseContentBodyToBlocks } from "../../utils/contentBlocks";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
-import { isFacebookEmbedContent } from "../../utils/facebookContent";
+import { CONTENT_TEMPLATE_LABELS, resolveContentTemplate } from "../../utils/contentTemplate";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { ContentItem, MediaAsset } from "../../types";
 
@@ -223,6 +223,60 @@ function AttachedMediaSection({ attachedMedia }: { attachedMedia: MediaAsset[] }
   );
 }
 
+function FeaturedContentMedia({
+  featuredMedia,
+  previewUrl,
+  embedUrl,
+  layout
+}: {
+  featuredMedia: MediaAsset | undefined;
+  previewUrl: string;
+  embedUrl: string;
+  layout: "feature" | "update";
+}) {
+  if (featuredMedia?.type === "image" && previewUrl) {
+    return (
+      <Box
+        component="img"
+        className="rcat-image-frame"
+        src={previewUrl}
+        alt={featuredMedia.name}
+        loading={layout === "feature" ? "eager" : "lazy"}
+        decoding="async"
+        {...(layout === "feature" ? ({ fetchpriority: "high" } as Record<string, string>) : {})}
+        sx={{
+          width: "100%",
+          height: layout === "feature" ? { xs: 240, md: 500 } : { xs: 210, md: 320 },
+          borderRadius: 2,
+          objectFit: "cover",
+          display: "block"
+        }}
+      />
+    );
+  }
+
+  if (featuredMedia?.type === "video" && embedUrl) {
+    return (
+      <Box
+        component="iframe"
+        className="rcat-image-frame"
+        title={featuredMedia.name}
+        src={embedUrl}
+        loading="lazy"
+        sx={{
+          width: "100%",
+          height: layout === "feature" ? { xs: 240, md: 500 } : { xs: 230, md: 340 },
+          border: 0,
+          borderRadius: 2
+        }}
+        allow="autoplay"
+      />
+    );
+  }
+
+  return null;
+}
+
 export default function PublicContentDetailPage({ slug }: PublicContentDetailPageProps) {
   const { data, isLoading, isFetching } = usePublicCmsSnapshot();
   const contentDetailQuery = usePublicContentDetail({ slug });
@@ -338,10 +392,10 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
     recordedViewCountState.storageKey === viewCountStorageKey ? recordedViewCountState.count : null;
   const displayedViewCount = recordedViewCount ?? item.viewCount ?? 0;
   const tagList = normalizeTags(item.tags);
-  const isFacebookEmbed = isFacebookEmbedContent(item);
+  const contentTemplate = resolveContentTemplate(item);
   const categoryList = normalizeCategoryList(item.category);
 
-  if (isFacebookEmbed) {
+  if (contentTemplate === "facebook-embed") {
     return (
       <PublicSiteShell
         hidePageHeader
@@ -353,7 +407,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
         canonicalPath={`/content/${item.slug || slug || ""}`}
       >
         <Box className="rcat-content-detail-shell">
-          <Card component="article" className="rcat-card">
+          <Card component="article" className="rcat-card" data-content-template={contentTemplate}>
             <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
               <Stack spacing={2.5}>
                 <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
@@ -408,6 +462,165 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
     );
   }
 
+  if (contentTemplate === "feature") {
+    return (
+      <PublicSiteShell
+        hidePageHeader
+        title={item.title}
+        description={item.summary}
+        seoTitle={item.seoTitle || item.title}
+        seoDescription={item.seoDescription || item.summary}
+        canonicalUrl={item.canonicalUrl}
+        canonicalPath={`/content/${item.slug || slug || ""}`}
+      >
+        <Box className="rcat-content-detail-shell">
+          <Card component="article" className="rcat-card" data-content-template={contentTemplate}>
+            <CardContent sx={{ p: { xs: 2.5, md: 4.5 } }}>
+              <Stack spacing={2.75}>
+                <Box>
+                  <Typography variant="h1" sx={{ fontSize: { xs: "2.15rem", md: "3.8rem" }, lineHeight: 1.08 }}>
+                    {item.title}
+                  </Typography>
+                  {item.summary && (
+                    <Typography
+                      color="text.secondary"
+                      sx={{ mt: 1.75, fontSize: { xs: "1.05rem", md: "1.3rem" }, maxWidth: 900 }}
+                    >
+                      {item.summary}
+                    </Typography>
+                  )}
+                </Box>
+
+                <FeaturedContentMedia
+                  featuredMedia={featuredMedia}
+                  previewUrl={featuredMediaPreviewUrl}
+                  embedUrl={featuredMediaEmbedUrl}
+                  layout="feature"
+                />
+
+                <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
+                <Divider />
+
+                {contentBlocks.length ? (
+                  <ContentBlocksRenderer blocks={contentBlocks} mediaAssets={mediaAssets} />
+                ) : (
+                  <EmptyState title="ยังไม่มีเนื้อหาที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
+                )}
+
+                <AttachedMediaSection attachedMedia={attachedMedia} />
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Box sx={{ mt: 2.5 }}>
+            <Button
+              href={getReturnPath(item.type)}
+              startIcon={<ArrowBackOutlinedIcon />}
+              sx={{ width: { xs: "100%", sm: "auto" }, ...focusVisibleSx }}
+            >
+              กลับไปหน้ารายการ
+            </Button>
+          </Box>
+
+          {relatedItems.length > 0 && (
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h2" sx={{ fontSize: "1.65rem", mb: 2 }}>
+                เนื้อหาที่เกี่ยวข้อง
+              </Typography>
+              <Grid container spacing={2.5}>
+                {relatedItems.map((relatedItem) => (
+                  <Grid size={{ xs: 12, md: 4 }} key={relatedItem.id}>
+                    <PublicContentCard item={relatedItem} mediaAssets={mediaAssets} />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+        </Box>
+      </PublicSiteShell>
+    );
+  }
+
+  if (contentTemplate === "update") {
+    return (
+      <PublicSiteShell
+        hidePageHeader
+        title={item.title}
+        description={item.summary}
+        seoTitle={item.seoTitle || item.title}
+        seoDescription={item.seoDescription || item.summary}
+        canonicalUrl={item.canonicalUrl}
+        canonicalPath={`/content/${item.slug || slug || ""}`}
+      >
+        <Box className="rcat-content-detail-shell" sx={{ maxWidth: 820, mx: "auto" }}>
+          <Card component="article" className="rcat-card" data-content-template={contentTemplate}>
+            <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
+              <Stack spacing={2.4}>
+                <Chip
+                  label={CONTENT_TEMPLATE_LABELS.update}
+                  color="secondary"
+                  sx={{ alignSelf: "flex-start", fontWeight: 800 }}
+                />
+                <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
+
+                <Box>
+                  <Typography variant="h1" sx={{ fontSize: { xs: "2rem", md: "3rem" }, lineHeight: 1.12 }}>
+                    {item.title}
+                  </Typography>
+                  {item.summary && (
+                    <Typography color="text.secondary" sx={{ mt: 1.5, fontSize: { xs: "1rem", md: "1.12rem" } }}>
+                      {item.summary}
+                    </Typography>
+                  )}
+                </Box>
+
+                <Divider />
+                {contentBlocks.length ? (
+                  <ContentBlocksRenderer blocks={contentBlocks} mediaAssets={mediaAssets} />
+                ) : (
+                  <EmptyState title="ยังไม่มีเนื้อหาที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
+                )}
+
+                <FeaturedContentMedia
+                  featuredMedia={featuredMedia}
+                  previewUrl={featuredMediaPreviewUrl}
+                  embedUrl={featuredMediaEmbedUrl}
+                  layout="update"
+                />
+                <AttachedMediaSection attachedMedia={attachedMedia} />
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Box sx={{ mt: 2.5 }}>
+            <Button
+              href={getReturnPath(item.type)}
+              startIcon={<ArrowBackOutlinedIcon />}
+              sx={{ width: { xs: "100%", sm: "auto" }, ...focusVisibleSx }}
+            >
+              กลับไปหน้ารายการ
+            </Button>
+          </Box>
+
+          {relatedItems.length > 0 && (
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h2" sx={{ fontSize: "1.65rem", mb: 2 }}>
+                เนื้อหาที่เกี่ยวข้อง
+              </Typography>
+              <Grid container spacing={2.5}>
+                {relatedItems.map((relatedItem) => (
+                  <Grid size={{ xs: 12, md: 4 }} key={relatedItem.id}>
+                    <PublicContentCard item={relatedItem} mediaAssets={mediaAssets} />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+        </Box>
+      </PublicSiteShell>
+    );
+  }
+
   if (item.type === "announcement") {
     return (
       <PublicSiteShell
@@ -422,7 +635,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
           <Button href={normalizeSafeHref("/announcements")} startIcon={<ArrowBackOutlinedIcon />} sx={{ mb: 2 }}>
             กลับไปหน้าประกาศ
           </Button>
-          <Card component="article" className="rcat-card">
+          <Card component="article" className="rcat-card" data-content-template={contentTemplate}>
             <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
               <Stack spacing={2.4}>
                 <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
@@ -538,7 +751,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
       canonicalPath={`/content/${item.slug || slug || ""}`}
     >
       <Box className="rcat-content-detail-shell">
-        <Card component="article" className="rcat-card">
+        <Card component="article" className="rcat-card" data-content-template={contentTemplate}>
           <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
             <Stack spacing={2.5}>
               <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />

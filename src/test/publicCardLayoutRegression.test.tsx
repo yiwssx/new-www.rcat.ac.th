@@ -93,6 +93,26 @@ describe("public card layout regressions", () => {
     expect(container.querySelector("iframe")).not.toBeInTheDocument();
   });
 
+  it("shows the Facebook badge only when the resolved template is Facebook Embed", () => {
+    const { rerender } = render(
+      <PublicContentCard
+        item={createContentItem({ template: "standard", canonicalUrl: "https://www.facebook.com/rcat/posts/111" })}
+        mediaAssets={[]}
+      />
+    );
+
+    expect(screen.queryByText("Facebook")).not.toBeInTheDocument();
+
+    rerender(
+      <PublicContentCard
+        item={createContentItem({ template: "", canonicalUrl: "https://www.facebook.com/rcat/posts/111" })}
+        mediaAssets={[]}
+      />
+    );
+
+    expect(screen.getByText("Facebook")).toBeInTheDocument();
+  });
+
   it("keeps compact announcement rows as accessible focused links inside a public card", () => {
     render(
       <LatestAnnouncementsCard

@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicContentDetailPage from "../public/pages/PublicContentDetailPage";
-import { CmsSnapshot, ContentItem } from "../types";
+import { CmsSnapshot, ContentItem, MediaAsset } from "../types";
 
 const siteViewMocks = vi.hoisted(() => ({
   recordContentView: vi.fn()
@@ -65,7 +65,7 @@ function createContent(overrides: Partial<ContentItem> = {}): ContentItem {
   };
 }
 
-function createSnapshot(content: ContentItem): CmsSnapshot {
+function createSnapshot(content: ContentItem, additionalMedia: MediaAsset[] = []): CmsSnapshot {
   return {
     metrics: [],
     content: [content],
@@ -78,11 +78,31 @@ function createSnapshot(content: ContentItem): CmsSnapshot {
         owner: "",
         driveUrl: "https://drive.google.com/file/d/media-1/view",
         updatedAt: ""
-      }
+      },
+      ...additionalMedia
     ],
     events: [],
     menu: []
   };
+}
+
+function createFeaturedImage(): MediaAsset {
+  return {
+    id: "media-featured",
+    name: "ภาพเด่นของบทความ",
+    type: "image",
+    size: "1 MB",
+    owner: "งานประชาสัมพันธ์",
+    driveUrl: "https://drive.google.com/file/d/media-featured/view",
+    previewUrl: "https://example.edu/featured-image.jpg",
+    updatedAt: "2026-05-03T09:30:00.000Z"
+  };
+}
+
+function expectElementsInOrder(elements: Element[]) {
+  elements.slice(0, -1).forEach((element, index) => {
+    expect(element.compareDocumentPosition(elements[index + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
 }
 
 beforeEach(() => {
@@ -161,6 +181,8 @@ describe("PublicContentDetailPage", () => {
     render(<PublicContentDetailPage slug="announcement-1" />);
 
     const article = screen.getByRole("article");
+
+    expect(article).toHaveAttribute("data-content-template", "standard");
 
     expect(screen.queryByText("รายละเอียดเนื้อหา")).not.toBeInTheDocument();
     expect(screen.queryByText("สื่อแนบ")).not.toBeInTheDocument();
@@ -248,6 +270,7 @@ describe("PublicContentDetailPage", () => {
     render(<PublicContentDetailPage slug="news-1" />);
     const article = screen.getByRole("article");
 
+    expect(article).toHaveAttribute("data-content-template", "standard");
     expect(screen.queryByText("รายละเอียดเนื้อหา")).not.toBeInTheDocument();
     expect(screen.queryByText("ผู้รับผิดชอบ")).not.toBeInTheDocument();
     expect(screen.queryByText("ปรับปรุงล่าสุด")).not.toBeInTheDocument();
@@ -294,7 +317,9 @@ describe("PublicContentDetailPage", () => {
 
     const iframe = screen.getByTitle("โพสต์ Facebook: ข่าวกิจกรรมจาก Facebook");
     const pluginUrl = new URL(iframe.getAttribute("src") || "");
+    const article = screen.getByRole("article");
 
+    expect(article).toHaveAttribute("data-content-template", "facebook-embed");
     expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
     expect(pluginUrl.searchParams.get("href")).toBe(facebookPostUrl);
     expect(screen.getByText("Facebook")).toBeInTheDocument();
@@ -304,7 +329,7 @@ describe("PublicContentDetailPage", () => {
     expect(screen.queryByText("ข้อความโพสต์ Facebook ต้นฉบับที่ไม่ควรถูกแสดงเป็นบทความยาว")).not.toBeInTheDocument();
   });
 
-  it("renders a Facebook canonical URL as an embed even when template is not set", () => {
+  it("keeps explicit standard authoritative for a Facebook URL and preserves SEO metadata", () => {
     window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
     currentDetail = createContent({
       type: "news",
@@ -312,15 +337,161 @@ describe("PublicContentDetailPage", () => {
       slug: "facebook-canonical-news",
       template: "standard",
       canonicalUrl: facebookPostUrl,
-      body: "เนื้อหาปกติที่ไม่ควรแสดงเมื่อ canonical URL เป็น Facebook"
+      body: "เนื้อหาปกติที่ต้องแสดงแม้ canonical URL เป็น Facebook",
+      seoTitle: "ชื่อ SEO สำหรับข่าวมาตรฐาน",
+      seoDescription: "คำอธิบาย SEO สำหรับข่าวมาตรฐาน"
     });
     currentSnapshot = createSnapshot(currentDetail);
 
     render(<PublicContentDetailPage slug="facebook-canonical-news" />);
 
-    expect(screen.getByTitle("โพสต์ Facebook: ข่าวจาก canonical URL")).toBeInTheDocument();
-    expect(screen.queryByText("เนื้อหาปกติที่ไม่ควรแสดงเมื่อ canonical URL เป็น Facebook")).not.toBeInTheDocument();
+    expect(screen.getByRole("article")).toHaveAttribute("data-content-template", "standard");
+    expect(screen.getByText("เนื้อหาปกติที่ต้องแสดงแม้ canonical URL เป็น Facebook")).toBeInTheDocument();
+    expect(screen.queryByTitle("โพสต์ Facebook: ข่าวจาก canonical URL")).not.toBeInTheDocument();
+    expect(document.title).toContain("ชื่อ SEO สำหรับข่าวมาตรฐาน");
+    expect(document.querySelector('meta[name="description"]')).toHaveAttribute(
+      "content",
+      "คำอธิบาย SEO สำหรับข่าวมาตรฐาน"
+    );
+    expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute("href", facebookPostUrl);
   });
+
+  it("uses the Facebook URL fallback only for a blank legacy template", () => {
+    window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
+    currentDetail = createContent({
+      type: "news",
+      title: "ข่าว Facebook แบบเดิม",
+      slug: "legacy-facebook-news",
+      template: " ",
+      canonicalUrl: facebookPostUrl,
+      body: "เนื้อหาเดิมที่ไม่ควรแสดงแทนโพสต์ฝัง"
+    });
+    currentSnapshot = createSnapshot(currentDetail);
+
+    render(<PublicContentDetailPage slug="legacy-facebook-news" />);
+
+    expect(screen.getByRole("article")).toHaveAttribute("data-content-template", "facebook-embed");
+    expect(screen.getByTitle("โพสต์ Facebook: ข่าว Facebook แบบเดิม")).toBeInTheDocument();
+    expect(screen.queryByText("เนื้อหาเดิมที่ไม่ควรแสดงแทนโพสต์ฝัง")).not.toBeInTheDocument();
+  });
+
+  it("renders the feature layout in hero-first semantic order", () => {
+    window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
+    const featuredImage = createFeaturedImage();
+    currentDetail = createContent({
+      type: "news",
+      title: "หัวข้อเนื้อหาเด่น",
+      slug: "feature-news",
+      template: "feature",
+      summary: "สรุปเนื้อหาเด่น",
+      body: "เนื้อหาหลักของเรื่องเด่น",
+      featuredMediaId: featuredImage.id,
+      mediaIds: ["media-1"]
+    });
+    currentSnapshot = createSnapshot(currentDetail, [featuredImage]);
+
+    render(<PublicContentDetailPage slug="feature-news" />);
+
+    const article = screen.getByRole("article");
+    const heading = within(article).getByRole("heading", { level: 1, name: "หัวข้อเนื้อหาเด่น" });
+    const summary = within(article).getByText("สรุปเนื้อหาเด่น");
+    const image = within(article).getByRole("img", { name: featuredImage.name });
+    const metadata = within(article).getByText("ผู้เผยแพร่: งานประชาสัมพันธ์");
+    const body = within(article).getByText("เนื้อหาหลักของเรื่องเด่น");
+    const attachments = within(article).getByText("สื่อแนบ");
+
+    expect(article).toHaveAttribute("data-content-template", "feature");
+    expect(image).toHaveAttribute("src", featuredImage.previewUrl);
+    expectElementsInOrder([heading, summary, image, metadata, body, attachments]);
+    expect(screen.getByRole("link", { name: "กลับไปหน้ารายการ" })).toBeInTheDocument();
+  });
+
+  it("renders the compact update layout with media after the body", () => {
+    window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
+    const featuredImage = createFeaturedImage();
+    currentDetail = createContent({
+      type: "news",
+      title: "หัวข้อข่าวอัปเดต",
+      slug: "update-news",
+      template: "update",
+      summary: "สรุปข่าวอัปเดต",
+      body: "รายละเอียดข่าวอัปเดต",
+      featuredMediaId: featuredImage.id,
+      mediaIds: ["media-1"]
+    });
+    currentSnapshot = createSnapshot(currentDetail, [featuredImage]);
+
+    render(<PublicContentDetailPage slug="update-news" />);
+
+    const article = screen.getByRole("article");
+    const indicator = within(article).getByText("อัปเดต");
+    const metadata = within(article).getByText("ผู้เผยแพร่: งานประชาสัมพันธ์");
+    const heading = within(article).getByRole("heading", { level: 1, name: "หัวข้อข่าวอัปเดต" });
+    const summary = within(article).getByText("สรุปข่าวอัปเดต");
+    const body = within(article).getByText("รายละเอียดข่าวอัปเดต");
+    const image = within(article).getByRole("img", { name: featuredImage.name });
+    const attachments = within(article).getByText("สื่อแนบ");
+
+    expect(article).toHaveAttribute("data-content-template", "update");
+    expectElementsInOrder([indicator, metadata, heading, summary, body, image, attachments]);
+  });
+
+  it.each(["feature", "update"])(
+    "uses the selected %s layout for announcements instead of the standard announcement renderer",
+    (template) => {
+      window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
+      currentDetail = createContent({ template });
+      currentSnapshot = createSnapshot(currentDetail);
+
+      render(<PublicContentDetailPage slug="announcement-1" />);
+
+      const article = screen.getByRole("article");
+      expect(article).toHaveAttribute("data-content-template", template);
+      expect(within(article).getByRole("heading", { level: 1, name: "ประกาศรับสมัคร" })).toBeInTheDocument();
+      expect(within(article).getByText("สื่อแนบ")).toBeInTheDocument();
+      expect(within(article).queryByText("เอกสารแนบ")).not.toBeInTheDocument();
+    }
+  );
+
+  it.each(["feature", "update"])("does not render an empty featured-media placeholder for %s", (template) => {
+    window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
+    currentDetail = createContent({
+      type: "news",
+      template,
+      featuredMediaId: "",
+      mediaIds: []
+    });
+    currentSnapshot = createSnapshot(currentDetail);
+
+    render(<PublicContentDetailPage slug="announcement-1" />);
+
+    const article = screen.getByRole("article");
+    expect(article).toHaveAttribute("data-content-template", template);
+    expect(within(article).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(article).queryByTitle("ภาพเด่นของบทความ")).not.toBeInTheDocument();
+  });
+
+  it.each(["standard", "feature", "update", "facebook-embed"])(
+    "records one view for published %s content",
+    async (template) => {
+      currentDetail = createContent({
+        id: `content-${template}`,
+        slug: `content-${template}`,
+        type: "news",
+        template,
+        canonicalUrl: template === "facebook-embed" ? facebookPostUrl : ""
+      });
+      currentSnapshot = createSnapshot(currentDetail);
+
+      render(<PublicContentDetailPage slug={currentDetail.slug} />);
+
+      await waitFor(() => expect(siteViewMocks.recordContentView).toHaveBeenCalledTimes(1));
+      expect(siteViewMocks.recordContentView).toHaveBeenCalledWith({
+        id: `content-${template}`,
+        slug: `content-${template}`
+      });
+    }
+  );
 
   it("shows a Facebook embed fallback when imported content is missing canonical_url", () => {
     window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
@@ -337,6 +508,7 @@ describe("PublicContentDetailPage", () => {
 
     render(<PublicContentDetailPage slug="facebook-missing-url" />);
 
+    expect(screen.getByRole("article")).toHaveAttribute("data-content-template", "facebook-embed");
     expect(screen.getByText("ไม่สามารถแสดงโพสต์ Facebook แบบฝังได้")).toBeInTheDocument();
     expect(screen.queryByTitle("โพสต์ Facebook: ข่าว Facebook ไม่มี URL")).not.toBeInTheDocument();
     expect(screen.getByText("สรุปข่าว Facebook ไม่มี URL")).toBeInTheDocument();

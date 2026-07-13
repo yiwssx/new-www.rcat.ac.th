@@ -32,7 +32,7 @@ import ContentBlockBuilder from "./ContentBlockBuilder";
 import { ContentItem, ContentStatus, ContentType, MediaAsset, MediaType } from "../../types";
 import type { MediaAssetInput } from "../../features/cms-media";
 import { contentStatusLabels, contentTypeLabels, mediaTypeLabels } from "../../utils/thaiLabels";
-import { FACEBOOK_EMBED_LABEL, FACEBOOK_EMBED_TEMPLATE, isFacebookEmbedContent } from "../../utils/facebookContent";
+import { CONTENT_TEMPLATE_LABELS, CONTENT_TEMPLATES, resolveContentTemplate } from "../../utils/contentTemplate";
 import {
   ContentBlock,
   createContentBlock,
@@ -54,7 +54,6 @@ const contentTypes: ContentType[] = ["page", "news", "program", "announcement", 
 const contentStatuses: ContentStatus[] = ["draft", "review", "scheduled", "published"];
 const mediaTypes: MediaType[] = ["image", "document", "sheet", "video"];
 type MediaLibraryFilter = MediaType | "all";
-const contentTemplates = ["standard", "feature", "update", FACEBOOK_EMBED_TEMPLATE];
 const emptyMediaAssets: MediaAsset[] = [];
 
 type ContentMetadataPreset = {
@@ -203,7 +202,7 @@ function normalizeEditorDraft(source: ContentItem): ContentItem {
     canonicalUrl: source.canonicalUrl ?? "",
     featured: Boolean(source.featured),
     readingMinutes: Math.max(1, Number(source.readingMinutes) || 1),
-    template: source.template ?? "standard",
+    template: resolveContentTemplate(source),
     featuredMediaId: source.featuredMediaId ?? "",
     mediaIds: normalizeMediaIds(source.mediaIds)
   };
@@ -326,10 +325,6 @@ function mediaIcon(type: MediaType) {
   return <InsertDriveFileOutlinedIcon />;
 }
 
-function getContentTemplateLabel(template: string) {
-  return template === FACEBOOK_EMBED_TEMPLATE ? FACEBOOK_EMBED_LABEL : template;
-}
-
 interface ContentEditorDialogProps {
   open: boolean;
   item: ContentItem | null;
@@ -418,8 +413,10 @@ export default function ContentEditorDialog({
     return Array.from(map.values());
   }, [pageMedia, uploadedAssets]);
   const categorySlugs = useMemo(() => categoryToSlugList(draft.category), [draft.category]);
-  const isDraftFacebookEmbed = isFacebookEmbedContent(draft);
-  const isPendingDraftFacebookEmbed = isFacebookEmbedContent(pendingDraft);
+  const draftTemplate = resolveContentTemplate(draft);
+  const pendingDraftTemplate = pendingDraft ? resolveContentTemplate(pendingDraft) : "standard";
+  const isDraftFacebookEmbed = draftTemplate === "facebook-embed";
+  const isPendingDraftFacebookEmbed = pendingDraftTemplate === "facebook-embed";
   const metadataPresetGroups = useMemo(
     () => groupMetadataPresets(getAvailableMetadataPresets(draft.type)),
     [draft.type]
@@ -585,7 +582,7 @@ export default function ContentEditorDialog({
       canonicalUrl: draft.canonicalUrl ?? "",
       featured: Boolean(draft.featured),
       readingMinutes: Math.max(1, Number(draft.readingMinutes) || 1),
-      template: draft.template ?? "standard",
+      template: resolveContentTemplate(draft),
       featuredMediaId: draft.featuredMediaId ?? "",
       mediaIds: Array.from(new Set([...normalizeMediaIds(draft.mediaIds), ...blockMediaIds])),
       updatedAt: new Date().toISOString()
@@ -645,9 +642,14 @@ export default function ContentEditorDialog({
                 {contentTypeLabels[pendingDraft.type]} / {contentStatusLabels[pendingDraft.status]} /{" "}
                 {pendingDraft.owner}
               </Typography>
+              <Chip
+                label={CONTENT_TEMPLATE_LABELS[pendingDraftTemplate]}
+                color={isPendingDraftFacebookEmbed ? "primary" : "default"}
+                variant="outlined"
+                sx={{ alignSelf: "start" }}
+              />
               {isPendingDraftFacebookEmbed && (
                 <Stack spacing={1}>
-                  <Chip label={FACEBOOK_EMBED_LABEL} color="primary" variant="outlined" sx={{ alignSelf: "start" }} />
                   <Alert severity="info">รายการนี้จะแสดงเป็นโพสต์ Facebook แบบฝังในหน้าเว็บไซต์สาธารณะ</Alert>
                   {pendingDraft.canonicalUrl ? (
                     <Typography color="text.secondary">{pendingDraft.canonicalUrl}</Typography>
@@ -898,12 +900,12 @@ export default function ContentEditorDialog({
                   <Select
                     labelId="content-template-label"
                     label="เทมเพลต"
-                    value={draft.template ?? "standard"}
+                    value={draftTemplate}
                     onChange={(event) => updateDraft("template", event.target.value)}
                   >
-                    {contentTemplates.map((template) => (
+                    {CONTENT_TEMPLATES.map((template) => (
                       <MenuItem key={template} value={template}>
-                        {getContentTemplateLabel(template)}
+                        {CONTENT_TEMPLATE_LABELS[template]}
                       </MenuItem>
                     ))}
                   </Select>
