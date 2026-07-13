@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -23,7 +23,7 @@ import {
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -33,11 +33,19 @@ import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
-import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
-import { deleteMediaAsset, mergeBridgeMediaAssets, saveMediaAsset } from "../../features/cms-media";
-import { CmsSnapshot, MediaAsset, MediaType } from "../../types";
+import { deleteMediaAsset, saveMediaAsset } from "../../features/cms-media";
+import { MediaAsset, MediaType } from "../../types";
+import {
+  ADMIN_MEDIA_PAGE_SIZE_OPTIONS,
+  getAdminPageAfterDelete,
+  invalidateAdminListQueries,
+  useAdminListUrlState,
+  useAdminMediaListQuery,
+  useDebouncedValue
+} from "../../features/admin-pagination";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
 import { formatFileSize, readFileAsBase64 } from "../../utils/files";
@@ -53,8 +61,16 @@ interface MediaFormState {
 }
 
 type MediaFilter = MediaType | "all";
+type MediaFilterKey = "type";
 
 const mediaTypes: MediaType[] = ["image", "document", "sheet", "video"];
+const mediaListUrlOptions = {
+  defaultPageSize: 24,
+  pageSizeOptions: ADMIN_MEDIA_PAGE_SIZE_OPTIONS,
+  defaultSortBy: "updatedAt",
+  defaultSortDirection: "desc" as const,
+  filterDefaults: { type: "all" }
+};
 const emptyForm: MediaFormState = {
   name: "",
   type: "image",
@@ -133,6 +149,7 @@ function MediaPreview({ asset }: { asset: MediaAsset }) {
       component="img"
       src={previewUrl}
       alt={asset.name}
+      loading="lazy"
       onError={() => setPreviewFailed(true)}
       sx={{ width: "100%", height: "100%", objectFit: "cover" }}
     />
@@ -325,11 +342,31 @@ export default function MediaPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const canManage = canManageMedia(session?.user);
-  const { data, error, isError, isLoading } = useQuery({
-    queryKey: ["cms-snapshot", "admin"],
-    queryFn: getAdminCmsSnapshot
+  const {
+    page,
+    pageSize,
+    q,
+    sortBy,
+    sortDirection,
+    filters,
+    setState: setListState,
+    setPage,
+    setPageSize,
+    setSearch,
+    setFilter
+  } = useAdminListUrlState<MediaFilterKey>(mediaListUrlOptions);
+  const debouncedSearch = useDebouncedValue(q, 300);
+  const filter = (filters.type || "all") as MediaFilter;
+  const mediaListQuery = useAdminMediaListQuery({
+    page,
+    pageSize,
+    q: debouncedSearch,
+    type: filter,
+    sortBy,
+    sortDirection
   });
-  const mediaAssets = useMemo(() => data?.media ?? [], [data?.media]);
+  const listTransitioning = mediaListQuery.isPlaceholderData || debouncedSearch !== q;
+  const mediaAssets = mediaListQuery.data?.items ?? [];
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<MediaAsset | null>(null);
   const [form, setForm] = useState<MediaFormState>(emptyForm);
@@ -338,56 +375,26 @@ export default function MediaPage() {
   const [confirming, setConfirming] = useState(false);
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
   const [operationNotice, setOperationNotice] = useState<OperationNotice | null>(null);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<MediaFilter>("all");
   const isEditing = Boolean(editingAsset);
 
-  const saveMutation = useMutation({
-    mutationFn: saveMediaAsset,
-    onSuccess: async (asset) => {
-      queryClient.setQueryData<CmsSnapshot>(["cms-snapshot", "admin"], (snapshot) =>
-        snapshot
-          ? {
-              ...snapshot,
-              media: mergeBridgeMediaAssets([asset, ...snapshot.media])
-            }
-          : snapshot
-      );
-      await invalidatePublicCmsData(queryClient);
+  useEffect(() => {
+    const responsePage = mediaListQuery.data?.pagination.page;
+
+    if (!mediaListQuery.isPlaceholderData && responsePage && responsePage !== page) {
+      setListState({ page: responsePage }, { replace: true });
     }
+  }, [mediaListQuery.data?.pagination.page, mediaListQuery.isPlaceholderData, page, setListState]);
+
+  const saveMutation = useMutation({
+    mutationFn: saveMediaAsset
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteMediaAsset,
-    onSuccess: async (result) => {
-      queryClient.setQueryData<CmsSnapshot>(["cms-snapshot", "admin"], (snapshot) =>
-        snapshot
-          ? {
-              ...snapshot,
-              media: snapshot.media.filter((asset) => asset.id !== result.id)
-            }
-          : snapshot
-      );
-      await invalidatePublicCmsData(queryClient);
-    }
+    mutationFn: deleteMediaAsset
   });
-  const mediaActionsDisabled = saveMutation.isPending || deleteMutation.isPending || deletingMediaId !== null;
+  const mediaActionsDisabled =
+    saveMutation.isPending || deleteMutation.isPending || deletingMediaId !== null || listTransitioning;
   const saveOperation: MediaSaveOperation = isEditing ? "update" : "upload";
-
-  const filteredAssets = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return mediaAssets.filter((asset) => {
-      const matchesType = filter === "all" || asset.type === filter;
-      const matchesSearch =
-        !query ||
-        asset.name.toLowerCase().includes(query) ||
-        asset.owner.toLowerCase().includes(query) ||
-        asset.type.toLowerCase().includes(query);
-
-      return matchesType && matchesSearch;
-    });
-  }, [filter, mediaAssets, search]);
 
   function handleOpenCreate() {
     if (!canManage || mediaActionsDisabled) {
@@ -509,6 +516,10 @@ export default function MediaPage() {
         size: editingAsset?.size,
         ...filePayload
       });
+      if (currentOperation === "upload") {
+        setListState({ page: 1 }, { replace: true });
+      }
+      await Promise.all([invalidateAdminListQueries(queryClient, "media"), invalidatePublicCmsData(queryClient)]);
       await appSwal.close();
       const successTitle = getSaveSuccessTitle(currentOperation);
       const successText = getSaveSuccessText(currentOperation);
@@ -566,6 +577,16 @@ export default function MediaPage() {
 
     try {
       await deleteMutation.mutateAsync(asset);
+      const pagination = mediaListQuery.data?.pagination;
+
+      if (pagination) {
+        const nextPage = getAdminPageAfterDelete(pagination);
+        if (nextPage !== page) {
+          setListState({ page: nextPage }, { replace: true });
+        }
+      }
+
+      await Promise.all([invalidateAdminListQueries(queryClient, "media"), invalidatePublicCmsData(queryClient)]);
       await appSwal.close();
       setOperationNotice({
         severity: "success",
@@ -619,12 +640,15 @@ export default function MediaPage() {
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
-      {isError && (
+      {mediaListQuery.isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "ไม่สามารถโหลดรายการสื่อได้ในขณะนี้"}
+          {mediaListQuery.error instanceof Error ? mediaListQuery.error.message : "ไม่สามารถโหลดรายการสื่อได้ในขณะนี้"}
         </Alert>
       )}
-      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {mediaListQuery.isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {(mediaListQuery.isFetching || listTransitioning) && !mediaListQuery.isLoading && (
+        <LinearProgress sx={{ mb: 1 }} />
+      )}
       <Stack
         direction={{ xs: "column", lg: "row" }}
         spacing={2}
@@ -634,7 +658,7 @@ export default function MediaPage() {
       >
         <TextField
           placeholder="ค้นหาสื่อ"
-          value={search}
+          value={q}
           onChange={(event) => setSearch(event.target.value)}
           slotProps={{
             input: {
@@ -650,7 +674,7 @@ export default function MediaPage() {
         <ToggleButtonGroup
           value={filter}
           exclusive
-          onChange={(_, value: MediaFilter | null) => value && setFilter(value)}
+          onChange={(_, value: MediaFilter | null) => value && setFilter("type", value)}
           size="small"
           aria-label="ตัวกรองประเภทสื่อ"
         >
@@ -666,8 +690,13 @@ export default function MediaPage() {
           {operationNotice.message}
         </Alert>
       )}
-      <Grid container spacing={2.5}>
-        {filteredAssets.map((asset) => (
+      <Grid
+        container
+        spacing={2.5}
+        aria-busy={mediaListQuery.isFetching}
+        sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
+      >
+        {mediaAssets.map((asset) => (
           <Grid size={{ xs: 12, sm: 6, lg: 4, xl: 3 }} key={asset.id}>
             <MediaAssetCard
               asset={asset}
@@ -680,10 +709,24 @@ export default function MediaPage() {
           </Grid>
         ))}
       </Grid>
-      {!isLoading && !filteredAssets.length && (
+      {!mediaListQuery.isLoading && !mediaAssets.length && (
         <Typography color="text.secondary" sx={{ mt: 2 }}>
           ไม่มีสื่อที่ตรงกับมุมมองนี้
         </Typography>
+      )}
+      {mediaListQuery.data && (
+        <AdminPagination
+          pagination={{
+            ...mediaListQuery.data.pagination,
+            page,
+            pageSize
+          }}
+          pageSizeOptions={ADMIN_MEDIA_PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          disabled={mediaActionsDisabled}
+          isFetching={mediaListQuery.isFetching}
+        />
       )}
       <Dialog
         open={dialogOpen}

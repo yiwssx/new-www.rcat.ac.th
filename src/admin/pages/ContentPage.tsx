@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createColumnHelper,
   flexRender,
@@ -6,7 +6,7 @@ import {
   getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -36,10 +36,10 @@ import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ContentEditorDialog from "../components/ContentEditorDialog";
+import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
 import { useAuth } from "../../context/authSessionContext";
-import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import {
   deleteContentItem,
   getAdminContentDetail,
@@ -48,17 +48,36 @@ import {
   saveContentItem
 } from "../../features/cms-content";
 import { saveMediaAsset, type MediaAssetInput } from "../../features/cms-media";
-import { CmsSnapshot, ContentItem, ContentStatus } from "../../types";
+import { ContentItem, ContentStatus } from "../../types";
+import {
+  ADMIN_PAGE_SIZE_OPTIONS,
+  adminListQueryKeys,
+  getAdminPageAfterDelete,
+  invalidateAdminListQueries,
+  type AdminContentListItem,
+  useAdminContentListQuery,
+  useAdminListUrlState,
+  useDebouncedValue
+} from "../../features/admin-pagination";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
-import { mergeBridgeMediaAssets } from "../../features/cms-media";
 import { FACEBOOK_EMBED_LABEL, isFacebookEmbedContent } from "../../utils/facebookContent";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 
-const columnHelper = createColumnHelper<ContentItem>();
 type FilterStatus = ContentStatus | "all";
+type ContentFilterKey = "status";
+
+const columnHelper = createColumnHelper<AdminContentListItem>();
+const contentListUrlOptions = {
+  defaultPageSize: 25,
+  pageSizeOptions: ADMIN_PAGE_SIZE_OPTIONS,
+  defaultSortBy: "updatedAt",
+  defaultSortDirection: "desc" as const,
+  filterDefaults: { status: "all" }
+};
+const emptyContentItems: AdminContentListItem[] = [];
 
 function waitForDialogTransition() {
   return new Promise((resolve) => {
@@ -70,58 +89,67 @@ export default function ContentPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const canManage = canManageContent(session?.user);
-  const { data, error, isError, isLoading } = useQuery({
-    queryKey: ["cms-snapshot", "admin"],
-    queryFn: getAdminCmsSnapshot
+  const {
+    page,
+    pageSize,
+    q,
+    sortBy,
+    sortDirection,
+    filters,
+    setState: setListState,
+    setPage,
+    setPageSize,
+    setSearch,
+    setFilter
+  } = useAdminListUrlState<ContentFilterKey>(contentListUrlOptions);
+  const debouncedSearch = useDebouncedValue(q, 300);
+  const status = (filters.status || "all") as FilterStatus;
+  const contentListQuery = useAdminContentListQuery({
+    page,
+    pageSize,
+    q: debouncedSearch,
+    status,
+    sortBy,
+    sortDirection
   });
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<FilterStatus>("all");
+  const listTransitioning = contentListQuery.isPlaceholderData || debouncedSearch !== q;
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [saveError, setSaveError] = useState("");
   const [loadingEditorItem, setLoadingEditorItem] = useState(false);
-  const items = useMemo(() => data?.content ?? [], [data?.content]);
-  const mediaAssets = useMemo(() => data?.media ?? [], [data?.media]);
+  const items = contentListQuery.data?.items ?? emptyContentItems;
+
+  useEffect(() => {
+    const responsePage = contentListQuery.data?.pagination.page;
+
+    if (!contentListQuery.isPlaceholderData && responsePage && responsePage !== page) {
+      setListState({ page: responsePage }, { replace: true });
+    }
+  }, [contentListQuery.data?.pagination.page, contentListQuery.isPlaceholderData, page, setListState]);
 
   const saveMutation = useMutation({
-    mutationFn: saveContentItem,
-    onSuccess: async () => {
-      await invalidatePublicCmsData(queryClient);
-    }
+    mutationFn: saveContentItem
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteContentItem,
-    onSuccess: async () => {
-      await invalidatePublicCmsData(queryClient);
-    }
+    mutationFn: deleteContentItem
   });
 
   const publishMutation = useMutation({
-    mutationFn: publishContent,
-    onSuccess: async () => {
-      await invalidatePublicCmsData(queryClient);
-    }
+    mutationFn: publishContent
   });
 
   const mediaMutation = useMutation({
     mutationFn: saveMediaAsset,
-    onSuccess: async (asset) => {
-      queryClient.setQueryData<CmsSnapshot>(["cms-snapshot", "admin"], (snapshot) =>
-        snapshot
-          ? {
-              ...snapshot,
-              media: mergeBridgeMediaAssets([asset, ...snapshot.media])
-            }
-          : snapshot
-      );
-      await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
+    onSuccess: async () => {
+      await invalidateAdminListQueries(queryClient, "media");
     }
   });
-  const contentWritePending = saveMutation.isPending || deleteMutation.isPending || publishMutation.isPending;
+  const contentWritePending =
+    saveMutation.isPending || deleteMutation.isPending || publishMutation.isPending || listTransitioning;
 
   const handleEdit = useCallback(
-    async (item: ContentItem) => {
+    async (item: AdminContentListItem) => {
       if (!canManage || contentWritePending) {
         return;
       }
@@ -148,7 +176,7 @@ export default function ContentPage() {
   );
 
   const handleDelete = useCallback(
-    async (item: ContentItem) => {
+    async (item: AdminContentListItem) => {
       if (!canManage || contentWritePending) {
         return;
       }
@@ -170,6 +198,16 @@ export default function ContentPage() {
 
       try {
         await deleteMutation.mutateAsync(item);
+        const pagination = contentListQuery.data?.pagination;
+
+        if (pagination) {
+          const nextPage = getAdminPageAfterDelete(pagination);
+          if (nextPage !== page) {
+            setListState({ page: nextPage }, { replace: true });
+          }
+        }
+
+        await Promise.all([invalidateAdminListQueries(queryClient, "content"), invalidatePublicCmsData(queryClient)]);
         await appSwal.close();
         await showSuccessResult("ลบเนื้อหาสำเร็จ");
       } catch (currentError) {
@@ -177,11 +215,11 @@ export default function ContentPage() {
         await showErrorResult("ไม่สามารถลบเนื้อหาได้", currentError, "กรุณาลองอีกครั้ง");
       }
     },
-    [canManage, contentWritePending, deleteMutation]
+    [canManage, contentListQuery.data?.pagination, contentWritePending, deleteMutation, page, setListState, queryClient]
   );
 
   const handlePublish = useCallback(
-    async (item: ContentItem) => {
+    async (item: AdminContentListItem) => {
       if (!canManage || contentWritePending) {
         return;
       }
@@ -203,11 +241,12 @@ export default function ContentPage() {
 
       try {
         await publishMutation.mutateAsync(item);
+        await Promise.all([invalidateAdminListQueries(queryClient, "content"), invalidatePublicCmsData(queryClient)]);
         await appSwal.close();
         await showSuccessResult("เผยแพร่เนื้อหาสำเร็จ");
       } catch (currentError) {
         if (isAdminStaleRevisionError(currentError)) {
-          await queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] });
+          await queryClient.invalidateQueries({ queryKey: adminListQueryKeys.entity("content") });
         }
 
         await appSwal.close();
@@ -236,17 +275,7 @@ export default function ContentPage() {
               {isFacebookEmbedContent(info.row.original) && (
                 <Chip label={FACEBOOK_EMBED_LABEL} size="small" color="primary" variant="outlined" />
               )}
-              {!!info.row.original.tags?.length && (
-                <Typography color="text.secondary" variant="caption">
-                  #{info.row.original.tags.slice(0, 3).join(" #")}
-                </Typography>
-              )}
             </Stack>
-            {!!info.row.original.mediaIds?.length && (
-              <Typography color="text.secondary" variant="caption">
-                สื่อแนบ {info.row.original.mediaIds.length} รายการ
-              </Typography>
-            )}
           </Box>
         )
       }),
@@ -334,27 +363,10 @@ export default function ContentPage() {
     [canManage, contentWritePending, handleDelete, handleEdit, handlePublish, loadingEditorItem]
   );
 
-  const filteredItems = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return items.filter((item) => {
-      const matchesStatus = status === "all" || item.status === status;
-      const matchesSearch =
-        !query ||
-        item.title.toLowerCase().includes(query) ||
-        item.summary.toLowerCase().includes(query) ||
-        item.owner.toLowerCase().includes(query) ||
-        (item.category ?? "").toLowerCase().includes(query) ||
-        (item.tags ?? []).some((tag) => tag.toLowerCase().includes(query));
-
-      return matchesStatus && matchesSearch;
-    });
-  }, [items, search, status]);
-
   // TanStack Table intentionally returns instance functions that React Compiler cannot memoize safely.
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: filteredItems,
+    data: items,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel()
@@ -384,7 +396,12 @@ export default function ContentPage() {
 
     try {
       setSaveError("");
+      const isCreating = !item.id;
       await saveMutation.mutateAsync(item);
+      if (isCreating) {
+        setListState({ page: 1 }, { replace: true });
+      }
+      await Promise.all([invalidateAdminListQueries(queryClient, "content"), invalidatePublicCmsData(queryClient)]);
       await appSwal.close();
       setEditorOpen(false);
       setSelectedItem(null);
@@ -395,7 +412,7 @@ export default function ContentPage() {
         if (currentError.latestItem) {
           setSelectedItem(currentError.latestItem);
         }
-        await queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] });
+        await invalidateAdminListQueries(queryClient, "content");
       }
       await appSwal.close();
       setSaveError(getSwalErrorText(currentError, "กรุณาตรวจสอบรายละเอียดเนื้อหา"));
@@ -429,12 +446,15 @@ export default function ContentPage() {
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
-      {isError && (
+      {contentListQuery.isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "ไม่สามารถโหลดเนื้อหาได้ในขณะนี้"}
+          {contentListQuery.error instanceof Error ? contentListQuery.error.message : "ไม่สามารถโหลดเนื้อหาได้ในขณะนี้"}
         </Alert>
       )}
-      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {contentListQuery.isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {(contentListQuery.isFetching || listTransitioning) && !contentListQuery.isLoading && (
+        <LinearProgress sx={{ mb: 1 }} />
+      )}
       <Card>
         <CardContent>
           <Stack
@@ -446,7 +466,7 @@ export default function ContentPage() {
           >
             <TextField
               placeholder="ค้นหาเนื้อหา"
-              value={search}
+              value={q}
               onChange={(event) => setSearch(event.target.value)}
               slotProps={{
                 input: {
@@ -462,7 +482,7 @@ export default function ContentPage() {
             <ToggleButtonGroup
               value={status}
               exclusive
-              onChange={(_, value: FilterStatus | null) => value && setStatus(value)}
+              onChange={(_, value: FilterStatus | null) => value && setFilter("status", value)}
               size="small"
               aria-label="ตัวกรองสถานะ"
             >
@@ -473,7 +493,11 @@ export default function ContentPage() {
               ))}
             </ToggleButtonGroup>
           </Stack>
-          <Box className="table-scroll">
+          <Box
+            className="table-scroll"
+            aria-busy={contentListQuery.isFetching}
+            sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
+          >
             <MuiTable>
               <TableHead>
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -504,12 +528,25 @@ export default function ContentPage() {
               </TableBody>
             </MuiTable>
           </Box>
+          {contentListQuery.data && (
+            <AdminPagination
+              pagination={{
+                ...contentListQuery.data.pagination,
+                page,
+                pageSize
+              }}
+              pageSizeOptions={ADMIN_PAGE_SIZE_OPTIONS}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              disabled={contentWritePending}
+              isFetching={contentListQuery.isFetching}
+            />
+          )}
         </CardContent>
       </Card>
       <ContentEditorDialog
         open={editorOpen}
         item={selectedItem}
-        mediaAssets={mediaAssets}
         saving={saveMutation.isPending}
         errorMessage={saveError}
         onClose={() => {

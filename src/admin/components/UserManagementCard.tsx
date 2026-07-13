@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -9,6 +9,7 @@ import {
   CircularProgress,
   FormControl,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Select,
   Stack,
@@ -21,14 +22,23 @@ import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import { useAuth } from "../../context/authSessionContext";
 import {
   deleteAdminUserProfileFromCloudflare,
-  getAdminUsersFromCloudflare,
   saveAdminUserProfileToCloudflare,
   type AdminUserProfile
 } from "../../features/admin-write/cloudflareApi";
+import {
+  ADMIN_PAGE_SIZE_OPTIONS,
+  getAdminPageAfterDelete,
+  invalidateAdminListQueries,
+  useAdminListUrlState,
+  useAdminUserListQuery,
+  useDebouncedValue
+} from "../../features/admin-pagination";
 import { ADMIN_READ_ONLY_NOTICE, canManageUsers, canSelfEditUserProfile, isReadOnlyAdminUser } from "../utils/rbac";
 import { userRoleLabels } from "../../utils/thaiLabels";
 import type { User } from "../../types";
 import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
+import { useQueryClient } from "@tanstack/react-query";
+import AdminPagination from "./AdminPagination";
 
 const cannotEditOtherUsersNotice = "บัญชีนี้ไม่มีสิทธิ์แก้ไขผู้ใช้อื่น";
 const cannotDeleteSelfNotice = "ไม่สามารถลบบัญชีของตนเองได้";
@@ -56,6 +66,14 @@ const roleRows: Array<{ role: User["role"]; description: string }> = [
   }
 ];
 
+const userListUrlOptions = {
+  defaultPageSize: 25,
+  pageSizeOptions: ADMIN_PAGE_SIZE_OPTIONS,
+  defaultSortBy: "role",
+  defaultSortDirection: "asc",
+  filterDefaults: { role: "all", status: "all" }
+} as const;
+
 function isSelfProfile(profile: Pick<AdminUserProfile, "email">, user: User | null | undefined) {
   return profile.email.trim().toLowerCase() === (user?.email ?? "").trim().toLowerCase();
 }
@@ -65,58 +83,80 @@ function getSafeRevision(profile: AdminUserProfile) {
 }
 
 export default function UserManagementCard() {
+  const queryClient = useQueryClient();
   const { session } = useAuth();
   const user = session?.user;
   const canManage = canManageUsers(user);
   const canSelfEdit = canSelfEditUserProfile(user);
   const readOnly = isReadOnlyAdminUser(user);
-  const [users, setUsers] = useState<AdminUserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    page,
+    pageSize,
+    q,
+    sortBy,
+    sortDirection,
+    filters,
+    setState: setListState,
+    setPage,
+    setPageSize,
+    setSearch,
+    setFilter
+  } = useAdminListUrlState<"role" | "status">(userListUrlOptions);
+  const debouncedSearch = useDebouncedValue(q, 300);
+  const usersQuery = useAdminUserListQuery({
+    page,
+    pageSize,
+    q: debouncedSearch,
+    sortBy,
+    sortDirection,
+    role: filters.role as AdminUserProfile["role"] | "all",
+    status: filters.status as AdminUserProfile["status"] | "all"
+  });
+  const listTransitioning = usersQuery.isPlaceholderData || debouncedSearch !== q;
+  const activeAdminsQuery = useAdminUserListQuery({
+    page: 1,
+    pageSize: 1,
+    role: "admin",
+    status: "active",
+    sortBy: "email",
+    sortDirection: "asc"
+  });
+  const selfProfileQuery = useAdminUserListQuery({
+    page: 1,
+    pageSize: 1,
+    q: user?.email ?? "",
+    sortBy: "email",
+    sortDirection: "asc"
+  });
+  const users = usersQuery.data?.items ?? [];
+  const pagination = usersQuery.data?.pagination;
+
+  useEffect(() => {
+    const responsePage = usersQuery.data?.pagination.page;
+
+    if (!usersQuery.isPlaceholderData && responsePage && responsePage !== page) {
+      setListState({ page: responsePage }, { replace: true });
+    }
+  }, [page, setListState, usersQuery.data?.pagination.page, usersQuery.isPlaceholderData]);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState("");
   const [draft, setDraft] = useState<Partial<AdminUserProfile>>(emptyDraft);
   const [savingUser, setSavingUser] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
-  const activeAdminCount = useMemo(
-    () => users.filter((profile) => profile.role === "admin" && profile.status === "active").length,
-    [users]
-  );
-  const editingUser = users.find((profile) => profile.id === editingId) ?? null;
+  const activeAdminCount = activeAdminsQuery.data?.pagination.totalItems ?? 0;
+  const selfProfile =
+    users.find((profile) => isSelfProfile(profile, user)) ??
+    selfProfileQuery.data?.items.find((profile) => isSelfProfile(profile, user)) ??
+    null;
+  const editingUser =
+    users.find((profile) => profile.id === editingId) ?? (selfProfile?.id === editingId ? selfProfile : null);
   const isCreating = editingId === "__new__";
   const canEditCurrentDraft = isCreating
     ? canManage
     : Boolean(editingUser && (canManage || (canSelfEdit && isSelfProfile(editingUser, user))));
-  const showSelfEditOnlyNotice = !canManage && canSelfEdit && users.some((profile) => isSelfProfile(profile, user));
-  const userOperationPending = savingUser || deletingUserId !== null;
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadUsers() {
-      try {
-        const profiles = await getAdminUsersFromCloudflare();
-
-        if (active) {
-          setUsers(profiles);
-        }
-      } catch (loadError) {
-        if (active) {
-          setError(loadError instanceof Error ? loadError.message : "ไม่สามารถโหลดรายการผู้ใช้ได้");
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadUsers();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  const showSelfEditOnlyNotice = !canManage && canSelfEdit && Boolean(selfProfile);
+  const userOperationPending = savingUser || deletingUserId !== null || listTransitioning;
 
   function startCreate() {
     if (userOperationPending) {
@@ -174,18 +214,15 @@ export default function UserManagementCard() {
               id: isCreating ? undefined : editingUser?.id,
               revision: editingUser ? getSafeRevision(editingUser) : undefined
             };
-      const saved = await saveAdminUserProfileToCloudflare(payload);
+      await saveAdminUserProfileToCloudflare(payload);
 
       await appSwal.close();
-      setUsers((current) => {
-        const existingIndex = current.findIndex((profile) => profile.id === saved.id);
+      await invalidateAdminListQueries(queryClient, "users");
 
-        if (existingIndex === -1) {
-          return [...current, saved];
-        }
+      if (isCreating) {
+        setPage(1);
+      }
 
-        return current.map((profile) => (profile.id === saved.id ? saved : profile));
-      });
       setEditingId("");
       setDraft(emptyDraft);
       await showSuccessResult("บันทึกผู้ใช้สำเร็จ");
@@ -225,7 +262,16 @@ export default function UserManagementCard() {
     try {
       await deleteAdminUserProfileFromCloudflare({ id: profile.id, revision: getSafeRevision(profile) });
       await appSwal.close();
-      setUsers((current) => current.filter((item) => item.id !== profile.id));
+      await invalidateAdminListQueries(queryClient, "users");
+
+      if (pagination) {
+        const nextPage = getAdminPageAfterDelete(pagination);
+
+        if (nextPage !== page) {
+          setPage(nextPage);
+        }
+      }
+
       await showSuccessResult("ลบผู้ใช้สำเร็จ");
     } catch (deleteError) {
       await appSwal.close();
@@ -266,13 +312,62 @@ export default function UserManagementCard() {
           {showSelfEditOnlyNotice && <Alert severity="warning">{cannotEditOtherUsersNotice}</Alert>}
           {error && <Alert severity="error">{error}</Alert>}
 
-          <Box>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
             {canManage && (
               <Button variant="contained" disabled={userOperationPending} onClick={startCreate}>
                 เพิ่มผู้ใช้
               </Button>
             )}
-          </Box>
+            {!canManage && canSelfEdit && selfProfile && (
+              <Button variant="outlined" disabled={userOperationPending} onClick={() => startEdit(selfProfile)}>
+                แก้ไขบัญชีของฉัน
+              </Button>
+            )}
+          </Stack>
+
+          <Grid container spacing={1.5}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                size="small"
+                label="ค้นหาผู้ใช้"
+                value={q}
+                onChange={(event) => setSearch(event.target.value)}
+                slotProps={{ htmlInput: { "aria-label": "ค้นหาผู้ใช้" } }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="admin-user-list-role-filter-label">สิทธิ์</InputLabel>
+                <Select
+                  labelId="admin-user-list-role-filter-label"
+                  label="สิทธิ์"
+                  value={filters.role}
+                  onChange={(event) => setFilter("role", event.target.value)}
+                >
+                  <MenuItem value="all">ทั้งหมด</MenuItem>
+                  <MenuItem value="admin">admin</MenuItem>
+                  <MenuItem value="editor">editor</MenuItem>
+                  <MenuItem value="viewer">viewer</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="admin-user-list-status-filter-label">สถานะ</InputLabel>
+                <Select
+                  labelId="admin-user-list-status-filter-label"
+                  label="สถานะ"
+                  value={filters.status}
+                  onChange={(event) => setFilter("status", event.target.value)}
+                >
+                  <MenuItem value="all">ทั้งหมด</MenuItem>
+                  <MenuItem value="active">ใช้งาน</MenuItem>
+                  <MenuItem value="disabled">ปิดใช้งาน</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
 
           {editingId && (
             <Box sx={{ p: 2, borderRadius: 2, border: "1px solid rgba(31, 90, 44, 0.12)" }}>
@@ -350,8 +445,13 @@ export default function UserManagementCard() {
             </Box>
           )}
 
-          <Stack spacing={1.25}>
-            {loading ? (
+          {listTransitioning && <LinearProgress sx={{ mb: 1 }} />}
+          <Stack
+            spacing={1.25}
+            aria-busy={usersQuery.isFetching || listTransitioning}
+            sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
+          >
+            {usersQuery.isLoading ? (
               <Stack direction="row" spacing={1} alignItems="center">
                 <CircularProgress size={20} />
                 <Typography color="text.secondary">กำลังโหลดผู้ใช้</Typography>
@@ -421,7 +521,27 @@ export default function UserManagementCard() {
                 );
               })
             )}
+            {!usersQuery.isLoading && !users.length && (
+              <Typography color="text.secondary">ไม่พบผู้ใช้ที่ตรงกับเงื่อนไข</Typography>
+            )}
           </Stack>
+
+          {usersQuery.isError && (
+            <Alert severity="error">
+              {usersQuery.error instanceof Error ? usersQuery.error.message : "ไม่สามารถโหลดรายการผู้ใช้ได้"}
+            </Alert>
+          )}
+
+          {pagination && (
+            <AdminPagination
+              pagination={pagination}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={ADMIN_PAGE_SIZE_OPTIONS}
+              disabled={userOperationPending}
+              isFetching={usersQuery.isFetching}
+            />
+          )}
 
           <Box
             sx={{

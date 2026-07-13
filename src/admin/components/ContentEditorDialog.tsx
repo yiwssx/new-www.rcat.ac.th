@@ -14,17 +14,20 @@ import {
   FormControl,
   FormControlLabel,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Select,
   Stack,
   TextField,
   Typography
 } from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import AdminPagination from "./AdminPagination";
 import ContentBlockBuilder from "./ContentBlockBuilder";
 import { ContentItem, ContentStatus, ContentType, MediaAsset, MediaType } from "../../types";
 import type { MediaAssetInput } from "../../features/cms-media";
@@ -39,11 +42,20 @@ import {
 } from "../../utils/contentBlocks";
 import { formatFileSize, readFileAsBase64 } from "../../utils/files";
 import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
+import {
+  ADMIN_MEDIA_BY_IDS_MAX,
+  ADMIN_MEDIA_PAGE_SIZE_OPTIONS,
+  adminMediaListQueryOptions,
+  getAdminMediaByIds,
+  useDebouncedValue
+} from "../../features/admin-pagination";
 
 const contentTypes: ContentType[] = ["page", "news", "program", "announcement", "blog"];
 const contentStatuses: ContentStatus[] = ["draft", "review", "scheduled", "published"];
 const mediaTypes: MediaType[] = ["image", "document", "sheet", "video"];
+type MediaLibraryFilter = MediaType | "all";
 const contentTemplates = ["standard", "feature", "update", FACEBOOK_EMBED_TEMPLATE];
+const emptyMediaAssets: MediaAsset[] = [];
 
 type ContentMetadataPreset = {
   label: string;
@@ -332,7 +344,7 @@ interface ContentEditorDialogProps {
 export default function ContentEditorDialog({
   open,
   item,
-  mediaAssets = [],
+  mediaAssets = emptyMediaAssets,
   saving = false,
   errorMessage = "",
   onClose,
@@ -351,14 +363,60 @@ export default function ContentEditorDialog({
   const [uploading, setUploading] = useState(false);
   const [tagInputValue, setTagInputValue] = useState("");
   const [bodyBlocks, setBodyBlocks] = useState<ContentBlock[]>(() => createBodyBlocks(item?.body));
+  const [mediaPage, setMediaPage] = useState(1);
+  const [mediaPageSize, setMediaPageSize] = useState(24);
+  const [mediaSearch, setMediaSearch] = useState("");
+  const [mediaFilter, setMediaFilter] = useState<MediaLibraryFilter>("all");
+  const debouncedMediaSearch = useDebouncedValue(mediaSearch, 300);
+  const mediaListQuery = useQuery({
+    ...adminMediaListQueryOptions({
+      page: mediaPage,
+      pageSize: mediaPageSize,
+      q: debouncedMediaSearch,
+      type: mediaFilter,
+      sortBy: "updatedAt",
+      sortDirection: "desc"
+    }),
+    enabled: open
+  });
   const title = useMemo(() => (item ? "แก้ไขเนื้อหา" : "เพิ่มเนื้อหาใหม่"), [item]);
   const confirmTitle = item ? "บันทึกการแก้ไขเนื้อหา?" : "สร้างเนื้อหา?";
   const confirmButton = item ? "บันทึก" : "สร้าง";
+  const selectedMediaIds = useMemo(() => normalizeMediaIds(draft.mediaIds), [draft.mediaIds]);
+  const allSelectedLookupIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [...selectedMediaIds, draft.featuredMediaId ?? "", ...extractMediaIdsFromContentBlocks(bodyBlocks)].filter(
+            Boolean
+          )
+        )
+      ),
+    [bodyBlocks, draft.featuredMediaId, selectedMediaIds]
+  );
+  const selectedLookupIds = useMemo(
+    () => allSelectedLookupIds.slice(0, ADMIN_MEDIA_BY_IDS_MAX),
+    [allSelectedLookupIds]
+  );
+  const selectedMediaQuery = useQuery({
+    queryKey: ["admin-media-by-ids", selectedLookupIds],
+    queryFn: () => getAdminMediaByIds(selectedLookupIds),
+    enabled: open && selectedLookupIds.length > 0
+  });
+  const pageMedia = mediaListQuery.data?.items ?? emptyMediaAssets;
+  const selectedLookupMedia = selectedMediaQuery.data ?? emptyMediaAssets;
   const availableMedia = useMemo(() => {
     const map = new Map<string, MediaAsset>();
-    [...uploadedAssets, ...mediaAssets].forEach((asset) => map.set(asset.id, asset));
+    [...mediaAssets, ...pageMedia, ...selectedLookupMedia, ...uploadedAssets].forEach((asset) =>
+      map.set(asset.id, asset)
+    );
     return Array.from(map.values());
-  }, [mediaAssets, uploadedAssets]);
+  }, [mediaAssets, pageMedia, selectedLookupMedia, uploadedAssets]);
+  const libraryMedia = useMemo(() => {
+    const map = new Map<string, MediaAsset>();
+    [...pageMedia, ...uploadedAssets].forEach((asset) => map.set(asset.id, asset));
+    return Array.from(map.values());
+  }, [pageMedia, uploadedAssets]);
   const categorySlugs = useMemo(() => categoryToSlugList(draft.category), [draft.category]);
   const isDraftFacebookEmbed = isFacebookEmbedContent(draft);
   const isPendingDraftFacebookEmbed = isFacebookEmbedContent(pendingDraft);
@@ -366,7 +424,6 @@ export default function ContentEditorDialog({
     () => groupMetadataPresets(getAvailableMetadataPresets(draft.type)),
     [draft.type]
   );
-  const selectedMediaIds = normalizeMediaIds(draft.mediaIds);
   const selectedMedia = availableMedia.filter((asset) => selectedMediaIds.includes(asset.id));
   const featuredMedia = availableMedia.find((asset) => asset.id === draft.featuredMediaId);
 
@@ -383,6 +440,9 @@ export default function ContentEditorDialog({
     setUploading(false);
     setTagInputValue("");
     setBodyBlocks(createBodyBlocks(nextDraft.body));
+    setMediaPage(1);
+    setMediaSearch("");
+    setMediaFilter("all");
   }
 
   function setDraftTags(nextTags: string[]) {
@@ -906,11 +966,12 @@ export default function ContentEditorDialog({
                     bgcolor: "white"
                   }}
                 >
-                  {featuredMedia?.type === "image" && featuredMedia.previewUrl ? (
+                  {featuredMedia?.type === "image" && (featuredMedia.thumbnailUrl || featuredMedia.previewUrl) ? (
                     <Box
                       component="img"
-                      src={featuredMedia.previewUrl}
+                      src={featuredMedia.thumbnailUrl || featuredMedia.previewUrl}
                       alt={featuredMedia.name}
+                      loading="lazy"
                       sx={{ width: "100%", height: 150, objectFit: "cover" }}
                     />
                   ) : featuredMedia ? (
@@ -942,8 +1003,64 @@ export default function ContentEditorDialog({
                 </Stack>
                 <Divider />
                 <Typography fontWeight={900}>คลังสื่อ</Typography>
-                <Stack spacing={1} sx={{ maxHeight: 260, overflowY: "auto", pr: 0.5 }}>
-                  {availableMedia.map((asset) => {
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                  <TextField
+                    label="ค้นหาในคลังสื่อ"
+                    value={mediaSearch}
+                    onChange={(event) => {
+                      setMediaSearch(event.target.value);
+                      setMediaPage(1);
+                    }}
+                    size="small"
+                    fullWidth
+                  />
+                  <TextField
+                    label="ประเภทสื่อ"
+                    value={mediaFilter}
+                    onChange={(event) => {
+                      setMediaFilter(event.target.value as MediaLibraryFilter);
+                      setMediaPage(1);
+                    }}
+                    size="small"
+                    select
+                    fullWidth
+                  >
+                    <MenuItem value="all">ทั้งหมด</MenuItem>
+                    {mediaTypes.map((type) => (
+                      <MenuItem key={type} value={type}>
+                        {mediaTypeLabels[type]}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Stack>
+                {mediaListQuery.isFetching && <LinearProgress aria-label="กำลังโหลดคลังสื่อ" />}
+                {mediaListQuery.isError && (
+                  <Alert severity="warning">
+                    {mediaListQuery.error instanceof Error ? mediaListQuery.error.message : "ไม่สามารถโหลดคลังสื่อได้"}
+                  </Alert>
+                )}
+                {selectedMediaQuery.isError && (
+                  <Alert severity="warning">
+                    ไม่สามารถโหลดข้อมูลสื่อที่แนบไว้บางรายการได้ กรุณาลองค้นหาในคลังสื่ออีกครั้ง
+                  </Alert>
+                )}
+                {allSelectedLookupIds.length > ADMIN_MEDIA_BY_IDS_MAX && (
+                  <Alert severity="warning">
+                    แสดงข้อมูลสื่อที่แนบไว้ได้สูงสุด {ADMIN_MEDIA_BY_IDS_MAX} รายการต่อครั้ง
+                  </Alert>
+                )}
+                <Stack
+                  spacing={1}
+                  aria-busy={mediaListQuery.isFetching}
+                  sx={{
+                    maxHeight: 260,
+                    overflowY: "auto",
+                    pr: 0.5,
+                    opacity: mediaListQuery.isPlaceholderData ? 0.55 : 1,
+                    transition: "opacity 120ms ease"
+                  }}
+                >
+                  {libraryMedia.map((asset) => {
                     const checked = selectedMediaIds.includes(asset.id);
                     return (
                       <Box
@@ -959,7 +1076,12 @@ export default function ContentEditorDialog({
                           border: "1px solid rgba(31, 90, 44, 0.12)"
                         }}
                       >
-                        <Checkbox checked={checked} onChange={() => toggleMedia(asset)} size="small" />
+                        <Checkbox
+                          checked={checked}
+                          onChange={() => toggleMedia(asset)}
+                          size="small"
+                          slotProps={{ input: { "aria-label": `${checked ? "นำออก" : "แนบ"} ${asset.name}` } }}
+                        />
                         <Box
                           sx={{
                             width: 42,
@@ -972,11 +1094,12 @@ export default function ContentEditorDialog({
                             overflow: "hidden"
                           }}
                         >
-                          {asset.type === "image" && asset.previewUrl ? (
+                          {asset.type === "image" && (asset.thumbnailUrl || asset.previewUrl) ? (
                             <Box
                               component="img"
-                              src={asset.previewUrl}
+                              src={asset.thumbnailUrl || asset.previewUrl}
                               alt={asset.name}
+                              loading="lazy"
                               sx={{ width: "100%", height: "100%", objectFit: "cover" }}
                             />
                           ) : (
@@ -1005,12 +1128,29 @@ export default function ContentEditorDialog({
                       </Box>
                     );
                   })}
-                  {!availableMedia.length && (
+                  {!mediaListQuery.isLoading && !libraryMedia.length && (
                     <Typography color="text.secondary" variant="body2">
-                      อัปโหลดสื่อหรือเพิ่มรายการในคลังสื่อ
+                      ไม่พบสื่อที่ตรงกับการค้นหา
                     </Typography>
                   )}
                 </Stack>
+                {mediaListQuery.data && (
+                  <AdminPagination
+                    pagination={{
+                      ...mediaListQuery.data.pagination,
+                      page: mediaPage,
+                      pageSize: mediaPageSize
+                    }}
+                    pageSizeOptions={ADMIN_MEDIA_PAGE_SIZE_OPTIONS}
+                    onPageChange={setMediaPage}
+                    onPageSizeChange={(nextPageSize) => {
+                      setMediaPageSize(nextPageSize);
+                      setMediaPage(1);
+                    }}
+                    disabled={uploading}
+                    isFetching={mediaListQuery.isFetching}
+                  />
+                )}
                 <Divider />
                 <Typography fontWeight={900}>อัปโหลดด่วน</Typography>
                 {uploadError && <Alert severity="error">{uploadError}</Alert>}

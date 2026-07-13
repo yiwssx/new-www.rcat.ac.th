@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
@@ -12,8 +12,13 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   FormControlLabel,
   IconButton,
+  InputLabel,
+  LinearProgress,
+  MenuItem,
+  Select,
   Stack,
   Switch,
   TextField,
@@ -22,18 +27,36 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
+import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import SwapVertOutlinedIcon from "@mui/icons-material/SwapVertOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
+import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
 import { deleteCarouselSlideFromApi, saveCarouselSlideToApi } from "../../features/cms-carousel";
-import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
-import { saveHomepageSettingsToApi } from "../../features/cms-settings";
+import {
+  ADMIN_MEDIA_PAGE_SIZE_OPTIONS,
+  ADMIN_PAGE_SIZE_OPTIONS,
+  adminCarouselOrderQueryOptions,
+  adminListQueryKeys,
+  adminMediaListQueryOptions,
+  getAdminCarouselList,
+  getAdminPageAfterDelete,
+  invalidateAdminListQueries,
+  saveAdminCarouselOrder,
+  useAdminCarouselListQuery,
+  useAdminListUrlState,
+  useDebouncedValue,
+  type AdminCarouselOrderItem
+} from "../../features/admin-pagination";
+import { getHomepageSettingsFromApi, saveHomepageSettingsToApi } from "../../features/cms-settings";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
 import { CarouselSlide, HomepageCarouselSettings, MediaAsset } from "../../types";
@@ -49,27 +72,8 @@ import {
 } from "../utils/carousel";
 import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 
-function sortCarouselSlides(slides: CarouselSlide[]) {
-  return [...slides].sort((left, right) => {
-    const leftOrder = Number.isFinite(Number(left.order)) ? Number(left.order) : 0;
-    const rightOrder = Number.isFinite(Number(right.order)) ? Number(right.order) : 0;
-
-    if (leftOrder !== rightOrder) {
-      return leftOrder - rightOrder;
-    }
-
-    return Date.parse(right.updatedAt || "") - Date.parse(left.updatedAt || "");
-  });
-}
-
 function getMediaImageUrl(asset: MediaAsset) {
   return asset.previewUrl || asset.driveUrl || asset.embedUrl || "";
-}
-
-function getCarouselImageMedia(mediaAssets: MediaAsset[]) {
-  return mediaAssets
-    .filter((asset) => asset.type === "image" && getMediaImageUrl(asset))
-    .sort((left, right) => Date.parse(right.updatedAt || "") - Date.parse(left.updatedAt || ""));
 }
 
 function isSelectedCarouselImage(slide: CarouselSlide, asset: MediaAsset) {
@@ -132,31 +136,122 @@ function getDateRangeLabel(slide: CarouselSlide) {
   return "";
 }
 
+const carouselListUrlOptions = {
+  defaultPageSize: 25,
+  pageSizeOptions: ADMIN_PAGE_SIZE_OPTIONS,
+  defaultSortBy: "order",
+  defaultSortDirection: "asc",
+  filterDefaults: { enabled: "all" }
+} as const;
+
+function normalizeCarouselOrder(items: AdminCarouselOrderItem[]) {
+  return [...items]
+    .sort((left, right) => left.order - right.order || left.title.localeCompare(right.title, "th"))
+    .map((item, index) => ({ ...item, order: index + 1 }));
+}
+
+function moveCarouselOrder(items: AdminCarouselOrderItem[], id: string, direction: -1 | 1) {
+  const index = items.findIndex((item) => item.id === id);
+  const nextIndex = index + direction;
+
+  if (index < 0 || nextIndex < 0 || nextIndex >= items.length) {
+    return items;
+  }
+
+  const nextItems = [...items];
+  const [movedItem] = nextItems.splice(index, 1);
+
+  if (!movedItem) {
+    return items;
+  }
+
+  nextItems.splice(nextIndex, 0, movedItem);
+  return nextItems.map((item, itemIndex) => ({ ...item, order: itemIndex + 1 }));
+}
+
+function carouselOrdersEqual(left: AdminCarouselOrderItem[], right: AdminCarouselOrderItem[]) {
+  return (
+    left.length === right.length &&
+    left.every((item, index) => {
+      const other = right[index];
+      return other?.id === item.id && other.order === item.order && other.enabled === item.enabled;
+    })
+  );
+}
+
 export default function CarouselPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const canManage = canManageContent(session?.user);
-  const adminSnapshotQuery = useQuery({
-    queryKey: ["cms-snapshot", "admin"],
-    queryFn: getAdminCmsSnapshot
+  const {
+    page,
+    pageSize,
+    q,
+    filters,
+    sortBy,
+    sortDirection,
+    setState: setListState,
+    setPage,
+    setPageSize,
+    setSearch,
+    setFilter,
+    setSort
+  } = useAdminListUrlState<"enabled">(carouselListUrlOptions);
+  const debouncedSearch = useDebouncedValue(q, 300);
+  const enabledFilter = filters.enabled;
+  const adminListQuery = useAdminCarouselListQuery({
+    page,
+    pageSize,
+    q: debouncedSearch,
+    enabled: enabledFilter === "all" ? "all" : enabledFilter === "true",
+    sortBy,
+    sortDirection
   });
-  const slides = useMemo(
-    () => sortCarouselSlides(adminSnapshotQuery.data?.carouselSlides ?? []),
-    [adminSnapshotQuery.data?.carouselSlides]
-  );
-  const imageMediaAssets = useMemo(
-    () => getCarouselImageMedia(adminSnapshotQuery.data?.media ?? []),
-    [adminSnapshotQuery.data?.media]
-  );
-  const homepageSettings = useMemo(
-    () => normalizeHomepageSettings(adminSnapshotQuery.data?.homepageSettings),
-    [adminSnapshotQuery.data?.homepageSettings]
-  );
+  const listTransitioning = adminListQuery.isPlaceholderData || debouncedSearch !== q;
+  const slides = adminListQuery.data?.items ?? [];
+  useEffect(() => {
+    const responsePage = adminListQuery.data?.pagination.page;
+
+    if (!adminListQuery.isPlaceholderData && responsePage && responsePage !== page) {
+      setListState({ page: responsePage }, { replace: true });
+    }
+  }, [adminListQuery.data?.pagination.page, adminListQuery.isPlaceholderData, page, setListState]);
+  const homepageSettingsQuery = useQuery({
+    queryKey: ["admin-settings", "homepage"],
+    queryFn: async () => normalizeHomepageSettings(await getHomepageSettingsFromApi())
+  });
+  const homepageSettings = homepageSettingsQuery.data ?? normalizeHomepageSettings();
   const [editingSlide, setEditingSlide] = useState<CarouselSlide | null>(null);
   const [carouselSettingsDraft, setCarouselSettingsDraft] = useState<HomepageCarouselSettings | null>(null);
   const carouselSettings = carouselSettingsDraft ?? homepageSettings.carousel;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [orderingMode, setOrderingMode] = useState(false);
+  const orderQuery = useQuery({
+    ...adminCarouselOrderQueryOptions(),
+    enabled: orderingMode
+  });
+  const serverOrder = useMemo(() => normalizeCarouselOrder(orderQuery.data ?? []), [orderQuery.data]);
+  const [orderDraft, setOrderDraft] = useState<AdminCarouselOrderItem[] | null>(null);
+  const orderedSlides = orderDraft ?? serverOrder;
+  const orderDirty = orderDraft !== null && !carouselOrdersEqual(orderDraft, serverOrder);
+  const [mediaSearch, setMediaSearch] = useState("");
+  const debouncedMediaSearch = useDebouncedValue(mediaSearch, 300);
+  const [mediaPage, setMediaPage] = useState(1);
+  const [mediaPageSize, setMediaPageSize] = useState(24);
+  const mediaQuery = useQuery({
+    ...adminMediaListQueryOptions({
+      page: mediaPage,
+      pageSize: mediaPageSize,
+      q: debouncedMediaSearch,
+      type: "image",
+      sortBy: "updatedAt",
+      sortDirection: "desc"
+    }),
+    enabled: dialogOpen
+  });
+  const mediaTransitioning = mediaQuery.isPlaceholderData || debouncedMediaSearch !== mediaSearch;
+  const imageMediaAssets = mediaTransitioning ? [] : (mediaQuery.data?.items ?? []);
 
   const saveCarouselMutation = useMutation({
     mutationFn: saveCarouselSlideToApi
@@ -167,9 +262,12 @@ export default function CarouselPage() {
   const saveHomepageSettingsMutation = useMutation({
     mutationFn: saveHomepageSettingsToApi
   });
+  const saveOrderMutation = useMutation({
+    mutationFn: saveAdminCarouselOrder
+  });
 
   function updateEditingSlide<K extends keyof CarouselSlide>(key: K, value: CarouselSlide[K]) {
-    if (!canManage) {
+    if (!canManage || listTransitioning) {
       return;
     }
 
@@ -201,18 +299,25 @@ export default function CarouselPage() {
     });
   }
 
-  function handleAddSlide() {
-    if (!canManage) {
+  async function handleAddSlide() {
+    if (!canManage || listTransitioning) {
       return;
     }
 
-    setEditingSlide(createCarouselDraft(slides.length + 1));
-    setIsCreating(true);
-    setDialogOpen(true);
+    try {
+      const response = await getAdminCarouselList({ page: 1, pageSize: 1, sortBy: "order", sortDirection: "desc" });
+      setEditingSlide(createCarouselDraft((response.items[0]?.order ?? 0) + 1));
+      setMediaSearch("");
+      setMediaPage(1);
+      setIsCreating(true);
+      setDialogOpen(true);
+    } catch (error) {
+      await showErrorResult("ไม่สามารถเตรียมสไลด์ใหม่ได้", error, "กรุณาลองอีกครั้ง");
+    }
   }
 
   function handleEditSlide(slide: CarouselSlide) {
-    if (!canManage) {
+    if (!canManage || listTransitioning) {
       return;
     }
 
@@ -221,6 +326,8 @@ export default function CarouselPage() {
       startAt: slide.startAt || "",
       endAt: slide.endAt || ""
     });
+    setMediaSearch("");
+    setMediaPage(1);
     setIsCreating(false);
     setDialogOpen(true);
   }
@@ -258,7 +365,11 @@ export default function CarouselPage() {
   }
 
   async function invalidateCarouselData() {
-    await invalidatePublicCmsData(queryClient);
+    await Promise.all([
+      invalidateAdminListQueries(queryClient, "carousel"),
+      queryClient.invalidateQueries({ queryKey: adminListQueryKeys.order("carousel") }),
+      invalidatePublicCmsData(queryClient)
+    ]);
   }
 
   async function handleSaveCarouselSettings() {
@@ -275,7 +386,8 @@ export default function CarouselPage() {
       });
       const saved = await saveHomepageSettingsMutation.mutateAsync(nextSettings);
       setCarouselSettingsDraft(normalizeHomepageSettings(saved).carousel);
-      await invalidateCarouselData();
+      queryClient.setQueryData(["admin-settings", "homepage"], saved);
+      await invalidatePublicCmsData(queryClient);
       await appSwal.close();
       await showSuccessResult("บันทึกการตั้งค่าสไลด์หน้าแรกแล้ว");
     } catch (error) {
@@ -312,6 +424,9 @@ export default function CarouselPage() {
       const saved = await saveCarouselMutation.mutateAsync(nextSlide);
       setEditingSlide(saved);
       handleCloseDialog();
+      if (isCreating && sortBy === "updatedAt" && sortDirection === "desc" && page !== 1) {
+        setPage(1);
+      }
       await invalidateCarouselData();
       await appSwal.close();
       await showSuccessResult("บันทึกสไลด์หน้าแรกแล้ว");
@@ -343,12 +458,75 @@ export default function CarouselPage() {
 
     try {
       await deleteCarouselMutation.mutateAsync(slide.id);
+      const nextPage = adminListQuery.data ? getAdminPageAfterDelete(adminListQuery.data.pagination) : page;
+
+      if (nextPage !== page) {
+        setPage(nextPage);
+      }
       await invalidateCarouselData();
       await appSwal.close();
       await showSuccessResult("ลบสไลด์หน้าแรกแล้ว");
     } catch (error) {
       await appSwal.close();
       await showErrorResult("ไม่สามารถลบสไลด์หน้าแรกได้", error, "กรุณาลองอีกครั้ง");
+    }
+  }
+
+  function handleOpenOrdering() {
+    if (!canManage) {
+      return;
+    }
+
+    setOrderDraft(null);
+    setOrderingMode(true);
+  }
+
+  function handleCancelOrdering() {
+    if (saveOrderMutation.isPending) {
+      return;
+    }
+
+    setOrderDraft(null);
+    setOrderingMode(false);
+  }
+
+  function handleMoveOrder(item: AdminCarouselOrderItem, direction: -1 | 1) {
+    if (!canManage || saveOrderMutation.isPending) {
+      return;
+    }
+
+    setOrderDraft((current) => moveCarouselOrder(current ?? serverOrder, item.id, direction));
+  }
+
+  function handleToggleOrderEnabled(item: AdminCarouselOrderItem, enabled: boolean) {
+    if (!canManage || saveOrderMutation.isPending) {
+      return;
+    }
+
+    setOrderDraft((current) =>
+      (current ?? serverOrder).map((currentItem) =>
+        currentItem.id === item.id ? { ...currentItem, enabled } : currentItem
+      )
+    );
+  }
+
+  async function handleSaveOrder() {
+    if (!canManage || !orderDirty || saveOrderMutation.isPending) {
+      return;
+    }
+
+    showBlockingLoading("กำลังบันทึกลำดับสไลด์หน้าแรก");
+
+    try {
+      const saved = await saveOrderMutation.mutateAsync(orderedSlides);
+      queryClient.setQueryData(adminListQueryKeys.order("carousel"), saved);
+      setOrderDraft(null);
+      await Promise.all([invalidateAdminListQueries(queryClient, "carousel"), invalidatePublicCmsData(queryClient)]);
+      await appSwal.close();
+      await showSuccessResult("บันทึกลำดับสไลด์หน้าแรกแล้ว");
+    } catch (error) {
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกลำดับสไลด์หน้าแรกได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -359,9 +537,47 @@ export default function CarouselPage() {
         description="จัดการสไลด์ประชาสัมพันธ์ที่แสดงใน Carousel หน้าแรก"
         action={
           canManage ? (
-            <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleAddSlide}>
-              เพิ่มสไลด์
-            </Button>
+            orderingMode ? (
+              <Stack direction="row" spacing={1}>
+                <Button color="inherit" onClick={handleCancelOrdering} disabled={saveOrderMutation.isPending}>
+                  ยกเลิกจัดลำดับ
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => setOrderDraft(null)}
+                  disabled={!orderDirty || saveOrderMutation.isPending}
+                >
+                  คืนค่า
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<SaveOutlinedIcon />}
+                  onClick={() => void handleSaveOrder()}
+                  disabled={!orderDirty || saveOrderMutation.isPending}
+                >
+                  {saveOrderMutation.isPending ? "กำลังบันทึก" : "บันทึกลำดับ"}
+                </Button>
+              </Stack>
+            ) : (
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  startIcon={<SwapVertOutlinedIcon />}
+                  onClick={handleOpenOrdering}
+                  disabled={listTransitioning}
+                >
+                  จัดลำดับ
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<AddOutlinedIcon />}
+                  onClick={() => void handleAddSlide()}
+                  disabled={listTransitioning}
+                >
+                  เพิ่มสไลด์
+                </Button>
+              </Stack>
+            )
           ) : undefined
         }
       />
@@ -386,7 +602,7 @@ export default function CarouselPage() {
               <Button
                 variant="contained"
                 startIcon={<SaveOutlinedIcon />}
-                disabled={!canManage || saveHomepageSettingsMutation.isPending || adminSnapshotQuery.isLoading}
+                disabled={!canManage || saveHomepageSettingsMutation.isPending || homepageSettingsQuery.isLoading}
                 onClick={() => void handleSaveCarouselSettings()}
               >
                 {saveHomepageSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกการตั้งค่า"}
@@ -423,127 +639,260 @@ export default function CarouselPage() {
         </CardContent>
       </Card>
 
-      {adminSnapshotQuery.isLoading && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography color="text.secondary">กำลังโหลดสไลด์หน้าแรก...</Typography>
-          </CardContent>
-        </Card>
-      )}
-
-      {adminSnapshotQuery.isError && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {adminSnapshotQuery.error instanceof Error
-            ? adminSnapshotQuery.error.message
-            : "ไม่สามารถโหลดสไลด์หน้าแรกได้"}
+      {homepageSettingsQuery.isError && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {homepageSettingsQuery.error instanceof Error
+            ? homepageSettingsQuery.error.message
+            : "ไม่สามารถโหลดการตั้งค่าสไลด์หน้าแรกได้"}
         </Alert>
       )}
 
-      {!adminSnapshotQuery.isLoading && !adminSnapshotQuery.isError && !slides.length && (
+      {orderingMode ? (
         <Card>
+          {(orderQuery.isLoading || orderQuery.isFetching) && <LinearProgress />}
           <CardContent>
-            <Stack spacing={2} alignItems="flex-start">
-              <ViewCarouselOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
+            <Stack spacing={2}>
               <Box>
-                <Typography variant="h3" sx={{ fontSize: "1.2rem" }}>
-                  ยังไม่มีสไลด์หน้าแรก
+                <Typography variant="h3" sx={{ fontSize: "1.15rem" }}>
+                  จัดลำดับสไลด์ทั้งหมด
                 </Typography>
-                <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                  เพิ่มสไลด์เพื่อแสดงภาพประชาสัมพันธ์ใน Carousel หน้าแรก
+                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                  โหลดเฉพาะข้อมูลลำดับแบบย่อ ปรับตำแหน่งและสถานะ แล้วกดบันทึกลำดับ
                 </Typography>
               </Box>
-              {canManage && (
-                <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleAddSlide}>
-                  เพิ่มสไลด์
-                </Button>
+              {orderQuery.isError && (
+                <Alert severity="error">
+                  {orderQuery.error instanceof Error ? orderQuery.error.message : "ไม่สามารถโหลดลำดับสไลด์ได้"}
+                </Alert>
               )}
+              {!orderQuery.isLoading && !orderedSlides.length && !orderQuery.isError && (
+                <Typography color="text.secondary">ยังไม่มีสไลด์ให้จัดลำดับ</Typography>
+              )}
+              {orderedSlides.map((slide, index) => (
+                <Stack
+                  key={slide.id}
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1.5}
+                  alignItems={{ xs: "stretch", sm: "center" }}
+                  sx={{ p: 1.5, border: 1, borderColor: "divider", borderRadius: 2 }}
+                >
+                  <Chip label={`ลำดับ ${index + 1}`} size="small" sx={{ alignSelf: "flex-start" }} />
+                  <Typography fontWeight={800} sx={{ flex: 1, minWidth: 0 }}>
+                    {slide.title || CAROUSEL_FALLBACK_TITLE}
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={slide.enabled}
+                        onChange={(event) => handleToggleOrderEnabled(slide, event.target.checked)}
+                        disabled={saveOrderMutation.isPending}
+                      />
+                    }
+                    label="เปิดใช้งาน"
+                  />
+                  <Stack direction="row" spacing={0.5}>
+                    <IconButton
+                      aria-label={`เลื่อนขึ้น ${slide.title || CAROUSEL_FALLBACK_TITLE}`}
+                      onClick={() => handleMoveOrder(slide, -1)}
+                      disabled={index === 0 || saveOrderMutation.isPending}
+                    >
+                      <ArrowUpwardOutlinedIcon />
+                    </IconButton>
+                    <IconButton
+                      aria-label={`เลื่อนลง ${slide.title || CAROUSEL_FALLBACK_TITLE}`}
+                      onClick={() => handleMoveOrder(slide, 1)}
+                      disabled={index === orderedSlides.length - 1 || saveOrderMutation.isPending}
+                    >
+                      <ArrowDownwardOutlinedIcon />
+                    </IconButton>
+                  </Stack>
+                </Stack>
+              ))}
             </Stack>
           </CardContent>
         </Card>
-      )}
+      ) : (
+        <>
+          <Card sx={{ mb: 3 }}>
+            {(adminListQuery.isFetching || debouncedSearch !== q) && <LinearProgress />}
+            <CardContent>
+              <Grid container spacing={1.5}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    label="ค้นหาสไลด์"
+                    value={q}
+                    onChange={(event) => setSearch(event.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="carousel-enabled-filter-label">สถานะ</InputLabel>
+                    <Select
+                      labelId="carousel-enabled-filter-label"
+                      label="สถานะ"
+                      value={enabledFilter}
+                      onChange={(event) => setFilter("enabled", event.target.value)}
+                    >
+                      <MenuItem value="all">ทั้งหมด</MenuItem>
+                      <MenuItem value="true">เปิดใช้งาน</MenuItem>
+                      <MenuItem value="false">ปิดใช้งาน</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="carousel-sort-label">เรียงตาม</InputLabel>
+                    <Select
+                      labelId="carousel-sort-label"
+                      label="เรียงตาม"
+                      value={`${sortBy ?? "order"}:${sortDirection ?? "asc"}`}
+                      onChange={(event) => {
+                        const [nextSortBy, nextDirection] = event.target.value.split(":");
+                        setSort(nextSortBy || "order", nextDirection === "desc" ? "desc" : "asc");
+                      }}
+                    >
+                      <MenuItem value="order:asc">ลำดับน้อยไปมาก</MenuItem>
+                      <MenuItem value="updatedAt:desc">แก้ไขล่าสุด</MenuItem>
+                      <MenuItem value="title:asc">ชื่อ ก–ฮ</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
 
-      <Grid container spacing={2.5}>
-        {slides.map((slide) => {
-          const dateRangeLabel = getDateRangeLabel(slide);
+          {adminListQuery.isError && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {adminListQuery.error instanceof Error ? adminListQuery.error.message : "ไม่สามารถโหลดสไลด์หน้าแรกได้"}
+            </Alert>
+          )}
 
-          return (
-            <Grid key={slide.id} size={{ xs: 12, md: 6, xl: 4 }}>
-              <Card sx={{ height: "100%" }}>
-                <Box
-                  sx={{
-                    height: 180,
-                    display: "grid",
-                    placeItems: "center",
-                    bgcolor: "primary.light",
-                    color: "primary.main",
-                    overflow: "hidden"
-                  }}
-                >
-                  {slide.imageUrl ? (
+          {!adminListQuery.isLoading && !listTransitioning && !slides.length && !adminListQuery.isError && (
+            <Card>
+              <CardContent>
+                <Stack spacing={2} alignItems="flex-start">
+                  <ViewCarouselOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
+                  <Box>
+                    <Typography variant="h3" sx={{ fontSize: "1.2rem" }}>
+                      {q || enabledFilter !== "all" ? "ไม่พบสไลด์ที่ตรงกับเงื่อนไข" : "ยังไม่มีสไลด์หน้าแรก"}
+                    </Typography>
+                    <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+                      เพิ่มสไลด์เพื่อแสดงภาพประชาสัมพันธ์ใน Carousel หน้าแรก
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
+
+          <Grid
+            container
+            spacing={2.5}
+            aria-busy={listTransitioning}
+            sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
+          >
+            {slides.map((slide) => {
+              const dateRangeLabel = getDateRangeLabel(slide);
+
+              return (
+                <Grid key={slide.id} size={{ xs: 12, md: 6, xl: 4 }}>
+                  <Card sx={{ height: "100%" }}>
                     <Box
-                      component="img"
-                      src={slide.imageUrl}
-                      alt={slide.imageAlt || slide.title}
-                      sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  ) : (
-                    <Typography fontWeight={800}>ยังไม่มีรูปภาพ</Typography>
-                  )}
-                </Box>
-                <CardContent>
-                  <Stack spacing={1.5}>
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                      <Chip
-                        label={slide.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
-                        size="small"
-                        color={slide.enabled ? "success" : "warning"}
-                        variant={slide.enabled ? "filled" : "outlined"}
-                      />
-                      <Chip label={`ลำดับ ${slide.order}`} size="small" variant="outlined" />
-                    </Stack>
-                    <Box>
-                      <Typography variant="h3" sx={{ fontSize: "1.12rem" }}>
-                        {getCarouselSlideDisplayTitle(slide)}
-                      </Typography>
-                      {slide.subtitle && (
-                        <Typography color="text.secondary" className="content-summary" sx={{ mt: 0.75 }}>
-                          {slide.subtitle}
-                        </Typography>
+                      sx={{
+                        height: 180,
+                        display: "grid",
+                        placeItems: "center",
+                        bgcolor: "primary.light",
+                        color: "primary.main",
+                        overflow: "hidden"
+                      }}
+                    >
+                      {slide.imageUrl ? (
+                        <Box
+                          component="img"
+                          src={slide.imageUrl}
+                          alt={slide.imageAlt || slide.title}
+                          loading="lazy"
+                          sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      ) : (
+                        <Typography fontWeight={800}>ยังไม่มีรูปภาพ</Typography>
                       )}
                     </Box>
-                    {dateRangeLabel && (
-                      <Typography color="text.secondary" variant="body2">
-                        {dateRangeLabel}
-                      </Typography>
-                    )}
-                    {slide.href && (
-                      <Typography color="text.secondary" variant="body2" sx={{ wordBreak: "break-word" }}>
-                        {slide.href}
-                      </Typography>
-                    )}
-                    {canManage && (
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        <IconButton aria-label="แก้ไขสไลด์หน้าแรก" onClick={() => handleEditSlide(slide)} size="small">
-                          <EditOutlinedIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          aria-label="ลบสไลด์หน้าแรก"
-                          color="error"
-                          disabled={deleteCarouselMutation.isPending}
-                          onClick={() => void handleDeleteCarouselSlide(slide)}
-                          size="small"
-                        >
-                          <DeleteOutlineOutlinedIcon fontSize="small" />
-                        </IconButton>
+                    <CardContent>
+                      <Stack spacing={1.5}>
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                          <Chip
+                            label={slide.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                            size="small"
+                            color={slide.enabled ? "success" : "warning"}
+                            variant={slide.enabled ? "filled" : "outlined"}
+                          />
+                          <Chip label={`ลำดับ ${slide.order}`} size="small" variant="outlined" />
+                        </Stack>
+                        <Box>
+                          <Typography variant="h3" sx={{ fontSize: "1.12rem" }}>
+                            {getCarouselSlideDisplayTitle(slide)}
+                          </Typography>
+                          {slide.subtitle && (
+                            <Typography color="text.secondary" className="content-summary" sx={{ mt: 0.75 }}>
+                              {slide.subtitle}
+                            </Typography>
+                          )}
+                        </Box>
+                        {dateRangeLabel && (
+                          <Typography color="text.secondary" variant="body2">
+                            {dateRangeLabel}
+                          </Typography>
+                        )}
+                        {slide.href && (
+                          <Typography color="text.secondary" variant="body2" sx={{ wordBreak: "break-word" }}>
+                            {slide.href}
+                          </Typography>
+                        )}
+                        {canManage && (
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <IconButton
+                              aria-label={`แก้ไขสไลด์หน้าแรก ${getCarouselSlideDisplayTitle(slide)}`}
+                              onClick={() => handleEditSlide(slide)}
+                              disabled={listTransitioning}
+                              size="small"
+                            >
+                              <EditOutlinedIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              aria-label={`ลบสไลด์หน้าแรก ${getCarouselSlideDisplayTitle(slide)}`}
+                              color="error"
+                              disabled={listTransitioning || deleteCarouselMutation.isPending}
+                              onClick={() => void handleDeleteCarouselSlide(slide)}
+                              size="small"
+                            >
+                              <DeleteOutlineOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Stack>
+                        )}
                       </Stack>
-                    )}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          );
-        })}
-      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+
+          {adminListQuery.data && (
+            <AdminPagination
+              pagination={adminListQuery.data.pagination}
+              pageSizeOptions={ADMIN_PAGE_SIZE_OPTIONS}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              disabled={listTransitioning}
+              isFetching={adminListQuery.isFetching}
+            />
+          )}
+        </>
+      )}
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="md">
         <DialogTitle>{isCreating ? "เพิ่มสไลด์หน้าแรก" : "แก้ไขสไลด์หน้าแรก"}</DialogTitle>
@@ -616,9 +965,29 @@ export default function CarouselPage() {
                         </Box>
                       </Stack>
                       <Divider />
-                      {imageMediaAssets.length === 0 ? (
+                      <TextField
+                        label="ค้นหารูปภาพในคลังสื่อ"
+                        value={mediaSearch}
+                        onChange={(event) => {
+                          setMediaSearch(event.target.value);
+                          setMediaPage(1);
+                        }}
+                        size="small"
+                        fullWidth
+                      />
+                      {(mediaQuery.isFetching || debouncedMediaSearch !== mediaSearch) && <LinearProgress />}
+                      {mediaQuery.isError && (
+                        <Alert severity="error">
+                          {mediaQuery.error instanceof Error
+                            ? mediaQuery.error.message
+                            : "ไม่สามารถโหลดรูปภาพจากคลังสื่อได้"}
+                        </Alert>
+                      )}
+                      {!mediaQuery.isLoading && !mediaTransitioning && imageMediaAssets.length === 0 ? (
                         <Alert severity="info">
-                          ยังไม่มีรูปภาพในคลังสื่อ กรุณาอัปโหลดรูปภาพในเมนูสื่อ หรือกรอก URL รูปภาพเอง
+                          {mediaSearch
+                            ? "ไม่พบรูปภาพที่ตรงกับคำค้นหา"
+                            : "ยังไม่มีรูปภาพในคลังสื่อ กรุณาอัปโหลดรูปภาพในเมนูสื่อ หรือกรอก URL รูปภาพเอง"}
                         </Alert>
                       ) : (
                         <Box sx={{ maxHeight: 260, overflowY: "auto", pr: 0.5 }}>
@@ -641,6 +1010,7 @@ export default function CarouselPage() {
                                       component="img"
                                       src={imageUrl}
                                       alt={asset.name}
+                                      loading="lazy"
                                       sx={{
                                         width: "100%",
                                         height: 110,
@@ -707,6 +1077,18 @@ export default function CarouselPage() {
                             })}
                           </Grid>
                         </Box>
+                      )}
+                      {mediaQuery.data && !mediaTransitioning && (
+                        <AdminPagination
+                          pagination={mediaQuery.data.pagination}
+                          pageSizeOptions={ADMIN_MEDIA_PAGE_SIZE_OPTIONS}
+                          onPageChange={setMediaPage}
+                          onPageSizeChange={(nextPageSize) => {
+                            setMediaPageSize(nextPageSize);
+                            setMediaPage(1);
+                          }}
+                          isFetching={mediaQuery.isFetching}
+                        />
                       )}
                     </Stack>
                   </Box>

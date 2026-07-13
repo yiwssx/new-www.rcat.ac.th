@@ -1,26 +1,30 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CmsSnapshot, ExternalServiceLink, Session, User } from "../../types";
+import type { ExternalServiceLink, Session, User } from "../../types";
 import ExternalServicesPage from "./ExternalServicesPage";
 
-const authMock = vi.hoisted(() => ({
-  role: "editor" as User["role"]
-}));
+const authMock = vi.hoisted(() => ({ role: "editor" as User["role"] }));
 
-const dashboardMock = vi.hoisted(() => ({
-  getAdminCmsSnapshot: vi.fn()
+const paginationMock = vi.hoisted(() => ({
+  listHook: vi.fn(),
+  getOrder: vi.fn(),
+  saveOrder: vi.fn(),
+  invalidateList: vi.fn(),
+  setPage: vi.fn(),
+  setPageSize: vi.fn(),
+  setSearch: vi.fn(),
+  setFilter: vi.fn(),
+  setSort: vi.fn()
 }));
 
 const externalServicesMock = vi.hoisted(() => ({
-  saveExternalServiceLinkToApi: vi.fn(),
-  saveExternalServiceLinksToApi: vi.fn(),
-  deleteExternalServiceLinkFromApi: vi.fn()
+  saveOne: vi.fn(),
+  deleteOne: vi.fn(),
+  saveBatch: vi.fn()
 }));
 
-const publicCacheMock = vi.hoisted(() => ({
-  clearPublicCmsCache: vi.fn()
-}));
+const publicInvalidationMock = vi.hoisted(() => ({ invalidate: vi.fn() }));
 
 const swalInstance = vi.hoisted(() => ({
   fire: vi.fn(),
@@ -29,9 +33,7 @@ const swalInstance = vi.hoisted(() => ({
 }));
 
 vi.mock("sweetalert2", () => ({
-  default: {
-    mixin: vi.fn(() => swalInstance)
-  }
+  default: { mixin: vi.fn(() => swalInstance) }
 }));
 
 vi.mock("sweetalert2/dist/sweetalert2.min.css", () => ({}));
@@ -49,29 +51,44 @@ vi.mock("../../context/authSessionContext", () => ({
       token: "test-session-token",
       expiresAt: "2026-07-07T00:00:00.000Z"
     };
-
-    return {
-      session,
-      login: vi.fn(),
-      logout: vi.fn()
-    };
+    return { session, login: vi.fn(), logout: vi.fn() };
   }
 }));
 
-vi.mock("../../features/cms-dashboard", () => ({
-  getAdminCmsSnapshot: dashboardMock.getAdminCmsSnapshot
+vi.mock("../../features/admin-pagination", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../features/admin-pagination")>()),
+  useAdminExternalServiceListQuery: paginationMock.listHook,
+  useAdminListUrlState: () => ({
+    page: 1,
+    pageSize: 25,
+    q: "",
+    filters: { enabled: "all", tone: "all" },
+    sortBy: "order",
+    sortDirection: "asc",
+    setPage: paginationMock.setPage,
+    setPageSize: paginationMock.setPageSize,
+    setSearch: paginationMock.setSearch,
+    setFilter: paginationMock.setFilter,
+    setSort: paginationMock.setSort
+  }),
+  useDebouncedValue: (value: unknown) => value,
+  adminExternalServiceOrderQueryOptions: () => ({
+    queryKey: ["test-admin-orders", "external-services"],
+    queryFn: paginationMock.getOrder
+  }),
+  saveAdminExternalServiceOrder: paginationMock.saveOrder,
+  invalidateAdminListQueries: paginationMock.invalidateList
 }));
 
 vi.mock("../../features/cms-external-services", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../features/cms-external-services")>()),
-  saveExternalServiceLinkToApi: externalServicesMock.saveExternalServiceLinkToApi,
-  saveExternalServiceLinksToApi: externalServicesMock.saveExternalServiceLinksToApi,
-  deleteExternalServiceLinkFromApi: externalServicesMock.deleteExternalServiceLinkFromApi
+  saveExternalServiceLinkToApi: externalServicesMock.saveOne,
+  deleteExternalServiceLinkFromApi: externalServicesMock.deleteOne,
+  saveExternalServiceLinksToApi: externalServicesMock.saveBatch
 }));
 
-vi.mock("../../services/publicCmsCache", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../services/publicCmsCache")>()),
-  clearPublicCmsCache: publicCacheMock.clearPublicCmsCache
+vi.mock("../../services/publicCmsInvalidation", () => ({
+  invalidatePublicCmsData: publicInvalidationMock.invalidate
 }));
 
 const serviceOne: ExternalServiceLink = {
@@ -82,7 +99,7 @@ const serviceOne: ExternalServiceLink = {
   tone: "student",
   iconKey: "apps",
   enabled: true,
-  order: 7,
+  order: 1,
   updatedAt: "2026-07-07T09:00:00.000Z",
   revision: 2
 };
@@ -95,32 +112,37 @@ const serviceTwo: ExternalServiceLink = {
   tone: "learning",
   iconKey: "school",
   enabled: true,
-  order: 7,
+  order: 2,
   updatedAt: "2026-07-07T08:00:00.000Z",
   revision: 4
 };
 
-function snapshot(externalServices: ExternalServiceLink[] = [serviceTwo, serviceOne]): CmsSnapshot {
+function listResult(items: ExternalServiceLink[] = [serviceOne, serviceTwo]) {
   return {
-    metrics: [],
-    content: [],
-    documents: [],
-    media: [],
-    events: [],
-    menu: [],
-    carouselSlides: [],
-    externalServices
+    data: {
+      items,
+      pagination: {
+        page: 1,
+        pageSize: 25,
+        totalItems: 26,
+        totalPages: 2,
+        hasPreviousPage: false,
+        hasNextPage: true
+      },
+      generatedAt: "2026-07-12T00:00:00.000Z"
+    },
+    isLoading: false,
+    isFetching: false,
+    isPlaceholderData: false,
+    isError: false,
+    error: null
   };
 }
 
-function renderExternalServicesPage() {
+function renderPage() {
   const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false }
-    }
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
   });
-
   return render(
     <QueryClientProvider client={queryClient}>
       <ExternalServicesPage />
@@ -128,35 +150,32 @@ function renderExternalServicesPage() {
   );
 }
 
-function findSwalCall(predicate: (options: Record<string, unknown>) => boolean) {
-  const call = swalInstance.fire.mock.calls.find(([options]) => {
-    if (!options || typeof options !== "object") {
-      return false;
-    }
-
-    return predicate(options as Record<string, unknown>);
-  });
-
-  return call?.[0] as Record<string, unknown> | undefined;
-}
-
-describe("ExternalServicesPage flat ordering workflow", () => {
+describe("ExternalServicesPage paginated and compact ordering workflows", () => {
   beforeEach(() => {
     authMock.role = "editor";
-    dashboardMock.getAdminCmsSnapshot.mockReset();
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot());
-    externalServicesMock.saveExternalServiceLinkToApi.mockReset();
-    externalServicesMock.deleteExternalServiceLinkFromApi.mockReset();
-    externalServicesMock.saveExternalServiceLinksToApi.mockReset();
-    externalServicesMock.saveExternalServiceLinksToApi.mockImplementation(async (items: ExternalServiceLink[]) =>
-      items.map((item, index) => ({
-        ...item,
-        id: item.id || `service-new-${index + 1}`,
-        updatedAt: "2026-07-07T10:00:00.000Z",
-        revision: item.revision ?? 0
-      }))
-    );
-    publicCacheMock.clearPublicCmsCache.mockReset();
+    paginationMock.listHook.mockReset();
+    paginationMock.listHook.mockReturnValue(listResult());
+    paginationMock.getOrder.mockReset();
+    paginationMock.getOrder.mockResolvedValue([
+      { id: "service-1", title: "Student portal", order: 1, enabled: true, revision: 2 },
+      { id: "service-2", title: "Teacher portal", order: 2, enabled: true, revision: 4 }
+    ]);
+    paginationMock.saveOrder.mockReset();
+    paginationMock.saveOrder.mockImplementation(async (items) => items);
+    paginationMock.invalidateList.mockReset();
+    paginationMock.invalidateList.mockResolvedValue(undefined);
+    paginationMock.setPage.mockReset();
+    paginationMock.setPageSize.mockReset();
+    paginationMock.setSearch.mockReset();
+    paginationMock.setFilter.mockReset();
+    paginationMock.setSort.mockReset();
+    externalServicesMock.saveOne.mockReset();
+    externalServicesMock.saveOne.mockResolvedValue(serviceOne);
+    externalServicesMock.deleteOne.mockReset();
+    externalServicesMock.deleteOne.mockResolvedValue({ id: serviceOne.id, deleted: true });
+    externalServicesMock.saveBatch.mockReset();
+    publicInvalidationMock.invalidate.mockReset();
+    publicInvalidationMock.invalidate.mockResolvedValue(undefined);
     swalInstance.fire.mockReset();
     swalInstance.fire.mockResolvedValue({ isConfirmed: true });
     swalInstance.close.mockReset();
@@ -164,21 +183,21 @@ describe("ExternalServicesPage flat ordering workflow", () => {
     swalInstance.showLoading.mockReset();
   });
 
-  it("normalizes duplicate loaded order values and does not render a numeric order field", async () => {
-    renderExternalServicesPage();
+  it("renders one server page and changes pages through URL state", async () => {
+    renderPage();
 
-    await screen.findByText("Student portal");
+    expect(await screen.findByText("Student portal")).toBeInTheDocument();
+    expect(screen.getByText("Teacher portal")).toBeInTheDocument();
+    expect(paginationMock.listHook).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, pageSize: 25, sortBy: "order", sortDirection: "asc" })
+    );
 
-    expect(screen.getByText("ลำดับ 1")).toBeInTheDocument();
-    expect(screen.getByText("ลำดับ 2")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "แก้ไขลิงก์ E-Service Student portal" }));
-
-    expect(screen.queryByRole("spinbutton", { name: "ลำดับ" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ไปหน้าที่ 2" }));
+    expect(paginationMock.setPage).toHaveBeenCalledWith(2);
   });
 
-  it("edits an existing draft item and batch save keeps the same item count and id", async () => {
-    renderExternalServicesPage();
+  it("saves an existing item individually and never sends the paginated slice to batch PUT", async () => {
+    renderPage();
 
     await screen.findByText("Student portal");
     fireEvent.click(screen.getByRole("button", { name: "แก้ไขลิงก์ E-Service Student portal" }));
@@ -187,113 +206,60 @@ describe("ExternalServicesPage flat ordering workflow", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกลิงก์ E-Service" }));
 
-    expect(await screen.findByText("Updated student portal")).toBeInTheDocument();
-    expect(screen.queryByText("Student portal")).not.toBeInTheDocument();
-    expect(externalServicesMock.saveExternalServiceLinkToApi).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "บันทึก E-Service" }));
-
-    await waitFor(() => expect(externalServicesMock.saveExternalServiceLinksToApi).toHaveBeenCalledTimes(1));
-    expect(externalServicesMock.saveExternalServiceLinksToApi.mock.calls[0]?.[0]).toEqual([
-      expect.objectContaining({ id: "service-1", title: "Updated student portal", order: 1 }),
-      expect.objectContaining({ id: "service-2", order: 2 })
-    ]);
-  });
-
-  it("moves draft items up and down while disabling boundary controls", async () => {
-    renderExternalServicesPage();
-
-    await screen.findByText("Student portal");
-
-    expect(screen.getByRole("button", { name: "เลื่อนขึ้น Student portal" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "เลื่อนลง Teacher portal" })).toBeDisabled();
-
-    fireEvent.click(screen.getByRole("button", { name: "เลื่อนลง Student portal" }));
-    fireEvent.click(screen.getByRole("button", { name: "บันทึก E-Service" }));
-
-    await waitFor(() => expect(externalServicesMock.saveExternalServiceLinksToApi).toHaveBeenCalledTimes(1));
-    expect(externalServicesMock.saveExternalServiceLinksToApi.mock.calls[0]?.[0]).toEqual([
-      expect.objectContaining({ id: "service-2", order: 1 }),
-      expect.objectContaining({ id: "service-1", order: 2 })
-    ]);
-  });
-
-  it("adds a new draft item and sends it through the batch save without a persisted id", async () => {
-    renderExternalServicesPage();
-
-    await screen.findByText("Student portal");
-    fireEvent.click(screen.getByRole("button", { name: "เพิ่มลิงก์บริการ" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อบริการ" }), {
-      target: { value: "Admission service" }
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: "URL บริการ" }), {
-      target: { value: "https://service.example.test/admission" }
-    });
-    fireEvent.click(screen.getByRole("button", { name: "บันทึกลิงก์ E-Service" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "บันทึก E-Service" }));
-
-    await waitFor(() => expect(externalServicesMock.saveExternalServiceLinksToApi).toHaveBeenCalledTimes(1));
-    const savedItems = externalServicesMock.saveExternalServiceLinksToApi.mock.calls[0]?.[0] as ExternalServiceLink[];
-
-    expect(savedItems).toHaveLength(3);
-    expect(savedItems[2]).toEqual(
-      expect.objectContaining({
-        title: "Admission service",
-        href: "https://service.example.test/admission",
-        order: 3
-      })
+    await waitFor(() =>
+      expect(externalServicesMock.saveOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "service-1", title: "Updated student portal", revision: 2 }),
+        expect.anything()
+      )
     );
-    expect(savedItems[2].id).toBe("");
+    expect(externalServicesMock.saveBatch).not.toHaveBeenCalled();
   });
 
-  it("removes a draft item and batch save omits it", async () => {
-    renderExternalServicesPage();
+  it("deletes an individual item after confirmation", async () => {
+    renderPage();
 
     await screen.findByText("Student portal");
     fireEvent.click(screen.getByRole("button", { name: "ลบลิงก์ E-Service Student portal" }));
-    fireEvent.click(screen.getByRole("button", { name: "บันทึก E-Service" }));
 
-    await waitFor(() => expect(externalServicesMock.saveExternalServiceLinksToApi).toHaveBeenCalledTimes(1));
-    expect(externalServicesMock.saveExternalServiceLinksToApi.mock.calls[0]?.[0]).toEqual([
-      expect.objectContaining({ id: "service-2", order: 1 })
-    ]);
+    await waitFor(() => expect(externalServicesMock.deleteOne).toHaveBeenCalledWith("service-1", expect.anything()));
+    expect(externalServicesMock.saveBatch).not.toHaveBeenCalled();
   });
 
-  it("keeps the draft intact and shows an error modal when batch save fails", async () => {
-    externalServicesMock.saveExternalServiceLinksToApi.mockRejectedValue(new Error("D1 unavailable"));
-    renderExternalServicesPage();
+  it("loads the compact global order only on demand and saves revision-bearing rows", async () => {
+    renderPage();
 
     await screen.findByText("Student portal");
-    fireEvent.click(screen.getByRole("button", { name: "แก้ไขลิงก์ E-Service Student portal" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อบริการ" }), {
-      target: { value: "Draft survives failed save" }
-    });
-    fireEvent.click(screen.getByRole("button", { name: "บันทึกลิงก์ E-Service" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "บันทึก E-Service" }));
+    expect(paginationMock.getOrder).not.toHaveBeenCalled();
 
-    expect(await screen.findByText("Draft survives failed save")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(findSwalCall((options) => options.title === "ไม่สามารถบันทึก E-Service ได้")).toEqual(
-        expect.objectContaining({
-          icon: "error",
-          text: "D1 unavailable",
-          confirmButtonText: "ตกลง"
-        })
-      );
-    });
+    fireEvent.click(screen.getByRole("button", { name: "จัดลำดับ" }));
+    await waitFor(() => expect(paginationMock.getOrder).toHaveBeenCalledTimes(1));
+    fireEvent.click(await screen.findByRole("button", { name: "เลื่อนลง Student portal" }));
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกลำดับ" }));
+
+    await waitFor(() =>
+      expect(paginationMock.saveOrder).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({ id: "service-2", order: 1, revision: 4 }),
+          expect.objectContaining({ id: "service-1", order: 2, revision: 2 })
+        ],
+        expect.anything()
+      )
+    );
+    expect(externalServicesMock.saveBatch).not.toHaveBeenCalled();
   });
 
-  it("keeps read-only users from editing the flat list", async () => {
+  it("allows viewers to paginate but hides every mutation and ordering control", async () => {
     authMock.role = "viewer";
-    renderExternalServicesPage();
+    renderPage();
 
     await screen.findByText("Student portal");
-    expect(screen.queryByRole("button", { name: "บันทึก E-Service" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "เพิ่มลิงก์บริการ" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "จัดลำดับ" })).not.toBeInTheDocument();
     expect(
       within(screen.getByText("Student portal").closest(".MuiCard-root") as HTMLElement).queryByLabelText(/แก้ไข/)
     ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "ไปหน้าที่ 2" }));
+    expect(paginationMock.setPage).toHaveBeenCalledWith(2);
   });
 });

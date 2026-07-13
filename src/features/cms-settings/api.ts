@@ -1,5 +1,7 @@
 import {
   getDisplaySettingsFromCloudflare,
+  getHomepageSettingsFromCloudflare,
+  getSiteSettingsFromCloudflare,
   saveDisplaySettingsToCloudflare,
   saveHomepageSettingsToCloudflare,
   saveSiteSettingsToCloudflare,
@@ -10,6 +12,14 @@ import type { VisitorStatsSettings } from "../visitor-stats/types";
 
 export function getDisplaySettingsFromApi() {
   return getDisplaySettingsFromCloudflare();
+}
+
+export function getSiteSettingsFromApi() {
+  return getSiteSettingsFromCloudflare();
+}
+
+export function getHomepageSettingsFromApi() {
+  return getHomepageSettingsFromCloudflare();
 }
 
 export function saveDisplaySettingsToApi(settings: Partial<DisplaySettings>) {

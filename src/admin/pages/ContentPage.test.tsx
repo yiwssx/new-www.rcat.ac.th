@@ -1,15 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CmsSnapshot, ContentItem, Session, User } from "../../types";
+import type { ContentItem, Session, User } from "../../types";
 import ContentPage from "./ContentPage";
 
 const authMock = vi.hoisted(() => ({
   role: "editor" as User["role"]
 }));
 
-const dashboardMock = vi.hoisted(() => ({
-  getAdminCmsSnapshot: vi.fn()
+const paginationMock = vi.hoisted(() => ({
+  content: [] as ContentItem[],
+  invalidateAdminListQueries: vi.fn()
 }));
 
 const contentMock = vi.hoisted(() => ({
@@ -59,8 +60,28 @@ vi.mock("../../context/authSessionContext", () => ({
   }
 }));
 
-vi.mock("../../features/cms-dashboard", () => ({
-  getAdminCmsSnapshot: dashboardMock.getAdminCmsSnapshot
+vi.mock("../../features/admin-pagination", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../features/admin-pagination")>()),
+  useAdminContentListQuery: () => ({
+    data: {
+      items: paginationMock.content,
+      pagination: {
+        page: 1,
+        pageSize: 25,
+        totalItems: paginationMock.content.length,
+        totalPages: paginationMock.content.length ? 1 : 0,
+        hasPreviousPage: false,
+        hasNextPage: false
+      },
+      generatedAt: "2026-06-24T00:00:00.000Z"
+    },
+    error: null,
+    isError: false,
+    isFetching: false,
+    isLoading: false,
+    isPlaceholderData: false
+  }),
+  invalidateAdminListQueries: paginationMock.invalidateAdminListQueries
 }));
 
 vi.mock("../../features/cms-content", async (importOriginal) => ({
@@ -132,19 +153,6 @@ const contentItem: ContentItem = {
   revision: 1
 };
 
-function snapshot(content: ContentItem[] = [contentItem]): CmsSnapshot {
-  return {
-    metrics: [],
-    content,
-    documents: [],
-    media: [],
-    events: [],
-    menu: [],
-    carouselSlides: [],
-    externalServices: []
-  };
-}
-
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;
@@ -198,8 +206,10 @@ function expectAcknowledgedResultModal(options: Record<string, unknown> | undefi
 describe("ContentPage operation feedback", () => {
   beforeEach(() => {
     authMock.role = "editor";
-    dashboardMock.getAdminCmsSnapshot.mockReset();
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot());
+    window.history.replaceState({}, "", "/admin/content");
+    paginationMock.content = [contentItem];
+    paginationMock.invalidateAdminListQueries.mockReset();
+    paginationMock.invalidateAdminListQueries.mockResolvedValue(undefined);
     contentMock.saveContentItem.mockReset();
     contentMock.saveContentItem.mockResolvedValue(contentItem);
     contentMock.deleteContentItem.mockReset();
@@ -245,15 +255,13 @@ describe("ContentPage operation feedback", () => {
   });
 
   it("shows a Facebook Embed label for imported facebook-embed content", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(
-      snapshot([
-        {
-          ...contentItem,
-          template: "facebook-embed",
-          canonicalUrl: "https://www.facebook.com/100063746585360/posts/111"
-        }
-      ])
-    );
+    paginationMock.content = [
+      {
+        ...contentItem,
+        template: "facebook-embed",
+        canonicalUrl: "https://www.facebook.com/100063746585360/posts/111"
+      }
+    ];
 
     renderContentPage();
 

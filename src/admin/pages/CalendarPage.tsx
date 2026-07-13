@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -29,11 +29,19 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import dayjs from "dayjs";
+import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
-import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { deleteCalendarEvent, saveCalendarEvent } from "../../features/cms-events";
 import { CalendarEvent } from "../../types";
+import {
+  ADMIN_PAGE_SIZE_OPTIONS,
+  getAdminPageAfterDelete,
+  invalidateAdminListQueries,
+  useAdminEventListQuery,
+  useAdminListUrlState,
+  useDebouncedValue
+} from "../../features/admin-pagination";
 import {
   fromLocalDateTimeInputValue,
   getCalendarDateRangeError,
@@ -59,6 +67,15 @@ interface EventFormState {
 }
 
 type EventStatusFilter = CalendarEvent["status"] | "all";
+type EventFilterKey = "status";
+
+const eventListUrlOptions = {
+  defaultPageSize: 25,
+  pageSizeOptions: ADMIN_PAGE_SIZE_OPTIONS,
+  defaultSortBy: "date",
+  defaultSortDirection: "asc" as const,
+  filterDefaults: { status: "all" }
+};
 
 const emptyForm: EventFormState = {
   title: "",
@@ -108,56 +125,57 @@ export default function CalendarPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const canManage = canManageContent(session?.user);
-  const { data, error, isError, isLoading } = useQuery({
-    queryKey: ["cms-snapshot", "admin"],
-    queryFn: getAdminCmsSnapshot
+  const {
+    page,
+    pageSize,
+    q,
+    sortBy,
+    sortDirection,
+    filters,
+    setState: setListState,
+    setPage,
+    setPageSize,
+    setSearch,
+    setFilter
+  } = useAdminListUrlState<EventFilterKey>(eventListUrlOptions);
+  const debouncedSearch = useDebouncedValue(q, 300);
+  const statusFilter = (filters.status || "all") as EventStatusFilter;
+  const eventListQuery = useAdminEventListQuery({
+    page,
+    pageSize,
+    q: debouncedSearch,
+    status: statusFilter,
+    sortBy,
+    sortDirection
   });
-  const events = useMemo(
-    () => [...(data?.events ?? [])].sort((left, right) => dayjs(left.date).valueOf() - dayjs(right.date).valueOf()),
-    [data]
-  );
+  const listTransitioning = eventListQuery.isPlaceholderData || debouncedSearch !== q;
+  const events = eventListQuery.data?.items ?? [];
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | undefined>();
   const [form, setForm] = useState<EventFormState>(emptyForm);
   const [formError, setFormError] = useState("");
   const [confirming, setConfirming] = useState(false);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<EventStatusFilter>("all");
   const endDateError = getCalendarDateRangeError(form.dateTime, form.endDateTime);
 
   const editingEvent = events.find((event) => event.id === editingEventId);
   const isEditing = Boolean(editingEvent);
 
-  const filteredEvents = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  useEffect(() => {
+    const responsePage = eventListQuery.data?.pagination.page;
 
-    return events.filter((event) => {
-      const matchesStatus = statusFilter === "all" || event.status === statusFilter;
-      const matchesSearch =
-        !query ||
-        event.title.toLowerCase().includes(query) ||
-        event.audience.toLowerCase().includes(query) ||
-        (event.location ?? "").toLowerCase().includes(query) ||
-        (event.category ?? "").toLowerCase().includes(query);
-
-      return matchesStatus && matchesSearch;
-    });
-  }, [events, search, statusFilter]);
+    if (!eventListQuery.isPlaceholderData && responsePage && responsePage !== page) {
+      setListState({ page: responsePage }, { replace: true });
+    }
+  }, [eventListQuery.data?.pagination.page, eventListQuery.isPlaceholderData, page, setListState]);
 
   const saveMutation = useMutation({
-    mutationFn: saveCalendarEvent,
-    onSuccess: async () => {
-      await invalidatePublicCmsData(queryClient);
-    }
+    mutationFn: saveCalendarEvent
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteCalendarEvent,
-    onSuccess: async () => {
-      await invalidatePublicCmsData(queryClient);
-    }
+    mutationFn: deleteCalendarEvent
   });
-  const calendarWritePending = saveMutation.isPending || deleteMutation.isPending;
+  const calendarWritePending = saveMutation.isPending || deleteMutation.isPending || listTransitioning;
 
   function handleCreate() {
     if (!canManage || calendarWritePending) {
@@ -224,6 +242,7 @@ export default function CalendarPage() {
     showBlockingLoading(isEditing ? "กำลังบันทึกกิจกรรม" : "กำลังเพิ่มกิจกรรม");
 
     try {
+      const wasCreating = !editingEventId;
       await saveMutation.mutateAsync({
         id: editingEventId,
         revision: editingEvent?.revision,
@@ -237,6 +256,10 @@ export default function CalendarPage() {
         category: form.category.trim(),
         visibility: form.visibility
       });
+      if (wasCreating) {
+        setListState({ page: 1 }, { replace: true });
+      }
+      await Promise.all([invalidateAdminListQueries(queryClient, "events"), invalidatePublicCmsData(queryClient)]);
       await appSwal.close();
       handleClose();
       await waitForDialogTransition();
@@ -271,6 +294,16 @@ export default function CalendarPage() {
 
     try {
       await deleteMutation.mutateAsync(event.id);
+      const pagination = eventListQuery.data?.pagination;
+
+      if (pagination) {
+        const nextPage = getAdminPageAfterDelete(pagination);
+        if (nextPage !== page) {
+          setListState({ page: nextPage }, { replace: true });
+        }
+      }
+
+      await Promise.all([invalidateAdminListQueries(queryClient, "events"), invalidatePublicCmsData(queryClient)]);
       await appSwal.close();
       await showSuccessResult("ลบกิจกรรมสำเร็จ");
     } catch (currentError) {
@@ -297,12 +330,17 @@ export default function CalendarPage() {
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
-      {isError && (
+      {eventListQuery.isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {error instanceof Error ? error.message : "ไม่สามารถโหลดกิจกรรมปฏิทินได้ในขณะนี้"}
+          {eventListQuery.error instanceof Error
+            ? eventListQuery.error.message
+            : "ไม่สามารถโหลดกิจกรรมปฏิทินได้ในขณะนี้"}
         </Alert>
       )}
-      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {eventListQuery.isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {(eventListQuery.isFetching || listTransitioning) && !eventListQuery.isLoading && (
+        <LinearProgress sx={{ mb: 1 }} />
+      )}
       <Stack
         direction={{ xs: "column", lg: "row" }}
         spacing={2}
@@ -312,7 +350,7 @@ export default function CalendarPage() {
       >
         <TextField
           placeholder="ค้นหากิจกรรม"
-          value={search}
+          value={q}
           onChange={(event) => setSearch(event.target.value)}
           slotProps={{
             input: {
@@ -328,7 +366,7 @@ export default function CalendarPage() {
         <ToggleButtonGroup
           value={statusFilter}
           exclusive
-          onChange={(_, value: EventStatusFilter | null) => value && setStatusFilter(value)}
+          onChange={(_, value: EventStatusFilter | null) => value && setFilter("status", value)}
           size="small"
           aria-label="ตัวกรองสถานะกิจกรรม"
         >
@@ -339,8 +377,12 @@ export default function CalendarPage() {
           ))}
         </ToggleButtonGroup>
       </Stack>
-      <Stack spacing={2}>
-        {filteredEvents.map((event) => (
+      <Stack
+        spacing={2}
+        aria-busy={eventListQuery.isFetching}
+        sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
+      >
+        {events.map((event) => (
           <Card key={event.id}>
             <CardContent>
               <Stack
@@ -447,10 +489,24 @@ export default function CalendarPage() {
             </CardContent>
           </Card>
         ))}
-        {!isLoading && !filteredEvents.length && (
+        {!eventListQuery.isLoading && !events.length && (
           <Typography color="text.secondary">ไม่มีกิจกรรมที่ตรงกับมุมมองนี้</Typography>
         )}
       </Stack>
+      {eventListQuery.data && (
+        <AdminPagination
+          pagination={{
+            ...eventListQuery.data.pagination,
+            page,
+            pageSize
+          }}
+          pageSizeOptions={ADMIN_PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          disabled={calendarWritePending}
+          isFetching={eventListQuery.isFetching}
+        />
+      )}
       <Dialog open={dialogOpen} onClose={saveMutation.isPending ? undefined : handleClose} fullWidth maxWidth="md">
         <DialogTitle>
           {confirming ? (isEditing ? "บันทึกกิจกรรม?" : "เพิ่มกิจกรรม?") : isEditing ? "แก้ไขกิจกรรม" : "เพิ่มกิจกรรม"}

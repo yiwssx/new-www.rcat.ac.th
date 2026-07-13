@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
@@ -15,12 +15,12 @@ import {
   FormControlLabel,
   IconButton,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Select,
   Stack,
   Switch,
   TextField,
-  Tooltip,
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
@@ -38,14 +38,31 @@ import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
-import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import SwapVertOutlinedIcon from "@mui/icons-material/SwapVertOutlined";
+import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
-import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
-import { saveExternalServiceLinksToApi, type ExternalServiceLinkInput } from "../../features/cms-external-services";
-import { clearPublicCmsCache } from "../../services/publicCmsCache";
+import {
+  ADMIN_PAGE_SIZE_OPTIONS,
+  adminExternalServiceOrderQueryOptions,
+  adminListQueryKeys,
+  getAdminExternalServiceList,
+  getAdminPageAfterDelete,
+  invalidateAdminListQueries,
+  saveAdminExternalServiceOrder,
+  useAdminExternalServiceListQuery,
+  useAdminListUrlState,
+  useDebouncedValue,
+  type AdminExternalServiceOrderItem
+} from "../../features/admin-pagination";
+import {
+  deleteExternalServiceLinkFromApi,
+  saveExternalServiceLinkToApi,
+  type ExternalServiceLinkInput
+} from "../../features/cms-external-services";
+import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { ExternalServiceIconKey, ExternalServiceLink, ExternalServiceTone } from "../../types";
 import { getExternalServiceToneStyle } from "../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../utils/safeUrl";
@@ -97,26 +114,6 @@ function createDraftKey() {
   return `draft-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function sortExternalServices(services: ExternalServiceLink[]) {
-  return [...services].sort((left, right) => {
-    const leftOrder = Number.isFinite(Number(left.order)) ? Number(left.order) : 0;
-    const rightOrder = Number.isFinite(Number(right.order)) ? Number(right.order) : 0;
-
-    if (leftOrder !== rightOrder) {
-      return leftOrder - rightOrder;
-    }
-
-    return Date.parse(right.updatedAt || "") - Date.parse(left.updatedAt || "");
-  });
-}
-
-function normalizeDraftServices(services: ExternalServiceDraft[]) {
-  return services.map((service, index) => ({
-    ...service,
-    order: index + 1
-  }));
-}
-
 function normalizeExternalServiceDraft(service: ExternalServiceLink | ExternalServiceDraft): ExternalServiceDraft {
   return {
     ...service,
@@ -131,12 +128,6 @@ function normalizeExternalServiceDraft(service: ExternalServiceLink | ExternalSe
     order: Number.isFinite(Number(service.order)) ? Number(service.order) : 0,
     updatedAt: service.updatedAt || new Date().toISOString()
   };
-}
-
-function toDraftServices(services: ExternalServiceLink[]) {
-  return normalizeDraftServices(
-    sortExternalServices(services).map((service) => normalizeExternalServiceDraft(service))
-  );
 }
 
 function createExternalServiceDraft(order: number): ExternalServiceDraft {
@@ -154,7 +145,7 @@ function createExternalServiceDraft(order: number): ExternalServiceDraft {
   };
 }
 
-function toExternalServiceInput(service: ExternalServiceDraft, index: number): ExternalServiceLinkInput {
+function toExternalServiceInput(service: ExternalServiceDraft): ExternalServiceLinkInput {
   return {
     id: service.id,
     title: service.title,
@@ -163,7 +154,7 @@ function toExternalServiceInput(service: ExternalServiceDraft, index: number): E
     tone: service.tone,
     iconKey: service.iconKey,
     enabled: service.enabled,
-    order: index + 1,
+    order: service.order,
     updatedAt: service.updatedAt,
     revision: service.revision
   };
@@ -235,32 +226,113 @@ function getExternalServiceValidationMessage(service: ExternalServiceDraft) {
 
 type ExternalServiceValidationMessage = NonNullable<ReturnType<typeof getExternalServiceValidationMessage>>;
 
+const externalServiceListUrlOptions = {
+  defaultPageSize: 25,
+  pageSizeOptions: ADMIN_PAGE_SIZE_OPTIONS,
+  defaultSortBy: "order",
+  defaultSortDirection: "asc",
+  filterDefaults: { enabled: "all", tone: "all" }
+} as const;
+
+function normalizeExternalServiceOrder(items: AdminExternalServiceOrderItem[]) {
+  return [...items]
+    .sort((left, right) => left.order - right.order || left.title.localeCompare(right.title, "th"))
+    .map((item, index) => ({ ...item, order: index + 1 }));
+}
+
+function moveExternalServiceOrder(items: AdminExternalServiceOrderItem[], id: string, direction: -1 | 1) {
+  const index = items.findIndex((item) => item.id === id);
+  const nextIndex = index + direction;
+
+  if (index < 0 || nextIndex < 0 || nextIndex >= items.length) {
+    return items;
+  }
+
+  const nextItems = [...items];
+  const [movedItem] = nextItems.splice(index, 1);
+
+  if (!movedItem) {
+    return items;
+  }
+
+  nextItems.splice(nextIndex, 0, movedItem);
+  return nextItems.map((item, itemIndex) => ({ ...item, order: itemIndex + 1 }));
+}
+
+function externalServiceOrdersEqual(left: AdminExternalServiceOrderItem[], right: AdminExternalServiceOrderItem[]) {
+  return (
+    left.length === right.length &&
+    left.every((item, index) => {
+      const other = right[index];
+      return other?.id === item.id && other.order === item.order && other.enabled === item.enabled;
+    })
+  );
+}
+
 export default function ExternalServicesPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const canManage = canManageContent(session?.user);
-  const adminSnapshotQuery = useQuery({
-    queryKey: ["cms-snapshot", "admin"],
-    queryFn: getAdminCmsSnapshot
+  const {
+    page,
+    pageSize,
+    q,
+    filters,
+    sortBy,
+    sortDirection,
+    setState: setListState,
+    setPage,
+    setPageSize,
+    setSearch,
+    setFilter,
+    setSort
+  } = useAdminListUrlState<"enabled" | "tone">(externalServiceListUrlOptions);
+  const debouncedSearch = useDebouncedValue(q, 300);
+  const enabledFilter = filters.enabled;
+  const toneFilter = filters.tone as ExternalServiceTone | "all";
+  const adminListQuery = useAdminExternalServiceListQuery({
+    page,
+    pageSize,
+    q: debouncedSearch,
+    enabled: enabledFilter === "all" ? "all" : enabledFilter === "true",
+    tone: toneFilter,
+    sortBy,
+    sortDirection
   });
-  const snapshotExternalServices = adminSnapshotQuery.data?.externalServices;
-  const snapshotDraftServices = useMemo(
-    () => toDraftServices(snapshotExternalServices ?? []),
-    [snapshotExternalServices]
-  );
-  const [draftServices, setDraftServices] = useState<ExternalServiceDraft[] | null>(null);
+  const listTransitioning = adminListQuery.isPlaceholderData || debouncedSearch !== q;
+  const services = adminListQuery.data?.items ?? [];
+  useEffect(() => {
+    const responsePage = adminListQuery.data?.pagination.page;
+
+    if (!adminListQuery.isPlaceholderData && responsePage && responsePage !== page) {
+      setListState({ page: responsePage }, { replace: true });
+    }
+  }, [adminListQuery.data?.pagination.page, adminListQuery.isPlaceholderData, page, setListState]);
   const [editingService, setEditingService] = useState<ExternalServiceDraft | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const activeDraftServices = draftServices ?? snapshotDraftServices;
-  const orderedDraftServices = useMemo(() => normalizeDraftServices(activeDraftServices), [activeDraftServices]);
+  const [orderingMode, setOrderingMode] = useState(false);
+  const orderQuery = useQuery({
+    ...adminExternalServiceOrderQueryOptions(),
+    enabled: orderingMode
+  });
+  const serverOrder = useMemo(() => normalizeExternalServiceOrder(orderQuery.data ?? []), [orderQuery.data]);
+  const [orderDraft, setOrderDraft] = useState<AdminExternalServiceOrderItem[] | null>(null);
+  const orderedServices = orderDraft ?? serverOrder;
+  const orderDirty = orderDraft !== null && !externalServiceOrdersEqual(orderDraft, serverOrder);
 
-  const saveExternalServicesMutation = useMutation({
-    mutationFn: saveExternalServiceLinksToApi
+  const saveExternalServiceMutation = useMutation({
+    mutationFn: saveExternalServiceLinkToApi
+  });
+  const deleteExternalServiceMutation = useMutation({
+    mutationFn: deleteExternalServiceLinkFromApi
+  });
+  const saveOrderMutation = useMutation({
+    mutationFn: saveAdminExternalServiceOrder
   });
 
   function updateEditingService<K extends keyof ExternalServiceDraft>(key: K, value: ExternalServiceDraft[K]) {
-    if (!canManage) {
+    if (!canManage || listTransitioning) {
       return;
     }
 
@@ -274,28 +346,38 @@ export default function ExternalServicesPage() {
     );
   }
 
-  function handleAddService() {
-    if (!canManage) {
+  async function handleAddService() {
+    if (!canManage || listTransitioning) {
       return;
     }
 
-    setEditingService(createExternalServiceDraft(orderedDraftServices.length + 1));
-    setIsCreating(true);
-    setDialogOpen(true);
+    try {
+      const response = await getAdminExternalServiceList({
+        page: 1,
+        pageSize: 1,
+        sortBy: "order",
+        sortDirection: "desc"
+      });
+      setEditingService(createExternalServiceDraft((response.items[0]?.order ?? 0) + 1));
+      setIsCreating(true);
+      setDialogOpen(true);
+    } catch (error) {
+      await showErrorResult("ไม่สามารถเตรียม E-Service ใหม่ได้", error, "กรุณาลองอีกครั้ง");
+    }
   }
 
-  function handleEditService(service: ExternalServiceDraft) {
-    if (!canManage) {
+  function handleEditService(service: ExternalServiceLink) {
+    if (!canManage || listTransitioning) {
       return;
     }
 
-    setEditingService({ ...service });
+    setEditingService(normalizeExternalServiceDraft(service));
     setIsCreating(false);
     setDialogOpen(true);
   }
 
   function handleCloseDialog() {
-    if (saveExternalServicesMutation.isPending) {
+    if (saveExternalServiceMutation.isPending) {
       return;
     }
 
@@ -314,14 +396,14 @@ export default function ExternalServicesPage() {
   }
 
   async function invalidateExternalServiceData() {
-    clearPublicCmsCache();
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] }),
-      queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
+      invalidateAdminListQueries(queryClient, "external-services"),
+      queryClient.invalidateQueries({ queryKey: adminListQueryKeys.order("external-services") }),
+      invalidatePublicCmsData(queryClient)
     ]);
   }
 
-  function handleSaveDialog() {
+  async function handleSaveDialog() {
     if (!canManage || !editingService) {
       return;
     }
@@ -330,97 +412,121 @@ export default function ExternalServicesPage() {
     const validation = getExternalServiceValidationMessage(nextService);
 
     if (validation) {
-      void showValidationWarning(validation);
+      await showValidationWarning(validation);
       return;
     }
 
-    setDraftServices((current) => {
-      const currentServices = current ?? snapshotDraftServices;
-      const nextServices = isCreating
-        ? [...currentServices, nextService]
-        : currentServices.map((service) =>
-            service.draftKey === nextService.draftKey || (service.id && service.id === nextService.id)
-              ? nextService
-              : service
-          );
-      return normalizeDraftServices(nextServices);
-    });
-    handleCloseDialog();
+    showBlockingLoading(isCreating ? "กำลังเพิ่ม E-Service" : "กำลังบันทึก E-Service");
+
+    try {
+      await saveExternalServiceMutation.mutateAsync(toExternalServiceInput(nextService));
+      handleCloseDialog();
+      if (isCreating && sortBy === "updatedAt" && sortDirection === "desc" && page !== 1) {
+        setPage(1);
+      }
+      await invalidateExternalServiceData();
+      await appSwal.close();
+      await showSuccessResult(isCreating ? "เพิ่ม E-Service แล้ว" : "บันทึก E-Service แล้ว");
+    } catch (error) {
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึก E-Service ได้", error, "กรุณาลองอีกครั้ง");
+    }
   }
 
-  function handleRemoveDraftService(service: ExternalServiceDraft) {
-    if (!canManage || saveExternalServicesMutation.isPending) {
+  async function handleDeleteService(service: ExternalServiceLink) {
+    if (!canManage || deleteExternalServiceMutation.isPending) {
       return;
     }
 
-    setDraftServices((current) =>
-      normalizeDraftServices(
-        (current ?? snapshotDraftServices).filter((currentService) => currentService.draftKey !== service.draftKey)
+    const result = await appSwal.fire({
+      icon: "warning",
+      title: "ลบลิงก์ E-Service?",
+      text: service.title,
+      showCancelButton: true,
+      confirmButtonText: "ลบ",
+      cancelButtonText: "ยกเลิก"
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    showBlockingLoading("กำลังลบ E-Service");
+
+    try {
+      await deleteExternalServiceMutation.mutateAsync(service.id);
+      const nextPage = adminListQuery.data ? getAdminPageAfterDelete(adminListQuery.data.pagination) : page;
+
+      if (nextPage !== page) {
+        setPage(nextPage);
+      }
+      await invalidateExternalServiceData();
+      await appSwal.close();
+      await showSuccessResult("ลบ E-Service แล้ว");
+    } catch (error) {
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถลบ E-Service ได้", error, "กรุณาลองอีกครั้ง");
+    }
+  }
+
+  function handleOpenOrdering() {
+    if (!canManage) {
+      return;
+    }
+
+    setOrderDraft(null);
+    setOrderingMode(true);
+  }
+
+  function handleCancelOrdering() {
+    if (saveOrderMutation.isPending) {
+      return;
+    }
+
+    setOrderDraft(null);
+    setOrderingMode(false);
+  }
+
+  function handleMoveOrder(item: AdminExternalServiceOrderItem, direction: -1 | 1) {
+    if (!canManage || saveOrderMutation.isPending) {
+      return;
+    }
+
+    setOrderDraft((current) => moveExternalServiceOrder(current ?? serverOrder, item.id, direction));
+  }
+
+  function handleToggleOrderEnabled(item: AdminExternalServiceOrderItem, enabled: boolean) {
+    if (!canManage || saveOrderMutation.isPending) {
+      return;
+    }
+
+    setOrderDraft((current) =>
+      (current ?? serverOrder).map((currentItem) =>
+        currentItem.id === item.id ? { ...currentItem, enabled } : currentItem
       )
     );
   }
 
-  function handleMoveDraftService(service: ExternalServiceDraft, direction: -1 | 1) {
-    if (!canManage || saveExternalServicesMutation.isPending) {
+  async function handleSaveOrder() {
+    if (!canManage || !orderDirty || saveOrderMutation.isPending) {
       return;
     }
 
-    setDraftServices((current) => {
-      const currentServices = current ?? snapshotDraftServices;
-      const index = currentServices.findIndex((currentService) => currentService.draftKey === service.draftKey);
-      const nextIndex = index + direction;
-
-      if (index < 0 || nextIndex < 0 || nextIndex >= currentServices.length) {
-        return current;
-      }
-
-      const nextServices = [...currentServices];
-      const [movedService] = nextServices.splice(index, 1);
-
-      if (!movedService) {
-        return current;
-      }
-
-      nextServices.splice(nextIndex, 0, movedService);
-      return normalizeDraftServices(nextServices);
-    });
-  }
-
-  function handleResetDraft() {
-    if (!canManage || saveExternalServicesMutation.isPending) {
-      return;
-    }
-
-    setDraftServices(null);
-  }
-
-  async function handleSaveExternalServicesBatch() {
-    if (!canManage || saveExternalServicesMutation.isPending) {
-      return;
-    }
-
-    for (const service of orderedDraftServices) {
-      const validation = getExternalServiceValidationMessage(service);
-
-      if (validation) {
-        await showValidationWarning(validation);
-        return;
-      }
-    }
-
-    showBlockingLoading("กำลังบันทึก E-Service");
+    showBlockingLoading("กำลังบันทึกลำดับ E-Service");
 
     try {
-      const saved = await saveExternalServicesMutation.mutateAsync(
-        orderedDraftServices.map((service, index) => toExternalServiceInput(service, index))
-      );
-      setDraftServices(toDraftServices(saved));
-      await invalidateExternalServiceData();
+      const saved = await saveOrderMutation.mutateAsync(orderedServices);
+      queryClient.setQueryData(adminListQueryKeys.order("external-services"), saved);
+      setOrderDraft(null);
+      await Promise.all([
+        invalidateAdminListQueries(queryClient, "external-services"),
+        invalidatePublicCmsData(queryClient)
+      ]);
       await appSwal.close();
-      await showSuccessResult("บันทึก E-Service แล้ว");
+      await showSuccessResult("บันทึกลำดับ E-Service แล้ว");
     } catch (error) {
       await appSwal.close();
-      await showErrorResult("ไม่สามารถบันทึก E-Service ได้", error, "กรุณาลองอีกครั้ง");
+      await showErrorResult("ไม่สามารถบันทึกลำดับ E-Service ได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
@@ -456,33 +562,49 @@ export default function ExternalServicesPage() {
         action={
           canManage ? (
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<RestartAltOutlinedIcon />}
-                onClick={handleResetDraft}
-                disabled={saveExternalServicesMutation.isPending}
-              >
-                ยกเลิกการแก้ไข
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<SaveOutlinedIcon />}
-                onClick={() => void handleSaveExternalServicesBatch()}
-                disabled={saveExternalServicesMutation.isPending || adminSnapshotQuery.isLoading}
-                sx={externalServicePrimaryButtonSx}
-              >
-                {saveExternalServicesMutation.isPending ? "กำลังบันทึก" : "บันทึก E-Service"}
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<AddOutlinedIcon />}
-                onClick={handleAddService}
-                disabled={saveExternalServicesMutation.isPending}
-                sx={externalServicePrimaryButtonSx}
-              >
-                เพิ่มลิงก์บริการ
-              </Button>
+              {orderingMode ? (
+                <>
+                  <Button color="inherit" onClick={handleCancelOrdering} disabled={saveOrderMutation.isPending}>
+                    ยกเลิกจัดลำดับ
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setOrderDraft(null)}
+                    disabled={!orderDirty || saveOrderMutation.isPending}
+                  >
+                    คืนค่า
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<SaveOutlinedIcon />}
+                    onClick={() => void handleSaveOrder()}
+                    disabled={!orderDirty || saveOrderMutation.isPending}
+                    sx={externalServicePrimaryButtonSx}
+                  >
+                    {saveOrderMutation.isPending ? "กำลังบันทึก" : "บันทึกลำดับ"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outlined"
+                    startIcon={<SwapVertOutlinedIcon />}
+                    onClick={handleOpenOrdering}
+                    disabled={listTransitioning}
+                  >
+                    จัดลำดับ
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddOutlinedIcon />}
+                    onClick={() => void handleAddService()}
+                    disabled={listTransitioning || saveExternalServiceMutation.isPending}
+                    sx={externalServicePrimaryButtonSx}
+                  >
+                    เพิ่มลิงก์บริการ
+                  </Button>
+                </>
+              )}
             </Stack>
           ) : undefined
         }
@@ -494,160 +616,262 @@ export default function ExternalServicesPage() {
         </Alert>
       )}
 
-      {adminSnapshotQuery.isLoading && (
-        <Card sx={{ mb: 3, borderColor: "var(--rcat-border)", bgcolor: "var(--rcat-surface)" }}>
-          <CardContent>
-            <Typography color="text.secondary">กำลังโหลดลิงก์ E-Service...</Typography>
-          </CardContent>
-        </Card>
-      )}
-
-      {adminSnapshotQuery.isError && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {adminSnapshotQuery.error instanceof Error
-            ? adminSnapshotQuery.error.message
-            : "ไม่สามารถโหลดลิงก์ E-Service ได้"}
-        </Alert>
-      )}
-
-      {!adminSnapshotQuery.isLoading && !adminSnapshotQuery.isError && !orderedDraftServices.length && (
+      {orderingMode ? (
         <Card sx={{ borderColor: "var(--rcat-border)", bgcolor: "var(--rcat-surface)" }}>
+          {(orderQuery.isLoading || orderQuery.isFetching) && <LinearProgress />}
           <CardContent>
-            <Stack spacing={2} alignItems="flex-start">
-              <AppsOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
+            <Stack spacing={2}>
               <Box>
-                <Typography variant="h3" sx={{ fontSize: "1.2rem" }}>
-                  ยังไม่มีลิงก์ E-Service
+                <Typography variant="h3" sx={{ fontSize: "1.15rem" }}>
+                  จัดลำดับ E-Service ทั้งหมด
                 </Typography>
-                <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                  เพิ่มลิงก์บริการออนไลน์เพื่อแสดงในหน้าเว็บไซต์สาธารณะ
+                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                  โหลดเฉพาะข้อมูลลำดับแบบย่อ ไม่ใช้รายการที่แบ่งหน้าในการบันทึกทั้งชุด
                 </Typography>
               </Box>
-              {canManage && (
-                <Button
-                  variant="contained"
-                  startIcon={<AddOutlinedIcon />}
-                  onClick={handleAddService}
-                  sx={externalServicePrimaryButtonSx}
-                >
-                  เพิ่มลิงก์บริการ
-                </Button>
+              {orderQuery.isError && (
+                <Alert severity="error">
+                  {orderQuery.error instanceof Error ? orderQuery.error.message : "ไม่สามารถโหลดลำดับ E-Service ได้"}
+                </Alert>
               )}
+              {!orderQuery.isLoading && !orderedServices.length && !orderQuery.isError && (
+                <Typography color="text.secondary">ยังไม่มี E-Service ให้จัดลำดับ</Typography>
+              )}
+              {orderedServices.map((service, index) => (
+                <Stack
+                  key={service.id}
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1.5}
+                  alignItems={{ xs: "stretch", sm: "center" }}
+                  sx={{ p: 1.5, border: 1, borderColor: "divider", borderRadius: 2 }}
+                >
+                  <Chip label={`ลำดับ ${index + 1}`} size="small" sx={{ alignSelf: "flex-start" }} />
+                  <Typography fontWeight={800} sx={{ flex: 1, minWidth: 0 }}>
+                    {service.title}
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={service.enabled}
+                        onChange={(event) => handleToggleOrderEnabled(service, event.target.checked)}
+                        disabled={saveOrderMutation.isPending}
+                      />
+                    }
+                    label="เปิดใช้งาน"
+                  />
+                  <Stack direction="row" spacing={0.5}>
+                    <IconButton
+                      aria-label={`เลื่อนขึ้น ${service.title}`}
+                      onClick={() => handleMoveOrder(service, -1)}
+                      disabled={index === 0 || saveOrderMutation.isPending}
+                    >
+                      <ArrowUpwardOutlinedIcon />
+                    </IconButton>
+                    <IconButton
+                      aria-label={`เลื่อนลง ${service.title}`}
+                      onClick={() => handleMoveOrder(service, 1)}
+                      disabled={index === orderedServices.length - 1 || saveOrderMutation.isPending}
+                    >
+                      <ArrowDownwardOutlinedIcon />
+                    </IconButton>
+                  </Stack>
+                </Stack>
+              ))}
             </Stack>
           </CardContent>
         </Card>
-      )}
+      ) : (
+        <>
+          <Card sx={{ mb: 3, borderColor: "var(--rcat-border)", bgcolor: "var(--rcat-surface)" }}>
+            {(adminListQuery.isFetching || debouncedSearch !== q) && <LinearProgress />}
+            <CardContent>
+              <Grid container spacing={1.5}>
+                <Grid size={{ xs: 12, md: 5 }}>
+                  <TextField
+                    label="ค้นหา E-Service"
+                    value={q}
+                    onChange={(event) => setSearch(event.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="external-service-enabled-filter-label">สถานะ</InputLabel>
+                    <Select
+                      labelId="external-service-enabled-filter-label"
+                      label="สถานะ"
+                      value={enabledFilter}
+                      onChange={(event) => setFilter("enabled", event.target.value)}
+                    >
+                      <MenuItem value="all">ทั้งหมด</MenuItem>
+                      <MenuItem value="true">เปิดใช้งาน</MenuItem>
+                      <MenuItem value="false">ปิดใช้งาน</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="external-service-tone-filter-label">ประเภท</InputLabel>
+                    <Select
+                      labelId="external-service-tone-filter-label"
+                      label="ประเภท"
+                      value={toneFilter}
+                      onChange={(event) => setFilter("tone", event.target.value)}
+                    >
+                      <MenuItem value="all">ทั้งหมด</MenuItem>
+                      {externalServiceToneOptions.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="external-service-sort-label">เรียงตาม</InputLabel>
+                    <Select
+                      labelId="external-service-sort-label"
+                      label="เรียงตาม"
+                      value={`${sortBy ?? "order"}:${sortDirection ?? "asc"}`}
+                      onChange={(event) => {
+                        const [nextSortBy, nextDirection] = event.target.value.split(":");
+                        setSort(nextSortBy || "order", nextDirection === "desc" ? "desc" : "asc");
+                      }}
+                    >
+                      <MenuItem value="order:asc">ลำดับน้อยไปมาก</MenuItem>
+                      <MenuItem value="updatedAt:desc">แก้ไขล่าสุด</MenuItem>
+                      <MenuItem value="title:asc">ชื่อ ก–ฮ</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
 
-      <Grid container spacing={2.5}>
-        {orderedDraftServices.map((service, index) => (
-          <Grid key={service.draftKey} size={{ xs: 12, md: 6, xl: 4 }}>
-            <Card
-              sx={{
-                height: "100%",
-                borderColor: "var(--rcat-border)",
-                bgcolor: "var(--rcat-surface)",
-                boxShadow: "var(--rcat-shadow-sm)"
-              }}
-            >
+          {adminListQuery.isError && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {adminListQuery.error instanceof Error
+                ? adminListQuery.error.message
+                : "ไม่สามารถโหลดลิงก์ E-Service ได้"}
+            </Alert>
+          )}
+
+          {!adminListQuery.isLoading && !listTransitioning && !services.length && !adminListQuery.isError && (
+            <Card sx={{ borderColor: "var(--rcat-border)", bgcolor: "var(--rcat-surface)" }}>
               <CardContent>
-                <Stack spacing={1.5} sx={{ height: "100%" }}>
-                  <Stack direction="row" spacing={1.25} alignItems="flex-start" justifyContent="space-between">
-                    {renderServiceIcon(service.iconKey, service.tone)}
-                    <Stack direction="row" spacing={0.75} alignItems="center">
-                      {service.href && (
-                        <IconButton
-                          aria-label={`เปิดลิงก์บริการ ${service.title}`}
-                          component="a"
-                          href={normalizeSafeHref(service.href)}
-                          target="_blank"
-                          rel="noreferrer"
-                          size="small"
-                        >
-                          <OpenInNewOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                      {canManage && (
-                        <>
-                          <Tooltip title="เลื่อนขึ้น">
-                            <span>
-                              <IconButton
-                                aria-label={`เลื่อนขึ้น ${service.title || `ลำดับ ${index + 1}`}`}
-                                disabled={index === 0 || saveExternalServicesMutation.isPending}
-                                onClick={() => handleMoveDraftService(service, -1)}
-                                size="small"
-                              >
-                                <ArrowUpwardOutlinedIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                          <Tooltip title="เลื่อนลง">
-                            <span>
-                              <IconButton
-                                aria-label={`เลื่อนลง ${service.title || `ลำดับ ${index + 1}`}`}
-                                disabled={
-                                  index === orderedDraftServices.length - 1 || saveExternalServicesMutation.isPending
-                                }
-                                onClick={() => handleMoveDraftService(service, 1)}
-                                size="small"
-                              >
-                                <ArrowDownwardOutlinedIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                          <IconButton
-                            aria-label={`แก้ไขลิงก์ E-Service ${service.title}`}
-                            onClick={() => handleEditService(service)}
-                            disabled={saveExternalServicesMutation.isPending}
-                            size="small"
-                          >
-                            <EditOutlinedIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            aria-label={`ลบลิงก์ E-Service ${service.title}`}
-                            color="error"
-                            disabled={saveExternalServicesMutation.isPending}
-                            onClick={() => handleRemoveDraftService(service)}
-                            size="small"
-                          >
-                            <DeleteOutlineOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </>
-                      )}
-                    </Stack>
-                  </Stack>
-
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                    <Chip
-                      label={service.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
-                      size="small"
-                      color={service.enabled ? "success" : "warning"}
-                      variant={service.enabled ? "filled" : "outlined"}
-                    />
-                    <Chip label={getToneLabel(service.tone)} size="small" variant="outlined" />
-                    <Chip label={getIconLabel(service.iconKey)} size="small" variant="outlined" />
-                    <Chip label={`ลำดับ ${index + 1}`} size="small" variant="outlined" />
-                  </Stack>
-
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="h3" sx={{ fontSize: "1.12rem" }}>
-                      {service.title || "ไม่มีชื่อบริการ"}
-                    </Typography>
-                    {service.description && (
-                      <Typography color="text.secondary" className="content-summary" sx={{ mt: 0.75 }}>
-                        {service.description}
-                      </Typography>
-                    )}
-                  </Box>
-
-                  <Typography color="text.secondary" variant="body2" sx={{ wordBreak: "break-word" }}>
-                    {service.href || "ยังไม่มี URL"}
+                <Stack spacing={2} alignItems="flex-start">
+                  <AppsOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
+                  <Typography variant="h3" sx={{ fontSize: "1.2rem" }}>
+                    {q || enabledFilter !== "all" || toneFilter !== "all"
+                      ? "ไม่พบ E-Service ที่ตรงกับเงื่อนไข"
+                      : "ยังไม่มีลิงก์ E-Service"}
                   </Typography>
                 </Stack>
               </CardContent>
             </Card>
+          )}
+
+          <Grid
+            container
+            spacing={2.5}
+            aria-busy={listTransitioning}
+            sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
+          >
+            {services.map((service) => (
+              <Grid key={service.id} size={{ xs: 12, md: 6, xl: 4 }}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    borderColor: "var(--rcat-border)",
+                    bgcolor: "var(--rcat-surface)",
+                    boxShadow: "var(--rcat-shadow-sm)"
+                  }}
+                >
+                  <CardContent>
+                    <Stack spacing={1.5} sx={{ height: "100%" }}>
+                      <Stack direction="row" spacing={1.25} alignItems="flex-start" justifyContent="space-between">
+                        {renderServiceIcon(service.iconKey, service.tone)}
+                        <Stack direction="row" spacing={0.75} alignItems="center">
+                          {service.href && (
+                            <IconButton
+                              aria-label={`เปิดลิงก์บริการ ${service.title}`}
+                              component="a"
+                              href={normalizeSafeHref(service.href)}
+                              target="_blank"
+                              rel="noreferrer"
+                              size="small"
+                            >
+                              <OpenInNewOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                          {canManage && (
+                            <>
+                              <IconButton
+                                aria-label={`แก้ไขลิงก์ E-Service ${service.title}`}
+                                onClick={() => handleEditService(service)}
+                                disabled={listTransitioning || saveExternalServiceMutation.isPending}
+                                size="small"
+                              >
+                                <EditOutlinedIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                aria-label={`ลบลิงก์ E-Service ${service.title}`}
+                                color="error"
+                                disabled={listTransitioning || deleteExternalServiceMutation.isPending}
+                                onClick={() => void handleDeleteService(service)}
+                                size="small"
+                              >
+                                <DeleteOutlineOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </>
+                          )}
+                        </Stack>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                        <Chip
+                          label={service.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                          size="small"
+                          color={service.enabled ? "success" : "warning"}
+                          variant={service.enabled ? "filled" : "outlined"}
+                        />
+                        <Chip label={getToneLabel(service.tone)} size="small" variant="outlined" />
+                        <Chip label={getIconLabel(service.iconKey)} size="small" variant="outlined" />
+                        <Chip label={`ลำดับ ${service.order}`} size="small" variant="outlined" />
+                      </Stack>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h3" sx={{ fontSize: "1.12rem" }}>
+                          {service.title || "ไม่มีชื่อบริการ"}
+                        </Typography>
+                        {service.description && (
+                          <Typography color="text.secondary" className="content-summary" sx={{ mt: 0.75 }}>
+                            {service.description}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Typography color="text.secondary" variant="body2" sx={{ wordBreak: "break-word" }}>
+                        {service.href || "ยังไม่มี URL"}
+                      </Typography>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
+
+          {adminListQuery.data && (
+            <AdminPagination
+              pagination={adminListQuery.data.pagination}
+              pageSizeOptions={ADMIN_PAGE_SIZE_OPTIONS}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              disabled={listTransitioning}
+              isFetching={adminListQuery.isFetching}
+            />
+          )}
+        </>
+      )}
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="md" transitionDuration={0}>
         <DialogTitle>{isCreating ? "เพิ่มลิงก์ E-Service" : "แก้ไขลิงก์ E-Service"}</DialogTitle>
@@ -657,11 +881,7 @@ export default function ExternalServicesPage() {
               <Grid size={{ xs: 12, md: 7 }}>
                 <Stack spacing={2}>
                   <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                    <Chip
-                      label={`ลำดับ ${isCreating ? orderedDraftServices.length + 1 : editingService.order}`}
-                      size="small"
-                      variant="outlined"
-                    />
+                    <Chip label={`ลำดับ ${editingService.order}`} size="small" variant="outlined" />
                     <FormControlLabel
                       control={
                         <Switch
@@ -770,14 +990,14 @@ export default function ExternalServicesPage() {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button color="inherit" onClick={handleCloseDialog} disabled={saveExternalServicesMutation.isPending}>
+          <Button color="inherit" onClick={handleCloseDialog} disabled={saveExternalServiceMutation.isPending}>
             ยกเลิก
           </Button>
           <Button
             variant="contained"
             startIcon={<SaveOutlinedIcon />}
-            disabled={!canManage || saveExternalServicesMutation.isPending}
-            onClick={handleSaveDialog}
+            disabled={!canManage || saveExternalServiceMutation.isPending}
+            onClick={() => void handleSaveDialog()}
             sx={externalServicePrimaryButtonSx}
           >
             บันทึกลิงก์ E-Service

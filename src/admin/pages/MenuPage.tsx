@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -7,42 +7,73 @@ import {
   Card,
   CardContent,
   Checkbox,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
+  FormControl,
+  InputLabel,
   LinearProgress,
+  MenuItem,
+  Select,
   Stack,
   TextField,
-  Tooltip,
   Typography
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
 import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
-import SubdirectoryArrowRightRoundedIcon from "@mui/icons-material/SubdirectoryArrowRightRounded";
 import PageHeader from "../components/PageHeader";
+import AdminPagination from "../components/AdminPagination";
 import { useAuth } from "../../context/authSessionContext";
-import { getPublicMenuItems, savePublicMenuItems } from "../../features/cms-navigation";
-import { PublicMenuItem } from "../../types";
+import {
+  ADMIN_PAGE_SIZE_OPTIONS,
+  adminListQueryKeys,
+  adminMenuOrderQueryOptions,
+  deleteAdminMenuItem,
+  getAdminMenuList,
+  getAdminPageAfterDelete,
+  invalidateAdminListQueries,
+  saveAdminMenuItem,
+  saveAdminMenuOrder,
+  useAdminListUrlState,
+  useAdminMenuListQuery,
+  useDebouncedValue,
+  type AdminMenuListItem,
+  type AdminMenuOrderItem
+} from "../../features/admin-pagination";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageMenu } from "../utils/rbac";
+import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 
 interface MenuFormState {
   label: string;
   href: string;
   enabled: boolean;
+  order: number;
+  parentId: string;
 }
 
 const emptyForm: MenuFormState = {
   label: "",
   href: "/",
-  enabled: true
+  enabled: true,
+  order: 0,
+  parentId: ""
 };
+
+const menuListUrlOptions = {
+  defaultPageSize: 25,
+  pageSizeOptions: ADMIN_PAGE_SIZE_OPTIONS,
+  defaultSortBy: "order",
+  defaultSortDirection: "asc",
+  filterDefaults: { enabled: "all" }
+} as const;
 
 const knownInternalRoutes = new Set([
   "",
@@ -55,86 +86,6 @@ const knownInternalRoutes = new Set([
   "login",
   "admin"
 ]);
-
-function cloneMenu(items: PublicMenuItem[]) {
-  return JSON.parse(JSON.stringify(items)) as PublicMenuItem[];
-}
-
-function toFormState(item: PublicMenuItem): MenuFormState {
-  return {
-    label: item.label,
-    href: item.href,
-    enabled: item.enabled
-  };
-}
-
-function updateMenuItem(
-  items: PublicMenuItem[],
-  id: string,
-  updater: (item: PublicMenuItem) => PublicMenuItem
-): PublicMenuItem[] {
-  return items.map((item) => {
-    if (item.id === id) {
-      return updater(item);
-    }
-
-    return {
-      ...item,
-      children: item.children ? updateMenuItem(item.children, id, updater) : undefined
-    };
-  });
-}
-
-function removeMenuItem(items: PublicMenuItem[], id: string): PublicMenuItem[] {
-  return items
-    .filter((item) => item.id !== id)
-    .map((item) => ({
-      ...item,
-      children: item.children ? removeMenuItem(item.children, id) : undefined
-    }));
-}
-
-function moveMenuItem(items: PublicMenuItem[], id: string, direction: -1 | 1): PublicMenuItem[] {
-  const index = items.findIndex((item) => item.id === id);
-
-  if (index >= 0) {
-    const nextIndex = index + direction;
-
-    if (nextIndex < 0 || nextIndex >= items.length) {
-      return items;
-    }
-
-    const nextItems = [...items];
-    const [item] = nextItems.splice(index, 1);
-    nextItems.splice(nextIndex, 0, item);
-    return nextItems;
-  }
-
-  return items.map((item) => ({
-    ...item,
-    children: item.children ? moveMenuItem(item.children, id, direction) : undefined
-  }));
-}
-
-function findMenuItem(items: PublicMenuItem[], id?: string): PublicMenuItem | undefined {
-  if (!id) {
-    return undefined;
-  }
-
-  for (const item of items) {
-    if (item.id === id) {
-      return item;
-    }
-
-    const childItem = findMenuItem(item.children ?? [], id);
-
-    if (childItem) {
-      return childItem;
-    }
-  }
-
-  return undefined;
-}
 
 function slugifySegment(value: string) {
   return value
@@ -177,183 +128,197 @@ function normalizeMenuHref(value: string) {
   return permalink ? `/content/${permalink}` : "/";
 }
 
-function createMenuItem(form: MenuFormState): PublicMenuItem {
-  const label = form.label.trim();
-
-  return {
-    id: `menu-${crypto.randomUUID()}`,
-    label,
-    href: normalizeMenuHref(form.href),
-    enabled: form.enabled
-  };
+function orderSnapshot(items: readonly AdminMenuOrderItem[]) {
+  return items
+    .map(({ id, parentId, order, enabled, revision }) => ({ id, parentId, order, enabled, revision }))
+    .sort((left, right) => left.id.localeCompare(right.id));
 }
 
-interface MenuTreeProps {
-  items: PublicMenuItem[];
-  depth?: number;
-  canManage: boolean;
-  onAddChild: (parentId?: string) => void;
-  onEdit: (id: string) => void;
-  onRemove: (id: string) => void;
-  onMove: (id: string, direction: -1 | 1) => void;
+function orderIsDirty(current: readonly AdminMenuOrderItem[], source: readonly AdminMenuOrderItem[]) {
+  return JSON.stringify(orderSnapshot(current)) !== JSON.stringify(orderSnapshot(source));
 }
 
-function MenuTree({ items, depth = 0, canManage, onAddChild, onEdit, onRemove, onMove }: MenuTreeProps) {
-  return (
-    <Stack spacing={1.2}>
-      {items.map((item) => (
-        <Box key={item.id}>
-          <Box
-            sx={{
-              p: 1.5,
-              pl: 1.5 + depth * 2,
-              borderRadius: 2,
-              border: "1px solid rgba(31, 90, 44, 0.12)",
-              bgcolor: item.enabled ? "background.paper" : "background.default"
-            }}
-          >
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={1.5}
-              justifyContent="space-between"
-              alignItems={{ xs: "stretch", md: "center" }}
-            >
-              <Stack direction="row" spacing={1.2} alignItems="flex-start" sx={{ minWidth: 0 }}>
-                {depth > 0 && <SubdirectoryArrowRightRoundedIcon color="disabled" sx={{ mt: 0.2 }} />}
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography fontWeight={900}>{item.label}</Typography>
-                  <Typography color="text.secondary" variant="body2">
-                    {item.href}
-                  </Typography>
-                  {!item.enabled && (
-                    <Typography color="error" variant="caption">
-                      ซ่อนจากเมนูสาธารณะ
-                    </Typography>
-                  )}
-                </Box>
-              </Stack>
-              {canManage && (
-                <Stack direction="row" spacing={0.5} justifyContent={{ xs: "flex-start", md: "flex-end" }}>
-                  <Tooltip title="เลื่อนขึ้น">
-                    <IconButton aria-label="เลื่อนขึ้น" size="small" onClick={() => onMove(item.id, -1)}>
-                      <ArrowUpwardRoundedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="เลื่อนลง">
-                    <IconButton aria-label="เลื่อนลง" size="small" onClick={() => onMove(item.id, 1)}>
-                      <ArrowDownwardRoundedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="เพิ่มเมนูย่อย">
-                    <IconButton aria-label="เพิ่มเมนูย่อย" size="small" onClick={() => onAddChild(item.id)}>
-                      <AddIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="แก้ไข">
-                    <IconButton aria-label="แก้ไข" size="small" onClick={() => onEdit(item.id)}>
-                      <EditOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="ลบ">
-                    <IconButton aria-label="ลบ" size="small" color="error" onClick={() => onRemove(item.id)}>
-                      <DeleteOutlineIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-              )}
-            </Stack>
-          </Box>
-          {item.children?.length ? (
-            <Box sx={{ mt: 1.2 }}>
-              <MenuTree
-                items={item.children}
-                depth={depth + 1}
-                canManage={canManage}
-                onAddChild={onAddChild}
-                onEdit={onEdit}
-                onRemove={onRemove}
-                onMove={onMove}
-              />
-            </Box>
-          ) : null}
-        </Box>
-      ))}
-    </Stack>
+function moveMenuSibling(items: AdminMenuOrderItem[], id: string, direction: -1 | 1) {
+  const current = items.find((item) => item.id === id);
+
+  if (!current) {
+    return items;
+  }
+
+  const siblings = items
+    .filter((item) => item.parentId === current.parentId)
+    .sort((left, right) => left.order - right.order || left.label.localeCompare(right.label));
+  const index = siblings.findIndex((item) => item.id === id);
+  const nextIndex = index + direction;
+
+  if (index < 0 || nextIndex < 0 || nextIndex >= siblings.length) {
+    return items;
+  }
+
+  const nextSiblings = [...siblings];
+  const [moved] = nextSiblings.splice(index, 1);
+
+  if (!moved) {
+    return items;
+  }
+
+  nextSiblings.splice(nextIndex, 0, moved);
+  const nextOrderById = new Map(nextSiblings.map((item, itemIndex) => [item.id, itemIndex + 1]));
+  return items.map((item) =>
+    item.parentId === current.parentId ? { ...item, order: nextOrderById.get(item.id) ?? item.order } : item
   );
+}
+
+function flattenMenuOrder(items: readonly AdminMenuOrderItem[]) {
+  const byParent = new Map<string | null, AdminMenuOrderItem[]>();
+
+  items.forEach((item) => {
+    const siblings = byParent.get(item.parentId) ?? [];
+    siblings.push(item);
+    byParent.set(item.parentId, siblings);
+  });
+  byParent.forEach((siblings) =>
+    siblings.sort((left, right) => left.order - right.order || left.label.localeCompare(right.label))
+  );
+
+  const rows: Array<{ item: AdminMenuOrderItem; depth: number }> = [];
+  const visited = new Set<string>();
+  const visit = (parentId: string | null, depth: number) => {
+    (byParent.get(parentId) ?? []).forEach((item) => {
+      if (visited.has(item.id)) {
+        return;
+      }
+
+      visited.add(item.id);
+      rows.push({ item, depth });
+      visit(item.id, depth + 1);
+    });
+  };
+
+  visit(null, 0);
+  items.forEach((item) => {
+    if (!visited.has(item.id)) {
+      rows.push({ item, depth: 0 });
+    }
+  });
+  return rows;
 }
 
 export default function MenuPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const canManage = canManageAdminData(session?.user);
+  const canManage = canManageMenu(session?.user);
   const {
-    data = [],
-    error,
-    isError,
-    isLoading
-  } = useQuery({
-    queryKey: ["public-menu"],
-    queryFn: getPublicMenuItems
+    page,
+    pageSize,
+    q,
+    filters,
+    sortBy,
+    sortDirection,
+    setState: setListState,
+    setPage,
+    setPageSize,
+    setSearch,
+    setFilter
+  } = useAdminListUrlState<"enabled">(menuListUrlOptions);
+  const debouncedSearch = useDebouncedValue(q, 300);
+  const listQuery = useAdminMenuListQuery({
+    page,
+    pageSize,
+    q: debouncedSearch,
+    enabled: filters.enabled === "all" ? "all" : filters.enabled === "true",
+    sortBy,
+    sortDirection
   });
-  const [items, setItems] = useState<PublicMenuItem[]>(cloneMenu(data));
-  const [itemsSource, setItemsSource] = useState(data);
+  useEffect(() => {
+    const responsePage = listQuery.data?.pagination.page;
+
+    if (!listQuery.isPlaceholderData && responsePage && responsePage !== page) {
+      setListState({ page: responsePage }, { replace: true });
+    }
+  }, [listQuery.data?.pagination.page, listQuery.isPlaceholderData, page, setListState]);
+  const [orderingMode, setOrderingMode] = useState(false);
+  const listTransitioning = !orderingMode && (listQuery.isPlaceholderData || debouncedSearch !== q);
+  const orderQuery = useQuery({ ...adminMenuOrderQueryOptions(), enabled: orderingMode });
+  const [orderDraft, setOrderDraft] = useState<AdminMenuOrderItem[] | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | undefined>();
-  const [parentId, setParentId] = useState<string | undefined>();
+  const [editingItem, setEditingItem] = useState<AdminMenuListItem | null>(null);
   const [form, setForm] = useState<MenuFormState>(emptyForm);
-  const [publishingMenu, setPublishingMenu] = useState(false);
 
-  const editingItem = findMenuItem(items, editingId);
-  const canEditMenu = canManage && !publishingMenu;
+  const saveMutation = useMutation({ mutationFn: saveAdminMenuItem });
+  const deleteMutation = useMutation({ mutationFn: deleteAdminMenuItem });
+  const saveOrderMutation = useMutation({ mutationFn: saveAdminMenuOrder });
+  const operationPending =
+    saveMutation.isPending || deleteMutation.isPending || saveOrderMutation.isPending || listTransitioning;
+  const activeOrderItems = useMemo(() => orderDraft ?? orderQuery.data ?? [], [orderDraft, orderQuery.data]);
+  const orderRows = useMemo(() => flattenMenuOrder(activeOrderItems), [activeOrderItems]);
+  const orderDirty = orderDraft !== null && orderIsDirty(orderDraft, orderQuery.data ?? []);
 
-  if (itemsSource !== data) {
-    setItemsSource(data);
-    setItems(cloneMenu(data));
+  async function invalidateMenuData() {
+    await Promise.all([
+      invalidateAdminListQueries(queryClient, "menu"),
+      queryClient.invalidateQueries({ queryKey: adminListQueryKeys.order("menu") }),
+      invalidatePublicCmsData(queryClient)
+    ]);
   }
 
-  function handleAdd(parent?: string) {
-    if (!canEditMenu) {
+  async function openCreate(parentId = "") {
+    if (!canManage || operationPending) {
       return;
     }
 
-    setParentId(parent);
-    setEditingId(undefined);
-    setForm(emptyForm);
+    try {
+      const response = await getAdminMenuList({
+        page: 1,
+        pageSize: 1,
+        ...(parentId ? { parentId } : { parentRoot: true }),
+        sortBy: "order",
+        sortDirection: "desc"
+      });
+      const nextOrder = (response.items[0]?.order ?? 0) + 1;
+      setEditingItem(null);
+      setForm({ ...emptyForm, parentId, order: nextOrder });
+      setDialogOpen(true);
+    } catch (error) {
+      await showErrorResult("ไม่สามารถเตรียมเมนูใหม่ได้", error, "กรุณาลองอีกครั้ง");
+    }
+  }
+
+  function openEdit(item: AdminMenuListItem) {
+    if (!canManage || operationPending) {
+      return;
+    }
+
+    setEditingItem(item);
+    setForm({
+      label: item.label,
+      href: item.href,
+      enabled: item.enabled,
+      order: item.order,
+      parentId: item.parentId ?? ""
+    });
     setDialogOpen(true);
   }
 
-  function handleEdit(id: string) {
-    if (!canEditMenu) {
+  function closeDialog() {
+    if (saveMutation.isPending) {
       return;
     }
 
-    const item = findMenuItem(items, id);
-
-    if (!item) {
-      return;
-    }
-
-    setEditingId(id);
-    setParentId(undefined);
-    setForm(toFormState(item));
-    setDialogOpen(true);
-  }
-
-  function handleClose() {
     setDialogOpen(false);
-    setEditingId(undefined);
-    setParentId(undefined);
+    setEditingItem(null);
     setForm(emptyForm);
   }
 
   async function handleSaveItem() {
-    if (!canEditMenu) {
+    if (!canManage || operationPending) {
       return;
     }
 
-    const normalizedHref = normalizeMenuHref(form.href);
+    const label = form.label.trim();
+    const href = normalizeMenuHref(form.href);
 
-    if (!form.label.trim() || !normalizedHref) {
+    if (!label || !href) {
       await appSwal.fire({
         icon: "error",
         title: "ข้อมูลเมนูไม่ครบ",
@@ -363,101 +328,99 @@ export default function MenuPage() {
       return;
     }
 
-    if (editingItem) {
-      setItems((current) =>
-        updateMenuItem(current, editingItem.id, (item) => ({
-          ...item,
-          label: form.label.trim(),
-          href: normalizedHref,
-          enabled: form.enabled
-        }))
-      );
-    } else if (parentId) {
-      const newItem = createMenuItem(form);
-      setItems((current) =>
-        updateMenuItem(current, parentId, (item) => ({
-          ...item,
-          children: [...(item.children ?? []), newItem]
-        }))
-      );
-    } else {
-      setItems((current) => [...current, createMenuItem(form)]);
-    }
+    showBlockingLoading("กำลังบันทึกเมนู");
 
-    handleClose();
+    try {
+      await saveMutation.mutateAsync({
+        id: editingItem?.id,
+        revision: editingItem?.revision,
+        label,
+        href,
+        enabled: form.enabled,
+        parentId: form.parentId.trim() || null,
+        order: editingItem?.order ?? form.order
+      });
+      await invalidateMenuData();
+      if (!editingItem) {
+        setPage(1);
+      }
+      await appSwal.close();
+      closeDialog();
+      await showSuccessResult("บันทึกเมนูสำเร็จ");
+    } catch (error) {
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกเมนูได้", error, "กรุณาลองอีกครั้ง");
+    }
   }
 
-  async function handleRemove(id: string) {
-    if (!canEditMenu) {
+  async function handleDelete(item: AdminMenuListItem) {
+    if (!canManage || operationPending) {
       return;
     }
 
-    const item = findMenuItem(items, id);
-    const result = await appSwal.fire({
+    const confirmation = await appSwal.fire({
       title: "ลบรายการเมนู?",
-      text: item?.label || id,
+      text: item.label,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "ลบ",
       cancelButtonText: "ยกเลิก"
     });
 
-    if (!result.isConfirmed) {
+    if (!confirmation.isConfirmed) {
       return;
     }
 
-    setItems((current) => removeMenuItem(current, id));
-  }
-
-  async function handlePublishMenu() {
-    if (!canEditMenu) {
-      return;
-    }
-
-    setPublishingMenu(true);
-    showBlockingLoading("กำลังบันทึกเมนู");
+    showBlockingLoading("กำลังลบเมนู");
 
     try {
-      const savedItems = await savePublicMenuItems(items);
-      setItems(cloneMenu(savedItems));
-      await queryClient.invalidateQueries({ queryKey: ["public-menu"] });
+      const currentPage = Number(new URLSearchParams(window.location.search).get("page")) || page;
+      const nextPage =
+        currentPage > 1 && (listQuery.data?.items.length ?? 0) <= 1
+          ? currentPage - 1
+          : listQuery.data?.pagination
+            ? getAdminPageAfterDelete(listQuery.data.pagination)
+            : currentPage;
+      await deleteMutation.mutateAsync({ id: item.id, revision: item.revision });
+
+      if (nextPage !== currentPage) {
+        setPage(nextPage);
+      }
+      await invalidateMenuData();
       await appSwal.close();
-      await showSuccessResult("บันทึกเมนูสำเร็จ");
+      await showSuccessResult("ลบเมนูสำเร็จ");
     } catch (error) {
       await appSwal.close();
-      await showErrorResult("ไม่สามารถบันทึกเมนูได้", error, "กรุณาลองอีกครั้ง");
-    } finally {
-      setPublishingMenu(false);
+      await showErrorResult("ไม่สามารถลบเมนูได้", error, "กรุณาลองอีกครั้ง");
     }
   }
 
-  async function handleResetDraft() {
-    if (!canEditMenu) {
+  async function handleSaveOrder() {
+    if (!canManage || operationPending || !orderDirty) {
       return;
     }
 
-    const result = await appSwal.fire({
-      icon: "warning",
-      title: "ล้างแบบร่างเมนู?",
-      text: "รายการเมนูที่แก้ไขไว้ในหน้านี้จะถูกล้างออก",
-      showCancelButton: true,
-      confirmButtonText: "ล้างแบบร่าง",
-      cancelButtonText: "ยกเลิก"
-    });
+    showBlockingLoading("กำลังบันทึกลำดับเมนู");
 
-    if (!result.isConfirmed) {
-      return;
+    try {
+      const saved = await saveOrderMutation.mutateAsync(activeOrderItems);
+      setOrderDraft(saved);
+      await invalidateMenuData();
+      await appSwal.close();
+      await showSuccessResult("บันทึกลำดับเมนูสำเร็จ");
+    } catch (error) {
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถบันทึกลำดับเมนูได้", error, "กรุณาลองอีกครั้ง");
     }
-
-    setItems([]);
   }
 
-  function handleMove(id: string, direction: -1 | 1) {
-    if (!canEditMenu) {
+  function closeOrderingMode() {
+    if (operationPending) {
       return;
     }
 
-    setItems((current) => moveMenuItem(current, id, direction));
+    setOrderDraft(null);
+    setOrderingMode(false);
   }
 
   return (
@@ -470,101 +433,297 @@ export default function MenuPage() {
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
               <Button
                 variant="outlined"
-                color="inherit"
-                disabled={publishingMenu}
-                onClick={() => void handleResetDraft()}
+                disabled={operationPending}
+                onClick={() => {
+                  if (orderingMode) {
+                    closeOrderingMode();
+                  } else {
+                    setOrderDraft(null);
+                    setOrderingMode(true);
+                  }
+                }}
               >
-                ล้างแบบร่าง
+                {orderingMode ? "กลับรายการเมนู" : "จัดลำดับ"}
               </Button>
-              <Button
-                variant="contained"
-                startIcon={<SaveOutlinedIcon />}
-                disabled={publishingMenu}
-                onClick={() => void handlePublishMenu()}
-              >
-                {publishingMenu ? "กำลังบันทึก" : "บันทึกเมนู"}
-              </Button>
+              {!orderingMode && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  disabled={operationPending}
+                  onClick={() => void openCreate()}
+                >
+                  เพิ่มเมนูหลัก
+                </Button>
+              )}
             </Stack>
           ) : undefined
         }
       />
+
       {!canManage && (
         <Alert severity="info" sx={{ mb: 3 }}>
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
-      {isError && (
-        <Typography color="error" sx={{ mb: 2 }}>
-          {error instanceof Error ? error.message : "ไม่สามารถโหลดรายการเมนูได้ในขณะนี้"}
-        </Typography>
+
+      {(orderingMode ? orderQuery.isFetching : listQuery.isFetching || listTransitioning) && (
+        <LinearProgress sx={{ mb: 2 }} />
       )}
-      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            justifyContent="space-between"
-            alignItems={{ xs: "stretch", md: "center" }}
-            sx={{ mb: 2 }}
-          >
-            <Box>
-              <Typography variant="h3">เมนูหลักสาธารณะ</Typography>
-              <Typography color="text.secondary">เพิ่มเมนูระดับบน เพิ่มเมนูย่อย ซ่อนรายการ และจัดลำดับเมนู</Typography>
-            </Box>
-            {canManage && (
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleAdd()}>
-                เพิ่มเมนูหลัก
-              </Button>
+      {(orderingMode ? orderQuery.isError : listQuery.isError) && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {(orderingMode ? orderQuery.error : listQuery.error) instanceof Error
+            ? (orderingMode ? orderQuery.error : listQuery.error)?.message
+            : "ไม่สามารถโหลดรายการเมนูได้"}
+        </Alert>
+      )}
+
+      {orderingMode ? (
+        <Card>
+          <CardContent>
+            <Stack spacing={2}>
+              <Box>
+                <Typography variant="h3">จัดลำดับเมนูทั้งหมด</Typography>
+                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                  โหลดเฉพาะข้อมูลลำดับขนาดเล็กเมื่อเปิดโหมดนี้ การเลื่อนทำงานภายในกลุ่มเมนูระดับเดียวกัน
+                </Typography>
+              </Box>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                <Button
+                  variant="contained"
+                  startIcon={<SaveOutlinedIcon />}
+                  disabled={!orderDirty || operationPending}
+                  onClick={() => void handleSaveOrder()}
+                >
+                  {saveOrderMutation.isPending ? "กำลังบันทึก" : "บันทึกลำดับ"}
+                </Button>
+                <Button
+                  variant="outlined"
+                  disabled={!orderDirty || operationPending}
+                  onClick={() => setOrderDraft(null)}
+                >
+                  คืนค่าลำดับ
+                </Button>
+                <Button color="inherit" disabled={operationPending} onClick={closeOrderingMode}>
+                  ยกเลิกและกลับ
+                </Button>
+              </Stack>
+              <Stack spacing={1}>
+                {orderRows.map(({ item, depth }) => {
+                  const siblings = activeOrderItems
+                    .filter((candidate) => candidate.parentId === item.parentId)
+                    .sort((left, right) => left.order - right.order);
+                  const siblingIndex = siblings.findIndex((candidate) => candidate.id === item.id);
+
+                  return (
+                    <Box
+                      key={item.id}
+                      sx={{
+                        ml: Math.min(depth, 4) * 2,
+                        p: 1.5,
+                        borderRadius: 2,
+                        border: "1px solid rgba(31, 90, 44, 0.12)"
+                      }}
+                    >
+                      <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography fontWeight={900}>{item.label}</Typography>
+                          <Typography color="text.secondary" variant="caption">
+                            ลำดับ {item.order} {item.parentId ? `/ เมนูแม่ ${item.parentId}` : "/ เมนูหลัก"}
+                          </Typography>
+                        </Box>
+                        <Stack direction="row" spacing={0.5}>
+                          <Button
+                            size="small"
+                            startIcon={<ArrowUpwardRoundedIcon />}
+                            disabled={siblingIndex <= 0 || operationPending}
+                            onClick={() =>
+                              setOrderDraft((current) => moveMenuSibling(current ?? orderQuery.data ?? [], item.id, -1))
+                            }
+                          >
+                            ขึ้น
+                          </Button>
+                          <Button
+                            size="small"
+                            startIcon={<ArrowDownwardRoundedIcon />}
+                            disabled={siblingIndex < 0 || siblingIndex >= siblings.length - 1 || operationPending}
+                            onClick={() =>
+                              setOrderDraft((current) => moveMenuSibling(current ?? orderQuery.data ?? [], item.id, 1))
+                            }
+                          >
+                            ลง
+                          </Button>
+                        </Stack>
+                      </Stack>
+                    </Box>
+                  );
+                })}
+                {!orderQuery.isLoading && !orderRows.length && (
+                  <Typography color="text.secondary">ยังไม่มีรายการเมนู</Typography>
+                )}
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent>
+            <Grid container spacing={1.5} sx={{ mb: 2 }}>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <TextField
+                  label="ค้นหาเมนู"
+                  value={q}
+                  onChange={(event) => setSearch(event.target.value)}
+                  size="small"
+                  fullWidth
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="menu-enabled-filter-label">การแสดงผล</InputLabel>
+                  <Select
+                    labelId="menu-enabled-filter-label"
+                    label="การแสดงผล"
+                    value={filters.enabled}
+                    onChange={(event) => setFilter("enabled", event.target.value)}
+                  >
+                    <MenuItem value="all">ทั้งหมด</MenuItem>
+                    <MenuItem value="true">แสดง</MenuItem>
+                    <MenuItem value="false">ซ่อน</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+
+            <Stack
+              spacing={1.25}
+              aria-busy={listQuery.isFetching}
+              sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
+            >
+              {(listQuery.data?.items ?? []).map((item) => (
+                <Box key={item.id} sx={{ p: 2, borderRadius: 2, border: "1px solid rgba(31, 90, 44, 0.12)" }}>
+                  <Stack
+                    direction={{ xs: "column", md: "row" }}
+                    spacing={1.5}
+                    alignItems={{ xs: "flex-start", md: "center" }}
+                    justifyContent="space-between"
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                        <Typography fontWeight={900}>{item.label}</Typography>
+                        <Chip
+                          size="small"
+                          label={item.enabled ? "แสดง" : "ซ่อน"}
+                          color={item.enabled ? "success" : "default"}
+                        />
+                        <Chip size="small" variant="outlined" label={`ลำดับ ${item.order}`} />
+                      </Stack>
+                      <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5, overflowWrap: "anywhere" }}>
+                        {item.href}
+                      </Typography>
+                      {item.parentId && (
+                        <Typography color="text.secondary" variant="caption">
+                          เมนูแม่: {item.parentId}
+                        </Typography>
+                      )}
+                    </Box>
+                    {canManage && (
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          startIcon={<AddIcon />}
+                          disabled={operationPending}
+                          onClick={() => void openCreate(item.id)}
+                        >
+                          เมนูย่อย
+                        </Button>
+                        <Button
+                          size="small"
+                          startIcon={<EditOutlinedIcon />}
+                          disabled={operationPending}
+                          onClick={() => openEdit(item)}
+                        >
+                          แก้ไข
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          startIcon={<DeleteOutlineIcon />}
+                          disabled={operationPending}
+                          onClick={() => void handleDelete(item)}
+                        >
+                          ลบ
+                        </Button>
+                      </Stack>
+                    )}
+                  </Stack>
+                </Box>
+              ))}
+              {!listQuery.isLoading && !listQuery.data?.items.length && (
+                <Typography color="text.secondary">ไม่พบรายการเมนู</Typography>
+              )}
+            </Stack>
+
+            {listQuery.data?.pagination && (
+              <AdminPagination
+                pagination={listQuery.data.pagination}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={ADMIN_PAGE_SIZE_OPTIONS}
+                disabled={operationPending}
+                isFetching={listQuery.isFetching}
+              />
             )}
-          </Stack>
-          <MenuTree
-            items={items}
-            canManage={canEditMenu}
-            onAddChild={handleAdd}
-            onEdit={handleEdit}
-            onRemove={(id) => void handleRemove(id)}
-            onMove={handleMove}
-          />
-        </CardContent>
-      </Card>
-      <Dialog open={dialogOpen} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>{editingItem ? "แก้ไขรายการเมนู" : parentId ? "เพิ่มเมนูย่อย" : "เพิ่มรายการเมนู"}</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2.2} sx={{ pt: 1 }}>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm">
+        <DialogTitle>
+          {editingItem ? "แก้ไขรายการเมนู" : form.parentId ? "เพิ่มเมนูย่อย" : "เพิ่มรายการเมนู"}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ pt: 1 }}>
             <TextField
               label="ชื่อเมนู"
               value={form.label}
               onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
-              disabled={!canEditMenu}
-              fullWidth
               required
+              fullWidth
             />
             <TextField
               label="เส้นทางหรือ URL"
               value={form.href}
               onChange={(event) => setForm((current) => ({ ...current, href: event.target.value }))}
-              helperText="ใช้ /news, /announcements, /blog หรือ slug เนื้อหา เช่น my-post รองรับ URL ภายนอกด้วย"
-              disabled={!canEditMenu}
-              fullWidth
+              helperText="ใช้ /news, /announcements, /blog, slug เนื้อหา หรือ URL ภายนอก"
               required
+              fullWidth
+            />
+            <TextField
+              label="Menu ID แม่ (ไม่บังคับ)"
+              value={form.parentId}
+              onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value }))}
+              helperText="เว้นว่างสำหรับเมนูหลัก"
+              fullWidth
             />
             <Stack direction="row" alignItems="center">
               <Checkbox
                 checked={form.enabled}
                 onChange={(event) => setForm((current) => ({ ...current, enabled: event.target.checked }))}
-                disabled={!canEditMenu}
               />
               <Typography>แสดงในเมนูสาธารณะ</Typography>
             </Stack>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button color="inherit" onClick={handleClose} disabled={publishingMenu}>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button color="inherit" onClick={closeDialog} disabled={saveMutation.isPending}>
             ยกเลิก
           </Button>
-          <Button variant="contained" disabled={!canEditMenu} onClick={() => void handleSaveItem()}>
-            บันทึกรายการ
+          <Button
+            variant="contained"
+            disabled={!canManage || saveMutation.isPending}
+            onClick={() => void handleSaveItem()}
+          >
+            {saveMutation.isPending ? "กำลังบันทึก" : "บันทึกรายการ"}
           </Button>
         </DialogActions>
       </Dialog>

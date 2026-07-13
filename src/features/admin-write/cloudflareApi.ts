@@ -85,7 +85,7 @@ function getCloudflareAdminHeaders(init: RequestInit) {
   return Object.fromEntries(headers.entries());
 }
 
-async function fetchCloudflareAdmin(path: string, init: RequestInit = {}) {
+export async function fetchCloudflareAdmin(path: string, init: RequestInit = {}) {
   return fetch(buildCloudflareAdminApiUrl(path), {
     ...init,
     credentials: "include",
@@ -106,7 +106,7 @@ function maybeNotifyExpiredAdminProxySession(response: Response, errorMessage: s
   }
 }
 
-async function requestCloudflareAdminResponse(path: string, init: RequestInit = {}) {
+export async function requestCloudflareAdminResponse(path: string, init: RequestInit = {}) {
   const response = await fetchCloudflareAdmin(path, init);
 
   if (response.ok) {
@@ -126,7 +126,7 @@ async function requestCloudflareAdminResponse(path: string, init: RequestInit = 
   throw new Error(errorMessage);
 }
 
-async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function requestCloudflareAdmin<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetchCloudflareAdmin(path, init);
 
   let payload: unknown;
@@ -312,6 +312,14 @@ export async function deleteDocumentFromCloudflare(id: string): Promise<{ id: st
 
 export function getDisplaySettingsFromCloudflare(): Promise<DisplaySettings> {
   return requestCloudflareAdmin<DisplaySettings>("/api/admin/settings/display");
+}
+
+export function getSiteSettingsFromCloudflare(): Promise<SiteSettings> {
+  return requestCloudflareAdmin<SiteSettings>("/api/admin/settings/site");
+}
+
+export function getHomepageSettingsFromCloudflare(): Promise<HomepageSettings> {
+  return requestCloudflareAdmin<HomepageSettings>("/api/admin/settings/homepage");
 }
 
 export function saveDisplaySettingsToCloudflare(settings: Partial<DisplaySettings>): Promise<DisplaySettings> {

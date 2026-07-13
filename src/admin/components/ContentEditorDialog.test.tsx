@@ -1,7 +1,32 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ContentItem } from "../../types";
+import type { ContentItem, MediaAsset } from "../../types";
 import ContentEditorDialog from "./ContentEditorDialog";
+
+const mediaPaginationMock = vi.hoisted(() => ({
+  getAdminMediaByIds: vi.fn(async (_ids: readonly string[]): Promise<MediaAsset[]> => [])
+}));
+
+vi.mock("../../features/admin-pagination", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../features/admin-pagination")>()),
+  adminMediaListQueryOptions: () => ({
+    queryKey: ["test-admin-media-list"],
+    queryFn: async () => ({
+      items: [],
+      pagination: {
+        page: 1,
+        pageSize: 24,
+        totalItems: 0,
+        totalPages: 0,
+        hasPreviousPage: false,
+        hasNextPage: false
+      },
+      generatedAt: "2026-07-09T00:00:00.000Z"
+    })
+  }),
+  getAdminMediaByIds: mediaPaginationMock.getAdminMediaByIds
+}));
 
 function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
   return {
@@ -25,9 +50,24 @@ function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
   };
 }
 
-describe("ContentEditorDialog Facebook embed admin guidance", () => {
+function renderEditor(item: ContentItem) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false }
+    }
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ContentEditorDialog open item={item} mediaAssets={[]} onClose={vi.fn()} onSave={vi.fn()} />
+    </QueryClientProvider>
+  );
+}
+
+describe("ContentEditorDialog", () => {
   it("shows the Facebook Embed label and missing canonical_url warning", () => {
-    render(<ContentEditorDialog open item={createContentItem()} mediaAssets={[]} onClose={vi.fn()} onSave={vi.fn()} />);
+    renderEditor(createContentItem());
 
     expect(screen.getByText("Facebook Embed")).toBeInTheDocument();
     expect(screen.getByText("รายการนี้จะแสดงเป็นโพสต์ Facebook แบบฝังในหน้าเว็บไซต์สาธารณะ")).toBeInTheDocument();
@@ -35,16 +75,10 @@ describe("ContentEditorDialog Facebook embed admin guidance", () => {
   });
 
   it("keeps the Facebook Embed guidance visible in the save confirmation preview", () => {
-    render(
-      <ContentEditorDialog
-        open
-        item={createContentItem({
-          canonicalUrl: "https://www.facebook.com/100063746585360/posts/111"
-        })}
-        mediaAssets={[]}
-        onClose={vi.fn()}
-        onSave={vi.fn()}
-      />
+    renderEditor(
+      createContentItem({
+        canonicalUrl: "https://www.facebook.com/100063746585360/posts/111"
+      })
     );
 
     fireEvent.click(screen.getByRole("button", { name: "ดำเนินการต่อ" }));
@@ -52,5 +86,24 @@ describe("ContentEditorDialog Facebook embed admin guidance", () => {
     expect(screen.getByText("Facebook Embed")).toBeInTheDocument();
     expect(screen.getByText("รายการนี้จะแสดงเป็นโพสต์ Facebook แบบฝังในหน้าเว็บไซต์สาธารณะ")).toBeInTheDocument();
     expect(screen.getByText("https://www.facebook.com/100063746585360/posts/111")).toBeInTheDocument();
+  });
+
+  it("loads selected media by id even when it is outside the current library page", async () => {
+    const selectedAsset: MediaAsset = {
+      id: "off-page-media",
+      name: "ภาพที่แนบไว้",
+      type: "image",
+      size: "1 MB",
+      owner: "editor",
+      driveUrl: "https://drive.google.com/file/d/off-page-media/view",
+      previewUrl: "https://drive.google.com/file/d/off-page-media/preview",
+      updatedAt: "2026-07-09T00:00:00.000Z"
+    };
+    mediaPaginationMock.getAdminMediaByIds.mockResolvedValueOnce([selectedAsset]);
+
+    renderEditor(createContentItem({ mediaIds: [selectedAsset.id], featuredMediaId: selectedAsset.id }));
+
+    expect(await screen.findByText(selectedAsset.name)).toBeInTheDocument();
+    expect(mediaPaginationMock.getAdminMediaByIds).toHaveBeenCalledWith([selectedAsset.id]);
   });
 });

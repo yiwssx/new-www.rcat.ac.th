@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
@@ -42,10 +42,23 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PageHeader from "../components/PageHeader";
+import AdminPagination from "../components/AdminPagination";
 import StatusChip from "../components/StatusChip";
 import { useAuth } from "../../context/authSessionContext";
-import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
 import { deleteDocumentFromApi, saveDocumentToApi, type DocumentItemInput } from "../../features/cms-documents";
+import {
+  ADMIN_PAGE_SIZE_OPTIONS,
+  adminDocumentOrderQueryOptions,
+  adminListQueryKeys,
+  getAdminDocumentList,
+  getAdminPageAfterDelete,
+  invalidateAdminListQueries,
+  saveAdminDocumentOrder,
+  useAdminDocumentListQuery,
+  useAdminListUrlState,
+  useDebouncedValue,
+  type AdminDocumentOrderItem
+} from "../../features/admin-pagination";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { CmsDocumentItem, DocumentStatus } from "../../types";
 import { formatDisplayDateTime } from "../../utils/dateDisplay";
@@ -72,6 +85,12 @@ const pinnedFilterOptions: Array<{ value: DocumentPinnedFilter; label: string }>
   { value: "pinned", label: "ปักหมุด" },
   { value: "unpinned", label: "ไม่ปักหมุด" }
 ];
+
+const documentListUrlOptions = {
+  defaultPageSize: 25,
+  pageSizeOptions: ADMIN_PAGE_SIZE_OPTIONS,
+  filterDefaults: { status: "all", pinned: "all" }
+} as const;
 
 function sortDocuments(items: CmsDocumentItem[]) {
   return [...items].sort((left, right) => {
@@ -122,16 +141,6 @@ function createDocumentDraft(order: number): CmsDocumentItem {
     pinned: false,
     updatedAt: now
   };
-}
-
-function documentMatchesSearch(document: CmsDocumentItem, query: string) {
-  if (!query) {
-    return true;
-  }
-
-  return [document.title, document.description, document.fileName, document.fileUrl, document.category].some((value) =>
-    value.toLocaleLowerCase().includes(query)
-  );
 }
 
 function areDocumentOrdersEqual(left: CmsDocumentItem[], right: CmsDocumentItem[]) {
@@ -216,41 +225,72 @@ export default function DocumentsPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const canManage = canManageContent(session?.user);
-  const adminSnapshotQuery = useQuery({
-    queryKey: ["cms-snapshot", "admin"],
-    queryFn: getAdminCmsSnapshot
+  const {
+    page,
+    pageSize,
+    q,
+    filters,
+    sortBy,
+    sortDirection,
+    setState: setListState,
+    setPage,
+    setPageSize,
+    setSearch,
+    setFilter
+  } = useAdminListUrlState<"status" | "pinned">(documentListUrlOptions);
+  const debouncedSearch = useDebouncedValue(q, 300);
+  const adminListQuery = useAdminDocumentListQuery({
+    page,
+    pageSize,
+    q: debouncedSearch,
+    status: filters.status as DocumentStatusFilter,
+    pinned: filters.pinned as DocumentPinnedFilter,
+    sortBy,
+    sortDirection
+  });
+
+  useEffect(() => {
+    const responsePage = adminListQuery.data?.pagination.page;
+
+    if (!adminListQuery.isPlaceholderData && responsePage && responsePage !== page) {
+      setListState({ page: responsePage }, { replace: true });
+    }
+  }, [adminListQuery.data?.pagination.page, adminListQuery.isPlaceholderData, page, setListState]);
+  const [orderingMode, setOrderingMode] = useState(false);
+  const adminOrderQuery = useQuery({
+    ...adminDocumentOrderQueryOptions(),
+    enabled: orderingMode
   });
   const snapshotDocuments = useMemo(
-    () => toOrderedDocumentDraft(adminSnapshotQuery.data?.documents ?? []),
-    [adminSnapshotQuery.data?.documents]
+    () =>
+      toOrderedDocumentDraft(
+        (adminOrderQuery.data ?? []).map((document) => ({
+          ...document,
+          description: "",
+          category: "",
+          fileUrl: "",
+          fileName: "",
+          mediaId: "",
+          publishedAt: "",
+          status: "draft" as const,
+          updatedAt: ""
+        }))
+      ),
+    [adminOrderQuery.data]
   );
   const [draftDocuments, setDraftDocuments] = useState<CmsDocumentItem[] | null>(null);
-  const documents = draftDocuments ?? snapshotDocuments;
+  const listDocuments = adminListQuery.data?.items ?? [];
+  const documents = orderingMode ? (draftDocuments ?? snapshotDocuments) : listDocuments;
   const [editingDocument, setEditingDocument] = useState<CmsDocumentItem | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<DocumentStatusFilter>("all");
-  const [pinnedFilter, setPinnedFilter] = useState<DocumentPinnedFilter>("all");
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
-  const filtersActive = Boolean(normalizedSearchQuery) || statusFilter !== "all" || pinnedFilter !== "all";
+  const listTransitioning = !orderingMode && (adminListQuery.isPlaceholderData || debouncedSearch !== q);
+  const statusFilter = filters.status as DocumentStatusFilter;
+  const pinnedFilter = filters.pinned as DocumentPinnedFilter;
   const documentOrderDirty = draftDocuments !== null && !areDocumentOrdersEqual(draftDocuments, snapshotDocuments);
-  const filteredDocuments = useMemo(
-    () =>
-      documents.filter((document) => {
-        const matchesSearch = documentMatchesSearch(document, normalizedSearchQuery);
-        const matchesStatus = statusFilter === "all" || document.status === statusFilter;
-        const matchesPinned =
-          pinnedFilter === "all" ||
-          (pinnedFilter === "pinned" && document.pinned) ||
-          (pinnedFilter === "unpinned" && !document.pinned);
-
-        return matchesSearch && matchesStatus && matchesPinned;
-      }),
-    [documents, normalizedSearchQuery, pinnedFilter, statusFilter]
-  );
+  const filteredDocuments = documents;
   const pinnedDocuments = documents.filter((document) => document.pinned);
   const unpinnedDocuments = documents.filter((document) => !document.pinned);
   const filteredPinnedDocuments = filteredDocuments.filter((document) => document.pinned);
@@ -263,20 +303,17 @@ export default function DocumentsPage() {
     mutationFn: deleteDocumentFromApi
   });
   const saveOrderMutation = useMutation({
-    mutationFn: async (changedDocuments: CmsDocumentItem[]) => {
-      const savedDocuments: CmsDocumentItem[] = [];
-
-      for (const document of changedDocuments) {
-        savedDocuments.push(await saveDocumentToApi(normalizeDocumentDraft(document)));
-      }
-
-      return savedDocuments;
-    }
+    mutationFn: (changedDocuments: AdminDocumentOrderItem[]) => saveAdminDocumentOrder(changedDocuments)
   });
-  const documentWritePending = saveMutation.isPending || deleteMutation.isPending || saveOrderMutation.isPending;
+  const documentWritePending =
+    saveMutation.isPending || deleteMutation.isPending || saveOrderMutation.isPending || listTransitioning;
 
   async function invalidateDocumentData() {
-    await invalidatePublicCmsData(queryClient);
+    await Promise.all([
+      invalidatePublicCmsData(queryClient),
+      invalidateAdminListQueries(queryClient, "documents"),
+      queryClient.invalidateQueries({ queryKey: adminListQueryKeys.order("documents") })
+    ]);
   }
 
   function updateEditingDocument<K extends keyof CmsDocumentItem>(key: K, value: CmsDocumentItem[K]) {
@@ -290,16 +327,32 @@ export default function DocumentsPage() {
     );
   }
 
-  function handleAddDocument() {
+  async function getNextDocumentOrder(pinned: boolean) {
+    const response = await getAdminDocumentList({
+      page: 1,
+      pageSize: 1,
+      pinned,
+      sortBy: "order",
+      sortDirection: "desc"
+    });
+    return (response.items[0]?.order ?? 0) + 1;
+  }
+
+  async function handleAddDocument() {
     if (!canManage || documentWritePending) {
       return;
     }
 
-    setSaveError("");
-    setEditingDocument(createDocumentDraft(unpinnedDocuments.length + 1));
-    setAdvancedOpen(false);
-    setIsCreating(true);
-    setDialogOpen(true);
+    try {
+      const nextOrder = await getNextDocumentOrder(false);
+      setSaveError("");
+      setEditingDocument(createDocumentDraft(nextOrder));
+      setAdvancedOpen(false);
+      setIsCreating(true);
+      setDialogOpen(true);
+    } catch (error) {
+      await showErrorResult("ไม่สามารถเตรียมเอกสารใหม่ได้", error, "กรุณาลองอีกครั้ง");
+    }
   }
 
   function handleEditDocument(document: CmsDocumentItem) {
@@ -351,18 +404,18 @@ export default function DocumentsPage() {
       return;
     }
 
-    if (!savedSnapshotDocument || savedSnapshotDocument.pinned !== nextDocument.pinned) {
-      nextDocument.order =
-        documents.filter((document) => document.pinned === nextDocument.pinned && document.id !== nextDocument.id)
-          .length + 1;
-    }
-
-    showBlockingLoading("กำลังบันทึกเอกสาร");
-
     try {
+      if (!savedSnapshotDocument || savedSnapshotDocument.pinned !== nextDocument.pinned) {
+        nextDocument.order = await getNextDocumentOrder(Boolean(nextDocument.pinned));
+      }
+
+      showBlockingLoading("กำลังบันทึกเอกสาร");
       await saveMutation.mutateAsync(nextDocument);
       await invalidateDocumentData();
       setDraftDocuments(null);
+      if (isCreating) {
+        setPage(1);
+      }
       await appSwal.close();
       handleCloseDialog();
       await showSuccessResult("บันทึกเอกสารสำเร็จ");
@@ -394,7 +447,18 @@ export default function DocumentsPage() {
     showBlockingLoading("กำลังลบเอกสาร");
 
     try {
+      const currentPage = Number(new URLSearchParams(window.location.search).get("page")) || page;
+      const nextPage =
+        currentPage > 1 && listDocuments.length <= 1
+          ? currentPage - 1
+          : adminListQuery.data?.pagination
+            ? getAdminPageAfterDelete(adminListQuery.data.pagination)
+            : currentPage;
       await deleteMutation.mutateAsync(document.id);
+
+      if (nextPage !== currentPage) {
+        setPage(nextPage);
+      }
       await invalidateDocumentData();
       await appSwal.close();
       await showSuccessResult("ลบเอกสารสำเร็จ");
@@ -405,7 +469,7 @@ export default function DocumentsPage() {
   }
 
   function handleMoveDocument(document: CmsDocumentItem, direction: -1 | 1) {
-    if (!canManage || documentWritePending || filtersActive) {
+    if (!canManage || documentWritePending || !orderingMode) {
       return;
     }
 
@@ -425,12 +489,38 @@ export default function DocumentsPage() {
     setDraftDocuments(null);
   }
 
-  async function handleSaveDocumentOrder() {
-    if (!canManage || documentWritePending || !draftDocuments || !documentOrderDirty || filtersActive) {
+  function handleOpenOrderingMode() {
+    if (!canManage || documentWritePending) {
       return;
     }
 
-    const changedDocuments = getChangedOrderDocuments(draftDocuments, snapshotDocuments);
+    setDraftDocuments(null);
+    setOrderingMode(true);
+  }
+
+  function handleCloseOrderingMode() {
+    if (documentWritePending) {
+      return;
+    }
+
+    setDraftDocuments(null);
+    setOrderingMode(false);
+  }
+
+  async function handleSaveDocumentOrder() {
+    if (!canManage || documentWritePending || !orderingMode || !draftDocuments || !documentOrderDirty) {
+      return;
+    }
+
+    const changedDocuments: AdminDocumentOrderItem[] = getChangedOrderDocuments(draftDocuments, snapshotDocuments).map(
+      (document) => ({
+        id: document.id,
+        title: document.title,
+        order: document.order,
+        pinned: document.pinned,
+        revision: document.revision ?? 0
+      })
+    );
 
     if (!changedDocuments.length) {
       setDraftDocuments(null);
@@ -458,14 +548,25 @@ export default function DocumentsPage() {
         description="จัดการไฟล์เอกสารที่แสดงในหน้าแรกและรายการเอกสารสาธารณะ"
         action={
           canManage ? (
-            <Button
-              startIcon={<AddOutlinedIcon />}
-              variant="contained"
-              disabled={documentWritePending}
-              onClick={handleAddDocument}
-            >
-              เพิ่มเอกสาร
-            </Button>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+              <Button
+                variant="outlined"
+                disabled={documentWritePending}
+                onClick={orderingMode ? handleCloseOrderingMode : handleOpenOrderingMode}
+              >
+                {orderingMode ? "กลับรายการเอกสาร" : "จัดลำดับ"}
+              </Button>
+              {!orderingMode && (
+                <Button
+                  startIcon={<AddOutlinedIcon />}
+                  variant="contained"
+                  disabled={documentWritePending}
+                  onClick={() => void handleAddDocument()}
+                >
+                  เพิ่มเอกสาร
+                </Button>
+              )}
+            </Stack>
           ) : undefined
         }
       />
@@ -476,11 +577,13 @@ export default function DocumentsPage() {
         </Alert>
       )}
 
-      {adminSnapshotQuery.isLoading && <LinearProgress sx={{ mb: 2 }} />}
-      {adminSnapshotQuery.isError && (
+      {(orderingMode ? adminOrderQuery.isLoading : adminListQuery.isLoading || listTransitioning) && (
+        <LinearProgress sx={{ mb: 2 }} />
+      )}
+      {(orderingMode ? adminOrderQuery.isError : adminListQuery.isError) && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {adminSnapshotQuery.error instanceof Error
-            ? adminSnapshotQuery.error.message
+          {(orderingMode ? adminOrderQuery.error : adminListQuery.error) instanceof Error
+            ? (orderingMode ? adminOrderQuery.error : adminListQuery.error)?.message
             : "ไม่สามารถโหลดรายการเอกสารได้"}
         </Alert>
       )}
@@ -488,57 +591,59 @@ export default function DocumentsPage() {
       <Card className="rcat-card">
         <CardContent sx={{ p: 0 }}>
           <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
-            <Grid container spacing={2} alignItems="center">
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  placeholder="ค้นหาเอกสาร"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  fullWidth
-                  size="small"
-                  slotProps={{
-                    htmlInput: {
-                      "aria-label": "ค้นหาเอกสาร"
-                    }
-                  }}
-                />
+            {!orderingMode && (
+              <Grid container spacing={2} alignItems="center">
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    placeholder="ค้นหาเอกสาร"
+                    value={q}
+                    onChange={(event) => setSearch(event.target.value)}
+                    fullWidth
+                    size="small"
+                    slotProps={{
+                      htmlInput: {
+                        "aria-label": "ค้นหาเอกสาร"
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="document-status-filter-label">สถานะ</InputLabel>
+                    <Select
+                      labelId="document-status-filter-label"
+                      label="สถานะ"
+                      value={statusFilter}
+                      onChange={(event) => setFilter("status", event.target.value)}
+                    >
+                      {statusFilterOptions.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="document-pinned-filter-label">การปักหมุด</InputLabel>
+                    <Select
+                      labelId="document-pinned-filter-label"
+                      label="การปักหมุด"
+                      value={pinnedFilter}
+                      onChange={(event) => setFilter("pinned", event.target.value)}
+                    >
+                      {pinnedFilterOptions.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
               </Grid>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="document-status-filter-label">สถานะ</InputLabel>
-                  <Select
-                    labelId="document-status-filter-label"
-                    label="สถานะ"
-                    value={statusFilter}
-                    onChange={(event) => setStatusFilter(event.target.value as DocumentStatusFilter)}
-                  >
-                    {statusFilterOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="document-pinned-filter-label">การปักหมุด</InputLabel>
-                  <Select
-                    labelId="document-pinned-filter-label"
-                    label="การปักหมุด"
-                    value={pinnedFilter}
-                    onChange={(event) => setPinnedFilter(event.target.value as DocumentPinnedFilter)}
-                  >
-                    {pinnedFilterOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-            {canManage && !filtersActive && (
+            )}
+            {canManage && orderingMode && (
               <Stack
                 direction={{ xs: "column", sm: "row" }}
                 spacing={1}
@@ -554,6 +659,9 @@ export default function DocumentsPage() {
                 >
                   ยกเลิกการจัดลำดับ
                 </Button>
+                <Button variant="outlined" onClick={handleCloseOrderingMode} disabled={documentWritePending}>
+                  ยกเลิกและกลับ
+                </Button>
                 <Button
                   variant="contained"
                   startIcon={<SaveOutlinedIcon />}
@@ -564,13 +672,17 @@ export default function DocumentsPage() {
                 </Button>
               </Stack>
             )}
-            {canManage && filtersActive && (
+            {orderingMode && (
               <Alert severity="info" sx={{ mt: 2 }}>
-                ปิดตัวกรองเพื่อจัดลำดับเอกสารทั้งหมด
+                โหมดจัดลำดับโหลดเฉพาะข้อมูลขนาดเล็กของเอกสารทั้งหมด และแยกกลุ่มปักหมุดออกจากเอกสารทั่วไป
               </Alert>
             )}
           </Box>
-          <Box className="table-scroll">
+          <Box
+            className="table-scroll"
+            aria-busy={!orderingMode && (adminListQuery.isFetching || listTransitioning)}
+            sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
+          >
             <MuiTable>
               <TableHead>
                 <TableRow>
@@ -639,7 +751,7 @@ export default function DocumentsPage() {
                       </TableCell>
                       <TableCell>{document.publishedAt ? formatDisplayDateTime(document.publishedAt) : "-"}</TableCell>
                       <TableCell align="right">
-                        {canManage && !filtersActive && (
+                        {canManage && orderingMode && (
                           <>
                             <Tooltip title="เลื่อนขึ้น">
                               <span>
@@ -678,7 +790,7 @@ export default function DocumentsPage() {
                             </IconButton>
                           </span>
                         </Tooltip>
-                        {canManage && (
+                        {canManage && !orderingMode && (
                           <>
                             <Tooltip title="แก้ไข">
                               <span>
@@ -762,7 +874,7 @@ export default function DocumentsPage() {
                       </TableCell>
                       <TableCell>{document.publishedAt ? formatDisplayDateTime(document.publishedAt) : "-"}</TableCell>
                       <TableCell align="right">
-                        {canManage && !filtersActive && (
+                        {canManage && orderingMode && (
                           <>
                             <Tooltip title="เลื่อนขึ้น">
                               <span>
@@ -801,7 +913,7 @@ export default function DocumentsPage() {
                             </IconButton>
                           </span>
                         </Tooltip>
-                        {canManage && (
+                        {canManage && !orderingMode && (
                           <>
                             <Tooltip title="แก้ไข">
                               <span>
@@ -832,21 +944,34 @@ export default function DocumentsPage() {
                     </TableRow>
                   );
                 })}
-                {!filteredDocuments.length && !adminSnapshotQuery.isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={6}>
-                      <Box sx={{ py: 5, textAlign: "center" }}>
-                        <DescriptionOutlinedIcon color="disabled" sx={{ fontSize: 42, mb: 1 }} />
-                        <Typography color="text.secondary">
-                          {documents.length ? "ไม่พบเอกสารที่ตรงกับเงื่อนไขการค้นหา" : "ยังไม่มีเอกสารเผยแพร่"}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                )}
+                {!filteredDocuments.length &&
+                  !(orderingMode ? adminOrderQuery.isLoading : adminListQuery.isLoading) && (
+                    <TableRow>
+                      <TableCell colSpan={6}>
+                        <Box sx={{ py: 5, textAlign: "center" }}>
+                          <DescriptionOutlinedIcon color="disabled" sx={{ fontSize: 42, mb: 1 }} />
+                          <Typography color="text.secondary">
+                            {documents.length ? "ไม่พบเอกสารที่ตรงกับเงื่อนไขการค้นหา" : "ยังไม่มีเอกสารเผยแพร่"}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  )}
               </TableBody>
             </MuiTable>
           </Box>
+          {!orderingMode && adminListQuery.data?.pagination && (
+            <Box sx={{ px: 2 }}>
+              <AdminPagination
+                pagination={adminListQuery.data.pagination}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={ADMIN_PAGE_SIZE_OPTIONS}
+                disabled={documentWritePending}
+                isFetching={adminListQuery.isFetching}
+              />
+            </Box>
+          )}
         </CardContent>
       </Card>
 

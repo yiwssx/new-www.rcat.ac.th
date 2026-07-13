@@ -42,8 +42,14 @@ import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { defaultSiteSettings, normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeVisitorStats } from "../../services/visitorStats";
-import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
-import { saveHomepageSettingsToApi, saveSiteSettingsToApi, saveVisitorStatsToApi } from "../../features/cms-settings";
+import {
+  getHomepageSettingsFromApi,
+  getSiteSettingsFromApi,
+  saveHomepageSettingsToApi,
+  saveSiteSettingsToApi,
+  saveVisitorStatsToApi
+} from "../../features/cms-settings";
+import { adminVisitorStatsSummaryQueryOptions } from "../../features/admin-pagination";
 import {
   DisplaySettings,
   FooterDirectoryLink,
@@ -292,10 +298,15 @@ export default function SettingsPage() {
     queryKey: ["display-settings"],
     queryFn: loadDisplaySettings
   });
-  const adminSnapshotQuery = useQuery({
-    queryKey: ["cms-snapshot", "admin"],
-    queryFn: getAdminCmsSnapshot
+  const siteSettingsQuery = useQuery({
+    queryKey: ["admin-settings", "site"],
+    queryFn: getSiteSettingsFromApi
   });
+  const homepageSettingsQuery = useQuery({
+    queryKey: ["admin-settings", "homepage"],
+    queryFn: getHomepageSettingsFromApi
+  });
+  const visitorStatsQuery = useQuery(adminVisitorStatsSummaryQueryOptions());
 
   const saveDisplaySettingsMutation = useMutation({
     mutationFn: saveDisplaySettings
@@ -315,22 +326,19 @@ export default function SettingsPage() {
     setDisplaySettings(normalizeDisplaySettings(displaySettingsQuery.data));
   }
 
-  if (adminSnapshotQuery.data?.siteSettings && siteSettingsSource !== adminSnapshotQuery.data.siteSettings) {
-    setSiteSettingsSource(adminSnapshotQuery.data.siteSettings);
-    setSiteSettings(normalizeSiteSettings(adminSnapshotQuery.data.siteSettings));
+  if (siteSettingsQuery.data && siteSettingsSource !== siteSettingsQuery.data) {
+    setSiteSettingsSource(siteSettingsQuery.data);
+    setSiteSettings(normalizeSiteSettings(siteSettingsQuery.data));
   }
 
-  if (
-    adminSnapshotQuery.data?.homepageSettings &&
-    homepageSettingsSource !== adminSnapshotQuery.data.homepageSettings
-  ) {
-    setHomepageSettingsSource(adminSnapshotQuery.data.homepageSettings);
-    setHomepageSettings(normalizeHomepageSettings(adminSnapshotQuery.data.homepageSettings));
+  if (homepageSettingsQuery.data && homepageSettingsSource !== homepageSettingsQuery.data) {
+    setHomepageSettingsSource(homepageSettingsQuery.data);
+    setHomepageSettings(normalizeHomepageSettings(homepageSettingsQuery.data));
   }
 
-  if (adminSnapshotQuery.data?.visitorStats && visitorStatsSource !== adminSnapshotQuery.data.visitorStats) {
-    setVisitorStatsSource(adminSnapshotQuery.data.visitorStats);
-    setVisitorStats(normalizeVisitorStats(adminSnapshotQuery.data.visitorStats));
+  if (visitorStatsQuery.data && visitorStatsSource !== visitorStatsQuery.data) {
+    setVisitorStatsSource(visitorStatsQuery.data);
+    setVisitorStats(normalizeVisitorStats(visitorStatsQuery.data));
   }
 
   const previewDate = useMemo(() => {
@@ -587,7 +595,7 @@ export default function SettingsPage() {
       setSiteSettings(normalizeSiteSettings(saved));
       await Promise.all([
         invalidatePublicCmsData(queryClient),
-        queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
+        queryClient.invalidateQueries({ queryKey: ["admin-settings", "site"] })
       ]);
       await appSwal.close();
       await showSuccessResult("บันทึกข้อมูลเว็บไซต์สาธารณะแล้ว");
@@ -610,7 +618,7 @@ export default function SettingsPage() {
       setHomepageSettings(normalizeHomepageSettings(saved));
       await Promise.all([
         invalidatePublicCmsData(queryClient),
-        queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
+        queryClient.invalidateQueries({ queryKey: ["admin-settings", "homepage"] })
       ]);
       await appSwal.close();
       await showSuccessResult("บันทึกการตั้งค่าหน้าแรกแล้ว");
@@ -635,7 +643,7 @@ export default function SettingsPage() {
       setVisitorStats(normalizeVisitorStats(saved));
       await Promise.all([
         invalidatePublicCmsData(queryClient),
-        queryClient.invalidateQueries({ queryKey: ["cms-snapshot", "admin"] })
+        queryClient.invalidateQueries({ queryKey: ["admin-visitor-stats-summary"] })
       ]);
       await appSwal.close();
       await showSuccessResult("บันทึกสถิติผู้เข้าชมแล้ว");
@@ -1019,10 +1027,10 @@ export default function SettingsPage() {
                   >
                     {saveSiteSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกข้อมูลเว็บไซต์"}
                   </Button>
-                  {adminSnapshotQuery.isError && (
+                  {siteSettingsQuery.isError && (
                     <Typography color="error" variant="body2" sx={{ mt: 1.2 }}>
-                      {adminSnapshotQuery.error instanceof Error
-                        ? adminSnapshotQuery.error.message
+                      {siteSettingsQuery.error instanceof Error
+                        ? siteSettingsQuery.error.message
                         : "ไม่สามารถโหลดข้อมูลเว็บไซต์สาธารณะได้"}
                     </Typography>
                   )}
@@ -1042,7 +1050,7 @@ export default function SettingsPage() {
                 ควบคุมส่วน Intro Gate, ประกาศวิ่ง และวิดีโอแนะนำสถานศึกษาที่แสดงในหน้าเว็บไซต์สาธารณะ
               </Typography>
 
-              {adminSnapshotQuery.isError && (
+              {homepageSettingsQuery.isError && (
                 <Typography color="error" variant="body2" sx={{ mb: 2 }}>
                   ไม่สามารถโหลดการตั้งค่าหน้าแรกได้
                 </Typography>
@@ -1257,7 +1265,7 @@ export default function SettingsPage() {
                 ตัวเลขสถิติถูกนับอัตโนมัติจากหน้าเว็บสาธารณะ ผู้ดูแลสามารถเปิดหรือปิดการแสดงผลได้เท่านั้น
               </Typography>
 
-              {adminSnapshotQuery.isError && (
+              {visitorStatsQuery.isError && (
                 <Typography color="error" variant="body2" sx={{ mb: 2 }}>
                   ไม่สามารถโหลดสถิติผู้เข้าชมได้
                 </Typography>

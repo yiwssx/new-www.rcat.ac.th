@@ -192,35 +192,50 @@ function validateTargetPath(value) {
     !value.startsWith(ADMIN_PATH_PREFIX) ||
     value.length > 2048 ||
     value.includes("\\") ||
-    value.includes("?") ||
     value.includes("#") ||
     value.includes("\0")
   ) {
     return null;
   }
 
-  let decoded = value;
+  let target;
+
+  try {
+    target = new URL(value, "https://admin-proxy.invalid");
+  } catch {
+    return null;
+  }
+
+  if (target.origin !== "https://admin-proxy.invalid" || !target.pathname.startsWith(ADMIN_PATH_PREFIX)) {
+    return null;
+  }
+
+  let decodedPath = target.pathname;
 
   for (let index = 0; index < 5; index += 1) {
-    const segments = decoded.split("/");
+    const segments = decodedPath.split("/");
 
-    if (segments.some((segment) => segment === "." || segment === "..")) {
+    if (
+      decodedPath.includes("\\") ||
+      decodedPath.includes("\0") ||
+      segments.some((segment) => segment === "." || segment === "..")
+    ) {
       return null;
     }
 
     let nextDecoded;
 
     try {
-      nextDecoded = decodeURIComponent(decoded);
+      nextDecoded = decodeURIComponent(decodedPath);
     } catch {
       return null;
     }
 
-    if (nextDecoded === decoded) {
-      return decoded.startsWith(ADMIN_PATH_PREFIX) ? value : null;
+    if (nextDecoded === decodedPath) {
+      return `${target.pathname}${target.search}`;
     }
 
-    decoded = nextDecoded;
+    decodedPath = nextDecoded;
   }
 
   return null;
@@ -297,12 +312,17 @@ async function authenticateProxySession(request, response, env, nowMs) {
   return result;
 }
 
+function getTargetPathSegments(targetPath) {
+  const pathname = targetPath.slice(ADMIN_PATH_PREFIX.length).split("?", 1)[0];
+  return pathname.split("/").filter(Boolean);
+}
+
 function getAdminProxyMutationPermissionError(role, method, targetPath) {
   if (!BODY_METHODS.has(method)) {
     return "";
   }
 
-  const segments = targetPath.slice(ADMIN_PATH_PREFIX.length).split("/").filter(Boolean);
+  const segments = getTargetPathSegments(targetPath);
   const route = segments[0] || "";
 
   if (["content", "documents", "carousel", "external-services", "events", "media"].includes(route)) {
@@ -331,7 +351,7 @@ function getAdminProxyMutationPermissionError(role, method, targetPath) {
 }
 
 function getAdminProxyPermissionError(role, method, targetPath) {
-  const segments = targetPath.slice(ADMIN_PATH_PREFIX.length).split("/").filter(Boolean);
+  const segments = getTargetPathSegments(targetPath);
   const route = segments[0] || "";
 
   if (route === "backup") {

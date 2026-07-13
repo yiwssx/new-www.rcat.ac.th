@@ -1,5 +1,7 @@
 export {
   getDisplaySettingsFromApi,
+  getHomepageSettingsFromApi,
+  getSiteSettingsFromApi,
   saveDisplaySettingsToApi,
   saveHomepageSettingsToApi,
   saveSiteSettingsToApi,

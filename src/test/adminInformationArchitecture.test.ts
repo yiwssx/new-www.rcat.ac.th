@@ -79,7 +79,7 @@ describe("M20 admin information architecture", () => {
     expect(usersPageSource).not.toContain("Legacy user management");
     expect(userManagementCardSource).toContain("Cloudflare Access");
     expect(userManagementCardSource).toContain("Cloudflare/D1");
-    expect(userManagementCardSource).toContain("getAdminUsersFromCloudflare");
+    expect(userManagementCardSource).toContain("useAdminUserListQuery");
     expect(userManagementCardSource).toContain("saveAdminUserProfileToCloudflare");
     expect(userManagementCardSource).toContain("deleteAdminUserProfileFromCloudflare");
     expect(adminCloudflareApiSource).toContain("/api/admin/users");

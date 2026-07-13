@@ -218,6 +218,29 @@ describe("Vercel admin proxy", () => {
     expect(response.getHeader("x-upstream-private")).toBeUndefined();
   });
 
+  it("forwards a paginated admin query without weakening target-path validation", async () => {
+    const env = createEnv();
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 }));
+    const response = createResponse();
+
+    await handleAdminProxyRequest(
+      createRequest({
+        url: proxyUrl(
+          "/api/admin/content?page=2&pageSize=25&q=%E0%B9%84%E0%B8%AD%E0%B8%97%E0%B8%B5%E0%B9%80%E0%B8%AD&status=published"
+        ),
+        headers: { cookie: await createSessionHeader(env) }
+      }),
+      response,
+      { env, fetchImpl, nowMs: Date.parse("2026-06-19T05:01:00.000Z") }
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "https://preview-worker.example.test/api/admin/content?page=2&pageSize=25&q=%E0%B9%84%E0%B8%AD%E0%B8%97%E0%B8%B5%E0%B9%80%E0%B8%AD&status=published",
+      expect.objectContaining({ method: "GET" })
+    );
+  });
+
   it("forwards JSON bodies only for allowed write methods", async () => {
     const env = createEnv();
     const fetchImpl = vi.fn(

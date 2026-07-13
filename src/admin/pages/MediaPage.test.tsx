@@ -1,15 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CmsSnapshot, MediaAsset, Session, User } from "../../types";
+import type { MediaAsset, Session, User } from "../../types";
 import MediaPage, { MediaAssetCard } from "./MediaPage";
 
 const authMock = vi.hoisted(() => ({
   role: "editor" as User["role"]
 }));
 
-const dashboardMock = vi.hoisted(() => ({
-  getAdminCmsSnapshot: vi.fn()
+const paginationMock = vi.hoisted(() => ({
+  media: [] as MediaAsset[],
+  invalidateAdminListQueries: vi.fn()
 }));
 
 const mediaMock = vi.hoisted(() => ({
@@ -49,8 +50,28 @@ vi.mock("../../context/authSessionContext", () => ({
   }
 }));
 
-vi.mock("../../features/cms-dashboard", () => ({
-  getAdminCmsSnapshot: dashboardMock.getAdminCmsSnapshot
+vi.mock("../../features/admin-pagination", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../features/admin-pagination")>()),
+  useAdminMediaListQuery: () => ({
+    data: {
+      items: paginationMock.media,
+      pagination: {
+        page: 1,
+        pageSize: 24,
+        totalItems: paginationMock.media.length,
+        totalPages: paginationMock.media.length ? 1 : 0,
+        hasPreviousPage: false,
+        hasNextPage: false
+      },
+      generatedAt: "2026-06-24T00:00:00.000Z"
+    },
+    error: null,
+    isError: false,
+    isFetching: false,
+    isLoading: false,
+    isPlaceholderData: false
+  }),
+  invalidateAdminListQueries: paginationMock.invalidateAdminListQueries
 }));
 
 vi.mock("../../features/cms-media", async (importOriginal) => ({
@@ -92,19 +113,6 @@ const secondAsset: MediaAsset = {
   previewUrl: "https://drive.google.com/file/d/second-file/preview",
   embedUrl: "https://drive.google.com/file/d/second-file/preview"
 };
-
-function snapshot(media: MediaAsset[] = [asset]): CmsSnapshot {
-  return {
-    metrics: [],
-    content: [],
-    documents: [],
-    media,
-    events: [],
-    menu: [],
-    carouselSlides: [],
-    externalServices: []
-  };
-}
 
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -190,8 +198,10 @@ describe("MediaAssetCard", () => {
 describe("MediaPage media mutation feedback", () => {
   beforeEach(() => {
     authMock.role = "editor";
-    dashboardMock.getAdminCmsSnapshot.mockReset();
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot());
+    window.history.replaceState({}, "", "/admin/media");
+    paginationMock.media = [asset];
+    paginationMock.invalidateAdminListQueries.mockReset();
+    paginationMock.invalidateAdminListQueries.mockResolvedValue(undefined);
     mediaMock.saveMediaAsset.mockReset();
     mediaMock.saveMediaAsset.mockResolvedValue(asset);
     mediaMock.deleteMediaAsset.mockReset();
@@ -305,7 +315,7 @@ describe("MediaPage media mutation feedback", () => {
   });
 
   it("disables media delete actions and marks the current asset while delete is pending", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot([asset, secondAsset]));
+    paginationMock.media = [asset, secondAsset];
     const deletion = deferred<{ id: string; deleted: boolean }>();
     mediaMock.deleteMediaAsset.mockReturnValue(deletion.promise);
     renderMediaPage();

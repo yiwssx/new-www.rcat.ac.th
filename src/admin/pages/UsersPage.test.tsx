@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import UsersPage from "./UsersPage";
@@ -14,6 +15,8 @@ const cloudflareApiMock = vi.hoisted(() => ({
   saveAdminUserProfileToCloudflare: vi.fn(),
   deleteAdminUserProfileFromCloudflare: vi.fn()
 }));
+
+const paginationMock = vi.hoisted(() => ({ getAdminUserList: vi.fn() }));
 
 const swalInstance = vi.hoisted(() => ({
   fire: vi.fn(),
@@ -34,6 +37,11 @@ vi.mock("../../features/admin-write/cloudflareApi", async (importOriginal) => ({
   getAdminUsersFromCloudflare: cloudflareApiMock.getAdminUsersFromCloudflare,
   saveAdminUserProfileToCloudflare: cloudflareApiMock.saveAdminUserProfileToCloudflare,
   deleteAdminUserProfileFromCloudflare: cloudflareApiMock.deleteAdminUserProfileFromCloudflare
+}));
+
+vi.mock("../../features/admin-pagination/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../features/admin-pagination/api")>()),
+  getAdminUserList: paginationMock.getAdminUserList
 }));
 
 vi.mock("../../context/authSessionContext", () => ({
@@ -95,6 +103,17 @@ function findSwalCall(predicate: (options: Record<string, unknown>) => boolean) 
   return call?.[0] as Record<string, unknown> | undefined;
 }
 
+function renderUsersPage() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <UsersPage />
+    </QueryClientProvider>
+  );
+}
+
 describe("UsersPage", () => {
   beforeEach(() => {
     authMock.role = "admin";
@@ -110,10 +129,34 @@ describe("UsersPage", () => {
     swalInstance.close.mockReset();
     swalInstance.close.mockResolvedValue(undefined);
     swalInstance.showLoading.mockReset();
+    paginationMock.getAdminUserList.mockReset();
+    paginationMock.getAdminUserList.mockImplementation(async (request = {}) => {
+      const query = request as { q?: string; role?: User["role"] | "all"; status?: "active" | "disabled" | "all" };
+      const q = query.q?.toLowerCase() ?? "";
+      const items = cloudflareApiMock.users.filter(
+        (item) =>
+          (!q || `${item.name} ${item.email}`.toLowerCase().includes(q)) &&
+          (!query.role || query.role === "all" || item.role === query.role) &&
+          (!query.status || query.status === "all" || item.status === query.status)
+      );
+
+      return {
+        items,
+        pagination: {
+          page: 1,
+          pageSize: 25,
+          totalItems: items.length,
+          totalPages: items.length ? 1 : 0,
+          hasPreviousPage: false,
+          hasNextPage: false
+        },
+        generatedAt: "2026-07-13T00:00:00.000Z"
+      };
+    });
   });
 
   it("uses Cloudflare/D1 app-user profiles without Apps Script or password fields", async () => {
-    render(<UsersPage />);
+    renderUsersPage();
 
     expect(screen.getByRole("heading", { level: 1, name: "ผู้ใช้และสิทธิ์การเข้าถึง" })).toBeInTheDocument();
     expect(await screen.findByText("Cloudflare admin")).toBeInTheDocument();
@@ -122,12 +165,13 @@ describe("UsersPage", () => {
     expect(screen.queryByText(/VITE_GOOGLE_APPS_SCRIPT_URL/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Apps Script โดยตรง/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/รหัสผ่าน/)).not.toBeInTheDocument();
-    await waitFor(() => expect(cloudflareApiMock.getAdminUsersFromCloudflare).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(paginationMock.getAdminUserList).toHaveBeenCalled());
   });
 
   it("shows admin user management controls while preventing self-delete and last-admin removal", async () => {
-    render(<UsersPage />);
+    renderUsersPage();
 
+    await screen.findByText("Cloudflare admin");
     expect(await screen.findByRole("button", { name: "เพิ่มผู้ใช้" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "แก้ไข" })).toHaveLength(3);
     expect(screen.getAllByRole("button", { name: "ลบผู้ใช้" })).toHaveLength(3);
@@ -138,7 +182,7 @@ describe("UsersPage", () => {
   it("allows editors to edit only their own profile and hides role/status management", async () => {
     authMock.role = "editor";
 
-    render(<UsersPage />);
+    renderUsersPage();
 
     expect(await screen.findByText("Cloudflare editor")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "เพิ่มผู้ใช้" })).not.toBeInTheDocument();
@@ -150,7 +194,7 @@ describe("UsersPage", () => {
   it("renders viewer as read-only with no create edit or delete controls", async () => {
     authMock.role = "viewer";
 
-    render(<UsersPage />);
+    renderUsersPage();
 
     expect(await screen.findByText("Cloudflare viewer")).toBeInTheDocument();
     expect(
@@ -170,7 +214,7 @@ describe("UsersPage", () => {
       name: "New User"
     });
     cloudflareApiMock.saveAdminUserProfileToCloudflare.mockReturnValue(save.promise);
-    render(<UsersPage />);
+    renderUsersPage();
 
     await screen.findByText("Cloudflare editor");
     fireEvent.click(screen.getByRole("button", { name: "เพิ่มผู้ใช้" }));
@@ -212,7 +256,7 @@ describe("UsersPage", () => {
   it("shows loading and an acknowledged success modal when deleting a user", async () => {
     const deletion = deferred<{ id: string; deleted: boolean }>();
     cloudflareApiMock.deleteAdminUserProfileFromCloudflare.mockReturnValue(deletion.promise);
-    render(<UsersPage />);
+    renderUsersPage();
 
     await screen.findByText("Cloudflare editor");
     fireEvent.click(screen.getAllByRole("button", { name: "ลบผู้ใช้" })[1]);
@@ -253,7 +297,7 @@ describe("UsersPage", () => {
 
   it("keeps the inline user error and shows an acknowledged error modal when saving fails", async () => {
     cloudflareApiMock.saveAdminUserProfileToCloudflare.mockRejectedValue(new Error("User revision mismatch"));
-    render(<UsersPage />);
+    renderUsersPage();
 
     await screen.findByText("Cloudflare editor");
     fireEvent.click(screen.getByRole("button", { name: "เพิ่มผู้ใช้" }));

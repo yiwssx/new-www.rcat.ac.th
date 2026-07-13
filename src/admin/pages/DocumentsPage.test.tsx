@@ -1,15 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CmsDocumentItem, CmsSnapshot, Session, User } from "../../types";
+import type { CmsDocumentItem, Session, User } from "../../types";
 import DocumentsPage from "./DocumentsPage";
 
-const authMock = vi.hoisted(() => ({
-  role: "editor" as User["role"]
-}));
+const authMock = vi.hoisted(() => ({ role: "editor" as User["role"] }));
 
-const dashboardMock = vi.hoisted(() => ({
-  getAdminCmsSnapshot: vi.fn()
+const paginationMock = vi.hoisted(() => ({
+  getAdminDocumentList: vi.fn(),
+  getAdminDocumentOrder: vi.fn(),
+  saveAdminDocumentOrder: vi.fn()
 }));
 
 const documentsMock = vi.hoisted(() => ({
@@ -17,9 +17,7 @@ const documentsMock = vi.hoisted(() => ({
   deleteDocumentFromApi: vi.fn()
 }));
 
-const publicInvalidationMock = vi.hoisted(() => ({
-  invalidatePublicCmsData: vi.fn()
-}));
+const publicInvalidationMock = vi.hoisted(() => ({ invalidatePublicCmsData: vi.fn() }));
 
 const swalInstance = vi.hoisted(() => ({
   fire: vi.fn(),
@@ -27,38 +25,14 @@ const swalInstance = vi.hoisted(() => ({
   showLoading: vi.fn()
 }));
 
-vi.mock("sweetalert2", () => ({
-  default: {
-    mixin: vi.fn(() => swalInstance)
-  }
-}));
-
+vi.mock("sweetalert2", () => ({ default: { mixin: vi.fn(() => swalInstance) } }));
 vi.mock("sweetalert2/dist/sweetalert2.min.css", () => ({}));
 
-vi.mock("../../context/authSessionContext", () => ({
-  useAuth: () => {
-    const user: User = {
-      id: `cloudflare-${authMock.role}`,
-      name: `Cloudflare ${authMock.role}`,
-      email: `${authMock.role}@example.invalid`,
-      role: authMock.role
-    };
-    const session: Session = {
-      user,
-      token: "test-session-token",
-      expiresAt: "2026-06-23T00:00:00.000Z"
-    };
-
-    return {
-      session,
-      login: vi.fn(),
-      logout: vi.fn()
-    };
-  }
-}));
-
-vi.mock("../../features/cms-dashboard", () => ({
-  getAdminCmsSnapshot: dashboardMock.getAdminCmsSnapshot
+vi.mock("../../features/admin-pagination/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../features/admin-pagination/api")>()),
+  getAdminDocumentList: paginationMock.getAdminDocumentList,
+  getAdminDocumentOrder: paginationMock.getAdminDocumentOrder,
+  saveAdminDocumentOrder: paginationMock.saveAdminDocumentOrder
 }));
 
 vi.mock("../../features/cms-documents", async (importOriginal) => ({
@@ -69,6 +43,19 @@ vi.mock("../../features/cms-documents", async (importOriginal) => ({
 
 vi.mock("../../services/publicCmsInvalidation", () => ({
   invalidatePublicCmsData: publicInvalidationMock.invalidatePublicCmsData
+}));
+
+vi.mock("../../context/authSessionContext", () => ({
+  useAuth: () => {
+    const user: User = {
+      id: `cloudflare-${authMock.role}`,
+      name: `Cloudflare ${authMock.role}`,
+      email: `${authMock.role}@example.invalid`,
+      role: authMock.role
+    };
+    const session: Session = { user, token: "test-session-token", expiresAt: "2026-12-31T00:00:00.000Z" };
+    return { session, login: vi.fn(), logout: vi.fn() };
+  }
 }));
 
 const documentItem: CmsDocumentItem = {
@@ -88,100 +75,66 @@ const documentItem: CmsDocumentItem = {
 };
 
 const draftDocumentItem: CmsDocumentItem = {
+  ...documentItem,
   id: "document-2",
   title: "แบบฟอร์มคำร้อง",
-  description: "เอกสารสำหรับงานทะเบียน",
-  category: "แบบฟอร์ม",
-  fileUrl: "https://example.invalid/request-form.pdf",
   fileName: "request-form.pdf",
-  mediaId: "media-request-form",
-  publishedAt: "",
   status: "draft",
+  publishedAt: "",
   order: 2,
-  pinned: false,
-  updatedAt: "2026-06-25T00:00:00.000Z",
-  revision: 1
+  revision: 4
 };
 
 const pinnedDocumentItem: CmsDocumentItem = {
+  ...documentItem,
   id: "document-3",
   title: "ระเบียบฝึกงาน",
-  description: "คำแนะนำการฝึกประสบการณ์วิชาชีพ",
-  category: "ฝึกงาน",
-  fileUrl: "https://example.invalid/internship-policy-with-a-very-long-file-name-that-should-wrap-safely.pdf",
-  fileName: "internship-policy.pdf",
-  mediaId: "",
-  publishedAt: "2026-06-26T00:00:00.000Z",
-  status: "published",
-  order: 3,
+  order: 1,
   pinned: true,
-  updatedAt: "2026-06-26T00:00:00.000Z",
-  revision: 1
+  revision: 2
 };
 
 const secondPinnedDocumentItem: CmsDocumentItem = {
+  ...pinnedDocumentItem,
   id: "document-4",
   title: "แผนปฏิบัติการ",
-  description: "เอกสารแผนงานประจำปี",
-  category: "แผนงาน",
-  fileUrl: "https://example.invalid/action-plan.pdf",
-  fileName: "action-plan.pdf",
-  mediaId: "",
-  publishedAt: "2026-06-25T00:00:00.000Z",
-  status: "published",
   order: 2,
-  pinned: true,
-  updatedAt: "2026-06-25T00:00:00.000Z",
-  revision: 1
+  revision: 3
 };
 
-function orderingDocuments() {
-  return [
-    {
-      ...pinnedDocumentItem,
-      order: 1
-    },
-    secondPinnedDocumentItem,
-    {
-      ...documentItem,
-      order: 1
-    },
-    draftDocumentItem
-  ];
-}
-
-function snapshot(documents: CmsDocumentItem[] = [documentItem]): CmsSnapshot {
+function paginatedDocuments(
+  items: CmsDocumentItem[],
+  pagination: Partial<{
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  }> = {}
+) {
+  const page = pagination.page ?? 1;
+  const pageSize = pagination.pageSize ?? 25;
+  const totalItems = pagination.totalItems ?? items.length;
+  const totalPages = pagination.totalPages ?? Math.ceil(totalItems / pageSize);
   return {
-    metrics: [],
-    content: [],
-    documents,
-    media: [],
-    events: [],
-    menu: [],
-    carouselSlides: [],
-    externalServices: []
+    items,
+    pagination: {
+      page,
+      pageSize,
+      totalItems,
+      totalPages,
+      hasPreviousPage: pagination.hasPreviousPage ?? page > 1,
+      hasNextPage: pagination.hasNextPage ?? page < totalPages
+    },
+    generatedAt: "2026-07-12T00:00:00.000Z"
   };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-
-  return { promise, resolve, reject };
 }
 
 function renderDocumentsPage() {
   const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false }
-    }
+    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
   });
-
   return render(
     <QueryClientProvider client={queryClient}>
       <DocumentsPage />
@@ -189,41 +142,19 @@ function renderDocumentsPage() {
   );
 }
 
-function findSwalCall(predicate: (options: Record<string, unknown>) => boolean) {
-  const call = swalInstance.fire.mock.calls.find(([options]) => {
-    if (!options || typeof options !== "object") {
-      return false;
-    }
-
-    return predicate(options as Record<string, unknown>);
-  });
-
-  return call?.[0] as Record<string, unknown> | undefined;
-}
-
-function expectAcknowledgedResultModal(options: Record<string, unknown> | undefined, title: string) {
-  expect(options).toEqual(
-    expect.objectContaining({
-      icon: "success",
-      title,
-      confirmButtonText: "ตกลง"
-    })
-  );
-  expect(options).not.toHaveProperty("toast");
-  expect(options).not.toHaveProperty("timer");
-}
-
-function expectTextBefore(leftText: string, rightText: string) {
-  const left = screen.getByText(leftText);
-  const right = screen.getByText(rightText);
-
-  expect(left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-}
-
 beforeEach(() => {
+  window.history.replaceState({}, "", "/admin/documents");
   authMock.role = "editor";
-  dashboardMock.getAdminCmsSnapshot.mockReset();
-  dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot());
+  paginationMock.getAdminDocumentList.mockReset();
+  paginationMock.getAdminDocumentList.mockResolvedValue(paginatedDocuments([documentItem]));
+  paginationMock.getAdminDocumentOrder.mockReset();
+  paginationMock.getAdminDocumentOrder.mockResolvedValue([
+    { id: pinnedDocumentItem.id, title: pinnedDocumentItem.title, order: 1, pinned: true, revision: 2 },
+    { id: secondPinnedDocumentItem.id, title: secondPinnedDocumentItem.title, order: 2, pinned: true, revision: 3 },
+    { id: documentItem.id, title: documentItem.title, order: 1, pinned: false, revision: 1 }
+  ]);
+  paginationMock.saveAdminDocumentOrder.mockReset();
+  paginationMock.saveAdminDocumentOrder.mockResolvedValue([]);
   documentsMock.saveDocumentToApi.mockReset();
   documentsMock.saveDocumentToApi.mockResolvedValue(documentItem);
   documentsMock.deleteDocumentFromApi.mockReset();
@@ -237,338 +168,113 @@ beforeEach(() => {
   swalInstance.showLoading.mockReset();
 });
 
-describe("DocumentsPage ordering workflow", () => {
-  it("renders pinned and unpinned documents under separate group headings", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
-    renderDocumentsPage();
-
-    await screen.findByText(pinnedDocumentItem.title);
-
-    expect(screen.getByText("เอกสารปักหมุด")).toBeInTheDocument();
-    expect(screen.getByText("เอกสารทั่วไป")).toBeInTheDocument();
-    expectTextBefore("เอกสารปักหมุด", pinnedDocumentItem.title);
-    expectTextBefore(pinnedDocumentItem.title, secondPinnedDocumentItem.title);
-    expectTextBefore(secondPinnedDocumentItem.title, "เอกสารทั่วไป");
-    expectTextBefore("เอกสารทั่วไป", documentItem.title);
-    expectTextBefore(documentItem.title, draftDocumentItem.title);
-  });
-
-  it("moves documents up and down only within their pinned group and disables group boundaries", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
-    renderDocumentsPage();
-
-    await screen.findByText(pinnedDocumentItem.title);
-
-    expect(screen.getByRole("button", { name: `เลื่อนขึ้น ${pinnedDocumentItem.title}` })).toBeDisabled();
-    expect(screen.getByRole("button", { name: `เลื่อนลง ${secondPinnedDocumentItem.title}` })).toBeDisabled();
-    expect(screen.getByRole("button", { name: `เลื่อนขึ้น ${documentItem.title}` })).toBeDisabled();
-    expect(screen.getByRole("button", { name: `เลื่อนลง ${draftDocumentItem.title}` })).toBeDisabled();
-
-    fireEvent.click(screen.getByRole("button", { name: `เลื่อนขึ้น ${secondPinnedDocumentItem.title}` }));
-
-    expectTextBefore(secondPinnedDocumentItem.title, pinnedDocumentItem.title);
-    expectTextBefore(pinnedDocumentItem.title, "เอกสารทั่วไป");
-    expectTextBefore(documentItem.title, draftDocumentItem.title);
-
-    fireEvent.click(screen.getByRole("button", { name: `เลื่อนลง ${documentItem.title}` }));
-
-    expectTextBefore(draftDocumentItem.title, documentItem.title);
-    expectTextBefore(pinnedDocumentItem.title, "เอกสารทั่วไป");
-    expectTextBefore("เอกสารทั่วไป", draftDocumentItem.title);
-  });
-
-  it("enables save after moving and can reset the local ordering draft", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
-    renderDocumentsPage();
-
-    await screen.findByText(pinnedDocumentItem.title);
-    expect(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" })).toBeDisabled();
-
-    fireEvent.click(screen.getByRole("button", { name: `เลื่อนขึ้น ${secondPinnedDocumentItem.title}` }));
-
-    expect(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" })).toBeEnabled();
-    expectTextBefore(secondPinnedDocumentItem.title, pinnedDocumentItem.title);
-
-    fireEvent.click(screen.getByRole("button", { name: "ยกเลิกการจัดลำดับ" }));
-
-    expect(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" })).toBeDisabled();
-    expectTextBefore(pinnedDocumentItem.title, secondPinnedDocumentItem.title);
-  });
-
-  it("saves only changed document order values and invalidates public CMS data", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
-    documentsMock.saveDocumentToApi.mockImplementation(async (document: CmsDocumentItem) => document);
-    renderDocumentsPage();
-
-    await screen.findByText(pinnedDocumentItem.title);
-    fireEvent.click(screen.getByRole("button", { name: `เลื่อนขึ้น ${secondPinnedDocumentItem.title}` }));
-    fireEvent.click(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" }));
-
-    await waitFor(() => expect(documentsMock.saveDocumentToApi).toHaveBeenCalledTimes(2));
-    expect(documentsMock.saveDocumentToApi).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        id: secondPinnedDocumentItem.id,
-        order: 1,
-        pinned: true
-      })
+describe("DocumentsPage server pagination", () => {
+  it("renders only the requested server page and preserves URL list state", async () => {
+    window.history.replaceState({}, "", "/admin/documents?page=2&pageSize=25&status=draft&pinned=unpinned");
+    paginationMock.getAdminDocumentList.mockResolvedValue(
+      paginatedDocuments([draftDocumentItem], { page: 2, totalItems: 51, totalPages: 3 })
     );
-    expect(documentsMock.saveDocumentToApi).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        id: pinnedDocumentItem.id,
-        order: 2,
-        pinned: true
-      })
-    );
-    expect(documentsMock.saveDocumentToApi).not.toHaveBeenCalledWith(expect.objectContaining({ id: documentItem.id }));
-    expect(publicInvalidationMock.invalidatePublicCmsData).toHaveBeenCalledTimes(1);
-    expect(findSwalCall((options) => options.title === "บันทึกลำดับเอกสารสำเร็จ")).toEqual(
-      expect.objectContaining({
-        icon: "success",
-        confirmButtonText: "ตกลง"
-      })
-    );
-  });
 
-  it("keeps local order draft and shows an error modal when order save fails", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
-    documentsMock.saveDocumentToApi.mockRejectedValue(new Error("D1 unavailable"));
     renderDocumentsPage();
 
-    await screen.findByText(pinnedDocumentItem.title);
-    fireEvent.click(screen.getByRole("button", { name: `เลื่อนขึ้น ${secondPinnedDocumentItem.title}` }));
-    fireEvent.click(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" }));
-
-    expect(await screen.findByText(secondPinnedDocumentItem.title)).toBeInTheDocument();
-    expectTextBefore(secondPinnedDocumentItem.title, pinnedDocumentItem.title);
-    expect(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" })).toBeEnabled();
-    expect(findSwalCall((options) => options.title === "ไม่สามารถบันทึกลำดับเอกสารได้")).toEqual(
-      expect.objectContaining({
-        icon: "error",
-        text: "D1 unavailable",
-        confirmButtonText: "ตกลง"
-      })
-    );
-  });
-
-  it("hides reorder controls and shows a notice while filters are active", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
-    renderDocumentsPage();
-
-    await screen.findByText(pinnedDocumentItem.title);
-    fireEvent.change(screen.getByPlaceholderText("ค้นหาเอกสาร"), { target: { value: "คู่มือ" } });
-
-    expect(screen.getByText("ปิดตัวกรองเพื่อจัดลำดับเอกสารทั้งหมด")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: `เลื่อนขึ้น ${documentItem.title}` })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "บันทึกลำดับเอกสาร" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "แก้ไข" })).toBeInTheDocument();
-  });
-
-  it("does not expose editable raw order in the main document dialog", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(snapshot(orderingDocuments()));
-    renderDocumentsPage();
-
-    await screen.findByText(pinnedDocumentItem.title);
-    fireEvent.click(screen.getAllByRole("button", { name: "แก้ไข" })[0]);
-
-    expect(screen.queryByRole("spinbutton", { name: "ลำดับ" })).not.toBeInTheDocument();
-    expect(screen.getByText("ลำดับในกลุ่ม: 1")).toBeInTheDocument();
-    expect(screen.getByText("ปรับลำดับจากรายการเอกสารด้านนอกด้วยปุ่มเลื่อนขึ้น/เลื่อนลง")).toBeInTheDocument();
-  });
-});
-
-describe("DocumentsPage filters and form guidance", () => {
-  it("search filters documents by title, category, and file name", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(
-      snapshot([documentItem, draftDocumentItem, pinnedDocumentItem])
-    );
-    renderDocumentsPage();
-
-    await screen.findByText(documentItem.title);
-    const search = screen.getByPlaceholderText("ค้นหาเอกสาร");
-
-    fireEvent.change(search, { target: { value: "ฝึกงาน" } });
-    expect(screen.getByText(pinnedDocumentItem.title)).toBeInTheDocument();
+    expect(await screen.findByText(draftDocumentItem.title)).toBeInTheDocument();
     expect(screen.queryByText(documentItem.title)).not.toBeInTheDocument();
-    expect(screen.queryByText(draftDocumentItem.title)).not.toBeInTheDocument();
+    expect(screen.getByText("แสดง 26–50 จากทั้งหมด 51 รายการ")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(paginationMock.getAdminDocumentList).toHaveBeenCalledWith(
+        expect.objectContaining({ page: 2, pageSize: 25, status: "draft", pinned: "unpinned" })
+      )
+    );
 
-    fireEvent.change(search, { target: { value: "student-guide.pdf" } });
-    expect(screen.getByText(documentItem.title)).toBeInTheDocument();
-    expect(screen.queryByText(pinnedDocumentItem.title)).not.toBeInTheDocument();
-    expect(screen.queryByText(draftDocumentItem.title)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ไปหน้าที่ 3" }));
+
+    await waitFor(() => expect(window.location.search).toContain("page=3"));
+    await waitFor(() =>
+      expect(paginationMock.getAdminDocumentList).toHaveBeenCalledWith(expect.objectContaining({ page: 3 }))
+    );
   });
 
-  it("status filter shows only draft or published documents", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(
-      snapshot([documentItem, draftDocumentItem, pinnedDocumentItem])
-    );
+  it("debounces server search and resets search/filter changes to page one", async () => {
+    window.history.replaceState({}, "", "/admin/documents?page=3");
     renderDocumentsPage();
-
     await screen.findByText(documentItem.title);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "ค้นหาเอกสาร" }), { target: { value: "แผนงาน" } });
+
+    await waitFor(() =>
+      expect(window.location.search).toContain("q=%E0%B9%81%E0%B8%9C%E0%B8%99%E0%B8%87%E0%B8%B2%E0%B8%99")
+    );
+    expect(new URLSearchParams(window.location.search).get("page")).toBeNull();
+    await waitFor(
+      () =>
+        expect(paginationMock.getAdminDocumentList).toHaveBeenCalledWith(
+          expect.objectContaining({ page: 1, q: "แผนงาน" })
+        ),
+      { timeout: 1_500 }
+    );
+
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "สถานะ" }));
     fireEvent.click(screen.getByRole("option", { name: "ฉบับร่าง" }));
 
-    expect(screen.getByText(draftDocumentItem.title)).toBeInTheDocument();
-    expect(screen.queryByText(documentItem.title)).not.toBeInTheDocument();
-    expect(screen.queryByText(pinnedDocumentItem.title)).not.toBeInTheDocument();
-
-    fireEvent.mouseDown(screen.getByRole("combobox", { name: "สถานะ" }));
-    fireEvent.click(screen.getByRole("option", { name: "เผยแพร่" }));
-
-    expect(screen.getByText(documentItem.title)).toBeInTheDocument();
-    expect(screen.getByText(pinnedDocumentItem.title)).toBeInTheDocument();
-    expect(screen.queryByText(draftDocumentItem.title)).not.toBeInTheDocument();
-  });
-
-  it("pinned filter shows pinned only and unpinned only documents", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(
-      snapshot([documentItem, draftDocumentItem, pinnedDocumentItem])
-    );
-    renderDocumentsPage();
-
-    await screen.findByText(documentItem.title);
-    fireEvent.mouseDown(screen.getByRole("combobox", { name: "การปักหมุด" }));
-    fireEvent.click(screen.getByRole("option", { name: "ปักหมุด" }));
-
-    expect(screen.getByText(pinnedDocumentItem.title)).toBeInTheDocument();
-    expect(screen.queryByText(documentItem.title)).not.toBeInTheDocument();
-    expect(screen.queryByText(draftDocumentItem.title)).not.toBeInTheDocument();
-
-    fireEvent.mouseDown(screen.getByRole("combobox", { name: "การปักหมุด" }));
-    fireEvent.click(screen.getByRole("option", { name: "ไม่ปักหมุด" }));
-
-    expect(screen.getByText(documentItem.title)).toBeInTheDocument();
-    expect(screen.getByText(draftDocumentItem.title)).toBeInTheDocument();
-    expect(screen.queryByText(pinnedDocumentItem.title)).not.toBeInTheDocument();
-  });
-
-  it("shows a no-results message when filters match nothing", async () => {
-    dashboardMock.getAdminCmsSnapshot.mockResolvedValue(
-      snapshot([documentItem, draftDocumentItem, pinnedDocumentItem])
-    );
-    renderDocumentsPage();
-
-    await screen.findByText(documentItem.title);
-    fireEvent.change(screen.getByPlaceholderText("ค้นหาเอกสาร"), { target: { value: "ไม่มีรายการนี้" } });
-
-    expect(screen.getByText("ไม่พบเอกสารที่ตรงกับเงื่อนไขการค้นหา")).toBeInTheDocument();
-    expect(screen.queryByText(documentItem.title)).not.toBeInTheDocument();
-  });
-
-  it("keeps Media ID in advanced context with helper text", async () => {
-    renderDocumentsPage();
-
-    await screen.findByText(documentItem.title);
-    fireEvent.click(screen.getByRole("button", { name: "เพิ่มเอกสาร" }));
-
-    expect(screen.getByRole("button", { name: "ข้อมูลขั้นสูง" })).toBeInTheDocument();
-    expect(screen.queryByRole("textbox", { name: "Media ID" })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "ข้อมูลขั้นสูง" }));
-
-    expect(screen.getByRole("textbox", { name: "Media ID" })).toBeInTheDocument();
-    expect(screen.getByText("ใช้เมื่อเชื่อมโยงกับไฟล์ในคลังสื่อ ระบบทั่วไปไม่จำเป็นต้องกรอกเอง")).toBeInTheDocument();
-  });
-
-  it("explains pinned-first behavior for order and pinned controls", async () => {
-    renderDocumentsPage();
-
-    await screen.findByText(documentItem.title);
-    fireEvent.click(screen.getByRole("button", { name: "เพิ่มเอกสาร" }));
-
-    expect(screen.getByText("ปรับลำดับจากรายการเอกสารด้านนอกด้วยปุ่มเลื่อนขึ้น/เลื่อนลง")).toBeInTheDocument();
-    expect(
-      screen.getByText("เมื่อเปลี่ยนการปักหมุด รายการจะถูกจัดอยู่ในกลุ่มเอกสารปักหมุดหรือเอกสารทั่วไป")
-    ).toBeInTheDocument();
-  });
-});
-
-describe("DocumentsPage operation feedback", () => {
-  it("shows loading and an acknowledged success modal when saving a document", async () => {
-    const save = deferred<CmsDocumentItem>();
-    documentsMock.saveDocumentToApi.mockReturnValue(save.promise);
-    renderDocumentsPage();
-
-    await screen.findByText(documentItem.title);
-    fireEvent.click(screen.getByRole("button", { name: "เพิ่มเอกสาร" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อเอกสาร" }), {
-      target: { value: "ประกาศผลการเรียน" }
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: "ลิงก์ไฟล์" }), {
-      target: { value: "https://example.invalid/grades.pdf" }
-    });
-    fireEvent.click(screen.getByRole("button", { name: "บันทึก" }));
-
-    await waitFor(() => expect(documentsMock.saveDocumentToApi).toHaveBeenCalledTimes(1));
-    expect(findSwalCall((options) => options.title === "กำลังบันทึกเอกสาร")).toEqual(
-      expect.objectContaining({
-        showConfirmButton: false,
-        allowOutsideClick: false,
-        allowEscapeKey: false
-      })
-    );
-
-    save.resolve(documentItem);
-
-    let successModal: Record<string, unknown> | undefined;
-    await waitFor(() => {
-      successModal = findSwalCall((options) => options.title === "บันทึกเอกสารสำเร็จ");
-      expectAcknowledgedResultModal(successModal, "บันทึกเอกสารสำเร็จ");
-    });
-  }, 10_000);
-
-  it("keeps the dialog error and shows an acknowledged error modal when saving fails", async () => {
-    documentsMock.saveDocumentToApi.mockRejectedValue(new Error("D1 unavailable"));
-    renderDocumentsPage();
-
-    await screen.findByText(documentItem.title);
-    fireEvent.click(screen.getByRole("button", { name: "เพิ่มเอกสาร" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อเอกสาร" }), {
-      target: { value: "ประกาศผลการเรียน" }
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: "ลิงก์ไฟล์" }), {
-      target: { value: "https://example.invalid/grades.pdf" }
-    });
-    fireEvent.click(screen.getByRole("button", { name: "บันทึก" }));
-
-    expect(await screen.findByText("D1 unavailable")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "เพิ่มเอกสารเผยแพร่" })).toBeInTheDocument();
-    expect(findSwalCall((options) => options.title === "ไม่สามารถบันทึกเอกสารได้")).toEqual(
-      expect.objectContaining({
-        icon: "error",
-        title: "ไม่สามารถบันทึกเอกสารได้",
-        text: "D1 unavailable",
-        confirmButtonText: "ตกลง"
-      })
+    await waitFor(() =>
+      expect(paginationMock.getAdminDocumentList).toHaveBeenCalledWith(
+        expect.objectContaining({ page: 1, status: "draft" })
+      )
     );
   });
 
-  it("shows loading and an acknowledged success modal when deleting a document", async () => {
-    const deletion = deferred<{ id: string; deleted: boolean }>();
-    documentsMock.deleteDocumentFromApi.mockReturnValue(deletion.promise);
+  it("moves to the previous valid page after deleting its final item", async () => {
+    window.history.replaceState({}, "", "/admin/documents?page=2");
+    paginationMock.getAdminDocumentList.mockImplementation(async (request: { page?: number } = {}) =>
+      paginatedDocuments(
+        [documentItem],
+        request.page === 2 ? { page: 2, totalItems: 26, totalPages: 2 } : { page: 1, totalItems: 25, totalPages: 1 }
+      )
+    );
     renderDocumentsPage();
-
     await screen.findByText(documentItem.title);
+
     fireEvent.click(screen.getByRole("button", { name: "ลบ" }));
 
     await waitFor(() =>
-      expect(documentsMock.deleteDocumentFromApi).toHaveBeenCalledWith(documentItem.id, expect.anything())
+      expect(documentsMock.deleteDocumentFromApi).toHaveBeenCalledWith(documentItem.id, expect.any(Object))
     );
-    expect(findSwalCall((options) => options.title === "กำลังลบเอกสาร")).toEqual(
-      expect.objectContaining({
-        showConfirmButton: false,
-        allowOutsideClick: false,
-        allowEscapeKey: false
-      })
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("page")).toBeNull());
+  });
+
+  it("keeps viewer pagination readable while hiding every mutation and ordering control", async () => {
+    authMock.role = "viewer";
+    renderDocumentsPage();
+
+    expect(await screen.findByText(documentItem.title)).toBeInTheDocument();
+    expect(screen.getByText(/สามารถดูข้อมูลเพื่อตรวจสอบก่อนเผยแพร่ได้/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "เพิ่มเอกสาร" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "จัดลำดับ" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "แก้ไข" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "ลบ" })).not.toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "การแบ่งหน้ารายการ" })).toBeInTheDocument();
+  });
+});
+
+describe("DocumentsPage compact ordering", () => {
+  it("loads the compact global order only on demand and saves changed revisions", async () => {
+    renderDocumentsPage();
+    await screen.findByText(documentItem.title);
+    expect(paginationMock.getAdminDocumentOrder).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "จัดลำดับ" }));
+
+    expect(await screen.findByText(pinnedDocumentItem.title)).toBeInTheDocument();
+    await waitFor(() => expect(paginationMock.getAdminDocumentOrder).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: `เลื่อนขึ้น ${secondPinnedDocumentItem.title}` }));
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกลำดับเอกสาร" }));
+
+    await waitFor(() =>
+      expect(paginationMock.saveAdminDocumentOrder).toHaveBeenCalledWith([
+        expect.objectContaining({ id: secondPinnedDocumentItem.id, order: 1, pinned: true, revision: 3 }),
+        expect.objectContaining({ id: pinnedDocumentItem.id, order: 2, pinned: true, revision: 2 })
+      ])
     );
-
-    deletion.resolve({ id: documentItem.id, deleted: true });
-
-    let successModal: Record<string, unknown> | undefined;
-    await waitFor(() => {
-      successModal = findSwalCall((options) => options.title === "ลบเอกสารสำเร็จ");
-      expectAcknowledgedResultModal(successModal, "ลบเอกสารสำเร็จ");
-    });
+    expect(publicInvalidationMock.invalidatePublicCmsData).toHaveBeenCalled();
   });
 });

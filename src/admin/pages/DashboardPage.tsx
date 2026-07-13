@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Box, Button, Card, CardContent, LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
@@ -13,10 +12,16 @@ import dayjs from "dayjs";
 import MetricCard from "../components/MetricCard";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
-import { getAdminCmsSnapshot } from "../../features/cms-dashboard";
-import { publishContent } from "../../features/cms-content";
+import {
+  adminDashboardSummaryQueryOptions,
+  adminListQueryKeys,
+  publishAllPendingAdminContent
+} from "../../features/admin-pagination";
 import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
+import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
+import { useAuth } from "../../context/authSessionContext";
+import { ADMIN_READ_ONLY_NOTICE, canPublishContent } from "../utils/rbac";
 
 const metricIcons = [
   <ArticleOutlinedIcon key="content" />,
@@ -27,24 +32,33 @@ const metricIcons = [
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
-  const { data, error, isError, isLoading } = useQuery({
-    queryKey: ["cms-snapshot", "admin"],
-    queryFn: getAdminCmsSnapshot
-  });
+  const { session } = useAuth();
+  const canPublish = canPublishContent(session?.user);
+  const { data, error, isError, isLoading, isFetching } = useQuery(adminDashboardSummaryQueryOptions());
   const publishMutation = useMutation({
-    mutationFn: publishContent,
+    mutationFn: publishAllPendingAdminContent,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminListQueryKeys.dashboard }),
+        queryClient.invalidateQueries({ queryKey: adminListQueryKeys.entity("content") }),
+        invalidatePublicCmsData(queryClient)
+      ]);
     }
   });
 
-  const snapshot = data;
-  const pendingItems = useMemo(() => snapshot?.content.filter((item) => item.status !== "published") ?? [], [snapshot]);
-  const queue = useMemo(() => pendingItems.slice(0, 4), [pendingItems]);
-  const events = snapshot?.events.filter((event) => event.status !== "cancelled").slice(0, 3) ?? [];
+  const contentCounts = data?.counts.content;
+  const countGroup =
+    contentCounts && typeof contentCounts === "object" && !Array.isArray(contentCounts) ? contentCounts : {};
+  const pendingTotal = Math.max(0, (countGroup.total ?? 0) - (countGroup.published ?? 0));
+  const queue = data?.content.slice(0, 4) ?? [];
+  const events = data?.events.slice(0, 3) ?? [];
 
   async function handlePublishQueue() {
-    if (!pendingItems.length) {
+    if (!canPublish) {
+      return;
+    }
+
+    if (!pendingTotal) {
       await appSwal.fire({
         icon: "info",
         title: "ไม่มีรายการให้เผยแพร่",
@@ -56,7 +70,7 @@ export default function DashboardPage() {
 
     const result = await appSwal.fire({
       title: "เผยแพร่คิว?",
-      text: `เผยแพร่เนื้อหา ${pendingItems.length} รายการตอนนี้`,
+      text: `เผยแพร่เนื้อหา ${pendingTotal} รายการตอนนี้`,
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "เผยแพร่",
@@ -70,12 +84,9 @@ export default function DashboardPage() {
     showBlockingLoading("กำลังเผยแพร่คิว");
 
     try {
-      for (const item of pendingItems) {
-        await publishMutation.mutateAsync(item.id);
-      }
-      await queryClient.invalidateQueries({ queryKey: ["cms-snapshot"] });
+      const result = await publishMutation.mutateAsync();
       await appSwal.close();
-      await showSuccessResult("เผยแพร่คิวสำเร็จ");
+      await showSuccessResult(`เผยแพร่คิวสำเร็จ ${result.publishedCount} รายการ`);
     } catch (currentError) {
       await appSwal.close();
       await showErrorResult("ไม่สามารถเผยแพร่คิวได้", currentError, "กรุณาลองอีกครั้ง");
@@ -88,24 +99,31 @@ export default function DashboardPage() {
         title="แดชบอร์ด"
         description="ภาพรวมการเผยแพร่เนื้อหา สื่อประชาสัมพันธ์ ข่าว ประกาศ กิจกรรม ฯลฯของสถานศึกษา"
         action={
-          <Button
-            variant="contained"
-            startIcon={<PublishOutlinedIcon />}
-            disabled={publishMutation.isPending}
-            onClick={() => void handlePublishQueue()}
-          >
-            {publishMutation.isPending ? "กำลังเผยแพร่" : "เผยแพร่คิว"}
-          </Button>
+          canPublish ? (
+            <Button
+              variant="contained"
+              startIcon={<PublishOutlinedIcon />}
+              disabled={publishMutation.isPending}
+              onClick={() => void handlePublishQueue()}
+            >
+              {publishMutation.isPending ? "กำลังเผยแพร่" : "เผยแพร่คิว"}
+            </Button>
+          ) : undefined
         }
       />
+      {!canPublish && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {ADMIN_READ_ONLY_NOTICE}
+        </Alert>
+      )}
       {isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           {error instanceof Error ? error.message : "ไม่สามารถโหลดข้อมูลแดชบอร์ดได้ในขณะนี้"}
         </Alert>
       )}
-      {isLoading && <LinearProgress sx={{ mb: 3 }} />}
+      {(isLoading || isFetching) && <LinearProgress sx={{ mb: 3 }} />}
       <Grid container spacing={2.5}>
-        {(snapshot?.metrics ?? []).map((metric, index) => (
+        {(data?.metrics ?? []).map((metric, index) => (
           <Grid size={{ xs: 12, sm: 6, xl: 3 }} key={metric.id}>
             <MetricCard metric={metric} icon={metricIcons[index] ?? <InsightsOutlinedIcon />} />
           </Grid>
