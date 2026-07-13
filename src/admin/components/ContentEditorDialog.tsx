@@ -42,6 +42,7 @@ import {
 } from "../../utils/contentBlocks";
 import { formatFileSize, readFileAsBase64 } from "../../utils/files";
 import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
+import { finalizeSlug, sanitizeSlugInput, slugify } from "../../utils/slug";
 import {
   ADMIN_MEDIA_BY_IDS_MAX,
   ADMIN_MEDIA_PAGE_SIZE_OPTIONS,
@@ -217,28 +218,6 @@ function createBodyBlocks(body: string | undefined) {
   return parsedBlocks.length ? parsedBlocks : [createContentBlock("paragraph")];
 }
 
-function sanitizeSlugInput(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{Letter}\p{Number}-]+/gu, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-+/, "");
-}
-
-function finalizeSlug(value: string) {
-  return sanitizeSlugInput(value).replace(/-+$/g, "");
-}
-
-function slugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{Letter}\p{Number}-]+/gu, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function normalizeCategoryList(value: string | undefined) {
   return String(value || "")
     .split(",")
@@ -254,7 +233,8 @@ function normalizeCategoryValue(value: string | undefined) {
 function categoryToSlugList(value: string | undefined) {
   return normalizeCategoryList(value)
     .map((item) => slugify(item))
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((slug, index, slugs) => slugs.indexOf(slug) === index);
 }
 
 function normalizeMediaIds(value: ContentItem["mediaIds"]) {
@@ -348,6 +328,7 @@ export default function ContentEditorDialog({
 }: ContentEditorDialogProps) {
   const [draftSource, setDraftSource] = useState(() => ({ item, open }));
   const [draft, setDraft] = useState<ContentItem>(() => createEditorDraft(item));
+  const [slugIsUserControlled, setSlugIsUserControlled] = useState(() => Boolean(item?.slug));
   const [pendingDraft, setPendingDraft] = useState<ContentItem | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [uploadedAssets, setUploadedAssets] = useState<MediaAsset[]>([]);
@@ -428,6 +409,7 @@ export default function ContentEditorDialog({
     const nextDraft = createEditorDraft(item);
     setDraftSource({ item, open });
     setDraft(nextDraft);
+    setSlugIsUserControlled(Boolean(item?.slug));
     setPendingDraft(null);
     setConfirming(false);
     setUploadFile(null);
@@ -495,9 +477,15 @@ export default function ContentEditorDialog({
     setDraft((current) => ({
       ...current,
       title: value,
-      slug: current.slug ? current.slug : sanitizeSlugInput(slugify(value)),
+      slug: slugIsUserControlled ? current.slug : slugify(value),
       updatedAt: new Date().toISOString()
     }));
+  }
+
+  function handleSlugChange(value: string) {
+    const nextSlug = sanitizeSlugInput(value);
+    setSlugIsUserControlled(Boolean(nextSlug));
+    updateDraft("slug", nextSlug);
   }
 
   function toggleMedia(asset: MediaAsset) {
@@ -694,7 +682,7 @@ export default function ContentEditorDialog({
                 <TextField
                   label="slug ลิงก์ถาวร"
                   value={draft.slug}
-                  onChange={(event) => updateDraft("slug", sanitizeSlugInput(event.target.value))}
+                  onChange={(event) => handleSlugChange(event.target.value)}
                   helperText="ใช้คำคั่นด้วยขีดกลาง เช่น student-life-updates หรือข้อความภาษาไทย"
                   required
                   fullWidth

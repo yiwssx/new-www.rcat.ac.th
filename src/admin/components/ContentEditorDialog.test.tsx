@@ -52,7 +52,7 @@ function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
 }
 
 function renderEditor(
-  item: ContentItem,
+  item: ContentItem | null,
   options: {
     mediaAssets?: MediaAsset[];
     onSave?: (item: ContentItem) => void;
@@ -86,6 +86,96 @@ async function selectTemplate(label: string) {
 }
 
 describe("ContentEditorDialog", () => {
+  it("generates a complete Thai slug from title input and keeps a manual slug authoritative", async () => {
+    const user = userEvent.setup();
+    renderEditor(null);
+
+    const titleInput = screen.getByRole("textbox", { name: "ชื่อเรื่อง" });
+    await user.type(titleInput, "ข่าว");
+    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue("ข่าว");
+
+    fireEvent.change(titleInput, { target: { value: "ข่าวประชาสัมพันธ์รับสมัครนักเรียน" } });
+
+    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue("ข่าวประชาสัมพันธ์รับสมัครนักเรียน");
+
+    fireEvent.change(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" }), {
+      target: { value: "ข่าว รับสมัคร / ปี 2569-" }
+    });
+    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue("ข่าว-รับสมัคร-ปี-2569-");
+
+    fireEvent.change(titleInput, { target: { value: "ชื่อเรื่องใหม่" } });
+
+    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue("ข่าว-รับสมัคร-ปี-2569-");
+  }, 15_000);
+
+  it("preserves an imported Thai slug when opening and saving without edits", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const importedSlug = "น้ำเพื่อการเกษตร";
+    renderEditor(createContentItem({ slug: importedSlug, template: "standard" }), { onSave });
+
+    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue(importedSlug);
+
+    await user.click(screen.getByRole("button", { name: "ดำเนินการต่อ" }));
+    await user.click(screen.getByRole("button", { name: "บันทึก" }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ slug: importedSlug }));
+  });
+
+  it("uses the same ordered, deduplicated Thai category slugs in preview, confirmation, and save", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const categoryInput =
+      "ข่าวประชาสัมพันธ์, , น้ำเพื่อการเกษตร, วิจัย / นวัตกรรม, ข่าวประชาสัมพันธ์!, น้ำเพื่อการเกษตร";
+    const normalizedCategory = "ข่าวประชาสัมพันธ์, น้ำเพื่อการเกษตร, วิจัย / นวัตกรรม, ข่าวประชาสัมพันธ์!";
+    const categorySlugPreview = "ข่าวประชาสัมพันธ์, น้ำเพื่อการเกษตร, วิจัย-นวัตกรรม";
+    const item = createContentItem({
+      template: "standard",
+      body: "เนื้อหาทดสอบ",
+      canonicalUrl: "https://www.rcat.ac.th/news/example"
+    });
+    renderEditor(item, { onSave });
+
+    fireEvent.change(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" }), {
+      target: { value: "ข่าว รับสมัคร ปี 2569-" }
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "หมวดหมู่" }), {
+      target: { value: categoryInput }
+    });
+
+    expect(screen.getByRole("textbox", { name: "slug หมวดหมู่" })).toHaveValue(categorySlugPreview);
+
+    await user.click(screen.getByRole("button", { name: "ดำเนินการต่อ" }));
+
+    expect(screen.getByText(`หมวดหมู่: ${normalizedCategory}`)).toBeInTheDocument();
+    expect(screen.getByText(`slug หมวดหมู่: ${categorySlugPreview}`)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "บันทึก" }));
+
+    const savedItem = onSave.mock.calls[0]?.[0];
+    expect(savedItem).toEqual(
+      expect.objectContaining({
+        slug: "ข่าว-รับสมัคร-ปี-2569",
+        category: normalizedCategory,
+        template: item.template,
+        canonicalUrl: item.canonicalUrl
+      })
+    );
+    expect(savedItem.body).toContain("เนื้อหาทดสอบ");
+    expect(savedItem).not.toHaveProperty("categorySlug");
+    expect(savedItem).not.toHaveProperty("categorySlugs");
+  });
+
+  it("keeps English and numeric permalink sanitization compatible", () => {
+    renderEditor(createContentItem({ template: "standard" }));
+
+    fireEvent.change(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" }), {
+      target: { value: "Student Life / Updates 2569" }
+    });
+
+    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue("student-life-updates-2569");
+  });
+
   it("shows the Facebook Embed label and missing canonical_url warning", () => {
     renderEditor(createContentItem());
 
