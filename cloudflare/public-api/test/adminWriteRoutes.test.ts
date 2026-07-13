@@ -2,6 +2,7 @@
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import m18Doc from "../../../docs/architecture/m18-admin-d1-write-batch-migration-2026-06-16.md?raw";
+import contentSlugTombstoneMigration from "../migrations/0008_content_slug_tombstones.sql?raw";
 import { hasProductionContext } from "../src/auth/adminAccess";
 import worker from "../src/index";
 import wranglerToml from "../wrangler.toml?raw";
@@ -134,6 +135,20 @@ function createAdminWriteMockDb(
     const rows = table ? tables[table] : [];
 
     if (table === "contents") {
+      if (/\(slug\s*=\s*\?\s+OR\s+id\s*=\s*\?\)/i.test(query)) {
+        const status = String(bindings[0] ?? "");
+        const now = String(bindings[1] ?? "");
+        const slug = String(bindings[2] ?? "");
+        const id = String(bindings[3] ?? "");
+        return rows.filter(
+          (row) =>
+            row.status === status &&
+            normalizeDeleted(row) &&
+            (String(row.publish_at ?? "") === "" || String(row.publish_at) <= now) &&
+            (row.slug === slug || row.id === id)
+        );
+      }
+
       if (/slug\s*=\s*\?/i.test(query)) {
         const slug = String(bindings[0] ?? "");
         const excludedId = String(bindings[1] ?? "");
@@ -156,6 +171,21 @@ function createAdminWriteMockDb(
               (String(row.publish_at ?? "") === "" || String(row.publish_at) <= now)
           )
           .filter((row) => (!/type\s*=\s*\?/i.test(query) ? row.type !== typeFilter : row.type === typeFilter));
+      }
+
+      const activeRows = rows.filter(normalizeDeleted);
+
+      if (/COUNT\(\*\)\s+AS\s+total/i.test(query)) {
+        return [{ total: activeRows.length }];
+      }
+
+      if (/COALESCE\(deleted_at,\s*''\)\s*=\s*''/i.test(query)) {
+        const limit = Number(bindings.at(-2));
+        const offset = Number(bindings.at(-1));
+
+        return Number.isFinite(limit) && Number.isFinite(offset)
+          ? activeRows.slice(offset, offset + limit)
+          : activeRows;
       }
     }
 
@@ -247,6 +277,20 @@ function createAdminWriteMockDb(
     const table = tableFromQuery(query);
 
     if (!table || table === "admin_audit_log") {
+      return;
+    }
+
+    if (
+      table === "contents" &&
+      /SET\s+slug\s*=\s*'__deleted__:'\s*\|\|\s*id/i.test(query) &&
+      /COALESCE\(deleted_at,\s*''\)\s*<>\s*''/i.test(query) &&
+      /substr\(slug,\s*1,\s*length\('__deleted__:'\)\)\s*<>\s*'__deleted__:'/i.test(query)
+    ) {
+      tables.contents
+        .filter((row) => String(row.deleted_at ?? "") !== "" && !String(row.slug ?? "").startsWith("__deleted__:"))
+        .forEach((row) => {
+          row.slug = `__deleted__:${String(row.id ?? "")}`;
+        });
       return;
     }
 
@@ -572,6 +616,63 @@ describe("M18 admin structured write routes", () => {
     expect(m18Doc).not.toMatch(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
   });
 
+  it("backfills only legacy deleted content slugs and leaves the released slug reusable", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const legacyDeleted = {
+      ...contentInput,
+      slug: "released-legacy-slug",
+      status: "published",
+      deleted_at: "2026-06-20T00:00:00.000Z",
+      updated_at: "2026-06-19T00:00:00.000Z",
+      updated_by: "legacy-editor",
+      created_at: "2026-06-01T00:00:00.000Z",
+      created_by: "legacy-author",
+      revision: 7
+    };
+    const active = {
+      ...legacyDeleted,
+      id: "active-content",
+      slug: "active-slug",
+      deleted_at: "",
+      revision: 3
+    };
+    const alreadyTombstoned = {
+      ...legacyDeleted,
+      id: "already-tombstoned",
+      slug: "__deleted__:already-tombstoned",
+      revision: 5
+    };
+    tables.contents.push(legacyDeleted, active, alreadyTombstoned);
+    const legacyBefore = structuredClone(legacyDeleted);
+    const activeBefore = structuredClone(active);
+    const tombstoneBefore = structuredClone(alreadyTombstoned);
+    const statementStart = contentSlugTombstoneMigration.search(/\bUPDATE\s+contents\b/i);
+    const migrationStatement = contentSlugTombstoneMigration.slice(statementStart);
+
+    const firstRun = await db.prepare(migrationStatement).run();
+
+    expect(firstRun.meta.changes).toBe(1);
+    expect(legacyDeleted).toEqual({ ...legacyBefore, slug: "__deleted__:m18-preview-content-001" });
+    expect(active).toEqual(activeBefore);
+    expect(alreadyTombstoned).toEqual(tombstoneBefore);
+
+    const replacementResponse = await worker.fetch(
+      makeJsonRequest("/api/admin/content", {
+        ...contentInput,
+        id: "replacement-content",
+        slug: legacyBefore.slug
+      }),
+      makeEnv(db)
+    );
+    const rowsBeforeSecondRun = structuredClone(tables.contents);
+    const secondRun = await db.prepare(migrationStatement).run();
+
+    expect(replacementResponse.status).toBe(201);
+    expect(tables.contents.find((row) => row.id === "replacement-content")?.slug).toBe("released-legacy-slug");
+    expect(secondRun.meta.changes).toBe(0);
+    expect(tables.contents).toEqual(rowsBeforeSecondRun);
+  });
+
   it("keeps preview admin writes closed unless the smoke gate and credential are valid", async () => {
     const disabledResponse = await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), {
       DB: createAdminWriteMockDb().db
@@ -756,7 +857,7 @@ describe("M18 admin structured write routes", () => {
     });
   });
 
-  it("allows Cloudflare Access editors to mutate content while blocking viewers", async () => {
+  it("allows Cloudflare Access editors to mutate and delete content while blocking viewers", async () => {
     const { db, tables } = createAdminWriteMockDb();
     const editorAccess = await createAccessFixture({ email: "editor@example.invalid" });
     const viewerAccess = await createAccessFixture({ email: "viewer@example.invalid" });
@@ -808,6 +909,26 @@ describe("M18 admin structured write routes", () => {
         ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
       }
     );
+    const viewerDeleteResponse = await worker.fetch(
+      makeRequest("/api/admin/content/m18-preview-content-001", {
+        method: "DELETE",
+        headers: viewerAccess.header
+      }),
+      {
+        ...env,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
+      }
+    );
+    const editorDeleteResponse = await worker.fetch(
+      makeRequest("/api/admin/content/m18-preview-content-001", {
+        method: "DELETE",
+        headers: {
+          ...editorAccess.header,
+          "X-RCAT-Expected-Revision": "1"
+        }
+      }),
+      env
+    );
 
     expect(editorCreateResponse.status).toBe(201);
     expect(editorPublishResponse.status).toBe(200);
@@ -815,8 +936,14 @@ describe("M18 admin structured write routes", () => {
     await expect(readJson(viewerCreateResponse)).resolves.toMatchObject({
       error: "content management permission is required"
     });
+    expect(viewerDeleteResponse.status).toBe(403);
+    await expect(readJson(viewerDeleteResponse)).resolves.toMatchObject({
+      error: "content management permission is required"
+    });
+    expect(editorDeleteResponse.status).toBe(200);
     expect(tables.contents).toHaveLength(1);
-    expect(auditActionsFor(tables, "content", "m18-preview-content-001")).toEqual(["create", "publish"]);
+    expect(tables.contents[0]?.slug).toBe("__deleted__:m18-preview-content-001");
+    expect(auditActionsFor(tables, "content", "m18-preview-content-001")).toEqual(["create", "publish", "archive"]);
   });
 
   it("keeps website settings and menu mutations admin-only while allowing editor content-related routes", async () => {
@@ -1251,6 +1378,98 @@ describe("M18 admin structured write routes", () => {
     });
   });
 
+  it("atomically tombstones a deleted content slug and lets a published replacement own the permalink", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    const env = makeEnv(db);
+
+    expect((await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env)).status).toBe(201);
+    expect(
+      (await worker.fetch(makeJsonRequest("/api/admin/content/m18-preview-content-001/publish", {}), env)).status
+    ).toBe(200);
+    const beforeDelete = structuredClone(tables.contents[0]);
+    const deleteResponse = await worker.fetch(
+      makeRequest("/api/admin/content/m18-preview-content-001", {
+        method: "DELETE",
+        headers: {
+          ...smokeHeaders,
+          "X-RCAT-Expected-Revision": "1"
+        }
+      }),
+      env
+    );
+    const deletedRow = tables.contents[0];
+
+    expect(deleteResponse.status).toBe(200);
+    await expect(readJson(deleteResponse)).resolves.toEqual({
+      id: "m18-preview-content-001",
+      deleted: true
+    });
+    expect(deletedRow).toMatchObject({
+      ...beforeDelete,
+      slug: "__deleted__:m18-preview-content-001",
+      deleted_at: expect.any(String),
+      updated_at: expect.any(String),
+      updated_by: "m18-preview-smoke",
+      revision: Number(beforeDelete.revision) + 1
+    });
+    expect(String(deletedRow.deleted_at)).not.toBe("");
+    expect(deletedRow.updated_at).toBe(deletedRow.deleted_at);
+    expect(tables.contents).toHaveLength(1);
+    expect(auditActionsFor(tables, "content", "m18-preview-content-001")).toEqual(["create", "publish", "archive"]);
+
+    const adminListResponse = await worker.fetch(
+      makeRequest("/api/admin/content?page=1&pageSize=20", { headers: smokeHeaders }),
+      env
+    );
+    const deletedPublicResponse = await worker.fetch(makeRequest("/api/public/content/m18-preview-news"), env);
+
+    expect(adminListResponse.status).toBe(200);
+    expect(adminListResponse.headers.get("Cache-Control")).toBe("no-store");
+    await expect(readJson(adminListResponse)).resolves.toMatchObject({ items: [] });
+    expect(deletedPublicResponse.status).toBe(404);
+    await expect(readJson(deletedPublicResponse)).resolves.toEqual({
+      error: "not found",
+      resource: "content-detail"
+    });
+
+    const replacement = {
+      ...contentInput,
+      id: "m18-preview-content-replacement",
+      title: "Replacement M18 preview news"
+    };
+    const replacementResponse = await worker.fetch(makeJsonRequest("/api/admin/content", replacement), env);
+
+    expect(replacementResponse.status).toBe(201);
+    await expect(readJson(replacementResponse)).resolves.toMatchObject({
+      item: {
+        id: "m18-preview-content-replacement",
+        slug: "m18-preview-news",
+        revision: 0
+      }
+    });
+    expect(tables.contents).toHaveLength(2);
+    expect(tables.contents.find((row) => row.id === "m18-preview-content-001")?.slug).toBe(
+      "__deleted__:m18-preview-content-001"
+    );
+    expect(tables.contents.find((row) => row.id === "m18-preview-content-replacement")?.slug).toBe("m18-preview-news");
+
+    expect(
+      (await worker.fetch(makeJsonRequest("/api/admin/content/m18-preview-content-replacement/publish", {}), env))
+        .status
+    ).toBe(200);
+    const replacementPublicResponse = await worker.fetch(makeRequest("/api/public/content/m18-preview-news"), env);
+
+    expect(replacementPublicResponse.status).toBe(200);
+    await expect(readJson(replacementPublicResponse)).resolves.toMatchObject({
+      item: {
+        id: "m18-preview-content-replacement",
+        slug: "m18-preview-news",
+        title: "Replacement M18 preview news",
+        status: "published"
+      }
+    });
+  });
+
   it("publishes draft content with a matching expected revision header", async () => {
     const { db, tables } = createAdminWriteMockDb();
     const env = makeEnv(db);
@@ -1461,10 +1680,12 @@ describe("M18 admin structured write routes", () => {
   });
 
   it("uses the custom expected-revision header for content archive conflicts", async () => {
-    const { db } = createAdminWriteMockDb();
+    const { db, tables } = createAdminWriteMockDb();
     const env = makeEnv(db);
 
     await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env);
+    const beforeStaleDelete = structuredClone(tables.contents[0]);
+    const auditCountBeforeStaleDelete = tables.admin_audit_log.length;
 
     const staleResponse = await worker.fetch(
       makeRequest("/api/admin/content/m18-preview-content-001", {
@@ -1476,6 +1697,15 @@ describe("M18 admin structured write routes", () => {
       }),
       env
     );
+
+    expect(staleResponse.status).toBe(409);
+    await expect(readJson(staleResponse)).resolves.toEqual({
+      error: "stale revision",
+      resource: "admin-structured-data"
+    });
+    expect(tables.contents[0]).toEqual(beforeStaleDelete);
+    expect(tables.admin_audit_log).toHaveLength(auditCountBeforeStaleDelete);
+
     const archiveResponse = await worker.fetch(
       makeRequest("/api/admin/content/m18-preview-content-001", {
         method: "DELETE",
@@ -1487,7 +1717,6 @@ describe("M18 admin structured write routes", () => {
       env
     );
 
-    expect(staleResponse.status).toBe(409);
     expect(archiveResponse.status).toBe(200);
   });
 

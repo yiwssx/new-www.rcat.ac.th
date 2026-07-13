@@ -37,6 +37,7 @@ const ADMIN_PREFIX = "/api/admin/";
 const ADMIN_ALLOW = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
 const CONTENT_TYPES = new Set(["page", "news", "program", "announcement", "blog"]);
 const CONTENT_STATUSES = new Set(["draft", "review", "scheduled", "published"]);
+const DELETED_CONTENT_SLUG_PREFIX = "__deleted__:";
 const DOCUMENT_STATUSES = new Set(["draft", "published"]);
 const ADMIN_USER_ROLES = new Set(["admin", "editor", "viewer"]);
 const ADMIN_USER_STATUSES = new Set(["active", "disabled"]);
@@ -643,6 +644,10 @@ async function assertUniqueContentSlug(env: Env, slug: string, id?: string) {
   }
 }
 
+function deletedContentSlug(id: string) {
+  return `${DELETED_CONTENT_SLUG_PREFIX}${id}`;
+}
+
 async function mapContentSlugConstraintError(env: Env, error: unknown, slug: string, id?: string): Promise<never> {
   const message = getErrorMessage(error);
 
@@ -1024,10 +1029,11 @@ async function handleContent(request: Request, env: Env, segments: string[], ide
     const result = await run(
       env,
       `UPDATE contents
-       SET deleted_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
+       SET slug = ?, deleted_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
        WHERE id = ?
          AND COALESCE(deleted_at, '') = ''
          AND (? IS NULL OR revision = ?)`,
+      deletedContentSlug(id),
       now,
       now,
       actor,
