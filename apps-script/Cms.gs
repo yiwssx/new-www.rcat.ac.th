@@ -77,74 +77,68 @@ function createDriveFile(asset) {
 }
 
 function startMediaUpload(asset) {
-  validateRequired(asset, ["name", "type", "owner", "fileName", "mimeType"]);
+  const upload = validateResumableMediaPayload(asset);
+  const uploadFolder = resolveMediaUploadFolder();
+  const completed = findCompletedMediaAssetByUploadKey(asset, upload, uploadFolder.getId());
 
-  const mediaType = normalizeMediaType(asset.type);
-  const contentType = resolveUploadMimeType(asset);
-  const totalBytes = normalizeUploadInteger(asset.totalBytes, "Invalid total upload size.");
-
-  if (totalBytes < 1 || totalBytes > MAX_UPLOAD_BYTES) {
-    throw createHttpError("File upload must be between 1 byte and 10 MB.", 413);
+  if (completed) {
+    return completed;
   }
 
-  const uploadFolder = resolveMediaUploadFolder();
   const response = UrlFetchApp.fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable", {
     method: "post",
     headers: {
       Authorization: `Bearer ${ScriptApp.getOAuthToken()}`,
-      "X-Upload-Content-Length": String(totalBytes),
-      "X-Upload-Content-Type": contentType
+      "X-Upload-Content-Length": String(upload.totalBytes),
+      "X-Upload-Content-Type": upload.contentType
     },
     contentType: "application/json; charset=UTF-8",
     payload: JSON.stringify({
       name: String(asset.fileName || asset.name).trim(),
-      parents: [uploadFolder.getId()]
+      parents: [uploadFolder.getId()],
+      appProperties: {
+        [MEDIA_UPLOAD_KEY_PROPERTY]: upload.uploadKey
+      }
     }),
     muteHttpExceptions: true,
     followRedirects: false
   });
   const responseCode = response.getResponseCode();
 
+  if (isTransientDriveUploadStatus(responseCode)) {
+    throw createDriveUploadTransientError(responseCode);
+  }
+
   if (responseCode !== 200 && responseCode !== 201) {
-    throw createHttpError("Unable to start the Drive upload session.", 502);
+    throw createHttpError("Drive rejected the upload-session request.", 400);
   }
 
   const uploadUrl = readResponseHeader(response, "Location");
   validateDriveResumableUploadUrl(uploadUrl);
 
   return {
+    uploadComplete: false,
     uploadUrl,
-    totalBytes,
+    totalBytes: upload.totalBytes,
     chunkSizeBytes: MEDIA_UPLOAD_CHUNK_BYTES,
-    mediaType
+    nextByte: 0
   };
 }
 
 function uploadMediaChunk(asset) {
-  validateRequired(asset, [
-    "name",
-    "type",
-    "owner",
-    "fileName",
-    "mimeType",
-    "uploadUrl",
-    "chunkBase64"
-  ]);
-
-  const mediaType = normalizeMediaType(asset.type);
-  const contentType = resolveUploadMimeType(asset);
-  const totalBytes = normalizeUploadInteger(asset.totalBytes, "Invalid total upload size.");
+  validateRequired(asset, ["uploadUrl", "chunkBase64"]);
+  const upload = validateResumableMediaPayload(asset);
   const startByte = normalizeUploadInteger(asset.startByte, "Invalid upload range.");
   const endByte = normalizeUploadInteger(asset.endByte, "Invalid upload range.");
 
-  if (totalBytes < 1 || totalBytes > MAX_UPLOAD_BYTES || startByte < 0 || endByte < startByte || endByte >= totalBytes) {
+  if (startByte < 0 || endByte < startByte || endByte >= upload.totalBytes) {
     throw createHttpError("Invalid upload range.", 400);
   }
 
   const uploadUrl = validateDriveResumableUploadUrl(asset.uploadUrl);
   const bytes = decodeUploadChunkBytes(asset.chunkBase64);
   const expectedChunkBytes = endByte - startByte + 1;
-  const isFinalChunk = endByte + 1 === totalBytes;
+  const isFinalChunk = endByte + 1 === upload.totalBytes;
 
   if (bytes.length !== expectedChunkBytes || bytes.length > MEDIA_UPLOAD_CHUNK_BYTES) {
     throw createHttpError("Upload chunk size does not match its range.", 400);
@@ -158,9 +152,9 @@ function uploadMediaChunk(asset) {
     method: "put",
     headers: {
       Authorization: `Bearer ${ScriptApp.getOAuthToken()}`,
-      "Content-Range": `bytes ${startByte}-${endByte}/${totalBytes}`
+      "Content-Range": `bytes ${startByte}-${endByte}/${upload.totalBytes}`
     },
-    contentType,
+    contentType: upload.contentType,
     payload: bytes,
     muteHttpExceptions: true,
     followRedirects: false
@@ -168,46 +162,261 @@ function uploadMediaChunk(asset) {
   const responseCode = response.getResponseCode();
 
   if (responseCode === 308) {
-    const range = readResponseHeader(response, "Range");
-    const match = range.match(/^bytes=0-(\d+)$/i);
-
-    if (!match) {
-      throw createHttpError("Drive returned an invalid upload range.", 502);
-    }
-
     return {
       uploadComplete: false,
-      nextByte: Number(match[1]) + 1
+      nextByte: readDriveAcknowledgedNextByte(response, upload.totalBytes)
     };
   }
 
   if (responseCode === 404 || responseCode === 410) {
-    throw createHttpError("Media upload session expired. Please select the file again.", 410);
+    const uploadFolder = resolveMediaUploadFolder();
+    const completed = findCompletedMediaAssetByUploadKey(asset, upload, uploadFolder.getId());
+    if (completed) {
+      return completed;
+    }
+    throw createMediaUploadSessionExpiredError();
+  }
+
+  if (isTransientDriveUploadStatus(responseCode)) {
+    throw createDriveUploadTransientError(responseCode);
   }
 
   if (responseCode !== 200 && responseCode !== 201) {
-    throw createHttpError("Unable to upload the media chunk to Drive.", 502);
+    throw createHttpError("Drive rejected the media upload chunk.", 400);
   }
 
+  const completed = buildCompletedMediaResultFromDriveResponse(asset, upload.mediaType, response);
+  if (completed) {
+    return completed;
+  }
+
+  const uploadFolder = resolveMediaUploadFolder();
+  const recovered = findCompletedMediaAssetByUploadKey(asset, upload, uploadFolder.getId());
+  if (recovered) {
+    return recovered;
+  }
+
+  throw createHttpError(
+    "Drive completed the upload without recoverable file metadata.",
+    502,
+    "DRIVE_UPLOAD_AMBIGUOUS_COMPLETION"
+  );
+}
+
+function queryMediaUploadStatus(asset) {
+  validateRequired(asset, ["uploadUrl"]);
+  const upload = validateResumableMediaPayload(asset);
+  const uploadUrl = validateDriveResumableUploadUrl(asset.uploadUrl);
+  const uploadFolder = resolveMediaUploadFolder();
+  let completed = findCompletedMediaAssetByUploadKey(asset, upload, uploadFolder.getId());
+
+  if (completed) {
+    return completed;
+  }
+
+  const response = UrlFetchApp.fetch(uploadUrl, {
+    method: "put",
+    headers: {
+      Authorization: `Bearer ${ScriptApp.getOAuthToken()}`,
+      "Content-Range": `bytes */${upload.totalBytes}`
+    },
+    muteHttpExceptions: true,
+    followRedirects: false
+  });
+  const responseCode = response.getResponseCode();
+
+  if (responseCode === 308) {
+    return {
+      uploadComplete: false,
+      nextByte: readDriveAcknowledgedNextByte(response, upload.totalBytes)
+    };
+  }
+
+  if (responseCode === 200 || responseCode === 201) {
+    completed = buildCompletedMediaResultFromDriveResponse(asset, upload.mediaType, response);
+    if (completed) {
+      return completed;
+    }
+    completed = findCompletedMediaAssetByUploadKey(asset, upload, uploadFolder.getId());
+    if (completed) {
+      return completed;
+    }
+    throw createHttpError(
+      "Drive completed the upload without recoverable file metadata.",
+      502,
+      "DRIVE_UPLOAD_AMBIGUOUS_COMPLETION"
+    );
+  }
+
+  if (responseCode === 404 || responseCode === 410) {
+    completed = findCompletedMediaAssetByUploadKey(asset, upload, uploadFolder.getId());
+    if (completed) {
+      return completed;
+    }
+    throw createMediaUploadSessionExpiredError();
+  }
+
+  if (isTransientDriveUploadStatus(responseCode)) {
+    throw createDriveUploadTransientError(responseCode);
+  }
+
+  throw createHttpError("Drive rejected the upload status request.", 400);
+}
+
+function validateResumableMediaPayload(asset) {
+  validateRequired(asset, ["name", "type", "owner", "fileName", "mimeType", "uploadKey"]);
+  const mediaType = normalizeMediaType(asset.type);
+  const contentType = resolveUploadMimeType(asset);
+  const totalBytes = normalizeUploadInteger(asset.totalBytes, "Invalid total upload size.");
+  const uploadKey = normalizeMediaUploadKey(asset.uploadKey);
+
+  if (totalBytes < 1 || totalBytes > MAX_UPLOAD_BYTES) {
+    throw createHttpError("File upload must be between 1 byte and 10 MB.", 413);
+  }
+
+  return {
+    mediaType,
+    contentType,
+    totalBytes,
+    uploadKey
+  };
+}
+
+function normalizeMediaUploadKey(value) {
+  const uploadKey = String(value || "").trim();
+  if (!MEDIA_UPLOAD_KEY_PATTERN.test(uploadKey)) {
+    throw createHttpError("Invalid media upload key.", 400);
+  }
+  return uploadKey;
+}
+
+function escapeDriveQueryValue(value) {
+  return String(value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'");
+}
+
+function findCompletedMediaFileByUploadKey(uploadKey, folderId) {
+  const query = [
+    `'${escapeDriveQueryValue(folderId)}' in parents`,
+    "trashed = false",
+    `appProperties has { key='${MEDIA_UPLOAD_KEY_PROPERTY}' and value='${escapeDriveQueryValue(uploadKey)}' }`
+  ].join(" and ");
+  const fields = "files(id,name,mimeType,size,webViewLink,createdTime)";
+  const url =
+    "https://www.googleapis.com/drive/v3/files" +
+    `?q=${encodeURIComponent(query)}` +
+    "&spaces=drive" +
+    "&pageSize=2" +
+    `&orderBy=${encodeURIComponent("createdTime desc")}` +
+    `&fields=${encodeURIComponent(fields)}`;
+  const response = UrlFetchApp.fetch(url, {
+    method: "get",
+    headers: {
+      Authorization: `Bearer ${ScriptApp.getOAuthToken()}`
+    },
+    muteHttpExceptions: true,
+    followRedirects: false
+  });
+  const responseCode = response.getResponseCode();
+
+  if (isTransientDriveUploadStatus(responseCode)) {
+    throw createDriveUploadTransientError(responseCode);
+  }
+  if (responseCode !== 200) {
+    throw createHttpError("Unable to verify an existing Drive upload.", 400);
+  }
+
+  let result;
+  try {
+    result = JSON.parse(response.getContentText() || "{}");
+  } catch (error) {
+    throw createHttpError("Drive returned an invalid file lookup result.", 502);
+  }
+
+  const files = result && Array.isArray(result.files) ? result.files : [];
+  if (files.length > 1) {
+    console.warn("Multiple completed media files were found for one upload operation.");
+  }
+
+  for (let index = 0; index < files.length; index += 1) {
+    const fileId = String((files[index] && files[index].id) || "").trim();
+    if (!fileId) {
+      continue;
+    }
+    try {
+      return DriveApp.getFileById(fileId);
+    } catch (error) {
+      console.warn("A completed media upload lookup returned an inaccessible Drive file.");
+    }
+  }
+
+  return null;
+}
+
+function findCompletedMediaAssetByUploadKey(asset, upload, folderId) {
+  const file = findCompletedMediaFileByUploadKey(upload.uploadKey, folderId);
+  if (!file) {
+    return null;
+  }
+
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return {
+    uploadComplete: true,
+    asset: buildMediaAssetFromDriveFile(asset, file, upload.mediaType)
+  };
+}
+
+function buildCompletedMediaResultFromDriveResponse(asset, mediaType, response) {
   let driveResult;
   try {
     driveResult = JSON.parse(response.getContentText() || "{}");
   } catch (error) {
-    throw createHttpError("Drive returned an invalid upload result.", 502);
+    return null;
   }
 
-  const fileId = String(driveResult.id || "").trim();
+  const fileId = String((driveResult && driveResult.id) || "").trim();
   if (!fileId) {
-    throw createHttpError("Drive did not return the uploaded file id.", 502);
+    return null;
   }
 
   const uploadedFile = DriveApp.getFileById(fileId);
   uploadedFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
   return {
     uploadComplete: true,
     asset: buildMediaAssetFromDriveFile(asset, uploadedFile, mediaType)
   };
+}
+
+function readDriveAcknowledgedNextByte(response, totalBytes) {
+  const range = readResponseHeader(response, "Range");
+  if (!range) {
+    return 0;
+  }
+
+  const match = range.match(/^bytes=0-(\d+)$/i);
+  const nextByte = match ? Number(match[1]) + 1 : -1;
+  if (!Number.isSafeInteger(nextByte) || nextByte < 0 || nextByte > totalBytes) {
+    throw createHttpError("Drive returned an invalid upload range.", 502);
+  }
+  return nextByte;
+}
+
+function isTransientDriveUploadStatus(statusCode) {
+  return statusCode === 408 || statusCode === 429 || (statusCode >= 500 && statusCode <= 599);
+}
+
+function createDriveUploadTransientError(statusCode) {
+  const safeStatus = statusCode === 408 || statusCode === 429 ? statusCode : 503;
+  return createHttpError("Drive media upload is temporarily unavailable.", safeStatus, "DRIVE_UPLOAD_TRANSIENT");
+}
+
+function createMediaUploadSessionExpiredError() {
+  return createHttpError(
+    "Media upload session expired. Please retry the upload.",
+    410,
+    "MEDIA_UPLOAD_SESSION_EXPIRED"
+  );
 }
 
 function buildMediaAssetFromDriveFile(asset, uploadedFile, mediaType) {

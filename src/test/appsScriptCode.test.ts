@@ -43,6 +43,10 @@ interface AppsScriptBridgeContext {
   };
 }
 
+const TEST_UPLOAD_KEY = "test-upload-key-0001";
+const TEST_UPLOAD_URL =
+  "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=test-upload-session";
+
 function parseResult(output: AppsScriptTextOutput): AppsScriptRouteResult {
   const body = JSON.parse(output.content) as Record<string, unknown>;
   return {
@@ -164,10 +168,12 @@ function loadAppsScriptBridge(
   };
   const urlFetchApp = {
     fetch: vi.fn((_url: string, options: { method?: string }) => {
+      if (options.method === "get") {
+        return createUrlFetchResponse(200, JSON.stringify({ files: [] }));
+      }
       if (options.method === "post") {
         return createUrlFetchResponse(200, "{}", {
-          Location:
-            "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=test-upload-session"
+          Location: TEST_UPLOAD_URL
         });
       }
 
@@ -220,6 +226,42 @@ return {
     uploadedFile,
     urlFetchApp
   };
+}
+
+function resumablePayload(overrides: Record<string, unknown> = {}) {
+  return {
+    appsScriptBridgeToken: "server-media-token",
+    name: "Annual report",
+    type: "document",
+    owner: "editor",
+    fileName: "annual-report.pdf",
+    mimeType: "application/pdf",
+    totalBytes: 2,
+    uploadKey: TEST_UPLOAD_KEY,
+    ...overrides
+  };
+}
+
+function emptyDriveLookupResponse() {
+  return createUrlFetchResponse(200, JSON.stringify({ files: [] }));
+}
+
+function completedDriveLookupResponse(fileId = "drive-file-1") {
+  return createUrlFetchResponse(
+    200,
+    JSON.stringify({
+      files: [
+        {
+          id: fileId,
+          name: "annual-report.pdf",
+          mimeType: "application/pdf",
+          size: "1536",
+          webViewLink: `https://drive.google.com/file/d/${fileId}/view`,
+          createdTime: "2026-07-14T00:00:00.000Z"
+        }
+      ]
+    })
+  );
 }
 
 describe("Apps Script media bridge", () => {
@@ -288,27 +330,26 @@ describe("Apps Script media bridge", () => {
     const context = loadAppsScriptBridge();
 
     const result = parseResult(
-      context.doPost(
-        postEvent("media-upload-start", {
-          appsScriptBridgeToken: "server-media-token",
-          name: "Annual report",
-          type: "document",
-          owner: "editor",
-          fileName: "annual-report.pdf",
-          mimeType: "application/pdf",
-          totalBytes: 4_000_000
-        })
-      )
+      context.doPost(postEvent("media-upload-start", resumablePayload({ totalBytes: 4_000_000 })))
     );
 
     expect(result.statusCode).toBe(200);
     expect(result.body).toMatchObject({
+      uploadComplete: false,
       totalBytes: 4_000_000,
       chunkSizeBytes: 6 * 256 * 1024,
-      mediaType: "document"
+      nextByte: 0
     });
     expect(result.body.uploadUrl).toContain("uploadType=resumable");
-    const [url, options] = context.urlFetchApp.fetch.mock.calls[0];
+    const [lookupUrl, lookupOptions] = context.urlFetchApp.fetch.mock.calls[0];
+    expect(lookupOptions.method).toBe("get");
+    const decodedLookupUrl = decodeURIComponent(String(lookupUrl));
+    expect(decodedLookupUrl).toContain("'media-folder-id' in parents");
+    expect(decodedLookupUrl).toContain("trashed = false");
+    expect(decodedLookupUrl).toContain("key='rcatUploadKey'");
+    expect(decodedLookupUrl).toContain(`value='${TEST_UPLOAD_KEY}'`);
+
+    const [url, options] = context.urlFetchApp.fetch.mock.calls[1];
     expect(url).toBe("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable");
     expect(options).toMatchObject({
       method: "post",
@@ -321,28 +362,65 @@ describe("Apps Script media bridge", () => {
     });
     expect(JSON.parse(options.payload)).toEqual({
       name: "annual-report.pdf",
-      parents: ["media-folder-id"]
+      parents: ["media-folder-id"],
+      appProperties: { rcatUploadKey: TEST_UPLOAD_KEY }
     });
     expect(options.payload).not.toContain("fake-oauth-token");
     expect(context.scriptLock.tryLock).toHaveBeenCalledWith(5000);
     expect(context.scriptLock.releaseLock).toHaveBeenCalledTimes(1);
   });
 
+  it("returns an existing completed file for the same upload key without starting another session", () => {
+    const context = loadAppsScriptBridge({ uploadedMimeType: "application/pdf" });
+    context.urlFetchApp.fetch.mockReturnValueOnce(completedDriveLookupResponse());
+
+    const result = parseResult(
+      context.doPost(postEvent("media-upload-start", resumablePayload({ totalBytes: 4_000_000 })))
+    );
+
+    expect(result.statusCode).toBe(200);
+    expect(result.body).toMatchObject({
+      uploadComplete: true,
+      asset: {
+        id: "drive-file-1",
+        type: "document",
+        previewUrl: "https://drive.google.com/file/d/drive-file-1/preview"
+      }
+    });
+    expect(context.urlFetchApp.fetch).toHaveBeenCalledTimes(1);
+    expect(context.urlFetchApp.fetch.mock.calls[0][1].method).toBe("get");
+    expect(context.uploadedFile.setSharing).toHaveBeenCalledWith("ANYONE_WITH_LINK", "VIEW");
+  });
+
+  it("rejects invalid upload keys, MIME types, and files over 10 MB before Drive fetch", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadAppsScriptBridge();
+
+    const invalidKey = parseResult(
+      context.doPost(postEvent("media-upload-start", resumablePayload({ uploadKey: "short" })))
+    );
+    const invalidMime = parseResult(
+      context.doPost(postEvent("media-upload-start", resumablePayload({ mimeType: "application/x-executable" })))
+    );
+    const overLimit = parseResult(
+      context.doPost(postEvent("media-upload-start", resumablePayload({ totalBytes: 10 * 1024 * 1024 + 1 })))
+    );
+
+    expect(invalidKey).toMatchObject({ statusCode: 400, body: { error: "Invalid media upload key." } });
+    expect(invalidMime).toMatchObject({ statusCode: 400, body: { error: "Unsupported file type." } });
+    expect(overLimit.statusCode).toBe(413);
+    expect(context.urlFetchApp.fetch).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
   it("uploads a final PDF chunk without a global lock and returns preview metadata", () => {
     const context = loadAppsScriptBridge({ uploadedMimeType: "application/pdf" });
-    const uploadUrl =
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=test-upload-session";
+    const uploadUrl = TEST_UPLOAD_URL;
 
     const result = parseResult(
       context.doPost(
         postEvent("media-upload-chunk", {
-          appsScriptBridgeToken: "server-media-token",
-          name: "Annual report",
-          type: "document",
-          owner: "editor",
-          fileName: "annual-report.pdf",
-          mimeType: "application/pdf",
-          totalBytes: 2,
+          ...resumablePayload(),
           uploadUrl,
           chunkBase64: "AQI=",
           startByte: 0,
@@ -386,15 +464,14 @@ describe("Apps Script media bridge", () => {
     const result = parseResult(
       context.doPost(
         postEvent("media-upload-chunk", {
-          appsScriptBridgeToken: "server-media-token",
-          name: "Large image",
-          type: "image",
-          owner: "editor",
-          fileName: "large.jpg",
-          mimeType: "image/jpeg",
-          totalBytes: chunkBytes + 1,
-          uploadUrl:
-            "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=test-upload-session",
+          ...resumablePayload({
+            name: "Large image",
+            type: "image",
+            fileName: "large.jpg",
+            mimeType: "image/jpeg",
+            totalBytes: chunkBytes + 1
+          }),
+          uploadUrl: TEST_UPLOAD_URL,
           chunkBase64: Buffer.alloc(chunkBytes, 1).toString("base64"),
           startByte: 0,
           endByte: chunkBytes - 1
@@ -408,17 +485,180 @@ describe("Apps Script media bridge", () => {
     expect(context.scriptLock.tryLock).not.toHaveBeenCalled();
   });
 
+  it("treats an authoritative partial Drive range and a missing 308 range as valid", () => {
+    const chunkBytes = 256 * 1024;
+    const partialContext = loadAppsScriptBridge();
+    partialContext.urlFetchApp.fetch.mockReturnValueOnce(createUrlFetchResponse(308, "", { Range: "bytes=0-10" }));
+    const missingRangeContext = loadAppsScriptBridge();
+    missingRangeContext.urlFetchApp.fetch.mockReturnValueOnce(createUrlFetchResponse(308));
+    const payload = {
+      ...resumablePayload({
+        name: "Large image",
+        type: "image",
+        fileName: "large.jpg",
+        mimeType: "image/jpeg",
+        totalBytes: chunkBytes + 1
+      }),
+      uploadUrl: TEST_UPLOAD_URL,
+      chunkBase64: Buffer.alloc(chunkBytes, 1).toString("base64"),
+      startByte: 0,
+      endByte: chunkBytes - 1
+    };
+
+    const partialResult = parseResult(partialContext.doPost(postEvent("media-upload-chunk", payload)));
+    const missingRangeResult = parseResult(missingRangeContext.doPost(postEvent("media-upload-chunk", payload)));
+
+    expect(partialResult.body).toMatchObject({ uploadComplete: false, nextByte: 11 });
+    expect(missingRangeResult.body).toMatchObject({ uploadComplete: false, nextByte: 0 });
+  });
+
+  it("queries session status for 308 responses with and without a Range header", () => {
+    const rangeContext = loadAppsScriptBridge();
+    rangeContext.urlFetchApp.fetch
+      .mockReturnValueOnce(emptyDriveLookupResponse())
+      .mockReturnValueOnce(createUrlFetchResponse(308, "", { Range: "bytes=0-9" }));
+    const emptyRangeContext = loadAppsScriptBridge();
+    emptyRangeContext.urlFetchApp.fetch
+      .mockReturnValueOnce(emptyDriveLookupResponse())
+      .mockReturnValueOnce(createUrlFetchResponse(308));
+
+    const rangeResult = parseResult(
+      rangeContext.doPost(
+        postEvent("media-upload-status", { ...resumablePayload({ totalBytes: 20 }), uploadUrl: TEST_UPLOAD_URL })
+      )
+    );
+    const emptyRangeResult = parseResult(
+      emptyRangeContext.doPost(
+        postEvent("media-upload-status", { ...resumablePayload({ totalBytes: 20 }), uploadUrl: TEST_UPLOAD_URL })
+      )
+    );
+
+    expect(rangeResult.body).toMatchObject({ uploadComplete: false, nextByte: 10 });
+    expect(emptyRangeResult.body).toMatchObject({ uploadComplete: false, nextByte: 0 });
+    expect(rangeContext.urlFetchApp.fetch.mock.calls[1][1]).toMatchObject({
+      method: "put",
+      headers: { "Content-Range": "bytes */20" },
+      muteHttpExceptions: true,
+      followRedirects: false
+    });
+    expect(rangeContext.urlFetchApp.fetch.mock.calls[1][1]).not.toHaveProperty("payload");
+  });
+
+  it("recovers status completion from a Drive file id or a post-probe upload-key lookup", () => {
+    const directContext = loadAppsScriptBridge({ uploadedMimeType: "application/pdf" });
+    directContext.urlFetchApp.fetch
+      .mockReturnValueOnce(emptyDriveLookupResponse())
+      .mockReturnValueOnce(createUrlFetchResponse(200, JSON.stringify({ id: "drive-file-1" })));
+    const fallbackContext = loadAppsScriptBridge({ uploadedMimeType: "application/pdf" });
+    fallbackContext.urlFetchApp.fetch
+      .mockReturnValueOnce(emptyDriveLookupResponse())
+      .mockReturnValueOnce(createUrlFetchResponse(200, "{}"))
+      .mockReturnValueOnce(completedDriveLookupResponse());
+
+    const directResult = parseResult(
+      directContext.doPost(postEvent("media-upload-status", { ...resumablePayload(), uploadUrl: TEST_UPLOAD_URL }))
+    );
+    const fallbackResult = parseResult(
+      fallbackContext.doPost(postEvent("media-upload-status", { ...resumablePayload(), uploadUrl: TEST_UPLOAD_URL }))
+    );
+
+    expect(directResult.body).toMatchObject({ uploadComplete: true, asset: { id: "drive-file-1" } });
+    expect(fallbackResult.body).toMatchObject({ uploadComplete: true, asset: { id: "drive-file-1" } });
+  });
+
+  it("recovers an expired status probe when the completed file appears after the probe", () => {
+    const context = loadAppsScriptBridge({ uploadedMimeType: "application/pdf" });
+    context.urlFetchApp.fetch
+      .mockReturnValueOnce(emptyDriveLookupResponse())
+      .mockReturnValueOnce(createUrlFetchResponse(404))
+      .mockReturnValueOnce(completedDriveLookupResponse());
+
+    const result = parseResult(
+      context.doPost(postEvent("media-upload-status", { ...resumablePayload(), uploadUrl: TEST_UPLOAD_URL }))
+    );
+
+    expect(result.body).toMatchObject({ uploadComplete: true, asset: { id: "drive-file-1" } });
+  });
+
+  it.each([404, 410])("returns a structured expiration code for Drive %i without a completed file", (status) => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadAppsScriptBridge();
+    context.urlFetchApp.fetch
+      .mockReturnValueOnce(emptyDriveLookupResponse())
+      .mockReturnValueOnce(createUrlFetchResponse(status))
+      .mockReturnValueOnce(emptyDriveLookupResponse());
+
+    const result = parseResult(
+      context.doPost(postEvent("media-upload-status", { ...resumablePayload(), uploadUrl: TEST_UPLOAD_URL }))
+    );
+
+    expect(result).toMatchObject({
+      statusCode: 410,
+      body: { code: "MEDIA_UPLOAD_SESSION_EXPIRED" }
+    });
+    consoleErrorSpy.mockRestore();
+  });
+
+  it.each([408, 429, 500, 502, 503])("classifies Drive status %i as a transient status-query error", (status) => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadAppsScriptBridge();
+    context.urlFetchApp.fetch
+      .mockReturnValueOnce(emptyDriveLookupResponse())
+      .mockReturnValueOnce(createUrlFetchResponse(status));
+
+    const result = parseResult(
+      context.doPost(postEvent("media-upload-status", { ...resumablePayload(), uploadUrl: TEST_UPLOAD_URL }))
+    );
+
+    expect(result.body).toMatchObject({ code: "DRIVE_UPLOAD_TRANSIENT" });
+    expect(result.statusCode).toBe(status === 408 || status === 429 ? status : 503);
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("rejects an unsafe status URL before any Drive lookup or probe", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadAppsScriptBridge();
+
+    const result = parseResult(
+      context.doPost(
+        postEvent("media-upload-status", {
+          ...resumablePayload(),
+          uploadUrl: "https://example.invalid/upload/drive/v3/files?uploadType=resumable&upload_id=test"
+        })
+      )
+    );
+
+    expect(result).toMatchObject({ statusCode: 400, body: { error: "Invalid Drive upload session." } });
+    expect(context.urlFetchApp.fetch).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it.each([408, 429, 500, 503])("classifies Drive chunk status %i with the transient protocol code", (status) => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const context = loadAppsScriptBridge();
+    context.urlFetchApp.fetch.mockReturnValueOnce(createUrlFetchResponse(status));
+
+    const result = parseResult(
+      context.doPost(
+        postEvent("media-upload-chunk", {
+          ...resumablePayload(),
+          uploadUrl: TEST_UPLOAD_URL,
+          chunkBase64: "AQI=",
+          startByte: 0,
+          endByte: 1
+        })
+      )
+    );
+
+    expect(result.body).toMatchObject({ code: "DRIVE_UPLOAD_TRANSIENT" });
+    consoleErrorSpy.mockRestore();
+  });
+
   it("rejects unsafe upload session URLs and inconsistent chunk ranges before Drive fetch", () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const context = loadAppsScriptBridge();
     const basePayload = {
-      appsScriptBridgeToken: "server-media-token",
-      name: "Document",
-      type: "document",
-      owner: "editor",
-      fileName: "document.pdf",
-      mimeType: "application/pdf",
-      totalBytes: 2,
+      ...resumablePayload({ name: "Document", fileName: "document.pdf" }),
       chunkBase64: "AQI=",
       startByte: 0,
       endByte: 1
@@ -436,8 +676,7 @@ describe("Apps Script media bridge", () => {
       context.doPost(
         postEvent("media-upload-chunk", {
           ...basePayload,
-          uploadUrl:
-            "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=test-upload-session",
+          uploadUrl: TEST_UPLOAD_URL,
           endByte: 0
         })
       )
@@ -460,15 +699,8 @@ describe("Apps Script media bridge", () => {
     const result = parseResult(
       context.doPost(
         postEvent("media-upload-chunk", {
-          appsScriptBridgeToken: "server-media-token",
-          name: "Document",
-          type: "document",
-          owner: "editor",
-          fileName: "document.pdf",
-          mimeType: "application/pdf",
-          totalBytes: 2,
-          uploadUrl:
-            "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=test-upload-session",
+          ...resumablePayload({ name: "Document", fileName: "document.pdf" }),
+          uploadUrl: TEST_UPLOAD_URL,
           chunkBase64: "AQI=",
           startByte: 0,
           endByte: 1
@@ -477,7 +709,8 @@ describe("Apps Script media bridge", () => {
     );
 
     expect(result.statusCode).toBe(410);
-    expect(result.body.error).toBe("Media upload session expired. Please select the file again.");
+    expect(result.body.error).toBe("Media upload session expired. Please retry the upload.");
+    expect(result.body.code).toBe("MEDIA_UPLOAD_SESSION_EXPIRED");
     expect(JSON.stringify(result.body)).not.toContain("test-upload-session");
     consoleErrorSpy.mockRestore();
   });
@@ -487,19 +720,13 @@ describe("Apps Script media bridge", () => {
     const context = loadAppsScriptBridge();
     const uploadUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=private-session";
     context.urlFetchApp.fetch.mockImplementationOnce(() => {
-      throw new Error(`request failed for ${uploadUrl} bearer private-oauth-token`);
+      throw new Error(`request failed for ${uploadUrl} upload ${TEST_UPLOAD_KEY} bearer private-oauth-token`);
     });
 
     const result = parseResult(
       context.doPost(
         postEvent("media-upload-chunk", {
-          appsScriptBridgeToken: "server-media-token",
-          name: "Document",
-          type: "document",
-          owner: "editor",
-          fileName: "document.pdf",
-          mimeType: "application/pdf",
-          totalBytes: 2,
+          ...resumablePayload({ name: "Document", fileName: "document.pdf" }),
           uploadUrl,
           chunkBase64: "AQI=",
           startByte: 0,
@@ -512,6 +739,7 @@ describe("Apps Script media bridge", () => {
     const logged = JSON.stringify(consoleErrorSpy.mock.calls);
     expect(logged).not.toContain("private-session");
     expect(logged).not.toContain("private-oauth-token");
+    expect(logged).not.toContain(TEST_UPLOAD_KEY);
     expect(JSON.stringify(result.body)).not.toContain("private-session");
     consoleErrorSpy.mockRestore();
   });

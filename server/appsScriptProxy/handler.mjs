@@ -6,7 +6,8 @@ const APPS_SCRIPT_RESOURCES = new Map([
   ["media", "media"],
   ["deleteMedia", "media-delete"],
   ["startMediaUpload", "media-upload-start"],
-  ["uploadMediaChunk", "media-upload-chunk"]
+  ["uploadMediaChunk", "media-upload-chunk"],
+  ["queryMediaUploadStatus", "media-upload-status"]
 ]);
 
 function runtimeEnv() {
@@ -180,14 +181,14 @@ function sanitizeUpstreamBodySnippet(value, sensitiveValues) {
 
   snippet = snippet
     .replace(
-      /("(?:fileBase64|chunkBase64|uploadUrl|upload_id|authToken|appsScriptBridgeToken|mediaBridgeToken)"\s*:\s*)"[^"]*"/gi,
+      /("(?:fileBase64|chunkBase64|uploadUrl|upload_id|uploadKey|rcatUploadKey|authToken|appsScriptBridgeToken|mediaBridgeToken)"\s*:\s*)"[^"]*"/gi,
       '$1"[redacted]"'
     )
     .replace(
-      /((?:fileBase64|chunkBase64|uploadUrl|upload_id|authToken|appsScriptBridgeToken|mediaBridgeToken)=)[^\s&"]+/gi,
+      /((?:fileBase64|chunkBase64|uploadUrl|upload_id|uploadKey|rcatUploadKey|authToken|appsScriptBridgeToken|mediaBridgeToken)=)[^\s&"]+/gi,
       "$1[redacted]"
     )
-    .replace(/([?&]upload_id=)[^\s&"']+/gi, "$1[redacted]");
+    .replace(/([?&](?:upload_id|uploadKey|rcatUploadKey)=)[^\s&"']+/gi, "$1[redacted]");
 
   return snippet.slice(0, 300);
 }
@@ -299,6 +300,8 @@ export async function handleAppsScriptProxyRequest(
           body.payload.chunkBase64,
           body.payload.uploadUrl,
           body.payload.upload_id,
+          body.payload.uploadKey,
+          body.payload.rcatUploadKey,
           body.payload.authToken,
           body.payload.appsScriptBridgeToken,
           body.payload.mediaBridgeToken,
@@ -322,6 +325,8 @@ export async function handleAppsScriptProxyRequest(
           body.payload.chunkBase64,
           body.payload.uploadUrl,
           body.payload.upload_id,
+          body.payload.uploadKey,
+          body.payload.rcatUploadKey,
           body.payload.authToken,
           body.payload.appsScriptBridgeToken,
           body.payload.mediaBridgeToken,

@@ -1,4 +1,10 @@
-const MEDIA_BRIDGE_RESOURCES = ["media", "media-delete", "media-upload-start", "media-upload-chunk"];
+const MEDIA_BRIDGE_RESOURCES = [
+  "media",
+  "media-delete",
+  "media-upload-start",
+  "media-upload-chunk",
+  "media-upload-status"
+];
 
 function doGet(event) {
   return routeRequest(event, "GET");
@@ -9,11 +15,14 @@ function doPost(event) {
 }
 
 function routeRequest(event, method) {
+  let requestUploadKey = "";
+
   try {
     ensureDefaultScriptProperties();
 
     const resource = getResource(event);
     let payload = parsePayload(event);
+    requestUploadKey = payload && payload.uploadKey ? String(payload.uploadKey) : "";
 
     if (method === "GET" && !resource) {
       return jsonResponse({
@@ -47,28 +56,44 @@ function routeRequest(event, method) {
       return jsonResponse(uploadMediaChunk(payload));
     }
 
+    if (method === "POST" && resource === "media-upload-status") {
+      assertValidAppsScriptBridgeToken(payload);
+      payload = stripAppsScriptBridgeTokens(payload);
+      return jsonResponse(queryMediaUploadStatus(payload));
+    }
+
     throw createHttpError("Unknown Apps Script media bridge route.", 404);
   } catch (error) {
     const statusCode = getErrorStatusCode(error);
-    console.error(`Media bridge request failed (${statusCode}): ${sanitizeMediaBridgeLogMessage(error)}`);
-    return jsonResponse(
-      {
-        error:
-          error && typeof error.statusCode === "number"
-            ? error.message || "Media bridge request failed."
-            : "Media bridge request failed."
-      },
-      statusCode
+    console.error(
+      `Media bridge request failed (${statusCode}): ${sanitizeMediaBridgeLogMessage(error, requestUploadKey)}`
     );
+    const errorPayload = {
+      error:
+        error && typeof error.statusCode === "number"
+          ? error.message || "Media bridge request failed."
+          : "Media bridge request failed."
+    };
+
+    if (error && ALLOWED_MEDIA_UPLOAD_ERROR_CODES.indexOf(error.code) !== -1) {
+      errorPayload.code = error.code;
+    }
+
+    return jsonResponse(errorPayload, statusCode);
   }
 }
 
-function sanitizeMediaBridgeLogMessage(error) {
-  const message = String((error && error.message) || error || "Unknown error");
+function sanitizeMediaBridgeLogMessage(error, uploadKey) {
+  let message = String((error && error.message) || error || "Unknown error");
+
+  if (uploadKey) {
+    message = message.split(uploadKey).join("[redacted-upload-key]");
+  }
 
   return message
-    .replace(/https:\/\/www\.googleapis\.com\/upload\/[^\s]+/gi, "[redacted-upload-session]")
+    .replace(/https:\/\/www\.googleapis\.com\/[^\s]+/gi, "[redacted-google-api-url]")
     .replace(/([?&]upload_id=)[^\s&]+/gi, "$1[redacted]")
+    .replace(/("?(?:uploadKey|rcatUploadKey)"?\s*[=:]\s*)[^\s,;}]+/gi, "$1[redacted]")
     .replace(/(?:oauth|bearer|token)\s*[=:]?\s*[^\s,;]+/gi, "[redacted-token]")
     .slice(0, 300);
 }
@@ -136,9 +161,12 @@ function stripAppsScriptBridgeTokens(payload) {
   return sanitizedPayload;
 }
 
-function createHttpError(message, statusCode) {
+function createHttpError(message, statusCode, code) {
   const error = new Error(message);
   error.statusCode = statusCode || 500;
+  if (ALLOWED_MEDIA_UPLOAD_ERROR_CODES.indexOf(code) !== -1) {
+    error.code = code;
+  }
   return error;
 }
 

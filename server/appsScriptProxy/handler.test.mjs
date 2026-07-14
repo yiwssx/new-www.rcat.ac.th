@@ -258,7 +258,8 @@ describe("Vercel Apps Script media proxy", () => {
 
   it.each([
     ["startMediaUpload", "media-upload-start"],
-    ["uploadMediaChunk", "media-upload-chunk"]
+    ["uploadMediaChunk", "media-upload-chunk"],
+    ["queryMediaUploadStatus", "media-upload-status"]
   ])("maps %s to the Apps Script %s resource", async (resource, upstreamResource) => {
     const fetchImpl = vi.fn(async () => Response.json({ ok: true }));
     const response = createResponse();
@@ -271,6 +272,56 @@ describe("Vercel Apps Script media proxy", () => {
 
     expect(response.statusCode).toBe(200);
     expect(fetchImpl.mock.calls[0][0].toString()).toContain(`resource=${upstreamResource}`);
+  });
+
+  it("authenticates and forwards status payloads while preserving structured protocol errors", async () => {
+    const uploadKey = "test-upload-key-0001";
+    const uploadUrl =
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=test-status-session";
+    const payload = {
+      uploadKey,
+      uploadUrl,
+      totalBytes: 1024,
+      name: "document.pdf",
+      type: "document",
+      owner: "editor",
+      fileName: "document.pdf",
+      mimeType: "application/pdf",
+      size: "1 KB"
+    };
+    const protocolError = {
+      error: "Media upload session expired. Please retry the upload.",
+      statusCode: 410,
+      code: "MEDIA_UPLOAD_SESSION_EXPIRED"
+    };
+    const fetchImpl = vi.fn(async () => Response.json(protocolError));
+    const response = createResponse();
+
+    await handleAppsScriptProxyRequest(
+      await createAuthenticatedRequest({ body: { resource: "queryMediaUploadStatus", payload } }),
+      response,
+      { env: createEnv(), fetchImpl }
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyJson).toEqual(protocolError);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url.toString()).toContain("resource=media-upload-status");
+    expect(JSON.parse(init.body)).toEqual({ ...payload, appsScriptBridgeToken: BRIDGE_TOKEN });
+  });
+
+  it("rejects an unauthenticated status query before forwarding it", async () => {
+    const fetchImpl = vi.fn();
+    const response = createResponse();
+
+    await handleAppsScriptProxyRequest(
+      createRequest({ body: { resource: "queryMediaUploadStatus", payload: { uploadKey: "test-key-0000001" } } }),
+      response,
+      { env: createEnv(), fetchImpl }
+    );
+
+    expect(response.statusCode).toBe(401);
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it("rejects request bodies over the 4 MiB proxy boundary with a stable error code", async () => {
@@ -292,15 +343,22 @@ describe("Vercel Apps Script media proxy", () => {
     const chunkBase64 = "c2VjcmV0LWNodW5r";
     const uploadUrl =
       "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=secret-upload-id";
+    const uploadKey = "test-upload-key-0001";
+    const rcatUploadKey = "test-drive-property-key-0001";
 
     await handleAppsScriptProxyRequest(
       await createAuthenticatedRequest({
-        body: { resource: "uploadMediaChunk", payload: { chunkBase64, uploadUrl } }
+        body: { resource: "uploadMediaChunk", payload: { chunkBase64, uploadUrl, uploadKey, rcatUploadKey } }
       }),
       response,
       {
         env: createEnv(),
-        fetchImpl: vi.fn(async () => new Response(`<html>${chunkBase64} ${uploadUrl} ${BRIDGE_TOKEN}</html>`))
+        fetchImpl: vi.fn(
+          async () =>
+            new Response(
+              `<html>${chunkBase64} ${uploadUrl} uploadKey=${uploadKey} rcatUploadKey=${rcatUploadKey} ${BRIDGE_TOKEN}</html>`
+            )
+        )
       }
     );
 
@@ -315,6 +373,8 @@ describe("Vercel Apps Script media proxy", () => {
     expect(diagnostic).not.toContain(chunkBase64);
     expect(diagnostic).not.toContain(uploadUrl);
     expect(diagnostic).not.toContain("secret-upload-id");
+    expect(diagnostic).not.toContain(uploadKey);
+    expect(diagnostic).not.toContain(rcatUploadKey);
     expect(diagnostic).not.toContain(BRIDGE_TOKEN);
   });
 
