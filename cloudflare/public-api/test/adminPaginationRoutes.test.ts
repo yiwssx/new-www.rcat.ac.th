@@ -1003,6 +1003,171 @@ describe("admin server pagination routes", () => {
     expect(documentSearchQuery?.bindings).toContain("%files.example.invalid%");
   });
 
+  it("preserves and normalizes responsive carousel fields in paginated admin lists", async () => {
+    const baseCarouselRow = allEntityRows().carousel_slides[0] as Row;
+    const state = createPaginationDb({
+      carousel_slides: [
+        {
+          ...baseCarouselRow,
+          id: "slide-valid",
+          title: "Responsive slide",
+          subtitle: "Responsive subtitle",
+          chip: "Featured",
+          image_alt: "Responsive image",
+          button_label: "Read more",
+          href: "/responsive",
+          image_fit: "fill",
+          focal_point_x: 35.5,
+          focal_point_y: 0,
+          mobile_image_url: " https://images.example.test/mobile.jpg ",
+          background_color: "#ABCDEF",
+          open_in_new_tab: 1,
+          sort_order: 1,
+          start_at: "2026-07-14T00:00:00.000Z",
+          end_at: "2026-08-14T00:00:00.000Z",
+          revision: 3
+        },
+        {
+          ...baseCarouselRow,
+          id: "slide-invalid",
+          title: "Invalid responsive values",
+          image_fit: "invalid",
+          focal_point_x: -10,
+          focal_point_y: "140",
+          mobile_image_url: null,
+          background_color: "expression(alert(1))",
+          open_in_new_tab: 0,
+          enabled: 0,
+          sort_order: 2,
+          revision: 4
+        },
+        {
+          ...baseCarouselRow,
+          id: "slide-numeric-string",
+          title: "Numeric string focal point",
+          image_fit: "fit",
+          focal_point_x: "75",
+          focal_point_y: "bad",
+          mobile_image_url: 42,
+          background_color: " #AbC ",
+          open_in_new_tab: 2,
+          sort_order: 3,
+          revision: 5
+        },
+        {
+          ...baseCarouselRow,
+          id: "slide-legacy",
+          title: "Legacy slide",
+          sort_order: 4,
+          revision: 6
+        }
+      ]
+    });
+    const response = await worker.fetch(request("/api/admin/carousel"), { ...baseEnv, DB: state.db });
+    const body = await jsonBody(response);
+    const items = body.items as Row[];
+    const itemQuery = state.calls.find(
+      (call) => /FROM carousel_slides/i.test(call.query) && /LIMIT \? OFFSET \?/i.test(call.query)
+    );
+    const selectedColumns =
+      itemQuery?.query
+        .match(/SELECT\s+([\s\S]*?)\s+FROM\s+carousel_slides/i)?.[1]
+        ?.split(",")
+        .map((column) => column.trim()) ?? [];
+
+    expect(response.status).toBe(200);
+    expect(selectedColumns).toEqual([
+      "id",
+      "title",
+      "subtitle",
+      "chip",
+      "image_url",
+      "image_alt",
+      "button_label",
+      "href",
+      "image_fit",
+      "focal_point_x",
+      "focal_point_y",
+      "mobile_image_url",
+      "background_color",
+      "open_in_new_tab",
+      "enabled",
+      "sort_order",
+      "start_at",
+      "end_at",
+      "updated_at",
+      "revision"
+    ]);
+    expect(items).toHaveLength(4);
+    expect(items[0]).toEqual({
+      id: "slide-valid",
+      title: "Responsive slide",
+      subtitle: "Responsive subtitle",
+      chip: "Featured",
+      imageUrl: "https://images.example.invalid/slide.jpg",
+      imageAlt: "Responsive image",
+      buttonLabel: "Read more",
+      href: "/responsive",
+      imageFit: "fill",
+      focalPointX: 35.5,
+      focalPointY: 0,
+      mobileImageUrl: "https://images.example.test/mobile.jpg",
+      backgroundColor: "#abcdef",
+      openInNewTab: true,
+      enabled: true,
+      order: 1,
+      startAt: "2026-07-14T00:00:00.000Z",
+      endAt: "2026-08-14T00:00:00.000Z",
+      updatedAt: "2026-07-01T00:00:00.000Z",
+      revision: 3
+    });
+    expect(items[1]).toMatchObject({
+      id: "slide-invalid",
+      imageFit: "fit-blur",
+      focalPointX: 0,
+      focalPointY: 100,
+      mobileImageUrl: "",
+      backgroundColor: "",
+      openInNewTab: false,
+      enabled: false,
+      order: 2,
+      revision: 4
+    });
+    expect(items[2]).toMatchObject({
+      id: "slide-numeric-string",
+      imageFit: "fit",
+      focalPointX: 75,
+      focalPointY: 50,
+      mobileImageUrl: "42",
+      backgroundColor: "#abc",
+      openInNewTab: false,
+      revision: 5
+    });
+    expect(items[3]).toMatchObject({
+      id: "slide-legacy",
+      imageFit: "fit-blur",
+      focalPointX: 50,
+      focalPointY: 50,
+      mobileImageUrl: "",
+      backgroundColor: "",
+      openInNewTab: false,
+      revision: 6
+    });
+
+    for (const item of items) {
+      for (const field of [
+        "image_fit",
+        "focal_point_x",
+        "focal_point_y",
+        "mobile_image_url",
+        "background_color",
+        "open_in_new_tab"
+      ]) {
+        expect(item).not.toHaveProperty(field);
+      }
+    }
+  });
+
   it("returns bounded media ID lookups in request order", async () => {
     const assets = ["a", "b", "c"].map((id) => ({
       ...(allEntityRows().media_assets[0] as Row),

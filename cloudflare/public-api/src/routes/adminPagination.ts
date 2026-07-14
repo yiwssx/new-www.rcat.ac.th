@@ -84,6 +84,12 @@ type CarouselListRow = Pick<
   | "image_alt"
   | "button_label"
   | "href"
+  | "image_fit"
+  | "focal_point_x"
+  | "focal_point_y"
+  | "mobile_image_url"
+  | "background_color"
+  | "open_in_new_tab"
   | "enabled"
   | "sort_order"
   | "start_at"
@@ -201,6 +207,12 @@ const CAROUSEL_LIST_COLUMNS = [
   "image_alt",
   "button_label",
   "href",
+  "image_fit",
+  "focal_point_x",
+  "focal_point_y",
+  "mobile_image_url",
+  "background_color",
+  "open_in_new_tab",
   "enabled",
   "sort_order",
   "start_at",
@@ -506,6 +518,21 @@ function mapUser(row: AdminUserRow) {
   };
 }
 
+function normalizeCarouselImageFit(value: unknown) {
+  return value === "fill" || value === "fit" || value === "fit-blur" ? value : "fit-blur";
+}
+
+function normalizeCarouselFocalPoint(value: unknown) {
+  const numericValue =
+    typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : Number.NaN;
+  return Number.isFinite(numericValue) ? Math.min(100, Math.max(0, numericValue)) : 50;
+}
+
+function normalizeCarouselBackgroundColor(value: unknown) {
+  const color = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return color === "" || /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/.test(color) ? color : "";
+}
+
 function mapCarousel(row: CarouselListRow) {
   return {
     id: row.id,
@@ -516,6 +543,12 @@ function mapCarousel(row: CarouselListRow) {
     imageAlt: row.image_alt,
     buttonLabel: row.button_label,
     href: row.href,
+    imageFit: normalizeCarouselImageFit(row.image_fit),
+    focalPointX: normalizeCarouselFocalPoint(row.focal_point_x),
+    focalPointY: normalizeCarouselFocalPoint(row.focal_point_y),
+    mobileImageUrl: String(row.mobile_image_url ?? "").trim(),
+    backgroundColor: normalizeCarouselBackgroundColor(row.background_color),
+    openInNewTab: row.open_in_new_tab === 1,
     enabled: row.enabled === 1,
     order: row.sort_order,
     ...(row.start_at ? { startAt: row.start_at } : {}),
