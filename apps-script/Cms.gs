@@ -105,7 +105,7 @@ function startMediaUpload(asset) {
   });
   const responseCode = response.getResponseCode();
 
-  if (isTransientDriveUploadStatus(responseCode)) {
+  if (isDriveRateLimitResponse(responseCode, response) || isTransientDriveUploadStatus(responseCode)) {
     throw createDriveUploadTransientError(responseCode);
   }
 
@@ -168,17 +168,20 @@ function uploadMediaChunk(asset) {
     };
   }
 
+  if (isDriveRateLimitResponse(responseCode, response)) {
+    throw createDriveUploadTransientError(responseCode);
+  }
+
   if (responseCode === 404 || responseCode === 410) {
-    const uploadFolder = resolveMediaUploadFolder();
-    const completed = findCompletedMediaAssetByUploadKey(asset, upload, uploadFolder.getId());
-    if (completed) {
-      return completed;
-    }
-    throw createMediaUploadSessionExpiredError();
+    return recoverCompletedMediaOrThrowSessionExpired(asset, upload);
   }
 
   if (isTransientDriveUploadStatus(responseCode)) {
     throw createDriveUploadTransientError(responseCode);
+  }
+
+  if (responseCode >= 400 && responseCode <= 499) {
+    return recoverCompletedMediaOrThrowSessionExpired(asset, upload);
   }
 
   if (responseCode !== 200 && responseCode !== 201) {
@@ -218,7 +221,7 @@ function queryMediaUploadStatus(asset) {
     method: "put",
     headers: {
       Authorization: `Bearer ${ScriptApp.getOAuthToken()}`,
-      "Content-Range": `bytes */${upload.totalBytes}`
+      "Content-Range": `*/${upload.totalBytes}`
     },
     muteHttpExceptions: true,
     followRedirects: false
@@ -248,16 +251,20 @@ function queryMediaUploadStatus(asset) {
     );
   }
 
+  if (isDriveRateLimitResponse(responseCode, response)) {
+    throw createDriveUploadTransientError(responseCode);
+  }
+
   if (responseCode === 404 || responseCode === 410) {
-    completed = findCompletedMediaAssetByUploadKey(asset, upload, uploadFolder.getId());
-    if (completed) {
-      return completed;
-    }
-    throw createMediaUploadSessionExpiredError();
+    return recoverCompletedMediaOrThrowSessionExpired(asset, upload);
   }
 
   if (isTransientDriveUploadStatus(responseCode)) {
     throw createDriveUploadTransientError(responseCode);
+  }
+
+  if (responseCode >= 400 && responseCode <= 499) {
+    return recoverCompletedMediaOrThrowSessionExpired(asset, upload);
   }
 
   throw createHttpError("Drive rejected the upload status request.", 400);
@@ -402,6 +409,55 @@ function readDriveAcknowledgedNextByte(response, totalBytes) {
   return nextByte;
 }
 
+function readDriveErrorReasons(response) {
+  let payload;
+
+  try {
+    payload = JSON.parse(response.getContentText() || "{}");
+  } catch (error) {
+    return [];
+  }
+
+  const errors = payload && payload.error && Array.isArray(payload.error.errors) ? payload.error.errors : [];
+
+  const reasons = [];
+
+  for (let index = 0; index < errors.length; index += 1) {
+    const reason = String((errors[index] && errors[index].reason) || "").trim();
+
+    if (/^[A-Za-z0-9_.-]{1,80}$/.test(reason)) {
+      reasons.push(reason);
+    }
+  }
+
+  return reasons;
+}
+
+function isDriveRateLimitResponse(statusCode, response) {
+  if (statusCode === 429) {
+    return true;
+  }
+
+  if (statusCode !== 403) {
+    return false;
+  }
+
+  const reasons = readDriveErrorReasons(response);
+
+  return reasons.indexOf("rateLimitExceeded") !== -1 || reasons.indexOf("userRateLimitExceeded") !== -1;
+}
+
+function recoverCompletedMediaOrThrowSessionExpired(asset, upload) {
+  const uploadFolder = resolveMediaUploadFolder();
+  const completed = findCompletedMediaAssetByUploadKey(asset, upload, uploadFolder.getId());
+
+  if (completed) {
+    return completed;
+  }
+
+  throw createMediaUploadSessionExpiredError();
+}
+
 function isTransientDriveUploadStatus(statusCode) {
   return statusCode === 408 || statusCode === 429 || (statusCode >= 500 && statusCode <= 599);
 }
@@ -412,11 +468,7 @@ function createDriveUploadTransientError(statusCode) {
 }
 
 function createMediaUploadSessionExpiredError() {
-  return createHttpError(
-    "Media upload session expired. Please retry the upload.",
-    410,
-    "MEDIA_UPLOAD_SESSION_EXPIRED"
-  );
+  return createHttpError("Media upload session expired. Please retry the upload.", 410, "MEDIA_UPLOAD_SESSION_EXPIRED");
 }
 
 function buildMediaAssetFromDriveFile(asset, uploadedFile, mediaType) {
@@ -459,12 +511,7 @@ function decodeUploadChunkBytes(chunkBase64) {
     (paddingLength === 1 && unpadded.length % 4 === 3) ||
     (paddingLength === 2 && unpadded.length % 4 === 2);
 
-  if (
-    !unpadded ||
-    !paddingIsValid ||
-    unpadded.indexOf("=") !== -1 ||
-    !/^[A-Za-z0-9+/]+$/.test(unpadded)
-  ) {
+  if (!unpadded || !paddingIsValid || unpadded.indexOf("=") !== -1 || !/^[A-Za-z0-9+/]+$/.test(unpadded)) {
     throw createHttpError("Invalid upload chunk data.", 400);
   }
 

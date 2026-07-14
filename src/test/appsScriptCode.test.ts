@@ -537,10 +537,11 @@ describe("Apps Script media bridge", () => {
     expect(emptyRangeResult.body).toMatchObject({ uploadComplete: false, nextByte: 0 });
     expect(rangeContext.urlFetchApp.fetch.mock.calls[1][1]).toMatchObject({
       method: "put",
-      headers: { "Content-Range": "bytes */20" },
+      headers: { "Content-Range": "*/20" },
       muteHttpExceptions: true,
       followRedirects: false
     });
+    expect(rangeContext.urlFetchApp.fetch.mock.calls[1][1].headers["Content-Range"]).not.toMatch(/^bytes\s/i);
     expect(rangeContext.urlFetchApp.fetch.mock.calls[1][1]).not.toHaveProperty("payload");
   });
 
@@ -596,6 +597,79 @@ describe("Apps Script media bridge", () => {
       statusCode: 410,
       body: { code: "MEDIA_UPLOAD_SESSION_EXPIRED" }
     });
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("classifies Drive 403 rateLimitExceeded as transient", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const context = loadAppsScriptBridge();
+
+    context.urlFetchApp.fetch.mockReturnValueOnce(emptyDriveLookupResponse()).mockReturnValueOnce(
+      createUrlFetchResponse(
+        403,
+        JSON.stringify({
+          error: {
+            errors: [{ reason: "rateLimitExceeded" }]
+          }
+        })
+      )
+    );
+
+    const result = parseResult(
+      context.doPost(
+        postEvent("media-upload-status", {
+          ...resumablePayload({ totalBytes: 20 }),
+          uploadUrl: TEST_UPLOAD_URL
+        })
+      )
+    );
+
+    expect(result).toMatchObject({
+      statusCode: 503,
+      body: {
+        code: "DRIVE_UPLOAD_TRANSIENT"
+      }
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("treats a non-rate-limit Drive 403 as an expired resumable session", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const context = loadAppsScriptBridge();
+
+    context.urlFetchApp.fetch
+      .mockReturnValueOnce(emptyDriveLookupResponse())
+      .mockReturnValueOnce(
+        createUrlFetchResponse(
+          403,
+          JSON.stringify({
+            error: {
+              errors: [{ reason: "insufficientFilePermissions" }]
+            }
+          })
+        )
+      )
+      .mockReturnValueOnce(emptyDriveLookupResponse());
+
+    const result = parseResult(
+      context.doPost(
+        postEvent("media-upload-status", {
+          ...resumablePayload({ totalBytes: 20 }),
+          uploadUrl: TEST_UPLOAD_URL
+        })
+      )
+    );
+
+    expect(result).toMatchObject({
+      statusCode: 410,
+      body: {
+        code: "MEDIA_UPLOAD_SESSION_EXPIRED"
+      }
+    });
+
     consoleErrorSpy.mockRestore();
   });
 
