@@ -1,12 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import type { MediaAssetInput } from "../../features/cms-media";
 import type { ContentItem, MediaAsset } from "../../types";
 import ContentEditorDialog from "./ContentEditorDialog";
 
 const mediaPaginationMock = vi.hoisted(() => ({
   getAdminMediaByIds: vi.fn(async (_ids: readonly string[]): Promise<MediaAsset[]> => [])
+}));
+
+const filesMock = vi.hoisted(() => ({
+  readFileAsBase64: vi.fn(async () => "cGRmLWNvbnRlbnQ=")
 }));
 
 vi.mock("../../features/admin-pagination", async (importOriginal) => ({
@@ -27,6 +32,11 @@ vi.mock("../../features/admin-pagination", async (importOriginal) => ({
     })
   }),
   getAdminMediaByIds: mediaPaginationMock.getAdminMediaByIds
+}));
+
+vi.mock("../../utils/files", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../utils/files")>()),
+  readFileAsBase64: filesMock.readFileAsBase64
 }));
 
 function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
@@ -56,6 +66,7 @@ function renderEditor(
   options: {
     mediaAssets?: MediaAsset[];
     onSave?: (item: ContentItem) => void;
+    onUploadMedia?: (input: MediaAssetInput) => Promise<MediaAsset>;
   } = {}
 ) {
   const queryClient = new QueryClient({
@@ -73,6 +84,7 @@ function renderEditor(
         mediaAssets={options.mediaAssets ?? []}
         onClose={vi.fn()}
         onSave={options.onSave ?? vi.fn()}
+        onUploadMedia={options.onUploadMedia}
       />
     </QueryClientProvider>
   );
@@ -86,6 +98,60 @@ async function selectTemplate(label: string) {
 }
 
 describe("ContentEditorDialog", () => {
+  it("rejects quick-upload files over 10 MB before reading or sending them", () => {
+    const onUploadMedia = vi.fn();
+    renderEditor(createContentItem({ template: "standard" }), { onUploadMedia });
+    const fileInput = document.body.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = new File(["pdf"], "too-large.pdf", { type: "application/pdf" });
+    Object.defineProperty(file, "size", { value: 10 * 1024 * 1024 + 1 });
+
+    expect(screen.getByText("รองรับไฟล์ขนาดไม่เกิน 10 MB")).toBeInTheDocument();
+    fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+
+    expect(screen.getByText("ไฟล์ต้องมีขนาดไม่เกิน 10 MB")).toBeInTheDocument();
+    expect(fileInput).toHaveValue("");
+    expect(screen.getByRole("button", { name: "อัปโหลดและแนบ" })).toBeDisabled();
+    expect(filesMock.readFileAsBase64).not.toHaveBeenCalled();
+    expect(onUploadMedia).not.toHaveBeenCalled();
+  });
+
+  it("infers a small PDF as a document and keeps the normal quick-upload flow", async () => {
+    const uploadedPdf: MediaAsset = {
+      id: "pdf-1",
+      name: "annual-report",
+      type: "document",
+      size: "11 B",
+      owner: "editor",
+      driveUrl: "https://drive.google.com/file/d/pdf-1/view",
+      previewUrl: "https://drive.google.com/file/d/pdf-1/preview",
+      updatedAt: "2026-07-14T00:00:00.000Z"
+    };
+    const onUploadMedia = vi.fn(async () => uploadedPdf);
+    renderEditor(createContentItem({ template: "standard", owner: "editor" }), { onUploadMedia });
+    const fileInput = document.body.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = new File(["pdf-content"], "annual-report.pdf", { type: "application/pdf" });
+
+    fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+    expect(
+      screen.getAllByRole("combobox", { name: "ประเภท" }).find((element) => element.textContent === "เอกสาร")
+    ).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "อัปโหลดและแนบ" }));
+
+    await waitFor(() =>
+      expect(onUploadMedia).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "annual-report",
+          type: "document",
+          owner: "editor",
+          fileName: "annual-report.pdf",
+          mimeType: "application/pdf",
+          fileBase64: "cGRmLWNvbnRlbnQ="
+        })
+      )
+    );
+    expect(filesMock.readFileAsBase64).toHaveBeenCalledWith(file);
+  });
+
   it("generates a complete Thai slug from title input and keeps a manual slug authoritative", async () => {
     const user = userEvent.setup();
     renderEditor(null);

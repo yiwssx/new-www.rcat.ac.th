@@ -12,6 +12,7 @@ const DEFAULT_SCRIPT_PROPERTIES = {
 };
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MEDIA_UPLOAD_CHUNK_BYTES = 6 * 256 * 1024;
 
 const ALLOWED_MEDIA_TYPES = ["image", "document", "sheet", "video"];
 

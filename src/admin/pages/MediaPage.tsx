@@ -36,7 +36,7 @@ import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
-import { deleteMediaAsset, saveMediaAsset } from "../../features/cms-media";
+import { deleteMediaAsset, MAX_MEDIA_UPLOAD_BYTES, saveMediaAsset } from "../../features/cms-media";
 import { MediaAsset, MediaType } from "../../types";
 import {
   ADMIN_MEDIA_PAGE_SIZE_OPTIONS,
@@ -439,6 +439,14 @@ export default function MediaPage() {
     }
 
     const nextFile = event.target.files?.[0] ?? null;
+
+    if (nextFile && nextFile.size > MAX_MEDIA_UPLOAD_BYTES) {
+      setFile(null);
+      setFormError("ไฟล์ต้องมีขนาดไม่เกิน 10 MB");
+      event.target.value = "";
+      return;
+    }
+
     setFile(nextFile);
     setFormError("");
 
@@ -486,6 +494,12 @@ export default function MediaPage() {
     }
 
     if (mediaActionsDisabled) {
+      return;
+    }
+
+    if (file && file.size > MAX_MEDIA_UPLOAD_BYTES) {
+      setFormError("ไฟล์ต้องมีขนาดไม่เกิน 10 MB");
+      setFile(null);
       return;
     }
 
@@ -771,6 +785,9 @@ export default function MediaPage() {
                     onChange={handleFileChange}
                   />
                 </Button>
+                <Typography color="text.secondary" variant="body2">
+                  รองรับไฟล์ขนาดไม่เกิน 10 MB
+                </Typography>
                 {file && (
                   <Typography color="text.secondary" variant="body2">
                     {file.name} / {formatFileSize(file.size)}

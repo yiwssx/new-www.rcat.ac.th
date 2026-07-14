@@ -1,10 +1,12 @@
 import process from "node:process";
 import { getAdminProxyAllowedEmails, verifyAdminProxySessionCookie } from "../adminProxy/session.mjs";
 
-const MAX_REQUEST_BODY_BYTES = 16 * 1024 * 1024;
+const MAX_REQUEST_BODY_BYTES = 4 * 1024 * 1024;
 const APPS_SCRIPT_RESOURCES = new Map([
   ["media", "media"],
-  ["deleteMedia", "media-delete"]
+  ["deleteMedia", "media-delete"],
+  ["startMediaUpload", "media-upload-start"],
+  ["uploadMediaChunk", "media-upload-chunk"]
 ]);
 
 function runtimeEnv() {
@@ -177,8 +179,15 @@ function sanitizeUpstreamBodySnippet(value, sensitiveValues) {
   }
 
   snippet = snippet
-    .replace(/("(?:fileBase64|authToken|appsScriptBridgeToken|mediaBridgeToken)"\s*:\s*)"[^"]*"/gi, '$1"[redacted]"')
-    .replace(/((?:fileBase64|authToken|appsScriptBridgeToken|mediaBridgeToken)=)[^\s&"]+/gi, "$1[redacted]");
+    .replace(
+      /("(?:fileBase64|chunkBase64|uploadUrl|upload_id|authToken|appsScriptBridgeToken|mediaBridgeToken)"\s*:\s*)"[^"]*"/gi,
+      '$1"[redacted]"'
+    )
+    .replace(
+      /((?:fileBase64|chunkBase64|uploadUrl|upload_id|authToken|appsScriptBridgeToken|mediaBridgeToken)=)[^\s&"]+/gi,
+      "$1[redacted]"
+    )
+    .replace(/([?&]upload_id=)[^\s&"']+/gi, "$1[redacted]");
 
   return snippet.slice(0, 300);
 }
@@ -246,7 +255,10 @@ export async function handleAppsScriptProxyRequest(
     body = await readJsonBody(request);
   } catch (error) {
     if (error instanceof RangeError) {
-      sendJson(response, 413, { error: "request body is too large" });
+      sendJson(response, 413, {
+        error: "request body is too large",
+        code: "FUNCTION_PAYLOAD_TOO_LARGE"
+      });
       return;
     }
 
@@ -275,14 +287,18 @@ export async function handleAppsScriptProxyRequest(
       redirect: "follow"
     });
 
+    const upstreamBody = await upstreamResponse.text();
+
     if (!upstreamResponse.ok) {
-      const upstreamBody = await upstreamResponse.text();
       sendJson(response, 502, {
         error: "Apps Script bridge failed",
         diagnostic: "apps-script-bridge-upstream-v2",
         upstreamStatus: upstreamResponse.status,
         upstreamBodySnippet: sanitizeUpstreamBodySnippet(upstreamBody, [
           body.payload.fileBase64,
+          body.payload.chunkBase64,
+          body.payload.uploadUrl,
+          body.payload.upload_id,
           body.payload.authToken,
           body.payload.appsScriptBridgeToken,
           body.payload.mediaBridgeToken,
@@ -293,16 +309,30 @@ export async function handleAppsScriptProxyRequest(
       return;
     }
 
-    let payload;
-
+    let upstreamPayloadResult;
     try {
-      payload = await upstreamResponse.json();
+      upstreamPayloadResult = JSON.parse(upstreamBody);
     } catch {
-      sendJson(response, 502, { error: "Apps Script bridge returned an invalid response" });
+      sendJson(response, 502, {
+        error: "Apps Script bridge returned an invalid response",
+        diagnostic: "apps-script-bridge-upstream-v2",
+        upstreamStatus: upstreamResponse.status,
+        upstreamBodySnippet: sanitizeUpstreamBodySnippet(upstreamBody, [
+          body.payload.fileBase64,
+          body.payload.chunkBase64,
+          body.payload.uploadUrl,
+          body.payload.upload_id,
+          body.payload.authToken,
+          body.payload.appsScriptBridgeToken,
+          body.payload.mediaBridgeToken,
+          bridgeToken
+        ]),
+        upstreamResource
+      });
       return;
     }
 
-    sendJson(response, 200, payload);
+    sendJson(response, 200, upstreamPayloadResult);
   } catch {
     sendJson(response, 502, { error: "Apps Script bridge failed" });
   }

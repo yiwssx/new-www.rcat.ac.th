@@ -28,6 +28,10 @@ const swalMock = vi.hoisted(() => ({
   showLoading: vi.fn()
 }));
 
+const filesMock = vi.hoisted(() => ({
+  readFileAsBase64: vi.fn(async () => "aW1hZ2UtY29udGVudA==")
+}));
+
 vi.mock("../../context/authSessionContext", () => ({
   useAuth: () => {
     const user: User = {
@@ -86,6 +90,11 @@ vi.mock("../../services/publicCmsInvalidation", () => ({
 
 vi.mock("../../utils/swal", () => ({
   appSwal: swalMock
+}));
+
+vi.mock("../../utils/files", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../utils/files")>()),
+  readFileAsBase64: filesMock.readFileAsBase64
 }));
 
 const asset: MediaAsset = {
@@ -213,6 +222,26 @@ describe("MediaPage media mutation feedback", () => {
     swalMock.close.mockReset();
     swalMock.close.mockResolvedValue(undefined);
     swalMock.showLoading.mockReset();
+    filesMock.readFileAsBase64.mockClear();
+  });
+
+  it("rejects files over 10 MB before reading the file or opening loading feedback", async () => {
+    renderMediaPage();
+
+    await screen.findByText(asset.name);
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มสื่อ" }));
+    expect(screen.getByText("รองรับไฟล์ขนาดไม่เกิน 10 MB")).toBeInTheDocument();
+    const fileInput = document.body.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = new File(["pdf"], "too-large.pdf", { type: "application/pdf" });
+    Object.defineProperty(file, "size", { value: 10 * 1024 * 1024 + 1 });
+
+    fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+
+    expect(screen.getByText("ไฟล์ต้องมีขนาดไม่เกิน 10 MB")).toBeInTheDocument();
+    expect(fileInput).toHaveValue("");
+    expect(filesMock.readFileAsBase64).not.toHaveBeenCalled();
+    expect(mediaMock.saveMediaAsset).not.toHaveBeenCalled();
+    expect(swalMock.fire).not.toHaveBeenCalled();
   });
 
   it("shows clear upload pending feedback while the upload is in progress", async () => {

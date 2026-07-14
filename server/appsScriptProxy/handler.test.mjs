@@ -3,7 +3,7 @@
 import { Readable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import { createAdminProxySessionCookie } from "../adminProxy/session.mjs";
-import { handleAppsScriptProxyRequest } from "./handler.mjs";
+import { handleAppsScriptProxyRequest, MAX_REQUEST_BODY_BYTES } from "./handler.mjs";
 
 const SESSION_SECRET = "fake-admin-proxy-session-secret-32-characters";
 const BRIDGE_TOKEN = "fake-apps-script-bridge-token";
@@ -254,6 +254,68 @@ describe("Vercel Apps Script media proxy", () => {
     );
 
     expect(fetchImpl.mock.calls[0][0].toString()).toContain("resource=media-delete");
+  });
+
+  it.each([
+    ["startMediaUpload", "media-upload-start"],
+    ["uploadMediaChunk", "media-upload-chunk"]
+  ])("maps %s to the Apps Script %s resource", async (resource, upstreamResource) => {
+    const fetchImpl = vi.fn(async () => Response.json({ ok: true }));
+    const response = createResponse();
+
+    await handleAppsScriptProxyRequest(
+      await createAuthenticatedRequest({ body: { resource, payload: { name: "document.pdf" } } }),
+      response,
+      { env: createEnv(), fetchImpl }
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(fetchImpl.mock.calls[0][0].toString()).toContain(`resource=${upstreamResource}`);
+  });
+
+  it("rejects request bodies over the 4 MiB proxy boundary with a stable error code", async () => {
+    const response = createResponse();
+    const request = await createAuthenticatedRequest({ body: "x".repeat(MAX_REQUEST_BODY_BYTES + 1) });
+
+    await handleAppsScriptProxyRequest(request, response, { env: createEnv(), fetchImpl: vi.fn() });
+
+    expect(MAX_REQUEST_BODY_BYTES).toBe(4 * 1024 * 1024);
+    expect(response.statusCode).toBe(413);
+    expect(response.bodyJson).toEqual({
+      error: "request body is too large",
+      code: "FUNCTION_PAYLOAD_TOO_LARGE"
+    });
+  });
+
+  it("returns a sanitized diagnostic for a successful non-JSON upstream response", async () => {
+    const response = createResponse();
+    const chunkBase64 = "c2VjcmV0LWNodW5r";
+    const uploadUrl =
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=secret-upload-id";
+
+    await handleAppsScriptProxyRequest(
+      await createAuthenticatedRequest({
+        body: { resource: "uploadMediaChunk", payload: { chunkBase64, uploadUrl } }
+      }),
+      response,
+      {
+        env: createEnv(),
+        fetchImpl: vi.fn(async () => new Response(`<html>${chunkBase64} ${uploadUrl} ${BRIDGE_TOKEN}</html>`))
+      }
+    );
+
+    expect(response.statusCode).toBe(502);
+    expect(response.bodyJson).toMatchObject({
+      error: "Apps Script bridge returned an invalid response",
+      diagnostic: "apps-script-bridge-upstream-v2",
+      upstreamStatus: 200,
+      upstreamResource: "media-upload-chunk"
+    });
+    const diagnostic = JSON.stringify(response.bodyJson);
+    expect(diagnostic).not.toContain(chunkBase64);
+    expect(diagnostic).not.toContain(uploadUrl);
+    expect(diagnostic).not.toContain("secret-upload-id");
+    expect(diagnostic).not.toContain(BRIDGE_TOKEN);
   });
 
   it("returns 502 when Apps Script returns a non-success response", async () => {

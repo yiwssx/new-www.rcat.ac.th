@@ -30,6 +30,7 @@ import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import AdminPagination from "./AdminPagination";
 import ContentBlockBuilder from "./ContentBlockBuilder";
 import { ContentItem, ContentStatus, ContentType, MediaAsset, MediaType } from "../../types";
+import { MAX_MEDIA_UPLOAD_BYTES } from "../../features/cms-media";
 import type { MediaAssetInput } from "../../features/cms-media";
 import { contentStatusLabels, contentTypeLabels, mediaTypeLabels } from "../../utils/thaiLabels";
 import { CONTENT_TEMPLATE_LABELS, CONTENT_TEMPLATES, resolveContentTemplate } from "../../utils/contentTemplate";
@@ -509,6 +510,16 @@ export default function ContentEditorDialog({
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
+
+    if (file && file.size > MAX_MEDIA_UPLOAD_BYTES) {
+      setUploadFile(null);
+      setUploadName("");
+      setUploadType("image");
+      setUploadError("ไฟล์ต้องมีขนาดไม่เกิน 10 MB");
+      event.target.value = "";
+      return;
+    }
+
     setUploadFile(file);
     setUploadError("");
 
@@ -521,6 +532,14 @@ export default function ContentEditorDialog({
   async function handleUploadMedia() {
     if (!uploadFile || !onUploadMedia) {
       setUploadError("กรุณาเลือกไฟล์ก่อนอัปโหลด");
+      return;
+    }
+
+    if (uploadFile.size > MAX_MEDIA_UPLOAD_BYTES) {
+      setUploadFile(null);
+      setUploadName("");
+      setUploadType("image");
+      setUploadError("ไฟล์ต้องมีขนาดไม่เกิน 10 MB");
       return;
     }
 
@@ -1158,6 +1177,9 @@ export default function ContentEditorDialog({
                     onChange={handleFileChange}
                   />
                 </Button>
+                <Typography color="text.secondary" variant="body2">
+                  รองรับไฟล์ขนาดไม่เกิน 10 MB
+                </Typography>
                 {uploadFile && (
                   <Typography color="text.secondary" variant="body2">
                     {uploadFile.name} / {formatFileSize(uploadFile.size)}

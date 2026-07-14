@@ -76,6 +76,248 @@ function createDriveFile(asset) {
   return file;
 }
 
+function startMediaUpload(asset) {
+  validateRequired(asset, ["name", "type", "owner", "fileName", "mimeType"]);
+
+  const mediaType = normalizeMediaType(asset.type);
+  const contentType = resolveUploadMimeType(asset);
+  const totalBytes = normalizeUploadInteger(asset.totalBytes, "Invalid total upload size.");
+
+  if (totalBytes < 1 || totalBytes > MAX_UPLOAD_BYTES) {
+    throw createHttpError("File upload must be between 1 byte and 10 MB.", 413);
+  }
+
+  const uploadFolder = resolveMediaUploadFolder();
+  const response = UrlFetchApp.fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable", {
+    method: "post",
+    headers: {
+      Authorization: `Bearer ${ScriptApp.getOAuthToken()}`,
+      "X-Upload-Content-Length": String(totalBytes),
+      "X-Upload-Content-Type": contentType
+    },
+    contentType: "application/json; charset=UTF-8",
+    payload: JSON.stringify({
+      name: String(asset.fileName || asset.name).trim(),
+      parents: [uploadFolder.getId()]
+    }),
+    muteHttpExceptions: true,
+    followRedirects: false
+  });
+  const responseCode = response.getResponseCode();
+
+  if (responseCode !== 200 && responseCode !== 201) {
+    throw createHttpError("Unable to start the Drive upload session.", 502);
+  }
+
+  const uploadUrl = readResponseHeader(response, "Location");
+  validateDriveResumableUploadUrl(uploadUrl);
+
+  return {
+    uploadUrl,
+    totalBytes,
+    chunkSizeBytes: MEDIA_UPLOAD_CHUNK_BYTES,
+    mediaType
+  };
+}
+
+function uploadMediaChunk(asset) {
+  validateRequired(asset, [
+    "name",
+    "type",
+    "owner",
+    "fileName",
+    "mimeType",
+    "uploadUrl",
+    "chunkBase64"
+  ]);
+
+  const mediaType = normalizeMediaType(asset.type);
+  const contentType = resolveUploadMimeType(asset);
+  const totalBytes = normalizeUploadInteger(asset.totalBytes, "Invalid total upload size.");
+  const startByte = normalizeUploadInteger(asset.startByte, "Invalid upload range.");
+  const endByte = normalizeUploadInteger(asset.endByte, "Invalid upload range.");
+
+  if (totalBytes < 1 || totalBytes > MAX_UPLOAD_BYTES || startByte < 0 || endByte < startByte || endByte >= totalBytes) {
+    throw createHttpError("Invalid upload range.", 400);
+  }
+
+  const uploadUrl = validateDriveResumableUploadUrl(asset.uploadUrl);
+  const bytes = decodeUploadChunkBytes(asset.chunkBase64);
+  const expectedChunkBytes = endByte - startByte + 1;
+  const isFinalChunk = endByte + 1 === totalBytes;
+
+  if (bytes.length !== expectedChunkBytes || bytes.length > MEDIA_UPLOAD_CHUNK_BYTES) {
+    throw createHttpError("Upload chunk size does not match its range.", 400);
+  }
+
+  if (!isFinalChunk && bytes.length % (256 * 1024) !== 0) {
+    throw createHttpError("Non-final upload chunks must be aligned to 256 KiB.", 400);
+  }
+
+  const response = UrlFetchApp.fetch(uploadUrl, {
+    method: "put",
+    headers: {
+      Authorization: `Bearer ${ScriptApp.getOAuthToken()}`,
+      "Content-Range": `bytes ${startByte}-${endByte}/${totalBytes}`
+    },
+    contentType,
+    payload: bytes,
+    muteHttpExceptions: true,
+    followRedirects: false
+  });
+  const responseCode = response.getResponseCode();
+
+  if (responseCode === 308) {
+    const range = readResponseHeader(response, "Range");
+    const match = range.match(/^bytes=0-(\d+)$/i);
+
+    if (!match) {
+      throw createHttpError("Drive returned an invalid upload range.", 502);
+    }
+
+    return {
+      uploadComplete: false,
+      nextByte: Number(match[1]) + 1
+    };
+  }
+
+  if (responseCode === 404 || responseCode === 410) {
+    throw createHttpError("Media upload session expired. Please select the file again.", 410);
+  }
+
+  if (responseCode !== 200 && responseCode !== 201) {
+    throw createHttpError("Unable to upload the media chunk to Drive.", 502);
+  }
+
+  let driveResult;
+  try {
+    driveResult = JSON.parse(response.getContentText() || "{}");
+  } catch (error) {
+    throw createHttpError("Drive returned an invalid upload result.", 502);
+  }
+
+  const fileId = String(driveResult.id || "").trim();
+  if (!fileId) {
+    throw createHttpError("Drive did not return the uploaded file id.", 502);
+  }
+
+  const uploadedFile = DriveApp.getFileById(fileId);
+  uploadedFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+  return {
+    uploadComplete: true,
+    asset: buildMediaAssetFromDriveFile(asset, uploadedFile, mediaType)
+  };
+}
+
+function buildMediaAssetFromDriveFile(asset, uploadedFile, mediaType) {
+  const fileId = uploadedFile.getId();
+  const thumbnailUrl = mediaType === "image" ? buildPreviewUrl(fileId, mediaType) : "";
+  const embedUrl = buildEmbedUrl(fileId);
+
+  return {
+    id: asset.id || fileId || `media-${Date.now()}`,
+    name: String(asset.name || "").trim(),
+    type: mediaType,
+    size: formatBytes(uploadedFile.getSize()),
+    owner: String(asset.owner || "").trim(),
+    driveUrl: uploadedFile.getUrl(),
+    fileId,
+    mimeType: uploadedFile.getMimeType(),
+    thumbnailUrl,
+    previewUrl: thumbnailUrl || embedUrl,
+    embedUrl,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function normalizeUploadInteger(value, message) {
+  const numberValue = Number(value);
+
+  if (!Number.isSafeInteger(numberValue)) {
+    throw createHttpError(message, 400);
+  }
+
+  return numberValue;
+}
+
+function decodeUploadChunkBytes(chunkBase64) {
+  const normalized = String(chunkBase64 || "").replace(/\s+/g, "");
+  const paddingLength = normalized.slice(-2) === "==" ? 2 : normalized.slice(-1) === "=" ? 1 : 0;
+  const unpadded = paddingLength ? normalized.slice(0, -paddingLength) : normalized;
+  const paddingIsValid =
+    (paddingLength === 0 && unpadded.length % 4 === 0) ||
+    (paddingLength === 1 && unpadded.length % 4 === 3) ||
+    (paddingLength === 2 && unpadded.length % 4 === 2);
+
+  if (
+    !unpadded ||
+    !paddingIsValid ||
+    unpadded.indexOf("=") !== -1 ||
+    !/^[A-Za-z0-9+/]+$/.test(unpadded)
+  ) {
+    throw createHttpError("Invalid upload chunk data.", 400);
+  }
+
+  try {
+    return Utilities.base64Decode(normalized);
+  } catch (error) {
+    throw createHttpError("Invalid upload chunk data.", 400);
+  }
+}
+
+function validateDriveResumableUploadUrl(value) {
+  const uploadUrl = String(value || "").trim();
+
+  if (
+    /[\u0000-\u001F\u007F\s\\]/.test(uploadUrl) ||
+    !/^https:\/\/www\.googleapis\.com\/upload\/drive\/v3\/files\?[^#]+$/i.test(uploadUrl)
+  ) {
+    throw createHttpError("Invalid Drive upload session.", 400);
+  }
+
+  const query = uploadUrl.split("?")[1] || "";
+  const uploadType = readQueryParameter(query, "uploadType");
+  const uploadId = readQueryParameter(query, "upload_id");
+
+  if (uploadType !== "resumable" || !uploadId) {
+    throw createHttpError("Invalid Drive upload session.", 400);
+  }
+
+  return uploadUrl;
+}
+
+function readQueryParameter(query, name) {
+  const pairs = String(query || "").split("&");
+
+  for (let index = 0; index < pairs.length; index += 1) {
+    const parts = pairs[index].split("=");
+    try {
+      if (decodeURIComponent(parts[0] || "") === name) {
+        return decodeURIComponent(parts.slice(1).join("=") || "");
+      }
+    } catch (error) {
+      return "";
+    }
+  }
+
+  return "";
+}
+
+function readResponseHeader(response, name) {
+  const headers = response.getAllHeaders ? response.getAllHeaders() : response.getHeaders();
+  const target = String(name || "").toLowerCase();
+  const keys = Object.keys(headers || {});
+
+  for (let index = 0; index < keys.length; index += 1) {
+    if (keys[index].toLowerCase() === target) {
+      return String(headers[keys[index]] || "").trim();
+    }
+  }
+
+  return "";
+}
+
 function resolveUploadMimeType(asset) {
   const contentType = normalizeUploadMimeType(asset.mimeType || parseDataUrlMimeType(asset.fileBase64));
 
@@ -122,7 +364,7 @@ function decodeUploadBytes(fileBase64) {
 }
 
 function validateUploadBytes(bytes) {
-  if (!bytes || bytes.length > MAX_UPLOAD_BYTES) {
+  if (!bytes || bytes.length < 1 || bytes.length > MAX_UPLOAD_BYTES) {
     throw createHttpError("File upload exceeds the 10 MB limit.", 413);
   }
 }
