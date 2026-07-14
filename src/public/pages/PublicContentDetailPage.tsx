@@ -246,10 +246,12 @@ function FeaturedContentMedia({
         {...(layout === "feature" ? ({ fetchpriority: "high" } as Record<string, string>) : {})}
         sx={{
           width: "100%",
-          height: layout === "feature" ? { xs: 240, md: 500 } : { xs: 210, md: 320 },
+          height: "auto",
+          maxWidth: "100%",
           borderRadius: 2,
-          objectFit: "cover",
-          display: "block"
+          objectFit: "contain",
+          display: "block",
+          bgcolor: "background.default"
         }}
       />
     );
@@ -662,10 +664,12 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     {...({ fetchpriority: "high" } as Record<string, string>)}
                     sx={{
                       width: "100%",
-                      height: { xs: 220, md: 430 },
+                      height: "auto",
+                      maxWidth: "100%",
                       borderRadius: 2,
-                      objectFit: "cover",
-                      display: "block"
+                      objectFit: "contain",
+                      display: "block",
+                      bgcolor: "background.default"
                     }}
                   />
                 )}
@@ -758,7 +762,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
               <Box
                 className="rcat-image-frame"
                 sx={{
-                  minHeight: { xs: 180, md: 260 },
+                  minHeight: featuredMedia?.type === "image" && featuredMediaPreviewUrl ? 0 : { xs: 180, md: 260 },
                   display: "grid",
                   placeItems: "center",
                   bgcolor: "primary.light",
@@ -773,7 +777,13 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     loading="eager"
                     decoding="async"
                     {...({ fetchpriority: "high" } as Record<string, string>)}
-                    sx={{ width: "100%", height: { xs: 220, md: 360 }, objectFit: "cover" }}
+                    sx={{
+                      width: "100%",
+                      height: "auto",
+                      maxWidth: "100%",
+                      objectFit: "contain",
+                      display: "block"
+                    }}
                   />
                 ) : featuredMedia?.type === "video" && featuredMediaEmbedUrl ? (
                   <Box

@@ -172,7 +172,14 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 alt={block.caption || asset.name}
                 loading="lazy"
                 decoding="async"
-                sx={{ width: "100%", borderRadius: 2, maxHeight: 460, objectFit: "cover" }}
+                sx={{
+                  width: "100%",
+                  height: "auto",
+                  maxWidth: "100%",
+                  borderRadius: 2,
+                  objectFit: "contain",
+                  display: "block"
+                }}
               />
               {(block.caption || asset.name) && (
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>

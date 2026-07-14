@@ -981,7 +981,13 @@ export default function ContentEditorDialog({
                       src={featuredMedia.thumbnailUrl || featuredMedia.previewUrl}
                       alt={featuredMedia.name}
                       loading="lazy"
-                      sx={{ width: "100%", height: 150, objectFit: "cover" }}
+                      sx={{
+                        width: "100%",
+                        height: 220,
+                        objectFit: "contain",
+                        display: "block",
+                        bgcolor: "background.paper"
+                      }}
                     />
                   ) : featuredMedia ? (
                     <Stack spacing={0.75} alignItems="center" sx={{ p: 2, textAlign: "center" }}>
