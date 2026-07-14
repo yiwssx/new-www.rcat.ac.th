@@ -79,6 +79,32 @@ function booleanValue(value: unknown, fallback = false) {
   return typeof value === "boolean" ? value : fallback;
 }
 
+function normalizeImageFit(value: unknown) {
+  return value === "fill" || value === "fit" || value === "fit-blur" ? value : "fit-blur";
+}
+
+function normalizeFocalPoint(value: unknown) {
+  const number =
+    typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : Number.NaN;
+  return Number.isFinite(number) ? Math.min(100, Math.max(0, number)) : 50;
+}
+
+function normalizeBackgroundColor(value: unknown) {
+  const color = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return color === "" || /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/.test(color) ? color : "";
+}
+
+function deepMergeSettings(left: unknown, right: JsonRecord): unknown {
+  if (!isRecord(left)) {
+    return right;
+  }
+  const merged: JsonRecord = { ...left };
+  Object.entries(right).forEach(([key, value]) => {
+    merged[key] = isRecord(merged[key]) && isRecord(value) ? deepMergeSettings(merged[key], value) : value;
+  });
+  return merged;
+}
+
 function numberValue(value: unknown, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? Math.max(0, Math.floor(number)) : fallback;
@@ -122,28 +148,52 @@ async function run(env: Env, query: string, ...bindings: unknown[]) {
     .run();
 }
 
+function getFallbackSettingsValue(kind: SettingsKind) {
+  const fallback = createEmptyPublicMetadata();
+  return kind === "site"
+    ? fallback.siteSettings
+    : kind === "homepage"
+      ? fallback.homepageSettings
+      : fallback.displaySettings;
+}
+
+function normalizeSettingsValue(kind: SettingsKind, value: unknown) {
+  const fallbackValue = getFallbackSettingsValue(kind);
+  const merged = isRecord(value) ? deepMergeSettings(fallbackValue, value) : fallbackValue;
+  const row = { id: kind, settings_json: JSON.stringify(merged), updated_at: "" };
+  const metadata = createPublicMetadata({
+    siteSettings: kind === "site" ? row : null,
+    homepageSettings: kind === "homepage" ? row : null,
+    displaySettings: kind === "display" ? row : null,
+    menu: [],
+    media: [],
+    carouselSlides: [],
+    externalServices: [],
+    events: []
+  });
+
+  return kind === "site"
+    ? metadata.siteSettings
+    : kind === "homepage"
+      ? metadata.homepageSettings
+      : metadata.displaySettings;
+}
+
 async function getSettings(env: Env, kind: SettingsKind) {
   const config = settingsConfig[kind];
   const rows = await getRows<{ id: string; settings_json: string; updated_at: string }>(
     env,
     `SELECT ${config.columns.join(", ")} FROM ${config.table} ORDER BY updated_at DESC LIMIT 1`
   );
-  const fallback = createEmptyPublicMetadata();
-  const fallbackValue =
-    kind === "site"
-      ? fallback.siteSettings
-      : kind === "homepage"
-        ? fallback.homepageSettings
-        : fallback.displaySettings;
 
   try {
     const parsed: unknown = JSON.parse(rows[0]?.settings_json || "{}");
     return {
       id: rows[0]?.id || kind,
-      value: isRecord(parsed) ? { ...fallbackValue, ...parsed } : fallbackValue
+      value: normalizeSettingsValue(kind, parsed)
     };
   } catch {
-    return { id: rows[0]?.id || kind, value: fallbackValue };
+    return { id: rows[0]?.id || kind, value: getFallbackSettingsValue(kind) };
   }
 }
 
@@ -164,7 +214,7 @@ async function handleSettings(request: Request, env: Env, segments: string[], ac
 
   const current = await getSettings(env, kind);
   const body = await readJsonBody(request);
-  const value = { ...current.value, ...body };
+  const value = normalizeSettingsValue(kind, deepMergeSettings(current.value, body));
   const now = new Date().toISOString();
   const config = settingsConfig[kind];
 
@@ -303,6 +353,12 @@ function createEntityRow(entity: EntityName, body: JsonRecord, now: string, acto
       image_alt: stringValue(body.imageAlt),
       button_label: stringValue(body.buttonLabel),
       href: stringValue(body.href),
+      image_fit: normalizeImageFit(body.imageFit),
+      focal_point_x: normalizeFocalPoint(body.focalPointX),
+      focal_point_y: normalizeFocalPoint(body.focalPointY),
+      mobile_image_url: stringValue(body.mobileImageUrl),
+      background_color: normalizeBackgroundColor(body.backgroundColor),
+      open_in_new_tab: body.openInNewTab === true ? 1 : 0,
       enabled: booleanValue(body.enabled, true) ? 1 : 0,
       sort_order: numberValue(body.order),
       start_at: stringValue(body.startAt),

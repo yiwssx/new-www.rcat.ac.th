@@ -215,7 +215,12 @@ function createHomeSnapshot(overrides: Partial<PublicHomeSnapshot> = {}): Public
     homepageSettings: {
       carousel: {
         autoplayEnabled: true,
-        autoplayIntervalSeconds: 5
+        autoplayIntervalSeconds: 5,
+        showArrows: true,
+        showDots: true,
+        pauseOnHover: true,
+        pauseOnFocus: true,
+        transition: "slide"
       },
       introGate: {
         enabled: false,
@@ -711,6 +716,12 @@ describe("public data-driven pages", () => {
           imageAlt: "CMS carousel image",
           buttonLabel: "Read more",
           href: "/content/cms-carousel",
+          imageFit: "fit-blur",
+          focalPointX: 50,
+          focalPointY: 50,
+          mobileImageUrl: "",
+          backgroundColor: "",
+          openInNewTab: false,
           enabled: true,
           order: 1,
           updatedAt: "2026-05-10T00:00:00.000Z"

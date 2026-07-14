@@ -102,7 +102,12 @@ function createPublicContentListSnapshot(
     homepageSettings: {
       carousel: {
         autoplayEnabled: true,
-        autoplayIntervalSeconds: 5
+        autoplayIntervalSeconds: 5,
+        showArrows: true,
+        showDots: true,
+        pauseOnHover: true,
+        pauseOnFocus: true,
+        transition: "slide"
       },
       introGate: {
         enabled: false,
@@ -283,7 +288,12 @@ describe("publicCmsCache", () => {
       homepageSettings: {
         carousel: {
           autoplayEnabled: true,
-          autoplayIntervalSeconds: 5
+          autoplayIntervalSeconds: 5,
+          showArrows: true,
+          showDots: true,
+          pauseOnHover: true,
+          pauseOnFocus: true,
+          transition: "slide"
         },
         introGate: {
           enabled: false,

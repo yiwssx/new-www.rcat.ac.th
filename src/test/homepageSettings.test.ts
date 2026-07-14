@@ -12,7 +12,12 @@ describe("homepageSettings", () => {
     const settings = normalizeHomepageSettings({
       carousel: {
         autoplayEnabled: false,
-        autoplayIntervalSeconds: 8
+        autoplayIntervalSeconds: 8,
+        showArrows: false,
+        showDots: false,
+        pauseOnHover: false,
+        pauseOnFocus: false,
+        transition: "fade"
       },
       introGate: {
         enabled: true,
@@ -38,6 +43,11 @@ describe("homepageSettings", () => {
 
     expect(settings.carousel.autoplayEnabled).toBe(false);
     expect(settings.carousel.autoplayIntervalSeconds).toBe(8);
+    expect(settings.carousel.showArrows).toBe(false);
+    expect(settings.carousel.showDots).toBe(false);
+    expect(settings.carousel.pauseOnHover).toBe(false);
+    expect(settings.carousel.pauseOnFocus).toBe(false);
+    expect(settings.carousel.transition).toBe("fade");
     expect(settings.introGate.enabled).toBe(true);
     expect(settings.introGate.imageUrl).toBe("https://example.edu/intro.jpg");
     expect(settings.marquee.text).toBe("School announcement");
@@ -98,5 +108,56 @@ describe("homepageSettings", () => {
         }
       }).carousel.autoplayIntervalSeconds
     ).toBe(30);
+  });
+});
+
+it("deep-normalizes old carousel settings and preserves boolean false", () => {
+  const settings = normalizeHomepageSettings({
+    carousel: {
+      autoplayEnabled: false,
+      autoplayIntervalSeconds: 8
+    }
+  });
+
+  expect(settings.carousel).toEqual({
+    autoplayEnabled: false,
+    autoplayIntervalSeconds: 8,
+    showArrows: true,
+    showDots: true,
+    pauseOnHover: true,
+    pauseOnFocus: true,
+    transition: "slide"
+  });
+});
+
+it("normalizes invalid transition and supports partial nested carousel updates", () => {
+  const current = normalizeHomepageSettings({
+    carousel: {
+      autoplayEnabled: false,
+      autoplayIntervalSeconds: 8,
+      showArrows: false,
+      showDots: true,
+      pauseOnHover: false,
+      pauseOnFocus: false,
+      transition: "fade"
+    }
+  });
+  const settings = normalizeHomepageSettings({
+    ...current,
+    carousel: {
+      ...current.carousel,
+      showDots: false,
+      transition: "wipe" as never
+    }
+  });
+
+  expect(settings.carousel).toEqual({
+    autoplayEnabled: false,
+    autoplayIntervalSeconds: 8,
+    showArrows: false,
+    showDots: false,
+    pauseOnHover: false,
+    pauseOnFocus: false,
+    transition: "slide"
   });
 });

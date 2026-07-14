@@ -32,10 +32,18 @@ export interface PublicSiteSettingsContract {
   mourningModeNotice: string;
 }
 
+export type PublicCarouselImageFitContract = "fill" | "fit" | "fit-blur";
+export type PublicCarouselTransitionContract = "slide" | "fade";
+
 export interface PublicHomepageSettingsContract {
   carousel: {
     autoplayEnabled: boolean;
     autoplayIntervalSeconds: number;
+    showArrows: boolean;
+    showDots: boolean;
+    pauseOnHover: boolean;
+    pauseOnFocus: boolean;
+    transition: PublicCarouselTransitionContract;
   };
   introGate: {
     enabled: boolean;
@@ -96,6 +104,12 @@ export interface PublicCarouselSlideContract {
   imageAlt: string;
   buttonLabel: string;
   href: string;
+  imageFit: PublicCarouselImageFitContract;
+  focalPointX: number;
+  focalPointY: number;
+  mobileImageUrl: string;
+  backgroundColor: string;
+  openInNewTab: boolean;
   enabled: boolean;
   order: number;
   startAt?: string;

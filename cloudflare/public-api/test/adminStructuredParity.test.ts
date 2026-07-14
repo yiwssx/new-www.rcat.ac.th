@@ -211,7 +211,13 @@ describe("M19 structured admin parity routes", () => {
         title: "Sample slide",
         imageUrl: "https://images.example.test/slide.jpg",
         enabled: true,
-        order: 1
+        order: 1,
+        imageFit: "fill",
+        focalPointX: 35.5,
+        focalPointY: 20,
+        mobileImageUrl: " https://images.example.test/mobile.jpg ",
+        backgroundColor: "#123456",
+        openInNewTab: true
       }),
       env
     );
@@ -244,6 +250,16 @@ describe("M19 structured admin parity routes", () => {
     expect(menuResponse.status).toBe(200);
     expect(await readJson(menuResponse)).toMatchObject({ items: [expect.objectContaining({ id: "menu-1" })] });
     expect(carouselResponse.status).toBe(201);
+    expect(await readJson(carouselResponse.clone())).toMatchObject({
+      item: {
+        imageFit: "fill",
+        focalPointX: 35.5,
+        focalPointY: 20,
+        mobileImageUrl: "https://images.example.test/mobile.jpg",
+        backgroundColor: "#123456",
+        openInNewTab: true
+      }
+    });
     expect(serviceResponse.status).toBe(201);
     expect(eventResponse.status).toBe(201);
     const carouselUpdateResponse = await worker.fetch(
@@ -254,14 +270,28 @@ describe("M19 structured admin parity routes", () => {
           title: "Updated slide",
           imageUrl: "https://images.example.test/slide.jpg",
           enabled: true,
-          order: 1
+          order: 1,
+          imageFit: "bad-fit",
+          focalPointX: -10,
+          focalPointY: 140,
+          backgroundColor: "expression(alert(1))",
+          openInNewTab: "true"
         })
       }),
       env
     );
     expect(carouselUpdateResponse.status).toBe(200);
     expect(await readJson(carouselUpdateResponse)).toMatchObject({
-      item: { id: "slide-1", title: "Updated slide", revision: 1 }
+      item: {
+        id: "slide-1",
+        title: "Updated slide",
+        revision: 1,
+        imageFit: "fit-blur",
+        focalPointX: 0,
+        focalPointY: 100,
+        backgroundColor: "",
+        openInNewTab: false
+      }
     });
     const carouselUpdateWithoutRevisionResponse = await worker.fetch(
       request("/api/admin/carousel/slide-1", "PATCH", {
@@ -280,7 +310,7 @@ describe("M19 structured admin parity routes", () => {
     expect(snapshot).toMatchObject({
       siteSettings: { siteName: "Sample school" },
       menu: [expect.objectContaining({ id: "menu-1" })],
-      carouselSlides: [expect.objectContaining({ id: "slide-1" })],
+      carouselSlides: [expect.objectContaining({ id: "slide-1", imageFit: "fill", openInNewTab: true })],
       externalServices: [expect.objectContaining({ id: "service-1" })],
       events: [expect.objectContaining({ id: "event-1" })]
     });

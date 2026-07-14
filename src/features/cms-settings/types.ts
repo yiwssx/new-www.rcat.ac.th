@@ -26,9 +26,16 @@ export interface HomepageIntroVideoSettings {
   youtubeEmbedUrl: string;
 }
 
+export type CarouselTransition = "slide" | "fade";
+
 export interface HomepageCarouselSettings {
   autoplayEnabled: boolean;
   autoplayIntervalSeconds: number;
+  showArrows: boolean;
+  showDots: boolean;
+  pauseOnHover: boolean;
+  pauseOnFocus: boolean;
+  transition: CarouselTransition;
 }
 
 export interface HomepageSettings {

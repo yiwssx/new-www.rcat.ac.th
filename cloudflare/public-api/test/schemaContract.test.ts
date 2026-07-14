@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import migrationSql from "../migrations/0001_public_read_schema.sql?raw";
+import carouselResponsiveImageMigrationSql from "../migrations/0009_carousel_responsive_image_contract.sql?raw";
 import sample from "../seed/public-documents.sample.json";
 import wranglerToml from "../wrangler.toml?raw";
 import {
@@ -106,6 +107,12 @@ const expectedColumnsByTable = {
     "image_alt",
     "button_label",
     "href",
+    "image_fit",
+    "focal_point_x",
+    "focal_point_y",
+    "mobile_image_url",
+    "background_color",
+    "open_in_new_tab",
     "enabled",
     "sort_order",
     "start_at",
@@ -200,6 +207,19 @@ function getTableColumns(sql: string, tableName: string) {
     .map((line) => line.split(/\s+/)[0].replaceAll('"', ""));
 }
 
+function getAddedTableColumns(sql: string, tableName: string) {
+  const matches = sql.matchAll(new RegExp(`ALTER TABLE\\s+${tableName}\\s+ADD COLUMN\\s+("?[^\\s"]+"?)`, "gi"));
+
+  return Array.from(matches, (match) => match[1].replaceAll('"', ""));
+}
+
+function getMigratedTableColumns(tableName: string) {
+  return [
+    ...getTableColumns(migrationSql, tableName),
+    ...getAddedTableColumns(carouselResponsiveImageMigrationSql, tableName)
+  ];
+}
+
 function collectUrls(value: unknown, urls: string[] = []) {
   if (typeof value === "string") {
     if (/^https?:\/\//i.test(value)) {
@@ -239,12 +259,14 @@ describe("M2.1 D1 schema and sample safety contract", () => {
     expect(wranglerToml).not.toMatch(/^\s*database_id\s*=\s*"[0-9a-f-]{32,}"\s*$/m);
   });
 
-  it("keeps Worker row column constants aligned to the migration", () => {
+  it("keeps Worker row column constants aligned to the migration chain", () => {
     Object.entries(rowColumnContracts).forEach(([tableName, rowColumns]) => {
       const expectedColumns = expectedColumnsByTable[tableName as keyof typeof expectedColumnsByTable];
+      const migratedColumns = getMigratedTableColumns(tableName);
 
       expect(rowColumns).toEqual(expectedColumns);
-      expect(getTableColumns(migrationSql, tableName)).toEqual(expectedColumns);
+      expect(migratedColumns).toHaveLength(expectedColumns.length);
+      expect(migratedColumns).toEqual(expect.arrayContaining([...expectedColumns]));
     });
   });
 

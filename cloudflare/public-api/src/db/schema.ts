@@ -283,6 +283,12 @@ export interface CarouselSlideRow {
   image_alt: string;
   button_label: string;
   href: string;
+  image_fit: string;
+  focal_point_x: number;
+  focal_point_y: number;
+  mobile_image_url: string;
+  background_color: string;
+  open_in_new_tab: 0 | 1;
   enabled: 0 | 1;
   sort_order: number;
   start_at: string;
@@ -302,6 +308,12 @@ export const CAROUSEL_SLIDE_ROW_COLUMNS = [
   "image_alt",
   "button_label",
   "href",
+  "image_fit",
+  "focal_point_x",
+  "focal_point_y",
+  "mobile_image_url",
+  "background_color",
+  "open_in_new_tab",
   "enabled",
   "sort_order",
   "start_at",

@@ -48,8 +48,13 @@ const emptySiteSettings: PublicSiteSettingsContract = {
 
 const emptyHomepageSettings: PublicHomepageSettingsContract = {
   carousel: {
-    autoplayEnabled: false,
-    autoplayIntervalSeconds: 5
+    autoplayEnabled: true,
+    autoplayIntervalSeconds: 5,
+    showArrows: true,
+    showDots: true,
+    pauseOnHover: true,
+    pauseOnFocus: true,
+    transition: "slide"
   },
   introGate: {
     enabled: false,
@@ -82,6 +87,56 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function normalizeCarouselImageFit(value: unknown) {
+  return value === "fill" || value === "fit" || value === "fit-blur" ? value : "fit-blur";
+}
+
+function normalizeFocalPoint(value: unknown) {
+  const numericValue =
+    typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : Number.NaN;
+  return Number.isFinite(numericValue) ? Math.min(100, Math.max(0, numericValue)) : 50;
+}
+
+function normalizeBackgroundColor(value: unknown) {
+  const color = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return color === "" || /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/.test(color) ? color : "";
+}
+
+function normalizeCarouselTransition(value: unknown) {
+  return value === "fade" || value === "slide" ? value : "slide";
+}
+
+function normalizeCarouselIntervalSeconds(value: unknown) {
+  const numericValue = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numericValue) ? Math.min(30, Math.max(3, numericValue)) : 5;
+}
+
+function deepMergeSettings(fallback: unknown, parsed: Record<string, unknown>): unknown {
+  if (!isRecord(fallback)) {
+    return parsed;
+  }
+
+  const merged: Record<string, unknown> = { ...fallback };
+  Object.entries(parsed).forEach(([key, value]) => {
+    merged[key] = isRecord(merged[key]) && isRecord(value) ? deepMergeSettings(merged[key], value) : value;
+  });
+
+  if (isRecord(merged.carousel)) {
+    merged.carousel = {
+      ...merged.carousel,
+      autoplayEnabled: typeof merged.carousel.autoplayEnabled === "boolean" ? merged.carousel.autoplayEnabled : true,
+      autoplayIntervalSeconds: normalizeCarouselIntervalSeconds(merged.carousel.autoplayIntervalSeconds),
+      showArrows: typeof merged.carousel.showArrows === "boolean" ? merged.carousel.showArrows : true,
+      showDots: typeof merged.carousel.showDots === "boolean" ? merged.carousel.showDots : true,
+      pauseOnHover: typeof merged.carousel.pauseOnHover === "boolean" ? merged.carousel.pauseOnHover : true,
+      pauseOnFocus: typeof merged.carousel.pauseOnFocus === "boolean" ? merged.carousel.pauseOnFocus : true,
+      transition: normalizeCarouselTransition(merged.carousel.transition)
+    };
+  }
+
+  return merged;
+}
+
 function parseSettings<T>(value: string | undefined, fallback: T): T {
   if (!value) {
     return structuredClone(fallback);
@@ -89,7 +144,7 @@ function parseSettings<T>(value: string | undefined, fallback: T): T {
 
   try {
     const parsed: unknown = JSON.parse(value);
-    return isRecord(parsed) ? ({ ...structuredClone(fallback), ...parsed } as T) : structuredClone(fallback);
+    return isRecord(parsed) ? (deepMergeSettings(structuredClone(fallback), parsed) as T) : structuredClone(fallback);
   } catch {
     return structuredClone(fallback);
   }
@@ -174,6 +229,12 @@ export function createPublicMetadata(rows: PublicMetadataRows): PublicMetadataCo
     imageAlt: row.image_alt || "",
     buttonLabel: row.button_label || "",
     href: row.href || "",
+    imageFit: normalizeCarouselImageFit(row.image_fit),
+    focalPointX: normalizeFocalPoint(row.focal_point_x),
+    focalPointY: normalizeFocalPoint(row.focal_point_y),
+    mobileImageUrl: String(row.mobile_image_url ?? "").trim(),
+    backgroundColor: normalizeBackgroundColor(row.background_color),
+    openInNewTab: row.open_in_new_tab === 1,
     enabled: row.enabled === 1,
     order: Math.max(0, Number(row.sort_order) || 0),
     ...(row.start_at ? { startAt: row.start_at } : {}),

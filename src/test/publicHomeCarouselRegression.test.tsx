@@ -27,6 +27,12 @@ function createSlide(overrides: Partial<CarouselSlide> = {}): CarouselSlide {
     imageAlt: "",
     buttonLabel: "",
     href: "",
+    imageFit: "fit-blur",
+    focalPointX: 50,
+    focalPointY: 50,
+    mobileImageUrl: "",
+    backgroundColor: "",
+    openInNewTab: false,
     enabled: true,
     order: 1,
     updatedAt: "2026-05-10T00:00:00.000Z",
@@ -160,7 +166,15 @@ describe("PublicHomeCarousel regressions", () => {
 
     const { unmount } = render(
       <PublicHomeCarousel
-        settings={{ autoplayEnabled: false, autoplayIntervalSeconds: 5 }}
+        settings={{
+          autoplayEnabled: false,
+          autoplayIntervalSeconds: 5,
+          showArrows: true,
+          showDots: true,
+          pauseOnHover: true,
+          pauseOnFocus: true,
+          transition: "slide"
+        }}
         slides={[
           createSlide({ id: "slide-1", imageAlt: "First slide" }),
           createSlide({ id: "slide-2", imageAlt: "Second slide", imageUrl: "https://example.edu/slide-2.jpg" })
@@ -173,7 +187,15 @@ describe("PublicHomeCarousel regressions", () => {
 
     render(
       <PublicHomeCarousel
-        settings={{ autoplayEnabled: true, autoplayIntervalSeconds: 5 }}
+        settings={{
+          autoplayEnabled: true,
+          autoplayIntervalSeconds: 5,
+          showArrows: true,
+          showDots: true,
+          pauseOnHover: true,
+          pauseOnFocus: true,
+          transition: "slide"
+        }}
         slides={[
           createSlide({ id: "slide-1", imageAlt: "First slide" }),
           createSlide({ id: "slide-2", imageAlt: "Second slide", imageUrl: "https://example.edu/slide-2.jpg" })
@@ -189,7 +211,15 @@ describe("PublicHomeCarousel regressions", () => {
 
     render(
       <PublicHomeCarousel
-        settings={{ autoplayEnabled: true, autoplayIntervalSeconds: 5 }}
+        settings={{
+          autoplayEnabled: true,
+          autoplayIntervalSeconds: 5,
+          showArrows: true,
+          showDots: true,
+          pauseOnHover: true,
+          pauseOnFocus: true,
+          transition: "slide"
+        }}
         slides={[createSlide({ imageAlt: "Only slide" })]}
       />
     );

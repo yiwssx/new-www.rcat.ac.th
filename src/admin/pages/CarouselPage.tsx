@@ -40,7 +40,11 @@ import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
-import { deleteCarouselSlideFromApi, saveCarouselSlideToApi } from "../../features/cms-carousel";
+import {
+  deleteCarouselSlideFromApi,
+  normalizeCarouselSlide,
+  saveCarouselSlideToApi
+} from "../../features/cms-carousel";
 import {
   ADMIN_MEDIA_PAGE_SIZE_OPTIONS,
   ADMIN_PAGE_SIZE_OPTIONS,
@@ -96,27 +100,34 @@ function createCarouselDraft(order: number): CarouselSlide {
     order,
     startAt: "",
     endAt: "",
-    updatedAt: now
+    updatedAt: now,
+    imageFit: "fit-blur",
+    focalPointX: 50,
+    focalPointY: 50,
+    mobileImageUrl: "",
+    backgroundColor: "",
+    openInNewTab: false
   };
 }
 
 function normalizeCarouselDraft(slide: CarouselSlide): CarouselSlide {
-  const title = slide.title.trim();
+  const normalizedSlide = normalizeCarouselSlide(slide);
+  const title = normalizedSlide.title.trim();
   const order = Number(slide.order);
 
   return {
-    ...slide,
+    ...normalizedSlide,
     title,
-    subtitle: slide.subtitle.trim(),
-    chip: slide.chip.trim(),
-    imageUrl: slide.imageUrl.trim(),
-    imageAlt: slide.imageAlt.trim(),
-    buttonLabel: slide.buttonLabel.trim(),
-    href: slide.href.trim(),
-    enabled: Boolean(slide.enabled),
+    subtitle: normalizedSlide.subtitle.trim(),
+    chip: normalizedSlide.chip.trim(),
+    imageUrl: normalizedSlide.imageUrl.trim(),
+    imageAlt: normalizedSlide.imageAlt.trim(),
+    buttonLabel: normalizedSlide.buttonLabel.trim(),
+    href: normalizedSlide.href.trim(),
+    enabled: Boolean(normalizedSlide.enabled),
     order: Number.isFinite(order) ? order : 0,
-    startAt: slide.startAt || "",
-    endAt: slide.endAt || ""
+    startAt: normalizedSlide.startAt || "",
+    endAt: normalizedSlide.endAt || ""
   };
 }
 
@@ -321,11 +332,13 @@ export default function CarouselPage() {
       return;
     }
 
-    setEditingSlide({
-      ...slide,
-      startAt: slide.startAt || "",
-      endAt: slide.endAt || ""
-    });
+    setEditingSlide(
+      normalizeCarouselSlide({
+        ...slide,
+        startAt: slide.startAt || "",
+        endAt: slide.endAt || ""
+      })
+    );
     setMediaSearch("");
     setMediaPage(1);
     setIsCreating(false);
@@ -422,7 +435,7 @@ export default function CarouselPage() {
 
     try {
       const saved = await saveCarouselMutation.mutateAsync(nextSlide);
-      setEditingSlide(saved);
+      setEditingSlide(normalizeCarouselSlide(saved));
       handleCloseDialog();
       if (isCreating && sortBy === "updatedAt" && sortDirection === "desc" && page !== 1) {
         setPage(1);

@@ -3,7 +3,12 @@ import type { HomepageSettings } from "../types";
 export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   carousel: {
     autoplayEnabled: true,
-    autoplayIntervalSeconds: 5
+    autoplayIntervalSeconds: 5,
+    showArrows: true,
+    showDots: true,
+    pauseOnHover: true,
+    pauseOnFocus: true,
+    transition: "slide"
   },
   introGate: {
     enabled: false,
@@ -49,6 +54,10 @@ function normalizeSpeedSeconds(value: unknown) {
   return Math.min(180, Math.max(24, numericValue));
 }
 
+function normalizeCarouselTransition(value: unknown) {
+  return value === "fade" || value === "slide" ? value : DEFAULT_HOMEPAGE_SETTINGS.carousel.transition;
+}
+
 function normalizeCarouselIntervalSeconds(value: unknown) {
   const numericValue = typeof value === "number" ? value : Number(value);
 
@@ -59,7 +68,9 @@ function normalizeCarouselIntervalSeconds(value: unknown) {
   return Math.min(30, Math.max(3, numericValue));
 }
 
-export function normalizeHomepageSettings(input?: Partial<HomepageSettings> | null): HomepageSettings {
+type HomepageSettingsInput = { [K in keyof HomepageSettings]?: Partial<HomepageSettings[K]> };
+
+export function normalizeHomepageSettings(input?: HomepageSettingsInput | null): HomepageSettings {
   const source: Record<string, unknown> = isObjectRecord(input) ? input : {};
   const carousel: Record<string, unknown> = isObjectRecord(source.carousel) ? source.carousel : {};
   const introGate: Record<string, unknown> = isObjectRecord(source.introGate) ? source.introGate : {};
@@ -72,7 +83,20 @@ export function normalizeHomepageSettings(input?: Partial<HomepageSettings> | nu
         typeof carousel.autoplayEnabled === "boolean"
           ? carousel.autoplayEnabled
           : DEFAULT_HOMEPAGE_SETTINGS.carousel.autoplayEnabled,
-      autoplayIntervalSeconds: normalizeCarouselIntervalSeconds(carousel.autoplayIntervalSeconds)
+      autoplayIntervalSeconds: normalizeCarouselIntervalSeconds(carousel.autoplayIntervalSeconds),
+      showArrows:
+        typeof carousel.showArrows === "boolean" ? carousel.showArrows : DEFAULT_HOMEPAGE_SETTINGS.carousel.showArrows,
+      showDots:
+        typeof carousel.showDots === "boolean" ? carousel.showDots : DEFAULT_HOMEPAGE_SETTINGS.carousel.showDots,
+      pauseOnHover:
+        typeof carousel.pauseOnHover === "boolean"
+          ? carousel.pauseOnHover
+          : DEFAULT_HOMEPAGE_SETTINGS.carousel.pauseOnHover,
+      pauseOnFocus:
+        typeof carousel.pauseOnFocus === "boolean"
+          ? carousel.pauseOnFocus
+          : DEFAULT_HOMEPAGE_SETTINGS.carousel.pauseOnFocus,
+      transition: normalizeCarouselTransition(carousel.transition)
     },
     introGate: {
       enabled: normalizeEnabled(introGate.enabled),
