@@ -1,7 +1,7 @@
 import { readPublicCache, removePublicCache, writePublicCache } from "../../services/publicCmsCache";
 import type { PublicEventListSnapshot } from "./types";
 
-export const PUBLIC_EVENT_LIST_CACHE_KEY = "rcat.cms.public.event-list";
+export const PUBLIC_EVENT_LIST_CACHE_KEY = "rcat.cms.public.event-list.v2";
 export const PUBLIC_EVENT_LIST_CACHE_TTL_MS = 15 * 60 * 1000;
 
 export function getPublicEventListCache() {

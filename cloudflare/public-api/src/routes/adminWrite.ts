@@ -48,7 +48,7 @@ const PREVIEW_WRITE_SCHEMA = {
   display_settings: ["id", "settings_json", "updated_at", "created_at", "updated_by", "revision"],
   carousel_slides: ["id", "title", "image_url", "created_at", "updated_by", "revision"],
   external_services: ["id", "title", "href", "created_at", "updated_by", "revision"],
-  events: ["id", "title", "date", "created_at", "updated_by", "revision"],
+  events: ["id", "title", "date", "media_ids_json", "created_at", "updated_by", "revision"],
   media_assets: ["id", "drive_url", "preview_url", "embed_url", "thumbnail_url"],
   app_admin_users: ["id", "email", "name", "role", "status", "created_at", "updated_by", "revision"]
 } as const;

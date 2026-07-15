@@ -17,11 +17,11 @@ function compareEventDate(left: CalendarEvent, right: CalendarEvent) {
   const rightTime = Date.parse(right.date);
 
   if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
-    return leftTime - rightTime;
+    return rightTime - leftTime;
   }
 
   return (
-    left.date.localeCompare(right.date) || String(right.updatedAt || "").localeCompare(String(left.updatedAt || ""))
+    right.date.localeCompare(left.date) || String(right.updatedAt || "").localeCompare(String(left.updatedAt || ""))
   );
 }
 
@@ -82,7 +82,11 @@ export default function PublicCalendarPage() {
           กำหนดการทั้งหมด
         </Typography>
       </Stack>
-      <EventListCard items={eventsPagination.paginatedItems} emptyTitle="ยังไม่มีกำหนดการเผยแพร่" />
+      <EventListCard
+        items={eventsPagination.paginatedItems}
+        mediaAssets={data.media}
+        emptyTitle="ยังไม่มีกำหนดการเผยแพร่"
+      />
       {events.length > 0 && (
         <PublicPagination
           page={eventsPagination.page}

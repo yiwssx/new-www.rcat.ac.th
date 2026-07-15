@@ -115,6 +115,7 @@ type EventListRow = Pick<
   | "description"
   | "category"
   | "visibility"
+  | "media_ids_json"
   | "updated_at"
   | "revision"
 >;
@@ -181,6 +182,7 @@ const EVENT_LIST_COLUMNS = [
   "description",
   "category",
   "visibility",
+  "media_ids_json",
   "updated_at",
   "revision"
 ] as const satisfies readonly (keyof EventListRow)[];
@@ -488,6 +490,23 @@ function mapMedia(row: MediaAssetRow) {
   };
 }
 
+function parseEventMediaIds(value: string) {
+  try {
+    const parsed: unknown = JSON.parse(value || "[]");
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+      .filter((item, index, items) => items.indexOf(item) === index);
+  } catch {
+    return [];
+  }
+}
+
 function mapEvent(row: EventListRow) {
   return {
     id: row.id,
@@ -501,6 +520,7 @@ function mapEvent(row: EventListRow) {
     ...(row.category ? { category: row.category } : {}),
     visibility: row.visibility,
     updatedAt: row.updated_at,
+    mediaIds: parseEventMediaIds(row.media_ids_json),
     revision: Number(row.revision ?? 0)
   };
 }

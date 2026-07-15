@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import m17Doc from "../../../docs/architecture/m17-cloudflare-core-public-read-batch-2026-06-13.md?raw";
-import type { DocumentRow } from "../src/db/schema";
+import type { DocumentRow, EventRow } from "../src/db/schema";
 import worker from "../src/index";
 import { PUBLIC_READ_ROUTE_REGISTRY } from "../src/routes/publicReadRegistry";
 
@@ -134,6 +134,7 @@ const sampleVisitorStats = [
 type MockDbOptions = {
   contentRows?: typeof sampleContentRows;
   documentRows?: DocumentRow[];
+  eventRows?: EventRow[];
   homeSections?: typeof sampleHomeSections;
   mediaRows?: typeof sampleMediaRows;
   onlineUsers?: number;
@@ -152,6 +153,7 @@ async function readTextAndJson(response: Response) {
 function createPublicReadMockDb(options: MockDbOptions = {}) {
   const contentRows = options.contentRows ?? sampleContentRows;
   const documentRows = options.documentRows ?? sampleDocuments;
+  const eventRows = options.eventRows ?? [];
   const homeSections = options.homeSections ?? sampleHomeSections;
   const mediaRows = options.mediaRows ?? sampleMediaRows;
   const onlineUsers = options.onlineUsers ?? 2;
@@ -185,6 +187,15 @@ function createPublicReadMockDb(options: MockDbOptions = {}) {
                 results = homeSections;
               } else if (/FROM\s+visitor_daily_stats/i.test(query)) {
                 results = visitorStatsRows;
+              } else if (/FROM\s+events/i.test(query)) {
+                const [visibility, status] = call.bindings;
+
+                results = eventRows
+                  .filter((row) => row.visibility === visibility && row.status === status)
+                  .sort(
+                    (left, right) =>
+                      right.date.localeCompare(left.date) || right.updated_at.localeCompare(left.updated_at)
+                  );
               } else if (/FROM\s+media_assets/i.test(query)) {
                 results = mediaRows;
               } else if (/FROM\s+contents/i.test(query)) {
@@ -370,6 +381,129 @@ describe("M17 Cloudflare Core public read routes", () => {
         })
       )
     );
+  });
+
+  it("includes media referenced by public homepage events and excludes private or unreferenced media", async () => {
+    const eventRows: EventRow[] = [
+      {
+        id: "event-later",
+        title: "Later public event",
+        date: "2026-07-20T09:00:00.000Z",
+        end_date: "2026-07-20T11:00:00.000Z",
+        audience: "students",
+        status: "confirmed",
+        location: "Main hall",
+        description: "",
+        category: "academic",
+        visibility: "public",
+        media_ids_json: '["sample-event-media"]',
+        updated_at: "2026-07-10T00:00:00.000Z"
+      },
+      {
+        id: "event-sooner",
+        title: "Sooner public event",
+        date: "2026-07-10T09:00:00.000Z",
+        end_date: "2026-07-10T11:00:00.000Z",
+        audience: "students",
+        status: "confirmed",
+        location: "Auditorium",
+        description: "",
+        category: "academic",
+        visibility: "public",
+        media_ids_json: "[]",
+        updated_at: "2026-07-09T00:00:00.000Z"
+      },
+      {
+        id: "event-draft",
+        title: "Draft event",
+        date: "2026-07-30T09:00:00.000Z",
+        end_date: "2026-07-30T11:00:00.000Z",
+        audience: "staff",
+        status: "draft",
+        location: "",
+        description: "",
+        category: "",
+        visibility: "public",
+        media_ids_json: '["sample-media-unreferenced"]',
+        updated_at: "2026-07-11T00:00:00.000Z"
+      },
+      {
+        id: "event-private",
+        title: "Private event",
+        date: "2026-07-25T09:00:00.000Z",
+        end_date: "2026-07-25T11:00:00.000Z",
+        audience: "staff",
+        status: "confirmed",
+        location: "",
+        description: "",
+        category: "",
+        visibility: "private",
+        media_ids_json: '["sample-media-unreferenced"]',
+        updated_at: "2026-07-11T00:00:00.000Z"
+      }
+    ];
+
+    const mediaRows = [
+      ...sampleMediaRows,
+      {
+        id: "sample-event-media",
+        name: "Event image",
+        type: "image",
+        size: "",
+        owner: "",
+        drive_url: "https://files.example.test/public/event.jpg",
+        file_id: "",
+        mime_type: "image/jpeg",
+        preview_url: "https://files.example.test/public/event.jpg",
+        embed_url: "",
+        thumbnail_url: "",
+        updated_at: "2026-07-10T00:00:00.000Z"
+      }
+    ];
+
+    const { env, calls } = createPublicReadMockDb({
+      eventRows,
+      mediaRows
+    });
+
+    const response = await worker.fetch(new Request("https://public-api.example.test/api/public/home"), env);
+
+    const { payload, text } = await readTextAndJson(response);
+
+    expect(response.status).toBe(200);
+
+    expect(payload.eventItems).toEqual([
+      expect.objectContaining({
+        id: "event-later",
+        mediaIds: ["sample-event-media"]
+      }),
+      expect.objectContaining({
+        id: "event-sooner",
+        mediaIds: []
+      })
+    ]);
+
+    expect(
+      (
+        payload.media as Array<{
+          id: string;
+        }>
+      ).map((item) => item.id)
+    ).toEqual(["sample-media-001", "sample-media-002", "sample-event-media"]);
+
+    expect(JSON.stringify(payload)).not.toContain("event-draft");
+
+    expect(JSON.stringify(payload)).not.toContain("event-private");
+
+    expect(JSON.stringify(payload)).not.toContain("sample-media-unreferenced");
+
+    const eventQuery = calls.find((call) => /FROM\s+events/i.test(call.query));
+
+    expect(eventQuery?.bindings).toEqual(["public", "confirmed"]);
+
+    expect(eventQuery?.query).toMatch(/ORDER BY date DESC/i);
+
+    expectNoLeakage(text);
   });
 
   it("returns a public content list response instead of the M17 skeleton", async () => {

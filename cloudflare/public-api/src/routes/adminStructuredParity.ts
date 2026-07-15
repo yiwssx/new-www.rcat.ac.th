@@ -75,6 +75,41 @@ function stringValue(value: unknown, fallback = "") {
   return typeof value === "string" ? value.trim() : fallback;
 }
 
+function parseStringArray(value: string | undefined) {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+      .filter((item, index, items) => items.indexOf(item) === index);
+  } catch {
+    return [];
+  }
+}
+
+function serializeStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return "[]";
+  }
+
+  return JSON.stringify(
+    value
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+      .filter((item, index, items) => items.indexOf(item) === index)
+      .slice(0, 12)
+  );
+}
+
 function booleanValue(value: unknown, fallback = false) {
   return typeof value === "boolean" ? value : fallback;
 }
@@ -398,6 +433,7 @@ function createEntityRow(entity: EntityName, body: JsonRecord, now: string, acto
     description: stringValue(body.description),
     category: stringValue(body.category),
     visibility: stringValue(body.visibility, "public"),
+    media_ids_json: serializeStringArray(body.mediaIds),
     updated_at: now,
     created_at: now,
     updated_by: actor,
@@ -430,6 +466,7 @@ function mapEntity(entity: EntityName, row: CarouselSlideRow | ExternalServiceRo
     ...(event.description ? { description: event.description } : {}),
     ...(event.category ? { category: event.category } : {}),
     visibility: event.visibility,
+    mediaIds: parseStringArray(event.media_ids_json),
     updatedAt: event.updated_at,
     revision: event.revision
   };
@@ -787,7 +824,7 @@ export async function readAdminStructuredSnapshot(env: Env) {
       env,
       `SELECT ${EXTERNAL_SERVICE_ADMIN_ROW_COLUMNS.join(", ")} FROM external_services ORDER BY sort_order ASC`
     ),
-    getRows<EventRow>(env, `SELECT ${EVENT_ROW_COLUMNS.join(", ")} FROM events ORDER BY date ASC`)
+    getRows<EventRow>(env, `SELECT ${EVENT_ROW_COLUMNS.join(", ")} FROM events ORDER BY date DESC, updated_at DESC`)
   ]);
   const metadata = createPublicMetadata({
     siteSettings: site[0] ?? null,

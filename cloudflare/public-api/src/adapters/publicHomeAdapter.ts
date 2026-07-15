@@ -67,6 +67,12 @@ export function createPublicHomeSnapshot(
     .slice(0, HOME_ACHIEVEMENT_LIMIT);
   const publicDocuments = input.featuredDocuments.map(mapDocumentRowToPublicDocumentItem);
   const homeContent = [...latestNews, ...latestAnnouncements, ...programs, ...featuredContent];
+  const homeMediaReferences = [
+    ...homeContent,
+    ...input.metadata.events.map((event) => ({
+      mediaIds: event.mediaIds ?? []
+    }))
+  ];
 
   return {
     siteSettings: input.metadata.siteSettings,
@@ -92,7 +98,7 @@ export function createPublicHomeSnapshot(
     programItems: programs,
     documentItems: publicDocuments,
     eventItems: input.metadata.events,
-    media: filterPublicMedia(input.metadata.media, homeContent),
+    media: filterPublicMedia(input.metadata.media, homeMediaReferences),
     sections: input.sections.map(mapHomeSectionRowToPublicHomeSection),
     featuredContent,
     featuredDocuments: publicDocuments,

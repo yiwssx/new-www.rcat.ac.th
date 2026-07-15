@@ -240,6 +240,7 @@ export default function PublicHomePage() {
                 <DeferredHomeSection minHeight={220}>
                   <LazyEventListCard
                     items={eventItems}
+                    mediaAssets={mediaAssets}
                     limit={3}
                     viewAllHref="/calendar"
                     viewAllLabel="ดูกำหนดการทั้งหมด"

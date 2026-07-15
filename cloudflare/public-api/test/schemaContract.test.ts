@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import migrationSql from "../migrations/0001_public_read_schema.sql?raw";
 import carouselResponsiveImageMigrationSql from "../migrations/0009_carousel_responsive_image_contract.sql?raw";
+import eventMediaMigrationSql from "../migrations/0010_event_media_attachments.sql?raw";
 import sample from "../seed/public-documents.sample.json";
 import wranglerToml from "../wrangler.toml?raw";
 import {
@@ -131,6 +132,7 @@ const expectedColumnsByTable = {
     "description",
     "category",
     "visibility",
+    "media_ids_json",
     "updated_at"
   ],
   visitor_events: ["id", "visitor_id", "path", "referrer_origin", "page_title", "created_at"],
@@ -216,7 +218,8 @@ function getAddedTableColumns(sql: string, tableName: string) {
 function getMigratedTableColumns(tableName: string) {
   return [
     ...getTableColumns(migrationSql, tableName),
-    ...getAddedTableColumns(carouselResponsiveImageMigrationSql, tableName)
+    ...getAddedTableColumns(carouselResponsiveImageMigrationSql, tableName),
+    ...getAddedTableColumns(eventMediaMigrationSql, tableName)
   ];
 }
 
@@ -252,11 +255,26 @@ describe("M2.1 D1 schema and sample safety contract", () => {
     expect(migrationSql).not.toMatch(/\bINSERT\s+INTO\b/i);
   });
 
-  it("keeps the D1 binding local-only with no real production database id", () => {
-    expect(wranglerToml).toMatch(/^\[\[d1_databases\]\]/m);
-    expect(wranglerToml).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-local"\s*$/m);
-    expect(wranglerToml).toMatch(/^\s*database_id\s*=\s*"local-placeholder"\s*$/m);
-    expect(wranglerToml).not.toMatch(/^\s*database_id\s*=\s*"[0-9a-f-]{32,}"\s*$/m);
+  it("keeps local and production bindings safe while allowing the scoped preview database", () => {
+    const localSection = wranglerToml.split("[env.preview]")[0] || "";
+
+    const previewSection = wranglerToml.split("[env.preview]")[1]?.split("[env.production]")[0] || "";
+
+    const productionSection = wranglerToml.split("[env.production]")[1] || "";
+
+    expect(localSection).toMatch(/^\[\[d1_databases\]\]/m);
+
+    expect(localSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-local"\s*$/m);
+
+    expect(localSection).toMatch(/^\s*database_id\s*=\s*"local-placeholder"\s*$/m);
+
+    expect(previewSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-preview"\s*$/m);
+
+    expect(previewSection).toMatch(/^\s*database_id\s*=\s*"[0-9a-f-]{32,}"\s*$/m);
+
+    expect(productionSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-production"\s*$/m);
+
+    expect(productionSection).toMatch(/^\s*database_id\s*=\s*"production-placeholder"\s*$/m);
   });
 
   it("keeps Worker row column constants aligned to the migration chain", () => {
@@ -329,5 +347,11 @@ describe("M2.1 D1 schema and sample safety contract", () => {
       resource: "public-document-list",
       phase: "M3"
     });
+  });
+
+  it("adds event media attachment storage", () => {
+    expect(eventMediaMigrationSql).toMatch(/ALTER\s+TABLE\s+events/i);
+
+    expect(eventMediaMigrationSql).toMatch(/ADD\s+COLUMN\s+media_ids_json\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'\[\]'/i);
   });
 });

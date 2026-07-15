@@ -140,6 +140,7 @@ export interface PublicEventContract {
   description?: string;
   category?: string;
   visibility?: string;
+  mediaIds?: string[];
   updatedAt?: string;
 }
 

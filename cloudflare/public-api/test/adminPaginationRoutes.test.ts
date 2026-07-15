@@ -195,6 +195,8 @@ function createPaginationDb(initial: Record<string, Row[]> = {}) {
       );
     } else if (/ORDER BY\s+sort_order\s+ASC/i.test(query)) {
       rows.sort((left, right) => Number(left.sort_order) - Number(right.sort_order));
+    } else if (table === "events" && /ORDER BY\s+date\s+DESC/i.test(query)) {
+      rows.sort((left, right) => String(right.date).localeCompare(String(left.date)));
     } else if (table === "events" && /ORDER BY\s+date\s+ASC/i.test(query)) {
       rows.sort((left, right) => String(left.date).localeCompare(String(right.date)));
     }
@@ -446,6 +448,7 @@ function allEntityRows() {
         description: "",
         category: "general",
         visibility: "public",
+        media_ids_json: JSON.stringify(["media-1", "media-1", ""]),
         updated_at: "2026-07-01T00:00:00.000Z",
         revision: 0
       }
@@ -973,6 +976,23 @@ describe("admin server pagination routes", () => {
     expect(menu.items).toEqual([
       expect.objectContaining({ id: "menu-1", parentId: null, label: "Home", order: 0, revision: 0 })
     ]);
+
+    const eventList = await jsonBody(await worker.fetch(request("/api/admin/events"), env));
+
+    expect(eventList.items).toEqual([
+      expect.objectContaining({
+        id: "event-1",
+        mediaIds: ["media-1"]
+      })
+    ]);
+
+    const eventItemQuery = state.calls.find(
+      (call) => /FROM events/i.test(call.query) && /LIMIT \? OFFSET \?/i.test(call.query)
+    );
+
+    expect(eventItemQuery?.query).toMatch(/SELECT[\s\S]*media_ids_json[\s\S]*FROM events/i);
+
+    expect(eventItemQuery?.query).toMatch(/ORDER BY date DESC/i);
 
     const expectedOrderKeys: Record<string, string[]> = {
       documents: ["id", "order", "pinned", "revision", "title"],

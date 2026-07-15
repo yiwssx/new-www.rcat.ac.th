@@ -1,7 +1,7 @@
 import type { CalendarEvent } from "../cms-events/types";
 import type { PublicEventListSnapshot } from "./types";
 
-const forbiddenInternalKeys = ["end_date", "updated_at"] as const;
+const forbiddenInternalKeys = ["end_date", "media_ids_json", "updated_at"] as const;
 const validStatuses = new Set(["confirmed", "draft", "cancelled"]);
 const validVisibility = new Set(["public", "private"]);
 
@@ -32,6 +32,13 @@ function assertOptionalString(value: Record<string, unknown>, key: keyof Calenda
 function assertPublicEventItem(value: unknown): asserts value is CalendarEvent {
   if (!isRecord(value)) {
     throw new Error("Invalid public-event-list response: each item must be an object");
+  }
+
+  if (
+    value.mediaIds !== undefined &&
+    (!Array.isArray(value.mediaIds) || value.mediaIds.some((id) => typeof id !== "string"))
+  ) {
+    throw new Error("Invalid public-event-list response: item.mediaIds must be a string array");
   }
 
   const forbiddenKey = getForbiddenKey(value);
@@ -65,6 +72,24 @@ function assertPublicEventItem(value: unknown): asserts value is CalendarEvent {
   }
 }
 
+function assertPublicMediaAsset(value: unknown) {
+  if (!isRecord(value)) {
+    throw new Error("Invalid public-event-list response: each media item must be an object");
+  }
+
+  for (const key of ["id", "name", "type", "size", "owner", "driveUrl", "updatedAt"] as const) {
+    if (typeof value[key] !== "string") {
+      throw new Error(`Invalid public-event-list response: media.${key} must be a string`);
+    }
+  }
+
+  for (const key of ["fileId", "mimeType", "thumbnailUrl", "previewUrl", "embedUrl"] as const) {
+    if (value[key] !== undefined && typeof value[key] !== "string") {
+      throw new Error(`Invalid public-event-list response: media.${key} must be a string when present`);
+    }
+  }
+}
+
 export function assertPublicEventListSnapshot(value: unknown): asserts value is PublicEventListSnapshot {
   if (!isRecord(value)) {
     throw new Error("Invalid public-event-list response: snapshot must be an object");
@@ -79,6 +104,12 @@ export function assertPublicEventListSnapshot(value: unknown): asserts value is 
   }
 
   value.items.forEach(assertPublicEventItem);
+
+  if (!Array.isArray(value.media)) {
+    throw new Error("Invalid public-event-list response: media must be an array");
+  }
+
+  value.media.forEach(assertPublicMediaAsset);
 }
 
 export function isPublicEventListSnapshot(value: unknown): value is PublicEventListSnapshot {

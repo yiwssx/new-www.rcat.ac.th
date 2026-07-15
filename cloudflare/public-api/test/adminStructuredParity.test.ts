@@ -326,6 +326,91 @@ describe("M19 structured admin parity routes", () => {
     }
   });
 
+  it("creates and updates event media attachments without losing ids", async () => {
+    const { db, tables } = createStructuredMockDb();
+
+    const env = {
+      ...smokeEnvBase,
+      DB: db
+    };
+
+    const createResponse = await worker.fetch(
+      request("/api/admin/events", "POST", {
+        id: "event-media",
+        title: "Event with media",
+        date: "2026-07-20T09:00:00.000Z",
+        endDate: "2026-07-20T11:00:00.000Z",
+        audience: "students",
+        status: "confirmed",
+        location: "Main hall",
+        description: "Event description",
+        category: "academic",
+        visibility: "public",
+        mediaIds: ["media-1", "media-2", "media-1", ""]
+      }),
+      env
+    );
+
+    expect(createResponse.status).toBe(201);
+
+    expect(await readJson(createResponse)).toMatchObject({
+      item: {
+        id: "event-media",
+        mediaIds: ["media-1", "media-2"],
+        revision: 0
+      }
+    });
+
+    expect(tables.events[0]?.media_ids_json).toBe('["media-1","media-2"]');
+
+    const updateResponse = await worker.fetch(
+      new Request("https://preview-worker.example.test/api/admin/events/event-media", {
+        method: "PATCH",
+        headers: {
+          ...smokeHeaders,
+          "X-RCAT-Expected-Revision": "0"
+        },
+        body: JSON.stringify({
+          title: "Updated event with media",
+          date: "2026-07-20T09:00:00.000Z",
+          endDate: "2026-07-20T12:00:00.000Z",
+          audience: "students",
+          status: "confirmed",
+          location: "Main hall",
+          description: "Updated description",
+          category: "academic",
+          visibility: "public",
+          mediaIds: ["media-2", "media-3"]
+        })
+      }),
+      env
+    );
+
+    expect(updateResponse.status).toBe(200);
+
+    expect(await readJson(updateResponse)).toMatchObject({
+      item: {
+        id: "event-media",
+        title: "Updated event with media",
+        mediaIds: ["media-2", "media-3"],
+        revision: 1
+      }
+    });
+
+    expect(tables.events[0]?.media_ids_json).toBe('["media-2","media-3"]');
+
+    const snapshotResponse = await worker.fetch(request("/api/admin/snapshot"), env);
+
+    expect(await readJson(snapshotResponse)).toMatchObject({
+      events: [
+        expect.objectContaining({
+          id: "event-media",
+          mediaIds: ["media-2", "media-3"]
+        })
+      ]
+    });
+  });
+
   it("returns admin snapshot E-Service revisions without adding revisions to public metadata", async () => {
     const { db, tables } = createStructuredMockDb();
     const env = { ...smokeEnvBase, DB: db };

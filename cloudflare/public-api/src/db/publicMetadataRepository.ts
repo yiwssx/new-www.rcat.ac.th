@@ -76,7 +76,7 @@ export async function readPublicMetadataRows(env: Env): Promise<PublicMetadataRo
          FROM events
          WHERE visibility = ?
            AND status = ?
-         ORDER BY date ASC, updated_at DESC`,
+         ORDER BY date DESC, updated_at DESC`,
         ["public", "confirmed"]
       )
     ]);

@@ -11,6 +11,7 @@ import type {
 import type { PublicMetadataRows } from "../db/publicMetadataRepository";
 import type { MenuItemRow } from "../db/schema";
 import { mapEventRowToPublicEventItem } from "./publicEventsAdapter";
+import { mapMediaAssetRowToPublicMediaAsset } from "./publicMediaAdapter";
 
 const emptySiteSettings: PublicSiteSettingsContract = {
   siteName: "",
@@ -206,20 +207,7 @@ function mapMenuRows(rows: MenuItemRow[]): PublicMenuItemContract[] {
 }
 
 export function createPublicMetadata(rows: PublicMetadataRows): PublicMetadataContract {
-  const media: PublicMediaAssetContract[] = rows.media.map((row) => ({
-    id: row.id || "",
-    name: row.name || "",
-    type: row.type || "document",
-    size: row.size || "",
-    owner: row.owner || "",
-    driveUrl: row.drive_url || "",
-    ...(row.file_id ? { fileId: row.file_id } : {}),
-    ...(row.mime_type ? { mimeType: row.mime_type } : {}),
-    ...(row.thumbnail_url ? { thumbnailUrl: row.thumbnail_url } : {}),
-    ...(row.preview_url ? { previewUrl: row.preview_url } : {}),
-    ...(row.embed_url ? { embedUrl: row.embed_url } : {}),
-    updatedAt: row.updated_at || ""
-  }));
+  const media: PublicMediaAssetContract[] = rows.media.map(mapMediaAssetRowToPublicMediaAsset);
   const carouselSlides: PublicCarouselSlideContract[] = rows.carouselSlides.map((row) => ({
     id: row.id || "",
     title: row.title || "",

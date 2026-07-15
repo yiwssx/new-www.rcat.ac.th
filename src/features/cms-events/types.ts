@@ -9,6 +9,7 @@ export interface CalendarEvent {
   description?: string;
   category?: string;
   visibility?: "public" | "private";
+  mediaIds?: string[];
   updatedAt?: string;
   revision?: number;
 }
@@ -25,4 +26,5 @@ export interface CalendarEventInput {
   description?: string;
   category?: string;
   visibility?: CalendarEvent["visibility"];
+  mediaIds?: string[];
 }

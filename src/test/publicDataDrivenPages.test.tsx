@@ -315,6 +315,7 @@ function createDocumentListSnapshot(overrides: Partial<PublicDocumentListSnapsho
 function createEventListSnapshot(overrides: Partial<PublicEventListSnapshot> = {}): PublicEventListSnapshot {
   return {
     items: [],
+    media: [],
     generatedAt: "2026-05-12T00:00:00.000Z",
     ...overrides
   };
@@ -1322,17 +1323,144 @@ describe("public data-driven pages", () => {
     expect(screen.getByRole("button", { name: "ลองอีกครั้ง" })).toBeInTheDocument();
   });
 
-  it("paginates public confirmed calendar events", () => {
+  it("paginates public confirmed calendar events in descending date order", () => {
     currentEventListSnapshot = createEventListSnapshot({
       items: createNumberedEvents(13)
     });
 
     render(<PublicCalendarPage />);
 
-    expect(screen.getByText("กำหนดการลำดับ 1")).toBeInTheDocument();
-    expect(screen.getByText("กำหนดการลำดับ 12")).toBeInTheDocument();
-    expect(screen.queryByText("กำหนดการลำดับ 13")).not.toBeInTheDocument();
+    expect(screen.getByText("กำหนดการลำดับ 13")).toBeInTheDocument();
+
+    expect(screen.getByText("กำหนดการลำดับ 2")).toBeInTheDocument();
+
+    expect(screen.queryByText("กำหนดการลำดับ 1")).not.toBeInTheDocument();
+
     expect(screen.getByText("แสดง 1–12 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
+  });
+
+  it("shows lifecycle statuses, date ranges, and event media without exposing internal fields", async () => {
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-07-15T12:00:00+07:00"));
+
+    try {
+      const user = userEvent.setup();
+
+      currentEventListSnapshot = createEventListSnapshot({
+        items: [
+          {
+            id: "event-ended",
+            title: "กิจกรรมสิ้นสุดแล้ว",
+            date: "2026-07-14T09:00:00+07:00",
+            endDate: "2026-07-14T10:00:00+07:00",
+            audience: "นักเรียน",
+            status: "confirmed",
+            visibility: "public"
+          },
+          {
+            id: "event-ongoing",
+            title: "กิจกรรมกำลังดำเนิน",
+            date: "2026-07-15T11:00:00+07:00",
+            endDate: "2026-07-15T13:00:00+07:00",
+            audience: "นักเรียนและครู",
+            status: "confirmed",
+            visibility: "public",
+            location: "หอประชุม",
+            description: "รายละเอียดกิจกรรมที่กำลังดำเนิน",
+            mediaIds: ["event-image"]
+          },
+          {
+            id: "event-upcoming",
+            title: "กิจกรรมกำลังจะมาถึง",
+            date: "2026-07-16T09:00:00+07:00",
+            endDate: "2026-07-16T10:00:00+07:00",
+            audience: "ผู้ปกครอง",
+            status: "confirmed",
+            visibility: "public"
+          }
+        ],
+        media: [
+          {
+            id: "event-image",
+            name: "ภาพกิจกรรม",
+            type: "image",
+            size: "120 KB",
+            owner: "Admin",
+            driveUrl: "https://files.example.test/event-image.jpg",
+            previewUrl: "https://files.example.test/event-image.jpg",
+            updatedAt: "2026-07-15T00:00:00.000Z"
+          }
+        ]
+      });
+
+      render(<PublicCalendarPage />);
+
+      const calendarHeading = screen.getByRole("heading", {
+        name: "กำหนดการ",
+        level: 2
+      });
+
+      const calendarCard = calendarHeading.closest<HTMLElement>(".rcat-card");
+
+      expect(calendarCard).not.toBeNull();
+
+      if (!calendarCard) {
+        throw new Error("Calendar card was not found");
+      }
+
+      const calendarCardQueries = within(calendarCard);
+
+      const detailButtons = calendarCardQueries.getAllByRole("button", {
+        name: /^ดูรายละเอียด /
+      });
+
+      expect(detailButtons.map((button) => button.getAttribute("aria-label"))).toEqual([
+        "ดูรายละเอียด กิจกรรมกำลังจะมาถึง",
+        "ดูรายละเอียด กิจกรรมกำลังดำเนิน",
+        "ดูรายละเอียด กิจกรรมสิ้นสุดแล้ว"
+      ]);
+
+      expect(calendarCardQueries.getByText("กำลังจะมาถึง")).toBeInTheDocument();
+
+      expect(calendarCardQueries.getByText("กำลังดำเนิน")).toBeInTheDocument();
+
+      expect(calendarCardQueries.getByText("สิ้นสุดแล้ว")).toBeInTheDocument();
+
+      expect(calendarCardQueries.queryByText(/^confirmed$/i)).not.toBeInTheDocument();
+
+      expect(calendarCardQueries.queryByText(/^public$/i)).not.toBeInTheDocument();
+
+      await user.click(
+        screen.getByRole("button", {
+          name: "ดูรายละเอียด กิจกรรมกำลังดำเนิน"
+        })
+      );
+
+      const dialog = await screen.findByRole("dialog", {
+        name: "กิจกรรมกำลังดำเนิน"
+      });
+
+      expect(dialog).toHaveTextContent("วันเวลาเริ่มต้น - วันเวลาสิ้นสุด");
+
+      expect(dialog).toHaveTextContent("11:00");
+
+      expect(dialog).toHaveTextContent("13:00");
+
+      expect(within(dialog).getByText("กำลังดำเนิน")).toBeInTheDocument();
+
+      expect(within(dialog).queryByText(/^confirmed$/i)).not.toBeInTheDocument();
+
+      expect(within(dialog).queryByText(/^public$/i)).not.toBeInTheDocument();
+
+      expect(within(dialog).queryByText("การมองเห็น")).not.toBeInTheDocument();
+
+      expect(
+        within(dialog).getByRole("img", {
+          name: "ภาพกิจกรรม"
+        })
+      ).toHaveAttribute("src", "https://files.example.test/event-image.jpg");
+    } finally {
+      nowSpy.mockRestore();
+    }
   });
 
   it("renders all public confirmed events on the public calendar page and keeps detail dialogs", async () => {

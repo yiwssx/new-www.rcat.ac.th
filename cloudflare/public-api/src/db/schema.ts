@@ -373,6 +373,7 @@ export interface EventRow {
   description: string;
   category: string;
   visibility: string;
+  media_ids_json: string;
   updated_at: string;
   created_at?: string;
   updated_by?: string;
@@ -390,6 +391,7 @@ export const EVENT_ROW_COLUMNS = [
   "description",
   "category",
   "visibility",
+  "media_ids_json",
   "updated_at"
 ] as const satisfies readonly (keyof EventRow)[];
 

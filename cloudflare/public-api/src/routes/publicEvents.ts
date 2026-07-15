@@ -1,5 +1,5 @@
 import { createPublicEventListSnapshot } from "../adapters/publicEventsAdapter";
-import { listPublicEventRows } from "../db/eventsRepository";
+import { listPublicEventMediaRows, listPublicEventRows } from "../db/eventsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -16,7 +16,9 @@ export async function publicEvents(env: Env) {
 
   try {
     const rows = await listPublicEventRows(env);
-    return json(createPublicEventListSnapshot(rows));
+    const mediaRows = await listPublicEventMediaRows(env, rows);
+
+    return json(createPublicEventListSnapshot(rows, mediaRows));
   } catch {
     return jsonError("Unable to load public-events", 500, {
       resource: PUBLIC_EVENTS_RESOURCE,
