@@ -6,16 +6,17 @@ import ArrowForwardIosRoundedIcon from "@mui/icons-material/ArrowForwardIosRound
 import CircleIcon from "@mui/icons-material/Circle";
 import useEmblaCarousel from "embla-carousel-react";
 import { CarouselSlide, HomepageCarouselSettings } from "../../types";
+import { normalizeCarouselSlide } from "../../features/cms-carousel";
+import CarouselImageStage from "../../shared/components/CarouselImageStage";
 import {
   isCarouselSlideActive,
   normalizeCarouselAutoplayIntervalSeconds,
   shouldStartCarouselAutoplay
 } from "../utils/homeCarousel";
-import { getPublicImageSrcSet } from "../../utils/safeUrl";
 
 interface ResolvedCarouselSlide {
   id: string;
-  imageUrl: string;
+  slide: CarouselSlide;
   altText: string;
   label: string;
 }
@@ -91,17 +92,19 @@ export default function PublicHomeCarousel({
   const resolvedSlides = useMemo(() => {
     return slides
       .map((slide): ResolvedCarouselSlide | null => {
-        if (!isCarouselSlideActive(slide, visibleAtMs)) {
+        const normalizedSlide = normalizeCarouselSlide(slide);
+
+        if (!isCarouselSlideActive(normalizedSlide, visibleAtMs)) {
           return null;
         }
 
-        const altText = slide.imageAlt || slide.title || DEFAULT_SLIDE_ALT;
+        const altText = normalizedSlide.imageAlt || normalizedSlide.title || DEFAULT_SLIDE_ALT;
 
         return {
-          id: slide.id,
-          imageUrl: slide.imageUrl,
+          id: normalizedSlide.id,
+          slide: normalizedSlide,
           altText,
-          label: slide.title || altText
+          label: normalizedSlide.title || altText
         };
       })
       .filter((slide): slide is ResolvedCarouselSlide => Boolean(slide));
@@ -195,11 +198,11 @@ export default function PublicHomeCarousel({
         >
           <Box ref={emblaRef} sx={{ overflow: "hidden" }}>
             <Box sx={{ display: "flex" }}>
-              {resolvedSlides.map((slide, index) => (
+              {resolvedSlides.map((resolvedSlide, index) => (
                 <Box
-                  key={slide.id}
+                  key={resolvedSlide.id}
                   role="group"
-                  aria-label={slide.label}
+                  aria-label={resolvedSlide.label}
                   sx={{
                     position: "relative",
                     flex: "0 0 100%",
@@ -209,24 +212,13 @@ export default function PublicHomeCarousel({
                     overflow: "hidden"
                   }}
                 >
-                  <Box
-                    component="img"
-                    src={slide.imageUrl}
-                    srcSet={getPublicImageSrcSet(slide.imageUrl) || undefined}
-                    sizes="(max-width: 900px) 100vw, 1280px"
-                    alt={slide.altText}
+                  <CarouselImageStage
+                    slide={resolvedSlide.slide}
+                    alt={resolvedSlide.altText}
                     loading={index === 0 ? "eager" : "lazy"}
-                    {...({ fetchpriority: index === 0 ? "high" : "auto" } as Record<string, string>)}
-                    decoding="async"
-                    sx={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      objectPosition: "center center",
-                      zIndex: 0
-                    }}
+                    fetchPriority={index === 0 ? "high" : "auto"}
+                    sizes="(max-width: 900px) 100vw, 1280px"
+                    emptyLabel="ไม่สามารถแสดงภาพสไลด์ได้"
                   />
                 </Box>
               ))}

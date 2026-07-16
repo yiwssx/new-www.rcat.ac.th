@@ -80,6 +80,28 @@ describe("PublicHomeCarousel regressions", () => {
     expect(screen.queryByRole("link", { name: "Legacy CTA" })).not.toBeInTheDocument();
   });
 
+  it("uses the shared image renderer and preserves the slide display contract", () => {
+    const { container } = render(
+      <PublicHomeCarousel
+        slides={[
+          createSlide({
+            imageAlt: "Feature poster",
+            imageFit: "fill",
+            focalPointX: 30,
+            focalPointY: 15
+          })
+        ]}
+      />
+    );
+
+    const stage = container.querySelector('[data-carousel-image-stage="true"]');
+    const image = screen.getByRole("img", { name: "Feature poster" });
+
+    expect(stage).toHaveAttribute("data-carousel-image-fit", "fill");
+    expect(image).toHaveAttribute("data-carousel-object-fit", "cover");
+    expect(image).toHaveAttribute("data-carousel-object-position", "30% 15%");
+  });
+
   it("marks the first image eager/high priority and later images lazy/auto priority", () => {
     render(
       <PublicHomeCarousel
@@ -106,7 +128,7 @@ describe("PublicHomeCarousel regressions", () => {
     expect(secondImage).toHaveAttribute("decoding", "async");
   });
 
-  it("adds responsive Google Drive carousel image candidates without changing first image priority", () => {
+  it("uses a normalized Google Drive URL and responsive candidates without changing first image priority", () => {
     render(
       <PublicHomeCarousel
         slides={[
@@ -121,7 +143,7 @@ describe("PublicHomeCarousel regressions", () => {
 
     const image = screen.getByRole("img", { name: "Drive slide" });
 
-    expect(image).toHaveAttribute("src", "https://drive.google.com/file/d/RCAT_carousel-2026_ABC123/view?usp=sharing");
+    expect(image).toHaveAttribute("src", "https://drive.google.com/thumbnail?id=RCAT_carousel-2026_ABC123&sz=w1600");
     expect(image).toHaveAttribute(
       "srcset",
       [

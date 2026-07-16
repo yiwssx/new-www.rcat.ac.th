@@ -39,6 +39,7 @@ import SwapVertOutlinedIcon from "@mui/icons-material/SwapVertOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
+import CarouselImageStage from "../../shared/components/CarouselImageStage";
 import { useAuth } from "../../context/authSessionContext";
 import {
   deleteCarouselSlideFromApi,
@@ -1173,35 +1174,13 @@ export default function CarouselPage() {
               </Grid>
               <Grid size={{ xs: 12, md: 5 }}>
                 <Card sx={{ overflow: "hidden" }}>
-                  <Box
-                    sx={{
-                      minHeight: 220,
-                      display: "grid",
-                      placeItems: "center",
-                      bgcolor: "primary.dark",
-                      overflow: "hidden"
-                    }}
-                  >
-                    {editingSlide.imageUrl ? (
-                      <Box
-                        component="img"
-                        src={editingSlide.imageUrl}
-                        alt={editingSlide.imageAlt || editingSlide.title || CAROUSEL_FALLBACK_TITLE}
-                        sx={{
-                          width: "100%",
-                          minHeight: 220,
-                          height: "100%",
-                          display: "block",
-                          objectFit: "cover",
-                          objectPosition: "center center"
-                        }}
-                      />
-                    ) : (
-                      <Typography color="white" fontWeight={800}>
-                        ยังไม่มีรูปภาพ
-                      </Typography>
-                    )}
-                  </Box>
+                  <CarouselImageStage
+                    slide={editingSlide}
+                    alt={editingSlide.imageAlt || editingSlide.title || CAROUSEL_FALLBACK_TITLE}
+                    sizes="(max-width: 900px) 100vw, 420px"
+                    emptyLabel="ยังไม่มีรูปภาพ"
+                    stageSx={{ minHeight: 220 }}
+                  />
                 </Card>
               </Grid>
             </Grid>
