@@ -13,6 +13,11 @@ import {
   normalizeCarouselAutoplayIntervalSeconds,
   shouldStartCarouselAutoplay
 } from "../utils/homeCarousel";
+import {
+  getPublicCarouselControlVisibility,
+  PUBLIC_CAROUSEL_IMAGE_SIZES,
+  PUBLIC_CAROUSEL_STAGE_HEIGHTS
+} from "../utils/homeCarouselPresentation";
 
 interface ResolvedCarouselSlide {
   id: string;
@@ -109,12 +114,14 @@ export default function PublicHomeCarousel({
       })
       .filter((slide): slide is ResolvedCarouselSlide => Boolean(slide));
   }, [slides, visibleAtMs]);
+
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const autoplayRef = useRef<number | null>(null);
   const autoplayEnabled = settings?.autoplayEnabled ?? true;
   const autoplayIntervalMs = normalizeCarouselAutoplayIntervalSeconds(settings?.autoplayIntervalSeconds) * 1000;
+  const controlVisibility = getPublicCarouselControlVisibility(settings, resolvedSlides.length);
 
   const stopAutoplay = useCallback(() => {
     if (autoplayRef.current) {
@@ -182,6 +189,7 @@ export default function PublicHomeCarousel({
     <Box component="section" aria-label="สไลด์ประชาสัมพันธ์หน้าแรก" sx={{ mb: { xs: 2.5, md: 3.5 } }}>
       <Container maxWidth="xl">
         <Box
+          data-public-home-carousel="true"
           onMouseEnter={() => {
             setIsHovering(true);
           }}
@@ -191,23 +199,27 @@ export default function PublicHomeCarousel({
           sx={{
             position: "relative",
             overflow: "hidden",
-            borderRadius: 1,
+            isolation: "isolate",
+            borderRadius: { xs: 1.5, md: 2 },
             bgcolor: "primary.dark",
             boxShadow: "0 18px 34px rgba(31, 90, 44, 0.16)"
           }}
         >
           <Box ref={emblaRef} sx={{ overflow: "hidden" }}>
-            <Box sx={{ display: "flex" }}>
+            <Box sx={{ display: "flex", alignItems: "stretch" }}>
               {resolvedSlides.map((resolvedSlide, index) => (
                 <Box
                   key={resolvedSlide.id}
                   role="group"
                   aria-label={resolvedSlide.label}
+                  data-carousel-slide-stage="true"
+                  data-carousel-stage-sizing="fixed-responsive"
                   sx={{
                     position: "relative",
                     flex: "0 0 100%",
+                    width: "100%",
                     minWidth: 0,
-                    minHeight: { xs: 260, sm: 320, md: 420 },
+                    height: PUBLIC_CAROUSEL_STAGE_HEIGHTS,
                     bgcolor: "primary.dark",
                     overflow: "hidden"
                   }}
@@ -217,7 +229,7 @@ export default function PublicHomeCarousel({
                     alt={resolvedSlide.altText}
                     loading={index === 0 ? "eager" : "lazy"}
                     fetchPriority={index === 0 ? "high" : "auto"}
-                    sizes="(max-width: 900px) 100vw, 1280px"
+                    sizes={PUBLIC_CAROUSEL_IMAGE_SIZES}
                     emptyLabel="ไม่สามารถแสดงภาพสไลด์ได้"
                   />
                 </Box>
@@ -225,16 +237,41 @@ export default function PublicHomeCarousel({
             </Box>
           </Box>
 
-          {resolvedSlides.length > 1 && (
-            <Stack
-              direction="row"
-              spacing={1}
+          {controlVisibility.dots && (
+            <Box
+              aria-hidden="true"
+              data-carousel-control-scrim="true"
               sx={{
                 position: "absolute",
-                right: { xs: 12, md: 20 },
-                top: { xs: 12, md: 20 },
-                zIndex: 2
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: { xs: 72, md: 88 },
+                zIndex: 2,
+                pointerEvents: "none",
+                background: "linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.34) 100%)"
               }}
+            />
+          )}
+
+          {controlVisibility.arrows && (
+            <Stack
+              direction="row"
+              spacing={0.5}
+              data-carousel-arrow-controls="true"
+              sx={(theme) => ({
+                position: "absolute",
+                right: { xs: 10, md: 18 },
+                top: { xs: 10, md: 18 },
+                zIndex: 3,
+                p: 0.5,
+                borderRadius: 999,
+                color: "common.white",
+                bgcolor: alpha(theme.palette.common.black, 0.3),
+                border: `1px solid ${alpha(theme.palette.common.white, 0.22)}`,
+                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.24)",
+                backdropFilter: "blur(8px)"
+              })}
             >
               <IconButton
                 aria-label="สไลด์ก่อนหน้า"
@@ -243,10 +280,13 @@ export default function PublicHomeCarousel({
                   width: { xs: 34, md: 40 },
                   height: { xs: 34, md: 40 },
                   color: "white",
-                  bgcolor: alpha(theme.palette.common.black, 0.22),
-                  backdropFilter: "blur(2px)",
+                  bgcolor: alpha(theme.palette.common.black, 0.12),
                   "&:hover": {
-                    bgcolor: alpha(theme.palette.common.black, 0.38)
+                    bgcolor: alpha(theme.palette.common.black, 0.4)
+                  },
+                  "&:focus-visible": {
+                    outline: `2px solid ${theme.palette.secondary.main}`,
+                    outlineOffset: 2
                   }
                 })}
               >
@@ -259,10 +299,13 @@ export default function PublicHomeCarousel({
                   width: { xs: 34, md: 40 },
                   height: { xs: 34, md: 40 },
                   color: "white",
-                  bgcolor: alpha(theme.palette.common.black, 0.22),
-                  backdropFilter: "blur(2px)",
+                  bgcolor: alpha(theme.palette.common.black, 0.12),
                   "&:hover": {
-                    bgcolor: alpha(theme.palette.common.black, 0.38)
+                    bgcolor: alpha(theme.palette.common.black, 0.4)
+                  },
+                  "&:focus-visible": {
+                    outline: `2px solid ${theme.palette.secondary.main}`,
+                    outlineOffset: 2
                   }
                 })}
               >
@@ -271,18 +314,25 @@ export default function PublicHomeCarousel({
             </Stack>
           )}
 
-          {resolvedSlides.length > 1 && (
+          {controlVisibility.dots && (
             <Stack
               direction="row"
-              spacing={0.4}
+              spacing={0.15}
               justifyContent="center"
-              sx={{
+              data-carousel-dot-controls="true"
+              sx={(theme) => ({
                 position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: { xs: 10, md: 16 },
-                zIndex: 2
-              }}
+                left: "50%",
+                bottom: { xs: 8, md: 14 },
+                zIndex: 3,
+                transform: "translateX(-50%)",
+                p: 0.25,
+                borderRadius: 999,
+                bgcolor: alpha(theme.palette.common.black, 0.26),
+                border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
+                boxShadow: "0 6px 20px rgba(0, 0, 0, 0.22)",
+                backdropFilter: "blur(8px)"
+              })}
             >
               {resolvedSlides.map((slide, index) => (
                 <IconButton
@@ -292,11 +342,18 @@ export default function PublicHomeCarousel({
                   onClick={() => {
                     scrollTo(index);
                   }}
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    color: selectedIndex === index ? "secondary.main" : "rgba(255, 255, 255, 0.7)"
-                  }}
+                  sx={(theme) => ({
+                    width: { xs: 28, md: 30 },
+                    height: { xs: 28, md: 30 },
+                    color: selectedIndex === index ? "secondary.main" : alpha(theme.palette.common.white, 0.78),
+                    "&:hover": {
+                      bgcolor: alpha(theme.palette.common.white, 0.12)
+                    },
+                    "&:focus-visible": {
+                      outline: `2px solid ${theme.palette.secondary.main}`,
+                      outlineOffset: 1
+                    }
+                  })}
                 >
                   <CircleIcon sx={{ fontSize: selectedIndex === index ? 9 : 7 }} />
                 </IconButton>

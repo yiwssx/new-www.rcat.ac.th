@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicHomeCarousel from "../public/components/PublicHomeCarousel";
 import { shouldStartCarouselAutoplay } from "../public/utils/homeCarousel";
-import { CarouselSlide } from "../types";
+import { CarouselSlide, HomepageCarouselSettings } from "../types";
 
 const emblaApiMock = vi.hoisted(() => ({
   on: vi.fn(),
@@ -36,6 +36,19 @@ function createSlide(overrides: Partial<CarouselSlide> = {}): CarouselSlide {
     enabled: true,
     order: 1,
     updatedAt: "2026-05-10T00:00:00.000Z",
+    ...overrides
+  };
+}
+
+function createSettings(overrides: Partial<HomepageCarouselSettings> = {}): HomepageCarouselSettings {
+  return {
+    autoplayEnabled: true,
+    autoplayIntervalSeconds: 5,
+    showArrows: true,
+    showDots: true,
+    pauseOnHover: true,
+    pauseOnFocus: true,
+    transition: "slide",
     ...overrides
   };
 }
@@ -102,6 +115,30 @@ describe("PublicHomeCarousel regressions", () => {
     expect(image).toHaveAttribute("data-carousel-object-position", "30% 15%");
   });
 
+  it("gives every slide the same fixed responsive stage contract", () => {
+    const { container } = render(
+      <PublicHomeCarousel
+        slides={[
+          createSlide({ id: "slide-1", imageAlt: "Landscape slide" }),
+          createSlide({
+            id: "slide-2",
+            imageAlt: "Portrait slide",
+            imageUrl: "https://example.edu/portrait.jpg",
+            imageFit: "fit",
+            order: 2
+          })
+        ]}
+      />
+    );
+
+    const stages = container.querySelectorAll('[data-carousel-slide-stage="true"]');
+
+    expect(stages).toHaveLength(2);
+    stages.forEach((stage) => {
+      expect(stage).toHaveAttribute("data-carousel-stage-sizing", "fixed-responsive");
+    });
+  });
+
   it("marks the first image eager/high priority and later images lazy/auto priority", () => {
     render(
       <PublicHomeCarousel
@@ -153,22 +190,25 @@ describe("PublicHomeCarousel regressions", () => {
         "https://drive.google.com/thumbnail?id=RCAT_carousel-2026_ABC123&sz=w1600 1600w"
       ].join(", ")
     );
-    expect(image).toHaveAttribute("sizes", "(max-width: 900px) 100vw, 1280px");
+    expect(image).toHaveAttribute("sizes", "(max-width: 900px) 100vw, 1536px");
     expect(image).toHaveAttribute("loading", "eager");
     expect(image).toHaveAttribute("fetchpriority", "high");
   });
 
-  it("hides navigation controls and dots when only one visible slide exists", () => {
-    render(<PublicHomeCarousel slides={[createSlide({ imageAlt: "Only slide" })]} />);
+  it("hides all navigation controls when only one visible slide exists", () => {
+    const { container } = render(<PublicHomeCarousel slides={[createSlide({ imageAlt: "Only slide" })]} />);
 
     expect(screen.getByRole("img", { name: "Only slide" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "สไลด์ก่อนหน้า" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "สไลด์ถัดไป" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ไปยังสไลด์ 1" })).not.toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-arrow-controls="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-dot-controls="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-control-scrim="true"]')).not.toBeInTheDocument();
   });
 
-  it("shows previous/next controls and dot buttons when multiple visible slides exist", () => {
-    render(
+  it("shows readable arrow and dot control groups by default for multiple slides", () => {
+    const { container } = render(
       <PublicHomeCarousel
         slides={[
           createSlide({ id: "slide-1", imageAlt: "First slide" }),
@@ -181,6 +221,65 @@ describe("PublicHomeCarousel regressions", () => {
     expect(screen.getByRole("button", { name: "สไลด์ถัดไป" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ไปยังสไลด์ 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ไปยังสไลด์ 2" })).toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-arrow-controls="true"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-dot-controls="true"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-control-scrim="true"]')).toBeInTheDocument();
+  });
+
+  it("honors showArrows=false without hiding dots or the dot scrim", () => {
+    const { container } = render(
+      <PublicHomeCarousel
+        settings={createSettings({ showArrows: false, showDots: true })}
+        slides={[
+          createSlide({ id: "slide-1", imageAlt: "First slide" }),
+          createSlide({ id: "slide-2", imageAlt: "Second slide", imageUrl: "https://example.edu/slide-2.jpg" })
+        ]}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "สไลด์ก่อนหน้า" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "สไลด์ถัดไป" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ไปยังสไลด์ 1" })).toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-arrow-controls="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-dot-controls="true"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-control-scrim="true"]')).toBeInTheDocument();
+  });
+
+  it("honors showDots=false without hiding arrows and removes the unused bottom scrim", () => {
+    const { container } = render(
+      <PublicHomeCarousel
+        settings={createSettings({ showArrows: true, showDots: false })}
+        slides={[
+          createSlide({ id: "slide-1", imageAlt: "First slide" }),
+          createSlide({ id: "slide-2", imageAlt: "Second slide", imageUrl: "https://example.edu/slide-2.jpg" })
+        ]}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "สไลด์ก่อนหน้า" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "สไลด์ถัดไป" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "ไปยังสไลด์ 1" })).not.toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-arrow-controls="true"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-dot-controls="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-control-scrim="true"]')).not.toBeInTheDocument();
+  });
+
+  it("can hide both control groups while keeping the carousel images visible", () => {
+    const { container } = render(
+      <PublicHomeCarousel
+        settings={createSettings({ showArrows: false, showDots: false })}
+        slides={[
+          createSlide({ id: "slide-1", imageAlt: "First slide" }),
+          createSlide({ id: "slide-2", imageAlt: "Second slide", imageUrl: "https://example.edu/slide-2.jpg" })
+        ]}
+      />
+    );
+
+    expect(screen.getByRole("img", { name: "First slide" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Second slide" })).toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-arrow-controls="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-dot-controls="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-carousel-control-scrim="true"]')).not.toBeInTheDocument();
   });
 
   it("starts autoplay only when enabled and more than one visible slide exists", () => {
@@ -188,15 +287,7 @@ describe("PublicHomeCarousel regressions", () => {
 
     const { unmount } = render(
       <PublicHomeCarousel
-        settings={{
-          autoplayEnabled: false,
-          autoplayIntervalSeconds: 5,
-          showArrows: true,
-          showDots: true,
-          pauseOnHover: true,
-          pauseOnFocus: true,
-          transition: "slide"
-        }}
+        settings={createSettings({ autoplayEnabled: false })}
         slides={[
           createSlide({ id: "slide-1", imageAlt: "First slide" }),
           createSlide({ id: "slide-2", imageAlt: "Second slide", imageUrl: "https://example.edu/slide-2.jpg" })
@@ -209,15 +300,7 @@ describe("PublicHomeCarousel regressions", () => {
 
     render(
       <PublicHomeCarousel
-        settings={{
-          autoplayEnabled: true,
-          autoplayIntervalSeconds: 5,
-          showArrows: true,
-          showDots: true,
-          pauseOnHover: true,
-          pauseOnFocus: true,
-          transition: "slide"
-        }}
+        settings={createSettings({ autoplayEnabled: true })}
         slides={[
           createSlide({ id: "slide-1", imageAlt: "First slide" }),
           createSlide({ id: "slide-2", imageAlt: "Second slide", imageUrl: "https://example.edu/slide-2.jpg" })
@@ -233,15 +316,7 @@ describe("PublicHomeCarousel regressions", () => {
 
     render(
       <PublicHomeCarousel
-        settings={{
-          autoplayEnabled: true,
-          autoplayIntervalSeconds: 5,
-          showArrows: true,
-          showDots: true,
-          pauseOnHover: true,
-          pauseOnFocus: true,
-          transition: "slide"
-        }}
+        settings={createSettings({ autoplayEnabled: true })}
         slides={[createSlide({ imageAlt: "Only slide" })]}
       />
     );
