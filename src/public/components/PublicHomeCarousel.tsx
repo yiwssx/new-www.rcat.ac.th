@@ -1,18 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { Box, Container, IconButton, Stack } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import ArrowForwardIosRoundedIcon from "@mui/icons-material/ArrowForwardIosRounded";
 import CircleIcon from "@mui/icons-material/Circle";
+import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import useEmblaCarousel from "embla-carousel-react";
 import { CarouselSlide, HomepageCarouselSettings } from "../../types";
 import { normalizeCarouselSlide } from "../../features/cms-carousel";
 import CarouselImageStage from "../../shared/components/CarouselImageStage";
 import {
+  getCarouselScheduleDelayMs,
+  getNextCarouselScheduleBoundaryMs,
   isCarouselSlideActive,
-  normalizeCarouselAutoplayIntervalSeconds,
-  shouldStartCarouselAutoplay
+  normalizeCarouselAutoplayIntervalSeconds
 } from "../utils/homeCarousel";
+import {
+  getLoopedCarouselIndex,
+  normalizePublicCarouselTransition,
+  shouldRunCarouselAutoplay
+} from "../utils/homeCarouselInteraction";
 import {
   getPublicCarouselControlVisibility,
   PUBLIC_CAROUSEL_IMAGE_SIZES,
@@ -27,6 +36,9 @@ interface ResolvedCarouselSlide {
 }
 
 const DEFAULT_SLIDE_ALT = "ภาพสไลด์หน้าแรก";
+const REDUCED_MOTION_MEDIA_QUERY = "(prefers-reduced-motion: reduce)";
+const FADE_SWIPE_DISTANCE_PX = 48;
+
 let carouselBrowserApisEnsured = false;
 
 function ensureCarouselBrowserApis() {
@@ -36,9 +48,7 @@ function ensureCarouselBrowserApis() {
 
   carouselBrowserApisEnsured = true;
 
-  if (typeof window === "undefined" || typeof window.matchMedia === "function") {
-    // Continue below so jsdom can still receive observer fallbacks when needed.
-  } else {
+  if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
     window.matchMedia = (query: string): MediaQueryList => ({
       matches: false,
       media: query,
@@ -84,6 +94,30 @@ function ensureCarouselBrowserApis() {
   }
 }
 
+function getInitialDocumentVisibility() {
+  return typeof document === "undefined" || document.visibilityState !== "hidden";
+}
+
+function getInitialReducedMotionPreference() {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia(REDUCED_MOTION_MEDIA_QUERY).matches
+  );
+}
+
+const visuallyHiddenSx = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  p: 0,
+  m: -1,
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  whiteSpace: "nowrap",
+  border: 0
+} as const;
+
 export default function PublicHomeCarousel({
   slides,
   settings
@@ -92,7 +126,28 @@ export default function PublicHomeCarousel({
   settings?: HomepageCarouselSettings;
 }) {
   ensureCarouselBrowserApis();
-  const [visibleAtMs] = useState(() => Date.now());
+
+  const instructionsId = useId();
+
+  const [visibleAtMs, setVisibleAtMs] = useState(() => Date.now());
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+  const [isFocusWithin, setIsFocusWithin] = useState(false);
+  const [isDocumentVisible, setIsDocumentVisible] = useState(getInitialDocumentVisibility);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(getInitialReducedMotionPreference);
+  const [isUserPaused, setIsUserPaused] = useState(false);
+  const [liveAnnouncement, setLiveAnnouncement] = useState("");
+
+  const autoplayTimerRef = useRef<number | null>(null);
+  const pointerStartXRef = useRef<number | null>(null);
+  const announceOnNextEmblaSelectionRef = useRef(false);
+
+  const transition = normalizePublicCarouselTransition(settings?.transition);
+  const isFadeTransition = transition === "fade";
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: true
+  });
 
   const resolvedSlides = useMemo(() => {
     return slides
@@ -115,46 +170,202 @@ export default function PublicHomeCarousel({
       .filter((slide): slide is ResolvedCarouselSlide => Boolean(slide));
   }, [slides, visibleAtMs]);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isHovering, setIsHovering] = useState(false);
-  const autoplayRef = useRef<number | null>(null);
   const autoplayEnabled = settings?.autoplayEnabled ?? true;
+
   const autoplayIntervalMs = normalizeCarouselAutoplayIntervalSeconds(settings?.autoplayIntervalSeconds) * 1000;
+
+  const pauseOnHover = settings?.pauseOnHover ?? true;
+
+  const pauseOnFocus = settings?.pauseOnFocus ?? true;
+
   const controlVisibility = getPublicCarouselControlVisibility(settings, resolvedSlides.length);
 
+  const showAutoplayControl = autoplayEnabled && resolvedSlides.length > 1;
+
+  const effectiveSelectedIndex = resolvedSlides.length > 0 ? Math.min(selectedIndex, resolvedSlides.length - 1) : 0;
+
+  const autoplayRunning = shouldRunCarouselAutoplay({
+    autoplayEnabled,
+    slideCount: resolvedSlides.length,
+    userPaused: isUserPaused,
+    hovering: isHovering,
+    pauseOnHover,
+    focusWithin: isFocusWithin,
+    pauseOnFocus,
+    documentVisible: isDocumentVisible,
+    prefersReducedMotion
+  });
+
   const stopAutoplay = useCallback(() => {
-    if (autoplayRef.current) {
-      window.clearInterval(autoplayRef.current);
-      autoplayRef.current = null;
+    if (autoplayTimerRef.current !== null) {
+      window.clearInterval(autoplayTimerRef.current);
+      autoplayTimerRef.current = null;
     }
+  }, []);
+
+  const announceSlide = useCallback(
+    (index: number) => {
+      if (resolvedSlides.length === 0) {
+        return;
+      }
+
+      const normalizedIndex = getLoopedCarouselIndex(index, resolvedSlides.length);
+
+      const resolvedSlide = resolvedSlides[normalizedIndex];
+
+      setLiveAnnouncement(`สไลด์ ${normalizedIndex + 1} จาก ${resolvedSlides.length}: ${resolvedSlide.label}`);
+    },
+    [resolvedSlides]
+  );
+
+  const setFadeIndex = useCallback(
+    (index: number, announce: boolean) => {
+      const normalizedIndex = getLoopedCarouselIndex(index, resolvedSlides.length);
+
+      setSelectedIndex(normalizedIndex);
+
+      if (announce) {
+        announceSlide(normalizedIndex);
+      }
+    },
+    [announceSlide, resolvedSlides.length]
+  );
+
+  const markManualNavigation = useCallback(() => {
+    setIsUserPaused(true);
+    announceOnNextEmblaSelectionRef.current = true;
   }, []);
 
   const scrollTo = useCallback(
     (index: number) => {
-      emblaApi?.scrollTo(index);
+      if (resolvedSlides.length === 0) {
+        return;
+      }
+
+      markManualNavigation();
+
+      if (isFadeTransition) {
+        setFadeIndex(index, true);
+
+        announceOnNextEmblaSelectionRef.current = false;
+
+        return;
+      }
+
+      emblaApi?.scrollTo(getLoopedCarouselIndex(index, resolvedSlides.length));
     },
-    [emblaApi]
+    [emblaApi, isFadeTransition, markManualNavigation, resolvedSlides.length, setFadeIndex]
   );
 
   const scrollPrev = useCallback(() => {
-    emblaApi?.scrollPrev();
-  }, [emblaApi]);
-
-  const scrollNext = useCallback(() => {
-    emblaApi?.scrollNext();
-  }, [emblaApi]);
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) {
+    if (resolvedSlides.length === 0) {
       return;
     }
 
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi]);
+    markManualNavigation();
+
+    if (isFadeTransition) {
+      setFadeIndex(effectiveSelectedIndex - 1, true);
+
+      announceOnNextEmblaSelectionRef.current = false;
+
+      return;
+    }
+
+    emblaApi?.scrollPrev();
+  }, [emblaApi, effectiveSelectedIndex, isFadeTransition, markManualNavigation, resolvedSlides.length, setFadeIndex]);
+
+  const scrollNext = useCallback(() => {
+    if (resolvedSlides.length === 0) {
+      return;
+    }
+
+    markManualNavigation();
+
+    if (isFadeTransition) {
+      setFadeIndex(effectiveSelectedIndex + 1, true);
+
+      announceOnNextEmblaSelectionRef.current = false;
+
+      return;
+    }
+
+    emblaApi?.scrollNext();
+  }, [emblaApi, effectiveSelectedIndex, isFadeTransition, markManualNavigation, resolvedSlides.length, setFadeIndex]);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi || isFadeTransition) {
+      return;
+    }
+
+    const nextSelectedIndex = emblaApi.selectedScrollSnap();
+
+    setSelectedIndex(nextSelectedIndex);
+
+    if (announceOnNextEmblaSelectionRef.current) {
+      announceSlide(nextSelectedIndex);
+
+      announceOnNextEmblaSelectionRef.current = false;
+    }
+  }, [announceSlide, emblaApi, isFadeTransition]);
 
   useEffect(() => {
-    if (!emblaApi) {
+    const nowMs = Date.now();
+
+    const nextBoundaryMs = getNextCarouselScheduleBoundaryMs(slides, nowMs);
+
+    if (nextBoundaryMs === null) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(
+      () => {
+        setVisibleAtMs(Date.now());
+      },
+      getCarouselScheduleDelayMs(nextBoundaryMs, nowMs)
+    );
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [slides, visibleAtMs]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsDocumentVisible(document.visibilityState !== "hidden");
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const mediaQueryList = window.matchMedia(REDUCED_MOTION_MEDIA_QUERY);
+
+    const handleReducedMotionChange = (event: MediaQueryListEvent) => {
+      setPrefersReducedMotion(event.matches);
+    };
+
+    if (typeof mediaQueryList.addEventListener === "function") {
+      mediaQueryList.addEventListener("change", handleReducedMotionChange);
+
+      return () => {
+        mediaQueryList.removeEventListener("change", handleReducedMotionChange);
+      };
+    }
+
+    mediaQueryList.addListener(handleReducedMotionChange);
+
+    return () => {
+      mediaQueryList.removeListener(handleReducedMotionChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!emblaApi || isFadeTransition) {
       return undefined;
     }
 
@@ -165,76 +376,312 @@ export default function PublicHomeCarousel({
       emblaApi.off("select", onSelect);
       emblaApi.off("reInit", onSelect);
     };
-  }, [emblaApi, onSelect]);
+  }, [emblaApi, isFadeTransition, onSelect]);
+
+  useEffect(() => {
+    if (!isFadeTransition && emblaApi) {
+      /*
+       * Synchronize Embla with the current
+       * collection of visible slides.
+       *
+       * The registered reInit listener updates
+       * selectedIndex from the Embla instance.
+       */
+      emblaApi.reInit();
+    }
+  }, [emblaApi, isFadeTransition, resolvedSlides.length]);
 
   useEffect(() => {
     stopAutoplay();
 
-    if (!emblaApi || isHovering || !shouldStartCarouselAutoplay(autoplayEnabled, resolvedSlides.length)) {
+    if (!autoplayRunning) {
       return stopAutoplay;
     }
 
-    autoplayRef.current = window.setInterval(() => {
-      emblaApi.scrollNext();
+    if (!isFadeTransition && !emblaApi) {
+      return stopAutoplay;
+    }
+
+    autoplayTimerRef.current = window.setInterval(() => {
+      if (isFadeTransition) {
+        setSelectedIndex((currentIndex) => getLoopedCarouselIndex(currentIndex + 1, resolvedSlides.length));
+
+        return;
+      }
+
+      emblaApi?.scrollNext();
     }, autoplayIntervalMs);
 
     return stopAutoplay;
-  }, [autoplayEnabled, autoplayIntervalMs, emblaApi, isHovering, resolvedSlides.length, stopAutoplay]);
+  }, [autoplayIntervalMs, autoplayRunning, emblaApi, isFadeTransition, resolvedSlides.length, stopAutoplay]);
+
+  const handleAutoplayToggle = useCallback(() => {
+    setIsUserPaused((currentPaused) => {
+      const nextPaused = !currentPaused;
+
+      setLiveAnnouncement(nextPaused ? "หยุดการเล่นสไลด์อัตโนมัติแล้ว" : "เริ่มการเล่นสไลด์อัตโนมัติแล้ว");
+
+      if (!nextPaused) {
+        /*
+         * The play button is a direct command
+         * from the user. Allow autoplay to
+         * resume immediately even while that
+         * button still owns focus.
+         */
+        setIsFocusWithin(false);
+      }
+
+      return nextPaused;
+    });
+  }, []);
+
+  const handleKeyboardNavigation = useCallback(
+    (event: ReactKeyboardEvent<HTMLElement>) => {
+      if (event.target !== event.currentTarget) {
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        scrollPrev();
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        scrollNext();
+        return;
+      }
+
+      if (event.key === "Home") {
+        event.preventDefault();
+        scrollTo(0);
+        return;
+      }
+
+      if (event.key === "End") {
+        event.preventDefault();
+
+        scrollTo(resolvedSlides.length - 1);
+      }
+    },
+    [resolvedSlides.length, scrollNext, scrollPrev, scrollTo]
+  );
+
+  const handlePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      pointerStartXRef.current = event.clientX;
+
+      setIsUserPaused(true);
+
+      if (!isFadeTransition) {
+        announceOnNextEmblaSelectionRef.current = true;
+      }
+    },
+    [isFadeTransition]
+  );
+
+  const handlePointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      const pointerStartX = pointerStartXRef.current;
+
+      pointerStartXRef.current = null;
+
+      if (!isFadeTransition || pointerStartX === null) {
+        return;
+      }
+
+      const distanceX = event.clientX - pointerStartX;
+
+      if (Math.abs(distanceX) < FADE_SWIPE_DISTANCE_PX) {
+        return;
+      }
+
+      if (distanceX < 0) {
+        scrollNext();
+      } else {
+        scrollPrev();
+      }
+    },
+    [isFadeTransition, scrollNext, scrollPrev]
+  );
+
+  const handlePointerCancel = useCallback(() => {
+    pointerStartXRef.current = null;
+  }, []);
 
   if (resolvedSlides.length === 0) {
     return null;
   }
 
+  const autoplayState = !autoplayEnabled
+    ? "disabled"
+    : prefersReducedMotion
+      ? "reduced-motion"
+      : autoplayRunning
+        ? "running"
+        : "paused";
+
   return (
-    <Box component="section" aria-label="สไลด์ประชาสัมพันธ์หน้าแรก" sx={{ mb: { xs: 2.5, md: 3.5 } }}>
+    <Box
+      component="section"
+      aria-label="สไลด์ประชาสัมพันธ์หน้าแรก"
+      aria-roledescription="carousel"
+      aria-describedby={instructionsId}
+      tabIndex={0}
+      data-public-home-carousel="true"
+      data-carousel-transition={transition}
+      data-carousel-autoplay-state={autoplayState}
+      onKeyDown={handleKeyboardNavigation}
+      onFocusCapture={() => {
+        setIsFocusWithin(true);
+      }}
+      onBlurCapture={(event) => {
+        const nextFocusedElement = event.relatedTarget;
+
+        if (!(nextFocusedElement instanceof Node) || !event.currentTarget.contains(nextFocusedElement)) {
+          setIsFocusWithin(false);
+        }
+      }}
+      onMouseEnter={() => {
+        setIsHovering(true);
+      }}
+      onMouseLeave={() => {
+        setIsHovering(false);
+      }}
+      sx={(theme) => ({
+        mb: {
+          xs: 2.5,
+          md: 3.5
+        },
+        borderRadius: {
+          xs: 1.5,
+          md: 2
+        },
+        "&:focus-visible": {
+          outline: `3px solid ${theme.palette.secondary.main}`,
+          outlineOffset: 4
+        }
+      })}
+    >
+      <Box id={instructionsId} component="span" sx={visuallyHiddenSx}>
+        ใช้ปุ่มลูกศรซ้ายและขวาเพื่อเปลี่ยนสไลด์ กดปุ่มหยุดเพื่อหยุดการเล่นอัตโนมัติ
+      </Box>
+
+      <Box component="span" aria-live="polite" aria-atomic="true" sx={visuallyHiddenSx}>
+        {liveAnnouncement}
+      </Box>
+
       <Container maxWidth="xl">
         <Box
-          data-public-home-carousel="true"
-          onMouseEnter={() => {
-            setIsHovering(true);
-          }}
-          onMouseLeave={() => {
-            setIsHovering(false);
-          }}
           sx={{
             position: "relative",
             overflow: "hidden",
             isolation: "isolate",
-            borderRadius: { xs: 1.5, md: 2 },
+            borderRadius: {
+              xs: 1.5,
+              md: 2
+            },
             bgcolor: "primary.dark",
             boxShadow: "0 18px 34px rgba(31, 90, 44, 0.16)"
           }}
         >
-          <Box ref={emblaRef} sx={{ overflow: "hidden" }}>
-            <Box sx={{ display: "flex", alignItems: "stretch" }}>
-              {resolvedSlides.map((resolvedSlide, index) => (
-                <Box
-                  key={resolvedSlide.id}
-                  role="group"
-                  aria-label={resolvedSlide.label}
-                  data-carousel-slide-stage="true"
-                  data-carousel-stage-sizing="fixed-responsive"
-                  sx={{
-                    position: "relative",
-                    flex: "0 0 100%",
-                    width: "100%",
-                    minWidth: 0,
-                    height: PUBLIC_CAROUSEL_STAGE_HEIGHTS,
-                    bgcolor: "primary.dark",
-                    overflow: "hidden"
-                  }}
-                >
-                  <CarouselImageStage
-                    slide={resolvedSlide.slide}
-                    alt={resolvedSlide.altText}
-                    loading={index === 0 ? "eager" : "lazy"}
-                    fetchPriority={index === 0 ? "high" : "auto"}
-                    sizes={PUBLIC_CAROUSEL_IMAGE_SIZES}
-                    emptyLabel="ไม่สามารถแสดงภาพสไลด์ได้"
-                  />
-                </Box>
-              ))}
-            </Box>
+          <Box
+            ref={isFadeTransition ? undefined : emblaRef}
+            data-carousel-viewport="true"
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            sx={{
+              position: "relative",
+              overflow: "hidden",
+              height: isFadeTransition ? PUBLIC_CAROUSEL_STAGE_HEIGHTS : "auto",
+              touchAction: "pan-y pinch-zoom"
+            }}
+          >
+            {isFadeTransition ? (
+              resolvedSlides.map((resolvedSlide, index) => {
+                const isSelected = effectiveSelectedIndex === index;
+
+                return (
+                  <Box
+                    key={resolvedSlide.id}
+                    role="group"
+                    aria-roledescription="slide"
+                    aria-label={`${index + 1} จาก ${resolvedSlides.length}: ${resolvedSlide.label}`}
+                    aria-hidden={isSelected ? undefined : true}
+                    data-carousel-slide-stage="true"
+                    data-carousel-stage-sizing="fixed-responsive"
+                    data-carousel-slide-index={index}
+                    data-carousel-slide-selected={isSelected ? "true" : "false"}
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      bgcolor: "primary.dark",
+                      overflow: "hidden",
+                      opacity: isSelected ? 1 : 0,
+                      visibility: isSelected ? "visible" : "hidden",
+                      pointerEvents: isSelected ? "auto" : "none",
+                      transition: prefersReducedMotion ? "none" : "opacity 420ms ease"
+                    }}
+                  >
+                    <CarouselImageStage
+                      slide={resolvedSlide.slide}
+                      alt={resolvedSlide.altText}
+                      loading={index === 0 ? "eager" : "lazy"}
+                      fetchPriority={index === 0 ? "high" : "auto"}
+                      sizes={PUBLIC_CAROUSEL_IMAGE_SIZES}
+                      emptyLabel="ไม่สามารถแสดงภาพสไลด์ได้"
+                    />
+                  </Box>
+                );
+              })
+            ) : (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "stretch"
+                }}
+              >
+                {resolvedSlides.map((resolvedSlide, index) => {
+                  const isSelected = effectiveSelectedIndex === index;
+
+                  return (
+                    <Box
+                      key={resolvedSlide.id}
+                      role="group"
+                      aria-roledescription="slide"
+                      aria-label={`${index + 1} จาก ${resolvedSlides.length}: ${resolvedSlide.label}`}
+                      aria-hidden={isSelected ? undefined : true}
+                      data-carousel-slide-stage="true"
+                      data-carousel-stage-sizing="fixed-responsive"
+                      data-carousel-slide-index={index}
+                      data-carousel-slide-selected={isSelected ? "true" : "false"}
+                      sx={{
+                        position: "relative",
+                        flex: "0 0 100%",
+                        width: "100%",
+                        minWidth: 0,
+                        height: PUBLIC_CAROUSEL_STAGE_HEIGHTS,
+                        bgcolor: "primary.dark",
+                        overflow: "hidden"
+                      }}
+                    >
+                      <CarouselImageStage
+                        slide={resolvedSlide.slide}
+                        alt={resolvedSlide.altText}
+                        loading={index === 0 ? "eager" : "lazy"}
+                        fetchPriority={index === 0 ? "high" : "auto"}
+                        sizes={PUBLIC_CAROUSEL_IMAGE_SIZES}
+                        emptyLabel="ไม่สามารถแสดงภาพสไลด์ได้"
+                      />
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
           </Box>
 
           {controlVisibility.dots && (
@@ -246,7 +693,10 @@ export default function PublicHomeCarousel({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: { xs: 72, md: 88 },
+                height: {
+                  xs: 72,
+                  md: 88
+                },
                 zIndex: 2,
                 pointerEvents: "none",
                 background: "linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.34) 100%)"
@@ -254,15 +704,21 @@ export default function PublicHomeCarousel({
             />
           )}
 
-          {controlVisibility.arrows && (
+          {(showAutoplayControl || controlVisibility.arrows) && (
             <Stack
               direction="row"
               spacing={0.5}
-              data-carousel-arrow-controls="true"
+              data-carousel-top-controls="true"
               sx={(theme) => ({
                 position: "absolute",
-                right: { xs: 10, md: 18 },
-                top: { xs: 10, md: 18 },
+                right: {
+                  xs: 10,
+                  md: 18
+                },
+                top: {
+                  xs: 10,
+                  md: 18
+                },
                 zIndex: 3,
                 p: 0.5,
                 borderRadius: 999,
@@ -273,44 +729,108 @@ export default function PublicHomeCarousel({
                 backdropFilter: "blur(8px)"
               })}
             >
-              <IconButton
-                aria-label="สไลด์ก่อนหน้า"
-                onClick={scrollPrev}
-                sx={(theme) => ({
-                  width: { xs: 34, md: 40 },
-                  height: { xs: 34, md: 40 },
-                  color: "white",
-                  bgcolor: alpha(theme.palette.common.black, 0.12),
-                  "&:hover": {
-                    bgcolor: alpha(theme.palette.common.black, 0.4)
-                  },
-                  "&:focus-visible": {
-                    outline: `2px solid ${theme.palette.secondary.main}`,
-                    outlineOffset: 2
+              {showAutoplayControl && (
+                <IconButton
+                  aria-label={
+                    prefersReducedMotion
+                      ? "ปิดการเล่นอัตโนมัติตามการตั้งค่าลดการเคลื่อนไหว"
+                      : isUserPaused
+                        ? "เล่นสไลด์อัตโนมัติ"
+                        : "หยุดสไลด์อัตโนมัติ"
                   }
-                })}
-              >
-                <ArrowBackIosNewRoundedIcon fontSize="small" />
-              </IconButton>
-              <IconButton
-                aria-label="สไลด์ถัดไป"
-                onClick={scrollNext}
-                sx={(theme) => ({
-                  width: { xs: 34, md: 40 },
-                  height: { xs: 34, md: 40 },
-                  color: "white",
-                  bgcolor: alpha(theme.palette.common.black, 0.12),
-                  "&:hover": {
-                    bgcolor: alpha(theme.palette.common.black, 0.4)
-                  },
-                  "&:focus-visible": {
-                    outline: `2px solid ${theme.palette.secondary.main}`,
-                    outlineOffset: 2
-                  }
-                })}
-              >
-                <ArrowForwardIosRoundedIcon fontSize="small" />
-              </IconButton>
+                  aria-pressed={isUserPaused}
+                  disabled={prefersReducedMotion}
+                  data-carousel-autoplay-control="true"
+                  onClick={handleAutoplayToggle}
+                  sx={(theme) => ({
+                    width: {
+                      xs: 34,
+                      md: 40
+                    },
+                    height: {
+                      xs: 34,
+                      md: 40
+                    },
+                    color: "white",
+                    bgcolor: alpha(theme.palette.common.black, 0.12),
+                    "&:hover": {
+                      bgcolor: alpha(theme.palette.common.black, 0.4)
+                    },
+                    "&.Mui-disabled": {
+                      color: alpha(theme.palette.common.white, 0.62)
+                    },
+                    "&:focus-visible": {
+                      outline: `2px solid ${theme.palette.secondary.main}`,
+                      outlineOffset: 2
+                    }
+                  })}
+                >
+                  {isUserPaused ? <PlayArrowRoundedIcon /> : <PauseRoundedIcon />}
+                </IconButton>
+              )}
+
+              {controlVisibility.arrows && (
+                <Box
+                  data-carousel-arrow-controls="true"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5
+                  }}
+                >
+                  <IconButton
+                    aria-label="สไลด์ก่อนหน้า"
+                    onClick={scrollPrev}
+                    sx={(theme) => ({
+                      width: {
+                        xs: 34,
+                        md: 40
+                      },
+                      height: {
+                        xs: 34,
+                        md: 40
+                      },
+                      color: "white",
+                      bgcolor: alpha(theme.palette.common.black, 0.12),
+                      "&:hover": {
+                        bgcolor: alpha(theme.palette.common.black, 0.4)
+                      },
+                      "&:focus-visible": {
+                        outline: `2px solid ${theme.palette.secondary.main}`,
+                        outlineOffset: 2
+                      }
+                    })}
+                  >
+                    <ArrowBackIosNewRoundedIcon fontSize="small" />
+                  </IconButton>
+
+                  <IconButton
+                    aria-label="สไลด์ถัดไป"
+                    onClick={scrollNext}
+                    sx={(theme) => ({
+                      width: {
+                        xs: 34,
+                        md: 40
+                      },
+                      height: {
+                        xs: 34,
+                        md: 40
+                      },
+                      color: "white",
+                      bgcolor: alpha(theme.palette.common.black, 0.12),
+                      "&:hover": {
+                        bgcolor: alpha(theme.palette.common.black, 0.4)
+                      },
+                      "&:focus-visible": {
+                        outline: `2px solid ${theme.palette.secondary.main}`,
+                        outlineOffset: 2
+                      }
+                    })}
+                  >
+                    <ArrowForwardIosRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              )}
             </Stack>
           )}
 
@@ -323,29 +843,43 @@ export default function PublicHomeCarousel({
               sx={(theme) => ({
                 position: "absolute",
                 left: "50%",
-                bottom: { xs: 8, md: 14 },
+                bottom: {
+                  xs: 8,
+                  md: 14
+                },
                 zIndex: 3,
+                maxWidth: "calc(100% - 24px)",
+                overflowX: "auto",
                 transform: "translateX(-50%)",
                 p: 0.25,
                 borderRadius: 999,
                 bgcolor: alpha(theme.palette.common.black, 0.26),
                 border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
                 boxShadow: "0 6px 20px rgba(0, 0, 0, 0.22)",
-                backdropFilter: "blur(8px)"
+                backdropFilter: "blur(8px)",
+                scrollbarWidth: "thin"
               })}
             >
               {resolvedSlides.map((slide, index) => (
                 <IconButton
                   key={slide.id}
                   aria-label={`ไปยังสไลด์ ${index + 1}`}
-                  aria-current={selectedIndex === index ? "true" : undefined}
+                  aria-current={effectiveSelectedIndex === index ? "true" : undefined}
                   onClick={() => {
                     scrollTo(index);
                   }}
                   sx={(theme) => ({
-                    width: { xs: 28, md: 30 },
-                    height: { xs: 28, md: 30 },
-                    color: selectedIndex === index ? "secondary.main" : alpha(theme.palette.common.white, 0.78),
+                    flex: "0 0 auto",
+                    width: {
+                      xs: 28,
+                      md: 30
+                    },
+                    height: {
+                      xs: 28,
+                      md: 30
+                    },
+                    color:
+                      effectiveSelectedIndex === index ? "secondary.main" : alpha(theme.palette.common.white, 0.78),
                     "&:hover": {
                       bgcolor: alpha(theme.palette.common.white, 0.12)
                     },
@@ -355,7 +889,11 @@ export default function PublicHomeCarousel({
                     }
                   })}
                 >
-                  <CircleIcon sx={{ fontSize: selectedIndex === index ? 9 : 7 }} />
+                  <CircleIcon
+                    sx={{
+                      fontSize: effectiveSelectedIndex === index ? 9 : 7
+                    }}
+                  />
                 </IconButton>
               ))}
             </Stack>
