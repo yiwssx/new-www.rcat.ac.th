@@ -38,6 +38,12 @@ import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SwapVertOutlinedIcon from "@mui/icons-material/SwapVertOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import AdminPagination from "../components/AdminPagination";
+import CarouselGlobalSettingsEditor from "../components/CarouselGlobalSettingsEditor";
+import {
+  CarouselSlidePresentationFields,
+  CarouselSlidePresentationPreview,
+  type CarouselMediaTarget
+} from "../components/CarouselSlidePresentationEditor";
 import PageHeader from "../components/PageHeader";
 import CarouselImageStage from "../../shared/components/CarouselImageStage";
 import { useAuth } from "../../context/authSessionContext";
@@ -70,6 +76,7 @@ import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import {
+  areHomepageCarouselSettingsEqual,
   CAROUSEL_FALLBACK_TITLE,
   getCarouselSlideDisplayTitle,
   getCarouselSlideValidationMessage,
@@ -81,8 +88,9 @@ function getMediaImageUrl(asset: MediaAsset) {
   return asset.previewUrl || asset.driveUrl || asset.embedUrl || "";
 }
 
-function isSelectedCarouselImage(slide: CarouselSlide, asset: MediaAsset) {
-  return Boolean(slide.imageUrl && slide.imageUrl === getMediaImageUrl(asset));
+function isSelectedCarouselImage(slide: CarouselSlide, asset: MediaAsset, target: CarouselMediaTarget) {
+  const selectedUrl = target === "mobile" ? slide.mobileImageUrl : slide.imageUrl;
+  return Boolean(selectedUrl && selectedUrl === getMediaImageUrl(asset));
 }
 
 function createCarouselDraft(order: number): CarouselSlide {
@@ -236,6 +244,7 @@ export default function CarouselPage() {
   const [editingSlide, setEditingSlide] = useState<CarouselSlide | null>(null);
   const [carouselSettingsDraft, setCarouselSettingsDraft] = useState<HomepageCarouselSettings | null>(null);
   const carouselSettings = carouselSettingsDraft ?? homepageSettings.carousel;
+  const carouselSettingsDirty = !areHomepageCarouselSettingsEqual(carouselSettings, homepageSettings.carousel);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [orderingMode, setOrderingMode] = useState(false);
@@ -251,6 +260,7 @@ export default function CarouselPage() {
   const debouncedMediaSearch = useDebouncedValue(mediaSearch, 300);
   const [mediaPage, setMediaPage] = useState(1);
   const [mediaPageSize, setMediaPageSize] = useState(24);
+  const [mediaTarget, setMediaTarget] = useState<CarouselMediaTarget>("desktop");
   const mediaQuery = useQuery({
     ...adminMediaListQueryOptions({
       page: mediaPage,
@@ -321,6 +331,7 @@ export default function CarouselPage() {
       setEditingSlide(createCarouselDraft((response.items[0]?.order ?? 0) + 1));
       setMediaSearch("");
       setMediaPage(1);
+      setMediaTarget("desktop");
       setIsCreating(true);
       setDialogOpen(true);
     } catch (error) {
@@ -342,6 +353,7 @@ export default function CarouselPage() {
     );
     setMediaSearch("");
     setMediaPage(1);
+    setMediaTarget("desktop");
     setIsCreating(false);
     setDialogOpen(true);
   }
@@ -353,6 +365,7 @@ export default function CarouselPage() {
 
     setDialogOpen(false);
     setEditingSlide(null);
+    setMediaTarget("desktop");
     setIsCreating(false);
   }
 
@@ -367,15 +380,24 @@ export default function CarouselPage() {
       return;
     }
 
-    setEditingSlide((current) =>
-      current
-        ? {
-            ...current,
-            imageUrl,
-            imageAlt: current.imageAlt.trim() || asset.name || current.title
-          }
-        : current
-    );
+    setEditingSlide((current) => {
+      if (!current) {
+        return current;
+      }
+
+      if (mediaTarget === "mobile") {
+        return {
+          ...current,
+          mobileImageUrl: imageUrl
+        };
+      }
+
+      return {
+        ...current,
+        imageUrl,
+        imageAlt: current.imageAlt.trim() || asset.name || current.title
+      };
+    });
   }
 
   async function invalidateCarouselData() {
@@ -387,7 +409,7 @@ export default function CarouselPage() {
   }
 
   async function handleSaveCarouselSettings() {
-    if (!canManage) {
+    if (!canManage || !carouselSettingsDirty || saveHomepageSettingsMutation.isPending) {
       return;
     }
 
@@ -398,8 +420,9 @@ export default function CarouselPage() {
         ...homepageSettings,
         carousel: carouselSettings
       });
-      const saved = await saveHomepageSettingsMutation.mutateAsync(nextSettings);
-      setCarouselSettingsDraft(normalizeHomepageSettings(saved).carousel);
+      const saved = normalizeHomepageSettings(await saveHomepageSettingsMutation.mutateAsync(nextSettings));
+
+      setCarouselSettingsDraft(null);
       queryClient.setQueryData(["admin-settings", "homepage"], saved);
       await invalidatePublicCmsData(queryClient);
       await appSwal.close();
@@ -408,6 +431,14 @@ export default function CarouselPage() {
       await appSwal.close();
       await showErrorResult("ไม่สามารถบันทึกการตั้งค่าสไลด์หน้าแรกได้", error, "กรุณาลองอีกครั้ง");
     }
+  }
+
+  function handleResetCarouselSettings() {
+    if (!canManage || saveHomepageSettingsMutation.isPending) {
+      return;
+    }
+
+    setCarouselSettingsDraft(null);
   }
 
   async function handleSaveCarouselSlide() {
@@ -419,8 +450,7 @@ export default function CarouselPage() {
       return;
     }
 
-    const nextSlide = normalizeCarouselDraft(editingSlide);
-    const validationMessage = getCarouselSlideValidationMessage(nextSlide);
+    const validationMessage = getCarouselSlideValidationMessage(editingSlide);
 
     if (validationMessage) {
       await appSwal.fire({
@@ -431,6 +461,8 @@ export default function CarouselPage() {
       });
       return;
     }
+
+    const nextSlide = normalizeCarouselDraft(editingSlide);
 
     showBlockingLoading("กำลังบันทึกสไลด์หน้าแรก");
 
@@ -601,57 +633,16 @@ export default function CarouselPage() {
         </Alert>
       )}
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Stack spacing={2}>
-            <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "center" }}>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="h3" sx={{ fontSize: "1.12rem" }}>
-                  การเล่นสไลด์อัตโนมัติ
-                </Typography>
-                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-                  ตั้งค่าการเลื่อนภาพอัตโนมัติสำหรับสไลด์หน้าแรก
-                </Typography>
-              </Box>
-              <Button
-                variant="contained"
-                startIcon={<SaveOutlinedIcon />}
-                disabled={!canManage || saveHomepageSettingsMutation.isPending || homepageSettingsQuery.isLoading}
-                onClick={() => void handleSaveCarouselSettings()}
-              >
-                {saveHomepageSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกการตั้งค่า"}
-              </Button>
-            </Stack>
-            <Grid container spacing={1.5}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={carouselSettings.autoplayEnabled}
-                      onChange={(event) => updateCarouselSettings("autoplayEnabled", event.target.checked)}
-                      disabled={!canManage}
-                    />
-                  }
-                  label="เปิดเล่นสไลด์อัตโนมัติ"
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  label="ระยะเวลาเปลี่ยนภาพ (วินาที)"
-                  type="number"
-                  value={carouselSettings.autoplayIntervalSeconds}
-                  onChange={(event) => updateCarouselSettings("autoplayIntervalSeconds", Number(event.target.value))}
-                  helperText="กำหนดได้ตั้งแต่ 3 ถึง 30 วินาที"
-                  inputProps={{ min: 3, max: 30 }}
-                  size="small"
-                  disabled={!canManage}
-                  fullWidth
-                />
-              </Grid>
-            </Grid>
-          </Stack>
-        </CardContent>
-      </Card>
+      <CarouselGlobalSettingsEditor
+        settings={carouselSettings}
+        disabled={!canManage || homepageSettingsQuery.isLoading}
+        loading={homepageSettingsQuery.isLoading}
+        saving={saveHomepageSettingsMutation.isPending}
+        dirty={carouselSettingsDirty}
+        onChange={updateCarouselSettings}
+        onReset={handleResetCarouselSettings}
+        onSave={() => void handleSaveCarouselSettings()}
+      />
 
       {homepageSettingsQuery.isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
@@ -823,17 +814,14 @@ export default function CarouselPage() {
                         overflow: "hidden"
                       }}
                     >
-                      {slide.imageUrl ? (
-                        <Box
-                          component="img"
-                          src={slide.imageUrl}
-                          alt={slide.imageAlt || slide.title}
-                          loading="lazy"
-                          sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      ) : (
-                        <Typography fontWeight={800}>ยังไม่มีรูปภาพ</Typography>
-                      )}
+                      <CarouselImageStage
+                        slide={slide}
+                        alt={slide.imageAlt || slide.title || CAROUSEL_FALLBACK_TITLE}
+                        loading="lazy"
+                        sizes="(max-width: 900px) 100vw, 420px"
+                        emptyLabel="ยังไม่มีรูปภาพ"
+                        stageSx={{ height: 180 }}
+                      />
                     </Box>
                     <CardContent>
                       <Stack spacing={1.5}>
@@ -908,7 +896,7 @@ export default function CarouselPage() {
         </>
       )}
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="md">
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="lg">
         <DialogTitle>{isCreating ? "เพิ่มสไลด์หน้าแรก" : "แก้ไขสไลด์หน้าแรก"}</DialogTitle>
         <DialogContent dividers>
           {editingSlide && (
@@ -978,6 +966,18 @@ export default function CarouselPage() {
                           </Typography>
                         </Box>
                       </Stack>
+                      <FormControl fullWidth size="small" disabled={!canManage}>
+                        <InputLabel id="carousel-media-target-label">นำภาพไปใช้กับ</InputLabel>
+                        <Select
+                          labelId="carousel-media-target-label"
+                          label="นำภาพไปใช้กับ"
+                          value={mediaTarget}
+                          onChange={(event) => setMediaTarget(event.target.value as CarouselMediaTarget)}
+                        >
+                          <MenuItem value="desktop">ภาพหลัก / เดสก์ท็อป</MenuItem>
+                          <MenuItem value="mobile">ภาพสำหรับมือถือ</MenuItem>
+                        </Select>
+                      </FormControl>
                       <Divider />
                       <TextField
                         label="ค้นหารูปภาพในคลังสื่อ"
@@ -1008,7 +1008,7 @@ export default function CarouselPage() {
                           <Grid container spacing={1.25}>
                             {imageMediaAssets.map((asset) => {
                               const imageUrl = getMediaImageUrl(asset);
-                              const selected = isSelectedCarouselImage(editingSlide, asset);
+                              const selected = isSelectedCarouselImage(editingSlide, asset, mediaTarget);
 
                               return (
                                 <Grid key={asset.id} size={{ xs: 12, sm: 6 }}>
@@ -1068,7 +1068,9 @@ export default function CarouselPage() {
                                         {selected ? (
                                           <Chip
                                             icon={<CheckCircleOutlineOutlinedIcon />}
-                                            label="กำลังใช้ภาพนี้"
+                                            label={
+                                              mediaTarget === "mobile" ? "กำลังใช้เป็นภาพมือถือ" : "กำลังใช้เป็นภาพหลัก"
+                                            }
                                             color="primary"
                                             size="small"
                                             sx={{ alignSelf: "flex-start", fontWeight: 800 }}
@@ -1080,7 +1082,7 @@ export default function CarouselPage() {
                                             disabled={!canManage}
                                             onClick={() => handleSelectMediaImage(asset)}
                                           >
-                                            เลือกภาพนี้
+                                            {mediaTarget === "mobile" ? "เลือกเป็นภาพมือถือ" : "เลือกเป็นภาพหลัก"}
                                           </Button>
                                         )}
                                       </Stack>
@@ -1113,6 +1115,11 @@ export default function CarouselPage() {
                     helperText="ถ้าเว้นว่าง ระบบจะใช้ชื่อสไลด์ หรือข้อความสำรองสำหรับผู้อ่านหน้าจอ"
                     disabled={!canManage}
                     fullWidth
+                  />
+                  <CarouselSlidePresentationFields
+                    slide={editingSlide}
+                    disabled={!canManage}
+                    onChange={updateEditingSlide}
                   />
                   <Grid container spacing={1.5}>
                     <Grid size={{ xs: 12, sm: 6 }}>
@@ -1173,15 +1180,7 @@ export default function CarouselPage() {
                 </Stack>
               </Grid>
               <Grid size={{ xs: 12, md: 5 }}>
-                <Card sx={{ overflow: "hidden" }}>
-                  <CarouselImageStage
-                    slide={editingSlide}
-                    alt={editingSlide.imageAlt || editingSlide.title || CAROUSEL_FALLBACK_TITLE}
-                    sizes="(max-width: 900px) 100vw, 420px"
-                    emptyLabel="ยังไม่มีรูปภาพ"
-                    stageSx={{ minHeight: 220 }}
-                  />
-                </Card>
+                <CarouselSlidePresentationPreview slide={editingSlide} />
               </Grid>
             </Grid>
           )}
