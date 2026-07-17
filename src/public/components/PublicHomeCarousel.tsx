@@ -181,6 +181,7 @@ export default function PublicHomeCarousel({
   const controlVisibility = getPublicCarouselControlVisibility(settings, resolvedSlides.length);
 
   const showAutoplayControl = autoplayEnabled && resolvedSlides.length > 1;
+  const autoplayControlPaused = isUserPaused || prefersReducedMotion;
 
   const effectiveSelectedIndex = resolvedSlides.length > 0 ? Math.min(selectedIndex, resolvedSlides.length - 1) : 0;
 
@@ -416,24 +417,21 @@ export default function PublicHomeCarousel({
   }, [autoplayIntervalMs, autoplayRunning, emblaApi, isFadeTransition, resolvedSlides.length, stopAutoplay]);
 
   const handleAutoplayToggle = useCallback(() => {
-    setIsUserPaused((currentPaused) => {
-      const nextPaused = !currentPaused;
+    const nextPaused = !isUserPaused;
 
-      setLiveAnnouncement(nextPaused ? "หยุดการเล่นสไลด์อัตโนมัติแล้ว" : "เริ่มการเล่นสไลด์อัตโนมัติแล้ว");
+    setIsUserPaused(nextPaused);
+    setLiveAnnouncement(nextPaused ? "หยุดการเล่นสไลด์อัตโนมัติแล้ว" : "เริ่มการเล่นสไลด์อัตโนมัติแล้ว");
 
-      if (!nextPaused) {
-        /*
-         * The play button is a direct command
-         * from the user. Allow autoplay to
-         * resume immediately even while that
-         * button still owns focus.
-         */
-        setIsFocusWithin(false);
-      }
-
-      return nextPaused;
-    });
-  }, []);
+    if (!nextPaused) {
+      /*
+       * The play button is a direct command
+       * from the user. Allow autoplay to
+       * resume immediately even while that
+       * button still owns focus.
+       */
+      setIsFocusWithin(false);
+    }
+  }, [isUserPaused]);
 
   const handleKeyboardNavigation = useCallback(
     (event: ReactKeyboardEvent<HTMLElement>) => {
@@ -733,12 +731,12 @@ export default function PublicHomeCarousel({
                 <IconButton
                   aria-label={
                     prefersReducedMotion
-                      ? "ปิดการเล่นอัตโนมัติตามการตั้งค่าลดการเคลื่อนไหว"
-                      : isUserPaused
+                      ? "การเล่นสไลด์อัตโนมัติถูกปิดตามการตั้งค่าลดการเคลื่อนไหว"
+                      : autoplayControlPaused
                         ? "เล่นสไลด์อัตโนมัติ"
                         : "หยุดสไลด์อัตโนมัติ"
                   }
-                  aria-pressed={isUserPaused}
+                  aria-pressed={autoplayControlPaused}
                   disabled={prefersReducedMotion}
                   data-carousel-autoplay-control="true"
                   onClick={handleAutoplayToggle}
@@ -765,7 +763,7 @@ export default function PublicHomeCarousel({
                     }
                   })}
                 >
-                  {isUserPaused ? <PlayArrowRoundedIcon /> : <PauseRoundedIcon />}
+                  {autoplayControlPaused ? <PlayArrowRoundedIcon /> : <PauseRoundedIcon />}
                 </IconButton>
               )}
 

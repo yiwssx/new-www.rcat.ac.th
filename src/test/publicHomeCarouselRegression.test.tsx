@@ -435,7 +435,7 @@ describe("PublicHomeCarousel regressions", () => {
     expect(container.querySelector('[data-carousel-autoplay-state="reduced-motion"]')).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: "ปิดการเล่นอัตโนมัติตามการตั้งค่าลดการเคลื่อนไหว"
+        name: "การเล่นสไลด์อัตโนมัติถูกปิดตามการตั้งค่าลดการเคลื่อนไหว"
       })
     ).toBeDisabled();
   });
