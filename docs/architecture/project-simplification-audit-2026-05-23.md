@@ -1,4 +1,4 @@
-> Historical record. This document describes a previous migration state and is not the current runtime source of truth. Use docs/architecture/m20-cleanup-runtime-ownership.md for current runtime ownership.
+> Historical record — checkpoint 2026-05-23 at commit `67fa65a82d6df421bc98f5018c08719b0d43b408`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
 
 # Project Simplification Audit
 

@@ -1,5 +1,7 @@
 # Current Migration Status
 
+Current source-of-truth snapshot: 2026-07-19 at baseline commit `80324e71982411c67e6f3f9b66e06b09ab7bb282`. Dated milestone narratives below preserve the state recorded at that time; when they mention Apps Script as a structured-data provider or M20 as gated, the current Provider Status and M20 sections take precedence.
+
 Current milestone: M20 migration/runtime/domain-cutover scope is closed. M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization. M20 closure does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final.
 
 ## Summary
@@ -35,6 +37,8 @@ M20: `CLOSED` for migration/runtime/domain-cutover scope. The custom domain `www
 M21: `OPEN` for UI/UX and logic stabilization. Remaining issues are UI/UX, business logic, workflow, usability, validation, layout, content-presentation, Thai wording, and user-facing error issues. M21 does not reopen the Cloudflare Worker + D1 migration or restore Apps Script structured data.
 
 M20 cleanup follow-up: legacy browser-side Apps Script structured-data code, direct frontend Apps Script user CRUD, local user fallback paths, no-op admin request progress UI, and stale structured Apps Script runtime config were removed. Apps Script remains only for the Vercel-proxied Google Drive media/file bridge.
+
+Runtime sitemap follow-up: Vercel rewrites `/sitemap.xml` to `/api/sitemap`. The Vercel function reads live public menu/content from the Cloudflare Worker/D1 API. The build does not generate `public/sitemap.xml`; the old `scripts/generate-sitemap.mjs` is tracked but unreferenced.
 
 Admin operation feedback has been standardized across Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings: blocking loading modal while pending, centered success/error result modals requiring acknowledgment, and no short auto-dismiss success toast for final admin write results.
 
@@ -126,7 +130,7 @@ Recorded result:
 - no production Vercel environment mutation occurred
 - no production Worker deployment occurred
 - no production D1 migration, import, or write occurred
-- Apps Script remains the current production provider
+- At the recorded M17 checkpoint, Apps Script remained the production provider; this is historical evidence, not current ownership.
 - Apps Script remains the planned Google Drive media-file bridge
 - M15.2 remains deferred
 

@@ -1,6 +1,6 @@
 # M16 Cloudflare-First Backend Reset
 
-> Historical note, 2026-07-04: This checkpoint remains a historical record of the Cloudflare-first reset. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+> Historical record — checkpoint 2026-06-13 at commit `67a2dd8725930d1ec0f774c108cb11d5d472b52a`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
 
 Status: Cloudflare-first migration reset for the replacement system. This is not a production domain cutover.
 

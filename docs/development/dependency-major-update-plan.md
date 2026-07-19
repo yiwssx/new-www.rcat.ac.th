@@ -1,72 +1,33 @@
 # Major Dependency Update Plan
 
-Captured: 2026-07-07T13:12:00+07:00
+Verified: 2026-07-19 (Asia/Bangkok)
 
-Base commit after patch/minor updates: `88c3b040d1e9cc959bda9826913afbd7325b9dce`
+Baseline commit: `80324e71982411c67e6f3f9b66e06b09ab7bb282`
 
-## Current Latest Candidates
+No major dependency is upgraded by the warning-cleanup task.
 
-`pnpm dlx npm-check-updates --target latest` reports these major candidates:
+## Deferred Major Groups
 
-| Group                 | Packages                                                 | Current                                   | Latest                                               | Recommendation                                                                                                                  |
-| --------------------- | -------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| React platform        | `react`, `react-dom`, `@types/react`, `@types/react-dom` | React 18, React types 18                  | React 19, React types 19                             | Defer to a dedicated React 19 compatibility pass.                                                                               |
-| MUI platform          | `@mui/material`, `@mui/icons-material`                   | 6.5.x                                     | 9.2.x                                                | Defer until React 19 and MUI migration notes are reviewed together.                                                             |
-| Vite/Vitest platform  | `vite`, `@vitejs/plugin-react`, `vitest`, `jsdom`        | Vite 6, Vitest 3, jsdom 26                | Vite 8, plugin-react 6, Vitest 4, jsdom 29           | Trial as an isolated tooling group because it may clear audit findings, but keep only if the full quality gate passes.          |
-| Worker types          | `@cloudflare/workers-types`                              | 4.20260702.1                              | 5.20260707.1                                         | Blocked in this pass by the current Wrangler peer range; keep v4 until Wrangler accepts v5.                                     |
-| Commit tooling        | `@commitlint/cli`, `@commitlint/config-conventional`     | 15.0.0                                    | 21.2.0                                               | Accepted in this pass; clears the `semver` advisory. Requires Node >=22.12 for local commitlint use.                            |
-| Git hook tooling      | `lint-staged`                                            | 15.5.2                                    | 17.0.8                                               | Accepted in this pass; CLI smoke and full validation passed.                                                                    |
-| Repository AI tooling | `sigmap`                                                 | 6.15.0                                    | 8.9.1                                                | Defer unless `pnpm ai:health` and the Sigmap workflow are included in scope.                                                    |
-| Runtime auth utility  | `bcryptjs` and `@types/bcryptjs`                         | `bcryptjs` 2.4.3, `@types/bcryptjs` 2.4.6 | `bcryptjs` 3.0.3, deprecated `@types/bcryptjs` 3.0.0 | Defer. Requires explicit server auth smoke testing and likely removing deprecated external types if bundled types are adequate. |
-| TypeScript            | `typescript`                                             | 5.9.3                                     | 6.0.3                                                | Defer until Vite/Vitest and Worker tooling support is verified.                                                                 |
+| Group                 | Current                                                            | Latest observed                                                     | Deferred until                                                                                                        |
+| --------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| React platform        | React/React DOM `18.3.1`; types 18                                 | React `19.2.7`; types 19                                            | Dedicated React compatibility, hydration, router, and full browser regression pass.                                   |
+| MUI platform          | Material/icons `6.5.0`                                             | `9.2.0`                                                             | React decision plus MUI 7-9 migration review; `Grid2` and `renderTags` must be reassessed against the selected major. |
+| Vite/Vitest platform  | Vite `6.4.3`, plugin-react `4.7.0`, Vitest `3.2.7`, jsdom `26.1.0` | Vite `8.1.5`, plugin-react `6.0.3`, Vitest `4.1.10`, jsdom `29.1.1` | Isolated toolchain trial with unit/integration/build/Playwright and warning comparison.                               |
+| TypeScript            | `5.9.3`                                                            | `7.0.2`                                                             | Selected Vite/Vitest and Worker tooling explicitly support it.                                                        |
+| Worker types          | `4.20260702.1`                                                     | `5.20260718.1`                                                      | Wrangler peer compatibility and Worker typecheck/tests pass in an isolated trial.                                     |
+| Runtime auth utility  | `bcryptjs 2.4.3`, `@types/bcryptjs 2.4.6`                          | `bcryptjs 3.0.3`; deprecated types `3.0.0`                          | Server-only admin-proxy auth smoke proves compatibility and bundled bcrypt types can replace external types.          |
+| Repository AI tooling | Sigmap `6.15.0`                                                    | `8.18.0`                                                            | `pnpm ai:health`, `ai:map`, and repository workflow compatibility are in scope.                                       |
 
-## Remaining Audit Findings After Patch/Minor
+## Current Non-Major Freshness
 
-`pnpm audit` reports 3 advisories:
+`pnpm outdated` also reports patch/minor releases for Commitlint CLI, PostCSS, Prettier, Tailwind/PostCSS plugin, TanStack Router, ESLint, TypeScript-ESLint, and Wrangler. They are not security fixes required by this task and should be handled in a separate small update batch.
 
-- High: `semver` via `@commitlint/cli > @commitlint/lint > @commitlint/is-ignored > semver`.
-- Moderate: `brace-expansion` via ESLint/minimatch dependency paths.
-- Low: `@babel/core` via `@vitejs/plugin-react`.
+## Deprecated Transitives
 
-The commitlint and Vite/Vitest tooling trials should be prioritized because they directly target two of the three remaining advisory families.
-
-After accepting the commit tooling major update, `pnpm audit` reports 2 advisories:
-
-- Moderate: `brace-expansion` via ESLint/minimatch dependency paths.
-- Low: `@babel/core` via `@vitejs/plugin-react`.
-
-## Accepted Major Groups
-
-- Commit tooling: `@commitlint/cli` and `@commitlint/config-conventional` were updated to `21.2.0`.
-- Validation: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm commitlint --from HEAD~3 --to HEAD`, and `pnpm format:check` passed.
-- Audit impact: the `semver` advisory was removed.
-- Environment note: commitlint 21 declares `node >=22.12.0`; the local validation environment was Node `v25.8.2`.
-- Git hook tooling: `lint-staged` was updated to `17.0.8`.
-- Validation: `pnpm lint-staged --version`, `pnpm format:check`, `pnpm lint`, `pnpm test:unit`, `pnpm test:integration`, `pnpm build`, `pnpm worker:typecheck`, and `pnpm test:functional` passed.
-
-## Blocked Major Groups
-
-- Worker types: `@cloudflare/workers-types@5.20260706.1` passed `pnpm worker:typecheck` and the Worker unit-test subset, but `pnpm peers check` failed because `wrangler@4.107.0` requires `@cloudflare/workers-types@^4.20260701.1`. The v5 trial was reverted.
-
-## Trial Order
-
-1. Commit tooling: update `@commitlint/cli` and `@commitlint/config-conventional`; run `pnpm install --frozen-lockfile`, `pnpm lint`, and `pnpm audit`.
-2. Worker types: update `@cloudflare/workers-types`; run `pnpm worker:typecheck`, `pnpm test:unit`, and `pnpm build`.
-3. Vite/Vitest platform: update `vite`, `@vitejs/plugin-react`, `vitest`, and `jsdom`; run the full quality gate and Playwright smoke tests.
-
-## Deferred Groups
-
-These groups should not be mixed into the warning/dependency cleanup branch unless the isolated trial proves clean:
-
-- React 19 plus MUI 9 migration.
-- `bcryptjs` 3 migration and `@types/bcryptjs` removal/replacement.
-- TypeScript 6.
-- Sigmap 8.
+- `git-raw-commits@5.0.1` is owned by `@commitlint/read@21.2.0`; wait for Commitlint to adopt `@conventional-changelog/git-client`.
+- `whatwg-encoding@3.1.1` is owned by jsdom 26 through `html-encoding-sniffer`; reassess during the jsdom major trial.
+- The installed `@types/bcryptjs@2.4.6` is not itself marked deprecated. Do not install the deprecated `3.0.0` latest release.
 
 ## Acceptance Criteria
 
-- Keep a major group only if `pnpm format:check`, `pnpm lint`, `pnpm test:unit`, `pnpm test:integration`, `pnpm build`, and `pnpm worker:typecheck` pass after the group.
-- Run `pnpm audit` after each accepted group.
-- If a group fails, revert only that group and record the blocker in this document or a follow-up note.
-- Do not change Worker runtime code, D1 migrations, Apps Script, or public behavior to force a dependency update through.
-- Do not commit `public/robots.txt` or `public/sitemap.xml` changes as part of dependency work.
+Each major group must be isolated and must pass frozen install, format, strict lint, unit, integration, build, Worker typecheck, Playwright where relevant, peer checks, and audit. A failed trial is reverted as a group and its blocker is recorded here.

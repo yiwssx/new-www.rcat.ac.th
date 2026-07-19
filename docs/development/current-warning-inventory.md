@@ -1,0 +1,16 @@
+# Current Warning Inventory
+
+Last verified date: 2026-07-19 (Asia/Bangkok)
+
+Last verified baseline commit: `80324e71982411c67e6f3f9b66e06b09ab7bb282`
+
+| Category          | Tool or package                                                     | Current status                           | Severity | Dependency/source path                | Action                                        | Owner or scope       | Deferred-until condition                         |
+| ----------------- | ------------------------------------------------------------------- | ---------------------------------------- | -------- | ------------------------------------- | --------------------------------------------- | -------------------- | ------------------------------------------------ |
+| Security          | `brace-expansion`                                                   | Resolved at `5.0.7`                      | Moderate | ESLint -> minimatch                   | Lockfile patch                                | Tooling              | N/A                                              |
+| Security          | `@babel/core`                                                       | Resolved at `7.29.7`                     | Low      | plugin-react / React Hooks            | Lockfile patch                                | Tooling              | N/A                                              |
+| Deprecation       | `git-raw-commits@5.0.1`                                             | Remaining                                | Low      | Commitlint -> read                    | Await upstream                                | Commit tooling       | Commitlint replaces it                           |
+| Deprecation       | `whatwg-encoding@3.1.1`                                             | Remaining                                | Low      | jsdom -> html-encoding-sniffer        | Major trial only                              | Test tooling         | jsdom major is approved                          |
+| Runtime notice    | pnpm update notice                                                  | Intentionally retained                   | Info     | Local pnpm `11.13.0`                  | Keep validated pin                            | Developer tooling    | A scoped pnpm update is approved                 |
+| Install contract  | `sharp@0.34.5`                                                      | Clean in the preserved local tree        | Info     | Wrangler -> Miniflare -> Sharp        | Narrow local build approval; do not restage   | User-owned workspace | The user accepts this existing edit for commit   |
+| Major versions    | React/MUI/Vite/Vitest/jsdom/TypeScript/bcryptjs/Sigmap/Worker types | Deferred                                 | Info     | Direct dependencies                   | Separate compatibility groups                 | Platform owners      | Group acceptance criteria pass                   |
+| Local safety gate | User-owned Wrangler config                                          | Main-tree unit guards intentionally fail | High     | `cloudflare/public-api/wrangler.toml` | Do not stage; keep identifiers out of commits | Local operator state | User restores a safe local/ignored configuration |

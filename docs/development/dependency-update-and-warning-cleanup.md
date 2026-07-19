@@ -1,50 +1,42 @@
 # Dependency Update and Warning Cleanup
 
-This project uses a staged dependency update process so warning cleanup and runtime changes stay reviewable.
+This is the current dependency and warning-gate workflow. Use Node `24.18.0` and pnpm `11.13.0`, then install from the lockfile with `pnpm install --frozen-lockfile`.
 
-## Scripts
+## Commands
 
-| Script                    | Purpose                                                                                                                                                              |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm warning:baseline`   | Captures the standard warning baseline: formatting, lint report, unit tests, integration tests, build, and Worker typecheck.                                         |
-| `pnpm lint:strict`        | Runs ESLint with `--max-warnings=0` for files covered by the normal lint target.                                                                                     |
-| `pnpm quality:full`       | Runs the full local non-browser quality gate: format, lint, unit tests, integration tests, build, and Worker typecheck.                                              |
-| `pnpm quality:release`    | Runs `quality:full` plus Playwright functional smoke tests.                                                                                                          |
-| `pnpm deps:check`         | Runs `pnpm outdated` and `pnpm audit`.                                                                                                                               |
-| `pnpm deps:update:minor`  | Applies patch/minor dependency updates with `npm-check-updates`, then runs `pnpm install`.                                                                           |
-| `pnpm deps:update:latest` | Applies latest dependency updates with `npm-check-updates`, then runs `pnpm install`; use only in a disposable branch or an intentionally scoped major-upgrade pass. |
+| Command                 | Purpose                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm lint:frontend`    | Lint React/frontend TypeScript.                                                            |
+| `pnpm lint:server`      | Lint Vercel/API/server scripts and root config files.                                      |
+| `pnpm lint:worker`      | Lint Worker source, tests, and Worker scripts.                                             |
+| `pnpm lint:apps-script` | Lint Apps Script in its Google/shared-global environment.                                  |
+| `pnpm lint:strict`      | Lint all active source with zero warnings allowed.                                         |
+| `pnpm quality:full`     | Run format, strict lint, unit, integration, build, and Worker typecheck gates.             |
+| `pnpm quality:release`  | Run `quality:full` and Playwright functional tests.                                        |
+| `pnpm deps:outdated`    | Report direct dependency freshness; exit 1 is informational.                               |
+| `pnpm deps:audit`       | Report all installed advisories.                                                           |
+| `pnpm deps:check`       | Always run outdated and audit reports; enforce audit findings at high severity by default. |
 
-## Update Order
+Pass another threshold to the reporter when a stricter review is agreed, for example `pnpm deps:check -- --audit-level=moderate`.
 
-1. Start from a clean branch, except for explicitly ignored generated files such as `public/robots.txt` and `public/sitemap.xml`.
-2. Run `pnpm warning:baseline` or the individual baseline commands and record the results.
-3. Fix mechanical formatting before accepting dependency updates.
-4. Apply patch/minor updates with `pnpm deps:update:minor`.
-5. Run `pnpm quality:full` and `pnpm deps:check`.
-6. Commit only if validation passes or the remaining failure is a documented advisory that needs a major upgrade.
-7. Review major updates with `pnpm dlx npm-check-updates --target latest` and group them by blast radius.
-8. Apply major groups one at a time, validating each group before keeping it.
+## Safe Update Order
 
-## Major Update Grouping
+1. Record branch, HEAD, Node, pnpm, and pre-existing working-tree changes.
+2. Run each baseline gate independently.
+3. Use `pnpm why <package>` for every advisory or deprecation.
+4. Prefer a patch/minor parent update. If an existing parent range already permits the fixed transitive release, refresh that transitive lock entry without an override.
+5. Add a narrow override only when the upstream range cannot resolve a safe release and compatibility is demonstrated.
+6. Run `pnpm audit`, strict lint, tests, build, Worker typecheck, peer checks, and `git diff --check` before keeping the change.
+7. Handle major groups only in the dedicated plan below.
 
-Use these groups when moving beyond patch/minor updates:
+## Current Sitemap Note
 
-- React platform: `react`, `react-dom`, `@types/react`, `@types/react-dom`.
-- MUI platform: `@mui/material`, `@mui/icons-material`, and any peer changes required by MUI.
-- Vite/Vitest platform: `vite`, `@vitejs/plugin-react`, `vitest`, `jsdom`, `vite-plugin-checker`.
-- Worker tooling: `wrangler`, `@cloudflare/workers-types`.
-- Repository tooling: `@commitlint/cli`, `@commitlint/config-conventional`, `lint-staged`, `sigmap`.
-- Runtime utilities: `bcryptjs`; remove `@types/bcryptjs` only if the selected `bcryptjs` version includes compatible bundled types and validation proves no type regression.
+`pnpm build` runs TypeScript and Vite only. Vercel serves `/sitemap.xml` through `api/sitemap.mjs`, backed by live Cloudflare Worker/D1 public data. The tracked `scripts/generate-sitemap.mjs` file is obsolete and unreferenced; it is retained only for a separately scoped removal decision. `public/sitemap.xml` is not generated or source-controlled.
 
 ## Acceptance Rules
 
-- Do not downgrade packages to satisfy a warning.
-- Do not suppress warnings without proving the warning is a false positive or intentionally deferred.
-- Do not change Worker, D1 migrations, Apps Script media bridge, or public runtime behavior as part of routine dependency updates.
-- Do not commit generated `public/robots.txt` or `public/sitemap.xml` changes unless a separate sitemap/robots task explicitly owns them.
-- Re-run `pnpm audit` after dependency changes and document remaining advisories with their dependency path.
-- If a major group fails validation, revert only that group and document the blocker in the major update plan.
-
-## Build Note
-
-`pnpm build` runs `scripts/generate-sitemap.mjs` before TypeScript and Vite. Local builds can update `public/sitemap.xml`, so restore the pre-existing public generated files before staging unrelated dependency or warning cleanup commits.
+- Do not suppress warnings to make a gate green.
+- Do not change application behavior to force a dependency update.
+- Do not combine React, MUI, Vite, Vitest, jsdom, TypeScript, bcryptjs, Sigmap, Wrangler, or Worker-types major upgrades with routine cleanup.
+- Do not change Worker runtime, D1 migrations/schema, Apps Script runtime, auth architecture, or API contracts in a dependency-only pass.
+- Document all remaining advisories and deprecated transitives with their path and deferred condition.

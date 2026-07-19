@@ -1,6 +1,6 @@
 # M9 Public Document List Production Data Import Plan - 2026-06-11
 
-> Historical note, 2026-07-04: This checkpoint describes a previous public-document import planning state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+> Historical record — checkpoint 2026-06-11 at commit `006908eb711525a606070122aa2180eadeca520a`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
 
 Status: production data import planning only. No production import, migration, deployment, or cutover is executed.
 

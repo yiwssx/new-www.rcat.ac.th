@@ -7,6 +7,8 @@ export interface PublicHomeFixtureOptions {
   autoplayIntervalSeconds?: number;
 }
 
+export const PUBLIC_HOME_FIXTURE_SITE_NAME = "RCAT Carousel Fixture";
+
 function createSlide(index: number) {
   return {
     id: `fixture-slide-${index}`,
@@ -35,7 +37,7 @@ function createSlide(index: number) {
 export function createPublicHomeSnapshot(options: PublicHomeFixtureOptions = {}) {
   return {
     siteSettings: {
-      siteName: "RCAT Carousel Fixture",
+      siteName: PUBLIC_HOME_FIXTURE_SITE_NAME,
       eyebrow: "",
       intro: "",
       campus: "",

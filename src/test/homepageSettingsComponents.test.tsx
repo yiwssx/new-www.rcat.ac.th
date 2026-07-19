@@ -467,7 +467,7 @@ describe("homepage settings public sections", () => {
     );
   });
 
-  it("prioritizes only the first PublicHomeCarousel image", () => {
+  it("prioritizes the initially rendered PublicHomeCarousel image", () => {
     const slides: CarouselSlide[] = [
       {
         id: "carousel-1",
@@ -513,12 +513,10 @@ describe("homepage settings public sections", () => {
 
     const carouselImages = screen.getAllByRole("img");
 
+    expect(carouselImages).toHaveLength(1);
     expect(carouselImages[0]).toHaveAttribute("loading", "eager");
     expect(carouselImages[0]).toHaveAttribute("fetchpriority", "high");
     expect(carouselImages[0]).toHaveAttribute("decoding", "async");
-    expect(carouselImages[1]).toHaveAttribute("loading", "lazy");
-    expect(carouselImages[1]).toHaveAttribute("fetchpriority", "auto");
-    expect(carouselImages[1]).toHaveAttribute("decoding", "async");
   });
 
   it("only starts carousel autoplay when enabled and multiple slides are visible", () => {

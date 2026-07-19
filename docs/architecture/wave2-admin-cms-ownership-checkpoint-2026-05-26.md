@@ -1,4 +1,4 @@
-> Historical record. This document describes a previous migration state and is not the current runtime source of truth. Use docs/architecture/m20-cleanup-runtime-ownership.md for current runtime ownership.
+> Historical record — checkpoint 2026-05-26 at commit `f2ec35bb450b584a66ec9676fd04dfb6ec3effc7`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
 
 # Wave 2 Admin CMS Ownership Checkpoint - 2026-05-26
 

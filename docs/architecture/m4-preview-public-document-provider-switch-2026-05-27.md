@@ -1,6 +1,6 @@
 # M4 Preview Public Document Provider Switch - 2026-05-27
 
-> Historical note, 2026-07-04: This checkpoint describes an early preview provider-switch state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+> Historical record — checkpoint 2026-05-27 at commit `938a2fc047d5621ecd1dda9a4f5245a46dbb010f`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
 
 Status: preview-only provider switch for `public-document-list`.
 

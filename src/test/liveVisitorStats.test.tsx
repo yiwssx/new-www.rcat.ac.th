@@ -87,9 +87,9 @@ describe("live public visitor stats", () => {
 
   it("keeps the initial snapshot and backs off polling when live visitor stats fail", async () => {
     vi.useFakeTimers();
-    getLiveVisitorStatsMock.mockRejectedValue(
-      new Error("visitor-presence-schema-missing-v1: run 0006_m20_visitor_presence.sql")
-    );
+    const expectedError = new Error("visitor-presence-schema-missing-v1: run 0006_m20_visitor_presence.sql");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    getLiveVisitorStatsMock.mockRejectedValue(expectedError);
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queryClient}>
@@ -110,5 +110,10 @@ describe("live public visitor stats", () => {
 
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
     expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Live visitor stats are temporarily unavailable; keeping the public snapshot.",
+      expectedError
+    );
+    warnSpy.mockRestore();
   });
 });

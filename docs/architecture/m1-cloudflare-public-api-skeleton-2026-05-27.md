@@ -1,5 +1,7 @@
 # M1 Cloudflare Public API Skeleton - 2026-05-27
 
+> Historical record — checkpoint 2026-05-27 at commit `3d956c8e54b8ccd1ffdd4fdedd5eed223f5a574f`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
+
 Status: isolated Worker skeleton only. This checkpoint does not change production runtime behavior.
 
 ## Purpose

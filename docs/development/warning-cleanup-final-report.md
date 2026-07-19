@@ -1,53 +1,64 @@
 # Warning Cleanup Final Report
 
-Captured: 2026-07-07T14:15:00+07:00
+Verified: 2026-07-19 (Asia/Bangkok)
 
-Branch: `chore/warnings-and-dependencies`
+Baseline commit: `80324e71982411c67e6f3f9b66e06b09ab7bb282`
 
-## Completed
+Runtime contract: Node `24.18.0`, pnpm `11.13.0`
 
-- Added repeatable warning/dependency workflow scripts: `lint:strict`, `quality:full`, `quality:release`, `deps:check`, `deps:update:minor`, `deps:update:latest`, and `warning:baseline`.
-- Updated patch/minor runtime and tooling dependencies.
-- Accepted major tooling updates for `@commitlint/cli`, `@commitlint/config-conventional`, and `lint-staged`.
-- Reworked Vitest scripts through `scripts/run-vitest.mjs` so Node 25's experimental Web Storage is disabled during test runs. This removes the `--localstorage-file` warning without sharing a storage database across parallel test workers.
-- Fixed browser timer handle types that were exposed by the dependency refresh.
-- Removed TanStack router-provider warning noise from public page tests by partially mocking `useNavigate` where the public shell is rendered outside the app router.
-- Added narrow timeout budgets to confirmed slow UI feedback/public detail tests that exceeded Vitest's 5s default under parallel load.
+## Resolved
 
-## Remaining Findings
+- Patched `brace-expansion` from `5.0.5` to `5.0.7` and `@babel/core` from `7.29.0` to `7.29.7` within existing parent ranges; no override was added.
+- Aligned `package.json`, `.node-version`, and GitHub Actions with the Node/pnpm versions supported by Commitlint, lint-staged, ESLint, Vite, Vitest, and Wrangler.
+- Migrated MUI 6.5 deprecated TextField, Drawer, and ListItemText props to slot props with focused accessibility/keyboard tests.
+- Corrected the stale selected-slide unit assertion and the Playwright fixture/site-name contract without changing carousel behavior.
+- Replaced a date-sensitive event-card assertion and a preview-binding test that required a real D1 identifier with stable, safe contracts.
+- Kept fail-closed public analytics diagnostics in production source while asserting and restoring their `console.warn` spies in tests.
+- Expanded ESLint coverage across frontend, server/Vercel, Worker source/tests/scripts, and Apps Script.
+- Added a dependency reporter that always runs both `outdated` and `audit`; outdated findings remain informational and audit enforcement defaults to `high` severity.
+- Reconciled runtime sitemap, architecture, deployment, environment, and historical documentation.
 
-- `pnpm audit` still reports 2 advisories:
-  - Moderate `brace-expansion` through ESLint/minimatch dependency paths.
-  - Low `@babel/core` through `@vitejs/plugin-react`.
-- `pnpm outdated` still reports major candidates for React/MUI, Vite/Vitest/jsdom, TypeScript, `bcryptjs`, Sigmap, and Worker types.
-- `@cloudflare/workers-types` v5 was trialed and reverted because `wrangler@4.107.0` still peers on `@cloudflare/workers-types@^4.20260701.1`.
-- The public homepage information-architecture test still emits React Suspense `act(...)` warnings. A direct `act` wrapper was trialed and rejected because it made the lazy-section assertion brittle in this Vitest/jsdom environment.
-- Public analytics and visitor-presence tests intentionally emit warnings for Cloudflare-only/no-op and missing preview schema fallback paths.
-- Local `pnpm build` still reports the sitemap generator's static-route fallback when the live fetch is unavailable.
+## Remaining and Deferred
 
-## Validation
+- Installed deprecated transitives remain: `git-raw-commits@5.0.1` through Commitlint and `whatwg-encoding@3.1.1` through jsdom. Removing either requires its upstream parent to migrate or a separately validated major update.
+- Direct major upgrades for React/MUI, Vite/Vitest/jsdom, TypeScript, bcryptjs, Sigmap, and Worker types remain deferred to dedicated compatibility work.
+- The pnpm self-update notice is informational; the repository intentionally pins the validated `pnpm@11.13.0` contract.
+- `sharp@0.34.5` is a Wrangler -> Miniflare transitive. The preserved user-owned `pnpm-workspace.yaml` edit narrowly approves its install script, so the final working tree installs cleanly; the approval remains intentionally outside these task commits.
+- The preserved local `cloudflare/public-api/wrangler.toml` edit continues to trigger repository security guard tests in the main working tree. Task changes are validated separately from that user-owned configuration, and the file is excluded from every task commit.
 
-| Command                      | Result | Notes                                                                                           |
-| ---------------------------- | ------ | ----------------------------------------------------------------------------------------------- |
-| `pnpm format:check`          | Pass   | Prettier check clean.                                                                           |
-| `pnpm lint`                  | Pass   | ESLint completed with no warnings.                                                              |
-| `pnpm test:unit`             | Pass   | 78 files, 592 tests.                                                                            |
-| `pnpm test:integration`      | Pass   | 1 file, 2 tests.                                                                                |
-| `pnpm build`                 | Pass   | Public generated files were backed up/restored; local sitemap fetch fell back to static routes. |
-| `pnpm worker:typecheck`      | Pass   | Worker TypeScript project typechecked successfully.                                             |
-| `pnpm test:functional`       | Pass   | Chromium was installed for the updated Playwright version; 2 smoke tests passed.                |
-| `pnpm peers check`           | Pass   | No peer dependency issues.                                                                      |
-| `pnpm audit`                 | Fail   | 2 documented transitive advisories remain.                                                      |
-| `pnpm outdated`              | Fail   | Major-only candidates remain.                                                                   |
-| `pnpm lint-staged --version` | Pass   | Reports `17.0.8`.                                                                               |
+## Warning Status
 
-## Public Generated Files
+- ESLint: zero warnings across all four lint domains.
+- TypeScript, Vite build, Worker typecheck: no warnings.
+- Targeted MUI, carousel, sitemap, router integration, and Playwright runs: no React `act`, router-provider, expected-console, fallback, bundle, Node experimental, Wrangler, or Clasp warning leaked.
+- Apps Script lint exceptions are configuration-level and limited to its shared global scope, external entrypoints, and intentional control-character validation expressions.
 
-`public/robots.txt` and `public/sitemap.xml` were dirty before this pass and remain intentionally uncommitted. Build validation backed up and restored those files before staging.
+## Final Validation
+
+The candidate patch was validated in a detached worktree using the committed safe Wrangler placeholders plus the unchanged local Sharp build approval. This separates task results from the user-owned deployment identifiers.
+
+| Command                                                                | Result                                                                                             |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                                       | Passed; no engine, peer, deprecation, or ignored-build warning.                                    |
+| `pnpm format:check`                                                    | Passed.                                                                                            |
+| `pnpm lint:strict`                                                     | Passed with zero warnings across frontend, server, Worker, and Apps Script.                        |
+| `pnpm lint:frontend`, `lint:server`, `lint:worker`, `lint:apps-script` | Each passed independently.                                                                         |
+| `pnpm test:unit`                                                       | 112 files and 937 tests passed; no stderr, React `act`, or router warning signal.                  |
+| `pnpm test:integration`                                                | 1 file and 2 tests passed.                                                                         |
+| `pnpm build`                                                           | Passed; 1,345 modules transformed with no build warning.                                           |
+| `pnpm worker:typecheck`                                                | Passed.                                                                                            |
+| `pnpm test:functional`                                                 | 5 tests passed.                                                                                    |
+| `pnpm peers check`                                                     | No peer dependency issues.                                                                         |
+| `pnpm audit`                                                           | No known vulnerabilities.                                                                          |
+| `pnpm deps:check`                                                      | Passed; outdated exit 1 was reported, audit still ran and exited 0 at the enforced high threshold. |
+| `git diff --check`                                                     | Passed.                                                                                            |
 
 ## Deployment Impact
 
-- Vercel deploy: required for the dependency/runtime bundle and frontend source/test harness changes to reach deployed builds.
-- Worker deploy: not required. Worker behavior was not changed.
-- D1 migration: not required.
-- Apps Script deploy: not required.
+- Vercel may be required if the dependency lockfile or frontend UI/test changes are accepted.
+- Cloudflare Worker deployment is not required; Worker runtime source is unchanged.
+- D1 migration is not required; no migration or schema changed.
+- Apps Script deployment is not required; `.gs` runtime source is unchanged.
+- Documentation/CI-only changes require no runtime deployment.
+
+See [current warning inventory](./current-warning-inventory.md) for the concise machine-readable-style status table and [major dependency update plan](./dependency-major-update-plan.md) for deferred upgrades.

@@ -1,6 +1,6 @@
 # Stabilization Release Report
 
-> Historical note, 2026-07-04: This release report describes a previous Apps Script/Sheets structured-data runtime. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+> Historical record — checkpoint 2026-05-23 at commit `89f52461acc6240f0cf4b7e9d51497978470fe29`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](../architecture/m20-cleanup-runtime-ownership.md).
 
 Date: 2026-05-23
 

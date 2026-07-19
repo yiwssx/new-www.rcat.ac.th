@@ -1,5 +1,7 @@
 # MUI, Tailwind, and Icon Audit
 
+> Historical record — checkpoint 2026-05-23 at commit `d9d1c8a6956ab3bda00a491c43a9b0b7627d1c65`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
+
 Date: 2026-05-23
 
 ## Scope

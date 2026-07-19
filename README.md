@@ -2,6 +2,8 @@
 
 React/Vite public website and CMS for Roi-Et College of Agriculture and Technology.
 
+Current source-of-truth snapshot: 2026-07-19, based on commit `80324e71982411c67e6f3f9b66e06b09ab7bb282` plus the warning-cleanup changes documented in `docs/development/`.
+
 ## Current Runtime Ownership
 
 - Public structured reads: Cloudflare Worker and D1.
@@ -59,12 +61,31 @@ Do not store secrets, tokens, production credentials, Access AUD values, D1 IDs,
 ## Commands
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
+pnpm format:check
+pnpm lint:strict
 pnpm test:unit
 pnpm test:integration
-pnpm test:functional:install
 pnpm test:functional
-pnpm test:all
 pnpm build
+pnpm worker:typecheck
+pnpm peers check
+pnpm deps:check
 ```
+
+Use Node `24.18.0` and pnpm `11.13.0`; the same versions are pinned in `.node-version`, `package.json`, and CI.
+
+## Runtime Sitemap
+
+Vercel rewrites `/sitemap.xml` to the same-origin function `/api/sitemap`. The function reads the current public menu and published news, announcement, and blog content from the Cloudflare Worker/D1 public API, then returns XML with a five-minute shared-cache lifetime. It returns `503` when the public API is unavailable rather than publishing a stale build-time sitemap.
+
+Server-side Vercel variables are `PUBLIC_SITE_URL` and `CLOUDFLARE_PUBLIC_API_URL`; the function also accepts the corresponding `VITE_` names as deployment-compatibility fallbacks. `pnpm build` does not generate sitemap files. `public/sitemap.xml` is absent and untracked. `public/robots.txt` is tracked and points crawlers to `/sitemap.xml`. `pnpm test:sitemap` covers route normalization and XML generation. The old tracked `scripts/generate-sitemap.mjs` is unreferenced and reserved for a separate removal decision.
+
+## Documentation
+
+- Current runtime ownership: `docs/architecture/m20-cleanup-runtime-ownership.md`
+- Current migration/stabilization status: `docs/architecture/current-migration-status.md`
+- Environment variables: `docs/development/environment-variables.md`
+- Deployment boundaries: `docs/deployment/runtime-deployment-guide.md`
+- Current warning/dependency state: `docs/development/warning-cleanup-final-report.md`

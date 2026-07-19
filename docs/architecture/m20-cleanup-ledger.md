@@ -268,7 +268,7 @@ This pass removes the remaining active browser-side Apps Script structured-data 
 - `src/test/adminInformationArchitecture.test.ts` now guards active browser structured-data wrappers against `services/googleApi`, `getGoogleAppsScriptUrl`, `VITE_GOOGLE_APPS_SCRIPT_URL`, and `FromAppsScript` references.
 - `rg` showed no active source imports for `services/googleApi`, `cms-integrations`, `authRuntime`, `services/users`, or browser-side Apps Script structured read/write fallbacks after the cleanup.
 - Public and admin feature wrappers now call Cloudflare Worker APIs directly for structured data.
-- `scripts/generate-sitemap.mjs` now enriches sitemap content from `VITE_CLOUDFLARE_PUBLIC_API_URL` and falls back to static routes when unavailable.
+- Historical implementation note: `scripts/generate-sitemap.mjs` previously enriched a build-time sitemap and fell back to static routes. Commit `80324e7` superseded that path: Vercel now serves `/sitemap.xml` through `api/sitemap.mjs` using live Cloudflare public API data; the old script remains tracked but unreferenced.
 
 ### Intentionally Retained
 

@@ -2,6 +2,8 @@
 
 Status: M20 migration/runtime/domain-cutover scope is closed.
 
+Current source-of-truth snapshot: 2026-07-19 at baseline commit `80324e71982411c67e6f3f9b66e06b09ab7bb282`.
+
 M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
 
 M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final.
@@ -27,6 +29,20 @@ M20 closure is limited to migration, runtime ownership, and domain cutover scope
 - Admin proxy session: Vercel server-side proxy authenticates the CMS login session and forwards role/email context to the Worker.
 - Media and file bridge: Vercel `/api/apps-script-proxy` forwards authenticated media/file requests to Apps Script.
 - File storage: Google Drive remains the media/document storage target behind the Apps Script media bridge.
+- Runtime sitemap: Vercel `/sitemap.xml` rewrites to `/api/sitemap`, which reads live public menu/content from the Cloudflare Worker/D1 API.
+
+```mermaid
+flowchart LR
+  Browser[React/Vite browser] --> Vercel[Vercel frontend and same-origin functions]
+  Vercel --> Worker[Cloudflare Worker public/admin APIs]
+  Worker --> D1[(D1 structured persistence)]
+  Vercel --> Apps[Apps Script media/file bridge]
+  Apps --> Drive[(Google Drive files)]
+  Sitemap[/sitemap.xml/] --> Vercel
+  Vercel --> Worker
+```
+
+The admin authentication boundary remains the Vercel server-side session proxy plus Cloudflare RBAC/D1 app-user profiles. The proxy's credential hash and session secret are server-only. `bcryptjs` is reachable only from `server/adminProxy/handlers.mjs`, not the browser bundle; its future major upgrade remains separate auth work.
 
 ## Admin Operation Feedback Standardization
 
@@ -139,6 +155,11 @@ The table must not store:
 - `ADMIN_RBAC_VIEWERS`
 - `CLOUDFLARE_ADMIN_API_URL`
 - `CLOUDFLARE_ADMIN_SMOKE_TOKEN`
+
+### Vercel Runtime Sitemap
+
+- `PUBLIC_SITE_URL` (preferred) or `VITE_PUBLIC_SITE_URL` (fallback)
+- `CLOUDFLARE_PUBLIC_API_URL` (preferred) or `VITE_CLOUDFLARE_PUBLIC_API_URL` (fallback)
 
 ### Cloudflare Worker
 

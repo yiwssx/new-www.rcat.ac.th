@@ -1,4 +1,4 @@
-> Historical record. This document describes a previous migration state and is not the current runtime source of truth. Use docs/architecture/m20-cleanup-runtime-ownership.md for current runtime ownership.
+> Historical record — checkpoint 2026-05-26 at commit `885b1559aef4e78925f40319a8dd23a4aa680402`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
 
 # Final Refactor Checkpoint - 2026-05-26
 

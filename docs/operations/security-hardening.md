@@ -32,6 +32,13 @@ Strict CSP is deferred. The current site includes third-party and embedded media
 
 Recommended follow-up: start with `Content-Security-Policy-Report-Only` in preview, review reports, then move to enforcement after false positives are resolved.
 
+## Current Dependency And Auth Boundary
+
+- `pnpm audit` is clean after patching the ESLint/minimatch `brace-expansion` path and the plugin-react/React-Hooks `@babel/core` path.
+- Deprecated transitives remain documented in `docs/development/current-warning-inventory.md`; neither is application runtime code.
+- `bcryptjs@2.4.3` is imported only by the Vercel server-side admin proxy. It is not reachable from the browser build. A bcrypt major update is deferred because it requires explicit authentication compatibility testing.
+- Real D1 IDs, Access AUD values, credentials, and private deployment values must remain outside tracked files. Repository guard tests intentionally fail when such values appear in tracked Wrangler configuration.
+
 ## Cloudflare Recommendations
 
 - Keep Cloudflare Access enforced for admin entry points.

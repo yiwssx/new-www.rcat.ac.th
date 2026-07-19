@@ -2,7 +2,7 @@
 
 Use this checklist only when a release changes `apps-script/`, Apps Script manifest/scopes, Google Drive media/file operations, or the Apps Script side of the Vercel media/file bridge.
 
-Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+Current status: M20 migration/runtime/domain-cutover scope is closed; M21 stabilization is open. This checklist applies only when Apps Script media/file bridge source changes.
 
 Apps Script is not the current structured public/admin data backend and is not the current user-management backend.
 

@@ -1,6 +1,6 @@
 # M14 Public Document List Production Worker Smoke
 
-> Historical note, 2026-07-04: This checkpoint describes a previous public-document migration state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+> Historical record — checkpoint 2026-06-11 at commit `0f3db96514372e517e752219ddb955571e2e5a86`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
 
 Status: direct production Worker smoke gate only. Production frontend cutover is not approved or executed.
 

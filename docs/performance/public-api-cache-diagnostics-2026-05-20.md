@@ -1,6 +1,6 @@
 # Public API Cache Diagnostics - 2026-05-20
 
-> Historical note, 2026-07-04: This report describes diagnostics for the former Apps Script public structured API. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+> Historical record — checkpoint 2026-05-20 at commit `47bfc6cb619b58cc50edfdb03c91e4ecf905122c`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](../architecture/m20-cleanup-runtime-ownership.md).
 
 ## Observed Issue
 

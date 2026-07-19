@@ -3,7 +3,7 @@
 The public website records lightweight, privacy-friendly site view counters through the Cloudflare Worker and D1 public analytics path.
 This replaces manual visitor statistic entry for the `Website Visitors / สถิติผู้เข้าชมเว็บไซต์` card.
 
-Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+Current status: M20 migration/runtime/domain-cutover scope is closed. Site-view tracking is owned by Cloudflare Worker and D1; M21 owns remaining UI/logic stabilization.
 
 ## What Is Counted
 

@@ -2,7 +2,7 @@
 
 ใช้เอกสารนี้บันทึกผลตรวจจริงหลัง Deploy โดยอ้างอิงจาก [Production Smoke Checklist](./production-smoke-checklist.md)
 
-สถานะปัจจุบัน: cleanup completed; preview field verification in progress. M20 production cutover remains gated. เอกสารนี้ไม่ใช่การอนุมัติ production cutover
+สถานะปัจจุบัน: ขอบเขต migration/runtime/domain cutover ของ M20 ปิดแล้ว และ M21 รับผิดชอบงาน stabilization เอกสารนี้บันทึกผล smoke test และไม่ใช่การอนุมัติให้แก้ไข production นอกขอบเขต
 
 ## 1. Deployment Information
 

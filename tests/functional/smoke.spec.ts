@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test";
-import projectSettings from "../../src/config/project-settings.json" with { type: "json" };
-import { installPublicHomeFixture } from "./fixtures/publicHomeCarouselFixture";
+import { installPublicHomeFixture, PUBLIC_HOME_FIXTURE_SITE_NAME } from "./fixtures/publicHomeCarouselFixture";
 
 test("public home route renders", async ({ page }) => {
   await installPublicHomeFixture(page);
@@ -8,7 +7,7 @@ test("public home route renders", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: projectSettings.site.name
+      name: PUBLIC_HOME_FIXTURE_SITE_NAME
     })
   ).toBeVisible();
   await expect(page.locator('[data-public-home-carousel="true"]')).toBeVisible();

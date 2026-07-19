@@ -4,7 +4,7 @@
 
 This runbook is for entering and verifying real production data before public launch. It should be used by staff, editors, reviewers, and admins while preparing the school website for real visitors.
 
-Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. This runbook does not approve production cutover.
+Current status: M20 migration/runtime/domain-cutover scope is closed and M21 stabilization is open. This runbook does not authorize unrelated production data mutation.
 
 - Do not use mock data.
 - Do not use `example.com`.

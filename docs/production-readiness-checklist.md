@@ -1,6 +1,6 @@
 # Production Readiness Checklist
 
-Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. This checklist does not approve production cutover.
+Current status: M20 migration/runtime/domain-cutover scope is closed and M21 stabilization is open. This checklist validates a release candidate; it does not authorize unrelated production mutation.
 
 ## Launch-critical checks
 

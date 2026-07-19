@@ -1,72 +1,58 @@
 # Warning Cleanup Baseline
 
-Captured: 2026-07-07T12:38:37+07:00
+Captured: 2026-07-19 (Asia/Bangkok)
 
-Current commit: `89f4ac81a3b372dfaca2f51ad8cdcee9c30b4fd0`
+Starting branch: `master`
 
-Branch: `chore/warnings-and-dependencies`
+Starting commit: `80324e71982411c67e6f3f9b66e06b09ab7bb282`
 
-## Command Results
+Runtime: Node `v24.18.0`, pnpm `11.13.0`
 
-| Command                          | Result | Notes                                                                                                |
-| -------------------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile` | Pass   | Lockfile was already current.                                                                        |
-| `pnpm format:check`              | Fail   | Prettier reported 52 files needing formatting.                                                       |
-| `pnpm lint:report`               | Pass   | No ESLint warnings or errors were reported.                                                          |
-| `pnpm lint:errors`               | Pass   | No ESLint errors were reported.                                                                      |
-| `pnpm test:unit`                 | Pass   | 78 files, 592 tests. Unit run still emits test runtime warning noise.                                |
-| `pnpm test:integration`          | Pass   | 1 file, 2 tests. Integration run emits the Vitest `--localstorage-file` warning.                     |
-| `pnpm build`                     | Pass   | Build completed after the sitemap generator fell back to static routes because fetch failed locally. |
-| `pnpm worker:typecheck`          | Pass   | Worker TypeScript project typechecked successfully.                                                  |
-| `pnpm test:functional`           | Pass   | Playwright was installed; 2 smoke tests passed.                                                      |
-| `pnpm audit`                     | Fail   | 16 advisories: 4 low, 5 moderate, 6 high, 1 critical.                                                |
-| `pnpm outdated`                  | Fail   | Outdated packages were reported across runtime and dev tooling.                                      |
+This is the current baseline for the warning/dependency cleanup. Older counts in dated checkpoint documents are historical measurements, not current repository results.
 
-## Formatting Warnings
+## Preserved Working-Tree State
 
-Prettier reported 52 files. The largest groups were:
+Two user-owned edits existed before the baseline and were not changed or staged:
 
-- Worker source, Worker scripts, and Worker tests.
-- Frontend service and feature modules.
-- Admin/public React components and regression tests.
-- Historical architecture and performance markdown.
+- `cloudflare/public-api/wrangler.toml`: local environment values. Security guard tests intentionally reject this tracked-file state; values are omitted here.
+- `pnpm-workspace.yaml`: local `sharp` build approval.
 
-These are mechanical formatting mismatches and should be fixed with targeted Prettier writes that avoid `public/robots.txt` and `public/sitemap.xml`.
+## Fresh Command Results
 
-## Test Runtime Warnings
+| Command                          | Exit | Fresh result                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------- | ---: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile` |    0 | Lockfile already current; only the pnpm `11.13.0 -> 11.15.0` update notice printed. No engine, peer, or install deprecation warning printed.                                                                                                                                                                                                                |
+| `pnpm format:check`              |    1 | Prettier identified 13 tracked files.                                                                                                                                                                                                                                                                                                                       |
+| `pnpm lint:report`               |    0 | Zero warnings/errors in the old frontend/server-only scope. Worker and Apps Script were not covered.                                                                                                                                                                                                                                                        |
+| `pnpm lint:strict`               |    0 | Zero warnings in the same incomplete old scope.                                                                                                                                                                                                                                                                                                             |
+| `pnpm test:unit`                 |    1 | Fifteen tests failed: thirteen security guards rejected the preserved local Wrangler configuration, one stale carousel test expected a non-rendered slide image, and one date-sensitive event-detail assertion expected obsolete raw values. Expected fail-closed analytics diagnostics also leaked to stderr. No production source failure was identified. |
+| `pnpm test:integration`          |    0 | Two tests passed when rerun independently. The initial concurrent baseline attempt produced one transient empty render and is not treated as the independent result.                                                                                                                                                                                        |
+| `pnpm build`                     |    0 | TypeScript and Vite passed; 1,345 modules transformed. No sitemap fallback, browser-externalization, or bundle-size warning printed.                                                                                                                                                                                                                        |
+| `pnpm worker:typecheck`          |    0 | Worker TypeScript passed.                                                                                                                                                                                                                                                                                                                                   |
+| `pnpm test:functional`           |    1 | Four of five passed; the home smoke expected project settings while its installed fixture intentionally supplied another site name.                                                                                                                                                                                                                         |
+| `pnpm outdated`                  |    1 | Twenty-four direct dependencies had newer releases; patch/minor and major candidates are separated in the major update plan.                                                                                                                                                                                                                                |
+| `pnpm audit`                     |    1 | Two confirmed advisories: one moderate and one low.                                                                                                                                                                                                                                                                                                         |
+| `pnpm peers check`               |    0 | No peer dependency issues.                                                                                                                                                                                                                                                                                                                                  |
 
-The baseline unit and integration runs passed but emitted:
+## Confirmed Advisories
 
-- Vitest/Node warning: ``--localstorage-file` was provided without a valid path`.
-- React Router warning in selected public page tests: `useRouter must be used inside a <RouterProvider> component!`.
-- React test warning in selected public data tests: suspended resources resolved outside `act(...)`.
+| Severity | Package/version         | Dependency path                                                                     | Patched version |
+| -------- | ----------------------- | ----------------------------------------------------------------------------------- | --------------- |
+| Moderate | `brace-expansion@5.0.5` | ESLint -> `minimatch@10.2.5` -> `brace-expansion` (41 reported paths)               | `>=5.0.6`       |
+| Low      | `@babel/core@7.29.0`    | `@vitejs/plugin-react@4.7.0` and `eslint-plugin-react-hooks@7.1.1` -> `@babel/core` | `>=7.29.1`      |
 
-These are test-harness warnings, not current lint or type failures.
+## Deprecated Dependency Findings
 
-## Audit Summary
+- `git-raw-commits@5.0.1`: deprecated transitive dependency through `@commitlint/cli@21.2.0 -> @commitlint/read`; upstream replacement is `@conventional-changelog/git-client`.
+- `whatwg-encoding@3.1.1`: deprecated transitive dependency through `jsdom@26.1.0 -> html-encoding-sniffer@4.0.0`.
+- `@types/bcryptjs@2.4.6`: the installed release is not marked deprecated. `pnpm outdated` shows a deprecated `3.0.0` latest release, so it must not be upgraded independently of a future `bcryptjs` major migration.
 
-`pnpm audit` reported 16 advisories:
+## Source API Findings
 
-- Critical: `vitest` UI server arbitrary file access advisory.
-- High: `semver`, `ws`, `vite`, and `undici` advisories.
-- Moderate: `ws`, `brace-expansion`, `vite`, and `undici` advisories.
-- Low: `esbuild`, `@babel/core`, and `undici` advisories.
+MUI 6.5 marks these used props deprecated: `TextField.InputProps`, `TextField.inputProps`, `Drawer.PaperProps`, and `ListItemText.primaryTypographyProps`.
 
-Most advisories route through development tooling such as Vitest, Vite, Wrangler/Miniflare, and transitive packages. The dependency update pass should re-run `pnpm audit` after each safe update group.
+`Autocomplete.renderTags` and `@mui/material/Grid2` are supported by the installed MUI 6.5 types and are intentionally not migrated in this task.
 
-## Outdated Dependency Groups
+## Sitemap Baseline
 
-Patch/minor candidates:
-
-- Runtime: `dayjs`, `sweetalert2`, `@tanstack/react-query`, `@tanstack/react-router`.
-- Dev tooling: `postcss`, `eslint`, `globals`, `@playwright/test`, `prettier`, `tailwindcss`, `@tailwindcss/postcss`, `typescript-eslint`, `wrangler`, `eslint-plugin-react-refresh`, `vite-plugin-checker`.
-
-Major candidates that need separate planning:
-
-- Runtime: `bcryptjs`, `@mui/icons-material`, `@mui/material`, `react`, `react-dom`.
-- Dev tooling: `@cloudflare/workers-types`, `@commitlint/cli`, `@commitlint/config-conventional`, `jsdom`, `lint-staged`, `sigmap`, `@types/react`, `@types/react-dom`, `vite`, `@vitejs/plugin-react`, `vitest`.
-- `@types/bcryptjs` reports a deprecated `3.0.0` latest and should not be upgraded blindly.
-
-## Public Generated Files
-
-`public/robots.txt` and `public/sitemap.xml` were dirty before this pass and are intentionally excluded from this cleanup. Build runs may regenerate `public/sitemap.xml`; validation should restore the pre-existing working-tree version before staging commits.
+The current HEAD contains `80324e7 fix(seo): generate sitemap from live CMS routes`. Vercel rewrites `/sitemap.xml` to `/api/sitemap`; `api/sitemap.mjs` reads menu and published content from the Cloudflare public API. `pnpm build` does not run `scripts/generate-sitemap.mjs`. `public/sitemap.xml` is absent and untracked; `public/robots.txt` is tracked.

@@ -1,4 +1,4 @@
-> Historical record. This document describes a previous migration state and is not the current runtime source of truth. Use docs/architecture/m20-cleanup-runtime-ownership.md for current runtime ownership.
+> Historical record — checkpoint 2026-05-15 at commit `b5e3b33214fefe6d8759b7acbfbd3cad6b4cb2f6`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](../architecture/m20-cleanup-runtime-ownership.md).
 
 # Frontend Dependency and Bundle Risk Report
 

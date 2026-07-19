@@ -255,7 +255,7 @@ describe("M2.1 D1 schema and sample safety contract", () => {
     expect(migrationSql).not.toMatch(/\bINSERT\s+INTO\b/i);
   });
 
-  it("keeps local and production bindings safe while allowing the scoped preview database", () => {
+  it("keeps local, preview, and production bindings safe in source control", () => {
     const localSection = wranglerToml.split("[env.preview]")[0] || "";
 
     const previewSection = wranglerToml.split("[env.preview]")[1]?.split("[env.production]")[0] || "";
@@ -270,7 +270,7 @@ describe("M2.1 D1 schema and sample safety contract", () => {
 
     expect(previewSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-preview"\s*$/m);
 
-    expect(previewSection).toMatch(/^\s*database_id\s*=\s*"[0-9a-f-]{32,}"\s*$/m);
+    expect(previewSection).toMatch(/^\s*database_id\s*=\s*"preview-placeholder"\s*$/m);
 
     expect(productionSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-production"\s*$/m);
 

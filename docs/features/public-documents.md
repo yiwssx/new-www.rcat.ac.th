@@ -6,7 +6,7 @@ Public Documents adds a dedicated CMS module for downloadable public files such 
 
 Published document metadata is now structured data owned by Cloudflare Worker + D1. Existing content pages are not deleted or converted automatically.
 
-Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated.
+Current status: M20 migration/runtime/domain-cutover scope is closed. Public document structured data is owned by Cloudflare Worker and D1; Google Drive files remain behind the Apps Script media/file bridge.
 
 ## Admin Workflow
 

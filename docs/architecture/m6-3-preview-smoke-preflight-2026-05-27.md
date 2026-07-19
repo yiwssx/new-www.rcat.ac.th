@@ -1,6 +1,6 @@
 # M6.3 Preview Smoke Preflight - 2026-05-27
 
-> Historical note, 2026-07-04: This checkpoint describes an early preview smoke preflight state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+> Historical record — checkpoint 2026-05-27 at commit `55002fbf57085af58d3975a93992bf801ac895f7`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
 
 Status: local safety automation only. M6 actual non-production preview smoke remains blocked until preflight reports `READY` and the external preview resources exist outside git.
 

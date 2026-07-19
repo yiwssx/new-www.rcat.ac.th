@@ -1,6 +1,6 @@
 # M18 Admin + D1 Write Batch Migration
 
-> Historical note, 2026-07-04: This checkpoint remains a historical record of the admin write migration. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+> Historical record — checkpoint 2026-06-16 at commit `4e823b2bc61b7adc1585bf80d7ff354683dc968e`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
 
 Status: M18 completed. External non-production Preview D1 migration and admin write lifecycle smoke passed by operator-confirmed external execution. This is one cohesive milestone, not a production cutover.
 

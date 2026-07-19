@@ -128,6 +128,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.clearAllMocks();
   window.localStorage.clear();
 });
@@ -177,6 +178,7 @@ describe("M20 public read provider parity", () => {
   });
 
   it("treats public analytics as Cloudflare-only and no-ops when the provider is not Cloudflare", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const fetchMock = installCloudflareFetch();
     const input = {
       visitorId: "rcat_abcdefghijkl",
@@ -190,10 +192,24 @@ describe("M20 public read provider parity", () => {
       "Public content-view analytics is Cloudflare-only"
     );
 
+    expect(warnSpy).toHaveBeenNthCalledWith(
+      1,
+      "Public site-view analytics is Cloudflare-only in M20 and is disabled for the current provider."
+    );
+    expect(warnSpy).toHaveBeenNthCalledWith(
+      2,
+      "Public presence analytics is Cloudflare-only in M20 and is disabled for the current provider."
+    );
+    expect(warnSpy).toHaveBeenNthCalledWith(
+      3,
+      "Public content-view analytics is Cloudflare-only in M20 and is disabled for the current provider."
+    );
     expect(fetchMock).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 
   it("backs off Cloudflare presence writes after the preview presence schema is missing", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
     const fetchMock = vi.fn(
       async () =>
@@ -219,6 +235,10 @@ describe("M20 public read provider parity", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(recordPresence(input)).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Public presence tracking is temporarily disabled. run 0006_m20_visitor_presence.sql"
+    );
+    warnSpy.mockRestore();
   });
 
   it("records Cloudflare presence and content views when explicitly selected", async () => {

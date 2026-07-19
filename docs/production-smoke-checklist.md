@@ -2,7 +2,7 @@
 
 ใช้เช็กลิสต์นี้หลัง Deploy ทุกครั้ง เพื่อยืนยันว่าเว็บไซต์สาธารณะและ CMS ยังทำงานได้ครบตามจุดเสี่ยงหลักก่อนประกาศใช้งานจริง
 
-สถานะปัจจุบัน: cleanup completed; preview field verification in progress. M20 production cutover remains gated. เช็กลิสต์นี้ไม่ใช่การอนุมัติ production cutover
+สถานะปัจจุบัน: ขอบเขต migration/runtime/domain cutover ของ M20 ปิดแล้ว และ M21 รับผิดชอบงาน stabilization เช็กลิสต์นี้ใช้ตรวจ release candidate และไม่ใช่การอนุมัติให้แก้ไข production นอกขอบเขต
 
 ## 1. Quality Gate ก่อน Deploy
 

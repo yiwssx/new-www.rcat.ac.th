@@ -1,6 +1,6 @@
 # M5 Non-Production D1 Preview - 2026-05-27
 
-> Historical note, 2026-07-04: This checkpoint describes an early non-production D1 preview state and is not the current runtime source of truth. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+> Historical record — checkpoint 2026-05-27 at commit `fb4bb63482cd795c4495e574d25ddb1b9b22a170`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](./m20-cleanup-runtime-ownership.md).
 
 Status: preview/non-production setup path and sanitized preview seed only. This is not a production cutover.
 

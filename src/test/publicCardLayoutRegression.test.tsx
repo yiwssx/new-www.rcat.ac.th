@@ -199,8 +199,8 @@ describe("public card layout regressions", () => {
       {
         id: "event-1",
         title: "Orientation day",
-        date: "2026-05-20T09:00:00.000Z",
-        endDate: "2026-05-20T11:00:00.000Z",
+        date: "2099-05-20T09:00:00.000Z",
+        endDate: "2099-05-20T11:00:00.000Z",
         audience: "public",
         status: "confirmed",
         location: "Main hall",
@@ -219,9 +219,9 @@ describe("public card layout regressions", () => {
     const dialog = screen.getByRole("dialog", { name: "Orientation day" });
     expect(within(dialog).getByText("Full orientation schedule and preparation details.")).toBeInTheDocument();
     expect(within(dialog).getByText("Main hall")).toBeInTheDocument();
-    expect(within(dialog).getAllByText("public")).toHaveLength(2);
+    expect(within(dialog).getByText("public")).toBeInTheDocument();
     expect(within(dialog).getByText("Students")).toBeInTheDocument();
-    expect(within(dialog).getByText("confirmed")).toBeInTheDocument();
+    expect(within(dialog).getByText("กำลังจะมาถึง")).toBeInTheDocument();
   });
 
   it("supports compact event lists with an accessible view-all CTA", () => {

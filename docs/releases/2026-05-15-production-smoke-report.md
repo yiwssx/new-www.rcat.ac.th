@@ -1,6 +1,6 @@
 # Production Smoke Test Report: 2026-05-15
 
-> Historical note, 2026-07-04: This smoke report describes a previous production verification state. Current runtime ownership has advanced: structured public/admin data uses Cloudflare Worker + D1, Apps Script is retained only for the Vercel-proxied Google Drive media/file bridge, cleanup is completed, preview field verification is in progress, and M20 production cutover remains gated.
+> Historical record — checkpoint 2026-05-15 at commit `774fc87f649ab631f48582f3da58cf089507f2c9`. Measurements and runtime statements below are preserved as historical evidence, not current state. Current source of truth: [M20 cleanup runtime ownership](../architecture/m20-cleanup-runtime-ownership.md).
 
 รายงานนี้บันทึกผล smoke test สำหรับ deployment ปัจจุบัน โดยอ้างอิงจาก [Production Smoke Checklist](../production-smoke-checklist.md) และ [Production Smoke Test Report Template](../production-smoke-test-report-template.md)
 
