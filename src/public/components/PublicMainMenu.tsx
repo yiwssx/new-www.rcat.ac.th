@@ -296,10 +296,12 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
         open={mobileMenuOpen}
         onClose={closeMobileMenu}
         ModalProps={{ keepMounted: true }}
-        PaperProps={{
-          sx: {
-            width: { xs: "84vw", sm: 360 },
-            maxWidth: 360
+        slotProps={{
+          paper: {
+            sx: {
+              width: { xs: "84vw", sm: 360 },
+              maxWidth: 360
+            }
           }
         }}
       >
@@ -378,11 +380,13 @@ function MobileMenuList({
             >
               <ListItemText
                 primary={item.label}
-                primaryTypographyProps={{
-                  fontWeight: 700,
-                  fontSize: level ? { xs: "0.88rem", md: "0.92rem" } : { xs: "0.95rem", md: "0.98rem" },
-                  color: level ? "text.secondary" : "text.primary",
-                  whiteSpace: "normal"
+                slotProps={{
+                  primary: {
+                    fontWeight: 700,
+                    fontSize: level ? { xs: "0.88rem", md: "0.92rem" } : { xs: "0.95rem", md: "0.98rem" },
+                    color: level ? "text.secondary" : "text.primary",
+                    whiteSpace: "normal"
+                  }
                 }}
               />
               {hasChildren && (isOpen ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />)}

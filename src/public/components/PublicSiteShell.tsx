@@ -679,12 +679,14 @@ export default function PublicSiteShell({
                   placeholder="ค้นหาในเว็บไซต์"
                   aria-label="ค้นหาในเว็บไซต์"
                   fullWidth
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchOutlinedIcon fontSize="small" />
-                      </InputAdornment>
-                    )
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchOutlinedIcon fontSize="small" />
+                        </InputAdornment>
+                      )
+                    }
                   }}
                   sx={{
                     "& .MuiInputBase-root": {

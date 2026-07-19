@@ -93,13 +93,15 @@ export default function PublicDocumentsPage() {
           label="ค้นหาเอกสารเผยแพร่"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          inputProps={{ "aria-label": "ค้นหาเอกสารเผยแพร่" }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchOutlinedIcon fontSize="small" />
-              </InputAdornment>
-            )
+          slotProps={{
+            htmlInput: { "aria-label": "ค้นหาเอกสารเผยแพร่" },
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchOutlinedIcon fontSize="small" />
+                </InputAdornment>
+              )
+            }
           }}
           sx={{ flex: "1 1 360px" }}
         />
@@ -108,7 +110,7 @@ export default function PublicDocumentsPage() {
           label="หมวดหมู่"
           value={categoryFilter}
           onChange={(event) => setCategoryFilter(event.target.value)}
-          inputProps={{ "aria-label": "กรองหมวดหมู่เอกสาร" }}
+          slotProps={{ htmlInput: { "aria-label": "กรองหมวดหมู่เอกสาร" } }}
           sx={{ minWidth: { xs: "100%", md: 220 } }}
         >
           <MenuItem value="">ทุกหมวดหมู่</MenuItem>

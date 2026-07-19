@@ -1274,6 +1274,7 @@ describe("public data-driven pages", () => {
     });
 
     render(<PublicDocumentsPage />);
+    expect(screen.getByRole("combobox", { name: /กรองหมวดหมู่เอกสาร/ })).toBeInTheDocument();
     await user.type(screen.getByRole("searchbox", { name: "ค้นหาเอกสารเผยแพร่" }), "student-form");
 
     expect(screen.queryByText("แผนปฏิบัติการประจำปี")).not.toBeInTheDocument();

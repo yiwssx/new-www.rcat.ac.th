@@ -1179,7 +1179,7 @@ export default function SettingsPage() {
                         value={homepageSettings.marquee.speedSeconds}
                         onChange={(event) => handleHomepageMarqueeChange("speedSeconds", event.target.value)}
                         helperText="ตัวเลขมาก = วิ่งช้าลง แนะนำ 60–90 วินาทีสำหรับสไตล์หน่วยงานที่นิ่งและอ่านง่าย"
-                        inputProps={{ min: 24, max: 180 }}
+                        slotProps={{ htmlInput: { min: 24, max: 180 } }}
                         size="small"
                         fullWidth
                       />
@@ -1289,8 +1289,10 @@ export default function SettingsPage() {
                       label={field.label}
                       type="number"
                       value={visitorStats[field.key]}
-                      inputProps={{ min: 0, step: 1 }}
-                      InputProps={{ readOnly: true }}
+                      slotProps={{
+                        htmlInput: { min: 0, step: 1 },
+                        input: { readOnly: true }
+                      }}
                       size="small"
                       fullWidth
                     />
