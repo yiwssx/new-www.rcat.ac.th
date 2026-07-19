@@ -2,6 +2,8 @@
 
 Current source-of-truth snapshot: 2026-07-19, baseline commit `80324e71982411c67e6f3f9b66e06b09ab7bb282`.
 
+The deployment toolchain contract is Node `22.x` (exact local/CI pin `22.23.1`) and pnpm `10.34.5`. Vercel must retain frozen-lockfile installation and use Corepack when enforcing the exact pnpm pin.
+
 | Change type                                                              | Required deployment                                        | Notes                                                                                |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | Frontend React/Vite, Vercel functions, or accepted frontend dependencies | Vercel                                                     | Includes `api/sitemap.mjs` and server proxy changes.                                 |
@@ -19,4 +21,4 @@ Current source-of-truth snapshot: 2026-07-19, baseline commit `80324e71982411c67
 
 Sitemap deployment validation uses `pnpm test:sitemap` for normalization/XML behavior and `pnpm build` for the Vercel bundle. `public/robots.txt` remains tracked; `public/sitemap.xml` is neither generated nor tracked.
 
-This warning/dependency cleanup requires no Worker deployment, D1 migration, or Apps Script deployment. Vercel is required only if the accepted dependency/UI source changes are released.
+The corrective toolchain commit requires a Vercel redeployment after it is pushed. It requires no Cloudflare Worker deployment, D1 migration, or Apps Script deployment.

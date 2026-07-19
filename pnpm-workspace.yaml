@@ -1,9 +1,12 @@
 packages:
   - .
 
-allowBuilds:
-  esbuild: true
-  workerd: true
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - workerd
+
+strictDepBuilds: true
 
 minimumReleaseAgeExclude:
   - "@typescript-eslint/eslint-plugin@8.63.0"

@@ -4,12 +4,12 @@ Verified: 2026-07-19 (Asia/Bangkok)
 
 Baseline commit: `80324e71982411c67e6f3f9b66e06b09ab7bb282`
 
-Runtime contract: Node `24.18.0`, pnpm `11.13.0`
+Runtime contract: Node `22.23.1` (`22.x` engine), pnpm `10.34.5`
 
 ## Resolved
 
 - Patched `brace-expansion` from `5.0.5` to `5.0.7` and `@babel/core` from `7.29.0` to `7.29.7` within existing parent ranges; no override was added.
-- Aligned `package.json`, `.node-version`, and GitHub Actions with the Node/pnpm versions supported by Commitlint, lint-staged, ESLint, Vite, Vitest, and Wrangler.
+- Aligned `package.json`, `.node-version`, and GitHub Actions with the Vercel-compatible Node 22/pnpm 10 contract supported by Commitlint, lint-staged, ESLint, Vite, Vitest, and Wrangler.
 - Migrated MUI 6.5 deprecated TextField, Drawer, and ListItemText props to slot props with focused accessibility/keyboard tests.
 - Corrected the stale selected-slide unit assertion and the Playwright fixture/site-name contract without changing carousel behavior.
 - Replaced a date-sensitive event-card assertion and a preview-binding test that required a real D1 identifier with stable, safe contracts.
@@ -18,12 +18,19 @@ Runtime contract: Node `24.18.0`, pnpm `11.13.0`
 - Added a dependency reporter that always runs both `outdated` and `audit`; outdated findings remain informational and audit enforcement defaults to `high` severity.
 - Reconciled runtime sitemap, architecture, deployment, environment, and historical documentation.
 
+## Vercel Toolchain Correction
+
+- Remote build logs for `452eb0e15b871be1212868f4a93fa62a9e834bd8` were unavailable because the existing Vercel integration and local CLI token were not authorized for the linked project. No deployment command was run.
+- A clean detached worktree at that exact commit reproduced the first project failure: pnpm 11 exited with `ERR_PNPM_IGNORED_BUILDS` for `sharp@0.34.5`.
+- Vercel supports the Node 22 runtime line and its current lockfile-9 build selection supports pnpm 10, while pnpm 11 is not a supported automatic build selection. The correction therefore uses Node `22.23.1` / `22.x` and pnpm `10.34.5`.
+- Clean, frozen, and strict-peer frozen installs passed with the pnpm 10 workspace policy. pnpm 10 found the lockfile current, so no dependency snapshot or integrity entry changed.
+
 ## Remaining and Deferred
 
 - Installed deprecated transitives remain: `git-raw-commits@5.0.1` through Commitlint and `whatwg-encoding@3.1.1` through jsdom. Removing either requires its upstream parent to migrate or a separately validated major update.
 - Direct major upgrades for React/MUI, Vite/Vitest/jsdom, TypeScript, bcryptjs, Sigmap, and Worker types remain deferred to dedicated compatibility work.
-- The pnpm self-update notice is informational; the repository intentionally pins the validated `pnpm@11.13.0` contract.
-- `sharp@0.34.5` is a Wrangler -> Miniflare transitive. The preserved user-owned `pnpm-workspace.yaml` edit narrowly approves its install script, so the final working tree installs cleanly; the approval remains intentionally outside these task commits.
+- pnpm 11 is not used because Vercel's current build selection supports pnpm 10. The repository intentionally pins the validated `pnpm@10.34.5` contract.
+- `pnpm-workspace.yaml` is now intentionally tracked with pnpm 10's `onlyBuiltDependencies` allowlist and `strictDepBuilds: true`. `sharp@0.34.5` is approved because Wrangler -> Miniflare requires its install check; `esbuild` and `workerd` retain their required toolchain binary installers. Broad dependency scripts remain disabled, and the policy was validated by frozen-lockfile installation.
 - The preserved local `cloudflare/public-api/wrangler.toml` edit continues to trigger repository security guard tests in the main working tree. Task changes are validated separately from that user-owned configuration, and the file is excluded from every task commit.
 
 ## Warning Status
@@ -35,7 +42,7 @@ Runtime contract: Node `24.18.0`, pnpm `11.13.0`
 
 ## Final Validation
 
-The candidate patch was validated in a detached worktree using the committed safe Wrangler placeholders plus the unchanged local Sharp build approval. This separates task results from the user-owned deployment identifiers.
+The candidate patch was validated with the committed safe Wrangler placeholders and the tracked narrow dependency-build allowlist. This separates task results from the user-owned deployment identifiers in `cloudflare/public-api/wrangler.toml`.
 
 | Command                                                                | Result                                                                                             |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -45,17 +52,19 @@ The candidate patch was validated in a detached worktree using the committed saf
 | `pnpm lint:frontend`, `lint:server`, `lint:worker`, `lint:apps-script` | Each passed independently.                                                                         |
 | `pnpm test:unit`                                                       | 112 files and 937 tests passed; no stderr, React `act`, or router warning signal.                  |
 | `pnpm test:integration`                                                | 1 file and 2 tests passed.                                                                         |
+| `pnpm test:sitemap`                                                    | 1 file and 5 tests passed.                                                                         |
 | `pnpm build`                                                           | Passed; 1,345 modules transformed with no build warning.                                           |
 | `pnpm worker:typecheck`                                                | Passed.                                                                                            |
 | `pnpm test:functional`                                                 | 5 tests passed.                                                                                    |
-| `pnpm peers check`                                                     | No peer dependency issues.                                                                         |
+| `pnpm deps:peers`                                                      | Frozen strict-peer installation passed with no peer dependency issues.                             |
+| pnpm 11 read-only `peers check` diagnostic                             | No peer dependency issues.                                                                         |
 | `pnpm audit`                                                           | No known vulnerabilities.                                                                          |
 | `pnpm deps:check`                                                      | Passed; outdated exit 1 was reported, audit still ran and exited 0 at the enforced high threshold. |
 | `git diff --check`                                                     | Passed.                                                                                            |
 
 ## Deployment Impact
 
-- Vercel may be required if the dependency lockfile or frontend UI/test changes are accepted.
+- Vercel redeployment is required after the corrective toolchain commit is pushed.
 - Cloudflare Worker deployment is not required; Worker runtime source is unchanged.
 - D1 migration is not required; no migration or schema changed.
 - Apps Script deployment is not required; `.gs` runtime source is unchanged.

@@ -8,6 +8,8 @@ Starting commit: `80324e71982411c67e6f3f9b66e06b09ab7bb282`
 
 Runtime: Node `v24.18.0`, pnpm `11.13.0`
 
+Correction recorded 2026-07-19: the runtime line above is retained as the historical baseline. The current repository contract is Node `22.23.1` / `22.x` and pnpm `10.34.5`; the previously local Sharp approval is now intentionally tracked in the pnpm 10-compatible narrow build allowlist.
+
 This is the current baseline for the warning/dependency cleanup. Older counts in dated checkpoint documents are historical measurements, not current repository results.
 
 ## Preserved Working-Tree State
@@ -16,6 +18,8 @@ Two user-owned edits existed before the baseline and were not changed or staged:
 
 - `cloudflare/public-api/wrangler.toml`: local environment values. Security guard tests intentionally reject this tracked-file state; values are omitted here.
 - `pnpm-workspace.yaml`: local `sharp` build approval.
+
+The list above records the baseline only. The later Vercel toolchain correction was explicitly authorized to include `pnpm-workspace.yaml`; `cloudflare/public-api/wrangler.toml` remains excluded.
 
 ## Fresh Command Results
 

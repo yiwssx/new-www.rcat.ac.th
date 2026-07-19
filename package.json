@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "engines": {
-    "node": "24.18.0"
+    "node": "22.x"
   },
-  "packageManager": "pnpm@11.13.0",
+  "packageManager": "pnpm@10.34.5",
   "scripts": {
     "dev": "vite",
     "prepare": "husky",
@@ -67,6 +67,7 @@
     "quality:release": "pnpm quality:full && pnpm test:functional",
     "deps:outdated": "pnpm outdated",
     "deps:audit": "pnpm audit",
+    "deps:peers": "pnpm install --frozen-lockfile --strict-peer-dependencies",
     "deps:check": "node scripts/check-dependencies.mjs --audit-level=high",
     "deps:update:minor": "pnpm dlx npm-check-updates --target minor -u && pnpm install",
     "deps:update:latest": "pnpm dlx npm-check-updates --target latest -u && pnpm install",

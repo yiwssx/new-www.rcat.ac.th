@@ -70,11 +70,15 @@ pnpm test:integration
 pnpm test:functional
 pnpm build
 pnpm worker:typecheck
-pnpm peers check
+pnpm deps:peers
 pnpm deps:check
 ```
 
-Use Node `24.18.0` and pnpm `11.13.0`; the same versions are pinned in `.node-version`, `package.json`, and CI.
+Use Node `22.23.1` and pnpm `10.34.5`. `package.json` accepts the Vercel-supported Node `22.x` line, while `.node-version`, `packageManager`, and CI pin the exact tested versions.
+
+`pnpm-workspace.yaml` permits install scripts only for `esbuild`, `workerd`, and `sharp`. These binaries are required by the Vite/Wrangler toolchain; any unreviewed dependency build script fails installation.
+
+pnpm 10 predates the `pnpm peers check` reporter. `pnpm deps:peers` enforces the same acceptance condition through a frozen install with strict peer-dependency validation.
 
 ## Runtime Sitemap
 

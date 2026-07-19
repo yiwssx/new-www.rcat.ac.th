@@ -6,6 +6,10 @@ Treat every `VITE_` value as public because it can be bundled into client JavaSc
 
 Do not commit real environment values, deployment URLs for private environments, tokens, passwords, cookies, service account data, Access AUD values, D1 IDs, or any other secret material.
 
+## Vercel Build Toolchain
+
+The repository contract is Node `22.x` (exact local/CI pin `22.23.1`) and pnpm `10.34.5`. Vercel uses `engines.node` for Node selection. To make Vercel honor the exact `packageManager` pin through Corepack, configure the non-secret build variable `ENABLE_EXPERIMENTAL_COREPACK=1`; do not replace the frozen-lockfile install with a permissive install command.
+
 ## Public Frontend Variables
 
 | Variable                          | Purpose                                                                                                   | Required                                            | Notes                                                                                           |

@@ -1,6 +1,8 @@
 # Dependency Update and Warning Cleanup
 
-This is the current dependency and warning-gate workflow. Use Node `24.18.0` and pnpm `11.13.0`, then install from the lockfile with `pnpm install --frozen-lockfile`.
+This is the current dependency and warning-gate workflow. Use Node `22.23.1` and pnpm `10.34.5`, then install from the lockfile with `pnpm install --frozen-lockfile`.
+
+The pnpm workspace policy uses `onlyBuiltDependencies` with `strictDepBuilds: true`. Only `esbuild`, `workerd`, and `sharp` may run dependency install scripts; this is the pnpm 10 form of the repository's fail-closed build policy.
 
 ## Commands
 
@@ -15,9 +17,12 @@ This is the current dependency and warning-gate workflow. Use Node `24.18.0` and
 | `pnpm quality:release`  | Run `quality:full` and Playwright functional tests.                                        |
 | `pnpm deps:outdated`    | Report direct dependency freshness; exit 1 is informational.                               |
 | `pnpm deps:audit`       | Report all installed advisories.                                                           |
+| `pnpm deps:peers`       | Fail a frozen install when pnpm 10 detects a peer-dependency problem.                      |
 | `pnpm deps:check`       | Always run outdated and audit reports; enforce audit findings at high severity by default. |
 
 Pass another threshold to the reporter when a stricter review is agreed, for example `pnpm deps:check -- --audit-level=moderate`.
+
+`pnpm peers check` was introduced in pnpm 11 and is not part of the Vercel-compatible pnpm 10 CLI. Use `pnpm deps:peers`; a pnpm 11 read-only reporter may be used as a supplementary diagnostic, not as the project package manager.
 
 ## Safe Update Order
 
