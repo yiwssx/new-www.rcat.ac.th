@@ -12,8 +12,8 @@
     "ai:health": "sigmap --health",
     "ai:ask": "sigmap ask",
     "ai:validate": "sigmap validate",
-    "build": "node scripts/generate-sitemap.mjs && tsc --noEmit -p tsconfig.json && vite build",
-    "generate:sitemap": "node scripts/generate-sitemap.mjs",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "generate:sitemap": "node -e \"console.log('Sitemap is generated at runtime: /sitemap.xml')\"",
     "preview": "vite preview",
     "worker:dev": "wrangler dev --config cloudflare/public-api/wrangler.toml",
     "worker:deploy:dry": "wrangler deploy --config cloudflare/public-api/wrangler.toml --dry-run",
@@ -62,7 +62,8 @@
     "deps:update:latest": "pnpm dlx npm-check-updates --target latest -u && pnpm install",
     "warning:baseline": "pnpm format:check && pnpm lint:report && pnpm test:unit && pnpm test:integration && pnpm build && pnpm worker:typecheck",
     "lint-staged": "lint-staged",
-    "commitlint": "commitlint --edit"
+    "commitlint": "commitlint --edit",
+    "test:sitemap": "vitest run src/test/sitemap.test.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

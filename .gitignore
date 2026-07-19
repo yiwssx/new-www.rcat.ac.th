@@ -58,3 +58,5 @@ Thumbs.db
 cloudflare/public-api/wrangler.*.local.toml
 cloudflare/public-api/.dev.vars
 cloudflare/public-api/.dev.vars.*
+
+.sitemap-fix-backup/
