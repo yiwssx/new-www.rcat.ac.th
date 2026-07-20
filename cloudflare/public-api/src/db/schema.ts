@@ -472,6 +472,123 @@ export const ADMIN_USER_ROW_COLUMNS = [
   "revision"
 ] as const satisfies readonly (keyof AdminUserRow)[];
 
+export interface AdminAuthUserRow extends AdminUserRow {
+  username: string | null;
+  is_root: 0 | 1;
+  must_change_password: 0 | 1;
+  mfa_required: 0 | 1;
+  session_version: number;
+  last_login_at: string;
+}
+
+export const ADMIN_AUTH_USER_ROW_COLUMNS = [
+  ...ADMIN_USER_ROW_COLUMNS,
+  "username",
+  "is_root",
+  "must_change_password",
+  "mfa_required",
+  "session_version",
+  "last_login_at"
+] as const satisfies readonly (keyof AdminAuthUserRow)[];
+
+export interface AdminCredentialRow {
+  user_id: string;
+  password_hash: string;
+  password_algorithm: string;
+  password_changed_at: string;
+  failed_login_count: number;
+  locked_until: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const ADMIN_CREDENTIAL_ROW_COLUMNS = [
+  "user_id",
+  "password_hash",
+  "password_algorithm",
+  "password_changed_at",
+  "failed_login_count",
+  "locked_until",
+  "created_at",
+  "updated_at"
+] as const satisfies readonly (keyof AdminCredentialRow)[];
+
+export interface AdminSessionRow {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  csrf_token_hash: string;
+  created_at: string;
+  last_seen_at: string;
+  idle_expires_at: string;
+  absolute_expires_at: string;
+  session_version: number;
+  revoked_at: string;
+  ip_hash: string;
+  user_agent_hash: string;
+}
+
+export const ADMIN_SESSION_ROW_COLUMNS = [
+  "id",
+  "user_id",
+  "token_hash",
+  "csrf_token_hash",
+  "created_at",
+  "last_seen_at",
+  "idle_expires_at",
+  "absolute_expires_at",
+  "session_version",
+  "revoked_at",
+  "ip_hash",
+  "user_agent_hash"
+] as const satisfies readonly (keyof AdminSessionRow)[];
+
+export interface AdminUserInvitationRow {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  created_by: string;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string;
+  revoked_at: string;
+  request_ip_hash: string;
+}
+
+export const ADMIN_USER_INVITATION_ROW_COLUMNS = [
+  "id",
+  "user_id",
+  "token_hash",
+  "created_by",
+  "created_at",
+  "expires_at",
+  "accepted_at",
+  "revoked_at",
+  "request_ip_hash"
+] as const satisfies readonly (keyof AdminUserInvitationRow)[];
+
+export interface AdminPasswordResetTokenRow {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  created_at: string;
+  expires_at: string;
+  used_at: string;
+  revoked_at: string;
+  request_ip_hash: string;
+}
+
+export const ADMIN_PASSWORD_RESET_TOKEN_ROW_COLUMNS = [
+  "id",
+  "user_id",
+  "token_hash",
+  "created_at",
+  "expires_at",
+  "used_at",
+  "revoked_at",
+  "request_ip_hash"
+] as const satisfies readonly (keyof AdminPasswordResetTokenRow)[];
+
 export interface VisitorPresenceRow {
   id: string;
   visitor_id: string;
