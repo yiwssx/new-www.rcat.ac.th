@@ -10,6 +10,7 @@ import {
   canManageWebsiteSettings,
   hasProductionContext,
   requireAdminPermission,
+  requireAdminRole,
   type AdminIdentity
 } from "../auth/adminAccess";
 import { listPublishedContentRows } from "../db/contentRepository";
@@ -30,6 +31,7 @@ import {
 import type { Env } from "../env";
 import { json, jsonError, methodNotAllowed } from "../responses";
 import { handleAdminBackup } from "./adminBackup";
+import { handleAdminAuth } from "./adminAuth";
 import { handleAdminPaginatedReads } from "./adminPagination";
 import { handleAdminStructuredParity, readAdminStructuredSnapshot } from "./adminStructuredParity";
 
@@ -1373,7 +1375,7 @@ async function getAdminUserByEmail(env: Env, email: string) {
     env,
     `SELECT ${ADMIN_USER_ROW_COLUMNS.join(", ")}
      FROM app_admin_users
-     WHERE email = ?
+     WHERE email = ? COLLATE NOCASE
      LIMIT 1`,
     normalizeEmail(email)
   );
@@ -1689,6 +1691,10 @@ function getMutationPermissionResponse(segments: string[], method: string, ident
     return null;
   }
 
+  if (route === "auth") {
+    return requireAdminRole(identity);
+  }
+
   if (
     route === "content" ||
     route === "documents" ||
@@ -1833,6 +1839,12 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
         table: schemaMismatch.table,
         missingColumns: schemaMismatch.missingColumns
       });
+    }
+
+    const adminAuthResponse = await handleAdminAuth(request, env, segments, authResult.identity);
+
+    if (adminAuthResponse) {
+      return adminAuthResponse;
     }
 
     if (segments[0] === "snapshot" && segments.length === 1 && request.method === "GET") {

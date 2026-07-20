@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import migrationSql from "../migrations/0011_cms_auth_foundation.sql?raw";
+import identityConstraintsMigrationSql from "../migrations/0012_cms_auth_identity_constraints.sql?raw";
 import adminUserProfileMigrationSql from "../migrations/0007_admin_user_profiles.sql?raw";
 import adminPaginationSource from "../src/routes/adminPagination.ts?raw";
 import {
@@ -12,7 +13,9 @@ import {
 } from "../src/db/schema";
 
 const migrationFileName = "0011_cms_auth_foundation.sql";
+const identityConstraintsMigrationFileName = "0012_cms_auth_identity_constraints.sql";
 const rootGuardTable = "__phase1_0011_root_guard_a7f3c9";
+const emailGuardTable = "__phase2_0012_email_nocase_guard_6e41b8";
 const existingAdminUserColumns = [
   "id",
   "email",
@@ -252,5 +255,51 @@ describe("Phase 1 CMS authentication schema foundation", () => {
       "request_ip_hash"
     ]);
     sensitiveColumns.forEach((columnName) => expect(columnName).toMatch(/_hash$/));
+  });
+});
+
+describe("Phase 2 CMS authentication identity constraints", () => {
+  it("uses additive migration number 0012 and creates the case-insensitive email index", () => {
+    expect(identityConstraintsMigrationFileName).toBe("0012_cms_auth_identity_constraints.sql");
+    expect(identityConstraintsMigrationSql).toMatch(
+      /CREATE UNIQUE INDEX IF NOT EXISTS\s+idx_app_admin_users_email_nocase\s+ON app_admin_users\s*\(email COLLATE NOCASE\)/i
+    );
+    expect(identityConstraintsMigrationSql).not.toMatch(/CREATE TABLE(?: IF NOT EXISTS)?\s+app_admin_users\b/i);
+    expect(identityConstraintsMigrationSql).not.toMatch(/ALTER TABLE\s+app_admin_users\b/i);
+  });
+
+  it("aborts deterministically when case-insensitive duplicate email groups exist", () => {
+    expect(identityConstraintsMigrationSql).toMatch(
+      new RegExp(`CREATE TABLE\\s+${emailGuardTable}\\s*\\([\\s\\S]+CHECK\\s*\\(duplicate_group_count = 0\\)`, "i")
+    );
+    expect(identityConstraintsMigrationSql).toMatch(
+      /SELECT COUNT\(\*\)[\s\S]+SELECT email[\s\S]+GROUP BY email COLLATE NOCASE[\s\S]+HAVING COUNT\(\*\) > 1/i
+    );
+    expect(identityConstraintsMigrationSql).toMatch(new RegExp(`DROP TABLE\\s+${emailGuardTable};`, "i"));
+    expect(identityConstraintsMigrationSql).not.toMatch(/LIMIT\s+1/i);
+  });
+
+  it("does not delete, merge, select, or rewrite user identities", () => {
+    expect(identityConstraintsMigrationSql).not.toMatch(/DELETE\s+FROM\s+app_admin_users/i);
+    expect(identityConstraintsMigrationSql).not.toMatch(/UPDATE\s+app_admin_users/i);
+    expect(identityConstraintsMigrationSql).not.toMatch(/LOWER\s*\(email\)|SET\s+email/i);
+    expect(identityConstraintsMigrationSql).not.toMatch(/(?:MERGE|REPLACE)\s+(?:INTO\s+)?app_admin_users/i);
+  });
+
+  it("does not alter credential, Session, invitation, or reset-token data", () => {
+    expect(identityConstraintsMigrationSql).not.toMatch(
+      /(?:INSERT|UPDATE|DELETE)\s+(?:INTO\s+|FROM\s+)?admin_(?:credentials|sessions|user_invitations|password_reset_tokens)\b/i
+    );
+    expect(identityConstraintsMigrationSql).not.toMatch(/CREATE\s+TABLE\s+(?:IF NOT EXISTS\s+)?admin_/i);
+  });
+
+  it("embeds no password, token, hash, environment value, or real identity", () => {
+    expect(identityConstraintsMigrationSql).not.toMatch(/ADMIN_PROXY_|\$2[aby]\$|@|password|token|session_secret/i);
+  });
+
+  it("leaves the Phase 1 migration contract at 0011", () => {
+    expect(migrationFileName).toBe("0011_cms_auth_foundation.sql");
+    expect(migrationSql).toContain("Phase 1 CMS authentication database foundation");
+    expect(migrationSql).not.toContain("idx_app_admin_users_email_nocase");
   });
 });
