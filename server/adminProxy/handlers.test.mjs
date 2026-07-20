@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { Readable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import { handleAdminProxyRequest, handleAdminProxySessionLogin, handleAdminProxySessionLogout } from "./handlers.mjs";
+import { createLegacyLoginRateLimiter } from "./loginRateLimit.mjs";
 import { createAdminProxySessionCookie, getAdminProxySessionCookieName } from "./session.mjs";
 
 const SESSION_SECRET = "fake-admin-proxy-session-secret-32-characters";
@@ -424,28 +425,24 @@ describe("Vercel admin proxy", () => {
 });
 
 describe("Vercel admin proxy session", () => {
-  it("uses an eight-hour field-verification session without weakening cookie flags", async () => {
+  it("uses a two-hour legacy session without weakening cookie flags", async () => {
     const cookie = await createAdminProxySessionCookie({
       email: ALLOWED_EMAIL,
       secret: SESSION_SECRET,
       nowMs: Date.parse("2026-06-19T05:00:00.000Z")
     });
 
-    expect(cookie).toContain("Max-Age=28800");
+    expect(cookie).toContain("Max-Age=7200");
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("Secure");
     expect(cookie).toContain("SameSite=Lax");
   });
 
   it.each([
-    [
-      "both auth keys",
-      { ADMIN_PROXY_ALLOWED_EMAILS: "", ADMIN_PROXY_PASSWORD_HASH: "" },
-      ["ADMIN_PROXY_ALLOWED_EMAILS", "ADMIN_PROXY_PASSWORD_HASH"]
-    ],
-    ["allowed email key", { ADMIN_PROXY_ALLOWED_EMAILS: "" }, ["ADMIN_PROXY_ALLOWED_EMAILS"]],
-    ["password hash key", { ADMIN_PROXY_PASSWORD_HASH: "" }, ["ADMIN_PROXY_PASSWORD_HASH"]]
-  ])("reports only missing key names when %s are not configured", async (_label, overrides, missing) => {
+    ["allowed email configuration", { ADMIN_PROXY_ALLOWED_EMAILS: "" }],
+    ["password hash configuration", { ADMIN_PROXY_PASSWORD_HASH: "" }],
+    ["session secret configuration", { ADMIN_PROXY_SESSION_SECRET: "" }]
+  ])("returns a generic public error when %s is missing", async (_label, overrides) => {
     const env = createEnv(overrides);
     const response = createResponse();
 
@@ -460,11 +457,8 @@ describe("Vercel admin proxy session", () => {
     );
 
     expect(response.statusCode).toBe(503);
-    expect(JSON.parse(response.bodyText)).toEqual({
-      error: "admin proxy authentication is not configured",
-      missing,
-      diagnostic: "admin-proxy-auth-env-v1"
-    });
+    expect(JSON.parse(response.bodyText)).toEqual({ error: "admin proxy authentication is not configured" });
+    expect(response.bodyText).not.toContain("ADMIN_PROXY_");
     expect(response.bodyText).not.toContain(SESSION_SECRET);
     expect(response.bodyText).not.toContain(env.CLOUDFLARE_ADMIN_SMOKE_TOKEN);
     expect(response.bodyText).not.toContain("$2b$04$fake-test-hash-not-used-directly");
@@ -595,8 +589,121 @@ describe("Vercel admin proxy session", () => {
     );
 
     expect(response.statusCode).toBe(401);
+    expect(JSON.parse(response.bodyText)).toEqual({ error: "invalid email or password" });
     expect(comparePassword).toHaveBeenCalledWith("test-password", createEnv().ADMIN_PROXY_PASSWORD_HASH);
     expect(response.getHeader("set-cookie")).toBeUndefined();
+  });
+
+  it("keeps credential and role failures indistinguishable", async () => {
+    const cases = [
+      {
+        body: { email: ALLOWED_EMAIL, password: "wrong-password" },
+        comparePassword: vi.fn(async () => false),
+        env: createEnv()
+      },
+      {
+        body: { email: ALLOWED_EMAIL, password: "test-password" },
+        comparePassword: vi.fn(async () => true),
+        env: createEnv({ ADMIN_RBAC_ADMINS: "" })
+      },
+      {
+        body: { email: ALLOWED_EMAIL, password: "test-password" },
+        comparePassword: vi.fn(async () => true),
+        env: createEnv({ ADMIN_RBAC_EDITORS: ALLOWED_EMAIL })
+      },
+      {
+        body: { email: ALLOWED_EMAIL, password: "test-password" },
+        comparePassword: vi.fn(async () => true),
+        env: createEnv({ ADMIN_RBAC_ADMINS: "malformed-role-assignment" })
+      }
+    ];
+
+    for (const testCase of cases) {
+      const response = createResponse();
+
+      await handleAdminProxySessionLogin(
+        createRequest({
+          method: "POST",
+          url: "/api/admin-proxy-session/login",
+          body: testCase.body,
+          headers: { "x-vercel-forwarded-for": "192.0.2.10" }
+        }),
+        response,
+        {
+          env: testCase.env,
+          comparePassword: testCase.comparePassword,
+          loginLimiter: createLegacyLoginRateLimiter(),
+          nowMs: Date.parse("2026-06-19T05:00:00.000Z")
+        }
+      );
+
+      expect(response.statusCode).toBe(401);
+      expect(JSON.parse(response.bodyText)).toEqual({ error: "invalid email or password" });
+      expect(response.getHeader("set-cookie")).toBeUndefined();
+    }
+  });
+
+  it("blocks the fifth identity failure and skips bcrypt while the block is active", async () => {
+    const loginLimiter = createLegacyLoginRateLimiter();
+    const comparePassword = vi.fn(async () => false);
+    const nowMs = Date.parse("2026-06-19T05:00:00.000Z");
+    const responses = [];
+
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const response = createResponse();
+      responses.push(response);
+
+      await handleAdminProxySessionLogin(
+        createRequest({
+          method: "POST",
+          url: "/api/admin-proxy-session/login",
+          body: { email: ALLOWED_EMAIL, password: "wrong-password" },
+          headers: { "x-vercel-forwarded-for": "192.0.2.20" }
+        }),
+        response,
+        { env: createEnv(), comparePassword, loginLimiter, nowMs }
+      );
+    }
+
+    expect(responses.slice(0, 4).map((response) => response.statusCode)).toEqual([401, 401, 401, 401]);
+    expect(responses[4].statusCode).toBe(429);
+    expect(responses[5].statusCode).toBe(429);
+    expect(responses[5].getHeader("retry-after")).toBe("900");
+    expect(JSON.parse(responses[5].bodyText)).toEqual({
+      error: "too many login attempts",
+      retryAfterSeconds: 900
+    });
+    expect(comparePassword).toHaveBeenCalledTimes(5);
+  });
+
+  it("counts malformed JSON against IP abuse protection without invoking bcrypt", async () => {
+    const loginLimiter = createLegacyLoginRateLimiter({ maxFailuresPerIp: 2 });
+    const comparePassword = vi.fn();
+    const responses = [];
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = createResponse();
+      responses.push(response);
+
+      await handleAdminProxySessionLogin(
+        createRequest({
+          method: "POST",
+          url: "/api/admin-proxy-session/login",
+          body: "{",
+          headers: { "x-forwarded-for": "198.51.100.10" }
+        }),
+        response,
+        {
+          env: createEnv(),
+          comparePassword,
+          loginLimiter,
+          nowMs: Date.parse("2026-06-19T05:00:00.000Z")
+        }
+      );
+    }
+
+    expect(responses.map((response) => response.statusCode)).toEqual([400, 429, 429]);
+    expect(comparePassword).not.toHaveBeenCalled();
   });
 
   it("clears the signed session cookie on logout", async () => {

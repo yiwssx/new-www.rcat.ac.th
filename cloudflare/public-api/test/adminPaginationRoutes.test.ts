@@ -516,11 +516,10 @@ function allEntityRows() {
 
 function request(path: string, init: RequestInit & { role?: string } = {}) {
   const headers = new Headers(init.headers);
+  const role = init.role ?? "admin";
   headers.set("X-RCAT-Admin-Smoke-Token", smokeToken);
-
-  if (init.role) {
-    headers.set("X-RCAT-Admin-Proxy-Role", init.role);
-  }
+  headers.set("X-RCAT-Admin-Proxy-Email", `${role}@example.invalid`);
+  headers.set("X-RCAT-Admin-Proxy-Role", role);
 
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");

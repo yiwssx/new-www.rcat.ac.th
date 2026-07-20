@@ -5,12 +5,19 @@ import {
   getAdminProxyAllowedEmails,
   verifyAdminProxySessionCookie
 } from "./session.mjs";
+import {
+  createLegacyLoginRateLimiter,
+  createLegacyLoginRateLimitKeys,
+  normalizeLegacyLoginEmail
+} from "./loginRateLimit.mjs";
 
 const PROXY_METHODS = new Set(["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"]);
 const BODY_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 const ADMIN_PATH_PREFIX = "/api/admin/";
 const MAX_PROXY_BODY_BYTES = 1024 * 1024;
 const MAX_LOGIN_BODY_BYTES = 16 * 1024;
+const MINIMUM_SESSION_SECRET_LENGTH = 32;
+const defaultLoginLimiter = createLegacyLoginRateLimiter();
 
 function runtimeEnv() {
   return process.env;
@@ -131,6 +138,25 @@ async function readJsonBody(request) {
 
 function normalizeEmail(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function sendLoginRateLimitError(response, result) {
+  response.setHeader("Retry-After", String(result.retryAfterSeconds));
+  sendJson(response, 429, {
+    error: "too many login attempts",
+    retryAfterSeconds: result.retryAfterSeconds
+  });
+}
+
+function recordInvalidLogin(response, loginLimiter, rateLimitKeys, nowMs) {
+  const result = loginLimiter.recordFailure(rateLimitKeys, nowMs);
+
+  if (result.blocked) {
+    sendLoginRateLimitError(response, result);
+    return;
+  }
+
+  sendJson(response, 401, { error: "invalid email or password" });
 }
 
 function getRoleEmails(value) {
@@ -496,39 +522,45 @@ export async function handleAdminProxySessionLogin(request, response, options = 
   const env = options.env ?? runtimeEnv();
   const allowedEmails = getAdminProxyAllowedEmails(env.ADMIN_PROXY_ALLOWED_EMAILS);
   const passwordHash = typeof env.ADMIN_PROXY_PASSWORD_HASH === "string" ? env.ADMIN_PROXY_PASSWORD_HASH.trim() : "";
-  const missing = [];
+  const sessionSecret = typeof env.ADMIN_PROXY_SESSION_SECRET === "string" ? env.ADMIN_PROXY_SESSION_SECRET.trim() : "";
 
-  if (allowedEmails.length === 0) {
-    missing.push("ADMIN_PROXY_ALLOWED_EMAILS");
-  }
-
-  if (!passwordHash) {
-    missing.push("ADMIN_PROXY_PASSWORD_HASH");
-  }
-
-  if (missing.length > 0) {
-    sendJson(response, 503, {
-      error: "admin proxy authentication is not configured",
-      missing,
-      diagnostic: "admin-proxy-auth-env-v1"
-    });
+  if (allowedEmails.length === 0 || !passwordHash || sessionSecret.length < MINIMUM_SESSION_SECRET_LENGTH) {
+    sendJson(response, 503, { error: "admin proxy authentication is not configured" });
     return;
   }
+
+  const loginLimiter = options.loginLimiter ?? defaultLoginLimiter;
+  const nowMs = options.nowMs ?? Date.now();
+  const ipRateLimitKeys = createLegacyLoginRateLimitKeys({ request, secret: sessionSecret });
 
   let body;
 
   try {
     body = await readJsonBody(request);
   } catch {
+    const result = loginLimiter.recordFailure(ipRateLimitKeys, nowMs);
+
+    if (result.blocked) {
+      sendLoginRateLimitError(response, result);
+      return;
+    }
+
     sendJson(response, 400, { error: "invalid login request" });
     return;
   }
 
-  const email = normalizeEmail(body.email);
+  const email = normalizeLegacyLoginEmail(body.email);
   const password = typeof body.password === "string" ? body.password : "";
+  const rateLimitKeys = createLegacyLoginRateLimitKeys({ email, request, secret: sessionSecret });
+  const rateLimitStatus = loginLimiter.check(rateLimitKeys, nowMs);
+
+  if (rateLimitStatus.blocked) {
+    sendLoginRateLimitError(response, rateLimitStatus);
+    return;
+  }
 
   if (!email || !password) {
-    sendJson(response, 401, { error: "invalid email or password" });
+    recordInvalidLogin(response, loginLimiter, rateLimitKeys, nowMs);
     return;
   }
 
@@ -543,16 +575,18 @@ export async function handleAdminProxySessionLogin(request, response, options = 
   }
 
   if (!passwordMatches || !allowedEmails.includes(email)) {
-    sendJson(response, 401, { error: "invalid email or password" });
+    recordInvalidLogin(response, loginLimiter, rateLimitKeys, nowMs);
     return;
   }
 
   const role = resolveAdminProxyRole(email, env);
 
   if (!role) {
-    sendJson(response, 401, { error: "invalid email or password" });
+    recordInvalidLogin(response, loginLimiter, rateLimitKeys, nowMs);
     return;
   }
+
+  loginLimiter.recordSuccess(rateLimitKeys, nowMs);
 
   let cookie;
 
@@ -560,8 +594,8 @@ export async function handleAdminProxySessionLogin(request, response, options = 
     cookie = await createAdminProxySessionCookie({
       email,
       role,
-      secret: env.ADMIN_PROXY_SESSION_SECRET,
-      nowMs: options.nowMs ?? Date.now()
+      secret: sessionSecret,
+      nowMs
     });
   } catch {
     sendJson(response, 503, { error: "admin proxy session is not configured" });

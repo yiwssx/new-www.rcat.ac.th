@@ -12,6 +12,8 @@ import smokeScriptSource from "../scripts/admin-write-preview-smoke.mjs?raw";
 const approvalPhrase = "APPROVED_M18_ADMIN_WRITE_PREVIEW_SMOKE";
 const previewWorkerOrigin = "https://preview-worker.example.test";
 const previewSmokeToken = "m18-preview-smoke-token";
+const smokeActorEmail = "m18-preview-smoke@system.invalid";
+const smokeActorRole = "admin";
 const forbiddenUrlPattern = new RegExp(
   [`${"script"}.${"google"}.com`, `${"drive"}.${"google"}.com`, `${"rcat"}.ac.th`]
     .map((value) => value.replaceAll(".", "\\."))
@@ -46,6 +48,8 @@ function createFetchForHappyPath() {
     const parsed = new URL(url);
 
     expect(init.headers?.["X-RCAT-Admin-Smoke-Token"]).toBe(previewSmokeToken);
+    expect(init.headers?.["X-RCAT-Admin-Proxy-Email"]).toBe(smokeActorEmail);
+    expect(init.headers?.["X-RCAT-Admin-Proxy-Role"]).toBe(smokeActorRole);
 
     if (parsed.pathname === "/api/admin/content" && init.method === "POST") {
       const body = JSON.parse(String(init.body ?? "{}"));
@@ -216,6 +220,10 @@ describe("M18 admin write preview smoke", () => {
     expect(result.manifest.checks.publicReadAfterPublish).toBe("passed");
     expect(result.manifest.checks.publicReadAfterUnpublish).toBe("passed");
     expect(result.manifest.checks.cleanup).toBe("passed");
+    fetchImpl.mock.calls.forEach(([, init]) => {
+      expect(init.headers?.["X-RCAT-Admin-Proxy-Email"]).toBe(smokeActorEmail);
+      expect(init.headers?.["X-RCAT-Admin-Proxy-Role"]).toBe(smokeActorRole);
+    });
     expectRedactedOutput(textOutput);
     expectRedactedOutput(jsonOutput);
   });
@@ -230,6 +238,8 @@ describe("M18 admin write preview smoke", () => {
       const parsed = new URL(url);
 
       expect(init.headers?.["X-RCAT-Admin-Smoke-Token"]).toBe(previewSmokeToken);
+      expect(init.headers?.["X-RCAT-Admin-Proxy-Email"]).toBe(smokeActorEmail);
+      expect(init.headers?.["X-RCAT-Admin-Proxy-Role"]).toBe(smokeActorRole);
 
       if (parsed.pathname === "/api/admin/content" && init.method === "POST") {
         const body = JSON.parse(String(init.body ?? "{}"));

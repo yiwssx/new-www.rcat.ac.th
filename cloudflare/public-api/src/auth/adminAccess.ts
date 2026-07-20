@@ -7,7 +7,6 @@ const SMOKE_TOKEN_HEADER = "X-RCAT-Admin-Smoke-Token";
 const PROXY_EMAIL_HEADER = "X-RCAT-Admin-Proxy-Email";
 const PROXY_ROLE_HEADER = "X-RCAT-Admin-Proxy-Role";
 const PRODUCTION_CONTEXT_PATTERN = /(^|[-_.])(prod|production|live)([-_.]|$)/i;
-const ADMIN_ROLES = new Set<AdminRole>(["admin", "editor", "viewer"]);
 
 export interface AdminIdentity {
   actor: string;
@@ -129,10 +128,24 @@ function getEmailClaim(payload: JWTPayload) {
   return typeof email === "string" ? email.trim().toLowerCase() : "";
 }
 
-function getProxyRole(request: Request) {
+function getProxyEmail(request: Request) {
+  const email = trimString(request.headers.get(PROXY_EMAIL_HEADER)).toLowerCase();
+
+  if (email.length === 0 || email.length > 254 || /\s/.test(email) || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+    return null;
+  }
+
+  return email;
+}
+
+function getProxyRole(request: Request): AdminRole | null {
   const role = trimString(request.headers.get(PROXY_ROLE_HEADER)).toLowerCase();
 
-  return ADMIN_ROLES.has(role as AdminRole) ? (role as AdminRole) : "admin";
+  if (role === "admin" || role === "editor" || role === "viewer") {
+    return role;
+  }
+
+  return null;
 }
 
 async function verifyCloudflareAccess(request: Request, env: Env): Promise<AdminAuthResult> {
@@ -254,13 +267,22 @@ function verifySmokeToken(request: Request, env: Env): AdminAuthResult {
     };
   }
 
-  const proxyEmail = trimString(request.headers.get(PROXY_EMAIL_HEADER)).toLowerCase();
+  const proxyEmail = getProxyEmail(request);
   const proxyRole = getProxyRole(request);
+
+  if (!proxyEmail || !proxyRole) {
+    return {
+      identity: null,
+      response: jsonError("admin smoke proxy identity is invalid", 403, {
+        resource: "admin-structured-data"
+      })
+    };
+  }
 
   return {
     identity: {
-      actor: proxyEmail || "m18-preview-smoke",
-      email: proxyEmail || "m18-preview-smoke",
+      actor: proxyEmail,
+      email: proxyEmail,
       mode: "smoke-token",
       role: proxyRole
     },

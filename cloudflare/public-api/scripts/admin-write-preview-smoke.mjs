@@ -4,6 +4,8 @@ import { pathToFileURL } from "node:url";
 const CHECKPOINT = "M18";
 const SCOPE = "admin-d1-write-batch";
 const APPROVAL_PHRASE = "APPROVED_M18_ADMIN_WRITE_PREVIEW_SMOKE";
+const SMOKE_ACTOR_EMAIL = "m18-preview-smoke@system.invalid";
+const SMOKE_ACTOR_ROLE = "admin";
 const REQUIRED_ENV = [
   "RCAT_M18_ADMIN_WRITE_SMOKE_APPROVAL",
   "RCAT_PREVIEW_WORKER_URL",
@@ -202,8 +204,10 @@ async function requestJson({ workerUrl, path, method, token, body, headers = {},
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
+          ...headers,
           "X-RCAT-Admin-Smoke-Token": token,
-          ...headers
+          "X-RCAT-Admin-Proxy-Email": SMOKE_ACTOR_EMAIL,
+          "X-RCAT-Admin-Proxy-Role": SMOKE_ACTOR_ROLE
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal

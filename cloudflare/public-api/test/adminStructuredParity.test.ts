@@ -15,7 +15,9 @@ const smokeEnvBase = {
 };
 const smokeHeaders = {
   "Content-Type": "application/json",
-  "X-RCAT-Admin-Smoke-Token": smokeToken
+  "X-RCAT-Admin-Smoke-Token": smokeToken,
+  "X-RCAT-Admin-Proxy-Email": "m19-preview-smoke@system.invalid",
+  "X-RCAT-Admin-Proxy-Role": "admin"
 };
 
 function tableFromQuery(query: string) {

@@ -3,7 +3,7 @@ import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import m18Doc from "../../../docs/architecture/m18-admin-d1-write-batch-migration-2026-06-16.md?raw";
 import contentSlugTombstoneMigration from "../migrations/0008_content_slug_tombstones.sql?raw";
-import { hasProductionContext } from "../src/auth/adminAccess";
+import { authenticateAdminRequest, hasProductionContext } from "../src/auth/adminAccess";
 import worker from "../src/index";
 import wranglerToml from "../wrangler.toml?raw";
 
@@ -12,9 +12,12 @@ type TableName =
   "contents" | "documents" | "public_home_sections" | "visitor_daily_stats" | "app_admin_users" | "admin_audit_log";
 
 const smokeToken = "m18-preview-smoke-token";
+const smokeActorEmail = "m18-preview-smoke@system.invalid";
 const smokeHeaders = {
   "Content-Type": "application/json",
-  "X-RCAT-Admin-Smoke-Token": smokeToken
+  "X-RCAT-Admin-Smoke-Token": smokeToken,
+  "X-RCAT-Admin-Proxy-Email": smokeActorEmail,
+  "X-RCAT-Admin-Proxy-Role": "admin"
 };
 const smokeEnvBase = {
   ADMIN_WRITE_PREVIEW_ENABLED: "true",
@@ -703,6 +706,49 @@ describe("M18 admin structured write routes", () => {
     expect(disabledResponse.status).toBe(403);
     expect(missingResponse.status).toBe(401);
     expect(invalidResponse.status).toBe(403);
+  });
+
+  it.each(["admin", "editor", "viewer"] as const)("accepts an explicit valid %s smoke proxy identity", async (role) => {
+    const email = `${role}@example.invalid`;
+    const result = await authenticateAdminRequest(
+      makeRequest("/api/admin/snapshot", {
+        headers: {
+          "X-RCAT-Admin-Smoke-Token": smokeToken,
+          "X-RCAT-Admin-Proxy-Email": email,
+          "X-RCAT-Admin-Proxy-Role": role
+        }
+      }),
+      makeEnv()
+    );
+
+    expect(result.response).toBeNull();
+    expect(result.identity).toEqual({ actor: email, email, mode: "smoke-token", role });
+  });
+
+  it.each([
+    ["a missing role", { "X-RCAT-Admin-Proxy-Email": "admin@example.invalid" }],
+    [
+      "an unsupported role",
+      { "X-RCAT-Admin-Proxy-Email": "admin@example.invalid", "X-RCAT-Admin-Proxy-Role": "owner" }
+    ],
+    ["an empty role", { "X-RCAT-Admin-Proxy-Email": "admin@example.invalid", "X-RCAT-Admin-Proxy-Role": "" }],
+    ["a missing email", { "X-RCAT-Admin-Proxy-Role": "admin" }],
+    ["a malformed email", { "X-RCAT-Admin-Proxy-Email": "not-an-email", "X-RCAT-Admin-Proxy-Role": "admin" }],
+    ["a valid token alone", {}]
+  ])("fails closed for smoke authentication with %s", async (_label, identityHeaders) => {
+    const result = await authenticateAdminRequest(
+      makeRequest("/api/admin/snapshot", {
+        headers: {
+          "X-RCAT-Admin-Smoke-Token": smokeToken,
+          ...identityHeaders
+        }
+      }),
+      makeEnv()
+    );
+
+    expect(result.identity).toBeNull();
+    expect(result.response?.status).toBe(403);
+    await expect(result.response?.json()).resolves.toMatchObject({ error: "admin smoke proxy identity is invalid" });
   });
 
   it("allows only required admin methods and returns credentialed preview CORS headers without wildcard fallback", async () => {
@@ -1409,7 +1455,7 @@ describe("M18 admin structured write routes", () => {
       slug: "__deleted__:m18-preview-content-001",
       deleted_at: expect.any(String),
       updated_at: expect.any(String),
-      updated_by: "m18-preview-smoke",
+      updated_by: smokeActorEmail,
       revision: Number(beforeDelete.revision) + 1
     });
     expect(String(deletedRow.deleted_at)).not.toBe("");
@@ -1498,7 +1544,7 @@ describe("M18 admin structured write routes", () => {
     expect(tables.contents[0]).toMatchObject({
       status: "published",
       revision: 1,
-      updated_by: "m18-preview-smoke"
+      updated_by: smokeActorEmail
     });
     expect(String(tables.contents[0]?.publish_at ?? "")).toBeTruthy();
   });

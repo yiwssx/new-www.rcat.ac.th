@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 const COOKIE_NAME = "__Host-rcat_admin_proxy_session";
-const SESSION_TTL_SECONDS = 8 * 60 * 60;
+const SESSION_TTL_SECONDS = 2 * 60 * 60;
 const MINIMUM_SECRET_LENGTH = 32;
 const ADMIN_ROLES = new Set(["admin", "editor", "viewer"]);
 
