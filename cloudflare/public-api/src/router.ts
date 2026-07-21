@@ -10,10 +10,17 @@ import { publicPrograms } from "./routes/publicPrograms";
 import { publicSearch } from "./routes/publicSearch";
 import { publicVisitorStats } from "./routes/publicVisitorStats";
 import { recordPublicContentView, recordPublicPresence, recordPublicSiteView } from "./routes/publicAnalytics";
+import { handleCmsAuthInternal } from "./routes/cmsAuthInternal";
 
 const CONTENT_DETAIL_PREFIX = "/api/public/content/";
 
 export async function routeRequest(request: Request, env: Env) {
+  const cmsAuthResponse = await handleCmsAuthInternal(request, env);
+
+  if (cmsAuthResponse) {
+    return cmsAuthResponse;
+  }
+
   const adminResponse = await adminWrite(request, env);
 
   if (adminResponse) {

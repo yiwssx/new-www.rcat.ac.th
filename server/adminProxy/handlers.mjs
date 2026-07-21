@@ -10,6 +10,18 @@ import {
   createLegacyLoginRateLimitKeys,
   normalizeLegacyLoginEmail
 } from "./loginRateLimit.mjs";
+import { hasCmsSessionCookie, readCmsCsrfCookie, readCmsSessionCookie } from "../cmsAuth/cookies.mjs";
+import {
+  CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_BROWSER_CSRF_HEADER,
+  CMS_CLIENT_IP_HEADER,
+  CMS_CSRF_TOKEN_HEADER,
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER,
+  cmsTokensMatch,
+  getCmsClientMetadata,
+  readCmsAuthConfiguration
+} from "../cmsAuth/handlers.mjs";
 
 const PROXY_METHODS = new Set(["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"]);
 const BODY_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
@@ -414,6 +426,33 @@ function createUpstreamHeaders(request, smokeToken, session) {
   return headers;
 }
 
+function createCmsUpstreamHeaders(request, configuration, sessionToken, csrfToken) {
+  const metadata = getCmsClientMetadata(request);
+  const headers = new Headers({
+    Accept: "application/json",
+    [CMS_AUTH_PROXY_SECRET_HEADER]: configuration.proxySecret,
+    [CMS_SESSION_TOKEN_HEADER]: sessionToken,
+    [CMS_CLIENT_IP_HEADER]: metadata.clientIp,
+    [CMS_USER_AGENT_HEADER]: metadata.userAgent
+  });
+  const contentType = getHeader(request, "content-type");
+  const expectedRevision = getHeader(request, "x-rcat-expected-revision");
+
+  if (contentType) {
+    headers.set("Content-Type", contentType);
+  }
+
+  if (expectedRevision) {
+    headers.set("X-RCAT-Expected-Revision", expectedRevision);
+  }
+
+  if (csrfToken) {
+    headers.set(CMS_CSRF_TOKEN_HEADER, csrfToken);
+  }
+
+  return headers;
+}
+
 async function defaultComparePassword(password, passwordHash) {
   const bcryptModule = await import("bcryptjs");
   const bcrypt = bcryptModule.default ?? bcryptModule;
@@ -436,9 +475,46 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
     return;
   }
 
-  const session = await authenticateProxySession(request, response, env, options.nowMs ?? Date.now());
+  const cookieHeader = getHeader(request, "cookie");
+  const cmsCookiePresent = hasCmsSessionCookie(cookieHeader);
+  let cmsSession = null;
+  let session = null;
 
-  if (!session) {
+  if (cmsCookiePresent) {
+    const configuration = readCmsAuthConfiguration(env);
+
+    if (!configuration) {
+      sendJson(response, 503, { error: "CMS authentication is unavailable" });
+      return;
+    }
+
+    const sessionToken = readCmsSessionCookie(cookieHeader);
+
+    if (!sessionToken) {
+      sendJson(response, 401, { error: "CMS session is invalid or expired" });
+      return;
+    }
+
+    let csrfToken = "";
+
+    if (BODY_METHODS.has(method)) {
+      const csrfCookie = readCmsCsrfCookie(cookieHeader);
+      const csrfHeader = getHeader(request, CMS_BROWSER_CSRF_HEADER);
+
+      if (!cmsTokensMatch(csrfCookie, csrfHeader)) {
+        sendJson(response, 403, { error: "CSRF validation failed" });
+        return;
+      }
+
+      csrfToken = csrfHeader;
+    }
+
+    cmsSession = { configuration, csrfToken, sessionToken };
+  } else {
+    session = await authenticateProxySession(request, response, env, options.nowMs ?? Date.now());
+  }
+
+  if (!cmsSession && !session) {
     return;
   }
 
@@ -449,7 +525,7 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
     return;
   }
 
-  const permissionError = getAdminProxyPermissionError(session.role, method, targetPath);
+  const permissionError = cmsSession ? "" : getAdminProxyPermissionError(session.role, method, targetPath);
 
   if (permissionError) {
     sendJson(response, 403, { error: permissionError });
@@ -461,7 +537,7 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
     return;
   }
 
-  const configuration = readProxyConfiguration(env);
+  const configuration = cmsSession?.configuration ?? readProxyConfiguration(env);
 
   if (!configuration || typeof fetchImpl !== "function") {
     sendJson(response, 503, { error: "admin proxy upstream is not configured" });
@@ -485,7 +561,9 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
   try {
     upstreamResponse = await fetchImpl(`${configuration.workerOrigin}${targetPath}`, {
       method,
-      headers: createUpstreamHeaders(request, configuration.smokeToken, session),
+      headers: cmsSession
+        ? createCmsUpstreamHeaders(request, configuration, cmsSession.sessionToken, cmsSession.csrfToken)
+        : createUpstreamHeaders(request, configuration.smokeToken, session),
       body: requestBody?.toString("utf8"),
       redirect: "error"
     });

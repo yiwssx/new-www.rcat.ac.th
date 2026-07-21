@@ -1,6 +1,15 @@
 import { createLocalJWKSet, createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import type { Env } from "../env";
 import { jsonError } from "../responses";
+import { constantTimeTextEqual } from "./cmsSessionCrypto";
+import { authenticateCmsSession, type AuthenticateCmsSessionInput } from "./cmsSessionService";
+import {
+  CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_CLIENT_IP_HEADER,
+  CMS_CSRF_TOKEN_HEADER,
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER
+} from "../routes/cmsAuthInternal";
 
 const ACCESS_JWT_HEADER = "Cf-Access-Jwt-Assertion";
 const SMOKE_TOKEN_HEADER = "X-RCAT-Admin-Smoke-Token";
@@ -11,7 +20,7 @@ const PRODUCTION_CONTEXT_PATTERN = /(^|[-_.])(prod|production|live)([-_.]|$)/i;
 export interface AdminIdentity {
   actor: string;
   email: string;
-  mode: "cloudflare-access" | "smoke-token";
+  mode: "cloudflare-access" | "smoke-token" | "cms-session";
   role: AdminRole;
 }
 
@@ -20,6 +29,10 @@ export type AdminRole = "admin" | "editor" | "viewer";
 export interface AdminAuthResult {
   identity: AdminIdentity | null;
   response: Response | null;
+}
+
+export interface AdminAccessDependencies {
+  authenticateCmsSession?: (input: AuthenticateCmsSessionInput) => ReturnType<typeof authenticateCmsSession>;
 }
 
 function trimString(value: unknown) {
@@ -290,6 +303,107 @@ function verifySmokeToken(request: Request, env: Env): AdminAuthResult {
   };
 }
 
+function hasCmsSessionProxyHeaders(request: Request) {
+  return [
+    CMS_AUTH_PROXY_SECRET_HEADER,
+    CMS_SESSION_TOKEN_HEADER,
+    CMS_CSRF_TOKEN_HEADER,
+    CMS_CLIENT_IP_HEADER,
+    CMS_USER_AGENT_HEADER
+  ].some((header) => request.headers.has(header));
+}
+
+async function verifyCmsSession(
+  request: Request,
+  env: Env,
+  dependencies: AdminAccessDependencies
+): Promise<AdminAuthResult> {
+  if (env.CMS_AUTH_ENABLED !== "true") {
+    return {
+      identity: null,
+      response: jsonError("CMS authentication is unavailable", 503, {
+        resource: "admin-structured-data"
+      })
+    };
+  }
+
+  const configuredSecret = env.CMS_AUTH_PROXY_SECRET ?? "";
+
+  if (configuredSecret.length < 32) {
+    return {
+      identity: null,
+      response: jsonError("CMS authentication is unavailable", 503, {
+        resource: "admin-structured-data"
+      })
+    };
+  }
+
+  if (request.headers.has("Origin")) {
+    return {
+      identity: null,
+      response: jsonError("CMS proxy authentication is not allowed for browser-origin requests", 403, {
+        resource: "admin-structured-data"
+      })
+    };
+  }
+
+  const providedSecret = request.headers.get(CMS_AUTH_PROXY_SECRET_HEADER) ?? "";
+
+  if (!(await constantTimeTextEqual(providedSecret, configuredSecret))) {
+    return {
+      identity: null,
+      response: jsonError("CMS proxy authentication failed", 403, {
+        resource: "admin-structured-data"
+      })
+    };
+  }
+
+  const authenticateSession = dependencies.authenticateCmsSession ?? authenticateCmsSession;
+  const result = await authenticateSession({
+    env,
+    sessionToken: request.headers.get(CMS_SESSION_TOKEN_HEADER) ?? "",
+    csrfToken: request.headers.get(CMS_CSRF_TOKEN_HEADER) ?? undefined,
+    method: request.method
+  });
+
+  if (result.status === "forbidden") {
+    return {
+      identity: null,
+      response: jsonError("CSRF validation failed", 403, {
+        resource: "admin-structured-data"
+      })
+    };
+  }
+
+  if (result.status === "unavailable") {
+    return {
+      identity: null,
+      response: jsonError("CMS authentication is unavailable", 503, {
+        resource: "admin-structured-data"
+      })
+    };
+  }
+
+  if (result.status !== "authenticated") {
+    return {
+      identity: null,
+      response: jsonError("CMS session is invalid or expired", 401, {
+        resource: "admin-structured-data"
+      })
+    };
+  }
+
+  return {
+    identity: {
+      actor: result.identity.email,
+      email: result.identity.email,
+      mode: "cms-session",
+      role: result.identity.role
+    },
+    response: null
+  };
+}
+
 export function isAdmin(identity: AdminIdentity) {
   return identity.role === "admin";
 }
@@ -359,7 +473,15 @@ export function requireAdminRole(identity: AdminIdentity) {
       });
 }
 
-export async function authenticateAdminRequest(request: Request, env: Env): Promise<AdminAuthResult> {
+export async function authenticateAdminRequest(
+  request: Request,
+  env: Env,
+  dependencies: AdminAccessDependencies = {}
+): Promise<AdminAuthResult> {
+  if (hasCmsSessionProxyHeaders(request)) {
+    return verifyCmsSession(request, env, dependencies);
+  }
+
   if (env.ADMIN_WRITE_PREVIEW_ENABLED !== "true") {
     return {
       identity: null,

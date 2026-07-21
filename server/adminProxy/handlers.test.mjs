@@ -6,10 +6,22 @@ import { describe, expect, it, vi } from "vitest";
 import { handleAdminProxyRequest, handleAdminProxySessionLogin, handleAdminProxySessionLogout } from "./handlers.mjs";
 import { createLegacyLoginRateLimiter } from "./loginRateLimit.mjs";
 import { createAdminProxySessionCookie, getAdminProxySessionCookieName } from "./session.mjs";
+import { getCmsCsrfCookieName, getCmsSessionCookieName } from "../cmsAuth/cookies.mjs";
+import {
+  CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_BROWSER_CSRF_HEADER,
+  CMS_CLIENT_IP_HEADER,
+  CMS_CSRF_TOKEN_HEADER,
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER
+} from "../cmsAuth/handlers.mjs";
 
 const SESSION_SECRET = "fake-admin-proxy-session-secret-32-characters";
 const ALLOWED_EMAIL = "admin@example.test";
 const EDITOR_EMAIL = "editor@example.invalid";
+const CMS_PROXY_SECRET = "test-only-cms-proxy-secret-repeated-000000000000";
+const CMS_SESSION_TOKEN = "A".repeat(43);
+const CMS_CSRF_TOKEN = "B".repeat(43);
 
 function createEnv(overrides = {}) {
   return {
@@ -78,6 +90,15 @@ async function createRoleSessionHeader(env, email, role) {
   });
 
   return cookie.split(";", 1)[0];
+}
+
+async function createDualSessionHeader(env = createEnv(), options = {}) {
+  const legacy = await createSessionHeader(env);
+  return [
+    legacy,
+    `${getCmsSessionCookieName()}=${options.sessionToken ?? CMS_SESSION_TOKEN}`,
+    `${getCmsCsrfCookieName()}=${options.csrfToken ?? CMS_CSRF_TOKEN}`
+  ].join("; ");
 }
 
 describe("Vercel admin proxy", () => {
@@ -717,5 +738,150 @@ describe("Vercel admin proxy session", () => {
     expect(response.statusCode).toBe(204);
     expect(response.getHeader("set-cookie")).toContain(`${getAdminProxySessionCookieName()}=`);
     expect(response.getHeader("set-cookie")).toContain("Max-Age=0");
+  });
+});
+
+describe("Vercel admin proxy CMS Session compatibility", () => {
+  function cmsEnv(overrides = {}) {
+    return createEnv({
+      CMS_AUTH_ENABLED: "true",
+      CMS_AUTH_PROXY_SECRET: CMS_PROXY_SECRET,
+      ...overrides
+    });
+  }
+
+  it("uses only CMS private headers when the CMS cookie is present", async () => {
+    const env = cmsEnv();
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 }));
+    const response = createResponse();
+
+    await handleAdminProxyRequest(
+      createRequest({
+        url: proxyUrl("/api/admin/settings/site"),
+        headers: {
+          cookie: await createDualSessionHeader(env),
+          "x-vercel-forwarded-for": "192.0.2.44",
+          "user-agent": "cms-proxy-test",
+          "x-rcat-admin-proxy-email": "attacker@example.invalid",
+          "x-rcat-admin-proxy-role": "admin",
+          "x-rcat-admin-smoke-token": "browser-smoke",
+          [CMS_AUTH_PROXY_SECRET_HEADER]: "browser-secret"
+        }
+      }),
+      response,
+      { env, fetchImpl }
+    );
+
+    const headers = new Headers(fetchImpl.mock.calls[0][1].headers);
+    expect(headers.get(CMS_AUTH_PROXY_SECRET_HEADER)).toBe(CMS_PROXY_SECRET);
+    expect(headers.get(CMS_SESSION_TOKEN_HEADER)).toBe(CMS_SESSION_TOKEN);
+    expect(headers.get(CMS_CLIENT_IP_HEADER)).toBe("192.0.2.44");
+    expect(headers.get(CMS_USER_AGENT_HEADER)).toBe("cms-proxy-test");
+    expect(headers.has("X-RCAT-Admin-Smoke-Token")).toBe(false);
+    expect(headers.has("X-RCAT-Admin-Proxy-Email")).toBe(false);
+    expect(headers.has("X-RCAT-Admin-Proxy-Role")).toBe(false);
+    expect(headers.has(CMS_CSRF_TOKEN_HEADER)).toBe(false);
+    expect(response.statusCode).toBe(200);
+    expect(response.getHeader("cache-control")).toBe("no-store");
+    expect(response.bodyText).not.toContain(CMS_PROXY_SECRET);
+  });
+
+  it("does not perform local role authorization for CMS Sessions", async () => {
+    const env = cmsEnv();
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    const response = createResponse();
+
+    await handleAdminProxyRequest(
+      createRequest({
+        method: "PUT",
+        url: proxyUrl("/api/admin/settings/site"),
+        body: { siteName: "Worker decides current role" },
+        headers: {
+          cookie: await createDualSessionHeader(env),
+          "content-type": "application/json",
+          [CMS_BROWSER_CSRF_HEADER]: CMS_CSRF_TOKEN
+        }
+      }),
+      response,
+      { env, fetchImpl }
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    const headers = new Headers(fetchImpl.mock.calls[0][1].headers);
+    expect(headers.get(CMS_CSRF_TOKEN_HEADER)).toBe(CMS_CSRF_TOKEN);
+  });
+
+  it.each([
+    ["missing CSRF header", {}, CMS_CSRF_TOKEN],
+    ["missing CSRF cookie", { [CMS_BROWSER_CSRF_HEADER]: CMS_CSRF_TOKEN }, ""],
+    ["CSRF mismatch", { [CMS_BROWSER_CSRF_HEADER]: "C".repeat(43) }, CMS_CSRF_TOKEN]
+  ])("rejects a CMS mutation with %s before Worker fetch", async (_label, headers, cookieCsrf) => {
+    const env = cmsEnv();
+    const fetchImpl = vi.fn();
+    const response = createResponse();
+    const cookie = await createDualSessionHeader(env, { csrfToken: cookieCsrf });
+
+    await handleAdminProxyRequest(
+      createRequest({
+        method: "POST",
+        url: proxyUrl("/api/admin/content"),
+        body: { title: "blocked" },
+        headers: { cookie, "content-type": "application/json", ...headers }
+      }),
+      response,
+      { env, fetchImpl }
+    );
+
+    expect(response.statusCode).toBe(403);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("never falls back to the valid legacy Session after an invalid CMS upstream response", async () => {
+    const env = cmsEnv();
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ error: "invalid" }), { status: 401 }));
+    const response = createResponse();
+
+    await handleAdminProxyRequest(
+      createRequest({
+        url: proxyUrl("/api/admin/snapshot"),
+        headers: { cookie: await createDualSessionHeader(env) }
+      }),
+      response,
+      { env, fetchImpl }
+    );
+
+    expect(response.statusCode).toBe(401);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    const headers = new Headers(fetchImpl.mock.calls[0][1].headers);
+    expect(headers.has("X-RCAT-Admin-Smoke-Token")).toBe(false);
+  });
+
+  it("fails closed instead of using the legacy Session for malformed or disabled CMS cookies", async () => {
+    const configured = cmsEnv();
+    const malformedResponse = createResponse();
+    const disabledResponse = createResponse();
+    const fetchImpl = vi.fn();
+
+    await handleAdminProxyRequest(
+      createRequest({
+        url: proxyUrl("/api/admin/snapshot"),
+        headers: { cookie: await createDualSessionHeader(configured, { sessionToken: "short" }) }
+      }),
+      malformedResponse,
+      { env: configured, fetchImpl }
+    );
+    await handleAdminProxyRequest(
+      createRequest({
+        url: proxyUrl("/api/admin/snapshot"),
+        headers: { cookie: await createDualSessionHeader(configured) }
+      }),
+      disabledResponse,
+      { env: cmsEnv({ CMS_AUTH_ENABLED: "false" }), fetchImpl }
+    );
+
+    expect(malformedResponse.statusCode).toBe(401);
+    expect(disabledResponse.statusCode).toBe(503);
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

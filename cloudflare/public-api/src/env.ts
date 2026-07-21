@@ -13,6 +13,8 @@ export interface Env {
   ADMIN_WRITE_ACCESS_JWKS_JSON?: string;
   ADMIN_WRITE_SMOKE_ENABLED?: string;
   ADMIN_WRITE_SMOKE_TOKEN?: string;
+  CMS_AUTH_ENABLED?: string;
+  CMS_AUTH_PROXY_SECRET?: string;
   ENVIRONMENT?: string;
   DB?: D1Database;
 }
