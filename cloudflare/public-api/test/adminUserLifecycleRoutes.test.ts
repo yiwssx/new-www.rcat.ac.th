@@ -2,7 +2,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const lifecycleRepository = vi.hoisted(() => ({
-  listSafeUserLifecycleStatuses: vi.fn(),
   readSafeUserLifecycleStatus: vi.fn(),
   readSafeUserLifecycleStatusByEmail: vi.fn(),
   isUsernameAvailable: vi.fn(),
@@ -60,6 +59,54 @@ function db(activeAdminCount = 2) {
   } as unknown as D1Database;
 }
 
+type SqlCall = { bindings: unknown[]; query: string };
+
+function paginatedUsersDb(rows: Array<Record<string, unknown>>, total = rows.length) {
+  const calls: SqlCall[] = [];
+  const database = {
+    prepare(query: string) {
+      const call = { query, bindings: [] as unknown[] };
+      calls.push(call);
+      return {
+        bind(...bindings: unknown[]) {
+          call.bindings.push(...bindings);
+          return this;
+        },
+        async all() {
+          return {
+            results: /COUNT\(\*\)\s+AS\s+total/i.test(query) ? [{ total }] : rows,
+            success: true,
+            meta: {}
+          };
+        }
+      };
+    }
+  } as unknown as D1Database;
+  return { calls, database };
+}
+
+function lifecycleListRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "user-1",
+    email: "user@example.test",
+    name: "Lifecycle User",
+    role: "editor",
+    status: "active",
+    username: "lifecycle.user",
+    is_root: 0,
+    must_change_password: 1,
+    mfa_required: 0,
+    credential_configured: 0,
+    invitation_status: "pending",
+    invitation_expires_at: "2026-07-25T06:00:00.000Z",
+    last_login_at: "",
+    created_at: "2026-07-01T00:00:00.000Z",
+    updated_at: "2026-07-22T06:00:00.000Z",
+    revision: 2,
+    ...overrides
+  };
+}
+
 function env(database = db()): Env {
   return {
     DB: database,
@@ -87,7 +134,6 @@ async function json(response: Response) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  lifecycleRepository.listSafeUserLifecycleStatuses.mockResolvedValue([safeUser]);
   lifecycleRepository.readSafeUserLifecycleStatus.mockImplementation(async (id: string) => ({ ...safeUser, id }));
   lifecycleRepository.readSafeUserLifecycleStatusByEmail.mockResolvedValue(safeUser);
   lifecycleRepository.isUsernameAvailable.mockResolvedValue(true);
@@ -101,6 +147,95 @@ beforeEach(() => {
 });
 
 describe("Admin user lifecycle routes", () => {
+  it("returns every safe lifecycle field from the authoritative paginated user list", async () => {
+    const state = paginatedUsersDb([
+      lifecycleListRow(),
+      lifecycleListRow({
+        id: "user-2",
+        email: "expired@example.test",
+        username: null,
+        invitation_status: "expired",
+        invitation_expires_at: "2026-07-20T06:00:00.000Z"
+      }),
+      lifecycleListRow({
+        id: "user-3",
+        email: "configured@example.test",
+        must_change_password: 0,
+        credential_configured: 1,
+        invitation_status: "none",
+        invitation_expires_at: null,
+        last_login_at: "2026-07-21T06:00:00.000Z"
+      })
+    ]);
+    const response = await worker.fetch(request("/api/admin/users", "admin"), env(state.database));
+    const body = await response.text();
+    const parsed = JSON.parse(body) as { items: Array<Record<string, unknown>>; pagination: Record<string, unknown> };
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(parsed.items[0]).toEqual({
+      id: "user-1",
+      email: "user@example.test",
+      name: "Lifecycle User",
+      role: "editor",
+      status: "active",
+      username: "lifecycle.user",
+      isRoot: false,
+      mustChangePassword: true,
+      mfaRequired: false,
+      credentialConfigured: false,
+      invitationStatus: "pending",
+      invitationExpiresAt: "2026-07-25T06:00:00.000Z",
+      lastLoginAt: null,
+      createdAt: "2026-07-01T00:00:00.000Z",
+      updatedAt: "2026-07-22T06:00:00.000Z",
+      revision: 2
+    });
+    expect(parsed.items[1]).toMatchObject({ invitationStatus: "expired" });
+    expect(parsed.items[2]).toMatchObject({
+      credentialConfigured: true,
+      invitationStatus: "none",
+      invitationExpiresAt: null
+    });
+    expect(parsed.pagination).toMatchObject({ page: 1, pageSize: 25, totalItems: 3, totalPages: 1 });
+    expect(body).not.toMatch(
+      /passwordHash|passwordAlgorithm|failedLoginCount|lockedUntil|tokenHash|requestIpHash|sessionVersion|sessionToken|csrfToken/i
+    );
+  });
+
+  it("preserves user-list filtering, sorting, pagination, and one timestamp for invitation classification", async () => {
+    const state = paginatedUsersDb([lifecycleListRow()], 5);
+    const response = await worker.fetch(
+      request(
+        "/api/admin/users?q=life&role=editor&status=active&sortBy=updatedAt&sortDirection=desc&page=2&pageSize=2",
+        "admin"
+      ),
+      env(state.database)
+    );
+    const body = (await json(response)) as {
+      generatedAt: string;
+      pagination: Record<string, unknown>;
+    };
+    const countCall = state.calls.find((call) => /COUNT\(\*\)\s+AS\s+total/i.test(call.query));
+    const pageCall = state.calls.find((call) => /LIMIT\s+\?\s+OFFSET\s+\?/i.test(call.query));
+
+    expect(response.status).toBe(200);
+    expect(body.pagination).toMatchObject({
+      page: 2,
+      pageSize: 2,
+      totalItems: 5,
+      totalPages: 3,
+      hasPreviousPage: true,
+      hasNextPage: true
+    });
+    expect(countCall?.query).toMatch(/email LIKE \?[^]*name LIKE \?/i);
+    expect(countCall?.query).toMatch(/role = \?[^]*status = \?/i);
+    expect(countCall?.bindings).toEqual(["%life%", "%life%", "editor", "active"]);
+    expect(pageCall?.query).toMatch(/ORDER BY updated_at DESC, id ASC LIMIT \? OFFSET \?/i);
+    expect(pageCall?.bindings.slice(0, 3)).toEqual([body.generatedAt, body.generatedAt, body.generatedAt]);
+    expect(pageCall?.bindings.slice(3)).toEqual(["%life%", "%life%", "editor", "active", 2, 2]);
+  });
+
   it("creates an active non-Root credentialless user and initial invitation atomically", async () => {
     lifecycleRepository.readSafeUserLifecycleStatus.mockImplementation(async (id: string) => ({
       ...safeUser,

@@ -5,10 +5,14 @@ import {
   type AdminPaginatedResponse
 } from "../contracts/adminPagination";
 import { readAdminPage, readAdminRows, type AdminPageSql, type AdminSqlFilter } from "../db/adminPaginationRepository";
+import {
+  mapSafeAdminUserLifecycle,
+  SAFE_ADMIN_USER_LIFECYCLE_SELECT_COLUMNS,
+  type SafeAdminUserLifecycleRow
+} from "../db/adminUserLifecycleRepository";
 import { requireD1Database } from "../db/documentsRepository";
 import {
   MENU_ITEM_ADMIN_ROW_COLUMNS,
-  type AdminUserRow,
   type CarouselSlideRow,
   type ContentRow,
   type DocumentRow,
@@ -186,19 +190,6 @@ const EVENT_LIST_COLUMNS = [
   "updated_at",
   "revision"
 ] as const satisfies readonly (keyof EventListRow)[];
-
-const USER_LIST_COLUMNS = [
-  "id",
-  "email",
-  "name",
-  "role",
-  "status",
-  "created_at",
-  "updated_at",
-  "created_by",
-  "updated_by",
-  "revision"
-] as const satisfies readonly (keyof AdminUserRow)[];
 
 const CAROUSEL_LIST_COLUMNS = [
   "id",
@@ -522,19 +513,6 @@ function mapEvent(row: EventListRow) {
     updatedAt: row.updated_at,
     mediaIds: parseEventMediaIds(row.media_ids_json),
     revision: Number(row.revision ?? 0)
-  };
-}
-
-function mapUser(row: AdminUserRow) {
-  return {
-    id: row.id,
-    email: row.email,
-    name: row.name,
-    role: row.role,
-    status: row.status,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    revision: row.revision
   };
 }
 
@@ -890,14 +868,15 @@ async function paginatedResponse<TRow, TItem>(
   env: Env,
   sql: AdminPageSql,
   map: (row: TRow) => TItem,
-  defaultPageSize?: number
+  defaultPageSize?: number,
+  generatedAt = new Date().toISOString()
 ) {
   const requested = parseAdminPagination(new URL(request.url).searchParams, defaultPageSize);
   const result = await readAdminPage<TRow>(env, sql, requested);
   const response: AdminPaginatedResponse<TItem> = {
     items: result.rows.map(map),
     pagination: result.pagination,
-    generatedAt: new Date().toISOString()
+    generatedAt
   };
   return noStoreJson(response);
 }
@@ -960,16 +939,17 @@ function eventSql(searchParams: URLSearchParams): AdminPageSql {
   };
 }
 
-function userSql(searchParams: URLSearchParams): AdminPageSql {
+function userSql(searchParams: URLSearchParams, now: string): AdminPageSql {
   return {
-    columns: USER_LIST_COLUMNS,
-    from: "app_admin_users",
+    columns: SAFE_ADMIN_USER_LIFECYCLE_SELECT_COLUMNS,
+    from: "app_admin_users AS u",
     filters: compactFilters([
       searchFilter(searchParams, ["email", "name"]),
       exactFilter(searchParams, "role", "role"),
       exactFilter(searchParams, "status", "status")
     ]),
-    orderBy: orderBy(searchParams, USER_SORTS, "role ASC, email ASC, id ASC")
+    orderBy: orderBy(searchParams, USER_SORTS, "role ASC, email ASC, id ASC"),
+    selectBindings: [now, now, now]
   };
 }
 
@@ -1710,7 +1690,15 @@ export async function handleAdminPaginatedReads(
   }
 
   if (entity === "users") {
-    return paginatedResponse<AdminUserRow, ReturnType<typeof mapUser>>(request, env, userSql(searchParams), mapUser);
+    const now = new Date().toISOString();
+    return paginatedResponse<SafeAdminUserLifecycleRow, ReturnType<typeof mapSafeAdminUserLifecycle>>(
+      request,
+      env,
+      userSql(searchParams, now),
+      mapSafeAdminUserLifecycle,
+      undefined,
+      now
+    );
   }
 
   if (entity === "carousel") {

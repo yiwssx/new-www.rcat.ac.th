@@ -13,6 +13,7 @@ export interface AdminPageSql {
   filters: AdminSqlFilter[];
   from: string;
   orderBy: string;
+  selectBindings?: readonly unknown[];
 }
 
 export interface AdminPageResult<T> {
@@ -59,7 +60,7 @@ export async function readAdminPage<T>(
   const rows = await all<T>(
     env,
     `SELECT ${sql.columns.join(", ")} FROM ${sql.from}${where} ORDER BY ${sql.orderBy} LIMIT ? OFFSET ?`,
-    [...bindings, pagination.pageSize, offset]
+    [...(sql.selectBindings ?? []), ...bindings, pagination.pageSize, offset]
   );
 
   return { rows, pagination };

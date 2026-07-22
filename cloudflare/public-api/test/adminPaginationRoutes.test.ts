@@ -13,6 +13,10 @@ const baseEnv = {
 };
 
 function tableFromQuery(query: string) {
+  if (/\bFROM\s+app_admin_users\s+AS\s+u\b[\s\S]*\bORDER\s+BY\b/i.test(query)) {
+    return "app_admin_users";
+  }
+
   return query.match(/\bFROM\s+([a-z_]+)/i)?.[1] ?? "";
 }
 

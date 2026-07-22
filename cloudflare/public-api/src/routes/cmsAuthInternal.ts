@@ -1,4 +1,5 @@
 import { constantTimeTextEqual, isValidCmsToken } from "../auth/cmsSessionCrypto";
+import { hasAdminCapability } from "../auth/adminCapabilities";
 import { hashInvitationToken, hashPasswordResetToken, isValidLifecycleToken } from "../auth/cmsLifecycleToken";
 import { CMS_PASSWORD_ALGORITHM, hashCmsPassword, validateCmsPassword, verifyCmsPassword } from "../auth/cmsPassword";
 import {
@@ -344,6 +345,10 @@ async function handlePasswordChange(
 
   if (session.status !== "authenticated") {
     return sessionFailure(session.status);
+  }
+
+  if (!hasAdminCapability(session.identity.role, "auth.change-password-self")) {
+    return internalError("required permission is missing", 403);
   }
 
   const passwordResult = validateNewPasswordBody(body.value);

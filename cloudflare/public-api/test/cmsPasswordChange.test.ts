@@ -132,6 +132,54 @@ describe("CMS self password change", () => {
     expect(response?.status).toBe(403);
   });
 
+  it.each(["admin", "editor", "viewer"] as const)(
+    "allows the current D1 %s role through auth.change-password-self",
+    async (role) => {
+      const lifecycleRepository = repository();
+      const dependencies = successDependencies(lifecycleRepository);
+      dependencies.authenticateSession = vi
+        .fn()
+        .mockResolvedValue({ status: "authenticated", identity: { ...identity, role } });
+
+      const response = await handleCmsAuthInternal(
+        workerRequest({
+          currentPassword: "the current password",
+          password: "the replacement password",
+          passwordConfirmation: "the replacement password"
+        }),
+        env(),
+        dependencies
+      );
+
+      expect(response?.status).toBe(200);
+      expect(lifecycleRepository.getCredentialByUserId).toHaveBeenCalledWith(identity.id);
+    }
+  );
+
+  it("fails closed when the authenticated D1 role lacks auth.change-password-self", async () => {
+    const lifecycleRepository = repository();
+    const dependencies = successDependencies(lifecycleRepository);
+    dependencies.authenticateSession = vi.fn().mockResolvedValue({
+      status: "authenticated",
+      identity: { ...identity, role: "invalid-role" }
+    });
+
+    const response = await handleCmsAuthInternal(
+      workerRequest({
+        currentPassword: "the current password",
+        password: "the replacement password",
+        passwordConfirmation: "the replacement password"
+      }),
+      env(),
+      dependencies
+    );
+
+    expect(response?.status).toBe(403);
+    await expect(response?.json()).resolves.toMatchObject({ error: "required permission is missing" });
+    expect(lifecycleRepository.getCredentialByUserId).not.toHaveBeenCalled();
+    expect(lifecycleRepository.changeUserPassword).not.toHaveBeenCalled();
+  });
+
   it("ignores a body identifier and changes only the Session user", async () => {
     const lifecycleRepository = repository();
     const response = await handleCmsAuthInternal(

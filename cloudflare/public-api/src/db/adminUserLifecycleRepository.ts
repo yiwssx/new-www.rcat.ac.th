@@ -36,7 +36,7 @@ export interface SafeAdminUserLifecycle {
   revision: number;
 }
 
-interface SafeAdminUserLifecycleRow {
+export interface SafeAdminUserLifecycleRow {
   id: string;
   email: string;
   name: string;
@@ -156,7 +156,6 @@ export interface UpdateUserWithSecurityRevocationInput {
 }
 
 export interface AdminUserLifecycleRepository {
-  listSafeUserLifecycleStatuses(now: string): Promise<SafeAdminUserLifecycle[]>;
   readSafeUserLifecycleStatus(userId: string, now: string): Promise<SafeAdminUserLifecycle | null>;
   readSafeUserLifecycleStatusByEmail(email: string, now: string): Promise<SafeAdminUserLifecycle | null>;
   isUsernameAvailable(username: string, userId: string): Promise<boolean>;
@@ -181,19 +180,19 @@ export interface AdminUserLifecycleRepository {
   writeLifecycleAuditEvent(entry: AdminAuditLogRow): Promise<void>;
 }
 
-const SAFE_USER_SELECT = `
-  u.id,
-  u.email,
-  u.name,
-  u.role,
-  u.status,
-  u.username,
-  u.is_root,
-  u.must_change_password,
-  u.mfa_required,
-  CASE WHEN EXISTS (SELECT 1 FROM admin_credentials AS c WHERE c.user_id = u.id) THEN 1 ELSE 0 END
-    AS credential_configured,
-  CASE
+export const SAFE_ADMIN_USER_LIFECYCLE_SELECT_COLUMNS = [
+  "u.id",
+  "u.email",
+  "u.name",
+  "u.role",
+  "u.status",
+  "u.username",
+  "u.is_root",
+  "u.must_change_password",
+  "u.mfa_required",
+  `CASE WHEN EXISTS (SELECT 1 FROM admin_credentials AS c WHERE c.user_id = u.id) THEN 1 ELSE 0 END
+    AS credential_configured`,
+  `CASE
     WHEN EXISTS (SELECT 1 FROM admin_credentials AS c WHERE c.user_id = u.id) THEN 'none'
     WHEN EXISTS (
       SELECT 1 FROM admin_user_invitations AS i
@@ -204,8 +203,8 @@ const SAFE_USER_SELECT = `
       WHERE i.user_id = u.id AND i.accepted_at = '' AND i.revoked_at = '' AND i.expires_at <= ?
     ) THEN 'expired'
     ELSE 'none'
-  END AS invitation_status,
-  CASE
+  END AS invitation_status`,
+  `CASE
     WHEN EXISTS (SELECT 1 FROM admin_credentials AS c WHERE c.user_id = u.id) THEN NULL
     ELSE (
       SELECT i.expires_at FROM admin_user_invitations AS i
@@ -213,13 +212,16 @@ const SAFE_USER_SELECT = `
       ORDER BY CASE WHEN i.expires_at > ? THEN 0 ELSE 1 END, i.created_at DESC
       LIMIT 1
     )
-  END AS invitation_expires_at,
-  u.last_login_at,
-  u.created_at,
-  u.updated_at,
-  u.revision`;
+  END AS invitation_expires_at`,
+  "u.last_login_at",
+  "u.created_at",
+  "u.updated_at",
+  "u.revision"
+] as const;
 
-function mapSafeUser(row: SafeAdminUserLifecycleRow): SafeAdminUserLifecycle {
+const SAFE_USER_SELECT = SAFE_ADMIN_USER_LIFECYCLE_SELECT_COLUMNS.join(",\n");
+
+export function mapSafeAdminUserLifecycle(row: SafeAdminUserLifecycleRow): SafeAdminUserLifecycle {
   return {
     id: row.id,
     email: row.email,
@@ -325,18 +327,10 @@ export function createAdminUserLifecycleRepository(env: Env): AdminUserLifecycle
       )
       .bind(value, now, now, now)
       .first<SafeAdminUserLifecycleRow>();
-    return row ? mapSafeUser(row) : null;
+    return row ? mapSafeAdminUserLifecycle(row) : null;
   }
 
   return {
-    async listSafeUserLifecycleStatuses(now) {
-      const result = await db
-        .prepare(`SELECT ${SAFE_USER_SELECT} FROM app_admin_users AS u ORDER BY u.role ASC, u.email ASC`)
-        .bind(now, now, now)
-        .all<SafeAdminUserLifecycleRow>();
-      return (result.results ?? []).map(mapSafeUser);
-    },
-
     readSafeUserLifecycleStatus(userId, now) {
       return readSafeUser("id = ?", userId, now);
     },

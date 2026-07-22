@@ -1555,11 +1555,6 @@ async function handleUsers(
   const now = nowDate.toISOString();
   const repository = createAdminUserLifecycleRepository(env);
 
-  if (segments.length === 1 && request.method === "GET") {
-    const rows = await repository.listSafeUserLifecycleStatuses(now);
-    return noStoreAdmin(json({ items: rows, generatedAt: now }));
-  }
-
   if (segments.length === 2 && segments[1] === "me" && request.method === "GET") {
     const row =
       identity.mode === "cms-session" && identity.userId
