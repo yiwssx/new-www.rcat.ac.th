@@ -173,11 +173,32 @@ describe("Root CMS credential bootstrap route", () => {
   });
 
   it.each(["editor", "viewer"] as const)("rejects an authenticated %s", async (role) => {
-    const { repository } = createRouteRepository();
-    const response = await callRoute(repository, { adminIdentity: identity(role) });
+    const prepare = vi.fn(() => {
+      throw new Error("authorization denial must precede D1 access");
+    });
+    const response = await worker.fetch(
+      new Request(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-RCAT-Admin-Smoke-Token": "phase-2-smoke-token",
+          "X-RCAT-Admin-Proxy-Email": `${role}@example.invalid`,
+          "X-RCAT-Admin-Proxy-Role": role
+        },
+        body: JSON.stringify({ password: rawPassword, passwordConfirmation: rawPassword })
+      }),
+      {
+        DB: { prepare } as unknown as D1Database,
+        ADMIN_WRITE_PREVIEW_ENABLED: "true",
+        ADMIN_WRITE_SMOKE_ENABLED: "true",
+        ADMIN_WRITE_SMOKE_TOKEN: "phase-2-smoke-token",
+        ENVIRONMENT: "preview"
+      }
+    );
 
     expect(response.status).toBe(403);
-    expect(repository.getProtectedRootAccounts).not.toHaveBeenCalled();
+    await expect(readJson(response)).resolves.toMatchObject({ error: "required permission is missing" });
+    expect(prepare).not.toHaveBeenCalled();
   });
 
   it("rejects an ordinary Admin that does not own the Root identity", async () => {
@@ -385,8 +406,10 @@ describe("Root CMS credential bootstrap route", () => {
   });
 
   it("is integrated only behind the authenticated Admin write route and leaves legacy Login modules unchanged", () => {
-    expect(adminWriteSource).toMatch(/authenticateAdminRequest[\s\S]+handleAdminAuth/);
-    expect(adminWriteSource).toMatch(/route === "auth"[\s\S]+requireAdminRole/);
+    expect(adminWriteSource).toMatch(
+      /authenticateAdminRequest[\s\S]+resolveAdminRoutePolicy[\s\S]+requireAdminCapability[\s\S]+handleAdminAuth/
+    );
+    expect(adminWriteSource).not.toMatch(/identity\.role\s*(?:===|!==)/);
     expect(adminWriteSource).not.toMatch(/verifyCmsCredential|hashCmsPassword/);
     expect(loginHandlerSource).not.toMatch(/bootstrap-root-credential|verifyCmsCredential|admin_credentials/);
     expect(loginSessionSource).not.toMatch(/bootstrap-root-credential|verifyCmsCredential|admin_credentials/);

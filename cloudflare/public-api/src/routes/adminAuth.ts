@@ -67,10 +67,6 @@ export async function handleAdminAuth(
     return adminAuthMethodNotAllowed();
   }
 
-  if (identity.role !== "admin") {
-    return safeError("admin role is required", 403);
-  }
-
   const repository = dependencies.repository ?? createAdminAuthRepository(env);
   const roots = await repository.getProtectedRootAccounts();
 

@@ -53,7 +53,8 @@ describe("CMS Session Worker Admin access", () => {
         actor: "admin@example.invalid",
         email: "admin@example.invalid",
         mode: "cms-session",
-        role: "editor"
+        role: "editor",
+        userId: "admin-user-1"
       },
       response: null
     });

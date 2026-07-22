@@ -350,55 +350,6 @@ async function authenticateProxySession(request, response, env, nowMs) {
   return result;
 }
 
-function getTargetPathSegments(targetPath) {
-  const pathname = targetPath.slice(ADMIN_PATH_PREFIX.length).split("?", 1)[0];
-  return pathname.split("/").filter(Boolean);
-}
-
-function getAdminProxyMutationPermissionError(role, method, targetPath) {
-  if (!BODY_METHODS.has(method)) {
-    return "";
-  }
-
-  const segments = getTargetPathSegments(targetPath);
-  const route = segments[0] || "";
-
-  if (["content", "documents", "carousel", "external-services", "events", "media"].includes(route)) {
-    return role === "admin" || role === "editor" ? "" : "content management permission is required";
-  }
-
-  if (["settings", "home-sections", "visitor-stats"].includes(route)) {
-    return role === "admin" ? "" : "website settings permission is required";
-  }
-
-  if (route === "menu") {
-    return role === "admin" ? "" : "menu management permission is required";
-  }
-
-  if (route === "users") {
-    if (role === "admin") {
-      return "";
-    }
-
-    return role === "editor" && method === "PATCH" && segments.length === 2
-      ? ""
-      : "user management permission is required";
-  }
-
-  return role === "admin" ? "" : "admin role is required";
-}
-
-function getAdminProxyPermissionError(role, method, targetPath) {
-  const segments = getTargetPathSegments(targetPath);
-  const route = segments[0] || "";
-
-  if (route === "backup") {
-    return role === "admin" ? "" : "admin role is required";
-  }
-
-  return getAdminProxyMutationPermissionError(role, method, targetPath);
-}
-
 function createUpstreamHeaders(request, smokeToken, session) {
   const headers = new Headers({
     Accept: "application/json",
@@ -522,13 +473,6 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
 
   if (!targetPath) {
     sendJson(response, 400, { error: "invalid admin proxy path" });
-    return;
-  }
-
-  const permissionError = cmsSession ? "" : getAdminProxyPermissionError(session.role, method, targetPath);
-
-  if (permissionError) {
-    sendJson(response, 403, { error: permissionError });
     return;
   }
 

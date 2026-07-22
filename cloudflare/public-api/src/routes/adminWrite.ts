@@ -2,17 +2,18 @@ import { createPublicContentListSnapshot } from "../adapters/publicContentAdapte
 import { createPublicDocumentListSnapshot } from "../adapters/publicDocumentsAdapter";
 import { createEmptyPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
+import { authenticateAdminRequest, hasProductionContext, type AdminIdentity } from "../auth/adminAccess";
 import {
-  authenticateAdminRequest,
-  canManageContent,
-  canManageMedia,
-  canManageMenu,
-  canManageWebsiteSettings,
-  hasProductionContext,
-  requireAdminPermission,
-  requireAdminRole,
-  type AdminIdentity
-} from "../auth/adminAccess";
+  getCapabilitiesForRole,
+  hasAdminCapability,
+  requireAdminCapability,
+  requireAnyAdminCapability
+} from "../auth/adminCapabilities";
+import {
+  isSupportedAdminRoutePath,
+  resolveAdminRoutePolicy,
+  type AdminUserUpdateAuthorization
+} from "../auth/adminRoutePolicy";
 import { listPublishedContentRows } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
@@ -43,6 +44,7 @@ const DELETED_CONTENT_SLUG_PREFIX = "__deleted__:";
 const DOCUMENT_STATUSES = new Set(["draft", "published"]);
 const ADMIN_USER_ROLES = new Set(["admin", "editor", "viewer"]);
 const ADMIN_USER_STATUSES = new Set(["active", "disabled"]);
+const SELF_USER_UPDATE_FIELDS = new Set(["name", "revision"]);
 const PREVIEW_WRITE_SCHEMA = {
   contents: ["slug", "deleted_at", "updated_by", "revision"],
   homepage_settings: ["id", "settings_json", "updated_at", "created_at", "updated_by", "revision"],
@@ -1496,16 +1498,32 @@ async function deleteAdminUserRow(env: Env, row: AdminUserRow, expectedRevision:
 }
 
 function isSelfUser(identity: AdminIdentity, row: AdminUserRow) {
-  return normalizeEmail(identity.email) === row.email;
+  if (identity.mode === "cms-session") {
+    return Boolean(identity.userId) && identity.userId === row.id;
+  }
+
+  return normalizeEmail(identity.email) === normalizeEmail(row.email);
 }
 
 function userManagementDenied() {
-  return jsonError("user management permission is required", 403, {
+  const response = jsonError("required permission is missing", 403, {
     resource: "admin-users"
   });
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }
 
-async function handleUsers(request: Request, env: Env, segments: string[], identity: AdminIdentity) {
+function hasUnsafeSelfUserUpdateFields(body: JsonRecord) {
+  return Object.keys(body).some((field) => !SELF_USER_UPDATE_FIELDS.has(field));
+}
+
+async function handleUsers(
+  request: Request,
+  env: Env,
+  segments: string[],
+  identity: AdminIdentity,
+  updateAuthorization: AdminUserUpdateAuthorization | null
+) {
   const actor = identity.actor;
   const now = new Date().toISOString();
 
@@ -1525,10 +1543,6 @@ async function handleUsers(request: Request, env: Env, segments: string[], ident
   }
 
   if (segments.length === 1 && request.method === "POST") {
-    if (identity.role !== "admin") {
-      return userManagementDenied();
-    }
-
     const body = await parseJsonBody(request);
     const row = createAdminUserRow(body, null, actor, now);
 
@@ -1543,6 +1557,15 @@ async function handleUsers(request: Request, env: Env, segments: string[], ident
     return notFoundAdmin();
   }
 
+  if (
+    request.method === "PATCH" &&
+    updateAuthorization?.scope === "self" &&
+    identity.mode === "cms-session" &&
+    identity.userId !== id
+  ) {
+    return userManagementDenied();
+  }
+
   const existing = await getAdminUserById(env, id);
 
   if (!existing) {
@@ -1554,18 +1577,23 @@ async function handleUsers(request: Request, env: Env, segments: string[], ident
   }
 
   if (request.method === "PATCH") {
-    if (identity.role === "viewer") {
+    if (!updateAuthorization) {
       return userManagementDenied();
     }
 
-    if (identity.role === "editor" && !isSelfUser(identity, existing)) {
+    if (updateAuthorization.scope === "self" && !isSelfUser(identity, existing)) {
       return userManagementDenied();
     }
 
     const body = await parseJsonBody(request);
+
+    if (updateAuthorization.scope === "self" && hasUnsafeSelfUserUpdateFields(body)) {
+      return userManagementDenied();
+    }
+
     const expectedRevision = getExpectedRevisionFromRequest(request, body);
     const permittedBody =
-      identity.role === "editor"
+      updateAuthorization.scope === "self"
         ? {
             name: body.name ?? existing.name
           }
@@ -1583,10 +1611,6 @@ async function handleUsers(request: Request, env: Env, segments: string[], ident
       return jsonError("ไม่สามารถลบบัญชีของตนเองได้", 403, {
         resource: "admin-users"
       });
-    }
-
-    if (identity.role !== "admin") {
-      return userManagementDenied();
     }
 
     const expectedRevision = getExpectedRevisionFromRequest(request);
@@ -1668,56 +1692,6 @@ function notFoundAdmin() {
   return jsonError("not found", 404, {
     resource: "admin-structured-data"
   });
-}
-
-function getMutationPermissionResponse(segments: string[], method: string, identity: AdminIdentity) {
-  if (method === "GET") {
-    return null;
-  }
-
-  const route = segments[0] || "";
-
-  if (
-    (method === "PUT" &&
-      segments.length === 2 &&
-      segments[1] === "order" &&
-      ["documents", "menu", "carousel", "external-services"].includes(route)) ||
-    (method === "POST" && route === "content" && segments.length === 2 && segments[1] === "publish-pending")
-  ) {
-    return null;
-  }
-
-  if (route === "users") {
-    return null;
-  }
-
-  if (route === "auth") {
-    return requireAdminRole(identity);
-  }
-
-  if (
-    route === "content" ||
-    route === "documents" ||
-    route === "carousel" ||
-    route === "external-services" ||
-    route === "events"
-  ) {
-    return requireAdminPermission(identity, canManageContent, "content management permission is required");
-  }
-
-  if (route === "media") {
-    return requireAdminPermission(identity, canManageMedia, "content management permission is required");
-  }
-
-  if (route === "settings" || route === "home-sections" || route === "visitor-stats") {
-    return requireAdminPermission(identity, canManageWebsiteSettings, "website settings permission is required");
-  }
-
-  if (route === "menu") {
-    return requireAdminPermission(identity, canManageMenu, "menu management permission is required");
-  }
-
-  return requireAdminPermission(identity, canManageWebsiteSettings, "admin role is required");
 }
 
 function safeAdminError(error: unknown, env: Env, fallbackContext: AdminRouteErrorContext) {
@@ -1818,15 +1792,35 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
     });
   }
 
-  const segments = pathname.slice(ADMIN_PREFIX.length).split("/").filter(Boolean);
+  const segments = pathname.slice(ADMIN_PREFIX.length).split("/");
   const routeContext = getAdminRouteContext(request, segments);
+  const routePolicy = resolveAdminRoutePolicy(request.method, segments);
 
-  if (request.method !== "GET") {
-    const roleResponse = getMutationPermissionResponse(segments, request.method, authResult.identity);
+  if (!routePolicy.matched) {
+    return isSupportedAdminRoutePath(segments) ? adminMethodNotAllowed() : notFoundAdmin();
+  }
 
-    if (roleResponse) {
-      return roleResponse;
+  let permissionResponse: Response | null;
+  let userUpdateAuthorization: AdminUserUpdateAuthorization | null = null;
+
+  if ("capability" in routePolicy) {
+    permissionResponse = requireAdminCapability(authResult.identity, routePolicy.capability, {
+      resource: routePolicy.resource
+    });
+  } else {
+    permissionResponse = requireAnyAdminCapability(authResult.identity, routePolicy.anyOf, {
+      resource: routePolicy.resource
+    });
+
+    if (!permissionResponse) {
+      userUpdateAuthorization = hasAdminCapability(authResult.identity, "users.update-any")
+        ? { capability: "users.update-any", scope: "any" }
+        : { capability: "users.update-self", scope: "self" };
     }
+  }
+
+  if (permissionResponse) {
+    return permissionResponse;
   }
 
   try {
@@ -1851,13 +1845,23 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
       return await handleSnapshot(env);
     }
 
+    if (segments[0] === "capabilities" && segments.length === 1 && request.method === "GET") {
+      return json(
+        {
+          role: authResult.identity.role,
+          capabilities: [...getCapabilitiesForRole(authResult.identity.role)].sort()
+        },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
     const paginatedResponse = await handleAdminPaginatedReads(request, env, segments, authResult.identity);
 
     if (paginatedResponse) {
       return paginatedResponse;
     }
 
-    const backupResponse = await handleAdminBackup(request, env, segments, authResult.identity);
+    const backupResponse = await handleAdminBackup(request, env, segments);
 
     if (backupResponse) {
       return backupResponse;
@@ -1880,7 +1884,7 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
     }
 
     if (segments[0] === "users") {
-      return await handleUsers(request, env, segments, authResult.identity);
+      return await handleUsers(request, env, segments, authResult.identity, userUpdateAuthorization);
     }
 
     const structuredResponse = await handleAdminStructuredParity(request, env, segments, authResult.identity);

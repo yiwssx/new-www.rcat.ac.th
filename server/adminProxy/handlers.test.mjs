@@ -294,7 +294,7 @@ describe("Vercel admin proxy", () => {
     expect(new Headers(upstreamInit.headers).get("Content-Type")).toBe("application/json");
   });
 
-  it("enforces route-level RBAC before forwarding mutating proxy requests", async () => {
+  it("authenticates legacy roles, forwards them without local route authorization, and relays Worker denials", async () => {
     const env = createEnv({
       ADMIN_PROXY_ALLOWED_EMAILS: `${ALLOWED_EMAIL},${EDITOR_EMAIL},viewer@example.invalid`,
       ADMIN_RBAC_EDITORS: EDITOR_EMAIL,
@@ -312,13 +312,17 @@ describe("Vercel admin proxy", () => {
       secret: env.ADMIN_PROXY_SESSION_SECRET,
       nowMs: Date.parse("2026-06-19T05:00:00.000Z")
     });
-    const fetchImpl = vi.fn(
-      async () =>
-        new Response(JSON.stringify({ content: [], documents: [] }), {
-          status: 200,
+    const fetchImpl = vi.fn(async (url, init) => {
+      const role = new Headers(init.headers).get("X-RCAT-Admin-Proxy-Role");
+      const denied = (role === "editor" && String(url).includes("/settings/")) || role === "viewer";
+      return new Response(
+        JSON.stringify(denied ? { error: "required permission is missing" } : { content: [], documents: [] }),
+        {
+          status: denied ? 403 : 200,
           headers: { "content-type": "application/json" }
-        })
-    );
+        }
+      );
+    });
     const readResponse = createResponse();
     const editorContentWriteResponse = createResponse();
     const editorSettingsWriteResponse = createResponse();
@@ -376,19 +380,31 @@ describe("Vercel admin proxy", () => {
     expect(editorContentWriteResponse.statusCode).toBe(200);
     expect(editorSettingsWriteResponse.statusCode).toBe(403);
     expect(JSON.parse(editorSettingsWriteResponse.bodyText)).toEqual({
-      error: "website settings permission is required"
+      error: "required permission is missing"
     });
     expect(viewerWriteResponse.statusCode).toBe(403);
-    expect(JSON.parse(viewerWriteResponse.bodyText)).toEqual({ error: "content management permission is required" });
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(viewerWriteResponse.bodyText)).toEqual({ error: "required permission is missing" });
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+    expect(fetchImpl.mock.calls.map(([, init]) => new Headers(init.headers).get("X-RCAT-Admin-Proxy-Role"))).toEqual([
+      "editor",
+      "editor",
+      "editor",
+      "viewer"
+    ]);
   });
 
-  it("requires an admin role for backup reads before forwarding to the Worker", async () => {
+  it("forwards legacy backup reads and relays the authoritative Worker capability result", async () => {
     const env = createEnv({
       ADMIN_PROXY_ALLOWED_EMAILS: `${ALLOWED_EMAIL},${EDITOR_EMAIL}`,
       ADMIN_RBAC_EDITORS: EDITOR_EMAIL
     });
-    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ counts: {} }), { status: 200 }));
+    const fetchImpl = vi.fn(async (_url, init) => {
+      const role = new Headers(init.headers).get("X-RCAT-Admin-Proxy-Role");
+      return new Response(
+        JSON.stringify(role === "admin" ? { counts: {} } : { error: "required permission is missing" }),
+        { status: role === "admin" ? 200 : 403, headers: { "content-type": "application/json" } }
+      );
+    });
     const editorResponse = createResponse();
     const adminResponse = createResponse();
 
@@ -410,10 +426,13 @@ describe("Vercel admin proxy", () => {
     );
 
     expect(editorResponse.statusCode).toBe(403);
-    expect(JSON.parse(editorResponse.bodyText)).toEqual({ error: "admin role is required" });
+    expect(JSON.parse(editorResponse.bodyText)).toEqual({ error: "required permission is missing" });
     expect(adminResponse.statusCode).toBe(200);
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/backup/counts");
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls.map(([url]) => url)).toEqual([
+      "https://preview-worker.example.test/api/admin/backup/download",
+      "https://preview-worker.example.test/api/admin/backup/counts"
+    ]);
   });
 
   it("forwards backup attachment headers needed by the browser download flow", async () => {

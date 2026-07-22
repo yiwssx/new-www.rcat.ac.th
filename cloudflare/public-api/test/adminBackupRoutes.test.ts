@@ -87,7 +87,7 @@ describe("M21 admin D1 backup routes", () => {
 
     expect(response.status).toBe(403);
     await expect(readJson(response)).resolves.toMatchObject({
-      error: "admin role is required"
+      error: "required permission is missing"
     });
   });
 

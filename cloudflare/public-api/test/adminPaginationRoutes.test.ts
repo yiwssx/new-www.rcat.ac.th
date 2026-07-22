@@ -644,7 +644,7 @@ describe("admin server pagination routes", () => {
     expect(editorMenu.status).toBe(403);
     await expect(jsonBody(editorMenu)).resolves.toMatchObject({ resource: "menu-order" });
 
-    for (const entity of ["documents", "carousel", "external-services"]) {
+    for (const entity of ["documents", "carousel"]) {
       const state = createPaginationDb(allEntityRows());
       const response = await worker.fetch(
         request(`/api/admin/${entity}/order`, {
@@ -657,6 +657,21 @@ describe("admin server pagination routes", () => {
 
       expect(response.status, `editor ${entity}`).toBe(200);
     }
+
+    const editorExternalState = createPaginationDb(allEntityRows());
+    const editorExternal = await worker.fetch(
+      request("/api/admin/external-services/order", {
+        method: "PUT",
+        role: "editor",
+        body: JSON.stringify({ items: compactOrderItems("external-services", editorExternalState.tables) })
+      }),
+      { ...baseEnv, DB: editorExternalState.db }
+    );
+    expect(editorExternal.status).toBe(403);
+    await expect(jsonBody(editorExternal)).resolves.toMatchObject({
+      error: "required permission is missing",
+      resource: "external-services-order"
+    });
 
     for (const entity of entities) {
       const state = createPaginationDb(allEntityRows());

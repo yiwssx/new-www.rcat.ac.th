@@ -22,6 +22,7 @@ export interface AdminIdentity {
   email: string;
   mode: "cloudflare-access" | "smoke-token" | "cms-session";
   role: AdminRole;
+  userId?: string;
 }
 
 export type AdminRole = "admin" | "editor" | "viewer";
@@ -398,79 +399,11 @@ async function verifyCmsSession(
       actor: result.identity.email,
       email: result.identity.email,
       mode: "cms-session",
-      role: result.identity.role
+      role: result.identity.role,
+      userId: result.identity.id
     },
     response: null
   };
-}
-
-export function isAdmin(identity: AdminIdentity) {
-  return identity.role === "admin";
-}
-
-export function isEditor(identity: AdminIdentity) {
-  return identity.role === "editor";
-}
-
-export function canReadAdminData(identity: AdminIdentity) {
-  return identity.role === "admin" || identity.role === "editor" || identity.role === "viewer";
-}
-
-export function canManageContent(identity: AdminIdentity) {
-  return identity.role === "admin" || identity.role === "editor";
-}
-
-export function canPublishContent(identity: AdminIdentity) {
-  return canManageContent(identity);
-}
-
-export function canManageMedia(identity: AdminIdentity) {
-  return identity.role === "admin" || identity.role === "editor";
-}
-
-export function canManageWebsiteSettings(identity: AdminIdentity) {
-  return identity.role === "admin";
-}
-
-export function canManageMenu(identity: AdminIdentity) {
-  return identity.role === "admin";
-}
-
-export function canManageIntegrations(identity: AdminIdentity) {
-  return identity.role === "admin";
-}
-
-export function canManageUsers(identity: AdminIdentity) {
-  return identity.role === "admin";
-}
-
-export function canManageSystemBackup(identity: AdminIdentity) {
-  return identity.role === "admin";
-}
-
-export function canSelfEditUserProfile(identity: AdminIdentity) {
-  return identity.role === "admin" || identity.role === "editor";
-}
-
-export function requireAdminPermission(
-  identity: AdminIdentity,
-  predicate: (identity: AdminIdentity) => boolean,
-  message: string,
-  resource = "admin-structured-data"
-) {
-  return predicate(identity)
-    ? null
-    : jsonError(message, 403, {
-        resource
-      });
-}
-
-export function requireAdminRole(identity: AdminIdentity) {
-  return isAdmin(identity)
-    ? null
-    : jsonError("admin role is required", 403, {
-        resource: "admin-structured-data"
-      });
 }
 
 export async function authenticateAdminRequest(

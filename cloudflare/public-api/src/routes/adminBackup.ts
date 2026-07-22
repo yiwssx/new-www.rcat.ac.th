@@ -1,4 +1,3 @@
-import { canManageSystemBackup, requireAdminPermission, type AdminIdentity } from "../auth/adminAccess";
 import { requireD1Database } from "../db/documentsRepository";
 import type { Env } from "../env";
 import { json, jsonError, methodNotAllowed } from "../responses";
@@ -192,20 +191,9 @@ async function handleDownload(env: Env) {
   );
 }
 
-export async function handleAdminBackup(request: Request, env: Env, segments: string[], identity: AdminIdentity) {
+export async function handleAdminBackup(request: Request, env: Env, segments: string[]) {
   if (segments[0] !== "backup") {
     return null;
-  }
-
-  const permissionResponse = requireAdminPermission(
-    identity,
-    canManageSystemBackup,
-    "admin role is required",
-    "system-backup"
-  );
-
-  if (permissionResponse) {
-    return permissionResponse;
   }
 
   if (request.method !== "GET") {

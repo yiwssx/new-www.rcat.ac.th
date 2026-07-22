@@ -1,4 +1,4 @@
-import { canManageContent, canManageMenu, canReadAdminData, type AdminIdentity } from "../auth/adminAccess";
+import type { AdminIdentity } from "../auth/adminAccess";
 import {
   ADMIN_MEDIA_DEFAULT_PAGE_SIZE,
   parseAdminPagination,
@@ -707,10 +707,6 @@ function menuOrder(value: unknown, fallback: number) {
 }
 
 async function handleMenuItemMutation(request: Request, env: Env, segments: string[], identity: AdminIdentity) {
-  if (!canManageMenu(identity)) {
-    return noStoreError("menu management permission is required", 403, { resource: "menu" });
-  }
-
   if (request.method === "POST" && segments.length === 1) {
     const parsed = await readRequestRecord(request);
 
@@ -1160,16 +1156,6 @@ function changedRows(result: D1Result<unknown>) {
 
 async function handleOrderSave(request: Request, env: Env, entity: string, identity: AdminIdentity) {
   const resource = `${entity}-order`;
-  const allowed = entity === "menu" ? canManageMenu(identity) : canManageContent(identity);
-
-  if (!allowed) {
-    return noStoreError(
-      entity === "menu" ? "menu management permission is required" : "content management permission is required",
-      403,
-      { resource }
-    );
-  }
-
   const parsed = await parseCompactOrderItems(request, entity);
 
   if ("response" in parsed) {
@@ -1612,12 +1598,6 @@ async function handleVisitorStatsSummary(env: Env) {
 }
 
 async function handlePublishPending(env: Env, identity: AdminIdentity) {
-  if (!canManageContent(identity)) {
-    return noStoreError("content management permission is required", 403, {
-      resource: "content-publish-queue"
-    });
-  }
-
   const now = new Date().toISOString();
   const result = await requireD1Database(env)
     .prepare(
@@ -1644,12 +1624,6 @@ export async function handleAdminPaginatedReads(
   segments: string[],
   identity: AdminIdentity
 ): Promise<Response | null> {
-  if (!canReadAdminData(identity)) {
-    return noStoreError("admin read permission is required", 403, {
-      resource: "admin-structured-data"
-    });
-  }
-
   const entity = segments[0] ?? "";
 
   if (

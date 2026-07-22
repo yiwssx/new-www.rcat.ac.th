@@ -980,11 +980,11 @@ describe("M18 admin structured write routes", () => {
     expect(editorPublishResponse.status).toBe(200);
     expect(viewerCreateResponse.status).toBe(403);
     await expect(readJson(viewerCreateResponse)).resolves.toMatchObject({
-      error: "content management permission is required"
+      error: "required permission is missing"
     });
     expect(viewerDeleteResponse.status).toBe(403);
     await expect(readJson(viewerDeleteResponse)).resolves.toMatchObject({
-      error: "content management permission is required"
+      error: "required permission is missing"
     });
     expect(editorDeleteResponse.status).toBe(200);
     expect(tables.contents).toHaveLength(1);
@@ -1065,15 +1065,15 @@ describe("M18 admin structured write routes", () => {
     expect(adminSettingsResponse.status).toBe(200);
     expect(editorSettingsResponse.status).toBe(403);
     await expect(readJson(editorSettingsResponse)).resolves.toMatchObject({
-      error: "website settings permission is required"
+      error: "required permission is missing"
     });
     expect(editorMenuResponse.status).toBe(403);
     await expect(readJson(editorMenuResponse)).resolves.toMatchObject({
-      error: "menu management permission is required"
+      error: "required permission is missing"
     });
     expect(viewerCarouselResponse.status).toBe(403);
     await expect(readJson(viewerCarouselResponse)).resolves.toMatchObject({
-      error: "content management permission is required"
+      error: "required permission is missing"
     });
     expect(tables.app_admin_users).toHaveLength(0);
   });
@@ -1139,6 +1139,32 @@ describe("M18 admin structured write routes", () => {
         ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
       }
     );
+    const adminListResponse = await worker.fetch(
+      makeRequest("/api/admin/users", { method: "GET", headers: adminAccess.header }),
+      baseEnv
+    );
+    const editorListResponse = await worker.fetch(
+      makeRequest("/api/admin/users", { method: "GET", headers: editorAccess.header }),
+      { ...baseEnv, ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson }
+    );
+    const adminDetailResponse = await worker.fetch(
+      makeRequest("/api/admin/users/editor-profile", { method: "GET", headers: adminAccess.header }),
+      baseEnv
+    );
+    const editorMeResponse = await worker.fetch(
+      makeRequest("/api/admin/users/me", { method: "GET", headers: editorAccess.header }),
+      { ...baseEnv, ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson }
+    );
+    const viewerMeResponse = await worker.fetch(
+      makeRequest("/api/admin/users/me", {
+        method: "GET",
+        headers: viewerAccess.header
+      }),
+      {
+        ...baseEnv,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
+      }
+    );
     const adminCreateResponse = await worker.fetch(
       makeRequest("/api/admin/users", {
         method: "POST",
@@ -1147,6 +1173,7 @@ describe("M18 admin structured write routes", () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
+          id: "new-user-profile",
           email: "new-user@example.invalid",
           name: "New User",
           role: "viewer",
@@ -1155,6 +1182,19 @@ describe("M18 admin structured write routes", () => {
       }),
       baseEnv
     );
+    const editorCreateResponse = await worker.fetch(
+      makeRequest("/api/admin/users", {
+        method: "POST",
+        headers: { ...editorAccess.header, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "editor-created@example.invalid",
+          name: "Must Not Create",
+          role: "viewer",
+          status: "active"
+        })
+      }),
+      { ...baseEnv, ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson }
+    );
     const editorSelfResponse = await worker.fetch(
       makeRequest("/api/admin/users/editor-profile", {
         method: "PATCH",
@@ -1162,11 +1202,21 @@ describe("M18 admin structured write routes", () => {
           ...editorAccess.header,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          name: "Editor Self Update",
-          role: "admin",
-          status: "disabled"
-        })
+        body: JSON.stringify({ name: "Editor Self Update" })
+      }),
+      {
+        ...baseEnv,
+        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
+      }
+    );
+    const editorUnsafeResponse = await worker.fetch(
+      makeRequest("/api/admin/users/editor-profile", {
+        method: "PATCH",
+        headers: {
+          ...editorAccess.header,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ role: "admin", status: "disabled" })
       }),
       {
         ...baseEnv,
@@ -1187,6 +1237,14 @@ describe("M18 admin structured write routes", () => {
         ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
       }
     );
+    const viewerSelfUpdateResponse = await worker.fetch(
+      makeRequest("/api/admin/users/viewer-profile", {
+        method: "PATCH",
+        headers: { ...viewerAccess.header, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Viewer must not update" })
+      }),
+      { ...baseEnv, ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson }
+    );
     const editorDeleteSelfResponse = await worker.fetch(
       makeRequest("/api/admin/users/editor-profile", {
         method: "DELETE",
@@ -1197,6 +1255,21 @@ describe("M18 admin structured write routes", () => {
         ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
       }
     );
+    const adminDeleteOtherResponse = await worker.fetch(
+      makeRequest("/api/admin/users/new-user-profile", {
+        method: "DELETE",
+        headers: adminAccess.header
+      }),
+      baseEnv
+    );
+    const lastAdminDemotionResponse = await worker.fetch(
+      makeRequest("/api/admin/users/admin-profile", {
+        method: "PATCH",
+        headers: { ...adminAccess.header, "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "viewer" })
+      }),
+      baseEnv
+    );
     const adminDeleteSelfResponse = await worker.fetch(
       makeRequest("/api/admin/users/admin-profile", {
         method: "DELETE",
@@ -1205,15 +1278,27 @@ describe("M18 admin structured write routes", () => {
       baseEnv
     );
 
-    expect(listResponse.status).toBe(200);
-    await expect(readJson(listResponse)).resolves.toMatchObject({
-      items: [
-        expect.objectContaining({ id: "admin-profile", email: accessEmail }),
-        expect.objectContaining({ id: "editor-profile", role: "editor" }),
-        expect.objectContaining({ id: "viewer-profile", role: "viewer" })
-      ]
+    expect(listResponse.status).toBe(403);
+    await expect(readJson(listResponse)).resolves.toMatchObject({ error: "required permission is missing" });
+    expect(adminListResponse.status).toBe(200);
+    await expect(readJson(adminListResponse)).resolves.toMatchObject({
+      items: expect.arrayContaining([
+        expect.objectContaining({ id: "admin-profile", role: "admin" }),
+        expect.objectContaining({ id: "editor-profile", role: "editor" })
+      ])
+    });
+    expect(editorListResponse.status).toBe(403);
+    expect(adminDetailResponse.status).toBe(200);
+    await expect(readJson(adminDetailResponse)).resolves.toMatchObject({
+      item: expect.objectContaining({ id: "editor-profile", email: "editor@example.invalid" })
+    });
+    expect(editorMeResponse.status).toBe(200);
+    expect(viewerMeResponse.status).toBe(200);
+    await expect(readJson(viewerMeResponse)).resolves.toMatchObject({
+      item: expect.objectContaining({ id: "viewer-profile", role: "viewer" })
     });
     expect(adminCreateResponse.status).toBe(201);
+    expect(editorCreateResponse.status).toBe(403);
     expect(editorSelfResponse.status).toBe(200);
     await expect(readJson(editorSelfResponse)).resolves.toMatchObject({
       item: expect.objectContaining({
@@ -1223,14 +1308,21 @@ describe("M18 admin structured write routes", () => {
         status: "active"
       })
     });
+    expect(editorUnsafeResponse.status).toBe(403);
+    await expect(readJson(editorUnsafeResponse)).resolves.toMatchObject({
+      error: "required permission is missing"
+    });
     expect(editorOtherResponse.status).toBe(403);
     await expect(readJson(editorOtherResponse)).resolves.toMatchObject({
-      error: "user management permission is required"
+      error: "required permission is missing"
     });
+    expect(viewerSelfUpdateResponse.status).toBe(403);
     expect(editorDeleteSelfResponse.status).toBe(403);
     await expect(readJson(editorDeleteSelfResponse)).resolves.toMatchObject({
-      error: "ไม่สามารถลบบัญชีของตนเองได้"
+      error: "required permission is missing"
     });
+    expect(adminDeleteOtherResponse.status).toBe(200);
+    expect(lastAdminDemotionResponse.status).toBe(403);
     expect(adminDeleteSelfResponse.status).toBe(403);
     await expect(readJson(adminDeleteSelfResponse)).resolves.toMatchObject({
       error: "ไม่สามารถลบบัญชีของตนเองได้"
