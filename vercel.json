@@ -50,6 +50,42 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/api/cms-auth/login",
+      "destination": "/api/cms-auth?_rcatCmsRoute=login"
+    },
+    {
+      "source": "/api/cms-auth/session",
+      "destination": "/api/cms-auth?_rcatCmsRoute=session"
+    },
+    {
+      "source": "/api/cms-auth/logout",
+      "destination": "/api/cms-auth?_rcatCmsRoute=logout"
+    },
+    {
+      "source": "/api/cms-auth/logout-all",
+      "destination": "/api/cms-auth?_rcatCmsRoute=logout-all"
+    },
+    {
+      "source": "/api/cms-auth/change-password",
+      "destination": "/api/cms-auth?_rcatCmsRoute=change-password"
+    },
+    {
+      "source": "/api/cms-auth/invitation/inspect",
+      "destination": "/api/cms-auth?_rcatCmsRoute=invitation-inspect"
+    },
+    {
+      "source": "/api/cms-auth/invitation/accept",
+      "destination": "/api/cms-auth?_rcatCmsRoute=invitation-accept"
+    },
+    {
+      "source": "/api/cms-auth/password-reset/inspect",
+      "destination": "/api/cms-auth?_rcatCmsRoute=password-reset-inspect"
+    },
+    {
+      "source": "/api/cms-auth/password-reset/complete",
+      "destination": "/api/cms-auth?_rcatCmsRoute=password-reset-complete"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }
