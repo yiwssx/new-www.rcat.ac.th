@@ -1,4 +1,6 @@
 import { constantTimeTextEqual, isValidCmsToken } from "../auth/cmsSessionCrypto";
+import { hashInvitationToken, hashPasswordResetToken, isValidLifecycleToken } from "../auth/cmsLifecycleToken";
+import { CMS_PASSWORD_ALGORITHM, hashCmsPassword, validateCmsPassword, verifyCmsPassword } from "../auth/cmsPassword";
 import {
   CmsSessionEligibilityError,
   authenticateCmsSession,
@@ -9,6 +11,11 @@ import {
   type CreateCmsSessionInput
 } from "../auth/cmsSessionService";
 import { verifyCmsCredential, type VerifyCmsCredentialInput } from "../auth/cmsCredentialService";
+import {
+  AdminUserLifecycleConflict,
+  createAdminUserLifecycleRepository,
+  type AdminUserLifecycleRepository
+} from "../db/adminUserLifecycleRepository";
 import type { Env } from "../env";
 import { json, jsonError, methodNotAllowed } from "../responses";
 
@@ -25,8 +32,23 @@ const LOGIN_PATH = `${INTERNAL_PREFIX}login`;
 const SESSION_PATH = `${INTERNAL_PREFIX}session`;
 const LOGOUT_PATH = `${INTERNAL_PREFIX}logout`;
 const LOGOUT_ALL_PATH = `${INTERNAL_PREFIX}logout-all`;
-const INTERNAL_PATHS = new Set([LOGIN_PATH, SESSION_PATH, LOGOUT_PATH, LOGOUT_ALL_PATH]);
-const MAX_LOGIN_BODY_BYTES = 16 * 1024;
+const INVITATION_INSPECT_PATH = `${INTERNAL_PREFIX}invitation/inspect`;
+const INVITATION_ACCEPT_PATH = `${INTERNAL_PREFIX}invitation/accept`;
+const PASSWORD_RESET_INSPECT_PATH = `${INTERNAL_PREFIX}password-reset/inspect`;
+const PASSWORD_RESET_COMPLETE_PATH = `${INTERNAL_PREFIX}password-reset/complete`;
+const CHANGE_PASSWORD_PATH = `${INTERNAL_PREFIX}change-password`;
+const INTERNAL_PATHS = new Set([
+  LOGIN_PATH,
+  SESSION_PATH,
+  LOGOUT_PATH,
+  LOGOUT_ALL_PATH,
+  INVITATION_INSPECT_PATH,
+  INVITATION_ACCEPT_PATH,
+  PASSWORD_RESET_INSPECT_PATH,
+  PASSWORD_RESET_COMPLETE_PATH,
+  CHANGE_PASSWORD_PATH
+]);
+const MAX_AUTH_BODY_BYTES = 16 * 1024;
 
 type VerifyCredential = (input: VerifyCmsCredentialInput) => ReturnType<typeof verifyCmsCredential>;
 type CreateSession = (input: CreateCmsSessionInput) => ReturnType<typeof createCmsSession>;
@@ -38,6 +60,9 @@ export interface CmsAuthInternalDependencies {
   authenticateSession?: AuthenticateSession;
   revokeSession?: AuthenticateSession;
   revokeAllSessions?: AuthenticateSession;
+  lifecycleRepository?: AdminUserLifecycleRepository;
+  hashPassword?: (password: string) => Promise<string>;
+  verifyPassword?: (password: string, storedHash: string, algorithm: string) => Promise<boolean>;
   now?: () => Date;
 }
 
@@ -60,10 +85,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-async function readBoundedLoginBody(request: Request) {
+async function readBoundedAuthBody(request: Request) {
   const contentLength = Number(request.headers.get("Content-Length") ?? "0");
 
-  if (Number.isFinite(contentLength) && contentLength > MAX_LOGIN_BODY_BYTES) {
+  if (Number.isFinite(contentLength) && contentLength > MAX_AUTH_BODY_BYTES) {
     return { status: "too-large" as const };
   }
 
@@ -75,7 +100,7 @@ async function readBoundedLoginBody(request: Request) {
     return { status: "malformed" as const };
   }
 
-  if (bytes.byteLength > MAX_LOGIN_BODY_BYTES) {
+  if (bytes.byteLength > MAX_AUTH_BODY_BYTES) {
     return { status: "too-large" as const };
   }
 
@@ -85,6 +110,284 @@ async function readBoundedLoginBody(request: Request) {
   } catch {
     return { status: "malformed" as const };
   }
+}
+
+function normalizeLifecycleUsername(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return /^[a-z0-9._-]{3,64}$/.test(normalized) ? normalized : null;
+}
+
+function invitationInvalid() {
+  return internalError("invitation is invalid or expired", 400);
+}
+
+function passwordResetInvalid() {
+  return internalError("password-reset link is invalid or expired", 400);
+}
+
+function validateNewPasswordBody(body: Record<string, unknown>): { error: Response } | { password: string } {
+  if (typeof body.password !== "string" || typeof body.passwordConfirmation !== "string") {
+    return { error: internalError("password and password confirmation are required", 400) };
+  }
+
+  if (body.password !== body.passwordConfirmation) {
+    return { error: internalError("password confirmation does not match", 400) };
+  }
+
+  const policy = validateCmsPassword(body.password);
+
+  if (!policy.valid) {
+    return {
+      error: noStore(jsonError("password policy validation failed", 400, { resource: "cms-auth", code: policy.code }))
+    };
+  }
+
+  return { password: body.password };
+}
+
+function maskEmail(email: string) {
+  const separator = email.lastIndexOf("@");
+
+  if (separator <= 0) {
+    return "***";
+  }
+
+  return `${email[0]}***${email.slice(separator)}`;
+}
+
+async function handleInvitationLifecycle(
+  request: Request,
+  env: Env,
+  pathname: string,
+  now: Date,
+  dependencies: CmsAuthInternalDependencies
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return internalMethodNotAllowed("POST");
+  }
+
+  const body = await readBoundedAuthBody(request);
+
+  if (body.status === "too-large") {
+    return internalError("request body is too large", 413);
+  }
+
+  if (body.status !== "valid" || !isValidLifecycleToken(body.value.token)) {
+    return invitationInvalid();
+  }
+
+  const repository = dependencies.lifecycleRepository ?? createAdminUserLifecycleRepository(env);
+  const tokenHash = await hashInvitationToken(body.value.token);
+  const inspection = await repository.inspectInvitationByTokenHash(tokenHash, now.toISOString());
+
+  if (!inspection) {
+    return invitationInvalid();
+  }
+
+  if (pathname === INVITATION_INSPECT_PATH) {
+    return noStore(
+      json({
+        valid: true,
+        user: {
+          email: inspection.email,
+          name: inspection.name,
+          role: inspection.role,
+          username: inspection.username
+        },
+        expiresAt: inspection.expiresAt
+      })
+    );
+  }
+
+  const passwordResult = validateNewPasswordBody(body.value);
+
+  if ("error" in passwordResult) {
+    return passwordResult.error;
+  }
+
+  const usernameProvided = Object.prototype.hasOwnProperty.call(body.value, "username");
+  const username = usernameProvided ? normalizeLifecycleUsername(body.value.username) : null;
+
+  if (usernameProvided && !username) {
+    return internalError("username is invalid", 400);
+  }
+
+  if (inspection.username && username && inspection.username.toLowerCase() !== username) {
+    return internalError("preassigned username cannot be replaced", 409);
+  }
+
+  const effectiveUsername = inspection.username ?? username;
+
+  if (effectiveUsername && !(await repository.isUsernameAvailable(effectiveUsername, inspection.userId))) {
+    return internalError("username is already in use", 409);
+  }
+
+  const hashPassword = dependencies.hashPassword ?? hashCmsPassword;
+  const passwordHash = await hashPassword(passwordResult.password);
+
+  try {
+    await repository.acceptInvitation({
+      invitationId: inspection.invitationId,
+      userId: inspection.userId,
+      tokenHash,
+      passwordHash,
+      passwordAlgorithm: CMS_PASSWORD_ALGORITHM,
+      username: effectiveUsername,
+      expectedUsername: inspection.username,
+      actor: "cms-invitation",
+      now: now.toISOString()
+    });
+  } catch (error) {
+    if (error instanceof AdminUserLifecycleConflict) {
+      return error.code === "duplicate_username"
+        ? internalError("username is already in use", 409)
+        : invitationInvalid();
+    }
+
+    throw error;
+  }
+
+  return noStore(json({ ok: true, credentialConfigured: true }));
+}
+
+async function handlePasswordResetLifecycle(
+  request: Request,
+  env: Env,
+  pathname: string,
+  now: Date,
+  dependencies: CmsAuthInternalDependencies
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return internalMethodNotAllowed("POST");
+  }
+
+  const body = await readBoundedAuthBody(request);
+
+  if (body.status === "too-large") {
+    return internalError("request body is too large", 413);
+  }
+
+  if (body.status !== "valid" || !isValidLifecycleToken(body.value.token)) {
+    return passwordResetInvalid();
+  }
+
+  const repository = dependencies.lifecycleRepository ?? createAdminUserLifecycleRepository(env);
+  const tokenHash = await hashPasswordResetToken(body.value.token);
+  const inspection = await repository.inspectPasswordResetByTokenHash(tokenHash, now.toISOString());
+
+  if (!inspection) {
+    return passwordResetInvalid();
+  }
+
+  if (pathname === PASSWORD_RESET_INSPECT_PATH) {
+    return noStore(
+      json({ valid: true, user: { emailHint: maskEmail(inspection.email) }, expiresAt: inspection.expiresAt })
+    );
+  }
+
+  const passwordResult = validateNewPasswordBody(body.value);
+
+  if ("error" in passwordResult) {
+    return passwordResult.error;
+  }
+
+  const hashPassword = dependencies.hashPassword ?? hashCmsPassword;
+  const passwordHash = await hashPassword(passwordResult.password);
+
+  try {
+    await repository.completePasswordReset({
+      resetTokenId: inspection.resetTokenId,
+      userId: inspection.userId,
+      tokenHash,
+      passwordHash,
+      passwordAlgorithm: CMS_PASSWORD_ALGORITHM,
+      actor: "cms-password-reset",
+      now: now.toISOString()
+    });
+  } catch (error) {
+    if (error instanceof AdminUserLifecycleConflict) {
+      return passwordResetInvalid();
+    }
+
+    throw error;
+  }
+
+  return noStore(json({ ok: true, passwordReset: true }));
+}
+
+async function handlePasswordChange(
+  request: Request,
+  env: Env,
+  now: Date,
+  dependencies: CmsAuthInternalDependencies
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return internalMethodNotAllowed("POST");
+  }
+
+  const body = await readBoundedAuthBody(request);
+
+  if (body.status === "too-large") {
+    return internalError("request body is too large", 413);
+  }
+
+  if (body.status !== "valid" || typeof body.value.currentPassword !== "string" || !body.value.currentPassword) {
+    return internalError("current password is required", 400);
+  }
+
+  const authenticateSession = dependencies.authenticateSession ?? authenticateCmsSession;
+  const session = await authenticateSession(getSessionInput(request, env, now));
+
+  if (session.status !== "authenticated") {
+    return sessionFailure(session.status);
+  }
+
+  const passwordResult = validateNewPasswordBody(body.value);
+
+  if ("error" in passwordResult) {
+    return passwordResult.error;
+  }
+
+  const repository = dependencies.lifecycleRepository ?? createAdminUserLifecycleRepository(env);
+  const credential = await repository.getCredentialByUserId(session.identity.id);
+  const verifyPassword = dependencies.verifyPassword ?? verifyCmsPassword;
+
+  if (
+    !credential ||
+    !(await verifyPassword(body.value.currentPassword, credential.password_hash, credential.password_algorithm))
+  ) {
+    return internalError("current password is invalid", 401);
+  }
+
+  if (await verifyPassword(passwordResult.password, credential.password_hash, credential.password_algorithm)) {
+    return internalError("new password must differ from current password", 400);
+  }
+
+  const hashPassword = dependencies.hashPassword ?? hashCmsPassword;
+  const passwordHash = await hashPassword(passwordResult.password);
+
+  try {
+    await repository.changeUserPassword({
+      userId: session.identity.id,
+      expectedPasswordHash: credential.password_hash,
+      passwordHash,
+      passwordAlgorithm: CMS_PASSWORD_ALGORITHM,
+      actor: session.identity.email,
+      now: now.toISOString()
+    });
+  } catch (error) {
+    if (error instanceof AdminUserLifecycleConflict) {
+      return internalError("current password is invalid", 401);
+    }
+
+    throw error;
+  }
+
+  return noStore(json({ ok: true, passwordChanged: true }));
 }
 
 function readMetadataHeader(request: Request, name: string, maximumLength: number) {
@@ -170,12 +473,36 @@ export async function handleCmsAuthInternal(
 
   const now = dependencies.now?.() ?? new Date();
 
+  if (pathname === INVITATION_INSPECT_PATH || pathname === INVITATION_ACCEPT_PATH) {
+    try {
+      return await handleInvitationLifecycle(request, env, pathname, now, dependencies);
+    } catch {
+      return internalError("CMS authentication is unavailable", 503);
+    }
+  }
+
+  if (pathname === PASSWORD_RESET_INSPECT_PATH || pathname === PASSWORD_RESET_COMPLETE_PATH) {
+    try {
+      return await handlePasswordResetLifecycle(request, env, pathname, now, dependencies);
+    } catch {
+      return internalError("CMS authentication is unavailable", 503);
+    }
+  }
+
+  if (pathname === CHANGE_PASSWORD_PATH) {
+    try {
+      return await handlePasswordChange(request, env, now, dependencies);
+    } catch {
+      return internalError("CMS authentication is unavailable", 503);
+    }
+  }
+
   if (pathname === LOGIN_PATH) {
     if (request.method !== "POST") {
       return internalMethodNotAllowed("POST");
     }
 
-    const body = await readBoundedLoginBody(request);
+    const body = await readBoundedAuthBody(request);
 
     if (body.status === "too-large") {
       return internalError("request body is too large", 413);

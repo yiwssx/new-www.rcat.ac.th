@@ -42,6 +42,18 @@ describe("Admin authorization matrix", () => {
     }
   });
 
+  it("allows self password changes for every role but reserves lifecycle administration for Admin", () => {
+    for (const role of ["admin", "editor", "viewer"] as const) {
+      expect(hasAdminCapability(role, "auth.change-password-self")).toBe(true);
+    }
+
+    for (const capability of ["users.invite", "users.reset-password", "users.revoke-sessions"] as const) {
+      expect(hasAdminCapability("admin", capability)).toBe(true);
+      expect(hasAdminCapability("editor", capability)).toBe(false);
+      expect(hasAdminCapability("viewer", capability)).toBe(false);
+    }
+  });
+
   it("denies every Viewer mutation", () => {
     const viewerCapabilities = new Set<AdminCapability>(ROLE_CAPABILITIES.viewer);
     expect(

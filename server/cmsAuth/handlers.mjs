@@ -22,6 +22,11 @@ const LOGIN_PATH = "/api/internal/cms-auth/login";
 const SESSION_PATH = "/api/internal/cms-auth/session";
 const LOGOUT_PATH = "/api/internal/cms-auth/logout";
 const LOGOUT_ALL_PATH = "/api/internal/cms-auth/logout-all";
+const INVITATION_INSPECT_PATH = "/api/internal/cms-auth/invitation/inspect";
+const INVITATION_ACCEPT_PATH = "/api/internal/cms-auth/invitation/accept";
+const PASSWORD_RESET_INSPECT_PATH = "/api/internal/cms-auth/password-reset/inspect";
+const PASSWORD_RESET_COMPLETE_PATH = "/api/internal/cms-auth/password-reset/complete";
+const CHANGE_PASSWORD_PATH = "/api/internal/cms-auth/change-password";
 const MAX_LOGIN_BODY_BYTES = 16 * 1024;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_BLOCK_MS = 15 * 60 * 1000;
@@ -29,6 +34,12 @@ const MAX_FAILURES_PER_IDENTIFIER = 5;
 const MAX_FAILURES_PER_IP = 20;
 const MAX_RATE_LIMIT_BUCKETS = 5000;
 const defaultLoginLimiter = createCmsLoginRateLimiter();
+const defaultLifecycleLimiter = createCmsLifecycleRateLimiter();
+const defaultPasswordChangeLimiter = createCmsLoginRateLimiter({
+  identifierLimit: 5,
+  ipLimit: 20,
+  maximumBuckets: MAX_RATE_LIMIT_BUCKETS
+});
 
 function runtimeEnv() {
   return process.env;
@@ -347,6 +358,100 @@ export function createCmsLoginRateLimiter(options = {}) {
   }
 
   return { check, recordFailure, recordSuccess };
+}
+
+export function createCmsLifecycleRateLimiter(options = {}) {
+  const windowMs = options.windowMs ?? 15 * 60 * 1000;
+  const blockMs = options.blockMs ?? 15 * 60 * 1000;
+  const attemptLimit = options.attemptLimit ?? 30;
+  const failureLimit = options.failureLimit ?? 10;
+  const maximumBuckets = options.maximumBuckets ?? MAX_RATE_LIMIT_BUCKETS;
+  const buckets = new Map();
+
+  function prune(nowMs) {
+    for (const [key, bucket] of buckets) {
+      const expiresAt = bucket.blockedUntil || bucket.windowStartedAt + windowMs;
+
+      if (expiresAt <= nowMs) {
+        buckets.delete(key);
+      }
+    }
+  }
+
+  function ensureCapacity(nowMs) {
+    prune(nowMs);
+
+    while (buckets.size >= maximumBuckets) {
+      let oldestKey;
+      let oldestTouchedAt = Number.POSITIVE_INFINITY;
+
+      for (const [key, bucket] of buckets) {
+        if (bucket.lastTouchedAt < oldestTouchedAt) {
+          oldestKey = key;
+          oldestTouchedAt = bucket.lastTouchedAt;
+        }
+      }
+
+      if (oldestKey === undefined) break;
+      buckets.delete(oldestKey);
+    }
+  }
+
+  function status(keys, nowMs) {
+    prune(nowMs);
+    let retryAfterMs = 0;
+
+    for (const key of [keys.attemptKey, keys.failureKey].filter(Boolean)) {
+      const bucket = buckets.get(key);
+
+      if (bucket) {
+        bucket.lastTouchedAt = nowMs;
+        retryAfterMs = Math.max(retryAfterMs, bucket.blockedUntil - nowMs);
+      }
+    }
+
+    return {
+      blocked: retryAfterMs > 0,
+      retryAfterSeconds: retryAfterMs > 0 ? Math.max(1, Math.ceil(retryAfterMs / 1000)) : 0
+    };
+  }
+
+  function increment(key, limit, nowMs) {
+    if (!key) return;
+    let bucket = buckets.get(key);
+
+    if (!bucket) {
+      ensureCapacity(nowMs);
+      bucket = { count: 0, blockedUntil: 0, windowStartedAt: nowMs, lastTouchedAt: nowMs };
+      buckets.set(key, bucket);
+    }
+
+    bucket.count += 1;
+    bucket.lastTouchedAt = nowMs;
+
+    if (bucket.count > limit) {
+      bucket.blockedUntil = nowMs + blockMs;
+    }
+  }
+
+  function recordAttempt(keys, nowMs) {
+    increment(keys.attemptKey, attemptLimit, nowMs);
+    return status(keys, nowMs);
+  }
+
+  function recordFailure(keys, nowMs) {
+    increment(keys.failureKey, failureLimit, nowMs);
+    return status(keys, nowMs);
+  }
+
+  return { check: status, recordAttempt, recordFailure };
+}
+
+function createCmsLifecycleRateLimitKeys({ clientIp, secret, withFailure }) {
+  return {
+    attemptKey: rateLimitKey(secret, `cms-lifecycle-attempt:${clientIp}`),
+    failureKey: withFailure ? rateLimitKey(secret, `cms-lifecycle-failure:${clientIp}`) : null
+  };
 }
 
 function sendRateLimitError(response, result) {
@@ -671,4 +776,401 @@ export function handleCmsAuthLogout(request, response, options = {}) {
 
 export function handleCmsAuthLogoutAll(request, response, options = {}) {
   return handleCmsLogoutOperation(request, response, options, true);
+}
+
+function requestHasQueryString(request) {
+  try {
+    return new URL(String(request.url || ""), "https://cms.invalid").search.length > 0;
+  } catch {
+    return true;
+  }
+}
+
+async function readUpstreamJson(response) {
+  try {
+    const value = await response.json();
+    return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function sendLifecycleRateLimitError(response, result) {
+  response.setHeader("Retry-After", String(result.retryAfterSeconds));
+  sendJson(response, 429, {
+    error: "too many lifecycle attempts",
+    retryAfterSeconds: result.retryAfterSeconds
+  });
+}
+
+function lifecycleInvalidMessage(kind) {
+  return kind.startsWith("invitation")
+    ? "invitation is invalid or expired"
+    : "password-reset link is invalid or expired";
+}
+
+function lifecycleRoute(kind) {
+  return {
+    "invitation-inspect": INVITATION_INSPECT_PATH,
+    "invitation-accept": INVITATION_ACCEPT_PATH,
+    "password-reset-inspect": PASSWORD_RESET_INSPECT_PATH,
+    "password-reset-complete": PASSWORD_RESET_COMPLETE_PATH
+  }[kind];
+}
+
+function readLifecycleForwardBody(kind, body) {
+  if (typeof body.token !== "string") return null;
+
+  if (kind.endsWith("inspect")) {
+    return { token: body.token };
+  }
+
+  if (typeof body.password !== "string" || typeof body.passwordConfirmation !== "string") {
+    return null;
+  }
+
+  const forwarded = {
+    token: body.token,
+    password: body.password,
+    passwordConfirmation: body.passwordConfirmation
+  };
+
+  if (kind === "invitation-accept" && Object.prototype.hasOwnProperty.call(body, "username")) {
+    forwarded.username = body.username;
+  }
+
+  return forwarded;
+}
+
+function isSafeLifecycleError(kind, message) {
+  const shared = new Set([
+    lifecycleInvalidMessage(kind),
+    "password and password confirmation are required",
+    "password confirmation does not match",
+    "password policy validation failed",
+    "username is invalid",
+    "username is already in use",
+    "preassigned username cannot be replaced"
+  ]);
+  return shared.has(message);
+}
+
+async function handleCmsLifecycleRequest(request, response, kind, options = {}) {
+  if (String(request.method || "GET").toUpperCase() !== "POST") {
+    sendMethodNotAllowed(response, ["POST"]);
+    return;
+  }
+
+  if (getCmsRequestOriginStatus(request) === "blocked") {
+    sendJson(response, 403, { error: "CMS authentication origin is not allowed" });
+    return;
+  }
+
+  if (requestHasQueryString(request)) {
+    sendJson(response, 400, { error: lifecycleInvalidMessage(kind) });
+    return;
+  }
+
+  const env = options.env ?? runtimeEnv();
+  const configuration = readCmsAuthConfiguration(env);
+
+  if (!configuration) {
+    sendJson(response, 503, { error: "CMS authentication is unavailable" });
+    return;
+  }
+
+  const metadata = getCmsClientMetadata(request);
+  const completion = kind.endsWith("accept") || kind.endsWith("complete");
+  const limiter = options.lifecycleLimiter ?? defaultLifecycleLimiter;
+  const nowMs = options.nowMs ?? Date.now();
+  const keys = createCmsLifecycleRateLimitKeys({
+    clientIp: metadata.clientIp,
+    secret: configuration.proxySecret,
+    withFailure: completion
+  });
+  let rateStatus = limiter.check(keys, nowMs);
+
+  if (rateStatus.blocked) {
+    sendLifecycleRateLimitError(response, rateStatus);
+    return;
+  }
+
+  rateStatus = limiter.recordAttempt(keys, nowMs);
+
+  if (rateStatus.blocked) {
+    sendLifecycleRateLimitError(response, rateStatus);
+    return;
+  }
+
+  let body;
+
+  try {
+    body = await readJsonBody(request);
+  } catch (error) {
+    if (completion) limiter.recordFailure(keys, nowMs);
+    sendJson(response, error instanceof RangeError ? 413 : 400, { error: lifecycleInvalidMessage(kind) });
+    return;
+  }
+
+  const forwardedBody = readLifecycleForwardBody(kind, body);
+
+  if (!forwardedBody) {
+    if (completion) limiter.recordFailure(keys, nowMs);
+    sendJson(response, 400, { error: lifecycleInvalidMessage(kind) });
+    return;
+  }
+
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  let upstreamResponse;
+
+  try {
+    upstreamResponse = await fetchImpl(`${configuration.workerOrigin}${lifecycleRoute(kind)}`, {
+      method: "POST",
+      headers: createPrivateHeaders(configuration, metadata, { "Content-Type": "application/json" }),
+      body: JSON.stringify(forwardedBody),
+      redirect: "error"
+    });
+  } catch {
+    sendJson(response, 502, { error: "CMS authentication upstream request failed" });
+    return;
+  }
+
+  const upstreamBody = await readUpstreamJson(upstreamResponse);
+
+  if (!upstreamResponse.ok) {
+    if (completion) {
+      const failure = limiter.recordFailure(keys, nowMs);
+
+      if (failure.blocked) {
+        sendLifecycleRateLimitError(response, failure);
+        return;
+      }
+    }
+
+    const message = typeof upstreamBody?.error === "string" ? upstreamBody.error : "";
+
+    if (isSafeLifecycleError(kind, message)) {
+      const payload = { error: message };
+
+      if (typeof upstreamBody.code === "string") payload.code = upstreamBody.code;
+      sendJson(response, upstreamResponse.status === 409 ? 409 : 400, payload);
+      return;
+    }
+
+    sendJson(response, upstreamResponse.status === 429 ? 429 : 503, {
+      error: upstreamResponse.status === 429 ? "too many lifecycle attempts" : "CMS authentication is unavailable"
+    });
+    return;
+  }
+
+  if (kind === "invitation-inspect") {
+    const user = upstreamBody?.user;
+
+    if (
+      upstreamBody?.valid !== true ||
+      !user ||
+      typeof user.email !== "string" ||
+      typeof user.name !== "string" ||
+      !["admin", "editor", "viewer"].includes(user.role) ||
+      !(typeof user.username === "string" || user.username === null) ||
+      typeof upstreamBody.expiresAt !== "string"
+    ) {
+      sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+      return;
+    }
+
+    sendJson(response, 200, {
+      valid: true,
+      user: { email: user.email, name: user.name, role: user.role, username: user.username },
+      expiresAt: upstreamBody.expiresAt
+    });
+    return;
+  }
+
+  if (kind === "password-reset-inspect") {
+    if (
+      upstreamBody?.valid !== true ||
+      typeof upstreamBody.user?.emailHint !== "string" ||
+      typeof upstreamBody.expiresAt !== "string"
+    ) {
+      sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+      return;
+    }
+
+    sendJson(response, 200, {
+      valid: true,
+      user: { emailHint: upstreamBody.user.emailHint },
+      expiresAt: upstreamBody.expiresAt
+    });
+    return;
+  }
+
+  if (kind === "invitation-accept" && upstreamBody?.ok === true && upstreamBody.credentialConfigured === true) {
+    sendJson(response, 200, { ok: true, credentialConfigured: true });
+    return;
+  }
+
+  if (kind === "password-reset-complete" && upstreamBody?.ok === true && upstreamBody.passwordReset === true) {
+    sendJson(response, 200, { ok: true, passwordReset: true });
+    return;
+  }
+
+  sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+}
+
+export function handleCmsInvitationInspect(request, response, options = {}) {
+  return handleCmsLifecycleRequest(request, response, "invitation-inspect", options);
+}
+
+export function handleCmsInvitationAccept(request, response, options = {}) {
+  return handleCmsLifecycleRequest(request, response, "invitation-accept", options);
+}
+
+export function handleCmsPasswordResetInspect(request, response, options = {}) {
+  return handleCmsLifecycleRequest(request, response, "password-reset-inspect", options);
+}
+
+export function handleCmsPasswordResetComplete(request, response, options = {}) {
+  return handleCmsLifecycleRequest(request, response, "password-reset-complete", options);
+}
+
+export async function handleCmsPasswordChange(request, response, options = {}) {
+  if (String(request.method || "GET").toUpperCase() !== "POST") {
+    sendMethodNotAllowed(response, ["POST"]);
+    return;
+  }
+
+  if (getCmsRequestOriginStatus(request) === "blocked") {
+    sendJson(response, 403, { error: "CMS authentication origin is not allowed" });
+    return;
+  }
+
+  if (requestHasQueryString(request)) {
+    sendJson(response, 400, { error: "invalid password-change request" });
+    return;
+  }
+
+  const env = options.env ?? runtimeEnv();
+  const configuration = readCmsAuthConfiguration(env);
+
+  if (!configuration) {
+    sendJson(response, 503, { error: "CMS authentication is unavailable" });
+    return;
+  }
+
+  const cookieHeader = getRequestHeader(request, "cookie");
+  const sessionToken = readCmsSessionCookie(cookieHeader);
+  const csrfCookie = readCmsCsrfCookie(cookieHeader);
+  const csrfHeader = getRequestHeader(request, CMS_BROWSER_CSRF_HEADER);
+
+  if (!sessionToken) {
+    sendJson(response, 401, { error: "CMS session is invalid or expired" });
+    return;
+  }
+
+  if (!cmsTokensMatch(csrfCookie, csrfHeader)) {
+    sendJson(response, 403, { error: "CSRF validation failed" });
+    return;
+  }
+
+  const metadata = getCmsClientMetadata(request);
+  const limiter = options.passwordChangeLimiter ?? defaultPasswordChangeLimiter;
+  const nowMs = options.nowMs ?? Date.now();
+  const keys = createCmsLoginRateLimitKeys({
+    identifier: sessionToken,
+    clientIp: metadata.clientIp,
+    secret: configuration.proxySecret
+  });
+  const rateStatus = limiter.check(keys, nowMs);
+
+  if (rateStatus.blocked) {
+    sendRateLimitError(response, rateStatus);
+    return;
+  }
+
+  let body;
+
+  try {
+    body = await readJsonBody(request);
+  } catch (error) {
+    sendJson(response, error instanceof RangeError ? 413 : 400, { error: "invalid password-change request" });
+    return;
+  }
+
+  if (
+    typeof body.currentPassword !== "string" ||
+    typeof body.password !== "string" ||
+    typeof body.passwordConfirmation !== "string"
+  ) {
+    sendJson(response, 400, { error: "invalid password-change request" });
+    return;
+  }
+
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  let upstreamResponse;
+
+  try {
+    upstreamResponse = await fetchImpl(`${configuration.workerOrigin}${CHANGE_PASSWORD_PATH}`, {
+      method: "POST",
+      headers: createPrivateHeaders(configuration, metadata, {
+        "Content-Type": "application/json",
+        [CMS_SESSION_TOKEN_HEADER]: sessionToken,
+        [CMS_CSRF_TOKEN_HEADER]: csrfHeader
+      }),
+      body: JSON.stringify({
+        currentPassword: body.currentPassword,
+        password: body.password,
+        passwordConfirmation: body.passwordConfirmation
+      }),
+      redirect: "error"
+    });
+  } catch {
+    sendJson(response, 502, { error: "CMS authentication upstream request failed" });
+    return;
+  }
+
+  const upstreamBody = await readUpstreamJson(upstreamResponse);
+
+  if (!upstreamResponse.ok) {
+    if (upstreamResponse.status === 401 && upstreamBody?.error === "current password is invalid") {
+      const failure = limiter.recordFailure(keys, nowMs);
+
+      if (failure.blocked) {
+        sendRateLimitError(response, failure);
+        return;
+      }
+
+      sendJson(response, 401, { error: "current password is invalid" });
+      return;
+    }
+
+    const safeErrors = new Set([
+      "current password is required",
+      "password and password confirmation are required",
+      "password confirmation does not match",
+      "password policy validation failed",
+      "new password must differ from current password"
+    ]);
+    const message = typeof upstreamBody?.error === "string" ? upstreamBody.error : "";
+
+    if (safeErrors.has(message)) {
+      const payload = { error: message };
+
+      if (typeof upstreamBody.code === "string") payload.code = upstreamBody.code;
+      sendJson(response, 400, payload);
+      return;
+    }
+
+    sendGenericUpstreamError(response, upstreamResponse);
+    return;
+  }
+
+  if (upstreamBody?.ok !== true || upstreamBody.passwordChanged !== true) {
+    sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+    return;
+  }
+
+  limiter.recordSuccess(keys, nowMs);
+  response.setHeader("Set-Cookie", clearCmsAuthCookies());
+  sendJson(response, 200, { ok: true, passwordChanged: true });
 }

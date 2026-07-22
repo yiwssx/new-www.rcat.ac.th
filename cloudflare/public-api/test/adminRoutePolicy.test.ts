@@ -77,6 +77,10 @@ const SUPPORTED_ADMIN_ROUTES: readonly RouteCase[] = [
   { method: "POST", path: "users", requirement: "users.create" },
   { method: "PATCH", path: "users/user-1", requirement: ["users.update-any", "users.update-self"] },
   { method: "DELETE", path: "users/user-1", requirement: "users.delete" },
+  { method: "POST", path: "users/user-1/invitations", requirement: "users.invite" },
+  { method: "DELETE", path: "users/user-1/invitations", requirement: "users.invite" },
+  { method: "POST", path: "users/user-1/password-reset", requirement: "users.reset-password" },
+  { method: "POST", path: "users/user-1/revoke-sessions", requirement: "users.revoke-sessions" },
   { method: "POST", path: "auth/bootstrap-root-credential", requirement: "auth.bootstrap-root-credential" },
   { method: "GET", path: "backup/counts", requirement: "backup.counts" },
   { method: "GET", path: "backup/download", requirement: "backup.download" },
@@ -100,8 +104,8 @@ describe("Admin route policy", () => {
     expect(requirement(decision)).toEqual(expected);
   });
 
-  it("has an explicit independent inventory for all 73 supported method/path patterns", () => {
-    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(73);
+  it("has an explicit independent inventory for all 77 supported method/path patterns", () => {
+    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(77);
     expect(
       SUPPORTED_ADMIN_ROUTES.every(({ method, path }) => resolveAdminRoutePolicy(method, segments(path)).matched)
     ).toBe(true);
@@ -112,7 +116,9 @@ describe("Admin route policy", () => {
     ["POST", "settings/site"],
     ["PUT", "events/event-1"],
     ["PATCH", "media/media-1"],
-    ["POST", "backup/download"]
+    ["POST", "backup/download"],
+    ["PATCH", "users/user-1/invitations"],
+    ["DELETE", "users/user-1/password-reset"]
   ])("rejects unsupported method %s for %s", (method, path) => {
     expect(resolveAdminRoutePolicy(method, segments(path))).toEqual({ matched: false });
   });
@@ -125,6 +131,8 @@ describe("Admin route policy", () => {
     ["GET", "settings/s%69te"],
     ["GET", "content/%"],
     ["DELETE", "media/%2Fadmin"],
+    ["POST", "users/user-1/invitations/extra"],
+    ["POST", "users/user-1/password-reset/extra"],
     ["GET", "content//content-1"],
     ["GET", "content/"]
   ])("fails closed for unmatched or malformed %s %s", (method, path) => {

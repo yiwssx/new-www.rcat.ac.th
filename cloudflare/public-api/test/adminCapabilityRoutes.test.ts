@@ -359,6 +359,18 @@ describe("Worker Admin capability enforcement", () => {
     expect(externalFetch).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["POST", "/api/admin/users/user-1/invitations"],
+    ["DELETE", "/api/admin/users/user-1/invitations"],
+    ["POST", "/api/admin/users/user-1/password-reset"],
+    ["POST", "/api/admin/users/user-1/revoke-sessions"]
+  ])("denies Editor lifecycle action %s %s before lifecycle SQL", async (method, path) => {
+    const prepare = vi.fn();
+    const response = await worker.fetch(smokeRequest(path, "editor", { method }), smokeEnv(dbWithPrepare(prepare)));
+    expect(response.status).toBe(403);
+    expect(prepare).not.toHaveBeenCalled();
+  });
+
   it("fails closed for invalid roles and unknown Admin routes without executing a handler", async () => {
     const invalidPrepare = vi.fn();
     const invalid = await worker.fetch(

@@ -187,6 +187,15 @@ export function resolveAdminRoutePolicy(method: string, segments: readonly strin
     if (isExact(segments, "users", "me") && method === "GET") return requires("users.read-self", "admin-users");
     if (segments.length === 1 && method === "GET") return requires("users.read-all", "admin-users");
     if (segments.length === 1 && method === "POST") return requires("users.create", "admin-users");
+    if (isDynamic(segments, 3) && segments[2] === "invitations" && (method === "POST" || method === "DELETE")) {
+      return requires("users.invite", "admin-users");
+    }
+    if (isDynamic(segments, 3) && segments[2] === "password-reset" && method === "POST") {
+      return requires("users.reset-password", "admin-users");
+    }
+    if (isDynamic(segments, 3) && segments[2] === "revoke-sessions" && method === "POST") {
+      return requires("users.revoke-sessions", "admin-users");
+    }
     if (isDynamic(segments, 2) && method === "GET") return requires("users.read-all", "admin-users");
     if (isDynamic(segments, 2) && method === "PATCH") {
       return {

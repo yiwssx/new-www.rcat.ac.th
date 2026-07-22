@@ -10,10 +10,15 @@ import {
   CMS_NEW_SESSION_TOKEN_HEADER,
   CMS_SESSION_TOKEN_HEADER,
   CMS_USER_AGENT_HEADER,
+  createCmsLifecycleRateLimiter,
   createCmsLoginRateLimiter,
   handleCmsAuthLogin,
+  handleCmsInvitationAccept,
+  handleCmsInvitationInspect,
   handleCmsAuthLogout,
   handleCmsAuthLogoutAll,
+  handleCmsPasswordResetComplete,
+  handleCmsPasswordResetInspect,
   handleCmsAuthSession
 } from "./handlers.mjs";
 import {
@@ -341,6 +346,143 @@ describe("Vercel CMS-auth handlers", () => {
       expect(result.statusCode).toBe(204);
       expect(result.getHeader("set-cookie")).toHaveLength(2);
       expect(String(result.getHeader("set-cookie"))).not.toContain("rcat_admin_proxy_session");
+    }
+  });
+
+  it("accepts lifecycle tokens only in POST JSON bodies and rejects token query strings", async () => {
+    const fetchImpl = vi.fn();
+    const query = response();
+    const method = response();
+    await handleCmsInvitationInspect(
+      request({ method: "POST", url: `/api/cms-auth/invitation/inspect?token=${sessionToken}` }),
+      query,
+      {
+        env: env(),
+        fetchImpl,
+        lifecycleLimiter: createCmsLifecycleRateLimiter()
+      }
+    );
+    await handleCmsInvitationInspect(request({ method: "GET", body: { token: sessionToken } }), method, {
+      env: env(),
+      fetchImpl,
+      lifecycleLimiter: createCmsLifecycleRateLimiter()
+    });
+    expect(query.statusCode).toBe(400);
+    expect(method.statusCode).toBe(405);
+    expect(query.bodyText).not.toContain(sessionToken);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("rejects cross-origin, malformed, and oversized lifecycle bodies without calling the Worker", async () => {
+    for (const [headers, body, expected] of [
+      [{ origin: "https://evil.example", host: "cms.example" }, { token: sessionToken }, 403],
+      [{}, "{", 400],
+      [{}, "x".repeat(16 * 1024 + 1), 413]
+    ]) {
+      const fetchImpl = vi.fn();
+      const result = response();
+      await handleCmsPasswordResetInspect(request({ method: "POST", headers, body }), result, {
+        env: env(),
+        fetchImpl,
+        lifecycleLimiter: createCmsLifecycleRateLimiter()
+      });
+      expect(result.statusCode).toBe(expected);
+      expect(result.getHeader("cache-control")).toBe("no-store");
+      expect(fetchImpl).not.toHaveBeenCalled();
+    }
+  });
+
+  it("overwrites private headers, sanitizes metadata, and never returns the token or Worker-private headers", async () => {
+    const fetchImpl = vi.fn(async (_url, init) => {
+      const headers = new Headers(init.headers);
+      expect(headers.get(CMS_AUTH_PROXY_SECRET_HEADER)).toBe(proxySecret);
+      expect(headers.get(CMS_CLIENT_IP_HEADER)).toBe("unknown");
+      expect(headers.get(CMS_USER_AGENT_HEADER)).toBe("unknown");
+      return new Response(
+        JSON.stringify({
+          valid: true,
+          user: { email: "u@example.test", name: "User", role: "viewer", username: null },
+          expiresAt: "2026-07-25T00:00:00.000Z"
+        }),
+        { status: 200, headers: { "Content-Type": "application/json", "X-Worker-Private": "hidden" } }
+      );
+    });
+    const result = response();
+    await handleCmsInvitationInspect(
+      request({
+        method: "POST",
+        body: { token: sessionToken },
+        headers: {
+          [CMS_AUTH_PROXY_SECRET_HEADER]: "attacker-value",
+          "x-forwarded-for": "not-an-ip",
+          "user-agent": "bad\u0001agent"
+        }
+      }),
+      result,
+      { env: env(), fetchImpl, lifecycleLimiter: createCmsLifecycleRateLimiter() }
+    );
+    expect(result.statusCode).toBe(200);
+    expect(result.bodyText).not.toContain(sessionToken);
+    expect(result.bodyText).not.toContain(proxySecret);
+    expect(result.getHeader("x-worker-private")).toBeUndefined();
+    expect(result.getHeader("cache-control")).toBe("no-store");
+  });
+
+  it("blocks rate-limited lifecycle requests before Worker fetch and keeps invalid-link errors generic", async () => {
+    const blockedFetch = vi.fn();
+    const blocked = response();
+    await handleCmsInvitationAccept(
+      request({
+        method: "POST",
+        body: {
+          token: sessionToken,
+          password: "a long replacement password",
+          passwordConfirmation: "a long replacement password"
+        }
+      }),
+      blocked,
+      {
+        env: env(),
+        fetchImpl: blockedFetch,
+        lifecycleLimiter: createCmsLifecycleRateLimiter({ attemptLimit: 0 }),
+        nowMs: 1000
+      }
+    );
+    expect(blocked.statusCode).toBe(429);
+    expect(blockedFetch).not.toHaveBeenCalled();
+
+    for (const handler of [handleCmsInvitationAccept, handleCmsPasswordResetComplete]) {
+      const result = response();
+      await handler(
+        request({
+          method: "POST",
+          body: {
+            token: sessionToken,
+            password: "a long replacement password",
+            passwordConfirmation: "a long replacement password"
+          }
+        }),
+        result,
+        {
+          env: env(),
+          lifecycleLimiter: createCmsLifecycleRateLimiter(),
+          fetchImpl: vi.fn(
+            async () =>
+              new Response(
+                JSON.stringify({
+                  error:
+                    handler === handleCmsInvitationAccept
+                      ? "invitation is invalid or expired"
+                      : "password-reset link is invalid or expired"
+                }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+              )
+          )
+        }
+      );
+      expect(result.statusCode).toBe(400);
+      expect(result.bodyText).not.toContain(sessionToken);
+      expect(result.getHeader("cache-control")).toBe("no-store");
     }
   });
 });

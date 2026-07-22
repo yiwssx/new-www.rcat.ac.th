@@ -1173,15 +1173,15 @@ describe("M18 admin structured write routes", () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          id: "new-user-profile",
           email: "new-user@example.invalid",
           name: "New User",
-          role: "viewer",
-          status: "active"
+          role: "viewer"
         })
       }),
       baseEnv
     );
+    const createdUser = await readJson(adminCreateResponse);
+    const createdUserId = String((createdUser.item as { id?: unknown } | undefined)?.id ?? "");
     const editorCreateResponse = await worker.fetch(
       makeRequest("/api/admin/users", {
         method: "POST",
@@ -1189,8 +1189,7 @@ describe("M18 admin structured write routes", () => {
         body: JSON.stringify({
           email: "editor-created@example.invalid",
           name: "Must Not Create",
-          role: "viewer",
-          status: "active"
+          role: "viewer"
         })
       }),
       { ...baseEnv, ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson }
@@ -1256,7 +1255,7 @@ describe("M18 admin structured write routes", () => {
       }
     );
     const adminDeleteOtherResponse = await worker.fetch(
-      makeRequest("/api/admin/users/new-user-profile", {
+      makeRequest(`/api/admin/users/${createdUserId}`, {
         method: "DELETE",
         headers: adminAccess.header
       }),

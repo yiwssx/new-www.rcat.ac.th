@@ -14,15 +14,29 @@ import {
   resolveAdminRoutePolicy,
   type AdminUserUpdateAuthorization
 } from "../auth/adminRoutePolicy";
+import {
+  generateInvitationToken,
+  generatePasswordResetToken,
+  hashInvitationToken,
+  hashPasswordResetToken
+} from "../auth/cmsLifecycleToken";
 import { listPublishedContentRows } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
+import {
+  AdminUserLifecycleConflict,
+  CMS_INVITATION_LIFETIME_SECONDS,
+  CMS_PASSWORD_RESET_LIFETIME_SECONDS,
+  createAdminUserLifecycleRepository,
+  type SafeAdminUserLifecycle
+} from "../db/adminUserLifecycleRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
 import {
-  ADMIN_USER_ROW_COLUMNS,
   CONTENT_ADMIN_ROW_COLUMNS,
   DOCUMENT_ADMIN_ROW_COLUMNS,
   PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS,
   VISITOR_DAILY_STATS_ADMIN_ROW_COLUMNS,
+  type AdminPasswordResetTokenRow,
+  type AdminUserInvitationRow,
   type AdminUserRow,
   type ContentRow,
   type DocumentRow,
@@ -45,6 +59,7 @@ const DOCUMENT_STATUSES = new Set(["draft", "published"]);
 const ADMIN_USER_ROLES = new Set(["admin", "editor", "viewer"]);
 const ADMIN_USER_STATUSES = new Set(["active", "disabled"]);
 const SELF_USER_UPDATE_FIELDS = new Set(["name", "revision"]);
+const ADMIN_USER_UPDATE_FIELDS = new Set(["email", "name", "role", "status", "username", "revision"]);
 const PREVIEW_WRITE_SCHEMA = {
   contents: ["slug", "deleted_at", "updated_by", "revision"],
   homepage_settings: ["id", "settings_json", "updated_at", "created_at", "updated_by", "revision"],
@@ -1348,41 +1363,6 @@ function normalizeEmail(value: unknown) {
   return trimString(value).toLowerCase();
 }
 
-function mapAdminUserRowToItem(row: AdminUserRow) {
-  return {
-    id: row.id,
-    email: row.email,
-    name: row.name,
-    role: row.role,
-    status: row.status,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    revision: row.revision
-  };
-}
-
-async function getAdminUserById(env: Env, id: string) {
-  return getFirst<AdminUserRow>(
-    env,
-    `SELECT ${ADMIN_USER_ROW_COLUMNS.join(", ")}
-     FROM app_admin_users
-     WHERE id = ?
-     LIMIT 1`,
-    id
-  );
-}
-
-async function getAdminUserByEmail(env: Env, email: string) {
-  return getFirst<AdminUserRow>(
-    env,
-    `SELECT ${ADMIN_USER_ROW_COLUMNS.join(", ")}
-     FROM app_admin_users
-     WHERE email = ? COLLATE NOCASE
-     LIMIT 1`,
-    normalizeEmail(email)
-  );
-}
-
 async function getActiveAdminCount(env: Env) {
   const rows = await getAll<Pick<AdminUserRow, "id">>(
     env,
@@ -1394,21 +1374,10 @@ async function getActiveAdminCount(env: Env) {
   return rows.length;
 }
 
-async function assertUniqueAdminUserEmail(env: Env, email: string, excludedId = "") {
-  const existing = await getAdminUserByEmail(env, email);
-
-  if (existing && existing.id !== excludedId) {
-    throw new AdminHttpError("duplicate user email", 409, {
-      resource: "admin-users",
-      field: "email"
-    });
-  }
-}
-
 async function assertActiveAdminRemains(
   env: Env,
-  current: AdminUserRow,
-  next: Pick<AdminUserRow, "role" | "status"> | null
+  current: SafeAdminUserLifecycle,
+  next: Pick<SafeAdminUserLifecycle, "role" | "status"> | null
 ) {
   const removesActiveAdmin =
     current.role === "admin" &&
@@ -1422,82 +1391,139 @@ async function assertActiveAdminRemains(
   }
 }
 
-function createAdminUserRow(body: JsonRecord, existing: AdminUserRow | null, actor: string, now: string): AdminUserRow {
-  const id = optionalString(body.id, existing?.id ?? makeId("admin-user"));
-  const email = normalizeEmail(body.email ?? existing?.email);
-  const name = optionalString(body.name, existing?.name ?? "");
-  const role = assertAllowedValue(optionalString(body.role, existing?.role ?? "viewer"), ADMIN_USER_ROLES, "user role");
-  const status = assertAllowedValue(
-    optionalString(body.status, existing?.status ?? "active"),
-    ADMIN_USER_STATUSES,
-    "user status"
-  );
+function containsControlCharacter(value: string) {
+  return [...value].some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127;
+  });
+}
 
-  if (!email) {
-    throw new AdminHttpError("user email is required", 400, { resource: "admin-users", field: "email" });
+function validateAdminUserEmail(value: unknown) {
+  const email = normalizeEmail(value);
+
+  if (!email || email.length > 320 || containsControlCharacter(email) || !/^[^\s@]+@[^\s@]+$/.test(email)) {
+    throw new AdminHttpError("user email is invalid", 400, { resource: "admin-users", field: "email" });
   }
 
-  if (!name) {
-    throw new AdminHttpError("user name is required", 400, { resource: "admin-users", field: "name" });
+  return email;
+}
+
+function validateAdminUserName(value: unknown) {
+  const name = trimString(value);
+
+  if (!name || name.length > 160 || containsControlCharacter(name)) {
+    throw new AdminHttpError("user name is invalid", 400, { resource: "admin-users", field: "name" });
   }
 
+  return name;
+}
+
+function validateAdminUsername(value: unknown, optional = true) {
+  if (value === undefined || value === null || value === "") {
+    if (optional) return null;
+    throw new AdminHttpError("username is invalid", 400, { resource: "admin-users", field: "username" });
+  }
+
+  if (typeof value !== "string") {
+    throw new AdminHttpError("username is invalid", 400, { resource: "admin-users", field: "username" });
+  }
+
+  const username = value.trim().toLowerCase();
+
+  if (!/^[a-z0-9._-]{3,64}$/.test(username)) {
+    throw new AdminHttpError("username is invalid", 400, { resource: "admin-users", field: "username" });
+  }
+
+  return username;
+}
+
+function validateAdminUserRole(value: unknown) {
+  const role = trimString(value);
+
+  if (!ADMIN_USER_ROLES.has(role)) {
+    throw new AdminHttpError("invalid user role", 400, { resource: "admin-users", field: "role" });
+  }
+
+  return role as AdminUserRow["role"];
+}
+
+function validateAdminUserStatus(value: unknown) {
+  const status = trimString(value);
+
+  if (!ADMIN_USER_STATUSES.has(status)) {
+    throw new AdminHttpError("invalid user status", 400, { resource: "admin-users", field: "status" });
+  }
+
+  return status as AdminUserRow["status"];
+}
+
+function rejectUnexpectedUserCreateFields(body: JsonRecord) {
+  const allowed = new Set(["email", "name", "role", "username"]);
+
+  if (Object.keys(body).some((field) => !allowed.has(field))) {
+    throw new AdminHttpError("request contains protected user fields", 400, { resource: "admin-users" });
+  }
+}
+
+function makeInvitationRow(userId: string, tokenHash: string, actor: string, now: Date): AdminUserInvitationRow {
+  const createdAt = now.toISOString();
   return {
-    id,
-    email,
-    name,
-    role: role as AdminUserRow["role"],
-    status: status as AdminUserRow["status"],
-    created_at: existing?.created_at ?? now,
-    updated_at: now,
-    created_by: existing?.created_by ?? actor,
-    updated_by: actor,
-    revision: existing?.revision ?? 0
+    id: makeId("admin-invitation"),
+    user_id: userId,
+    token_hash: tokenHash,
+    created_by: actor,
+    created_at: createdAt,
+    expires_at: new Date(now.getTime() + CMS_INVITATION_LIFETIME_SECONDS * 1000).toISOString(),
+    accepted_at: "",
+    revoked_at: "",
+    request_ip_hash: ""
   };
 }
 
-async function insertAdminUserRow(env: Env, row: AdminUserRow) {
-  await run(
-    env,
-    `INSERT INTO app_admin_users (${ADMIN_USER_ROW_COLUMNS.join(", ")})
-     VALUES (${ADMIN_USER_ROW_COLUMNS.map(() => "?").join(", ")})`,
-    ...ADMIN_USER_ROW_COLUMNS.map((column) => row[column])
-  );
+function makePasswordResetRow(userId: string, tokenHash: string, now: Date): AdminPasswordResetTokenRow {
+  const createdAt = now.toISOString();
+  return {
+    id: makeId("admin-password-reset"),
+    user_id: userId,
+    token_hash: tokenHash,
+    created_at: createdAt,
+    expires_at: new Date(now.getTime() + CMS_PASSWORD_RESET_LIFETIME_SECONDS * 1000).toISOString(),
+    used_at: "",
+    revoked_at: "",
+    request_ip_hash: ""
+  };
 }
 
-async function updateAdminUserRow(env: Env, row: AdminUserRow, expectedRevision: number | null) {
-  const result = await run(
-    env,
-    `UPDATE app_admin_users
-     SET email = ?, name = ?, role = ?, status = ?, updated_at = ?, updated_by = ?, revision = revision + 1
-     WHERE id = ?
-       AND (? IS NULL OR revision = ?)`,
-    row.email,
-    row.name,
-    row.role,
-    row.status,
-    row.updated_at,
-    row.updated_by,
-    row.id,
-    expectedRevision,
-    expectedRevision
-  );
-  assertMutationChanged(result);
+function noStoreAdmin(response: Response) {
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }
 
-async function deleteAdminUserRow(env: Env, row: AdminUserRow, expectedRevision: number | null) {
-  const result = await run(
-    env,
-    `DELETE FROM app_admin_users
-     WHERE id = ?
-       AND (? IS NULL OR revision = ?)`,
-    row.id,
-    expectedRevision,
-    expectedRevision
-  );
-  assertMutationChanged(result);
+function mapLifecycleConflict(error: unknown): never {
+  if (!(error instanceof AdminUserLifecycleConflict)) {
+    throw error;
+  }
+
+  if (error.code === "duplicate_email") {
+    throw new AdminHttpError("duplicate user email", 409, { resource: "admin-users", field: "email" });
+  }
+
+  if (error.code === "duplicate_username") {
+    throw new AdminHttpError("username is already in use", 409, { resource: "admin-users", field: "username" });
+  }
+
+  if (error.code === "credential_configured") {
+    throw new AdminHttpError("credential is already configured", 409, { resource: "admin-users" });
+  }
+
+  if (error.code === "stale_revision") {
+    throw new AdminHttpError("stale revision", 409, { resource: "admin-users" });
+  }
+
+  throw new AdminHttpError("user lifecycle operation is not available", 409, { resource: "admin-users" });
 }
 
-function isSelfUser(identity: AdminIdentity, row: AdminUserRow) {
+function isSelfUser(identity: AdminIdentity, row: SafeAdminUserLifecycle) {
   if (identity.mode === "cms-session") {
     return Boolean(identity.userId) && identity.userId === row.id;
   }
@@ -1525,35 +1551,62 @@ async function handleUsers(
   updateAuthorization: AdminUserUpdateAuthorization | null
 ) {
   const actor = identity.actor;
-  const now = new Date().toISOString();
+  const nowDate = new Date();
+  const now = nowDate.toISOString();
+  const repository = createAdminUserLifecycleRepository(env);
 
   if (segments.length === 1 && request.method === "GET") {
-    const rows = await getAll<AdminUserRow>(
-      env,
-      `SELECT ${ADMIN_USER_ROW_COLUMNS.join(", ")}
-       FROM app_admin_users
-       ORDER BY role ASC, email ASC`
-    );
-    return json({ items: rows.map(mapAdminUserRowToItem), generatedAt: now });
+    const rows = await repository.listSafeUserLifecycleStatuses(now);
+    return noStoreAdmin(json({ items: rows, generatedAt: now }));
   }
 
   if (segments.length === 2 && segments[1] === "me" && request.method === "GET") {
-    const row = await getAdminUserByEmail(env, identity.email);
-    return row ? json({ item: mapAdminUserRowToItem(row) }) : notFoundAdmin();
+    const row =
+      identity.mode === "cms-session" && identity.userId
+        ? await repository.readSafeUserLifecycleStatus(identity.userId, now)
+        : await repository.readSafeUserLifecycleStatusByEmail(identity.email, now);
+    return row ? noStoreAdmin(json({ item: row })) : notFoundAdmin();
   }
 
   if (segments.length === 1 && request.method === "POST") {
     const body = await parseJsonBody(request);
-    const row = createAdminUserRow(body, null, actor, now);
+    rejectUnexpectedUserCreateFields(body);
+    const userId = makeId("admin-user");
+    const rawToken = generateInvitationToken();
+    const invitation = makeInvitationRow(userId, await hashInvitationToken(rawToken), actor, nowDate);
 
-    await assertUniqueAdminUserEmail(env, row.email);
-    await insertAdminUserRow(env, row);
-    return json({ item: mapAdminUserRowToItem(row) }, { status: 201 });
+    try {
+      await repository.createUserWithInvitation({
+        user: {
+          id: userId,
+          email: validateAdminUserEmail(body.email),
+          name: validateAdminUserName(body.name),
+          role: validateAdminUserRole(body.role),
+          username: validateAdminUsername(body.username)
+        },
+        invitation,
+        actor,
+        now
+      });
+    } catch (error) {
+      mapLifecycleConflict(error);
+    }
+
+    const item = await repository.readSafeUserLifecycleStatus(userId, now);
+    return noStoreAdmin(
+      json(
+        {
+          item,
+          invitation: { token: rawToken, expiresAt: invitation.expires_at, delivery: "manual" }
+        },
+        { status: 201 }
+      )
+    );
   }
 
   const id = segments[1];
 
-  if (!id || segments.length !== 2) {
+  if (!id || segments.length > 3) {
     return notFoundAdmin();
   }
 
@@ -1566,14 +1619,85 @@ async function handleUsers(
     return userManagementDenied();
   }
 
-  const existing = await getAdminUserById(env, id);
+  const existing = await repository.readSafeUserLifecycleStatus(id, now);
 
   if (!existing) {
     return notFoundAdmin();
   }
 
+  if (segments.length === 3) {
+    const action = segments[2];
+
+    if (action === "invitations" && request.method === "POST") {
+      if (existing.isRoot || existing.status !== "active") {
+        throw new AdminHttpError("invitation is not available for this user", 409, { resource: "admin-users" });
+      }
+
+      if (existing.credentialConfigured) {
+        throw new AdminHttpError("credential is already configured", 409, { resource: "admin-users" });
+      }
+
+      const rawToken = generateInvitationToken();
+      const invitation = makeInvitationRow(id, await hashInvitationToken(rawToken), actor, nowDate);
+
+      try {
+        await repository.issueInvitationForExistingUser({ userId: id, actor, token: invitation, now });
+      } catch (error) {
+        mapLifecycleConflict(error);
+      }
+
+      return noStoreAdmin(
+        json({ invitation: { token: rawToken, expiresAt: invitation.expires_at, delivery: "manual" } }, { status: 201 })
+      );
+    }
+
+    if (action === "invitations" && request.method === "DELETE") {
+      if (existing.isRoot) {
+        throw new AdminHttpError("Root invitations cannot be revoked", 403, { resource: "admin-users" });
+      }
+
+      await repository.revokePendingInvitations(id, actor, now);
+      return noStoreAdmin(json({ ok: true, revoked: true }));
+    }
+
+    if (action === "password-reset" && request.method === "POST") {
+      if (existing.isRoot || existing.status !== "active" || !existing.credentialConfigured) {
+        throw new AdminHttpError("password reset is not available for this user", 409, { resource: "admin-users" });
+      }
+
+      const rawToken = generatePasswordResetToken();
+      const reset = makePasswordResetRow(id, await hashPasswordResetToken(rawToken), nowDate);
+
+      try {
+        await repository.issuePasswordReset({ userId: id, actor, token: reset, now });
+      } catch (error) {
+        mapLifecycleConflict(error);
+      }
+
+      return noStoreAdmin(
+        json({ passwordReset: { token: rawToken, expiresAt: reset.expires_at, delivery: "manual" } }, { status: 201 })
+      );
+    }
+
+    if (action === "revoke-sessions" && request.method === "POST") {
+      if (existing.isRoot && !isSelfUser(identity, existing)) {
+        throw new AdminHttpError("only Root may revoke Root Sessions", 403, { resource: "admin-users" });
+      }
+
+      try {
+        await repository.revokeUserSessions(id, actor, now);
+      } catch (error) {
+        mapLifecycleConflict(error);
+      }
+
+      return noStoreAdmin(json({ ok: true, revoked: true }));
+    }
+
+    return notFoundAdmin();
+  }
+
   if (request.method === "GET") {
-    return json({ item: mapAdminUserRowToItem(existing) });
+    return noStoreAdmin(json({ item: existing }));
   }
 
   if (request.method === "PATCH") {
@@ -1591,19 +1715,61 @@ async function handleUsers(
       return userManagementDenied();
     }
 
-    const expectedRevision = getExpectedRevisionFromRequest(request, body);
-    const permittedBody =
-      updateAuthorization.scope === "self"
-        ? {
-            name: body.name ?? existing.name
-          }
-        : body;
-    const row = createAdminUserRow({ ...mapAdminUserRowToItem(existing), ...permittedBody, id }, existing, actor, now);
+    if (
+      updateAuthorization.scope === "any" &&
+      Object.keys(body).some((field) => !ADMIN_USER_UPDATE_FIELDS.has(field))
+    ) {
+      throw new AdminHttpError("request contains protected user fields", 400, { resource: "admin-users" });
+    }
 
-    await assertUniqueAdminUserEmail(env, row.email, row.id);
-    await assertActiveAdminRemains(env, existing, row);
-    await updateAdminUserRow(env, row, expectedRevision);
-    return json({ item: mapAdminUserRowToItem(row) });
+    const expectedRevision = getExpectedRevisionFromRequest(request, body);
+    const role =
+      updateAuthorization.scope === "self" ? existing.role : validateAdminUserRole(body.role ?? existing.role);
+    const status =
+      updateAuthorization.scope === "self" ? existing.status : validateAdminUserStatus(body.status ?? existing.status);
+    const next = { role, status };
+
+    if (existing.isRoot && (role !== "admin" || status !== "active")) {
+      throw new AdminHttpError("root administrator is protected", 403, { resource: "admin-users" });
+    }
+
+    await assertActiveAdminRemains(env, existing, next);
+    const email =
+      updateAuthorization.scope === "self" ? existing.email : validateAdminUserEmail(body.email ?? existing.email);
+    const name = validateAdminUserName(body.name ?? existing.name);
+    const username =
+      updateAuthorization.scope === "self" || !Object.prototype.hasOwnProperty.call(body, "username")
+        ? existing.username
+        : validateAdminUsername(body.username);
+
+    if (!(await repository.isUsernameAvailable(username ?? "", id)) && username) {
+      throw new AdminHttpError("username is already in use", 409, { resource: "admin-users", field: "username" });
+    }
+
+    const emailChanged = email !== existing.email.toLowerCase();
+    const statusChanged = status !== existing.status;
+    const securitySensitive = emailChanged || username !== existing.username || role !== existing.role || statusChanged;
+
+    try {
+      await repository.updateUserWithSecurityRevocation({
+        userId: id,
+        email,
+        name,
+        role,
+        status,
+        username,
+        actor,
+        now,
+        expectedRevision,
+        securitySensitive,
+        revokeInvitations: emailChanged || status === "disabled"
+      });
+    } catch (error) {
+      mapLifecycleConflict(error);
+    }
+
+    const item = await repository.readSafeUserLifecycleStatus(id, now);
+    return noStoreAdmin(json({ item }));
   }
 
   if (request.method === "DELETE") {
@@ -1615,8 +1781,16 @@ async function handleUsers(
 
     const expectedRevision = getExpectedRevisionFromRequest(request);
 
+    if (existing.isRoot) {
+      throw new AdminHttpError("root administrator is protected", 403, { resource: "admin-users" });
+    }
+
     await assertActiveAdminRemains(env, existing, null);
-    await deleteAdminUserRow(env, existing, expectedRevision);
+    try {
+      await repository.deleteUserWithAudit(existing, actor, now, expectedRevision);
+    } catch (error) {
+      mapLifecycleConflict(error);
+    }
     return json({ id, deleted: true });
   }
 
@@ -1905,6 +2079,12 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
 
     return notFoundAdmin();
   } catch (error) {
-    return safeAdminError(error, env, routeContext);
+    const response = safeAdminError(error, env, routeContext);
+
+    if (segments[0] === "users") {
+      response.headers.set("Cache-Control", "no-store");
+    }
+
+    return response;
   }
 }
