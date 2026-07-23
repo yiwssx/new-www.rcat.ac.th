@@ -3,10 +3,14 @@ import { isIP } from "node:net";
 import process from "node:process";
 import {
   clearCmsAuthCookies,
+  clearCmsMfaChallengeCookie,
   createCmsAuthCookies,
+  createCmsMfaChallengeCookie,
+  hasCmsMfaChallengeCookie,
   isValidCmsCookieToken,
   readCmsCsrfCookie,
-  readCmsSessionCookie
+  readCmsSessionCookie,
+  readCmsMfaChallengeCookie
 } from "./cookies.mjs";
 
 export const CMS_AUTH_PROXY_SECRET_HEADER = "X-RCAT-CMS-Auth-Proxy-Secret";
@@ -17,6 +21,8 @@ export const CMS_USER_AGENT_HEADER = "X-RCAT-CMS-User-Agent";
 export const CMS_NEW_SESSION_TOKEN_HEADER = "X-RCAT-CMS-New-Session-Token";
 export const CMS_NEW_CSRF_TOKEN_HEADER = "X-RCAT-CMS-New-CSRF-Token";
 export const CMS_BROWSER_CSRF_HEADER = "X-RCAT-CSRF-Token";
+export const CMS_MFA_CHALLENGE_TOKEN_HEADER = "X-RCAT-CMS-MFA-Challenge-Token";
+export const CMS_NEW_MFA_CHALLENGE_TOKEN_HEADER = "X-RCAT-CMS-New-MFA-Challenge-Token";
 
 const LOGIN_PATH = "/api/internal/cms-auth/login";
 const SESSION_PATH = "/api/internal/cms-auth/session";
@@ -27,6 +33,12 @@ const INVITATION_ACCEPT_PATH = "/api/internal/cms-auth/invitation/accept";
 const PASSWORD_RESET_INSPECT_PATH = "/api/internal/cms-auth/password-reset/inspect";
 const PASSWORD_RESET_COMPLETE_PATH = "/api/internal/cms-auth/password-reset/complete";
 const CHANGE_PASSWORD_PATH = "/api/internal/cms-auth/change-password";
+const MFA_VERIFY_PATH = "/api/internal/cms-auth/mfa/verify";
+const MFA_SETUP_START_PATH = "/api/internal/cms-auth/mfa/setup/start";
+const MFA_SETUP_CONFIRM_PATH = "/api/internal/cms-auth/mfa/setup/confirm";
+const MFA_RECOVERY_REGENERATE_PATH = "/api/internal/cms-auth/mfa/recovery-codes/regenerate";
+const MFA_DISABLE_PATH = "/api/internal/cms-auth/mfa";
+const REAUTHENTICATE_PATH = "/api/internal/cms-auth/reauthenticate";
 const MAX_LOGIN_BODY_BYTES = 16 * 1024;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_BLOCK_MS = 15 * 60 * 1000;
@@ -470,6 +482,13 @@ function createPrivateHeaders(configuration, metadata, additional = {}) {
   return headers;
 }
 
+function isCanonicalTimestamp(value, allowEmpty = false) {
+  if (allowEmpty && value === "") return true;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) return false;
+  const milliseconds = Date.parse(value);
+  return Number.isFinite(milliseconds) && new Date(milliseconds).toISOString() === value;
+}
+
 function readSafeUserPayload(value) {
   const user = value && typeof value === "object" && !Array.isArray(value) ? value.user : null;
 
@@ -486,7 +505,9 @@ function readSafeUserPayload(value) {
     typeof user.isRoot !== "boolean" ||
     typeof user.sessionId !== "string" ||
     !Number.isInteger(user.sessionVersion) ||
-    user.sessionVersion < 1
+    user.sessionVersion < 1 ||
+    !isCanonicalTimestamp(user.reauthenticatedAt) ||
+    !isCanonicalTimestamp(user.mfaVerifiedAt, true)
   ) {
     return null;
   }
@@ -498,8 +519,8 @@ function readSafeUserPayload(value) {
     username: user.username,
     role: user.role,
     isRoot: user.isRoot,
-    sessionId: user.sessionId,
-    sessionVersion: user.sessionVersion
+    passwordReauthenticated: user.reauthenticatedAt.length > 0,
+    mfaVerified: user.mfaVerifiedAt.length > 0
   };
 }
 
@@ -632,6 +653,31 @@ export async function handleCmsAuthLogin(request, response, options = {}) {
     }
 
     sendGenericUpstreamError(response, upstreamResponse, true);
+    return;
+  }
+
+  if (upstreamResponse.status === 202) {
+    const challengeToken = upstreamResponse.headers.get(CMS_NEW_MFA_CHALLENGE_TOKEN_HEADER) ?? "";
+    const upstreamBody = await readUpstreamJson(upstreamResponse);
+
+    if (
+      !isValidCmsCookieToken(challengeToken) ||
+      upstreamBody?.mfaRequired !== true ||
+      typeof upstreamBody.enrollmentRequired !== "boolean"
+    ) {
+      sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+      return;
+    }
+
+    loginLimiter.recordSuccess(keys, nowMs);
+    response.setHeader(
+      "Set-Cookie",
+      createCmsMfaChallengeCookie(challengeToken, upstreamBody.enrollmentRequired ? 10 * 60 : 5 * 60)
+    );
+    sendJson(response, 202, {
+      mfaRequired: true,
+      enrollmentRequired: upstreamBody.enrollmentRequired
+    });
     return;
   }
 
@@ -1173,4 +1219,290 @@ export async function handleCmsPasswordChange(request, response, options = {}) {
   limiter.recordSuccess(keys, nowMs);
   response.setHeader("Set-Cookie", clearCmsAuthCookies());
   sendJson(response, 200, { ok: true, passwordChanged: true });
+}
+
+const defaultMfaLimiter = createCmsLoginRateLimiter({
+  identifierLimit: 5,
+  ipLimit: 20,
+  maximumBuckets: MAX_RATE_LIMIT_BUCKETS
+});
+
+function readSessionProxyCredentials(request) {
+  const cookieHeader = getRequestHeader(request, "cookie");
+  return {
+    sessionToken: readCmsSessionCookie(cookieHeader),
+    csrfToken: readCmsCsrfCookie(cookieHeader),
+    browserCsrfToken: getRequestHeader(request, CMS_BROWSER_CSRF_HEADER)
+  };
+}
+
+function readMfaChallengeProxyCredential(request) {
+  const cookieHeader = getRequestHeader(request, "cookie");
+  return {
+    present: hasCmsMfaChallengeCookie(cookieHeader),
+    token: readCmsMfaChallengeCookie(cookieHeader)
+  };
+}
+
+async function handleCmsMfaProxy(request, response, definition, options = {}) {
+  if (String(request.method || "GET").toUpperCase() !== definition.method) {
+    sendMethodNotAllowed(response, [definition.method]);
+    return;
+  }
+  if (getCmsRequestOriginStatus(request) === "blocked") {
+    sendJson(response, 403, { error: "CMS authentication origin is not allowed" });
+    return;
+  }
+  const env = options.env ?? runtimeEnv();
+  const configuration = readCmsAuthConfiguration(env);
+  if (!configuration) {
+    sendJson(response, 503, { error: "CMS authentication is unavailable" });
+    return;
+  }
+  const metadata = getCmsClientMetadata(request);
+  const challenge = readMfaChallengeProxyCredential(request);
+  const challengeToken = challenge.token;
+  const session = readSessionProxyCredentials(request);
+  const useChallenge = definition.mode === "challenge" || (definition.mode === "either" && challenge.present);
+  const identifier = useChallenge ? challengeToken : session.sessionToken;
+  if (
+    (useChallenge && !isValidCmsCookieToken(challengeToken)) ||
+    (!useChallenge &&
+      (!isValidCmsCookieToken(session.sessionToken) ||
+        !isValidCmsCookieToken(session.csrfToken) ||
+        !cmsTokensMatch(session.browserCsrfToken, session.csrfToken)))
+  ) {
+    sendJson(response, useChallenge ? 401 : 403, {
+      error: useChallenge ? "MFA challenge is invalid or expired" : "CSRF validation failed"
+    });
+    return;
+  }
+  const limiter = options.mfaLimiter ?? defaultMfaLimiter;
+  const nowMs = options.nowMs ?? Date.now();
+  const keys = createCmsLoginRateLimitKeys({
+    identifier,
+    clientIp: metadata.clientIp,
+    secret: configuration.proxySecret
+  });
+  const status = limiter.check(keys, nowMs);
+  if (status.blocked) {
+    sendRateLimitError(response, status);
+    return;
+  }
+  let body = {};
+  if (definition.body !== "empty") {
+    try {
+      body = await readJsonBody(request);
+    } catch (error) {
+      const failure = limiter.recordFailure(keys, nowMs);
+      if (failure.blocked) {
+        sendRateLimitError(response, failure);
+        return;
+      }
+      sendJson(response, error instanceof RangeError ? 413 : 400, { error: "invalid MFA request" });
+      return;
+    }
+  }
+  const additional = { "Content-Type": "application/json" };
+  if (useChallenge) {
+    additional[CMS_MFA_CHALLENGE_TOKEN_HEADER] = challengeToken;
+  } else {
+    additional[CMS_SESSION_TOKEN_HEADER] = session.sessionToken;
+    additional[CMS_CSRF_TOKEN_HEADER] = session.csrfToken;
+  }
+  if (definition.countAttempts === true) {
+    limiter.recordFailure(keys, nowMs);
+  }
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  let upstreamResponse;
+  try {
+    upstreamResponse = await fetchImpl(`${configuration.workerOrigin}${definition.path}`, {
+      method: definition.method,
+      headers: createPrivateHeaders(configuration, metadata, additional),
+      body: JSON.stringify(body),
+      redirect: "error"
+    });
+  } catch {
+    sendJson(response, 502, { error: "CMS authentication upstream request failed" });
+    return;
+  }
+  const upstreamBody = await readUpstreamJson(upstreamResponse);
+  if (!upstreamResponse.ok) {
+    if (upstreamResponse.status === 401 && definition.countAttempts !== true) {
+      const failure = limiter.recordFailure(keys, nowMs);
+      if (failure.blocked) {
+        sendRateLimitError(response, failure);
+        return;
+      }
+    }
+    if (upstreamResponse.status === 409 || upstreamResponse.status === 428) {
+      sendJson(response, upstreamResponse.status, {
+        error:
+          typeof upstreamBody?.error === "string"
+            ? upstreamBody.error
+            : upstreamResponse.status === 428
+              ? "recent reauthentication is required"
+              : "MFA operation is not available"
+      });
+      return;
+    }
+    sendGenericUpstreamError(response, upstreamResponse);
+    return;
+  }
+  if (definition.countAttempts !== true) {
+    limiter.recordSuccess(keys, nowMs);
+  }
+
+  if (definition.result === "session") {
+    const sessionToken = upstreamResponse.headers.get(CMS_NEW_SESSION_TOKEN_HEADER) ?? "";
+    const csrfToken = upstreamResponse.headers.get(CMS_NEW_CSRF_TOKEN_HEADER) ?? "";
+    const user = readSafeUserPayload(upstreamBody);
+    if (!isValidCmsCookieToken(sessionToken) || !isValidCmsCookieToken(csrfToken) || !user) {
+      sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+      return;
+    }
+    response.setHeader("Set-Cookie", [...createCmsAuthCookies(sessionToken, csrfToken), clearCmsMfaChallengeCookie()]);
+    sendJson(response, 200, { ok: true, user });
+    return;
+  }
+
+  if (definition.result === "setup") {
+    if (
+      typeof upstreamBody?.manualEntryKey !== "string" ||
+      typeof upstreamBody?.otpAuthUri !== "string" ||
+      typeof upstreamBody?.expiresAt !== "string"
+    ) {
+      sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+      return;
+    }
+    sendJson(response, 200, {
+      manualEntryKey: upstreamBody.manualEntryKey,
+      otpAuthUri: upstreamBody.otpAuthUri,
+      expiresAt: upstreamBody.expiresAt
+    });
+    return;
+  }
+
+  if (definition.result === "recovery") {
+    if (
+      !Array.isArray(upstreamBody?.recoveryCodes) ||
+      upstreamBody.recoveryCodes.length !== 10 ||
+      !upstreamBody.recoveryCodes.every((value) => typeof value === "string")
+    ) {
+      sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+      return;
+    }
+    const newSessionToken = upstreamResponse.headers.get(CMS_NEW_SESSION_TOKEN_HEADER) ?? "";
+    const newCsrfToken = upstreamResponse.headers.get(CMS_NEW_CSRF_TOKEN_HEADER) ?? "";
+    if (useChallenge && (!isValidCmsCookieToken(newSessionToken) || !isValidCmsCookieToken(newCsrfToken))) {
+      sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+      return;
+    }
+    const cookies = useChallenge
+      ? [...createCmsAuthCookies(newSessionToken, newCsrfToken), clearCmsMfaChallengeCookie()]
+      : [...clearCmsAuthCookies(), clearCmsMfaChallengeCookie()];
+    response.setHeader("Set-Cookie", cookies);
+    sendJson(response, 200, {
+      ok: true,
+      recoveryCodes: upstreamBody.recoveryCodes,
+      loginRequired: !useChallenge
+    });
+    return;
+  }
+
+  if (definition.result === "regenerated") {
+    if (
+      !Array.isArray(upstreamBody?.recoveryCodes) ||
+      upstreamBody.recoveryCodes.length !== 10 ||
+      !upstreamBody.recoveryCodes.every((value) => typeof value === "string")
+    ) {
+      sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+      return;
+    }
+    sendJson(response, 200, { ok: true, recoveryCodes: upstreamBody.recoveryCodes });
+    return;
+  }
+
+  if (definition.result === "disable") {
+    response.setHeader("Set-Cookie", [...clearCmsAuthCookies(), clearCmsMfaChallengeCookie()]);
+  }
+  if (upstreamBody?.ok !== true) {
+    sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
+    return;
+  }
+  sendJson(response, 200, {
+    ok: true,
+    ...(definition.result === "reauth"
+      ? { reauthenticated: true, mfaVerified: upstreamBody.mfaVerified === true }
+      : definition.result === "disable"
+        ? { disabled: true }
+        : {})
+  });
+}
+
+export function handleCmsMfaVerify(request, response, options = {}) {
+  return handleCmsMfaProxy(
+    request,
+    response,
+    { method: "POST", mode: "challenge", path: MFA_VERIFY_PATH, result: "session" },
+    options
+  );
+}
+
+export function handleCmsMfaSetupStart(request, response, options = {}) {
+  return handleCmsMfaProxy(
+    request,
+    response,
+    { body: "empty", method: "POST", mode: "either", path: MFA_SETUP_START_PATH, result: "setup" },
+    options
+  );
+}
+
+export function handleCmsMfaSetupConfirm(request, response, options = {}) {
+  return handleCmsMfaProxy(
+    request,
+    response,
+    { method: "POST", mode: "either", path: MFA_SETUP_CONFIRM_PATH, result: "recovery" },
+    options
+  );
+}
+
+export function handleCmsMfaRecoveryRegenerate(request, response, options = {}) {
+  return handleCmsMfaProxy(
+    request,
+    response,
+    {
+      body: "empty",
+      countAttempts: true,
+      method: "POST",
+      mode: "session",
+      path: MFA_RECOVERY_REGENERATE_PATH,
+      result: "regenerated"
+    },
+    options
+  );
+}
+
+export function handleCmsMfaDisable(request, response, options = {}) {
+  return handleCmsMfaProxy(
+    request,
+    response,
+    {
+      countAttempts: true,
+      method: "DELETE",
+      mode: "session",
+      path: MFA_DISABLE_PATH,
+      result: "disable"
+    },
+    options
+  );
+}
+
+export function handleCmsReauthenticate(request, response, options = {}) {
+  return handleCmsMfaProxy(
+    request,
+    response,
+    { method: "POST", mode: "session", path: REAUTHENTICATE_PATH, result: "reauth" },
+    options
+  );
 }

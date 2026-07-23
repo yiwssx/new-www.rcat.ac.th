@@ -15,6 +15,8 @@ export interface Env {
   ADMIN_WRITE_SMOKE_TOKEN?: string;
   CMS_AUTH_ENABLED?: string;
   CMS_AUTH_PROXY_SECRET?: string;
+  CMS_MFA_ENCRYPTION_KEY?: string;
+  CMS_MFA_ENCRYPTION_KEY_VERSION?: string;
   ENVIRONMENT?: string;
   DB?: D1Database;
 }

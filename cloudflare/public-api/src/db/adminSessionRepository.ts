@@ -12,6 +12,7 @@ import {
 export interface AdminSessionWithUser {
   session: AdminSessionRow;
   user: AdminAuthUserRow;
+  effectiveMfa: boolean;
 }
 
 export interface CreateAdminSessionInput {
@@ -72,7 +73,7 @@ function mapJoinedSession(row: JoinedSessionRow | null): AdminSessionWithUser | 
     ADMIN_AUTH_USER_ROW_COLUMNS.map((column) => [column, row[`user_${column}`]])
   ) as unknown as AdminAuthUserRow;
 
-  return { session, user };
+  return { session, user, effectiveMfa: Number(row.effective_mfa ?? 0) === 1 };
 }
 
 function makeAuditEntry(input: {
@@ -106,7 +107,7 @@ export function createAdminSessionRepository(env: Env): AdminSessionRepository {
       const audit = makeAuditEntry({
         action: "session.login",
         actor: input.actor,
-        metadata: { authentication: "password", root: input.isRoot },
+        metadata: { authentication: session.mfa_verified_at ? "mfa" : "password", root: input.isRoot },
         now: session.created_at,
         userId: session.user_id
       });
@@ -129,7 +130,13 @@ export function createAdminSessionRepository(env: Env): AdminSessionRepository {
                           AND status = 'active'
                           AND role IN ('admin', 'editor', 'viewer')
                           AND must_change_password = 0
-                          AND mfa_required = 0
+                          AND (
+                            (is_root = 0 AND mfa_required = 0 AND NOT EXISTS (
+                              SELECT 1 FROM admin_mfa_totp
+                              WHERE user_id = app_admin_users.id AND state = 'enabled'
+                            ))
+                            OR ? != ''
+                          )
                           AND session_version = ?
                       ) THEN ? ELSE NULL END`
                    : value
@@ -139,6 +146,7 @@ export function createAdminSessionRepository(env: Env): AdminSessionRepository {
           .bind(
             ...insertBindings.slice(0, tokenHashIndex),
             session.user_id,
+            session.mfa_verified_at,
             session.session_version,
             session.token_hash,
             ...insertBindings.slice(tokenHashIndex)
@@ -163,7 +171,11 @@ export function createAdminSessionRepository(env: Env): AdminSessionRepository {
     async findSessionByTokenHash(tokenHash) {
       const row = await db
         .prepare(
-          `SELECT ${[...SESSION_SELECT_COLUMNS, ...USER_SELECT_COLUMNS].join(", ")}
+          `SELECT ${[...SESSION_SELECT_COLUMNS, ...USER_SELECT_COLUMNS].join(", ")},
+                  CASE WHEN u.is_root = 1 OR u.mfa_required = 1 OR EXISTS (
+                    SELECT 1 FROM admin_mfa_totp f
+                    WHERE f.user_id = u.id AND f.state = 'enabled'
+                  ) THEN 1 ELSE 0 END AS effective_mfa
            FROM admin_sessions AS s
            INNER JOIN app_admin_users AS u ON u.id = s.user_id
            WHERE s.token_hash = ?`
@@ -248,6 +260,13 @@ export function createAdminSessionRepository(env: Env): AdminSessionRepository {
             `UPDATE admin_sessions
              SET revoked_at = ?
              WHERE user_id = ? AND revoked_at = ''`
+          )
+          .bind(input.now, input.userId),
+        db
+          .prepare(
+            `UPDATE admin_mfa_challenges
+             SET revoked_at = ?
+             WHERE user_id = ? AND consumed_at = '' AND revoked_at = ''`
           )
           .bind(input.now, input.userId),
         bindAudit(

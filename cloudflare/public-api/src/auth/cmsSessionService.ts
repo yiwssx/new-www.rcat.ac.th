@@ -34,12 +34,18 @@ export interface CmsSessionIdentity {
   isRoot: boolean;
   sessionId: string;
   sessionVersion: number;
+  reauthenticatedAt: string;
+  mfaVerifiedAt: string;
 }
 
 export interface CreatedCmsSession {
   identity: CmsSessionIdentity;
   sessionToken: string;
   csrfToken: string;
+}
+
+export interface PreparedCmsSession extends CreatedCmsSession {
+  session: AdminSessionRow;
 }
 
 export type CmsSessionAuthenticationResult =
@@ -65,6 +71,7 @@ export interface CreateCmsSessionInput {
   repository?: AdminSessionRepository;
   generateSessionToken?: () => string;
   generateCsrfToken?: () => string;
+  mfaVerified?: boolean;
 }
 
 export interface AuthenticateCmsSessionInput {
@@ -98,17 +105,14 @@ function safeIdentity(user: AdminAuthUserRow, session: AdminSessionRow): CmsSess
     role: user.role,
     isRoot: user.is_root === 1,
     sessionId: session.id,
-    sessionVersion: user.session_version
+    sessionVersion: user.session_version,
+    reauthenticatedAt: session.reauthenticated_at,
+    mfaVerifiedAt: session.mfa_verified_at
   };
 }
 
 function isEligibleCredentialIdentity(identity: CmsAuthenticatedIdentity) {
-  return (
-    ADMIN_ROLES.has(identity.role) &&
-    !identity.mustChangePassword &&
-    !identity.mfaRequired &&
-    isPositiveInteger(identity.sessionVersion)
-  );
+  return ADMIN_ROLES.has(identity.role) && !identity.mustChangePassword && isPositiveInteger(identity.sessionVersion);
 }
 
 function isValidStoredSession(record: AdminSessionWithUser, nowMs: number) {
@@ -119,14 +123,16 @@ function isValidStoredSession(record: AdminSessionWithUser, nowMs: number) {
     user.status !== "active" ||
     !ADMIN_ROLES.has(user.role) ||
     user.must_change_password !== 0 ||
-    user.mfa_required !== 0 ||
+    (record.effectiveMfa && session.mfa_verified_at === "") ||
     !isPositiveInteger(session.session_version) ||
     !isPositiveInteger(user.session_version) ||
     session.session_version !== user.session_version ||
     !isCanonicalTimestamp(session.created_at) ||
     !isCanonicalTimestamp(session.last_seen_at) ||
     !isCanonicalTimestamp(session.idle_expires_at) ||
-    !isCanonicalTimestamp(session.absolute_expires_at)
+    !isCanonicalTimestamp(session.absolute_expires_at) ||
+    !isCanonicalTimestamp(session.reauthenticated_at) ||
+    (session.mfa_verified_at !== "" && !isCanonicalTimestamp(session.mfa_verified_at))
   ) {
     return false;
   }
@@ -138,12 +144,14 @@ function requiresCsrf(method: string | undefined) {
   return MUTATION_METHODS.has(String(method ?? "GET").toUpperCase());
 }
 
-export async function createCmsSession(input: CreateCmsSessionInput): Promise<CreatedCmsSession> {
-  if (!isEligibleCredentialIdentity(input.identity)) {
+export async function prepareCmsSession(input: CreateCmsSessionInput): Promise<PreparedCmsSession> {
+  if (
+    !isEligibleCredentialIdentity(input.identity) ||
+    ((input.identity.isRoot || input.identity.mfaRequired) && !input.mfaVerified)
+  ) {
     throw new CmsSessionEligibilityError();
   }
 
-  const repository = input.repository ?? createAdminSessionRepository(input.env);
   const sessionToken = (input.generateSessionToken ?? generateCmsSessionToken)();
   const csrfToken = (input.generateCsrfToken ?? generateCmsCsrfToken)();
 
@@ -182,14 +190,10 @@ export async function createCmsSession(input: CreateCmsSessionInput): Promise<Cr
     session_version: input.identity.sessionVersion,
     revoked_at: "",
     ip_hash: ipHash,
-    user_agent_hash: userAgentHash
+    user_agent_hash: userAgentHash,
+    reauthenticated_at: createdAt,
+    mfa_verified_at: input.mfaVerified ? createdAt : ""
   };
-
-  await repository.createSession({
-    session,
-    actor: input.identity.email,
-    isRoot: input.identity.isRoot
-  });
 
   return {
     identity: {
@@ -200,11 +204,25 @@ export async function createCmsSession(input: CreateCmsSessionInput): Promise<Cr
       role: input.identity.role,
       isRoot: input.identity.isRoot,
       sessionId: session.id,
-      sessionVersion: input.identity.sessionVersion
+      sessionVersion: input.identity.sessionVersion,
+      reauthenticatedAt: session.reauthenticated_at,
+      mfaVerifiedAt: session.mfa_verified_at
     },
+    session,
     sessionToken,
     csrfToken
   };
+}
+
+export async function createCmsSession(input: CreateCmsSessionInput): Promise<CreatedCmsSession> {
+  const repository = input.repository ?? createAdminSessionRepository(input.env);
+  const prepared = await prepareCmsSession(input);
+  await repository.createSession({
+    session: prepared.session,
+    actor: input.identity.email,
+    isRoot: input.identity.isRoot
+  });
+  return prepared;
 }
 
 export async function authenticateCmsSession(

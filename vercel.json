@@ -86,6 +86,30 @@
       "destination": "/api/cms-auth?_rcatCmsRoute=password-reset-complete"
     },
     {
+      "source": "/api/cms-auth/mfa/verify",
+      "destination": "/api/cms-auth?_rcatCmsRoute=mfa-verify"
+    },
+    {
+      "source": "/api/cms-auth/mfa/setup/start",
+      "destination": "/api/cms-auth?_rcatCmsRoute=mfa-setup-start"
+    },
+    {
+      "source": "/api/cms-auth/mfa/setup/confirm",
+      "destination": "/api/cms-auth?_rcatCmsRoute=mfa-setup-confirm"
+    },
+    {
+      "source": "/api/cms-auth/mfa/recovery-codes/regenerate",
+      "destination": "/api/cms-auth?_rcatCmsRoute=mfa-recovery-regenerate"
+    },
+    {
+      "source": "/api/cms-auth/mfa",
+      "destination": "/api/cms-auth?_rcatCmsRoute=mfa-disable"
+    },
+    {
+      "source": "/api/cms-auth/reauthenticate",
+      "destination": "/api/cms-auth?_rcatCmsRoute=reauthenticate"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }

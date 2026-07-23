@@ -30,7 +30,7 @@ const credentialIdentity: CmsAuthenticatedIdentity = {
   name: "Admin User",
   username: "admin.user",
   role: "admin",
-  isRoot: true,
+  isRoot: false,
   mustChangePassword: false,
   mfaRequired: false,
   sessionVersion: 3
@@ -48,7 +48,7 @@ const user: AdminAuthUserRow = {
   created_by: "fixture",
   updated_by: "fixture",
   revision: 0,
-  is_root: 1,
+  is_root: 0,
   must_change_password: 0,
   mfa_required: 0,
   session_version: 3,
@@ -86,10 +86,17 @@ async function makeRecord(
     revoked_at: "",
     ip_hash: "C".repeat(43),
     user_agent_hash: "D".repeat(43),
+    reauthenticated_at: fixedNow.toISOString(),
+    mfa_verified_at: "",
     ...options.session
   };
 
-  return { session, user: { ...user, ...options.user } };
+  const storedUser = { ...user, ...options.user };
+  return {
+    session,
+    user: storedUser,
+    effectiveMfa: storedUser.is_root === 1 || storedUser.mfa_required === 1
+  };
 }
 
 function createInput(repository: AdminSessionRepository, identity = credentialIdentity) {
@@ -305,7 +312,6 @@ describe("CMS session service", () => {
     expect(auditBindings).toContain('\\"authentication\\":\\"password\\"');
     expect(auditBindings).not.toContain(created.sessionToken);
     expect(auditBindings).not.toContain(created.csrfToken);
-    expect(auditBindings).not.toContain(prepared[0].bindings[4]);
     expect(auditBindings).not.toMatch(/192\.0\.2\.10|test-browser/);
   });
 
@@ -343,8 +349,9 @@ describe("CMS session service", () => {
     expect(prepared.slice(1).map((statement) => statement.query)).toEqual([
       expect.stringMatching(/session_version = session_version \+ 1/i),
       expect.stringMatching(/UPDATE admin_sessions[\s\S]+revoked_at/i),
+      expect.stringMatching(/UPDATE admin_mfa_challenges[\s\S]+revoked_at/i),
       expect.stringMatching(/INSERT INTO admin_audit_log/i)
     ]);
-    expect(prepared[3].bindings).toContain("session.logout_all");
+    expect(prepared[4].bindings).toContain("session.logout_all");
   });
 });

@@ -70,6 +70,10 @@ const documentInput = {
 };
 
 function tableFromQuery(query: string): TableName | null {
+  if (/\bFROM\s+app_admin_users\s+(?:AS\s+)?u\b/i.test(query)) {
+    return "app_admin_users";
+  }
+
   const match = query.match(/\b(?:FROM|INTO|UPDATE)\s+([a-z_]+)/i);
   const tableName = match?.[1] as TableName | undefined;
 

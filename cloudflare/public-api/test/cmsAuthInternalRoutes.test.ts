@@ -23,7 +23,9 @@ const identity = {
   role: "admin" as const,
   isRoot: true,
   sessionId: "admin-session-1",
-  sessionVersion: 3
+  sessionVersion: 3,
+  reauthenticatedAt: "2026-07-22T03:00:00.000Z",
+  mfaVerifiedAt: "2026-07-22T03:00:00.000Z"
 };
 const credentialIdentity = {
   id: identity.id,
@@ -64,6 +66,30 @@ function successDependencies(): CmsAuthInternalDependencies {
     authenticateSession: vi.fn().mockResolvedValue({ status: "authenticated", identity }),
     revokeSession: vi.fn().mockResolvedValue({ status: "authenticated", identity }),
     revokeAllSessions: vi.fn().mockResolvedValue({ status: "authenticated", identity }),
+    mfaRepository: {
+      getUserState: vi.fn().mockResolvedValue({
+        user: {
+          id: credentialIdentity.id,
+          email: credentialIdentity.email,
+          name: credentialIdentity.name,
+          username: credentialIdentity.username,
+          role: credentialIdentity.role,
+          status: "active",
+          created_at: "2026-07-01T00:00:00.000Z",
+          updated_at: "2026-07-01T00:00:00.000Z",
+          created_by: "fixture",
+          updated_by: "fixture",
+          revision: 1,
+          is_root: 0,
+          must_change_password: 0,
+          mfa_required: 0,
+          session_version: credentialIdentity.sessionVersion,
+          last_login_at: ""
+        },
+        factor: null,
+        recoveryCodesRemaining: 0
+      })
+    } as unknown as CmsAuthInternalDependencies["mfaRepository"],
     now: () => new Date("2026-07-22T03:00:00.000Z")
   };
 }

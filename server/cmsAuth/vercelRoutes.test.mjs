@@ -15,7 +15,13 @@ const expectedCmsRoutes = [
   ["/api/cms-auth/invitation/inspect", "invitation-inspect"],
   ["/api/cms-auth/invitation/accept", "invitation-accept"],
   ["/api/cms-auth/password-reset/inspect", "password-reset-inspect"],
-  ["/api/cms-auth/password-reset/complete", "password-reset-complete"]
+  ["/api/cms-auth/password-reset/complete", "password-reset-complete"],
+  ["/api/cms-auth/mfa/verify", "mfa-verify"],
+  ["/api/cms-auth/mfa/setup/start", "mfa-setup-start"],
+  ["/api/cms-auth/mfa/setup/confirm", "mfa-setup-confirm"],
+  ["/api/cms-auth/mfa/recovery-codes/regenerate", "mfa-recovery-regenerate"],
+  ["/api/cms-auth/mfa", "mfa-disable"],
+  ["/api/cms-auth/reauthenticate", "reauthenticate"]
 ];
 
 describe("Vercel CMS-auth rewrite contract", () => {

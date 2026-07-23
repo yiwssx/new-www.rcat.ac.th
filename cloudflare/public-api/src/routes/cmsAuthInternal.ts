@@ -1,11 +1,17 @@
 import { constantTimeTextEqual, isValidCmsToken } from "../auth/cmsSessionCrypto";
 import { hasAdminCapability } from "../auth/adminCapabilities";
+import { hasRecentAdminAssurance } from "../auth/adminStepUp";
+import { createCmsMfaChallenge, resolveMfaFactorProof, validateCmsMfaChallenge } from "../auth/cmsMfaService";
+import { decryptTotpSecret, encryptTotpSecret, generateRecoveryCodes, hashRecoveryCode } from "../auth/cmsMfaCrypto";
+import { createTotpUri, generateTotpSecret, verifyTotpCode } from "../auth/cmsTotp";
+import { isValidMfaChallengeToken } from "../auth/cmsMfaChallenge";
 import { hashInvitationToken, hashPasswordResetToken, isValidLifecycleToken } from "../auth/cmsLifecycleToken";
 import { CMS_PASSWORD_ALGORITHM, hashCmsPassword, validateCmsPassword, verifyCmsPassword } from "../auth/cmsPassword";
 import {
   CmsSessionEligibilityError,
   authenticateCmsSession,
   createCmsSession,
+  prepareCmsSession,
   revokeAllCmsSessions,
   revokeCmsSession,
   type AuthenticateCmsSessionInput,
@@ -17,6 +23,8 @@ import {
   createAdminUserLifecycleRepository,
   type AdminUserLifecycleRepository
 } from "../db/adminUserLifecycleRepository";
+import { createAdminMfaRepository, isEffectiveMfa, type AdminMfaRepository } from "../db/adminMfaRepository";
+import type { AdminMfaRecoveryCodeRow, AdminMfaTotpRow } from "../db/schema";
 import type { Env } from "../env";
 import { json, jsonError, methodNotAllowed } from "../responses";
 
@@ -27,6 +35,8 @@ export const CMS_CLIENT_IP_HEADER = "X-RCAT-CMS-Client-IP";
 export const CMS_USER_AGENT_HEADER = "X-RCAT-CMS-User-Agent";
 export const CMS_NEW_SESSION_TOKEN_HEADER = "X-RCAT-CMS-New-Session-Token";
 export const CMS_NEW_CSRF_TOKEN_HEADER = "X-RCAT-CMS-New-CSRF-Token";
+export const CMS_MFA_CHALLENGE_TOKEN_HEADER = "X-RCAT-CMS-MFA-Challenge-Token";
+export const CMS_NEW_MFA_CHALLENGE_TOKEN_HEADER = "X-RCAT-CMS-New-MFA-Challenge-Token";
 
 const INTERNAL_PREFIX = "/api/internal/cms-auth/";
 const LOGIN_PATH = `${INTERNAL_PREFIX}login`;
@@ -38,6 +48,12 @@ const INVITATION_ACCEPT_PATH = `${INTERNAL_PREFIX}invitation/accept`;
 const PASSWORD_RESET_INSPECT_PATH = `${INTERNAL_PREFIX}password-reset/inspect`;
 const PASSWORD_RESET_COMPLETE_PATH = `${INTERNAL_PREFIX}password-reset/complete`;
 const CHANGE_PASSWORD_PATH = `${INTERNAL_PREFIX}change-password`;
+const MFA_VERIFY_PATH = `${INTERNAL_PREFIX}mfa/verify`;
+const MFA_SETUP_START_PATH = `${INTERNAL_PREFIX}mfa/setup/start`;
+const MFA_SETUP_CONFIRM_PATH = `${INTERNAL_PREFIX}mfa/setup/confirm`;
+const MFA_RECOVERY_REGENERATE_PATH = `${INTERNAL_PREFIX}mfa/recovery-codes/regenerate`;
+const MFA_DISABLE_PATH = `${INTERNAL_PREFIX}mfa`;
+const REAUTHENTICATE_PATH = `${INTERNAL_PREFIX}reauthenticate`;
 const INTERNAL_PATHS = new Set([
   LOGIN_PATH,
   SESSION_PATH,
@@ -47,7 +63,13 @@ const INTERNAL_PATHS = new Set([
   INVITATION_ACCEPT_PATH,
   PASSWORD_RESET_INSPECT_PATH,
   PASSWORD_RESET_COMPLETE_PATH,
-  CHANGE_PASSWORD_PATH
+  CHANGE_PASSWORD_PATH,
+  MFA_VERIFY_PATH,
+  MFA_SETUP_START_PATH,
+  MFA_SETUP_CONFIRM_PATH,
+  MFA_RECOVERY_REGENERATE_PATH,
+  MFA_DISABLE_PATH,
+  REAUTHENTICATE_PATH
 ]);
 const MAX_AUTH_BODY_BYTES = 16 * 1024;
 
@@ -65,6 +87,7 @@ export interface CmsAuthInternalDependencies {
   hashPassword?: (password: string) => Promise<string>;
   verifyPassword?: (password: string, storedHash: string, algorithm: string) => Promise<boolean>;
   now?: () => Date;
+  mfaRepository?: AdminMfaRepository;
 }
 
 function noStore(response: Response) {
@@ -431,6 +454,394 @@ function sessionFailure(status: "forbidden" | "unauthenticated" | "unavailable")
   return internalError("CMS session is invalid or expired", 401);
 }
 
+function metadata(request: Request) {
+  return {
+    clientIp: readMetadataHeader(request, CMS_CLIENT_IP_HEADER, 64),
+    userAgent: readMetadataHeader(request, CMS_USER_AGENT_HEADER, 512)
+  };
+}
+
+function credentialIdentity(user: {
+  id: string;
+  email: string;
+  name: string;
+  username: string | null;
+  role: "admin" | "editor" | "viewer";
+  is_root: 0 | 1;
+  must_change_password: 0 | 1;
+  mfa_required: 0 | 1;
+  session_version: number;
+}) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    username: user.username,
+    role: user.role,
+    isRoot: user.is_root === 1,
+    mustChangePassword: user.must_change_password === 1,
+    mfaRequired: user.mfa_required === 1,
+    sessionVersion: user.session_version
+  };
+}
+
+function adminSessionIdentity(identity: Awaited<ReturnType<typeof authenticateCmsSession>> & object) {
+  if (!("identity" in identity)) return null;
+  const session = identity.identity;
+  return {
+    actor: session.email,
+    email: session.email,
+    mode: "cms-session" as const,
+    role: session.role,
+    userId: session.id,
+    sessionId: session.sessionId,
+    isRoot: session.isRoot,
+    reauthenticatedAt: session.reauthenticatedAt,
+    mfaVerifiedAt: session.mfaVerifiedAt
+  };
+}
+
+async function authenticateMfaSession(
+  request: Request,
+  env: Env,
+  now: Date,
+  dependencies: CmsAuthInternalDependencies
+) {
+  const authenticateSession = dependencies.authenticateSession ?? authenticateCmsSession;
+  const result = await authenticateSession(getSessionInput(request, env, now));
+  return result.status === "authenticated" ? result : sessionFailure(result.status);
+}
+
+async function readMfaBody(request: Request) {
+  const body = await readBoundedAuthBody(request);
+  if (body.status === "too-large") return { error: internalError("request body is too large", 413) } as const;
+  if (body.status !== "valid") return { error: internalError("invalid MFA request", 400) } as const;
+  return { value: body.value } as const;
+}
+
+function mfaVerificationFailed() {
+  return internalError("MFA verification failed", 401);
+}
+
+async function handleMfaVerify(request: Request, env: Env, now: Date, dependencies: CmsAuthInternalDependencies) {
+  if (request.method !== "POST") return internalMethodNotAllowed("POST");
+  const challengeToken = request.headers.get(CMS_MFA_CHALLENGE_TOKEN_HEADER) ?? "";
+  if (!isValidMfaChallengeToken(challengeToken)) return mfaVerificationFailed();
+  const body = await readMfaBody(request);
+  if ("error" in body) return body.error!;
+  const repository = dependencies.mfaRepository ?? createAdminMfaRepository(env);
+  const client = metadata(request);
+  const record = await validateCmsMfaChallenge({
+    env,
+    token: challengeToken,
+    purpose: "login",
+    ...client,
+    now,
+    repository,
+    recordFailure: true
+  });
+  if (!record || !record.factor || record.factor.state !== "enabled") return mfaVerificationFailed();
+  const proof = await resolveMfaFactorProof({
+    env,
+    record,
+    totpCode: body.value.totpCode,
+    recoveryCode: body.value.recoveryCode,
+    now,
+    repository
+  });
+  if (!proof) {
+    await repository.recordChallengeFailure(record.challenge.id, now.toISOString());
+    return mfaVerificationFailed();
+  }
+  const prepared = await prepareCmsSession({
+    env,
+    identity: credentialIdentity(record.user),
+    ...client,
+    now,
+    mfaVerified: true
+  });
+  try {
+    await repository.completeLoginChallenge({
+      challenge: record.challenge,
+      proof,
+      session: prepared.session,
+      actor: record.user.email,
+      now: now.toISOString()
+    });
+  } catch {
+    await repository.recordChallengeFailure(record.challenge.id, now.toISOString()).catch(() => undefined);
+    return mfaVerificationFailed();
+  }
+  const response = noStore(json({ ok: true, user: prepared.identity }));
+  response.headers.set(CMS_NEW_SESSION_TOKEN_HEADER, prepared.sessionToken);
+  response.headers.set(CMS_NEW_CSRF_TOKEN_HEADER, prepared.csrfToken);
+  return response;
+}
+
+async function getEnrollmentContext(request: Request, env: Env, now: Date, dependencies: CmsAuthInternalDependencies) {
+  const repository = dependencies.mfaRepository ?? createAdminMfaRepository(env);
+  const challengeToken = request.headers.get(CMS_MFA_CHALLENGE_TOKEN_HEADER) ?? "";
+
+  if (challengeToken) {
+    if (!isValidMfaChallengeToken(challengeToken)) return { error: mfaVerificationFailed() } as const;
+    const record = await validateCmsMfaChallenge({
+      env,
+      token: challengeToken,
+      purpose: "enrollment",
+      ...metadata(request),
+      now,
+      repository,
+      recordFailure: true
+    });
+    return record ? { mode: "challenge" as const, record, repository } : ({ error: mfaVerificationFailed() } as const);
+  }
+
+  const result = await authenticateMfaSession(request, env, now, dependencies);
+  if (result instanceof Response) return { error: result } as const;
+  const identity = adminSessionIdentity(result);
+  if (
+    !identity ||
+    !hasAdminCapability(identity, "auth.mfa.manage-self") ||
+    !hasRecentAdminAssurance(identity, "password", now)
+  ) {
+    return { error: internalError("recent password reauthentication is required", 428) } as const;
+  }
+  const state = await repository.getUserState(result.identity.id);
+  return state
+    ? { mode: "session" as const, result, state, repository }
+    : ({ error: internalError("CMS authentication is unavailable", 503) } as const);
+}
+
+async function handleMfaSetupStart(request: Request, env: Env, now: Date, dependencies: CmsAuthInternalDependencies) {
+  if (request.method !== "POST") return internalMethodNotAllowed("POST");
+  const context = await getEnrollmentContext(request, env, now, dependencies);
+  if ("error" in context) return context.error!;
+  const user = context.mode === "challenge" ? context.record.user : context.state.user;
+  const factor = context.mode === "challenge" ? context.record.factor : context.state.factor;
+  if (factor?.state === "enabled") return internalError("MFA is already configured", 409);
+  const secret = generateTotpSecret();
+  const encrypted = await encryptTotpSecret({
+    secret,
+    userId: user.id,
+    encryptionKey: env.CMS_MFA_ENCRYPTION_KEY,
+    keyVersion: env.CMS_MFA_ENCRYPTION_KEY_VERSION
+  });
+  const createdAt = now.toISOString();
+  const pending: AdminMfaTotpRow = {
+    user_id: user.id,
+    encrypted_secret: encrypted.encryptedSecret,
+    iv: encrypted.iv,
+    key_version: encrypted.keyVersion,
+    state: "pending",
+    created_at: createdAt,
+    enabled_at: "",
+    updated_at: createdAt,
+    last_used_step: -1
+  };
+  await context.repository.replacePendingFactor(pending, user.email, createdAt);
+  const expiresAt =
+    context.mode === "challenge"
+      ? context.record.challenge.expires_at
+      : new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+  return noStore(json({ manualEntryKey: secret, otpAuthUri: createTotpUri(secret, user.email), expiresAt }));
+}
+
+async function createRecoveryCodeRows(userId: string, codes: string[], now: string) {
+  return Promise.all(
+    codes.map(async (code): Promise<AdminMfaRecoveryCodeRow> => ({
+      id: `admin-mfa-recovery-${crypto.randomUUID()}`,
+      user_id: userId,
+      code_hash: await hashRecoveryCode(code),
+      created_at: now,
+      used_at: ""
+    }))
+  );
+}
+
+async function handleMfaSetupConfirm(request: Request, env: Env, now: Date, dependencies: CmsAuthInternalDependencies) {
+  if (request.method !== "POST") return internalMethodNotAllowed("POST");
+  const body = await readMfaBody(request);
+  if ("error" in body) return body.error!;
+  const context = await getEnrollmentContext(request, env, now, dependencies);
+  if ("error" in context) return context.error!;
+  const user = context.mode === "challenge" ? context.record.user : context.state.user;
+  const factor = context.mode === "challenge" ? context.record.factor : context.state.factor;
+  if (!factor || factor.state !== "pending" || now.getTime() >= Date.parse(factor.updated_at) + 10 * 60 * 1000) {
+    return mfaVerificationFailed();
+  }
+  let secret: string;
+  try {
+    secret = await decryptTotpSecret({
+      encryptedSecret: factor.encrypted_secret,
+      iv: factor.iv,
+      userId: user.id,
+      storedKeyVersion: factor.key_version,
+      encryptionKey: env.CMS_MFA_ENCRYPTION_KEY,
+      configuredKeyVersion: env.CMS_MFA_ENCRYPTION_KEY_VERSION
+    });
+  } catch {
+    return internalError("CMS authentication is unavailable", 503);
+  }
+  const verified = await verifyTotpCode(body.value.totpCode, secret, now.getTime());
+  if (!verified || verified.matchedStep <= factor.last_used_step) {
+    if (context.mode === "challenge") {
+      await context.repository.recordChallengeFailure(context.record.challenge.id, now.toISOString());
+    }
+    return mfaVerificationFailed();
+  }
+  const recoveryCodes = generateRecoveryCodes();
+  const rows = await createRecoveryCodeRows(user.id, recoveryCodes, now.toISOString());
+  let prepared: Awaited<ReturnType<typeof prepareCmsSession>> | undefined;
+  if (context.mode === "challenge") {
+    prepared = await prepareCmsSession({
+      env,
+      identity: credentialIdentity(user),
+      ...metadata(request),
+      now,
+      mfaVerified: true
+    });
+  }
+  await context.repository.confirmEnrollment({
+    challengeId: context.mode === "challenge" ? context.record.challenge.id : undefined,
+    factor,
+    expectedSessionVersion: user.session_version,
+    matchedStep: verified.matchedStep,
+    recoveryCodes: rows,
+    session: prepared?.session,
+    actor: user.email,
+    now: now.toISOString()
+  });
+  const response = noStore(json({ ok: true, recoveryCodes, loginRequired: context.mode === "session" }));
+  if (prepared) {
+    response.headers.set(CMS_NEW_SESSION_TOKEN_HEADER, prepared.sessionToken);
+    response.headers.set(CMS_NEW_CSRF_TOKEN_HEADER, prepared.csrfToken);
+  }
+  return response;
+}
+
+async function handleRecoveryRegenerate(
+  request: Request,
+  env: Env,
+  now: Date,
+  dependencies: CmsAuthInternalDependencies
+) {
+  if (request.method !== "POST") return internalMethodNotAllowed("POST");
+  const result = await authenticateMfaSession(request, env, now, dependencies);
+  if (result instanceof Response) return result;
+  const identity = adminSessionIdentity(result);
+  if (
+    !identity ||
+    !hasAdminCapability(identity, "auth.mfa.manage-self") ||
+    !hasRecentAdminAssurance(identity, "mfa", now)
+  )
+    return internalError("recent MFA reauthentication is required", 428);
+  const repository = dependencies.mfaRepository ?? createAdminMfaRepository(env);
+  const state = await repository.getUserState(result.identity.id);
+  if (!state?.factor || state.factor.state !== "enabled") return internalError("MFA is not configured", 409);
+  const recoveryCodes = generateRecoveryCodes();
+  await repository.regenerateRecoveryCodes({
+    userId: state.user.id,
+    recoveryCodes: await createRecoveryCodeRows(state.user.id, recoveryCodes, now.toISOString()),
+    actor: state.user.email,
+    now: now.toISOString()
+  });
+  return noStore(json({ ok: true, recoveryCodes }));
+}
+
+async function verifyCurrentPassword(
+  body: Record<string, unknown>,
+  userId: string,
+  env: Env,
+  dependencies: CmsAuthInternalDependencies
+) {
+  if (typeof body.currentPassword !== "string" || !body.currentPassword) return false;
+  const lifecycle = dependencies.lifecycleRepository ?? createAdminUserLifecycleRepository(env);
+  const credential = await lifecycle.getCredentialByUserId(userId);
+  const verifyPassword = dependencies.verifyPassword ?? verifyCmsPassword;
+  return Boolean(
+    credential && (await verifyPassword(body.currentPassword, credential.password_hash, credential.password_algorithm))
+  );
+}
+
+async function handleReauthenticate(request: Request, env: Env, now: Date, dependencies: CmsAuthInternalDependencies) {
+  if (request.method !== "POST") return internalMethodNotAllowed("POST");
+  const body = await readMfaBody(request);
+  if ("error" in body) return body.error!;
+  const result = await authenticateMfaSession(request, env, now, dependencies);
+  if (result instanceof Response) return result;
+  const identity = adminSessionIdentity(result);
+  if (!identity || !hasAdminCapability(identity, "auth.reauthenticate-self")) {
+    return internalError("required permission is missing", 403);
+  }
+  if (!(await verifyCurrentPassword(body.value, result.identity.id, env, dependencies))) {
+    return internalError("reauthentication failed", 401);
+  }
+  const repository = dependencies.mfaRepository ?? createAdminMfaRepository(env);
+  const state = await repository.getUserState(result.identity.id);
+  if (!state) return internalError("CMS authentication is unavailable", 503);
+  let proof;
+  if (isEffectiveMfa(state.user, state.factor)) {
+    proof = await resolveMfaFactorProof({
+      env,
+      record: state,
+      totpCode: body.value.totpCode,
+      recoveryCode: body.value.recoveryCode,
+      now,
+      repository
+    });
+    if (!proof) return internalError("reauthentication failed", 401);
+  } else if (body.value.totpCode !== undefined || body.value.recoveryCode !== undefined) {
+    return internalError("reauthentication failed", 401);
+  }
+  try {
+    await repository.reauthenticateSession({
+      sessionId: result.identity.sessionId,
+      userId: result.identity.id,
+      proof,
+      actor: result.identity.email,
+      now: now.toISOString()
+    });
+  } catch {
+    return internalError("reauthentication failed", 401);
+  }
+  return noStore(json({ ok: true, reauthenticated: true, mfaVerified: Boolean(proof) }));
+}
+
+async function handleMfaDisable(request: Request, env: Env, now: Date, dependencies: CmsAuthInternalDependencies) {
+  if (request.method !== "DELETE") return internalMethodNotAllowed("DELETE");
+  const body = await readMfaBody(request);
+  if ("error" in body) return body.error!;
+  const result = await authenticateMfaSession(request, env, now, dependencies);
+  if (result instanceof Response) return result;
+  const identity = adminSessionIdentity(result);
+  if (
+    !identity ||
+    !hasAdminCapability(identity, "auth.mfa.manage-self") ||
+    !hasRecentAdminAssurance(identity, "mfa", now)
+  )
+    return internalError("recent MFA reauthentication is required", 428);
+  const repository = dependencies.mfaRepository ?? createAdminMfaRepository(env);
+  const state = await repository.getUserState(result.identity.id);
+  if (!state?.factor || state.factor.state !== "enabled") return internalError("MFA is not configured", 409);
+  if (state.user.is_root === 1 || state.user.mfa_required === 1) {
+    return internalError("MFA is required for this account", 409);
+  }
+  if (!(await verifyCurrentPassword(body.value, result.identity.id, env, dependencies))) {
+    return internalError("MFA disable verification failed", 401);
+  }
+  const proof = await resolveMfaFactorProof({
+    env,
+    record: state,
+    totpCode: body.value.totpCode,
+    recoveryCode: body.value.recoveryCode,
+    now,
+    repository
+  });
+  if (!proof) return internalError("MFA disable verification failed", 401);
+  await repository.disableOwnMfa({ userId: state.user.id, actor: state.user.email, now: now.toISOString() });
+  return noStore(json({ ok: true, disabled: true }));
+}
+
 async function authorizeInternalRequest(request: Request, env: Env) {
   if (env.CMS_AUTH_ENABLED !== "true") {
     return internalError("not found", 404);
@@ -502,6 +913,29 @@ export async function handleCmsAuthInternal(
     }
   }
 
+  try {
+    if (pathname === MFA_VERIFY_PATH) {
+      return await handleMfaVerify(request, env, now, dependencies);
+    }
+    if (pathname === MFA_SETUP_START_PATH) {
+      return await handleMfaSetupStart(request, env, now, dependencies);
+    }
+    if (pathname === MFA_SETUP_CONFIRM_PATH) {
+      return await handleMfaSetupConfirm(request, env, now, dependencies);
+    }
+    if (pathname === MFA_RECOVERY_REGENERATE_PATH) {
+      return await handleRecoveryRegenerate(request, env, now, dependencies);
+    }
+    if (pathname === MFA_DISABLE_PATH) {
+      return await handleMfaDisable(request, env, now, dependencies);
+    }
+    if (pathname === REAUTHENTICATE_PATH) {
+      return await handleReauthenticate(request, env, now, dependencies);
+    }
+  } catch {
+    return internalError("CMS authentication is unavailable", 503);
+  }
+
   if (pathname === LOGIN_PATH) {
     if (request.method !== "POST") {
       return internalMethodNotAllowed("POST");
@@ -538,6 +972,36 @@ export async function handleCmsAuthInternal(
     }
 
     try {
+      const mfaRepository = dependencies.mfaRepository ?? createAdminMfaRepository(env);
+      const mfaState = await mfaRepository.getUserState(credential.identity.id);
+
+      if (!mfaState) {
+        return internalError("CMS authentication is unavailable", 503);
+      }
+
+      if (isEffectiveMfa(mfaState.user, mfaState.factor)) {
+        const enrollmentRequired = mfaState.factor?.state !== "enabled";
+        const createdChallenge = await createCmsMfaChallenge({
+          env,
+          identity: credential.identity,
+          purpose: enrollmentRequired ? "enrollment" : "login",
+          ...metadata(request),
+          now,
+          repository: mfaRepository
+        });
+        const response = noStore(
+          json(
+            {
+              mfaRequired: true,
+              enrollmentRequired
+            },
+            { status: 202 }
+          )
+        );
+        response.headers.set(CMS_NEW_MFA_CHALLENGE_TOKEN_HEADER, createdChallenge.token);
+        return response;
+      }
+
       const createSession = dependencies.createSession ?? createCmsSession;
       const created = await createSession({
         env,

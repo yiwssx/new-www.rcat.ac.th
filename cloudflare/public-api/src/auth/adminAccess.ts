@@ -23,6 +23,10 @@ export interface AdminIdentity {
   mode: "cloudflare-access" | "smoke-token" | "cms-session";
   role: AdminRole;
   userId?: string;
+  sessionId?: string;
+  isRoot?: boolean;
+  reauthenticatedAt?: string;
+  mfaVerifiedAt?: string;
 }
 
 export type AdminRole = "admin" | "editor" | "viewer";
@@ -400,7 +404,11 @@ async function verifyCmsSession(
       email: result.identity.email,
       mode: "cms-session",
       role: result.identity.role,
-      userId: result.identity.id
+      userId: result.identity.id,
+      sessionId: result.identity.sessionId,
+      isRoot: result.identity.isRoot,
+      reauthenticatedAt: result.identity.reauthenticatedAt,
+      mfaVerifiedAt: result.identity.mfaVerifiedAt
     },
     response: null
   };

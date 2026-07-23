@@ -38,7 +38,9 @@ function authenticated(role: "admin" | "editor" | "viewer" = "admin") {
       role,
       isRoot: role === "admin",
       sessionId: "admin-session-1",
-      sessionVersion: 3
+      sessionVersion: 3,
+      reauthenticatedAt: "2026-07-23T03:00:00.000Z",
+      mfaVerifiedAt: role === "admin" ? "2026-07-23T03:00:00.000Z" : ""
     }
   };
 }
@@ -54,7 +56,11 @@ describe("CMS Session Worker Admin access", () => {
         email: "admin@example.invalid",
         mode: "cms-session",
         role: "editor",
-        userId: "admin-user-1"
+        userId: "admin-user-1",
+        sessionId: "admin-session-1",
+        isRoot: false,
+        reauthenticatedAt: "2026-07-23T03:00:00.000Z",
+        mfaVerifiedAt: ""
       },
       response: null
     });

@@ -1,5 +1,6 @@
 const SESSION_COOKIE_NAME = "__Host-rcat_cms_session";
 const CSRF_COOKIE_NAME = "__Host-rcat_cms_csrf";
+const MFA_CHALLENGE_COOKIE_NAME = "__Host-rcat_cms_mfa_challenge";
 const COOKIE_MAX_AGE_SECONDS = 8 * 60 * 60;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
@@ -20,7 +21,7 @@ function readExactCookie(cookieHeader, name) {
     const cookieName = part.slice(0, separatorIndex).trim();
 
     if (cookieName === name) {
-      matches.push(part.slice(separatorIndex + 1).trim());
+      matches.push(part.slice(separatorIndex + 1));
     }
   }
 
@@ -43,6 +44,10 @@ export function getCmsCsrfCookieName() {
   return CSRF_COOKIE_NAME;
 }
 
+export function getCmsMfaChallengeCookieName() {
+  return MFA_CHALLENGE_COOKIE_NAME;
+}
+
 export function hasCmsSessionCookie(cookieHeader) {
   if (typeof cookieHeader !== "string") {
     return false;
@@ -54,12 +59,27 @@ export function hasCmsSessionCookie(cookieHeader) {
   });
 }
 
+export function hasCmsMfaChallengeCookie(cookieHeader) {
+  if (typeof cookieHeader !== "string") {
+    return false;
+  }
+
+  return cookieHeader.split(";").some((part) => {
+    const separatorIndex = part.indexOf("=");
+    return separatorIndex >= 0 && part.slice(0, separatorIndex).trim() === MFA_CHALLENGE_COOKIE_NAME;
+  });
+}
+
 export function readCmsSessionCookie(cookieHeader) {
   return readExactCookie(cookieHeader, SESSION_COOKIE_NAME);
 }
 
 export function readCmsCsrfCookie(cookieHeader) {
   return readExactCookie(cookieHeader, CSRF_COOKIE_NAME);
+}
+
+export function readCmsMfaChallengeCookie(cookieHeader) {
+  return readExactCookie(cookieHeader, MFA_CHALLENGE_COOKIE_NAME);
 }
 
 export function createCmsAuthCookies(sessionToken, csrfToken) {
@@ -78,4 +98,15 @@ export function clearCmsAuthCookies() {
     `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`,
     `${CSRF_COOKIE_NAME}=; Path=/; Secure; SameSite=Strict; Max-Age=0`
   ];
+}
+
+export function createCmsMfaChallengeCookie(token, maxAgeSeconds) {
+  if (!isValidCmsCookieToken(token) || !Number.isInteger(maxAgeSeconds) || ![5 * 60, 10 * 60].includes(maxAgeSeconds)) {
+    throw new TypeError("invalid CMS MFA challenge cookie");
+  }
+  return `${MFA_CHALLENGE_COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAgeSeconds}`;
+}
+
+export function clearCmsMfaChallengeCookie() {
+  return `${MFA_CHALLENGE_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`;
 }

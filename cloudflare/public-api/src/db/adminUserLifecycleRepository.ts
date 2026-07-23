@@ -27,6 +27,9 @@ export interface SafeAdminUserLifecycle {
   isRoot: boolean;
   mustChangePassword: boolean;
   mfaRequired: boolean;
+  mfaConfigured: boolean;
+  mfaEnabledAt: string | null;
+  recoveryCodesRemaining: number;
   credentialConfigured: boolean;
   invitationStatus: InvitationStatus;
   invitationExpiresAt: string | null;
@@ -46,6 +49,9 @@ export interface SafeAdminUserLifecycleRow {
   is_root: 0 | 1;
   must_change_password: 0 | 1;
   mfa_required: 0 | 1;
+  mfa_configured: 0 | 1;
+  mfa_enabled_at: string | null;
+  recovery_codes_remaining: number;
   credential_configured: 0 | 1;
   invitation_status: InvitationStatus;
   invitation_expires_at: string | null;
@@ -190,6 +196,13 @@ export const SAFE_ADMIN_USER_LIFECYCLE_SELECT_COLUMNS = [
   "u.is_root",
   "u.must_change_password",
   "u.mfa_required",
+  `CASE WHEN EXISTS (
+    SELECT 1 FROM admin_mfa_totp AS f WHERE f.user_id = u.id AND f.state = 'enabled'
+  ) THEN 1 ELSE 0 END AS mfa_configured`,
+  `(SELECT NULLIF(f.enabled_at, '') FROM admin_mfa_totp AS f
+    WHERE f.user_id = u.id AND f.state = 'enabled') AS mfa_enabled_at`,
+  `(SELECT COUNT(*) FROM admin_mfa_recovery_codes AS r
+    WHERE r.user_id = u.id AND r.used_at = '') AS recovery_codes_remaining`,
   `CASE WHEN EXISTS (SELECT 1 FROM admin_credentials AS c WHERE c.user_id = u.id) THEN 1 ELSE 0 END
     AS credential_configured`,
   `CASE
@@ -232,6 +245,9 @@ export function mapSafeAdminUserLifecycle(row: SafeAdminUserLifecycleRow): SafeA
     isRoot: row.is_root === 1,
     mustChangePassword: row.must_change_password === 1,
     mfaRequired: row.mfa_required === 1,
+    mfaConfigured: row.mfa_configured === 1,
+    mfaEnabledAt: row.mfa_enabled_at ?? null,
+    recoveryCodesRemaining: Number(row.recovery_codes_remaining ?? 0),
     credentialConfigured: row.credential_configured === 1,
     invitationStatus: row.invitation_status ?? "none",
     invitationExpiresAt: row.invitation_expires_at ?? null,
@@ -550,6 +566,11 @@ export function createAdminUserLifecycleRepository(env: Env): AdminUserLifecycle
             .bind(input.now, input.userId),
           db
             .prepare("UPDATE admin_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at = ''")
+            .bind(input.now, input.userId),
+          db
+            .prepare(
+              "UPDATE admin_mfa_challenges SET revoked_at = ? WHERE user_id = ? AND consumed_at = '' AND revoked_at = ''"
+            )
             .bind(input.now, input.userId)
         ]);
       } catch (error) {
@@ -664,6 +685,11 @@ export function createAdminUserLifecycleRepository(env: Env): AdminUserLifecycle
             .bind(input.now, input.actor, input.userId),
           db
             .prepare("UPDATE admin_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at = ''")
+            .bind(input.now, input.userId),
+          db
+            .prepare(
+              "UPDATE admin_mfa_challenges SET revoked_at = ? WHERE user_id = ? AND consumed_at = '' AND revoked_at = ''"
+            )
             .bind(input.now, input.userId)
         ]);
       } catch (error) {
@@ -711,6 +737,11 @@ export function createAdminUserLifecycleRepository(env: Env): AdminUserLifecycle
             .bind(input.now, input.userId),
           db
             .prepare(
+              "UPDATE admin_mfa_challenges SET revoked_at = ? WHERE user_id = ? AND consumed_at = '' AND revoked_at = ''"
+            )
+            .bind(input.now, input.userId),
+          db
+            .prepare(
               `UPDATE admin_password_reset_tokens SET revoked_at = ?
                WHERE user_id = ? AND used_at = '' AND revoked_at = ''`
             )
@@ -737,7 +768,14 @@ export function createAdminUserLifecycleRepository(env: Env): AdminUserLifecycle
           db
             .prepare("UPDATE app_admin_users SET session_version = session_version + 1, updated_at = ? WHERE id = ?")
             .bind(now, userId),
-          db.prepare("UPDATE admin_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at = ''").bind(now, userId)
+          db
+            .prepare("UPDATE admin_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at = ''")
+            .bind(now, userId),
+          db
+            .prepare(
+              "UPDATE admin_mfa_challenges SET revoked_at = ? WHERE user_id = ? AND consumed_at = '' AND revoked_at = ''"
+            )
+            .bind(now, userId)
         ]);
       } catch (error) {
         classifyConflict(error, "ineligible_user");
@@ -805,6 +843,11 @@ export function createAdminUserLifecycleRepository(env: Env): AdminUserLifecycle
             ),
           db
             .prepare("UPDATE admin_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at = ''")
+            .bind(input.now, input.userId),
+          db
+            .prepare(
+              "UPDATE admin_mfa_challenges SET revoked_at = ? WHERE user_id = ? AND consumed_at = '' AND revoked_at = ''"
+            )
             .bind(input.now, input.userId),
           db
             .prepare(

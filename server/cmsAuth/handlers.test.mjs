@@ -7,6 +7,7 @@ import {
   CMS_CLIENT_IP_HEADER,
   CMS_CSRF_TOKEN_HEADER,
   CMS_NEW_CSRF_TOKEN_HEADER,
+  CMS_NEW_MFA_CHALLENGE_TOKEN_HEADER,
   CMS_NEW_SESSION_TOKEN_HEADER,
   CMS_SESSION_TOKEN_HEADER,
   CMS_USER_AGENT_HEADER,
@@ -15,6 +16,8 @@ import {
   handleCmsAuthLogin,
   handleCmsInvitationAccept,
   handleCmsInvitationInspect,
+  handleCmsMfaSetupStart,
+  handleCmsMfaVerify,
   handleCmsAuthLogout,
   handleCmsAuthLogoutAll,
   handleCmsPasswordResetComplete,
@@ -24,7 +27,9 @@ import {
 import {
   createCmsAuthCookies,
   getCmsCsrfCookieName,
+  getCmsMfaChallengeCookieName,
   getCmsSessionCookieName,
+  hasCmsMfaChallengeCookie,
   readCmsCsrfCookie,
   readCmsSessionCookie
 } from "./cookies.mjs";
@@ -32,6 +37,7 @@ import {
 const proxySecret = "test-only-cms-proxy-secret-repeated-000000000000";
 const sessionToken = "A".repeat(43);
 const csrfToken = "B".repeat(43);
+const challengeToken = "C".repeat(43);
 const legacyCookie = "__Host-rcat_admin_proxy_session=legacy-value";
 const safeUser = {
   id: "admin-user-1",
@@ -41,7 +47,9 @@ const safeUser = {
   role: "admin",
   isRoot: true,
   sessionId: "admin-session-1",
-  sessionVersion: 3
+  sessionVersion: 3,
+  reauthenticatedAt: "2026-07-22T03:00:00.000Z",
+  mfaVerifiedAt: "2026-07-22T03:00:00.000Z"
 };
 
 function env(overrides = {}) {
@@ -267,6 +275,94 @@ describe("Vercel CMS-auth handlers", () => {
     expect(result.bodyText).not.toContain(sessionToken);
     expect(result.bodyText).not.toContain(csrfToken);
     expect(result.getHeader("x-worker-private")).toBeUndefined();
+  });
+
+  it("turns the private Login challenge header into one hardened HttpOnly challenge cookie", async () => {
+    const result = response();
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ mfaRequired: true, enrollmentRequired: false }), {
+          status: 202,
+          headers: { [CMS_NEW_MFA_CHALLENGE_TOKEN_HEADER]: challengeToken }
+        })
+    );
+    await handleCmsAuthLogin(request({ method: "POST", body: { identifier: "admin", password: "password" } }), result, {
+      env: env(),
+      fetchImpl,
+      loginLimiter: createCmsLoginRateLimiter()
+    });
+    expect(result.statusCode).toBe(202);
+    expect(result.getHeader("set-cookie")).toBe(
+      `${getCmsMfaChallengeCookieName()}=${challengeToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=300`
+    );
+    expect(result.bodyText).not.toContain(challengeToken);
+  });
+
+  it("verifies an MFA challenge without browser-readable tokens and replaces it with CMS cookies", async () => {
+    const result = response();
+    const fetchImpl = vi.fn(async () => workerSuccess());
+    await handleCmsMfaVerify(
+      request({
+        method: "POST",
+        body: { totpCode: "123456" },
+        headers: { cookie: `${getCmsMfaChallengeCookieName()}=${challengeToken}` }
+      }),
+      result,
+      { env: env(), fetchImpl, mfaLimiter: createCmsLoginRateLimiter() }
+    );
+    expect(result.statusCode).toBe(200);
+    expect(result.getHeader("set-cookie")).toHaveLength(3);
+    expect(result.getHeader("set-cookie")[2]).toContain(`${getCmsMfaChallengeCookieName()}=`);
+    expect(result.getHeader("set-cookie")[2]).toContain("Max-Age=0");
+    expect(result.bodyText).not.toContain(challengeToken);
+    expect(result.bodyText).not.toContain(sessionToken);
+  });
+
+  it("uses the CMS session and matching browser CSRF for self-service enrollment start", async () => {
+    const result = response();
+    const fetchImpl = vi.fn(async () =>
+      Response.json({
+        manualEntryKey: "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+        otpAuthUri: "otpauth://totp/example",
+        expiresAt: "2026-07-23T03:10:00.000Z"
+      })
+    );
+    await handleCmsMfaSetupStart(
+      request({
+        method: "POST",
+        headers: { cookie: cmsCookieHeader(), [CMS_BROWSER_CSRF_HEADER]: csrfToken }
+      }),
+      result,
+      { env: env(), fetchImpl, mfaLimiter: createCmsLoginRateLimiter() }
+    );
+    expect(result.statusCode).toBe(200);
+    const headers = new Headers(fetchImpl.mock.calls[0][1].headers);
+    expect(headers.get(CMS_SESSION_TOKEN_HEADER)).toBe(sessionToken);
+    expect(headers.get(CMS_CSRF_TOKEN_HEADER)).toBe(csrfToken);
+  });
+
+  it("rejects duplicate challenge cookies instead of falling back to a valid CMS session", async () => {
+    const result = response();
+    const duplicateChallengeCookies =
+      `${getCmsMfaChallengeCookieName()}=${challengeToken}; ` +
+      `${getCmsMfaChallengeCookieName()}=${"D".repeat(43)}; ${cmsCookieHeader()}`;
+    expect(hasCmsMfaChallengeCookie(duplicateChallengeCookies)).toBe(true);
+    await handleCmsMfaSetupStart(
+      request({
+        method: "POST",
+        headers: {
+          cookie: duplicateChallengeCookies,
+          [CMS_BROWSER_CSRF_HEADER]: csrfToken
+        }
+      }),
+      result,
+      {
+        env: env(),
+        fetchImpl: vi.fn(),
+        mfaLimiter: createCmsLoginRateLimiter()
+      }
+    );
+    expect(result.statusCode).toBe(401);
   });
 
   it.each([

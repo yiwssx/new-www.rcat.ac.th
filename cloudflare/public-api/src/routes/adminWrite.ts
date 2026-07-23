@@ -9,6 +9,9 @@ import {
   requireAdminCapability,
   requireAnyAdminCapability
 } from "../auth/adminCapabilities";
+import { requireAdminStepUp } from "../auth/adminStepUp";
+import { resolveMfaFactorProof } from "../auth/cmsMfaService";
+import { verifyCmsPassword } from "../auth/cmsPassword";
 import {
   isSupportedAdminRoutePath,
   resolveAdminRoutePolicy,
@@ -21,6 +24,7 @@ import {
   hashPasswordResetToken
 } from "../auth/cmsLifecycleToken";
 import { listPublishedContentRows } from "../db/contentRepository";
+import { AdminMfaConflict, createAdminMfaRepository } from "../db/adminMfaRepository";
 import { requireD1Database } from "../db/documentsRepository";
 import {
   AdminUserLifecycleConflict,
@@ -1623,6 +1627,88 @@ async function handleUsers(
   if (segments.length === 3) {
     const action = segments[2];
 
+    if (action === "mfa-requirement" && request.method === "POST") {
+      const body = await parseJsonBody(request);
+      if (
+        typeof body.required !== "boolean" ||
+        !Number.isInteger(body.expectedRevision) ||
+        Number(body.expectedRevision) < 0 ||
+        Object.keys(body).some((field) => !["required", "expectedRevision"].includes(field))
+      ) {
+        throw new AdminHttpError("MFA requirement request is invalid", 400, { resource: "admin-users" });
+      }
+      if (existing.isRoot && body.required === false) {
+        throw new AdminHttpError("Root MFA requirement cannot be disabled", 403, { resource: "admin-users" });
+      }
+      const mfaRepository = createAdminMfaRepository(env);
+      try {
+        await mfaRepository.setMfaRequirement({
+          userId: id,
+          required: body.required,
+          expectedRevision: Number(body.expectedRevision),
+          actor,
+          now
+        });
+      } catch (error) {
+        if (error instanceof AdminMfaConflict) {
+          throw new AdminHttpError("stale revision", 409, { resource: "admin-users" });
+        }
+        throw error;
+      }
+      const item = await repository.readSafeUserLifecycleStatus(id, now);
+      return noStoreAdmin(json({ item }));
+    }
+
+    if (action === "mfa" && request.method === "DELETE") {
+      const mfaRepository = createAdminMfaRepository(env);
+      const state = await mfaRepository.getUserState(id);
+      if (!state?.factor || state.factor.state !== "enabled") {
+        throw new AdminHttpError("MFA is not configured", 409, { resource: "admin-users" });
+      }
+      if (existing.isRoot) {
+        if (!isSelfUser(identity, existing) || identity.isRoot !== true) {
+          throw new AdminHttpError("only Root may reset the Root MFA factor", 403, { resource: "admin-users" });
+        }
+        const body = await parseJsonBody(request);
+        const credential = await repository.getCredentialByUserId(id);
+        if (
+          typeof body.currentPassword !== "string" ||
+          !credential ||
+          !(await verifyCmsPassword(body.currentPassword, credential.password_hash, credential.password_algorithm))
+        ) {
+          throw new AdminHttpError("MFA reset verification failed", 401, { resource: "admin-users" });
+        }
+        let proof;
+        try {
+          proof = await resolveMfaFactorProof({
+            env,
+            record: state,
+            totpCode: body.totpCode,
+            recoveryCode: body.recoveryCode,
+            now: nowDate,
+            repository: mfaRepository
+          });
+        } catch {
+          throw new AdminHttpError("CMS authentication is unavailable", 503, {
+            resource: "admin-users"
+          });
+        }
+        if (!proof) {
+          throw new AdminHttpError("MFA reset verification failed", 401, { resource: "admin-users" });
+        }
+      }
+      try {
+        await mfaRepository.resetMfaFactor({ userId: id, actor, now });
+      } catch (error) {
+        if (error instanceof AdminMfaConflict) {
+          throw new AdminHttpError("MFA is not configured", 409, { resource: "admin-users" });
+        }
+        throw error;
+      }
+      const item = await repository.readSafeUserLifecycleStatus(id, now);
+      return noStoreAdmin(json({ item, reset: true }));
+    }
+
     if (action === "invitations" && request.method === "POST") {
       if (existing.isRoot || existing.status !== "active") {
         throw new AdminHttpError("invitation is not available for this user", 409, { resource: "admin-users" });
@@ -1990,6 +2076,25 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
 
   if (permissionResponse) {
     return permissionResponse;
+  }
+
+  if (
+    userUpdateAuthorization?.scope === "self" &&
+    authResult.identity.mode === "cms-session" &&
+    authResult.identity.userId !== segments[1]
+  ) {
+    return userManagementDenied();
+  }
+
+  const stepUpResponse = await requireAdminStepUp({
+    env,
+    identity: authResult.identity,
+    method: request.method,
+    segments
+  });
+
+  if (stepUpResponse) {
+    return stepUpResponse;
   }
 
   try {

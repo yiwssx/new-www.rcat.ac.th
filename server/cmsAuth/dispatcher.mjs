@@ -5,9 +5,15 @@ import {
   handleCmsAuthSession,
   handleCmsInvitationAccept,
   handleCmsInvitationInspect,
+  handleCmsMfaDisable,
+  handleCmsMfaRecoveryRegenerate,
+  handleCmsMfaSetupConfirm,
+  handleCmsMfaSetupStart,
+  handleCmsMfaVerify,
   handleCmsPasswordChange,
   handleCmsPasswordResetComplete,
-  handleCmsPasswordResetInspect
+  handleCmsPasswordResetInspect,
+  handleCmsReauthenticate
 } from "./handlers.mjs";
 
 const ROUTE_PARAMETER = "_rcatCmsRoute";
@@ -41,6 +47,28 @@ export const CMS_AUTH_ROUTE_TABLE = Object.freeze([
     id: "password-reset-complete",
     publicPath: "/api/cms-auth/password-reset/complete",
     handler: handleCmsPasswordResetComplete
+  }),
+  Object.freeze({ id: "mfa-verify", publicPath: "/api/cms-auth/mfa/verify", handler: handleCmsMfaVerify }),
+  Object.freeze({
+    id: "mfa-setup-start",
+    publicPath: "/api/cms-auth/mfa/setup/start",
+    handler: handleCmsMfaSetupStart
+  }),
+  Object.freeze({
+    id: "mfa-setup-confirm",
+    publicPath: "/api/cms-auth/mfa/setup/confirm",
+    handler: handleCmsMfaSetupConfirm
+  }),
+  Object.freeze({
+    id: "mfa-recovery-regenerate",
+    publicPath: "/api/cms-auth/mfa/recovery-codes/regenerate",
+    handler: handleCmsMfaRecoveryRegenerate
+  }),
+  Object.freeze({ id: "mfa-disable", publicPath: "/api/cms-auth/mfa", handler: handleCmsMfaDisable }),
+  Object.freeze({
+    id: "reauthenticate",
+    publicPath: "/api/cms-auth/reauthenticate",
+    handler: handleCmsReauthenticate
   })
 ]);
 

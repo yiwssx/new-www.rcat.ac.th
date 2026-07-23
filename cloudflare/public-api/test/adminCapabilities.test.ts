@@ -47,10 +47,14 @@ const EXPECTED_CAPABILITIES = [
   "users.invite",
   "users.reset-password",
   "users.revoke-sessions",
+  "users.mfa.require",
+  "users.mfa.reset",
   "backup.counts",
   "backup.download",
   "auth.bootstrap-root-credential",
   "auth.change-password-self",
+  "auth.reauthenticate-self",
+  "auth.mfa.manage-self",
   "public-contracts.read"
 ] as const satisfies readonly AdminCapability[];
 
@@ -80,6 +84,8 @@ const EXPECTED_EDITOR_CAPABILITIES = [
   "users.read-self",
   "users.update-self",
   "auth.change-password-self",
+  "auth.reauthenticate-self",
+  "auth.mfa.manage-self",
   "public-contracts.read"
 ] as const satisfies readonly AdminCapability[];
 
@@ -97,13 +103,15 @@ const EXPECTED_VIEWER_CAPABILITIES = [
   "visitor-stats.read",
   "users.read-self",
   "auth.change-password-self",
+  "auth.reauthenticate-self",
+  "auth.mfa.manage-self",
   "public-contracts.read"
 ] as const satisfies readonly AdminCapability[];
 
 describe("Admin capability registry", () => {
   it("contains each exact capability once and has no wildcard", () => {
     expect(ADMIN_CAPABILITIES).toEqual(EXPECTED_CAPABILITIES);
-    expect(ADMIN_CAPABILITIES).toHaveLength(41);
+    expect(ADMIN_CAPABILITIES).toHaveLength(45);
     expect(new Set(ADMIN_CAPABILITIES).size).toBe(ADMIN_CAPABILITIES.length);
     expect(ADMIN_CAPABILITIES).not.toContain("*" as AdminCapability);
   });
@@ -122,6 +130,8 @@ describe("Admin capability registry", () => {
     expect(hasAdminCapability("editor", "users.update-self")).toBe(true);
     expect(hasAdminCapability("editor", "users.update-any")).toBe(false);
     expect(hasAdminCapability("editor", "auth.change-password-self")).toBe(true);
+    expect(hasAdminCapability("editor", "auth.reauthenticate-self")).toBe(true);
+    expect(hasAdminCapability("editor", "auth.mfa.manage-self")).toBe(true);
     expect(hasAdminCapability("editor", "users.invite")).toBe(false);
     expect(hasAdminCapability("editor", "users.reset-password")).toBe(false);
     expect(hasAdminCapability("editor", "users.revoke-sessions")).toBe(false);
@@ -133,10 +143,12 @@ describe("Admin capability registry", () => {
         !capability.endsWith(".read") &&
         capability !== "users.read-self" &&
         capability !== "users.read-all" &&
-        capability !== "auth.change-password-self"
+        !["auth.change-password-self", "auth.reauthenticate-self", "auth.mfa.manage-self"].includes(capability)
     );
     expect(mutationCapabilities.every((capability) => !hasAdminCapability("viewer", capability))).toBe(true);
     expect(hasAdminCapability("viewer", "auth.change-password-self")).toBe(true);
+    expect(hasAdminCapability("viewer", "auth.reauthenticate-self")).toBe(true);
+    expect(hasAdminCapability("viewer", "auth.mfa.manage-self")).toBe(true);
   });
 
   it.each([undefined, null, "", "root", "ADMIN", {}, { role: "" }, { role: "invalid" }])(

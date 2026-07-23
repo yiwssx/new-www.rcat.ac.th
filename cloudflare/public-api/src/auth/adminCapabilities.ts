@@ -38,10 +38,14 @@ export const ADMIN_CAPABILITIES = Object.freeze([
   "users.invite",
   "users.reset-password",
   "users.revoke-sessions",
+  "users.mfa.require",
+  "users.mfa.reset",
   "backup.counts",
   "backup.download",
   "auth.bootstrap-root-credential",
   "auth.change-password-self",
+  "auth.reauthenticate-self",
+  "auth.mfa.manage-self",
   "public-contracts.read"
 ] as const);
 
@@ -73,6 +77,8 @@ const EDITOR_CAPABILITIES = Object.freeze([
   "users.read-self",
   "users.update-self",
   "auth.change-password-self",
+  "auth.reauthenticate-self",
+  "auth.mfa.manage-self",
   "public-contracts.read"
 ] as const satisfies readonly AdminCapability[]);
 
@@ -90,6 +96,8 @@ const VIEWER_CAPABILITIES = Object.freeze([
   "visitor-stats.read",
   "users.read-self",
   "auth.change-password-self",
+  "auth.reauthenticate-self",
+  "auth.mfa.manage-self",
   "public-contracts.read"
 ] as const satisfies readonly AdminCapability[]);
 

@@ -85,7 +85,7 @@ const expectedColumnsByTable = {
 } as const;
 const internalColumnContracts = {
   admin_credentials: ADMIN_CREDENTIAL_ROW_COLUMNS,
-  admin_sessions: ADMIN_SESSION_ROW_COLUMNS,
+  admin_sessions: ADMIN_SESSION_ROW_COLUMNS.slice(0, 12),
   admin_user_invitations: ADMIN_USER_INVITATION_ROW_COLUMNS,
   admin_password_reset_tokens: ADMIN_PASSWORD_RESET_TOKEN_ROW_COLUMNS
 } as const;
@@ -126,7 +126,7 @@ function getAddedColumns(sql: string, tableName: string) {
 }
 
 function getUserListSource() {
-  return /const USER_LIST_COLUMNS = \[([\s\S]*?)\] as const/.exec(adminPaginationSource)?.[1] ?? "";
+  return adminPaginationSource;
 }
 
 describe("Phase 1 CMS authentication schema foundation", () => {

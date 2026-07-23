@@ -9,9 +9,15 @@ import {
   handleCmsAuthSession,
   handleCmsInvitationAccept,
   handleCmsInvitationInspect,
+  handleCmsMfaDisable,
+  handleCmsMfaRecoveryRegenerate,
+  handleCmsMfaSetupConfirm,
+  handleCmsMfaSetupStart,
+  handleCmsMfaVerify,
   handleCmsPasswordChange,
   handleCmsPasswordResetComplete,
-  handleCmsPasswordResetInspect
+  handleCmsPasswordResetInspect,
+  handleCmsReauthenticate
 } from "./handlers.mjs";
 
 const routes = [
@@ -35,7 +41,17 @@ const routes = [
     id: "password-reset-complete",
     publicPath: "/api/cms-auth/password-reset/complete",
     handler: handleCmsPasswordResetComplete
-  }
+  },
+  { id: "mfa-verify", publicPath: "/api/cms-auth/mfa/verify", handler: handleCmsMfaVerify },
+  { id: "mfa-setup-start", publicPath: "/api/cms-auth/mfa/setup/start", handler: handleCmsMfaSetupStart },
+  { id: "mfa-setup-confirm", publicPath: "/api/cms-auth/mfa/setup/confirm", handler: handleCmsMfaSetupConfirm },
+  {
+    id: "mfa-recovery-regenerate",
+    publicPath: "/api/cms-auth/mfa/recovery-codes/regenerate",
+    handler: handleCmsMfaRecoveryRegenerate
+  },
+  { id: "mfa-disable", publicPath: "/api/cms-auth/mfa", handler: handleCmsMfaDisable },
+  { id: "reauthenticate", publicPath: "/api/cms-auth/reauthenticate", handler: handleCmsReauthenticate }
 ];
 
 function createRequest({ url, method = "PATCH", headers = {}, body = { marker: "body" } }) {

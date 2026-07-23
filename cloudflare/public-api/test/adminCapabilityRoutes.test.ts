@@ -142,7 +142,9 @@ function currentCmsIdentity(
       role,
       isRoot: role === "admin",
       sessionId: "must-not-be-exposed",
-      sessionVersion: 7
+      sessionVersion: 7,
+      reauthenticatedAt: new Date().toISOString(),
+      mfaVerifiedAt: role === "admin" ? new Date().toISOString() : ""
     }
   };
 }

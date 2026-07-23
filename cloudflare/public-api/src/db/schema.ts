@@ -526,6 +526,8 @@ export interface AdminSessionRow {
   revoked_at: string;
   ip_hash: string;
   user_agent_hash: string;
+  reauthenticated_at: string;
+  mfa_verified_at: string;
 }
 
 export const ADMIN_SESSION_ROW_COLUMNS = [
@@ -540,8 +542,80 @@ export const ADMIN_SESSION_ROW_COLUMNS = [
   "session_version",
   "revoked_at",
   "ip_hash",
-  "user_agent_hash"
+  "user_agent_hash",
+  "reauthenticated_at",
+  "mfa_verified_at"
 ] as const satisfies readonly (keyof AdminSessionRow)[];
+
+export interface AdminMfaTotpRow {
+  user_id: string;
+  encrypted_secret: string;
+  iv: string;
+  key_version: string;
+  state: "pending" | "enabled";
+  created_at: string;
+  enabled_at: string;
+  updated_at: string;
+  last_used_step: number;
+}
+
+export const ADMIN_MFA_TOTP_ROW_COLUMNS = [
+  "user_id",
+  "encrypted_secret",
+  "iv",
+  "key_version",
+  "state",
+  "created_at",
+  "enabled_at",
+  "updated_at",
+  "last_used_step"
+] as const satisfies readonly (keyof AdminMfaTotpRow)[];
+
+export interface AdminMfaRecoveryCodeRow {
+  id: string;
+  user_id: string;
+  code_hash: string;
+  created_at: string;
+  used_at: string;
+}
+
+export const ADMIN_MFA_RECOVERY_CODE_ROW_COLUMNS = [
+  "id",
+  "user_id",
+  "code_hash",
+  "created_at",
+  "used_at"
+] as const satisfies readonly (keyof AdminMfaRecoveryCodeRow)[];
+
+export interface AdminMfaChallengeRow {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  purpose: "login" | "enrollment";
+  created_at: string;
+  expires_at: string;
+  consumed_at: string;
+  revoked_at: string;
+  failed_attempt_count: number;
+  user_session_version: number;
+  ip_hash: string;
+  user_agent_hash: string;
+}
+
+export const ADMIN_MFA_CHALLENGE_ROW_COLUMNS = [
+  "id",
+  "user_id",
+  "token_hash",
+  "purpose",
+  "created_at",
+  "expires_at",
+  "consumed_at",
+  "revoked_at",
+  "failed_attempt_count",
+  "user_session_version",
+  "ip_hash",
+  "user_agent_hash"
+] as const satisfies readonly (keyof AdminMfaChallengeRow)[];
 
 export interface AdminUserInvitationRow {
   id: string;
