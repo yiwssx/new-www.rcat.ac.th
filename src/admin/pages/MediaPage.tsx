@@ -340,8 +340,8 @@ function showMediaLoadingModal(title: string) {
 
 export default function MediaPage() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const canManage = canManageMedia(session?.user);
+  const { capabilities } = useAuth();
+  const canManage = canManageMedia(capabilities);
   const {
     page,
     pageSize,

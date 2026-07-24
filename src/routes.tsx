@@ -1,7 +1,10 @@
 import { Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import {
+  AccountSecurityPage,
+  ActivateAccountPage,
   BackupPage,
   CalendarPage,
+  CapabilityGuard,
   CarouselPage,
   ContentPage,
   DashboardPage,
@@ -25,6 +28,7 @@ import {
   PublicNewsPage,
   PublicSearchPage,
   RootRouteLayout,
+  ResetPasswordPage,
   SettingsPage,
   UsersPage
 } from "./routeComponents";
@@ -118,6 +122,18 @@ const loginRoute = createRoute({
   component: LoginPage
 });
 
+const activateAccountRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "activate-account",
+  component: ActivateAccountPage
+});
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "reset-password",
+  component: ResetPasswordPage
+});
+
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "admin",
@@ -127,73 +143,133 @@ const adminRoute = createRoute({
 const adminDashboardRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "/",
-  component: DashboardPage
+  component: () => (
+    <CapabilityGuard capability="dashboard.read">
+      <DashboardPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminContentRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "content",
-  component: ContentPage
+  component: () => (
+    <CapabilityGuard capability="content.read">
+      <ContentPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminDocumentsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "documents",
-  component: DocumentsPage
+  component: () => (
+    <CapabilityGuard capability="documents.read">
+      <DocumentsPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminCarouselRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "carousel",
-  component: CarouselPage
+  component: () => (
+    <CapabilityGuard capability="carousel.read">
+      <CarouselPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminExternalServicesRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "external-services",
-  component: ExternalServicesPage
+  component: () => (
+    <CapabilityGuard capability="external-services.read">
+      <ExternalServicesPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminMediaRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "media",
-  component: MediaPage
+  component: () => (
+    <CapabilityGuard capability="media.read">
+      <MediaPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminCalendarRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "calendar",
-  component: CalendarPage
+  component: () => (
+    <CapabilityGuard capability="events.read">
+      <CalendarPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminMenuRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "menus",
-  component: MenuPage
+  component: () => (
+    <CapabilityGuard capability="menu.read">
+      <MenuPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminIntegrationsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "integrations",
-  component: IntegrationsPage
+  component: () => (
+    <CapabilityGuard capability="media.read">
+      <IntegrationsPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminSettingsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "settings",
-  component: SettingsPage
+  component: () => (
+    <CapabilityGuard capability="settings.read">
+      <SettingsPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminUsersRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "users",
-  component: UsersPage
+  component: () => (
+    <CapabilityGuard capability="users.read-all">
+      <UsersPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminBackupRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "backup",
-  component: BackupPage
+  component: () => (
+    <CapabilityGuard anyOf={["backup.counts", "backup.download"]}>
+      <BackupPage />
+    </CapabilityGuard>
+  )
+});
+
+const adminAccountSecurityRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "account/security",
+  component: () => (
+    <CapabilityGuard
+      anyOf={["users.read-self", "auth.change-password-self", "auth.reauthenticate-self", "auth.mfa.manage-self"]}
+    >
+      <AccountSecurityPage />
+    </CapabilityGuard>
+  )
 });
 
 const routeTree = rootRoute.addChildren([
@@ -210,7 +286,9 @@ const routeTree = rootRoute.addChildren([
     publicSearchRoute,
     publicContentDetailRoute,
     publicPermalinkRoute,
-    loginRoute
+    loginRoute,
+    activateAccountRoute,
+    resetPasswordRoute
   ]),
   adminRoute.addChildren([
     adminDashboardRoute,
@@ -224,7 +302,8 @@ const routeTree = rootRoute.addChildren([
     adminIntegrationsRoute,
     adminSettingsRoute,
     adminUsersRoute,
-    adminBackupRoute
+    adminBackupRoute,
+    adminAccountSecurityRoute
   ])
 ]);
 

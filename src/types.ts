@@ -10,6 +10,9 @@ import type { ContentItem } from "./features/public-content/types";
 import type { PublicDocumentItem } from "./features/public-documents/types";
 import type { VisitorStatsSettings } from "./features/visitor-stats/types";
 
+export type { CmsAuthStatus, CmsRole, CmsSafeUser, CmsSession } from "./features/cms-auth/types";
+export type { CmsCapability } from "./features/cms-auth/capabilities";
+
 export type { CarouselSlide } from "./features/cms-carousel/types";
 export type { DashboardMetric } from "./features/cms-dashboard/types";
 export type { CmsDocumentItem, DocumentStatus } from "./features/cms-documents/types";

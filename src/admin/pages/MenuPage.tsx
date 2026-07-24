@@ -206,8 +206,8 @@ function flattenMenuOrder(items: readonly AdminMenuOrderItem[]) {
 
 export default function MenuPage() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const canManage = canManageMenu(session?.user);
+  const { capabilities } = useAuth();
+  const canManage = canManageMenu(capabilities);
   const {
     page,
     pageSize,

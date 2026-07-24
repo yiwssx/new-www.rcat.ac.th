@@ -30,93 +30,87 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
+import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
 import { useAuth } from "../../context/authSessionContext";
+import { hasAnyCmsCapability, type CmsCapability } from "../../features/cms-auth";
 import { appSwal } from "../../utils/swal";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData, canManageContent, canReadAdminData } from "../utils/rbac";
+import ReauthenticationDialog from "../components/ReauthenticationDialog";
 
 const drawerWidth = 280;
 
+type AdminPath =
+  | "/admin"
+  | "/admin/carousel"
+  | "/admin/external-services"
+  | "/admin/content"
+  | "/admin/documents"
+  | "/admin/media"
+  | "/admin/calendar"
+  | "/admin/menus"
+  | "/admin/integrations"
+  | "/admin/users"
+  | "/admin/backup"
+  | "/admin/settings"
+  | "/admin/account/security";
+
 interface NavItem {
   label: string;
-  to:
-    | "/admin"
-    | "/admin/carousel"
-    | "/admin/external-services"
-    | "/admin/content"
-    | "/admin/documents"
-    | "/admin/media"
-    | "/admin/calendar"
-    | "/admin/menus"
-    | "/admin/integrations"
-    | "/admin/users"
-    | "/admin/backup"
-    | "/admin/settings";
+  to: AdminPath;
   icon: ReactNode;
+  capabilities: readonly CmsCapability[];
 }
 
 const navItems: NavItem[] = [
-  {
-    label: "แดชบอร์ด",
-    to: "/admin",
-    icon: <DashboardOutlinedIcon />
-  },
-  {
-    label: "เนื้อหา",
-    to: "/admin/content",
-    icon: <ArticleOutlinedIcon />
-  },
+  { label: "แดชบอร์ด", to: "/admin", icon: <DashboardOutlinedIcon />, capabilities: ["dashboard.read"] },
+  { label: "เนื้อหา", to: "/admin/content", icon: <ArticleOutlinedIcon />, capabilities: ["content.read"] },
   {
     label: "เอกสารเผยแพร่",
     to: "/admin/documents",
-    icon: <DescriptionOutlinedIcon />
+    icon: <DescriptionOutlinedIcon />,
+    capabilities: ["documents.read"]
   },
   {
     label: "สไลด์หน้าแรก",
     to: "/admin/carousel",
-    icon: <ViewCarouselOutlinedIcon />
+    icon: <ViewCarouselOutlinedIcon />,
+    capabilities: ["carousel.read"]
   },
   {
     label: "E-Service",
     to: "/admin/external-services",
-    icon: <AppsOutlinedIcon />
+    icon: <AppsOutlinedIcon />,
+    capabilities: ["external-services.read"]
   },
+  { label: "สื่อ", to: "/admin/media", icon: <PermMediaOutlinedIcon />, capabilities: ["media.read"] },
+  { label: "ปฏิทิน", to: "/admin/calendar", icon: <EventAvailableOutlinedIcon />, capabilities: ["events.read"] },
+  { label: "เมนู", to: "/admin/menus", icon: <AccountTreeOutlinedIcon />, capabilities: ["menu.read"] },
   {
-    label: "สื่อ",
-    to: "/admin/media",
-    icon: <PermMediaOutlinedIcon />
-  },
-  {
-    label: "ปฏิทิน",
-    to: "/admin/calendar",
-    icon: <EventAvailableOutlinedIcon />
-  },
-  {
-    label: "เมนู",
-    to: "/admin/menus",
-    icon: <AccountTreeOutlinedIcon />
-  },
-  {
-    label: "ผู้ใช้",
+    label: "ผู้ใช้งาน",
     to: "/admin/users",
-    icon: <ManageAccountsOutlinedIcon />
+    icon: <ManageAccountsOutlinedIcon />,
+    capabilities: ["users.read-all"]
   },
   {
     label: "สำรองข้อมูล",
     to: "/admin/backup",
-    icon: <BackupOutlinedIcon />
+    icon: <BackupOutlinedIcon />,
+    capabilities: ["backup.counts", "backup.download"]
   },
   {
-    label: "Google APIs",
+    label: "การเชื่อมต่อ",
     to: "/admin/integrations",
-    icon: <CloudSyncOutlinedIcon />
+    icon: <CloudSyncOutlinedIcon />,
+    capabilities: ["media.read"]
   },
+  { label: "ตั้งค่า", to: "/admin/settings", icon: <SettingsOutlinedIcon />, capabilities: ["settings.read"] },
   {
-    label: "ตั้งค่า",
-    to: "/admin/settings",
-    icon: <SettingsOutlinedIcon />
+    label: "ความปลอดภัยบัญชี",
+    to: "/admin/account/security",
+    icon: <SecurityOutlinedIcon />,
+    capabilities: ["users.read-self", "auth.change-password-self", "auth.reauthenticate-self", "auth.mfa.manage-self"]
   }
 ];
 
@@ -126,18 +120,13 @@ export default function CmsShell() {
   const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { session, logout } = useAuth();
-  const canRead = canReadAdminData(session?.user);
-  const canManage = canManageAdminData(session?.user);
-  const canManageContentData = canManageContent(session?.user);
-  const visibleNavItems = canRead ? navItems : [];
-  const permissionLabel = canManage
-    ? "สิทธิ์จัดการทั้งหมด"
-    : canManageContentData
-      ? "สิทธิ์จัดการเนื้อหา"
-      : ADMIN_READ_ONLY_NOTICE;
+  const { capabilities, session, logout } = useAuth();
+  const visibleNavItems = navItems.filter((item) => hasAnyCmsCapability(capabilities, item.capabilities));
+  const permissionLabel = capabilities.some((capability) => !capability.endsWith(".read"))
+    ? "สิทธิ์การจัดการกำหนดโดยเซิร์ฟเวอร์"
+    : "สิทธิ์อ่านข้อมูลกำหนดโดยเซิร์ฟเวอร์";
 
-  function handleNavigate(to: NavItem["to"]) {
+  function handleNavigate(to: AdminPath) {
     void navigate({ to });
     setMobileOpen(false);
   }
@@ -156,8 +145,18 @@ export default function CmsShell() {
       return;
     }
 
-    await logout();
-    void navigate({ to: "/login", replace: true });
+    try {
+      await logout();
+    } catch {
+      await appSwal.fire({
+        icon: "warning",
+        title: "ออกจากระบบในอุปกรณ์นี้แล้ว",
+        text: "ไม่สามารถยืนยันผลกับเซิร์ฟเวอร์ได้ กรุณาเข้าสู่ระบบใหม่ก่อนใช้งาน CMS",
+        confirmButtonText: "ตกลง"
+      });
+    } finally {
+      void navigate({ to: "/login", replace: true });
+    }
   }
 
   const drawer = (
@@ -174,7 +173,7 @@ export default function CmsShell() {
             {getCmsSiteName()}
           </Typography>
           <Typography color="text.secondary" variant="body2">
-            {"ระบบบริหารจัดการเนื้อหา"}
+            ระบบบริหารจัดการเนื้อหา
           </Typography>
         </Box>
       </Stack>
@@ -206,7 +205,7 @@ export default function CmsShell() {
       </List>
       <Box sx={{ flex: 1 }} />
       <Divider />
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ p: 2 }}>
+      <Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ p: 2 }}>
         <Avatar sx={{ bgcolor: "secondary.main", color: "secondary.contrastText" }}>
           {session?.user.name.slice(0, 1) ?? "A"}
         </Avatar>
@@ -217,8 +216,18 @@ export default function CmsShell() {
           <Typography color="text.secondary" variant="body2" noWrap>
             {session?.user.email}
           </Typography>
-          <Typography color="text.secondary" variant="caption" noWrap>
+          <Typography color="text.secondary" variant="caption" display="block">
+            {session?.user.role}
+            {session?.user.isRoot ? " · Root" : ""}
+          </Typography>
+          <Typography color="text.secondary" variant="caption" display="block">
             {permissionLabel}
+          </Typography>
+          <Typography color="text.secondary" variant="caption" display="block">
+            รหัสผ่านล่าสุด: {session?.user.recentPasswordAuthentication ? "ยืนยันแล้ว" : "ต้องยืนยันใหม่"}
+          </Typography>
+          <Typography color="text.secondary" variant="caption" display="block">
+            MFA ล่าสุด: {session?.user.recentMfaAuthentication ? "ยืนยันแล้ว" : "ยังไม่ยืนยัน"}
           </Typography>
         </Box>
         <Tooltip title="ออกจากระบบ">
@@ -249,7 +258,7 @@ export default function CmsShell() {
             </IconButton>
           )}
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            {"ระบบจัดการเว็บไซต์"}
+            ระบบจัดการเว็บไซต์
           </Typography>
           <Box sx={{ flex: 1 }} />
         </Toolbar>
@@ -284,6 +293,7 @@ export default function CmsShell() {
       >
         <Outlet />
       </Box>
+      <ReauthenticationDialog />
     </Box>
   );
 }

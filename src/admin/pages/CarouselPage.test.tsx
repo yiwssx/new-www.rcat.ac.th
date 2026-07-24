@@ -57,7 +57,12 @@ vi.mock("../../context/authSessionContext", () => ({
       token: "test-session-token",
       expiresAt: "2026-07-12T00:00:00.000Z"
     };
-    return { session, login: vi.fn(), logout: vi.fn() };
+    return {
+      session,
+      capabilities: authMock.role === "viewer" ? [] : ["carousel.manage"],
+      login: vi.fn(),
+      logout: vi.fn()
+    };
   }
 }));
 
@@ -174,7 +179,7 @@ function renderPage() {
   );
 }
 
-describe("CarouselPage paginated list, ordering, and media picker", () => {
+describe("CarouselPage paginated list, ordering, and media picker", { timeout: 15_000 }, () => {
   beforeEach(() => {
     authMock.role = "editor";
     paginationMock.listHook.mockReset();

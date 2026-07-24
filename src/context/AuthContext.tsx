@@ -1,83 +1,183 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { projectSettings } from "../config/projectSettings";
-import { restoreSession } from "../services/authSession";
 import {
-  isAdminProxySessionEnabled,
-  loginCloudflareAdminProxySession,
-  logoutAdminProxySession,
-  ADMIN_PROXY_SESSION_EXPIRED_EVENT
-} from "../services/adminProxySession";
-import { Session } from "../types";
+  broadcastCmsSessionEvent,
+  clearProtectedAdminQueries,
+  CMS_SESSION_EXPIRED_EVENT,
+  getCmsCapabilities,
+  getCmsSession,
+  hasCmsCapability,
+  loginCmsAccount,
+  logoutAllCmsSessions,
+  logoutCmsSession,
+  reauthenticateCmsSession,
+  subscribeToCmsSessionEvents,
+  verifyCmsMfa,
+  CmsAuthError,
+  type CmsAuthStatus,
+  type CmsCapability,
+  type CmsLoginResult,
+  type CmsMfaProof,
+  type CmsSession
+} from "../features/cms-auth";
 import { AuthContext } from "./authSessionContext";
 
-function getInitialSession() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return restoreSession(window.localStorage.getItem(projectSettings.storageKeys.session));
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(() => getInitialSession());
+  const queryClient = useQueryClient();
+  const [status, setStatus] = useState<CmsAuthStatus>("bootstrapping");
+  const [session, setSession] = useState<CmsSession | null>(null);
+  const currentUserIdRef = useRef("");
 
-  useEffect(() => {
-    const handleProxySessionExpired = () => {
-      window.localStorage.removeItem(projectSettings.storageKeys.session);
+  const clearSession = useCallback(
+    (options: { broadcast?: boolean } = {}) => {
+      currentUserIdRef.current = "";
       setSession(null);
-    };
+      setStatus("unauthenticated");
+      clearProtectedAdminQueries(queryClient);
 
-    window.addEventListener(ADMIN_PROXY_SESSION_EXPIRED_EVENT, handleProxySessionExpired);
-    return () => window.removeEventListener(ADMIN_PROXY_SESSION_EXPIRED_EVENT, handleProxySessionExpired);
-  }, []);
+      if (options.broadcast) {
+        broadcastCmsSessionEvent("logged-out");
+      }
+    },
+    [queryClient]
+  );
 
-  const login = useCallback(async (email: string, password: string) => {
-    const proxySessionEnabled = isAdminProxySessionEnabled();
-    let nextSession: Session;
+  const refreshSession = useCallback(async () => {
+    setStatus("bootstrapping");
 
     try {
-      if (proxySessionEnabled) {
-        nextSession = await loginCloudflareAdminProxySession(email, password);
-      } else {
-        const { login: requestLogin } = await import("../services/auth");
-        nextSession = await requestLogin(email, password);
-      }
-    } catch (error) {
-      if (proxySessionEnabled) {
-        try {
-          await logoutAdminProxySession();
-        } catch {
-          // Preserve the original login error after a best-effort cookie cleanup.
-        }
+      const user = await getCmsSession();
+      const capabilityPayload = await getCmsCapabilities();
+
+      if (capabilityPayload.role !== user.role) {
+        throw new TypeError("CMS Session role does not match the capability role");
       }
 
-      window.localStorage.removeItem(projectSettings.storageKeys.session);
+      if (currentUserIdRef.current && currentUserIdRef.current !== user.id) {
+        clearProtectedAdminQueries(queryClient);
+      }
+
+      const nextSession: CmsSession = {
+        user,
+        capabilities: capabilityPayload.capabilities
+      };
+      currentUserIdRef.current = user.id;
+      setSession(nextSession);
+      setStatus("authenticated");
+      return nextSession;
+    } catch (error) {
+      currentUserIdRef.current = "";
       setSession(null);
+      clearProtectedAdminQueries(queryClient);
+
+      if (error instanceof CmsAuthError && error.status === 401) {
+        setStatus("unauthenticated");
+        return null;
+      }
+
+      setStatus("unavailable");
       throw error;
     }
+  }, [queryClient]);
 
-    window.localStorage.setItem(projectSettings.storageKeys.session, JSON.stringify(nextSession));
-    setSession(nextSession);
-  }, []);
+  const login = useCallback(
+    async (identifier: string, password: string): Promise<CmsLoginResult> => {
+      const result = await loginCmsAccount(identifier, password);
+
+      if (result.kind === "authenticated") {
+        await refreshSession();
+        broadcastCmsSessionEvent("session-changed");
+      }
+
+      return result;
+    },
+    [refreshSession]
+  );
+
+  const verifyMfa = useCallback(
+    async (proof: CmsMfaProof) => {
+      await verifyCmsMfa(proof);
+      const nextSession = await refreshSession();
+
+      if (!nextSession) {
+        throw new CmsAuthError(401);
+      }
+
+      broadcastCmsSessionEvent("session-changed");
+      return nextSession;
+    },
+    [refreshSession]
+  );
 
   const logout = useCallback(async () => {
     try {
-      if (isAdminProxySessionEnabled()) {
-        await logoutAdminProxySession();
-      }
+      await logoutCmsSession();
     } finally {
-      window.localStorage.removeItem(projectSettings.storageKeys.session);
-      setSession(null);
+      clearSession({ broadcast: true });
     }
-  }, []);
+  }, [clearSession]);
+
+  const logoutAll = useCallback(async () => {
+    try {
+      await logoutAllCmsSessions();
+    } finally {
+      clearSession({ broadcast: true });
+    }
+  }, [clearSession]);
+
+  const reauthenticate = useCallback(
+    async (input: { currentPassword: string } & Partial<CmsMfaProof>) => {
+      await reauthenticateCmsSession(input);
+      await refreshSession();
+      broadcastCmsSessionEvent("session-changed");
+    },
+    [refreshSession]
+  );
+
+  const hasCapability = useCallback(
+    (capability: CmsCapability) => hasCmsCapability(session?.capabilities, capability),
+    [session?.capabilities]
+  );
+
+  useEffect(() => {
+    window.localStorage.removeItem(projectSettings.storageKeys.session);
+    const bootstrapTimer = window.setTimeout(() => {
+      void refreshSession().catch(() => undefined);
+    }, 0);
+
+    return () => window.clearTimeout(bootstrapTimer);
+  }, [refreshSession]);
+
+  useEffect(() => {
+    const handleSessionExpired = () => clearSession({ broadcast: true });
+    const unsubscribe = subscribeToCmsSessionEvents(() => {
+      void refreshSession().catch(() => undefined);
+    });
+
+    window.addEventListener(CMS_SESSION_EXPIRED_EVENT, handleSessionExpired);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener(CMS_SESSION_EXPIRED_EVENT, handleSessionExpired);
+    };
+  }, [clearSession, refreshSession]);
 
   const value = useMemo(
     () => ({
+      status,
       session,
+      capabilities: session?.capabilities ?? [],
+      refreshSession,
       login,
-      logout
+      verifyMfa,
+      logout,
+      logoutAll,
+      reauthenticate,
+      hasCapability,
+      clearSession
     }),
-    [login, logout, session]
+    [clearSession, hasCapability, login, logout, logoutAll, reauthenticate, refreshSession, session, status, verifyMfa]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

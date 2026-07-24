@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { CmsCapability } from "../../features/cms-auth";
 import {
+  canDownloadSystemBackup,
   canManageAdminData,
   canManageContent,
   canManageIntegrations,
@@ -10,59 +12,47 @@ import {
   canManageWebsiteSettings,
   canPublishContent,
   canReadAdminData,
+  canReadSystemBackupCounts,
   canSelfEditUserProfile,
   isReadOnlyAdminUser
 } from "./rbac";
-import type { User } from "../../types";
 
-function user(role: User["role"]): User {
-  return {
-    id: `test-${role}`,
-    name: `Test ${role}`,
-    email: `${role}@example.invalid`,
-    role
-  };
+function capabilities(...values: CmsCapability[]) {
+  return values;
 }
 
-describe("admin RBAC helpers", () => {
-  it("allows all authenticated admin roles to read admin data", () => {
-    expect(canReadAdminData(user("admin"))).toBe(true);
-    expect(canReadAdminData(user("editor"))).toBe(true);
-    expect(canReadAdminData(user("viewer"))).toBe(true);
+describe("admin capability presentation helpers", () => {
+  it("derives read access from server capabilities rather than a role", () => {
+    expect(canReadAdminData(capabilities("dashboard.read"))).toBe(true);
+    expect(canReadAdminData(capabilities("users.read-self"))).toBe(true);
+    expect(canReadAdminData([])).toBe(false);
     expect(canReadAdminData(null)).toBe(false);
   });
 
-  it("keeps global admin-data management limited to admin", () => {
-    expect(canManageAdminData(user("admin"))).toBe(true);
-    expect(canManageAdminData(user("editor"))).toBe(false);
-    expect(canManageAdminData(user("viewer"))).toBe(false);
-    expect(canManageAdminData(null)).toBe(false);
+  it("uses exact mutation capabilities", () => {
+    expect(canManageAdminData(capabilities("settings.manage"))).toBe(true);
+    expect(canManageAdminData(capabilities("settings.read"))).toBe(false);
+    expect(canManageContent(capabilities("content.update"))).toBe(true);
+    expect(canManageContent(capabilities("content.read"))).toBe(false);
+    expect(canPublishContent(capabilities("content.publish"))).toBe(true);
+    expect(canManageMedia(capabilities("media.manage"))).toBe(true);
   });
 
-  it("allows editors to manage content-related data while viewers remain read-only", () => {
-    expect(canManageContent(user("admin"))).toBe(true);
-    expect(canManageContent(user("editor"))).toBe(true);
-    expect(canManageContent(user("viewer"))).toBe(false);
-    expect(canPublishContent(user("editor"))).toBe(true);
-    expect(canManageMedia(user("editor"))).toBe(true);
+  it("keeps unrelated capability groups isolated", () => {
+    expect(canManageWebsiteSettings(capabilities("settings.manage"))).toBe(true);
+    expect(canManageMenu(capabilities("settings.manage"))).toBe(false);
+    expect(canManageIntegrations(capabilities("media.manage"))).toBe(true);
+    expect(canManageUsers(capabilities("users.update-any"))).toBe(true);
+    expect(canManageSystemBackup(capabilities("backup.counts"))).toBe(true);
+    expect(canReadSystemBackupCounts(capabilities("backup.counts"))).toBe(true);
+    expect(canReadSystemBackupCounts(capabilities("backup.download"))).toBe(false);
+    expect(canDownloadSystemBackup(capabilities("backup.download"))).toBe(true);
+    expect(canDownloadSystemBackup(capabilities("backup.counts"))).toBe(false);
+    expect(canSelfEditUserProfile(capabilities("users.update-self"))).toBe(true);
   });
 
-  it("keeps settings, menu, integrations, and user management admin-only except editor self profile", () => {
-    expect(canManageWebsiteSettings(user("admin"))).toBe(true);
-    expect(canManageWebsiteSettings(user("editor"))).toBe(false);
-    expect(canManageMenu(user("editor"))).toBe(false);
-    expect(canManageIntegrations(user("editor"))).toBe(false);
-    expect(canManageUsers(user("editor"))).toBe(false);
-    expect(canManageSystemBackup(user("admin"))).toBe(true);
-    expect(canManageSystemBackup(user("editor"))).toBe(false);
-    expect(canManageSystemBackup(user("viewer"))).toBe(false);
-    expect(canSelfEditUserProfile(user("editor"))).toBe(true);
-    expect(canSelfEditUserProfile(user("viewer"))).toBe(false);
-  });
-
-  it("treats only viewer sessions as fully read-only admin users", () => {
-    expect(isReadOnlyAdminUser(user("admin"))).toBe(false);
-    expect(isReadOnlyAdminUser(user("editor"))).toBe(false);
-    expect(isReadOnlyAdminUser(user("viewer"))).toBe(true);
+  it("treats a capability set without mutations as read-only", () => {
+    expect(isReadOnlyAdminUser(capabilities("dashboard.read", "content.read"))).toBe(true);
+    expect(isReadOnlyAdminUser(capabilities("content.update"))).toBe(false);
   });
 });

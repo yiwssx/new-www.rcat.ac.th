@@ -1,10 +1,18 @@
 import { createContext, useContext } from "react";
-import { Session } from "../types";
+import type { CmsAuthStatus, CmsCapability, CmsLoginResult, CmsMfaProof, CmsSession } from "../features/cms-auth";
 
 export interface AuthContextValue {
-  session: Session | null;
-  login: (email: string, password: string) => Promise<void>;
+  status: CmsAuthStatus;
+  session: CmsSession | null;
+  capabilities: readonly CmsCapability[];
+  refreshSession: () => Promise<CmsSession | null>;
+  login: (identifier: string, password: string) => Promise<CmsLoginResult>;
+  verifyMfa: (proof: CmsMfaProof) => Promise<CmsSession>;
   logout: () => Promise<void>;
+  logoutAll: () => Promise<void>;
+  reauthenticate: (input: { currentPassword: string } & Partial<CmsMfaProof>) => Promise<void>;
+  hasCapability: (capability: CmsCapability) => boolean;
+  clearSession: (options?: { broadcast?: boolean }) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

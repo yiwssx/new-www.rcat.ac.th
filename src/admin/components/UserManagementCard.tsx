@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -21,8 +22,16 @@ import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlin
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import { useAuth } from "../../context/authSessionContext";
 import {
+  createAdminUserWithInvitationToCloudflare,
   deleteAdminUserProfileFromCloudflare,
+  issueAdminUserInvitationFromCloudflare,
+  issueAdminUserPasswordResetFromCloudflare,
+  resetAdminUserMfaFromCloudflare,
+  revokeAdminUserInvitationFromCloudflare,
+  revokeAdminUserSessionsFromCloudflare,
   saveAdminUserProfileToCloudflare,
+  setAdminUserMfaRequirementFromCloudflare,
+  type AdminOneTimeToken,
   type AdminUserProfile
 } from "../../features/admin-write/cloudflareApi";
 import {
@@ -33,38 +42,18 @@ import {
   useAdminUserListQuery,
   useDebouncedValue
 } from "../../features/admin-pagination";
-import { ADMIN_READ_ONLY_NOTICE, canManageUsers, canSelfEditUserProfile, isReadOnlyAdminUser } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE } from "../utils/rbac";
 import { userRoleLabels } from "../../utils/thaiLabels";
-import type { User } from "../../types";
 import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
-import { useQueryClient } from "@tanstack/react-query";
 import AdminPagination from "./AdminPagination";
-
-const cannotEditOtherUsersNotice = "บัญชีนี้ไม่มีสิทธิ์แก้ไขผู้ใช้อื่น";
-const cannotDeleteSelfNotice = "ไม่สามารถลบบัญชีของตนเองได้";
-const lastActiveAdminNotice = "ต้องมีผู้ดูแลระบบที่ใช้งานอย่างน้อยหนึ่งบัญชี";
 
 const emptyDraft: Partial<AdminUserProfile> = {
   email: "",
   name: "",
+  username: null,
   role: "viewer",
   status: "active"
 };
-
-const roleRows: Array<{ role: User["role"]; description: string }> = [
-  {
-    role: "admin",
-    description: "จัดการผู้ใช้ เนื้อหา สื่อ เมนู การตั้งค่า และการเชื่อมต่อระบบได้ทั้งหมด"
-  },
-  {
-    role: "editor",
-    description: "จัดการเนื้อหา เอกสาร สไลด์ E-Service สื่อ และปฏิทินได้ แต่แก้ไขผู้ใช้อื่นหรือการตั้งค่าเว็บไซต์ไม่ได้"
-  },
-  {
-    role: "viewer",
-    description: "บัญชี viewer สามารถดูข้อมูลได้เท่านั้น"
-  }
-];
 
 const userListUrlOptions = {
   defaultPageSize: 25,
@@ -74,21 +63,24 @@ const userListUrlOptions = {
   filterDefaults: { role: "all", status: "all" }
 } as const;
 
-function isSelfProfile(profile: Pick<AdminUserProfile, "email">, user: User | null | undefined) {
-  return profile.email.trim().toLowerCase() === (user?.email ?? "").trim().toLowerCase();
+interface OneTimeSecret {
+  title: string;
+  token: AdminOneTimeToken;
 }
 
-function getSafeRevision(profile: AdminUserProfile) {
-  return Number.isInteger(profile.revision) ? profile.revision : undefined;
+function safeRevision(profile: AdminUserProfile) {
+  return Number.isInteger(profile.revision) ? Number(profile.revision) : 0;
+}
+
+function invitationLabel(profile: AdminUserProfile) {
+  if (profile.invitationStatus === "pending") return "คำเชิญรอดำเนินการ";
+  if (profile.invitationStatus === "expired") return "คำเชิญหมดอายุ";
+  return "ไม่มีคำเชิญ";
 }
 
 export default function UserManagementCard() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const user = session?.user;
-  const canManage = canManageUsers(user);
-  const canSelfEdit = canSelfEditUserProfile(user);
-  const readOnly = isReadOnlyAdminUser(user);
+  const { capabilities, hasCapability, session } = useAuth();
   const {
     page,
     pageSize,
@@ -112,7 +104,6 @@ export default function UserManagementCard() {
     role: filters.role as AdminUserProfile["role"] | "all",
     status: filters.status as AdminUserProfile["status"] | "all"
   });
-  const listTransitioning = usersQuery.isPlaceholderData || debouncedSearch !== q;
   const activeAdminsQuery = useAdminUserListQuery({
     page: 1,
     pageSize: 1,
@@ -121,15 +112,38 @@ export default function UserManagementCard() {
     sortBy: "email",
     sortDirection: "asc"
   });
-  const selfProfileQuery = useAdminUserListQuery({
-    page: 1,
-    pageSize: 1,
-    q: user?.email ?? "",
-    sortBy: "email",
-    sortDirection: "asc"
-  });
+  const [editingId, setEditingId] = useState("");
+  const [draft, setDraft] = useState<Partial<AdminUserProfile>>(emptyDraft);
+  const [pendingAction, setPendingAction] = useState("");
+  const [error, setError] = useState("");
+  const [oneTimeSecret, setOneTimeSecret] = useState<OneTimeSecret | null>(null);
+  const listTransitioning = usersQuery.isPlaceholderData || debouncedSearch !== q;
   const users = usersQuery.data?.items ?? [];
   const pagination = usersQuery.data?.pagination;
+  const activeAdminCount = activeAdminsQuery.data?.pagination.totalItems ?? 0;
+  const editingUser = users.find((profile) => profile.id === editingId) ?? null;
+  const isCreating = editingId === "__new__";
+  const operationPending = Boolean(pendingAction) || listTransitioning;
+  const canCreate = hasCapability("users.create");
+  const canUpdate = hasCapability("users.update-any");
+  const canDelete = hasCapability("users.delete");
+  const canInvite = hasCapability("users.invite");
+  const canResetPassword = hasCapability("users.reset-password");
+  const canRevokeSessions = hasCapability("users.revoke-sessions");
+  const canRequireMfa = hasCapability("users.mfa.require");
+  const canResetMfa = hasCapability("users.mfa.reset");
+  const hasMutationCapability = capabilities.some((capability) =>
+    [
+      "users.create",
+      "users.update-any",
+      "users.delete",
+      "users.invite",
+      "users.reset-password",
+      "users.revoke-sessions",
+      "users.mfa.require",
+      "users.mfa.reset"
+    ].includes(capability)
+  );
 
   useEffect(() => {
     const responsePage = usersQuery.data?.pagination.page;
@@ -138,147 +152,200 @@ export default function UserManagementCard() {
       setListState({ page: responsePage }, { replace: true });
     }
   }, [page, setListState, usersQuery.data?.pagination.page, usersQuery.isPlaceholderData]);
-  const [error, setError] = useState("");
-  const [editingId, setEditingId] = useState("");
-  const [draft, setDraft] = useState<Partial<AdminUserProfile>>(emptyDraft);
-  const [savingUser, setSavingUser] = useState(false);
-  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
-  const activeAdminCount = activeAdminsQuery.data?.pagination.totalItems ?? 0;
-  const selfProfile =
-    users.find((profile) => isSelfProfile(profile, user)) ??
-    selfProfileQuery.data?.items.find((profile) => isSelfProfile(profile, user)) ??
-    null;
-  const editingUser =
-    users.find((profile) => profile.id === editingId) ?? (selfProfile?.id === editingId ? selfProfile : null);
-  const isCreating = editingId === "__new__";
-  const canEditCurrentDraft = isCreating
-    ? canManage
-    : Boolean(editingUser && (canManage || (canSelfEdit && isSelfProfile(editingUser, user))));
-  const showSelfEditOnlyNotice = !canManage && canSelfEdit && Boolean(selfProfile);
-  const userOperationPending = savingUser || deletingUserId !== null || listTransitioning;
+  useEffect(() => () => setOneTimeSecret(null), []);
 
   function startCreate() {
-    if (userOperationPending) {
-      return;
-    }
-
+    if (!canCreate || operationPending) return;
     setEditingId("__new__");
     setDraft(emptyDraft);
     setError("");
   }
 
   function startEdit(profile: AdminUserProfile) {
-    if (userOperationPending) {
-      return;
-    }
-
+    if (!canUpdate || operationPending) return;
     setEditingId(profile.id);
     setDraft(profile);
     setError("");
   }
 
-  function stopEditing() {
-    if (userOperationPending) {
-      return;
-    }
-
-    setEditingId("");
-    setDraft(emptyDraft);
+  async function refreshUsers() {
+    await invalidateAdminListQueries(queryClient, "users");
   }
 
-  async function saveDraft() {
-    if (!canEditCurrentDraft) {
-      setError(cannotEditOtherUsersNotice);
+  async function handleSave() {
+    if (operationPending || (isCreating ? !canCreate : !canUpdate)) {
       return;
     }
 
-    if (userOperationPending) {
-      return;
-    }
-
-    setSavingUser(true);
+    setPendingAction("save");
     setError("");
     showBlockingLoading("กำลังบันทึกผู้ใช้");
 
     try {
-      const payload =
-        !canManage && editingUser
-          ? {
-              id: editingUser.id,
-              name: draft.name,
-              revision: getSafeRevision(editingUser)
-            }
-          : {
-              ...draft,
-              id: isCreating ? undefined : editingUser?.id,
-              revision: editingUser ? getSafeRevision(editingUser) : undefined
-            };
-      await saveAdminUserProfileToCloudflare(payload);
+      if (isCreating) {
+        const result = await createAdminUserWithInvitationToCloudflare({
+          email: draft.email ?? "",
+          name: draft.name ?? "",
+          role: draft.role ?? "viewer",
+          username: draft.username || null
+        });
+        setOneTimeSecret({ title: "โทเค็นคำเชิญสำหรับผู้ใช้ใหม่", token: result.invitation });
+      } else if (editingUser) {
+        await saveAdminUserProfileToCloudflare({
+          id: editingUser.id,
+          email: draft.email,
+          name: draft.name,
+          username: draft.username,
+          role: draft.role,
+          status: draft.status,
+          revision: safeRevision(editingUser)
+        });
+      }
 
+      setEditingId("");
+      setDraft(emptyDraft);
       await appSwal.close();
-      await invalidateAdminListQueries(queryClient, "users");
+      await refreshUsers();
 
       if (isCreating) {
         setPage(1);
       }
 
-      setEditingId("");
-      setDraft(emptyDraft);
-      await showSuccessResult("บันทึกผู้ใช้สำเร็จ");
-    } catch (saveError) {
+      await showSuccessResult(
+        isCreating ? "สร้างผู้ใช้แล้ว โปรดส่งโทเค็นคำเชิญให้ผู้ใช้ด้วยช่องทางที่ปลอดภัย" : "บันทึกผู้ใช้สำเร็จ"
+      );
+    } catch (currentError) {
       await appSwal.close();
-      setError(getSwalErrorText(saveError, "ไม่สามารถบันทึกผู้ใช้ได้"));
-      await showErrorResult("ไม่สามารถบันทึกผู้ใช้ได้", saveError, "กรุณาลองอีกครั้ง");
+      setError(getSwalErrorText(currentError, "ไม่สามารถบันทึกผู้ใช้ได้"));
+      await showErrorResult("ไม่สามารถบันทึกผู้ใช้ได้", currentError, "กรุณาลองอีกครั้ง");
     } finally {
-      setSavingUser(false);
+      setPendingAction("");
     }
   }
 
-  async function deleteUser(profile: AdminUserProfile) {
-    if (userOperationPending) {
-      return;
-    }
+  async function confirmAction(title: string, text: string) {
+    const result = await appSwal.fire({
+      title,
+      text,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "ยืนยัน",
+      cancelButtonText: "ยกเลิก"
+    });
+    return result.isConfirmed;
+  }
 
-    if (isSelfProfile(profile, user)) {
-      setError(cannotDeleteSelfNotice);
-      return;
-    }
-
-    if (!canManage) {
-      setError(cannotEditOtherUsersNotice);
-      return;
-    }
-
-    if (profile.role === "admin" && profile.status === "active" && activeAdminCount <= 1) {
-      setError(lastActiveAdminNotice);
-      return;
-    }
-
-    setDeletingUserId(profile.id);
+  async function runLifecycleAction(
+    action: string,
+    loadingText: string,
+    successText: string,
+    operation: () => Promise<void>
+  ) {
+    setPendingAction(action);
     setError("");
-    showBlockingLoading("กำลังลบผู้ใช้");
+    showBlockingLoading(loadingText);
 
     try {
-      await deleteAdminUserProfileFromCloudflare({ id: profile.id, revision: getSafeRevision(profile) });
+      await operation();
       await appSwal.close();
-      await invalidateAdminListQueries(queryClient, "users");
+      await refreshUsers();
+      await showSuccessResult(successText);
+    } catch (currentError) {
+      await appSwal.close();
+      setError(getSwalErrorText(currentError, "ไม่สามารถดำเนินการกับผู้ใช้ได้"));
+      await showErrorResult("ไม่สามารถดำเนินการกับผู้ใช้ได้", currentError, "กรุณาลองอีกครั้ง");
+    } finally {
+      setPendingAction("");
+    }
+  }
+
+  async function issueInvitation(profile: AdminUserProfile) {
+    await runLifecycleAction("invite", "กำลังออกคำเชิญ", "ออกคำเชิญสำเร็จ", async () => {
+      const token = await issueAdminUserInvitationFromCloudflare(profile.id);
+      setOneTimeSecret({ title: `โทเค็นคำเชิญสำหรับ ${profile.name}`, token });
+    });
+  }
+
+  async function issuePasswordReset(profile: AdminUserProfile) {
+    await runLifecycleAction("reset", "กำลังออกโทเค็นตั้งรหัสผ่าน", "ออกโทเค็นสำเร็จ", async () => {
+      const token = await issueAdminUserPasswordResetFromCloudflare(profile.id);
+      setOneTimeSecret({ title: `โทเค็นตั้งรหัสผ่านใหม่สำหรับ ${profile.name}`, token });
+    });
+  }
+
+  async function deleteUser(profile: AdminUserProfile) {
+    if (
+      !canDelete ||
+      operationPending ||
+      profile.id === session?.user.id ||
+      profile.isRoot ||
+      (profile.role === "admin" && profile.status === "active" && activeAdminCount <= 1) ||
+      !(await confirmAction("ลบผู้ใช้?", `ลบบัญชี ${profile.name} อย่างถาวร`))
+    ) {
+      return;
+    }
+
+    await runLifecycleAction("delete", "กำลังลบผู้ใช้", "ลบผู้ใช้สำเร็จ", async () => {
+      await deleteAdminUserProfileFromCloudflare({ id: profile.id, revision: safeRevision(profile) });
 
       if (pagination) {
         const nextPage = getAdminPageAfterDelete(pagination);
-
-        if (nextPage !== page) {
-          setPage(nextPage);
-        }
+        if (nextPage !== page) setPage(nextPage);
       }
+    });
+  }
 
-      await showSuccessResult("ลบผู้ใช้สำเร็จ");
-    } catch (deleteError) {
-      await appSwal.close();
-      setError(getSwalErrorText(deleteError, "ไม่สามารถลบผู้ใช้ได้"));
-      await showErrorResult("ไม่สามารถลบผู้ใช้ได้", deleteError, "กรุณาลองอีกครั้ง");
-    } finally {
-      setDeletingUserId(null);
+  async function revokeInvitation(profile: AdminUserProfile) {
+    if (!(await confirmAction("เพิกถอนคำเชิญ?", "โทเค็นคำเชิญที่ยังไม่ใช้จะใช้ไม่ได้ทันที"))) return;
+    await runLifecycleAction("revoke-invite", "กำลังเพิกถอนคำเชิญ", "เพิกถอนคำเชิญสำเร็จ", async () => {
+      await revokeAdminUserInvitationFromCloudflare(profile.id);
+    });
+  }
+
+  async function revokeSessions(profile: AdminUserProfile) {
+    if (!(await confirmAction("เพิกถอนเซสชันทั้งหมด?", `${profile.name} จะต้องเข้าสู่ระบบใหม่ทุกอุปกรณ์`))) return;
+    await runLifecycleAction("revoke-sessions", "กำลังเพิกถอนเซสชัน", "เพิกถอนเซสชันสำเร็จ", async () => {
+      await revokeAdminUserSessionsFromCloudflare(profile.id);
+    });
+  }
+
+  async function toggleMfaRequirement(profile: AdminUserProfile) {
+    const required = !profile.mfaRequired;
+    if (
+      (profile.isRoot && !required) ||
+      !(await confirmAction(
+        required ? "บังคับใช้ MFA?" : "ยกเลิกการบังคับใช้ MFA?",
+        required
+          ? "ผู้ใช้จะต้องตั้งค่า MFA เมื่อเข้าสู่ระบบครั้งถัดไป"
+          : "การยกเลิกข้อกำหนดจะไม่ปิดปัจจัย MFA ที่ตั้งค่าไว้แล้ว"
+      ))
+    ) {
+      return;
+    }
+    await runLifecycleAction("mfa-required", "กำลังปรับข้อกำหนด MFA", "ปรับข้อกำหนด MFA สำเร็จ", async () => {
+      await setAdminUserMfaRequirementFromCloudflare(profile.id, required, safeRevision(profile));
+    });
+  }
+
+  async function resetMfa(profile: AdminUserProfile) {
+    if (
+      profile.isRoot ||
+      !(await confirmAction(
+        "รีเซ็ตปัจจัย MFA?",
+        "การตั้งค่าแอปยืนยันตัวตนและรหัสกู้คืนทั้งหมดจะถูกลบ เซสชันทั้งหมดจะถูกเพิกถอน และผู้ใช้ที่ถูกบังคับใช้ MFA ต้องลงทะเบียนใหม่"
+      ))
+    ) {
+      return;
+    }
+    await runLifecycleAction("mfa-reset", "กำลังรีเซ็ต MFA", "รีเซ็ต MFA สำเร็จ", async () => {
+      await resetAdminUserMfaFromCloudflare(profile.id);
+    });
+  }
+
+  async function copyOneTimeToken() {
+    if (oneTimeSecret) {
+      await navigator.clipboard?.writeText(oneTimeSecret.token.token);
     }
   }
 
@@ -290,40 +357,62 @@ export default function UserManagementCard() {
             <Stack direction="row" spacing={1.5} alignItems="flex-start">
               <ManageAccountsOutlinedIcon color="primary" />
               <Box>
-                <Typography variant="h3">ผู้ใช้และสิทธิ์การเข้าถึง</Typography>
+                <Typography variant="h3">ผู้ใช้และวงจรชีวิตบัญชี</Typography>
                 <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                  จัดการโปรไฟล์ผู้ใช้ของระบบผ่าน Cloudflare/D1 โดยใช้ Cloudflare Access เป็นผู้ยืนยันตัวตน
+                  จัดการบัญชี คำเชิญ การตั้งรหัสผ่าน เซสชัน และ MFA ผ่านนโยบายของเซิร์ฟเวอร์
                 </Typography>
               </Box>
             </Stack>
-            <Chip
-              color={canManage ? "success" : "default"}
-              label={user?.role ? `บทบาทปัจจุบัน: ${userRoleLabels[user.role]}` : "ยังไม่มีเซสชันผู้ใช้"}
-              sx={{ alignSelf: { xs: "flex-start", md: "center" } }}
-            />
+            <Chip label={`บทบาทปัจจุบัน: ${session?.user.role ?? "-"}`} />
           </Stack>
 
           <Alert severity="info" icon={<SecurityOutlinedIcon />}>
-            ระบบนี้ย้ายการจัดการผู้ใช้ออกจาก Apps Script แล้ว โปรไฟล์ผู้ใช้เก็บเฉพาะ metadata ใน Cloudflare D1
-            ไม่มีรหัสผ่าน ไม่มี password reset และไม่บันทึกอีเมลจริงหรือข้อมูลลับลงใน Git
+            การควบคุมในหน้านี้แสดงตามความสามารถจากเซิร์ฟเวอร์ การอนุญาตขั้นสุดท้ายยังตรวจสอบที่ Worker ทุกครั้ง
           </Alert>
+          {!hasMutationCapability && <Alert severity="warning">{ADMIN_READ_ONLY_NOTICE}</Alert>}
+          {error && (
+            <Alert severity="error" aria-live="assertive">
+              {error}
+            </Alert>
+          )}
 
-          {readOnly && <Alert severity="warning">{ADMIN_READ_ONLY_NOTICE}</Alert>}
-          {showSelfEditOnlyNotice && <Alert severity="warning">{cannotEditOtherUsersNotice}</Alert>}
-          {error && <Alert severity="error">{error}</Alert>}
+          {oneTimeSecret && (
+            <Card variant="outlined">
+              <CardContent>
+                <Stack spacing={1.5}>
+                  <Alert severity="warning">
+                    {oneTimeSecret.title} จะแสดงเพียงครั้งเดียว โปรดส่งด้วยช่องทางที่ปลอดภัยและอย่าบันทึกในระบบ
+                  </Alert>
+                  <TextField
+                    label="โทเค็นสำหรับส่งด้วยตนเอง"
+                    value={oneTimeSecret.token.token}
+                    slotProps={{ input: { readOnly: true } }}
+                    fullWidth
+                  />
+                  <Typography color="text.secondary">หมดอายุ: {oneTimeSecret.token.expiresAt}</Typography>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                    <Button variant="outlined" onClick={() => void copyOneTimeToken()}>
+                      คัดลอก
+                    </Button>
+                    <Button variant="contained" onClick={() => setOneTimeSecret(null)}>
+                      ฉันได้ส่งหรือจัดเก็บโทเค็นแล้ว
+                    </Button>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
-            {canManage && (
-              <Button variant="contained" disabled={userOperationPending} onClick={startCreate}>
-                เพิ่มผู้ใช้
-              </Button>
-            )}
-            {!canManage && canSelfEdit && selfProfile && (
-              <Button variant="outlined" disabled={userOperationPending} onClick={() => startEdit(selfProfile)}>
-                แก้ไขบัญชีของฉัน
-              </Button>
-            )}
-          </Stack>
+          {canCreate && (
+            <Button
+              variant="contained"
+              disabled={operationPending}
+              onClick={startCreate}
+              sx={{ alignSelf: "flex-start" }}
+            >
+              เพิ่มผู้ใช้
+            </Button>
+          )}
 
           <Grid container spacing={1.5}>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -333,15 +422,14 @@ export default function UserManagementCard() {
                 label="ค้นหาผู้ใช้"
                 value={q}
                 onChange={(event) => setSearch(event.target.value)}
-                slotProps={{ htmlInput: { "aria-label": "ค้นหาผู้ใช้" } }}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FormControl fullWidth size="small">
-                <InputLabel id="admin-user-list-role-filter-label">สิทธิ์</InputLabel>
+                <InputLabel id="admin-user-list-role-filter-label">บทบาท</InputLabel>
                 <Select
                   labelId="admin-user-list-role-filter-label"
-                  label="สิทธิ์"
+                  label="บทบาท"
                   value={filters.role}
                   onChange={(event) => setFilter("role", event.target.value)}
                 >
@@ -380,24 +468,34 @@ export default function UserManagementCard() {
                       label="ชื่อ"
                       value={draft.name ?? ""}
                       onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                      disabled={userOperationPending}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
                       fullWidth
-                      disabled={userOperationPending || !canManage || !isCreating}
                       label="อีเมล"
                       value={draft.email ?? ""}
                       onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
+                      disabled={!isCreating}
                     />
                   </Grid>
-                  <Grid size={{ xs: 12, md: 2 }}>
-                    <FormControl fullWidth disabled={userOperationPending || !canManage}>
-                      <InputLabel id="admin-user-role-label">สิทธิ์</InputLabel>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      label="ชื่อผู้ใช้ (ไม่บังคับ)"
+                      value={draft.username ?? ""}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, username: event.target.value || null }))
+                      }
+                      disabled={!isCreating}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <FormControl fullWidth>
+                      <InputLabel id="admin-user-role-label">บทบาท</InputLabel>
                       <Select
                         labelId="admin-user-role-label"
-                        label="สิทธิ์"
+                        label="บทบาท"
                         value={draft.role ?? "viewer"}
                         onChange={(event) =>
                           setDraft((current) => ({ ...current, role: event.target.value as AdminUserProfile["role"] }))
@@ -409,35 +507,40 @@ export default function UserManagementCard() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid size={{ xs: 12, md: 2 }}>
-                    <FormControl fullWidth disabled={userOperationPending || !canManage}>
-                      <InputLabel id="admin-user-status-label">สถานะ</InputLabel>
-                      <Select
-                        labelId="admin-user-status-label"
-                        label="สถานะ"
-                        value={draft.status ?? "active"}
-                        onChange={(event) =>
-                          setDraft((current) => ({
-                            ...current,
-                            status: event.target.value as AdminUserProfile["status"]
-                          }))
-                        }
-                      >
-                        <MenuItem value="active">active</MenuItem>
-                        <MenuItem value="disabled">disabled</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                  {!isCreating && (
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <FormControl fullWidth>
+                        <InputLabel id="admin-user-status-label">สถานะ</InputLabel>
+                        <Select
+                          labelId="admin-user-status-label"
+                          label="สถานะ"
+                          value={draft.status ?? "active"}
+                          onChange={(event) =>
+                            setDraft((current) => ({
+                              ...current,
+                              status: event.target.value as AdminUserProfile["status"]
+                            }))
+                          }
+                        >
+                          <MenuItem value="active">active</MenuItem>
+                          <MenuItem value="disabled">disabled</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  )}
                 </Grid>
                 <Stack direction="row" spacing={1}>
-                  <Button
-                    variant="contained"
-                    onClick={saveDraft}
-                    disabled={!canEditCurrentDraft || userOperationPending}
-                  >
-                    {savingUser ? "กำลังบันทึก" : "บันทึกผู้ใช้"}
+                  <Button variant="contained" onClick={() => void handleSave()} disabled={operationPending}>
+                    บันทึก
                   </Button>
-                  <Button variant="outlined" onClick={stopEditing} disabled={userOperationPending}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setEditingId("");
+                      setDraft(emptyDraft);
+                    }}
+                    disabled={operationPending}
+                  >
                     ยกเลิก
                   </Button>
                 </Stack>
@@ -445,23 +548,19 @@ export default function UserManagementCard() {
             </Box>
           )}
 
-          {listTransitioning && <LinearProgress sx={{ mb: 1 }} />}
-          <Stack
-            spacing={1.25}
-            aria-busy={usersQuery.isFetching || listTransitioning}
-            sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
-          >
-            {usersQuery.isLoading ? (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <CircularProgress size={20} />
-                <Typography color="text.secondary">กำลังโหลดผู้ใช้</Typography>
-              </Stack>
-            ) : (
-              users.map((profile) => {
-                const self = isSelfProfile(profile, user);
-                const canEdit = canManage || (canSelfEdit && self);
-                const deleteDisabled =
-                  self || (profile.role === "admin" && profile.status === "active" && activeAdminCount <= 1);
+          {listTransitioning && <LinearProgress />}
+          {usersQuery.isLoading ? (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <CircularProgress size={20} />
+              <Typography>กำลังโหลดผู้ใช้</Typography>
+            </Stack>
+          ) : (
+            <Stack spacing={1.5}>
+              {users.map((profile) => {
+                const self = profile.id === session?.user.id;
+                const lastAdmin = profile.role === "admin" && profile.status === "active" && activeAdminCount <= 1;
+                const rootProtected = profile.isRoot === true;
+                const canRevokeRootSessions = rootProtected && self && session?.user.isRoot === true;
 
                 return (
                   <Box
@@ -473,99 +572,133 @@ export default function UserManagementCard() {
                       bgcolor: self ? "primary.light" : "background.paper"
                     }}
                   >
-                    <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between">
-                      <Box>
-                        <Typography fontWeight={900}>{profile.name}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {profile.email}
-                        </Typography>
-                        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    <Stack spacing={1.5}>
+                      <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={1}>
+                        <Box>
+                          <Typography fontWeight={900}>
+                            {profile.name} {rootProtected ? "(Root)" : ""}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {profile.email} · {profile.username ?? "ไม่มีชื่อผู้ใช้"}
+                          </Typography>
+                        </Box>
+                        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
                           <Chip size="small" label={userRoleLabels[profile.role]} />
                           <Chip size="small" label={profile.status === "active" ? "ใช้งาน" : "ปิดใช้งาน"} />
+                          <Chip size="small" label={invitationLabel(profile)} />
                           {self && <Chip size="small" color="primary" label="บัญชีของคุณ" />}
                         </Stack>
-                      </Box>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        {canEdit ? (
-                          <Button variant="outlined" disabled={userOperationPending} onClick={() => startEdit(profile)}>
+                      </Stack>
+                      <Typography variant="body2" color="text.secondary">
+                        credential: {profile.credentialConfigured ? "พร้อม" : "ยังไม่ตั้งค่า"} · MFA:
+                        {profile.mfaConfigured ? " ตั้งค่าแล้ว" : " ยังไม่ตั้งค่า"} · บังคับ:
+                        {profile.mfaRequired ? " ใช่" : " ไม่"} · รหัสกู้คืน: {profile.recoveryCodesRemaining ?? 0}
+                      </Typography>
+                      {profile.invitationExpiresAt && (
+                        <Typography variant="body2">คำเชิญหมดอายุ: {profile.invitationExpiresAt}</Typography>
+                      )}
+                      {profile.lastLoginAt && (
+                        <Typography variant="body2">เข้าสู่ระบบล่าสุด: {profile.lastLoginAt}</Typography>
+                      )}
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+                        {canUpdate && (
+                          <Button variant="outlined" onClick={() => startEdit(profile)} disabled={operationPending}>
                             แก้ไข
                           </Button>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            {readOnly ? "บัญชี viewer สามารถดูข้อมูลได้เท่านั้น" : cannotEditOtherUsersNotice}
-                          </Typography>
                         )}
-                        {canManage && (
+                        {canInvite && !rootProtected && !profile.credentialConfigured && (
                           <Button
-                            color="error"
-                            disabled={deleteDisabled || userOperationPending}
                             variant="outlined"
+                            onClick={() => void issueInvitation(profile)}
+                            disabled={operationPending}
+                          >
+                            ออก/ออกใหม่คำเชิญ
+                          </Button>
+                        )}
+                        {canInvite && profile.invitationStatus === "pending" && !rootProtected && (
+                          <Button
+                            variant="outlined"
+                            color="warning"
+                            onClick={() => void revokeInvitation(profile)}
+                            disabled={operationPending}
+                          >
+                            เพิกถอนคำเชิญ
+                          </Button>
+                        )}
+                        {canResetPassword &&
+                          !rootProtected &&
+                          profile.credentialConfigured &&
+                          profile.status === "active" && (
+                            <Button
+                              variant="outlined"
+                              onClick={() => void issuePasswordReset(profile)}
+                              disabled={operationPending}
+                            >
+                              ออกโทเค็นตั้งรหัสผ่าน
+                            </Button>
+                          )}
+                        {canRevokeSessions && (!rootProtected || canRevokeRootSessions) && (
+                          <Button
+                            variant="outlined"
+                            onClick={() => void revokeSessions(profile)}
+                            disabled={operationPending}
+                          >
+                            เพิกถอนเซสชัน
+                          </Button>
+                        )}
+                        {canRequireMfa && (
+                          <Button
+                            variant="outlined"
+                            onClick={() => void toggleMfaRequirement(profile)}
+                            disabled={operationPending || (rootProtected && profile.mfaRequired)}
+                          >
+                            {profile.mfaRequired ? "ยกเลิกบังคับ MFA" : "บังคับใช้ MFA"}
+                          </Button>
+                        )}
+                        {canResetMfa && profile.mfaConfigured && (
+                          <Button
+                            variant="outlined"
+                            color="warning"
+                            onClick={() => void resetMfa(profile)}
+                            disabled={operationPending || rootProtected}
+                            title={rootProtected ? "การรีเซ็ต MFA ของ Root ต้องทำโดย Root พร้อมหลักฐานเพิ่มเติม" : ""}
+                          >
+                            รีเซ็ต MFA
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="outlined"
+                            color="error"
                             onClick={() => void deleteUser(profile)}
+                            disabled={operationPending || self || rootProtected || lastAdmin}
                           >
                             ลบผู้ใช้
                           </Button>
                         )}
                       </Stack>
+                      {rootProtected && (
+                        <Alert severity="info">การดำเนินการที่มีผลต่อ Root ถูกจำกัดตามนโยบายของเซิร์ฟเวอร์</Alert>
+                      )}
                     </Stack>
-                    {self && canManage && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        {cannotDeleteSelfNotice}
-                      </Typography>
-                    )}
-                    {profile.role === "admin" && profile.status === "active" && activeAdminCount <= 1 && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        {lastActiveAdminNotice}
-                      </Typography>
-                    )}
                   </Box>
                 );
-              })
-            )}
-            {!usersQuery.isLoading && !users.length && (
-              <Typography color="text.secondary">ไม่พบผู้ใช้ที่ตรงกับเงื่อนไข</Typography>
-            )}
-          </Stack>
-
-          {usersQuery.isError && (
-            <Alert severity="error">
-              {usersQuery.error instanceof Error ? usersQuery.error.message : "ไม่สามารถโหลดรายการผู้ใช้ได้"}
-            </Alert>
+              })}
+              {!users.length && <Typography color="text.secondary">ไม่พบผู้ใช้</Typography>}
+            </Stack>
           )}
 
+          {usersQuery.isError && <Alert severity="error">ไม่สามารถโหลดรายการผู้ใช้ได้</Alert>}
           {pagination && (
             <AdminPagination
               pagination={pagination}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
               pageSizeOptions={ADMIN_PAGE_SIZE_OPTIONS}
-              disabled={userOperationPending}
+              disabled={operationPending}
               isFetching={usersQuery.isFetching}
             />
           )}
-
-          <Box
-            sx={{
-              borderRadius: 2,
-              border: "1px solid rgba(31, 90, 44, 0.12)",
-              overflow: "hidden"
-            }}
-          >
-            {roleRows.map((row, index) => (
-              <Stack
-                key={row.role}
-                direction={{ xs: "column", sm: "row" }}
-                spacing={1}
-                sx={{
-                  p: 1.5,
-                  borderTop: index === 0 ? 0 : "1px solid rgba(31, 90, 44, 0.12)",
-                  bgcolor: row.role === user?.role ? "primary.light" : "background.paper"
-                }}
-              >
-                <Typography sx={{ minWidth: 120, fontWeight: 900 }}>{userRoleLabels[row.role]}</Typography>
-                <Typography color="text.secondary">{row.description}</Typography>
-              </Stack>
-            ))}
-          </Box>
         </Stack>
       </CardContent>
     </Card>

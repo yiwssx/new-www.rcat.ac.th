@@ -51,7 +51,12 @@ vi.mock("../../context/authSessionContext", () => ({
       token: "test-session-token",
       expiresAt: "2026-07-07T00:00:00.000Z"
     };
-    return { session, login: vi.fn(), logout: vi.fn() };
+    return {
+      session,
+      capabilities: authMock.role === "admin" ? ["external-services.manage"] : [],
+      login: vi.fn(),
+      logout: vi.fn()
+    };
   }
 }));
 
@@ -152,7 +157,7 @@ function renderPage() {
 
 describe("ExternalServicesPage paginated and compact ordering workflows", () => {
   beforeEach(() => {
-    authMock.role = "editor";
+    authMock.role = "admin";
     paginationMock.listHook.mockReset();
     paginationMock.listHook.mockReturnValue(listResult());
     paginationMock.getOrder.mockReset();

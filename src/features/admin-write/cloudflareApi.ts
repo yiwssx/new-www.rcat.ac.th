@@ -1,4 +1,4 @@
-import { buildCloudflareAdminApiUrl } from "../../config/adminWriteProvider";
+import { buildCloudflareAdminApiUrl, resolveCloudflareAdminWriteConfig } from "../../config/adminWriteProvider";
 import type {
   CmsSnapshot,
   DisplaySettings,
@@ -14,18 +14,45 @@ import type { ExternalServiceLink, ExternalServiceLinkInput } from "../cms-exter
 import type { ContentItem } from "../public-content/types";
 import type { VisitorStatsSettings } from "../visitor-stats/types";
 import { mergeBridgeMediaAssets } from "../cms-media/bridgeCache";
-import { ADMIN_PROXY_SESSION_EXPIRED_MESSAGE, notifyAdminProxySessionExpired } from "../../services/adminProxySession";
+import {
+  CMS_CSRF_HEADER_NAME,
+  CMS_SESSION_EXPIRED_MESSAGE,
+  CmsAuthError,
+  CmsStepUpReplayError,
+  cmsStepUpCoordinator,
+  isReplayableRequestBody,
+  notifyCmsSessionExpired,
+  readCmsCsrfToken,
+  type CmsAssurance
+} from "../cms-auth";
 import { AdminDuplicateSlugError, AdminStaleRevisionError } from "./errors";
 
 export interface AdminUserProfile {
   id: string;
   email: string;
   name: string;
+  username?: string | null;
   role: "admin" | "editor" | "viewer";
   status: "active" | "disabled";
+  isRoot?: boolean;
+  credentialConfigured?: boolean;
+  invitationStatus?: "none" | "pending" | "expired";
+  invitationExpiresAt?: string | null;
+  lastLoginAt?: string | null;
+  mustChangePassword?: boolean;
+  mfaRequired?: boolean;
+  mfaConfigured?: boolean;
+  mfaEnabledAt?: string | null;
+  recoveryCodesRemaining?: number;
   createdAt: string;
   updatedAt: string;
   revision?: number;
+}
+
+export interface AdminOneTimeToken {
+  token: string;
+  expiresAt: string;
+  delivery: "manual";
 }
 
 export interface AdminBackupTableCount {
@@ -71,8 +98,13 @@ function createCloudflareAdminError(message: string, cause: unknown) {
   return error;
 }
 
+function isMutationMethod(method: string) {
+  return method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE";
+}
+
 function getCloudflareAdminHeaders(init: RequestInit) {
   const headers = new Headers(init.headers);
+  const method = String(init.method ?? "GET").toUpperCase();
 
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
@@ -82,15 +114,62 @@ function getCloudflareAdminHeaders(init: RequestInit) {
     headers.set("Content-Type", "application/json");
   }
 
+  if (resolveCloudflareAdminWriteConfig().authMode === "server-proxy" && isMutationMethod(method)) {
+    const csrfToken = readCmsCsrfToken();
+
+    if (!csrfToken) {
+      throw new CmsAuthError(403);
+    }
+
+    headers.set(CMS_CSRF_HEADER_NAME, csrfToken);
+  }
+
   return Object.fromEntries(headers.entries());
 }
 
-export async function fetchCloudflareAdmin(path: string, init: RequestInit = {}) {
+async function fetchCloudflareAdminOnce(path: string, init: RequestInit) {
   return fetch(buildCloudflareAdminApiUrl(path), {
     ...init,
     credentials: "include",
     headers: getCloudflareAdminHeaders(init)
   });
+}
+
+async function readCloudflareAdminErrorPayload(response: Response) {
+  try {
+    return (await response.clone().json()) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function readStepUpAssurance(payload: unknown): CmsAssurance | null {
+  if (payload && typeof payload === "object" && "assurance" in payload) {
+    return payload.assurance === "password" || payload.assurance === "mfa" ? payload.assurance : null;
+  }
+
+  return null;
+}
+
+export async function fetchCloudflareAdmin(path: string, init: RequestInit = {}, retriedAfterStepUp = false) {
+  const response = await fetchCloudflareAdminOnce(path, init);
+
+  if (response.status !== 428 || retriedAfterStepUp) {
+    return response;
+  }
+
+  const assurance = readStepUpAssurance(await readCloudflareAdminErrorPayload(response));
+
+  if (!assurance) {
+    return response;
+  }
+
+  if (!isReplayableRequestBody(init.body)) {
+    throw new CmsStepUpReplayError();
+  }
+
+  await cmsStepUpCoordinator.request(assurance);
+  return fetchCloudflareAdmin(path, init, true);
 }
 
 function getCloudflareAdminErrorMessage(response: Response, payload: unknown) {
@@ -99,10 +178,10 @@ function getCloudflareAdminErrorMessage(response: Response, payload: unknown) {
     : `Cloudflare admin API request failed with status ${response.status}`;
 }
 
-function maybeNotifyExpiredAdminProxySession(response: Response, errorMessage: string) {
-  if (response.status === 401 && /admin proxy session is (?:required|invalid or expired)/i.test(errorMessage)) {
-    notifyAdminProxySessionExpired();
-    throw new Error(ADMIN_PROXY_SESSION_EXPIRED_MESSAGE);
+function maybeNotifyExpiredCmsSession(response: Response, errorMessage: string) {
+  if (response.status === 401 && errorMessage === "CMS session is invalid or expired") {
+    notifyCmsSessionExpired();
+    throw new CmsAuthError(401, { message: CMS_SESSION_EXPIRED_MESSAGE });
   }
 }
 
@@ -113,16 +192,17 @@ export async function requestCloudflareAdminResponse(path: string, init: Request
     return response;
   }
 
-  let payload: unknown;
-
-  try {
-    payload = await response.clone().json();
-  } catch {
-    payload = null;
-  }
+  const payload = await readCloudflareAdminErrorPayload(response);
 
   const errorMessage = getCloudflareAdminErrorMessage(response, payload);
-  maybeNotifyExpiredAdminProxySession(response, errorMessage);
+  maybeNotifyExpiredCmsSession(response, errorMessage);
+
+  if (response.status === 428) {
+    throw new CmsAuthError(428, {
+      assurance: readStepUpAssurance(payload) ?? undefined
+    });
+  }
+
   throw new Error(errorMessage);
 }
 
@@ -142,7 +222,7 @@ export async function requestCloudflareAdmin<T>(path: string, init: RequestInit 
 
   if (!response.ok) {
     const errorMessage = getCloudflareAdminErrorMessage(response, payload);
-    maybeNotifyExpiredAdminProxySession(response, errorMessage);
+    maybeNotifyExpiredCmsSession(response, errorMessage);
 
     if ((response.status === 409 && /stale revision/i.test(errorMessage)) || response.status === 412) {
       throw new AdminStaleRevisionError();
@@ -150,6 +230,12 @@ export async function requestCloudflareAdmin<T>(path: string, init: RequestInit 
 
     if (response.status === 409 && errorMessage === "duplicate slug") {
       throw new AdminDuplicateSlugError();
+    }
+
+    if (response.status === 428) {
+      throw new CmsAuthError(428, {
+        assurance: readStepUpAssurance(payload) ?? undefined
+      });
     }
 
     throw new Error(errorMessage);
@@ -451,6 +537,78 @@ export async function saveAdminUserProfileToCloudflare(input: Partial<AdminUserP
       )
     : await writeJson<ItemEnvelope<AdminUserProfile>>("/api/admin/users", "POST", body);
 
+  return response.item;
+}
+
+export async function createAdminUserWithInvitationToCloudflare(
+  input: Pick<AdminUserProfile, "email" | "name" | "role"> & { username?: string | null }
+) {
+  return writeJson<{ item: AdminUserProfile; invitation: AdminOneTimeToken }>("/api/admin/users", "POST", input);
+}
+
+export async function getCurrentAdminUserFromCloudflare() {
+  const response = await requestCloudflareAdmin<ItemEnvelope<AdminUserProfile>>("/api/admin/users/me");
+  return response.item;
+}
+
+export async function issueAdminUserInvitationFromCloudflare(id: string) {
+  const response = await requestCloudflareAdmin<{ invitation: AdminOneTimeToken }>(
+    `/api/admin/users/${encodeURIComponent(id)}/invitations`,
+    { method: "POST" }
+  );
+  return response.invitation;
+}
+
+export function revokeAdminUserInvitationFromCloudflare(id: string) {
+  return requestCloudflareAdmin<{ ok: true; revoked: true }>(`/api/admin/users/${encodeURIComponent(id)}/invitations`, {
+    method: "DELETE"
+  });
+}
+
+export async function issueAdminUserPasswordResetFromCloudflare(id: string) {
+  const response = await requestCloudflareAdmin<{ passwordReset: AdminOneTimeToken }>(
+    `/api/admin/users/${encodeURIComponent(id)}/password-reset`,
+    { method: "POST" }
+  );
+  return response.passwordReset;
+}
+
+export function revokeAdminUserSessionsFromCloudflare(id: string) {
+  return requestCloudflareAdmin<{ ok: true; revoked: true }>(
+    `/api/admin/users/${encodeURIComponent(id)}/revoke-sessions`,
+    { method: "POST" }
+  );
+}
+
+export async function setAdminUserMfaRequirementFromCloudflare(
+  id: string,
+  required: boolean,
+  expectedRevision: number
+) {
+  const response = await writeJson<ItemEnvelope<AdminUserProfile>>(
+    `/api/admin/users/${encodeURIComponent(id)}/mfa-requirement`,
+    "POST",
+    { required, expectedRevision }
+  );
+  return response.item;
+}
+
+export async function resetAdminUserMfaFromCloudflare(
+  id: string,
+  proof?: { currentPassword: string; totpCode?: string; recoveryCode?: string }
+) {
+  const response = await requestCloudflareAdmin<ItemEnvelope<AdminUserProfile> & { reset: true }>(
+    `/api/admin/users/${encodeURIComponent(id)}/mfa`,
+    {
+      method: "DELETE",
+      ...(proof
+        ? {
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(proof)
+          }
+        : {})
+    }
+  );
   return response.item;
 }
 

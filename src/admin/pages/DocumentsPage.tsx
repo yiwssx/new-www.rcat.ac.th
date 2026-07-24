@@ -65,7 +65,7 @@ import { formatDisplayDateTime } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
-import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageDocuments } from "../utils/rbac";
 
 const documentStatusOptions: Array<{ value: DocumentStatus; label: string }> = [
   { value: "draft", label: "ฉบับร่าง" },
@@ -211,8 +211,8 @@ function normalizeDocumentDraft(item: CmsDocumentItem): DocumentItemInput {
 
 export default function DocumentsPage() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const canManage = canManageContent(session?.user);
+  const { capabilities } = useAuth();
+  const canManage = canManageDocuments(capabilities);
   const {
     page,
     pageSize,

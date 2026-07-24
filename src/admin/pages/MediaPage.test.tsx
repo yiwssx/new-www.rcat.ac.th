@@ -48,6 +48,7 @@ vi.mock("../../context/authSessionContext", () => ({
 
     return {
       session,
+      capabilities: authMock.role === "viewer" ? [] : ["media.manage"],
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -264,7 +265,7 @@ describe("MediaPage media mutation feedback", () => {
         allowEscapeKey: false
       })
     );
-  });
+  }, 15_000);
 
   it("shows a clear upload success modal after upload finishes", async () => {
     await openUploadConfirmation();

@@ -82,7 +82,7 @@ import {
   getCarouselSlideValidationMessage,
   normalizeCarouselAutoplayInterval
 } from "../utils/carousel";
-import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageCarousel } from "../utils/rbac";
 
 function getMediaImageUrl(asset: MediaAsset) {
   return asset.previewUrl || asset.driveUrl || asset.embedUrl || "";
@@ -201,8 +201,8 @@ function carouselOrdersEqual(left: AdminCarouselOrderItem[], right: AdminCarouse
 
 export default function CarouselPage() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const canManage = canManageContent(session?.user);
+  const { capabilities } = useAuth();
+  const canManage = canManageCarousel(capabilities);
   const {
     page,
     pageSize,

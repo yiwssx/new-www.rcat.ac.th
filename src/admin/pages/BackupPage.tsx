@@ -32,7 +32,7 @@ import {
   type AdminBackupTableCount
 } from "../../features/admin-write/cloudflareApi";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
-import { canManageSystemBackup } from "../utils/rbac";
+import { canDownloadSystemBackup, canReadSystemBackupCounts } from "../utils/rbac";
 
 function triggerBackupDownload(download: AdminBackupDownload) {
   const url = URL.createObjectURL(download.blob);
@@ -75,15 +75,16 @@ function getStatusColor(status: AdminBackupTableCount["status"]) {
 }
 
 export default function BackupPage() {
-  const { session } = useAuth();
-  const canManage = canManageSystemBackup(session?.user);
+  const { capabilities } = useAuth();
+  const canCheckCounts = canReadSystemBackupCounts(capabilities);
+  const canDownload = canDownloadSystemBackup(capabilities);
   const [counts, setCounts] = useState<AdminBackupCounts | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState("");
 
   async function handleCheckCounts() {
-    if (!canManage) {
+    if (!canCheckCounts) {
       return;
     }
 
@@ -102,7 +103,7 @@ export default function BackupPage() {
   }
 
   async function handleDownloadBackup() {
-    if (!canManage) {
+    if (!canDownload) {
       return;
     }
 
@@ -149,7 +150,9 @@ export default function BackupPage() {
           ไฟล์สำรองข้อมูลอาจมีข้อมูลระบบและข้อมูลผู้ดูแล ควรจัดเก็บไว้ในพื้นที่ปลอดภัย และห้ามเผยแพร่สาธารณะ
         </Alert>
 
-        {!canManage && <Alert severity="info">บัญชีนี้ไม่มีสิทธิ์สร้างหรือดาวน์โหลดไฟล์สำรองข้อมูลระบบ</Alert>}
+        {!canCheckCounts && !canDownload && (
+          <Alert severity="info">บัญชีนี้ไม่มีสิทธิ์ตรวจนับหรือดาวน์โหลดไฟล์สำรองข้อมูลระบบ</Alert>
+        )}
 
         {error && <Alert severity="error">{error}</Alert>}
 
@@ -167,7 +170,7 @@ export default function BackupPage() {
                 <Button
                   variant="contained"
                   startIcon={<FactCheckOutlinedIcon />}
-                  disabled={!canManage || isChecking || isDownloading}
+                  disabled={!canCheckCounts || isChecking || isDownloading}
                   onClick={() => void handleCheckCounts()}
                   sx={{ mb: 2 }}
                 >
@@ -232,7 +235,7 @@ export default function BackupPage() {
                 <Button
                   variant="contained"
                   startIcon={<CloudDownloadOutlinedIcon />}
-                  disabled={!canManage || isDownloading || isChecking}
+                  disabled={!canDownload || isDownloading || isChecking}
                   onClick={() => void handleDownloadBackup()}
                 >
                   {isDownloading ? "กำลังสร้างไฟล์สำรองข้อมูล" : "ดาวน์โหลดไฟล์สำรองข้อมูล"}

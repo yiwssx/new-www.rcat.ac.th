@@ -38,7 +38,7 @@ vi.mock("../../context/authSessionContext", () => ({
       role: "editor"
     };
     const session: Session = { user, token: "test-session-token", expiresAt: "2026-12-31T00:00:00.000Z" };
-    return { session, login: vi.fn(), logout: vi.fn() };
+    return { session, capabilities: ["content.publish"], login: vi.fn(), logout: vi.fn() };
   }
 }));
 

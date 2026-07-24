@@ -43,7 +43,12 @@ vi.mock("../../context/authSessionContext", () => ({
       role: authMock.role
     };
     const session: Session = { user, token: "test-session-token", expiresAt: "2026-12-31T00:00:00.000Z" };
-    return { session, login: vi.fn(), logout: vi.fn() };
+    return {
+      session,
+      capabilities: authMock.role === "admin" ? ["menu.manage"] : [],
+      login: vi.fn(),
+      logout: vi.fn()
+    };
   }
 }));
 
@@ -215,7 +220,7 @@ describe("MenuPage server pagination", () => {
     renderMenuPage();
 
     expect(await screen.findByText(menuItem.label)).toBeInTheDocument();
-    expect(screen.getByText(/สามารถดูข้อมูลเพื่อตรวจสอบก่อนเผยแพร่ได้/)).toBeInTheDocument();
+    expect(screen.getByText(/มีสิทธิ์อ่านข้อมูลเท่านั้น/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "เพิ่มเมนูหลัก" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "จัดลำดับ" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "แก้ไข" })).not.toBeInTheDocument();

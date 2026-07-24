@@ -12,7 +12,7 @@ import { checkMediaBridgeStatus } from "../../features/cms-media/mediaBridgeClie
 export default function IntegrationsPage() {
   const structuredDataUsesCloudflare = getAdminWriteProvider() === "cloudflare";
   const bridgeQuery = useQuery({
-    queryKey: ["apps-script-media-bridge-status"],
+    queryKey: ["admin-integrations", "apps-script-media-bridge-status"],
     queryFn: checkMediaBridgeStatus
   });
   const bridgeConfigured = bridgeQuery.data?.configured === true;

@@ -67,7 +67,7 @@ import { ExternalServiceIconKey, ExternalServiceLink, ExternalServiceTone } from
 import { getExternalServiceToneStyle } from "../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
-import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageExternalServices } from "../utils/rbac";
 
 interface ExternalServiceDraft extends ExternalServiceLink {
   draftKey: string;
@@ -271,8 +271,8 @@ function externalServiceOrdersEqual(left: AdminExternalServiceOrderItem[], right
 
 export default function ExternalServicesPage() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const canManage = canManageContent(session?.user);
+  const { capabilities } = useAuth();
+  const canManage = canManageExternalServices(capabilities);
   const {
     page,
     pageSize,

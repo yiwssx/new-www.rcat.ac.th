@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContentItem } from "../public-content/types";
 import type { CmsDocumentItem } from "../cms-documents/types";
+import { CMS_SESSION_EXPIRED_EVENT, CMS_SESSION_EXPIRED_MESSAGE, CMS_SESSION_NOTICE_KEY } from "../cms-auth";
 
 const mediaBridgeMocks = vi.hoisted(() => ({
   deleteMediaAssetFromBridge: vi.fn(),
@@ -440,22 +441,20 @@ describe("M18 admin structured write provider", () => {
     expect(mediaBridgeMocks.deleteMediaAssetFromBridge).toHaveBeenCalledWith("m18-preview-media-001");
   });
 
-  it("converts a missing server-proxy session into a sign-in-again event", async () => {
+  it("converts the exact CMS-session 401 into a sign-in-again event", async () => {
     setServerProxyEnv();
     const eventListener = vi.fn();
-    window.addEventListener("rcat:admin-proxy-session-expired", eventListener);
+    window.addEventListener(CMS_SESSION_EXPIRED_EVENT, eventListener);
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => jsonResponse({ error: "admin proxy session is required" }, 401))
+      vi.fn(async () => jsonResponse({ error: "CMS session is invalid or expired" }, 401))
     );
     const { getAdminCmsSnapshot } = await import("../cms-dashboard/api");
 
-    await expect(getAdminCmsSnapshot()).rejects.toThrow("Session expired. Please sign in again.");
+    await expect(getAdminCmsSnapshot()).rejects.toThrow(CMS_SESSION_EXPIRED_MESSAGE);
     expect(eventListener).toHaveBeenCalledTimes(1);
-    expect(window.sessionStorage.getItem("rcat.admin.proxy.session.notice")).toBe(
-      "Session expired. Please sign in again."
-    );
-    window.removeEventListener("rcat:admin-proxy-session-expired", eventListener);
+    expect(window.sessionStorage.getItem(CMS_SESSION_NOTICE_KEY)).toBe(CMS_SESSION_EXPIRED_MESSAGE);
+    window.removeEventListener(CMS_SESSION_EXPIRED_EVENT, eventListener);
   });
 
   it("keeps Cloudflare admin snapshot GET credentialed without sending a JSON content type", async () => {

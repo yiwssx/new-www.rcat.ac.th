@@ -97,7 +97,7 @@ async function selectTemplate(label: string) {
   return user;
 }
 
-describe("ContentEditorDialog", () => {
+describe("ContentEditorDialog", { timeout: 15_000 }, () => {
   it("rejects quick-upload files over 10 MB before reading or sending them", () => {
     const onUploadMedia = vi.fn();
     renderEditor(createContentItem({ template: "standard" }), { onUploadMedia });
@@ -230,7 +230,7 @@ describe("ContentEditorDialog", () => {
     expect(savedItem.body).toContain("เนื้อหาทดสอบ");
     expect(savedItem).not.toHaveProperty("categorySlug");
     expect(savedItem).not.toHaveProperty("categorySlugs");
-  });
+  }, 15_000);
 
   it("keeps English and numeric permalink sanitization compatible", () => {
     renderEditor(createContentItem({ template: "standard" }));

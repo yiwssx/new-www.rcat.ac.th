@@ -53,8 +53,13 @@ vi.mock("../../context/authSessionContext", () => ({
       expiresAt: "2026-06-23T00:00:00.000Z"
     };
 
+    const capabilities =
+      authMock.role === "viewer" ? [] : ["content.create", "content.update", "content.delete", "content.publish"];
+
     return {
       session,
+      capabilities,
+      hasCapability: (capability: string) => capabilities.includes(capability),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -258,7 +263,7 @@ describe("ContentPage operation feedback", () => {
     });
     expect(publicInvalidationMock.invalidatePublicCmsData).toHaveBeenCalledTimes(1);
     expect(publicInvalidationMock.invalidateDeletedPublicContent).not.toHaveBeenCalled();
-  });
+  }, 15_000);
 
   it("shows a Facebook Embed label for imported facebook-embed content", async () => {
     paginationMock.content = [

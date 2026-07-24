@@ -5,7 +5,8 @@ import type { AdminBackupCounts, AdminBackupDownload } from "../../features/admi
 import type { Session, User } from "../../types";
 
 const authMock = vi.hoisted(() => ({
-  role: "admin" as User["role"]
+  role: "admin" as User["role"],
+  capabilities: ["backup.counts", "backup.download"]
 }));
 
 const cloudflareApiMock = vi.hoisted(() => ({
@@ -49,6 +50,7 @@ vi.mock("../../context/authSessionContext", () => ({
 
     return {
       session,
+      capabilities: authMock.capabilities,
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -105,6 +107,7 @@ function findSwalCall(predicate: (options: Record<string, unknown>) => boolean) 
 describe("BackupPage", () => {
   beforeEach(() => {
     authMock.role = "admin";
+    authMock.capabilities = ["backup.counts", "backup.download"];
     cloudflareApiMock.getD1BackupCountsFromCloudflare.mockReset();
     cloudflareApiMock.downloadD1BackupFromCloudflare.mockReset();
     cloudflareApiMock.getD1BackupCountsFromCloudflare.mockResolvedValue(backupCounts());
@@ -137,11 +140,21 @@ describe("BackupPage", () => {
 
   it("disables backup actions for read-only or non-admin users", () => {
     authMock.role = "viewer";
+    authMock.capabilities = [];
 
     render(<BackupPage />);
 
-    expect(screen.getByText(/บัญชีนี้ไม่มีสิทธิ์สร้างหรือดาวน์โหลดไฟล์สำรองข้อมูลระบบ/)).toBeInTheDocument();
+    expect(screen.getByText(/บัญชีนี้ไม่มีสิทธิ์ตรวจนับหรือดาวน์โหลดไฟล์สำรองข้อมูลระบบ/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ตรวจนับข้อมูล" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "ดาวน์โหลดไฟล์สำรองข้อมูล" })).toBeDisabled();
+  });
+
+  it("keeps backup counts and download controls independently capability-gated", () => {
+    authMock.capabilities = ["backup.counts"];
+
+    render(<BackupPage />);
+
+    expect(screen.getByRole("button", { name: "ตรวจนับข้อมูล" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "ดาวน์โหลดไฟล์สำรองข้อมูล" })).toBeDisabled();
   });
 

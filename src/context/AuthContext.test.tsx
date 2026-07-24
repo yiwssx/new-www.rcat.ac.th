@@ -1,221 +1,235 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useState } from "react";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { useState, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { projectSettings } from "../config/projectSettings";
+import { CmsAuthError, type CmsSafeUser } from "../features/cms-auth";
 import { AuthProvider } from "./AuthContext";
 import { useAuth } from "./authSessionContext";
 
-const authModuleMock = vi.hoisted(() => ({
-  loaded: false,
-  login: vi.fn(async () => ({
-    user: {
-      id: "user-test",
-      name: "Test User",
-      email: "admin@example.com",
-      role: "admin" as const
-    },
-    token: "local.test.token",
-    expiresAt: new Date(Date.now() + 60_000).toISOString()
-  }))
+const cmsAuthMock = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  getCapabilities: vi.fn(),
+  login: vi.fn(),
+  verifyMfa: vi.fn(),
+  logout: vi.fn(),
+  logoutAll: vi.fn(),
+  reauthenticate: vi.fn()
 }));
 
-const adminProxySessionMock = vi.hoisted(() => ({
-  enabled: false,
-  login: vi.fn(async () => ({
-    user: {
-      id: "admin-proxy:admin@example.com",
-      name: "admin",
-      email: "admin@example.com",
-      role: "admin" as const
-    },
-    token: "admin-proxy.local.test.token",
-    expiresAt: new Date(Date.now() + 60_000).toISOString()
-  })),
-  logout: vi.fn(async () => undefined)
-}));
-
-vi.mock("../services/auth", () => {
-  authModuleMock.loaded = true;
+vi.mock("../features/cms-auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../features/cms-auth")>();
   return {
-    login: authModuleMock.login
+    ...actual,
+    getCmsSession: cmsAuthMock.getSession,
+    getCmsCapabilities: cmsAuthMock.getCapabilities,
+    loginCmsAccount: cmsAuthMock.login,
+    verifyCmsMfa: cmsAuthMock.verifyMfa,
+    logoutCmsSession: cmsAuthMock.logout,
+    logoutAllCmsSessions: cmsAuthMock.logoutAll,
+    reauthenticateCmsSession: cmsAuthMock.reauthenticate
   };
 });
 
-vi.mock("../services/adminProxySession", () => ({
-  ADMIN_PROXY_SESSION_EXPIRED_EVENT: "rcat:admin-proxy-session-expired",
-  isAdminProxySessionEnabled: () => adminProxySessionMock.enabled,
-  loginCloudflareAdminProxySession: adminProxySessionMock.login,
-  logoutAdminProxySession: adminProxySessionMock.logout
-}));
+const user: CmsSafeUser = {
+  id: "user-1",
+  email: "admin@example.test",
+  name: "Admin",
+  username: "admin",
+  role: "admin",
+  isRoot: false,
+  recentPasswordAuthentication: true,
+  recentMfaAuthentication: false
+};
+const capabilities = ["dashboard.read", "users.read-all"] as const;
 
-function LoginButton() {
-  const { login } = useAuth();
-
-  return <button onClick={() => void login("admin@example.com", "password")}>Login</button>;
-}
-
-function AuthStateControls() {
-  const { login, logout, session } = useAuth();
+function AuthState() {
+  const auth = useAuth();
+  const queryClient = useQueryClient();
   const [error, setError] = useState("");
-
-  async function handleLogin() {
-    try {
-      await login("admin@example.com", "password");
-    } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "Login failed");
-    }
-  }
 
   return (
     <div>
-      <span>{session ? "Signed in" : "Signed out"}</span>
+      <span>status:{auth.status}</span>
+      <span>user:{auth.session?.user.id ?? "none"}</span>
+      <span>capabilities:{auth.capabilities.join(",")}</span>
       <span>{error}</span>
-      <button onClick={() => void handleLogin()}>Login state</button>
-      <button onClick={() => void logout()}>Logout state</button>
+      <button
+        onClick={() =>
+          void auth.login("admin", " password ").catch((currentError) => {
+            setError(currentError instanceof Error ? currentError.message : "error");
+          })
+        }
+      >
+        login
+      </button>
+      <button onClick={() => void auth.logout().catch(() => undefined)}>logout</button>
+      <button onClick={() => queryClient.setQueryData(["admin-users"], { account: "A" })}>seed</button>
+      <span>cache:{queryClient.getQueryData(["admin-users"]) ? "present" : "empty"}</span>
     </div>
   );
 }
 
-describe("AuthProvider", () => {
+function renderAuth(ui: ReactNode = <AuthState />) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } }
+  });
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>{ui}</AuthProvider>
+      </QueryClientProvider>
+    )
+  };
+}
+
+describe("CMS AuthProvider", () => {
   beforeEach(() => {
+    vi.unstubAllGlobals();
     window.localStorage.clear();
-    authModuleMock.loaded = false;
-    authModuleMock.login.mockClear();
-    adminProxySessionMock.enabled = false;
-    adminProxySessionMock.login.mockReset();
-    adminProxySessionMock.login.mockResolvedValue({
-      user: {
-        id: "admin-proxy:admin@example.com",
-        name: "admin",
-        email: "admin@example.com",
-        role: "admin"
-      },
-      token: "admin-proxy.local.test.token",
-      expiresAt: new Date(Date.now() + 60_000).toISOString()
+    window.sessionStorage.clear();
+    vi.clearAllMocks();
+    cmsAuthMock.getSession.mockResolvedValue(user);
+    cmsAuthMock.getCapabilities.mockResolvedValue({ role: "admin", capabilities: [...capabilities] });
+    cmsAuthMock.login.mockResolvedValue({ kind: "authenticated", user });
+    cmsAuthMock.verifyMfa.mockResolvedValue(user);
+    cmsAuthMock.logout.mockResolvedValue(null);
+    cmsAuthMock.logoutAll.mockResolvedValue(null);
+    cmsAuthMock.reauthenticate.mockResolvedValue({
+      recentPasswordAuthentication: true,
+      recentMfaAuthentication: false
     });
-    adminProxySessionMock.logout.mockReset();
-    adminProxySessionMock.logout.mockResolvedValue(undefined);
   });
 
-  it("restores session state without loading credential auth code", () => {
-    render(
-      <AuthProvider>
-        <div>Public route</div>
-      </AuthProvider>
+  it("keeps bootstrap explicit and restores a validated server Session", async () => {
+    cmsAuthMock.getSession.mockImplementation(
+      () => new Promise((resolve) => window.setTimeout(() => resolve(user), 20))
     );
+    renderAuth();
 
-    expect(screen.getByText("Public route")).toBeInTheDocument();
-    expect(authModuleMock.loaded).toBe(false);
+    expect(screen.getByText("status:bootstrapping")).toBeInTheDocument();
+    expect(await screen.findByText("status:authenticated")).toBeInTheDocument();
+    expect(screen.getByText("user:user-1")).toBeInTheDocument();
+    expect(screen.getByText("capabilities:dashboard.read,users.read-all")).toBeInTheDocument();
   });
 
-  it("loads credential auth code only when login is attempted", async () => {
-    render(
-      <AuthProvider>
-        <LoginButton />
-      </AuthProvider>
-    );
+  it("maps HTTP 401 to unauthenticated and HTTP 503 to unavailable", async () => {
+    cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(401));
+    const first = renderAuth();
+    expect(await screen.findByText("status:unauthenticated")).toBeInTheDocument();
+    first.unmount();
 
-    expect(authModuleMock.loaded).toBe(false);
-
-    fireEvent.click(screen.getByRole("button", { name: "Login" }));
-
-    await waitFor(() => {
-      expect(authModuleMock.login).toHaveBeenCalledWith("admin@example.com", "password");
-    });
-    expect(authModuleMock.loaded).toBe(true);
-    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toContain("local.test.token");
+    cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(503));
+    renderAuth();
+    expect(await screen.findByText("status:unavailable")).toBeInTheDocument();
   });
 
-  it("establishes the server proxy session before persisting local admin state", async () => {
-    adminProxySessionMock.enabled = true;
-    adminProxySessionMock.login.mockImplementation(async () => {
-      expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
-      return {
-        user: {
-          id: "admin-proxy:admin@example.com",
-          name: "admin",
-          email: "admin@example.com",
-          role: "admin"
-        },
-        token: "admin-proxy.local.test.token",
-        expiresAt: new Date(Date.now() + 60_000).toISOString()
-      };
+  it("fails closed for a capability role mismatch or invalid capability response", async () => {
+    cmsAuthMock.getCapabilities.mockResolvedValueOnce({
+      role: "viewer",
+      capabilities: ["dashboard.read"]
     });
-    render(
-      <AuthProvider>
-        <AuthStateControls />
-      </AuthProvider>
-    );
+    const mismatch = renderAuth();
+    expect(await screen.findByText("status:unavailable")).toBeInTheDocument();
+    mismatch.unmount();
 
-    fireEvent.click(screen.getByRole("button", { name: "Login state" }));
-
-    await waitFor(() => {
-      expect(adminProxySessionMock.login).toHaveBeenCalledWith("admin@example.com", "password");
-      expect(screen.getByText("Signed in")).toBeInTheDocument();
-    });
-    expect(authModuleMock.loaded).toBe(false);
-    expect(authModuleMock.login).not.toHaveBeenCalled();
-    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toContain("admin-proxy.local.test.token");
+    cmsAuthMock.getCapabilities.mockRejectedValueOnce(new TypeError("unknown capability"));
+    renderAuth();
+    expect(await screen.findByText("status:unavailable")).toBeInTheDocument();
   });
 
-  it("does not retain local admin state when the server proxy session login fails", async () => {
-    adminProxySessionMock.enabled = true;
-    adminProxySessionMock.login.mockRejectedValue(new Error("Admin proxy session login failed"));
-    window.localStorage.setItem(projectSettings.storageKeys.session, JSON.stringify(await authModuleMock.login()));
-    render(
-      <AuthProvider>
-        <AuthStateControls />
-      </AuthProvider>
+  it("ignores and deletes the legacy localStorage Session without writing a replacement", async () => {
+    const storageSpy = vi.spyOn(Storage.prototype, "setItem");
+    window.localStorage.setItem(
+      projectSettings.storageKeys.session,
+      JSON.stringify({ token: "admin-proxy.local.secret", user: { role: "admin" } })
     );
+    storageSpy.mockClear();
 
-    expect(screen.getByText("Signed in")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Login state" }));
+    renderAuth();
+    expect(await screen.findByText("status:authenticated")).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(adminProxySessionMock.login).toHaveBeenCalled();
-      expect(adminProxySessionMock.logout).toHaveBeenCalledTimes(1);
-      expect(screen.getByText("Admin proxy session login failed")).toBeInTheDocument();
-    });
-    expect(screen.getByText("Signed out")).toBeInTheDocument();
     expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
+    expect(storageSpy).not.toHaveBeenCalled();
   });
 
-  it("clears the server proxy session when logging out", async () => {
-    adminProxySessionMock.enabled = true;
-    window.localStorage.setItem(projectSettings.storageKeys.session, JSON.stringify(await authModuleMock.login()));
-    render(
-      <AuthProvider>
-        <AuthStateControls />
-      </AuthProvider>
-    );
+  it("refreshes authoritative Session state after password Login", async () => {
+    renderAuth();
+    await screen.findByText("status:authenticated");
+    cmsAuthMock.getSession.mockClear();
+    cmsAuthMock.getCapabilities.mockClear();
 
-    expect(screen.getByText("Signed in")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Logout state" }));
+    fireEvent.click(screen.getByRole("button", { name: "login" }));
 
     await waitFor(() => {
-      expect(adminProxySessionMock.logout).toHaveBeenCalledTimes(1);
-      expect(screen.getByText("Signed out")).toBeInTheDocument();
+      expect(cmsAuthMock.login).toHaveBeenCalledWith("admin", " password ");
+      expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(1);
+      expect(cmsAuthMock.getCapabilities).toHaveBeenCalledTimes(1);
     });
-    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
   });
 
-  it("clears local auth immediately when the HttpOnly proxy session expires", async () => {
-    window.localStorage.setItem(projectSettings.storageKeys.session, JSON.stringify(await authModuleMock.login()));
-    render(
-      <AuthProvider>
-        <AuthStateControls />
-      </AuthProvider>
-    );
+  it("clears protected cache on Logout even when the server request fails", async () => {
+    cmsAuthMock.logout.mockRejectedValueOnce(new Error("network"));
+    const { queryClient } = renderAuth();
+    await screen.findByText("status:authenticated");
+    fireEvent.click(screen.getByRole("button", { name: "seed" }));
+    expect(queryClient.getQueryData(["admin-users"])).toEqual({ account: "A" });
 
-    expect(screen.getByText("Signed in")).toBeInTheDocument();
-    act(() => {
-      window.dispatchEvent(new CustomEvent("rcat:admin-proxy-session-expired"));
-    });
+    fireEvent.click(screen.getByRole("button", { name: "logout" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Signed out")).toBeInTheDocument();
+      expect(screen.getByText("status:unauthenticated")).toBeInTheDocument();
+      expect(queryClient.getQueryData(["admin-users"])).toBeUndefined();
     });
-    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
-    expect(adminProxySessionMock.logout).not.toHaveBeenCalled();
+  });
+
+  it("removes account A protected data before account B becomes active", async () => {
+    const secondUser = { ...user, id: "user-2", email: "second@example.test" };
+    renderAuth();
+    await screen.findByText("user:user-1");
+    fireEvent.click(screen.getByRole("button", { name: "seed" }));
+    cmsAuthMock.getSession.mockResolvedValue(secondUser);
+
+    fireEvent.click(screen.getByRole("button", { name: "login" }));
+
+    expect(await screen.findByText("user:user-2")).toBeInTheDocument();
+    expect(screen.getByText("cache:empty")).toBeInTheDocument();
+  });
+
+  it("revalidates authoritative access after another tab logs in or out", async () => {
+    class FakeBroadcastChannel {
+      static listeners = new Set<(event: MessageEvent<unknown>) => void>();
+
+      addEventListener(_type: string, listener: (event: MessageEvent<unknown>) => void) {
+        FakeBroadcastChannel.listeners.add(listener);
+      }
+
+      removeEventListener(_type: string, listener: (event: MessageEvent<unknown>) => void) {
+        FakeBroadcastChannel.listeners.delete(listener);
+      }
+
+      postMessage(_message: unknown) {}
+      close() {}
+
+      static emit(message: "session-changed" | "logged-out") {
+        for (const listener of FakeBroadcastChannel.listeners) {
+          listener({ data: message } as MessageEvent<unknown>);
+        }
+      }
+    }
+    vi.stubGlobal("BroadcastChannel", FakeBroadcastChannel);
+
+    const secondUser = { ...user, id: "user-2", email: "second@example.test" };
+    renderAuth();
+    await screen.findByText("user:user-1");
+
+    cmsAuthMock.getSession.mockResolvedValue(secondUser);
+    act(() => FakeBroadcastChannel.emit("session-changed"));
+    expect(await screen.findByText("user:user-2")).toBeInTheDocument();
+
+    cmsAuthMock.getSession.mockRejectedValue(new CmsAuthError(401));
+    act(() => FakeBroadcastChannel.emit("logged-out"));
+    expect(await screen.findByText("status:unauthenticated")).toBeInTheDocument();
   });
 });

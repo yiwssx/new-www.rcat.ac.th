@@ -58,7 +58,7 @@ import { normalizePublicImageUrl } from "../../utils/safeUrl";
 import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { eventStatusLabels, visibilityLabels } from "../../utils/thaiLabels";
-import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageEvents } from "../utils/rbac";
 
 const MAX_EVENT_MEDIA_ATTACHMENTS = 12;
 
@@ -147,8 +147,8 @@ function getMediaPreviewUrl(asset: MediaAsset) {
 
 export default function CalendarPage() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const canManage = canManageContent(session?.user);
+  const { capabilities } = useAuth();
+  const canManage = canManageEvents(capabilities);
 
   const {
     page,
@@ -212,7 +212,7 @@ export default function CalendarPage() {
   const selectedMediaIds = form.mediaIds.slice(0, Math.min(ADMIN_MEDIA_BY_IDS_MAX, MAX_EVENT_MEDIA_ATTACHMENTS));
 
   const selectedMediaQuery = useQuery({
-    queryKey: ["calendar-selected-media", selectedMediaIds],
+    queryKey: ["admin-calendar-selected-media", selectedMediaIds],
     queryFn: () => getAdminMediaByIds(selectedMediaIds),
     enabled: dialogOpen && selectedMediaIds.length > 0
   });

@@ -87,8 +87,13 @@ function waitForDialogTransition() {
 
 export default function ContentPage() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const canManage = canManageContent(session?.user);
+  const { capabilities, hasCapability } = useAuth();
+  const canManage = canManageContent(capabilities);
+  const canCreate = hasCapability("content.create");
+  const canUpdate = hasCapability("content.update");
+  const canDelete = hasCapability("content.delete");
+  const canPublish = hasCapability("content.publish");
+  const canManageMedia = hasCapability("media.manage");
   const {
     page,
     pageSize,
@@ -150,7 +155,7 @@ export default function ContentPage() {
 
   const handleEdit = useCallback(
     async (item: AdminContentListItem) => {
-      if (!canManage || contentWritePending) {
+      if (!canUpdate || contentWritePending) {
         return;
       }
 
@@ -172,12 +177,12 @@ export default function ContentPage() {
         setLoadingEditorItem(false);
       }
     },
-    [canManage, contentWritePending]
+    [canUpdate, contentWritePending]
   );
 
   const handleDelete = useCallback(
     async (item: AdminContentListItem) => {
-      if (!canManage || contentWritePending) {
+      if (!canDelete || contentWritePending) {
         return;
       }
 
@@ -218,12 +223,12 @@ export default function ContentPage() {
         await showErrorResult("ไม่สามารถลบเนื้อหาได้", currentError, "กรุณาลองอีกครั้ง");
       }
     },
-    [canManage, contentListQuery.data?.pagination, contentWritePending, deleteMutation, page, setListState, queryClient]
+    [canDelete, contentListQuery.data?.pagination, contentWritePending, deleteMutation, page, setListState, queryClient]
   );
 
   const handlePublish = useCallback(
     async (item: AdminContentListItem) => {
-      if (!canManage || contentWritePending) {
+      if (!canPublish || contentWritePending) {
         return;
       }
 
@@ -256,7 +261,7 @@ export default function ContentPage() {
         await showErrorResult("ไม่สามารถเผยแพร่เนื้อหาได้", currentError, "กรุณาลองอีกครั้ง");
       }
     },
-    [canManage, contentWritePending, publishMutation, queryClient]
+    [canPublish, contentWritePending, publishMutation, queryClient]
   );
 
   const columns = useMemo(
@@ -315,21 +320,21 @@ export default function ContentPage() {
                 </IconButton>
               </span>
             </Tooltip>
-            {canManage && (
+            {(canUpdate || canPublish || canDelete) && (
               <>
                 <Tooltip title="แก้ไข">
                   <span>
                     <IconButton
                       aria-label="แก้ไข"
                       size="small"
-                      disabled={loadingEditorItem || contentWritePending}
+                      disabled={!canUpdate || loadingEditorItem || contentWritePending}
                       onClick={() => void handleEdit(info.row.original)}
                     >
                       <EditOutlinedIcon fontSize="small" />
                     </IconButton>
                   </span>
                 </Tooltip>
-                {info.row.original.status !== "published" && (
+                {canPublish && info.row.original.status !== "published" && (
                   <Tooltip title="เผยแพร่">
                     <span>
                       <IconButton
@@ -350,7 +355,7 @@ export default function ContentPage() {
                       aria-label="ลบ"
                       size="small"
                       color="error"
-                      disabled={contentWritePending}
+                      disabled={!canDelete || contentWritePending}
                       onClick={() => void handleDelete(info.row.original)}
                     >
                       <DeleteOutlineIcon fontSize="small" />
@@ -363,7 +368,7 @@ export default function ContentPage() {
         )
       })
     ],
-    [canManage, contentWritePending, handleDelete, handleEdit, handlePublish, loadingEditorItem]
+    [canDelete, canPublish, canUpdate, contentWritePending, handleDelete, handleEdit, handlePublish, loadingEditorItem]
   );
 
   // TanStack Table intentionally returns instance functions that React Compiler cannot memoize safely.
@@ -376,7 +381,7 @@ export default function ContentPage() {
   });
 
   function handleCreate() {
-    if (!canManage || contentWritePending) {
+    if (!canCreate || contentWritePending) {
       return;
     }
 
@@ -386,7 +391,9 @@ export default function ContentPage() {
   }
 
   async function handleSave(item: ContentItem) {
-    if (!canManage) {
+    const allowed = item.id ? canUpdate : canCreate;
+
+    if (!allowed) {
       setSaveError(ADMIN_READ_ONLY_NOTICE);
       return;
     }
@@ -424,7 +431,7 @@ export default function ContentPage() {
   }
 
   async function handleUploadMedia(input: MediaAssetInput) {
-    if (!canManage) {
+    if (!canManageMedia) {
       throw new Error(ADMIN_READ_ONLY_NOTICE);
     }
 
@@ -437,7 +444,7 @@ export default function ContentPage() {
         title="เนื้อหา"
         description="สร้างและดูแลหน้าเว็บ บทความ ข้อมูลหลักสูตร ข่าว และประกาศ"
         action={
-          canManage ? (
+          canCreate ? (
             <Button variant="contained" startIcon={<AddIcon />} disabled={contentWritePending} onClick={handleCreate}>
               เพิ่มเนื้อหา
             </Button>

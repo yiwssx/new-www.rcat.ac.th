@@ -10,6 +10,9 @@ import {
   saveAdminMenuItem
 } from "./api";
 import { ADMIN_MEDIA_BY_IDS_MAX } from "./types";
+import { CMS_CSRF_COOKIE_NAME } from "../cms-auth";
+
+const CMS_CSRF_TOKEN = "P".repeat(43);
 
 function jsonResponse(payload: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(payload), {
@@ -28,9 +31,11 @@ describe("admin pagination API client", () => {
   beforeEach(() => {
     vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "server-proxy");
     vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "/api/admin-proxy");
+    vi.spyOn(Document.prototype, "cookie", "get").mockReturnValue(`${CMS_CSRF_COOKIE_NAME}=${CMS_CSRF_TOKEN}`);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });

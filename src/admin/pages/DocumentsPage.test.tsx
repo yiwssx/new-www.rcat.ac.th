@@ -54,7 +54,11 @@ vi.mock("../../context/authSessionContext", () => ({
       role: authMock.role
     };
     const session: Session = { user, token: "test-session-token", expiresAt: "2026-12-31T00:00:00.000Z" };
-    return { session, login: vi.fn(), logout: vi.fn() };
+    const capabilities =
+      authMock.role === "viewer"
+        ? []
+        : ["documents.create", "documents.update", "documents.delete", "documents.publish"];
+    return { session, capabilities, login: vi.fn(), logout: vi.fn() };
   }
 }));
 
@@ -247,7 +251,7 @@ describe("DocumentsPage server pagination", () => {
     renderDocumentsPage();
 
     expect(await screen.findByText(documentItem.title)).toBeInTheDocument();
-    expect(screen.getByText(/สามารถดูข้อมูลเพื่อตรวจสอบก่อนเผยแพร่ได้/)).toBeInTheDocument();
+    expect(screen.getByText(/มีสิทธิ์อ่านข้อมูลเท่านั้น/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "เพิ่มเอกสาร" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "จัดลำดับ" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "แก้ไข" })).not.toBeInTheDocument();

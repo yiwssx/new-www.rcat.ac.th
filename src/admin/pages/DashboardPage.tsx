@@ -32,8 +32,8 @@ const metricIcons = [
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const canPublish = canPublishContent(session?.user);
+  const { capabilities } = useAuth();
+  const canPublish = canPublishContent(capabilities);
   const { data, error, isError, isLoading, isFetching } = useQuery(adminDashboardSummaryQueryOptions());
   const publishMutation = useMutation({
     mutationFn: publishAllPendingAdminContent,

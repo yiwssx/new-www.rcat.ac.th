@@ -21,7 +21,11 @@ export default defineConfig({
     reuseExistingServer: true,
     env: {
       VITE_PUBLIC_API_PROVIDER: "cloudflare",
-      VITE_CLOUDFLARE_PUBLIC_API_URL: functionalApiBaseUrl
+      VITE_CLOUDFLARE_PUBLIC_API_URL: functionalApiBaseUrl,
+      VITE_BACKEND_MIGRATION_MODE: "cloudflare-first-preview",
+      VITE_ADMIN_WRITE_PROVIDER: "cloudflare",
+      VITE_CLOUDFLARE_ADMIN_AUTH_MODE: "server-proxy",
+      VITE_CLOUDFLARE_ADMIN_PROXY_URL: "/api/admin-proxy"
     }
   }
 });

@@ -68,6 +68,7 @@ vi.mock("../../context/authSessionContext", () => ({
 
     return {
       session,
+      capabilities: authMock.role === "viewer" ? [] : ["carousel.manage"],
       login: vi.fn(),
       logout: vi.fn()
     };

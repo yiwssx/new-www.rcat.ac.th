@@ -72,14 +72,13 @@ function extractCssRule(selector: string) {
 }
 
 describe("M20 admin information architecture", () => {
-  it("moves user management to a Cloudflare RBAC users route and sidebar item", () => {
+  it("moves CMS user lifecycle management to a capability-guarded users route and sidebar item", () => {
     expect(usersPageSource).toContain("<UserManagementCard />");
     expect(usersPageSource).toContain("ผู้ใช้และสิทธิ์การเข้าถึง");
     expect(usersPageSource).not.toContain("getGoogleAppsScriptUrl");
     expect(usersPageSource).not.toContain("Legacy user management");
-    expect(userManagementCardSource).toContain("Cloudflare Access");
-    expect(userManagementCardSource).toContain("Cloudflare/D1");
     expect(userManagementCardSource).toContain("useAdminUserListQuery");
+    expect(userManagementCardSource).toContain("createAdminUserWithInvitationToCloudflare");
     expect(userManagementCardSource).toContain("saveAdminUserProfileToCloudflare");
     expect(userManagementCardSource).toContain("deleteAdminUserProfileFromCloudflare");
     expect(adminCloudflareApiSource).toContain("/api/admin/users");
@@ -89,9 +88,11 @@ describe("M20 admin information architecture", () => {
     expect(userManagementCardSource).not.toContain("resetUserAccounts");
     expect(userManagementCardSource).not.toContain('type="password"');
     expect(settingsPageSource).not.toContain("<UserManagementCard />");
-    expect(cmsShellSource).toContain('label: "ผู้ใช้"');
+    expect(cmsShellSource).toContain('label: "ผู้ใช้งาน"');
     expect(cmsShellSource).toContain('to: "/admin/users"');
-    expect(routesSource).toMatch(/path:\s*"users"[\s\S]*?component:\s*UsersPage/);
+    expect(routesSource).toMatch(
+      /path:\s*"users"[\s\S]*?<CapabilityGuard capability="users\.read-all">[\s\S]*?<UsersPage/
+    );
     expect(routesSource).not.toMatch(/path:\s*"users"[\s\S]*?<AdminOnlyPage>[\s\S]*?<UsersPage\s*\/>/);
   });
 
@@ -99,26 +100,31 @@ describe("M20 admin information architecture", () => {
     expect(backupPageSource).toContain("สำรองข้อมูลระบบ");
     expect(backupPageSource).toContain("ตรวจนับข้อมูล");
     expect(backupPageSource).toContain("ดาวน์โหลดไฟล์สำรองข้อมูล");
-    expect(backupPageSource).toContain("canManageSystemBackup");
+    expect(backupPageSource).toContain("canReadSystemBackupCounts");
+    expect(backupPageSource).toContain("canDownloadSystemBackup");
     expect(backupPageSource).toContain("downloadD1BackupFromCloudflare");
     expect(backupPageSource).toContain("getD1BackupCountsFromCloudflare");
     expect(backupPageSource).not.toMatch(/restore|นำเข้า|อัปโหลดไฟล์สำรอง/i);
     expect(cmsShellSource).toContain('label: "สำรองข้อมูล"');
     expect(cmsShellSource).toContain('to: "/admin/backup"');
     expect(routeComponentsSource).toContain('export const BackupPage = lazy(() => import("./admin/pages/BackupPage"))');
-    expect(routesSource).toMatch(/path:\s*"backup"[\s\S]*?component:\s*BackupPage/);
+    expect(routesSource).toMatch(
+      /path:\s*"backup"[\s\S]*?<CapabilityGuard anyOf=\{\["backup\.counts", "backup\.download"\]\}>[\s\S]*?<BackupPage/
+    );
   });
 
-  it("centralizes read-only admin RBAC for mutation controls", () => {
-    expect(cmsShellSource).toContain("canReadAdminData");
-    expect(cmsShellSource).toContain("canManageAdminData");
-    expect(cmsShellSource).toContain("canManageContent");
-    expect(userManagementCardSource).toContain("canManageUsers");
-    expect(userManagementCardSource).toContain("canSelfEditUserProfile");
+  it("uses server-issued capabilities for admin navigation and mutation controls", () => {
+    expect(cmsShellSource).toContain("hasAnyCmsCapability");
+    expect(cmsShellSource).toContain("capabilities");
+    expect(userManagementCardSource).toContain('hasCapability("users.create")');
+    expect(userManagementCardSource).toContain('hasCapability("users.update-any")');
+    expect(userManagementCardSource).toContain('hasCapability("users.delete")');
     expect(settingsPageSource).toContain("canManageAdminData");
     expect(cmsShellSource).not.toContain('session?.user.role === "admin"');
-    expect(routesSource).toMatch(/path:\s*"settings"[\s\S]*?component:\s*SettingsPage/);
-    expect(routesSource).toMatch(/path:\s*"menus"[\s\S]*?component:\s*MenuPage/);
+    expect(routesSource).toMatch(
+      /path:\s*"settings"[\s\S]*?<CapabilityGuard capability="settings\.read">[\s\S]*?<SettingsPage/
+    );
+    expect(routesSource).toMatch(/path:\s*"menus"[\s\S]*?<CapabilityGuard capability="menu\.read">[\s\S]*?<MenuPage/);
     expect(routesSource).not.toMatch(/path:\s*"settings"[\s\S]*?<AdminOnlyPage>[\s\S]*?<SettingsPage\s*\/>/);
   });
 

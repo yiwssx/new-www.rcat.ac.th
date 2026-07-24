@@ -282,8 +282,8 @@ const visitorStatsFields: Array<{
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const canManage = canManageAdminData(session?.user);
+  const { capabilities } = useAuth();
+  const canManage = canManageAdminData(capabilities);
   const rolePermissions = projectSettings.roles;
   const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(defaultDisplaySettings);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(defaultSiteSettings);
@@ -295,7 +295,7 @@ export default function SettingsPage() {
   const [visitorStatsSource, setVisitorStatsSource] = useState<VisitorStatsSettings | undefined>();
 
   const displaySettingsQuery = useQuery({
-    queryKey: ["display-settings"],
+    queryKey: ["admin-settings", "display"],
     queryFn: loadDisplaySettings
   });
   const siteSettingsQuery = useQuery({
