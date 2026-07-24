@@ -114,6 +114,14 @@ function cmsCookieHeader(options = {}) {
   ].join("; ");
 }
 
+function trackingLoginLimiter() {
+  return {
+    check: vi.fn(() => ({ blocked: false, retryAfterSeconds: 0 })),
+    recordFailure: vi.fn(() => ({ blocked: false, retryAfterSeconds: 0 })),
+    recordSuccess: vi.fn()
+  };
+}
+
 describe("Vercel CMS-auth handlers", () => {
   it("parses exact cookie names without percent-decoding and rejects duplicates or malformed token lengths", () => {
     const valid = `${getCmsSessionCookieName()}=${sessionToken}; ${getCmsCsrfCookieName()}=${csrfToken}`;
@@ -254,15 +262,21 @@ describe("Vercel CMS-auth handlers", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
-  it("sets Session and CSRF cookies, clears a stale challenge, and exposes no private values", async () => {
+  it("uses post-Worker time for fresh password assurance while preserving the limiter timestamp", async () => {
+    const limiterNowMs = Date.parse(safeUser.reauthenticatedAt) - 1;
+    const assuranceNowMs = Date.parse(safeUser.reauthenticatedAt) + 1;
+    const loginLimiter = trackingLoginLimiter();
     const result = response();
     await handleCmsAuthLogin(request({ method: "POST", body: { identifier: "admin", password: "password" } }), result, {
       env: env(),
-      fetchImpl: vi.fn(async () => workerSuccess()),
-      loginLimiter: createCmsLoginRateLimiter(),
-      nowMs: Date.parse(safeUser.reauthenticatedAt)
+      fetchImpl: vi.fn(async () => workerSuccess({ body: { user: { ...safeUser, mfaVerifiedAt: "" } } })),
+      loginLimiter,
+      nowMs: limiterNowMs,
+      assuranceNowMs
     });
 
+    expect(limiterNowMs).toBeLessThan(Date.parse(safeUser.reauthenticatedAt));
+    expect(assuranceNowMs).toBeGreaterThan(Date.parse(safeUser.reauthenticatedAt));
     const cookies = result.getHeader("set-cookie");
     expect(result.statusCode).toBe(200);
     expect(cookies).toHaveLength(3);
@@ -285,8 +299,10 @@ describe("Vercel CMS-auth handlers", () => {
     expect(result.bodyText).not.toContain(safeUser.reauthenticatedAt);
     expect(JSON.parse(result.bodyText).user).toMatchObject({
       recentPasswordAuthentication: true,
-      recentMfaAuthentication: true
+      recentMfaAuthentication: false
     });
+    expect(loginLimiter.check.mock.calls.every((call) => call[1] === limiterNowMs)).toBe(true);
+    expect(loginLimiter.recordSuccess).toHaveBeenCalledWith(expect.any(Object), limiterNowMs);
     expect(result.getHeader("x-worker-private")).toBeUndefined();
   });
 
@@ -317,7 +333,10 @@ describe("Vercel CMS-auth handlers", () => {
     expect(result.bodyText).not.toContain(challengeToken);
   });
 
-  it("verifies an MFA challenge without browser-readable tokens and replaces it with CMS cookies", async () => {
+  it("uses post-Worker time for fresh MFA assurance while preserving the limiter timestamp", async () => {
+    const limiterNowMs = Date.parse(safeUser.reauthenticatedAt) - 1;
+    const assuranceNowMs = Date.parse(safeUser.reauthenticatedAt) + 1;
+    const mfaLimiter = trackingLoginLimiter();
     const result = response();
     const fetchImpl = vi.fn(async () => workerSuccess());
     await handleCmsMfaVerify(
@@ -327,14 +346,55 @@ describe("Vercel CMS-auth handlers", () => {
         headers: { cookie: `${getCmsMfaChallengeCookieName()}=${challengeToken}` }
       }),
       result,
-      { env: env(), fetchImpl, mfaLimiter: createCmsLoginRateLimiter() }
+      { env: env(), fetchImpl, mfaLimiter, nowMs: limiterNowMs, assuranceNowMs }
     );
+    const user = JSON.parse(result.bodyText).user;
+    expect(limiterNowMs).toBeLessThan(Date.parse(safeUser.reauthenticatedAt));
+    expect(assuranceNowMs).toBeGreaterThan(Date.parse(safeUser.reauthenticatedAt));
     expect(result.statusCode).toBe(200);
     expect(result.getHeader("set-cookie")).toHaveLength(3);
     expect(result.getHeader("set-cookie")[2]).toContain(`${getCmsMfaChallengeCookieName()}=`);
     expect(result.getHeader("set-cookie")[2]).toContain("Max-Age=0");
     expect(result.bodyText).not.toContain(challengeToken);
     expect(result.bodyText).not.toContain(sessionToken);
+    expect(result.bodyText).not.toContain(safeUser.sessionId);
+    expect(result.bodyText).not.toContain(safeUser.reauthenticatedAt);
+    expect(user).toMatchObject({
+      recentPasswordAuthentication: true,
+      recentMfaAuthentication: true
+    });
+    expect(mfaLimiter.check).toHaveBeenCalledWith(expect.any(Object), limiterNowMs);
+    expect(mfaLimiter.recordSuccess).toHaveBeenCalledWith(expect.any(Object), limiterNowMs);
+  });
+
+  it.each([
+    ["exact ten-minute boundary", "2026-07-22T03:00:00.000Z", "2026-07-22T03:10:00.000Z"],
+    ["future timestamp", "2026-07-22T03:10:00.001Z", "2026-07-22T03:10:00.000Z"]
+  ])("keeps %s assurance false using response time", async (_label, timestamp, responseTimestamp) => {
+    const result = response();
+    await handleCmsAuthLogin(request({ method: "POST", body: { identifier: "admin", password: "password" } }), result, {
+      env: env(),
+      fetchImpl: vi.fn(async () =>
+        workerSuccess({
+          body: {
+            user: {
+              ...safeUser,
+              reauthenticatedAt: timestamp,
+              mfaVerifiedAt: timestamp
+            }
+          }
+        })
+      ),
+      loginLimiter: trackingLoginLimiter(),
+      nowMs: Date.parse("2026-07-22T02:59:59.000Z"),
+      assuranceNowMs: Date.parse(responseTimestamp)
+    });
+
+    const user = JSON.parse(result.bodyText).user;
+    expect(user.recentPasswordAuthentication).toBe(false);
+    expect(user.recentMfaAuthentication).toBe(false);
+    expect(result.bodyText).not.toContain(timestamp);
+    expect(result.bodyText).not.toContain(safeUser.sessionId);
   });
 
   it("uses the CMS session and matching browser CSRF for self-service enrollment start", async () => {

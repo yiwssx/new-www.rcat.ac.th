@@ -690,7 +690,8 @@ export async function handleCmsAuthLogin(request, response, options = {}) {
 
   const sessionToken = upstreamResponse.headers.get(CMS_NEW_SESSION_TOKEN_HEADER) ?? "";
   const csrfToken = upstreamResponse.headers.get(CMS_NEW_CSRF_TOKEN_HEADER) ?? "";
-  const user = await readUpstreamSafeUser(upstreamResponse, nowMs);
+  const assuranceNowMs = typeof options.assuranceNowMs === "number" ? options.assuranceNowMs : Date.now();
+  const user = await readUpstreamSafeUser(upstreamResponse, assuranceNowMs);
 
   if (!isValidCmsCookieToken(sessionToken) || !isValidCmsCookieToken(csrfToken) || !user) {
     sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
@@ -1399,7 +1400,8 @@ async function handleCmsMfaProxy(request, response, definition, options = {}) {
   if (definition.result === "session") {
     const sessionToken = upstreamResponse.headers.get(CMS_NEW_SESSION_TOKEN_HEADER) ?? "";
     const csrfToken = upstreamResponse.headers.get(CMS_NEW_CSRF_TOKEN_HEADER) ?? "";
-    const user = readSafeUserPayload(upstreamBody, nowMs);
+    const assuranceNowMs = typeof options.assuranceNowMs === "number" ? options.assuranceNowMs : Date.now();
+    const user = readSafeUserPayload(upstreamBody, assuranceNowMs);
     if (!isValidCmsCookieToken(sessionToken) || !isValidCmsCookieToken(csrfToken) || !user) {
       sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
       return;
