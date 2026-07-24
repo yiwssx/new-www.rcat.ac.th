@@ -123,7 +123,7 @@ function isValidStoredSession(record: AdminSessionWithUser, nowMs: number) {
     user.status !== "active" ||
     !ADMIN_ROLES.has(user.role) ||
     user.must_change_password !== 0 ||
-    (record.effectiveMfa && session.mfa_verified_at === "") ||
+    (record.effectiveMfa && (session.reauthenticated_at === "" || session.mfa_verified_at === "")) ||
     !isPositiveInteger(session.session_version) ||
     !isPositiveInteger(user.session_version) ||
     session.session_version !== user.session_version ||
@@ -131,7 +131,7 @@ function isValidStoredSession(record: AdminSessionWithUser, nowMs: number) {
     !isCanonicalTimestamp(session.last_seen_at) ||
     !isCanonicalTimestamp(session.idle_expires_at) ||
     !isCanonicalTimestamp(session.absolute_expires_at) ||
-    !isCanonicalTimestamp(session.reauthenticated_at) ||
+    (session.reauthenticated_at !== "" && !isCanonicalTimestamp(session.reauthenticated_at)) ||
     (session.mfa_verified_at !== "" && !isCanonicalTimestamp(session.mfa_verified_at))
   ) {
     return false;

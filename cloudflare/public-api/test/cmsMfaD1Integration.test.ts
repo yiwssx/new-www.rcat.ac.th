@@ -6,6 +6,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AdminMfaConflict, createAdminMfaRepository } from "../src/db/adminMfaRepository";
+import { createAdminSessionRepository } from "../src/db/adminSessionRepository";
+import { authenticateCmsSession } from "../src/auth/cmsSessionService";
+import { hashCmsSessionToken } from "../src/auth/cmsSessionCrypto";
 import type { AdminMfaChallengeRow, AdminMfaRecoveryCodeRow, AdminMfaTotpRow, AdminSessionRow } from "../src/db/schema";
 
 const migrationDirectory = join(dirname(fileURLToPath(import.meta.url)), "../migrations");
@@ -360,6 +363,31 @@ describe("Phase 6 isolated D1 integration", () => {
     });
   });
 
+  it("revokes the old Session after voluntary enrollment", async () => {
+    insertUser("voluntary-enrollment");
+    const pending = factor("voluntary-enrollment", "pending");
+    insertSession({
+      ...session("voluntary-enrollment", "voluntary-old-session"),
+      mfa_verified_at: ""
+    });
+    await repository().replacePendingFactor(pending, "voluntary-enrollment@example.invalid", pending.updated_at);
+    await repository().confirmEnrollment({
+      factor: pending,
+      expectedSessionVersion: 1,
+      matchedStep: 100,
+      recoveryCodes: recoveryCodes("voluntary-enrollment", "voluntary-code"),
+      actor: "voluntary-enrollment@example.invalid",
+      now: "2026-07-23T00:05:00.000Z"
+    });
+
+    expect(db.prepare("SELECT revoked_at FROM admin_sessions WHERE id = ?").get("voluntary-old-session")).toEqual({
+      revoked_at: "2026-07-23T00:05:00.000Z"
+    });
+    expect(db.prepare("SELECT session_version FROM app_admin_users WHERE id = ?").get("voluntary-enrollment")).toEqual({
+      session_version: 2
+    });
+  });
+
   it("rejects a replayed TOTP step through real guarded repository SQL", async () => {
     insertUser("totp-replay");
     insertFactor(factor("totp-replay"));
@@ -461,6 +489,58 @@ describe("Phase 6 isolated D1 integration", () => {
     ).toEqual({ failed_attempt_count: 5 });
   });
 
+  it("queries and authenticates a migration-era password Session with empty assurance", async () => {
+    const token = "A".repeat(43);
+    const tokenHash = await hashCmsSessionToken(token);
+    insertUser("migration-session");
+    insertSession({
+      ...session("migration-session", "migration-session-1"),
+      token_hash: tokenHash,
+      reauthenticated_at: "",
+      mfa_verified_at: ""
+    });
+
+    const stored = await createAdminSessionRepository({ DB: d1Database() }).findSessionByTokenHash(tokenHash);
+    const authenticated = await authenticateCmsSession({
+      env: { DB: d1Database() },
+      sessionToken: token,
+      method: "GET",
+      now: new Date("2026-07-23T00:05:00.000Z")
+    });
+
+    expect(stored).toMatchObject({
+      effectiveMfa: false,
+      session: { id: "migration-session-1", reauthenticated_at: "", mfa_verified_at: "" }
+    });
+    expect(authenticated).toMatchObject({
+      status: "authenticated",
+      identity: { sessionId: "migration-session-1", reauthenticatedAt: "" }
+    });
+  });
+
+  it("invalidates an effective-MFA Session that has no MFA assurance", async () => {
+    const token = "B".repeat(43);
+    const tokenHash = await hashCmsSessionToken(token);
+    insertUser("mfa-session", { mfaRequired: true });
+    insertSession({
+      ...session("mfa-session", "mfa-session-1"),
+      token_hash: tokenHash,
+      mfa_verified_at: ""
+    });
+
+    const stored = await createAdminSessionRepository({ DB: d1Database() }).findSessionByTokenHash(tokenHash);
+    const authenticated = await authenticateCmsSession({
+      env: { DB: d1Database() },
+      sessionToken: token,
+      method: "GET",
+      now: new Date("2026-07-23T00:05:00.000Z")
+    });
+
+    expect(stored?.effectiveMfa).toBe(true);
+    expect(stored?.session.mfa_verified_at).toBe("");
+    expect(authenticated).toEqual({ status: "unauthenticated" });
+  });
+
   it("updates assurance only on the current Session", async () => {
     insertUser("reauth");
     insertSession({ ...session("reauth", "reauth-session-1"), reauthenticated_at: "", mfa_verified_at: "" });
@@ -477,6 +557,32 @@ describe("Phase 6 isolated D1 integration", () => {
       { id: "reauth-session-1", reauthenticated_at: "2026-07-23T00:05:00.000Z" },
       { id: "reauth-session-2", reauthenticated_at: "" }
     ]);
+  });
+
+  it("rolls back factor proof when the Session assurance update cannot be applied", async () => {
+    insertUser("reauth-rollback", { mfaRequired: true });
+    insertFactor(factor("reauth-rollback"));
+
+    await expect(
+      repository().reauthenticateSession({
+        sessionId: "missing-session",
+        userId: "reauth-rollback",
+        proof: { type: "totp", matchedStep: 42 },
+        actor: "reauth-rollback@example.invalid",
+        now: "2026-07-23T00:05:00.000Z"
+      })
+    ).rejects.toThrow();
+
+    expect(db.prepare("SELECT last_used_step FROM admin_mfa_totp WHERE user_id = ?").get("reauth-rollback")).toEqual({
+      last_used_step: -1
+    });
+    expect(
+      scalar(
+        "SELECT COUNT(*) AS value FROM admin_audit_log WHERE entity_id = ? AND action = ?",
+        "reauth-rollback",
+        "session.reauthenticated"
+      )
+    ).toBe(0);
   });
 
   it("changes the MFA requirement while revoking Sessions and active Challenges", async () => {

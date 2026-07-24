@@ -165,6 +165,39 @@ describe("CMS session service", () => {
     });
   });
 
+  it("authenticates a migration-era password Session with empty assurance but still enforces CSRF", async () => {
+    const record = await makeRecord({ session: { reauthenticated_at: "" } });
+    const getRepository = makeRepository(record);
+    const missingCsrfRepository = makeRepository(record);
+    const validMutationRepository = makeRepository(record);
+
+    await expect(
+      authenticateCmsSession({ env: {}, sessionToken, method: "GET", now: fixedNow, repository: getRepository })
+    ).resolves.toMatchObject({
+      status: "authenticated",
+      identity: { reauthenticatedAt: "", mfaVerifiedAt: "" }
+    });
+    await expect(
+      authenticateCmsSession({
+        env: {},
+        sessionToken,
+        method: "POST",
+        now: fixedNow,
+        repository: missingCsrfRepository
+      })
+    ).resolves.toEqual({ status: "forbidden" });
+    await expect(
+      authenticateCmsSession({
+        env: {},
+        sessionToken,
+        csrfToken,
+        method: "POST",
+        now: fixedNow,
+        repository: validMutationRepository
+      })
+    ).resolves.toMatchObject({ status: "authenticated", identity: { reauthenticatedAt: "" } });
+  });
+
   it.each([
     ["revoked", { session: { revoked_at: fixedNow.toISOString() } }],
     ["idle-expired", { session: { idle_expires_at: fixedNow.toISOString() } }],
@@ -174,7 +207,16 @@ describe("CMS session service", () => {
     ["invalid role", { user: { role: "invalid" } }],
     ["password change", { user: { must_change_password: 1 } }],
     ["MFA required", { user: { mfa_required: 1 } }],
-    ["malformed timestamp", { session: { idle_expires_at: "not-a-time" } }]
+    ["malformed timestamp", { session: { idle_expires_at: "not-a-time" } }],
+    ["malformed nonempty password assurance", { session: { reauthenticated_at: "not-a-time" } }],
+    [
+      "effective MFA without MFA assurance",
+      { user: { mfa_required: 1 }, session: { reauthenticated_at: fixedNow.toISOString(), mfa_verified_at: "" } }
+    ],
+    [
+      "effective MFA with migration-era password assurance",
+      { user: { mfa_required: 1 }, session: { reauthenticated_at: "", mfa_verified_at: fixedNow.toISOString() } }
+    ]
   ])("fails closed for a %s Session", async (_label, overrides) => {
     const repository = makeRepository(
       await makeRecord(overrides as { session?: Partial<AdminSessionRow>; user?: Partial<AdminAuthUserRow> })

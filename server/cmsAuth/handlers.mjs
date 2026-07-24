@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 import process from "node:process";
 import {
   clearCmsAuthCookies,
+  clearCmsAuthenticationStateCookies,
   clearCmsMfaChallengeCookie,
   createCmsAuthCookies,
   createCmsMfaChallengeCookie,
@@ -45,6 +46,7 @@ const LOGIN_BLOCK_MS = 15 * 60 * 1000;
 const MAX_FAILURES_PER_IDENTIFIER = 5;
 const MAX_FAILURES_PER_IP = 20;
 const MAX_RATE_LIMIT_BUCKETS = 5000;
+const RECENT_AUTHENTICATION_WINDOW_MS = 10 * 60 * 1000;
 const defaultLoginLimiter = createCmsLoginRateLimiter();
 const defaultLifecycleLimiter = createCmsLifecycleRateLimiter();
 const defaultPasswordChangeLimiter = createCmsLoginRateLimiter({
@@ -482,14 +484,19 @@ function createPrivateHeaders(configuration, metadata, additional = {}) {
   return headers;
 }
 
-function isCanonicalTimestamp(value, allowEmpty = false) {
-  if (allowEmpty && value === "") return true;
+function isCanonicalTimestamp(value) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) return false;
   const milliseconds = Date.parse(value);
   return Number.isFinite(milliseconds) && new Date(milliseconds).toISOString() === value;
 }
 
-function readSafeUserPayload(value) {
+function isRecentAuthentication(value, nowMs) {
+  if (!isCanonicalTimestamp(value) || !Number.isFinite(nowMs)) return false;
+  const age = nowMs - Date.parse(value);
+  return age >= 0 && age < RECENT_AUTHENTICATION_WINDOW_MS;
+}
+
+function readSafeUserPayload(value, nowMs = Date.now()) {
   const user = value && typeof value === "object" && !Array.isArray(value) ? value.user : null;
 
   if (!user || typeof user !== "object" || Array.isArray(user)) {
@@ -506,8 +513,8 @@ function readSafeUserPayload(value) {
     typeof user.sessionId !== "string" ||
     !Number.isInteger(user.sessionVersion) ||
     user.sessionVersion < 1 ||
-    !isCanonicalTimestamp(user.reauthenticatedAt) ||
-    !isCanonicalTimestamp(user.mfaVerifiedAt, true)
+    typeof user.reauthenticatedAt !== "string" ||
+    typeof user.mfaVerifiedAt !== "string"
   ) {
     return null;
   }
@@ -519,14 +526,14 @@ function readSafeUserPayload(value) {
     username: user.username,
     role: user.role,
     isRoot: user.isRoot,
-    passwordReauthenticated: user.reauthenticatedAt.length > 0,
-    mfaVerified: user.mfaVerifiedAt.length > 0
+    recentPasswordAuthentication: isRecentAuthentication(user.reauthenticatedAt, nowMs),
+    recentMfaAuthentication: isRecentAuthentication(user.mfaVerifiedAt, nowMs)
   };
 }
 
-async function readUpstreamSafeUser(response) {
+async function readUpstreamSafeUser(response, nowMs = Date.now()) {
   try {
-    return readSafeUserPayload(await response.json());
+    return readSafeUserPayload(await response.json(), nowMs);
   } catch {
     return null;
   }
@@ -670,10 +677,10 @@ export async function handleCmsAuthLogin(request, response, options = {}) {
     }
 
     loginLimiter.recordSuccess(keys, nowMs);
-    response.setHeader(
-      "Set-Cookie",
+    response.setHeader("Set-Cookie", [
+      ...clearCmsAuthCookies(),
       createCmsMfaChallengeCookie(challengeToken, upstreamBody.enrollmentRequired ? 10 * 60 : 5 * 60)
-    );
+    ]);
     sendJson(response, 202, {
       mfaRequired: true,
       enrollmentRequired: upstreamBody.enrollmentRequired
@@ -683,7 +690,7 @@ export async function handleCmsAuthLogin(request, response, options = {}) {
 
   const sessionToken = upstreamResponse.headers.get(CMS_NEW_SESSION_TOKEN_HEADER) ?? "";
   const csrfToken = upstreamResponse.headers.get(CMS_NEW_CSRF_TOKEN_HEADER) ?? "";
-  const user = await readUpstreamSafeUser(upstreamResponse);
+  const user = await readUpstreamSafeUser(upstreamResponse, nowMs);
 
   if (!isValidCmsCookieToken(sessionToken) || !isValidCmsCookieToken(csrfToken) || !user) {
     sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
@@ -691,7 +698,7 @@ export async function handleCmsAuthLogin(request, response, options = {}) {
   }
 
   loginLimiter.recordSuccess(keys, nowMs);
-  response.setHeader("Set-Cookie", createCmsAuthCookies(sessionToken, csrfToken));
+  response.setHeader("Set-Cookie", [...createCmsAuthCookies(sessionToken, csrfToken), clearCmsMfaChallengeCookie()]);
   sendJson(response, 200, { ok: true, user });
 }
 
@@ -742,7 +749,7 @@ export async function handleCmsAuthSession(request, response, options = {}) {
     return;
   }
 
-  const user = await readUpstreamSafeUser(upstreamResponse);
+  const user = await readUpstreamSafeUser(upstreamResponse, options.nowMs ?? Date.now());
 
   if (!user) {
     sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
@@ -763,9 +770,7 @@ async function handleCmsLogoutOperation(request, response, options, logoutAll) {
     return;
   }
 
-  if (!logoutAll) {
-    response.setHeader("Set-Cookie", clearCmsAuthCookies());
-  }
+  response.setHeader("Set-Cookie", clearCmsAuthenticationStateCookies());
 
   const env = options.env ?? runtimeEnv();
   const configuration = readCmsAuthConfiguration(env);
@@ -812,7 +817,7 @@ async function handleCmsLogoutOperation(request, response, options, logoutAll) {
     return;
   }
 
-  response.setHeader("Set-Cookie", clearCmsAuthCookies());
+  response.setHeader("Set-Cookie", clearCmsAuthenticationStateCookies());
   sendEmpty(response, 204);
 }
 
@@ -1217,7 +1222,7 @@ export async function handleCmsPasswordChange(request, response, options = {}) {
   }
 
   limiter.recordSuccess(keys, nowMs);
-  response.setHeader("Set-Cookie", clearCmsAuthCookies());
+  response.setHeader("Set-Cookie", clearCmsAuthenticationStateCookies());
   sendJson(response, 200, { ok: true, passwordChanged: true });
 }
 
@@ -1244,6 +1249,40 @@ function readMfaChallengeProxyCredential(request) {
   };
 }
 
+function sendMfaProxyUpstreamError(response, upstreamResponse, upstreamBody, definition) {
+  const upstreamMessage = typeof upstreamBody?.error === "string" ? upstreamBody.error : "";
+
+  if (upstreamResponse.status === 401) {
+    const error =
+      upstreamMessage === "CMS session is invalid or expired"
+        ? "CMS session is invalid or expired"
+        : definition.authenticationFailure || "CMS session is invalid or expired";
+    sendJson(response, 401, { error });
+    return;
+  }
+
+  if (upstreamResponse.status === 428) {
+    sendJson(response, 428, { error: "reauthentication required" });
+    return;
+  }
+
+  if (
+    upstreamResponse.status === 409 &&
+    Array.isArray(definition.conflictErrors) &&
+    definition.conflictErrors.includes(upstreamMessage)
+  ) {
+    sendJson(response, 409, { error: upstreamMessage });
+    return;
+  }
+
+  if (upstreamResponse.status === 400 && upstreamMessage === "invalid MFA request") {
+    sendJson(response, 400, { error: "invalid MFA request" });
+    return;
+  }
+
+  sendGenericUpstreamError(response, upstreamResponse);
+}
+
 async function handleCmsMfaProxy(request, response, definition, options = {}) {
   if (String(request.method || "GET").toUpperCase() !== definition.method) {
     sendMethodNotAllowed(response, [definition.method]);
@@ -1253,6 +1292,15 @@ async function handleCmsMfaProxy(request, response, definition, options = {}) {
     sendJson(response, 403, { error: "CMS authentication origin is not allowed" });
     return;
   }
+  const challenge = readMfaChallengeProxyCredential(request);
+  const session = readSessionProxyCredentials(request);
+
+  if (isValidCmsCookieToken(session.sessionToken) && challenge.present) {
+    response.setHeader("Set-Cookie", clearCmsAuthenticationStateCookies());
+    sendJson(response, 409, { error: "CMS authentication state is invalid" });
+    return;
+  }
+
   const env = options.env ?? runtimeEnv();
   const configuration = readCmsAuthConfiguration(env);
   if (!configuration) {
@@ -1260,21 +1308,27 @@ async function handleCmsMfaProxy(request, response, definition, options = {}) {
     return;
   }
   const metadata = getCmsClientMetadata(request);
-  const challenge = readMfaChallengeProxyCredential(request);
   const challengeToken = challenge.token;
-  const session = readSessionProxyCredentials(request);
   const useChallenge = definition.mode === "challenge" || (definition.mode === "either" && challenge.present);
   const identifier = useChallenge ? challengeToken : session.sessionToken;
-  if (
-    (useChallenge && !isValidCmsCookieToken(challengeToken)) ||
-    (!useChallenge &&
-      (!isValidCmsCookieToken(session.sessionToken) ||
-        !isValidCmsCookieToken(session.csrfToken) ||
-        !cmsTokensMatch(session.browserCsrfToken, session.csrfToken)))
-  ) {
-    sendJson(response, useChallenge ? 401 : 403, {
-      error: useChallenge ? "MFA challenge is invalid or expired" : "CSRF validation failed"
+
+  if (useChallenge && !isValidCmsCookieToken(challengeToken)) {
+    sendJson(response, 401, {
+      error: definition.authenticationFailure || "multifactor verification failed"
     });
+    return;
+  }
+
+  if (!useChallenge && !isValidCmsCookieToken(session.sessionToken)) {
+    sendJson(response, 401, { error: "CMS session is invalid or expired" });
+    return;
+  }
+
+  if (
+    !useChallenge &&
+    (!isValidCmsCookieToken(session.csrfToken) || !cmsTokensMatch(session.browserCsrfToken, session.csrfToken))
+  ) {
+    sendJson(response, 403, { error: "CSRF validation failed" });
     return;
   }
   const limiter = options.mfaLimiter ?? defaultMfaLimiter;
@@ -1335,18 +1389,7 @@ async function handleCmsMfaProxy(request, response, definition, options = {}) {
         return;
       }
     }
-    if (upstreamResponse.status === 409 || upstreamResponse.status === 428) {
-      sendJson(response, upstreamResponse.status, {
-        error:
-          typeof upstreamBody?.error === "string"
-            ? upstreamBody.error
-            : upstreamResponse.status === 428
-              ? "recent reauthentication is required"
-              : "MFA operation is not available"
-      });
-      return;
-    }
-    sendGenericUpstreamError(response, upstreamResponse);
+    sendMfaProxyUpstreamError(response, upstreamResponse, upstreamBody, definition);
     return;
   }
   if (definition.countAttempts !== true) {
@@ -1356,7 +1399,7 @@ async function handleCmsMfaProxy(request, response, definition, options = {}) {
   if (definition.result === "session") {
     const sessionToken = upstreamResponse.headers.get(CMS_NEW_SESSION_TOKEN_HEADER) ?? "";
     const csrfToken = upstreamResponse.headers.get(CMS_NEW_CSRF_TOKEN_HEADER) ?? "";
-    const user = readSafeUserPayload(upstreamBody);
+    const user = readSafeUserPayload(upstreamBody, nowMs);
     if (!isValidCmsCookieToken(sessionToken) || !isValidCmsCookieToken(csrfToken) || !user) {
       sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
       return;
@@ -1400,7 +1443,7 @@ async function handleCmsMfaProxy(request, response, definition, options = {}) {
     }
     const cookies = useChallenge
       ? [...createCmsAuthCookies(newSessionToken, newCsrfToken), clearCmsMfaChallengeCookie()]
-      : [...clearCmsAuthCookies(), clearCmsMfaChallengeCookie()];
+      : clearCmsAuthenticationStateCookies();
     response.setHeader("Set-Cookie", cookies);
     sendJson(response, 200, {
       ok: true,
@@ -1424,7 +1467,7 @@ async function handleCmsMfaProxy(request, response, definition, options = {}) {
   }
 
   if (definition.result === "disable") {
-    response.setHeader("Set-Cookie", [...clearCmsAuthCookies(), clearCmsMfaChallengeCookie()]);
+    response.setHeader("Set-Cookie", clearCmsAuthenticationStateCookies());
   }
   if (upstreamBody?.ok !== true) {
     sendJson(response, 502, { error: "CMS authentication upstream response is invalid" });
@@ -1433,7 +1476,11 @@ async function handleCmsMfaProxy(request, response, definition, options = {}) {
   sendJson(response, 200, {
     ok: true,
     ...(definition.result === "reauth"
-      ? { reauthenticated: true, mfaVerified: upstreamBody.mfaVerified === true }
+      ? {
+          reauthenticated: true,
+          recentPasswordAuthentication: true,
+          recentMfaAuthentication: upstreamBody.mfaVerified === true
+        }
       : definition.result === "disable"
         ? { disabled: true }
         : {})
@@ -1444,7 +1491,13 @@ export function handleCmsMfaVerify(request, response, options = {}) {
   return handleCmsMfaProxy(
     request,
     response,
-    { method: "POST", mode: "challenge", path: MFA_VERIFY_PATH, result: "session" },
+    {
+      authenticationFailure: "multifactor verification failed",
+      method: "POST",
+      mode: "challenge",
+      path: MFA_VERIFY_PATH,
+      result: "session"
+    },
     options
   );
 }
@@ -1453,7 +1506,15 @@ export function handleCmsMfaSetupStart(request, response, options = {}) {
   return handleCmsMfaProxy(
     request,
     response,
-    { body: "empty", method: "POST", mode: "either", path: MFA_SETUP_START_PATH, result: "setup" },
+    {
+      authenticationFailure: "multifactor verification failed",
+      body: "empty",
+      conflictErrors: ["MFA is already configured"],
+      method: "POST",
+      mode: "either",
+      path: MFA_SETUP_START_PATH,
+      result: "setup"
+    },
     options
   );
 }
@@ -1462,7 +1523,14 @@ export function handleCmsMfaSetupConfirm(request, response, options = {}) {
   return handleCmsMfaProxy(
     request,
     response,
-    { method: "POST", mode: "either", path: MFA_SETUP_CONFIRM_PATH, result: "recovery" },
+    {
+      authenticationFailure: "multifactor verification failed",
+      conflictErrors: ["MFA is already configured"],
+      method: "POST",
+      mode: "either",
+      path: MFA_SETUP_CONFIRM_PATH,
+      result: "recovery"
+    },
     options
   );
 }
@@ -1474,6 +1542,7 @@ export function handleCmsMfaRecoveryRegenerate(request, response, options = {}) 
     {
       body: "empty",
       countAttempts: true,
+      conflictErrors: ["MFA is not configured"],
       method: "POST",
       mode: "session",
       path: MFA_RECOVERY_REGENERATE_PATH,
@@ -1489,6 +1558,8 @@ export function handleCmsMfaDisable(request, response, options = {}) {
     response,
     {
       countAttempts: true,
+      authenticationFailure: "MFA disable verification failed",
+      conflictErrors: ["MFA is not configured", "MFA is required for this account"],
       method: "DELETE",
       mode: "session",
       path: MFA_DISABLE_PATH,
@@ -1502,7 +1573,13 @@ export function handleCmsReauthenticate(request, response, options = {}) {
   return handleCmsMfaProxy(
     request,
     response,
-    { method: "POST", mode: "session", path: REAUTHENTICATE_PATH, result: "reauth" },
+    {
+      authenticationFailure: "current authentication is invalid",
+      method: "POST",
+      mode: "session",
+      path: REAUTHENTICATE_PATH,
+      result: "reauth"
+    },
     options
   );
 }

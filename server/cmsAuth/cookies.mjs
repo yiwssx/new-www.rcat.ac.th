@@ -100,6 +100,10 @@ export function clearCmsAuthCookies() {
   ];
 }
 
+export function clearCmsAuthenticationStateCookies() {
+  return [...clearCmsAuthCookies(), clearCmsMfaChallengeCookie()];
+}
+
 export function createCmsMfaChallengeCookie(token, maxAgeSeconds) {
   if (!isValidCmsCookieToken(token) || !Number.isInteger(maxAgeSeconds) || ![5 * 60, 10 * 60].includes(maxAgeSeconds)) {
     throw new TypeError("invalid CMS MFA challenge cookie");
