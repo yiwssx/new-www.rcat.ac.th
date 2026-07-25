@@ -16,6 +16,8 @@ import {
 } from "@mui/material";
 import {
   changeCmsPassword,
+  cmsStepUpCoordinator,
+  CmsAuthError,
   confirmCmsMfaSetup,
   disableCmsMfa,
   getCmsAuthErrorMessage,
@@ -113,13 +115,28 @@ export default function AccountSecurityPage() {
     }
   }
 
-  async function confirmMfaEnrollment(totpCode: string) {
+  async function confirmMfaEnrollment(totpCode: string, clearSubmittedCode: () => void) {
+    setError("");
+
     try {
       const result = await confirmCmsMfaSetup("session", totpCode);
       setSetup(null);
       beginRecoveryCodeHandoff({ codes: result.recoveryCodes, mode: "voluntary" });
       clearSession();
     } catch (currentError) {
+      if (currentError instanceof CmsAuthError && currentError.status === 428) {
+        clearSubmittedCode();
+        setError("กรุณายืนยันตัวตน แล้วกรอกรหัสจากแอป 6 หลักชุดใหม่เพื่อยืนยันการตั้งค่า MFA");
+
+        try {
+          await cmsStepUpCoordinator.request("password");
+        } catch {
+          // Cancellation leaves setup open and never retries the submitted TOTP.
+        }
+
+        return;
+      }
+
       setError(getCmsAuthErrorMessage(currentError, "ยืนยันการตั้งค่า MFA ไม่สำเร็จ"));
     }
   }
@@ -209,7 +226,7 @@ export default function AccountSecurityPage() {
         </Stack>
       )}
       {profileQuery.isError && <Alert severity="error">ไม่สามารถโหลดข้อมูลบัญชีได้</Alert>}
-      {error && (
+      {error && !setup && (
         <Alert severity="error" aria-live="assertive" sx={{ mb: 2 }}>
           {error}
         </Alert>

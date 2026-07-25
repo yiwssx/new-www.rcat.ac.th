@@ -30,103 +30,135 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<CmsSession | null>(null);
   const currentUserIdRef = useRef("");
   const sessionRef = useRef<CmsSession | null>(null);
-  const refreshPromiseRef = useRef<Promise<CmsSession | null> | null>(null);
+  const refreshGenerationRef = useRef(0);
+  const refreshRequestRef = useRef<{
+    generation: number;
+    promise: Promise<CmsSession | null>;
+  } | null>(null);
 
-  const clearSession = useCallback(
-    (options: { broadcast?: boolean } = {}) => {
+  const commitClearedSession = useCallback(
+    (error: CmsAuthError) => {
       currentUserIdRef.current = "";
       sessionRef.current = null;
       setSession(null);
       setStatus("unauthenticated");
       clearProtectedAdminQueries(queryClient);
-      cmsStepUpCoordinator.fail(new CmsAuthError(401));
+      cmsStepUpCoordinator.fail(error);
+    },
+    [queryClient]
+  );
+
+  const clearSession = useCallback(
+    (options: { broadcast?: boolean } = {}) => {
+      refreshGenerationRef.current += 1;
+      refreshRequestRef.current = null;
+      commitClearedSession(new CmsAuthError(401));
 
       if (options.broadcast) {
         broadcastCmsSessionEvent("logged-out");
       }
     },
-    [queryClient]
+    [commitClearedSession]
   );
 
-  const refreshSession = useCallback(() => {
-    if (refreshPromiseRef.current) {
-      return refreshPromiseRef.current;
-    }
+  const refreshSession = useCallback(
+    (options: { force?: boolean } = {}) => {
+      if (!options.force && refreshRequestRef.current) {
+        return refreshRequestRef.current.promise;
+      }
 
-    const backgroundRefresh = sessionRef.current !== null;
+      const generation = refreshGenerationRef.current + 1;
+      refreshGenerationRef.current = generation;
+      const backgroundRefresh = sessionRef.current !== null;
 
-    if (!backgroundRefresh) {
-      setStatus("bootstrapping");
-    }
+      if (!backgroundRefresh) {
+        setStatus("bootstrapping");
+      }
 
-    const refreshPromise = (async () => {
-      try {
-        const [sessionResult, capabilityResult] = await Promise.allSettled([getCmsSession(), getCmsCapabilities()]);
+      const refreshPromise = (async () => {
+        try {
+          const [sessionResult, capabilityResult] = await Promise.allSettled([getCmsSession(), getCmsCapabilities()]);
 
-        if (sessionResult.status === "rejected") {
-          throw sessionResult.reason;
-        }
+          const failures = [sessionResult, capabilityResult]
+            .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+            .map((result) => result.reason);
+          const failure =
+            failures.find((error) => error instanceof CmsAuthError && error.status === 401) ?? failures[0];
 
-        if (capabilityResult.status === "rejected") {
-          throw capabilityResult.reason;
-        }
+          if (failure) {
+            throw failure;
+          }
 
-        const user = sessionResult.value;
-        const capabilityPayload = capabilityResult.value;
+          if (generation !== refreshGenerationRef.current) {
+            return sessionRef.current;
+          }
 
-        if (capabilityPayload.role !== user.role) {
-          throw new TypeError("CMS Session role does not match the capability role");
-        }
+          if (sessionResult.status !== "fulfilled" || capabilityResult.status !== "fulfilled") {
+            throw new TypeError("CMS Session refresh did not return complete authorization state");
+          }
 
-        if (currentUserIdRef.current && currentUserIdRef.current !== user.id) {
-          clearProtectedAdminQueries(queryClient);
-        }
+          const user = sessionResult.value;
+          const capabilityPayload = capabilityResult.value;
 
-        const nextSession: CmsSession = {
-          user,
-          capabilities: capabilityPayload.capabilities
-        };
-        currentUserIdRef.current = user.id;
-        sessionRef.current = nextSession;
-        setSession(nextSession);
-        setStatus("authenticated");
-        return nextSession;
-      } catch (error) {
-        if (error instanceof CmsAuthError && error.status === 401) {
-          clearSession();
-          return null;
-        }
+          if (capabilityPayload.role !== user.role) {
+            throw new TypeError("CMS Session role does not match the capability role");
+          }
 
-        if (sessionRef.current) {
+          if (currentUserIdRef.current && currentUserIdRef.current !== user.id) {
+            clearProtectedAdminQueries(queryClient);
+          }
+
+          const nextSession: CmsSession = {
+            user,
+            capabilities: capabilityPayload.capabilities
+          };
+          currentUserIdRef.current = user.id;
+          sessionRef.current = nextSession;
+          setSession(nextSession);
           setStatus("authenticated");
+          return nextSession;
+        } catch (error) {
+          if (generation !== refreshGenerationRef.current) {
+            return sessionRef.current;
+          }
+
+          if (error instanceof CmsAuthError && error.status === 401) {
+            commitClearedSession(error);
+            return null;
+          }
+
+          if (sessionRef.current) {
+            setStatus("authenticated");
+            throw error;
+          }
+
+          currentUserIdRef.current = "";
+          sessionRef.current = null;
+          setSession(null);
+          clearProtectedAdminQueries(queryClient);
+          setStatus("unavailable");
           throw error;
         }
+      })();
 
-        currentUserIdRef.current = "";
-        sessionRef.current = null;
-        setSession(null);
-        clearProtectedAdminQueries(queryClient);
-        setStatus("unavailable");
-        throw error;
-      }
-    })();
-
-    refreshPromiseRef.current = refreshPromise;
-    const clearRefreshPromise = () => {
-      if (refreshPromiseRef.current === refreshPromise) {
-        refreshPromiseRef.current = null;
-      }
-    };
-    void refreshPromise.then(clearRefreshPromise, clearRefreshPromise);
-    return refreshPromise;
-  }, [clearSession, queryClient]);
+      refreshRequestRef.current = { generation, promise: refreshPromise };
+      const clearRefreshPromise = () => {
+        if (refreshRequestRef.current?.generation === generation) {
+          refreshRequestRef.current = null;
+        }
+      };
+      void refreshPromise.then(clearRefreshPromise, clearRefreshPromise);
+      return refreshPromise;
+    },
+    [commitClearedSession, queryClient]
+  );
 
   const login = useCallback(
     async (identifier: string, password: string): Promise<CmsLoginResult> => {
       const result = await loginCmsAccount(identifier, password);
 
       if (result.kind === "authenticated") {
-        await refreshSession();
+        await refreshSession({ force: true });
         broadcastCmsSessionEvent("session-changed");
       }
 
@@ -138,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const verifyMfa = useCallback(
     async (proof: CmsMfaProof) => {
       await verifyCmsMfa(proof);
-      const nextSession = await refreshSession();
+      const nextSession = await refreshSession({ force: true });
 
       if (!nextSession) {
         throw new CmsAuthError(401);
@@ -171,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await reauthenticateCmsSession(input);
 
       try {
-        const nextSession = await refreshSession();
+        const nextSession = await refreshSession({ force: true });
 
         if (!nextSession) {
           throw new CmsAuthError(401);
@@ -202,13 +234,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleSessionExpired = () => clearSession({ broadcast: true });
-    const unsubscribe = subscribeToCmsSessionEvents((event) => {
-      if (event === "logged-out") {
-        clearSession();
-        return;
-      }
-
-      void refreshSession().catch(() => undefined);
+    const unsubscribe = subscribeToCmsSessionEvents(() => {
+      void refreshSession({ force: true }).catch(() => undefined);
     });
 
     window.addEventListener(CMS_SESSION_EXPIRED_EVENT, handleSessionExpired);

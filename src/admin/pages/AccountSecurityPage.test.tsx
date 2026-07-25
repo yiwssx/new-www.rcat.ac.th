@@ -88,6 +88,11 @@ function createAdminProfile(overrides: Record<string, unknown> = {}) {
 describe("AccountSecurityPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    apiMock.getMe.mockReset();
+    apiMock.regenerate.mockReset();
+    apiMock.startSetup.mockReset();
+    apiMock.confirmSetup.mockReset();
+    apiMock.disableMfa.mockReset();
     cmsStepUpCoordinator.resetForTests();
     authMock.hasCapability.mockReturnValue(true);
     apiMock.getMe.mockResolvedValue(createAdminProfile());
@@ -154,6 +159,79 @@ describe("AccountSecurityPage", () => {
     expect(apiMock.confirmSetup).toHaveBeenCalledWith("session", "123456");
     expect(authMock.clearSession).toHaveBeenCalledWith();
   });
+
+  it("uses password step-up after confirmation 428 without replaying the submitted TOTP", async () => {
+    apiMock.getMe.mockResolvedValue(createAdminProfile({ mfaConfigured: false }));
+    apiMock.confirmSetup.mockRejectedValueOnce(new CmsAuthError(428)).mockResolvedValueOnce({
+      recoveryCodes: Array.from({ length: 10 }, (_, index) => `FRESH-${index}`),
+      loginRequired: true
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "ตั้งค่า MFA" }));
+    const totpInput = (await screen.findByLabelText(/รหัสจากแอป 6 หลัก/)) as HTMLInputElement;
+    fireEvent.change(totpInput, { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "ยืนยันการตั้งค่า" }));
+
+    await waitFor(() => expect(cmsStepUpCoordinator.getSnapshot()).toEqual({ open: true, assurance: "password" }));
+    expect(apiMock.confirmSetup).toHaveBeenCalledTimes(1);
+    expect(apiMock.confirmSetup).toHaveBeenLastCalledWith("session", "123456");
+    expect(totpInput).toHaveValue("");
+    expect(
+      screen.getByText("กรุณายืนยันตัวตน แล้วกรอกรหัสจากแอป 6 หลักชุดใหม่เพื่อยืนยันการตั้งค่า MFA")
+    ).toBeInTheDocument();
+
+    cmsStepUpCoordinator.complete();
+    await waitFor(() => expect(totpInput).toBeEnabled());
+    expect(apiMock.confirmSetup).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(totpInput, { target: { value: "654321" } });
+    expect(screen.getByRole("button", { name: "ยืนยันการตั้งค่า" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "ยืนยันการตั้งค่า" }));
+
+    await waitFor(() => expect(apiMock.confirmSetup).toHaveBeenCalledTimes(2));
+    expect(apiMock.confirmSetup).toHaveBeenLastCalledWith("session", "654321");
+    expect(handoffMock.begin).toHaveBeenCalledWith({
+      codes: Array.from({ length: 10 }, (_, index) => `FRESH-${index}`),
+      mode: "voluntary"
+    });
+  });
+
+  it("does not retry confirmation when password step-up is cancelled", async () => {
+    apiMock.getMe.mockResolvedValue(createAdminProfile({ mfaConfigured: false }));
+    apiMock.confirmSetup.mockRejectedValueOnce(new CmsAuthError(428));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "ตั้งค่า MFA" }));
+    const totpInput = (await screen.findByLabelText(/รหัสจากแอป 6 หลัก/)) as HTMLInputElement;
+    fireEvent.change(totpInput, { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "ยืนยันการตั้งค่า" }));
+
+    await waitFor(() => expect(cmsStepUpCoordinator.getSnapshot().open).toBe(true));
+    cmsStepUpCoordinator.cancel();
+
+    await waitFor(() => expect(cmsStepUpCoordinator.getSnapshot().open).toBe(false));
+    expect(apiMock.confirmSetup).toHaveBeenCalledTimes(1);
+    expect(totpInput).toHaveValue("");
+    expect(screen.getByDisplayValue("MANUAL-ENTRY-KEY")).toBeInTheDocument();
+  });
+
+  it.each([401, 403, 409, 429, 500, 503])(
+    "does not request password step-up when confirmation returns HTTP %i",
+    async (status) => {
+      apiMock.getMe.mockResolvedValue(createAdminProfile({ mfaConfigured: false }));
+      apiMock.confirmSetup.mockRejectedValueOnce(new CmsAuthError(status));
+      renderPage();
+
+      fireEvent.click(await screen.findByRole("button", { name: "ตั้งค่า MFA" }));
+      const totpInput = await screen.findByLabelText(/รหัสจากแอป 6 หลัก/);
+      fireEvent.change(totpInput, { target: { value: "123456" } });
+      fireEvent.click(screen.getByRole("button", { name: "ยืนยันการตั้งค่า" }));
+
+      await waitFor(() => expect(apiMock.confirmSetup).toHaveBeenCalledTimes(1));
+      expect(cmsStepUpCoordinator.getSnapshot().open).toBe(false);
+    }
+  );
 
   it("requests MFA step-up for self-disable, retries once, and clears proof fields", async () => {
     apiMock.disableMfa.mockRejectedValueOnce(new CmsAuthError(428)).mockResolvedValueOnce(undefined);

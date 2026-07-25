@@ -43,6 +43,46 @@ const user: CmsSafeUser = {
 };
 const capabilities = ["dashboard.read", "users.read-all"] as const;
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
+}
+
+class FakeBroadcastChannel {
+  static listeners = new Set<(event: MessageEvent<unknown>) => void>();
+  static messages: unknown[] = [];
+
+  addEventListener(_type: string, listener: (event: MessageEvent<unknown>) => void) {
+    FakeBroadcastChannel.listeners.add(listener);
+  }
+
+  removeEventListener(_type: string, listener: (event: MessageEvent<unknown>) => void) {
+    FakeBroadcastChannel.listeners.delete(listener);
+  }
+
+  postMessage(message: unknown) {
+    FakeBroadcastChannel.messages.push(message);
+  }
+
+  close() {}
+
+  static emit(message: "session-changed" | "logged-out") {
+    for (const listener of FakeBroadcastChannel.listeners) {
+      listener({ data: message } as MessageEvent<unknown>);
+    }
+  }
+
+  static reset() {
+    FakeBroadcastChannel.listeners.clear();
+    FakeBroadcastChannel.messages = [];
+  }
+}
+
 function AuthState() {
   const auth = useAuth();
   const queryClient = useQueryClient();
@@ -105,7 +145,9 @@ function renderAuth(ui: ReactNode = <AuthState />) {
 describe("CMS AuthProvider", () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
+    vi.stubGlobal("BroadcastChannel", FakeBroadcastChannel);
     cmsStepUpCoordinator.resetForTests();
+    FakeBroadcastChannel.reset();
     window.localStorage.clear();
     window.sessionStorage.clear();
     vi.clearAllMocks();
@@ -237,40 +279,120 @@ describe("CMS AuthProvider", () => {
     expect(screen.getByText("cache:empty")).toBeInTheDocument();
   });
 
-  it("revalidates authoritative access after another tab logs in or out", async () => {
-    class FakeBroadcastChannel {
-      static listeners = new Set<(event: MessageEvent<unknown>) => void>();
-
-      addEventListener(_type: string, listener: (event: MessageEvent<unknown>) => void) {
-        FakeBroadcastChannel.listeners.add(listener);
-      }
-
-      removeEventListener(_type: string, listener: (event: MessageEvent<unknown>) => void) {
-        FakeBroadcastChannel.listeners.delete(listener);
-      }
-
-      postMessage(_message: unknown) {}
-      close() {}
-
-      static emit(message: "session-changed" | "logged-out") {
-        for (const listener of FakeBroadcastChannel.listeners) {
-          listener({ data: message } as MessageEvent<unknown>);
-        }
-      }
-    }
+  it("forces server revalidation for a logged-out hint and keeps a still-valid Session", async () => {
     vi.stubGlobal("BroadcastChannel", FakeBroadcastChannel);
 
-    const secondUser = { ...user, id: "user-2", email: "second@example.test" };
     renderAuth();
     await screen.findByText("user:user-1");
+    cmsAuthMock.getSession.mockClear();
+    cmsAuthMock.getCapabilities.mockClear();
 
-    cmsAuthMock.getSession.mockResolvedValue(secondUser);
+    act(() => FakeBroadcastChannel.emit("logged-out"));
+
+    await waitFor(() => {
+      expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(1);
+      expect(cmsAuthMock.getCapabilities).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByText("status:authenticated")).toBeInTheDocument();
+    expect(screen.getByText("user:user-1")).toBeInTheDocument();
+    expect(FakeBroadcastChannel.messages).toEqual([]);
+  });
+
+  it("clears Session only after a logged-out hint is confirmed by server 401", async () => {
+    vi.stubGlobal("BroadcastChannel", FakeBroadcastChannel);
+    renderAuth();
+    await screen.findByText("user:user-1");
+    cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(401));
+
+    act(() => FakeBroadcastChannel.emit("logged-out"));
+
+    expect(await screen.findByText("status:unauthenticated")).toBeInTheDocument();
+    expect(screen.getByText("user:none")).toBeInTheDocument();
+    expect(FakeBroadcastChannel.messages).toEqual([]);
+  });
+
+  it("forces a new generation for session-changed and ignores the older successful response", async () => {
+    vi.stubGlobal("BroadcastChannel", FakeBroadcastChannel);
+    const secondUser = { ...user, id: "user-2", email: "second@example.test" };
+    const staleSession = createDeferred<CmsSafeUser>();
+    renderAuth();
+    await screen.findByText("user:user-1");
+    cmsAuthMock.getSession.mockImplementationOnce(() => staleSession.promise).mockResolvedValueOnce(secondUser);
+
+    fireEvent.click(screen.getByRole("button", { name: "refresh" }));
+    await waitFor(() => expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(2));
     act(() => FakeBroadcastChannel.emit("session-changed"));
+
+    expect(await screen.findByText("user:user-2")).toBeInTheDocument();
+    await act(async () => {
+      staleSession.resolve(user);
+      await staleSession.promise;
+    });
+    expect(screen.getByText("user:user-2")).toBeInTheDocument();
+    expect(FakeBroadcastChannel.messages).toEqual([]);
+  });
+
+  it("does not let a stale account-A response restore its protected cache after account B Login", async () => {
+    const secondUser = { ...user, id: "user-2", email: "second@example.test" };
+    const staleSession = createDeferred<CmsSafeUser>();
+    const { queryClient } = renderAuth();
+    await screen.findByText("user:user-1");
+    fireEvent.click(screen.getByRole("button", { name: "seed" }));
+    expect(queryClient.getQueryData(["admin-users"])).toEqual({ account: "A" });
+    cmsAuthMock.getSession.mockImplementationOnce(() => staleSession.promise).mockResolvedValueOnce(secondUser);
+
+    fireEvent.click(screen.getByRole("button", { name: "refresh" }));
+    await waitFor(() => expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByRole("button", { name: "login" }));
+
+    expect(await screen.findByText("user:user-2")).toBeInTheDocument();
+    expect(queryClient.getQueryData(["admin-users"])).toBeUndefined();
+    await act(async () => {
+      staleSession.resolve(user);
+      await staleSession.promise;
+    });
+    expect(screen.getByText("user:user-2")).toBeInTheDocument();
+    expect(queryClient.getQueryData(["admin-users"])).toBeUndefined();
+  });
+
+  it("does not let a stale 401 clear a newer account-B Session", async () => {
+    const secondUser = { ...user, id: "user-2", email: "second@example.test" };
+    const staleSession = createDeferred<CmsSafeUser>();
+    renderAuth();
+    await screen.findByText("user:user-1");
+    cmsAuthMock.getSession.mockImplementationOnce(() => staleSession.promise).mockResolvedValueOnce(secondUser);
+
+    fireEvent.click(screen.getByRole("button", { name: "refresh" }));
+    await waitFor(() => expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByRole("button", { name: "login" }));
     expect(await screen.findByText("user:user-2")).toBeInTheDocument();
 
-    cmsAuthMock.getSession.mockRejectedValue(new CmsAuthError(401));
-    act(() => FakeBroadcastChannel.emit("logged-out"));
-    expect(await screen.findByText("status:unauthenticated")).toBeInTheDocument();
+    await act(async () => {
+      staleSession.reject(new CmsAuthError(401));
+      await staleSession.promise.catch(() => undefined);
+    });
+    expect(screen.getByText("status:authenticated")).toBeInTheDocument();
+    expect(screen.getByText("user:user-2")).toBeInTheDocument();
+  });
+
+  it("does not let a stale 503 downgrade a newer account-B Session", async () => {
+    const secondUser = { ...user, id: "user-2", email: "second@example.test" };
+    const staleSession = createDeferred<CmsSafeUser>();
+    renderAuth();
+    await screen.findByText("user:user-1");
+    cmsAuthMock.getSession.mockImplementationOnce(() => staleSession.promise).mockResolvedValueOnce(secondUser);
+
+    fireEvent.click(screen.getByRole("button", { name: "refresh" }));
+    await waitFor(() => expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByRole("button", { name: "login" }));
+    expect(await screen.findByText("user:user-2")).toBeInTheDocument();
+
+    await act(async () => {
+      staleSession.reject(new CmsAuthError(503));
+      await staleSession.promise.catch(() => undefined);
+    });
+    expect(screen.getByText("status:authenticated")).toBeInTheDocument();
+    expect(screen.getByText("user:user-2")).toBeInTheDocument();
   });
 
   it("rejects step-up waiters and clears Session when reauthentication refresh returns 401", async () => {

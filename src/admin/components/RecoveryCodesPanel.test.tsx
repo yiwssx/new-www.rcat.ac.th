@@ -124,6 +124,7 @@ describe("application Recovery Code handoff", () => {
 
     await acknowledge();
 
+    expect(authMock.refreshSession).toHaveBeenCalledWith({ force: true });
     expect(authMock.refreshSession).toHaveBeenCalledTimes(1);
     expect(sessionEventMock.broadcast).toHaveBeenCalledWith("session-changed");
     expect(sessionEventMock.broadcast).toHaveBeenCalledTimes(1);

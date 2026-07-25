@@ -18,7 +18,7 @@ function readOtpAuthLabel(otpAuthUri: string) {
 
 export interface MfaSetupPanelProps {
   setup: CmsMfaSetup;
-  onConfirm: (totpCode: string) => Promise<void>;
+  onConfirm: (totpCode: string, clearSubmittedCode: () => void) => Promise<void>;
   disabled?: boolean;
   error?: string;
 }
@@ -38,7 +38,7 @@ export default function MfaSetupPanel({ setup, onConfirm, disabled = false, erro
     setSubmitting(true);
 
     try {
-      await onConfirm(totpCode);
+      await onConfirm(totpCode, () => setTotpCode(""));
       setTotpCode("");
     } finally {
       setSubmitting(false);

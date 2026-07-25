@@ -38,6 +38,22 @@ export default function ReauthenticationDialog() {
     }
   }, [snapshot.open]);
 
+  useEffect(() => {
+    const unsubscribe = cmsStepUpCoordinator.subscribe(() => {
+      if (!cmsStepUpCoordinator.getSnapshot().open) {
+        setCurrentPassword("");
+        setFactorType("totp");
+        setFactorValue("");
+        setError("");
+        setSubmitting(false);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   function clearForm() {
     setCurrentPassword("");
     setFactorType("totp");
@@ -54,17 +70,18 @@ export default function ReauthenticationDialog() {
       return;
     }
 
+    if (factorType === "totp" && factorValue && !/^[0-9]{6}$/.test(factorValue)) {
+      setError("รหัสจากแอปต้องเป็นตัวเลข 6 หลัก");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
     try {
       await reauthenticate({
         currentPassword,
-        ...(snapshot.assurance === "mfa"
-          ? factorType === "totp"
-            ? { totpCode: factorValue }
-            : { recoveryCode: factorValue }
-          : {})
+        ...(factorValue ? (factorType === "totp" ? { totpCode: factorValue } : { recoveryCode: factorValue }) : {})
       });
       clearForm();
       cmsStepUpCoordinator.complete();
@@ -109,36 +126,37 @@ export default function ReauthenticationDialog() {
               required
               fullWidth
             />
-            {snapshot.assurance === "mfa" && (
-              <>
-                <FormControl>
-                  <FormLabel>วิธียืนยันเพิ่มเติม</FormLabel>
-                  <RadioGroup
-                    row
-                    value={factorType}
-                    onChange={(event) => {
-                      setFactorType(event.target.value as "totp" | "recovery");
-                      setFactorValue("");
-                    }}
-                  >
-                    <FormControlLabel value="totp" control={<Radio />} label="รหัสจากแอป" />
-                    <FormControlLabel value="recovery" control={<Radio />} label="รหัสกู้คืน" />
-                  </RadioGroup>
-                </FormControl>
-                <TextField
-                  label={factorType === "totp" ? "รหัส 6 หลัก" : "รหัสกู้คืน"}
-                  value={factorValue}
-                  onChange={(event) => setFactorValue(event.target.value)}
-                  autoComplete="one-time-code"
-                  slotProps={{
-                    htmlInput: { inputMode: factorType === "totp" ? "numeric" : "text" }
-                  }}
-                  disabled={submitting}
-                  required
-                  fullWidth
-                />
-              </>
-            )}
+            <Typography color="text.secondary">
+              {snapshot.assurance === "mfa"
+                ? "กรุณากรอกรหัสจากแอปหรือรหัสกู้คืนด้วย"
+                : "บัญชีที่เปิดใช้ MFA ต้องกรอกรหัสจากแอปหรือรหัสกู้คืนด้วย"}
+            </Typography>
+            <FormControl>
+              <FormLabel>วิธียืนยันเพิ่มเติม</FormLabel>
+              <RadioGroup
+                row
+                value={factorType}
+                onChange={(event) => {
+                  setFactorType(event.target.value as "totp" | "recovery");
+                  setFactorValue("");
+                }}
+              >
+                <FormControlLabel value="totp" control={<Radio />} label="รหัสจากแอป" />
+                <FormControlLabel value="recovery" control={<Radio />} label="รหัสกู้คืน" />
+              </RadioGroup>
+            </FormControl>
+            <TextField
+              label={factorType === "totp" ? "รหัส 6 หลัก" : "รหัสกู้คืน"}
+              value={factorValue}
+              onChange={(event) => setFactorValue(event.target.value)}
+              autoComplete="one-time-code"
+              slotProps={{
+                htmlInput: { inputMode: factorType === "totp" ? "numeric" : "text" }
+              }}
+              disabled={submitting}
+              aria-required={snapshot.assurance === "mfa"}
+              fullWidth
+            />
           </Stack>
         </DialogContent>
         <DialogActions>

@@ -21,7 +21,7 @@ export default function RecoveryCodeHandoffDialog() {
 
     try {
       if (handoff.mode === "mandatory") {
-        const nextSession = await refreshSession();
+        const nextSession = await refreshSession({ force: true });
 
         if (!nextSession) {
           throw new CmsAuthError(401);
