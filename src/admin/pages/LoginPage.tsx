@@ -21,6 +21,7 @@ import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import { getCmsSiteName } from "../../config/projectSettings";
 import { useAuth } from "../../context/authSessionContext";
+import { useRecoveryCodeHandoff } from "../../context/RecoveryCodeHandoffContext";
 import {
   CmsAuthError,
   confirmCmsMfaSetup,
@@ -32,13 +33,57 @@ import {
 } from "../../features/cms-auth";
 import { appSwal } from "../../utils/swal";
 import MfaSetupPanel from "../components/MfaSetupPanel";
-import RecoveryCodesPanel from "../components/RecoveryCodesPanel";
 
-type LoginStep = "password" | "mfa" | "enrollment" | "recovery-codes" | "completed";
+type LoginStep = "password" | "mfa" | "enrollment" | "completed";
+
+function LoginAvailabilityState({ unavailable = false, onRetry }: { unavailable?: boolean; onRetry?: () => void }) {
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background: (theme) =>
+          `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${theme.palette.primary.light} 44%, ${theme.palette.secondary.light} 100%)`,
+        px: 2,
+        py: 5
+      }}
+    >
+      <Container maxWidth="sm">
+        <Card className="rcat-admin-card">
+          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+            <Stack spacing={2.5}>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <SchoolOutlinedIcon color="primary" />
+                <Typography variant="h1" sx={{ fontSize: "1.75rem" }}>
+                  {getCmsSiteName()}
+                </Typography>
+              </Stack>
+              {unavailable ? (
+                <>
+                  <Alert severity="warning">ระบบยืนยันตัวตน CMS ไม่พร้อมใช้งานในขณะนี้ กรุณาลองใหม่อีกครั้ง</Alert>
+                  <Button variant="contained" onClick={onRetry}>
+                    ลองใหม่
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Typography>กำลังตรวจสอบเซสชัน CMS</Typography>
+                  <LinearProgress aria-label="กำลังตรวจสอบเซสชัน CMS" />
+                </>
+              )}
+            </Stack>
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
+  );
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, refreshSession, status, verifyMfa } = useAuth();
+  const { beginRecoveryCodeHandoff } = useRecoveryCodeHandoff();
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const noticeConsumedRef = useRef(false);
   const [step, setStep] = useState<LoginStep>("password");
@@ -47,7 +92,6 @@ export default function LoginPage() {
   const [factorType, setFactorType] = useState<"totp" | "recovery">("totp");
   const [factorValue, setFactorValue] = useState("");
   const [setup, setSetup] = useState<CmsMfaSetup | null>(null);
-  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sessionNotice, setSessionNotice] = useState("");
@@ -57,7 +101,6 @@ export default function LoginPage() {
     () => () => {
       setPassword("");
       setFactorValue("");
-      setRecoveryCodes([]);
       setSetup(null);
     },
     []
@@ -78,6 +121,14 @@ export default function LoginPage() {
 
   if (status === "authenticated") {
     return <Navigate to="/admin" replace />;
+  }
+
+  if (status === "bootstrapping") {
+    return <LoginAvailabilityState />;
+  }
+
+  if (status === "unavailable") {
+    return <LoginAvailabilityState unavailable onRetry={() => void refreshSession().catch(() => undefined)} />;
   }
 
   async function beginEnrollment() {
@@ -172,9 +223,9 @@ export default function LoginPage() {
 
     try {
       const result = await confirmCmsMfaSetup("challenge", totpCode);
-      setRecoveryCodes(result.recoveryCodes);
       setSetup(null);
-      setStep("recovery-codes");
+      setStep("completed");
+      beginRecoveryCodeHandoff({ codes: result.recoveryCodes, mode: "mandatory" });
     } catch (currentError) {
       setError(getCmsAuthErrorMessage(currentError, "ยืนยันการตั้งค่า MFA ไม่สำเร็จ"));
       if (currentError instanceof CmsAuthError) {
@@ -183,20 +234,12 @@ export default function LoginPage() {
     }
   }
 
-  async function finishEnrollment() {
-    setRecoveryCodes([]);
-    await refreshSession();
-    setStep("completed");
-    await navigate({ to: "/admin", replace: true });
-  }
-
   function restartLogin() {
     setStep("password");
     setPassword("");
     setFactorValue("");
     setFactorType("totp");
     setSetup(null);
-    setRecoveryCodes([]);
     setError("");
   }
 
@@ -361,11 +404,7 @@ export default function LoginPage() {
                   </Button>
                 ))}
 
-              {step === "recovery-codes" && (
-                <RecoveryCodesPanel codes={recoveryCodes} onAcknowledge={finishEnrollment} />
-              )}
-
-              {step !== "password" && step !== "recovery-codes" && step !== "completed" && (
+              {step !== "password" && step !== "completed" && (
                 <Button onClick={restartLogin} disabled={submitting}>
                   กลับไปกรอกรหัสผ่าน
                 </Button>

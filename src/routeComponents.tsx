@@ -6,6 +6,7 @@ import { PublicSiteViewTracker } from "./features/site-view";
 import { VercelInsights } from "./shared/components/VercelInsights";
 import { useAuth } from "./context/authSessionContext";
 import { hasAnyCmsCapability, type CmsCapability } from "./features/cms-auth";
+import RecoveryCodeNavigationGuard from "./admin/components/RecoveryCodeNavigationGuard";
 
 export const AccountSecurityPage = lazy(() => import("./admin/pages/AccountSecurityPage"));
 export const ActivateAccountPage = lazy(() => import("./admin/pages/ActivateAccountPage"));
@@ -55,12 +56,15 @@ export function RouteFallback() {
 
 export function RootRouteLayout() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Outlet />
-      <PublicAnalytics />
-      <PublicSiteViewTracker />
-      <VercelInsights />
-    </Suspense>
+    <>
+      <RecoveryCodeNavigationGuard />
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+        <PublicAnalytics />
+        <PublicSiteViewTracker />
+        <VercelInsights />
+      </Suspense>
+    </>
   );
 }
 

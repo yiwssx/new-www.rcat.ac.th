@@ -52,4 +52,22 @@ describe("ReauthenticationDialog", () => {
     await expect(pendingRequest).resolves.toBeUndefined();
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
+
+  it("closes and rejects the pending request when Session refresh fails after reauthentication", async () => {
+    const refreshFailure = new CmsAuthError(503);
+    authMock.reauthenticate.mockImplementation(async () => {
+      cmsStepUpCoordinator.fail(refreshFailure);
+      throw refreshFailure;
+    });
+    const pendingRequest = cmsStepUpCoordinator.request("password");
+    render(<ReauthenticationDialog />);
+
+    fireEvent.change(screen.getByLabelText(/รหัสผ่านปัจจุบัน/), {
+      target: { value: "temporary password" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
+
+    await expect(pendingRequest).rejects.toBe(refreshFailure);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
 });

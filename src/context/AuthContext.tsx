@@ -5,6 +5,7 @@ import {
   broadcastCmsSessionEvent,
   clearProtectedAdminQueries,
   CMS_SESSION_EXPIRED_EVENT,
+  cmsStepUpCoordinator,
   getCmsCapabilities,
   getCmsSession,
   hasCmsCapability,
@@ -28,13 +29,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<CmsAuthStatus>("bootstrapping");
   const [session, setSession] = useState<CmsSession | null>(null);
   const currentUserIdRef = useRef("");
+  const sessionRef = useRef<CmsSession | null>(null);
+  const refreshPromiseRef = useRef<Promise<CmsSession | null> | null>(null);
 
   const clearSession = useCallback(
     (options: { broadcast?: boolean } = {}) => {
       currentUserIdRef.current = "";
+      sessionRef.current = null;
       setSession(null);
       setStatus("unauthenticated");
       clearProtectedAdminQueries(queryClient);
+      cmsStepUpCoordinator.fail(new CmsAuthError(401));
 
       if (options.broadcast) {
         broadcastCmsSessionEvent("logged-out");
@@ -43,43 +48,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [queryClient]
   );
 
-  const refreshSession = useCallback(async () => {
-    setStatus("bootstrapping");
-
-    try {
-      const user = await getCmsSession();
-      const capabilityPayload = await getCmsCapabilities();
-
-      if (capabilityPayload.role !== user.role) {
-        throw new TypeError("CMS Session role does not match the capability role");
-      }
-
-      if (currentUserIdRef.current && currentUserIdRef.current !== user.id) {
-        clearProtectedAdminQueries(queryClient);
-      }
-
-      const nextSession: CmsSession = {
-        user,
-        capabilities: capabilityPayload.capabilities
-      };
-      currentUserIdRef.current = user.id;
-      setSession(nextSession);
-      setStatus("authenticated");
-      return nextSession;
-    } catch (error) {
-      currentUserIdRef.current = "";
-      setSession(null);
-      clearProtectedAdminQueries(queryClient);
-
-      if (error instanceof CmsAuthError && error.status === 401) {
-        setStatus("unauthenticated");
-        return null;
-      }
-
-      setStatus("unavailable");
-      throw error;
+  const refreshSession = useCallback(() => {
+    if (refreshPromiseRef.current) {
+      return refreshPromiseRef.current;
     }
-  }, [queryClient]);
+
+    const backgroundRefresh = sessionRef.current !== null;
+
+    if (!backgroundRefresh) {
+      setStatus("bootstrapping");
+    }
+
+    const refreshPromise = (async () => {
+      try {
+        const [sessionResult, capabilityResult] = await Promise.allSettled([getCmsSession(), getCmsCapabilities()]);
+
+        if (sessionResult.status === "rejected") {
+          throw sessionResult.reason;
+        }
+
+        if (capabilityResult.status === "rejected") {
+          throw capabilityResult.reason;
+        }
+
+        const user = sessionResult.value;
+        const capabilityPayload = capabilityResult.value;
+
+        if (capabilityPayload.role !== user.role) {
+          throw new TypeError("CMS Session role does not match the capability role");
+        }
+
+        if (currentUserIdRef.current && currentUserIdRef.current !== user.id) {
+          clearProtectedAdminQueries(queryClient);
+        }
+
+        const nextSession: CmsSession = {
+          user,
+          capabilities: capabilityPayload.capabilities
+        };
+        currentUserIdRef.current = user.id;
+        sessionRef.current = nextSession;
+        setSession(nextSession);
+        setStatus("authenticated");
+        return nextSession;
+      } catch (error) {
+        if (error instanceof CmsAuthError && error.status === 401) {
+          clearSession();
+          return null;
+        }
+
+        if (sessionRef.current) {
+          setStatus("authenticated");
+          throw error;
+        }
+
+        currentUserIdRef.current = "";
+        sessionRef.current = null;
+        setSession(null);
+        clearProtectedAdminQueries(queryClient);
+        setStatus("unavailable");
+        throw error;
+      }
+    })();
+
+    refreshPromiseRef.current = refreshPromise;
+    const clearRefreshPromise = () => {
+      if (refreshPromiseRef.current === refreshPromise) {
+        refreshPromiseRef.current = null;
+      }
+    };
+    void refreshPromise.then(clearRefreshPromise, clearRefreshPromise);
+    return refreshPromise;
+  }, [clearSession, queryClient]);
 
   const login = useCallback(
     async (identifier: string, password: string): Promise<CmsLoginResult> => {
@@ -129,7 +169,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const reauthenticate = useCallback(
     async (input: { currentPassword: string } & Partial<CmsMfaProof>) => {
       await reauthenticateCmsSession(input);
-      await refreshSession();
+
+      try {
+        const nextSession = await refreshSession();
+
+        if (!nextSession) {
+          throw new CmsAuthError(401);
+        }
+      } catch (error) {
+        cmsStepUpCoordinator.fail(error);
+        throw error;
+      }
+
       broadcastCmsSessionEvent("session-changed");
     },
     [refreshSession]
@@ -151,7 +202,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleSessionExpired = () => clearSession({ broadcast: true });
-    const unsubscribe = subscribeToCmsSessionEvents(() => {
+    const unsubscribe = subscribeToCmsSessionEvents((event) => {
+      if (event === "logged-out") {
+        clearSession();
+        return;
+      }
+
       void refreshSession().catch(() => undefined);
     });
 

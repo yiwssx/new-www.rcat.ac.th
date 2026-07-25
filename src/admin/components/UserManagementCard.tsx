@@ -123,6 +123,9 @@ export default function UserManagementCard() {
   const activeAdminCount = activeAdminsQuery.data?.pagination.totalItems ?? 0;
   const editingUser = users.find((profile) => profile.id === editingId) ?? null;
   const isCreating = editingId === "__new__";
+  const editingRoleStatusProtected =
+    editingUser?.isRoot === true ||
+    (editingUser?.role === "admin" && editingUser.status === "active" && activeAdminCount <= 1);
   const operationPending = Boolean(pendingAction) || listTransitioning;
   const canCreate = hasCapability("users.create");
   const canUpdate = hasCapability("users.update-any");
@@ -175,6 +178,20 @@ export default function UserManagementCard() {
 
   async function handleSave() {
     if (operationPending || (isCreating ? !canCreate : !canUpdate)) {
+      return;
+    }
+
+    if (
+      editingUser &&
+      (draft.email !== editingUser.email ||
+        (draft.username || null) !== (editingUser.username || null) ||
+        draft.role !== editingUser.role ||
+        draft.status !== editingUser.status) &&
+      !(await confirmAction(
+        "ยืนยันการแก้ไขข้อมูลเข้าสู่ระบบและสิทธิ์?",
+        "อีเมล ชื่อผู้ใช้ บทบาท หรือสถานะมีผลต่อการเข้าสู่ระบบและการเข้าถึง CMS"
+      ))
+    ) {
       return;
     }
 
@@ -476,7 +493,6 @@ export default function UserManagementCard() {
                       label="อีเมล"
                       value={draft.email ?? ""}
                       onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
-                      disabled={!isCreating}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 4 }}>
@@ -487,7 +503,6 @@ export default function UserManagementCard() {
                       onChange={(event) =>
                         setDraft((current) => ({ ...current, username: event.target.value || null }))
                       }
-                      disabled={!isCreating}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 6 }}>
@@ -500,6 +515,7 @@ export default function UserManagementCard() {
                         onChange={(event) =>
                           setDraft((current) => ({ ...current, role: event.target.value as AdminUserProfile["role"] }))
                         }
+                        disabled={editingRoleStatusProtected}
                       >
                         <MenuItem value="admin">admin</MenuItem>
                         <MenuItem value="editor">editor</MenuItem>
@@ -521,6 +537,7 @@ export default function UserManagementCard() {
                               status: event.target.value as AdminUserProfile["status"]
                             }))
                           }
+                          disabled={editingRoleStatusProtected}
                         >
                           <MenuItem value="active">active</MenuItem>
                           <MenuItem value="disabled">disabled</MenuItem>
@@ -529,6 +546,11 @@ export default function UserManagementCard() {
                     </Grid>
                   )}
                 </Grid>
+                {editingRoleStatusProtected && (
+                  <Alert severity="info">
+                    ไม่สามารถเปลี่ยนบทบาทหรือสถานะของ Root หรือผู้ดูแลระบบที่ใช้งานอยู่คนสุดท้าย
+                  </Alert>
+                )}
                 <Stack direction="row" spacing={1}>
                   <Button variant="contained" onClick={() => void handleSave()} disabled={operationPending}>
                     บันทึก

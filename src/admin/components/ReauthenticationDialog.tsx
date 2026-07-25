@@ -69,7 +69,11 @@ export default function ReauthenticationDialog() {
       clearForm();
       cmsStepUpCoordinator.complete();
     } catch (currentError) {
-      setError(getCmsAuthErrorMessage(currentError, "ยืนยันตัวตนไม่สำเร็จ กรุณาลองอีกครั้ง"));
+      if (cmsStepUpCoordinator.getSnapshot().open) {
+        setError(getCmsAuthErrorMessage(currentError, "ยืนยันตัวตนไม่สำเร็จ กรุณาลองอีกครั้ง"));
+      } else {
+        clearForm();
+      }
     } finally {
       setSubmitting(false);
     }

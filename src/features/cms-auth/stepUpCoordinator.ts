@@ -19,6 +19,10 @@ export class CmsStepUpReplayError extends Error {
   }
 }
 
+function asError(error: unknown) {
+  return error instanceof Error ? error : new Error("Reauthentication failed");
+}
+
 type Deferred = {
   promise: Promise<void>;
   resolve: () => void;
@@ -74,16 +78,15 @@ class CmsStepUpCoordinator {
   }
 
   cancel() {
+    this.fail(new CmsStepUpCancelledError());
+  }
+
+  fail(error: unknown) {
     const deferred = this.deferred;
-
-    if (!deferred) {
-      return;
-    }
-
     this.deferred = null;
     this.snapshot = { open: false, assurance: "password" };
     this.emit();
-    deferred.reject(new CmsStepUpCancelledError());
+    deferred?.reject(asError(error));
   }
 
   resetForTests() {
@@ -99,6 +102,19 @@ class CmsStepUpCoordinator {
 }
 
 export const cmsStepUpCoordinator = new CmsStepUpCoordinator();
+
+export async function runCmsOperationWithStepUp<T>(assurance: CmsAssurance, operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!(error instanceof Error) || !("status" in error) || error.status !== 428) {
+      throw error;
+    }
+  }
+
+  await cmsStepUpCoordinator.request(assurance);
+  return operation();
+}
 
 export function isReplayableRequestBody(body: BodyInit | null | undefined) {
   return (

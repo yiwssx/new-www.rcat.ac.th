@@ -16,26 +16,26 @@ import {
 } from "@mui/material";
 import {
   changeCmsPassword,
-  CmsAuthError,
-  cmsStepUpCoordinator,
   confirmCmsMfaSetup,
   disableCmsMfa,
   getCmsAuthErrorMessage,
   regenerateCmsRecoveryCodes,
+  runCmsOperationWithStepUp,
   startCmsMfaSetup,
   type CmsMfaSetup
 } from "../../features/cms-auth";
 import { getCurrentAdminUserFromCloudflare } from "../../features/admin-write/cloudflareApi";
 import { useAuth } from "../../context/authSessionContext";
+import { useRecoveryCodeHandoff } from "../../context/RecoveryCodeHandoffContext";
 import { appSwal, showSuccessResult } from "../../utils/swal";
 import MfaSetupPanel from "../components/MfaSetupPanel";
 import PageHeader from "../components/PageHeader";
-import RecoveryCodesPanel from "../components/RecoveryCodesPanel";
 
 export default function AccountSecurityPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { clearSession, hasCapability, logout, logoutAll } = useAuth();
+  const { beginRecoveryCodeHandoff } = useRecoveryCodeHandoff();
   const profileQuery = useQuery({
     queryKey: ["admin-account-security", "me"],
     queryFn: getCurrentAdminUserFromCloudflare
@@ -44,8 +44,6 @@ export default function AccountSecurityPage() {
   const [newPassword, setNewPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [setup, setSetup] = useState<CmsMfaSetup | null>(null);
-  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
-  const [recoveryMode, setRecoveryMode] = useState<"enrollment" | "regenerated" | null>(null);
   const [disablePassword, setDisablePassword] = useState("");
   const [disableTotp, setDisableTotp] = useState("");
   const [disableRecoveryCode, setDisableRecoveryCode] = useState("");
@@ -61,7 +59,6 @@ export default function AccountSecurityPage() {
       setDisablePassword("");
       setDisableTotp("");
       setDisableRecoveryCode("");
-      setRecoveryCodes([]);
       setSetup(null);
     },
     []
@@ -108,7 +105,7 @@ export default function AccountSecurityPage() {
     setError("");
 
     try {
-      setSetup(await startCmsMfaSetup("session"));
+      setSetup(await runCmsOperationWithStepUp("password", () => startCmsMfaSetup("session")));
     } catch (currentError) {
       setError(getCmsAuthErrorMessage(currentError, "ไม่สามารถเริ่มตั้งค่า MFA ได้"));
     } finally {
@@ -120,22 +117,10 @@ export default function AccountSecurityPage() {
     try {
       const result = await confirmCmsMfaSetup("session", totpCode);
       setSetup(null);
-      setRecoveryCodes(result.recoveryCodes);
-      setRecoveryMode("enrollment");
+      beginRecoveryCodeHandoff({ codes: result.recoveryCodes, mode: "voluntary" });
+      clearSession();
     } catch (currentError) {
       setError(getCmsAuthErrorMessage(currentError, "ยืนยันการตั้งค่า MFA ไม่สำเร็จ"));
-    }
-  }
-
-  async function regenerateRecoveryCodesOnce(retried = false): Promise<string[]> {
-    try {
-      return await regenerateCmsRecoveryCodes();
-    } catch (currentError) {
-      if (currentError instanceof CmsAuthError && currentError.status === 428 && !retried) {
-        await cmsStepUpCoordinator.request("mfa");
-        return regenerateRecoveryCodesOnce(true);
-      }
-      throw currentError;
     }
   }
 
@@ -144,8 +129,8 @@ export default function AccountSecurityPage() {
     setError("");
 
     try {
-      setRecoveryCodes(await regenerateRecoveryCodesOnce());
-      setRecoveryMode("regenerated");
+      const codes = await runCmsOperationWithStepUp("mfa", regenerateCmsRecoveryCodes);
+      beginRecoveryCodeHandoff({ codes, mode: "regenerated" });
     } catch (currentError) {
       setError(getCmsAuthErrorMessage(currentError, "ไม่สามารถสร้างรหัสกู้คืนชุดใหม่ได้"));
     } finally {
@@ -166,19 +151,21 @@ export default function AccountSecurityPage() {
     setError("");
 
     try {
-      await disableCmsMfa(
-        useDisableRecovery
-          ? { currentPassword: disablePassword, recoveryCode: disableRecoveryCode }
-          : { currentPassword: disablePassword, totpCode: disableTotp }
+      await runCmsOperationWithStepUp("mfa", () =>
+        disableCmsMfa(
+          useDisableRecovery
+            ? { currentPassword: disablePassword, recoveryCode: disableRecoveryCode }
+            : { currentPassword: disablePassword, totpCode: disableTotp }
+        )
       );
-      setDisablePassword("");
-      setDisableTotp("");
-      setDisableRecoveryCode("");
       await showSuccessResult("ปิด MFA สำเร็จ กรุณาเข้าสู่ระบบใหม่");
       await returnToLogin();
     } catch (currentError) {
       setError(getCmsAuthErrorMessage(currentError, "ไม่สามารถปิด MFA ได้"));
     } finally {
+      setDisablePassword("");
+      setDisableTotp("");
+      setDisableRecoveryCode("");
       setPendingAction("");
     }
   }
@@ -248,25 +235,7 @@ export default function AccountSecurityPage() {
             </CardContent>
           </Card>
 
-          {recoveryCodes.length > 0 ? (
-            <Card>
-              <CardContent>
-                <RecoveryCodesPanel
-                  codes={recoveryCodes}
-                  priorCodesInvalid={recoveryMode === "regenerated"}
-                  onAcknowledge={async () => {
-                    setRecoveryCodes([]);
-                    const mode = recoveryMode;
-                    setRecoveryMode(null);
-
-                    if (mode === "enrollment") {
-                      await returnToLogin();
-                    }
-                  }}
-                />
-              </CardContent>
-            </Card>
-          ) : setup ? (
+          {setup ? (
             <MfaSetupPanel setup={setup} onConfirm={confirmMfaEnrollment} error={error} />
           ) : (
             <>

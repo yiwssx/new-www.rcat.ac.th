@@ -37,7 +37,6 @@ import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
 import { useAuth } from "../../context/authSessionContext";
 import { hasAnyCmsCapability, type CmsCapability } from "../../features/cms-auth";
 import { appSwal } from "../../utils/swal";
-import ReauthenticationDialog from "../components/ReauthenticationDialog";
 
 const drawerWidth = 280;
 
@@ -293,7 +292,6 @@ export default function CmsShell() {
       >
         <Outlet />
       </Box>
-      <ReauthenticationDialog />
     </Box>
   );
 }
