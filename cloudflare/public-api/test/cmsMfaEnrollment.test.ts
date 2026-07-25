@@ -25,6 +25,8 @@ const enrollmentEnv = {
   CMS_MFA_ENCRYPTION_KEY: encryptionKey,
   CMS_MFA_ENCRYPTION_KEY_VERSION: "test-v1"
 };
+const FORBIDDEN_MFA_RESPONSE_KEY_PATTERN =
+  /"(?:encrypted_secret|encryptedSecret|ciphertext|iv|session_id|sessionId|code_hash|codeHash)"\s*:/i;
 const rootUser = {
   id: "root-user",
   email: "root@example.invalid",
@@ -159,8 +161,8 @@ describe("CMS MFA enrollment", () => {
         session: expect.objectContaining({ user_id: rootUser.id })
       })
     );
-    expect(JSON.stringify(setupBody)).not.toMatch(/encrypted_secret|ciphertext|iv|sessionId|code_hash/i);
-    expect(JSON.stringify(confirmationBody)).not.toMatch(/encrypted_secret|ciphertext|iv|sessionId|code_hash/i);
+    expect(JSON.stringify(setupBody)).not.toMatch(FORBIDDEN_MFA_RESPONSE_KEY_PATTERN);
+    expect(JSON.stringify(confirmationBody)).not.toMatch(FORBIDDEN_MFA_RESPONSE_KEY_PATTERN);
   });
 
   it("marks voluntary setup login-required and delegates revocation without creating a replacement Session", async () => {
