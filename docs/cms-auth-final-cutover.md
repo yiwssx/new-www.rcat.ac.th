@@ -52,7 +52,7 @@ Never record a real identifier, password, token, Recovery Code, cookie, encrypti
 5. Deploy Vercel to Preview.
 6. Verify the direct Function inventory contains exactly four Functions.
 7. Log in normally through `/login` with a designated CMS Admin password and TOTP.
-8. Test one Recovery Code, then store the replacement code set offline if the product issues one.
+8. Test one Recovery Code and confirm that code is consumed. Login does not issue a replacement set; regeneration is a deliberate action that invalidates the prior remaining set.
 9. Test the Admin Dashboard.
 10. Test user management within the designated account’s capabilities.
 11. Confirm protected mutations require exact CSRF.
@@ -140,10 +140,12 @@ Retire values only through the approved environment-management process. Never co
 `CMS_AUTH_PROXY_SECRET` may be rotated later in a controlled maintenance window:
 
 1. Generate a new cryptographically random secret using the approved secret manager.
-2. Coordinate the Worker and Vercel updates to minimize mismatched configuration.
-3. Do not commit or print the secret.
-4. Immediately verify password/TOTP Login, an Admin read, a CSRF-protected mutation, and Integrations.
-5. Monitor authorization and proxy errors after rotation.
+2. Schedule a controlled re-login window. Rotating this secret invalidates existing CMS Sessions and outstanding MFA challenges because their metadata hashes use the secret.
+3. Coordinate the Worker and Vercel updates to minimize mismatched configuration.
+4. Do not commit or print the secret.
+5. Require users to log in again after rotation. Existing MFA factors and Recovery Codes are not deleted.
+6. Immediately verify password/TOTP Login, an Admin read, a CSRF-protected mutation, and Integrations.
+7. Monitor authorization and proxy errors after rotation.
 
 Do not perform this rotation as part of the Phase 8 coding task.
 

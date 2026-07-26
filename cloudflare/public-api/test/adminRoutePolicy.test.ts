@@ -12,6 +12,7 @@ const SUPPORTED_ADMIN_ROUTES: readonly RouteCase[] = [
   { method: "GET", path: "snapshot", requirement: "dashboard.read" },
   { method: "GET", path: "dashboard-summary", requirement: "dashboard.read" },
   { method: "GET", path: "capabilities", requirement: "dashboard.read" },
+  { method: "POST", path: "media-bridge-authorization", requirement: "media.manage" },
   { method: "GET", path: "content", requirement: "content.read" },
   { method: "POST", path: "content", requirement: "content.create" },
   { method: "GET", path: "content/content-1", requirement: "content.read" },
@@ -103,8 +104,8 @@ describe("Admin route policy", () => {
     expect(requirement(decision)).toEqual(expected);
   });
 
-  it("has an explicit independent inventory for all 76 supported method/path patterns", () => {
-    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(76);
+  it("has an explicit independent inventory for all 77 supported method/path patterns", () => {
+    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(77);
     expect(
       SUPPORTED_ADMIN_ROUTES.every(({ method, path }) => resolveAdminRoutePolicy(method, segments(path)).matched)
     ).toBe(true);
@@ -115,6 +116,7 @@ describe("Admin route policy", () => {
     ["POST", "settings/site"],
     ["PUT", "events/event-1"],
     ["PATCH", "media/media-1"],
+    ["GET", "media-bridge-authorization"],
     ["POST", "backup/download"],
     ["PATCH", "users/user-1/invitations"],
     ["DELETE", "users/user-1/password-reset"]

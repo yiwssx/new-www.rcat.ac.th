@@ -307,6 +307,29 @@ describe("CMS session service", () => {
     );
   });
 
+  it("supports a read-only authorization probe without touching the Session", async () => {
+    const repository = makeRepository(
+      await makeRecord({
+        session: {
+          last_seen_at: new Date(fixedNow.getTime() - CMS_SESSION_TOUCH_INTERVAL_SECONDS * 1000).toISOString()
+        }
+      })
+    );
+
+    await expect(
+      authenticateCmsSession({
+        env: {},
+        sessionToken,
+        csrfToken,
+        method: "POST",
+        touchSession: false,
+        now: fixedNow,
+        repository
+      })
+    ).resolves.toMatchObject({ status: "authenticated" });
+    expect(repository.touchSession).not.toHaveBeenCalled();
+  });
+
   it("revokes the current Session and logout-all revokes every user Session", async () => {
     const repository = makeRepository(await makeRecord());
 

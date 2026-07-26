@@ -81,6 +81,7 @@ export interface AuthenticateCmsSessionInput {
   clientIp?: string;
   userAgent?: string;
   method?: string;
+  touchSession?: boolean;
   now?: Date;
   repository?: AdminSessionRepository;
 }
@@ -283,7 +284,7 @@ export async function authenticateCmsSession(
 
     const touchThreshold = new Date(nowMs - CMS_SESSION_TOUCH_INTERVAL_SECONDS * 1000).toISOString();
 
-    if (Date.parse(record.session.last_seen_at) <= Date.parse(touchThreshold)) {
+    if (input.touchSession !== false && Date.parse(record.session.last_seen_at) <= Date.parse(touchThreshold)) {
       const idleExpiresAt = new Date(
         Math.min(nowMs + CMS_SESSION_IDLE_SECONDS * 1000, Date.parse(record.session.absolute_expires_at))
       ).toISOString();

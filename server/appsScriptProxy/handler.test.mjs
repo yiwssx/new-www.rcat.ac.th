@@ -7,6 +7,7 @@ import {
   CMS_AUTH_PROXY_SECRET_HEADER,
   CMS_BROWSER_CSRF_HEADER,
   CMS_CLIENT_IP_HEADER,
+  CMS_CSRF_TOKEN_HEADER,
   CMS_SESSION_TOKEN_HEADER,
   CMS_USER_AGENT_HEADER
 } from "../cmsAuth/handlers.mjs";
@@ -92,6 +93,13 @@ function capabilityResponse(capabilities) {
   return Response.json({ role: "admin", capabilities });
 }
 
+function authorizationSuccess() {
+  return new Response(null, {
+    status: 204,
+    headers: { "Cache-Control": "no-store" }
+  });
+}
+
 async function callProxy({ env = createEnv(), fetchImpl, request } = {}) {
   const response = createResponse();
   await handleAppsScriptProxyRequest(request ?? cmsRequest(), response, {
@@ -166,7 +174,7 @@ describe("CMS-only Vercel Apps Script media proxy", () => {
     });
 
     expect(response.statusCode).toBe(401);
-    expect(response.bodyJson).toEqual({ error: "CMS session is required" });
+    expect(response.bodyJson).toEqual({ error: "CMS session is invalid or expired" });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -180,7 +188,7 @@ describe("CMS-only Vercel Apps Script media proxy", () => {
       });
 
       expect(response.statusCode).toBe(401);
-      expect(response.bodyJson).toEqual({ error: "CMS session is required" });
+      expect(response.bodyJson).toEqual({ error: "CMS session is invalid or expired" });
       expect(fetchImpl).not.toHaveBeenCalled();
     }
   );
@@ -227,11 +235,149 @@ describe("CMS-only Vercel Apps Script media proxy", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
+  it("rejects a malformed CSRF cookie before Worker or Apps Script calls", async () => {
+    const fetchImpl = vi.fn();
+    const response = await callProxy({
+      fetchImpl,
+      request: cmsRequest({
+        body: { resource: "media", payload: {} },
+        csrfCookie: "not-a-token",
+        csrfHeader: CMS_CSRF_TOKEN,
+        method: "POST"
+      })
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.bodyJson).toEqual({ error: "CSRF validation failed" });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("rejects duplicate CSRF cookies before Worker or Apps Script calls", async () => {
+    const fetchImpl = vi.fn();
+    const response = await callProxy({
+      fetchImpl,
+      request: cmsRequest({
+        body: { resource: "media", payload: {} },
+        csrfCookie: CMS_CSRF_TOKEN,
+        csrfHeader: CMS_CSRF_TOKEN,
+        extras: [`${getCmsCsrfCookieName()}=${CMS_CSRF_TOKEN}`],
+        method: "POST"
+      })
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.bodyJson).toEqual({ error: "CSRF validation failed" });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("rejects a matching fabricated CSRF pair when the Worker rejects its D1 Session hash", async () => {
+    const fabricatedCsrfToken = "F".repeat(43);
+    const fetchImpl = vi.fn(async () =>
+      Response.json({ error: "CSRF validation failed", resource: "admin-structured-data" }, { status: 403 })
+    );
+    const response = await callProxy({
+      fetchImpl,
+      request: cmsRequest({
+        body: { resource: "media", payload: {} },
+        csrfCookie: fabricatedCsrfToken,
+        csrfHeader: fabricatedCsrfToken,
+        method: "POST"
+      })
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.bodyJson).toEqual({ error: "CSRF validation failed" });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(`${CMS_WORKER_ORIGIN}/api/admin/media-bridge-authorization`);
+  });
+
+  it("requires media.manage from the exact Worker authorization probe", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json(
+        { error: "required permission is missing", resource: "media-bridge-authorization" },
+        { status: 403 }
+      )
+    );
+    const response = await callProxy({
+      fetchImpl,
+      request: cmsRequest({
+        body: { resource: "media", payload: {} },
+        csrfCookie: CMS_CSRF_TOKEN,
+        csrfHeader: CMS_CSRF_TOKEN,
+        method: "POST"
+      })
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.bodyJson).toEqual({ error: "media bridge access is forbidden" });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [
+      "invalid Session",
+      Response.json({ error: "internal Session detail", sessionId: CMS_SESSION_TOKEN }, { status: 401 }),
+      401,
+      { error: "CMS session is invalid or expired" }
+    ],
+    [
+      "unavailable authentication",
+      Response.json({ error: "internal Worker detail", binding: "DB" }, { status: 503 }),
+      503,
+      { error: "CMS authentication is unavailable" }
+    ]
+  ])("maps Worker %s without forwarding its response body", async (_label, workerResponse, status, body) => {
+    const fetchImpl = vi.fn(async () => workerResponse);
+    const response = await callProxy({
+      fetchImpl,
+      request: cmsRequest({
+        body: { resource: "media", payload: {} },
+        csrfCookie: CMS_CSRF_TOKEN,
+        csrfHeader: CMS_CSRF_TOKEN,
+        method: "POST"
+      })
+    });
+
+    expect(response.statusCode).toBe(status);
+    expect(response.bodyJson).toEqual(body);
+    expect(response.bodyText).not.toContain(CMS_SESSION_TOKEN);
+    expect(response.bodyText).not.toContain("binding");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves the finite Worker reauthentication contract without forwarding internal details", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json(
+        {
+          error: "reauthentication required",
+          resource: "admin-structured-data",
+          assurance: "mfa",
+          internal: CMS_SESSION_TOKEN
+        },
+        { status: 428 }
+      )
+    );
+    const response = await callProxy({
+      fetchImpl,
+      request: cmsRequest({
+        body: { resource: "media", payload: {} },
+        csrfCookie: CMS_CSRF_TOKEN,
+        csrfHeader: CMS_CSRF_TOKEN,
+        method: "POST"
+      })
+    });
+
+    expect(response.statusCode).toBe(428);
+    expect(response.bodyJson).toEqual({ error: "reauthentication required", assurance: "mfa" });
+    expect(response.bodyText).not.toContain(CMS_SESSION_TOKEN);
+    expect(response.bodyText).not.toContain("internal");
+  });
+
   it("authorizes a media mutation and replaces all browser-supplied bridge credentials", async () => {
     const browserSecret = "browser-supplied-secret";
     const fetchImpl = vi
       .fn()
-      .mockResolvedValueOnce(capabilityResponse(["media.manage"]))
+      .mockResolvedValueOnce(authorizationSuccess())
       .mockResolvedValueOnce(Response.json({ ok: true, id: "media-1" }));
     const response = await callProxy({
       fetchImpl,
@@ -254,6 +400,12 @@ describe("CMS-only Vercel Apps Script media proxy", () => {
     expect(response.statusCode).toBe(200);
     expect(response.bodyJson).toEqual({ ok: true, id: "media-1" });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const [authorizationUrl, authorizationInit] = fetchImpl.mock.calls[0];
+    expect(authorizationUrl).toBe(`${CMS_WORKER_ORIGIN}/api/admin/media-bridge-authorization`);
+    expect(authorizationInit.method).toBe("POST");
+    expect(authorizationInit.headers.get(CMS_AUTH_PROXY_SECRET_HEADER)).toBe(CMS_PROXY_SECRET);
+    expect(authorizationInit.headers.get(CMS_SESSION_TOKEN_HEADER)).toBe(CMS_SESSION_TOKEN);
+    expect(authorizationInit.headers.get(CMS_CSRF_TOKEN_HEADER)).toBe(CMS_CSRF_TOKEN);
     const [appsUrl, appsInit] = fetchImpl.mock.calls[1];
     expect(appsUrl).toBeInstanceOf(URL);
     expect(appsUrl.hostname).toBe("script.google.com");
@@ -267,7 +419,7 @@ describe("CMS-only Vercel Apps Script media proxy", () => {
   });
 
   it("rejects an invalid Apps Script URL after CMS authorization", async () => {
-    const fetchImpl = vi.fn(async () => capabilityResponse(["media.manage"]));
+    const fetchImpl = vi.fn(async () => authorizationSuccess());
     const response = await callProxy({
       env: createEnv({ GOOGLE_APPS_SCRIPT_URL: "https://attacker.example.test/bridge" }),
       fetchImpl,
@@ -288,7 +440,7 @@ describe("CMS-only Vercel Apps Script media proxy", () => {
     const fileBase64 = "sensitive-file-content";
     const fetchImpl = vi
       .fn()
-      .mockResolvedValueOnce(capabilityResponse(["media.manage"]))
+      .mockResolvedValueOnce(authorizationSuccess())
       .mockResolvedValueOnce(
         new Response(`failure fileBase64=${fileBase64}&uploadKey=secret-upload-key&token=${BRIDGE_TOKEN}`, {
           status: 500
@@ -314,7 +466,7 @@ describe("CMS-only Vercel Apps Script media proxy", () => {
   });
 
   it("preserves the request body limit", async () => {
-    const fetchImpl = vi.fn(async () => capabilityResponse(["media.manage"]));
+    const fetchImpl = vi.fn(async () => authorizationSuccess());
     const response = await callProxy({
       fetchImpl,
       request: cmsRequest({

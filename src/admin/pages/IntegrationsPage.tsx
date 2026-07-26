@@ -6,7 +6,6 @@ import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
-import { getAdminWriteProvider } from "../../config/adminWriteProvider";
 import {
   checkMediaBridgeStatus,
   MediaBridgeRequestError,
@@ -28,7 +27,6 @@ function toIntegrationStatus(status: MediaBridgeStatus["appsScriptBridge"] | und
 }
 
 export default function IntegrationsPage() {
-  const structuredDataUsesCloudflare = getAdminWriteProvider() === "cloudflare";
   const { capabilities, status } = useAuth();
   const canReadMediaBridge = hasCmsCapability(capabilities, "media.read");
   const bridgeQueryEnabled = status === "authenticated" && canReadMediaBridge;
@@ -85,7 +83,7 @@ export default function IntegrationsPage() {
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <CloudOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
-                <StatusChip status={structuredDataUsesCloudflare ? "connected" : "pending"} />
+                <StatusChip status="connected" />
               </Stack>
               <Typography variant="h3" sx={{ mt: 2 }}>
                 Cloudflare structured data

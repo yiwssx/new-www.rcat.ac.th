@@ -4,6 +4,7 @@ import {
   CMS_AUTH_PROXY_SECRET_HEADER,
   CMS_BROWSER_CSRF_HEADER,
   CMS_CLIENT_IP_HEADER,
+  CMS_CSRF_TOKEN_HEADER,
   CMS_SESSION_TOKEN_HEADER,
   CMS_USER_AGENT_HEADER,
   cmsTokensMatch,
@@ -13,8 +14,8 @@ import {
 
 const MAX_REQUEST_BODY_BYTES = 4 * 1024 * 1024;
 const CMS_CAPABILITIES_PATH = "/api/admin/capabilities";
+const CMS_MEDIA_BRIDGE_AUTHORIZATION_PATH = "/api/admin/media-bridge-authorization";
 const CMS_STATUS_CAPABILITY = "media.read";
-const CMS_MUTATION_CAPABILITY = "media.manage";
 const STATUS_METHODS = new Set(["GET", "HEAD"]);
 const APPS_SCRIPT_RESOURCES = new Map([
   ["media", "media"],
@@ -163,19 +164,33 @@ function readBridgeToken(env) {
   return value || null;
 }
 
-function createCmsCapabilityHeaders(request, configuration, sessionToken) {
+function createCmsAuthorizationHeaders(request, configuration, sessionToken, csrfToken = "") {
   const metadata = getCmsClientMetadata(request);
-
-  return new Headers({
+  const headers = new Headers({
     Accept: "application/json",
     [CMS_AUTH_PROXY_SECRET_HEADER]: configuration.proxySecret,
     [CMS_SESSION_TOKEN_HEADER]: sessionToken,
     [CMS_CLIENT_IP_HEADER]: metadata.clientIp,
     [CMS_USER_AGENT_HEADER]: metadata.userAgent
   });
+
+  if (csrfToken) {
+    headers.set(CMS_CSRF_TOKEN_HEADER, csrfToken);
+  }
+
+  return headers;
 }
 
-async function authenticateCmsSession(request, response, env, fetchImpl, requiredCapability, method) {
+async function readWorkerAuthorizationPayload(workerResponse) {
+  try {
+    const payload = await workerResponse.json();
+    return payload && typeof payload === "object" && !Array.isArray(payload) ? payload : null;
+  } catch {
+    return null;
+  }
+}
+
+async function authenticateCmsSession(request, response, env, fetchImpl, method) {
   const configuration = readCmsAuthConfiguration(env);
 
   if (!configuration || typeof fetchImpl !== "function") {
@@ -191,7 +206,10 @@ async function authenticateCmsSession(request, response, env, fetchImpl, require
     return null;
   }
 
-  if (!STATUS_METHODS.has(method)) {
+  const isStatusRequest = STATUS_METHODS.has(method);
+  let csrfToken = "";
+
+  if (!isStatusRequest) {
     const csrfCookie = readCmsCsrfCookie(cookieHeader);
     const csrfHeader = getHeader(request, CMS_BROWSER_CSRF_HEADER);
 
@@ -199,33 +217,66 @@ async function authenticateCmsSession(request, response, env, fetchImpl, require
       sendJson(response, 403, { error: "CSRF validation failed" });
       return null;
     }
+
+    csrfToken = csrfHeader;
   }
 
-  let capabilityResponse;
+  let authorizationResponse;
 
   try {
-    capabilityResponse = await fetchImpl(`${configuration.workerOrigin}${CMS_CAPABILITIES_PATH}`, {
-      method: "GET",
-      headers: createCmsCapabilityHeaders(request, configuration, sessionToken),
-      cache: "no-store",
-      redirect: "error"
-    });
+    authorizationResponse = await fetchImpl(
+      `${configuration.workerOrigin}${isStatusRequest ? CMS_CAPABILITIES_PATH : CMS_MEDIA_BRIDGE_AUTHORIZATION_PATH}`,
+      {
+        method: isStatusRequest ? "GET" : "POST",
+        headers: createCmsAuthorizationHeaders(request, configuration, sessionToken, csrfToken),
+        cache: "no-store",
+        redirect: "error"
+      }
+    );
   } catch {
     sendJson(response, 503, { error: "CMS authentication is unavailable" });
     return null;
   }
 
-  if (capabilityResponse.status === 401) {
+  if (authorizationResponse.status === 401) {
     sendJson(response, 401, { error: "CMS session is invalid or expired" });
     return null;
   }
 
-  if (capabilityResponse.status === 403) {
+  if (!isStatusRequest) {
+    if (authorizationResponse.status === 403) {
+      const payload = await readWorkerAuthorizationPayload(authorizationResponse);
+      sendJson(response, 403, {
+        error:
+          payload?.error === "CSRF validation failed" ? "CSRF validation failed" : "media bridge access is forbidden"
+      });
+      return null;
+    }
+
+    if (authorizationResponse.status === 428) {
+      const payload = await readWorkerAuthorizationPayload(authorizationResponse);
+      const assurance = payload?.assurance === "mfa" || payload?.assurance === "password" ? payload.assurance : null;
+      sendJson(response, 428, {
+        error: "reauthentication required",
+        ...(assurance ? { assurance } : {})
+      });
+      return null;
+    }
+
+    if (authorizationResponse.status !== 204) {
+      sendJson(response, 503, { error: "CMS authentication is unavailable" });
+      return null;
+    }
+
+    return { mode: "cms-session" };
+  }
+
+  if (authorizationResponse.status === 403) {
     sendJson(response, 403, { error: "media bridge access is forbidden" });
     return null;
   }
 
-  if (!capabilityResponse.ok) {
+  if (!authorizationResponse.ok) {
     sendJson(response, 503, { error: "CMS authentication is unavailable" });
     return null;
   }
@@ -233,7 +284,7 @@ async function authenticateCmsSession(request, response, env, fetchImpl, require
   let capabilityPayload;
 
   try {
-    capabilityPayload = await capabilityResponse.json();
+    capabilityPayload = await authorizationResponse.json();
   } catch {
     sendJson(response, 503, { error: "CMS authentication is unavailable" });
     return null;
@@ -250,7 +301,7 @@ async function authenticateCmsSession(request, response, env, fetchImpl, require
     return null;
   }
 
-  if (!capabilityPayload.capabilities.includes(requiredCapability)) {
+  if (!capabilityPayload.capabilities.includes(CMS_STATUS_CAPABILITY)) {
     sendJson(response, 403, { error: "media bridge access is forbidden" });
     return null;
   }
@@ -310,12 +361,11 @@ export async function handleAppsScriptProxyRequest(request, response, { env = ru
   const cookieHeader = getHeader(request, "cookie");
 
   if (!hasCmsSessionCookie(cookieHeader)) {
-    sendJson(response, 401, { error: "CMS session is required" });
+    sendJson(response, 401, { error: "CMS session is invalid or expired" });
     return;
   }
 
-  const requiredCapability = STATUS_METHODS.has(method) ? CMS_STATUS_CAPABILITY : CMS_MUTATION_CAPABILITY;
-  const session = await authenticateCmsSession(request, response, env, fetchImpl, requiredCapability, method);
+  const session = await authenticateCmsSession(request, response, env, fetchImpl, method);
 
   if (!session) {
     return;

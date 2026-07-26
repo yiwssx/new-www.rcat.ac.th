@@ -98,6 +98,27 @@ describe("CMS-only Worker Admin access", () => {
     );
   });
 
+  it("passes the read-only Session option for the media bridge authorization probe", async () => {
+    const authenticateCmsSession = vi.fn().mockResolvedValue(authenticated());
+    const result = await authenticateAdminRequest(
+      cmsRequest({
+        method: "POST",
+        headers: { [CMS_CSRF_TOKEN_HEADER]: csrfToken }
+      }),
+      cmsEnv(),
+      { authenticateCmsSession, touchSession: false }
+    );
+
+    expect(result.identity?.mode).toBe("cms-session");
+    expect(authenticateCmsSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        csrfToken,
+        method: "POST",
+        touchSession: false
+      })
+    );
+  });
+
   it.each([
     ["missing proxy secret", { [CMS_AUTH_PROXY_SECRET_HEADER]: "" }],
     ["incorrect proxy secret", { [CMS_AUTH_PROXY_SECRET_HEADER]: "wrong-secret" }],

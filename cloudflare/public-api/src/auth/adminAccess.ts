@@ -33,6 +33,7 @@ export interface AdminAuthResult {
 
 export interface AdminAccessDependencies {
   authenticateCmsSession?: (input: AuthenticateCmsSessionInput) => ReturnType<typeof authenticateCmsSession>;
+  touchSession?: boolean;
 }
 
 function getEnvironmentValue(env: Env, key: string) {
@@ -112,7 +113,8 @@ async function verifyCmsSession(
     csrfToken: request.headers.get(CMS_CSRF_TOKEN_HEADER) ?? undefined,
     clientIp,
     userAgent,
-    method: request.method
+    method: request.method,
+    touchSession: dependencies.touchSession
   });
 
   if (result.status === "forbidden") {

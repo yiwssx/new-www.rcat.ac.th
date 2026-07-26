@@ -22,10 +22,6 @@ const authMock = vi.hoisted(() => ({
   }
 }));
 
-vi.mock("../../config/adminWriteProvider", () => ({
-  getAdminWriteProvider: () => "cloudflare"
-}));
-
 vi.mock("../../context/authSessionContext", () => ({
   useAuth: () => authMock
 }));
@@ -70,6 +66,7 @@ describe("IntegrationsPage", () => {
     renderPage();
 
     expect(await screen.findByText("Cloudflare structured data")).toBeInTheDocument();
+    expect(screen.getByText("Cloudflare structured data").closest(".MuiCard-root")).toHaveTextContent("เชื่อมต่อแล้ว");
     expect(screen.getAllByText(/เชื่อมต่อผ่าน Vercel Apps Script Proxy/).length).toBeGreaterThan(0);
     expect(checkMediaBridgeStatusMock).toHaveBeenCalledTimes(1);
     expect(document.body).not.toHaveTextContent("VITE_GOOGLE_APPS_SCRIPT_URL");

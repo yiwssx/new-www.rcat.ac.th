@@ -1,13 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-function setServerProxyEnv() {
-  vi.stubEnv("VITE_BACKEND_MIGRATION_MODE", "cloudflare-first-preview");
-  vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "cloudflare");
-  vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "/api/admin-proxy");
-}
-
 function jsonResponse(payload: unknown, status = 200, headers: HeadersInit = {}) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -24,7 +16,6 @@ describe("Cloudflare D1 backup admin API", () => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
-    setServerProxyEnv();
   });
 
   it("loads backup counts through the same-origin admin proxy", async () => {

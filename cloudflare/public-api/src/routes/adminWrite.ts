@@ -2029,15 +2029,24 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
     return originResponse;
   }
 
-  const authResult = await authenticateAdminRequest(request, env);
+  const segments = pathname.slice(ADMIN_PREFIX.length).split("/");
+  const isMediaBridgeAuthorizationProbe = segments.length === 1 && segments[0] === "media-bridge-authorization";
+  const authResult = await authenticateAdminRequest(request, env, {
+    touchSession: !isMediaBridgeAuthorizationProbe
+  });
 
   if (authResult.response || !authResult.identity) {
-    return (
+    const response =
       authResult.response ??
       jsonError("admin authentication failed", 403, {
         resource: "admin-structured-data"
-      })
-    );
+      });
+
+    if (isMediaBridgeAuthorizationProbe) {
+      response.headers.set("Cache-Control", "no-store");
+    }
+
+    return response;
   }
 
   if (!env.DB) {
@@ -2046,7 +2055,6 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
     });
   }
 
-  const segments = pathname.slice(ADMIN_PREFIX.length).split("/");
   const routeContext = getAdminRouteContext(request, segments);
   const routePolicy = resolveAdminRoutePolicy(request.method, segments);
 
@@ -2094,6 +2102,15 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
 
   if (stepUpResponse) {
     return stepUpResponse;
+  }
+
+  if (isMediaBridgeAuthorizationProbe) {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Cache-Control": "no-store"
+      }
+    });
   }
 
   try {

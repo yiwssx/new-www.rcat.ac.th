@@ -58,6 +58,10 @@ export function resolveAdminRoutePolicy(method: string, segments: readonly strin
     return requires("dashboard.read", "admin-capabilities");
   }
 
+  if (isExact(segments, "media-bridge-authorization") && method === "POST") {
+    return requires("media.manage", "media-bridge-authorization");
+  }
+
   if (segments[0] === "content") {
     if (segments.length === 1 && method === "GET") return requires("content.read", "content");
     if (segments.length === 1 && method === "POST") return requires("content.create", "content");

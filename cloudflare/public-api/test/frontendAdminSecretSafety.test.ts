@@ -3,7 +3,6 @@ import adminWriteProviderSource from "../../../src/config/adminWriteProvider.ts?
 import adminWriteProviderTestSource from "../../../src/config/adminWriteProvider.test.ts?raw";
 import cloudflareApiSource from "../../../src/features/admin-write/cloudflareApi.ts?raw";
 import adminWriteFeatureTestSource from "../../../src/features/admin-write/adminWriteProvider.test.ts?raw";
-import adminProxySessionSource from "../../../src/services/adminProxySession.ts?raw";
 import authContextSource from "../../../src/context/AuthContext.tsx?raw";
 import viteEnvSource from "../../../src/vite-env.d.ts?raw";
 
@@ -17,7 +16,6 @@ describe("M18 frontend admin write secret safety", () => {
       ["src/features/admin-write/cloudflareApi.ts", cloudflareApiSource],
       ["src/features/admin-write/adminWriteProvider.test.ts", adminWriteFeatureTestSource],
       ["src/config/adminWriteProvider.test.ts", adminWriteProviderTestSource],
-      ["src/services/adminProxySession.ts", adminProxySessionSource],
       ["src/context/AuthContext.tsx", authContextSource],
       ["src/vite-env.d.ts", viteEnvSource]
     ];

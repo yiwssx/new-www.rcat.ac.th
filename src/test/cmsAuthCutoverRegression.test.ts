@@ -73,10 +73,17 @@ describe("CMS authentication final-cutover regression guard", () => {
 
   it("keeps the Integrations status flow on CMS cookies and server capabilities", () => {
     const integrationsPage = readFileSync(join(srcRoot, "admin", "pages", "IntegrationsPage.tsx"), "utf8");
+    const adminWriteProvider = readFileSync(join(srcRoot, "config", "adminWriteProvider.ts"), "utf8");
     const mediaBridgeClient = readFileSync(join(srcRoot, "features", "cms-media", "mediaBridgeClient.ts"), "utf8");
 
     expect(integrationsPage).toContain('status === "authenticated"');
     expect(integrationsPage).toContain('hasCmsCapability(capabilities, "media.read")');
+    expect(integrationsPage).toContain('<StatusChip status="connected" />');
+    expect(integrationsPage).not.toContain("getAdminWriteProvider");
+    expect(adminWriteProvider).toContain('const serverProxyPath = "/api/admin-proxy"');
+    expect(adminWriteProvider).toContain('return "cloudflare"');
+    expect(adminWriteProvider).not.toMatch(/apps-script|VITE_ADMIN_WRITE_PROVIDER|VITE_BACKEND_MIGRATION_MODE/);
+    expect(adminWriteProvider).not.toContain("VITE_CLOUDFLARE_ADMIN_PROXY_URL");
     expect(mediaBridgeClient).toContain('credentials: "include"');
   });
 

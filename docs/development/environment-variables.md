@@ -12,16 +12,15 @@ The repository contract is Node `22.x` (exact local/CI pin `22.23.1`) and pnpm `
 
 ## Public Frontend Variables
 
-| Variable                          | Purpose                                                                                                   | Required                                            | Notes                                                                                           |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `VITE_CMS_SITE_NAME`              | Public CMS/site display name override.                                                                    | Optional                                            | Use only when a deployment needs a name different from `src/config/project-settings.json`.      |
-| `VITE_PUBLIC_SITE_URL`            | Canonical public site URL used by browser links and metadata; also accepted as a server sitemap fallback. | Optional                                            | Prefer server-only `PUBLIC_SITE_URL` for the runtime sitemap function.                          |
-| `VITE_PUBLIC_API_PROVIDER`        | Selects the public structured-data provider.                                                              | Required for Cloudflare-backed deployments          | Use `cloudflare` for the current Cloudflare Worker/D1 public read path.                         |
-| `VITE_CLOUDFLARE_PUBLIC_API_URL`  | Cloudflare Worker public API origin.                                                                      | Required when `VITE_PUBLIC_API_PROVIDER=cloudflare` | Must be a public Worker origin. Do not include secrets.                                         |
-| `VITE_ADMIN_WRITE_PROVIDER`       | Selects the admin structured write provider.                                                              | Required for Cloudflare-backed admin verification   | Use `cloudflare` for the current Worker/D1 admin structured write path.                         |
-| `VITE_BACKEND_MIGRATION_MODE`     | Enables the Cloudflare-first preview runtime policy.                                                      | Required for preview field verification             | Current preview value is `cloudflare-first-preview`; do not use it to imply production cutover. |
-| `VITE_CLOUDFLARE_ADMIN_PROXY_URL` | Same-origin CMS Admin proxy path.                                                                         | Required for Cloudflare-backed admin access         | Use exactly `/api/admin-proxy`; do not use a direct Worker URL.                                 |
-| `VITE_PUBLIC_ANALYTICS_STRATEGY`  | Selects the public analytics loader strategy. Supported values are `gtm`, `gtag`, or `both`.              | Optional                                            | Omit to use the built-in default strategy.                                                      |
+| Variable                         | Purpose                                                                                                   | Required                                            | Notes                                                                                      |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `VITE_CMS_SITE_NAME`             | Public CMS/site display name override.                                                                    | Optional                                            | Use only when a deployment needs a name different from `src/config/project-settings.json`. |
+| `VITE_PUBLIC_SITE_URL`           | Canonical public site URL used by browser links and metadata; also accepted as a server sitemap fallback. | Optional                                            | Prefer server-only `PUBLIC_SITE_URL` for the runtime sitemap function.                     |
+| `VITE_PUBLIC_API_PROVIDER`       | Selects the public structured-data provider.                                                              | Required for Cloudflare-backed deployments          | Use `cloudflare` for the current Cloudflare Worker/D1 public read path.                    |
+| `VITE_CLOUDFLARE_PUBLIC_API_URL` | Cloudflare Worker public API origin.                                                                      | Required when `VITE_PUBLIC_API_PROVIDER=cloudflare` | Must be a public Worker origin. Do not include secrets.                                    |
+| `VITE_PUBLIC_ANALYTICS_STRATEGY` | Selects the public analytics loader strategy. Supported values are `gtm`, `gtag`, or `both`.              | Optional                                            | Omit to use the built-in default strategy.                                                 |
+
+Admin structured reads and writes always use the fixed same-origin `/api/admin-proxy` path. No browser variable selects an Admin provider, migration mode, proxy path, or direct Worker Admin origin.
 
 ## Vercel Admin Proxy Variables
 
@@ -49,6 +48,8 @@ The runtime sitemap reads `/api/public/home` and `/api/public/content?kind=...` 
 ## Cloudflare Worker Variables
 
 Configure these in Cloudflare Worker environment settings.
+
+`CMS_MFA_ENCRYPTION_KEY` and `CMS_MFA_ENCRYPTION_KEY_VERSION` are Worker-only. Do not configure them in Vercel.
 
 | Variable                         | Purpose                                                              |
 | -------------------------------- | -------------------------------------------------------------------- |

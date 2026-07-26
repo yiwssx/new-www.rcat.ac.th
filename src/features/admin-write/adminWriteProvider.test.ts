@@ -48,30 +48,6 @@ const sampleDocument: CmsDocumentItem = {
   status: "draft"
 };
 
-function setAppsScriptEnv() {
-  vi.stubEnv("VITE_BACKEND_MIGRATION_MODE", "");
-  vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "");
-  vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "");
-}
-
-function setCloudflareEnv() {
-  vi.stubEnv("VITE_BACKEND_MIGRATION_MODE", "cloudflare-first-preview");
-  vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "cloudflare");
-  vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "/api/admin-proxy");
-}
-
-function setServerProxyEnv() {
-  vi.stubEnv("VITE_BACKEND_MIGRATION_MODE", "cloudflare-first-preview");
-  vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "cloudflare");
-  vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "/api/admin-proxy");
-}
-
 function proxyUrl(path: string) {
   return `/api/admin-proxy?path=${encodeURIComponent(path)}`;
 }
@@ -90,32 +66,39 @@ function jsonResponse(payload: unknown, status = 200) {
   });
 }
 
-describe("M18 admin structured write provider", () => {
+describe("final CMS admin structured write provider", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
-    setAppsScriptEnv();
     vi.spyOn(Document.prototype, "cookie", "get").mockReturnValue(`${CMS_CSRF_COOKIE_NAME}=${"C".repeat(43)}`);
   });
 
-  it("fails closed when Cloudflare admin config is missing", async () => {
+  it("uses the fixed same-origin Admin proxy without browser provider configuration", async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({ item: { ...sampleContent, revision: 1 } })
+    );
+    vi.stubGlobal("fetch", fetchMock);
     const { saveContentItem } = await import("../cms-content/api");
 
-    await expect(saveContentItem(sampleContent)).rejects.toThrow("same-origin CMS Admin proxy");
+    await expect(saveContentItem(sampleContent)).resolves.toMatchObject({ id: sampleContent.id });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/content/m18-preview-content-001"));
   });
 
-  it("does not fall back to Apps Script for legacy provider configuration", async () => {
-    vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "cloudflare");
-    vi.stubEnv("VITE_BACKEND_MIGRATION_MODE", "legacy-apps-script");
+  it("has no browser-selectable Apps Script fallback", async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({ item: { ...sampleDocument, revision: 1 } })
+    );
+    vi.stubGlobal("fetch", fetchMock);
     const { saveDocumentToApi } = await import("../cms-documents/api");
 
-    await expect(saveDocumentToApi(sampleDocument)).rejects.toThrow("same-origin CMS Admin proxy");
+    await expect(saveDocumentToApi(sampleDocument)).resolves.toMatchObject({ id: sampleDocument.id });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/documents"));
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
   });
 
-  it("routes content and document structured writes to Cloudflare only in explicit preview mode", async () => {
-    setCloudflareEnv();
+  it("routes content and document structured writes to Cloudflare in final mode", async () => {
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       url = unwrapProxyUrl(url);
       const body = JSON.parse(String(init?.body ?? "{}"));
@@ -147,7 +130,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("uses PATCH with a custom revision header and never sends If-Match", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       url = unwrapProxyUrl(url);
       const body = JSON.parse(String(init?.body ?? "{}"));
@@ -174,7 +156,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("uses PATCH for existing content without a revision and omits the revision header", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body ?? "{}"));
       return jsonResponse({ item: { ...body, id: sampleContent.id } });
@@ -191,7 +172,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("uses PATCH for existing E-Service links with an id even when revision is missing", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       url = unwrapProxyUrl(url);
       const body = JSON.parse(String(init?.body ?? "{}"));
@@ -216,7 +196,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("uses PATCH with a revision header for existing E-Service links when revision is present", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       url = unwrapProxyUrl(url);
       const body = JSON.parse(String(init?.body ?? "{}"));
@@ -241,7 +220,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("uses POST for new E-Service links without an id", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body ?? "{}"));
       return jsonResponse({ item: { ...body, id: "service-new", revision: 0 } }, 201);
@@ -262,7 +240,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("batch saves E-Service links through PUT /api/admin/external-services", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body ?? "{}"));
       return jsonResponse({ items: body.items });
@@ -298,7 +275,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("surfaces a duplicate slug conflict without retrying as create", async () => {
-    setCloudflareEnv();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => jsonResponse({ error: "duplicate slug", resource: "content", field: "slug" }, 409))
@@ -314,7 +290,6 @@ describe("M18 admin structured write provider", () => {
     ["worker stale conflict", () => jsonResponse({ error: "stale revision" }, 409)],
     ["proxy conditional response", () => new Response("precondition failed", { status: 412 })]
   ])("refetches the current item and returns a Thai stale message for %s", async (_label, staleResponse) => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       if (init?.method === "PATCH") {
         return staleResponse();
@@ -339,7 +314,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("publishes Cloudflare content through the content publish route with only valid revision headers", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
       jsonResponse({ id: sampleContent.id, published: true })
     );
@@ -362,7 +336,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("refreshes the current item when Cloudflare content publish returns stale revision", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       url = unwrapProxyUrl(url);
       if (url.endsWith("/api/admin/content/m18-preview-content-001/publish") && init?.method === "POST") {
@@ -401,7 +374,6 @@ describe("M18 admin structured write provider", () => {
     mediaBridgeMocks.saveMediaAssetToBridge.mockResolvedValue(savedMedia);
     mediaBridgeMocks.uploadMediaAssetToBridge.mockResolvedValue(uploadedMedia);
     mediaBridgeMocks.deleteMediaAssetFromBridge.mockResolvedValue({ id: "m18-preview-media-001", deleted: true });
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       if (init?.method === "DELETE") {
         return jsonResponse({ id: "m18-preview-media-001", deleted: true });
@@ -437,7 +409,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("converts the exact CMS-session 401 into a sign-in-again event", async () => {
-    setServerProxyEnv();
     const eventListener = vi.fn();
     window.addEventListener(CMS_SESSION_EXPIRED_EVENT, eventListener);
     vi.stubGlobal(
@@ -453,7 +424,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("keeps CMS Admin snapshot GET credentialed without sending a JSON content type", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
       jsonResponse({
         metrics: [],
@@ -487,7 +457,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("routes server-proxy admin reads through the same-origin cookie endpoint", async () => {
-    setServerProxyEnv();
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
       jsonResponse({
         metrics: [],
@@ -517,7 +486,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("keeps existing mutation result shapes compatible for publish and delete", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       url = unwrapProxyUrl(url);
       if (url.endsWith("/api/admin/content/m18-preview-content-001/publish")) {
@@ -543,8 +511,7 @@ describe("M18 admin structured write provider", () => {
     });
   });
 
-  it("routes the remaining structured admin resources to Cloudflare only in explicit preview mode", async () => {
-    setCloudflareEnv();
+  it("routes the remaining structured admin resources to Cloudflare in final mode", async () => {
     const menu = [{ id: "menu-1", label: "Sample", href: "/sample", enabled: true }];
     const carousel = {
       id: "slide-1",
@@ -663,7 +630,6 @@ describe("M18 admin structured write provider", () => {
   });
 
   it("creates and edits carousel slides through the correct Cloudflare routes without Apps Script", async () => {
-    setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       url = unwrapProxyUrl(url);
       const body = JSON.parse(String(init?.body ?? "{}"));
