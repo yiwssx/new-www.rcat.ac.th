@@ -116,7 +116,7 @@
     "husky": "^9.1.7",
     "jsdom": "^26.1.0",
     "lint-staged": "^17.0.8",
-    "postcss": "^8.5.16",
+    "postcss": "^8.5.18",
     "prettier": "^3.9.4",
     "sigmap": "^6.15.0",
     "tailwindcss": "^4.3.2",
