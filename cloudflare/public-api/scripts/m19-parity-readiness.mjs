@@ -49,10 +49,7 @@ const repositoryChecks = [
   {
     name: "placeholderSafeWorkerConfig",
     file: "cloudflare/public-api/wrangler.toml",
-    patterns: [
-      /database_id\s*=\s*"production-placeholder"/,
-      /\[env\.production\.vars\][\s\S]*ADMIN_WRITE_PREVIEW_ENABLED\s*=\s*"false"/
-    ]
+    patterns: [/database_id\s*=\s*"production-placeholder"/]
   },
   {
     name: "mediaBridgeBoundary",

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CarouselSlide, HomepageCarouselSettings, HomepageSettings, Session, User } from "../../types";
+import type { CarouselSlide, HomepageCarouselSettings, HomepageSettings, User } from "../../types";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import CarouselPage from "./CarouselPage";
 
@@ -60,11 +60,7 @@ vi.mock("../../context/authSessionContext", () => ({
       role: authMock.role
     };
 
-    const session: Session = {
-      user,
-      token: "test-session-token",
-      expiresAt: "2026-07-17T12:00:00.000Z"
-    };
+    const session = { user, capabilities: authMock.role === "viewer" ? [] : ["carousel.manage"] };
 
     return {
       session,

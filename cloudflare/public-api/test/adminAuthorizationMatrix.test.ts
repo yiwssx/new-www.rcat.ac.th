@@ -33,13 +33,11 @@ describe("Admin authorization matrix", () => {
     expect(hasAdminCapability("editor", "users.read-all")).toBe(false);
   });
 
-  it("allows only Admin to download backups and bootstrap the Root credential", () => {
-    for (const capability of ["backup.download", "auth.bootstrap-root-credential"] as const) {
-      expect(hasAdminCapability("admin", capability)).toBe(true);
-      expect(hasAdminCapability("editor", capability)).toBe(false);
-      expect(hasAdminCapability("viewer", capability)).toBe(false);
-      expect(hasAdminCapability("invalid", capability)).toBe(false);
-    }
+  it("allows only Admin to download backups", () => {
+    expect(hasAdminCapability("admin", "backup.download")).toBe(true);
+    expect(hasAdminCapability("editor", "backup.download")).toBe(false);
+    expect(hasAdminCapability("viewer", "backup.download")).toBe(false);
+    expect(hasAdminCapability("invalid", "backup.download")).toBe(false);
   });
 
   it("allows self password changes for every role but reserves lifecycle administration for Admin", () => {

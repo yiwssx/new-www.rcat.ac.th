@@ -1,6 +1,5 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { projectSettings } from "../config/projectSettings";
 import {
   broadcastCmsSessionEvent,
   clearProtectedAdminQueries,
@@ -224,7 +223,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    window.localStorage.removeItem(projectSettings.storageKeys.session);
     const bootstrapTimer = window.setTimeout(() => {
       void refreshSession().catch(() => undefined);
     }, 0);

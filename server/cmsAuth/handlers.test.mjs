@@ -42,7 +42,7 @@ const proxySecret = "test-only-cms-proxy-secret-repeated-000000000000";
 const sessionToken = "A".repeat(43);
 const csrfToken = "B".repeat(43);
 const challengeToken = "C".repeat(43);
-const legacyCookie = "__Host-rcat_admin_proxy_session=legacy-value";
+const obsoleteCookie = "__Host-rcat_admin_proxy_session=obsolete-value";
 const safeUser = {
   id: "admin-user-1",
   email: "admin@example.invalid",
@@ -58,7 +58,6 @@ const safeUser = {
 
 function env(overrides = {}) {
   return {
-    CMS_AUTH_ENABLED: "true",
     CMS_AUTH_PROXY_SECRET: proxySecret,
     CLOUDFLARE_ADMIN_API_URL: "https://worker.example.invalid",
     ...overrides
@@ -110,7 +109,7 @@ function cmsCookieHeader(options = {}) {
   return [
     `${getCmsSessionCookieName()}=${options.sessionToken ?? sessionToken}`,
     `${getCmsCsrfCookieName()}=${options.csrfToken ?? csrfToken}`,
-    legacyCookie
+    obsoleteCookie
   ].join("; ");
 }
 
@@ -157,7 +156,6 @@ describe("Vercel CMS-auth handlers", () => {
   });
 
   it.each([
-    ["disabled", { CMS_AUTH_ENABLED: "false" }],
     ["missing secret", { CMS_AUTH_PROXY_SECRET: "" }],
     ["invalid Worker URL", { CLOUDFLARE_ADMIN_API_URL: "http://worker.example.invalid/path?secret=x" }]
   ])("returns generic 503 when CMS auth is %s", async (_label, overrides) => {
@@ -653,7 +651,7 @@ describe("Vercel CMS-auth handlers", () => {
     expect(result.bodyText).not.toContain(csrfToken);
   });
 
-  it("Logout requires matching CSRF, clears all CMS auth state even for an invalid upstream Session, and keeps legacy cookie", async () => {
+  it("Logout requires matching CSRF, clears all CMS auth state even for an invalid upstream Session, and ignores an obsolete cookie", async () => {
     const mismatchFetch = vi.fn();
     const mismatch = response();
     const invalid = response();

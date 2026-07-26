@@ -437,6 +437,8 @@ function getSessionInput(request: Request, env: Env, now: Date): AuthenticateCms
     env,
     sessionToken: request.headers.get(CMS_SESSION_TOKEN_HEADER) ?? "",
     csrfToken: request.headers.get(CMS_CSRF_TOKEN_HEADER) ?? undefined,
+    clientIp: readMetadataHeader(request, CMS_CLIENT_IP_HEADER, 64),
+    userAgent: readMetadataHeader(request, CMS_USER_AGENT_HEADER, 512),
     method: request.method,
     now
   };
@@ -843,10 +845,6 @@ async function handleMfaDisable(request: Request, env: Env, now: Date, dependenc
 }
 
 async function authorizeInternalRequest(request: Request, env: Env) {
-  if (env.CMS_AUTH_ENABLED !== "true") {
-    return internalError("not found", 404);
-  }
-
   const configuredSecret = env.CMS_AUTH_PROXY_SECRET ?? "";
 
   if (configuredSecret.length < 32) {

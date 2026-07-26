@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import BackupPage from "./BackupPage";
 import type { AdminBackupCounts, AdminBackupDownload } from "../../features/admin-write/cloudflareApi";
-import type { Session, User } from "../../types";
+import type { User } from "../../types";
 
 const authMock = vi.hoisted(() => ({
   role: "admin" as User["role"],
@@ -42,11 +42,7 @@ vi.mock("../../context/authSessionContext", () => ({
       email: `${authMock.role}@example.invalid`,
       role: authMock.role
     };
-    const session: Session = {
-      user,
-      token: "test-session-token",
-      expiresAt: "2026-07-08T12:00:00.000Z"
-    };
+    const session = { user, capabilities: authMock.capabilities };
 
     return {
       session,

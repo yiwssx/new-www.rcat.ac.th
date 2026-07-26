@@ -6,6 +6,8 @@ M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logi
 
 M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final.
 
+This is an archived M20 readiness record. For the current CMS-only authentication boundary and deployment procedure, use `docs/cms-auth-final-cutover.md`.
+
 ## Current State After M19
 
 M19 remains closed for repository-owned parity remediation. Repository readiness, M19 continuity, public-read preview smoke, preview migration verification, preview admin proxy/login verification, and preview admin write smoke have passed externally.
@@ -31,7 +33,7 @@ M20-P0 supplied the repository readiness scaffold. M20 now closes the migration,
 - No runtime ownership blocker remains.
 - Remaining UI/UX, business logic, workflow, usability, validation, layout, content-presentation, Thai wording, and user-facing error issues move to M21.
 
-The existing admin proxy/login path remains mandatory for admin access. Existing authentication, authorization, CORS, session, proxy, admin-gate, and smoke-token controls remain intact.
+At M20 closure, the same-origin Admin Proxy remained mandatory for browser Admin access. Phase 8 later made that proxy CMS-only while preserving authorization, CORS, CSRF, Session, and admin-gate controls.
 
 ## Current Runtime Ownership
 

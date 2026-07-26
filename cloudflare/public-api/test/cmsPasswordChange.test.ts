@@ -47,7 +47,7 @@ const credential = {
 };
 
 function env(): Env {
-  return { CMS_AUTH_ENABLED: "true", CMS_AUTH_PROXY_SECRET: proxySecret };
+  return { CMS_AUTH_PROXY_SECRET: proxySecret };
 }
 
 function workerRequest(body: unknown, headers: Record<string, string> = {}) {

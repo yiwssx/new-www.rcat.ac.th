@@ -78,6 +78,8 @@ export interface AuthenticateCmsSessionInput {
   env: Env;
   sessionToken: string;
   csrfToken?: string;
+  clientIp?: string;
+  userAgent?: string;
   method?: string;
   now?: Date;
   repository?: AdminSessionRepository;
@@ -246,6 +248,25 @@ export async function authenticateCmsSession(
 
     if (!record || !isValidStoredSession(record, nowMs)) {
       return { status: "unauthenticated" };
+    }
+
+    if (input.clientIp !== undefined || input.userAgent !== undefined) {
+      if (typeof input.clientIp !== "string" || typeof input.userAgent !== "string") {
+        return { status: "unauthenticated" };
+      }
+
+      const secret = input.env.CMS_AUTH_PROXY_SECRET ?? "";
+      const [ipHash, userAgentHash] = await Promise.all([
+        hashCmsClientIp(input.clientIp, secret),
+        hashCmsUserAgent(input.userAgent, secret)
+      ]);
+
+      if (
+        !fixedSizeBase64UrlEqual(ipHash, record.session.ip_hash) ||
+        !fixedSizeBase64UrlEqual(userAgentHash, record.session.user_agent_hash)
+      ) {
+        return { status: "unauthenticated" };
+      }
     }
 
     if (requiresCsrf(input.method)) {

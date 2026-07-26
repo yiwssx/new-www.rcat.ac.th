@@ -143,18 +143,19 @@ The table must not store:
 | editor | Can manage content, documents, carousel, E-Service, media, and events; cannot manage website settings, menu, integrations, or system configuration |
 | viewer | Read-only reviewer before publish; cannot create, update, delete, upload, or publish                                                               |
 
-## Active Environment Variables
+## Historical Environment Categories At M20 Closure
+
+This section records the M20 deployment categories without preserving retired
+authentication variable names as active configuration. Phase 8 permanently
+retired the former shared-password, Legacy Session, email-allowlist, role-matrix,
+smoke-token, and Access-identity settings. See
+`docs/cms-auth-final-cutover.md` for the final runtime configuration and
+retirement sequence.
 
 ### Vercel Admin Proxy
 
-- `ADMIN_PROXY_ALLOWED_EMAILS`
-- `ADMIN_PROXY_PASSWORD_HASH`
-- `ADMIN_PROXY_SESSION_SECRET`
-- `ADMIN_RBAC_ADMINS`
-- `ADMIN_RBAC_EDITORS`
-- `ADMIN_RBAC_VIEWERS`
 - `CLOUDFLARE_ADMIN_API_URL`
-- `CLOUDFLARE_ADMIN_SMOKE_TOKEN`
+- CMS proxy secret and CMS Session configuration
 
 ### Vercel Runtime Sitemap
 
@@ -163,15 +164,8 @@ The table must not store:
 
 ### Cloudflare Worker
 
-- `ADMIN_RBAC_ADMINS`
-- `ADMIN_RBAC_EDITORS`
-- `ADMIN_RBAC_VIEWERS`
-- `ADMIN_WRITE_ACCESS_TEAM_DOMAIN`
-- `ADMIN_WRITE_ACCESS_AUD`
-- `ADMIN_WRITE_ALLOWED_EMAILS`
 - `ADMIN_WRITE_ALLOWED_ORIGINS`
-- `ADMIN_WRITE_PREVIEW_ENABLED`
-- `ADMIN_WRITE_AUTH_MODE`
+- CMS proxy secret and MFA encryption configuration
 - `DB`
 
 ### Apps Script Media Bridge

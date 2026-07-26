@@ -1,24 +1,55 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const authenticateCmsSessionMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../src/auth/cmsSessionService", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/auth/cmsSessionService")>();
+  return { ...actual, authenticateCmsSession: authenticateCmsSessionMock };
+});
+
 import { createPublicMetadata } from "../src/adapters/publicMetadataAdapter";
 import m19Migration from "../migrations/0005_m19_structured_admin_parity.sql?raw";
+import {
+  CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_CLIENT_IP_HEADER,
+  CMS_CSRF_TOKEN_HEADER,
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER
+} from "../src/routes/cmsAuthInternal";
 import worker from "../src/index";
 
 type Row = Record<string, unknown>;
 
-const smokeToken = "m19-preview-smoke-token";
-const smokeEnvBase = {
-  ADMIN_WRITE_PREVIEW_ENABLED: "true",
-  ADMIN_WRITE_SMOKE_ENABLED: "true",
-  ADMIN_WRITE_SMOKE_TOKEN: smokeToken,
+const cmsProxySecret = "phase-8-parity-proxy-secret-repeated-000000000";
+const cmsEnvBase = {
+  CMS_AUTH_PROXY_SECRET: cmsProxySecret,
   ENVIRONMENT: "preview"
 };
-const smokeHeaders = {
+const cmsHeaders = {
   "Content-Type": "application/json",
-  "X-RCAT-Admin-Smoke-Token": smokeToken,
-  "X-RCAT-Admin-Proxy-Email": "m19-preview-smoke@system.invalid",
-  "X-RCAT-Admin-Proxy-Role": "admin"
+  [CMS_AUTH_PROXY_SECRET_HEADER]: cmsProxySecret,
+  [CMS_SESSION_TOKEN_HEADER]: "S".repeat(43),
+  [CMS_CSRF_TOKEN_HEADER]: "C".repeat(43),
+  [CMS_CLIENT_IP_HEADER]: "203.0.113.82",
+  [CMS_USER_AGENT_HEADER]: "phase-8-parity-test"
 };
+
+authenticateCmsSessionMock.mockResolvedValue({
+  status: "authenticated",
+  identity: {
+    id: "cms-admin-user",
+    email: "cms-admin@example.invalid",
+    name: "CMS Admin",
+    username: "cms.admin",
+    role: "admin",
+    isRoot: false,
+    sessionId: "cms-session-1",
+    sessionVersion: 1,
+    reauthenticatedAt: new Date().toISOString(),
+    mfaVerifiedAt: new Date().toISOString()
+  }
+});
 
 function tableFromQuery(query: string) {
   return query.match(/\b(?:FROM|INTO|UPDATE|DELETE\s+FROM)\s+([a-z_]+)/i)?.[1] ?? "";
@@ -162,7 +193,7 @@ function createStructuredMockDb(
 function request(path: string, method = "GET", body?: unknown) {
   return new Request(`https://preview-worker.example.test${path}`, {
     method,
-    headers: smokeHeaders,
+    headers: cmsHeaders,
     ...(body === undefined ? {} : { body: JSON.stringify(body) })
   });
 }
@@ -195,7 +226,7 @@ describe("M19 structured admin parity routes", () => {
 
   it("supports settings, menu, carousel, external service, and event preview lifecycles", async () => {
     const { db } = createStructuredMockDb();
-    const env = { ...smokeEnvBase, DB: db };
+    const env = { ...cmsEnvBase, DB: db };
 
     const siteResponse = await worker.fetch(
       request("/api/admin/settings/site", "PUT", { siteName: "Sample school" }),
@@ -267,7 +298,7 @@ describe("M19 structured admin parity routes", () => {
     const carouselUpdateResponse = await worker.fetch(
       new Request("https://preview-worker.example.test/api/admin/carousel/slide-1", {
         method: "PATCH",
-        headers: { ...smokeHeaders, "X-RCAT-Expected-Revision": "0" },
+        headers: { ...cmsHeaders, "X-RCAT-Expected-Revision": "0" },
         body: JSON.stringify({
           title: "Updated slide",
           imageUrl: "https://images.example.test/slide.jpg",
@@ -332,7 +363,7 @@ describe("M19 structured admin parity routes", () => {
     const { db, tables } = createStructuredMockDb();
 
     const env = {
-      ...smokeEnvBase,
+      ...cmsEnvBase,
       DB: db
     };
 
@@ -369,7 +400,7 @@ describe("M19 structured admin parity routes", () => {
       new Request("https://preview-worker.example.test/api/admin/events/event-media", {
         method: "PATCH",
         headers: {
-          ...smokeHeaders,
+          ...cmsHeaders,
           "X-RCAT-Expected-Revision": "0"
         },
         body: JSON.stringify({
@@ -415,7 +446,7 @@ describe("M19 structured admin parity routes", () => {
 
   it("returns admin snapshot E-Service revisions without adding revisions to public metadata", async () => {
     const { db, tables } = createStructuredMockDb();
-    const env = { ...smokeEnvBase, DB: db };
+    const env = { ...cmsEnvBase, DB: db };
 
     const saveResponse = await worker.fetch(
       request("/api/admin/external-services", "POST", {
@@ -448,7 +479,7 @@ describe("M19 structured admin parity routes", () => {
 
   it("batch saves flat E-Service links with sequential order, preserved ids, new ids, and omitted deletes", async () => {
     const { db, tables } = createStructuredMockDb();
-    const env = { ...smokeEnvBase, DB: db };
+    const env = { ...cmsEnvBase, DB: db };
 
     await worker.fetch(
       request("/api/admin/external-services", "POST", {
@@ -523,7 +554,7 @@ describe("M19 structured admin parity routes", () => {
           }
         ]
       }),
-      { ...smokeEnvBase, DB: db }
+      { ...cmsEnvBase, DB: db }
     );
 
     expect(response.status).toBe(400);
@@ -534,7 +565,7 @@ describe("M19 structured admin parity routes", () => {
 
   it("returns stale revision for batch E-Service saves when a submitted revision mismatches", async () => {
     const { db } = createStructuredMockDb();
-    const env = { ...smokeEnvBase, DB: db };
+    const env = { ...cmsEnvBase, DB: db };
 
     await worker.fetch(
       request("/api/admin/external-services", "POST", {
@@ -568,7 +599,7 @@ describe("M19 structured admin parity routes", () => {
 
   it("keeps PATCH /api/admin/external-services/:id updating existing rows without duplicating", async () => {
     const { db, tables } = createStructuredMockDb();
-    const env = { ...smokeEnvBase, DB: db };
+    const env = { ...cmsEnvBase, DB: db };
 
     await worker.fetch(
       request("/api/admin/external-services", "POST", {
@@ -599,7 +630,7 @@ describe("M19 structured admin parity routes", () => {
 
   it("accepts optional carousel titles but requires an image URL", async () => {
     const { db } = createStructuredMockDb();
-    const env = { ...smokeEnvBase, DB: db };
+    const env = { ...cmsEnvBase, DB: db };
     const emptyTitleResponse = await worker.fetch(
       request("/api/admin/carousel", "POST", {
         title: "",
@@ -631,7 +662,7 @@ describe("M19 structured admin parity routes", () => {
   it("returns shared preview diagnostics and schema mismatch details without sensitive values", async () => {
     const runtimeState = createStructuredMockDb({ failRunTable: "homepage_settings" });
     const runtimeResponse = await worker.fetch(request("/api/admin/settings/homepage", "PUT", { carousel: {} }), {
-      ...smokeEnvBase,
+      ...cmsEnvBase,
       DB: runtimeState.db
     });
     const runtimeBody = await readJson(runtimeResponse);
@@ -642,7 +673,7 @@ describe("M19 structured admin parity routes", () => {
       request("/api/admin/carousel", "POST", {
         imageUrl: "https://images.example.test/schema.jpg"
       }),
-      { ...smokeEnvBase, DB: schemaState.db }
+      { ...cmsEnvBase, DB: schemaState.db }
     );
 
     expect(runtimeResponse.status).toBe(500);
@@ -663,7 +694,7 @@ describe("M19 structured admin parity routes", () => {
 
   it("persists only Drive-backed media metadata in D1", async () => {
     const { db, tables } = createStructuredMockDb();
-    const env = { ...smokeEnvBase, DB: db };
+    const env = { ...cmsEnvBase, DB: db };
     const media = {
       id: "media-1",
       name: "sample.pdf",
@@ -701,9 +732,9 @@ describe("M19 structured admin parity routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ siteName: "Blocked" })
       }),
-      { ...smokeEnvBase, DB: db }
+      { ...cmsEnvBase, DB: db }
     );
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(403);
   });
 });

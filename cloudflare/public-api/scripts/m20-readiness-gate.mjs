@@ -85,9 +85,7 @@ function evaluateChecks(sources) {
       /CLOSED_FOR_MIGRATION_RUNTIME_DOMAIN_SCOPE/i.test(sources.m20Doc),
     productionPlaceholderSafety:
       /database_id\s*=\s*"production-placeholder"/.test(sources.wrangler) &&
-      /\[env\.production\.vars\][\s\S]*ENVIRONMENT\s*=\s*"production"/.test(sources.wrangler) &&
-      /\[env\.production\.vars\][\s\S]*ADMIN_WRITE_PREVIEW_ENABLED\s*=\s*"false"/.test(sources.wrangler) &&
-      /\[env\.production\.vars\][\s\S]*ADMIN_WRITE_SMOKE_ENABLED\s*=\s*"false"/.test(sources.wrangler),
+      /\[env\.production\.vars\][\s\S]*ENVIRONMENT\s*=\s*"production"/.test(sources.wrangler),
     providerAssignment:
       /Admin structured data provider: Cloudflare/i.test(sources.currentStatus) &&
       /Public client data provider: Cloudflare/i.test(sources.currentStatus) &&

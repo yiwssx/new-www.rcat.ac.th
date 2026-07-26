@@ -13,16 +13,32 @@ const lifecycleRepository = vi.hoisted(() => ({
   updateUserWithSecurityRevocation: vi.fn(),
   deleteUserWithAudit: vi.fn()
 }));
+const authenticateCmsSessionMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../src/db/adminUserLifecycleRepository", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/db/adminUserLifecycleRepository")>();
   return { ...actual, createAdminUserLifecycleRepository: () => lifecycleRepository };
 });
 
+vi.mock("../src/auth/cmsSessionService", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/auth/cmsSessionService")>();
+  return { ...actual, authenticateCmsSession: authenticateCmsSessionMock };
+});
+
 import worker from "../src/index";
 import type { Env } from "../src/env";
+import {
+  CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_CLIENT_IP_HEADER,
+  CMS_CSRF_TOKEN_HEADER,
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER
+} from "../src/routes/cmsAuthInternal";
 
-const smokeToken = "phase-5-admin-lifecycle-smoke-token";
+const cmsProxySecret = "phase-8-lifecycle-proxy-secret-repeated-0000000";
+const cmsCsrfToken = "C".repeat(43);
+const sessionIdentities = new Map<string, { email: string; role: "admin" | "editor" | "viewer" }>();
+let sessionSequence = 0;
 const safeUser = {
   id: "user-1",
   email: "user@example.test",
@@ -44,18 +60,25 @@ const safeUser = {
 
 function db(activeAdminCount = 2) {
   return {
-    prepare: vi.fn(() => ({
-      bind() {
-        return this;
-      },
-      async all() {
-        return {
-          results: Array.from({ length: activeAdminCount }, (_, index) => ({ id: `admin-${index}` })),
-          success: true,
-          meta: {}
-        };
-      }
-    }))
+    prepare: vi.fn(() => {
+      let bindings: unknown[] = [];
+      return {
+        bind(...values: unknown[]) {
+          bindings = values;
+          return this;
+        },
+        async first() {
+          return { is_root: bindings[0] === "root-1" ? 1 : 0 };
+        },
+        async all() {
+          return {
+            results: Array.from({ length: activeAdminCount }, (_, index) => ({ id: `admin-${index}` })),
+            success: true,
+            meta: {}
+          };
+        }
+      };
+    })
   } as unknown as D1Database;
 }
 
@@ -110,19 +133,24 @@ function lifecycleListRow(overrides: Record<string, unknown> = {}) {
 function env(database = db()): Env {
   return {
     DB: database,
-    ADMIN_WRITE_PREVIEW_ENABLED: "true",
-    ADMIN_WRITE_SMOKE_ENABLED: "true",
-    ADMIN_WRITE_SMOKE_TOKEN: smokeToken
+    CMS_AUTH_PROXY_SECRET: cmsProxySecret,
+    ENVIRONMENT: "preview"
   };
 }
 
 function request(path: string, role: string, init: RequestInit = {}, email = `${role}@example.test`) {
+  const canonicalRole = role as "admin" | "editor" | "viewer";
+  const sessionToken = `${canonicalRole[0]}${String(++sessionSequence).padStart(42, "0")}`;
+  sessionIdentities.set(sessionToken, { email, role: canonicalRole });
+
   return new Request(`https://worker.example.test${path}`, {
     ...init,
     headers: {
-      "X-RCAT-Admin-Smoke-Token": smokeToken,
-      "X-RCAT-Admin-Proxy-Email": email,
-      "X-RCAT-Admin-Proxy-Role": role,
+      [CMS_AUTH_PROXY_SECRET_HEADER]: cmsProxySecret,
+      [CMS_SESSION_TOKEN_HEADER]: sessionToken,
+      [CMS_CSRF_TOKEN_HEADER]: cmsCsrfToken,
+      [CMS_CLIENT_IP_HEADER]: "203.0.113.83",
+      [CMS_USER_AGENT_HEADER]: "phase-8-lifecycle-test",
       ...init.headers
     }
   });
@@ -134,6 +162,27 @@ async function json(response: Response) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionIdentities.clear();
+  authenticateCmsSessionMock.mockImplementation(async ({ sessionToken }: { sessionToken: string }) => {
+    const identity = sessionIdentities.get(sessionToken);
+    if (!identity) return { status: "unauthenticated" };
+
+    return {
+      status: "authenticated",
+      identity: {
+        id: identity.email.toLowerCase() === "root@example.test" ? "root-1" : `${identity.role}-user`,
+        email: identity.email,
+        name: `${identity.role} user`,
+        username: `${identity.role}.user`,
+        role: identity.role,
+        isRoot: identity.email.toLowerCase() === "root@example.test",
+        sessionId: `${identity.role}-session`,
+        sessionVersion: 1,
+        reauthenticatedAt: new Date().toISOString(),
+        mfaVerifiedAt: new Date().toISOString()
+      }
+    };
+  });
   lifecycleRepository.readSafeUserLifecycleStatus.mockImplementation(async (id: string) => ({ ...safeUser, id }));
   lifecycleRepository.readSafeUserLifecycleStatusByEmail.mockResolvedValue(safeUser);
   lifecycleRepository.isUsernameAvailable.mockResolvedValue(true);

@@ -11,12 +11,13 @@ vi.mock("../src/auth/cmsSessionService", async (importOriginal) => {
 import { ROLE_CAPABILITIES, type AdminCapability } from "../src/auth/adminCapabilities";
 import {
   CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_CLIENT_IP_HEADER,
   CMS_CSRF_TOKEN_HEADER,
-  CMS_SESSION_TOKEN_HEADER
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER
 } from "../src/routes/cmsAuthInternal";
 import worker from "../src/index";
 
-const smokeToken = "phase-4-smoke-token";
 const cmsProxySecret = "phase-4-cms-proxy-secret-repeated-000000000000";
 const cmsSessionToken = "S".repeat(43);
 const cmsCsrfToken = "C".repeat(43);
@@ -85,34 +86,11 @@ function createUserDb(initialUsers: UserRow[]) {
   return { db: { prepare } as unknown as D1Database, prepare, users };
 }
 
-function smokeEnv(db: D1Database) {
-  return {
-    DB: db,
-    ADMIN_WRITE_PREVIEW_ENABLED: "true",
-    ADMIN_WRITE_SMOKE_ENABLED: "true",
-    ADMIN_WRITE_SMOKE_TOKEN: smokeToken,
-    ENVIRONMENT: "preview"
-  };
-}
-
 function cmsEnv(db: D1Database) {
   return {
     DB: db,
-    CMS_AUTH_ENABLED: "true",
     CMS_AUTH_PROXY_SECRET: cmsProxySecret
   };
-}
-
-function smokeRequest(path: string, role: string, init: RequestInit = {}) {
-  return new Request(`https://worker.example.test${path}`, {
-    ...init,
-    headers: {
-      "X-RCAT-Admin-Smoke-Token": smokeToken,
-      "X-RCAT-Admin-Proxy-Email": `${role || "invalid"}@example.invalid`,
-      "X-RCAT-Admin-Proxy-Role": role,
-      ...init.headers
-    }
-  });
 }
 
 function cmsRequest(path: string, init: RequestInit = {}) {
@@ -121,6 +99,8 @@ function cmsRequest(path: string, init: RequestInit = {}) {
     headers: {
       [CMS_AUTH_PROXY_SECRET_HEADER]: cmsProxySecret,
       [CMS_SESSION_TOKEN_HEADER]: cmsSessionToken,
+      [CMS_CLIENT_IP_HEADER]: "203.0.113.40",
+      [CMS_USER_AGENT_HEADER]: "test-agent",
       ...(init.method && init.method !== "GET" ? { [CMS_CSRF_TOKEN_HEADER]: cmsCsrfToken } : {}),
       ...init.headers
     }
@@ -163,11 +143,12 @@ describe("Worker Admin capability enforcement", () => {
     "returns a fresh, exact, sorted, no-store %s capability list without sensitive state",
     async (role) => {
       const prepare = vi.fn();
+      authenticateCmsSessionMock.mockResolvedValue(currentCmsIdentity(role));
       const response = await worker.fetch(
-        smokeRequest("/api/admin/capabilities", role, {
+        cmsRequest("/api/admin/capabilities", {
           headers: { "X-RCAT-Admin-Capabilities": "backup.download,users.delete" }
         }),
-        smokeEnv(dbWithPrepare(prepare))
+        cmsEnv(dbWithPrepare(prepare))
       );
       const body = await json(response);
       const expected = [...ROLE_CAPABILITIES[role]].sort();
@@ -207,13 +188,22 @@ describe("Worker Admin capability enforcement", () => {
     expect(prepare).not.toHaveBeenCalled();
   });
 
-  it("applies identical Worker capability decisions to CMS and legacy identities with the same role", async () => {
+  it("accepts the CMS identity and rejects old identity headers alone", async () => {
     const prepare = vi.fn();
     const db = dbWithPrepare(prepare);
     authenticateCmsSessionMock.mockResolvedValue(currentCmsIdentity("editor"));
 
     const cmsCapabilities = await worker.fetch(cmsRequest("/api/admin/capabilities"), cmsEnv(db));
-    const legacyCapabilities = await worker.fetch(smokeRequest("/api/admin/capabilities", "editor"), smokeEnv(db));
+    const retiredIdentity = await worker.fetch(
+      new Request("https://worker.example.test/api/admin/capabilities", {
+        headers: {
+          "X-RCAT-Admin-Smoke-Token": "retired",
+          "X-RCAT-Admin-Proxy-Email": "editor@example.invalid",
+          "X-RCAT-Admin-Proxy-Role": "editor"
+        }
+      }),
+      cmsEnv(db)
+    );
     const cmsDenied = await worker.fetch(
       cmsRequest("/api/admin/external-services", {
         method: "POST",
@@ -222,19 +212,9 @@ describe("Worker Admin capability enforcement", () => {
       }),
       cmsEnv(db)
     );
-    const legacyDenied = await worker.fetch(
-      smokeRequest("/api/admin/external-services", "editor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "blocked", href: "/blocked" })
-      }),
-      smokeEnv(db)
-    );
-
-    expect(await json(cmsCapabilities)).toEqual(await json(legacyCapabilities));
+    expect(cmsCapabilities.status).toBe(200);
+    expect(retiredIdentity.status).toBe(403);
     expect(cmsDenied.status).toBe(403);
-    expect(legacyDenied.status).toBe(403);
-    expect(await json(cmsDenied)).toEqual(await json(legacyDenied));
     expect(prepare).not.toHaveBeenCalled();
   });
 
@@ -341,18 +321,18 @@ describe("Worker Admin capability enforcement", () => {
     ["viewer content publish", "viewer", "POST", "/api/admin/content/publish-pending"],
     ["viewer carousel order", "viewer", "PUT", "/api/admin/carousel/order"],
     ["editor backup", "editor", "GET", "/api/admin/backup/download"],
-    ["viewer all-user read", "viewer", "GET", "/api/admin/users"],
-    ["editor Root bootstrap", "editor", "POST", "/api/admin/auth/bootstrap-root-credential"]
+    ["viewer all-user read", "viewer", "GET", "/api/admin/users"]
   ])("denies %s before D1, handler body processing, or external fetch", async (_label, role, method, path) => {
     const prepare = vi.fn();
     const externalFetch = vi.spyOn(globalThis, "fetch");
+    authenticateCmsSessionMock.mockResolvedValue(currentCmsIdentity(role));
     const response = await worker.fetch(
-      smokeRequest(path, role, {
+      cmsRequest(path, {
         method,
         headers: { "Content-Type": "application/json" },
         body: method === "GET" ? undefined : "not-json-and-must-not-be-read"
       }),
-      smokeEnv(dbWithPrepare(prepare))
+      cmsEnv(dbWithPrepare(prepare))
     );
 
     expect(response.status).toBe(403);
@@ -368,26 +348,36 @@ describe("Worker Admin capability enforcement", () => {
     ["POST", "/api/admin/users/user-1/revoke-sessions"]
   ])("denies Editor lifecycle action %s %s before lifecycle SQL", async (method, path) => {
     const prepare = vi.fn();
-    const response = await worker.fetch(smokeRequest(path, "editor", { method }), smokeEnv(dbWithPrepare(prepare)));
+    authenticateCmsSessionMock.mockResolvedValue(currentCmsIdentity("editor"));
+    const response = await worker.fetch(cmsRequest(path, { method }), cmsEnv(dbWithPrepare(prepare)));
     expect(response.status).toBe(403);
     expect(prepare).not.toHaveBeenCalled();
   });
 
   it("fails closed for invalid roles and unknown Admin routes without executing a handler", async () => {
     const invalidPrepare = vi.fn();
-    const invalid = await worker.fetch(
-      smokeRequest("/api/admin/capabilities", "owner"),
-      smokeEnv(dbWithPrepare(invalidPrepare))
-    );
+    authenticateCmsSessionMock.mockResolvedValueOnce(currentCmsIdentity("owner"));
+    const invalid = await worker.fetch(cmsRequest("/api/admin/capabilities"), cmsEnv(dbWithPrepare(invalidPrepare)));
     const unknownPrepare = vi.fn();
-    const unknown = await worker.fetch(
-      smokeRequest("/api/admin/not-a-route", "admin"),
-      smokeEnv(dbWithPrepare(unknownPrepare))
-    );
+    authenticateCmsSessionMock.mockResolvedValueOnce(currentCmsIdentity("admin"));
+    const unknown = await worker.fetch(cmsRequest("/api/admin/not-a-route"), cmsEnv(dbWithPrepare(unknownPrepare)));
 
     expect(invalid.status).toBe(403);
     expect(unknown.status).toBe(404);
     expect(invalidPrepare).not.toHaveBeenCalled();
     expect(unknownPrepare).not.toHaveBeenCalled();
+  });
+
+  it("returns the safe 404 contract for the retired Root bootstrap path", async () => {
+    const prepare = vi.fn();
+    authenticateCmsSessionMock.mockResolvedValue(currentCmsIdentity("admin"));
+    const response = await worker.fetch(
+      cmsRequest("/api/admin/auth/bootstrap-root-credential", { method: "POST" }),
+      cmsEnv(dbWithPrepare(prepare))
+    );
+
+    expect(response.status).toBe(404);
+    await expect(json(response)).resolves.toMatchObject({ error: "not found" });
+    expect(prepare).not.toHaveBeenCalled();
   });
 });

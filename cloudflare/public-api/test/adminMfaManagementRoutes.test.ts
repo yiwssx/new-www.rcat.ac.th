@@ -72,7 +72,6 @@ function request(path: string, method: string, body?: Record<string, unknown>) {
 
 function env() {
   return {
-    CMS_AUTH_ENABLED: "true",
     CMS_AUTH_PROXY_SECRET: proxySecret,
     DB: {
       prepare: vi.fn(() => ({

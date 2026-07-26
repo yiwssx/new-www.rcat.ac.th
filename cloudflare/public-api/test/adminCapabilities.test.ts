@@ -51,7 +51,6 @@ const EXPECTED_CAPABILITIES = [
   "users.mfa.reset",
   "backup.counts",
   "backup.download",
-  "auth.bootstrap-root-credential",
   "auth.change-password-self",
   "auth.reauthenticate-self",
   "auth.mfa.manage-self",
@@ -111,7 +110,7 @@ const EXPECTED_VIEWER_CAPABILITIES = [
 describe("Admin capability registry", () => {
   it("contains each exact capability once and has no wildcard", () => {
     expect(ADMIN_CAPABILITIES).toEqual(EXPECTED_CAPABILITIES);
-    expect(ADMIN_CAPABILITIES).toHaveLength(45);
+    expect(ADMIN_CAPABILITIES).toHaveLength(44);
     expect(new Set(ADMIN_CAPABILITIES).size).toBe(ADMIN_CAPABILITIES.length);
     expect(ADMIN_CAPABILITIES).not.toContain("*" as AdminCapability);
   });
@@ -175,7 +174,17 @@ describe("Admin capability registry", () => {
     expect(hasAnyAdminCapability("editor", ["content.read", "content.read"])).toBe(true);
 
     const response = requireAnyAdminCapability(
-      { actor: "admin@example.test", email: "admin@example.test", mode: "smoke-token", role: "admin" },
+      {
+        actor: "admin@example.test",
+        email: "admin@example.test",
+        mode: "cms-session",
+        role: "admin",
+        userId: "admin-user-1",
+        sessionId: "admin-session-1",
+        isRoot: true,
+        reauthenticatedAt: "2026-07-23T03:00:00.000Z",
+        mfaVerifiedAt: "2026-07-23T03:00:00.000Z"
+      },
       []
     );
     expect(response?.status).toBe(403);

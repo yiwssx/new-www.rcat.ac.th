@@ -23,6 +23,10 @@ const expectedCmsRoutes = [
   ["/api/cms-auth/mfa", "mfa-disable"],
   ["/api/cms-auth/reauthenticate", "reauthenticate"]
 ];
+const expectedRetiredRoutes = [
+  ["/api/admin-proxy-session/login", "retired-admin-proxy-login"],
+  ["/api/admin-proxy-session/logout", "retired-admin-proxy-logout"]
+];
 
 describe("Vercel CMS-auth rewrite contract", () => {
   it("preserves every exact public CMS-auth URL with a unique dispatcher route", () => {
@@ -66,6 +70,18 @@ describe("Vercel CMS-auth rewrite contract", () => {
     expect(cmsIndices.every((index) => index < spaIndex)).toBe(true);
   });
 
+  it("routes the two retired authentication endpoints through the consolidated Function before the SPA", () => {
+    const spaIndex = rewrites.findIndex(({ source, destination }) => source === "/(.*)" && destination === "/");
+
+    for (const [source, routeId] of expectedRetiredRoutes) {
+      const index = rewrites.findIndex(
+        (rewrite) => rewrite.source === source && rewrite.destination === `/api/cms-auth?_rcatCmsRoute=${routeId}`
+      );
+      expect(index).toBeGreaterThanOrEqual(0);
+      expect(index).toBeLessThan(spaIndex);
+    }
+  });
+
   it("keeps sitemap behavior unchanged", () => {
     expect(rewrites.filter(({ source }) => source === "/sitemap.xml")).toEqual([
       { source: "/sitemap.xml", destination: "/api/sitemap" }
@@ -73,12 +89,7 @@ describe("Vercel CMS-auth rewrite contract", () => {
   });
 
   it("does not add rewrites for the other direct API functions", () => {
-    const excludedSources = [
-      "/api/admin-proxy",
-      "/api/apps-script-proxy",
-      "/api/admin-proxy-session/login",
-      "/api/admin-proxy-session/logout"
-    ];
+    const excludedSources = ["/api/admin-proxy", "/api/apps-script-proxy"];
 
     for (const source of excludedSources) {
       expect(rewrites.some((rewrite) => rewrite.source === source)).toBe(false);

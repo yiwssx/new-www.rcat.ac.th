@@ -33,7 +33,6 @@
     "worker:public-documents:worker-smoke": "node cloudflare/public-api/scripts/public-documents-production-worker-smoke.mjs",
     "worker:public-documents:cutover": "node cloudflare/public-api/scripts/public-documents-production-cutover.mjs",
     "worker:public-read:preview-smoke": "node cloudflare/public-api/scripts/public-read-preview-smoke.mjs",
-    "worker:admin-write:preview-smoke": "node cloudflare/public-api/scripts/admin-write-preview-smoke.mjs",
     "worker:m19:readiness": "node cloudflare/public-api/scripts/m19-parity-readiness.mjs",
     "worker:m20:readiness": "node cloudflare/public-api/scripts/m20-readiness-gate.mjs",
     "facebook:export:posts": "node scripts/facebook/export-page-posts.mjs --since 2023-01-01 --until 2026-07-31 --chunk-days 30 --limit 25 --output imports/facebook-posts-2023-2026.raw.json",

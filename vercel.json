@@ -110,6 +110,14 @@
       "destination": "/api/cms-auth?_rcatCmsRoute=reauthenticate"
     },
     {
+      "source": "/api/admin-proxy-session/login",
+      "destination": "/api/cms-auth?_rcatCmsRoute=retired-admin-proxy-login"
+    },
+    {
+      "source": "/api/admin-proxy-session/logout",
+      "destination": "/api/cms-auth?_rcatCmsRoute=retired-admin-proxy-logout"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }

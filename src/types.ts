@@ -65,12 +65,6 @@ export interface UserAccount extends User {
   updatedAt: string;
 }
 
-export interface Session {
-  user: User;
-  token: string;
-  expiresAt: string;
-}
-
 export interface RolePermission {
   id: string;
   role: string;

@@ -15,7 +15,7 @@ const inspection = {
 };
 
 function env(): Env {
-  return { CMS_AUTH_ENABLED: "true", CMS_AUTH_PROXY_SECRET: proxySecret };
+  return { CMS_AUTH_PROXY_SECRET: proxySecret };
 }
 
 function request(path: string, body: unknown) {

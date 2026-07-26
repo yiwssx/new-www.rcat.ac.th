@@ -61,8 +61,6 @@ const repositoryFixture = {
   "cloudflare/public-api/wrangler.toml": [
     "[env.production.vars]",
     'ENVIRONMENT = "production"',
-    'ADMIN_WRITE_PREVIEW_ENABLED = "false"',
-    'ADMIN_WRITE_SMOKE_ENABLED = "false"',
     "[[env.production.d1_databases]]",
     'database_id = "production-placeholder"'
   ].join("\n"),
@@ -123,7 +121,7 @@ describe("M20 readiness gate", () => {
       readFile: createFixtureReader({
         "cloudflare/public-api/wrangler.toml": [
           "[env.production.vars]",
-          'ADMIN_WRITE_PREVIEW_ENABLED = "true"',
+          'ENVIRONMENT = "production"',
           "[[env.production.d1_databases]]",
           'database_id = "real-production-id"'
         ].join("\n")

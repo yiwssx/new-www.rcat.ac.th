@@ -1,33 +1,60 @@
 // @vitest-environment node
-import { exportJWK, generateKeyPair, SignJWT } from "jose";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const authenticateCmsSessionMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../src/auth/cmsSessionService", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/auth/cmsSessionService")>();
+  return { ...actual, authenticateCmsSession: authenticateCmsSessionMock };
+});
+
 import m18Doc from "../../../docs/architecture/m18-admin-d1-write-batch-migration-2026-06-16.md?raw";
 import contentSlugTombstoneMigration from "../migrations/0008_content_slug_tombstones.sql?raw";
-import { authenticateAdminRequest, hasProductionContext } from "../src/auth/adminAccess";
+import {
+  CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_CLIENT_IP_HEADER,
+  CMS_CSRF_TOKEN_HEADER,
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER
+} from "../src/routes/cmsAuthInternal";
 import worker from "../src/index";
-import wranglerToml from "../wrangler.toml?raw";
 
 type Row = Record<string, unknown>;
 type TableName =
   "contents" | "documents" | "public_home_sections" | "visitor_daily_stats" | "app_admin_users" | "admin_audit_log";
 
-const smokeToken = "m18-preview-smoke-token";
-const smokeActorEmail = "m18-preview-smoke@system.invalid";
-const smokeHeaders = {
+const cmsProxySecret = "phase-8-test-proxy-secret-repeated-000000000000";
+const cmsSessionToken = "S".repeat(43);
+const cmsCsrfToken = "C".repeat(43);
+const cmsActorEmail = "cms-admin@example.invalid";
+const cmsHeaders = {
   "Content-Type": "application/json",
-  "X-RCAT-Admin-Smoke-Token": smokeToken,
-  "X-RCAT-Admin-Proxy-Email": smokeActorEmail,
-  "X-RCAT-Admin-Proxy-Role": "admin"
+  [CMS_AUTH_PROXY_SECRET_HEADER]: cmsProxySecret,
+  [CMS_SESSION_TOKEN_HEADER]: cmsSessionToken,
+  [CMS_CSRF_TOKEN_HEADER]: cmsCsrfToken,
+  [CMS_CLIENT_IP_HEADER]: "203.0.113.80",
+  [CMS_USER_AGENT_HEADER]: "phase-8-worker-test"
 };
-const smokeEnvBase = {
-  ADMIN_WRITE_PREVIEW_ENABLED: "true",
-  ADMIN_WRITE_SMOKE_ENABLED: "true",
-  ADMIN_WRITE_SMOKE_TOKEN: smokeToken,
+const cmsEnvBase = {
+  CMS_AUTH_PROXY_SECRET: cmsProxySecret,
   ENVIRONMENT: "preview"
 };
-const accessTeamDomain = "preview-team.example.test";
-const accessAudience = "m18-preview-audience";
-const accessEmail = "preview-editor";
+
+authenticateCmsSessionMock.mockResolvedValue({
+  status: "authenticated",
+  identity: {
+    id: "cms-admin-user",
+    email: cmsActorEmail,
+    name: "CMS Admin",
+    username: "cms.admin",
+    role: "admin",
+    isRoot: false,
+    sessionId: "cms-session-1",
+    sessionVersion: 1,
+    reauthenticatedAt: new Date().toISOString(),
+    mfaVerifiedAt: new Date().toISOString()
+  }
+});
 
 const contentInput = {
   id: "m18-preview-content-001",
@@ -498,36 +525,6 @@ async function readJson(response: Response) {
   return response.json() as Promise<Record<string, unknown>>;
 }
 
-async function createAccessFixture(input: { email?: string; aud?: string; exp?: number | string } = {}) {
-  const { publicKey, privateKey } = await generateKeyPair("ES256");
-  const publicJwk = await exportJWK(publicKey);
-  const token = await new SignJWT({
-    email: input.email ?? accessEmail
-  })
-    .setProtectedHeader({ alg: "ES256", kid: "m18-preview-key" })
-    .setIssuer(`https://${accessTeamDomain}.cloudflareaccess.com`)
-    .setAudience(input.aud ?? accessAudience)
-    .setExpirationTime(input.exp ?? "5m")
-    .setIssuedAt()
-    .sign(privateKey);
-
-  return {
-    header: {
-      "Cf-Access-Jwt-Assertion": token
-    },
-    jwksJson: JSON.stringify({
-      keys: [
-        {
-          ...publicJwk,
-          kid: "m18-preview-key",
-          alg: "ES256",
-          use: "sig"
-        }
-      ]
-    })
-  };
-}
-
 function makeRequest(path: string, init: RequestInit = {}) {
   return new Request(`https://preview-worker.example.test${path}`, init);
 }
@@ -537,7 +534,7 @@ function makeJsonRequest(path: string, body: unknown, init: RequestInit = {}) {
     ...init,
     method: init.method ?? "POST",
     headers: {
-      ...smokeHeaders,
+      ...cmsHeaders,
       ...(init.headers ?? {})
     },
     body: JSON.stringify(body)
@@ -546,24 +543,7 @@ function makeJsonRequest(path: string, body: unknown, init: RequestInit = {}) {
 
 function makeEnv(db: D1Database | undefined = createAdminWriteMockDb().db) {
   return {
-    ...smokeEnvBase,
-    DB: db
-  };
-}
-
-function makeAccessEnv(db: D1Database | undefined = createAdminWriteMockDb().db, jwksJson = "") {
-  return {
-    ADMIN_WRITE_PREVIEW_ENABLED: "true",
-    ADMIN_WRITE_AUTH_MODE: "cloudflare-access",
-    ADMIN_WRITE_ACCESS_TEAM_DOMAIN: accessTeamDomain,
-    ADMIN_WRITE_ACCESS_AUD: accessAudience,
-    ADMIN_WRITE_ALLOWED_EMAILS: accessEmail,
-    ADMIN_RBAC_ADMINS: accessEmail,
-    ADMIN_RBAC_EDITORS: "",
-    ADMIN_RBAC_VIEWERS: "",
-    ADMIN_WRITE_ALLOWED_ORIGINS: "https://preview-admin.example.test",
-    ADMIN_WRITE_ACCESS_JWKS_JSON: jwksJson,
-    ENVIRONMENT: "preview",
+    ...cmsEnvBase,
     DB: db
   };
 }
@@ -593,27 +573,6 @@ function auditActionsFor(tables: MockTables, entityType: string, entityId: strin
 }
 
 describe("M18 admin structured write routes", () => {
-  it("declares explicit production environment vars that keep preview admin writes disabled", async () => {
-    expect(wranglerToml).toMatch(/\[env\.production\.vars\]/);
-    expect(wranglerToml).toMatch(/ENVIRONMENT\s*=\s*"production"/);
-    expect(wranglerToml).toMatch(/ADMIN_WRITE_PREVIEW_ENABLED\s*=\s*"false"/);
-    expect(wranglerToml).toMatch(/ADMIN_WRITE_SMOKE_ENABLED\s*=\s*"false"/);
-    expect(wranglerToml).toMatch(/database_id\s*=\s*"production-placeholder"/);
-    expect(wranglerToml).not.toMatch(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
-
-    const productionEnv = {
-      ADMIN_WRITE_PREVIEW_ENABLED: "false",
-      ADMIN_WRITE_SMOKE_ENABLED: "false",
-      ADMIN_WRITE_SMOKE_TOKEN: smokeToken,
-      ENVIRONMENT: "production",
-      DB: createAdminWriteMockDb().db
-    };
-    const response = await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), productionEnv);
-
-    expect(hasProductionContext(productionEnv)).toBe(true);
-    expect(response.status).toBe(403);
-  });
-
   it("documents one cohesive M18 milestone without infrastructure leakage", () => {
     expect(m18Doc).toMatch(/Admin \+ D1 Write Batch Migration/i);
     expect(m18Doc).toMatch(/single milestone/i);
@@ -680,760 +639,6 @@ describe("M18 admin structured write routes", () => {
     expect(tables.contents).toEqual(rowsBeforeSecondRun);
   });
 
-  it("keeps preview admin writes closed unless the smoke gate and credential are valid", async () => {
-    const disabledResponse = await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), {
-      DB: createAdminWriteMockDb().db
-    });
-    const missingResponse = await worker.fetch(
-      makeRequest("/api/admin/content", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(contentInput)
-      }),
-      {
-        ...smokeEnvBase,
-        DB: createAdminWriteMockDb().db
-      }
-    );
-    const invalidResponse = await worker.fetch(
-      makeJsonRequest("/api/admin/content", contentInput, {
-        headers: {
-          "Content-Type": "application/json",
-          "X-RCAT-Admin-Smoke-Token": "wrong-token"
-        }
-      }),
-      makeEnv()
-    );
-
-    expect(disabledResponse.status).toBe(403);
-    expect(missingResponse.status).toBe(401);
-    expect(invalidResponse.status).toBe(403);
-  });
-
-  it.each(["admin", "editor", "viewer"] as const)("accepts an explicit valid %s smoke proxy identity", async (role) => {
-    const email = `${role}@example.invalid`;
-    const result = await authenticateAdminRequest(
-      makeRequest("/api/admin/snapshot", {
-        headers: {
-          "X-RCAT-Admin-Smoke-Token": smokeToken,
-          "X-RCAT-Admin-Proxy-Email": email,
-          "X-RCAT-Admin-Proxy-Role": role
-        }
-      }),
-      makeEnv()
-    );
-
-    expect(result.response).toBeNull();
-    expect(result.identity).toEqual({ actor: email, email, mode: "smoke-token", role });
-  });
-
-  it.each([
-    ["a missing role", { "X-RCAT-Admin-Proxy-Email": "admin@example.invalid" }],
-    [
-      "an unsupported role",
-      { "X-RCAT-Admin-Proxy-Email": "admin@example.invalid", "X-RCAT-Admin-Proxy-Role": "owner" }
-    ],
-    ["an empty role", { "X-RCAT-Admin-Proxy-Email": "admin@example.invalid", "X-RCAT-Admin-Proxy-Role": "" }],
-    ["a missing email", { "X-RCAT-Admin-Proxy-Role": "admin" }],
-    ["a malformed email", { "X-RCAT-Admin-Proxy-Email": "not-an-email", "X-RCAT-Admin-Proxy-Role": "admin" }],
-    ["a valid token alone", {}]
-  ])("fails closed for smoke authentication with %s", async (_label, identityHeaders) => {
-    const result = await authenticateAdminRequest(
-      makeRequest("/api/admin/snapshot", {
-        headers: {
-          "X-RCAT-Admin-Smoke-Token": smokeToken,
-          ...identityHeaders
-        }
-      }),
-      makeEnv()
-    );
-
-    expect(result.identity).toBeNull();
-    expect(result.response?.status).toBe(403);
-    await expect(result.response?.json()).resolves.toMatchObject({ error: "admin smoke proxy identity is invalid" });
-  });
-
-  it("allows only required admin methods and returns credentialed preview CORS headers without wildcard fallback", async () => {
-    const { db } = createAdminWriteMockDb();
-    const access = await createAccessFixture();
-    const optionsResponse = await worker.fetch(
-      makeRequest("/api/admin/content", {
-        method: "OPTIONS",
-        headers: {
-          Origin: "https://preview-admin.example.test"
-        }
-      }),
-      {
-        ...smokeEnvBase,
-        ADMIN_WRITE_ALLOWED_ORIGINS: "https://preview-admin.example.test",
-        DB: createAdminWriteMockDb().db
-      }
-    );
-    const snapshotResponse = await worker.fetch(
-      makeRequest("/api/admin/snapshot", {
-        method: "GET",
-        headers: {
-          ...access.header,
-          Origin: "https://preview-admin.example.test"
-        }
-      }),
-      makeAccessEnv(db, access.jwksJson)
-    );
-    const unsupportedResponse = await worker.fetch(
-      makeRequest("/api/admin/content", {
-        method: "PUT",
-        headers: smokeHeaders
-      }),
-      makeEnv()
-    );
-
-    expect(optionsResponse.status).toBe(204);
-    expect(optionsResponse.headers.get("Access-Control-Allow-Origin")).toBe("https://preview-admin.example.test");
-    expect(optionsResponse.headers.get("Access-Control-Allow-Credentials")).toBe("true");
-    expect(optionsResponse.headers.get("Access-Control-Allow-Methods")).toBe("GET, POST, PATCH, PUT, DELETE, OPTIONS");
-    expect(optionsResponse.headers.get("Access-Control-Allow-Headers")).toContain("Cf-Access-Jwt-Assertion");
-    expect(optionsResponse.headers.get("Access-Control-Allow-Headers")).toContain("X-RCAT-Admin-Smoke-Token");
-    expect(snapshotResponse.status).toBe(200);
-    expect(snapshotResponse.headers.get("Access-Control-Allow-Origin")).toBe("https://preview-admin.example.test");
-    expect(snapshotResponse.headers.get("Access-Control-Allow-Credentials")).toBe("true");
-    expect(unsupportedResponse.status).toBe(405);
-    expect(unsupportedResponse.headers.get("Allow")).toBe("GET, POST, PATCH, PUT, DELETE, OPTIONS");
-  });
-
-  it("normalizes admin allowed origins before matching the request Origin", async () => {
-    const requestOrigin = "https://preview-admin.example.test";
-    const configuredOriginCases = [`${requestOrigin}/`, `"${requestOrigin}"`, `'${requestOrigin}/admin/path'`];
-
-    for (const configuredOrigin of configuredOriginCases) {
-      const response = await worker.fetch(
-        makeRequest("/api/admin/snapshot", {
-          method: "OPTIONS",
-          headers: {
-            Origin: requestOrigin
-          }
-        }),
-        {
-          ADMIN_WRITE_ALLOWED_ORIGINS: configuredOrigin,
-          DB: createAdminWriteMockDb().db
-        }
-      );
-
-      expect(response.status, configuredOrigin).toBe(204);
-      expect(response.headers.get("Access-Control-Allow-Origin"), configuredOrigin).toBe(requestOrigin);
-      expect(response.headers.get("Access-Control-Allow-Credentials"), configuredOrigin).toBe("true");
-      expect(response.headers.get("Access-Control-Allow-Methods"), configuredOrigin).toBe(
-        "GET, POST, PATCH, PUT, DELETE, OPTIONS"
-      );
-      expect(response.headers.get("Access-Control-Allow-Headers"), configuredOrigin).toContain(
-        "X-RCAT-Expected-Revision"
-      );
-      expect(response.headers.get("Access-Control-Allow-Headers"), configuredOrigin).not.toContain("If-Match");
-    }
-  });
-
-  it("maps Cloudflare Access emails to RBAC roles and allows read routes for editor and viewer", async () => {
-    const db = createAdminWriteMockDb().db;
-    const editorAccess = await createAccessFixture({ email: "editor@example.invalid" });
-    const viewerAccess = await createAccessFixture({ email: "viewer@example.invalid" });
-    const env = {
-      ...makeAccessEnv(db, editorAccess.jwksJson),
-      ADMIN_WRITE_ALLOWED_EMAILS: "",
-      ADMIN_RBAC_ADMINS: accessEmail,
-      ADMIN_RBAC_EDITORS: "editor@example.invalid",
-      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
-    };
-
-    const editorResponse = await worker.fetch(
-      makeRequest("/api/admin/snapshot", {
-        method: "GET",
-        headers: editorAccess.header
-      }),
-      env
-    );
-    const viewerResponse = await worker.fetch(
-      makeRequest("/api/admin/snapshot", {
-        method: "GET",
-        headers: viewerAccess.header
-      }),
-      {
-        ...env,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
-      }
-    );
-
-    expect(editorResponse.status).toBe(200);
-    expect(viewerResponse.status).toBe(200);
-  });
-
-  it("denies unknown Cloudflare Access identities and duplicate RBAC role assignments", async () => {
-    const unknownAccess = await createAccessFixture({ email: "unknown@example.invalid" });
-    const duplicateAccess = await createAccessFixture({ email: "duplicate@example.invalid" });
-    const baseEnv = {
-      ...makeAccessEnv(createAdminWriteMockDb().db, unknownAccess.jwksJson),
-      ADMIN_WRITE_ALLOWED_EMAILS: "",
-      ADMIN_RBAC_ADMINS: accessEmail,
-      ADMIN_RBAC_EDITORS: "editor@example.invalid",
-      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
-    };
-    const unknownResponse = await worker.fetch(
-      makeRequest("/api/admin/snapshot", {
-        method: "GET",
-        headers: unknownAccess.header
-      }),
-      baseEnv
-    );
-    const duplicateResponse = await worker.fetch(
-      makeRequest("/api/admin/snapshot", {
-        method: "GET",
-        headers: duplicateAccess.header
-      }),
-      {
-        ...baseEnv,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: duplicateAccess.jwksJson,
-        ADMIN_RBAC_ADMINS: `${accessEmail}, duplicate@example.invalid`,
-        ADMIN_RBAC_EDITORS: "duplicate@example.invalid"
-      }
-    );
-
-    expect(unknownResponse.status).toBe(403);
-    await expect(readJson(unknownResponse)).resolves.toMatchObject({
-      error: "admin access identity is not allowed"
-    });
-    expect(duplicateResponse.status).toBe(403);
-    await expect(readJson(duplicateResponse)).resolves.toMatchObject({
-      error: "admin access role configuration is invalid"
-    });
-  });
-
-  it("allows Cloudflare Access editors to mutate and delete content while blocking viewers", async () => {
-    const { db, tables } = createAdminWriteMockDb();
-    const editorAccess = await createAccessFixture({ email: "editor@example.invalid" });
-    const viewerAccess = await createAccessFixture({ email: "viewer@example.invalid" });
-    const env = {
-      ...makeAccessEnv(db, editorAccess.jwksJson),
-      ADMIN_WRITE_ALLOWED_EMAILS: "",
-      ADMIN_RBAC_ADMINS: accessEmail,
-      ADMIN_RBAC_EDITORS: "editor@example.invalid",
-      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
-    };
-
-    const editorCreateResponse = await worker.fetch(
-      makeRequest("/api/admin/content", {
-        method: "POST",
-        headers: {
-          ...editorAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(contentInput)
-      }),
-      env
-    );
-    const editorPublishResponse = await worker.fetch(
-      makeRequest("/api/admin/content/m18-preview-content-001/publish", {
-        method: "POST",
-        headers: {
-          ...editorAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({})
-      }),
-      env
-    );
-    const viewerCreateResponse = await worker.fetch(
-      makeRequest("/api/admin/content", {
-        method: "POST",
-        headers: {
-          ...viewerAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          ...contentInput,
-          id: "viewer-content",
-          slug: "viewer-content"
-        })
-      }),
-      {
-        ...env,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
-      }
-    );
-    const viewerDeleteResponse = await worker.fetch(
-      makeRequest("/api/admin/content/m18-preview-content-001", {
-        method: "DELETE",
-        headers: viewerAccess.header
-      }),
-      {
-        ...env,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
-      }
-    );
-    const editorDeleteResponse = await worker.fetch(
-      makeRequest("/api/admin/content/m18-preview-content-001", {
-        method: "DELETE",
-        headers: {
-          ...editorAccess.header,
-          "X-RCAT-Expected-Revision": "1"
-        }
-      }),
-      env
-    );
-
-    expect(editorCreateResponse.status).toBe(201);
-    expect(editorPublishResponse.status).toBe(200);
-    expect(viewerCreateResponse.status).toBe(403);
-    await expect(readJson(viewerCreateResponse)).resolves.toMatchObject({
-      error: "required permission is missing"
-    });
-    expect(viewerDeleteResponse.status).toBe(403);
-    await expect(readJson(viewerDeleteResponse)).resolves.toMatchObject({
-      error: "required permission is missing"
-    });
-    expect(editorDeleteResponse.status).toBe(200);
-    expect(tables.contents).toHaveLength(1);
-    expect(tables.contents[0]?.slug).toBe("__deleted__:m18-preview-content-001");
-    expect(auditActionsFor(tables, "content", "m18-preview-content-001")).toEqual(["create", "publish", "archive"]);
-  });
-
-  it("keeps website settings and menu mutations admin-only while allowing editor content-related routes", async () => {
-    const { db, tables } = createAdminWriteMockDb();
-    const adminAccess = await createAccessFixture({ email: accessEmail });
-    const editorAccess = await createAccessFixture({ email: "editor@example.invalid" });
-    const viewerAccess = await createAccessFixture({ email: "viewer@example.invalid" });
-    const baseEnv = {
-      ...makeAccessEnv(db, adminAccess.jwksJson),
-      ADMIN_WRITE_ALLOWED_EMAILS: "",
-      ADMIN_RBAC_ADMINS: accessEmail,
-      ADMIN_RBAC_EDITORS: "editor@example.invalid",
-      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
-    };
-    const adminSettingsResponse = await worker.fetch(
-      makeRequest("/api/admin/settings/site", {
-        method: "PUT",
-        headers: {
-          ...adminAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ siteName: "Preview school" })
-      }),
-      baseEnv
-    );
-    const editorSettingsResponse = await worker.fetch(
-      makeRequest("/api/admin/settings/site", {
-        method: "PUT",
-        headers: {
-          ...editorAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ siteName: "Editor must not save" })
-      }),
-      {
-        ...baseEnv,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
-      }
-    );
-    const editorMenuResponse = await worker.fetch(
-      makeRequest("/api/admin/menu", {
-        method: "PUT",
-        headers: {
-          ...editorAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ items: [] })
-      }),
-      {
-        ...baseEnv,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
-      }
-    );
-    const viewerCarouselResponse = await worker.fetch(
-      makeRequest("/api/admin/carousel", {
-        method: "POST",
-        headers: {
-          ...viewerAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          id: "viewer-slide",
-          title: "Viewer slide",
-          imageUrl: "https://files.example.test/viewer-slide.jpg"
-        })
-      }),
-      {
-        ...baseEnv,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
-      }
-    );
-
-    expect(adminSettingsResponse.status).toBe(200);
-    expect(editorSettingsResponse.status).toBe(403);
-    await expect(readJson(editorSettingsResponse)).resolves.toMatchObject({
-      error: "required permission is missing"
-    });
-    expect(editorMenuResponse.status).toBe(403);
-    await expect(readJson(editorMenuResponse)).resolves.toMatchObject({
-      error: "required permission is missing"
-    });
-    expect(viewerCarouselResponse.status).toBe(403);
-    await expect(readJson(viewerCarouselResponse)).resolves.toMatchObject({
-      error: "required permission is missing"
-    });
-    expect(tables.app_admin_users).toHaveLength(0);
-  });
-
-  it("enforces Cloudflare app-user profile permissions separately from content permissions", async () => {
-    const { db, tables } = createAdminWriteMockDb();
-    const adminAccess = await createAccessFixture({ email: accessEmail });
-    const editorAccess = await createAccessFixture({ email: "editor@example.invalid" });
-    const viewerAccess = await createAccessFixture({ email: "viewer@example.invalid" });
-    const baseEnv = {
-      ...makeAccessEnv(db, adminAccess.jwksJson),
-      ADMIN_WRITE_ALLOWED_EMAILS: "",
-      ADMIN_RBAC_ADMINS: accessEmail,
-      ADMIN_RBAC_EDITORS: "editor@example.invalid",
-      ADMIN_RBAC_VIEWERS: "viewer@example.invalid"
-    };
-    tables.app_admin_users.push(
-      {
-        id: "admin-profile",
-        email: accessEmail,
-        name: "Preview Admin",
-        role: "admin",
-        status: "active",
-        created_at: "2026-06-24T00:00:00.000Z",
-        updated_at: "2026-06-24T00:00:00.000Z",
-        created_by: accessEmail,
-        updated_by: accessEmail,
-        revision: 0
-      },
-      {
-        id: "editor-profile",
-        email: "editor@example.invalid",
-        name: "Preview Editor",
-        role: "editor",
-        status: "active",
-        created_at: "2026-06-24T00:00:00.000Z",
-        updated_at: "2026-06-24T00:00:00.000Z",
-        created_by: accessEmail,
-        updated_by: accessEmail,
-        revision: 0
-      },
-      {
-        id: "viewer-profile",
-        email: "viewer@example.invalid",
-        name: "Preview Viewer",
-        role: "viewer",
-        status: "active",
-        created_at: "2026-06-24T00:00:00.000Z",
-        updated_at: "2026-06-24T00:00:00.000Z",
-        created_by: accessEmail,
-        updated_by: accessEmail,
-        revision: 0
-      }
-    );
-
-    const listResponse = await worker.fetch(
-      makeRequest("/api/admin/users", {
-        method: "GET",
-        headers: viewerAccess.header
-      }),
-      {
-        ...baseEnv,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
-      }
-    );
-    const adminListResponse = await worker.fetch(
-      makeRequest("/api/admin/users", { method: "GET", headers: adminAccess.header }),
-      baseEnv
-    );
-    const editorListResponse = await worker.fetch(
-      makeRequest("/api/admin/users", { method: "GET", headers: editorAccess.header }),
-      { ...baseEnv, ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson }
-    );
-    const adminDetailResponse = await worker.fetch(
-      makeRequest("/api/admin/users/editor-profile", { method: "GET", headers: adminAccess.header }),
-      baseEnv
-    );
-    const editorMeResponse = await worker.fetch(
-      makeRequest("/api/admin/users/me", { method: "GET", headers: editorAccess.header }),
-      { ...baseEnv, ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson }
-    );
-    const viewerMeResponse = await worker.fetch(
-      makeRequest("/api/admin/users/me", {
-        method: "GET",
-        headers: viewerAccess.header
-      }),
-      {
-        ...baseEnv,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson
-      }
-    );
-    const adminCreateResponse = await worker.fetch(
-      makeRequest("/api/admin/users", {
-        method: "POST",
-        headers: {
-          ...adminAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          email: "new-user@example.invalid",
-          name: "New User",
-          role: "viewer"
-        })
-      }),
-      baseEnv
-    );
-    const createdUser = await readJson(adminCreateResponse);
-    const createdUserId = String((createdUser.item as { id?: unknown } | undefined)?.id ?? "");
-    const editorCreateResponse = await worker.fetch(
-      makeRequest("/api/admin/users", {
-        method: "POST",
-        headers: { ...editorAccess.header, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: "editor-created@example.invalid",
-          name: "Must Not Create",
-          role: "viewer"
-        })
-      }),
-      { ...baseEnv, ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson }
-    );
-    const editorSelfResponse = await worker.fetch(
-      makeRequest("/api/admin/users/editor-profile", {
-        method: "PATCH",
-        headers: {
-          ...editorAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ name: "Editor Self Update" })
-      }),
-      {
-        ...baseEnv,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
-      }
-    );
-    const editorUnsafeResponse = await worker.fetch(
-      makeRequest("/api/admin/users/editor-profile", {
-        method: "PATCH",
-        headers: {
-          ...editorAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ role: "admin", status: "disabled" })
-      }),
-      {
-        ...baseEnv,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
-      }
-    );
-    const editorOtherResponse = await worker.fetch(
-      makeRequest("/api/admin/users/viewer-profile", {
-        method: "PATCH",
-        headers: {
-          ...editorAccess.header,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ name: "Editor must not edit another user" })
-      }),
-      {
-        ...baseEnv,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
-      }
-    );
-    const viewerSelfUpdateResponse = await worker.fetch(
-      makeRequest("/api/admin/users/viewer-profile", {
-        method: "PATCH",
-        headers: { ...viewerAccess.header, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Viewer must not update" })
-      }),
-      { ...baseEnv, ADMIN_WRITE_ACCESS_JWKS_JSON: viewerAccess.jwksJson }
-    );
-    const editorDeleteSelfResponse = await worker.fetch(
-      makeRequest("/api/admin/users/editor-profile", {
-        method: "DELETE",
-        headers: editorAccess.header
-      }),
-      {
-        ...baseEnv,
-        ADMIN_WRITE_ACCESS_JWKS_JSON: editorAccess.jwksJson
-      }
-    );
-    const adminDeleteOtherResponse = await worker.fetch(
-      makeRequest(`/api/admin/users/${createdUserId}`, {
-        method: "DELETE",
-        headers: adminAccess.header
-      }),
-      baseEnv
-    );
-    const lastAdminDemotionResponse = await worker.fetch(
-      makeRequest("/api/admin/users/admin-profile", {
-        method: "PATCH",
-        headers: { ...adminAccess.header, "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "viewer" })
-      }),
-      baseEnv
-    );
-    const adminDeleteSelfResponse = await worker.fetch(
-      makeRequest("/api/admin/users/admin-profile", {
-        method: "DELETE",
-        headers: adminAccess.header
-      }),
-      baseEnv
-    );
-
-    expect(listResponse.status).toBe(403);
-    await expect(readJson(listResponse)).resolves.toMatchObject({ error: "required permission is missing" });
-    expect(adminListResponse.status).toBe(200);
-    await expect(readJson(adminListResponse)).resolves.toMatchObject({
-      items: expect.arrayContaining([
-        expect.objectContaining({ id: "admin-profile", role: "admin" }),
-        expect.objectContaining({ id: "editor-profile", role: "editor" })
-      ])
-    });
-    expect(editorListResponse.status).toBe(403);
-    expect(adminDetailResponse.status).toBe(200);
-    await expect(readJson(adminDetailResponse)).resolves.toMatchObject({
-      item: expect.objectContaining({ id: "editor-profile", email: "editor@example.invalid" })
-    });
-    expect(editorMeResponse.status).toBe(200);
-    expect(viewerMeResponse.status).toBe(200);
-    await expect(readJson(viewerMeResponse)).resolves.toMatchObject({
-      item: expect.objectContaining({ id: "viewer-profile", role: "viewer" })
-    });
-    expect(adminCreateResponse.status).toBe(201);
-    expect(editorCreateResponse.status).toBe(403);
-    expect(editorSelfResponse.status).toBe(200);
-    await expect(readJson(editorSelfResponse)).resolves.toMatchObject({
-      item: expect.objectContaining({
-        id: "editor-profile",
-        name: "Editor Self Update",
-        role: "editor",
-        status: "active"
-      })
-    });
-    expect(editorUnsafeResponse.status).toBe(403);
-    await expect(readJson(editorUnsafeResponse)).resolves.toMatchObject({
-      error: "required permission is missing"
-    });
-    expect(editorOtherResponse.status).toBe(403);
-    await expect(readJson(editorOtherResponse)).resolves.toMatchObject({
-      error: "required permission is missing"
-    });
-    expect(viewerSelfUpdateResponse.status).toBe(403);
-    expect(editorDeleteSelfResponse.status).toBe(403);
-    await expect(readJson(editorDeleteSelfResponse)).resolves.toMatchObject({
-      error: "required permission is missing"
-    });
-    expect(adminDeleteOtherResponse.status).toBe(200);
-    expect(lastAdminDemotionResponse.status).toBe(403);
-    expect(adminDeleteSelfResponse.status).toBe(403);
-    await expect(readJson(adminDeleteSelfResponse)).resolves.toMatchObject({
-      error: "ไม่สามารถลบบัญชีของตนเองได้"
-    });
-  });
-
-  it("requires Cloudflare Access for browser-origin admin writes and derives the actor from the verified identity", async () => {
-    const { db, tables } = createAdminWriteMockDb();
-    const access = await createAccessFixture();
-    const missingResponse = await worker.fetch(
-      makeJsonRequest("/api/admin/content", contentInput, {
-        headers: {
-          "Content-Type": "application/json",
-          Origin: "https://preview-admin.example.test"
-        }
-      }),
-      makeAccessEnv(db, access.jwksJson)
-    );
-    const spoofedActorResponse = await worker.fetch(
-      makeJsonRequest("/api/admin/content", contentInput, {
-        headers: {
-          ...access.header,
-          Origin: "https://preview-admin.example.test",
-          "X-RCAT-Admin-Actor": "spoofed-browser-actor"
-        }
-      }),
-      makeAccessEnv(db, access.jwksJson)
-    );
-
-    expect(missingResponse.status).toBe(401);
-    expect(spoofedActorResponse.status).toBe(201);
-    expect(tables.contents[0]?.updated_by).toBe(accessEmail);
-    expect(tables.admin_audit_log[0]?.actor).toBe(accessEmail);
-  });
-
-  it("rejects invalid Access JWT claims and disallowed browser origins before D1 mutation", async () => {
-    const { db, tables } = createAdminWriteMockDb();
-    const wrongAudience = await createAccessFixture({ aud: "wrong-audience" });
-    const expired = await createAccessFixture({ exp: Math.floor(Date.now() / 1000) - 60 });
-    const disallowedEmail = await createAccessFixture({ email: "other-identity" });
-    const valid = await createAccessFixture();
-
-    const wrongAudienceResponse = await worker.fetch(
-      makeJsonRequest("/api/admin/content", contentInput, {
-        headers: {
-          ...wrongAudience.header,
-          Origin: "https://preview-admin.example.test"
-        }
-      }),
-      makeAccessEnv(db, wrongAudience.jwksJson)
-    );
-    const expiredResponse = await worker.fetch(
-      makeJsonRequest("/api/admin/content", contentInput, {
-        headers: {
-          ...expired.header,
-          Origin: "https://preview-admin.example.test"
-        }
-      }),
-      makeAccessEnv(db, expired.jwksJson)
-    );
-    const disallowedEmailResponse = await worker.fetch(
-      makeJsonRequest("/api/admin/content", contentInput, {
-        headers: {
-          ...disallowedEmail.header,
-          Origin: "https://preview-admin.example.test"
-        }
-      }),
-      makeAccessEnv(db, disallowedEmail.jwksJson)
-    );
-    const disallowedOriginResponse = await worker.fetch(
-      makeJsonRequest("/api/admin/content", contentInput, {
-        headers: {
-          ...valid.header,
-          Origin: "https://evil.example.test"
-        }
-      }),
-      makeAccessEnv(db, valid.jwksJson)
-    );
-
-    expect(wrongAudienceResponse.status).toBe(403);
-    expect(expiredResponse.status).toBe(403);
-    expect(disallowedEmailResponse.status).toBe(403);
-    expect(disallowedOriginResponse.status).toBe(403);
-    expect(disallowedOriginResponse.headers.has("Access-Control-Allow-Origin")).toBe(false);
-    expect(disallowedOriginResponse.headers.has("Access-Control-Allow-Credentials")).toBe(false);
-    expect(tables.contents).toHaveLength(0);
-    expect(tables.admin_audit_log).toHaveLength(0);
-  });
-
-  it("rejects smoke-token authentication for browser-origin requests and production-like environments", async () => {
-    const originResponse = await worker.fetch(
-      makeJsonRequest("/api/admin/content", contentInput, {
-        headers: {
-          ...smokeHeaders,
-          Origin: "https://preview-admin.example.test"
-        }
-      }),
-      makeEnv()
-    );
-    const productionResponse = await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), {
-      ...makeEnv(),
-      ENVIRONMENT: "production"
-    });
-
-    expect(originResponse.status).toBe(403);
-    expect(productionResponse.status).toBe(403);
-  });
-
   it("creates, updates, publishes, unpublishes, and archives content while public reads reflect only published records", async () => {
     const { db } = createAdminWriteMockDb();
     const env = makeEnv(db);
@@ -1476,7 +681,7 @@ describe("M18 admin structured write routes", () => {
     const deleteResponse = await worker.fetch(
       makeRequest("/api/admin/content/m18-preview-content-001", {
         method: "DELETE",
-        headers: smokeHeaders
+        headers: cmsHeaders
       }),
       env
     );
@@ -1532,7 +737,7 @@ describe("M18 admin structured write routes", () => {
       makeRequest("/api/admin/content/m18-preview-content-001", {
         method: "DELETE",
         headers: {
-          ...smokeHeaders,
+          ...cmsHeaders,
           "X-RCAT-Expected-Revision": "1"
         }
       }),
@@ -1550,7 +755,7 @@ describe("M18 admin structured write routes", () => {
       slug: "__deleted__:m18-preview-content-001",
       deleted_at: expect.any(String),
       updated_at: expect.any(String),
-      updated_by: smokeActorEmail,
+      updated_by: cmsActorEmail,
       revision: Number(beforeDelete.revision) + 1
     });
     expect(String(deletedRow.deleted_at)).not.toBe("");
@@ -1559,7 +764,7 @@ describe("M18 admin structured write routes", () => {
     expect(auditActionsFor(tables, "content", "m18-preview-content-001")).toEqual(["create", "publish", "archive"]);
 
     const adminListResponse = await worker.fetch(
-      makeRequest("/api/admin/content?page=1&pageSize=20", { headers: smokeHeaders }),
+      makeRequest("/api/admin/content?page=1&pageSize=20", { headers: cmsHeaders }),
       env
     );
     const deletedPublicResponse = await worker.fetch(makeRequest("/api/public/content/m18-preview-news"), env);
@@ -1623,7 +828,7 @@ describe("M18 admin structured write routes", () => {
         {},
         {
           headers: {
-            ...smokeHeaders,
+            ...cmsHeaders,
             "X-RCAT-Expected-Revision": "0"
           }
         }
@@ -1639,7 +844,7 @@ describe("M18 admin structured write routes", () => {
     expect(tables.contents[0]).toMatchObject({
       status: "published",
       revision: 1,
-      updated_by: smokeActorEmail
+      updated_by: cmsActorEmail
     });
     expect(String(tables.contents[0]?.publish_at ?? "")).toBeTruthy();
   });
@@ -1675,7 +880,7 @@ describe("M18 admin structured write routes", () => {
         {},
         {
           headers: {
-            ...smokeHeaders,
+            ...cmsHeaders,
             "X-RCAT-Expected-Revision": "0"
           }
         }
@@ -1698,7 +903,7 @@ describe("M18 admin structured write routes", () => {
     await worker.fetch(
       makeRequest("/api/admin/content/m18-preview-content-001", {
         method: "DELETE",
-        headers: smokeHeaders
+        headers: cmsHeaders
       }),
       env
     );
@@ -1763,7 +968,7 @@ describe("M18 admin structured write routes", () => {
         table: "contents",
         missingColumns: [missingColumn]
       });
-      expect(JSON.stringify(body)).not.toMatch(/m18-preview-smoke-token|SELECT|secret|token/i);
+      expect(JSON.stringify(body)).not.toMatch(/phase-8-test-proxy|SELECT|secret|token/i);
     }
   );
 
@@ -1779,7 +984,7 @@ describe("M18 admin structured write routes", () => {
         {},
         {
           headers: {
-            ...smokeHeaders,
+            ...cmsHeaders,
             "X-RCAT-Expected-Revision": "0"
           }
         }
@@ -1798,7 +1003,7 @@ describe("M18 admin structured write routes", () => {
       expectedRevisionPresent: true,
       errorName: "Error"
     });
-    expect(JSON.stringify(body)).not.toMatch(/SELECT|stack|secret|token|m18-preview-smoke-token/i);
+    expect(JSON.stringify(body)).not.toMatch(/SELECT|stack|secret|token|phase-8-test-proxy/i);
   });
 
   it("keeps non-preview content publish diagnostics masked for unknown D1 failures", async () => {
@@ -1832,7 +1037,7 @@ describe("M18 admin structured write routes", () => {
       makeRequest("/api/admin/content/m18-preview-content-001", {
         method: "DELETE",
         headers: {
-          ...smokeHeaders,
+          ...cmsHeaders,
           "X-RCAT-Expected-Revision": "9"
         }
       }),
@@ -1851,7 +1056,7 @@ describe("M18 admin structured write routes", () => {
       makeRequest("/api/admin/content/m18-preview-content-001", {
         method: "DELETE",
         headers: {
-          ...smokeHeaders,
+          ...cmsHeaders,
           "X-RCAT-Expected-Revision": "0"
         }
       }),
@@ -1885,7 +1090,7 @@ describe("M18 admin structured write routes", () => {
     const deleteResponse = await worker.fetch(
       makeRequest("/api/admin/content/field-program-001", {
         method: "DELETE",
-        headers: { ...smokeHeaders, "X-RCAT-Expected-Revision": "1" }
+        headers: { ...cmsHeaders, "X-RCAT-Expected-Revision": "1" }
       }),
       env
     );
@@ -1968,7 +1173,7 @@ describe("M18 admin structured write routes", () => {
       worker.fetch(
         makeRequest("/api/admin/content/m18-preview-content-001", {
           method: "DELETE",
-          headers: smokeHeaders
+          headers: cmsHeaders
         }),
         env
       ),
@@ -2011,7 +1216,7 @@ describe("M18 admin structured write routes", () => {
       worker.fetch(
         makeRequest("/api/admin/documents/m18-preview-document-001", {
           method: "DELETE",
-          headers: smokeHeaders
+          headers: cmsHeaders
         }),
         env
       ),
@@ -2043,7 +1248,7 @@ describe("M18 admin structured write routes", () => {
       worker.fetch(
         makeRequest("/api/admin/home-sections/m18-audit-home-section-001", {
           method: "DELETE",
-          headers: smokeHeaders
+          headers: cmsHeaders
         }),
         env
       ),
@@ -2078,7 +1283,7 @@ describe("M18 admin structured write routes", () => {
       worker.fetch(
         makeRequest("/api/admin/visitor-stats/daily/2026-06-16", {
           method: "DELETE",
-          headers: smokeHeaders
+          headers: cmsHeaders
         }),
         env
       ),
@@ -2115,7 +1320,7 @@ describe("M18 admin structured write routes", () => {
     const malformedResponse = await worker.fetch(
       makeRequest("/api/admin/content", {
         method: "POST",
-        headers: smokeHeaders,
+        headers: cmsHeaders,
         body: "{"
       }),
       env
@@ -2228,7 +1433,7 @@ describe("M18 admin structured write routes", () => {
     const archiveResponse = await worker.fetch(
       makeRequest("/api/admin/documents/m18-preview-document-001", {
         method: "DELETE",
-        headers: smokeHeaders
+        headers: cmsHeaders
       }),
       env
     );
@@ -2293,7 +1498,7 @@ describe("M18 admin structured write routes", () => {
     const text = await response.text();
 
     expect(response.status).toBe(500);
-    expect(text).not.toMatch(/SELECT|stack|D1 failure|secret|token|m18-preview-smoke-token/i);
+    expect(text).not.toMatch(/SELECT|stack|D1 failure|secret|token|phase-8-test-proxy/i);
     expect(tables.admin_audit_log).toHaveLength(0);
   });
 });

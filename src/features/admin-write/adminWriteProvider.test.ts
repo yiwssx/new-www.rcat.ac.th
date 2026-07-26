@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContentItem } from "../public-content/types";
 import type { CmsDocumentItem } from "../cms-documents/types";
-import { CMS_SESSION_EXPIRED_EVENT, CMS_SESSION_EXPIRED_MESSAGE, CMS_SESSION_NOTICE_KEY } from "../cms-auth";
+import {
+  CMS_CSRF_COOKIE_NAME,
+  CMS_SESSION_EXPIRED_EVENT,
+  CMS_SESSION_EXPIRED_MESSAGE,
+  CMS_SESSION_NOTICE_KEY
+} from "../cms-auth";
 
 const mediaBridgeMocks = vi.hoisted(() => ({
   deleteMediaAssetFromBridge: vi.fn(),
@@ -48,17 +53,15 @@ function setAppsScriptEnv() {
   vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "");
   vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "");
 }
 
 function setCloudflareEnv() {
   vi.stubEnv("VITE_BACKEND_MIGRATION_MODE", "cloudflare-first-preview");
   vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "cloudflare");
-  vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://preview-worker.example.test");
+  vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "cloudflare-access");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "");
+  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "/api/admin-proxy");
 }
 
 function setServerProxyEnv() {
@@ -66,8 +69,16 @@ function setServerProxyEnv() {
   vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "cloudflare");
   vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "server-proxy");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "/api/admin-proxy");
+}
+
+function proxyUrl(path: string) {
+  return `/api/admin-proxy?path=${encodeURIComponent(path)}`;
+}
+
+function unwrapProxyUrl(url: string) {
+  const parsed = new URL(url, "https://cms.example.invalid");
+  return parsed.pathname === "/api/admin-proxy" ? (parsed.searchParams.get("path") ?? "") : parsed.pathname;
 }
 
 function jsonResponse(payload: unknown, status = 200) {
@@ -86,14 +97,13 @@ describe("M18 admin structured write provider", () => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
     setAppsScriptEnv();
+    vi.spyOn(Document.prototype, "cookie", "get").mockReturnValue(`${CMS_CSRF_COOKIE_NAME}=${"C".repeat(43)}`);
   });
 
   it("fails closed when Cloudflare admin config is missing", async () => {
     const { saveContentItem } = await import("../cms-content/api");
 
-    await expect(saveContentItem(sampleContent)).rejects.toThrow(
-      "A dev or preview Cloudflare admin API URL is required"
-    );
+    await expect(saveContentItem(sampleContent)).rejects.toThrow("same-origin CMS Admin proxy");
   });
 
   it("does not fall back to Apps Script for legacy provider configuration", async () => {
@@ -101,14 +111,13 @@ describe("M18 admin structured write provider", () => {
     vi.stubEnv("VITE_BACKEND_MIGRATION_MODE", "legacy-apps-script");
     const { saveDocumentToApi } = await import("../cms-documents/api");
 
-    await expect(saveDocumentToApi(sampleDocument)).rejects.toThrow(
-      "A dev or preview Cloudflare admin API URL is required"
-    );
+    await expect(saveDocumentToApi(sampleDocument)).rejects.toThrow("same-origin CMS Admin proxy");
   });
 
   it("routes content and document structured writes to Cloudflare only in explicit preview mode", async () => {
     setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      url = unwrapProxyUrl(url);
       const body = JSON.parse(String(init?.body ?? "{}"));
 
       if (url.endsWith("/api/admin/content")) {
@@ -129,7 +138,7 @@ describe("M18 admin structured write provider", () => {
     await expect(saveDocumentToApi(sampleDocument)).resolves.toMatchObject({ id: sampleDocument.id });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/content");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/content"));
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       method: "POST",
       credentials: "include"
@@ -140,6 +149,7 @@ describe("M18 admin structured write provider", () => {
   it("uses PATCH with a custom revision header and never sends If-Match", async () => {
     setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      url = unwrapProxyUrl(url);
       const body = JSON.parse(String(init?.body ?? "{}"));
       const pathParts = url.split("/");
       return jsonResponse({
@@ -153,12 +163,8 @@ describe("M18 admin structured write provider", () => {
     await saveContentItem({ ...sampleContent, revision: 3 });
     await saveDocumentToApi({ ...sampleDocument, revision: 3 });
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001"
-    );
-    expect(fetchMock.mock.calls[1]?.[0]).toBe(
-      "https://preview-worker.example.test/api/admin/documents/m18-preview-document-001"
-    );
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/content/m18-preview-content-001"));
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(proxyUrl("/api/admin/documents/m18-preview-document-001"));
     fetchMock.mock.calls.forEach(([, init]) => {
       expect(init?.method).toBe("PATCH");
       expect(new Headers(init?.headers).get("X-RCAT-Expected-Revision")).toBe("3");
@@ -179,9 +185,7 @@ describe("M18 admin structured write provider", () => {
     await saveContentItem(sampleContent);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001"
-    );
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/content/m18-preview-content-001"));
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PATCH");
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
   });
@@ -189,6 +193,7 @@ describe("M18 admin structured write provider", () => {
   it("uses PATCH for existing E-Service links with an id even when revision is missing", async () => {
     setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      url = unwrapProxyUrl(url);
       const body = JSON.parse(String(init?.body ?? "{}"));
       return jsonResponse({ item: { ...body, id: url.split("/").pop(), revision: 3 } });
     });
@@ -204,9 +209,7 @@ describe("M18 admin structured write provider", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://preview-worker.example.test/api/admin/external-services/service-1"
-    );
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/external-services/service-1"));
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PATCH");
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"))).not.toHaveProperty("id");
@@ -215,6 +218,7 @@ describe("M18 admin structured write provider", () => {
   it("uses PATCH with a revision header for existing E-Service links when revision is present", async () => {
     setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      url = unwrapProxyUrl(url);
       const body = JSON.parse(String(init?.body ?? "{}"));
       return jsonResponse({ item: { ...body, id: url.split("/").pop(), revision: 5 } });
     });
@@ -231,9 +235,7 @@ describe("M18 admin structured write provider", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://preview-worker.example.test/api/admin/external-services/service-1"
-    );
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/external-services/service-1"));
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PATCH");
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("X-RCAT-Expected-Revision")).toBe("4");
   });
@@ -255,7 +257,7 @@ describe("M18 admin structured write provider", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/external-services");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/external-services"));
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
   });
 
@@ -280,7 +282,7 @@ describe("M18 admin structured write provider", () => {
     ]);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/external-services");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/external-services"));
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       method: "PUT",
       credentials: "include"
@@ -333,9 +335,7 @@ describe("M18 admin structured write provider", () => {
       latestItem: expect.objectContaining({ revision: 4, title: "Latest server title" })
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[1]?.[0]).toBe(
-      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001"
-    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(proxyUrl("/api/admin/content/m18-preview-content-001"));
   });
 
   it("publishes Cloudflare content through the content publish route with only valid revision headers", async () => {
@@ -350,9 +350,7 @@ describe("M18 admin structured write provider", () => {
     await publishContent({ id: sampleContent.id, revision: -1 });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001/publish"
-    );
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/content/m18-preview-content-001/publish"));
     expect(fetchMock.mock.calls[0]?.[0]).not.toContain("external-services");
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       method: "POST",
@@ -366,6 +364,7 @@ describe("M18 admin structured write provider", () => {
   it("refreshes the current item when Cloudflare content publish returns stale revision", async () => {
     setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      url = unwrapProxyUrl(url);
       if (url.endsWith("/api/admin/content/m18-preview-content-001/publish") && init?.method === "POST") {
         return jsonResponse({ error: "stale revision" }, 409);
       }
@@ -384,12 +383,8 @@ describe("M18 admin structured write provider", () => {
       latestItem: expect.objectContaining({ revision: 5, title: "Latest publish title" })
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001/publish"
-    );
-    expect(fetchMock.mock.calls[1]?.[0]).toBe(
-      "https://preview-worker.example.test/api/admin/content/m18-preview-content-001"
-    );
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/content/m18-preview-content-001/publish"));
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(proxyUrl("/api/admin/content/m18-preview-content-001"));
   });
 
   it("keeps media bytes on Apps Script while synchronizing returned metadata to Cloudflare", async () => {
@@ -434,7 +429,7 @@ describe("M18 admin structured write provider", () => {
     await deleteMediaAsset("m18-preview-media-001");
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/media");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/media"));
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
     expect(mediaBridgeMocks.saveMediaAssetToBridge).toHaveBeenCalled();
     expect(mediaBridgeMocks.uploadMediaAssetToBridge).toHaveBeenCalled();
@@ -457,7 +452,7 @@ describe("M18 admin structured write provider", () => {
     window.removeEventListener(CMS_SESSION_EXPIRED_EVENT, eventListener);
   });
 
-  it("keeps Cloudflare admin snapshot GET credentialed without sending a JSON content type", async () => {
+  it("keeps CMS Admin snapshot GET credentialed without sending a JSON content type", async () => {
     setCloudflareEnv();
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
       jsonResponse({
@@ -481,7 +476,7 @@ describe("M18 admin structured write provider", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/snapshot");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/snapshot"));
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       credentials: "include"
     });
@@ -524,6 +519,7 @@ describe("M18 admin structured write provider", () => {
   it("keeps existing mutation result shapes compatible for publish and delete", async () => {
     setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      url = unwrapProxyUrl(url);
       if (url.endsWith("/api/admin/content/m18-preview-content-001/publish")) {
         return jsonResponse({ id: "m18-preview-content-001", published: true });
       }
@@ -587,7 +583,8 @@ describe("M18 admin structured write provider", () => {
       revision: 2
     };
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-      const path = new URL(url).pathname;
+      url = unwrapProxyUrl(url);
+      const path = new URL(url, "https://cms.example.invalid").pathname;
       const body = init?.body ? JSON.parse(String(init.body)) : {};
 
       if (init?.method === "DELETE") {
@@ -648,7 +645,7 @@ describe("M18 admin structured write provider", () => {
     await eventsApi.deleteCalendarEvent(event.id);
 
     expect(fetchMock).toHaveBeenCalledTimes(13);
-    expect(fetchMock.mock.calls[4]?.[0]).toContain("/api/admin/visitor-stats/daily/");
+    expect(unwrapProxyUrl(String(fetchMock.mock.calls[4]?.[0]))).toContain("/api/admin/visitor-stats/daily/");
     expect(fetchMock.mock.calls[4]?.[1]).toMatchObject({
       method: "PUT",
       body: JSON.stringify({
@@ -668,6 +665,7 @@ describe("M18 admin structured write provider", () => {
   it("creates and edits carousel slides through the correct Cloudflare routes without Apps Script", async () => {
     setCloudflareEnv();
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      url = unwrapProxyUrl(url);
       const body = JSON.parse(String(init?.body ?? "{}"));
       return jsonResponse({ item: { ...body, id: url.endsWith("/api/admin/carousel") ? "slide-new" : "slide-1" } });
     });
@@ -684,9 +682,9 @@ describe("M18 admin structured write provider", () => {
     await saveCarouselSlideToApi({ ...baseSlide, id: "slide-1" });
     await saveCarouselSlideToApi({ ...baseSlide, id: "slide-1", revision: 2 });
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://preview-worker.example.test/api/admin/carousel");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(proxyUrl("/api/admin/carousel"));
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
-    expect(fetchMock.mock.calls[1]?.[0]).toBe("https://preview-worker.example.test/api/admin/carousel/slide-1");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(proxyUrl("/api/admin/carousel/slide-1"));
     expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("PATCH");
     expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).has("X-RCAT-Expected-Revision")).toBe(false);
     expect(new Headers(fetchMock.mock.calls[2]?.[1]?.headers).get("X-RCAT-Expected-Revision")).toBe("2");

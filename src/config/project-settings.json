@@ -16,11 +16,7 @@
     "refetchOnWindowFocus": false
   },
   "storageKeys": {
-    "session": "rcat.cms.session",
     "displaySettings": "rcat.cms.display.settings"
-  },
-  "auth": {
-    "sessionHours": 8
   },
   "roles": [
     {

@@ -36,7 +36,6 @@ function isMutation(method: string) {
 }
 
 function baseRequirement(method: string, segments: readonly string[]): AdminStepUpAssurance | null {
-  if (method === "POST" && segments[0] === "auth" && segments[1] === "bootstrap-root-credential") return "mfa";
   if (segments[0] === "users") {
     if (segments.length === 1 && method === "POST") return "password";
     if (segments.length === 2 && (method === "PATCH" || method === "DELETE")) return "password";

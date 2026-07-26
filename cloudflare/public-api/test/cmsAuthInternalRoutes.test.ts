@@ -40,7 +40,7 @@ const credentialIdentity = {
 };
 
 function env(overrides: Partial<Env> = {}): Env {
-  return { CMS_AUTH_ENABLED: "true", CMS_AUTH_PROXY_SECRET: proxySecret, ...overrides };
+  return { CMS_AUTH_PROXY_SECRET: proxySecret, ...overrides };
 }
 
 function request(path: string, options: { body?: unknown; headers?: Record<string, string>; method?: string } = {}) {
@@ -99,11 +99,7 @@ async function json(response: Response) {
 }
 
 describe("Worker internal CMS-auth routes", () => {
-  it("rejects disabled, missing-secret, invalid-secret, and browser-Origin requests", async () => {
-    const disabled = await handleCmsAuthInternal(
-      request("/api/internal/cms-auth/login", { body: {} }),
-      env({ CMS_AUTH_ENABLED: "false" })
-    );
+  it("rejects missing-secret, invalid-secret, and browser-Origin requests", async () => {
     const missing = await handleCmsAuthInternal(
       request("/api/internal/cms-auth/login", { body: {}, headers: { [CMS_AUTH_PROXY_SECRET_HEADER]: "" } }),
       env()
@@ -120,7 +116,6 @@ describe("Worker internal CMS-auth routes", () => {
       env()
     );
 
-    expect(disabled?.status).toBe(404);
     expect(missing?.status).toBe(403);
     expect(invalid?.status).toBe(403);
     expect(browser?.status).toBe(403);

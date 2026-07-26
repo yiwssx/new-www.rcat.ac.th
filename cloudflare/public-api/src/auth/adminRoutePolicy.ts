@@ -215,10 +215,6 @@ export function resolveAdminRoutePolicy(method: string, segments: readonly strin
     return UNMATCHED;
   }
 
-  if (isExact(segments, "auth", "bootstrap-root-credential") && method === "POST") {
-    return requires("auth.bootstrap-root-credential", "admin-auth");
-  }
-
   if (isExact(segments, "backup", "counts") && method === "GET") {
     return requires("backup.counts", "system-backup");
   }

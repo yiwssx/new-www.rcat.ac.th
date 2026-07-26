@@ -81,7 +81,6 @@ const SUPPORTED_ADMIN_ROUTES: readonly RouteCase[] = [
   { method: "DELETE", path: "users/user-1/invitations", requirement: "users.invite" },
   { method: "POST", path: "users/user-1/password-reset", requirement: "users.reset-password" },
   { method: "POST", path: "users/user-1/revoke-sessions", requirement: "users.revoke-sessions" },
-  { method: "POST", path: "auth/bootstrap-root-credential", requirement: "auth.bootstrap-root-credential" },
   { method: "GET", path: "backup/counts", requirement: "backup.counts" },
   { method: "GET", path: "backup/download", requirement: "backup.download" },
   { method: "GET", path: "public-content-contract", requirement: "public-contracts.read" },
@@ -104,8 +103,8 @@ describe("Admin route policy", () => {
     expect(requirement(decision)).toEqual(expected);
   });
 
-  it("has an explicit independent inventory for all 77 supported method/path patterns", () => {
-    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(77);
+  it("has an explicit independent inventory for all 76 supported method/path patterns", () => {
+    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(76);
     expect(
       SUPPORTED_ADMIN_ROUTES.every(({ method, path }) => resolveAdminRoutePolicy(method, segments(path)).matched)
     ).toBe(true);
@@ -134,7 +133,8 @@ describe("Admin route policy", () => {
     ["POST", "users/user-1/invitations/extra"],
     ["POST", "users/user-1/password-reset/extra"],
     ["GET", "content//content-1"],
-    ["GET", "content/"]
+    ["GET", "content/"],
+    ["POST", "auth/bootstrap-root-credential"]
   ])("fails closed for unmatched or malformed %s %s", (method, path) => {
     expect(resolveAdminRoutePolicy(method, segments(path))).toEqual({ matched: false });
   });

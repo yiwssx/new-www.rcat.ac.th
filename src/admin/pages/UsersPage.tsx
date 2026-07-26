@@ -7,7 +7,7 @@ export default function UsersPage() {
     <Box>
       <PageHeader
         title="ผู้ใช้และสิทธิ์การเข้าถึง"
-        description="ค้นหาและจัดการผู้ใช้แบบแบ่งหน้าผ่าน Cloudflare Access, RBAC และ D1"
+        description="ค้นหาและจัดการผู้ใช้แบบแบ่งหน้าผ่าน CMS Session, RBAC และ D1"
       />
       <Stack spacing={2.5}>
         <UserManagementCard />

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CmsDocumentItem, Session, User } from "../../types";
+import type { CmsDocumentItem, User } from "../../types";
 import DocumentsPage from "./DocumentsPage";
 
 const authMock = vi.hoisted(() => ({ role: "editor" as User["role"] }));
@@ -53,11 +53,11 @@ vi.mock("../../context/authSessionContext", () => ({
       email: `${authMock.role}@example.invalid`,
       role: authMock.role
     };
-    const session: Session = { user, token: "test-session-token", expiresAt: "2026-12-31T00:00:00.000Z" };
     const capabilities =
       authMock.role === "viewer"
         ? []
         : ["documents.create", "documents.update", "documents.delete", "documents.publish"];
+    const session = { user, capabilities };
     return { session, capabilities, login: vi.fn(), logout: vi.fn() };
   }
 }));

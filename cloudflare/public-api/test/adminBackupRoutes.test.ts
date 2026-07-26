@@ -1,18 +1,56 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const authenticateCmsSessionMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../src/auth/cmsSessionService", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/auth/cmsSessionService")>();
+  return { ...actual, authenticateCmsSession: authenticateCmsSessionMock };
+});
+
+import {
+  CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_CLIENT_IP_HEADER,
+  CMS_CSRF_TOKEN_HEADER,
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER
+} from "../src/routes/cmsAuthInternal";
 import worker from "../src/index";
 
-const smokeToken = "m21-preview-smoke-token";
+const cmsProxySecret = "phase-8-backup-proxy-secret-repeated-000000000";
+const cmsCsrfToken = "C".repeat(43);
+const adminSessionToken = "A".repeat(43);
+const editorSessionToken = "E".repeat(43);
 const adminHeaders = {
-  "X-RCAT-Admin-Smoke-Token": smokeToken,
-  "X-RCAT-Admin-Proxy-Email": "admin@example.test",
-  "X-RCAT-Admin-Proxy-Role": "admin"
+  [CMS_AUTH_PROXY_SECRET_HEADER]: cmsProxySecret,
+  [CMS_SESSION_TOKEN_HEADER]: adminSessionToken,
+  [CMS_CSRF_TOKEN_HEADER]: cmsCsrfToken,
+  [CMS_CLIENT_IP_HEADER]: "203.0.113.81",
+  [CMS_USER_AGENT_HEADER]: "phase-8-backup-test"
 };
 const editorHeaders = {
   ...adminHeaders,
-  "X-RCAT-Admin-Proxy-Email": "editor@example.test",
-  "X-RCAT-Admin-Proxy-Role": "editor"
+  [CMS_SESSION_TOKEN_HEADER]: editorSessionToken
 };
+
+authenticateCmsSessionMock.mockImplementation(async ({ sessionToken }: { sessionToken: string }) => {
+  const role = sessionToken === editorSessionToken ? "editor" : "admin";
+  return {
+    status: "authenticated",
+    identity: {
+      id: `${role}-user`,
+      email: `${role}@example.test`,
+      name: `${role} user`,
+      username: `${role}.user`,
+      role,
+      isRoot: false,
+      sessionId: `${role}-session`,
+      sessionVersion: 1,
+      reauthenticatedAt: new Date().toISOString(),
+      mfaVerifiedAt: new Date().toISOString()
+    }
+  };
+});
 
 function makeRequest(path: string, init: RequestInit = {}) {
   return new Request(`https://preview-worker.example.test${path}`, init);
@@ -20,9 +58,7 @@ function makeRequest(path: string, init: RequestInit = {}) {
 
 function createEnv(db?: D1Database) {
   return {
-    ADMIN_WRITE_PREVIEW_ENABLED: "true",
-    ADMIN_WRITE_SMOKE_ENABLED: "true",
-    ADMIN_WRITE_SMOKE_TOKEN: smokeToken,
+    CMS_AUTH_PROXY_SECRET: cmsProxySecret,
     ENVIRONMENT: "preview",
     DB: db
   };
@@ -71,9 +107,9 @@ describe("M21 admin D1 backup routes", () => {
   it("rejects backup requests without an authenticated admin credential", async () => {
     const response = await worker.fetch(makeRequest("/api/admin/backup/counts"), createEnv(createBackupMockDb({})));
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(403);
     await expect(readJson(response)).resolves.toMatchObject({
-      error: "admin smoke credential is required"
+      error: "CMS proxy authentication failed"
     });
   });
 

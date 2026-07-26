@@ -8,7 +8,6 @@ interface ImportMetaEnv {
   readonly VITE_CLOUDFLARE_PUBLIC_API_URL?: string;
   readonly VITE_ADMIN_WRITE_PROVIDER?: string;
   readonly VITE_CLOUDFLARE_ADMIN_API_URL?: string;
-  readonly VITE_CLOUDFLARE_ADMIN_AUTH_MODE?: "cloudflare-access" | "server-proxy";
   readonly VITE_CLOUDFLARE_ADMIN_PROXY_URL?: string;
   readonly VITE_PUBLIC_ANALYTICS_STRATEGY?: "gtm" | "gtag" | "both";
 }

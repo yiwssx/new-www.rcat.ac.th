@@ -20,24 +20,20 @@ The repository contract is Node `22.x` (exact local/CI pin `22.23.1`) and pnpm `
 | `VITE_CLOUDFLARE_PUBLIC_API_URL`  | Cloudflare Worker public API origin.                                                                      | Required when `VITE_PUBLIC_API_PROVIDER=cloudflare` | Must be a public Worker origin. Do not include secrets.                                         |
 | `VITE_ADMIN_WRITE_PROVIDER`       | Selects the admin structured write provider.                                                              | Required for Cloudflare-backed admin verification   | Use `cloudflare` for the current Worker/D1 admin structured write path.                         |
 | `VITE_BACKEND_MIGRATION_MODE`     | Enables the Cloudflare-first preview runtime policy.                                                      | Required for preview field verification             | Current preview value is `cloudflare-first-preview`; do not use it to imply production cutover. |
-| `VITE_CLOUDFLARE_ADMIN_AUTH_MODE` | Selects browser admin authentication behavior for the Cloudflare admin path.                              | Required for Cloudflare-backed admin verification   | Use the configured non-secret mode label only.                                                  |
-| `VITE_CLOUDFLARE_ADMIN_PROXY_URL` | Optional same-origin or public admin proxy base URL for CMS requests.                                     | Optional                                            | Do not include tokens or private deployment URLs.                                               |
+| `VITE_CLOUDFLARE_ADMIN_PROXY_URL` | Same-origin CMS Admin proxy path.                                                                         | Required for Cloudflare-backed admin access         | Use exactly `/api/admin-proxy`; do not use a direct Worker URL.                                 |
 | `VITE_PUBLIC_ANALYTICS_STRATEGY`  | Selects the public analytics loader strategy. Supported values are `gtm`, `gtag`, or `both`.              | Optional                                            | Omit to use the built-in default strategy.                                                      |
 
 ## Vercel Admin Proxy Variables
 
 Configure these in Vercel environment settings.
 
-| Variable                       | Purpose                                                      |
-| ------------------------------ | ------------------------------------------------------------ |
-| `ADMIN_PROXY_ALLOWED_EMAILS`   | Emails allowed to create admin proxy sessions.               |
-| `ADMIN_PROXY_PASSWORD_HASH`    | Password hash used by the admin proxy login endpoint.        |
-| `ADMIN_PROXY_SESSION_SECRET`   | Server-only secret used to sign admin proxy session cookies. |
-| `ADMIN_RBAC_ADMINS`            | Admin role email list.                                       |
-| `ADMIN_RBAC_EDITORS`           | Editor role email list.                                      |
-| `ADMIN_RBAC_VIEWERS`           | Viewer role email list.                                      |
-| `CLOUDFLARE_ADMIN_API_URL`     | Cloudflare Worker admin API origin.                          |
-| `CLOUDFLARE_ADMIN_SMOKE_TOKEN` | Server-only token forwarded from Vercel proxy to the Worker. |
+| Variable                   | Purpose                                                              |
+| -------------------------- | -------------------------------------------------------------------- |
+| `CLOUDFLARE_ADMIN_API_URL` | Cloudflare Worker admin API origin.                                  |
+| `CMS_AUTH_PROXY_SECRET`    | Server-only secret shared by the Vercel CMS proxies and Worker.      |
+| `GOOGLE_APPS_SCRIPT_URL`   | Apps Script Web App URL used by the server-side media/file bridge.   |
+| `APPS_SCRIPT_WEB_APP_URL`  | Alternate Apps Script Web App URL accepted by the media/file bridge. |
+| `APPS_SCRIPT_BRIDGE_TOKEN` | Server-only bridge token shared with Apps Script where required.     |
 
 ## Vercel Runtime Sitemap Variables
 
@@ -54,18 +50,13 @@ The runtime sitemap reads `/api/public/home` and `/api/public/content?kind=...` 
 
 Configure these in Cloudflare Worker environment settings.
 
-| Variable                         | Purpose                                                 |
-| -------------------------------- | ------------------------------------------------------- |
-| `ADMIN_RBAC_ADMINS`              | Admin role email list.                                  |
-| `ADMIN_RBAC_EDITORS`             | Editor role email list.                                 |
-| `ADMIN_RBAC_VIEWERS`             | Viewer role email list.                                 |
-| `ADMIN_WRITE_AUTH_MODE`          | Admin write authentication mode.                        |
-| `ADMIN_WRITE_ALLOWED_EMAILS`     | Allowed admin write emails.                             |
-| `ADMIN_WRITE_ALLOWED_ORIGINS`    | Allowed frontend/admin origins.                         |
-| `ADMIN_WRITE_PREVIEW_ENABLED`    | Enables preview admin write behavior where intended.    |
-| `ADMIN_WRITE_ACCESS_AUD`         | Cloudflare Access AUD when Access mode is used.         |
-| `ADMIN_WRITE_ACCESS_TEAM_DOMAIN` | Cloudflare Access team domain when Access mode is used. |
-| `DB`                             | D1 database binding.                                    |
+| Variable                         | Purpose                                                              |
+| -------------------------------- | -------------------------------------------------------------------- |
+| `ADMIN_WRITE_ALLOWED_ORIGINS`    | Allowed frontend/admin origins.                                      |
+| `CMS_AUTH_PROXY_SECRET`          | Server-only secret shared with the Vercel CMS proxies.               |
+| `CMS_MFA_ENCRYPTION_KEY`         | Server-only encryption key for CMS MFA secrets.                      |
+| `CMS_MFA_ENCRYPTION_KEY_VERSION` | Version label for the active CMS MFA encryption key.                 |
+| `DB`                             | D1 database binding containing CMS users, credentials, and Sessions. |
 
 ## Apps Script Media Bridge Variables
 
@@ -77,13 +68,13 @@ Configure these as server-side variables only.
 | `APPS_SCRIPT_WEB_APP_URL`  | Alternate Apps Script Web App URL variable accepted by the bridge. |
 | `APPS_SCRIPT_BRIDGE_TOKEN` | Server-only bridge token shared with Apps Script where required.   |
 
-Do not expose bridge URLs, bridge tokens, admin proxy secrets, admin smoke tokens, D1 identifiers, or Cloudflare Access AUD values through `VITE_` variables.
+Do not expose bridge URLs, bridge tokens, the CMS proxy secret, MFA encryption material, or D1 identifiers through `VITE_` variables.
 
 ## Removed From Current Frontend Runtime
 
 `VITE_GOOGLE_APPS_SCRIPT_URL` is not part of the current frontend runtime and must not be used as server runtime configuration.
 
-The current admin runtime uses the Vercel admin proxy, Cloudflare Worker/D1, and RBAC variables. The public frontend and runtime sitemap use the Cloudflare public API. Apps Script remains server-side only for the media/file bridge through `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`.
+The current admin runtime uses the Vercel CMS Admin proxy and the role stored in Cloudflare D1. The public frontend and runtime sitemap use the Cloudflare public API. Apps Script remains server-side only for the media/file bridge through `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`.
 
 ## Current Status
 

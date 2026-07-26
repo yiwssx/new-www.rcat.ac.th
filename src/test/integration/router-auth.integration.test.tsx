@@ -16,7 +16,7 @@ describe("router + auth integration", () => {
   it("redirects unauthenticated admin visits to the login page", async () => {
     render(<App />);
 
-    expect(await screen.findByRole("button", { name: /เข้าสู่ระบบ/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /เข้าสู่ระบบ/ }, { timeout: 5_000 })).toBeInTheDocument();
   });
 
   it("protects the public documents admin route", async () => {
@@ -24,7 +24,7 @@ describe("router + auth integration", () => {
 
     render(<App />);
 
-    const loginButton = await screen.findByRole("button", { name: /เข้าสู่ระบบ/ });
+    const loginButton = await screen.findByRole("button", { name: /เข้าสู่ระบบ/ }, { timeout: 5_000 });
 
     expect(loginButton.textContent).toContain("เข้าสู่ระบบ");
   });

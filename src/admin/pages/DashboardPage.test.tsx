@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AdminContentListItem, AdminDashboardSummary } from "../../features/admin-pagination";
-import type { Session, User } from "../../types";
+import type { User } from "../../types";
 import DashboardPage from "./DashboardPage";
 
 const paginationMock = vi.hoisted(() => ({
@@ -37,7 +37,7 @@ vi.mock("../../context/authSessionContext", () => ({
       email: "editor@example.invalid",
       role: "editor"
     };
-    const session: Session = { user, token: "test-session-token", expiresAt: "2026-12-31T00:00:00.000Z" };
+    const session = { user, capabilities: ["content.publish"] };
     return { session, capabilities: ["content.publish"], login: vi.fn(), logout: vi.fn() };
   }
 }));

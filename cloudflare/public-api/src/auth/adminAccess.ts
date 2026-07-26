@@ -1,4 +1,3 @@
-import { createLocalJWKSet, createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import type { Env } from "../env";
 import { jsonError } from "../responses";
 import { constantTimeTextEqual } from "./cmsSessionCrypto";
@@ -11,22 +10,18 @@ import {
   CMS_USER_AGENT_HEADER
 } from "../routes/cmsAuthInternal";
 
-const ACCESS_JWT_HEADER = "Cf-Access-Jwt-Assertion";
-const SMOKE_TOKEN_HEADER = "X-RCAT-Admin-Smoke-Token";
-const PROXY_EMAIL_HEADER = "X-RCAT-Admin-Proxy-Email";
-const PROXY_ROLE_HEADER = "X-RCAT-Admin-Proxy-Role";
 const PRODUCTION_CONTEXT_PATTERN = /(^|[-_.])(prod|production|live)([-_.]|$)/i;
 
 export interface AdminIdentity {
   actor: string;
   email: string;
-  mode: "cloudflare-access" | "smoke-token" | "cms-session";
+  mode: "cms-session";
   role: AdminRole;
-  userId?: string;
-  sessionId?: string;
-  isRoot?: boolean;
-  reauthenticatedAt?: string;
-  mfaVerifiedAt?: string;
+  userId: string;
+  sessionId: string;
+  isRoot: boolean;
+  reauthenticatedAt: string;
+  mfaVerifiedAt: string;
 }
 
 export type AdminRole = "admin" | "editor" | "viewer";
@@ -38,10 +33,6 @@ export interface AdminAuthResult {
 
 export interface AdminAccessDependencies {
   authenticateCmsSession?: (input: AuthenticateCmsSessionInput) => ReturnType<typeof authenticateCmsSession>;
-}
-
-function trimString(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
 }
 
 function getEnvironmentValue(env: Env, key: string) {
@@ -56,266 +47,14 @@ export function hasProductionContext(env: Env) {
   );
 }
 
-function getAllowedEmails(value: string | undefined) {
-  return (value ?? "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function getRoleEmails(env: Env) {
-  return {
-    admin: getAllowedEmails(env.ADMIN_RBAC_ADMINS),
-    editor: getAllowedEmails(env.ADMIN_RBAC_EDITORS),
-    viewer: getAllowedEmails(env.ADMIN_RBAC_VIEWERS)
-  } satisfies Record<AdminRole, string[]>;
-}
-
-function getDuplicateRoleEmails(roleEmails: Record<AdminRole, string[]>) {
-  const seen = new Map<string, AdminRole>();
-  const duplicates = new Set<string>();
-
-  (Object.entries(roleEmails) as Array<[AdminRole, string[]]>).forEach(([role, emails]) => {
-    emails.forEach((email) => {
-      const existingRole = seen.get(email);
-
-      if (existingRole && existingRole !== role) {
-        duplicates.add(email);
-        return;
-      }
-
-      seen.set(email, role);
-    });
+function readRequiredMetadata(request: Request, name: string, maximumLength: number) {
+  const value = request.headers.get(name) ?? "";
+  const containsControlCharacter = [...value].some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127;
   });
 
-  return duplicates;
-}
-
-function resolveAdminRole(email: string, env: Env) {
-  const roleEmails = getRoleEmails(env);
-  const duplicates = getDuplicateRoleEmails(roleEmails);
-
-  if (duplicates.size > 0) {
-    return {
-      role: null,
-      response: jsonError("admin access role configuration is invalid", 403, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  if (roleEmails.admin.includes(email)) {
-    return { role: "admin" as const, response: null };
-  }
-
-  if (roleEmails.editor.includes(email)) {
-    return { role: "editor" as const, response: null };
-  }
-
-  if (roleEmails.viewer.includes(email)) {
-    return { role: "viewer" as const, response: null };
-  }
-
-  return {
-    role: null,
-    response: jsonError("admin access identity is not allowed", 403, {
-      resource: "admin-structured-data"
-    })
-  };
-}
-
-function getIssuer(teamDomain: string) {
-  return `https://${teamDomain}.cloudflareaccess.com`;
-}
-
-function makeAccessJwks(env: Env) {
-  const localJwksJson = trimString(env.ADMIN_WRITE_ACCESS_JWKS_JSON);
-
-  if (localJwksJson) {
-    const parsed = JSON.parse(localJwksJson);
-    return createLocalJWKSet(parsed);
-  }
-
-  const teamDomain = trimString(env.ADMIN_WRITE_ACCESS_TEAM_DOMAIN);
-  return createRemoteJWKSet(new URL(`${getIssuer(teamDomain)}/cdn-cgi/access/certs`));
-}
-
-function getEmailClaim(payload: JWTPayload) {
-  const email = payload.email;
-
-  return typeof email === "string" ? email.trim().toLowerCase() : "";
-}
-
-function getProxyEmail(request: Request) {
-  const email = trimString(request.headers.get(PROXY_EMAIL_HEADER)).toLowerCase();
-
-  if (email.length === 0 || email.length > 254 || /\s/.test(email) || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
-    return null;
-  }
-
-  return email;
-}
-
-function getProxyRole(request: Request): AdminRole | null {
-  const role = trimString(request.headers.get(PROXY_ROLE_HEADER)).toLowerCase();
-
-  if (role === "admin" || role === "editor" || role === "viewer") {
-    return role;
-  }
-
-  return null;
-}
-
-async function verifyCloudflareAccess(request: Request, env: Env): Promise<AdminAuthResult> {
-  const teamDomain = trimString(env.ADMIN_WRITE_ACCESS_TEAM_DOMAIN);
-  const audience = trimString(env.ADMIN_WRITE_ACCESS_AUD);
-
-  if (!teamDomain || !audience) {
-    return {
-      identity: null,
-      response: jsonError("admin access is not configured", 403, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  const token = trimString(request.headers.get(ACCESS_JWT_HEADER));
-
-  if (!token) {
-    return {
-      identity: null,
-      response: jsonError("admin access assertion is required", 401, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  try {
-    const { payload } = await jwtVerify(token, makeAccessJwks(env), {
-      issuer: getIssuer(teamDomain),
-      audience
-    });
-    const email = getEmailClaim(payload);
-    const allowedEmails = getAllowedEmails(env.ADMIN_WRITE_ALLOWED_EMAILS);
-
-    if (!email || (allowedEmails.length > 0 && !allowedEmails.includes(email))) {
-      return {
-        identity: null,
-        response: jsonError("admin access identity is not allowed", 403, {
-          resource: "admin-structured-data"
-        })
-      };
-    }
-
-    const roleResult = resolveAdminRole(email, env);
-
-    if (roleResult.response || !roleResult.role) {
-      return {
-        identity: null,
-        response: roleResult.response
-      };
-    }
-
-    return {
-      identity: {
-        actor: email,
-        email,
-        mode: "cloudflare-access",
-        role: roleResult.role
-      },
-      response: null
-    };
-  } catch {
-    return {
-      identity: null,
-      response: jsonError("admin access assertion is invalid", 403, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-}
-
-function verifySmokeToken(request: Request, env: Env): AdminAuthResult {
-  if (request.headers.get("Origin")) {
-    return {
-      identity: null,
-      response: jsonError("smoke authentication is not allowed for browser-origin requests", 403, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  if (env.ADMIN_WRITE_SMOKE_ENABLED !== "true") {
-    return {
-      identity: null,
-      response: jsonError("admin smoke authentication is disabled", 403, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  const configuredToken = trimString(env.ADMIN_WRITE_SMOKE_TOKEN);
-
-  if (!configuredToken) {
-    return {
-      identity: null,
-      response: jsonError("admin smoke credential is not configured", 403, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  const requestToken = trimString(request.headers.get(SMOKE_TOKEN_HEADER));
-
-  if (!requestToken) {
-    return {
-      identity: null,
-      response: jsonError("admin smoke credential is required", 401, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  if (requestToken !== configuredToken) {
-    return {
-      identity: null,
-      response: jsonError("admin smoke credential is invalid", 403, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  const proxyEmail = getProxyEmail(request);
-  const proxyRole = getProxyRole(request);
-
-  if (!proxyEmail || !proxyRole) {
-    return {
-      identity: null,
-      response: jsonError("admin smoke proxy identity is invalid", 403, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  return {
-    identity: {
-      actor: proxyEmail,
-      email: proxyEmail,
-      mode: "smoke-token",
-      role: proxyRole
-    },
-    response: null
-  };
-}
-
-function hasCmsSessionProxyHeaders(request: Request) {
-  return [
-    CMS_AUTH_PROXY_SECRET_HEADER,
-    CMS_SESSION_TOKEN_HEADER,
-    CMS_CSRF_TOKEN_HEADER,
-    CMS_CLIENT_IP_HEADER,
-    CMS_USER_AGENT_HEADER
-  ].some((header) => request.headers.has(header));
+  return value.length > 0 && value.length <= maximumLength && !containsControlCharacter ? value : null;
 }
 
 async function verifyCmsSession(
@@ -323,15 +62,6 @@ async function verifyCmsSession(
   env: Env,
   dependencies: AdminAccessDependencies
 ): Promise<AdminAuthResult> {
-  if (env.CMS_AUTH_ENABLED !== "true") {
-    return {
-      identity: null,
-      response: jsonError("CMS authentication is unavailable", 503, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
   const configuredSecret = env.CMS_AUTH_PROXY_SECRET ?? "";
 
   if (configuredSecret.length < 32) {
@@ -363,11 +93,25 @@ async function verifyCmsSession(
     };
   }
 
+  const clientIp = readRequiredMetadata(request, CMS_CLIENT_IP_HEADER, 64);
+  const userAgent = readRequiredMetadata(request, CMS_USER_AGENT_HEADER, 512);
+
+  if (!clientIp || !userAgent) {
+    return {
+      identity: null,
+      response: jsonError("CMS proxy metadata is invalid", 403, {
+        resource: "admin-structured-data"
+      })
+    };
+  }
+
   const authenticateSession = dependencies.authenticateCmsSession ?? authenticateCmsSession;
   const result = await authenticateSession({
     env,
     sessionToken: request.headers.get(CMS_SESSION_TOKEN_HEADER) ?? "",
     csrfToken: request.headers.get(CMS_CSRF_TOKEN_HEADER) ?? undefined,
+    clientIp,
+    userAgent,
     method: request.method
   });
 
@@ -419,46 +163,5 @@ export async function authenticateAdminRequest(
   env: Env,
   dependencies: AdminAccessDependencies = {}
 ): Promise<AdminAuthResult> {
-  if (hasCmsSessionProxyHeaders(request)) {
-    return verifyCmsSession(request, env, dependencies);
-  }
-
-  if (env.ADMIN_WRITE_PREVIEW_ENABLED !== "true") {
-    return {
-      identity: null,
-      response: jsonError("admin write preview gate is disabled", 403, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  if (hasProductionContext(env)) {
-    return {
-      identity: null,
-      response: jsonError("admin write preview gate is not available for production-like context", 403, {
-        resource: "admin-structured-data"
-      })
-    };
-  }
-
-  if (request.headers.get("Origin")) {
-    return verifyCloudflareAccess(request, env);
-  }
-
-  if (trimString(request.headers.get(SMOKE_TOKEN_HEADER))) {
-    return verifySmokeToken(request, env);
-  }
-
-  if (env.ADMIN_WRITE_AUTH_MODE === "cloudflare-access") {
-    return verifyCloudflareAccess(request, env);
-  }
-
-  return verifySmokeToken(request, env);
-}
-
-export function getAdminAuthCorsHeaders() {
-  return {
-    accessJwtHeader: ACCESS_JWT_HEADER,
-    smokeTokenHeader: SMOKE_TOKEN_HEADER
-  };
+  return verifyCmsSession(request, env, dependencies);
 }

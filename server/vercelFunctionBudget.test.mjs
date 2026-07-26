@@ -7,14 +7,8 @@ import { describe, expect, it } from "vitest";
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const apiDirectory = path.join(repositoryRoot, "api");
 const executableExtensions = new Set([".js", ".mjs", ".cjs", ".ts", ".mts", ".cts"]);
-const expectedFunctions = [
-  "admin-proxy-session/login.mjs",
-  "admin-proxy-session/logout.mjs",
-  "admin-proxy.mjs",
-  "apps-script-proxy.mjs",
-  "cms-auth.mjs",
-  "sitemap.mjs"
-];
+const expectedFunctions = ["admin-proxy.mjs", "apps-script-proxy.mjs", "cms-auth.mjs", "sitemap.mjs"];
+const retiredFunctions = ["admin-proxy-session/login.mjs", "admin-proxy-session/logout.mjs"];
 const obsoleteCmsAuthFunctions = [
   "cms-auth/login.mjs",
   "cms-auth/session.mjs",
@@ -54,17 +48,17 @@ function listExecutableApiFiles(directory, prefix = "") {
 }
 
 describe("direct Vercel Function budget", () => {
-  it("keeps the executable API inventory within budget and reviewable", () => {
+  it("keeps exactly the four reviewed direct Functions", () => {
     const functions = listExecutableApiFiles(apiDirectory);
 
-    expect(functions.length).toBeLessThanOrEqual(12);
+    expect(functions).toHaveLength(4);
     expect(functions).toEqual(expectedFunctions);
   });
 
-  it("uses only the consolidated CMS-auth API entry", () => {
+  it("uses only the consolidated CMS-auth API entry and never restores retired Functions", () => {
     expect(existsSync(path.join(apiDirectory, "cms-auth.mjs"))).toBe(true);
 
-    for (const obsoleteFunction of obsoleteCmsAuthFunctions) {
+    for (const obsoleteFunction of [...obsoleteCmsAuthFunctions, ...retiredFunctions]) {
       expect(existsSync(path.join(apiDirectory, ...obsoleteFunction.split("/")))).toBe(false);
     }
   });

@@ -41,7 +41,6 @@ export const CMS_CAPABILITIES = Object.freeze([
   "users.mfa.reset",
   "backup.counts",
   "backup.download",
-  "auth.bootstrap-root-credential",
   "auth.change-password-self",
   "auth.reauthenticate-self",
   "auth.mfa.manage-self",

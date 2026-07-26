@@ -1,16 +1,57 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const authenticateCmsSessionMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../src/auth/cmsSessionService", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/auth/cmsSessionService")>();
+  return { ...actual, authenticateCmsSession: authenticateCmsSessionMock };
+});
+
+import {
+  CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_CLIENT_IP_HEADER,
+  CMS_CSRF_TOKEN_HEADER,
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER
+} from "../src/routes/cmsAuthInternal";
 import worker from "../src/index";
 
 type Row = Record<string, unknown>;
 
-const smokeToken = "admin-pagination-smoke-token";
+const cmsProxySecret = "phase-8-pagination-proxy-secret-repeated-000000";
+const cmsCsrfToken = "C".repeat(43);
+const roleSessionTokens = {
+  admin: "A".repeat(43),
+  editor: "E".repeat(43),
+  viewer: "V".repeat(43)
+};
 const baseEnv = {
-  ADMIN_WRITE_PREVIEW_ENABLED: "true",
-  ADMIN_WRITE_SMOKE_ENABLED: "true",
-  ADMIN_WRITE_SMOKE_TOKEN: smokeToken,
+  CMS_AUTH_PROXY_SECRET: cmsProxySecret,
   ENVIRONMENT: "preview"
 };
+
+authenticateCmsSessionMock.mockImplementation(async ({ sessionToken }: { sessionToken: string }) => {
+  const role =
+    (Object.entries(roleSessionTokens).find(([, token]) => token === sessionToken)?.[0] as
+      "admin" | "editor" | "viewer" | undefined) ?? "viewer";
+
+  return {
+    status: "authenticated",
+    identity: {
+      id: `${role}-user`,
+      email: `${role}@example.invalid`,
+      name: `${role} user`,
+      username: `${role}.user`,
+      role,
+      isRoot: false,
+      sessionId: `${role}-session`,
+      sessionVersion: 1,
+      reauthenticatedAt: new Date().toISOString(),
+      mfaVerifiedAt: new Date().toISOString()
+    }
+  };
+});
 
 function tableFromQuery(query: string) {
   if (/\bFROM\s+app_admin_users\s+AS\s+u\b[\s\S]*\bORDER\s+BY\b/i.test(query)) {
@@ -520,10 +561,12 @@ function allEntityRows() {
 
 function request(path: string, init: RequestInit & { role?: string } = {}) {
   const headers = new Headers(init.headers);
-  const role = init.role ?? "admin";
-  headers.set("X-RCAT-Admin-Smoke-Token", smokeToken);
-  headers.set("X-RCAT-Admin-Proxy-Email", `${role}@example.invalid`);
-  headers.set("X-RCAT-Admin-Proxy-Role", role);
+  const role = (init.role ?? "admin") as "admin" | "editor" | "viewer";
+  headers.set(CMS_AUTH_PROXY_SECRET_HEADER, cmsProxySecret);
+  headers.set(CMS_SESSION_TOKEN_HEADER, roleSessionTokens[role]);
+  headers.set(CMS_CSRF_TOKEN_HEADER, cmsCsrfToken);
+  headers.set(CMS_CLIENT_IP_HEADER, "203.0.113.84");
+  headers.set(CMS_USER_AGENT_HEADER, "phase-8-pagination-test");
 
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -607,7 +650,7 @@ describe("admin server pagination routes", () => {
       adminEnv
     );
 
-    expect(unauthenticated.status).toBe(401);
+    expect(unauthenticated.status).toBe(403);
     expect(viewerList.status).toBe(200);
     expect(viewerPublish.status).toBe(403);
     expect(editorPublish.status).toBe(200);

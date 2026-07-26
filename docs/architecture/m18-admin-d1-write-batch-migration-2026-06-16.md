@@ -102,11 +102,11 @@ Browser preview admin requests require Cloudflare Access:
 
 The Worker validates the Access JWT signature through JWKS, issuer, audience, expiration, and authenticated email. The audit actor is derived from the verified Access identity; browser-supplied actor headers are not trusted.
 
-CLI smoke requests use a separate uncommitted smoke credential:
+At M18, CLI smoke requests used a separate uncommitted smoke credential:
 
 - `ADMIN_WRITE_SMOKE_ENABLED=true`
 - `ADMIN_WRITE_SMOKE_TOKEN` supplied outside git
-- request header `X-RCAT-Admin-Smoke-Token`
+- a dedicated request header that was retired during the CMS final cutover
 - no `Origin` header
 - non-production-like Worker environment context
 

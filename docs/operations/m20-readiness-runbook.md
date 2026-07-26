@@ -6,6 +6,8 @@ M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logi
 
 M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final.
 
+This is an archived M20 closure record. For the current CMS-only authentication boundary and deployment procedure, use `docs/cms-auth-final-cutover.md`.
+
 ## M20 Closure Runbook
 
 ### Provider Boundary
@@ -31,8 +33,8 @@ M20 closure is limited to migration, runtime ownership, and domain cutover scope
 1. Confirm `pnpm worker:m20:readiness` passes.
 2. Confirm `pnpm worker:m19:readiness` passes.
 3. Confirm the configured Worker allowed origins include the production custom domain without recording private identifiers.
-4. Confirm the existing admin proxy/login path is used for admin access.
-5. Confirm auth, RBAC, CORS, session, proxy, admin-gate, preview-write, and smoke-token boundaries are unchanged.
+4. Confirm the same-origin Admin Proxy is used for admin access.
+5. Confirm the authentication, RBAC, CORS, Session, proxy, and admin-gate boundaries recorded for M20.
 6. Confirm media upload, deletion, attachments, and binary files still use the Apps Script / Google Drive bridge.
 
 ### Closure Steps

@@ -13,6 +13,7 @@ interface CmsApiState {
   expireAdminOnce: boolean;
   stepUpOnce: boolean;
   mutationAttempts: number;
+  mutationCsrfTokens: string[];
   bridgeStatusHits: number;
 }
 
@@ -80,6 +81,7 @@ async function installCmsApi(page: Page, overrides: Partial<CmsApiState> = {}) {
     expireAdminOnce: false,
     stepUpOnce: false,
     mutationAttempts: 0,
+    mutationCsrfTokens: [],
     bridgeStatusHits: 0,
     ...overrides
   };
@@ -96,6 +98,21 @@ async function installCmsApi(page: Page, overrides: Partial<CmsApiState> = {}) {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
+
+    if (path === "/api/admin-proxy-session/login" || path === "/api/admin-proxy-session/logout") {
+      await route.fulfill({
+        status: request.method() === "POST" ? 410 : 405,
+        contentType: "application/json",
+        headers: {
+          "Cache-Control": "no-store",
+          ...(request.method() === "POST" ? {} : { Allow: "POST" })
+        },
+        body: JSON.stringify({
+          error: request.method() === "POST" ? "legacy authentication is retired" : "method not allowed"
+        })
+      });
+      return;
+    }
 
     if (path === "/api/cms-auth/session") {
       state.sessionHits += 1;
@@ -212,6 +229,7 @@ async function installCmsApi(page: Page, overrides: Partial<CmsApiState> = {}) {
 
       if (adminPath === "/api/admin/content/publish-pending") {
         state.mutationAttempts += 1;
+        state.mutationCsrfTokens.push(request.headers()["x-rcat-csrf-token"] ?? "");
         if (state.stepUpOnce && state.mutationAttempts === 1) {
           await json(route, { error: "reauthentication required", assurance: "password" }, 428);
           return;
@@ -326,6 +344,7 @@ test.describe("CMS auth intercepted functional flows", () => {
     await page.getByLabel("รหัสผ่านปัจจุบัน").fill("synthetic-password");
     await page.getByRole("button", { name: "ยืนยัน" }).click();
     await expect.poll(() => state.mutationAttempts).toBe(2);
+    expect(state.mutationCsrfTokens).toEqual([csrfToken, csrfToken]);
   });
 
   test("CMS auth Logout clears protected UI", async ({ page }) => {
@@ -367,5 +386,48 @@ test.describe("CMS auth intercepted functional flows", () => {
     await installCmsApi(page, { authenticated: true, role: "viewer" });
     await page.goto("/admin/users");
     await expect(page.getByRole("heading", { name: "ไม่มีสิทธิ์เข้าถึง" })).toBeVisible();
+  });
+
+  test("CMS auth retired Login and Logout endpoints return 410 JSON", async ({ page }) => {
+    await installCmsApi(page);
+    await page.goto("/login");
+
+    for (const path of ["/api/admin-proxy-session/login", "/api/admin-proxy-session/logout"]) {
+      const result = await page.evaluate(async (endpoint) => {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: "ignored@example.invalid", password: "ignored" })
+        });
+        return {
+          status: response.status,
+          contentType: response.headers.get("Content-Type"),
+          cacheControl: response.headers.get("Cache-Control"),
+          body: await response.json()
+        };
+      }, path);
+
+      expect(result).toEqual({
+        status: 410,
+        contentType: "application/json",
+        cacheControl: "no-store",
+        body: { error: "legacy authentication is retired" }
+      });
+    }
+  });
+
+  test("CMS auth never stores browser authentication state", async ({ page }) => {
+    await installCmsApi(page, { authenticated: true });
+    await page.goto("/admin");
+    await expect(page.getByRole("heading", { name: "แดชบอร์ด" })).toBeVisible();
+
+    const storage = await page.evaluate(() => ({
+      local: Object.keys(localStorage),
+      session: Object.keys(sessionStorage)
+    }));
+    const authenticationKey = /auth|session|token/i;
+
+    expect(storage.local.filter((key) => authenticationKey.test(key))).toEqual([]);
+    expect(storage.session.filter((key) => authenticationKey.test(key))).toEqual([]);
   });
 });

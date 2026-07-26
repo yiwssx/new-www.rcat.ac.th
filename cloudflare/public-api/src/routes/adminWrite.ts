@@ -50,7 +50,6 @@ import {
 import type { Env } from "../env";
 import { json, jsonError, methodNotAllowed } from "../responses";
 import { handleAdminBackup } from "./adminBackup";
-import { handleAdminAuth } from "./adminAuth";
 import { handleAdminPaginatedReads } from "./adminPagination";
 import { handleAdminStructuredParity, readAdminStructuredSnapshot } from "./adminStructuredParity";
 
@@ -2107,12 +2106,6 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
         table: schemaMismatch.table,
         missingColumns: schemaMismatch.missingColumns
       });
-    }
-
-    const adminAuthResponse = await handleAdminAuth(request, env, segments, authResult.identity);
-
-    if (adminAuthResponse) {
-      return adminAuthResponse;
     }
 
     if (segments[0] === "snapshot" && segments.length === 1 && request.method === "GET") {

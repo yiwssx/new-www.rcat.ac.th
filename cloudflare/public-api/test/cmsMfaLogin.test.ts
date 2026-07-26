@@ -141,7 +141,6 @@ async function workingMfaRepository() {
 
 function mfaEnv() {
   return {
-    CMS_AUTH_ENABLED: "true",
     CMS_AUTH_PROXY_SECRET: "S".repeat(40),
     CMS_MFA_ENCRYPTION_KEY: encryptionKey,
     CMS_MFA_ENCRYPTION_KEY_VERSION: encryptionKeyVersion
@@ -176,7 +175,7 @@ describe("CMS MFA login", () => {
     }));
     const response = await handleCmsAuthInternal(
       loginRequest(),
-      { CMS_AUTH_ENABLED: "true", CMS_AUTH_PROXY_SECRET: "S".repeat(40) },
+      { CMS_AUTH_PROXY_SECRET: "S".repeat(40) },
       {
         now: () => now,
         mfaRepository: repository(false),
@@ -197,7 +196,7 @@ describe("CMS MFA login", () => {
     const createSession = vi.fn();
     const response = await handleCmsAuthInternal(
       loginRequest(),
-      { CMS_AUTH_ENABLED: "true", CMS_AUTH_PROXY_SECRET: "S".repeat(40) },
+      { CMS_AUTH_PROXY_SECRET: "S".repeat(40) },
       {
         now: () => now,
         mfaRepository,
@@ -218,7 +217,7 @@ describe("CMS MFA login", () => {
     const createSession = vi.fn();
     const response = await handleCmsAuthInternal(
       loginRequest(),
-      { CMS_AUTH_ENABLED: "true", CMS_AUTH_PROXY_SECRET: "S".repeat(40) },
+      { CMS_AUTH_PROXY_SECRET: "S".repeat(40) },
       {
         now: () => now,
         mfaRepository,
@@ -241,7 +240,7 @@ describe("CMS MFA login", () => {
     const createSession = vi.fn();
     const response = await handleCmsAuthInternal(
       loginRequest(),
-      { CMS_AUTH_ENABLED: "true", CMS_AUTH_PROXY_SECRET: "S".repeat(40) },
+      { CMS_AUTH_PROXY_SECRET: "S".repeat(40) },
       {
         now: () => now,
         mfaRepository,

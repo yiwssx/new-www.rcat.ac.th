@@ -20,7 +20,6 @@ const now = new Date("2026-07-23T03:00:00.000Z");
 const proxySecret = "S".repeat(40);
 const encryptionKey = "A".repeat(43);
 const enrollmentEnv = {
-  CMS_AUTH_ENABLED: "true",
   CMS_AUTH_PROXY_SECRET: proxySecret,
   CMS_MFA_ENCRYPTION_KEY: encryptionKey,
   CMS_MFA_ENCRYPTION_KEY_VERSION: "test-v1"

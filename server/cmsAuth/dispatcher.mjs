@@ -18,6 +18,22 @@ import {
 
 const ROUTE_PARAMETER = "_rcatCmsRoute";
 
+export function handleRetiredLegacyAuthentication(request, response) {
+  if (String(request.method || "GET").toUpperCase() !== "POST") {
+    response.setHeader("Allow", "POST");
+    response.statusCode = 405;
+    response.setHeader("Cache-Control", "no-store");
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.end(JSON.stringify({ error: "method not allowed" }));
+    return;
+  }
+
+  response.statusCode = 410;
+  response.setHeader("Cache-Control", "no-store");
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.end(JSON.stringify({ error: "legacy authentication is retired" }));
+}
+
 export const CMS_AUTH_ROUTE_TABLE = Object.freeze([
   Object.freeze({ id: "login", publicPath: "/api/cms-auth/login", handler: handleCmsAuthLogin }),
   Object.freeze({ id: "session", publicPath: "/api/cms-auth/session", handler: handleCmsAuthSession }),
@@ -69,6 +85,16 @@ export const CMS_AUTH_ROUTE_TABLE = Object.freeze([
     id: "reauthenticate",
     publicPath: "/api/cms-auth/reauthenticate",
     handler: handleCmsReauthenticate
+  }),
+  Object.freeze({
+    id: "retired-admin-proxy-login",
+    publicPath: "/api/admin-proxy-session/login",
+    handler: handleRetiredLegacyAuthentication
+  }),
+  Object.freeze({
+    id: "retired-admin-proxy-logout",
+    publicPath: "/api/admin-proxy-session/logout",
+    handler: handleRetiredLegacyAuthentication
   })
 ]);
 

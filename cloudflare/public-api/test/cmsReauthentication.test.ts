@@ -18,6 +18,9 @@ const identity: AdminIdentity = {
   email: "admin@example.invalid",
   mode: "cms-session",
   role: "admin",
+  userId: "admin-user-1",
+  sessionId: "admin-session-1",
+  isRoot: false,
   reauthenticatedAt: now.toISOString(),
   mfaVerifiedAt: now.toISOString()
 };
@@ -139,7 +142,7 @@ describe("CMS reauthentication assurance", () => {
     } as unknown as AdminMfaRepository;
     const response = await handleCmsAuthInternal(
       reauthenticationRequest({ currentPassword: "correct password" }),
-      { CMS_AUTH_ENABLED: "true", CMS_AUTH_PROXY_SECRET: proxySecret },
+      { CMS_AUTH_PROXY_SECRET: proxySecret },
       {
         now: () => now,
         authenticateSession: vi.fn(async () => authenticatedSession()),
@@ -183,7 +186,7 @@ describe("CMS reauthentication assurance", () => {
     } as unknown as AdminMfaRepository;
     const response = await handleCmsAuthInternal(
       reauthenticationRequest({ currentPassword: "wrong-or-incomplete" }),
-      { CMS_AUTH_ENABLED: "true", CMS_AUTH_PROXY_SECRET: proxySecret },
+      { CMS_AUTH_PROXY_SECRET: proxySecret },
       {
         now: () => now,
         authenticateSession: vi.fn(async () => authenticatedSession()),

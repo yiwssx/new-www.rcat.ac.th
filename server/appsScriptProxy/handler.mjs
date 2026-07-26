@@ -1,5 +1,4 @@
 import process from "node:process";
-import { getAdminProxyAllowedEmails, verifyAdminProxySessionCookie } from "../adminProxy/session.mjs";
 import { hasCmsSessionCookie, readCmsCsrfCookie, readCmsSessionCookie } from "../cmsAuth/cookies.mjs";
 import {
   CMS_AUTH_PROXY_SECRET_HEADER,
@@ -164,39 +163,6 @@ function readBridgeToken(env) {
   return value || null;
 }
 
-async function authenticateAdminProxySession(request, response, env, nowMs) {
-  const allowedEmails = getAdminProxyAllowedEmails(env.ADMIN_PROXY_ALLOWED_EMAILS);
-
-  if (allowedEmails.length === 0) {
-    sendJson(response, 503, { error: "admin proxy session is not configured" });
-    return null;
-  }
-
-  const result = await verifyAdminProxySessionCookie({
-    allowedEmails,
-    cookieHeader: getHeader(request, "cookie"),
-    nowMs,
-    secret: env.ADMIN_PROXY_SESSION_SECRET
-  });
-
-  if (result.status === "missing") {
-    sendJson(response, 401, { error: "admin proxy session is required" });
-    return null;
-  }
-
-  if (result.status === "forbidden") {
-    sendJson(response, 403, { error: "admin proxy identity is not allowed" });
-    return null;
-  }
-
-  if (result.status !== "valid") {
-    sendJson(response, 401, { error: "admin proxy session is invalid or expired" });
-    return null;
-  }
-
-  return result;
-}
-
 function createCmsCapabilityHeaders(request, configuration, sessionToken) {
   const metadata = getCmsClientMetadata(request);
 
@@ -327,11 +293,7 @@ function createUpstreamPayload(payload, bridgeToken) {
   };
 }
 
-export async function handleAppsScriptProxyRequest(
-  request,
-  response,
-  { env = runtimeEnv(), fetchImpl = fetch, nowMs = Date.now() } = {}
-) {
+export async function handleAppsScriptProxyRequest(request, response, { env = runtimeEnv(), fetchImpl = fetch } = {}) {
   const method = String(request.method || "GET").toUpperCase();
 
   if (!STATUS_METHODS.has(method) && method !== "POST") {
@@ -346,11 +308,14 @@ export async function handleAppsScriptProxyRequest(
   }
 
   const cookieHeader = getHeader(request, "cookie");
-  const cmsCookiePresent = hasCmsSessionCookie(cookieHeader);
+
+  if (!hasCmsSessionCookie(cookieHeader)) {
+    sendJson(response, 401, { error: "CMS session is required" });
+    return;
+  }
+
   const requiredCapability = STATUS_METHODS.has(method) ? CMS_STATUS_CAPABILITY : CMS_MUTATION_CAPABILITY;
-  const session = cmsCookiePresent
-    ? await authenticateCmsSession(request, response, env, fetchImpl, requiredCapability, method)
-    : await authenticateAdminProxySession(request, response, env, nowMs);
+  const session = await authenticateCmsSession(request, response, env, fetchImpl, requiredCapability, method);
 
   if (!session) {
     return;

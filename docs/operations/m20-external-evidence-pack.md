@@ -6,6 +6,8 @@ M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logi
 
 M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final.
 
+This is an archived M20 evidence record. For the current CMS-only authentication boundary, use `docs/cms-auth-final-cutover.md`.
+
 ## Closed Field-Cutover Boundary
 
 - Admin structured data provider: Cloudflare.
@@ -14,7 +16,7 @@ M20 closure is limited to migration, runtime ownership, and domain cutover scope
 - Structured database provider: D1.
 - Production custom domain: `www.rcat.ac.th` connected to Vercel production.
 
-The existing admin proxy/login path remains required for admin access. Existing auth, RBAC, CORS, session, proxy, admin-gate, preview-write, and smoke-token boundaries remain unchanged.
+At M20 closure, the same-origin Admin Proxy remained the browser boundary. Phase 8 later replaced its authentication mechanism with CMS Sessions while preserving RBAC, CORS, CSRF, proxy, and admin-route protections.
 
 No live URL, D1 id, account id, deployment id, run id, token, secret, exact timestamp, screenshot, Google Drive URL, Apps Script URL, raw export, record payload, backup artifact, or infrastructure identifier is recorded here.
 

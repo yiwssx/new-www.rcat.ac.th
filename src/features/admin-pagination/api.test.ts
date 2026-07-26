@@ -29,7 +29,6 @@ function getProxiedPath(fetchMock: ReturnType<typeof vi.fn>, callIndex = 0) {
 
 describe("admin pagination API client", () => {
   beforeEach(() => {
-    vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "server-proxy");
     vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "/api/admin-proxy");
     vi.spyOn(Document.prototype, "cookie", "get").mockReturnValue(`${CMS_CSRF_COOKIE_NAME}=${CMS_CSRF_TOKEN}`);
   });

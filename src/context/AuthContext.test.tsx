@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { projectSettings } from "../config/projectSettings";
 import { CMS_SESSION_EXPIRED_EVENT, CmsAuthError, cmsStepUpCoordinator, type CmsSafeUser } from "../features/cms-auth";
 import { AuthProvider } from "./AuthContext";
 import { useAuth } from "./authSessionContext";
@@ -219,21 +218,6 @@ describe("CMS AuthProvider", () => {
     cmsAuthMock.getCapabilities.mockRejectedValueOnce(new TypeError("unknown capability"));
     renderAuth();
     expect(await screen.findByText("status:unavailable")).toBeInTheDocument();
-  });
-
-  it("ignores and deletes the legacy localStorage Session without writing a replacement", async () => {
-    const storageSpy = vi.spyOn(Storage.prototype, "setItem");
-    window.localStorage.setItem(
-      projectSettings.storageKeys.session,
-      JSON.stringify({ token: "admin-proxy.local.secret", user: { role: "admin" } })
-    );
-    storageSpy.mockClear();
-
-    renderAuth();
-    expect(await screen.findByText("status:authenticated")).toBeInTheDocument();
-
-    expect(window.localStorage.getItem(projectSettings.storageKeys.session)).toBeNull();
-    expect(storageSpy).not.toHaveBeenCalled();
   });
 
   it("refreshes authoritative Session state after password Login", async () => {

@@ -1,6 +1,6 @@
 # Current Migration Status
 
-Current source-of-truth snapshot: 2026-07-19 at baseline commit `80324e71982411c67e6f3f9b66e06b09ab7bb282`. Dated milestone narratives below preserve the state recorded at that time; when they mention Apps Script as a structured-data provider or M20 as gated, the current Provider Status and M20 sections take precedence.
+Current source-of-truth snapshot: 2026-07-26. Dated milestone narratives below preserve the state recorded at that time; when they describe superseded authentication or provider boundaries, the current Provider Status and `docs/cms-auth-final-cutover.md` take precedence.
 
 Current milestone: M20 migration/runtime/domain-cutover scope is closed. M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization. M20 closure does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final.
 
@@ -35,6 +35,8 @@ M20-P0: Production Readiness Gate Scaffolding supplied the repository-owned read
 M20: `CLOSED` for migration/runtime/domain-cutover scope. The custom domain `www.rcat.ac.th` is connected to the Vercel production deployment, the Cloudflare/Vercel redirect loop was resolved at the provider configuration layer, and Cloudflare Worker allowed origins include the production custom domain. Public client data and admin structured data use Cloudflare Worker and D1. Media, attachments, and files remain on Google Drive through the Apps Script bridge. No D1 migration blocker, Apps Script structured-data blocker, or runtime ownership blocker remains for M20.
 
 M21: `OPEN` for UI/UX and logic stabilization. Remaining issues are UI/UX, business logic, workflow, usability, validation, layout, content-presentation, Thai wording, and user-facing error issues. M21 does not reopen the Cloudflare Worker + D1 migration or restore Apps Script structured data.
+
+Phase 8 authentication cutover: CMS Sessions are the sole application Admin identity. Vercel proxies validate CMS cookies and forward only the internal CMS contract; Worker Admin routes derive role, status, Session version, and actor from D1. The older shared-password, proxy-cookie, Access-identity, and smoke-identity paths are retired. The deployment and secret-retirement procedure is maintained in `docs/cms-auth-final-cutover.md`.
 
 M20 cleanup follow-up: legacy browser-side Apps Script structured-data code, direct frontend Apps Script user CRUD, local user fallback paths, no-op admin request progress UI, and stale structured Apps Script runtime config were removed. Apps Script remains only for the Vercel-proxied Google Drive media/file bridge.
 
@@ -89,7 +91,7 @@ Database provider: D1.
 
 Production custom domain: `www.rcat.ac.th` connected to Vercel production.
 
-The existing admin proxy/login path remains required for admin access. M20 closure does not change or weaken auth, RBAC, CORS, session, proxy, admin-gate, preview-write, or smoke-token boundaries.
+The same-origin Vercel Admin Proxy remains required for browser Admin access and now accepts CMS Sessions only. Authentication, RBAC, CORS, CSRF, Session validation, capability enforcement, and step-up remain fail closed.
 
 Cloudflare public capability covers documents, public home, content list/detail, search, programs, and visitor stats. Cloudflare admin structured-data capability covers dashboard snapshot, content, document metadata, site/homepage/display settings, menu, carousel, external services, and events. Media binary operations remain Apps Script-backed.
 

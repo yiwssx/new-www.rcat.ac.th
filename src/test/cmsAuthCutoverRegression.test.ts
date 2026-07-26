@@ -5,57 +5,79 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const srcRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const srcRoot = join(repositoryRoot, "src");
+const productionRoots = [
+  join(repositoryRoot, "api"),
+  join(repositoryRoot, "server"),
+  join(repositoryRoot, "cloudflare", "public-api", "src"),
+  join(repositoryRoot, "cloudflare", "public-api", "scripts"),
+  srcRoot
+];
+const productionExtensions = /\.(?:js|mjs|ts|tsx)$/;
+const forbiddenRuntimeReferences = [
+  "ADMIN_PROXY_PASSWORD_HASH",
+  "ADMIN_PROXY_SESSION_SECRET",
+  "ADMIN_PROXY_ALLOWED_EMAILS",
+  "ADMIN_RBAC_ADMINS",
+  "ADMIN_RBAC_EDITORS",
+  "ADMIN_RBAC_VIEWERS",
+  "CLOUDFLARE_ADMIN_SMOKE_TOKEN",
+  "CMS_AUTH_ENABLED",
+  "X-RCAT-Admin-Smoke-Token",
+  "X-RCAT-Admin-Proxy-Email",
+  "X-RCAT-Admin-Proxy-Role",
+  "admin-proxy.local",
+  "loginAdminProxySession",
+  "loginCloudflareAdminProxySession",
+  "createAdminProxyMarkerToken",
+  "restoreSession"
+] as const;
 
 function productionSources(path: string): string[] {
   if (statSync(path).isFile()) {
-    return /\.(?:ts|tsx)$/.test(path) && !/\.test\.(?:ts|tsx)$/.test(path) ? [path] : [];
+    return productionExtensions.test(path) && !/\.test\.(?:js|mjs|ts|tsx)$/.test(path) ? [path] : [];
   }
 
   return readdirSync(path).flatMap((entry) => productionSources(join(path, entry)));
 }
 
-describe("CMS auth cutover regression guard", () => {
-  it("keeps the active React graph free of retired proxy-session authentication", () => {
-    const activePaths = [
-      join(srcRoot, "admin"),
-      join(srcRoot, "context"),
-      join(srcRoot, "features"),
-      join(srcRoot, "routeComponents.tsx"),
-      join(srcRoot, "routes.tsx")
-    ];
-    const source = activePaths
-      .flatMap(productionSources)
-      .map((path) => readFileSync(path, "utf8"))
-      .join("\n");
+function readProductionGraph() {
+  return productionRoots
+    .flatMap(productionSources)
+    .map((path) => `${path}\n${readFileSync(path, "utf8")}`)
+    .join("\n");
+}
 
-    expect(source).not.toContain("/api/admin-proxy-session/login");
-    expect(source).not.toContain("admin proxy session is required");
-    expect(source).not.toContain("rcat:admin-proxy-session-expired");
-    expect(source).not.toContain("rcat.admin.proxy.session.notice");
-    expect(source).not.toContain("admin-proxy.local.");
-    expect(source).not.toMatch(/from\s+["'][^"']*services\/auth["']/);
-    expect(source).not.toMatch(/(?:localStorage|sessionStorage)\.getItem\(\s*projectSettings\.storageKeys\.session/);
+describe("CMS authentication final-cutover regression guard", () => {
+  it("keeps all production code free of retired authentication runtime references", () => {
+    const source = readProductionGraph();
+
+    for (const forbidden of forbiddenRuntimeReferences) {
+      expect(source, forbidden).not.toContain(forbidden);
+    }
   });
 
-  it("does not restore or persist a browser-side admin Session", () => {
+  it("keeps the browser authentication graph cookie-only and CMS-only", () => {
+    const source = productionSources(srcRoot)
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
     const authContext = readFileSync(join(srcRoot, "context", "AuthContext.tsx"), "utf8");
 
-    expect(authContext).not.toMatch(/(?:getItem|setItem)\(\s*projectSettings\.storageKeys\.session/);
-    expect(authContext).toContain("window.localStorage.removeItem(projectSettings.storageKeys.session)");
+    expect(source).not.toMatch(/session\.token|projectSettings\.storageKeys\.session/);
+    expect(authContext).not.toMatch(/localStorage|sessionStorage/);
+    expect(source).toContain("/api/cms-auth/");
+    expect(source).toContain("/api/admin-proxy");
+    expect(source).toContain("/api/apps-script-proxy");
   });
 
   it("keeps the Integrations status flow on CMS cookies and server capabilities", () => {
     const integrationsPage = readFileSync(join(srcRoot, "admin", "pages", "IntegrationsPage.tsx"), "utf8");
     const mediaBridgeClient = readFileSync(join(srcRoot, "features", "cms-media", "mediaBridgeClient.ts"), "utf8");
-    const source = `${integrationsPage}\n${mediaBridgeClient}`;
 
     expect(integrationsPage).toContain('status === "authenticated"');
     expect(integrationsPage).toContain('hasCmsCapability(capabilities, "media.read")');
     expect(mediaBridgeClient).toContain('credentials: "include"');
-    expect(source).not.toMatch(/session\.token|expiresAt|admin-proxy\.local|restoreSession/);
-    expect(source).not.toContain("projectSettings.storageKeys.session");
-    expect(source).not.toContain("/api/admin-proxy-session/login");
   });
 
   it("mounts exactly one global reauthentication dialog outside the protected shell", () => {

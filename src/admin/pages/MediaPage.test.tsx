@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { MediaAsset, Session, User } from "../../types";
+import type { MediaAsset, User } from "../../types";
 import MediaPage, { MediaAssetCard } from "./MediaPage";
 
 const authMock = vi.hoisted(() => ({
@@ -40,11 +40,7 @@ vi.mock("../../context/authSessionContext", () => ({
       email: `${authMock.role}@example.invalid`,
       role: authMock.role
     };
-    const session: Session = {
-      user,
-      token: "test-session-token",
-      expiresAt: "2026-06-23T00:00:00.000Z"
-    };
+    const session = { user, capabilities: authMock.role === "viewer" ? [] : ["media.manage"] };
 
     return {
       session,

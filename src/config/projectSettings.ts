@@ -19,11 +19,7 @@ interface ProjectSettings {
     refetchOnWindowFocus: boolean;
   };
   storageKeys: {
-    session: string;
     displaySettings: string;
-  };
-  auth: {
-    sessionHours: number;
   };
   roles: RolePermission[];
   theme: {

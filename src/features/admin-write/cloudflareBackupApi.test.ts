@@ -5,7 +5,6 @@ function setServerProxyEnv() {
   vi.stubEnv("VITE_ADMIN_WRITE_PROVIDER", "cloudflare");
   vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_API_URL", "");
-  vi.stubEnv("VITE_CLOUDFLARE_ADMIN_AUTH_MODE", "server-proxy");
   vi.stubEnv("VITE_CLOUDFLARE_ADMIN_PROXY_URL", "/api/admin-proxy");
 }
 

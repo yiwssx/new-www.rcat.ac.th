@@ -218,10 +218,6 @@ export function getCmsClientMetadata(request) {
 }
 
 export function readCmsAuthConfiguration(env) {
-  if (env.CMS_AUTH_ENABLED !== "true") {
-    return null;
-  }
-
   const proxySecret = typeof env.CMS_AUTH_PROXY_SECRET === "string" ? env.CMS_AUTH_PROXY_SECRET : "";
   const workerUrlValue = typeof env.CLOUDFLARE_ADMIN_API_URL === "string" ? env.CLOUDFLARE_ADMIN_API_URL.trim() : "";
   let workerUrl;

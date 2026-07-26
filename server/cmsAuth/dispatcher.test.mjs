@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { Readable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
-import { CMS_AUTH_ROUTE_TABLE, handleCmsAuthDispatch } from "./dispatcher.mjs";
+import { CMS_AUTH_ROUTE_TABLE, handleCmsAuthDispatch, handleRetiredLegacyAuthentication } from "./dispatcher.mjs";
 import {
   handleCmsAuthLogin,
   handleCmsAuthLogout,
@@ -51,7 +51,17 @@ const routes = [
     handler: handleCmsMfaRecoveryRegenerate
   },
   { id: "mfa-disable", publicPath: "/api/cms-auth/mfa", handler: handleCmsMfaDisable },
-  { id: "reauthenticate", publicPath: "/api/cms-auth/reauthenticate", handler: handleCmsReauthenticate }
+  { id: "reauthenticate", publicPath: "/api/cms-auth/reauthenticate", handler: handleCmsReauthenticate },
+  {
+    id: "retired-admin-proxy-login",
+    publicPath: "/api/admin-proxy-session/login",
+    handler: handleRetiredLegacyAuthentication
+  },
+  {
+    id: "retired-admin-proxy-logout",
+    publicPath: "/api/admin-proxy-session/logout",
+    handler: handleRetiredLegacyAuthentication
+  }
 ];
 
 function createRequest({ url, method = "PATCH", headers = {}, body = { marker: "body" } }) {
@@ -202,6 +212,47 @@ describe("CMS-auth dispatcher", () => {
 
     expect(handlers.session).toHaveBeenCalledTimes(1);
     expect(request.url).toBe(dispatchUrl);
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["retired-admin-proxy-login", "/api/admin-proxy-session/login"],
+    ["retired-admin-proxy-logout", "/api/admin-proxy-session/logout"]
+  ])("returns a finite 410 tombstone for $1 without consuming the request", async (id, publicPath) => {
+    const { request, read } = createRequest({
+      url: `/api/cms-auth?_rcatCmsRoute=${id}`,
+      method: "POST",
+      headers: {
+        authorization: "Bearer ignored",
+        cookie: "obsolete-cookie=ignored"
+      },
+      body: { email: "ignored@example.invalid", password: "ignored" }
+    });
+    const response = createResponse();
+
+    await handleCmsAuthDispatch(request, response);
+
+    expect(response.statusCode).toBe(410);
+    expect(response.getHeader("Cache-Control")).toBe("no-store");
+    expect(response.getHeader("Content-Type")).toBe("application/json; charset=utf-8");
+    expect(response.bodyText).toBe('{"error":"legacy authentication is retired"}');
+    expect(request.url).toBe(`/api/cms-auth?_rcatCmsRoute=${id}`);
+    expect(read).not.toHaveBeenCalled();
+    expect(publicPath).toContain("/api/admin-proxy-session/");
+  });
+
+  it.each(["GET", "PUT", "DELETE"])("rejects %s on a retired authentication path with 405", async (method) => {
+    const { request, read } = createRequest({
+      url: "/api/cms-auth?_rcatCmsRoute=retired-admin-proxy-login",
+      method
+    });
+    const response = createResponse();
+
+    await handleCmsAuthDispatch(request, response);
+
+    expect(response.statusCode).toBe(405);
+    expect(response.getHeader("Allow")).toBe("POST");
+    expect(response.bodyText).toBe('{"error":"method not allowed"}');
     expect(read).not.toHaveBeenCalled();
   });
 });
