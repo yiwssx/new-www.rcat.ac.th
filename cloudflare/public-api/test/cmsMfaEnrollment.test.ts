@@ -75,7 +75,7 @@ describe("CMS MFA enrollment", () => {
     const secret = generateTotpSecret();
     const uri = createTotpUri(secret, "root@example.invalid");
     expect(new URL(uri).searchParams.get("secret")).toBe(secret);
-    expect(decodeURIComponent(new URL(uri).pathname)).toBe("/Roi-Et College CMS:root@example.invalid");
+    expect(decodeURIComponent(new URL(uri).pathname)).toBe("/RCAT CMS:root@example.invalid");
   });
 
   it("returns ten distinct one-time recovery values for a completed enrollment", () => {

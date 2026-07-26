@@ -100,7 +100,7 @@ export function createTotpUri(secret: string, email: string) {
     throw new TypeError("TOTP secret is invalid");
   }
 
-  const issuer = "Roi-Et College CMS";
+  const issuer = "RCAT CMS";
   const account = email.trim().toLowerCase();
 
   if (!account || account.length > 320) {

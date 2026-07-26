@@ -41,7 +41,7 @@ describe("CMS TOTP", () => {
     const secret = generateTotpSecret();
     expect(secret).toMatch(/^[A-Z2-7]{32}$/);
     expect(createTotpUri(secret, " ADMIN@Example.Invalid ")).toBe(
-      `otpauth://totp/Roi-Et%20College%20CMS%3Aadmin%40example.invalid?secret=${secret}&issuer=Roi-Et%20College%20CMS&algorithm=SHA1&digits=6&period=30`
+      `otpauth://totp/RCAT%20CMS%3Aadmin%40example.invalid?secret=${secret}&issuer=RCAT%20CMS&algorithm=SHA1&digits=6&period=30`
     );
   });
 
