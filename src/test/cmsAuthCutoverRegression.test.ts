@@ -35,6 +35,7 @@ describe("CMS auth cutover regression guard", () => {
     expect(source).not.toContain("rcat.admin.proxy.session.notice");
     expect(source).not.toContain("admin-proxy.local.");
     expect(source).not.toMatch(/from\s+["'][^"']*services\/auth["']/);
+    expect(source).not.toMatch(/(?:localStorage|sessionStorage)\.getItem\(\s*projectSettings\.storageKeys\.session/);
   });
 
   it("does not restore or persist a browser-side admin Session", () => {
@@ -42,6 +43,19 @@ describe("CMS auth cutover regression guard", () => {
 
     expect(authContext).not.toMatch(/(?:getItem|setItem)\(\s*projectSettings\.storageKeys\.session/);
     expect(authContext).toContain("window.localStorage.removeItem(projectSettings.storageKeys.session)");
+  });
+
+  it("keeps the Integrations status flow on CMS cookies and server capabilities", () => {
+    const integrationsPage = readFileSync(join(srcRoot, "admin", "pages", "IntegrationsPage.tsx"), "utf8");
+    const mediaBridgeClient = readFileSync(join(srcRoot, "features", "cms-media", "mediaBridgeClient.ts"), "utf8");
+    const source = `${integrationsPage}\n${mediaBridgeClient}`;
+
+    expect(integrationsPage).toContain('status === "authenticated"');
+    expect(integrationsPage).toContain('hasCmsCapability(capabilities, "media.read")');
+    expect(mediaBridgeClient).toContain('credentials: "include"');
+    expect(source).not.toMatch(/session\.token|expiresAt|admin-proxy\.local|restoreSession/);
+    expect(source).not.toContain("projectSettings.storageKeys.session");
+    expect(source).not.toContain("/api/admin-proxy-session/login");
   });
 
   it("mounts exactly one global reauthentication dialog outside the protected shell", () => {

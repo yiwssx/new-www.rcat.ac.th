@@ -3,10 +3,20 @@
 import { Readable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import { createAdminProxySessionCookie } from "../adminProxy/session.mjs";
+import { getCmsCsrfCookieName, getCmsSessionCookieName } from "../cmsAuth/cookies.mjs";
+import {
+  CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_BROWSER_CSRF_HEADER,
+  CMS_SESSION_TOKEN_HEADER
+} from "../cmsAuth/handlers.mjs";
 import { handleAppsScriptProxyRequest, MAX_REQUEST_BODY_BYTES } from "./handler.mjs";
 
 const SESSION_SECRET = "fake-admin-proxy-session-secret-32-characters";
 const BRIDGE_TOKEN = "fake-apps-script-bridge-token";
+const CMS_SESSION_TOKEN = "A".repeat(43);
+const CMS_CSRF_TOKEN = "B".repeat(43);
+const CMS_PROXY_SECRET = "C".repeat(40);
+const CMS_WORKER_ORIGIN = "https://worker.example.test";
 
 function createRequest({ body, headers = {}, method = "POST" } = {}) {
   const request = Readable.from(body === undefined ? [] : [typeof body === "string" ? body : JSON.stringify(body)]);
@@ -30,6 +40,9 @@ function createResponse() {
     end(value) {
       body = value === undefined ? "" : String(value);
     },
+    get bodyText() {
+      return body;
+    },
     get bodyJson() {
       return JSON.parse(body);
     }
@@ -42,6 +55,16 @@ function createEnv() {
     ADMIN_PROXY_SESSION_SECRET: SESSION_SECRET,
     APPS_SCRIPT_BRIDGE_TOKEN: BRIDGE_TOKEN,
     GOOGLE_APPS_SCRIPT_URL: "https://script.google.com/macros/s/test-deployment/exec"
+  };
+}
+
+function createCmsEnv(overrides = {}) {
+  return {
+    ...createEnv(),
+    CMS_AUTH_ENABLED: "true",
+    CMS_AUTH_PROXY_SECRET: CMS_PROXY_SECRET,
+    CLOUDFLARE_ADMIN_API_URL: CMS_WORKER_ORIGIN,
+    ...overrides
   };
 }
 
@@ -65,8 +88,38 @@ async function createAuthenticatedRequest({ body, env = createEnv(), headers = {
   });
 }
 
+function createCmsCookieHeader({ csrfToken = "", sessionToken = CMS_SESSION_TOKEN } = {}) {
+  return [
+    `${getCmsSessionCookieName()}=${sessionToken}`,
+    ...(csrfToken ? [`${getCmsCsrfCookieName()}=${csrfToken}`] : [])
+  ].join("; ");
+}
+
+function createCmsAuthenticatedRequest({
+  body,
+  csrfCookie = "",
+  csrfHeader = "",
+  headers = {},
+  method = "GET",
+  sessionToken = CMS_SESSION_TOKEN
+} = {}) {
+  return createRequest({
+    body,
+    headers: {
+      cookie: createCmsCookieHeader({ csrfToken: csrfCookie, sessionToken }),
+      ...(csrfHeader ? { [CMS_BROWSER_CSRF_HEADER]: csrfHeader } : {}),
+      ...headers
+    },
+    method
+  });
+}
+
+function capabilityResponse(capabilities) {
+  return Response.json({ role: "admin", capabilities });
+}
+
 describe("Vercel Apps Script media proxy", () => {
-  it("reports redacted server bridge readiness to an authenticated admin", async () => {
+  it("reports finite bridge readiness through the Legacy rollback session", async () => {
     const fetchImpl = vi.fn();
     const response = createResponse();
 
@@ -78,9 +131,8 @@ describe("Vercel Apps Script media proxy", () => {
     expect(response.statusCode).toBe(200);
     expect(response.bodyJson).toEqual({
       mode: "server-proxy",
-      configured: true,
-      appsScriptUrlConfigured: true,
-      bridgeTokenConfigured: true
+      appsScriptBridge: "connected",
+      driveStorage: "connected"
     });
     expect(JSON.stringify(response.bodyJson)).not.toContain("script.google.com");
     expect(JSON.stringify(response.bodyJson)).not.toContain(BRIDGE_TOKEN);
@@ -104,9 +156,8 @@ describe("Vercel Apps Script media proxy", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.bodyJson).toMatchObject({
-      configured: true,
-      appsScriptUrlConfigured: true,
-      bridgeTokenConfigured: true
+      appsScriptBridge: "connected",
+      driveStorage: "connected"
     });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -129,9 +180,8 @@ describe("Vercel Apps Script media proxy", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.bodyJson).toMatchObject({
-      configured: false,
-      appsScriptUrlConfigured: false,
-      bridgeTokenConfigured: true
+      appsScriptBridge: "not-configured",
+      driveStorage: "not-configured"
     });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -146,7 +196,11 @@ describe("Vercel Apps Script media proxy", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.bodyJson).toMatchObject({ configured: false, bridgeTokenConfigured: false });
+    expect(response.bodyJson).toEqual({
+      mode: "server-proxy",
+      appsScriptBridge: "not-configured",
+      driveStorage: "not-configured"
+    });
   });
 
   it("rejects structured resources outside the explicit media allowlist", async () => {
@@ -179,6 +233,181 @@ describe("Vercel Apps Script media proxy", () => {
     expect(response.statusCode).toBe(401);
     expect(response.bodyJson).toEqual({ error: "admin proxy session is required" });
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("authoritatively validates a CMS Session and media.read for GET status without CSRF", async () => {
+    const fetchImpl = vi.fn(async () => capabilityResponse(["media.read"]));
+    const response = createResponse();
+
+    await handleAppsScriptProxyRequest(createCmsAuthenticatedRequest(), response, {
+      env: createCmsEnv(),
+      fetchImpl
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyJson).toEqual({
+      mode: "server-proxy",
+      appsScriptBridge: "connected",
+      driveStorage: "connected"
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe(`${CMS_WORKER_ORIGIN}/api/admin/capabilities`);
+    expect(init.method).toBe("GET");
+    expect(init.headers.get(CMS_AUTH_PROXY_SECRET_HEADER)).toBe(CMS_PROXY_SECRET);
+    expect(init.headers.get(CMS_SESSION_TOKEN_HEADER)).toBe(CMS_SESSION_TOKEN);
+    expect(init.headers.get("X-RCAT-CMS-CSRF-Token")).toBeNull();
+  });
+
+  it("supports an authenticated CMS HEAD status probe without CSRF or a response body", async () => {
+    const fetchImpl = vi.fn(async () => capabilityResponse(["media.read"]));
+    const response = createResponse();
+
+    await handleAppsScriptProxyRequest(createCmsAuthenticatedRequest({ method: "HEAD" }), response, {
+      env: createCmsEnv(),
+      fetchImpl
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyText).toBe("");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects missing, malformed, and duplicate CMS Session cookies", async () => {
+    const env = createCmsEnv();
+
+    for (const cookie of [
+      "",
+      `${getCmsSessionCookieName()}=short`,
+      `${getCmsSessionCookieName()}=${CMS_SESSION_TOKEN}; ${getCmsSessionCookieName()}=${CMS_SESSION_TOKEN}`
+    ]) {
+      const fetchImpl = vi.fn();
+      const response = createResponse();
+      const request = createRequest({ headers: cookie ? { cookie } : {}, method: "GET" });
+
+      await handleAppsScriptProxyRequest(request, response, { env, fetchImpl });
+
+      expect(response.statusCode).toBe(401);
+      expect(fetchImpl).not.toHaveBeenCalled();
+    }
+  });
+
+  it("does not fall back to a valid Legacy session when a present CMS Session is invalid", async () => {
+    const env = createCmsEnv();
+    const legacyCookie = await createSessionHeader(env);
+    const response = createResponse();
+    const fetchImpl = vi.fn(async () => Response.json({ error: "expired" }, { status: 401 }));
+    const request = createRequest({
+      headers: {
+        cookie: `${createCmsCookieHeader()}; ${legacyCookie}`
+      },
+      method: "GET"
+    });
+
+    await handleAppsScriptProxyRequest(request, response, { env, fetchImpl });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.bodyJson).toEqual({ error: "CMS session is invalid or expired" });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a safe 403 when the CMS Session lacks the operation capability", async () => {
+    const response = createResponse();
+    const fetchImpl = vi.fn(async () => capabilityResponse(["dashboard.read"]));
+
+    await handleAppsScriptProxyRequest(createCmsAuthenticatedRequest(), response, {
+      env: createCmsEnv(),
+      fetchImpl
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.bodyJson).toEqual({ error: "media bridge access is forbidden" });
+  });
+
+  it("returns a finite not-configured status after valid CMS authentication", async () => {
+    const response = createResponse();
+    const fetchImpl = vi.fn(async () => capabilityResponse(["media.read"]));
+
+    await handleAppsScriptProxyRequest(createCmsAuthenticatedRequest(), response, {
+      env: createCmsEnv({ APPS_SCRIPT_BRIDGE_TOKEN: "", GOOGLE_APPS_SCRIPT_URL: "" }),
+      fetchImpl
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyJson).toEqual({
+      mode: "server-proxy",
+      appsScriptBridge: "not-configured",
+      driveStorage: "not-configured"
+    });
+  });
+
+  it("requires exact CMS CSRF and media.manage for mutation methods", async () => {
+    const env = createCmsEnv();
+
+    for (const request of [
+      createCmsAuthenticatedRequest({
+        body: { resource: "media", payload: { name: "original.png" } },
+        method: "POST"
+      }),
+      createCmsAuthenticatedRequest({
+        body: { resource: "media", payload: { name: "original.png" } },
+        csrfCookie: CMS_CSRF_TOKEN,
+        csrfHeader: "D".repeat(43),
+        method: "POST"
+      }),
+      createRequest({
+        body: { resource: "media", payload: { name: "original.png" } },
+        headers: {
+          cookie: `${createCmsCookieHeader({ csrfToken: CMS_CSRF_TOKEN })}; ${getCmsCsrfCookieName()}=${CMS_CSRF_TOKEN}`,
+          [CMS_BROWSER_CSRF_HEADER]: CMS_CSRF_TOKEN
+        },
+        method: "POST"
+      })
+    ]) {
+      const fetchImpl = vi.fn();
+      const response = createResponse();
+
+      await handleAppsScriptProxyRequest(request, response, { env, fetchImpl });
+
+      expect(response.statusCode).toBe(403);
+      expect(response.bodyJson).toEqual({ error: "CSRF validation failed" });
+      expect(fetchImpl).not.toHaveBeenCalled();
+    }
+
+    const capabilityDeniedResponse = createResponse();
+    const capabilityDeniedFetch = vi.fn(async () => capabilityResponse(["media.read"]));
+    await handleAppsScriptProxyRequest(
+      createCmsAuthenticatedRequest({
+        body: { resource: "media", payload: { name: "original.png" } },
+        csrfCookie: CMS_CSRF_TOKEN,
+        csrfHeader: CMS_CSRF_TOKEN,
+        method: "POST"
+      }),
+      capabilityDeniedResponse,
+      { env, fetchImpl: capabilityDeniedFetch }
+    );
+    expect(capabilityDeniedResponse.statusCode).toBe(403);
+    expect(capabilityDeniedResponse.bodyJson).toEqual({ error: "media bridge access is forbidden" });
+
+    const permittedResponse = createResponse();
+    const permittedFetch = vi.fn(async (input) =>
+      String(input) === `${CMS_WORKER_ORIGIN}/api/admin/capabilities`
+        ? capabilityResponse(["media.manage"])
+        : Response.json({ id: "drive-media-1", name: "original.png" })
+    );
+    await handleAppsScriptProxyRequest(
+      createCmsAuthenticatedRequest({
+        body: { resource: "media", payload: { name: "original.png" } },
+        csrfCookie: CMS_CSRF_TOKEN,
+        csrfHeader: CMS_CSRF_TOKEN,
+        method: "POST"
+      }),
+      permittedResponse,
+      { env, fetchImpl: permittedFetch }
+    );
+    expect(permittedResponse.statusCode).toBe(200);
+    expect(permittedResponse.bodyJson).toEqual({ id: "drive-media-1", name: "original.png" });
+    expect(permittedFetch).toHaveBeenCalledTimes(2);
   });
 
   it("rejects media forwarding when the server bridge token is missing", async () => {

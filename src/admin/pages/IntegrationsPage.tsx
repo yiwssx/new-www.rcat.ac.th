@@ -7,19 +7,47 @@ import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUpload
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
 import { getAdminWriteProvider } from "../../config/adminWriteProvider";
-import { checkMediaBridgeStatus } from "../../features/cms-media/mediaBridgeClient";
+import {
+  checkMediaBridgeStatus,
+  MediaBridgeRequestError,
+  type MediaBridgeStatus
+} from "../../features/cms-media/mediaBridgeClient";
+import { useAuth } from "../../context/authSessionContext";
+import { hasCmsCapability } from "../../features/cms-auth";
+
+function toIntegrationStatus(status: MediaBridgeStatus["appsScriptBridge"] | undefined, requestFailed: boolean) {
+  if (status === "connected") {
+    return "connected" as const;
+  }
+
+  if (status === "unavailable" || requestFailed) {
+    return "error" as const;
+  }
+
+  return "pending" as const;
+}
 
 export default function IntegrationsPage() {
   const structuredDataUsesCloudflare = getAdminWriteProvider() === "cloudflare";
+  const { capabilities, status } = useAuth();
+  const canReadMediaBridge = hasCmsCapability(capabilities, "media.read");
+  const bridgeQueryEnabled = status === "authenticated" && canReadMediaBridge;
   const bridgeQuery = useQuery({
     queryKey: ["admin-integrations", "apps-script-media-bridge-status"],
-    queryFn: checkMediaBridgeStatus
+    queryFn: checkMediaBridgeStatus,
+    enabled: bridgeQueryEnabled
   });
-  const bridgeConfigured = bridgeQuery.data?.configured === true;
-  const bridgeStatusError = bridgeQuery.error instanceof Error ? bridgeQuery.error.message : "";
-  const bridgeSessionExpired = /admin proxy session is (?:required|invalid or expired)|identity is not allowed/i.test(
-    bridgeStatusError
-  );
+  const bridgeError = bridgeQuery.error instanceof MediaBridgeRequestError ? bridgeQuery.error : null;
+  const bridgeSessionExpired = bridgeError?.httpStatus === 401;
+  const bridgeForbidden = (status === "authenticated" && !canReadMediaBridge) || bridgeError?.httpStatus === 403;
+  const bridgeUnavailable =
+    (!bridgeSessionExpired && !bridgeForbidden && bridgeQuery.isError) ||
+    bridgeQuery.data?.appsScriptBridge === "unavailable" ||
+    bridgeQuery.data?.driveStorage === "unavailable";
+  const bridgeNotConfigured =
+    bridgeQuery.data?.appsScriptBridge === "not-configured" || bridgeQuery.data?.driveStorage === "not-configured";
+  const appsScriptStatus = toIntegrationStatus(bridgeQuery.data?.appsScriptBridge, bridgeQuery.isError);
+  const driveStatus = toIntegrationStatus(bridgeQuery.data?.driveStorage, bridgeQuery.isError);
 
   return (
     <Box>
@@ -27,19 +55,27 @@ export default function IntegrationsPage() {
         title="การเชื่อมต่อระบบ"
         description="Cloudflare จัดการข้อมูลโครงสร้าง ส่วน Apps Script และ Google Drive ทำหน้าที่เป็นสะพานสื่อและไฟล์"
       />
-      {bridgeQuery.isLoading && <LinearProgress sx={{ mb: 3 }} />}
-      {bridgeQuery.isError && (
+      {(status === "bootstrapping" || (bridgeQueryEnabled && bridgeQuery.isLoading)) && (
+        <LinearProgress sx={{ mb: 3 }} />
+      )}
+      {bridgeSessionExpired && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          {bridgeSessionExpired
-            ? "กรุณาเข้าสู่ระบบใหม่เพื่อตรวจสอบสถานะสะพานสื่อ"
-            : bridgeStatusError || "ไม่สามารถตรวจสอบ Vercel Apps Script Proxy ได้"}
+          เซสชัน CMS หมดอายุ ระบบกำลังนำกลับไปยังหน้าเข้าสู่ระบบ
         </Alert>
       )}
-      {bridgeQuery.data && !bridgeConfigured && (
+      {bridgeForbidden && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          สะพานสื่อยังไม่พร้อม: กรุณาตรวจสอบ Vercel server environment keys: appsScriptUrlConfigured=
-          {String(bridgeQuery.data.appsScriptUrlConfigured)}, bridgeTokenConfigured=
-          {String(bridgeQuery.data.bridgeTokenConfigured)}
+          บัญชีนี้ไม่มีสิทธิ์ตรวจสอบสถานะสะพานสื่อ
+        </Alert>
+      )}
+      {bridgeNotConfigured && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          สะพานสื่อหรือพื้นที่จัดเก็บ Google Drive ยังไม่ได้กำหนดค่าฝั่งเซิร์ฟเวอร์
+        </Alert>
+      )}
+      {bridgeUnavailable && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          ไม่สามารถตรวจสอบสถานะสะพานสื่อหรือพื้นที่จัดเก็บ Google Drive ได้ในขณะนี้
         </Alert>
       )}
 
@@ -65,7 +101,7 @@ export default function IntegrationsPage() {
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <CloudSyncOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
-                <StatusChip status={bridgeConfigured ? "connected" : "pending"} />
+                <StatusChip status={appsScriptStatus} />
               </Stack>
               <Typography variant="h3" sx={{ mt: 2 }}>
                 Apps Script media bridge
@@ -81,7 +117,7 @@ export default function IntegrationsPage() {
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <DriveFolderUploadOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
-                <StatusChip status={bridgeConfigured ? "connected" : "pending"} />
+                <StatusChip status={driveStatus} />
               </Stack>
               <Typography variant="h3" sx={{ mt: 2 }}>
                 Google Drive media storage

@@ -1,7 +1,22 @@
 import process from "node:process";
 import { getAdminProxyAllowedEmails, verifyAdminProxySessionCookie } from "../adminProxy/session.mjs";
+import { hasCmsSessionCookie, readCmsCsrfCookie, readCmsSessionCookie } from "../cmsAuth/cookies.mjs";
+import {
+  CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_BROWSER_CSRF_HEADER,
+  CMS_CLIENT_IP_HEADER,
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER,
+  cmsTokensMatch,
+  getCmsClientMetadata,
+  readCmsAuthConfiguration
+} from "../cmsAuth/handlers.mjs";
 
 const MAX_REQUEST_BODY_BYTES = 4 * 1024 * 1024;
+const CMS_CAPABILITIES_PATH = "/api/admin/capabilities";
+const CMS_STATUS_CAPABILITY = "media.read";
+const CMS_MUTATION_CAPABILITY = "media.manage";
+const STATUS_METHODS = new Set(["GET", "HEAD"]);
 const APPS_SCRIPT_RESOURCES = new Map([
   ["media", "media"],
   ["deleteMedia", "media-delete"],
@@ -19,6 +34,18 @@ function sendJson(response, status, payload) {
   response.setHeader("Cache-Control", "no-store");
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.end(JSON.stringify(payload));
+}
+
+function sendStatusJson(method, response, payload) {
+  if (method === "HEAD") {
+    response.statusCode = 200;
+    response.setHeader("Cache-Control", "no-store");
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.end();
+    return;
+  }
+
+  sendJson(response, 200, payload);
 }
 
 function getHeader(request, name) {
@@ -170,6 +197,101 @@ async function authenticateAdminProxySession(request, response, env, nowMs) {
   return result;
 }
 
+function createCmsCapabilityHeaders(request, configuration, sessionToken) {
+  const metadata = getCmsClientMetadata(request);
+
+  return new Headers({
+    Accept: "application/json",
+    [CMS_AUTH_PROXY_SECRET_HEADER]: configuration.proxySecret,
+    [CMS_SESSION_TOKEN_HEADER]: sessionToken,
+    [CMS_CLIENT_IP_HEADER]: metadata.clientIp,
+    [CMS_USER_AGENT_HEADER]: metadata.userAgent
+  });
+}
+
+async function authenticateCmsSession(request, response, env, fetchImpl, requiredCapability, method) {
+  const configuration = readCmsAuthConfiguration(env);
+
+  if (!configuration || typeof fetchImpl !== "function") {
+    sendJson(response, 503, { error: "CMS authentication is unavailable" });
+    return null;
+  }
+
+  const cookieHeader = getHeader(request, "cookie");
+  const sessionToken = readCmsSessionCookie(cookieHeader);
+
+  if (!sessionToken) {
+    sendJson(response, 401, { error: "CMS session is invalid or expired" });
+    return null;
+  }
+
+  if (!STATUS_METHODS.has(method)) {
+    const csrfCookie = readCmsCsrfCookie(cookieHeader);
+    const csrfHeader = getHeader(request, CMS_BROWSER_CSRF_HEADER);
+
+    if (!cmsTokensMatch(csrfCookie, csrfHeader)) {
+      sendJson(response, 403, { error: "CSRF validation failed" });
+      return null;
+    }
+  }
+
+  let capabilityResponse;
+
+  try {
+    capabilityResponse = await fetchImpl(`${configuration.workerOrigin}${CMS_CAPABILITIES_PATH}`, {
+      method: "GET",
+      headers: createCmsCapabilityHeaders(request, configuration, sessionToken),
+      cache: "no-store",
+      redirect: "error"
+    });
+  } catch {
+    sendJson(response, 503, { error: "CMS authentication is unavailable" });
+    return null;
+  }
+
+  if (capabilityResponse.status === 401) {
+    sendJson(response, 401, { error: "CMS session is invalid or expired" });
+    return null;
+  }
+
+  if (capabilityResponse.status === 403) {
+    sendJson(response, 403, { error: "media bridge access is forbidden" });
+    return null;
+  }
+
+  if (!capabilityResponse.ok) {
+    sendJson(response, 503, { error: "CMS authentication is unavailable" });
+    return null;
+  }
+
+  let capabilityPayload;
+
+  try {
+    capabilityPayload = await capabilityResponse.json();
+  } catch {
+    sendJson(response, 503, { error: "CMS authentication is unavailable" });
+    return null;
+  }
+
+  if (
+    !capabilityPayload ||
+    typeof capabilityPayload !== "object" ||
+    Array.isArray(capabilityPayload) ||
+    !Array.isArray(capabilityPayload.capabilities) ||
+    !capabilityPayload.capabilities.every((capability) => typeof capability === "string")
+  ) {
+    sendJson(response, 503, { error: "CMS authentication is unavailable" });
+    return null;
+  }
+
+  if (!capabilityPayload.capabilities.includes(requiredCapability)) {
+    sendJson(response, 403, { error: "media bridge access is forbidden" });
+    return null;
+  }
+
+  return { mode: "cms-session" };
+}
+
 function sanitizeUpstreamBodySnippet(value, sensitiveValues) {
   let snippet = String(value || "");
 
@@ -210,8 +332,10 @@ export async function handleAppsScriptProxyRequest(
   response,
   { env = runtimeEnv(), fetchImpl = fetch, nowMs = Date.now() } = {}
 ) {
-  if (request.method !== "GET" && request.method !== "POST") {
-    response.setHeader("Allow", "GET, POST");
+  const method = String(request.method || "GET").toUpperCase();
+
+  if (!STATUS_METHODS.has(method) && method !== "POST") {
+    response.setHeader("Allow", "GET, HEAD, POST");
     sendJson(response, 405, { error: "method not allowed" });
     return;
   }
@@ -221,7 +345,12 @@ export async function handleAppsScriptProxyRequest(
     return;
   }
 
-  const session = await authenticateAdminProxySession(request, response, env, nowMs);
+  const cookieHeader = getHeader(request, "cookie");
+  const cmsCookiePresent = hasCmsSessionCookie(cookieHeader);
+  const requiredCapability = STATUS_METHODS.has(method) ? CMS_STATUS_CAPABILITY : CMS_MUTATION_CAPABILITY;
+  const session = cmsCookiePresent
+    ? await authenticateCmsSession(request, response, env, fetchImpl, requiredCapability, method)
+    : await authenticateAdminProxySession(request, response, env, nowMs);
 
   if (!session) {
     return;
@@ -230,12 +359,13 @@ export async function handleAppsScriptProxyRequest(
   const appsScriptUrl = readAppsScriptUrl(env);
   const bridgeToken = readBridgeToken(env);
 
-  if (request.method === "GET") {
-    sendJson(response, 200, {
+  if (STATUS_METHODS.has(method)) {
+    const connectionStatus = appsScriptUrl && bridgeToken ? "connected" : "not-configured";
+
+    sendStatusJson(method, response, {
       mode: "server-proxy",
-      configured: Boolean(appsScriptUrl && bridgeToken),
-      appsScriptUrlConfigured: Boolean(appsScriptUrl),
-      bridgeTokenConfigured: Boolean(bridgeToken)
+      appsScriptBridge: connectionStatus,
+      driveStorage: connectionStatus
     });
     return;
   }

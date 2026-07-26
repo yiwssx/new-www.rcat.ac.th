@@ -13,6 +13,7 @@ interface CmsApiState {
   expireAdminOnce: boolean;
   stepUpOnce: boolean;
   mutationAttempts: number;
+  bridgeStatusHits: number;
 }
 
 function safeUser(state: CmsApiState) {
@@ -37,6 +38,8 @@ function roleCapabilities(state: CmsApiState) {
     "dashboard.read",
     "content.read",
     "content.publish",
+    "media.read",
+    "media.manage",
     "users.read-self",
     "users.read-all",
     "auth.change-password-self",
@@ -77,6 +80,7 @@ async function installCmsApi(page: Page, overrides: Partial<CmsApiState> = {}) {
     expireAdminOnce: false,
     stepUpOnce: false,
     mutationAttempts: 0,
+    bridgeStatusHits: 0,
     ...overrides
   };
 
@@ -217,6 +221,22 @@ async function installCmsApi(page: Page, overrides: Partial<CmsApiState> = {}) {
       }
     }
 
+    if (path === "/api/apps-script-proxy") {
+      state.bridgeStatusHits += 1;
+
+      if (!state.authenticated) {
+        await json(route, { error: "CMS session is invalid or expired" }, 401);
+        return;
+      }
+
+      await json(route, {
+        mode: "server-proxy",
+        appsScriptBridge: "connected",
+        driveStorage: "connected"
+      });
+      return;
+    }
+
     await json(route, { items: [], pagination: { page: 1, pageSize: 25, totalItems: 0 } });
   });
 
@@ -280,6 +300,15 @@ test.describe("CMS auth intercepted functional flows", () => {
     await page.reload();
     await expect(page.getByRole("heading", { name: "แดชบอร์ด" })).toBeVisible();
     expect(state.sessionHits).toBeGreaterThanOrEqual(2);
+  });
+
+  test("authenticated CMS Session loads /admin/integrations without a browser token", async ({ page }) => {
+    const state = await installCmsApi(page, { authenticated: true });
+    await page.goto("/admin/integrations");
+
+    await expect(page.getByRole("heading", { name: "การเชื่อมต่อระบบ" })).toBeVisible();
+    await expect(page.getByText("กรุณาเข้าสู่ระบบใหม่เพื่อตรวจสอบสถานะสะพานสื่อ")).not.toBeVisible();
+    await expect.poll(() => state.bridgeStatusHits).toBe(1);
   });
 
   test("CMS auth expired Session returns to Login", async ({ page }) => {

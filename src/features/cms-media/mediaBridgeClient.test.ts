@@ -1,5 +1,12 @@
 import { Buffer } from "node:buffer";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  CMS_CSRF_COOKIE_NAME,
+  CMS_CSRF_HEADER_NAME,
+  CMS_SESSION_EXPIRED_EVENT,
+  CMS_SESSION_EXPIRED_MESSAGE,
+  CMS_SESSION_NOTICE_KEY
+} from "../cms-auth";
 import type { MediaAssetInput } from "./types";
 import {
   checkMediaBridgeStatus,
@@ -17,6 +24,7 @@ import {
 } from "./mediaBridgeClient";
 
 const TEST_UPLOAD_KEY = "test-upload-key-0001";
+const CMS_CSRF_TOKEN = "C".repeat(43);
 const FIRST_UPLOAD_URL =
   "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=test-session-one";
 const SECOND_UPLOAD_URL =
@@ -129,17 +137,22 @@ describe("Base64 media upload helpers", () => {
 });
 
 describe("same-origin Apps Script media bridge client", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    window.localStorage.clear();
+  beforeEach(() => {
+    vi.spyOn(Document.prototype, "cookie", "get").mockReturnValue(`${CMS_CSRF_COOKIE_NAME}=${CMS_CSRF_TOKEN}`);
   });
 
-  it("checks server-proxy bridge readiness without requiring a browser Apps Script URL", async () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  });
+
+  it("checks finite server-proxy bridge readiness with the HttpOnly CMS cookie flow", async () => {
     const status = {
       mode: "server-proxy" as const,
-      configured: true,
-      appsScriptUrlConfigured: true,
-      bridgeTokenConfigured: true
+      appsScriptBridge: "connected" as const,
+      driveStorage: "connected" as const
     };
     const fetchMock = vi.fn(async () => Response.json(status));
     vi.stubGlobal("fetch", fetchMock);
@@ -149,8 +162,39 @@ describe("same-origin Apps Script media bridge client", () => {
       method: "GET",
       headers: { Accept: "application/json" },
       cache: "no-store",
-      credentials: "same-origin"
+      credentials: "include"
     });
+  });
+
+  it("invokes global CMS Session-expiry handling only for a real 401", async () => {
+    const sessionExpiredListener = vi.fn();
+    window.addEventListener(CMS_SESSION_EXPIRED_EVENT, sessionExpiredListener);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ error: "CMS session is invalid or expired" }, { status: 401 }))
+    );
+
+    await expect(checkMediaBridgeStatus()).rejects.toMatchObject({
+      httpStatus: 401,
+      message: CMS_SESSION_EXPIRED_MESSAGE
+    });
+    expect(sessionExpiredListener).toHaveBeenCalledTimes(1);
+    expect(window.sessionStorage.getItem(CMS_SESSION_NOTICE_KEY)).toBe(CMS_SESSION_EXPIRED_MESSAGE);
+    window.removeEventListener(CMS_SESSION_EXPIRED_EVENT, sessionExpiredListener);
+  });
+
+  it("does not expire the CMS Session for a 503 bridge failure", async () => {
+    const sessionExpiredListener = vi.fn();
+    window.addEventListener(CMS_SESSION_EXPIRED_EVENT, sessionExpiredListener);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ error: "Apps Script bridge is unavailable" }, { status: 503 }))
+    );
+
+    await expect(checkMediaBridgeStatus()).rejects.toMatchObject({ httpStatus: 503 });
+    expect(sessionExpiredListener).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(CMS_SESSION_NOTICE_KEY)).toBeNull();
+    window.removeEventListener(CMS_SESSION_EXPIRED_EVENT, sessionExpiredListener);
   });
 
   it("uses one stable upload key across start and sequential chunks", async () => {
@@ -531,5 +575,13 @@ describe("same-origin Apps Script media bridge client", () => {
       fileId: uploadedAsset.fileId,
       deleteDriveFile: true
     });
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init).toMatchObject({
+        credentials: "include",
+        headers: expect.objectContaining({
+          [CMS_CSRF_HEADER_NAME]: CMS_CSRF_TOKEN
+        })
+      });
+    }
   });
 });

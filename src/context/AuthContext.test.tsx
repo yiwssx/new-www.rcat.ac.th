@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { useState, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { projectSettings } from "../config/projectSettings";
-import { CmsAuthError, cmsStepUpCoordinator, type CmsSafeUser } from "../features/cms-auth";
+import { CMS_SESSION_EXPIRED_EVENT, CmsAuthError, cmsStepUpCoordinator, type CmsSafeUser } from "../features/cms-auth";
 import { AuthProvider } from "./AuthContext";
 import { useAuth } from "./authSessionContext";
 
@@ -264,6 +264,21 @@ describe("CMS AuthProvider", () => {
       expect(screen.getByText("status:unauthenticated")).toBeInTheDocument();
       expect(queryClient.getQueryData(["admin-users"])).toBeUndefined();
     });
+  });
+
+  it("clears Session and protected cache and broadcasts Logout for the global expiry event", async () => {
+    const { queryClient } = renderAuth();
+    await screen.findByText("status:authenticated");
+    fireEvent.click(screen.getByRole("button", { name: "seed" }));
+    expect(queryClient.getQueryData(["admin-users"])).toEqual({ account: "A" });
+
+    act(() => window.dispatchEvent(new CustomEvent(CMS_SESSION_EXPIRED_EVENT)));
+
+    await waitFor(() => {
+      expect(screen.getByText("status:unauthenticated")).toBeInTheDocument();
+      expect(queryClient.getQueryData(["admin-users"])).toBeUndefined();
+    });
+    expect(FakeBroadcastChannel.messages).toEqual(["logged-out"]);
   });
 
   it("removes account A protected data before account B becomes active", async () => {

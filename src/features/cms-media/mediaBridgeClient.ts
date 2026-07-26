@@ -1,4 +1,11 @@
 import type { MediaAsset, MediaAssetInput, MediaType } from "./types";
+import {
+  CMS_CSRF_HEADER_NAME,
+  CMS_SESSION_EXPIRED_MESSAGE,
+  CmsAuthError,
+  notifyCmsSessionExpired,
+  readCmsCsrfToken
+} from "../cms-auth";
 
 const mediaBridgePath = "/api/apps-script-proxy";
 const UPLOAD_CHUNK_ALIGNMENT_BYTES = 256 * 1024;
@@ -61,9 +68,8 @@ export interface MediaUploadChunk {
 
 export interface MediaBridgeStatus {
   mode: "server-proxy";
-  configured: boolean;
-  appsScriptUrlConfigured: boolean;
-  bridgeTokenConfigured: boolean;
+  appsScriptBridge: "connected" | "not-configured" | "unavailable";
+  driveStorage: "connected" | "not-configured" | "unavailable";
 }
 
 export class MediaBridgeRequestError extends Error {
@@ -202,6 +208,11 @@ export function splitBase64IntoUploadChunks(value: string, chunkBytes = MEDIA_UP
 }
 
 async function parseMediaBridgeResponse<T>(response: Response): Promise<MediaBridgeEnvelope<T>> {
+  if (response.status === 401) {
+    notifyCmsSessionExpired();
+    throw new MediaBridgeRequestError(CMS_SESSION_EXPIRED_MESSAGE, 401);
+  }
+
   const text = await response.text();
   const payloadTooLarge = response.status === 413 || text.includes("FUNCTION_PAYLOAD_TOO_LARGE");
 
@@ -234,25 +245,57 @@ async function parseMediaBridgeResponse<T>(response: Response): Promise<MediaBri
   return result;
 }
 
+function parseMediaBridgeStatus(value: unknown): MediaBridgeStatus {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new MediaBridgeRequestError(getInvalidResponseMessage(200), 200);
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const validStates = new Set(["connected", "not-configured", "unavailable"]);
+
+  if (
+    candidate.mode !== "server-proxy" ||
+    typeof candidate.appsScriptBridge !== "string" ||
+    !validStates.has(candidate.appsScriptBridge) ||
+    typeof candidate.driveStorage !== "string" ||
+    !validStates.has(candidate.driveStorage)
+  ) {
+    throw new MediaBridgeRequestError(getInvalidResponseMessage(200), 200);
+  }
+
+  return {
+    mode: "server-proxy",
+    appsScriptBridge: candidate.appsScriptBridge as MediaBridgeStatus["appsScriptBridge"],
+    driveStorage: candidate.driveStorage as MediaBridgeStatus["driveStorage"]
+  };
+}
+
 export async function checkMediaBridgeStatus(): Promise<MediaBridgeStatus> {
   const response = await fetch(mediaBridgePath, {
     method: "GET",
     headers: { Accept: "application/json" },
     cache: "no-store",
-    credentials: "same-origin"
+    credentials: "include"
   });
-  return parseMediaBridgeResponse<MediaBridgeStatus>(response);
+  return parseMediaBridgeStatus(await parseMediaBridgeResponse<unknown>(response));
 }
 
 async function requestMediaBridge<T>(resource: MediaBridgeResource, payload: Record<string, unknown>): Promise<T> {
+  const csrfToken = readCmsCsrfToken();
+
+  if (!csrfToken) {
+    throw new CmsAuthError(403);
+  }
+
   const response = await fetch(mediaBridgePath, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      [CMS_CSRF_HEADER_NAME]: csrfToken
     },
     body: JSON.stringify({ resource, payload }),
     cache: "no-store",
-    credentials: "same-origin"
+    credentials: "include"
   });
 
   return parseMediaBridgeResponse<T>(response);
