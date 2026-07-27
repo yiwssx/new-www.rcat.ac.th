@@ -119,6 +119,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   resetSiteViewTrackingForTests();
   vi.restoreAllMocks();
 });
@@ -215,7 +216,6 @@ describe("PublicSiteViewTracker", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(recordPresenceMock).toHaveBeenCalledWith(expect.objectContaining({ path: "/announcements" }));
-    vi.useRealTimers();
   });
 
   it("does not send scheduled presence while the document is hidden", async () => {
@@ -231,7 +231,6 @@ describe("PublicSiteViewTracker", () => {
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     document.dispatchEvent(new Event("visibilitychange"));
     expect(recordPresenceMock).toHaveBeenCalledWith(expect.objectContaining({ path: "/news" }));
-    vi.useRealTimers();
   });
 
   it("keeps rendering when site view recording fails", async () => {

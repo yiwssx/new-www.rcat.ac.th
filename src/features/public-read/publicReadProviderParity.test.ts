@@ -232,7 +232,7 @@ describe("M20 public read provider parity", () => {
     };
 
     expect(recordPresence(input)).toBe(true);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await vi.waitFor(() => expect(warnSpy).toHaveBeenCalled());
     expect(recordPresence(input)).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(warnSpy).toHaveBeenCalledWith(

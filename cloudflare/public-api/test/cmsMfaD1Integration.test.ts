@@ -1,10 +1,9 @@
 // @vitest-environment node
 import { DatabaseSync } from "node:sqlite";
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { AdminMfaConflict, createAdminMfaRepository } from "../src/db/adminMfaRepository";
 import { createAdminSessionRepository } from "../src/db/adminSessionRepository";
 import { authenticateCmsSession } from "../src/auth/cmsSessionService";
@@ -17,7 +16,7 @@ const migrationNames = readdirSync(migrationDirectory)
   .sort();
 const baseTime = "2026-07-23T00:00:00.000Z";
 let db: DatabaseSync;
-let temporaryDirectory: string;
+let migrationSnapshot: Uint8Array;
 
 class SqliteD1Statement {
   private bindings: unknown[] = [];
@@ -217,18 +216,28 @@ function scalar(query: string, ...bindings: unknown[]) {
   return Number((db.prepare(query).get(...(bindings as never[])) as { value: number }).value);
 }
 
-beforeEach(() => {
-  temporaryDirectory = mkdtempSync(join(tmpdir(), "rcat-cms-mfa-"));
-  db = new DatabaseSync(join(temporaryDirectory, "isolated.sqlite"));
-  db.exec("PRAGMA foreign_keys = ON");
-  for (const name of migrationNames) {
-    db.exec(readFileSync(join(migrationDirectory, name), "utf8"));
+beforeAll(() => {
+  const template = new DatabaseSync(":memory:");
+
+  try {
+    template.exec("PRAGMA foreign_keys = ON");
+    for (const name of migrationNames) {
+      template.exec(readFileSync(join(migrationDirectory, name), "utf8"));
+    }
+    migrationSnapshot = template.serialize();
+  } finally {
+    template.close();
   }
+});
+
+beforeEach(() => {
+  db = new DatabaseSync(":memory:");
+  db.deserialize(migrationSnapshot);
+  db.exec("PRAGMA foreign_keys = ON");
 });
 
 afterEach(() => {
   db.close();
-  rmSync(temporaryDirectory, { force: true, recursive: true });
 });
 
 describe("Phase 6 isolated D1 integration", () => {

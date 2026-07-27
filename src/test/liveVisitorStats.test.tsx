@@ -16,6 +16,18 @@ vi.mock("../config/publicApiProvider", () => ({
 
 const getLiveVisitorStatsMock = vi.mocked(getLiveVisitorStats);
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
+function createTestQueryClient() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+}
+
 const initialStats: VisitorStatsSettings = {
   enabled: true,
   usersToday: 8,
@@ -52,7 +64,7 @@ describe("live public visitor stats", () => {
   });
 
   it("renders snapshot stats immediately and updates live fields without replacing historical fields", async () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = createTestQueryClient();
     render(
       <QueryClientProvider client={queryClient}>
         <LiveStatsHarness stats={initialStats} />
@@ -66,9 +78,10 @@ describe("live public visitor stats", () => {
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
   });
 
-  it("shows snapshot stats immediately when they arrive after the first render", () => {
-    getLiveVisitorStatsMock.mockReturnValue(new Promise(() => undefined));
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  it("shows snapshot stats immediately when they arrive after the first render", async () => {
+    const pendingStats = createDeferred<VisitorStatsSettings>();
+    getLiveVisitorStatsMock.mockReturnValue(pendingStats.promise);
+    const queryClient = createTestQueryClient();
     const { rerender } = render(
       <QueryClientProvider client={queryClient}>
         <LiveStatsHarness stats={undefined} />
@@ -83,6 +96,11 @@ describe("live public visitor stats", () => {
     );
 
     expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
+
+    await act(async () => {
+      pendingStats.resolve({ ...initialStats, onlineUsers: 3 });
+      await pendingStats.promise;
+    });
   });
 
   it("keeps the initial snapshot and backs off polling when live visitor stats fail", async () => {
@@ -90,7 +108,7 @@ describe("live public visitor stats", () => {
     const expectedError = new Error("visitor-presence-schema-missing-v1: run 0006_m20_visitor_presence.sql");
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     getLiveVisitorStatsMock.mockRejectedValue(expectedError);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = createTestQueryClient();
     render(
       <QueryClientProvider client={queryClient}>
         <LiveStatsHarness stats={initialStats} />

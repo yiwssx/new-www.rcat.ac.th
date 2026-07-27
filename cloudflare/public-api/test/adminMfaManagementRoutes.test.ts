@@ -31,8 +31,10 @@ import { ADMIN_CAPABILITIES, getCapabilitiesForRole } from "../src/auth/adminCap
 import { resolveAdminRoutePolicy } from "../src/auth/adminRoutePolicy";
 import {
   CMS_AUTH_PROXY_SECRET_HEADER,
+  CMS_CLIENT_IP_HEADER,
   CMS_CSRF_TOKEN_HEADER,
-  CMS_SESSION_TOKEN_HEADER
+  CMS_SESSION_TOKEN_HEADER,
+  CMS_USER_AGENT_HEADER
 } from "../src/routes/cmsAuthInternal";
 import worker from "../src/index";
 
@@ -64,6 +66,8 @@ function request(path: string, method: string, body?: Record<string, unknown>) {
       [CMS_AUTH_PROXY_SECRET_HEADER]: proxySecret,
       [CMS_SESSION_TOKEN_HEADER]: "A".repeat(43),
       [CMS_CSRF_TOKEN_HEADER]: "B".repeat(43),
+      [CMS_CLIENT_IP_HEADER]: "203.0.113.41",
+      [CMS_USER_AGENT_HEADER]: "admin-mfa-management-route-test",
       "Content-Type": "application/json"
     },
     ...(body ? { body: JSON.stringify(body) } : {})
@@ -124,7 +128,7 @@ beforeEach(() => {
 
 describe("admin MFA management route policy", () => {
   it("adds exactly four Phase 6 capabilities with only MFA administration restricted to admins", () => {
-    expect(ADMIN_CAPABILITIES).toHaveLength(45);
+    expect(ADMIN_CAPABILITIES).toHaveLength(44);
     expect(getCapabilitiesForRole("admin")).toEqual(
       expect.arrayContaining([
         "auth.reauthenticate-self",

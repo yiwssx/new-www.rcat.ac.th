@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CMS_SESSION_EXPIRED_EVENT, CmsAuthError, cmsStepUpCoordinator, type CmsSafeUser } from "../features/cms-auth";
 import { AuthProvider } from "./AuthContext";
 import { useAuth } from "./authSessionContext";
@@ -129,7 +129,7 @@ function AuthState() {
 
 function renderAuth(ui: ReactNode = <AuthState />) {
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
+    defaultOptions: { queries: { retry: false, gcTime: 0 } }
   });
   return {
     queryClient,
@@ -162,13 +162,19 @@ describe("CMS AuthProvider", () => {
     });
   });
 
+  afterEach(() => {
+    cmsStepUpCoordinator.resetForTests();
+    FakeBroadcastChannel.reset();
+    vi.unstubAllGlobals();
+  });
+
   it("keeps bootstrap explicit and restores a validated server Session", async () => {
-    cmsAuthMock.getSession.mockImplementation(
-      () => new Promise((resolve) => window.setTimeout(() => resolve(user), 20))
-    );
+    const session = createDeferred<CmsSafeUser>();
+    cmsAuthMock.getSession.mockReturnValue(session.promise);
     renderAuth();
 
     expect(screen.getByText("status:bootstrapping")).toBeInTheDocument();
+    session.resolve(user);
     expect(await screen.findByText("status:authenticated")).toBeInTheDocument();
     expect(screen.getByText("user:user-1")).toBeInTheDocument();
     expect(screen.getByText("capabilities:dashboard.read,users.read-all")).toBeInTheDocument();
@@ -399,10 +405,14 @@ describe("CMS AuthProvider", () => {
     await screen.findByText("status:authenticated");
     const waiter = cmsStepUpCoordinator.request("password");
     cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(401));
+    let rejection: unknown;
 
-    fireEvent.click(screen.getByRole("button", { name: "reauthenticate" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "reauthenticate" }));
+      rejection = await waiter.catch((error: unknown) => error);
+    });
 
-    await expect(waiter).rejects.toMatchObject({ status: 401 });
+    expect(rejection).toMatchObject({ status: 401 });
     expect(await screen.findByText("status:unauthenticated")).toBeInTheDocument();
     expect(screen.getByText("user:none")).toBeInTheDocument();
     expect(cmsStepUpCoordinator.getSnapshot().open).toBe(false);
@@ -413,10 +423,14 @@ describe("CMS AuthProvider", () => {
     await screen.findByText("status:authenticated");
     const waiter = cmsStepUpCoordinator.request("mfa");
     cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(503));
+    let rejection: unknown;
 
-    fireEvent.click(screen.getByRole("button", { name: "reauthenticate" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "reauthenticate" }));
+      rejection = await waiter.catch((error: unknown) => error);
+    });
 
-    await expect(waiter).rejects.toMatchObject({ status: 503 });
+    expect(rejection).toMatchObject({ status: 503 });
     expect(screen.getByText("status:authenticated")).toBeInTheDocument();
     expect(screen.getByText("user:user-1")).toBeInTheDocument();
     expect(cmsStepUpCoordinator.getSnapshot().open).toBe(false);

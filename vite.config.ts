@@ -1,7 +1,31 @@
+import { execFileSync } from "node:child_process";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import checker from "vite-plugin-checker";
+
+const WRANGLER_REPOSITORY_PATH = "cloudflare/public-api/wrangler.toml";
+
+function stagedWranglerSafetySource(): Plugin {
+  let stagedSource: string | undefined;
+
+  return {
+    name: "staged-wrangler-safety-source",
+    enforce: "pre",
+    load(id) {
+      if (!id.replace(/\\/g, "/").endsWith(`/${WRANGLER_REPOSITORY_PATH}?raw`)) {
+        return null;
+      }
+
+      stagedSource ??= execFileSync("git", ["show", `:${WRANGLER_REPOSITORY_PATH}`], {
+        cwd: process.cwd(),
+        encoding: "utf8"
+      });
+
+      return `export default ${JSON.stringify(stagedSource)};`;
+    }
+  };
+}
 
 function utf8HtmlCharset(): Plugin {
   return {
@@ -28,12 +52,16 @@ function utf8HtmlCharset(): Plugin {
   };
 }
 
-export default defineConfig(({ command }) => {
+export default defineConfig(({ command, mode }) => {
   const plugins = [react(), utf8HtmlCharset()] as Plugin[];
+
+  if (mode === "test") {
+    plugins.push(stagedWranglerSafetySource());
+  }
 
   // Enable vite-plugin-checker only during the dev server to provide
   // fast TypeScript feedback without affecting production builds.
-  if (command === "serve") {
+  if (command === "serve" && mode !== "test") {
     plugins.push(
       checker({
         typescript: {
