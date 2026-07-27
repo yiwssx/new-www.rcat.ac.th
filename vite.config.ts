@@ -6,23 +6,27 @@ import checker from "vite-plugin-checker";
 
 const WRANGLER_REPOSITORY_PATH = "cloudflare/public-api/wrangler.toml";
 
-function stagedWranglerSafetySource(): Plugin {
-  let stagedSource: string | undefined;
+function committedWranglerSafetySource(): Plugin {
+  let committedSource: string | undefined;
 
   return {
-    name: "staged-wrangler-safety-source",
+    name: "committed-wrangler-safety-source",
     enforce: "pre",
     load(id) {
       if (!id.replace(/\\/g, "/").endsWith(`/${WRANGLER_REPOSITORY_PATH}?raw`)) {
         return null;
       }
 
-      stagedSource ??= execFileSync("git", ["show", `:${WRANGLER_REPOSITORY_PATH}`], {
-        cwd: process.cwd(),
-        encoding: "utf8"
-      });
+      try {
+        committedSource ??= execFileSync("git", ["show", `HEAD:${WRANGLER_REPOSITORY_PATH}`], {
+          cwd: process.cwd(),
+          encoding: "utf8"
+        });
+      } catch {
+        throw new Error(`Unable to load the committed HEAD source for ${WRANGLER_REPOSITORY_PATH}`);
+      }
 
-      return `export default ${JSON.stringify(stagedSource)};`;
+      return `export default ${JSON.stringify(committedSource)};`;
     }
   };
 }
@@ -56,7 +60,7 @@ export default defineConfig(({ command, mode }) => {
   const plugins = [react(), utf8HtmlCharset()] as Plugin[];
 
   if (mode === "test") {
-    plugins.push(stagedWranglerSafetySource());
+    plugins.push(committedWranglerSafetySource());
   }
 
   // Enable vite-plugin-checker only during the dev server to provide

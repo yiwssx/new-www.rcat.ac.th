@@ -61,6 +61,7 @@ describe("live public visitor stats", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("renders snapshot stats immediately and updates live fields without replacing historical fields", async () => {
@@ -132,6 +133,5 @@ describe("live public visitor stats", () => {
       "Live visitor stats are temporarily unavailable; keeping the public snapshot.",
       expectedError
     );
-    warnSpy.mockRestore();
   });
 });
