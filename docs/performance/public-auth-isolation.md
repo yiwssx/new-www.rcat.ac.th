@@ -21,16 +21,20 @@ Both sources were built in isolated detached worktrees outside the repository. T
 6. Count the reachable JavaScript files and sum their raw byte lengths.
 7. Gzip each reachable JavaScript file independently with Node `zlib.gzipSync` at level 9, then sum the compressed byte lengths.
 8. Run the same build with source maps in a separate temporary output directory. Use only those maps to associate source modules with the static graph; do not use the sourcemapped output for byte totals.
+9. Run the same deterministic Public API fixture contract against `/`, `/news`, and `/content/functional-public-content`. Accumulate intercepted CMS Session, Admin capability, and all `/api/cms-auth/**` requests across the three full-page navigations.
 
 The measurements used Node `24.18.0`, pnpm `10.34.5`, and the repository-locked Vite `6.4.3`.
 
 ## Results
 
-| Metric          | Baseline `1d827ea` | Corrected snapshot |             Delta |
-| --------------- | -----------------: | -----------------: | ----------------: |
-| Static JS files |                  1 |                  1 |                 0 |
-| Raw bytes       |            554,833 |            389,608 | -165,225 (-29.8%) |
-| Gzip bytes      |            174,850 |            128,006 |  -46,844 (-26.8%) |
+| Metric                                                   | Baseline `1d827ea` | Corrected snapshot |             Delta |
+| -------------------------------------------------------- | -----------------: | -----------------: | ----------------: |
+| Static JS files                                          |                  1 |                  1 |                 0 |
+| Raw bytes                                                |            554,833 |            389,608 | -165,225 (-29.8%) |
+| Gzip bytes                                               |            174,850 |            128,006 |  -46,844 (-26.8%) |
+| CMS Session requests across 3 Public routes              |                  3 |                  0 |        -3 (-100%) |
+| Capability requests across 3 Public routes               |                  3 |                  0 |        -3 (-100%) |
+| Total `/api/cms-auth/**` requests across 3 Public routes |                  3 |                  0 |        -3 (-100%) |
 
 | Source association in the static entry graph      | Baseline | Corrected snapshot |
 | ------------------------------------------------- | -------- | ------------------ |
@@ -84,6 +88,14 @@ The repository checks for the boundary and representative runtime paths are:
 pnpm exec vitest run src/test/publicAuthImportBoundary.test.ts
 pnpm exec playwright test tests/functional/cms-auth.spec.ts --project=chromium
 ```
+
+The baseline request count was captured with the same committed deterministic fixture through a temporary Playwright measurement spec and config:
+
+```bash
+pnpm exec playwright test --config .tmp/baseline-auth-requests.playwright.config.ts
+```
+
+The temporary request-measurement files were removed after the result was recorded.
 
 Remove both temporary worktrees and their build directories after recording the results.
 
