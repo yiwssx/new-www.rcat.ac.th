@@ -138,9 +138,20 @@ function DeferredHomeSection({
   );
 }
 
+function LiveVisitorStatsCard({
+  initialStats,
+  initialDataUpdatedAt
+}: {
+  initialStats: NonNullable<ReturnType<typeof usePublicHomeSnapshot>["data"]>["visitorStats"];
+  initialDataUpdatedAt: number;
+}) {
+  const stats = useLiveVisitorStats(initialStats, initialDataUpdatedAt);
+
+  return <VisitorStatsCard stats={stats} />;
+}
+
 export default function PublicHomePage() {
-  const { data, isLoading, isFetching, isError, refetch } = usePublicHomeSnapshot();
-  const visitorStats = useLiveVisitorStats(data?.visitorStats);
+  const { data, dataUpdatedAt, isLoading, isFetching, isError, refetch } = usePublicHomeSnapshot();
 
   if (!data && (isLoading || isFetching)) {
     return (
@@ -262,7 +273,7 @@ export default function PublicHomePage() {
                 <DeferredHomeSection minHeight={320}>
                   <LazyContactMapCard siteSettings={siteSettings} />
                 </DeferredHomeSection>
-                <VisitorStatsCard stats={visitorStats} />
+                <LiveVisitorStatsCard initialStats={data.visitorStats} initialDataUpdatedAt={dataUpdatedAt} />
               </Stack>
             </Grid>
           </Grid>

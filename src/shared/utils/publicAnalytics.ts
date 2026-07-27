@@ -1,3 +1,9 @@
+import {
+  isPublicTelemetryPath,
+  normalizePublicTelemetryPath,
+  sanitizePublicTelemetryPageTitle
+} from "../telemetry/publicTelemetryRoutes";
+
 const GOOGLE_TAG_MANAGER_ID = "GTM-WTCRN6KX";
 const GOOGLE_ANALYTICS_ID = "G-6L3DV71C2J";
 const GOOGLE_TAG_MANAGER_SCRIPT_ID = "rcat-google-tag-manager";
@@ -26,26 +32,9 @@ let googleAnalyticsInitialized = false;
 let lastTrackedPagePath = "";
 let pendingPageViewHandle: IdleCallbackHandle | null = null;
 let pendingPageViewPath = "";
+let deprecatedBothWarningIssued = false;
 
-function normalizePathname(pathname: string) {
-  const [pathWithoutQuery] = pathname.split(/[?#]/u);
-
-  if (!pathWithoutQuery || pathWithoutQuery === "/") {
-    return "/";
-  }
-
-  return pathWithoutQuery.endsWith("/") ? pathWithoutQuery.slice(0, -1) : pathWithoutQuery;
-}
-
-export function isPublicAnalyticsPath(pathname: string) {
-  const pathnameWithoutTrailingSlash = normalizePathname(pathname);
-
-  return (
-    pathnameWithoutTrailingSlash !== "/login" &&
-    pathnameWithoutTrailingSlash !== "/admin" &&
-    !pathnameWithoutTrailingSlash.startsWith("/admin/")
-  );
-}
+export const isPublicAnalyticsPath = isPublicTelemetryPath;
 
 function getAnalyticsWindow() {
   return window as AnalyticsWindow;
@@ -74,8 +63,17 @@ function appendAsyncScript(id: string, src: string) {
 function getPublicAnalyticsStrategy(): PublicAnalyticsStrategy {
   const strategy = import.meta.env.VITE_PUBLIC_ANALYTICS_STRATEGY?.trim().toLowerCase();
 
-  if (strategy === "gtag" || strategy === "both") {
+  if (strategy === "gtag") {
     return strategy;
+  }
+
+  if (strategy === "both") {
+    if (import.meta.env.DEV && !deprecatedBothWarningIssued) {
+      console.warn('VITE_PUBLIC_ANALYTICS_STRATEGY="both" is deprecated; using the canonical GTM transport.');
+      deprecatedBothWarningIssued = true;
+    }
+
+    return DEFAULT_PUBLIC_ANALYTICS_STRATEGY;
   }
 
   return DEFAULT_PUBLIC_ANALYTICS_STRATEGY;
@@ -129,28 +127,30 @@ function ensurePublicAnalytics() {
 
   const strategy = getPublicAnalyticsStrategy();
 
-  if (strategy === "gtm" || strategy === "both") {
+  if (strategy === "gtm") {
     ensureGoogleTagManager();
   }
 
-  if (strategy === "gtag" || strategy === "both") {
+  if (strategy === "gtag") {
     ensureGoogleAnalytics();
   }
 }
 
-function getCurrentPageViewFields() {
-  const pageUrl = new URL(window.location.href);
-
+function getCurrentPageViewFields(pathname: string) {
+  const normalizedPath = normalizePublicTelemetryPath(pathname);
   return {
-    page_path: `${pageUrl.pathname}${pageUrl.search}${pageUrl.hash}`,
-    page_location: pageUrl.href,
-    page_title: document.title
+    page_path: normalizedPath,
+    page_location: `${window.location.origin}${normalizedPath}`,
+    page_title: sanitizePublicTelemetryPageTitle(normalizedPath, document.title)
   };
 }
 
 export function trackPublicPageView(pathname: string) {
-  if (!isPublicAnalyticsPath(pathname)) {
-    cancelPendingPageView();
+  const normalizedPath = normalizePublicTelemetryPath(pathname);
+
+  if (!isPublicTelemetryPath(normalizedPath)) {
+    cancelPendingPublicPageView();
+    lastTrackedPagePath = "";
     return;
   }
 
@@ -158,35 +158,31 @@ export function trackPublicPageView(pathname: string) {
     return;
   }
 
-  const pageViewFields = getCurrentPageViewFields();
-
-  if (lastTrackedPagePath === pageViewFields.page_path || pendingPageViewPath === pageViewFields.page_path) {
+  if (lastTrackedPagePath === normalizedPath || pendingPageViewPath === normalizedPath) {
     return;
   }
 
-  cancelPendingPageView();
-  pendingPageViewPath = pageViewFields.page_path;
+  cancelPendingPublicPageView();
+  pendingPageViewPath = normalizedPath;
   pendingPageViewHandle = scheduleIdlePageView(() => {
     const scheduledPagePath = pendingPageViewPath;
     pendingPageViewHandle = null;
     pendingPageViewPath = "";
 
-    if (!isPublicAnalyticsPath(window.location.pathname)) {
+    const currentPath = normalizePublicTelemetryPath(window.location.pathname);
+
+    if (!isPublicTelemetryPath(currentPath)) {
       return;
     }
 
-    const currentPageViewFields = getCurrentPageViewFields();
-
-    if (
-      currentPageViewFields.page_path !== scheduledPagePath ||
-      lastTrackedPagePath === currentPageViewFields.page_path
-    ) {
+    if (currentPath !== scheduledPagePath || lastTrackedPagePath === currentPath) {
       return;
     }
 
+    const currentPageViewFields = getCurrentPageViewFields(currentPath);
     ensurePublicAnalytics();
     sendPublicPageView(currentPageViewFields);
-    lastTrackedPagePath = currentPageViewFields.page_path;
+    lastTrackedPagePath = currentPath;
   });
 }
 
@@ -204,7 +200,7 @@ function scheduleIdlePageView(callback: () => void): IdleCallbackHandle {
   };
 }
 
-function cancelPendingPageView() {
+export function cancelPendingPublicPageView() {
   if (!pendingPageViewHandle) {
     pendingPageViewPath = "";
     return;
@@ -220,11 +216,16 @@ function cancelPendingPageView() {
   pendingPageViewPath = "";
 }
 
+export function releasePublicPageView() {
+  cancelPendingPublicPageView();
+  lastTrackedPagePath = "";
+}
+
 function sendPublicPageView(pageViewFields: ReturnType<typeof getCurrentPageViewFields>) {
   const strategy = getPublicAnalyticsStrategy();
   const analyticsWindow = getAnalyticsWindow();
 
-  if (strategy === "gtag" || strategy === "both") {
+  if (strategy === "gtag") {
     analyticsWindow.gtag?.("event", "page_view", pageViewFields);
     return;
   }
@@ -236,8 +237,8 @@ function sendPublicPageView(pageViewFields: ReturnType<typeof getCurrentPageView
 }
 
 export function resetPublicAnalyticsForTests() {
-  cancelPendingPageView();
+  releasePublicPageView();
   googleTagManagerInitialized = false;
   googleAnalyticsInitialized = false;
-  lastTrackedPagePath = "";
+  deprecatedBothWarningIssued = false;
 }

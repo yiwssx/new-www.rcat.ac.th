@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { isPublicSiteViewPath, trackPublicPresence, trackPublicSiteView } from "./siteViewTracking";
-
-const PRESENCE_HEARTBEAT_MS = 60_000;
+import { isPublicTelemetryPath } from "../../shared/telemetry/publicTelemetryRoutes";
+import { PRESENCE_HEARTBEAT_MS, trackPublicPresence, trackPublicSiteView } from "./siteViewTracking";
 
 export function PublicSiteViewTracker() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -10,7 +9,7 @@ export function PublicSiteViewTracker() {
   useEffect(() => {
     trackPublicSiteView(pathname);
 
-    if (!isPublicSiteViewPath(pathname)) {
+    if (!isPublicTelemetryPath(pathname)) {
       return undefined;
     }
 

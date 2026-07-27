@@ -1,6 +1,12 @@
 import { recordPresence, recordSiteView, type SiteViewInput } from "./api";
+import {
+  isPublicTelemetryPath,
+  normalizePublicTelemetryPath,
+  sanitizePublicTelemetryPageTitle
+} from "../../shared/telemetry/publicTelemetryRoutes";
 
 export const SITE_VISITOR_ID_STORAGE_KEY = "rcat.site.visitor.id";
+export const PRESENCE_HEARTBEAT_MS = 60_000;
 
 const SITE_VIEW_THROTTLE_STORAGE_KEY = "rcat.site.view.throttle.v1";
 const SITE_VIEW_THROTTLE_MS = 30 * 60 * 1000;
@@ -9,26 +15,24 @@ const SITE_VIEW_MAX_PAGE_TITLE_LENGTH = 120;
 const SITE_VISITOR_ID_PATTERN = /^rcat_[A-Za-z0-9_-]{12,64}$/;
 
 type SiteViewRecorder = (input: SiteViewInput) => boolean;
+type PresenceRecorder = (input: Pick<SiteViewInput, "visitorId" | "path">) => boolean;
 
 interface TrackSiteViewOptions {
   now?: () => number;
   record?: SiteViewRecorder;
 }
 
-let fallbackVisitorId = "";
-let fallbackThrottle: Record<string, number> = {};
-
-function normalizePathname(pathname: string) {
-  const [pathWithoutQuery] = String(pathname || "/").split(/[?#]/u);
-  const normalized = pathWithoutQuery || "/";
-
-  return normalized.length > 1 && normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
+interface TrackPresenceOptions {
+  now?: () => number;
+  record?: PresenceRecorder;
 }
 
-export function isPublicSiteViewPath(pathname: string) {
-  const normalized = normalizePathname(pathname);
+let fallbackVisitorId = "";
+let fallbackThrottle: Record<string, number> = {};
+const lastPresenceAtByPath = new Map<string, number>();
 
-  return normalized !== "/login" && normalized !== "/admin" && !normalized.startsWith("/admin/");
+export function isPublicSiteViewPath(pathname: string) {
+  return isPublicTelemetryPath(pathname);
 }
 
 function getStorageValue(key: string) {
@@ -149,18 +153,21 @@ function getSafeReferrerOrigin() {
   }
 }
 
-function getSafePageTitle() {
+function getSafePageTitle(pathname: string) {
   if (typeof document === "undefined") {
     return "";
   }
 
-  return document.title.trim().replace(/\s+/g, " ").slice(0, SITE_VIEW_MAX_PAGE_TITLE_LENGTH);
+  return sanitizePublicTelemetryPageTitle(pathname, document.title)
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, SITE_VIEW_MAX_PAGE_TITLE_LENGTH);
 }
 
 export function trackPublicSiteView(pathname: string, options: TrackSiteViewOptions = {}) {
-  const path = normalizePathname(pathname).slice(0, SITE_VIEW_MAX_PATH_LENGTH);
+  const normalizedPath = normalizePublicTelemetryPath(pathname);
 
-  if (!isPublicSiteViewPath(path)) {
+  if (!isPublicTelemetryPath(normalizedPath)) {
     return false;
   }
 
@@ -168,6 +175,7 @@ export function trackPublicSiteView(pathname: string, options: TrackSiteViewOpti
     return false;
   }
 
+  const path = normalizedPath.slice(0, SITE_VIEW_MAX_PATH_LENGTH);
   const now = options.now ? options.now() : Date.now();
 
   if (shouldThrottlePath(path, now)) {
@@ -182,7 +190,7 @@ export function trackPublicSiteView(pathname: string, options: TrackSiteViewOpti
       timestamp: new Date(now).toISOString()
     };
     const referrerOrigin = getSafeReferrerOrigin();
-    const pageTitle = getSafePageTitle();
+    const pageTitle = getSafePageTitle(normalizedPath);
 
     if (referrerOrigin) {
       payload.referrerOrigin = referrerOrigin;
@@ -198,18 +206,39 @@ export function trackPublicSiteView(pathname: string, options: TrackSiteViewOpti
   }
 }
 
-export function trackPublicPresence(pathname: string) {
-  const path = normalizePathname(pathname).slice(0, SITE_VIEW_MAX_PATH_LENGTH);
+export function trackPublicPresence(pathname: string, options: TrackPresenceOptions = {}) {
+  const normalizedPath = normalizePublicTelemetryPath(pathname);
 
-  if (!isPublicSiteViewPath(path) || typeof window === "undefined" || typeof document === "undefined") {
+  if (!isPublicTelemetryPath(normalizedPath) || typeof window === "undefined" || typeof document === "undefined") {
+    return false;
+  }
+
+  const path = normalizedPath.slice(0, SITE_VIEW_MAX_PATH_LENGTH);
+  const now = options.now ? options.now() : Date.now();
+  const lastPresenceAt = lastPresenceAtByPath.get(path) ?? Number.NEGATIVE_INFINITY;
+
+  if (now - lastPresenceAt < PRESENCE_HEARTBEAT_MS) {
     return false;
   }
 
   try {
-    return recordPresence({
+    const recorder = options.record || recordPresence;
+    const recorded = recorder({
       visitorId: getOrCreateAnonymousVisitorId(),
       path
     });
+
+    if (recorded) {
+      for (const [trackedPath, trackedAt] of lastPresenceAtByPath) {
+        if (now - trackedAt >= PRESENCE_HEARTBEAT_MS * 2) {
+          lastPresenceAtByPath.delete(trackedPath);
+        }
+      }
+
+      lastPresenceAtByPath.set(path, now);
+    }
+
+    return recorded;
   } catch {
     return false;
   }
@@ -218,4 +247,5 @@ export function trackPublicPresence(pathname: string) {
 export function resetSiteViewTrackingForTests() {
   fallbackVisitorId = "";
   fallbackThrottle = {};
+  lastPresenceAtByPath.clear();
 }

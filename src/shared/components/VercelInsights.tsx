@@ -1,19 +1,19 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { useRouterState } from "@tanstack/react-router";
-import { isPublicAnalyticsPath } from "../utils/publicAnalytics";
+import { isPublicTelemetryPath, normalizePublicTelemetryPath } from "../telemetry/publicTelemetryRoutes";
+import { sanitizeVercelAnalyticsEvent, sanitizeVercelSpeedInsightEvent } from "../telemetry/vercelTelemetryPrivacy";
 
-export function VercelInsights() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+export function VercelInsights({ pathname }: { pathname: string }) {
+  const normalizedPath = normalizePublicTelemetryPath(pathname);
 
-  if (!isPublicAnalyticsPath(pathname)) {
+  if (!isPublicTelemetryPath(normalizedPath)) {
     return null;
   }
 
   return (
     <>
-      <Analytics route={pathname} />
-      <SpeedInsights route={pathname} />
+      <Analytics beforeSend={sanitizeVercelAnalyticsEvent} />
+      <SpeedInsights route={normalizedPath} beforeSend={sanitizeVercelSpeedInsightEvent} />
     </>
   );
 }

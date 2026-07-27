@@ -1,5 +1,9 @@
+import { createElement } from "react";
+import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PublicAnalytics } from "../shared/components/PublicAnalytics";
 import {
+  cancelPendingPublicPageView,
   isPublicAnalyticsPath,
   resetPublicAnalyticsForTests,
   trackPublicPageView
@@ -81,9 +85,13 @@ afterEach(() => {
 });
 
 describe("public analytics route guard", () => {
-  it("blocks login and admin routes", () => {
+  it("blocks Auth and Admin routes", () => {
     expect(isPublicAnalyticsPath("/login")).toBe(false);
     expect(isPublicAnalyticsPath("/login/")).toBe(false);
+    expect(isPublicAnalyticsPath("/activate-account")).toBe(false);
+    expect(isPublicAnalyticsPath("/activate-account/?token=private#step")).toBe(false);
+    expect(isPublicAnalyticsPath("/reset-password")).toBe(false);
+    expect(isPublicAnalyticsPath("/reset-password/?token=private#step")).toBe(false);
     expect(isPublicAnalyticsPath("/admin")).toBe(false);
     expect(isPublicAnalyticsPath("/admin/")).toBe(false);
     expect(isPublicAnalyticsPath("/admin/content")).toBe(false);
@@ -93,6 +101,8 @@ describe("public analytics route guard", () => {
   it("allows public routes", () => {
     expect(isPublicAnalyticsPath("/")).toBe(true);
     expect(isPublicAnalyticsPath("/administrator")).toBe(true);
+    expect(isPublicAnalyticsPath("/administer")).toBe(true);
+    expect(isPublicAnalyticsPath("/login-help")).toBe(true);
     expect(isPublicAnalyticsPath("/news")).toBe(true);
     expect(isPublicAnalyticsPath("/search?q=admission")).toBe(true);
     expect(isPublicAnalyticsPath("/content/news-1")).toBe(true);
@@ -167,6 +177,37 @@ describe("public analytics tracking", () => {
     ]);
   });
 
+  it("treats deprecated both as one canonical GTM transport and warns once in development", () => {
+    vi.stubEnv("VITE_PUBLIC_ANALYTICS_STRATEGY", "both");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    window.history.replaceState({}, "", "/news");
+
+    trackPublicPageView("/news");
+    flushAnalyticsIdle();
+    window.history.replaceState({}, "", "/announcements");
+    trackPublicPageView("/announcements");
+    flushAnalyticsIdle();
+
+    expect(document.querySelectorAll(`#${googleTagManagerScriptId}`)).toHaveLength(1);
+    expect(document.querySelectorAll(`#${googleAnalyticsScriptId}`)).toHaveLength(0);
+    expect(getConfigEvents()).toEqual([]);
+    expect(getPageViewEvents()).toHaveLength(2);
+    expect(getGtagPageViewEvents()).toEqual([]);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["", "unexpected"])("uses GTM for an empty or unknown strategy value %j", (strategy) => {
+    vi.stubEnv("VITE_PUBLIC_ANALYTICS_STRATEGY", strategy);
+    window.history.replaceState({}, "", "/news");
+
+    trackPublicPageView("/news");
+    flushAnalyticsIdle();
+
+    expect(document.getElementById(googleTagManagerScriptId)).not.toBeNull();
+    expect(document.getElementById(googleAnalyticsScriptId)).toBeNull();
+    expect(getPageViewEvents()).toHaveLength(1);
+  });
+
   it("does not duplicate scripts or page views for the same public route", () => {
     window.history.replaceState({}, "", "/news");
 
@@ -177,6 +218,45 @@ describe("public analytics tracking", () => {
     expect(document.querySelectorAll(`#${googleTagManagerScriptId}`)).toHaveLength(1);
     expect(document.querySelectorAll(`#${googleAnalyticsScriptId}`)).toHaveLength(0);
     expect(getPageViewEvents()).toHaveLength(1);
+  });
+
+  it("deduplicates query and hash variations of the same normalized navigation", () => {
+    window.history.replaceState({}, "", "/news?preview=one#first");
+    trackPublicPageView("/news?preview=one#first");
+    flushAnalyticsIdle();
+
+    window.history.replaceState({}, "", "/news?preview=two#second");
+    trackPublicPageView("/news?preview=two#second");
+    flushAnalyticsIdle();
+
+    expect(getPageViewEvents()).toHaveLength(1);
+    expect(getPageViewEvents()[0]).toEqual(
+      expect.objectContaining({
+        page_path: "/news",
+        page_location: "http://localhost:3000/news"
+      })
+    );
+  });
+
+  it("removes arbitrary query strings, hashes, tokens, and email-like values from page-view fields", () => {
+    const privateQuery = "token=RESET-TOKEN-FIXTURE&email=admin%40example.invalid&q=private";
+    window.history.replaceState({}, "", `/search?${privateQuery}#INVITATION-TOKEN-FIXTURE`);
+    document.title = "ค้นหา: RESET-TOKEN-FIXTURE admin@example.invalid private";
+
+    trackPublicPageView(`/search?${privateQuery}#INVITATION-TOKEN-FIXTURE`);
+    flushAnalyticsIdle();
+
+    expect(getPageViewEvents()).toEqual([
+      {
+        event: "page_view",
+        page_path: "/search",
+        page_location: "http://localhost:3000/search",
+        page_title: ""
+      }
+    ]);
+    expect(JSON.stringify(getDataLayer())).not.toMatch(
+      /RESET-TOKEN-FIXTURE|INVITATION-TOKEN-FIXTURE|admin(?:%40|@)example\.invalid|private/u
+    );
   });
 
   it("does not send private route page views after analytics has loaded", () => {
@@ -202,6 +282,44 @@ describe("public analytics tracking", () => {
 
     expect(document.getElementById(googleTagManagerScriptId)).toBeNull();
     expect(document.getElementById(googleAnalyticsScriptId)).toBeNull();
+    expect(getTestAnalyticsWindow().dataLayer).toBeUndefined();
+  });
+
+  it("cancels pending analytics when its route component unmounts", () => {
+    window.history.replaceState({}, "", "/news");
+    const view = render(createElement(PublicAnalytics, { pathname: "/news" }));
+
+    view.unmount();
+    flushAnalyticsIdle();
+
+    expect(document.getElementById(googleTagManagerScriptId)).toBeNull();
+    expect(document.getElementById(googleAnalyticsScriptId)).toBeNull();
+    expect(getTestAnalyticsWindow().dataLayer).toBeUndefined();
+  });
+
+  it("tracks a new visit when returning to the same Public path after leaving its route layout", () => {
+    window.history.replaceState({}, "", "/news");
+    const firstVisit = render(createElement(PublicAnalytics, { pathname: "/news" }));
+    flushAnalyticsIdle();
+    firstVisit.unmount();
+
+    window.history.replaceState({}, "", "/login");
+    window.history.replaceState({}, "", "/news");
+    const returnVisit = render(createElement(PublicAnalytics, { pathname: "/news" }));
+    flushAnalyticsIdle();
+
+    expect(getPageViewEvents()).toHaveLength(2);
+    returnVisit.unmount();
+  });
+
+  it("allows explicit cancellation without initializing analytics", () => {
+    window.history.replaceState({}, "", "/news");
+    trackPublicPageView("/news");
+
+    cancelPendingPublicPageView();
+    flushAnalyticsIdle();
+
+    expect(document.getElementById(googleTagManagerScriptId)).toBeNull();
     expect(getTestAnalyticsWindow().dataLayer).toBeUndefined();
   });
 

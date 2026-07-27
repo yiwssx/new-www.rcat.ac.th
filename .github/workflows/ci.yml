@@ -34,4 +34,5 @@ jobs:
       - run: pnpm test:unit
       - run: pnpm test:integration
       - run: pnpm build
+      - run: pnpm perf:check
       - run: pnpm worker:typecheck

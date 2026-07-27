@@ -7,6 +7,18 @@ export const PUBLIC_AUTH_FIXTURE_SITE_NAME = "RCAT Public Auth Isolation Fixture
 export const PUBLIC_AUTH_FIXTURE_NEWS_TITLE = "Deterministic public news";
 export const PUBLIC_AUTH_FIXTURE_CONTENT_SLUG = "functional-public-content";
 export const PUBLIC_AUTH_FIXTURE_CONTENT_TITLE = "Deterministic public content detail";
+export const PUBLIC_AUTH_FIXTURE_GENERATED_AT = generatedAt;
+
+export interface PublicFixtureRequest {
+  method: string;
+  pathname: string;
+  search: string;
+  body: unknown;
+}
+
+export interface PublicAuthIsolationFixture {
+  requests: PublicFixtureRequest[];
+}
 
 const newsItem = {
   id: "functional-public-news",
@@ -51,20 +63,53 @@ function createHomeSnapshot() {
     },
     carouselSlides: [],
     latestNews: [newsItem, contentItem],
+    visitorStats: {
+      enabled: true,
+      usersToday: 2,
+      usersYesterday: 1,
+      usersThisMonth: 10,
+      usersThisYear: 20,
+      totalUsers: 15,
+      totalViews: 30,
+      onlineUsers: 1,
+      updatedAt: generatedAt
+    },
     generatedAt
   };
 }
 
-export async function installPublicAuthIsolationFixture(page: Page) {
+export async function installPublicAuthIsolationFixture(page: Page): Promise<PublicAuthIsolationFixture> {
+  const requests: PublicFixtureRequest[] = [];
+
   await page.addInitScript(() => {
-    window.localStorage.clear();
-    window.sessionStorage.clear();
+    const resetMarker = "rcat.functional.public-fixture.storage-reset";
+
+    if (window.sessionStorage.getItem(resetMarker) !== "1") {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+      window.sessionStorage.setItem(resetMarker, "1");
+    }
   });
 
   await page.route("**/api/public/**", async (route) => {
-    const url = new URL(route.request().url());
+    const request = route.request();
+    const url = new URL(request.url());
     const homeSnapshot = createHomeSnapshot();
     let payload: unknown;
+    let body: unknown;
+
+    try {
+      body = request.postData() ? request.postDataJSON() : null;
+    } catch {
+      body = request.postData();
+    }
+
+    requests.push({
+      method: request.method(),
+      pathname: url.pathname,
+      search: url.search,
+      body
+    });
 
     if (url.pathname === "/api/public/home") {
       payload = homeSnapshot;
@@ -108,4 +153,8 @@ export async function installPublicAuthIsolationFixture(page: Page) {
       body: JSON.stringify(payload)
     });
   });
+
+  return {
+    requests
+  };
 }
