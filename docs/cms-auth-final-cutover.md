@@ -4,6 +4,12 @@ This runbook governs the Preview and Production rollout of the permanent CMS-onl
 
 Phase 8 changes code only. It does not deploy, change a remote environment, migrate D1, revoke a Session, reset MFA, or retire a remote secret.
 
+## Project closure status
+
+Phase 8 code and operator-confirmed smoke testing are complete. Continued operations follow the technical handoff in `docs/cms-auth-project-closure.md`.
+
+This runbook remains the authoritative procedure for remote Legacy-secret retirement, coordinated secret rotation, and rollback. Remote Legacy-secret retirement is an operational follow-up unless its completion is separately recorded through the approved process.
+
 ## Confirmed application prerequisites
 
 The following checks were completed before this coding phase:
