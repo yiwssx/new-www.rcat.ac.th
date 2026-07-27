@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/th";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { DisplaySettings } from "../types";
+import type { DisplaySettings } from "../types";
 import {
   defaultDisplaySettings,
   getStoredDisplaySettings,

@@ -1,4 +1,11 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  installPublicAuthIsolationFixture,
+  PUBLIC_AUTH_FIXTURE_CONTENT_SLUG,
+  PUBLIC_AUTH_FIXTURE_CONTENT_TITLE,
+  PUBLIC_AUTH_FIXTURE_NEWS_TITLE,
+  PUBLIC_AUTH_FIXTURE_SITE_NAME
+} from "./fixtures/publicAuthIsolationFixture";
 
 const csrfToken = "A".repeat(43);
 const recoveryCodes = Array.from({ length: 10 }, (_, index) => `RECOVERY-${index + 1}`);
@@ -10,6 +17,8 @@ interface CmsApiState {
   loginMode: LoginMode;
   role: "admin" | "viewer";
   sessionHits: number;
+  capabilityHits: number;
+  cmsAuthRequests: string[];
   expireAdminOnce: boolean;
   stepUpOnce: boolean;
   mutationAttempts: number;
@@ -78,6 +87,8 @@ async function installCmsApi(page: Page, overrides: Partial<CmsApiState> = {}) {
     loginMode: "password",
     role: "admin",
     sessionHits: 0,
+    capabilityHits: 0,
+    cmsAuthRequests: [],
     expireAdminOnce: false,
     stepUpOnce: false,
     mutationAttempts: 0,
@@ -98,6 +109,10 @@ async function installCmsApi(page: Page, overrides: Partial<CmsApiState> = {}) {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
+
+    if (path.startsWith("/api/cms-auth/")) {
+      state.cmsAuthRequests.push(path);
+    }
 
     if (path === "/api/admin-proxy-session/login" || path === "/api/admin-proxy-session/logout") {
       await route.fulfill({
@@ -211,6 +226,7 @@ async function installCmsApi(page: Page, overrides: Partial<CmsApiState> = {}) {
       const adminPath = url.searchParams.get("path");
 
       if (adminPath === "/api/admin/capabilities") {
+        state.capabilityHits += 1;
         await json(route, { role: state.role, capabilities: roleCapabilities(state) });
         return;
       }
@@ -269,11 +285,82 @@ async function submitPasswordLogin(page: Page) {
 }
 
 test.describe("CMS auth intercepted functional flows", () => {
-  test("CMS auth unauthenticated /admin redirects after bootstrap", async ({ page }) => {
+  test("representative Public routes never bootstrap CMS Auth", async ({ page }) => {
+    const state = await installCmsApi(page);
+    await installPublicAuthIsolationFixture(page);
+
+    await page.goto("/");
+    await expect(page.locator(".rcat-page")).toBeVisible();
+    await expect(page.getByRole("heading", { name: PUBLIC_AUTH_FIXTURE_SITE_NAME }).first()).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+
+    await page.goto("/news");
+    await expect(page.locator(".rcat-page")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ข่าว", exact: true })).toBeVisible();
+    await expect(page.getByText(PUBLIC_AUTH_FIXTURE_NEWS_TITLE, { exact: true })).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+
+    await page.goto(`/content/${PUBLIC_AUTH_FIXTURE_CONTENT_SLUG}`);
+    await expect(page.locator(".rcat-page")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: PUBLIC_AUTH_FIXTURE_CONTENT_TITLE, exact: true, level: 1 })
+    ).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+
+    expect(state.sessionHits).toBe(0);
+    expect(state.capabilityHits).toBe(0);
+    expect(state.cmsAuthRequests).toEqual([]);
+  });
+
+  test("Public analytics and site-view tracking stay outside Auth and Admin routes", async ({ page }) => {
     await installCmsApi(page);
+    const analyticsRequests: string[] = [];
+
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+
+      if (
+        url.hostname.includes("googletagmanager.com") ||
+        url.pathname === "/api/public/site-view" ||
+        url.pathname === "/api/public/presence"
+      ) {
+        analyticsRequests.push(request.url());
+      }
+    });
+
+    for (const path of ["/login", "/activate-account", "/reset-password", "/admin"]) {
+      await page.goto(path);
+      await page.waitForLoadState("domcontentloaded");
+    }
+
+    await expect.poll(() => analyticsRequests).toEqual([]);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            Boolean(document.getElementById("rcat-google-tag-manager")) ||
+            Boolean(document.getElementById("rcat-google-analytics"))
+        )
+      )
+      .toBe(false);
+  });
+
+  test("CMS Auth Login route retains authentication bootstrap context", async ({ page }) => {
+    const state = await installCmsApi(page);
+
+    await page.goto("/login");
+    await expect(page.getByRole("button", { name: "เข้าสู่ระบบ" })).toBeVisible();
+    await expect.poll(() => state.sessionHits).toBe(1);
+    await expect.poll(() => state.capabilityHits).toBe(1);
+  });
+
+  test("CMS auth unauthenticated /admin redirects after bootstrap", async ({ page }) => {
+    const state = await installCmsApi(page);
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole("button", { name: "เข้าสู่ระบบ" })).toBeVisible();
+    expect(state.sessionHits).toBeGreaterThanOrEqual(1);
+    expect(state.capabilityHits).toBeGreaterThanOrEqual(1);
   });
 
   test("CMS auth password-only Login reaches Dashboard", async ({ page }) => {

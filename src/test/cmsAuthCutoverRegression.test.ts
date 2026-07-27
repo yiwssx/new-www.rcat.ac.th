@@ -87,16 +87,21 @@ describe("CMS authentication final-cutover regression guard", () => {
     expect(mediaBridgeClient).toContain('credentials: "include"');
   });
 
-  it("mounts exactly one global reauthentication dialog outside the protected shell", () => {
+  it("mounts exactly one reauthentication dialog inside the CMS Auth route boundary", () => {
     const app = readFileSync(join(srcRoot, "App.tsx"), "utf8");
+    const authRouteComponents = readFileSync(join(srcRoot, "cmsAuthRouteComponents.tsx"), "utf8");
     const shell = readFileSync(join(srcRoot, "admin", "layout", "CmsShell.tsx"), "utf8");
-    const combined = `${app}\n${shell}`;
+    const combined = `${app}\n${authRouteComponents}\n${shell}`;
 
     expect(combined.match(/<ReauthenticationDialog\s*\/>/g)).toHaveLength(1);
-    expect(app).toContain("<ReauthenticationDialog />");
+    expect(app).not.toContain("ReauthenticationDialog");
+    expect(authRouteComponents).toContain("<ReauthenticationDialog />");
     expect(shell).not.toContain("ReauthenticationDialog");
-    expect(app.indexOf("<AuthProvider>")).toBeLessThan(app.indexOf("<ReauthenticationDialog />"));
-    expect(app.indexOf("<ThemeProvider")).toBeLessThan(app.indexOf("<ReauthenticationDialog />"));
+    expect(authRouteComponents.indexOf("<AuthProvider>")).toBeLessThan(
+      authRouteComponents.indexOf("<ReauthenticationDialog />")
+    );
+    expect(app).toContain("<ThemeProvider");
+    expect(app).not.toContain("AuthProvider");
   });
 
   it("keeps raw Recovery Codes in the application-level React handoff only", () => {
