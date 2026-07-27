@@ -1,7 +1,7 @@
 import { Suspense, lazy } from "react";
-import { Box, CircularProgress } from "@mui/material";
 import { Outlet, useParams } from "@tanstack/react-router";
 import { PublicAnalytics } from "./shared/components/PublicAnalytics";
+import { RouteFallback } from "./shared/components/RouteFallback";
 import { PublicSiteViewTracker } from "./features/site-view";
 import { VercelInsights } from "./shared/components/VercelInsights";
 
@@ -42,22 +42,6 @@ export const ProtectedLayout = lazy(() =>
 export const CapabilityGuard = lazy(() =>
   import("./cmsAuthRouteComponents").then((module) => ({ default: module.CapabilityGuard }))
 );
-
-export function RouteFallback() {
-  return (
-    <Box
-      sx={{
-        minHeight: "62vh",
-        display: "grid",
-        placeItems: "center",
-        bgcolor: "background.default"
-      }}
-      className="rcat-section-tight grid min-h-[62vh] place-items-center"
-    >
-      <CircularProgress />
-    </Box>
-  );
-}
 
 export function RootRouteLayout() {
   return (

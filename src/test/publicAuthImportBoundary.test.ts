@@ -167,4 +167,14 @@ describe("Public entry CMS Auth import boundary", () => {
     expect(staticSpecifiers).not.toContain("./cmsAuthRouteComponents");
     expect(dynamicSpecifiers).toContain("./cmsAuthRouteComponents");
   });
+
+  it("keeps the lazy CMS Auth implementation from importing the route registry back", () => {
+    const cmsAuthRouteComponentsPath = join(srcRoot, "cmsAuthRouteComponents.tsx");
+    const routeComponentsPath = join(srcRoot, "routeComponents.tsx");
+    const routeFallbackPath = join(srcRoot, "shared", "components", "RouteFallback.tsx");
+    const staticImports = staticRelativeImports(cmsAuthRouteComponentsPath);
+
+    expect(staticImports).toContain(routeFallbackPath);
+    expect(staticImports).not.toContain(routeComponentsPath);
+  });
 });

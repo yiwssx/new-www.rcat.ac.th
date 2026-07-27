@@ -6,7 +6,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { RecoveryCodeHandoffProvider } from "./context/RecoveryCodeHandoffProvider";
 import { useAuth } from "./context/authSessionContext";
 import { hasAnyCmsCapability, type CmsCapability } from "./features/cms-auth";
-import { RouteFallback } from "./routeComponents";
+import { RouteFallback } from "./shared/components/RouteFallback";
 
 const CmsShell = lazy(() => import("./admin/layout/CmsShell"));
 const ReauthenticationDialog = lazy(() => import("./admin/components/ReauthenticationDialog"));

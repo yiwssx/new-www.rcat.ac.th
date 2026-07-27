@@ -1,4 +1,11 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  installPublicAuthIsolationFixture,
+  PUBLIC_AUTH_FIXTURE_CONTENT_SLUG,
+  PUBLIC_AUTH_FIXTURE_CONTENT_TITLE,
+  PUBLIC_AUTH_FIXTURE_NEWS_TITLE,
+  PUBLIC_AUTH_FIXTURE_SITE_NAME
+} from "./fixtures/publicAuthIsolationFixture";
 
 const csrfToken = "A".repeat(43);
 const recoveryCodes = Array.from({ length: 10 }, (_, index) => `RECOVERY-${index + 1}`);
@@ -280,11 +287,25 @@ async function submitPasswordLogin(page: Page) {
 test.describe("CMS auth intercepted functional flows", () => {
   test("representative Public routes never bootstrap CMS Auth", async ({ page }) => {
     const state = await installCmsApi(page);
+    await installPublicAuthIsolationFixture(page);
 
-    for (const path of ["/", "/news", "/content/functional-public-content"]) {
-      await page.goto(path);
-      await page.waitForLoadState("domcontentloaded");
-    }
+    await page.goto("/");
+    await expect(page.locator(".rcat-page")).toBeVisible();
+    await expect(page.getByRole("heading", { name: PUBLIC_AUTH_FIXTURE_SITE_NAME }).first()).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+
+    await page.goto("/news");
+    await expect(page.locator(".rcat-page")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ข่าว", exact: true })).toBeVisible();
+    await expect(page.getByText(PUBLIC_AUTH_FIXTURE_NEWS_TITLE, { exact: true })).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+
+    await page.goto(`/content/${PUBLIC_AUTH_FIXTURE_CONTENT_SLUG}`);
+    await expect(page.locator(".rcat-page")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: PUBLIC_AUTH_FIXTURE_CONTENT_TITLE, exact: true, level: 1 })
+    ).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
 
     expect(state.sessionHits).toBe(0);
     expect(state.capabilityHits).toBe(0);
