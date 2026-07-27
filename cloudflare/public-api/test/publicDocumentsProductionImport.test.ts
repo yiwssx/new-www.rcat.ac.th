@@ -1,3 +1,5 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import m13Doc from "../../../docs/architecture/m13-public-document-list-controlled-production-import-2026-06-11.md?raw";
 import rootPackageJsonSource from "../../../package.json?raw";
@@ -13,7 +15,7 @@ import workerPackageJsonSource from "../package.json?raw";
 import wranglerToml from "../wrangler.toml?raw";
 
 const fixedGeneratedAt = "2026-06-11T00:00:00.000Z";
-const fakeInputPath = "C:/operator/secure/public-documents-prod-export.redacted.json";
+const fakeInputPath = join(tmpdir(), "rcat-public-documents-test", "public-documents-prod-export.redacted.json");
 const forbiddenProductionPattern = new RegExp(
   [`${"script"}.${"google"}.com`, `${"drive"}.${"google"}.com`, `${"rcat"}.ac.th`]
     .map((value) => value.replaceAll(".", "\\."))
