@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CmsCapability, CmsRole } from "./features/cms-auth";
-import { CapabilityGuard } from "./routeComponents";
+import { CapabilityGuard } from "./cmsAuthRouteComponents";
 
 const authMock = vi.hoisted(() => ({
   capabilities: [] as CmsCapability[],

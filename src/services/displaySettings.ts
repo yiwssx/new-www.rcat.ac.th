@@ -1,6 +1,5 @@
 import { projectSettings } from "../config/projectSettings";
-import { DisplaySettings } from "../types";
-import { getDisplaySettingsFromApi, saveDisplaySettingsToApi } from "../features/cms-settings";
+import type { DisplaySettings } from "../types";
 
 export const defaultDisplaySettings: DisplaySettings = {
   dateFormat: "j F Y",
@@ -93,6 +92,7 @@ export function getStoredDisplaySettings() {
 
 export async function loadDisplaySettings(): Promise<DisplaySettings> {
   try {
+    const { getDisplaySettingsFromApi } = await import("../features/cms-settings/api");
     const settings = normalizeDisplaySettings(await getDisplaySettingsFromApi());
     persistDisplaySettings(settings);
     return settings;
@@ -102,6 +102,7 @@ export async function loadDisplaySettings(): Promise<DisplaySettings> {
 }
 
 export async function saveDisplaySettings(input: Partial<DisplaySettings>): Promise<DisplaySettings> {
+  const { saveDisplaySettingsToApi } = await import("../features/cms-settings/api");
   const settings = normalizeDisplaySettings({
     ...getStoredDisplaySettings(),
     ...input

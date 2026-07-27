@@ -1,4 +1,4 @@
-import { Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import {
   AccountSecurityPage,
   ActivateAccountPage,
@@ -6,6 +6,7 @@ import {
   CalendarPage,
   CapabilityGuard,
   CarouselPage,
+  CmsAuthRouteLayout,
   ContentPage,
   DashboardPage,
   DocumentsPage,
@@ -26,6 +27,7 @@ import {
   PublicDocumentsPage,
   PublicHomePage,
   PublicNewsPage,
+  PublicRouteLayout,
   PublicSearchPage,
   RootRouteLayout,
   ResetPasswordPage,
@@ -41,7 +43,7 @@ const rootRoute = createRootRoute({
 const publicLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "public-layout",
-  component: () => <Outlet />
+  component: PublicRouteLayout
 });
 
 const publicHomeRoute = createRoute({
@@ -116,26 +118,32 @@ const publicPermalinkRoute = createRoute({
   component: PublicContentDetailRoute
 });
 
+const cmsAuthLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "cms-auth-layout",
+  component: CmsAuthRouteLayout
+});
+
 const loginRoute = createRoute({
-  getParentRoute: () => publicLayoutRoute,
+  getParentRoute: () => cmsAuthLayoutRoute,
   path: "login",
   component: LoginPage
 });
 
 const activateAccountRoute = createRoute({
-  getParentRoute: () => publicLayoutRoute,
+  getParentRoute: () => cmsAuthLayoutRoute,
   path: "activate-account",
   component: ActivateAccountPage
 });
 
 const resetPasswordRoute = createRoute({
-  getParentRoute: () => publicLayoutRoute,
+  getParentRoute: () => cmsAuthLayoutRoute,
   path: "reset-password",
   component: ResetPasswordPage
 });
 
 const adminRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => cmsAuthLayoutRoute,
   path: "admin",
   component: ProtectedLayout
 });
@@ -285,25 +293,27 @@ const routeTree = rootRoute.addChildren([
     publicContactRoute,
     publicSearchRoute,
     publicContentDetailRoute,
-    publicPermalinkRoute,
+    publicPermalinkRoute
+  ]),
+  cmsAuthLayoutRoute.addChildren([
     loginRoute,
     activateAccountRoute,
-    resetPasswordRoute
-  ]),
-  adminRoute.addChildren([
-    adminDashboardRoute,
-    adminContentRoute,
-    adminDocumentsRoute,
-    adminCarouselRoute,
-    adminExternalServicesRoute,
-    adminMediaRoute,
-    adminCalendarRoute,
-    adminMenuRoute,
-    adminIntegrationsRoute,
-    adminSettingsRoute,
-    adminUsersRoute,
-    adminBackupRoute,
-    adminAccountSecurityRoute
+    resetPasswordRoute,
+    adminRoute.addChildren([
+      adminDashboardRoute,
+      adminContentRoute,
+      adminDocumentsRoute,
+      adminCarouselRoute,
+      adminExternalServicesRoute,
+      adminMediaRoute,
+      adminCalendarRoute,
+      adminMenuRoute,
+      adminIntegrationsRoute,
+      adminSettingsRoute,
+      adminUsersRoute,
+      adminBackupRoute,
+      adminAccountSecurityRoute
+    ])
   ])
 ]);
 

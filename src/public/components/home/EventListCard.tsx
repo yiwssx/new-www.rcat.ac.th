@@ -18,7 +18,11 @@ import Grid from "@mui/material/Grid2";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import EmptyState from "../../../shared/components/EmptyState";
-import { EVENT_LIFECYCLE_LABELS, formatEventDateTimeRange, getEventLifecycle } from "../../../features/cms-events";
+import {
+  EVENT_LIFECYCLE_LABELS,
+  formatEventDateTimeRange,
+  getEventLifecycle
+} from "../../../features/cms-events/presentation";
 import type { CalendarEvent, MediaAsset } from "../../../types";
 import { normalizePublicImageUrl, normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";

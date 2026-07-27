@@ -8,8 +8,8 @@ import CircleIcon from "@mui/icons-material/Circle";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import useEmblaCarousel from "embla-carousel-react";
-import { CarouselSlide, HomepageCarouselSettings } from "../../types";
-import { normalizeCarouselSlide } from "../../features/cms-carousel";
+import type { CarouselSlide, HomepageCarouselSettings } from "../../types";
+import { normalizeCarouselSlide } from "../../features/cms-carousel/normalization";
 import CarouselImageStage from "../../shared/components/CarouselImageStage";
 import {
   getCarouselScheduleDelayMs,
