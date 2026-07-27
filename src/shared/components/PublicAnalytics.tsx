@@ -1,12 +1,11 @@
 import { useEffect } from "react";
-import { useRouterState } from "@tanstack/react-router";
-import { trackPublicPageView } from "../utils/publicAnalytics";
+import { releasePublicPageView, trackPublicPageView } from "../utils/publicAnalytics";
 
-export function PublicAnalytics() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-
+export function PublicAnalytics({ pathname }: { pathname: string }) {
   useEffect(() => {
     trackPublicPageView(pathname);
+
+    return releasePublicPageView;
   }, [pathname]);
 
   return null;

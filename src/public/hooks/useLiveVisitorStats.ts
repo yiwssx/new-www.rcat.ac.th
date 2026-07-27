@@ -5,8 +5,11 @@ import { getLiveVisitorStats } from "../../features/visitor-stats";
 import type { VisitorStatsSettings } from "../../features/visitor-stats";
 import { normalizeVisitorStats } from "../../services/visitorStats";
 
-const LIVE_VISITOR_STATS_INTERVAL_MS = 20_000;
+const LIVE_VISITOR_STATS_INTERVAL_MS = 60_000;
 const LIVE_VISITOR_STATS_FAILURE_BACKOFF_MS = 5 * 60 * 1000;
+const LIVE_VISITOR_STATS_STALE_MS = 60_000;
+
+export const LIVE_VISITOR_STATS_QUERY_KEY = ["public-visitor-stats-live"] as const;
 
 let liveVisitorStatsBackoffUntil = 0;
 
@@ -16,6 +19,12 @@ function isDocumentVisible() {
 
 function isLiveVisitorStatsBackedOff() {
   return Date.now() < liveVisitorStatsBackoffUntil;
+}
+
+function getLiveVisitorStatsRefetchInterval() {
+  const backoffRemaining = liveVisitorStatsBackoffUntil - Date.now();
+
+  return backoffRemaining > 0 ? backoffRemaining : LIVE_VISITOR_STATS_INTERVAL_MS;
 }
 
 function warnLiveVisitorStatsUnavailable(error: unknown) {
@@ -30,11 +39,11 @@ export function resetLiveVisitorStatsBackoffForTests() {
   liveVisitorStatsBackoffUntil = 0;
 }
 
-export function useLiveVisitorStats(initialStats?: VisitorStatsSettings) {
+export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initialDataUpdatedAt?: number) {
   const normalizedInitial = useMemo(() => normalizeVisitorStats(initialStats), [initialStats]);
   const usesCloudflare = getPublicApiProvider() === "cloudflare";
   const query = useQuery({
-    queryKey: ["public-visitor-stats-live"],
+    queryKey: LIVE_VISITOR_STATS_QUERY_KEY,
     queryFn: async () => {
       try {
         const live = normalizeVisitorStats(await getLiveVisitorStats());
@@ -53,12 +62,15 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings) {
       }
     },
     enabled: usesCloudflare && Boolean(initialStats?.enabled),
+    initialData: initialStats ? normalizedInitial : undefined,
+    initialDataUpdatedAt,
     retry: false,
-    staleTime: 0,
-    refetchInterval: () =>
-      isDocumentVisible() && !isLiveVisitorStatsBackedOff() ? LIVE_VISITOR_STATS_INTERVAL_MS : false,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true
+    staleTime: LIVE_VISITOR_STATS_STALE_MS,
+    refetchInterval: getLiveVisitorStatsRefetchInterval,
+    refetchIntervalInBackground: false,
+    refetchOnMount: () => !isLiveVisitorStatsBackedOff(),
+    refetchOnWindowFocus: () => isDocumentVisible() && !isLiveVisitorStatsBackedOff(),
+    refetchOnReconnect: () => isDocumentVisible() && !isLiveVisitorStatsBackedOff()
   });
 
   return query.data ?? normalizedInitial;

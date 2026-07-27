@@ -1,9 +1,7 @@
 import { Suspense, lazy } from "react";
 import { Outlet, useParams } from "@tanstack/react-router";
-import { PublicAnalytics } from "./shared/components/PublicAnalytics";
 import { RouteFallback } from "./shared/components/RouteFallback";
-import { PublicSiteViewTracker } from "./features/site-view";
-import { VercelInsights } from "./shared/components/VercelInsights";
+import { SilentTelemetryBoundary } from "./shared/telemetry/SilentTelemetryBoundary";
 
 export const AccountSecurityPage = lazy(() => import("./admin/pages/AccountSecurityPage"));
 export const ActivateAccountPage = lazy(() => import("./admin/pages/ActivateAccountPage"));
@@ -42,15 +40,13 @@ export const ProtectedLayout = lazy(() =>
 export const CapabilityGuard = lazy(() =>
   import("./cmsAuthRouteComponents").then((module) => ({ default: module.CapabilityGuard }))
 );
+const PublicTelemetry = lazy(() => import("./shared/telemetry/PublicTelemetry"));
 
 export function RootRouteLayout() {
   return (
-    <>
-      <Suspense fallback={<RouteFallback />}>
-        <Outlet />
-      </Suspense>
-      <VercelInsights />
-    </>
+    <Suspense fallback={<RouteFallback />}>
+      <Outlet />
+    </Suspense>
   );
 }
 
@@ -58,8 +54,11 @@ export function PublicRouteLayout() {
   return (
     <>
       <Outlet />
-      <PublicAnalytics />
-      <PublicSiteViewTracker />
+      <SilentTelemetryBoundary>
+        <Suspense fallback={null}>
+          <PublicTelemetry />
+        </Suspense>
+      </SilentTelemetryBoundary>
     </>
   );
 }

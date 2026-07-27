@@ -313,36 +313,113 @@ test.describe("CMS auth intercepted functional flows", () => {
   });
 
   test("Public analytics and site-view tracking stay outside Auth and Admin routes", async ({ page }) => {
-    await installCmsApi(page);
-    const analyticsRequests: string[] = [];
+    const cmsState = await installCmsApi(page);
+    await page.clock.install({
+      time: new Date("2026-07-27T00:00:00.000Z")
+    });
+    const telemetryRequests: string[] = [];
 
     page.on("request", (request) => {
       const url = new URL(request.url());
 
       if (
-        url.hostname.includes("googletagmanager.com") ||
+        url.hostname === "www.googletagmanager.com" ||
+        url.hostname === "va.vercel-scripts.com" ||
+        url.pathname.startsWith("/_vercel/") ||
         url.pathname === "/api/public/site-view" ||
-        url.pathname === "/api/public/presence"
+        url.pathname === "/api/public/presence" ||
+        url.pathname === "/api/public/visitor-stats" ||
+        url.pathname === "/src/shared/telemetry/PublicTelemetry.tsx"
       ) {
-        analyticsRequests.push(request.url());
+        telemetryRequests.push(request.url());
       }
     });
 
-    for (const path of ["/login", "/activate-account", "/reset-password", "/admin"]) {
+    await page.route("https://www.googletagmanager.com/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/javascript",
+        body: ""
+      });
+    });
+    await page.route("https://va.vercel-scripts.com/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/javascript",
+        body: ""
+      });
+    });
+    await page.route("**/_vercel/**", async (route) => {
+      await route.fulfill({
+        status: 204,
+        body: ""
+      });
+    });
+
+    for (const path of [
+      "/login?return=%2Fadmin#private",
+      "/activate-account?token=SYNTHETIC-PRIVATE#private",
+      "/reset-password?token=SYNTHETIC-PRIVATE#private",
+      "/admin"
+    ]) {
+      if (path === "/admin") {
+        cmsState.authenticated = true;
+      }
+
       await page.goto(path);
       await page.waitForLoadState("domcontentloaded");
+
+      if (path === "/admin") {
+        await expect(page.getByRole("heading", { name: "แดชบอร์ด" })).toBeVisible();
+      } else if (path.startsWith("/activate-account")) {
+        await expect(page.getByLabel("โทเค็นเชิญ")).toBeVisible();
+      } else if (path.startsWith("/reset-password")) {
+        await expect(page.getByLabel("โทเค็นตั้งรหัสผ่านใหม่")).toBeVisible();
+      } else {
+        await expect(page.getByRole("button", { name: "เข้าสู่ระบบ" })).toBeVisible();
+      }
+
+      await page.clock.runFor(2_001);
+
+      const browserTelemetry = await page.evaluate(() => {
+        const telemetryWindow = window as Window & {
+          dataLayer?: unknown[];
+          va?: unknown;
+          vaq?: unknown;
+          si?: unknown;
+          siq?: unknown;
+        };
+        const googlePageViews = (telemetryWindow.dataLayer ?? []).filter(
+          (entry) =>
+            (Array.isArray(entry) && entry[0] === "event" && entry[1] === "page_view") ||
+            (entry !== null &&
+              typeof entry === "object" &&
+              !Array.isArray(entry) &&
+              "event" in entry &&
+              entry.event === "page_view")
+        );
+
+        return {
+          googlePageViews: googlePageViews.length,
+          googleScripts: document.querySelectorAll(
+            'script[src*="googletagmanager.com/gtm.js"], script[src*="googletagmanager.com/gtag/js"]'
+          ).length,
+          vercelScripts: document.querySelectorAll(
+            'script[src*="va.vercel-scripts.com"], script[src*="/_vercel/insights/"], script[src*="/_vercel/speed-insights/"]'
+          ).length,
+          vercelQueues: Boolean(telemetryWindow.va || telemetryWindow.vaq || telemetryWindow.si || telemetryWindow.siq)
+        };
+      });
+
+      expect(browserTelemetry).toEqual({
+        googlePageViews: 0,
+        googleScripts: 0,
+        vercelScripts: 0,
+        vercelQueues: false
+      });
     }
 
-    await expect.poll(() => analyticsRequests).toEqual([]);
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            Boolean(document.getElementById("rcat-google-tag-manager")) ||
-            Boolean(document.getElementById("rcat-google-analytics"))
-        )
-      )
-      .toBe(false);
+    expect(telemetryRequests).toEqual([]);
   });
 
   test("CMS Auth Login route retains authentication bootstrap context", async ({ page }) => {
