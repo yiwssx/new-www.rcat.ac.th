@@ -7,7 +7,6 @@ import {
   Checkbox,
   Chip,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
@@ -27,6 +26,9 @@ import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutl
 import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import ResponsiveDialogActions from "../../design-system/components/ResponsiveDialogActions";
+import { designTokens } from "../../design-system/tokens";
+import { staticSurfaceSx } from "../../design-system/componentStyles";
 import AdminPagination from "./AdminPagination";
 import ContentBlockBuilder from "./ContentBlockBuilder";
 import { ContentItem, ContentStatus, ContentType, MediaAsset, MediaType } from "../../types";
@@ -732,9 +734,8 @@ export default function ContentEditorDialog({
               <Stack
                 spacing={2}
                 sx={{
+                  ...staticSurfaceSx,
                   p: 2,
-                  border: "1px solid rgba(31, 90, 44, 0.14)",
-                  borderRadius: 2,
                   bgcolor: "background.default",
                   alignSelf: "start"
                 }}
@@ -797,9 +798,8 @@ export default function ContentEditorDialog({
                 {!!metadataPresetGroups.length && (
                   <Box
                     sx={{
+                      ...staticSurfaceSx,
                       p: 1.25,
-                      borderRadius: 1.5,
-                      border: "1px solid rgba(31, 90, 44, 0.14)",
                       bgcolor: "background.default"
                     }}
                   >
@@ -966,9 +966,9 @@ export default function ContentEditorDialog({
                 <Typography fontWeight={900}>สื่อแนะนำ</Typography>
                 <Box
                   sx={{
+                    ...staticSurfaceSx,
                     minHeight: 120,
-                    borderRadius: 2,
-                    border: "1px dashed rgba(31, 90, 44, 0.22)",
+                    borderStyle: "dashed",
                     display: "grid",
                     placeItems: "center",
                     overflow: "hidden",
@@ -1081,14 +1081,13 @@ export default function ContentEditorDialog({
                       <Box
                         key={asset.id}
                         sx={{
+                          ...staticSurfaceSx,
                           display: "grid",
                           gridTemplateColumns: "auto 42px minmax(0, 1fr)",
                           gap: 1,
                           alignItems: "center",
                           p: 1,
-                          borderRadius: 1.5,
-                          bgcolor: checked ? "primary.light" : "white",
-                          border: "1px solid rgba(31, 90, 44, 0.12)"
+                          bgcolor: checked ? "primary.light" : "white"
                         }}
                       >
                         <Checkbox
@@ -1101,7 +1100,7 @@ export default function ContentEditorDialog({
                           sx={{
                             width: 42,
                             height: 42,
-                            borderRadius: 1,
+                            borderRadius: designTokens.radius.small,
                             display: "grid",
                             placeItems: "center",
                             bgcolor: "background.default",
@@ -1130,11 +1129,7 @@ export default function ContentEditorDialog({
                               {mediaTypeLabels[asset.type]}
                             </Typography>
                             {checked && (asset.type === "image" || asset.type === "video") && (
-                              <Button
-                                size="small"
-                                onClick={() => updateDraft("featuredMediaId", asset.id)}
-                                sx={{ minHeight: 0, p: 0, fontSize: "0.72rem" }}
-                              >
+                              <Button size="small" onClick={() => updateDraft("featuredMediaId", asset.id)}>
                                 ตั้งเป็นสื่อแนะนำ
                               </Button>
                             )}
@@ -1224,7 +1219,7 @@ export default function ContentEditorDialog({
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <ResponsiveDialogActions>
           {confirming ? (
             <>
               <Button type="button" onClick={() => setConfirming(false)} disabled={saving}>
@@ -1250,7 +1245,7 @@ export default function ContentEditorDialog({
               </Button>
             </>
           )}
-        </DialogActions>
+        </ResponsiveDialogActions>
       </form>
     </Dialog>
   );

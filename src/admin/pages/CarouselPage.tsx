@@ -26,6 +26,8 @@ import {
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import { designTokens } from "../../design-system/tokens";
+import { staticSurfaceSx } from "../../design-system/componentStyles";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
@@ -948,10 +950,9 @@ export default function CarouselPage() {
                   />
                   <Box
                     sx={{
+                      ...staticSurfaceSx,
                       p: 1.5,
-                      border: "1px solid rgba(31, 90, 44, 0.14)",
-                      borderRadius: 2,
-                      bgcolor: "rgba(255, 255, 255, 0.78)"
+                      bgcolor: "background.paper"
                     }}
                   >
                     <Stack spacing={1.25}>
@@ -1016,8 +1017,8 @@ export default function CarouselPage() {
                                     variant="outlined"
                                     sx={{
                                       height: "100%",
-                                      borderColor: selected ? "primary.main" : "rgba(31, 90, 44, 0.14)",
-                                      boxShadow: selected ? "0 0 0 1px rgba(31, 90, 44, 0.35)" : "none"
+                                      borderColor: selected ? "primary.main" : "divider",
+                                      boxShadow: selected ? `0 0 0 1px ${designTokens.color.brandPrimary}` : "none"
                                     }}
                                   >
                                     <Box

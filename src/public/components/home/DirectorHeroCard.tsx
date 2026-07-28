@@ -44,7 +44,7 @@ export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings 
               textTransform: "uppercase"
             }}
           ></Typography>
-          <Typography variant="h1" sx={{ fontSize: { xs: "1.05rem", md: "1.15rem" } }}>
+          <Typography variant="h2" sx={{ fontSize: { xs: "1.05rem", md: "1.15rem" } }}>
             {siteSettings.directorTitle || "ข้อมูลผู้บริหาร"}
           </Typography>
         </Box>

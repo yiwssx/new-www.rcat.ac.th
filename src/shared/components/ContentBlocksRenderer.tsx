@@ -12,6 +12,7 @@ import {
   normalizeFacebookPostUrl
 } from "../../utils/facebookEmbed";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
+import { designTokens } from "../../design-system/tokens";
 
 interface ContentBlocksRendererProps {
   blocks: ContentBlock[];
@@ -49,7 +50,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
               width: "100%",
               maxWidth: width,
               height: block.height || defaultFacebookPostHeight,
-              borderRadius: 1
+              borderRadius: designTokens.radius.small
             }}
           />
           <Button
@@ -138,8 +139,8 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 borderColor: "primary.main",
                 pl: 2,
                 py: 0.5,
-                bgcolor: "rgba(31, 90, 44, 0.04)",
-                borderRadius: "0 10px 10px 0"
+                bgcolor: "action.hover",
+                borderRadius: `0 ${designTokens.radius.medium}px ${designTokens.radius.medium}px 0`
               }}
             >
               <Typography sx={{ fontStyle: "italic", mb: block.citation ? 0.75 : 0 }}>{block.text}</Typography>
@@ -185,7 +186,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 sx={{
                   width: "100%",
                   maxWidth: "100%",
-                  borderRadius: 2,
+                  borderRadius: designTokens.radius.medium,
                   bgcolor: "background.default"
                 }}
                 imageSx={{ objectFit: "contain" }}
@@ -211,7 +212,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
               <PublicDeferredEmbed
                 title={asset.name}
                 src={safeEmbedUrl}
-                sx={{ width: "100%", height: { xs: 240, md: 390 }, borderRadius: 2 }}
+                sx={{ width: "100%", height: { xs: 240, md: 390 }, borderRadius: designTokens.radius.medium }}
                 allow="autoplay"
               />
               {(block.caption || asset.name) && (

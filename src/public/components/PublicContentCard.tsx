@@ -7,6 +7,7 @@ import { isFacebookEmbedContent } from "../../utils/facebookContent";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
+import { interactiveSurfaceSx } from "../../design-system/componentStyles";
 
 interface PublicContentCardProps {
   item: ContentItem;
@@ -36,12 +37,12 @@ export default function PublicContentCard({
     <Card
       component="a"
       href={normalizeSafeHref(`/content/${item.slug}`)}
-      className="rcat-card block h-full"
+      className="block h-full"
       sx={{
-        transition: "transform 160ms ease, box-shadow 160ms ease",
+        ...interactiveSurfaceSx,
         "&:hover": {
           transform: "translateY(-2px)",
-          boxShadow: "0 18px 36px rgba(31, 90, 44, 0.14)"
+          ...interactiveSurfaceSx["&:hover"]
         }
       }}
     >

@@ -20,6 +20,7 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
@@ -45,6 +46,7 @@ import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { DisplaySettings, HomepageSettings, PublicMenuItem, SiteSettings } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
+import { focusVisibleSx } from "../../design-system/componentStyles";
 import { useDocumentMetadata } from "../../utils/seo";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
@@ -263,12 +265,7 @@ function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false
     minWidth: allowShrink ? 0 : "max-content",
     maxWidth: "100%",
     flex: allowShrink ? "1 1 auto" : "0 0 auto",
-    "&:focus-visible": {
-      outline: "2px solid",
-      outlineColor: "secondary.main",
-      outlineOffset: 2,
-      borderRadius: 1
-    }
+    ...focusVisibleSx
   };
 
   if (href) {
@@ -320,24 +317,18 @@ function TopBarSocialIcons({ links, showLabel }: { links: TopBarSocialLink[]; sh
           aria-label={item.label}
           color="inherit"
           size="small"
-          sx={{
-            width: { xs: 22, sm: 26, md: 34 },
-            height: { xs: 22, sm: 26, md: 34 },
+          sx={(theme) => ({
             p: { xs: 0.2, sm: 0.3, md: 0.5 },
-            border: "1px solid rgba(255, 255, 255, 0.22)",
-            bgcolor: "rgba(255, 255, 255, 0.06)",
+            border: "1px solid",
+            borderColor: alpha(theme.palette.common.white, 0.28),
+            bgcolor: alpha(theme.palette.common.white, 0.08),
             "& svg": {
               fontSize: { xs: "0.78rem", sm: "0.92rem", md: "1.25rem" }
             },
             "& .svg-inline--fa": {
               fontSize: { xs: "0.78rem", sm: "0.92rem", md: "1.25rem" }
-            },
-            "&:focus-visible": {
-              outline: "2px solid",
-              outlineColor: "secondary.main",
-              outlineOffset: 2
             }
-          }}
+          })}
         >
           {item.icon}
         </IconButton>
@@ -674,7 +665,7 @@ function PublicSiteShellFrame({
             </Container>
           </Box>
 
-          <Box sx={{ bgcolor: "white", borderBottom: "1px solid rgba(31, 90, 44, 0.14)" }}>
+          <Box sx={{ bgcolor: "white", borderBottom: "1px solid", borderColor: "divider" }}>
             <Container maxWidth="xl">
               <Stack
                 direction={{ xs: "column", lg: "row" }}
@@ -693,11 +684,12 @@ function PublicSiteShellFrame({
                     sx={{
                       width: { xs: 54, sm: 58, md: 86 },
                       height: { xs: 54, sm: 58, md: 86 },
-                      borderRadius: 999,
+                      borderRadius: "50%",
                       display: "grid",
                       placeItems: "center",
                       bgcolor: "primary.light",
-                      border: "1px solid rgba(31, 90, 44, 0.14)"
+                      border: "1px solid",
+                      borderColor: "divider"
                     }}
                   >
                     <PublicResponsiveImage
@@ -729,7 +721,8 @@ function PublicSiteShellFrame({
                       </Typography>
                     )}
                     <Typography
-                      variant="h1"
+                      component="h2"
+                      variant="h2"
                       sx={{ fontSize: { xs: "1.34rem", sm: "1.5rem", md: "2.4rem" }, lineHeight: 1.08 }}
                     >
                       {siteName}
@@ -818,9 +811,7 @@ function PublicSiteShellFrame({
                       }}
                       sx={{
                         "& .MuiInputBase-root": {
-                          bgcolor: "white",
-                          borderRadius: 1,
-                          height: { xs: 36, md: 38 }
+                          bgcolor: "white"
                         },
                         "& .MuiInputBase-input": {
                           py: { xs: 0.65, md: 0.75 },
@@ -858,7 +849,8 @@ function PublicSiteShellFrame({
             <Box
               sx={(theme) => ({
                 bgcolor: "white",
-                borderBottom: "1px solid rgba(31, 90, 44, 0.12)",
+                borderBottom: "1px solid",
+                borderColor: "divider",
                 background: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.background.paper} 62%, ${theme.palette.secondary.light} 100%)`
               })}
             >
@@ -928,7 +920,9 @@ function PublicSiteShellFrame({
                     </Typography>
                   )}
                   {siteSettings.footerDescription && (
-                    <Typography sx={{ color: "rgba(255, 255, 255, 0.76)", mt: 0.6, maxWidth: 720 }}>
+                    <Typography
+                      sx={(theme) => ({ color: alpha(theme.palette.common.white, 0.82), mt: 0.6, maxWidth: 720 })}
+                    >
                       {siteSettings.footerDescription}
                     </Typography>
                   )}

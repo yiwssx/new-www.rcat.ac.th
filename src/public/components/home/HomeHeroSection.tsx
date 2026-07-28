@@ -7,6 +7,7 @@ import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { DirectorHeroCard } from "./DirectorHeroCard";
 import { SiteSettings } from "../../../types";
+import { designTokens } from "../../../design-system/tokens";
 
 export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }) {
   return (
@@ -35,7 +36,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
           p: { xs: 2, sm: 2.5, md: 3.5 },
           color: "white",
           bgcolor: "primary.dark",
-          boxShadow: "0 18px 34px rgba(31, 90, 44, 0.16)"
+          boxShadow: designTokens.elevation.high
         }}
       >
         {siteSettings.heroImageUrl && (
@@ -67,17 +68,20 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
         />
 
         <Box
-          sx={{
+          sx={(theme) => ({
             position: "absolute",
             inset: 0,
             zIndex: 2,
-            background: "linear-gradient(180deg, rgba(12, 34, 14, 0.04) 0%, rgba(12, 34, 14, 0.42) 100%)"
-          }}
+            background: `linear-gradient(180deg, ${alpha(theme.palette.common.black, 0.04)} 0%, ${alpha(
+              theme.palette.common.black,
+              0.42
+            )} 100%)`
+          })}
         />
 
         <Box
           aria-hidden="true"
-          sx={{
+          sx={(theme) => ({
             display: { xs: "none", md: "block" },
             position: "absolute",
             zIndex: 2,
@@ -86,14 +90,15 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
             width: 210,
             height: 210,
             borderRadius: "50%",
-            bgcolor: "rgba(255, 255, 255, 0.055)",
-            border: "1px solid rgba(255, 255, 255, 0.12)"
-          }}
+            bgcolor: alpha(theme.palette.common.white, 0.055),
+            border: "1px solid",
+            borderColor: alpha(theme.palette.common.white, 0.12)
+          })}
         />
 
         <Box
           aria-hidden="true"
-          sx={{
+          sx={(theme) => ({
             display: { xs: "none", lg: "block" },
             position: "absolute",
             zIndex: 2,
@@ -102,8 +107,8 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
             width: 150,
             height: 150,
             borderRadius: "50%",
-            bgcolor: "rgba(255, 255, 255, 0.045)"
-          }}
+            bgcolor: alpha(theme.palette.common.white, 0.045)
+          })}
         />
 
         <Stack spacing={{ xs: 1.35, md: 1.6 }} sx={{ position: "relative", zIndex: 3, maxWidth: 620 }}>
@@ -111,15 +116,16 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
             <Chip
               icon={<SchoolOutlinedIcon />}
               label={siteSettings.heroChip}
-              sx={{
+              sx={(theme) => ({
                 alignSelf: "flex-start",
-                bgcolor: "rgba(255, 255, 255, 0.14)",
+                bgcolor: alpha(theme.palette.common.white, 0.14),
                 color: "white",
-                border: "1px solid rgba(255, 255, 255, 0.22)",
+                border: "1px solid",
+                borderColor: alpha(theme.palette.common.white, 0.22),
                 "& .MuiChip-icon": {
                   color: "secondary.main"
                 }
-              }}
+              })}
             />
           )}
 
@@ -137,12 +143,12 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
 
           {siteSettings.heroDescription && (
             <Typography
-              sx={{
+              sx={(theme) => ({
                 maxWidth: 520,
-                color: "rgba(255, 255, 255, 0.84)",
+                color: alpha(theme.palette.common.white, 0.84),
                 fontSize: { xs: "0.92rem", md: "1rem" },
                 lineHeight: 1.55
-              }}
+              })}
             >
               {siteSettings.heroDescription}
             </Typography>
@@ -165,10 +171,10 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
               variant="outlined"
               size="medium"
               href={normalizeSafeHref("/announcements")}
-              sx={{
+              sx={(theme) => ({
                 color: "white",
-                borderColor: "rgba(255, 255, 255, 0.34)"
-              }}
+                borderColor: alpha(theme.palette.common.white, 0.34)
+              })}
             >
               ประกาศ
             </Button>

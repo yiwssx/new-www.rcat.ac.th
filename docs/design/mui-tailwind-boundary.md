@@ -1,105 +1,114 @@
 # MUI and Tailwind Boundary
 
-This project intentionally uses both MUI and Tailwind CSS v4. The goal is not to migrate everything to one system. The goal is to keep each system in the layer where it is strongest and avoid styling conflicts.
+RCAT intentionally uses MUI and Tailwind CSS v4 together. The systems have separate owners so that a component does not receive competing border, radius, shadow, focus, state, or responsive rules.
 
-## Default to MUI For
+## Canonical source
 
-- Forms and validation UI
-- Dialogs, drawers, menus, popovers, tooltips, and overlays
-- Tables, pagination, data grids, filters, and dense admin workflows
-- Admin CMS UI
-- Interactive stateful components
-- MUI components that already use MUI `sx` and theme values
-- Icons where MUI Icons are already used
+`src/design-system/tokens.ts` is the single source for semantic colors, typography, shape, elevation, control sizing, focus, spacing, and motion.
 
-For MUI components, prefer `sx`, theme values, and component props over Tailwind classes.
+- `src/theme.ts` consumes those tokens for MUI.
+- `MuiCssBaseline` publishes `designTokenCssVariables` before the application content is painted.
+- `src/styles.css` maps Tailwind and legacy RCAT aliases to the published variables; it does not repeat color values.
+- `src/config/project-settings.json` contains site content and role configuration, not theme values.
 
-## Default to Tailwind and RCAT Classes For
+## MUI owns
 
-- Page shell layout
-- Broad spacing utilities
-- Responsive containers
-- Simple surface helpers
-- Static content layout
-- Shared RCAT utility classes in `src/styles.css`
-- Print/static layout when needed
+- Buttons, IconButtons, links acting as controls, and interactive cards
+- Forms, labels, helper text, validation, Selects, and field state
+- Dialogs, drawers, menus, popovers, tooltips, tables, filters, tabs, pagination, and dense Admin workflows
+- Hover, selected, focus-visible, disabled, error, loading, and destructive states
+- Component-local responsive behavior through `sx`
 
-Current shared RCAT classes include:
+MUI also owns the contextual focus layers and their geometry. Use `focusRingStyles` or `focusVisibleSx` from
+`src/design-system/componentStyles.ts` when a shared interactive primitive needs the canonical policy; do not create
+an arbitrary local outline. The RCAT structural `.rcat-focus-ring` utility is only a CSS-variable bridge to that same
+policy.
 
-- `.rcat-page`
-- `.rcat-container`
-- `.rcat-section`
-- `.rcat-section-tight`
-- `.rcat-card`
-- `.rcat-card-muted`
-- `.rcat-surface`
-- `.rcat-admin-page`
-- `.rcat-admin-card`
-- `.rcat-public-heading`
-- `.rcat-muted-text`
-- `.rcat-focus-ring`
-- `.rcat-image-frame`
-- `.rcat-content-prose`
-- `.rcat-content-detail-shell`
-
-## Theme and Tokens
-
-- Colors should come from the MUI theme or RCAT CSS variables/tokens.
-- Avoid hardcoded new greens, yellows, shadows, or page backgrounds unless the component has a specific documented reason.
-- Prefer existing RCAT values in `src/theme.ts` and `src/styles.css`.
-- Keep the RCAT green, white, and yellow identity consistent across public and admin surfaces.
-
-## Do Not Mix Styling Randomly
-
-- Do not use Tailwind classes to override deep MUI internals or generated MUI class names.
-- Do not use `sx` to fight global Tailwind utility classes on the same element.
-- Do not duplicate card borders, shadows, colors, and padding in both `className` and `sx` unless one layer is clearly structural and the other is component-local.
-- Do not add ad hoc color values when theme tokens already exist.
-
-## Responsive Rules
-
-- MUI responsive `sx` values are allowed inside MUI components.
-- Tailwind responsive classes are allowed for page wrappers and simple layout shells.
-- Do not duplicate the same responsive behavior in both `sx` and `className` on the same element.
-- If responsive behavior affects MUI component internals, keep it in `sx`.
-- If responsive behavior affects outer layout and spacing, Tailwind/RCAT classes are acceptable.
-
-## Icon Rules
-
-- Keep MUI Icons as the default icon system.
-- Use per-icon path imports such as `@mui/icons-material/SearchOutlined`.
-- Do not import from the broad `@mui/icons-material` barrel.
-- Do not add FontAwesome unless a required brand/icon is not available through MUI Icons and the dependency impact is accepted.
-- Do not replace existing MUI Icons with custom SVGs only for consistency.
-
-## Practical Examples
-
-Use MUI:
+Use theme roles rather than literals:
 
 ```tsx
-<Button startIcon={<SaveOutlinedIcon />} sx={{ minHeight: 44 }}>
-  Save
-</Button>
+<Card sx={{ height: "100%" }}>
+  <CardContent sx={{ p: { xs: 2, md: 3 } }} />
+</Card>
 ```
 
-Use RCAT/Tailwind for a wrapper:
+The card border, radius, surface, and elevation come from `MuiCard`; local `sx` owns only layout.
+
+## Tailwind and RCAT utilities own
+
+- Broad page and static-content structure
+- Responsive containers and section spacing
+- Simple static wrappers
+- Print and prose formatting
 
 ```tsx
 <main className="rcat-container rcat-section">{children}</main>
 ```
 
-Avoid mixing the same concern twice:
+Structural classes include:
+
+- `.rcat-page`
+- `.rcat-container`
+- `.rcat-section`
+- `.rcat-section-tight`
+- `.rcat-card` and `.rcat-card-muted` for non-MUI static surfaces
+- `.rcat-surface`
+- `.rcat-admin-page` and `.rcat-admin-card`
+- `.rcat-focus-ring`
+- `.rcat-image-frame`
+- `.rcat-content-prose`
+- `.rcat-content-detail-shell`
+
+## Corrected examples
+
+Do not define one surface twice:
 
 ```tsx
-// Avoid: both layers define the same card surface.
+// Incorrect: both systems own the same surface.
 <Card className="rcat-card" sx={{ border: "1px solid #1f5a2c", boxShadow: "..." }} />
 ```
 
-Preferred:
+Use MUI policy for an interactive surface:
 
 ```tsx
-// Shared surface from RCAT class, component-specific spacing in sx.
-<Card className="rcat-card">
-  <CardContent sx={{ p: { xs: 2, md: 3 } }} />
-</Card>
+<Card component="a" href={href} sx={{ ...interactiveSurfaceSx, height: "100%" }} />
 ```
+
+Use RCAT only for a static wrapper:
+
+```tsx
+<section className="rcat-card rcat-section-tight">{children}</section>
+```
+
+Do not set a repeated local control height or focus outline:
+
+```tsx
+// Incorrect.
+<IconButton size="small" sx={{ width: 34, height: 34, "&:focus-visible": { outline: "none" } }} />
+```
+
+Use the theme target-size and focus policies:
+
+```tsx
+<IconButton size="small" aria-label="ปิด">
+  <CloseOutlinedIcon />
+</IconButton>
+```
+
+## Responsive and icon rules
+
+- Outer page layout belongs to RCAT/Tailwind; MUI internals belong to responsive `sx`.
+- Do not duplicate the same breakpoint rule in `className` and `sx` on one element.
+- Tables may scroll inside an intentional `.table-scroll` container; the complete page must not overflow.
+- Structural wrappers around interactive content must leave the exported focus-ring extent visible. Measurement-only
+  overflow containment must not be reused as the visible navigation wrapper.
+- Use per-icon imports such as `@mui/icons-material/SearchOutlined`.
+- Broad `@mui/icons-material` imports are prohibited.
+- Existing third-party brand icons and governed media geometry are narrow, documented exceptions.
+
+`brandAccent` is the filled/decorative institutional yellow, not a default foreground for normal-size text on light
+surfaces. Use `textOnAccent` on a `brandAccent` fill and use `accentForeground` for accent text, icons, and outlined
+boundaries on page, paper, or subtle surfaces. MUI secondary contained, outlined, text, and Chip variants encode this
+split centrally.
+
+`pnpm design:check` enforces the canonical source, CSS alias mapping, focus policy, hard-coded color allowlist, icon imports, import boundaries, regression coverage, and CI/quality integration.

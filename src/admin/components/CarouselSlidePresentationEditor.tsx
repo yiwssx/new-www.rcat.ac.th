@@ -18,6 +18,7 @@ import {
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import { designTokens } from "../../design-system/tokens";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import {
   DEFAULT_CAROUSEL_FOCAL_POINT,
@@ -93,7 +94,7 @@ export function CarouselSlidePresentationFields({ slide, disabled, onChange }: C
                 label="สีพื้นหลัง"
                 value={slide.backgroundColor}
                 onChange={(event) => onChange("backgroundColor", event.target.value)}
-                placeholder="#1f5a2c"
+                placeholder={designTokens.color.brandPrimaryStrong}
                 helperText={
                   backgroundColorValid
                     ? "รองรับรูปแบบ #RGB หรือ #RRGGBB และใช้กับโหมด Fit"
@@ -215,9 +216,9 @@ export function CarouselSlidePresentationPreview({ slide }: CarouselSlidePresent
           width: "100%",
           maxWidth: viewport === "mobile" ? 360 : "100%",
           mx: "auto",
-          borderRadius: 2,
+          borderRadius: designTokens.radius.medium,
           overflow: "hidden",
-          boxShadow: "0 12px 30px rgba(31, 90, 44, 0.14)"
+          boxShadow: designTokens.elevation.medium
         }}
       >
         <CarouselImageStage

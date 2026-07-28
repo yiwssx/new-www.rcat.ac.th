@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Alert, Box, Button, Card, CardContent, Container, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Button, Stack, TextField } from "@mui/material";
 import {
   CmsAuthError,
   completeCmsPasswordReset,
@@ -8,6 +8,8 @@ import {
   useRetryCountdown,
   type CmsPasswordResetInspection
 } from "../../features/cms-auth";
+import AuthPageLayout from "../../design-system/components/AuthPageLayout";
+import FormActions from "../../design-system/components/FormActions";
 
 export default function ResetPasswordPage() {
   const [token, setToken] = useState("");
@@ -80,87 +82,91 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center", p: 2 }}>
-      <Container maxWidth="sm">
-        <Card>
-          <CardContent>
-            <Stack spacing={2.5}>
-              <Typography variant="h1" sx={{ fontSize: "1.75rem" }}>
+    <AuthPageLayout title="ตั้งรหัสผ่านใหม่">
+      <Alert severity="info">
+        ต้องได้รับโทเค็นตั้งรหัสผ่านใหม่จากผู้ดูแลระบบที่ได้รับอนุญาต ระบบยังไม่มีบริการส่งอีเมลอัตโนมัติ
+        และจะไม่ใส่โทเค็นใน URL
+      </Alert>
+      {error && (
+        <Alert severity="error" aria-live="assertive">
+          {error}
+        </Alert>
+      )}
+      {retryAfterSeconds > 0 && (
+        <Alert severity="warning" aria-live="polite">
+          กรุณารอ {retryAfterSeconds} วินาทีก่อนลองอีกครั้ง
+        </Alert>
+      )}
+      {completed ? (
+        <>
+          <Alert severity="success">ตั้งรหัสผ่านใหม่สำเร็จแล้ว กรุณาเข้าสู่ระบบ</Alert>
+          <Button component="a" href="/login" variant="contained">
+            ไปหน้าเข้าสู่ระบบ
+          </Button>
+        </>
+      ) : !inspection ? (
+        <Stack component="form" spacing={2} onSubmit={inspectToken}>
+          <TextField
+            label="โทเค็นตั้งรหัสผ่านใหม่"
+            value={token}
+            onChange={(event) => setToken(event.target.value)}
+            multiline
+            minRows={2}
+            autoComplete="off"
+            disabled={submitting}
+            required
+            fullWidth
+          />
+          <FormActions
+            primary={
+              <Button type="submit" variant="contained" disabled={submitting || retryAfterSeconds > 0}>
+                ตรวจสอบโทเค็น
+              </Button>
+            }
+            secondary={
+              <Button component="a" href="/login">
+                กลับหน้าเข้าสู่ระบบ
+              </Button>
+            }
+          />
+        </Stack>
+      ) : (
+        <Stack component="form" spacing={2} onSubmit={completeReset}>
+          <Alert severity="success">โทเค็นถูกต้องสำหรับบัญชี {inspection.user.emailHint}</Alert>
+          <TextField
+            label="รหัสผ่านใหม่"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="new-password"
+            disabled={submitting}
+            required
+            fullWidth
+          />
+          <TextField
+            label="ยืนยันรหัสผ่านใหม่"
+            type="password"
+            value={confirmation}
+            onChange={(event) => setConfirmation(event.target.value)}
+            autoComplete="new-password"
+            disabled={submitting}
+            required
+            fullWidth
+          />
+          <FormActions
+            primary={
+              <Button type="submit" variant="contained" disabled={submitting || retryAfterSeconds > 0}>
                 ตั้งรหัสผ่านใหม่
-              </Typography>
-              <Alert severity="info">
-                ต้องได้รับโทเค็นตั้งรหัสผ่านใหม่จากผู้ดูแลระบบที่ได้รับอนุญาต ระบบยังไม่มีบริการส่งอีเมลอัตโนมัติ
-                และจะไม่ใส่โทเค็นใน URL
-              </Alert>
-              {error && (
-                <Alert severity="error" aria-live="assertive">
-                  {error}
-                </Alert>
-              )}
-              {retryAfterSeconds > 0 && (
-                <Alert severity="warning" aria-live="polite">
-                  กรุณารอ {retryAfterSeconds} วินาทีก่อนลองอีกครั้ง
-                </Alert>
-              )}
-              {completed ? (
-                <>
-                  <Alert severity="success">ตั้งรหัสผ่านใหม่สำเร็จแล้ว กรุณาเข้าสู่ระบบ</Alert>
-                  <Button component="a" href="/login" variant="contained">
-                    ไปหน้าเข้าสู่ระบบ
-                  </Button>
-                </>
-              ) : !inspection ? (
-                <Stack component="form" spacing={2} onSubmit={inspectToken}>
-                  <TextField
-                    label="โทเค็นตั้งรหัสผ่านใหม่"
-                    value={token}
-                    onChange={(event) => setToken(event.target.value)}
-                    multiline
-                    minRows={2}
-                    autoComplete="off"
-                    disabled={submitting}
-                    required
-                    fullWidth
-                  />
-                  <Button type="submit" variant="contained" disabled={submitting || retryAfterSeconds > 0}>
-                    ตรวจสอบโทเค็น
-                  </Button>
-                  <Button component="a" href="/login">
-                    กลับหน้าเข้าสู่ระบบ
-                  </Button>
-                </Stack>
-              ) : (
-                <Stack component="form" spacing={2} onSubmit={completeReset}>
-                  <Alert severity="success">โทเค็นถูกต้องสำหรับบัญชี {inspection.user.emailHint}</Alert>
-                  <TextField
-                    label="รหัสผ่านใหม่"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    autoComplete="new-password"
-                    disabled={submitting}
-                    required
-                    fullWidth
-                  />
-                  <TextField
-                    label="ยืนยันรหัสผ่านใหม่"
-                    type="password"
-                    value={confirmation}
-                    onChange={(event) => setConfirmation(event.target.value)}
-                    autoComplete="new-password"
-                    disabled={submitting}
-                    required
-                    fullWidth
-                  />
-                  <Button type="submit" variant="contained" disabled={submitting || retryAfterSeconds > 0}>
-                    ตั้งรหัสผ่านใหม่
-                  </Button>
-                </Stack>
-              )}
-            </Stack>
-          </CardContent>
-        </Card>
-      </Container>
-    </Box>
+              </Button>
+            }
+            secondary={
+              <Button component="a" href="/login">
+                กลับหน้าเข้าสู่ระบบ
+              </Button>
+            }
+          />
+        </Stack>
+      )}
+    </AuthPageLayout>
   );
 }

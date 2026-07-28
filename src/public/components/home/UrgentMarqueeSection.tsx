@@ -4,6 +4,7 @@ import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import type { HomepageMarqueeSettings } from "../../../types";
+import { designTokens } from "../../../design-system/tokens";
 import {
   formatMarqueeSeconds,
   getFallbackMarqueeMotion,
@@ -105,10 +106,11 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
           alignItems={{ xs: "stretch", sm: "center" }}
           sx={(theme) => ({
             overflow: "hidden",
-            borderRadius: 1.5,
-            border: "1px solid rgba(197, 133, 0, 0.26)",
+            borderRadius: `${designTokens.radius.medium}px`,
+            border: "1px solid",
+            borderColor: "secondary.main",
             bgcolor: alpha(theme.palette.secondary.light, 0.36),
-            boxShadow: "0 8px 22px rgba(31, 90, 44, 0.08)",
+            boxShadow: designTokens.elevation.low,
             px: { xs: 1.2, sm: 1.5, md: 2 },
             py: { xs: 0.85, md: 0.95 },
             "&:hover .rcat-marquee-track": {

@@ -5,6 +5,8 @@ import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import type { ContentItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
+import { designTokens } from "../../../design-system/tokens";
+import SemanticStatusChip from "../../../design-system/components/SemanticStatusChip";
 import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
@@ -35,9 +37,7 @@ export function ProcurementNewsSection({ items }: { items: ContentItem[] }) {
               <Card
                 component="article"
                 sx={{
-                  height: "100%",
-                  border: "1px solid rgba(31, 90, 44, 0.12)",
-                  boxShadow: "0 12px 28px rgba(31, 90, 44, 0.07)"
+                  height: "100%"
                 }}
               >
                 <CardContent
@@ -56,7 +56,7 @@ export function ProcurementNewsSection({ items }: { items: ContentItem[] }) {
                       size="small"
                       color="primary"
                     />
-                    <Chip label="เผยแพร่แล้ว" size="small" color="secondary" variant="outlined" />
+                    <SemanticStatusChip label="เผยแพร่แล้ว" status="published" />
                   </Stack>
 
                   <Stack spacing={0.9} sx={{ flex: 1 }}>
@@ -73,9 +73,10 @@ export function ProcurementNewsSection({ items }: { items: ContentItem[] }) {
                       sx={(theme) => ({
                         mt: "auto",
                         p: 1.15,
-                        borderRadius: 1.5,
+                        borderRadius: `${designTokens.radius.medium}px`,
                         bgcolor: alpha(theme.palette.primary.light, 0.62),
-                        border: "1px solid rgba(31, 90, 44, 0.1)"
+                        border: "1px solid",
+                        borderColor: "divider"
                       })}
                     >
                       <Typography color="primary.dark" variant="body2" fontWeight={900}>

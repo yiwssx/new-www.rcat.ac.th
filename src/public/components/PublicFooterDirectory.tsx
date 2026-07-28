@@ -2,10 +2,13 @@ import { Box, Container, Skeleton, Stack, Typography } from "@mui/material";
 import { FooterDirectoryGroup } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { getEnabledFooterDirectoryGroups } from "./publicFooterDirectoryPolicy";
+import { focusVisibleSx } from "../../design-system/componentStyles";
+import { designTokens } from "../../design-system/tokens";
 
 const footerDirectorySectionSx = {
   bgcolor: "primary.light",
-  borderTop: "1px solid rgba(31, 90, 44, 0.12)",
+  borderTop: "1px solid",
+  borderColor: "divider",
   py: { xs: 3, md: 4 }
 } as const;
 
@@ -37,7 +40,7 @@ function FooterDirectoryPlaceholder() {
                 animation={false}
                 width={`${72 - groupIndex * 4}%`}
                 height={26}
-                sx={{ bgcolor: "rgba(31, 90, 44, 0.13)", mb: 0.35 }}
+                sx={{ bgcolor: "action.selected", mb: 0.35 }}
               />
               {Array.from({ length: 7 }, (_, linkIndex) => (
                 <Skeleton
@@ -46,7 +49,7 @@ function FooterDirectoryPlaceholder() {
                   animation={false}
                   width={`${86 - ((groupIndex + linkIndex) % 4) * 8}%`}
                   height={14}
-                  sx={{ bgcolor: "rgba(31, 90, 44, 0.09)" }}
+                  sx={{ bgcolor: "action.hover" }}
                 />
               ))}
             </Stack>
@@ -120,18 +123,13 @@ export default function PublicFooterDirectory({
                         fontSize: { xs: "0.9rem", md: "0.94rem" },
                         lineHeight: 1.55,
                         textDecoration: "none",
-                        transition: "color 160ms ease",
+                        transition: `color ${designTokens.motion.duration.standard}ms ${designTokens.motion.easing}`,
                         "&:hover": {
                           color: "primary.dark",
                           textDecoration: "underline",
                           textUnderlineOffset: "3px"
                         },
-                        "&:focus-visible": {
-                          borderRadius: 0.5,
-                          outline: "2px solid",
-                          outlineColor: "secondary.main",
-                          outlineOffset: 3
-                        }
+                        ...focusVisibleSx
                       }}
                     >
                       {link.label}

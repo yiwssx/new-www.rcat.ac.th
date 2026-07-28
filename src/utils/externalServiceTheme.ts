@@ -12,7 +12,7 @@ const externalServiceToneStyles: Record<ExternalServiceTone, ExternalServiceTone
   },
   homeroom: {
     iconBg: "var(--rcat-secondary)",
-    iconColor: "var(--rcat-surface)"
+    iconColor: "var(--rcat-text-on-accent)"
   },
   management: {
     iconBg: "var(--rcat-primary-hover)",
@@ -28,11 +28,11 @@ const externalServiceToneStyles: Record<ExternalServiceTone, ExternalServiceTone
   },
   check: {
     iconBg: "var(--rcat-secondary)",
-    iconColor: "var(--rcat-surface)"
+    iconColor: "var(--rcat-text-on-accent)"
   },
   admission: {
     iconBg: "var(--rcat-accent)",
-    iconColor: "var(--rcat-text)"
+    iconColor: "var(--rcat-text-on-accent)"
   },
   career: {
     iconBg: "var(--rcat-primary-hover)",

@@ -676,7 +676,7 @@ describe("public data-driven pages", () => {
     render(<PublicHomePage />);
     expect(await screen.findByText("กำหนดการลำดับ 1", undefined, { timeout: 5000 })).toBeInTheDocument();
 
-    const calendarCard = screen.getByText("กำหนดการ").closest(".rcat-card") as HTMLElement;
+    const calendarCard = screen.getByText("กำหนดการ").closest(".MuiCard-root") as HTMLElement;
     expect(calendarCard).not.toBeNull();
     expect(within(calendarCard).getByText("กำหนดการลำดับ 1")).toBeInTheDocument();
     expect(within(calendarCard).getByText("กำหนดการลำดับ 2")).toBeInTheDocument();
@@ -1400,7 +1400,7 @@ describe("public data-driven pages", () => {
         level: 2
       });
 
-      const calendarCard = calendarHeading.closest<HTMLElement>(".rcat-card");
+      const calendarCard = calendarHeading.closest<HTMLElement>(".MuiCard-root");
 
       expect(calendarCard).not.toBeNull();
 

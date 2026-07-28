@@ -1,5 +1,7 @@
 import { Box, Fab, Tooltip } from "@mui/material";
 import { normalizeSafeHref } from "../../utils/safeUrl";
+import { focusVisibleSx } from "../../design-system/componentStyles";
+import { designTokens } from "../../design-system/tokens";
 
 interface FloatingMessengerButtonProps {
   href?: string;
@@ -55,14 +57,15 @@ export default function FloatingMessengerButton({
             alignItems: "center",
             minHeight: 36,
             px: 1.4,
-            borderRadius: 999,
+            borderRadius: `${designTokens.radius.pill}px`,
             bgcolor: "background.paper",
             color: "text.primary",
             fontSize: { xs: "0.78rem", sm: "0.84rem", md: "0.82rem" },
             fontWeight: 800,
             whiteSpace: "nowrap",
-            boxShadow: "0 10px 24px rgba(31, 90, 44, 0.16)",
-            border: "1px solid rgba(31, 90, 44, 0.12)"
+            boxShadow: designTokens.elevation.medium,
+            border: "1px solid",
+            borderColor: "divider"
           }}
         >
           {label}
@@ -81,11 +84,7 @@ export default function FloatingMessengerButton({
             "&:hover": {
               bgcolor: "#006fd6"
             },
-            "&:focus-visible": {
-              outline: "3px solid",
-              outlineColor: "secondary.main",
-              outlineOffset: 3
-            }
+            ...focusVisibleSx
           })}
         >
           <Box component="span" sx={{ display: "inline-flex", fontSize: 26, lineHeight: 1 }}>

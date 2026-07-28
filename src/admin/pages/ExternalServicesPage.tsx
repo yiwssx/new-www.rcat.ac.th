@@ -24,6 +24,7 @@ import {
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import { designTokens } from "../../design-system/tokens";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
@@ -96,15 +97,6 @@ const externalServiceIconOptions: Array<{ value: ExternalServiceIconKey; label: 
   { value: "school", label: "สถานศึกษา" },
   { value: "link", label: "ลิงก์ทั่วไป" }
 ];
-
-const externalServicePrimaryButtonSx = {
-  bgcolor: "var(--rcat-primary)",
-  "&:hover": { bgcolor: "var(--rcat-primary-hover)" },
-  "&.Mui-focusVisible": {
-    outline: "3px solid var(--rcat-accent)",
-    outlineOffset: 2
-  }
-};
 
 function createDraftKey() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -538,12 +530,12 @@ export default function ExternalServicesPage() {
         sx={{
           width: 48,
           height: 48,
-          borderRadius: 2,
+          borderRadius: designTokens.radius.medium,
           display: "grid",
           placeItems: "center",
           color: toneStyle.iconColor,
           bgcolor: toneStyle.iconBg,
-          boxShadow: "0 10px 20px rgba(31, 90, 44, 0.16)",
+          boxShadow: designTokens.elevation.medium,
           "& svg": {
             fontSize: 27
           }
@@ -579,7 +571,6 @@ export default function ExternalServicesPage() {
                     startIcon={<SaveOutlinedIcon />}
                     onClick={() => void handleSaveOrder()}
                     disabled={!orderDirty || saveOrderMutation.isPending}
-                    sx={externalServicePrimaryButtonSx}
                   >
                     {saveOrderMutation.isPending ? "กำลังบันทึก" : "บันทึกลำดับ"}
                   </Button>
@@ -599,7 +590,6 @@ export default function ExternalServicesPage() {
                     startIcon={<AddOutlinedIcon />}
                     onClick={() => void handleAddService()}
                     disabled={listTransitioning || saveExternalServiceMutation.isPending}
-                    sx={externalServicePrimaryButtonSx}
                   >
                     เพิ่มลิงก์บริการ
                   </Button>
@@ -617,7 +607,7 @@ export default function ExternalServicesPage() {
       )}
 
       {orderingMode ? (
-        <Card sx={{ borderColor: "var(--rcat-border)", bgcolor: "var(--rcat-surface)" }}>
+        <Card>
           {(orderQuery.isLoading || orderQuery.isFetching) && <LinearProgress />}
           <CardContent>
             <Stack spacing={2}>
@@ -682,7 +672,7 @@ export default function ExternalServicesPage() {
         </Card>
       ) : (
         <>
-          <Card sx={{ mb: 3, borderColor: "var(--rcat-border)", bgcolor: "var(--rcat-surface)" }}>
+          <Card sx={{ mb: 3 }}>
             {(adminListQuery.isFetching || debouncedSearch !== q) && <LinearProgress />}
             <CardContent>
               <Grid container spacing={1.5}>
@@ -759,7 +749,7 @@ export default function ExternalServicesPage() {
           )}
 
           {!adminListQuery.isLoading && !listTransitioning && !services.length && !adminListQuery.isError && (
-            <Card sx={{ borderColor: "var(--rcat-border)", bgcolor: "var(--rcat-surface)" }}>
+            <Card>
               <CardContent>
                 <Stack spacing={2} alignItems="flex-start">
                   <AppsOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
@@ -784,9 +774,7 @@ export default function ExternalServicesPage() {
                 <Card
                   sx={{
                     height: "100%",
-                    borderColor: "var(--rcat-border)",
-                    bgcolor: "var(--rcat-surface)",
-                    boxShadow: "var(--rcat-shadow-sm)"
+                    boxShadow: designTokens.elevation.low
                   }}
                 >
                   <CardContent>
@@ -964,10 +952,7 @@ export default function ExternalServicesPage() {
               </Grid>
 
               <Grid size={{ xs: 12, md: 5 }}>
-                <Card
-                  variant="outlined"
-                  sx={{ bgcolor: "var(--rcat-primary-soft)", borderColor: "rgba(22, 101, 52, 0.18)" }}
-                >
+                <Card variant="outlined" sx={{ bgcolor: "primary.light", borderColor: "divider" }}>
                   <CardContent>
                     <Stack spacing={1.35}>
                       <Stack direction="row" spacing={1.1} alignItems="flex-start" justifyContent="space-between">
@@ -998,7 +983,6 @@ export default function ExternalServicesPage() {
             startIcon={<SaveOutlinedIcon />}
             disabled={!canManage || saveExternalServiceMutation.isPending}
             onClick={() => void handleSaveDialog()}
-            sx={externalServicePrimaryButtonSx}
           >
             บันทึกลิงก์ E-Service
           </Button>

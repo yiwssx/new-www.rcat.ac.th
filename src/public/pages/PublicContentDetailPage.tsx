@@ -24,20 +24,13 @@ import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl
 import { CONTENT_TEMPLATE_LABELS, resolveContentTemplate } from "../../utils/contentTemplate";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { ContentItem, MediaAsset } from "../../types";
+import { focusVisibleSx } from "../../design-system/componentStyles";
 
 interface PublicContentDetailPageProps {
   slug?: string;
 }
 
 const viewCountDebounceTtlMs = 6 * 60 * 60 * 1000;
-
-const focusVisibleSx = {
-  "&:focus-visible": {
-    outline: "3px solid",
-    outlineColor: "secondary.main",
-    outlineOffset: 3
-  }
-};
 
 function normalizeTags(tags: string[] | undefined) {
   return Array.isArray(tags) ? tags.filter(Boolean) : [];
@@ -216,7 +209,7 @@ function AttachedMediaSection({ attachedMedia }: { attachedMedia: MediaAsset[] }
               variant="outlined"
               fullWidth
               startIcon={asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />}
-              sx={{ justifyContent: "flex-start", minHeight: 44, ...focusVisibleSx }}
+              sx={{ justifyContent: "flex-start", ...focusVisibleSx }}
             >
               {asset.name}
             </Button>
