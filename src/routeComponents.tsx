@@ -1,7 +1,6 @@
 import { Suspense, lazy } from "react";
 import { Outlet, useParams } from "@tanstack/react-router";
 import { RouteFallback } from "./shared/components/RouteFallback";
-import { SilentTelemetryBoundary } from "./shared/telemetry/SilentTelemetryBoundary";
 
 export const AccountSecurityPage = lazy(() => import("./admin/pages/AccountSecurityPage"));
 export const ActivateAccountPage = lazy(() => import("./admin/pages/ActivateAccountPage"));
@@ -31,6 +30,7 @@ export const PublicSearchPage = lazy(() => import("./public/pages/PublicSearchPa
 export const ResetPasswordPage = lazy(() => import("./admin/pages/ResetPasswordPage"));
 export const SettingsPage = lazy(() => import("./admin/pages/SettingsPage"));
 export const UsersPage = lazy(() => import("./admin/pages/UsersPage"));
+export const PublicRouteLayout = lazy(() => import("./public/components/PublicShellRouteLayout"));
 export const CmsAuthRouteLayout = lazy(() =>
   import("./cmsAuthRouteComponents").then((module) => ({ default: module.CmsAuthRouteLayout }))
 );
@@ -40,26 +40,11 @@ export const ProtectedLayout = lazy(() =>
 export const CapabilityGuard = lazy(() =>
   import("./cmsAuthRouteComponents").then((module) => ({ default: module.CapabilityGuard }))
 );
-const PublicTelemetry = lazy(() => import("./shared/telemetry/PublicTelemetry"));
-
 export function RootRouteLayout() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Outlet />
     </Suspense>
-  );
-}
-
-export function PublicRouteLayout() {
-  return (
-    <>
-      <Outlet />
-      <SilentTelemetryBoundary>
-        <Suspense fallback={null}>
-          <PublicTelemetry />
-        </Suspense>
-      </SilentTelemetryBoundary>
-    </>
   );
 }
 

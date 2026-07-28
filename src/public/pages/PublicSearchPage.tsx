@@ -6,7 +6,7 @@ import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicErrorState from "../components/PublicErrorState";
-import PublicLoadingState from "../components/PublicLoadingState";
+import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicPagination } from "../hooks/usePublicPagination";
@@ -69,7 +69,7 @@ export default function PublicSearchPage() {
   if (!data && (isLoading || isFetching)) {
     return (
       <PublicSiteShell canonicalPath="/search">
-        <PublicLoadingState />
+        <PublicLoadingState variant="search-results" />
       </PublicSiteShell>
     );
   }
@@ -88,7 +88,7 @@ export default function PublicSearchPage() {
   if (!data) {
     return (
       <PublicSiteShell canonicalPath="/search">
-        <PublicLoadingState />
+        <PublicLoadingState variant="search-results" />
       </PublicSiteShell>
     );
   }
@@ -139,11 +139,7 @@ export default function PublicSearchPage() {
         </CardContent>
       </Card>
 
-      {isFetching && (
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
-          กำลังค้นหาข้อมูล...
-        </Typography>
-      )}
+      <PublicBackgroundProgress active={isFetching} />
 
       {!query && (
         <EmptyState

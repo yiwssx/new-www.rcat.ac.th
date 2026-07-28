@@ -1,9 +1,9 @@
 import { useMemo } from "react";
-import { LinearProgress, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import type { CalendarEvent } from "../../types";
 import PublicErrorState from "../components/PublicErrorState";
-import PublicLoadingState from "../components/PublicLoadingState";
+import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { EventListCard } from "../components/home/EventListCard";
@@ -43,7 +43,7 @@ export default function PublicCalendarPage() {
   if (!data && (isLoading || isFetching)) {
     return (
       <PublicSiteShell title="กำหนดการ" description="กำหนดการและกิจกรรมที่เผยแพร่ของสถานศึกษา">
-        <PublicLoadingState />
+        <PublicLoadingState variant="listing" />
       </PublicSiteShell>
     );
   }
@@ -62,7 +62,7 @@ export default function PublicCalendarPage() {
   if (!data) {
     return (
       <PublicSiteShell title="กำหนดการ" description="กำหนดการและกิจกรรมที่เผยแพร่ของสถานศึกษา">
-        <PublicLoadingState />
+        <PublicLoadingState variant="listing" />
       </PublicSiteShell>
     );
   }
@@ -75,7 +75,7 @@ export default function PublicCalendarPage() {
       seoDescription="กำหนดการและกิจกรรมสาธารณะของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด"
       canonicalPath="/calendar"
     >
-      {isFetching && <LinearProgress sx={{ mb: 3 }} />}
+      <PublicBackgroundProgress active={isFetching} />
       <Stack id="calendar-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <EventAvailableOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>

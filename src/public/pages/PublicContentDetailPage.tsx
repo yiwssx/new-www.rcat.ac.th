@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
-import { Box, Button, Card, CardContent, Chip, Divider, LinearProgress, Stack, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Chip, Divider, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
@@ -16,6 +16,7 @@ import { resolvePublicImageSource } from "../../shared/media/publicImageSources"
 import { recordContentView } from "../../features/site-view";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
+import PublicLoadingState from "../components/PublicLoadingState";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { usePublicContentDetail } from "../hooks/usePublicContentDetail";
 import { parseContentBodyToBlocks } from "../../utils/contentBlocks";
@@ -361,7 +362,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   if (isInitialSnapshotLoading || isInitialContentLoading) {
     return (
       <PublicSiteShell hidePageHeader seoTitle="" seoDescription="" canonicalPath={`/content/${slug || ""}`}>
-        <LinearProgress />
+        <PublicLoadingState variant="content-detail" />
       </PublicSiteShell>
     );
   }

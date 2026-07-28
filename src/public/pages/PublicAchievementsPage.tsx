@@ -1,12 +1,12 @@
 import { useMemo } from "react";
-import { LinearProgress, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import type { ContentItem } from "../../types";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicErrorState from "../components/PublicErrorState";
-import PublicLoadingState from "../components/PublicLoadingState";
+import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicPagination } from "../hooks/usePublicPagination";
@@ -48,7 +48,7 @@ export default function PublicAchievementsPage() {
   if (!data && (isLoading || isFetching)) {
     return (
       <PublicSiteShell title="ผลงานและความภาคภูมิใจ" description="รวมผลงาน รางวัล และความสำเร็จของสถานศึกษา">
-        <PublicLoadingState />
+        <PublicLoadingState variant="card-grid" />
       </PublicSiteShell>
     );
   }
@@ -67,7 +67,7 @@ export default function PublicAchievementsPage() {
   if (!data) {
     return (
       <PublicSiteShell title="ผลงานและความภาคภูมิใจ" description="รวมผลงาน รางวัล และความสำเร็จของสถานศึกษา">
-        <PublicLoadingState />
+        <PublicLoadingState variant="card-grid" />
       </PublicSiteShell>
     );
   }
@@ -84,7 +84,7 @@ export default function PublicAchievementsPage() {
       preloadedDisplaySettings={data.displaySettings}
       preloadedMenu={data.menu}
     >
-      {isFetching && <LinearProgress sx={{ mb: 3 }} />}
+      <PublicBackgroundProgress active={isFetching} />
       <Stack id="achievements-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <EmojiEventsOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>

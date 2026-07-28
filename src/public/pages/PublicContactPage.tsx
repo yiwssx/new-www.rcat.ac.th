@@ -13,7 +13,9 @@ import PublicDeferredEmbed from "../../shared/media/PublicDeferredEmbed";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { usePublicHomeSnapshot } from "../hooks/usePublicHomeSnapshot";
+import PublicErrorState from "../components/PublicErrorState";
+import PublicLoadingState from "../components/PublicLoadingState";
+import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 const focusVisibleSx = {
   "&:focus-visible": {
@@ -119,10 +121,23 @@ function TikTokIcon() {
 }
 
 export default function PublicContactPage() {
-  const { data } = usePublicHomeSnapshot();
+  const { data, isFetching, isError, refetch } = usePublicCmsSnapshot();
 
   if (!data) {
-    return <PublicSiteShell>{null}</PublicSiteShell>;
+    return (
+      <PublicSiteShell title="ติดต่อ" description="ข้อมูลติดต่อที่เผยแพร่จาก CMS">
+        {isError ? (
+          <PublicErrorState
+            onRetry={() => {
+              void refetch();
+            }}
+            isRetrying={isFetching}
+          />
+        ) : (
+          <PublicLoadingState variant="simple" />
+        )}
+      </PublicSiteShell>
+    );
   }
 
   const siteSettings = normalizeSiteSettings(data.siteSettings);

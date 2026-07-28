@@ -1,12 +1,12 @@
 import { useMemo } from "react";
-import { Button, Chip, LinearProgress, Stack, Typography } from "@mui/material";
+import { Button, Chip, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicErrorState from "../components/PublicErrorState";
-import PublicLoadingState from "../components/PublicLoadingState";
+import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicContentList } from "../hooks/usePublicContentList";
@@ -63,7 +63,7 @@ export default function PublicAnnouncementsPage() {
   if (!data && (isLoading || isFetching)) {
     return (
       <PublicSiteShell>
-        <PublicLoadingState />
+        <PublicLoadingState variant="listing" />
       </PublicSiteShell>
     );
   }
@@ -82,7 +82,7 @@ export default function PublicAnnouncementsPage() {
   if (!data) {
     return (
       <PublicSiteShell>
-        <PublicLoadingState />
+        <PublicLoadingState variant="listing" />
       </PublicSiteShell>
     );
   }
@@ -96,7 +96,7 @@ export default function PublicAnnouncementsPage() {
       preloadedDisplaySettings={data.displaySettings}
       preloadedMenu={data.menu}
     >
-      {isFetching && <LinearProgress sx={{ mb: 3 }} />}
+      <PublicBackgroundProgress active={isFetching} />
       <Stack id="announcements-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <CampaignOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>

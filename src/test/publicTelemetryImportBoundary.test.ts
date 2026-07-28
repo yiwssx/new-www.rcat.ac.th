@@ -133,7 +133,7 @@ describe("Public telemetry import boundary", () => {
     ];
 
     expect(staticFiles).toContain("src/routeComponents.tsx");
-    expect(staticFiles).toContain("src/shared/telemetry/SilentTelemetryBoundary.tsx");
+    expect(staticFiles).not.toContain("src/shared/telemetry/SilentTelemetryBoundary.tsx");
 
     for (const forbiddenModule of forbiddenStaticModules) {
       expect(
@@ -148,10 +148,14 @@ describe("Public telemetry import boundary", () => {
 
   it("loads the telemetry implementation only through the Public route dynamic import", () => {
     const routeComponentsPath = join(srcRoot, "routeComponents.tsx");
-    const { staticSpecifiers, dynamicSpecifiers } = moduleSpecifiers(routeComponentsPath);
+    const publicShellLayoutPath = join(srcRoot, "public", "components", "PublicShellRouteLayout.tsx");
+    const routeSpecifiers = moduleSpecifiers(routeComponentsPath);
+    const layoutSpecifiers = moduleSpecifiers(publicShellLayoutPath);
 
-    expect(staticSpecifiers).not.toContain("./shared/telemetry/PublicTelemetry");
-    expect(dynamicSpecifiers).toContain("./shared/telemetry/PublicTelemetry");
+    expect(routeSpecifiers.dynamicSpecifiers).toContain("./public/components/PublicShellRouteLayout");
+    expect(layoutSpecifiers.staticSpecifiers).toContain("../../shared/telemetry/SilentTelemetryBoundary");
+    expect(layoutSpecifiers.staticSpecifiers).not.toContain("../../shared/telemetry/PublicTelemetry");
+    expect(layoutSpecifiers.dynamicSpecifiers).toContain("../../shared/telemetry/PublicTelemetry");
   });
 
   it("keeps the lazy telemetry graph reachable without importing the route registry back", () => {

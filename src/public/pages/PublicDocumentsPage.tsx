@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { Box, Button, InputAdornment, LinearProgress, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import { DocumentListCard } from "../../features/public-documents";
 import PublicErrorState from "../components/PublicErrorState";
-import PublicLoadingState from "../components/PublicLoadingState";
+import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicDocumentList } from "../hooks/usePublicDocumentList";
@@ -48,7 +48,7 @@ export default function PublicDocumentsPage() {
   if (!data && (isLoading || isFetching)) {
     return (
       <PublicSiteShell title="เอกสารเผยแพร่" description="เอกสารและไฟล์เผยแพร่สำหรับประชาชน">
-        <PublicLoadingState />
+        <PublicLoadingState variant="listing" />
       </PublicSiteShell>
     );
   }
@@ -67,7 +67,7 @@ export default function PublicDocumentsPage() {
   if (!data) {
     return (
       <PublicSiteShell title="เอกสารเผยแพร่" description="เอกสารและไฟล์เผยแพร่สำหรับประชาชน">
-        <PublicLoadingState />
+        <PublicLoadingState variant="listing" />
       </PublicSiteShell>
     );
   }
@@ -80,7 +80,7 @@ export default function PublicDocumentsPage() {
       seoDescription="เอกสารเผยแพร่ของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด"
       canonicalPath="/documents"
     >
-      {isFetching && <LinearProgress sx={{ mb: 3 }} />}
+      <PublicBackgroundProgress active={isFetching} />
       <Stack id="documents-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
         <DescriptionOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>

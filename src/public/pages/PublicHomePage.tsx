@@ -1,11 +1,11 @@
 import { lazy, ReactNode, Suspense, useEffect, useRef, useState } from "react";
-import { Box, Container, LinearProgress, Stack } from "@mui/material";
+import { Box, Container, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import PublicHomeCarousel from "../components/PublicHomeCarousel";
 import PublicErrorState from "../components/PublicErrorState";
-import PublicLoadingState from "../components/PublicLoadingState";
+import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { LatestAnnouncementsCard } from "../components/home/LatestAnnouncementsCard";
 import { HomeHeroSection } from "../components/home/HomeHeroSection";
@@ -157,7 +157,7 @@ export default function PublicHomePage() {
     return (
       <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/" skipShellDataFetch>
         <Container maxWidth="xl">
-          <PublicLoadingState />
+          <PublicLoadingState variant="home" />
         </Container>
       </PublicSiteShell>
     );
@@ -178,7 +178,7 @@ export default function PublicHomePage() {
     return (
       <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/" skipShellDataFetch>
         <Container maxWidth="xl">
-          <PublicLoadingState />
+          <PublicLoadingState variant="home" />
         </Container>
       </PublicSiteShell>
     );
@@ -210,7 +210,7 @@ export default function PublicHomePage() {
       preloadedDisplaySettings={data.displaySettings}
       preloadedMenu={data.menu}
     >
-      {isFetching && <LinearProgress />}
+      <PublicBackgroundProgress active={isFetching} />
       <PublicHomeCarousel slides={carouselSlides} settings={homepageSettings.carousel} />
       <Container maxWidth="xl" sx={{ pb: hasFloatingMessenger ? { xs: 9, md: 14 } : undefined }}>
         <HomeHeroSection siteSettings={siteSettings} />

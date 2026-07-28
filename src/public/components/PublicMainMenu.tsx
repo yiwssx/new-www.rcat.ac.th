@@ -246,7 +246,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
         boxShadow: "0 10px 20px rgba(0, 0, 0, 0.08)"
       }}
     >
-      <Container ref={menuContainerRef} maxWidth="xl" sx={{ position: "relative", minWidth: 0, py: 0 }}>
+      <Container ref={menuContainerRef} maxWidth="xl" sx={{ position: "relative", minWidth: 0, minHeight: 48, py: 0 }}>
         <Box
           sx={{
             position: "absolute",
@@ -263,7 +263,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
         </Box>
 
         {!shouldUseCompactMenu && (
-          <Box sx={{ display: "flex", overflow: "hidden", minWidth: 0, width: "100%" }}>
+          <Box sx={{ display: "flex", overflow: "hidden", minWidth: 0, minHeight: 48, width: "100%" }}>
             <PublicMenuList items={enabledItems} />
           </Box>
         )}
