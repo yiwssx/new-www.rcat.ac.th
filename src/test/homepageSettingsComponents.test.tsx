@@ -146,19 +146,27 @@ describe("homepage settings public sections", () => {
       />
     );
 
-    expect(screen.getByRole("img", { name: /Director Example/ })).toHaveAttribute(
+    const directorImage = screen.getByRole("img", { name: /Director Example/ });
+    const directorSlot = directorImage.closest('[data-public-responsive-image="true"]');
+
+    expect(directorImage).toHaveAttribute(
       "src",
-      "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w1600"
+      "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w384"
     );
-    expect(screen.getByRole("img", { name: /Director Example/ })).toHaveAttribute(
+    expect(directorImage).toHaveAttribute(
       "srcset",
       [
-        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w640 640w",
-        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w900 900w",
-        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w1200 1200w",
-        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w1600 1600w"
+        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w192 192w",
+        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w256 256w",
+        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w384 384w",
+        "https://drive.google.com/thumbnail?id=RCAT_director-2026_ABC123&sz=w512 512w"
       ].join(", ")
     );
+    expect(directorImage).toHaveAttribute("loading", "lazy");
+    expect(directorImage).toHaveAttribute("fetchpriority", "low");
+    expect(directorSlot).toHaveAttribute("data-public-image-intent", "portrait");
+    expect(directorSlot).toHaveAttribute("data-public-image-load-mode", "near-viewport");
+    expect(directorSlot).toHaveAttribute("data-public-image-aspect-ratio", "3 / 4");
   });
 
   it("renders DirectorHeroCard placeholder when the configured image URL is invalid", () => {
@@ -384,10 +392,11 @@ describe("homepage settings public sections", () => {
     );
 
     expect(screen.queryByTitle("Intro video")).not.toBeInTheDocument();
+    const introVideoSlot = document.querySelector('[data-public-deferred-embed="true"]') as Element;
 
     act(() => {
       intersectionCallback?.(
-        [{ isIntersecting: true, intersectionRatio: 1 } as IntersectionObserverEntry],
+        [{ isIntersecting: true, intersectionRatio: 1, target: introVideoSlot } as IntersectionObserverEntry],
         {} as IntersectionObserver
       );
     });
@@ -703,10 +712,11 @@ describe("homepage settings public sections", () => {
     );
 
     expect(screen.queryByTitle(/Real campus/)).not.toBeInTheDocument();
+    const mapSlot = document.querySelector('[data-public-deferred-embed="true"]') as Element;
 
     act(() => {
       intersectionCallback?.(
-        [{ isIntersecting: true, intersectionRatio: 1 } as IntersectionObserverEntry],
+        [{ isIntersecting: true, intersectionRatio: 1, target: mapSlot } as IntersectionObserverEntry],
         {} as IntersectionObserver
       );
     });

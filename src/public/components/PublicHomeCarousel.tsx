@@ -11,6 +11,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import type { CarouselSlide, HomepageCarouselSettings } from "../../types";
 import { normalizeCarouselSlide } from "../../features/cms-carousel/normalization";
 import CarouselImageStage from "../../shared/components/CarouselImageStage";
+import { usePublicMediaLoading } from "../../shared/media/publicMediaLoadingState";
 import {
   getCarouselScheduleDelayMs,
   getNextCarouselScheduleBoundaryMs,
@@ -137,8 +138,11 @@ export default function PublicHomeCarousel({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(getInitialReducedMotionPreference);
   const [isUserPaused, setIsUserPaused] = useState(false);
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
+  const [requestedSlideIds, setRequestedSlideIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [loadedSlideIds, setLoadedSlideIds] = useState<ReadonlySet<string>>(() => new Set());
 
   const autoplayTimerRef = useRef<number | null>(null);
+  const idlePreloadRef = useRef<number | null>(null);
   const pointerStartXRef = useRef<number | null>(null);
   const announceOnNextEmblaSelectionRef = useRef(false);
 
@@ -184,6 +188,75 @@ export default function PublicHomeCarousel({
   const autoplayControlPaused = isUserPaused || prefersReducedMotion;
 
   const effectiveSelectedIndex = resolvedSlides.length > 0 ? Math.min(selectedIndex, resolvedSlides.length - 1) : 0;
+  const { pageMediaAllowed } = usePublicMediaLoading();
+
+  const requestSlideByIndex = useCallback(
+    (index: number) => {
+      if (!pageMediaAllowed || resolvedSlides.length === 0) {
+        return;
+      }
+
+      const normalizedIndex = getLoopedCarouselIndex(index, resolvedSlides.length);
+      const slideId = resolvedSlides[normalizedIndex]?.id;
+
+      if (!slideId) {
+        return;
+      }
+
+      setRequestedSlideIds((current) => {
+        if (current.has(slideId)) {
+          return current;
+        }
+
+        return new Set(current).add(slideId);
+      });
+    },
+    [pageMediaAllowed, resolvedSlides]
+  );
+
+  const scheduleNextSlidePreload = useCallback(
+    (loadedIndex: number) => {
+      if (!pageMediaAllowed || resolvedSlides.length < 2 || typeof window === "undefined") {
+        return;
+      }
+
+      if (idlePreloadRef.current !== null) {
+        if (typeof window.cancelIdleCallback === "function") {
+          window.cancelIdleCallback(idlePreloadRef.current);
+        } else {
+          window.clearTimeout(idlePreloadRef.current);
+        }
+      }
+
+      const preload = () => {
+        idlePreloadRef.current = null;
+        requestSlideByIndex(loadedIndex + 1);
+      };
+
+      idlePreloadRef.current =
+        typeof window.requestIdleCallback === "function"
+          ? window.requestIdleCallback(preload, { timeout: 1_000 })
+          : window.setTimeout(preload, 120);
+    },
+    [pageMediaAllowed, requestSlideByIndex, resolvedSlides.length]
+  );
+
+  const handleSlideImageLoad = useCallback(
+    (index: number, slideId: string) => {
+      setLoadedSlideIds((current) => {
+        if (current.has(slideId)) {
+          return current;
+        }
+
+        return new Set(current).add(slideId);
+      });
+
+      if (index === effectiveSelectedIndex) {
+        scheduleNextSlidePreload(index);
+      }
+    },
+    [effectiveSelectedIndex, scheduleNextSlidePreload]
+  );
 
   const autoplayRunning = shouldRunCarouselAutoplay({
     autoplayEnabled,
@@ -243,6 +316,7 @@ export default function PublicHomeCarousel({
         return;
       }
 
+      requestSlideByIndex(index);
       markManualNavigation();
 
       if (isFadeTransition) {
@@ -255,7 +329,7 @@ export default function PublicHomeCarousel({
 
       emblaApi?.scrollTo(getLoopedCarouselIndex(index, resolvedSlides.length));
     },
-    [emblaApi, isFadeTransition, markManualNavigation, resolvedSlides.length, setFadeIndex]
+    [emblaApi, isFadeTransition, markManualNavigation, requestSlideByIndex, resolvedSlides.length, setFadeIndex]
   );
 
   const scrollPrev = useCallback(() => {
@@ -263,6 +337,7 @@ export default function PublicHomeCarousel({
       return;
     }
 
+    requestSlideByIndex(effectiveSelectedIndex - 1);
     markManualNavigation();
 
     if (isFadeTransition) {
@@ -274,13 +349,22 @@ export default function PublicHomeCarousel({
     }
 
     emblaApi?.scrollPrev();
-  }, [emblaApi, effectiveSelectedIndex, isFadeTransition, markManualNavigation, resolvedSlides.length, setFadeIndex]);
+  }, [
+    emblaApi,
+    effectiveSelectedIndex,
+    isFadeTransition,
+    markManualNavigation,
+    requestSlideByIndex,
+    resolvedSlides.length,
+    setFadeIndex
+  ]);
 
   const scrollNext = useCallback(() => {
     if (resolvedSlides.length === 0) {
       return;
     }
 
+    requestSlideByIndex(effectiveSelectedIndex + 1);
     markManualNavigation();
 
     if (isFadeTransition) {
@@ -292,7 +376,15 @@ export default function PublicHomeCarousel({
     }
 
     emblaApi?.scrollNext();
-  }, [emblaApi, effectiveSelectedIndex, isFadeTransition, markManualNavigation, resolvedSlides.length, setFadeIndex]);
+  }, [
+    emblaApi,
+    effectiveSelectedIndex,
+    isFadeTransition,
+    markManualNavigation,
+    requestSlideByIndex,
+    resolvedSlides.length,
+    setFadeIndex
+  ]);
 
   const onSelect = useCallback(() => {
     if (!emblaApi || isFadeTransition) {
@@ -301,6 +393,7 @@ export default function PublicHomeCarousel({
 
     const nextSelectedIndex = emblaApi.selectedScrollSnap();
 
+    requestSlideByIndex(nextSelectedIndex);
     setSelectedIndex(nextSelectedIndex);
 
     if (announceOnNextEmblaSelectionRef.current) {
@@ -308,7 +401,29 @@ export default function PublicHomeCarousel({
 
       announceOnNextEmblaSelectionRef.current = false;
     }
-  }, [announceSlide, emblaApi, isFadeTransition]);
+  }, [announceSlide, emblaApi, isFadeTransition, requestSlideByIndex]);
+
+  useEffect(() => {
+    const selectedSlideId = resolvedSlides[effectiveSelectedIndex]?.id;
+
+    if (selectedSlideId && loadedSlideIds.has(selectedSlideId)) {
+      scheduleNextSlidePreload(effectiveSelectedIndex);
+    }
+  }, [effectiveSelectedIndex, loadedSlideIds, resolvedSlides, scheduleNextSlidePreload]);
+
+  useEffect(() => {
+    return () => {
+      if (idlePreloadRef.current === null || typeof window === "undefined") {
+        return;
+      }
+
+      if (typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idlePreloadRef.current);
+      } else {
+        window.clearTimeout(idlePreloadRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const nowMs = Date.now();
@@ -600,6 +715,7 @@ export default function PublicHomeCarousel({
             {isFadeTransition ? (
               resolvedSlides.map((resolvedSlide, index) => {
                 const isSelected = effectiveSelectedIndex === index;
+                const shouldLoadSlide = pageMediaAllowed && (isSelected || requestedSlideIds.has(resolvedSlide.id));
 
                 return (
                   <Box
@@ -612,6 +728,7 @@ export default function PublicHomeCarousel({
                     data-carousel-stage-sizing="fixed-responsive"
                     data-carousel-slide-index={index}
                     data-carousel-slide-selected={isSelected ? "true" : "false"}
+                    data-carousel-slide-media-requested={shouldLoadSlide ? "true" : "false"}
                     sx={{
                       position: "absolute",
                       inset: 0,
@@ -628,10 +745,12 @@ export default function PublicHomeCarousel({
                     <CarouselImageStage
                       slide={resolvedSlide.slide}
                       alt={resolvedSlide.altText}
-                      loading={index === 0 ? "eager" : "lazy"}
-                      fetchPriority={index === 0 ? "high" : "auto"}
+                      loading={isSelected ? "eager" : "lazy"}
+                      fetchPriority={isSelected ? "high" : "auto"}
                       sizes={PUBLIC_CAROUSEL_IMAGE_SIZES}
                       emptyLabel="ไม่สามารถแสดงภาพสไลด์ได้"
+                      shouldLoad={shouldLoadSlide}
+                      onMainImageLoad={() => handleSlideImageLoad(index, resolvedSlide.id)}
                     />
                   </Box>
                 );
@@ -645,6 +764,7 @@ export default function PublicHomeCarousel({
               >
                 {resolvedSlides.map((resolvedSlide, index) => {
                   const isSelected = effectiveSelectedIndex === index;
+                  const shouldLoadSlide = pageMediaAllowed && (isSelected || requestedSlideIds.has(resolvedSlide.id));
 
                   return (
                     <Box
@@ -657,6 +777,7 @@ export default function PublicHomeCarousel({
                       data-carousel-stage-sizing="fixed-responsive"
                       data-carousel-slide-index={index}
                       data-carousel-slide-selected={isSelected ? "true" : "false"}
+                      data-carousel-slide-media-requested={shouldLoadSlide ? "true" : "false"}
                       sx={{
                         position: "relative",
                         flex: "0 0 100%",
@@ -670,10 +791,12 @@ export default function PublicHomeCarousel({
                       <CarouselImageStage
                         slide={resolvedSlide.slide}
                         alt={resolvedSlide.altText}
-                        loading={index === 0 ? "eager" : "lazy"}
-                        fetchPriority={index === 0 ? "high" : "auto"}
+                        loading={isSelected ? "eager" : "lazy"}
+                        fetchPriority={isSelected ? "high" : "auto"}
                         sizes={PUBLIC_CAROUSEL_IMAGE_SIZES}
                         emptyLabel="ไม่สามารถแสดงภาพสไลด์ได้"
+                        shouldLoad={shouldLoadSlide}
+                        onMainImageLoad={() => handleSlideImageLoad(index, resolvedSlide.id)}
                       />
                     </Box>
                   );

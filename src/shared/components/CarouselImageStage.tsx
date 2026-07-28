@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BrokenImageOutlinedIcon from "@mui/icons-material/BrokenImageOutlined";
 import { Box, Stack, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { CarouselSlide } from "../../features/cms-carousel/types";
 import { normalizeCarouselSlide } from "../../features/cms-carousel/normalization";
-import { getPublicImageSrcSet, normalizePublicImageUrl } from "../../utils/safeUrl";
+import { resolvePublicImageSource } from "../media/publicImageSources";
 
 const MOBILE_IMAGE_MEDIA_QUERY = "(max-width: 600px)";
 const DEFAULT_EMPTY_LABEL = "ยังไม่มีรูปภาพ";
@@ -20,20 +20,12 @@ interface CarouselImageStageProps {
   sizes?: string;
   emptyLabel?: string;
   stageSx?: SxProps<Theme>;
+  shouldLoad?: boolean;
+  onMainImageLoad?: () => void;
 }
 
 function getResponsiveSource(url: string) {
-  if (!url) {
-    return {
-      src: "",
-      srcSet: ""
-    };
-  }
-
-  return {
-    src: normalizePublicImageUrl(url),
-    srcSet: getPublicImageSrcSet(url)
-  };
+  return resolvePublicImageSource(url, "carousel");
 }
 
 export default function CarouselImageStage({
@@ -43,7 +35,9 @@ export default function CarouselImageStage({
   fetchPriority = "auto",
   sizes = "(max-width: 900px) 100vw, 1280px",
   emptyLabel = DEFAULT_EMPTY_LABEL,
-  stageSx
+  stageSx,
+  shouldLoad = true,
+  onMainImageLoad
 }: CarouselImageStageProps) {
   const normalizedSlide = useMemo(() => normalizeCarouselSlide(slide), [slide]);
 
@@ -62,9 +56,14 @@ export default function CarouselImageStage({
 
   const [failedMobileSourceKey, setFailedMobileSourceKey] = useState("");
   const [failedMainSourceKey, setFailedMainSourceKey] = useState("");
+  const [loadedMainSourceKey, setLoadedMainSourceKey] = useState("");
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const mainImageRef = useRef<HTMLImageElement | null>(null);
+  const blurCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const mobileSourceFailed = failedMobileSourceKey === sourceKey;
   const imageFailed = failedMainSourceKey === sourceKey;
+  const mainImageLoaded = loadedMainSourceKey === sourceKey;
 
   const fallbackSource = desktopSource.src || mobileSource.src;
   const fallbackSrcSet = desktopSource.src ? desktopSource.srcSet : mobileSource.srcSet;
@@ -78,6 +77,72 @@ export default function CarouselImageStage({
   const backgroundColor = normalizedSlide.backgroundColor || "";
 
   const stageSxItems = Array.isArray(stageSx) ? stageSx : stageSx ? [stageSx] : [];
+
+  const drawBlurBackground = useCallback(() => {
+    const canvas = blurCanvasRef.current;
+    const image = mainImageRef.current;
+    const stage = stageRef.current;
+
+    if (
+      !canvas ||
+      !image ||
+      !stage ||
+      image.naturalWidth <= 0 ||
+      image.naturalHeight <= 0 ||
+      stage.clientWidth <= 0 ||
+      stage.clientHeight <= 0
+    ) {
+      return;
+    }
+
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    const width = stage.clientWidth;
+    const height = stage.clientHeight;
+    canvas.width = Math.ceil(width * pixelRatio);
+    canvas.height = Math.ceil(height * pixelRatio);
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      return;
+    }
+
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    context.clearRect(0, 0, width, height);
+
+    const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+    const drawWidth = image.naturalWidth * scale;
+    const drawHeight = image.naturalHeight * scale;
+    const drawX = (width - drawWidth) * (normalizedSlide.focalPointX / 100);
+    const drawY = (height - drawHeight) * (normalizedSlide.focalPointY / 100);
+
+    try {
+      context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+    } catch {
+      // The contained foreground remains usable if a browser blocks canvas drawing.
+    }
+  }, [normalizedSlide.focalPointX, normalizedSlide.focalPointY]);
+
+  useEffect(() => {
+    if (!mainImageLoaded || normalizedSlide.imageFit !== "fit-blur") {
+      return undefined;
+    }
+
+    drawBlurBackground();
+
+    if (typeof window.ResizeObserver === "function") {
+      const observer = new window.ResizeObserver(drawBlurBackground);
+
+      if (stageRef.current) {
+        observer.observe(stageRef.current);
+      }
+
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", drawBlurBackground);
+    return () => window.removeEventListener("resize", drawBlurBackground);
+  }, [drawBlurBackground, mainImageLoaded, normalizedSlide.imageFit]);
 
   function handleMainImageError() {
     const mobileViewport =
@@ -101,13 +166,10 @@ export default function CarouselImageStage({
     setFailedMainSourceKey(sourceKey);
   }
 
-  function renderPicture(layer: "background" | "main") {
-    const isBackground = layer === "background";
-
+  function renderPicture() {
     return (
       <picture
-        key={`${layer}:${fallbackSource}:${usableMobileSource?.src || ""}`}
-        aria-hidden={isBackground ? "true" : undefined}
+        key={`main:${fallbackSource}:${usableMobileSource?.src || ""}`}
         style={{
           position: "absolute",
           inset: 0,
@@ -130,48 +192,30 @@ export default function CarouselImageStage({
           src={fallbackSource}
           srcSet={fallbackSrcSet || undefined}
           sizes={sizes}
-          alt={isBackground ? "" : alt}
-          aria-hidden={isBackground ? "true" : undefined}
+          alt={alt}
           loading={loading}
-          {...(!isBackground
-            ? ({
-                fetchpriority: fetchPriority
-              } as Record<string, string>)
-            : ({} as Record<string, string>))}
+          {...({ fetchpriority: fetchPriority } as Record<string, string>)}
           decoding="async"
-          onError={isBackground ? undefined : handleMainImageError}
-          data-carousel-image-layer={layer}
-          data-carousel-object-fit={isBackground ? "cover" : objectFit}
+          onLoad={(event) => {
+            mainImageRef.current = event.currentTarget as HTMLImageElement;
+            setLoadedMainSourceKey(sourceKey);
+            onMainImageLoad?.();
+          }}
+          onError={handleMainImageError}
+          data-carousel-image-layer="main"
+          data-carousel-object-fit={objectFit}
           data-carousel-object-position={objectPosition}
-          sx={
-            isBackground
-              ? {
-                  position: "absolute",
-                  inset: "-8%",
-                  width: "116%",
-                  height: "116%",
-                  display: "block",
-                  objectFit: "cover",
-                  objectPosition,
-                  filter: "blur(22px) saturate(0.9)",
-                  opacity: 0.58,
-                  transform: "scale(1.04)",
-                  pointerEvents: "none",
-                  userSelect: "none"
-                }
-              : {
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  display: "block",
-                  objectFit,
-                  objectPosition,
-                  zIndex: 2,
-                  filter:
-                    normalizedSlide.imageFit === "fit-blur" ? "drop-shadow(0 10px 24px rgba(0, 0, 0, 0.22))" : "none"
-                }
-          }
+          sx={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            display: "block",
+            objectFit,
+            objectPosition,
+            zIndex: 2,
+            filter: normalizedSlide.imageFit === "fit-blur" ? "drop-shadow(0 10px 24px rgba(0, 0, 0, 0.22))" : "none"
+          }}
         />
       </picture>
     );
@@ -179,6 +223,7 @@ export default function CarouselImageStage({
 
   return (
     <Box
+      ref={stageRef}
       data-carousel-image-stage="true"
       data-carousel-image-fit={normalizedSlide.imageFit}
       data-carousel-focal-point={objectPosition}
@@ -198,11 +243,37 @@ export default function CarouselImageStage({
         ...stageSxItems
       ]}
     >
-      {!imageFailed && fallbackSource ? (
+      {!shouldLoad ? (
+        <Box
+          aria-hidden="true"
+          data-carousel-image-placeholder="true"
+          sx={{
+            position: "absolute",
+            inset: 0,
+            bgcolor: backgroundColor || "primary.dark"
+          }}
+        />
+      ) : !imageFailed && fallbackSource ? (
         <>
-          {normalizedSlide.imageFit === "fit-blur" && (
+          {normalizedSlide.imageFit === "fit-blur" && mainImageLoaded && (
             <>
-              {renderPicture("background")}
+              <canvas
+                ref={blurCanvasRef}
+                aria-hidden="true"
+                data-carousel-image-layer="background"
+                style={{
+                  position: "absolute",
+                  inset: "-8%",
+                  width: "116%",
+                  height: "116%",
+                  display: "block",
+                  filter: "blur(22px) saturate(0.9)",
+                  opacity: 0.58,
+                  transform: "scale(1.04)",
+                  pointerEvents: "none",
+                  userSelect: "none"
+                }}
+              />
 
               <Box
                 aria-hidden="true"
@@ -217,7 +288,7 @@ export default function CarouselImageStage({
             </>
           )}
 
-          {renderPicture("main")}
+          {renderPicture()}
         </>
       ) : (
         <Stack

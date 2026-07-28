@@ -2,12 +2,12 @@ import { Box, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import EmptyState from "../../../shared/components/EmptyState";
+import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
 import { SiteSettings } from "../../../types";
-import { getPublicImageSrcSet, normalizePublicImageUrl } from "../../../utils/safeUrl";
+import { resolvePublicImageSource } from "../../../shared/media/publicImageSources";
 
 export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
-  const directorImageUrl = normalizePublicImageUrl(siteSettings.directorImageUrl);
-  const directorImageSrcSet = getPublicImageSrcSet(siteSettings.directorImageUrl);
+  const directorImageUrl = resolvePublicImageSource(siteSettings.directorImageUrl, "portrait").src;
   const hasDirectorInfo = Boolean(
     siteSettings.directorName ||
     siteSettings.directorDescription ||
@@ -51,21 +51,24 @@ export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings 
         {hasDirectorInfo ? (
           <Stack spacing={1.15} alignItems="center" sx={{ width: "100%" }}>
             {directorImageUrl ? (
-              <Box
-                component="img"
-                src={directorImageUrl}
-                srcSet={directorImageSrcSet || undefined}
+              <PublicResponsiveImage
+                source={siteSettings.directorImageUrl}
+                intent="portrait"
                 sizes="(max-width: 600px) 160px, (max-width: 900px) 176px, 192px"
                 alt={directorImageAlt}
+                loadMode="near-viewport"
+                nearViewportMargin="160px 0px"
+                aspectRatio="3 / 4"
+                fill
                 sx={{
                   width: { xs: 160, sm: 176, md: 184, lg: 192 },
                   flex: "0 0 auto",
-                  aspectRatio: "3 / 4",
                   borderRadius: 1,
-                  objectFit: "cover",
-                  objectPosition: "center top",
-                  display: "block",
                   bgcolor: "background.default"
+                }}
+                imageSx={{
+                  objectFit: "cover",
+                  objectPosition: "center top"
                 }}
               />
             ) : (

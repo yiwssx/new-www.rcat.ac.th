@@ -68,6 +68,7 @@ describe("normalizePublicImageUrl", () => {
   it("builds responsive srcset candidates for supported Google Drive image URLs only", () => {
     expect(getPublicImageSrcSet(`https://drive.google.com/file/d/${driveFileId}/view?usp=sharing`)).toBe(
       [
+        `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w480 480w`,
         `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w640 640w`,
         `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w900 900w`,
         `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w1200 1200w`,

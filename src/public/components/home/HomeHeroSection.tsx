@@ -3,13 +3,12 @@ import { alpha } from "@mui/material/styles";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { DirectorHeroCard } from "./DirectorHeroCard";
 import { SiteSettings } from "../../../types";
 
 export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }) {
-  const heroImageLayer = siteSettings.heroImageUrl ? `, url(${JSON.stringify(siteSettings.heroImageUrl)})` : "";
-
   return (
     <Box
       sx={{
@@ -25,7 +24,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
     >
       <Box
         component="section"
-        sx={(theme) => ({
+        sx={{
           position: "relative",
           overflow: "hidden",
           borderRadius: 1,
@@ -35,19 +34,43 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
           alignItems: "center",
           p: { xs: 2, sm: 2.5, md: 3.5 },
           color: "white",
-          backgroundImage: `linear-gradient(120deg, ${alpha(theme.palette.primary.dark, 0.94)} 0%, ${alpha(
-            theme.palette.primary.main,
-            0.84
-          )} 56%, ${alpha(theme.palette.secondary.dark, 0.58)} 100%)${heroImageLayer}`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          bgcolor: "primary.dark",
           boxShadow: "0 18px 34px rgba(31, 90, 44, 0.16)"
-        })}
+        }}
       >
+        {siteSettings.heroImageUrl && (
+          <PublicResponsiveImage
+            source={siteSettings.heroImageUrl}
+            intent="hero"
+            alt=""
+            loadMode="near-viewport"
+            nearViewportMargin="240px 0px"
+            sizes="(max-width: 900px) 100vw, 65vw"
+            fill
+            reservedMinHeight={240}
+            imageSx={{ objectFit: "cover", objectPosition: "center" }}
+            sx={{ position: "absolute", inset: 0, zIndex: 0 }}
+          />
+        )}
+
+        <Box
+          aria-hidden="true"
+          sx={(theme) => ({
+            position: "absolute",
+            inset: 0,
+            zIndex: 1,
+            background: `linear-gradient(120deg, ${alpha(theme.palette.primary.dark, 0.94)} 0%, ${alpha(
+              theme.palette.primary.main,
+              0.84
+            )} 56%, ${alpha(theme.palette.secondary.dark, 0.58)} 100%)`
+          })}
+        />
+
         <Box
           sx={{
             position: "absolute",
             inset: 0,
+            zIndex: 2,
             background: "linear-gradient(180deg, rgba(12, 34, 14, 0.04) 0%, rgba(12, 34, 14, 0.42) 100%)"
           }}
         />
@@ -57,6 +80,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
           sx={{
             display: { xs: "none", md: "block" },
             position: "absolute",
+            zIndex: 2,
             right: 44,
             top: 34,
             width: 210,
@@ -72,6 +96,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
           sx={{
             display: { xs: "none", lg: "block" },
             position: "absolute",
+            zIndex: 2,
             right: 108,
             bottom: -36,
             width: 150,
@@ -81,7 +106,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
           }}
         />
 
-        <Stack spacing={{ xs: 1.35, md: 1.6 }} sx={{ position: "relative", zIndex: 1, maxWidth: 620 }}>
+        <Stack spacing={{ xs: 1.35, md: 1.6 }} sx={{ position: "relative", zIndex: 3, maxWidth: 620 }}>
           {siteSettings.heroChip && (
             <Chip
               icon={<SchoolOutlinedIcon />}

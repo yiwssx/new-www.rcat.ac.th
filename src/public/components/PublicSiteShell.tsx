@@ -25,7 +25,10 @@ import PublicMainMenu from "./PublicMainMenu";
 import PublicErrorState from "./PublicErrorState";
 import FloatingMessengerButton from "./FloatingMessengerButton";
 import PublicIntroGate from "./PublicIntroGate";
+import { getInitialPublicIntroGateVisibility, getPublicIntroGateStorageKey } from "./publicIntroGateState";
 import { UrgentMarqueeSection } from "./home/UrgentMarqueeSection";
+import { PublicMediaLoadingProvider } from "../../shared/media/PublicMediaLoadingContext";
+import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import { projectSettings } from "../../config/projectSettings";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
@@ -467,6 +470,7 @@ export default function PublicSiteShell({
     enabled: shouldFetchShellData
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [dismissedIntroGateKeys, setDismissedIntroGateKeys] = useState<ReadonlySet<string>>(() => new Set());
   const shellSiteSettings = preloadedSiteSettings ?? data?.siteSettings ?? fallbackPublicShellSettings;
   const shellHomepageSettings = preloadedHomepageSettings ?? data?.homepageSettings;
   const isShellFetching = shouldFetchShellData && !data && (isLoading || isFetching);
@@ -475,6 +479,9 @@ export default function PublicSiteShell({
   const siteSettings = normalizeSiteSettings(shellSiteSettings);
   const homepageSettings = normalizeHomepageSettings(shellHomepageSettings);
   const siteName = siteSettings.siteName;
+  const introGateStorageKey = getPublicIntroGateStorageKey(homepageSettings.introGate);
+  const introGateVisible =
+    getInitialPublicIntroGateVisibility(homepageSettings.introGate) && !dismissedIntroGateKeys.has(introGateStorageKey);
 
   useDocumentMetadata({
     title: isInitialPublicError ? "ไม่สามารถโหลดข้อมูลได้" : (seoTitle ?? title ?? siteName),
@@ -523,285 +530,306 @@ export default function PublicSiteShell({
   }
 
   return (
-    <Box
-      id="top"
-      sx={{ minHeight: "100vh", bgcolor: "background.default" }}
-      className={`rcat-page${siteSettings.mourningModeEnabled ? " rcat-mourning-mode" : ""}`}
-      data-mourning-mode={siteSettings.mourningModeEnabled ? "true" : "false"}
-    >
-      <PublicIntroGate settings={homepageSettings.introGate} />
+    <PublicMediaLoadingProvider pageMediaAllowed={!introGateVisible}>
       <Box
-        sx={{
-          bgcolor: "primary.dark",
-          color: "white",
-          borderBottom: "3px solid",
-          borderColor: "secondary.main"
-        }}
+        id="top"
+        sx={{ minHeight: "100vh", bgcolor: "background.default" }}
+        className={`rcat-page${siteSettings.mourningModeEnabled ? " rcat-mourning-mode" : ""}`}
+        data-mourning-mode={siteSettings.mourningModeEnabled ? "true" : "false"}
       >
-        <Container maxWidth="xl">
-          <MobileTopBar
-            campus={siteSettings.campus || siteName}
-            phone={siteSettings.phone}
-            email={siteSettings.email}
-            socialLinks={socialLinks}
-          />
-          <DesktopTopBar
-            campus={siteSettings.campus}
-            siteName={siteName}
-            phone={siteSettings.phone}
-            email={siteSettings.email}
-            socialLinks={socialLinks}
-          />
-        </Container>
-      </Box>
-
-      <Box sx={{ bgcolor: "white", borderBottom: "1px solid rgba(31, 90, 44, 0.14)" }}>
-        <Container maxWidth="xl">
-          <Stack
-            direction={{ xs: "column", lg: "row" }}
-            spacing={{ xs: 1.2, md: 2 }}
-            justifyContent="space-between"
-            alignItems={{ xs: "flex-start", lg: "center" }}
-            sx={{ py: { xs: 1.2, md: 2.4 } }}
-          >
-            <Stack direction="row" spacing={{ xs: 1.1, md: 2 }} alignItems="center" sx={{ width: "100%", minWidth: 0 }}>
-              <Box
-                sx={{
-                  width: { xs: 54, sm: 58, md: 86 },
-                  height: { xs: 54, sm: 58, md: 86 },
-                  borderRadius: 999,
-                  display: "grid",
-                  placeItems: "center",
-                  bgcolor: "primary.light",
-                  border: "1px solid rgba(31, 90, 44, 0.14)"
-                }}
-              >
-                <Box
-                  component="img"
-                  src={projectSettings.site.logoPath}
-                  alt={siteName}
-                  decoding="async"
-                  sx={{ width: { xs: 42, sm: 46, md: 64 }, height: { xs: 42, sm: 46, md: 64 }, objectFit: "contain" }}
-                />
-              </Box>
-              <Box sx={{ minWidth: 0 }}>
-                {siteSettings.eyebrow && (
-                  <Typography
-                    sx={{
-                      color: "secondary.dark",
-                      fontSize: { xs: "0.74rem", md: "0.82rem" },
-                      fontWeight: 700,
-                      letterSpacing: "0.02em",
-                      lineHeight: 1.25,
-                      textTransform: "uppercase",
-                      mb: { xs: 0.2, md: 0.4 }
-                    }}
-                  >
-                    {siteSettings.eyebrow}
-                  </Typography>
-                )}
-                <Typography
-                  variant="h1"
-                  sx={{ fontSize: { xs: "1.34rem", sm: "1.5rem", md: "2.4rem" }, lineHeight: 1.08 }}
-                >
-                  {siteName}
-                </Typography>
-                {siteSettings.intro && (
-                  <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: { xs: 0.35, md: 0.6 } }}>
-                    <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark", fontSize: { xs: 17, md: 24 } }} />
-                    <Typography
-                      color="text.secondary"
-                      sx={{
-                        maxWidth: 860,
-                        fontSize: { xs: "0.78rem", md: "1rem" },
-                        overflow: { xs: "hidden", md: "visible" },
-                        display: { xs: "-webkit-box", md: "block" },
-                        WebkitBoxOrient: "vertical",
-                        WebkitLineClamp: { xs: 1, md: "unset" }
-                      }}
-                    >
-                      {siteSettings.intro}
-                    </Typography>
-                  </Stack>
-                )}
-              </Box>
-            </Stack>
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-              useFlexGap
-              sx={{ flexWrap: "wrap", width: { xs: "100%", lg: "auto" } }}
-            >
-              {siteSettings.admissionUrl && (
-                <Button
-                  variant="contained"
-                  color="error"
-                  href={normalizeSafeHref(siteSettings.admissionUrl)}
-                  startIcon={<AssignmentIcon />}
-                  sx={{ flex: { xs: "1 1 132px", sm: "0 0 auto" } }}
-                >
-                  สมัครเรียน
-                </Button>
-              )}
-              <Button
-                variant="contained"
-                color="primary"
-                href={normalizeSafeHref("/announcements")}
-                endIcon={<ArrowForwardOutlinedIcon />}
-                sx={{ flex: { xs: "1 1 132px", sm: "0 0 auto" } }}
-              >
-                {ANNOUNCEMENTS_LABEL}
-              </Button>
-              <Box
-                component="form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const query = searchQuery.trim();
-
-                  if (!query) {
-                    return;
-                  }
-
-                  void navigate({ to: "/search", search: { q: query } });
-                }}
-                sx={{
-                  width: { xs: "100%", sm: 210, md: 230, lg: 240 },
-                  maxWidth: { xs: "100%", sm: 240 },
-                  flex: { xs: "1 1 100%", sm: "0 1 230px", lg: "0 0 240px" }
-                }}
-              >
-                <TextField
-                  type="search"
-                  size="small"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="ค้นหาในเว็บไซต์"
-                  aria-label="ค้นหาในเว็บไซต์"
-                  fullWidth
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchOutlinedIcon fontSize="small" />
-                        </InputAdornment>
-                      )
-                    }
-                  }}
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      bgcolor: "white",
-                      borderRadius: 1,
-                      height: { xs: 36, md: 38 }
-                    },
-                    "& .MuiInputBase-input": {
-                      py: { xs: 0.65, md: 0.75 },
-                      fontSize: { xs: "0.86rem", md: "0.9rem" }
-                    },
-                    "& .MuiInputAdornment-root svg": {
-                      fontSize: { xs: "1rem", md: "1.08rem" }
-                    }
-                  }}
-                />
-              </Box>
-            </Stack>
-          </Stack>
-        </Container>
-      </Box>
-
-      <PublicMainMenu preloadedMenu={preloadedMenu ?? data?.menu ?? (skipShellDataFetch ? [] : undefined)} />
-
-      <UrgentMarqueeSection settings={homepageSettings.marquee} />
-
-      {siteSettings.mourningModeEnabled && siteSettings.mourningModeNotice && (
+        <PublicIntroGate
+          settings={homepageSettings.introGate}
+          visible={introGateVisible}
+          onDismiss={() => {
+            setDismissedIntroGateKeys((current) => new Set(current).add(introGateStorageKey));
+          }}
+        />
         <Box
-          role="status"
-          sx={{ bgcolor: "grey.900", color: "common.white", py: 1, px: 2, textAlign: "center", fontWeight: 800 }}
+          sx={{
+            bgcolor: "primary.dark",
+            color: "white",
+            borderBottom: "3px solid",
+            borderColor: "secondary.main"
+          }}
         >
-          {siteSettings.mourningModeNotice}
-        </Box>
-      )}
-
-      {isShellFetching && <LinearProgress sx={{ height: 3 }} />}
-
-      {showPageHeader && (
-        <Box
-          sx={(theme) => ({
-            bgcolor: "white",
-            borderBottom: "1px solid rgba(31, 90, 44, 0.12)",
-            background: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.background.paper} 62%, ${theme.palette.secondary.light} 100%)`
-          })}
-        >
-          <Container maxWidth="xl" sx={{ py: { xs: 3, md: 4 } }}>
-            {title && (
-              <Typography variant="h1" sx={{ fontSize: { xs: "2rem", md: "2.8rem" }, maxWidth: 860 }}>
-                {title}
-              </Typography>
-            )}
-            {description && (
-              <Typography color="text.secondary" sx={{ mt: title ? 1 : 0, maxWidth: 820 }}>
-                {description}
-              </Typography>
-            )}
+          <Container maxWidth="xl">
+            <MobileTopBar
+              campus={siteSettings.campus || siteName}
+              phone={siteSettings.phone}
+              email={siteSettings.email}
+              socialLinks={socialLinks}
+            />
+            <DesktopTopBar
+              campus={siteSettings.campus}
+              siteName={siteName}
+              phone={siteSettings.phone}
+              email={siteSettings.email}
+              socialLinks={socialLinks}
+            />
           </Container>
         </Box>
-      )}
 
-      <Box
-        component="main"
-        sx={{
-          pt: disableMainContainer ? 0 : { xs: 3, md: 4.5 },
-          pb: { xs: 3, md: 4.5 }
-        }}
-        className="rcat-container"
-      >
-        {disableMainContainer ? children : <Container maxWidth="xl">{children}</Container>}
-      </Box>
-
-      <FooterDirectory groups={siteSettings.footerDirectoryGroups} />
-
-      <Box component="footer" sx={{ py: 4, bgcolor: "primary.dark", color: "white", mt: 2 }}>
-        <Container maxWidth="xl">
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            justifyContent="space-between"
-            alignItems={{ xs: "flex-start", md: "center" }}
-          >
-            <Box>
-              {siteSettings.footerTitle && (
-                <Typography fontWeight={900} sx={{ letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                  {siteSettings.footerTitle}
-                </Typography>
-              )}
-              {siteSettings.footerDescription && (
-                <Typography sx={{ color: "rgba(255, 255, 255, 0.76)", mt: 0.6, maxWidth: 720 }}>
-                  {siteSettings.footerDescription}
-                </Typography>
-              )}
-            </Box>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
-              <Button
-                component="button"
-                type="button"
-                color="inherit"
-                onClick={handleBackToTop}
-                startIcon={<ArrowForwardOutlinedIcon sx={{ transform: "rotate(-90deg)" }} />}
+        <Box sx={{ bgcolor: "white", borderBottom: "1px solid rgba(31, 90, 44, 0.14)" }}>
+          <Container maxWidth="xl">
+            <Stack
+              direction={{ xs: "column", lg: "row" }}
+              spacing={{ xs: 1.2, md: 2 }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", lg: "center" }}
+              sx={{ py: { xs: 1.2, md: 2.4 } }}
+            >
+              <Stack
+                direction="row"
+                spacing={{ xs: 1.1, md: 2 }}
+                alignItems="center"
+                sx={{ width: "100%", minWidth: 0 }}
               >
-                {BACK_TO_TOP_LABEL}
-              </Button>
-              <Button color="inherit" href={normalizeSafeHref("/login")} startIcon={<AdminPanelSettingsOutlinedIcon />}>
-                {STAFF_LOGIN_LABEL}
-              </Button>
+                <Box
+                  sx={{
+                    width: { xs: 54, sm: 58, md: 86 },
+                    height: { xs: 54, sm: 58, md: 86 },
+                    borderRadius: 999,
+                    display: "grid",
+                    placeItems: "center",
+                    bgcolor: "primary.light",
+                    border: "1px solid rgba(31, 90, 44, 0.14)"
+                  }}
+                >
+                  <PublicResponsiveImage
+                    source={projectSettings.site.logoPath}
+                    intent="logo"
+                    alt={siteName}
+                    loadMode="eager"
+                    width={128}
+                    height={128}
+                    fill
+                    sx={{ width: { xs: 42, sm: 46, md: 64 }, height: { xs: 42, sm: 46, md: 64 } }}
+                    imageSx={{ objectFit: "contain" }}
+                  />
+                </Box>
+                <Box sx={{ minWidth: 0 }}>
+                  {siteSettings.eyebrow && (
+                    <Typography
+                      sx={{
+                        color: "secondary.dark",
+                        fontSize: { xs: "0.74rem", md: "0.82rem" },
+                        fontWeight: 700,
+                        letterSpacing: "0.02em",
+                        lineHeight: 1.25,
+                        textTransform: "uppercase",
+                        mb: { xs: 0.2, md: 0.4 }
+                      }}
+                    >
+                      {siteSettings.eyebrow}
+                    </Typography>
+                  )}
+                  <Typography
+                    variant="h1"
+                    sx={{ fontSize: { xs: "1.34rem", sm: "1.5rem", md: "2.4rem" }, lineHeight: 1.08 }}
+                  >
+                    {siteName}
+                  </Typography>
+                  {siteSettings.intro && (
+                    <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: { xs: 0.35, md: 0.6 } }}>
+                      <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark", fontSize: { xs: 17, md: 24 } }} />
+                      <Typography
+                        color="text.secondary"
+                        sx={{
+                          maxWidth: 860,
+                          fontSize: { xs: "0.78rem", md: "1rem" },
+                          overflow: { xs: "hidden", md: "visible" },
+                          display: { xs: "-webkit-box", md: "block" },
+                          WebkitBoxOrient: "vertical",
+                          WebkitLineClamp: { xs: 1, md: "unset" }
+                        }}
+                      >
+                        {siteSettings.intro}
+                      </Typography>
+                    </Stack>
+                  )}
+                </Box>
+              </Stack>
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                useFlexGap
+                sx={{ flexWrap: "wrap", width: { xs: "100%", lg: "auto" } }}
+              >
+                {siteSettings.admissionUrl && (
+                  <Button
+                    variant="contained"
+                    color="error"
+                    href={normalizeSafeHref(siteSettings.admissionUrl)}
+                    startIcon={<AssignmentIcon />}
+                    sx={{ flex: { xs: "1 1 132px", sm: "0 0 auto" } }}
+                  >
+                    สมัครเรียน
+                  </Button>
+                )}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  href={normalizeSafeHref("/announcements")}
+                  endIcon={<ArrowForwardOutlinedIcon />}
+                  sx={{ flex: { xs: "1 1 132px", sm: "0 0 auto" } }}
+                >
+                  {ANNOUNCEMENTS_LABEL}
+                </Button>
+                <Box
+                  component="form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const query = searchQuery.trim();
+
+                    if (!query) {
+                      return;
+                    }
+
+                    void navigate({ to: "/search", search: { q: query } });
+                  }}
+                  sx={{
+                    width: { xs: "100%", sm: 210, md: 230, lg: 240 },
+                    maxWidth: { xs: "100%", sm: 240 },
+                    flex: { xs: "1 1 100%", sm: "0 1 230px", lg: "0 0 240px" }
+                  }}
+                >
+                  <TextField
+                    type="search"
+                    size="small"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="ค้นหาในเว็บไซต์"
+                    aria-label="ค้นหาในเว็บไซต์"
+                    fullWidth
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchOutlinedIcon fontSize="small" />
+                          </InputAdornment>
+                        )
+                      }
+                    }}
+                    sx={{
+                      "& .MuiInputBase-root": {
+                        bgcolor: "white",
+                        borderRadius: 1,
+                        height: { xs: 36, md: 38 }
+                      },
+                      "& .MuiInputBase-input": {
+                        py: { xs: 0.65, md: 0.75 },
+                        fontSize: { xs: "0.86rem", md: "0.9rem" }
+                      },
+                      "& .MuiInputAdornment-root svg": {
+                        fontSize: { xs: "1rem", md: "1.08rem" }
+                      }
+                    }}
+                  />
+                </Box>
+              </Stack>
             </Stack>
-          </Stack>
-        </Container>
+          </Container>
+        </Box>
+
+        <PublicMainMenu preloadedMenu={preloadedMenu ?? data?.menu ?? (skipShellDataFetch ? [] : undefined)} />
+
+        <UrgentMarqueeSection settings={homepageSettings.marquee} />
+
+        {siteSettings.mourningModeEnabled && siteSettings.mourningModeNotice && (
+          <Box
+            role="status"
+            sx={{ bgcolor: "grey.900", color: "common.white", py: 1, px: 2, textAlign: "center", fontWeight: 800 }}
+          >
+            {siteSettings.mourningModeNotice}
+          </Box>
+        )}
+
+        {isShellFetching && <LinearProgress sx={{ height: 3 }} />}
+
+        {showPageHeader && (
+          <Box
+            sx={(theme) => ({
+              bgcolor: "white",
+              borderBottom: "1px solid rgba(31, 90, 44, 0.12)",
+              background: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.background.paper} 62%, ${theme.palette.secondary.light} 100%)`
+            })}
+          >
+            <Container maxWidth="xl" sx={{ py: { xs: 3, md: 4 } }}>
+              {title && (
+                <Typography variant="h1" sx={{ fontSize: { xs: "2rem", md: "2.8rem" }, maxWidth: 860 }}>
+                  {title}
+                </Typography>
+              )}
+              {description && (
+                <Typography color="text.secondary" sx={{ mt: title ? 1 : 0, maxWidth: 820 }}>
+                  {description}
+                </Typography>
+              )}
+            </Container>
+          </Box>
+        )}
+
+        <Box
+          component="main"
+          sx={{
+            pt: disableMainContainer ? 0 : { xs: 3, md: 4.5 },
+            pb: { xs: 3, md: 4.5 }
+          }}
+          className="rcat-container"
+        >
+          {disableMainContainer ? children : <Container maxWidth="xl">{children}</Container>}
+        </Box>
+
+        <FooterDirectory groups={siteSettings.footerDirectoryGroups} />
+
+        <Box component="footer" sx={{ py: 4, bgcolor: "primary.dark", color: "white", mt: 2 }}>
+          <Container maxWidth="xl">
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={2}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", md: "center" }}
+            >
+              <Box>
+                {siteSettings.footerTitle && (
+                  <Typography fontWeight={900} sx={{ letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    {siteSettings.footerTitle}
+                  </Typography>
+                )}
+                {siteSettings.footerDescription && (
+                  <Typography sx={{ color: "rgba(255, 255, 255, 0.76)", mt: 0.6, maxWidth: 720 }}>
+                    {siteSettings.footerDescription}
+                  </Typography>
+                )}
+              </Box>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
+                <Button
+                  component="button"
+                  type="button"
+                  color="inherit"
+                  onClick={handleBackToTop}
+                  startIcon={<ArrowForwardOutlinedIcon sx={{ transform: "rotate(-90deg)" }} />}
+                >
+                  {BACK_TO_TOP_LABEL}
+                </Button>
+                <Button
+                  color="inherit"
+                  href={normalizeSafeHref("/login")}
+                  startIcon={<AdminPanelSettingsOutlinedIcon />}
+                >
+                  {STAFF_LOGIN_LABEL}
+                </Button>
+              </Stack>
+            </Stack>
+          </Container>
+        </Box>
+        <FloatingMessengerButton
+          enabled={siteSettings.messengerEnabled}
+          href={siteSettings.messengerUrl}
+          label={siteSettings.messengerLabel}
+        />
       </Box>
-      <FloatingMessengerButton
-        enabled={siteSettings.messengerEnabled}
-        href={siteSettings.messengerUrl}
-        label={siteSettings.messengerLabel}
-      />
-    </Box>
+    </PublicMediaLoadingProvider>
   );
 }

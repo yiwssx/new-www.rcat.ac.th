@@ -79,6 +79,26 @@ describe("public card layout regressions", () => {
     expect(within(cardLink).getByText("Public team")).toBeInTheDocument();
   });
 
+  it("uses the thumbnail source and small Drive policy for regular and featured cards", () => {
+    const item = createContentItem({ featuredMediaId: "media-1" });
+    const asset = createMediaAsset({
+      thumbnailUrl: "https://drive.google.com/file/d/card-thumbnail-source/view",
+      previewUrl: "https://drive.google.com/file/d/card-preview-source/view"
+    });
+    const { rerender } = render(<PublicContentCard item={item} mediaAssets={[asset]} />);
+
+    let image = screen.getByRole("img", { name: "Card image" });
+    expect(image).toHaveAttribute("src", "https://drive.google.com/thumbnail?id=card-thumbnail-source&sz=w320");
+    expect(image.getAttribute("srcset")).toContain("sz=w160 160w");
+    expect(image.getAttribute("srcset")).not.toContain("card-preview-source");
+
+    rerender(<PublicContentCard item={item} mediaAssets={[asset]} featured />);
+
+    image = screen.getByRole("img", { name: "Card image" });
+    expect(image).toHaveAttribute("src", "https://drive.google.com/thumbnail?id=card-thumbnail-source&sz=w640");
+    expect(image.getAttribute("srcset")).toContain("sz=w320 320w");
+  });
+
   it("shows a Facebook badge for Facebook imported content without rendering an iframe in cards", () => {
     const item = createContentItem({
       template: "facebook-embed",
@@ -222,6 +242,36 @@ describe("public card layout regressions", () => {
     expect(within(dialog).getByText("public")).toBeInTheDocument();
     expect(within(dialog).getByText("Students")).toBeInTheDocument();
     expect(within(dialog).getByText("กำลังจะมาถึง")).toBeInTheDocument();
+  });
+
+  it("does not mount an event image until its dialog is opened", async () => {
+    const user = userEvent.setup();
+    const eventImage = createMediaAsset({
+      id: "event-image",
+      name: "Event attachment",
+      thumbnailUrl: "https://drive.google.com/file/d/event-thumbnail-source/view",
+      previewUrl: "https://drive.google.com/file/d/event-preview-source/view"
+    });
+    const event: CalendarEvent = {
+      id: "event-with-image",
+      title: "Event with image",
+      date: "2099-05-20T09:00:00.000Z",
+      audience: "public",
+      status: "confirmed",
+      visibility: "public",
+      mediaIds: [eventImage.id]
+    };
+
+    render(<EventListCard items={[event]} mediaAssets={[eventImage]} />);
+
+    expect(screen.queryByRole("img", { name: "Event attachment" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "ดูรายละเอียด Event with image" }));
+
+    expect(await screen.findByRole("img", { name: "Event attachment" })).toHaveAttribute(
+      "src",
+      "https://drive.google.com/thumbnail?id=event-thumbnail-source&sz=w640"
+    );
   });
 
   it("supports compact event lists with an accessible view-all CTA", () => {

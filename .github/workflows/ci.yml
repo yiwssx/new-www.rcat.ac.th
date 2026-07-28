@@ -35,4 +35,5 @@ jobs:
       - run: pnpm test:integration
       - run: pnpm build
       - run: pnpm perf:check
+      - run: pnpm media:check
       - run: pnpm worker:typecheck

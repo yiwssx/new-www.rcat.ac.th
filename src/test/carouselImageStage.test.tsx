@@ -37,8 +37,11 @@ describe("CarouselImageStage", () => {
     const mainImage = screen.getByRole("img", { name: "ภาพสไลด์ทดสอบ" });
 
     expect(stage).toHaveAttribute("data-carousel-image-fit", "fit-blur");
-    expect(background).toBeInTheDocument();
-    expect(background).toHaveAttribute("aria-hidden", "true");
+    expect(background).not.toBeInTheDocument();
+    fireEvent.load(mainImage);
+    expect(container.querySelector('[data-carousel-image-layer="background"]')).toBeInTheDocument();
+    const loadedBackground = container.querySelector('[data-carousel-image-layer="background"]');
+    expect(loadedBackground).toHaveAttribute("aria-hidden", "true");
     expect(mainImage).toHaveAttribute("data-carousel-object-fit", "contain");
     expect(mainImage).toHaveAttribute("data-carousel-object-position", "50% 50%");
   });
@@ -99,6 +102,7 @@ describe("CarouselImageStage", () => {
     expect(mainImage).toHaveAttribute(
       "srcset",
       [
+        "https://drive.google.com/thumbnail?id=RCAT_carousel-2026_ABC123&sz=w480 480w",
         "https://drive.google.com/thumbnail?id=RCAT_carousel-2026_ABC123&sz=w640 640w",
         "https://drive.google.com/thumbnail?id=RCAT_carousel-2026_ABC123&sz=w900 900w",
         "https://drive.google.com/thumbnail?id=RCAT_carousel-2026_ABC123&sz=w1200 1200w",
@@ -127,6 +131,7 @@ describe("CarouselImageStage", () => {
     expect(source).toHaveAttribute(
       "srcset",
       [
+        "https://drive.google.com/thumbnail?id=RCAT_mobile_ABC123&sz=w480 480w",
         "https://drive.google.com/thumbnail?id=RCAT_mobile_ABC123&sz=w640 640w",
         "https://drive.google.com/thumbnail?id=RCAT_mobile_ABC123&sz=w900 900w",
         "https://drive.google.com/thumbnail?id=RCAT_mobile_ABC123&sz=w1200 1200w",
@@ -148,6 +153,21 @@ describe("CarouselImageStage", () => {
 
     expect(screen.getByRole("img", { name: "ภาพไม่ปลอดภัย" })).toHaveAttribute("data-carousel-image-fallback", "true");
     expect(screen.getByText("ไม่สามารถแสดงภาพได้")).toBeInTheDocument();
+  });
+
+  it("keeps a stable stage without network-bearing image sources when loading is gated", () => {
+    const { container } = render(
+      <CarouselImageStage
+        slide={createSlide()}
+        alt="ภาพที่ยังไม่โหลด"
+        shouldLoad={false}
+        stageSx={{ minHeight: 220 }}
+      />
+    );
+
+    expect(container.querySelector('[data-carousel-image-placeholder="true"]')).toBeInTheDocument();
+    expect(container.querySelector("img")).not.toBeInTheDocument();
+    expect(container.querySelector("source")).not.toBeInTheDocument();
   });
 
   it("replaces a failed main image with the accessible fallback", () => {

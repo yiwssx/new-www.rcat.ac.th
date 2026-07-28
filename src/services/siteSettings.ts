@@ -1,4 +1,5 @@
 import { FooterDirectoryGroup, FooterDirectoryLink, SiteSettings } from "../types";
+import { buildGoogleDriveThumbnailUrl, extractGoogleDriveFileId } from "../shared/media/publicImageSources";
 
 const shortTextMaxLength = 120;
 const longTextMaxLength = 500;
@@ -24,7 +25,6 @@ const longTextFields = new Set<keyof SiteSettings>([
   "mourningModeNotice"
 ]);
 const googleDriveImageHosts = new Set(["drive.google.com", "www.drive.google.com"]);
-const googleDriveFileIdPattern = /^[a-zA-Z0-9_-]+$/;
 
 export const defaultSiteSettings: SiteSettings = {
   siteName: neutralSiteName,
@@ -132,33 +132,10 @@ function normalizeHttpsUrl(value: unknown) {
   }
 }
 
-export function extractGoogleDriveFileId(value: string) {
-  const url = String(value || "").trim();
-
-  if (!url || hasUnsafeUrlCharacter(url)) {
-    return "";
-  }
-
-  try {
-    const parsed = new URL(url);
-
-    if (parsed.protocol !== "https:" || !googleDriveImageHosts.has(parsed.hostname.toLowerCase())) {
-      return "";
-    }
-
-    const pathFileId = parsed.pathname.match(/^\/file\/d\/([^/]+)(?:\/|$)/)?.[1] || "";
-    const fileId = pathFileId || parsed.searchParams.get("id") || "";
-
-    return googleDriveFileIdPattern.test(fileId) ? fileId : "";
-  } catch {
-    return "";
-  }
-}
-
 export function normalizeGoogleDriveImageUrl(value: string) {
   const fileId = extractGoogleDriveFileId(value);
 
-  return fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200` : "";
+  return buildGoogleDriveThumbnailUrl(fileId, 1200);
 }
 
 function normalizeDirectorImageUrl(value: unknown) {

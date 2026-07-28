@@ -1,4 +1,5 @@
 import { Alert, Box, Button, Stack } from "@mui/material";
+import PublicDeferredEmbed from "../../shared/media/PublicDeferredEmbed";
 import { buildFacebookPostPluginUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
@@ -46,11 +47,9 @@ export default function FacebookPostEmbed({
   return (
     <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
       <Stack spacing={1} alignItems="center" sx={{ width: "100%", maxWidth }}>
-        <Box
-          component="iframe"
+        <PublicDeferredEmbed
           title={title}
           src={pluginUrl}
-          loading="lazy"
           scrolling="no"
           frameBorder="0"
           allowFullScreen
@@ -58,8 +57,7 @@ export default function FacebookPostEmbed({
           sx={{
             width: "100%",
             height: { xs: 760, md: facebookPostHeight },
-            border: 0,
-            overflow: "hidden"
+            borderRadius: 1
           }}
         />
         <Button

@@ -2,6 +2,9 @@ import { Box, Button, Divider, Stack, Typography } from "@mui/material";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import { MediaAsset } from "../../types";
 import { ContentBlock, FacebookPostContentBlock } from "../../utils/contentBlocks";
+import PublicDeferredEmbed from "../media/PublicDeferredEmbed";
+import PublicResponsiveImage from "../media/PublicResponsiveImage";
+import { resolvePublicImageSource } from "../media/publicImageSources";
 import {
   buildFacebookPostPluginUrl,
   clampFacebookPostPluginWidth,
@@ -33,16 +36,21 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
     return (
       <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
         <Box sx={{ width: "100%", maxWidth: width }}>
-          <iframe
+          <PublicDeferredEmbed
             title="Facebook post"
             src={pluginUrl}
-            width={width}
-            height={block.height || defaultFacebookPostHeight}
-            loading="lazy"
             scrolling="no"
+            frameBorder="0"
             allowFullScreen
             allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-            style={{ border: 0, overflow: "hidden", width: "100%", maxWidth: width, borderRadius: 8 }}
+            width={width}
+            height={block.height || defaultFacebookPostHeight}
+            sx={{
+              width: "100%",
+              maxWidth: width,
+              height: block.height || defaultFacebookPostHeight,
+              borderRadius: 1
+            }}
           />
           <Button
             component="a"
@@ -159,27 +167,28 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
 
         if (block.type === "image") {
           const asset = mediaById.get(block.mediaId);
-          const safePreviewUrl = normalizeSafeResourceUrl(asset?.previewUrl);
-          if (!asset || !safePreviewUrl) {
+          const imageSource = resolvePublicImageSource(asset, "content-body");
+          if (!asset || !imageSource.src) {
             return null;
           }
 
           return (
             <Box key={block.id}>
-              <Box
-                component="img"
-                src={safePreviewUrl}
+              <PublicResponsiveImage
+                source={asset}
+                intent="content-body"
                 alt={block.caption || asset.name}
-                loading="lazy"
-                decoding="async"
+                sizes="(max-width: 900px) calc(100vw - 48px), 1100px"
+                loadMode="near-viewport"
+                nearViewportMargin="360px 0px"
+                reservedMinHeight={{ xs: 180, md: 260 }}
                 sx={{
                   width: "100%",
-                  height: "auto",
                   maxWidth: "100%",
                   borderRadius: 2,
-                  objectFit: "contain",
-                  display: "block"
+                  bgcolor: "background.default"
                 }}
+                imageSx={{ objectFit: "contain" }}
               />
               {(block.caption || asset.name) && (
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
@@ -199,12 +208,10 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
 
           return (
             <Box key={block.id}>
-              <Box
-                component="iframe"
+              <PublicDeferredEmbed
                 title={asset.name}
                 src={safeEmbedUrl}
-                loading="lazy"
-                sx={{ width: "100%", height: { xs: 240, md: 390 }, border: 0, borderRadius: 2 }}
+                sx={{ width: "100%", height: { xs: 240, md: 390 }, borderRadius: 2 }}
                 allow="autoplay"
               />
               {(block.caption || asset.name) && (

@@ -4,30 +4,16 @@ import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import { alpha } from "@mui/material/styles";
 import type { HomepageIntroGateSettings } from "../../types";
-import { getPublicImageSrcSet, normalizePublicImageUrl, normalizeSafeHref } from "../../utils/safeUrl";
+import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
+import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
+import { normalizeSafeHref } from "../../utils/safeUrl";
+import {
+  getInitialPublicIntroGateVisibility,
+  getPublicIntroGateStorageKey,
+  shouldShowPublicIntroGate
+} from "./publicIntroGateState";
 
-const DEFAULT_INTRO_GATE_STORAGE_KEY = "public-intro-gate";
 type IntroGateImageStatus = "loading" | "loaded" | "failed";
-
-function shouldShowIntroGate(settings?: HomepageIntroGateSettings) {
-  return Boolean(settings?.enabled && settings.imageUrl.trim());
-}
-
-function getIntroGateStorageKey(settings?: HomepageIntroGateSettings) {
-  return settings?.storageKey.trim() || DEFAULT_INTRO_GATE_STORAGE_KEY;
-}
-
-function getInitialVisibility(settings?: HomepageIntroGateSettings) {
-  if (!settings || !shouldShowIntroGate(settings) || typeof window === "undefined") {
-    return false;
-  }
-
-  try {
-    return window.sessionStorage.getItem(getIntroGateStorageKey(settings)) !== "dismissed";
-  } catch {
-    return true;
-  }
-}
 
 function isDismissedInSession(storageKey: string, dismissedKeys: ReadonlySet<string>) {
   if (dismissedKeys.has(storageKey)) {
@@ -45,19 +31,28 @@ function isDismissedInSession(storageKey: string, dismissedKeys: ReadonlySet<str
   }
 }
 
-export default function PublicIntroGate({ settings }: { settings?: HomepageIntroGateSettings }) {
+export default function PublicIntroGate({
+  onDismiss,
+  settings,
+  visible
+}: {
+  onDismiss?: () => void;
+  settings?: HomepageIntroGateSettings;
+  visible?: boolean;
+}) {
   const [dismissedKeys, setDismissedKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [imageState, setImageState] = useState<{ src: string; status: IntroGateImageStatus }>({
     src: "",
     status: "failed"
   });
-  const imageSrc = useMemo(() => normalizePublicImageUrl(settings?.imageUrl), [settings?.imageUrl]);
-  const imageSrcSet = useMemo(() => getPublicImageSrcSet(settings?.imageUrl), [settings?.imageUrl]);
+  const imageSrc = useMemo(() => resolvePublicImageSource(settings?.imageUrl, "intro-gate").src, [settings?.imageUrl]);
   const hasSafeImage = Boolean(imageSrc);
   const imageStatus = imageState.src === imageSrc ? imageState.status : hasSafeImage ? "loading" : "failed";
   const hasSecondaryButton = Boolean(settings?.secondaryButtonLabel.trim() && settings.secondaryButtonUrl.trim());
-  const storageKey = getIntroGateStorageKey(settings);
-  const isVisible = getInitialVisibility(settings) && !isDismissedInSession(storageKey, dismissedKeys);
+  const storageKey = getPublicIntroGateStorageKey(settings);
+  const uncontrolledVisibility =
+    getInitialPublicIntroGateVisibility(settings) && !isDismissedInSession(storageKey, dismissedKeys);
+  const isVisible = visible ?? uncontrolledVisibility;
 
   useEffect(() => {
     if (!isVisible || typeof document === "undefined" || typeof window === "undefined") {
@@ -95,9 +90,10 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
     }
 
     setDismissedKeys((current) => new Set(current).add(storageKey));
+    onDismiss?.();
   }
 
-  if (!settings || !shouldShowIntroGate(settings) || !isVisible) {
+  if (!settings || !shouldShowPublicIntroGate(settings) || !isVisible) {
     return null;
   }
 
@@ -144,9 +140,9 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: "auto",
-            maxWidth: "96vw",
-            maxHeight: hasSecondaryButton ? "calc(100dvh - 132px)" : "calc(100dvh - 92px)",
+            width: "min(96vw, 960px)",
+            height: hasSecondaryButton ? "calc(100dvh - 132px)" : "calc(100dvh - 92px)",
+            maxHeight: 720,
             overflow: "hidden",
             borderRadius: { xs: 1.5, sm: 2 },
             bgcolor: "transparent",
@@ -156,9 +152,8 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
           {showImageLoadingState && (
             <Box
               sx={{
-                width: "min(96vw, 960px)",
-                height: hasSecondaryButton ? "calc(100dvh - 132px)" : "calc(100dvh - 92px)",
-                maxHeight: 720,
+                position: "absolute",
+                inset: 0,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -185,9 +180,8 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
           {showImageErrorState && (
             <Box
               sx={{
-                width: "min(96vw, 960px)",
-                height: hasSecondaryButton ? "calc(100dvh - 132px)" : "calc(100dvh - 92px)",
-                maxHeight: 720,
+                position: "absolute",
+                inset: 0,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -212,28 +206,28 @@ export default function PublicIntroGate({ settings }: { settings?: HomepageIntro
           )}
 
           {hasSafeImage && imageStatus !== "failed" && (
-            <Box
-              component="img"
-              src={imageSrc}
-              srcSet={imageSrcSet || undefined}
+            <PublicResponsiveImage
+              source={activeSettings.imageUrl}
+              intent="intro-gate"
               sizes="96vw"
               alt={activeSettings.imageAlt}
-              loading="eager"
-              decoding="async"
+              loadMode="critical"
+              bypassPageMediaGate
+              fill
               onLoad={() => setImageState({ src: imageSrc, status: "loaded" })}
               onError={() => setImageState({ src: imageSrc, status: "failed" })}
-              {...({ fetchpriority: "high" } as Record<string, string>)}
               sx={{
-                display: "block",
-                width: "auto",
-                height: "auto",
-                maxWidth: "96vw",
-                maxHeight: hasSecondaryButton ? "calc(100dvh - 132px)" : "calc(100dvh - 92px)",
-                objectFit: "contain",
-                borderRadius: { xs: 1.5, sm: 2 },
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
                 opacity: imageStatus === "loaded" ? 1 : 0,
                 transition: "opacity 180ms ease",
                 pointerEvents: "auto"
+              }}
+              imageSx={{
+                objectFit: "contain",
+                borderRadius: { xs: 1.5, sm: 2 }
               }}
             />
           )}
