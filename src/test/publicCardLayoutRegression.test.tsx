@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import PublicContentCard from "../public/components/PublicContentCard";
@@ -306,12 +306,20 @@ describe("public card layout regressions", () => {
 
     expect(screen.queryByRole("img", { name: "Event attachment" })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "ดูรายละเอียด Event with image" }));
+    const eventButton = screen.getByRole("button", { name: "ดูรายละเอียด Event with image" });
+    await user.click(eventButton);
 
-    expect(await screen.findByRole("img", { name: "Event attachment" })).toHaveAttribute(
-      "src",
-      "https://drive.google.com/thumbnail?id=event-thumbnail-source&sz=w640"
-    );
+    const image = await screen.findByRole("img", { name: "Event attachment" });
+    expect(image).toHaveAttribute("src", "https://drive.google.com/thumbnail?id=event-thumbnail-source&sz=w640");
+
+    await user.click(screen.getByRole("button", { name: "ปิด" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(eventButton.closest('[aria-hidden="true"]')).toBeNull();
+    });
+
+    await user.click(eventButton);
+    expect(await screen.findByRole("img", { name: "Event attachment" })).toBe(image);
   });
 
   it("supports compact event lists with an accessible view-all CTA", () => {

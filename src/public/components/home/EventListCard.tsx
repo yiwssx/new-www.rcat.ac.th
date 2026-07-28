@@ -199,6 +199,7 @@ export function EventListCard({
   emptyTitle = "ยังไม่มีกิจกรรมที่เผยแพร่"
 }: EventListCardProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -267,7 +268,10 @@ export function EventListCard({
                   <ButtonBase
                     key={event.id}
                     aria-label={`ดูรายละเอียด ${event.title}`}
-                    onClick={() => setSelectedEvent(event)}
+                    onClick={() => {
+                      setSelectedEvent(event);
+                      setDialogOpen(true);
+                    }}
                     sx={{
                       display: "block",
                       width: "100%",
@@ -332,10 +336,11 @@ export function EventListCard({
       </Card>
 
       <Dialog
-        open={Boolean(selectedEvent)}
-        onClose={() => setSelectedEvent(null)}
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
         aria-labelledby="public-event-detail-title"
         fullWidth
+        keepMounted
         maxWidth="md"
       >
         <DialogTitle id="public-event-detail-title">{selectedEvent?.title}</DialogTitle>
@@ -422,7 +427,7 @@ export function EventListCard({
         </DialogContent>
 
         <ResponsiveDialogActions>
-          <Button onClick={() => setSelectedEvent(null)}>ปิด</Button>
+          <Button onClick={() => setDialogOpen(false)}>ปิด</Button>
         </ResponsiveDialogActions>
       </Dialog>
     </>
