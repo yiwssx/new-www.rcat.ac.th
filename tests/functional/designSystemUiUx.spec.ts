@@ -24,6 +24,27 @@ interface UiMeasurement {
   h1Count: number;
 }
 
+interface FocusEffectMeasurement {
+  boxShadow: string;
+  outlineWidth: number;
+  ringExtent: number;
+  canonicalLayerCount: number;
+  clippedBy: string[];
+  viewportClipped: boolean;
+  widthDelta: number;
+  heightDelta: number;
+  focusBoundaryRatio: number;
+  bounds: { left: number; top: number; right: number; bottom: number; viewportWidth: number; viewportHeight: number };
+}
+
+interface ControlContrastMeasurement {
+  foreground: string;
+  background: string;
+  borderColor: string;
+  textRatio: number;
+  borderRatio: number;
+}
+
 async function waitForStableRoute(page: Page, path: string) {
   if (path.startsWith("/admin")) {
     await page.locator("h1").first().waitFor();
@@ -163,6 +184,191 @@ async function readVisibleKeyboardFocus(page: Page, scope?: Locator) {
   );
 }
 
+async function inspectFocusEffect(target: Locator): Promise<FocusEffectMeasurement> {
+  const before = await target.boundingBox();
+  expect(before).not.toBeNull();
+  await target.focus();
+  await expect
+    .poll(
+      () =>
+        target.evaluate((element) => {
+          const focusOwner = element.matches("input, textarea, select")
+            ? (element.closest(".MuiInputBase-root") ?? element)
+            : element;
+          const style = window.getComputedStyle(focusOwner);
+          return style.boxShadow.includes(" 0px 0px 0px 2px") && style.boxShadow.includes(" 0px 0px 0px 5px");
+        }),
+      { message: "canonical focus layers settle to their declared geometry" }
+    )
+    .toBe(true);
+
+  return target.evaluate((element, beforeRect) => {
+    const focusOwner = element.matches("input, textarea, select")
+      ? ((element.closest(".MuiInputBase-root") as HTMLElement | null) ?? element)
+      : element;
+    const style = window.getComputedStyle(focusOwner);
+    const rootStyle = window.getComputedStyle(document.documentElement);
+    const ringExtent = Number.parseFloat(rootStyle.getPropertyValue("--rcat-focus-ring-extent")) || 0;
+    const focusRing = rootStyle.getPropertyValue("--rcat-color-focus").trim();
+    const focusSeparation = rootStyle.getPropertyValue("--rcat-color-focus-separation").trim();
+    const rect = focusOwner.getBoundingClientRect();
+    const clippedBy: string[] = [];
+    const clipValues = new Set(["auto", "clip", "hidden", "scroll"]);
+
+    const parseColor = (value: string) => {
+      const normalized = value.trim();
+      if (normalized.startsWith("#")) {
+        const hex = normalized.slice(1);
+        const expanded = hex.length === 3 ? [...hex].map((character) => character.repeat(2)).join("") : hex;
+        return [
+          Number.parseInt(expanded.slice(0, 2), 16),
+          Number.parseInt(expanded.slice(2, 4), 16),
+          Number.parseInt(expanded.slice(4, 6), 16)
+        ];
+      }
+      const match = normalized.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
+      return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : [0, 0, 0];
+    };
+    const relativeLuminance = (value: string) => {
+      const channels = parseColor(value).map((channel) => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
+    };
+    const contrast = (left: string, right: string) => {
+      const leftLuminance = relativeLuminance(left);
+      const rightLuminance = relativeLuminance(right);
+      return (Math.max(leftLuminance, rightLuminance) + 0.05) / (Math.min(leftLuminance, rightLuminance) + 0.05);
+    };
+    const opaqueBackground = (node: Element) => {
+      let current: Element | null = node;
+      while (current) {
+        const background = window.getComputedStyle(current).backgroundColor;
+        const alpha = background.match(/rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/)?.[1];
+        if (background !== "transparent" && (alpha === undefined || Number(alpha) > 0.99)) {
+          return background;
+        }
+        current = current.parentElement;
+      }
+      return "rgb(255, 255, 255)";
+    };
+
+    let ancestor = focusOwner.parentElement;
+    while (ancestor) {
+      const ancestorStyle = window.getComputedStyle(ancestor);
+      const ancestorRect = ancestor.getBoundingClientRect();
+      // Root scrolling/Modal scroll-lock overflow is represented by the viewport check below;
+      // it does not establish a descendant paint-clipping box like an ordinary wrapper.
+      const isDocumentScroller = ancestor === document.body || ancestor === document.documentElement;
+      const clipsX = !isDocumentScroller && clipValues.has(ancestorStyle.overflowX);
+      const clipsY = !isDocumentScroller && clipValues.has(ancestorStyle.overflowY);
+      if (
+        (clipsX &&
+          (rect.left - ringExtent < ancestorRect.left - 0.5 || rect.right + ringExtent > ancestorRect.right + 0.5)) ||
+        (clipsY &&
+          (rect.top - ringExtent < ancestorRect.top - 0.5 || rect.bottom + ringExtent > ancestorRect.bottom + 0.5))
+      ) {
+        clippedBy.push(
+          `${ancestor.tagName.toLowerCase()}${ancestor.id ? `#${ancestor.id}` : ""}.${ancestor.className || ""}`
+        );
+      }
+      ancestor = ancestor.parentElement;
+    }
+
+    const ringRgb = `rgb(${parseColor(focusRing).join(", ")})`;
+    const separationRgb = `rgb(${parseColor(focusSeparation).join(", ")})`;
+    const background = opaqueBackground(focusOwner);
+    const canonicalLayerCount = [ringRgb, separationRgb].filter((color) => style.boxShadow.includes(color)).length;
+
+    return {
+      boxShadow: style.boxShadow,
+      outlineWidth: Number.parseFloat(style.outlineWidth || "0"),
+      ringExtent,
+      canonicalLayerCount,
+      clippedBy,
+      viewportClipped:
+        rect.left - ringExtent < -0.5 ||
+        rect.top - ringExtent < -0.5 ||
+        rect.right + ringExtent > window.innerWidth + 0.5 ||
+        rect.bottom + ringExtent > window.innerHeight + 0.5,
+      widthDelta: Math.abs(rect.width - (beforeRect?.width ?? rect.width)),
+      heightDelta: Math.abs(rect.height - (beforeRect?.height ?? rect.height)),
+      focusBoundaryRatio: Math.max(contrast(focusRing, background), contrast(focusSeparation, background)),
+      bounds: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight
+      }
+    };
+  }, before);
+}
+
+async function expectAccessibleFocus(target: Locator) {
+  const measurement = await inspectFocusEffect(target);
+  expect(measurement.ringExtent).toBeGreaterThanOrEqual(5);
+  expect(measurement.outlineWidth).toBeGreaterThanOrEqual(2);
+  expect(measurement.canonicalLayerCount, JSON.stringify(measurement)).toBe(2);
+  expect(measurement.focusBoundaryRatio).toBeGreaterThanOrEqual(3);
+  expect(measurement.clippedBy).toEqual([]);
+  expect(measurement.viewportClipped, JSON.stringify(measurement)).toBe(false);
+  expect(measurement.widthDelta).toBeLessThanOrEqual(0.1);
+  expect(measurement.heightDelta).toBeLessThanOrEqual(0.1);
+  return measurement;
+}
+
+async function readControlContrast(target: Locator): Promise<ControlContrastMeasurement> {
+  return target.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    const parseColor = (value: string) => {
+      const match = value.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
+      return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : [0, 0, 0];
+    };
+    const relativeLuminance = (value: string) => {
+      const channels = parseColor(value).map((channel) => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
+    };
+    const contrast = (left: string, right: string) => {
+      const leftLuminance = relativeLuminance(left);
+      const rightLuminance = relativeLuminance(right);
+      return (Math.max(leftLuminance, rightLuminance) + 0.05) / (Math.min(leftLuminance, rightLuminance) + 0.05);
+    };
+    const opaqueBackground = (node: Element) => {
+      let current: Element | null = node;
+      while (current) {
+        const background = window.getComputedStyle(current).backgroundColor;
+        const alpha = background.match(/rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/)?.[1];
+        if (background !== "transparent" && (alpha === undefined || Number(alpha) > 0.99)) {
+          return background;
+        }
+        current = current.parentElement;
+      }
+      return "rgb(255, 255, 255)";
+    };
+
+    const background = opaqueBackground(element);
+    return {
+      foreground: style.color,
+      background,
+      borderColor: style.borderColor,
+      textRatio: contrast(style.color, background),
+      borderRatio: contrast(style.borderColor, background)
+    };
+  });
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+  ).toBeLessThanOrEqual(1);
+}
+
 for (const viewport of viewports) {
   test(`${viewport.name} representative Public routes remain responsive and keyboard-usable`, async ({ page }) => {
     await page.setViewportSize(viewport);
@@ -292,4 +498,91 @@ test("Admin content dialog retains an accessible title, actions, and destructive
   if (!baselineMode) {
     expect(keyboardFocusVisible).toBe(true);
   }
+});
+
+test("desktop Public menu keeps top-level and submenu focus visible without clipping", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await installPublicShellClsFixture(page, { delayed: false, includeNestedMenu: true });
+  await page.goto("/");
+  await page.locator('[data-footer-directory-state="ready"]').waitFor();
+
+  const navigation = page.getByRole("navigation", { name: "เมนูหลัก" });
+  const topLevelLink = navigation.getByRole("link", { name: "หน้าหลัก", exact: true });
+  const topLevelFocus = await expectAccessibleFocus(topLevelLink);
+
+  const submenuOwner = navigation.getByRole("link", { name: "หลักสูตร", exact: true });
+  await submenuOwner.focus();
+  const submenuLink = navigation.getByRole("link", { name: "หลักสูตรเกษตร", exact: true });
+  await expect(submenuLink).toBeVisible();
+  const submenuFocus = await expectAccessibleFocus(submenuLink);
+  await expect(submenuLink).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  console.log(`DESIGN_SYSTEM_DESKTOP_MENU_FOCUS ${JSON.stringify({ topLevelFocus, submenuFocus })}`);
+});
+
+test("compact Public menu and Drawer items preserve contextual focus geometry", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installPublicShellClsFixture(page, { delayed: false, includeNestedMenu: true });
+  await page.goto("/");
+  await page.locator('[data-footer-directory-state="ready"]').waitFor();
+
+  const menuButton = page.getByRole("button", { name: "เปิดเมนูหลัก" });
+  const menuButtonFocus = await expectAccessibleFocus(menuButton);
+  await menuButton.click();
+
+  const drawerItem = page.getByRole("button", { name: "หลักสูตร", exact: true });
+  await expect(drawerItem).toBeVisible();
+  await expect
+    .poll(async () => (await drawerItem.boundingBox())?.x ?? -1, {
+      message: "Drawer opening transition reaches its final focus-safe inset"
+    })
+    .toBeGreaterThanOrEqual(4.9);
+  const drawerItemFocus = await expectAccessibleFocus(drawerItem);
+  await expectNoHorizontalOverflow(page);
+
+  console.log(`DESIGN_SYSTEM_MOBILE_MENU_FOCUS ${JSON.stringify({ menuButtonFocus, drawerItemFocus })}`);
+});
+
+test("contextual focus and secondary variants meet rendered contrast policy", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/tests/functional/fixtures/designSystemHarness.html");
+
+  const focusMeasurements: Record<string, FocusEffectMeasurement> = {};
+  for (const name of ["page", "paper", "primary", "primary-strong", "accent", "inverse"]) {
+    focusMeasurements[name] = await expectAccessibleFocus(page.getByTestId(`focus-${name}`));
+  }
+
+  const controls = [
+    {
+      name: "contained",
+      locator: page.getByRole("button", { name: "Secondary contained", exact: true }),
+      outlined: false
+    },
+    {
+      name: "outlined",
+      locator: page.getByRole("button", { name: "Secondary outlined", exact: true }),
+      outlined: true
+    },
+    { name: "text", locator: page.getByRole("button", { name: "Secondary text", exact: true }), outlined: false },
+    {
+      name: "outlinedChip",
+      locator: page.getByRole("button", { name: "Secondary outlined chip", exact: true }),
+      outlined: true
+    }
+  ] as const;
+  const contrastMeasurements: Record<string, ControlContrastMeasurement> = {};
+
+  for (const control of controls) {
+    const contrast = await readControlContrast(control.locator);
+    contrastMeasurements[control.name] = contrast;
+    expect(contrast.textRatio, `${control.name} text contrast`).toBeGreaterThanOrEqual(4.5);
+    if (control.outlined) {
+      expect(contrast.borderRatio, `${control.name} border contrast`).toBeGreaterThanOrEqual(3);
+    }
+    await expectAccessibleFocus(control.locator);
+  }
+
+  await expectNoHorizontalOverflow(page);
+  console.log(`DESIGN_SYSTEM_CONTEXTUAL_CONTRAST ${JSON.stringify({ focusMeasurements, contrastMeasurements })}`);
 });

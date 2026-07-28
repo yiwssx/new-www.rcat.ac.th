@@ -265,7 +265,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
         </Box>
 
         {!shouldUseCompactMenu && (
-          <Box sx={{ display: "flex", overflow: "hidden", minWidth: 0, minHeight: 48, width: "100%" }}>
+          <Box sx={{ display: "flex", overflow: "visible", minWidth: 0, minHeight: 48, width: "100%" }}>
             <PublicMenuList items={enabledItems} />
           </Box>
         )}
@@ -321,7 +321,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
             </IconButton>
           </Box>
           <Divider />
-          <Box sx={{ flex: 1, overflowY: "auto" }}>
+          <Box sx={{ flex: 1, overflowY: "auto", p: `${designTokens.control.focusRingExtent}px` }}>
             {enabledItems.length ? (
               <MobileMenuList
                 items={enabledItems}

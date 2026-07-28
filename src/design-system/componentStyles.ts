@@ -2,21 +2,24 @@ import type { CSSProperties } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { designTokens } from "./tokens";
 
+export const focusRingShadow = `0 0 0 ${designTokens.control.focusRingOffset}px ${designTokens.color.focusSeparation}, 0 0 0 ${designTokens.control.focusRingExtent}px ${designTokens.color.focusRing}`;
+
 export const focusRingStyles = {
-  outline: `${designTokens.control.focusRingThickness}px solid ${designTokens.color.focusRing}`,
-  outlineOffset: designTokens.control.focusRingOffset
+  outline: `${designTokens.control.focusRingOffset}px solid transparent`,
+  outlineOffset: designTokens.control.focusRingOffset,
+  boxShadow: focusRingShadow
 } satisfies CSSProperties;
 
 export const focusVisibleSx = {
-  "&:focus-visible": focusRingStyles
+  "&:focus-visible, &:focus-visible:hover": focusRingStyles
 } satisfies SxProps<Theme>;
 
 export const interactiveSurfaceSx = {
   transition: `box-shadow ${designTokens.motion.duration.standard}ms ${designTokens.motion.easing}, transform ${designTokens.motion.duration.standard}ms ${designTokens.motion.easing}`,
-  ...focusVisibleSx,
   "&:hover": {
     boxShadow: designTokens.elevation.medium
   },
+  ...focusVisibleSx,
   "@media (prefers-reduced-motion: reduce)": {
     transition: "none",
     "&:hover": {

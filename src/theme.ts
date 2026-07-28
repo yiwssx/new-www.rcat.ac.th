@@ -1,5 +1,5 @@
 import { alpha, createTheme } from "@mui/material/styles";
-import { focusRingStyles } from "./design-system/componentStyles";
+import { focusRingShadow, focusRingStyles, focusVisibleSx } from "./design-system/componentStyles";
 import { designTokenCssVariables, designTokens } from "./design-system/tokens";
 
 const { color, control, elevation, motion, radius, typography } = designTokens;
@@ -137,10 +137,10 @@ export const theme = createTheme({
           paddingInline: 18,
           boxShadow: elevation.none,
           transition: `background-color ${motion.duration.standard}ms ${motion.easing}, border-color ${motion.duration.standard}ms ${motion.easing}, color ${motion.duration.standard}ms ${motion.easing}`,
-          "&:focus-visible": focusRingStyles,
           "&:hover": {
             boxShadow: elevation.none
           },
+          ...focusVisibleSx,
           "&.Mui-disabled": {
             color: color.disabledText,
             backgroundColor: color.disabledSurface
@@ -156,6 +156,30 @@ export const theme = createTheme({
         },
         containedError: {
           color: color.textInverse
+        },
+        containedSecondary: {
+          color: color.textOnAccent,
+          backgroundColor: color.brandAccent,
+          "&:hover": {
+            color: color.textOnAccent,
+            backgroundColor: color.brandAccent
+          }
+        },
+        outlinedSecondary: {
+          color: color.accentForeground,
+          borderColor: color.accentForeground,
+          "&:hover": {
+            color: color.accentForeground,
+            borderColor: color.accentForeground,
+            backgroundColor: alpha(color.brandAccent, 0.08)
+          }
+        },
+        textSecondary: {
+          color: color.accentForeground,
+          "&:hover": {
+            color: color.accentForeground,
+            backgroundColor: alpha(color.brandAccent, 0.08)
+          }
         }
       }
     },
@@ -165,7 +189,7 @@ export const theme = createTheme({
           width: control.iconButtonTarget,
           height: control.iconButtonTarget,
           color: color.textSecondary,
-          "&:focus-visible": focusRingStyles,
+          ...focusVisibleSx,
           "&.Mui-disabled": {
             color: color.disabledText
           }
@@ -183,7 +207,7 @@ export const theme = createTheme({
           borderRadius: radius.medium,
           boxShadow: elevation.low,
           backgroundImage: "none",
-          "&[href]:focus-visible": focusRingStyles
+          "&[href]:focus-visible, &[href]:focus-visible:hover": focusRingStyles
         }
       }
     },
@@ -224,7 +248,9 @@ export const theme = createTheme({
             borderColor: color.brandPrimary
           },
           "&.Mui-focused": {
-            boxShadow: `0 0 0 ${control.focusRingThickness}px ${alpha(color.focusRing, 0.22)}`
+            outline: focusRingStyles.outline,
+            outlineOffset: focusRingStyles.outlineOffset,
+            boxShadow: focusRingShadow
           },
           "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
             borderColor: color.focusRing,
@@ -278,13 +304,42 @@ export const theme = createTheme({
         root: {
           minHeight: 30,
           borderRadius: radius.pill,
-          fontWeight: typography.label.fontWeight
+          fontWeight: typography.label.fontWeight,
+          transition: `background-color ${motion.duration.standard}ms ${motion.easing}, border-color ${motion.duration.standard}ms ${motion.easing}, color ${motion.duration.standard}ms ${motion.easing}`
         },
         sizeSmall: {
           minHeight: 26
         },
         clickable: {
-          "&:focus-visible": focusRingStyles
+          ...focusVisibleSx
+        },
+        filledSecondary: {
+          color: color.textOnAccent,
+          backgroundColor: color.brandAccent
+        },
+        outlinedSecondary: {
+          color: color.accentForeground,
+          borderColor: color.accentForeground
+        },
+        clickableColorSecondary: {
+          "&:hover": {
+            color: color.accentForeground,
+            backgroundColor: color.brandAccentSoft
+          }
+        },
+        deletableColorSecondary: {
+          "& .MuiChip-deleteIcon": {
+            color: alpha(color.textOnAccent, 0.72),
+            "&:hover": {
+              color: color.textOnAccent
+            }
+          },
+          "&.MuiChip-outlined .MuiChip-deleteIcon": {
+            color: alpha(color.accentForeground, 0.72),
+            "&:hover": {
+              color: color.accentForeground
+            }
+          }
         }
       }
     },
@@ -419,7 +474,7 @@ export const theme = createTheme({
         root: {
           minHeight: control.comfortableHeight,
           textTransform: "none",
-          "&:focus-visible": focusRingStyles
+          ...focusVisibleSx
         }
       }
     },
@@ -429,7 +484,7 @@ export const theme = createTheme({
           minWidth: control.compactHeight,
           height: control.compactHeight,
           borderRadius: radius.small,
-          "&:focus-visible": focusRingStyles
+          ...focusVisibleSx
         }
       }
     },
@@ -453,7 +508,7 @@ export const theme = createTheme({
           "&:hover": {
             color: color.linkHover
           },
-          "&:focus-visible": focusRingStyles
+          ...focusVisibleSx
         }
       }
     },
@@ -462,7 +517,7 @@ export const theme = createTheme({
         root: {
           minHeight: control.comfortableHeight,
           whiteSpace: "normal",
-          "&:focus-visible": focusRingStyles
+          ...focusVisibleSx
         }
       }
     },
@@ -470,7 +525,7 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           minHeight: control.compactHeight,
-          "&:focus-visible": focusRingStyles
+          ...focusVisibleSx
         }
       }
     }

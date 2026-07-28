@@ -19,6 +19,11 @@ RCAT intentionally uses MUI and Tailwind CSS v4 together. The systems have separ
 - Hover, selected, focus-visible, disabled, error, loading, and destructive states
 - Component-local responsive behavior through `sx`
 
+MUI also owns the contextual focus layers and their geometry. Use `focusRingStyles` or `focusVisibleSx` from
+`src/design-system/componentStyles.ts` when a shared interactive primitive needs the canonical policy; do not create
+an arbitrary local outline. The RCAT structural `.rcat-focus-ring` utility is only a CSS-variable bridge to that same
+policy.
+
 Use theme roles rather than literals:
 
 ```tsx
@@ -95,8 +100,15 @@ Use the theme target-size and focus policies:
 - Outer page layout belongs to RCAT/Tailwind; MUI internals belong to responsive `sx`.
 - Do not duplicate the same breakpoint rule in `className` and `sx` on one element.
 - Tables may scroll inside an intentional `.table-scroll` container; the complete page must not overflow.
+- Structural wrappers around interactive content must leave the exported focus-ring extent visible. Measurement-only
+  overflow containment must not be reused as the visible navigation wrapper.
 - Use per-icon imports such as `@mui/icons-material/SearchOutlined`.
 - Broad `@mui/icons-material` imports are prohibited.
 - Existing third-party brand icons and governed media geometry are narrow, documented exceptions.
+
+`brandAccent` is the filled/decorative institutional yellow, not a default foreground for normal-size text on light
+surfaces. Use `textOnAccent` on a `brandAccent` fill and use `accentForeground` for accent text, icons, and outlined
+boundaries on page, paper, or subtle surfaces. MUI secondary contained, outlined, text, and Chip variants encode this
+split centrally.
 
 `pnpm design:check` enforces the canonical source, CSS alias mapping, focus policy, hard-coded color allowlist, icon imports, import boundaries, regression coverage, and CI/quality integration.

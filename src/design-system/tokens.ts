@@ -6,6 +6,7 @@ export const designTokens = {
     brandAccent: "#b88700",
     brandAccentStrong: "#6f5000",
     brandAccentSoft: "#fff4c2",
+    accentForeground: "#6f5000",
     pageCanvas: "#f8fbf2",
     surfaceDefault: "#ffffff",
     surfaceSubtle: "#f1f6f0",
@@ -20,6 +21,7 @@ export const designTokens = {
     borderSubtle: "#cbd9cd",
     borderStrong: "#78917d",
     focusRing: "#9a7000",
+    focusSeparation: "#ffffff",
     success: "#2f7a39",
     successText: "#235b2b",
     successSurface: "#e5f4e7",
@@ -104,7 +106,8 @@ export const designTokens = {
     iconButtonTarget: 44,
     inputHeight: 48,
     focusRingThickness: 3,
-    focusRingOffset: 2
+    focusRingOffset: 2,
+    focusRingExtent: 5
   },
   motion: {
     duration: {
@@ -179,6 +182,7 @@ export const designTokenCssVariables = {
   "--rcat-color-brand-accent": designTokens.color.brandAccent,
   "--rcat-color-brand-accent-strong": designTokens.color.brandAccentStrong,
   "--rcat-color-brand-accent-soft": designTokens.color.brandAccentSoft,
+  "--rcat-color-accent-foreground": designTokens.color.accentForeground,
   "--rcat-color-page-canvas": designTokens.color.pageCanvas,
   "--rcat-color-surface": designTokens.color.surfaceDefault,
   "--rcat-color-surface-subtle": designTokens.color.surfaceSubtle,
@@ -192,6 +196,9 @@ export const designTokenCssVariables = {
   "--rcat-color-border-subtle": designTokens.color.borderSubtle,
   "--rcat-color-border-strong": designTokens.color.borderStrong,
   "--rcat-color-focus": designTokens.color.focusRing,
+  "--rcat-color-focus-separation": designTokens.color.focusSeparation,
+  "--rcat-focus-ring-shadow": `0 0 0 ${designTokens.control.focusRingOffset}px ${designTokens.color.focusSeparation}, 0 0 0 ${designTokens.control.focusRingExtent}px ${designTokens.color.focusRing}`,
+  "--rcat-focus-ring-extent": `${designTokens.control.focusRingExtent}px`,
   "--rcat-radius-sm": `${designTokens.radius.small}px`,
   "--rcat-radius-md": `${designTokens.radius.medium}px`,
   "--rcat-radius-lg": `${designTokens.radius.large}px`,

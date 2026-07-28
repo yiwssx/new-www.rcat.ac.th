@@ -32,6 +32,12 @@ const authAdminFoundationFiles = new Set([
   "src/admin/pages/ResetPasswordPage.tsx",
   "src/design-system/components/AuthPageLayout.tsx"
 ]);
+const accentForegroundExceptions = new Set([
+  // The yellow school icon sits on a dark hero overlay and is decorative, not normal text.
+  "src/public/components/home/HomeHeroSection.tsx",
+  // Media overlay controls retain their separately governed carousel focus/contrast treatment.
+  "src/public/components/PublicHomeCarousel.tsx"
+]);
 
 async function collectSourceFiles(relativeDirectory) {
   const entries = await readdir(path.join(repositoryRoot, relativeDirectory), { withFileTypes: true });
@@ -106,6 +112,7 @@ export function inspectDesignSystemSource(relativePath, source) {
   if (!legitimateVisualExceptions.has(normalizedPath)) {
     let hardCodedColorCount = 0;
     let localFocusCount = 0;
+    let directAccentForegroundCount = 0;
 
     function visit(node) {
       if (hasHardCodedColor(node)) {
@@ -119,6 +126,15 @@ export function inspectDesignSystemSource(relativePath, source) {
         localFocusCount += 1;
       }
 
+      if (
+        ts.isPropertyAssignment(node) &&
+        /^(?:["']?color["']?)$/.test(node.name.getText(sourceFile)) &&
+        /(?:secondary\.main|brandAccent)\b/.test(node.initializer.getText(sourceFile)) &&
+        !accentForegroundExceptions.has(normalizedPath)
+      ) {
+        directAccentForegroundCount += 1;
+      }
+
       ts.forEachChild(node, visit);
     }
 
@@ -130,10 +146,76 @@ export function inspectDesignSystemSource(relativePath, source) {
     if (localFocusCount > 0) {
       violations.push(`${localFocusCount} local focus-visible implementation(s)`);
     }
+    if (directAccentForegroundCount > 0) {
+      violations.push(
+        `${directAccentForegroundCount} direct brandAccent/secondary.main foreground use(s); use accentForeground`
+      );
+    }
   }
 
   if (/!important\b/.test(source) && !legitimateVisualExceptions.has(normalizedPath)) {
     violations.push("unauthorized !important usage");
+  }
+
+  return violations;
+}
+
+export function inspectDesignSystemRegressionPolicy({
+  tokensSource,
+  componentStylesSource,
+  themeSource,
+  tokenTestSource,
+  functionalSpecSource,
+  mainMenuSource,
+  stylesSource
+}) {
+  const violations = [];
+
+  if (
+    !/focusSeparation/.test(tokensSource) ||
+    !/focusRingExtent/.test(tokensSource) ||
+    !/accentForeground/.test(tokensSource) ||
+    !/focusRingShadow/.test(componentStylesSource) ||
+    !/focusSeparation/.test(componentStylesSource) ||
+    !/focusRing/.test(componentStylesSource)
+  ) {
+    violations.push("canonical contextual focus token/helper policy is incomplete");
+  }
+  if (
+    !/containedSecondary[\s\S]*textOnAccent/.test(themeSource) ||
+    !/outlinedSecondary[\s\S]*accentForeground/.test(themeSource) ||
+    !/textSecondary[\s\S]*accentForeground/.test(themeSource) ||
+    !/filledSecondary[\s\S]*textOnAccent/.test(themeSource)
+  ) {
+    violations.push("MUI secondary variants do not preserve the filled/foreground accent split");
+  }
+  if (
+    !/brandPrimaryStrong/.test(tokenTestSource) ||
+    !/surfaceInverse/.test(tokenTestSource) ||
+    !/focusSeparation/.test(tokenTestSource) ||
+    !/accent foreground \/ subtle/.test(tokenTestSource) ||
+    !/Math\.max\(separationRatio,\s*outerRatio\)/.test(tokenTestSource)
+  ) {
+    violations.push("focus-on-dark or secondary outlined contrast regression coverage is missing");
+  }
+  if (
+    !/inspectFocusEffect/.test(functionalSpecSource) ||
+    !/desktop Public menu keeps top-level and submenu focus visible/.test(functionalSpecSource) ||
+    !/compact Public menu and Drawer items preserve contextual focus geometry/.test(functionalSpecSource) ||
+    !/contextual focus and secondary variants meet rendered contrast policy/.test(functionalSpecSource) ||
+    !/expectNoHorizontalOverflow/.test(functionalSpecSource)
+  ) {
+    violations.push("contextual focus, clipping, or secondary Playwright coverage is missing");
+  }
+  if (
+    !/visibility:\s*["']hidden["'][\s\S]*overflow:\s*["']hidden["']/.test(mainMenuSource) ||
+    !/overflow:\s*["']visible["']/.test(mainMenuSource) ||
+    !/focusRingExtent/.test(mainMenuSource)
+  ) {
+    violations.push("Public Main Menu focus-safe overflow/Drawer inset policy is missing");
+  }
+  if (!/box-shadow:\s*var\(--rcat-focus-ring-shadow\)/.test(stylesSource)) {
+    violations.push("RCAT structural focus bridge does not consume the canonical focus shadow");
   }
 
   return violations;
@@ -161,15 +243,29 @@ async function fileExists(relativePath) {
 
 export async function runDesignSystemGovernance() {
   const violations = [];
-  const [tokensSource, themeSource, stylesSource, projectSettingsSource, packageSource, workflowSource] =
-    await Promise.all([
-      readFile(path.join(repositoryRoot, "src/design-system/tokens.ts"), "utf8"),
-      readFile(path.join(repositoryRoot, "src/theme.ts"), "utf8"),
-      readFile(path.join(repositoryRoot, "src/styles.css"), "utf8"),
-      readFile(path.join(repositoryRoot, "src/config/project-settings.json"), "utf8"),
-      readFile(path.join(repositoryRoot, "package.json"), "utf8"),
-      readFile(path.join(repositoryRoot, ".github/workflows/ci.yml"), "utf8")
-    ]);
+  const [
+    tokensSource,
+    componentStylesSource,
+    themeSource,
+    stylesSource,
+    projectSettingsSource,
+    packageSource,
+    workflowSource,
+    tokenTestSource,
+    functionalSpecSource,
+    mainMenuSource
+  ] = await Promise.all([
+    readFile(path.join(repositoryRoot, "src/design-system/tokens.ts"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/design-system/componentStyles.ts"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/theme.ts"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/styles.css"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/config/project-settings.json"), "utf8"),
+    readFile(path.join(repositoryRoot, "package.json"), "utf8"),
+    readFile(path.join(repositoryRoot, ".github/workflows/ci.yml"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/test/designSystemTokens.test.ts"), "utf8"),
+    readFile(path.join(repositoryRoot, "tests/functional/designSystemUiUx.spec.ts"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/public/components/PublicMainMenu.tsx"), "utf8")
+  ]);
 
   if (!/export const designTokens/.test(tokensSource) || !/export const designTokenCssVariables/.test(tokensSource)) {
     violations.push("src/design-system/tokens.ts is not the canonical semantic token source");
@@ -183,6 +279,17 @@ export async function runDesignSystemGovernance() {
   if (/#[\da-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/i.test(stylesSource)) {
     violations.push("src/styles.css contains color literals instead of canonical CSS variables");
   }
+  violations.push(
+    ...inspectDesignSystemRegressionPolicy({
+      tokensSource,
+      componentStylesSource,
+      themeSource,
+      tokenTestSource,
+      functionalSpecSource,
+      mainMenuSource,
+      stylesSource
+    })
+  );
 
   const cssProperties = extractCssCustomProperties(stylesSource);
   const requiredAliases = new Map([
@@ -218,7 +325,9 @@ export async function runDesignSystemGovernance() {
     "src/test/designSystemTokens.test.ts",
     "src/test/designSystemComponents.test.tsx",
     "src/test/designSystemGovernance.test.mjs",
-    "tests/functional/designSystemUiUx.spec.ts"
+    "tests/functional/designSystemUiUx.spec.ts",
+    "tests/functional/fixtures/designSystemHarness.html",
+    "tests/functional/fixtures/designSystemHarness.tsx"
   ];
   for (const relativePath of requiredFiles) {
     if (!(await fileExists(relativePath))) {

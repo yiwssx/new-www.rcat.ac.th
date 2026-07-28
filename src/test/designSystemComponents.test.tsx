@@ -9,6 +9,7 @@ import PageHeader from "../design-system/components/PageHeader";
 import ResponsiveDialogActions from "../design-system/components/ResponsiveDialogActions";
 import SectionHeader from "../design-system/components/SectionHeader";
 import SemanticStatusChip from "../design-system/components/SemanticStatusChip";
+import { focusRingShadow, focusRingStyles, focusVisibleSx } from "../design-system/componentStyles";
 import { designTokens } from "../design-system/tokens";
 import PublicErrorState from "../public/components/PublicErrorState";
 import PublicLoadingState from "../public/components/PublicLoadingState";
@@ -42,6 +43,22 @@ describe("design-system theme policy", () => {
     expect(styleOverride("MuiPaper", "elevation8")?.boxShadow).toBe(designTokens.elevation.overlay);
     expect(styleOverride("MuiDialogActions", "root")?.flexWrap).toBe("wrap");
     expect(styleOverride("MuiChip", "root")?.borderRadius).toBe(designTokens.radius.pill);
+  });
+
+  it("applies canonical contextual focus and secondary accent roles", () => {
+    expect(focusRingStyles.boxShadow).toBe(focusRingShadow);
+    expect(focusRingShadow).toContain(designTokens.color.focusSeparation);
+    expect(focusRingShadow).toContain(designTokens.color.focusRing);
+    expect(focusVisibleSx).toEqual({
+      "&:focus-visible, &:focus-visible:hover": focusRingStyles
+    });
+    expect(styleOverride("MuiButton", "containedSecondary")?.color).toBe(designTokens.color.textOnAccent);
+    expect(styleOverride("MuiButton", "outlinedSecondary")?.color).toBe(designTokens.color.accentForeground);
+    expect(styleOverride("MuiButton", "outlinedSecondary")?.borderColor).toBe(designTokens.color.accentForeground);
+    expect(styleOverride("MuiButton", "textSecondary")?.color).toBe(designTokens.color.accentForeground);
+    expect(styleOverride("MuiChip", "filledSecondary")?.color).toBe(designTokens.color.textOnAccent);
+    expect(styleOverride("MuiChip", "outlinedSecondary")?.color).toBe(designTokens.color.accentForeground);
+    expect(styleOverride("MuiChip", "outlinedSecondary")?.borderColor).toBe(designTokens.color.accentForeground);
   });
 
   it("keeps buttons, IconButtons, and fields accessible by default", () => {

@@ -10,6 +10,7 @@ export interface PublicShellClsFixtureOptions {
   delayed?: boolean;
   errorPath?: string;
   emptyFooterDirectory?: boolean;
+  includeNestedMenu?: boolean;
   staleNewsCache?: boolean;
 }
 
@@ -65,7 +66,9 @@ const detailItem = {
   viewCount: 4
 };
 
-export function createPublicShellHomeSnapshot(options: { emptyFooterDirectory?: boolean } = {}) {
+export function createPublicShellHomeSnapshot(
+  options: { emptyFooterDirectory?: boolean; includeNestedMenu?: boolean } = {}
+) {
   const snapshot = createPublicHomeSnapshot();
 
   return {
@@ -88,7 +91,24 @@ export function createPublicShellHomeSnapshot(options: { emptyFooterDirectory?: 
     menu: [
       { id: "home", label: "หน้าหลัก", href: "/", enabled: true, order: 1 },
       { id: "news", label: "ข่าว", href: "/news", enabled: true, order: 2 },
-      { id: "departments", label: "หลักสูตร", href: "/departments", enabled: true, order: 3 },
+      {
+        id: "departments",
+        label: "หลักสูตร",
+        href: "/departments",
+        enabled: true,
+        order: 3,
+        children: options.includeNestedMenu
+          ? [
+              {
+                id: "departments-agriculture",
+                label: "หลักสูตรเกษตร",
+                href: "/departments",
+                enabled: true,
+                order: 1
+              }
+            ]
+          : undefined
+      },
       { id: "search", label: "ค้นหา", href: "/search?q=fixture", enabled: true, order: 4 }
     ],
     carouselSlides: [],
@@ -165,7 +185,8 @@ export async function installPublicShellClsFixture(
     const url = new URL(route.request().url());
     const pathWithSearch = `${url.pathname}${url.search}`;
     const homeSnapshot = createPublicShellHomeSnapshot({
-      emptyFooterDirectory: options.emptyFooterDirectory
+      emptyFooterDirectory: options.emptyFooterDirectory,
+      includeNestedMenu: options.includeNestedMenu
     });
     const shellFields = createShellSnapshotFields(homeSnapshot);
     requests.push(pathWithSearch);
