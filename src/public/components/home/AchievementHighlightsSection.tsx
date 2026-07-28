@@ -9,6 +9,8 @@ import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOu
 import { ContentItem } from "../../../types";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
+import { interactiveSurfaceSx } from "../../../design-system/componentStyles";
+import { designTokens } from "../../../design-system/tokens";
 
 function getAchievementHaystack(item: ContentItem) {
   return [item.title, item.summary, item.category, ...(item.tags ?? [])].join(" ").toLowerCase();
@@ -105,17 +107,15 @@ export function AchievementHighlightsSection({
                 href={href}
                 aria-label={`อ่านผลงาน ${item.title}`}
                 sx={{
+                  ...interactiveSurfaceSx,
                   display: "block",
                   height: "100%",
-                  border: "1px solid rgba(31, 90, 44, 0.12)",
-                  boxShadow: "0 12px 28px rgba(31, 90, 44, 0.08)",
                   color: "inherit",
                   textDecoration: "none",
-                  transition: "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
-                  "&:hover, &:focus-visible": {
+                  "&:hover": {
                     borderColor: "primary.main",
-                    boxShadow: "0 16px 32px rgba(31, 90, 44, 0.12)",
-                    transform: "translateY(-2px)"
+                    transform: "translateY(-2px)",
+                    ...interactiveSurfaceSx["&:hover"]
                   }
                 }}
               >
@@ -133,12 +133,13 @@ export function AchievementHighlightsSection({
                       sx={(theme) => ({
                         width: 44,
                         height: 44,
-                        borderRadius: 2,
+                        borderRadius: `${designTokens.radius.medium}px`,
                         display: "grid",
                         placeItems: "center",
                         color: "primary.dark",
                         bgcolor: alpha(theme.palette.secondary.light, 0.75),
-                        border: "1px solid rgba(31, 90, 44, 0.1)",
+                        border: "1px solid",
+                        borderColor: "divider",
                         "& svg": {
                           fontSize: 25
                         }

@@ -192,6 +192,6 @@ describe("M20 admin information architecture", () => {
     });
 
     expect(stylesSource).not.toContain("filter: none");
-    expect(stylesSource).toContain("outline: 3px solid #111");
+    expect(stylesSource).toContain("outline: 3px solid var(--rcat-color-surface-inverse)");
   });
 });

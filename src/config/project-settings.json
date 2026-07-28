@@ -40,34 +40,5 @@
       "canPublish": false,
       "canManageUsers": false
     }
-  ],
-  "theme": {
-    "palette": {
-      "primaryMain": "#2c7a3f",
-      "primaryLight": "#e8f5e9",
-      "primaryDark": "#1f5a2c",
-      "secondaryMain": "#b88700",
-      "secondaryLight": "#fff4c2",
-      "secondaryDark": "#7a5900",
-      "successMain": "#3f8f49",
-      "successLight": "#e5f4e7",
-      "successDark": "#2a6232",
-      "warningMain": "#d6a11a",
-      "warningLight": "#fff0b3",
-      "warningDark": "#8c6500",
-      "errorMain": "#c84d3a",
-      "errorLight": "#fde9e5",
-      "errorDark": "#973728",
-      "backgroundDefault": "#f8fbf2",
-      "paper": "#ffffff",
-      "textPrimary": "#203324",
-      "textSecondary": "#5c6d60"
-    },
-    "shape": {
-      "borderRadius": 8
-    },
-    "typography": {
-      "fontFamily": ["\"Sarabun\"", "\"Noto Sans Thai\"", "\"Segoe UI\"", "sans-serif"]
-    }
-  }
+  ]
 }

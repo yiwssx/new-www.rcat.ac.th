@@ -10,6 +10,9 @@ interface EmptyStateProps {
 export default function EmptyState({ title, description, icon }: EmptyStateProps) {
   return (
     <Box
+      component="section"
+      data-design-system-primitive="empty-state"
+      aria-label={title}
       sx={{
         py: 4,
         px: 2,
@@ -17,9 +20,11 @@ export default function EmptyState({ title, description, icon }: EmptyStateProps
         display: "grid",
         placeItems: "center",
         textAlign: "center",
-        border: "1px dashed rgba(31, 90, 44, 0.22)",
-        borderRadius: 2,
-        bgcolor: "background.default"
+        border: "1px dashed",
+        borderColor: "divider",
+        borderRadius: 1,
+        bgcolor: "background.default",
+        overflowWrap: "anywhere"
       }}
     >
       <Box>

@@ -1,5 +1,6 @@
 import { Box, LinearProgress, Skeleton, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import { designTokens } from "../../design-system/tokens";
 
 export type PublicLoadingVariant = "listing" | "card-grid" | "search-results" | "content-detail" | "home" | "simple";
 
@@ -8,7 +9,7 @@ interface PublicLoadingStateProps {
 }
 
 const variantMinHeight: Record<PublicLoadingVariant, { xs: number; md: number }> = {
-  listing: { xs: 3_500, md: 1_700 },
+  listing: { xs: 3_600, md: 1_700 },
   "card-grid": { xs: 2_350, md: 1_250 },
   "search-results": { xs: 3_000, md: 1_900 },
   "content-detail": { xs: 1_350, md: 1_050 },
@@ -24,7 +25,7 @@ function LoadingLine({ width = "100%", height = 18 }: { width?: string | number;
       variant="rounded"
       width={width}
       height={height}
-      sx={{ bgcolor: "rgba(31, 90, 44, 0.09)" }}
+      sx={{ bgcolor: "action.hover" }}
     />
   );
 }
@@ -35,8 +36,9 @@ function LoadingCard({ height }: { height: number | { xs: number; md: number } }
       aria-hidden="true"
       sx={{
         height,
-        border: "1px solid rgba(31, 90, 44, 0.1)",
-        borderRadius: 2,
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: `${designTokens.radius.medium}px`,
         bgcolor: "background.paper",
         p: 2
       }}
@@ -99,13 +101,7 @@ function ContentDetailLoadingLayout() {
     <Stack spacing={2.4}>
       <LoadingLine width="64%" height={48} />
       <LoadingLine width="42%" height={22} />
-      <Skeleton
-        aria-hidden="true"
-        animation={false}
-        variant="rounded"
-        height={300}
-        sx={{ bgcolor: "rgba(31, 90, 44, 0.1)" }}
-      />
+      <Skeleton aria-hidden="true" animation={false} variant="rounded" height={300} sx={{ bgcolor: "action.hover" }} />
       <LoadingLine />
       <LoadingLine />
       <LoadingLine width="92%" />
@@ -123,7 +119,7 @@ function HomeLoadingLayout() {
         animation={false}
         variant="rectangular"
         height={380}
-        sx={{ bgcolor: "rgba(31, 90, 44, 0.1)" }}
+        sx={{ bgcolor: "action.hover" }}
       />
       <Grid container spacing={2.5}>
         {Array.from({ length: 4 }, (_, index) => (
@@ -171,8 +167,8 @@ export default function PublicLoadingState({ variant = "listing" }: PublicLoadin
         py: { xs: 1.5, md: 2 },
         "@media (prefers-reduced-motion: reduce)": {
           "& *": {
-            animation: "none !important",
-            transition: "none !important"
+            animation: "none",
+            transition: "none"
           }
         }
       }}

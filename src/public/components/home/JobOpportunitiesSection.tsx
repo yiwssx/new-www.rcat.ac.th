@@ -7,6 +7,8 @@ import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import WorkOutlineRoundedIcon from "@mui/icons-material/WorkOutlineRounded";
 import type { ContentItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
+import { designTokens } from "../../../design-system/tokens";
+import SemanticStatusChip from "../../../design-system/components/SemanticStatusChip";
 import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
@@ -37,9 +39,7 @@ export function JobOpportunitiesSection({ items }: { items: ContentItem[] }) {
               <Card
                 component="article"
                 sx={{
-                  height: "100%",
-                  border: "1px solid rgba(31, 90, 44, 0.12)",
-                  boxShadow: "0 12px 28px rgba(31, 90, 44, 0.07)"
+                  height: "100%"
                 }}
               >
                 <CardContent
@@ -58,7 +58,7 @@ export function JobOpportunitiesSection({ items }: { items: ContentItem[] }) {
                       size="small"
                       color="primary"
                     />
-                    <Chip label="เผยแพร่แล้ว" size="small" color="secondary" variant="outlined" />
+                    <SemanticStatusChip label="เผยแพร่แล้ว" status="published" />
                   </Stack>
 
                   <Typography variant="h3" sx={{ fontSize: { xs: "1.04rem", md: "1.1rem" }, lineHeight: 1.32 }}>
@@ -84,9 +84,10 @@ export function JobOpportunitiesSection({ items }: { items: ContentItem[] }) {
                     sx={(theme) => ({
                       mt: "auto",
                       p: 1.15,
-                      borderRadius: 1.5,
+                      borderRadius: `${designTokens.radius.medium}px`,
                       bgcolor: alpha(theme.palette.secondary.light, 0.45),
-                      border: "1px solid rgba(184, 135, 0, 0.14)"
+                      border: "1px solid",
+                      borderColor: "secondary.main"
                     })}
                   >
                     <Stack direction="row" spacing={0.8} alignItems="flex-start">

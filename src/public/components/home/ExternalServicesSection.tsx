@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import { alpha } from "@mui/material/styles";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
@@ -16,6 +17,8 @@ import { getExternalServiceToneStyle } from "../../../utils/externalServiceTheme
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { focusVisibleSx } from "./homeSectionStyles";
+import { interactiveSurfaceSx } from "../../../design-system/componentStyles";
+import { designTokens } from "../../../design-system/tokens";
 
 function getExternalServiceIcon(iconKey: ExternalServiceIconKey): ReactNode {
   const icons: Record<ExternalServiceIconKey, ReactNode> = {
@@ -50,7 +53,7 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
         sx={{
           position: "relative",
           overflow: "hidden",
-          borderRadius: 2,
+          borderRadius: `${designTokens.radius.large}px`,
           minHeight: { xs: 160, md: 220 },
           mb: 2.5,
           p: { xs: 2.4, sm: 3, md: 4 },
@@ -59,34 +62,35 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
           background:
             "linear-gradient(135deg, var(--rcat-primary-hover) 0%, var(--rcat-primary) 65%, var(--rcat-secondary) 100%)",
           color: "white",
-          boxShadow: "var(--rcat-shadow-md)"
+          boxShadow: designTokens.elevation.medium
         }}
       >
         <Box
           aria-hidden="true"
-          sx={{
+          sx={(theme) => ({
             position: "absolute",
             right: { xs: -44, md: 44 },
             top: { xs: -36, md: 28 },
             width: { xs: 150, md: 190 },
             height: { xs: 150, md: 190 },
             borderRadius: "50%",
-            border: "26px solid rgba(234, 179, 8, 0.22)"
-          }}
+            border: "26px solid",
+            borderColor: alpha(theme.palette.secondary.main, 0.22)
+          })}
         />
         <Box
           aria-hidden="true"
-          sx={{
+          sx={(theme) => ({
             position: "absolute",
             right: { xs: 26, md: 228 },
             bottom: { xs: -28, md: 24 },
             width: 96,
             height: 96,
-            borderRadius: 3,
-            backgroundImage: "radial-gradient(rgba(254, 249, 195, 0.72) 1px, transparent 1px)",
+            borderRadius: `${designTokens.radius.large}px`,
+            backgroundImage: `radial-gradient(${alpha(theme.palette.secondary.light, 0.72)} 1px, transparent 1px)`,
             backgroundSize: "12px 12px",
             opacity: 0.34
-          }}
+          })}
         />
         <Stack spacing={0.9} sx={{ position: "relative", zIndex: 1, maxWidth: 620 }}>
           <Typography
@@ -101,7 +105,7 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
             Online Service Portal
           </Typography>
           <Typography
-            variant="h1"
+            variant="h2"
             sx={{
               fontSize: { xs: "2.55rem", sm: "3.35rem", md: "4.5rem" },
               lineHeight: 0.95,
@@ -110,7 +114,9 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
           >
             E-Service
           </Typography>
-          <Typography sx={{ color: "rgba(255, 255, 255, 0.9)", fontSize: { xs: "1rem", md: "1.18rem" } }}>
+          <Typography
+            sx={(theme) => ({ color: alpha(theme.palette.common.white, 0.9), fontSize: { xs: "1rem", md: "1.18rem" } })}
+          >
             ระบบบริการออนไลน์
           </Typography>
         </Stack>
@@ -129,18 +135,15 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
                 rel="noreferrer"
                 aria-label={`เปิดลิงก์บริการ ${item.title}`}
                 sx={{
+                  ...interactiveSurfaceSx,
                   height: "100%",
                   display: "block",
                   textDecoration: "none",
-                  border: "1px solid var(--rcat-border)",
-                  bgcolor: "var(--rcat-surface)",
-                  boxShadow: "var(--rcat-shadow-sm)",
-                  transition: "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
                   ...focusVisibleSx,
                   "&:hover": {
                     transform: "translateY(-3px)",
-                    borderColor: "rgba(22, 101, 52, 0.35)",
-                    boxShadow: "0 16px 30px rgba(15, 23, 42, 0.1)"
+                    borderColor: "primary.main",
+                    ...interactiveSurfaceSx["&:hover"]
                   }
                 }}
               >
@@ -151,12 +154,12 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
                         sx={{
                           width: 48,
                           height: 48,
-                          borderRadius: 2,
+                          borderRadius: `${designTokens.radius.medium}px`,
                           display: "grid",
                           placeItems: "center",
                           color: toneStyle.iconColor,
                           bgcolor: toneStyle.iconBg,
-                          boxShadow: "0 10px 20px rgba(22, 101, 52, 0.18)",
+                          boxShadow: designTokens.elevation.low,
                           "& svg": {
                             fontSize: 27
                           }

@@ -13,7 +13,7 @@ import {
   Divider,
   useMediaQuery
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
@@ -23,6 +23,7 @@ import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRigh
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { PublicMenuItem } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
+import { designTokens } from "../../design-system/tokens";
 
 function getEnabledMenuItems(items: PublicMenuItem[]): PublicMenuItem[] {
   return items
@@ -64,7 +65,7 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
           <Box
             component="a"
             href={normalizeSafeHref(item.href)}
-            sx={{
+            sx={(theme) => ({
               minHeight: nested ? 42 : 48,
               px: nested ? 1.5 : 2,
               py: nested ? 1 : 1.15,
@@ -76,12 +77,11 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
               fontWeight: 800,
               whiteSpace: "nowrap",
               borderLeft: nested ? "3px solid transparent" : "none",
-              "&:hover, &:focus": {
-                bgcolor: nested ? "primary.light" : "rgba(255, 255, 255, 0.14)",
-                borderColor: nested ? "secondary.main" : "transparent",
-                outline: "none"
+              "&:hover": {
+                bgcolor: nested ? "primary.light" : alpha(theme.palette.common.white, 0.14),
+                borderColor: nested ? "secondary.main" : "transparent"
               }
-            }}
+            })}
           >
             <span>{item.label}</span>
             {item.children?.length &&
@@ -102,14 +102,16 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
                 minWidth: nested ? 300 : 310,
                 maxWidth: nested ? 380 : 420,
                 bgcolor: "background.paper",
-                border: "1px solid rgba(31, 90, 44, 0.14)",
-                borderTop: nested ? "1px solid rgba(31, 90, 44, 0.14)" : "3px solid",
-                borderTopColor: nested ? "rgba(31, 90, 44, 0.14)" : "secondary.main",
-                boxShadow: "0 16px 34px rgba(31, 90, 44, 0.16)",
+                border: "1px solid",
+                borderColor: "divider",
+                borderTopWidth: nested ? 1 : 3,
+                borderTopStyle: "solid",
+                borderTopColor: nested ? "divider" : "secondary.main",
+                boxShadow: designTokens.elevation.high,
                 opacity: 0,
                 visibility: "hidden",
                 transform: nested ? "translateX(-6px)" : "translateY(8px)",
-                transition: "opacity 140ms ease, transform 140ms ease, visibility 140ms ease",
+                transition: `opacity ${designTokens.motion.duration.standard}ms ${designTokens.motion.easing}, transform ${designTokens.motion.duration.standard}ms ${designTokens.motion.easing}, visibility ${designTokens.motion.duration.standard}ms ${designTokens.motion.easing}`,
                 pointerEvents: "none"
               }}
             >
@@ -243,7 +245,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
       sx={{
         bgcolor: "primary.main",
         color: "white",
-        boxShadow: "0 10px 20px rgba(0, 0, 0, 0.08)"
+        boxShadow: designTokens.elevation.low
       }}
     >
       <Container ref={menuContainerRef} maxWidth="xl" sx={{ position: "relative", minWidth: 0, minHeight: 48, py: 0 }}>
@@ -282,7 +284,11 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
             <IconButton
               aria-label={mobileMenuOpen ? "ปิดเมนูหลัก" : "เปิดเมนูหลัก"}
               onClick={() => setMobileMenuOpen((open) => !open)}
-              sx={{ border: "1px solid rgba(255, 255, 255, 0.28)", color: "inherit" }}
+              sx={(theme) => ({
+                border: "1px solid",
+                borderColor: alpha(theme.palette.common.white, 0.36),
+                color: "inherit"
+              })}
             >
               {mobileMenuOpen ? <CloseRoundedIcon /> : <MenuRoundedIcon />}
             </IconButton>

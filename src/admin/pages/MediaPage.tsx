@@ -8,7 +8,6 @@ import {
   Chip,
   CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
@@ -33,6 +32,7 @@ import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import ResponsiveDialogActions from "../../design-system/components/ResponsiveDialogActions";
 import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
@@ -52,6 +52,7 @@ import { formatFileSize, readFileAsBase64 } from "../../utils/files";
 import { mediaTypeLabels } from "../../utils/thaiLabels";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { ADMIN_READ_ONLY_NOTICE, canManageMedia } from "../utils/rbac";
+import ActionBar from "../../design-system/components/ActionBar";
 
 interface MediaFormState {
   name: string;
@@ -663,42 +664,40 @@ export default function MediaPage() {
       {(mediaListQuery.isFetching || listTransitioning) && !mediaListQuery.isLoading && (
         <LinearProgress sx={{ mb: 1 }} />
       )}
-      <Stack
-        direction={{ xs: "column", lg: "row" }}
-        spacing={2}
-        justifyContent="space-between"
-        alignItems={{ xs: "stretch", lg: "center" }}
-        sx={{ mb: 2 }}
-      >
-        <TextField
-          placeholder="ค้นหาสื่อ"
-          value={q}
-          onChange={(event) => setSearch(event.target.value)}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchOutlinedIcon />
-                </InputAdornment>
-              )
-            }
-          }}
-          sx={{ minWidth: { lg: 360 } }}
-        />
-        <ToggleButtonGroup
-          value={filter}
-          exclusive
-          onChange={(_, value: MediaFilter | null) => value && setFilter("type", value)}
-          size="small"
-          aria-label="ตัวกรองประเภทสื่อ"
-        >
-          {(["all", ...mediaTypes] as MediaFilter[]).map((item) => (
-            <ToggleButton key={item} value={item} sx={{ textTransform: "capitalize" }}>
-              {item === "all" ? "ทั้งหมด" : mediaTypeLabels[item]}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-      </Stack>
+      <ActionBar
+        primary={
+          <TextField
+            placeholder="ค้นหาสื่อ"
+            value={q}
+            onChange={(event) => setSearch(event.target.value)}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchOutlinedIcon />
+                  </InputAdornment>
+                )
+              }
+            }}
+            sx={{ minWidth: { lg: 360 } }}
+          />
+        }
+        secondary={
+          <ToggleButtonGroup
+            value={filter}
+            exclusive
+            onChange={(_, value: MediaFilter | null) => value && setFilter("type", value)}
+            size="small"
+            aria-label="ตัวกรองประเภทสื่อ"
+          >
+            {(["all", ...mediaTypes] as MediaFilter[]).map((item) => (
+              <ToggleButton key={item} value={item} sx={{ textTransform: "capitalize" }}>
+                {item === "all" ? "ทั้งหมด" : mediaTypeLabels[item]}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        }
+      />
       {operationNotice && (
         <Alert severity={operationNotice.severity} sx={{ mb: 2 }}>
           {operationNotice.message}
@@ -836,7 +835,7 @@ export default function MediaPage() {
               </Stack>
             )}
           </DialogContent>
-          <DialogActions sx={{ px: 3, py: 2 }}>
+          <ResponsiveDialogActions>
             {confirming ? (
               <>
                 <Button
@@ -866,7 +865,7 @@ export default function MediaPage() {
                 </Button>
               </>
             )}
-          </DialogActions>
+          </ResponsiveDialogActions>
         </form>
       </Dialog>
     </Box>

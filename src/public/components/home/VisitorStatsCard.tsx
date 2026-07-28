@@ -7,6 +7,8 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import type { VisitorStatsSettings } from "../../../features/visitor-stats";
 import { normalizeVisitorStats } from "../../../services/visitorStats";
 import { formatDisplayDateTime } from "../../../utils/dateDisplay";
+import { designTokens } from "../../../design-system/tokens";
+import { staticSurfaceSx } from "../../../design-system/componentStyles";
 
 const numberFormatter = new Intl.NumberFormat("en-US");
 
@@ -68,7 +70,7 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
                 sx={(theme) => ({
                   width: { xs: 40, sm: 44 },
                   height: { xs: 40, sm: 44 },
-                  borderRadius: 2,
+                  borderRadius: `${designTokens.radius.medium}px`,
                   display: "grid",
                   placeItems: "center",
                   color: "primary.dark",
@@ -113,10 +115,9 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
 
           <Box
             sx={(theme) => ({
-              borderRadius: 2,
+              ...staticSurfaceSx,
               p: { xs: 1.45, sm: 1.7 },
-              bgcolor: alpha(theme.palette.primary.light, 0.45),
-              border: "1px solid rgba(31, 90, 44, 0.12)"
+              bgcolor: alpha(theme.palette.primary.light, 0.45)
             })}
           >
             <Stack direction="row" spacing={1.2} alignItems="center" justifyContent="space-between">
@@ -137,12 +138,11 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
               <Grid size={{ xs: 12, sm: 6 }} key={stat.label}>
                 <Box
                   sx={{
+                    ...staticSurfaceSx,
                     height: "100%",
                     minHeight: { xs: 68, sm: 74 },
-                    borderRadius: 1.5,
-                    border: "1px solid rgba(31, 90, 44, 0.1)",
                     p: { xs: 1.15, sm: 1.25 },
-                    bgcolor: "rgba(255, 255, 255, 0.75)"
+                    bgcolor: "background.paper"
                   }}
                 >
                   <Typography
@@ -163,15 +163,15 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
 
           <Box
             sx={{
-              borderRadius: 2,
+              ...staticSurfaceSx,
               p: 1.4,
-              border: "1px solid rgba(31, 90, 44, 0.12)",
-              bgcolor: "rgba(236, 253, 245, 0.86)"
+              borderColor: "success.main",
+              bgcolor: "success.light"
             }}
           >
             <Stack direction="row" spacing={1.2} alignItems="center" justifyContent="space-between">
               <Stack direction="row" spacing={0.8} alignItems="center" sx={{ minWidth: 0 }}>
-                <FiberManualRecordIcon sx={{ color: "#16a34a", fontSize: 13 }} />
+                <FiberManualRecordIcon sx={{ color: "success.main", fontSize: 13 }} />
                 <Box sx={{ minWidth: 0 }}>
                   <Typography variant="body2" color="text.secondary" fontWeight={800}>
                     Who&apos;s Online

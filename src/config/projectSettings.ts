@@ -22,15 +22,6 @@ interface ProjectSettings {
     displaySettings: string;
   };
   roles: RolePermission[];
-  theme: {
-    palette: Record<string, string>;
-    shape: {
-      borderRadius: number;
-    };
-    typography: {
-      fontFamily: string[];
-    };
-  };
 }
 
 export const projectSettings = projectSettingsData as ProjectSettings;

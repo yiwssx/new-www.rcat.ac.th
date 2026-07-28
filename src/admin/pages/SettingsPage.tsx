@@ -29,6 +29,7 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PageHeader from "../components/PageHeader";
+import { staticSurfaceSx } from "../../design-system/componentStyles";
 import { useAuth } from "../../context/authSessionContext";
 import { projectSettings } from "../../config/projectSettings";
 import {
@@ -730,7 +731,6 @@ export default function SettingsPage() {
                     startIcon={<SaveOutlinedIcon />}
                     disabled={!canManage || saveDisplaySettingsMutation.isPending}
                     onClick={() => void handleSaveDisplaySettings()}
-                    sx={{ height: "100%" }}
                   >
                     {saveDisplaySettingsMutation.isPending ? "กำลังบันทึก" : "บันทึก"}
                   </Button>
@@ -755,7 +755,7 @@ export default function SettingsPage() {
                 variant="outlined"
                 sx={{
                   mt: 2,
-                  borderColor: "rgba(31, 90, 44, 0.18)",
+                  borderColor: "divider",
                   bgcolor: "background.default"
                 }}
               >
@@ -905,8 +905,8 @@ export default function SettingsPage() {
                     {siteSettings.footerDirectoryGroups.length === 0 && (
                       <Box
                         sx={{
-                          border: "1px dashed rgba(31, 90, 44, 0.22)",
-                          borderRadius: 1.5,
+                          ...staticSurfaceSx,
+                          borderStyle: "dashed",
                           p: 2,
                           bgcolor: "background.default"
                         }}
@@ -920,8 +920,7 @@ export default function SettingsPage() {
                       <Box
                         key={`footer-group-${groupIndex}`}
                         sx={{
-                          border: "1px solid rgba(31, 90, 44, 0.14)",
-                          borderRadius: 1.5,
+                          ...staticSurfaceSx,
                           p: 1.5,
                           bgcolor: "background.default"
                         }}
@@ -1327,9 +1326,8 @@ export default function SettingsPage() {
                     spacing={1.5}
                     justifyContent="space-between"
                     sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      border: "1px solid rgba(31, 90, 44, 0.12)"
+                      ...staticSurfaceSx,
+                      p: 2
                     }}
                   >
                     <Box>

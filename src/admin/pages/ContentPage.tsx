@@ -65,6 +65,7 @@ import { invalidateDeletedPublicContent, invalidatePublicCmsData } from "../../s
 import { FACEBOOK_EMBED_LABEL, isFacebookEmbedContent } from "../../utils/facebookContent";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
+import ActionBar from "../../design-system/components/ActionBar";
 
 type FilterStatus = ContentStatus | "all";
 type ContentFilterKey = "status";
@@ -467,42 +468,40 @@ export default function ContentPage() {
       )}
       <Card>
         <CardContent>
-          <Stack
-            direction={{ xs: "column", lg: "row" }}
-            spacing={2}
-            justifyContent="space-between"
-            alignItems={{ xs: "stretch", lg: "center" }}
-            sx={{ mb: 2 }}
-          >
-            <TextField
-              placeholder="ค้นหาเนื้อหา"
-              value={q}
-              onChange={(event) => setSearch(event.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchOutlinedIcon />
-                    </InputAdornment>
-                  )
-                }
-              }}
-              sx={{ minWidth: { lg: 360 } }}
-            />
-            <ToggleButtonGroup
-              value={status}
-              exclusive
-              onChange={(_, value: FilterStatus | null) => value && setFilter("status", value)}
-              size="small"
-              aria-label="ตัวกรองสถานะ"
-            >
-              {(["all", "draft", "review", "scheduled", "published"] as FilterStatus[]).map((item) => (
-                <ToggleButton key={item} value={item} sx={{ textTransform: "capitalize" }}>
-                  {item === "all" ? "ทั้งหมด" : contentStatusLabels[item]}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          </Stack>
+          <ActionBar
+            primary={
+              <TextField
+                placeholder="ค้นหาเนื้อหา"
+                value={q}
+                onChange={(event) => setSearch(event.target.value)}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchOutlinedIcon />
+                      </InputAdornment>
+                    )
+                  }
+                }}
+                sx={{ minWidth: { lg: 360 } }}
+              />
+            }
+            secondary={
+              <ToggleButtonGroup
+                value={status}
+                exclusive
+                onChange={(_, value: FilterStatus | null) => value && setFilter("status", value)}
+                size="small"
+                aria-label="ตัวกรองสถานะ"
+              >
+                {(["all", "draft", "review", "scheduled", "published"] as FilterStatus[]).map((item) => (
+                  <ToggleButton key={item} value={item} sx={{ textTransform: "capitalize" }}>
+                    {item === "all" ? "ทั้งหมด" : contentStatusLabels[item]}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            }
+          />
           <Box
             className="table-scroll"
             aria-busy={contentListQuery.isFetching}

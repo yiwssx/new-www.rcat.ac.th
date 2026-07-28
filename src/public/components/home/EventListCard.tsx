@@ -5,9 +5,7 @@ import {
   ButtonBase,
   Card,
   CardContent,
-  Chip,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
@@ -28,6 +26,10 @@ import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
 import { resolvePublicImageSource } from "../../../shared/media/publicImageSources";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
+import SemanticStatusChip from "../../../design-system/components/SemanticStatusChip";
+import ResponsiveDialogActions from "../../../design-system/components/ResponsiveDialogActions";
+import { focusVisibleSx, interactiveSurfaceSx } from "../../../design-system/componentStyles";
+import type { SemanticStatus } from "../../../design-system/tokens";
 
 interface EventListCardProps {
   items: CalendarEvent[];
@@ -42,6 +44,12 @@ interface EventDetailProps {
   label: string;
   value: string;
 }
+
+const eventLifecycleStatus: Record<ReturnType<typeof getEventLifecycle>, SemanticStatus> = {
+  ended: "ended",
+  ongoing: "active",
+  upcoming: "scheduled"
+};
 
 function EventDetail({ label, value }: EventDetailProps) {
   return (
@@ -112,25 +120,17 @@ function EventImageAttachment({ asset }: { asset: MediaAsset }) {
   );
 
   const sharedSx = {
+    ...interactiveSurfaceSx,
     display: "block",
     height: "100%",
-    borderRadius: 2,
     overflow: "hidden",
-    border: "1px solid",
-    borderColor: "divider",
-    bgcolor: "background.paper",
     color: "text.primary",
     textDecoration: "none",
-    transition: "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
     "&:hover": {
+      ...interactiveSurfaceSx["&:hover"],
       transform: href !== "#" ? "translateY(-2px)" : "none",
       boxShadow: href !== "#" ? 3 : 0,
       borderColor: href !== "#" ? "primary.main" : "divider"
-    },
-    "&:focus-visible": {
-      outline: "3px solid",
-      outlineColor: "primary.light",
-      outlineOffset: 2
     }
   };
 
@@ -254,7 +254,7 @@ export function EventListCard({
 
   return (
     <>
-      <Card id="calendar" className="rcat-card h-full">
+      <Card id="calendar" className="h-full">
         <CardContent sx={{ p: 2.5 }}>
           <HomeSectionHeading label="กำหนดการ" title="กำหนดการ" />
 
@@ -268,23 +268,22 @@ export function EventListCard({
                     key={event.id}
                     aria-label={`ดูรายละเอียด ${event.title}`}
                     onClick={() => setSelectedEvent(event)}
-                    className="rcat-focus-ring"
                     sx={{
                       display: "block",
                       width: "100%",
                       textAlign: "left",
-                      borderRadius: 1.5
+                      borderRadius: 1,
+                      ...focusVisibleSx
                     }}
                   >
                     <Box className="py-3" sx={{ px: 0.5 }}>
                       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                         <Typography fontWeight={900}>{event.title}</Typography>
 
-                        <Chip
+                        <SemanticStatusChip
                           label={EVENT_LIFECYCLE_LABELS[lifecycle]}
-                          size="small"
-                          variant="outlined"
-                          className={`rcat-event-status-chip ` + `rcat-event-status-${lifecycle}`}
+                          status={eventLifecycleStatus[lifecycle]}
+                          emphasized={lifecycle === "ongoing"}
                         />
                       </Stack>
 
@@ -355,10 +354,10 @@ export function EventListCard({
                 </Typography>
 
                 <Box sx={{ mt: 0.75 }}>
-                  <Chip
+                  <SemanticStatusChip
                     label={EVENT_LIFECYCLE_LABELS[selectedLifecycle]}
-                    variant="outlined"
-                    className={`rcat-event-status-chip ` + `rcat-event-status-${selectedLifecycle}`}
+                    status={eventLifecycleStatus[selectedLifecycle]}
+                    emphasized={selectedLifecycle === "ongoing"}
                   />
                 </Box>
               </Box>
@@ -422,9 +421,9 @@ export function EventListCard({
           )}
         </DialogContent>
 
-        <DialogActions>
+        <ResponsiveDialogActions>
           <Button onClick={() => setSelectedEvent(null)}>ปิด</Button>
-        </DialogActions>
+        </ResponsiveDialogActions>
       </Dialog>
     </>
   );

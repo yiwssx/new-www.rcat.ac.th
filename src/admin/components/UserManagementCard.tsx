@@ -18,6 +18,7 @@ import {
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import { staticSurfaceSx } from "../../design-system/componentStyles";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import { useAuth } from "../../context/authSessionContext";
@@ -475,7 +476,12 @@ export default function UserManagementCard() {
           </Grid>
 
           {editingId && (
-            <Box sx={{ p: 2, borderRadius: 2, border: "1px solid rgba(31, 90, 44, 0.12)" }}>
+            <Box
+              sx={{
+                ...staticSurfaceSx,
+                p: 2
+              }}
+            >
               <Stack spacing={2}>
                 <Typography fontWeight={900}>{isCreating ? "เพิ่มผู้ใช้" : "แก้ไขผู้ใช้"}</Typography>
                 <Grid container spacing={2}>
@@ -588,9 +594,8 @@ export default function UserManagementCard() {
                   <Box
                     key={profile.id}
                     sx={{
+                      ...staticSurfaceSx,
                       p: 2,
-                      borderRadius: 2,
-                      border: "1px solid rgba(31, 90, 44, 0.12)",
                       bgcolor: self ? "primary.light" : "background.paper"
                     }}
                   >

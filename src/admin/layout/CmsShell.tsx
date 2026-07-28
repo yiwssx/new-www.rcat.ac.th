@@ -18,6 +18,7 @@ import {
   useMediaQuery,
   useTheme
 } from "@mui/material";
+import { designTokens } from "../../design-system/tokens";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
@@ -189,7 +190,7 @@ export default function CmsShell() {
               sx={{
                 minHeight: 48,
                 mb: 0.5,
-                borderRadius: 2,
+                borderRadius: designTokens.radius.medium,
                 "&.Mui-selected": {
                   color: "primary.main",
                   backgroundColor: "primary.light"
@@ -247,7 +248,8 @@ export default function CmsShell() {
         sx={{
           width: { lg: `calc(100% - ${drawerWidth}px)` },
           ml: { lg: `${drawerWidth}px` },
-          borderBottom: "1px solid rgba(31, 90, 44, 0.12)"
+          borderBottom: "1px solid",
+          borderColor: "divider"
         }}
       >
         <Toolbar>
@@ -271,7 +273,8 @@ export default function CmsShell() {
           sx={{
             "& .MuiDrawer-paper": {
               width: drawerWidth,
-              borderRight: "1px solid rgba(31, 90, 44, 0.12)"
+              borderRight: "1px solid",
+              borderColor: "divider"
             }
           }}
         >

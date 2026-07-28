@@ -16,14 +16,7 @@ import PublicSiteShell from "../components/PublicSiteShell";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
-
-const focusVisibleSx = {
-  "&:focus-visible": {
-    outline: "3px solid",
-    outlineColor: "secondary.main",
-    outlineOffset: 3
-  }
-};
+import { focusVisibleSx } from "../../design-system/componentStyles";
 
 function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: string }) {
   const mapEmbedSrc = normalizeSafeResourceUrl(mapEmbedUrl);
@@ -44,7 +37,7 @@ function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: st
               sx={{
                 width: "100%",
                 height: { xs: 300, md: 420 },
-                borderRadius: 2,
+                borderRadius: 1,
                 display: "block",
                 mt: 2
               }}
@@ -70,12 +63,13 @@ function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: st
             sx={{
               mt: 2,
               minHeight: { xs: 300, md: 420 },
-              borderRadius: 2,
+              borderRadius: 1,
               display: "grid",
               placeItems: "center",
               textAlign: "center",
               bgcolor: "background.default",
-              border: "1px solid rgba(31, 90, 44, 0.14)",
+              border: "1px solid",
+              borderColor: "divider",
               p: 3
             }}
           >

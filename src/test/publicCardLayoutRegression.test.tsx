@@ -68,7 +68,7 @@ describe("public card layout regressions", () => {
     const cardLink = screen.getByRole("link", { name: /Public card title/ });
 
     expect(cardLink).toHaveAttribute("href", "/content/public-card-title");
-    expect(cardLink).toHaveClass("rcat-card", "block", "h-full");
+    expect(cardLink).toHaveClass("MuiCard-root", "block", "h-full");
     expect(within(cardLink).getByRole("img", { name: "Card image" })).toHaveAttribute(
       "src",
       "https://example.edu/card-image.jpg"
@@ -272,7 +272,7 @@ describe("public card layout regressions", () => {
 
     render(<EventListCard items={events} />);
 
-    expect(screen.getByText("Orientation day").closest(".rcat-card")).not.toBeNull();
+    expect(screen.getByText("Orientation day").closest(".MuiCard-root")).not.toBeNull();
     expect(screen.getByText("Main hall")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "ดูรายละเอียด Orientation day" }));
 

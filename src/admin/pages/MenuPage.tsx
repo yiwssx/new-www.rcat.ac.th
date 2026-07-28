@@ -9,7 +9,6 @@ import {
   Checkbox,
   Chip,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
@@ -28,6 +27,8 @@ import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import ResponsiveDialogActions from "../../design-system/components/ResponsiveDialogActions";
+import { staticSurfaceSx } from "../../design-system/componentStyles";
 import PageHeader from "../components/PageHeader";
 import AdminPagination from "../components/AdminPagination";
 import { useAuth } from "../../context/authSessionContext";
@@ -518,10 +519,9 @@ export default function MenuPage() {
                     <Box
                       key={item.id}
                       sx={{
+                        ...staticSurfaceSx,
                         ml: Math.min(depth, 4) * 2,
-                        p: 1.5,
-                        borderRadius: 2,
-                        border: "1px solid rgba(31, 90, 44, 0.12)"
+                        p: 1.5
                       }}
                     >
                       <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
@@ -600,7 +600,13 @@ export default function MenuPage() {
               sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
             >
               {(listQuery.data?.items ?? []).map((item) => (
-                <Box key={item.id} sx={{ p: 2, borderRadius: 2, border: "1px solid rgba(31, 90, 44, 0.12)" }}>
+                <Box
+                  key={item.id}
+                  sx={{
+                    ...staticSurfaceSx,
+                    p: 2
+                  }}
+                >
                   <Stack
                     direction={{ xs: "column", md: "row" }}
                     spacing={1.5}
@@ -714,7 +720,7 @@ export default function MenuPage() {
             </Stack>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <ResponsiveDialogActions>
           <Button color="inherit" onClick={closeDialog} disabled={saveMutation.isPending}>
             ยกเลิก
           </Button>
@@ -725,7 +731,7 @@ export default function MenuPage() {
           >
             {saveMutation.isPending ? "กำลังบันทึก" : "บันทึกรายการ"}
           </Button>
-        </DialogActions>
+        </ResponsiveDialogActions>
       </Dialog>
     </Box>
   );

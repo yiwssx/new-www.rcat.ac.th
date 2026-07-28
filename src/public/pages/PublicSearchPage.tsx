@@ -15,6 +15,8 @@ import { ContentItem } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { searchPublishedContent } from "../../utils/search";
+import { interactiveSurfaceSx } from "../../design-system/componentStyles";
+import ActionBar from "../../design-system/components/ActionBar";
 
 const SEARCH_PAGE_SIZE = 12;
 
@@ -109,33 +111,35 @@ export default function PublicSearchPage() {
         component="form"
         onSubmit={handleSubmit}
         sx={{
-          border: "1px solid rgba(31, 90, 44, 0.12)",
-          borderRadius: 2,
-          boxShadow: "0 18px 44px rgba(31, 90, 44, 0.08)",
           mb: 3
         }}
       >
         <CardContent>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ xs: "stretch", md: "center" }}>
-            <TextField
-              value={draftQuery}
-              onChange={(event) => setDraftQuery(event.target.value)}
-              type="search"
-              label="คำค้น"
-              placeholder="ค้นหาในเว็บไซต์"
-              aria-label="ค้นหาในเว็บไซต์"
-              fullWidth
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              startIcon={<SearchOutlinedIcon />}
-              sx={{ minWidth: { md: 132 } }}
-            >
-              ค้นหา
-            </Button>
-          </Stack>
+          <ActionBar
+            ariaLabel="ค้นหาเนื้อหา"
+            primary={
+              <TextField
+                value={draftQuery}
+                onChange={(event) => setDraftQuery(event.target.value)}
+                type="search"
+                label="คำค้น"
+                placeholder="ค้นหาในเว็บไซต์"
+                aria-label="ค้นหาในเว็บไซต์"
+                fullWidth
+              />
+            }
+            secondary={
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                startIcon={<SearchOutlinedIcon />}
+                sx={{ minWidth: { md: 132 } }}
+              >
+                ค้นหา
+              </Button>
+            }
+          />
         </CardContent>
       </Card>
 
@@ -171,9 +175,7 @@ export default function PublicSearchPage() {
                 <Card
                   sx={{
                     height: "100%",
-                    border: "1px solid rgba(31, 90, 44, 0.12)",
-                    borderRadius: 2,
-                    boxShadow: "0 16px 34px rgba(31, 90, 44, 0.07)"
+                    ...interactiveSurfaceSx
                   }}
                 >
                   <CardContent sx={{ height: "100%", display: "flex", flexDirection: "column", gap: 1.4 }}>

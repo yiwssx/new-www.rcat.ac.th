@@ -1,38 +1,40 @@
-import { Chip, ChipProps } from "@mui/material";
+import type { ChipProps } from "@mui/material";
 import { ContentStatus, IntegrationState } from "../../types";
 import { contentStatusLabels, integrationStateLabels } from "../../utils/thaiLabels";
+import SemanticStatusChip from "../../design-system/components/SemanticStatusChip";
+import type { SemanticStatus } from "../../design-system/tokens";
 
-const contentStatusMeta: Record<ContentStatus, { label: string; color: ChipProps["color"] }> = {
+const contentStatusMeta: Record<ContentStatus, { label: string; status: SemanticStatus }> = {
   draft: {
     label: contentStatusLabels.draft,
-    color: "default"
+    status: "draft"
   },
   review: {
     label: contentStatusLabels.review,
-    color: "warning"
+    status: "warning"
   },
   scheduled: {
     label: contentStatusLabels.scheduled,
-    color: "secondary"
+    status: "scheduled"
   },
   published: {
     label: contentStatusLabels.published,
-    color: "success"
+    status: "published"
   }
 };
 
-const integrationStatusMeta: Record<IntegrationState, { label: string; color: ChipProps["color"] }> = {
+const integrationStatusMeta: Record<IntegrationState, { label: string; status: SemanticStatus }> = {
   connected: {
     label: integrationStateLabels.connected,
-    color: "success"
+    status: "success"
   },
   pending: {
     label: integrationStateLabels.pending,
-    color: "warning"
+    status: "warning"
   },
   error: {
     label: integrationStateLabels.error,
-    color: "error"
+    status: "error"
   }
 };
 
@@ -47,5 +49,5 @@ export default function StatusChip({ status, size = "small" }: StatusChipProps) 
       ? contentStatusMeta[status as ContentStatus]
       : integrationStatusMeta[status as IntegrationState];
 
-  return <Chip label={meta.label} color={meta.color} size={size} variant="outlined" />;
+  return <SemanticStatusChip label={meta.label} status={meta.status} size={size} />;
 }

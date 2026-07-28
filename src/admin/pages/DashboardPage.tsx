@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Box, Button, Card, CardContent, LinearProgress, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import { designTokens } from "../../design-system/tokens";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
@@ -144,8 +145,9 @@ export default function DashboardPage() {
                     justifyContent="space-between"
                     sx={{
                       p: 2,
-                      borderRadius: 2,
-                      border: "1px solid rgba(31, 90, 44, 0.12)"
+                      borderRadius: designTokens.radius.medium,
+                      border: "1px solid",
+                      borderColor: "divider"
                     }}
                   >
                     <Box>
@@ -180,7 +182,7 @@ export default function DashboardPage() {
                       sx={{
                         width: 62,
                         height: 62,
-                        borderRadius: 2,
+                        borderRadius: designTokens.radius.medium,
                         display: "grid",
                         placeItems: "center",
                         color: "secondary.dark",

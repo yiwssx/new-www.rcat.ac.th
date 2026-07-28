@@ -3,7 +3,6 @@ import {
   Alert,
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
@@ -15,6 +14,7 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import ResponsiveDialogActions from "../../design-system/components/ResponsiveDialogActions";
 import { useAuth } from "../../context/authSessionContext";
 import { cmsStepUpCoordinator, getCmsAuthErrorMessage } from "../../features/cms-auth";
 
@@ -159,14 +159,14 @@ export default function ReauthenticationDialog() {
             />
           </Stack>
         </DialogContent>
-        <DialogActions>
+        <ResponsiveDialogActions>
           <Button onClick={handleCancel} disabled={submitting}>
             ยกเลิก
           </Button>
           <Button type="submit" variant="contained" disabled={submitting}>
             {submitting ? "กำลังตรวจสอบ" : "ยืนยัน"}
           </Button>
-        </DialogActions>
+        </ResponsiveDialogActions>
       </Stack>
     </Dialog>
   );
