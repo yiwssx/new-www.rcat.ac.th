@@ -79,6 +79,46 @@ describe("public card layout regressions", () => {
     expect(within(cardLink).getByText("Public team")).toBeInTheDocument();
   });
 
+  it("keeps regular and featured responsive images inside their fixed media slots", () => {
+    const item = createContentItem({ featuredMediaId: "media-1" });
+    const { container, rerender } = render(<PublicContentCard item={item} mediaAssets={[createMediaAsset()]} />);
+
+    let mediaSlot = container.querySelector('[data-public-content-card-media-slot="regular"]') as HTMLElement;
+    let responsiveSlot = mediaSlot.querySelector('[data-public-responsive-image="true"]') as HTMLElement;
+
+    expect(mediaSlot).toHaveStyle({ width: "70px", height: "70px" });
+    expect(responsiveSlot).toHaveStyle({ width: "100%", height: "100%" });
+
+    rerender(<PublicContentCard item={item} mediaAssets={[createMediaAsset()]} featured />);
+
+    mediaSlot = container.querySelector('[data-public-content-card-media-slot="featured"]') as HTMLElement;
+    responsiveSlot = mediaSlot.querySelector('[data-public-responsive-image="true"]') as HTMLElement;
+
+    expect(mediaSlot).toHaveStyle({ height: "150px" });
+    expect(responsiveSlot).toHaveStyle({ width: "100%", height: "100%" });
+  });
+
+  it("keeps the fallback icon centered inside a fixed card slot", () => {
+    const item = createContentItem({ featuredMediaId: "media-1" });
+    const invalidAsset = createMediaAsset({
+      thumbnailUrl: "javascript:alert(1)",
+      previewUrl: "javascript:alert(2)",
+      driveUrl: "https://drive.google.com/open"
+    });
+    const { container } = render(<PublicContentCard item={item} mediaAssets={[invalidAsset]} />);
+
+    const mediaSlot = container.querySelector('[data-public-content-card-media-slot="regular"]') as HTMLElement;
+    const fallback = mediaSlot.querySelector('[data-public-image-fallback="true"]') as HTMLElement;
+
+    expect(mediaSlot).toHaveClass("grid", "place-items-center");
+    expect(fallback).toHaveStyle({
+      width: "100%",
+      height: "100%",
+      display: "grid",
+      placeItems: "center"
+    });
+  });
+
   it("uses the thumbnail source and small Drive policy for regular and featured cards", () => {
     const item = createContentItem({ featuredMediaId: "media-1" });
     const asset = createMediaAsset({

@@ -72,6 +72,84 @@ describe("publicImageSources", () => {
     expect(resolvePublicImageSource(asset, "content-body").fileId).toBe("RCAT_preview_ABC123");
   });
 
+  it("falls back from an invalid thumbnail to a valid preview", () => {
+    const asset = {
+      type: "image",
+      thumbnailUrl: "https://drive.google.com/file/d/invalid$id/view",
+      previewUrl: "https://drive.google.com/file/d/RCAT_preview_fallback/view",
+      driveUrl: "https://drive.google.com/file/d/RCAT_drive_fallback/view"
+    };
+
+    expect(selectPublicImageSource(asset, "content-card")).toBe(asset.previewUrl);
+    expect(resolvePublicImageSource(asset, "content-card").fileId).toBe("RCAT_preview_fallback");
+  });
+
+  it("falls back to driveUrl when both thumbnail and preview are unusable", () => {
+    const asset = {
+      type: "image",
+      thumbnailUrl: "https://drive.google.com/file/d/invalid$id/view",
+      previewUrl: "https://drive.google.com/open",
+      driveUrl: "https://drive.google.com/file/d/RCAT_drive_only_fallback/view"
+    };
+
+    expect(resolvePublicImageSource(asset, "content-card").fileId).toBe("RCAT_drive_only_fallback");
+  });
+
+  it("skips unsafe, malformed Drive, and Facebook CDN candidates while preserving precedence", () => {
+    const validPreviewUrl = "https://drive.google.com/file/d/RCAT_safe_preview/view";
+
+    expect(
+      resolvePublicImageSource(
+        {
+          type: "image",
+          thumbnailUrl: "javascript:alert(1)",
+          previewUrl: validPreviewUrl
+        },
+        "content-card"
+      ).fileId
+    ).toBe("RCAT_safe_preview");
+    expect(
+      resolvePublicImageSource(
+        {
+          type: "image",
+          thumbnailUrl: "https://drive.google.com/file/d/invalid$id/view",
+          previewUrl: validPreviewUrl
+        },
+        "content-card"
+      ).fileId
+    ).toBe("RCAT_safe_preview");
+    expect(
+      resolvePublicImageSource(
+        {
+          type: "image",
+          thumbnailUrl: "https://scontent.example.fbcdn.net/photo.jpg",
+          previewUrl: validPreviewUrl
+        },
+        "content-card"
+      ).fileId
+    ).toBe("RCAT_safe_preview");
+  });
+
+  it("returns an empty descriptor only after every candidate is unusable", () => {
+    expect(
+      resolvePublicImageSource(
+        {
+          type: "image",
+          thumbnailUrl: "javascript:alert(1)",
+          previewUrl: "https://scontent.example.fbcdn.net/photo.jpg",
+          driveUrl: "https://drive.google.com/open"
+        },
+        "content-card"
+      )
+    ).toEqual({
+      fileId: "",
+      originalUrl: "",
+      src: "",
+      srcSet: "",
+      widths: []
+    });
+  });
+
   it("preserves local and arbitrary HTTPS sources without inventing variants", () => {
     expect(resolvePublicImageSource("/rcat-logo-128.png", "logo")).toMatchObject({
       src: "/rcat-logo-128.png",

@@ -49,10 +49,11 @@ export default function PublicContentCard({
         <Stack direction={featured ? { xs: "column", md: "row" } : "row"} spacing={2}>
           <Box
             className="rcat-image-frame grid place-items-center"
+            data-public-content-card-media-slot={featured ? "featured" : "regular"}
             sx={{
               width: featured ? { xs: "100%", md: 180 } : 70,
               minWidth: featured ? { md: 180 } : 70,
-              height: featured ? { xs: 150, md: 150 } : 70
+              height: featured ? 150 : 70
             }}
           >
             {featuredMedia?.type === "image" ? (

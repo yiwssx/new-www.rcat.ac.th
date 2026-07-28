@@ -17,6 +17,7 @@ const ids = {
   bodyTwo: "media-body-two",
   event: "media-event"
 } as const;
+const invalidThumbnailId = "invalid$thumbnail";
 
 function driveFile(id: string) {
   return `https://drive.google.com/file/d/${id}/view`;
@@ -44,7 +45,11 @@ function imageAsset(id: string, name: string) {
 
 const media = [
   imageAsset(ids.featuredCard, "Featured card fixture"),
-  imageAsset(ids.regularCard, "Regular card fixture"),
+  {
+    ...imageAsset(ids.regularCard, "Regular card fixture"),
+    thumbnailUrl: driveFile(invalidThumbnailId),
+    previewUrl: driveThumbnail(ids.regularCard, 1600)
+  },
   imageAsset(ids.programCard, "Program card fixture"),
   imageAsset(ids.featuredContent, "Featured content fixture"),
   imageAsset(ids.bodyOne, "Body image one fixture"),
@@ -506,9 +511,62 @@ test.describe("Public media request budgets", () => {
     expect(regularRequest.width).toBe(160);
     expect(featuredRequest.width).toBeLessThan(1600);
     expect(regularRequest.width).toBeLessThan(640);
+    expect(driveRequestsFor(ledger, invalidThumbnailId)).toHaveLength(0);
+
+    const featuredCard = page.getByRole("link", { name: /Featured media news/ });
+    const regularCard = page.getByRole("link", { name: /Regular media news/ });
+    const featuredSlot = featuredCard.locator('[data-public-content-card-media-slot="featured"]');
+    const regularSlot = regularCard.locator('[data-public-content-card-media-slot="regular"]');
+    const featuredImage = featuredCard.getByRole("img", { name: "Featured card fixture" });
+    const regularImage = regularCard.getByRole("img", { name: "Regular card fixture" });
+
+    await expect(featuredCard).toBeVisible();
+    await expect(regularCard).toBeVisible();
+    await expect(featuredImage).toBeVisible();
+    await expect(regularImage).toBeVisible();
+    await expect(regularImage).toHaveAttribute("src", new RegExp(`id=${ids.regularCard}&`));
+
+    const featuredSlotBox = await featuredSlot.boundingBox();
+    const regularSlotBox = await regularSlot.boundingBox();
+    const featuredImageBox = await featuredImage.boundingBox();
+    const regularImageBox = await regularImage.boundingBox();
+
+    expect(featuredSlotBox).not.toBeNull();
+    expect(regularSlotBox).not.toBeNull();
+    expect(featuredImageBox).not.toBeNull();
+    expect(regularImageBox).not.toBeNull();
+    expect(regularSlotBox!.width).toBeGreaterThanOrEqual(68);
+    expect(regularSlotBox!.width).toBeLessThanOrEqual(72);
+    expect(regularSlotBox!.height).toBeGreaterThanOrEqual(68);
+    expect(regularSlotBox!.height).toBeLessThanOrEqual(72);
+    expect(regularImageBox!.width).toBeGreaterThan(0);
+    expect(regularImageBox!.height).toBeGreaterThan(0);
+    expect(regularImageBox!.width).toBeLessThanOrEqual(regularSlotBox!.width + 1);
+    expect(regularImageBox!.height).toBeLessThanOrEqual(regularSlotBox!.height + 1);
+    expect(featuredSlotBox!.width).toBeGreaterThanOrEqual(170);
+    expect(featuredSlotBox!.width).toBeLessThanOrEqual(190);
+    expect(featuredSlotBox!.height).toBeGreaterThanOrEqual(145);
+    expect(featuredSlotBox!.height).toBeLessThanOrEqual(155);
+    expect(featuredImageBox!.width).toBeGreaterThan(0);
+    expect(featuredImageBox!.height).toBeGreaterThan(0);
+    expect(featuredImageBox!.width).toBeLessThanOrEqual(featuredSlotBox!.width + 1);
+    expect(featuredImageBox!.height).toBeLessThanOrEqual(featuredSlotBox!.height + 1);
 
     console.log(
-      `MEDIA_CORRECTED_NEWS=${JSON.stringify({ requests: summarizeRequests(ledger), dom: await domSummary(page) })}`
+      `MEDIA_CORRECTED_NEWS=${JSON.stringify({
+        requests: summarizeRequests(ledger),
+        dom: await domSummary(page),
+        geometry: {
+          featuredSlot: featuredSlotBox,
+          featuredImage: featuredImageBox,
+          regularSlot: regularSlotBox,
+          regularImage: regularImageBox
+        },
+        fallback: {
+          rejectedThumbnailId: invalidThumbnailId,
+          selectedPreviewId: regularRequest.id
+        }
+      })}`
     );
   });
 

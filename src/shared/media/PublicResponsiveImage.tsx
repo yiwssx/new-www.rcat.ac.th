@@ -80,11 +80,13 @@ export default function PublicResponsiveImage({
       data-public-image-load-mode={loadMode}
       data-public-image-active={shouldRenderImage ? "true" : "false"}
       data-public-image-aspect-ratio={aspectRatio}
+      data-public-image-fill={fill ? "true" : "false"}
       sx={[
         {
           position: "relative",
           display: "block",
           width: "100%",
+          height: fill ? "100%" : undefined,
           aspectRatio,
           minHeight: reservedMinHeight,
           overflow: "hidden"

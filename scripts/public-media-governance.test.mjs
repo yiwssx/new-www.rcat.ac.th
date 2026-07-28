@@ -1,9 +1,17 @@
-import { describe, expect, it } from "vitest";
+import React from "react";
+import { cleanup, render } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import PublicContentCard from "../src/public/components/PublicContentCard";
+import { resolvePublicImageSource } from "../src/shared/media/publicImageSources";
 import {
   parsePublicImagePolicies,
   scanPublicMediaSource,
   validatePublicImagePolicies
 } from "./public-media-governance.mjs";
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("Public media governance parser", () => {
   it("detects raw Public image and iframe owners independent of JSX formatting", () => {
@@ -81,5 +89,63 @@ describe("Public media governance parser", () => {
     expect(violations.join("\n")).toMatch(/sorted/);
     expect(violations.join("\n")).toMatch(/below 640/);
     expect(violations.join("\n")).toMatch(/fallback must be below 1600/);
+  });
+
+  it("keeps PublicContentCard fixed slots connected to fill-height responsive wrappers", () => {
+    const item = {
+      id: "governance-card",
+      title: "Governance card",
+      slug: "governance-card",
+      type: "news",
+      status: "published",
+      owner: "Governance",
+      summary: "Geometry contract",
+      category: "Test",
+      tags: [],
+      featuredMediaId: "governance-image",
+      updatedAt: "2026-07-28T00:00:00.000Z",
+      publishAt: "2026-07-28T00:00:00.000Z"
+    };
+    const mediaAssets = [
+      {
+        id: "governance-image",
+        name: "Governance image",
+        type: "image",
+        size: "fixture",
+        owner: "Governance",
+        previewUrl: "https://images.example.edu/governance.jpg",
+        updatedAt: "2026-07-28T00:00:00.000Z"
+      }
+    ];
+    const { container, rerender } = render(React.createElement(PublicContentCard, { item, mediaAssets }));
+
+    let slot = container.querySelector('[data-public-content-card-media-slot="regular"]');
+    let responsiveWrapper = slot.querySelector('[data-public-responsive-image="true"]');
+
+    expect(slot).toHaveStyle({ width: "70px", height: "70px" });
+    expect(responsiveWrapper).toHaveStyle({ width: "100%", height: "100%" });
+
+    rerender(React.createElement(PublicContentCard, { item, mediaAssets, featured: true }));
+
+    slot = container.querySelector('[data-public-content-card-media-slot="featured"]');
+    responsiveWrapper = slot.querySelector('[data-public-responsive-image="true"]');
+
+    expect(slot).toHaveStyle({ height: "150px" });
+    expect(responsiveWrapper).toHaveStyle({ width: "100%", height: "100%" });
+  });
+
+  it("keeps MediaAsset precedence on the first usable source", () => {
+    const result = resolvePublicImageSource(
+      {
+        type: "image",
+        thumbnailUrl: "https://drive.google.com/file/d/invalid$id/view",
+        previewUrl: "https://drive.google.com/file/d/governance-preview/view",
+        driveUrl: "https://drive.google.com/file/d/governance-drive/view"
+      },
+      "content-card"
+    );
+
+    expect(result.fileId).toBe("governance-preview");
+    expect(result.src).toContain("id=governance-preview");
   });
 });

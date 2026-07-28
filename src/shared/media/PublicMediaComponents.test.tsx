@@ -77,6 +77,79 @@ describe("PublicResponsiveImage", () => {
     expect(image).toHaveAttribute("height", "800");
   });
 
+  it("fills a parent with explicit geometry and gives the rendered image the same intended dimensions", () => {
+    const { container } = render(
+      <div data-testid="fixed-parent" style={{ width: 70, height: 70 }}>
+        <PublicResponsiveImage
+          source="https://images.example.edu/fill.jpg"
+          intent="content-card"
+          alt="Fill image"
+          loadMode="eager"
+          fill
+        />
+      </div>
+    );
+
+    const parent = screen.getByTestId("fixed-parent");
+    const slot = container.querySelector('[data-public-responsive-image="true"]') as HTMLElement;
+    const image = screen.getByRole("img", { name: "Fill image" });
+
+    expect(parent).toHaveStyle({ width: "70px", height: "70px" });
+    expect(slot).toHaveAttribute("data-public-image-fill", "true");
+    expect(slot).toHaveStyle({ width: "100%", height: "100%" });
+    expect(image).toHaveStyle({
+      position: "absolute",
+      width: "100%",
+      height: "100%"
+    });
+  });
+
+  it("preserves explicit aspect ratio and reserved minimum-height geometry", () => {
+    const { container, rerender } = render(
+      <PublicResponsiveImage
+        source="https://images.example.edu/aspect.jpg"
+        intent="event-attachment"
+        alt="Aspect image"
+        loadMode="eager"
+        aspectRatio="4 / 3"
+        fill
+      />
+    );
+
+    let slot = container.querySelector('[data-public-responsive-image="true"]') as HTMLElement;
+    expect(slot).toHaveAttribute("data-public-image-aspect-ratio", "4 / 3");
+    expect(slot).toHaveStyle({ height: "100%" });
+
+    rerender(
+      <PublicResponsiveImage
+        source="https://images.example.edu/reserved.jpg"
+        intent="content-body"
+        alt="Reserved image"
+        loadMode="eager"
+        reservedMinHeight={180}
+      />
+    );
+
+    slot = container.querySelector('[data-public-responsive-image="true"]') as HTMLElement;
+    expect(slot).toHaveStyle({ minHeight: "180px" });
+  });
+
+  it("allows caller sx to override default fill dimensions", () => {
+    const { container } = render(
+      <PublicResponsiveImage
+        source="https://images.example.edu/override.jpg"
+        intent="logo"
+        alt="Override image"
+        loadMode="eager"
+        fill
+        sx={{ width: 88, height: 44 }}
+      />
+    );
+
+    const slot = container.querySelector('[data-public-responsive-image="true"]') as HTMLElement;
+    expect(slot).toHaveStyle({ width: "88px", height: "44px" });
+  });
+
   it("keeps network-bearing attributes absent until the slot nears the viewport", async () => {
     const { container } = render(
       <PublicResponsiveImage

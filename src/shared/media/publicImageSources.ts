@@ -112,28 +112,21 @@ export function getPublicImageIntentPolicy(intent: PublicImageIntent): PublicIma
   };
 }
 
-function isFacebookCdnUrl(value: string) {
-  try {
-    const hostname = new URL(value).hostname.toLowerCase();
-
-    return hostname === FACEBOOK_CDN_HOST_SUFFIX || hostname.endsWith(`.${FACEBOOK_CDN_HOST_SUFFIX}`);
-  } catch {
-    return false;
-  }
-}
-
-function isGoogleDriveUrl(value: string) {
-  try {
-    return GOOGLE_DRIVE_HOSTS.has(new URL(value).hostname.toLowerCase());
-  } catch {
-    return false;
-  }
-}
-
 function normalizeGoogleDriveFileId(value: string | null | undefined) {
   const fileId = String(value || "").trim();
 
   return GOOGLE_DRIVE_FILE_ID_PATTERN.test(fileId) ? fileId : "";
+}
+
+function extractGoogleDriveFileIdFromUrl(parsedUrl: URL) {
+  if (!GOOGLE_DRIVE_HOSTS.has(parsedUrl.hostname.toLowerCase())) {
+    return "";
+  }
+
+  const filePathMatch = parsedUrl.pathname.match(/^\/file\/d\/([^/]+)/);
+  const fileId = filePathMatch ? filePathMatch[1] : parsedUrl.searchParams.get("id");
+
+  return normalizeGoogleDriveFileId(fileId);
 }
 
 export function extractGoogleDriveFileId(value: string | null | undefined) {
@@ -144,16 +137,7 @@ export function extractGoogleDriveFileId(value: string | null | undefined) {
   }
 
   try {
-    const parsed = new URL(imageUrl);
-
-    if (!GOOGLE_DRIVE_HOSTS.has(parsed.hostname.toLowerCase())) {
-      return "";
-    }
-
-    const filePathMatch = parsed.pathname.match(/^\/file\/d\/([^/]+)/);
-    const fileId = filePathMatch ? filePathMatch[1] : parsed.searchParams.get("id");
-
-    return normalizeGoogleDriveFileId(fileId);
+    return extractGoogleDriveFileIdFromUrl(new URL(imageUrl));
   } catch {
     return "";
   }
@@ -170,39 +154,41 @@ export function buildGoogleDriveThumbnailUrl(fileId: string, width: number) {
   return `https://drive.google.com/thumbnail?id=${safeFileId}&sz=w${safeWidth}`;
 }
 
-export function selectPublicImageSource(
+function createEmptyPublicImageSource(): PublicImageSourceSet {
+  return {
+    fileId: "",
+    originalUrl: "",
+    src: "",
+    srcSet: "",
+    widths: []
+  };
+}
+
+function getPublicImageCandidates(
   source: string | PublicImageAssetSource | null | undefined,
   intent: PublicImageIntent
 ) {
   if (typeof source === "string") {
-    return source;
+    return [source];
   }
 
   if (!source || (source.type && source.type !== "image")) {
-    return "";
+    return [];
   }
 
-  const candidates = SMALL_ASSET_INTENTS.has(intent)
+  return SMALL_ASSET_INTENTS.has(intent)
     ? [source.thumbnailUrl, source.previewUrl, source.driveUrl]
     : [source.previewUrl, source.driveUrl, source.thumbnailUrl];
-
-  return candidates.find((candidate) => Boolean(String(candidate || "").trim())) || "";
 }
 
-export function resolvePublicImageSource(
-  source: string | PublicImageAssetSource | null | undefined,
+function resolvePublicImageCandidate(
+  candidate: string | null | undefined,
   intent: PublicImageIntent
-): PublicImageSourceSet {
-  const originalUrl = normalizeSafeResourceUrl(selectPublicImageSource(source, intent));
+): PublicImageSourceSet | null {
+  const originalUrl = normalizeSafeResourceUrl(candidate);
 
-  if (!originalUrl || isFacebookCdnUrl(originalUrl)) {
-    return {
-      fileId: "",
-      originalUrl: "",
-      src: "",
-      srcSet: "",
-      widths: []
-    };
+  if (!originalUrl) {
+    return null;
   }
 
   if (originalUrl.startsWith("/")) {
@@ -215,17 +201,25 @@ export function resolvePublicImageSource(
     };
   }
 
-  const fileId = extractGoogleDriveFileId(originalUrl);
+  let parsedUrl: URL;
 
-  if (isGoogleDriveUrl(originalUrl)) {
+  try {
+    parsedUrl = new URL(originalUrl);
+  } catch {
+    return null;
+  }
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+
+  if (hostname === FACEBOOK_CDN_HOST_SUFFIX || hostname.endsWith(`.${FACEBOOK_CDN_HOST_SUFFIX}`)) {
+    return null;
+  }
+
+  if (GOOGLE_DRIVE_HOSTS.has(hostname)) {
+    const fileId = extractGoogleDriveFileIdFromUrl(parsedUrl);
+
     if (!fileId) {
-      return {
-        fileId: "",
-        originalUrl: "",
-        src: "",
-        srcSet: "",
-        widths: []
-      };
+      return null;
     }
 
     const policy = getPublicImageIntentPolicy(intent);
@@ -246,6 +240,36 @@ export function resolvePublicImageSource(
     srcSet: "",
     widths: []
   };
+}
+
+export function selectPublicImageSource(
+  source: string | PublicImageAssetSource | null | undefined,
+  intent: PublicImageIntent
+) {
+  for (const candidate of getPublicImageCandidates(source, intent)) {
+    const resolvedCandidate = resolvePublicImageCandidate(candidate, intent);
+
+    if (resolvedCandidate) {
+      return resolvedCandidate.originalUrl;
+    }
+  }
+
+  return "";
+}
+
+export function resolvePublicImageSource(
+  source: string | PublicImageAssetSource | null | undefined,
+  intent: PublicImageIntent
+): PublicImageSourceSet {
+  for (const candidate of getPublicImageCandidates(source, intent)) {
+    const resolvedCandidate = resolvePublicImageCandidate(candidate, intent);
+
+    if (resolvedCandidate) {
+      return resolvedCandidate;
+    }
+  }
+
+  return createEmptyPublicImageSource();
 }
 
 export function normalizePublicImageUrl(

@@ -13,6 +13,24 @@ Both runs intercepted the Public API plus Google Drive, YouTube, and Facebook. T
 
 Each intercepted image response is the same documented 120-byte SVG body. Request counts and selected `sz=wNNN` candidates are therefore deterministic, but the fixture does not represent production image bytes. Local timings are not production LCP, CLS, Web Vitals, or transfer-size measurements.
 
+## Corrective review note
+
+Review of the initial branch found that `PublicResponsiveImage` could place an
+absolutely positioned fill image inside a wrapper that did not inherit the
+fixed card slot height. The shared fill wrapper now defaults to
+`height: 100%`, while caller `sx` remains later in the style order and can
+override that default. Browser-level bounding-box assertions prove that the
+regular card slot and image are both 70 × 70 px and the desktop featured card
+slot and image are both 180 × 150 px.
+
+`MediaAsset` precedence now means the first valid and usable candidate. Each
+candidate is normalized and checked in order, so unsafe resources, Facebook
+CDN URLs, and Drive URLs without a valid file ID fall through to the next
+candidate. The deterministic invalid-thumbnail fixture confirms that a valid
+preview is selected and remains visible at the regular-card `w160` candidate.
+The corrected request-budget counts and candidate tables below are unchanged
+by this pass.
+
 ## Architecture
 
 `src/shared/media/publicImageSources.ts` is the single Public image source policy. It owns safe normalization, Drive ID extraction, Drive thumbnail generation, source precedence, intent widths, fallback widths, `srcSet` construction, and width normalization.
@@ -158,11 +176,11 @@ The parser uses the repository TypeScript compiler API instead of exact-format t
 | -------------------------------------------- | -------: | --------: | ------: |
 | Synchronous JavaScript files                 |        1 |         1 |       1 |
 | Synchronous JavaScript raw bytes             |  375,507 |   375,728 | 388,000 |
-| Synchronous JavaScript gzip bytes            |  123,506 |   123,582 | 127,000 |
+| Synchronous JavaScript gzip bytes            |  123,506 |   123,576 | 127,000 |
 | Forbidden synchronous telemetry associations |        0 |         0 |       0 |
 
 Both snapshots pass `pnpm perf:check`. The corrected raw/gzip changes are
-+221/+76 bytes and remain 12,272/3,418 bytes below their limits.
++221/+70 bytes and remain 12,272/3,424 bytes below their limits.
 
 ## Limitations
 
