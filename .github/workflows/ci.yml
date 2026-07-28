@@ -36,4 +36,5 @@ jobs:
       - run: pnpm build
       - run: pnpm perf:check
       - run: pnpm media:check
+      - run: pnpm layout:check
       - run: pnpm worker:typecheck

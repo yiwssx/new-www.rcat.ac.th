@@ -1,11 +1,11 @@
-import { LinearProgress, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicErrorState from "../components/PublicErrorState";
-import PublicLoadingState from "../components/PublicLoadingState";
+import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicContentList } from "../hooks/usePublicContentList";
@@ -27,7 +27,7 @@ export default function PublicBlogPage() {
   if (!data && (isLoading || isFetching)) {
     return (
       <PublicSiteShell>
-        <PublicLoadingState />
+        <PublicLoadingState variant="listing" />
       </PublicSiteShell>
     );
   }
@@ -46,7 +46,7 @@ export default function PublicBlogPage() {
   if (!data) {
     return (
       <PublicSiteShell>
-        <PublicLoadingState />
+        <PublicLoadingState variant="listing" />
       </PublicSiteShell>
     );
   }
@@ -60,7 +60,7 @@ export default function PublicBlogPage() {
       preloadedDisplaySettings={data.displaySettings}
       preloadedMenu={data.menu}
     >
-      {isFetching && <LinearProgress sx={{ mb: 3 }} />}
+      <PublicBackgroundProgress active={isFetching} />
       {featuredItem && (
         <PublicContentCard
           item={featuredItem}
