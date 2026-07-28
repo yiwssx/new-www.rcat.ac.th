@@ -185,15 +185,15 @@ export const theme = createTheme({
     },
     MuiIconButton: {
       styleOverrides: {
-        root: {
+        root: ({ ownerState }) => ({
           width: control.iconButtonTarget,
           height: control.iconButtonTarget,
-          color: color.textSecondary,
+          ...(!ownerState.color || ownerState.color === "default" ? { color: color.textSecondary } : {}),
           ...focusVisibleSx,
           "&.Mui-disabled": {
             color: color.disabledText
           }
-        },
+        }),
         sizeSmall: {
           width: control.compactHeight,
           height: control.compactHeight
@@ -448,13 +448,16 @@ export const theme = createTheme({
         root: {
           borderBottomColor: color.borderSubtle,
           lineHeight: typography.compactBody.lineHeight,
-          overflowWrap: "anywhere",
+          overflowWrap: "break-word",
+          wordBreak: "normal",
           verticalAlign: "top"
         },
         head: {
           color: color.textPrimary,
           backgroundColor: color.surfaceSubtle,
           fontWeight: 800,
+          overflowWrap: "normal",
+          wordBreak: "normal",
           whiteSpace: "normal"
         }
       }

@@ -22,13 +22,27 @@ function withTheme(children: ReactNode) {
   return render(<ThemeProvider theme={theme}>{children}</ThemeProvider>);
 }
 
-function styleOverride(component: string, slot: string) {
+function styleOverride(component: string, slot: string, ownerState: Record<string, unknown> = {}) {
   const components = theme.components as unknown as Record<
     string,
-    { styleOverrides?: Record<string, Record<string, unknown>> }
+    {
+      styleOverrides?: Record<
+        string,
+        Record<string, unknown> | ((input: { ownerState: Record<string, unknown> }) => Record<string, unknown>)
+      >;
+    }
   >;
   const styleOverrides = components[component]?.styleOverrides;
-  return styleOverrides?.[slot];
+  const override = styleOverrides?.[slot];
+  return typeof override === "function" ? override({ ownerState }) : override;
+}
+
+function hexToRgb(value: string) {
+  const hex = value.replace("#", "");
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+  return `rgb(${red}, ${green}, ${blue})`;
 }
 
 describe("design-system theme policy", () => {
@@ -59,6 +73,57 @@ describe("design-system theme policy", () => {
     expect(styleOverride("MuiChip", "filledSecondary")?.color).toBe(designTokens.color.textOnAccent);
     expect(styleOverride("MuiChip", "outlinedSecondary")?.color).toBe(designTokens.color.accentForeground);
     expect(styleOverride("MuiChip", "outlinedSecondary")?.borderColor).toBe(designTokens.color.accentForeground);
+  });
+
+  it("preserves IconButton color roles while keeping inherited top-bar controls white", () => {
+    withTheme(
+      <div style={{ color: "rgb(255, 255, 255)" }}>
+        <IconButton color="inherit" aria-label="Facebook">
+          <CloseOutlinedIcon />
+        </IconButton>
+        <IconButton aria-label="ค่าเริ่มต้น">
+          <CloseOutlinedIcon />
+        </IconButton>
+        <IconButton color="primary" aria-label="หลัก">
+          <CloseOutlinedIcon />
+        </IconButton>
+        <IconButton color="error" aria-label="ข้อผิดพลาด">
+          <CloseOutlinedIcon />
+        </IconButton>
+      </div>
+    );
+
+    const inheritedButton = screen.getByRole("button", { name: "Facebook" });
+    expect(getComputedStyle(inheritedButton).color).toBe("inherit");
+    expect(getComputedStyle(inheritedButton.parentElement as Element).color).toBe("rgb(255, 255, 255)");
+    expect(getComputedStyle(screen.getByRole("button", { name: "ค่าเริ่มต้น" })).color).toBe(
+      hexToRgb(designTokens.color.textSecondary)
+    );
+    expect(getComputedStyle(screen.getByRole("button", { name: "หลัก" })).color).toBe(
+      hexToRgb(theme.palette.primary.main)
+    );
+    expect(getComputedStyle(screen.getByRole("button", { name: "ข้อผิดพลาด" })).color).toBe(
+      hexToRgb(theme.palette.error.main)
+    );
+    expect(styleOverride("MuiIconButton", "root", { color: "inherit" })).not.toHaveProperty("color");
+    expect(styleOverride("MuiIconButton", "root", { color: "default" })?.color).toBe(designTokens.color.textSecondary);
+    expect(styleOverride("MuiIconButton", "root", { color: "primary" })).not.toHaveProperty("color");
+    expect(styleOverride("MuiIconButton", "root", { color: "error" })).not.toHaveProperty("color");
+    expect(
+      styleOverride("MuiIconButton", "root", { color: "inherit" })?.["&:focus-visible, &:focus-visible:hover"]
+    ).toEqual(focusRingStyles);
+  });
+
+  it("keeps table text readable without character-by-character heading breaks", () => {
+    expect(styleOverride("MuiTableCell", "root")).toMatchObject({
+      overflowWrap: "break-word",
+      wordBreak: "normal"
+    });
+    expect(styleOverride("MuiTableCell", "head")).toMatchObject({
+      overflowWrap: "normal",
+      wordBreak: "normal",
+      whiteSpace: "normal"
+    });
   });
 
   it("keeps buttons, IconButtons, and fields accessible by default", () => {

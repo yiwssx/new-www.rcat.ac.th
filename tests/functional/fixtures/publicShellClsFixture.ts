@@ -11,6 +11,7 @@ export interface PublicShellClsFixtureOptions {
   errorPath?: string;
   emptyFooterDirectory?: boolean;
   includeNestedMenu?: boolean;
+  includeSocialLinks?: boolean;
   staleNewsCache?: boolean;
 }
 
@@ -67,7 +68,7 @@ const detailItem = {
 };
 
 export function createPublicShellHomeSnapshot(
-  options: { emptyFooterDirectory?: boolean; includeNestedMenu?: boolean } = {}
+  options: { emptyFooterDirectory?: boolean; includeNestedMenu?: boolean; includeSocialLinks?: boolean } = {}
 ) {
   const snapshot = createPublicHomeSnapshot();
 
@@ -81,6 +82,9 @@ export function createPublicShellHomeSnapshot(
       campus: "Roi-Et",
       phone: "0000000000",
       email: "fixture@example.test",
+      facebookUrl: options.includeSocialLinks ? "https://www.facebook.com/rcat.ac.th" : "",
+      youtubeUrl: options.includeSocialLinks ? "https://www.youtube.com/@rcat" : "",
+      tiktokUrl: options.includeSocialLinks ? "https://www.tiktok.com/@rcat" : "",
       footerTitle: PUBLIC_SHELL_CLS_SITE_NAME,
       footerDescription: "Deterministic dark footer content",
       footerDirectoryGroups: options.emptyFooterDirectory ? [] : createFooterDirectoryGroups(),
@@ -186,7 +190,8 @@ export async function installPublicShellClsFixture(
     const pathWithSearch = `${url.pathname}${url.search}`;
     const homeSnapshot = createPublicShellHomeSnapshot({
       emptyFooterDirectory: options.emptyFooterDirectory,
-      includeNestedMenu: options.includeNestedMenu
+      includeNestedMenu: options.includeNestedMenu,
+      includeSocialLinks: options.includeSocialLinks
     });
     const shellFields = createShellSnapshotFields(homeSnapshot);
     requests.push(pathWithSearch);

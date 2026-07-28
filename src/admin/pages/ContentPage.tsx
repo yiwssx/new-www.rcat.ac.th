@@ -79,6 +79,22 @@ const contentListUrlOptions = {
   filterDefaults: { status: "all" }
 };
 const emptyContentItems: AdminContentListItem[] = [];
+const contentTableColumnLayout = {
+  title: { minWidth: 460, whiteSpace: "normal" },
+  type: { minWidth: 88, whiteSpace: "nowrap" },
+  status: { minWidth: 120, whiteSpace: "nowrap" },
+  owner: { minWidth: 120, whiteSpace: "nowrap" },
+  updatedAt: { minWidth: 132, whiteSpace: "nowrap" },
+  actions: { minWidth: 184, whiteSpace: "nowrap" }
+} as const;
+const contentTableMinWidth = Object.values(contentTableColumnLayout).reduce(
+  (total, column) => total + column.minWidth,
+  0
+);
+
+function getContentTableColumnSx(columnId: string) {
+  return contentTableColumnLayout[columnId as keyof typeof contentTableColumnLayout];
+}
 
 function waitForDialogTransition() {
   return new Promise((resolve) => {
@@ -307,7 +323,7 @@ export default function ContentPage() {
         id: "actions",
         header: "",
         cell: (info) => (
-          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+          <Stack direction="row" spacing={0.5} justifyContent="flex-end" flexWrap="nowrap">
             <Tooltip title="ดูหน้าสาธารณะ">
               <span>
                 <IconButton
@@ -507,12 +523,16 @@ export default function ContentPage() {
             aria-busy={contentListQuery.isFetching}
             sx={{ opacity: listTransitioning ? 0.55 : 1, transition: "opacity 120ms ease" }}
           >
-            <MuiTable>
+            <MuiTable aria-label="ตารางเนื้อหา" sx={{ minWidth: contentTableMinWidth }}>
               <TableHead>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
-                      <TableCell key={header.id} sx={{ fontWeight: 800 }}>
+                      <TableCell
+                        key={header.id}
+                        data-column-id={header.column.id}
+                        sx={{ fontWeight: 800, ...getContentTableColumnSx(header.column.id) }}
+                      >
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableCell>
                     ))}
@@ -523,7 +543,13 @@ export default function ContentPage() {
                 {table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} hover>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      <TableCell
+                        key={cell.id}
+                        data-column-id={cell.column.id}
+                        sx={getContentTableColumnSx(cell.column.id)}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
                     ))}
                   </TableRow>
                 ))}

@@ -412,6 +412,37 @@ for (const viewport of viewports) {
   });
 }
 
+test("Public top-bar social IconButtons inherit white and retain visible focus", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await installPublicShellClsFixture(page, { delayed: false, includeSocialLinks: true });
+  await page.goto("/");
+  await page.locator('[data-footer-directory-state="ready"]').waitFor();
+
+  for (const label of ["Facebook", "YouTube", "TikTok"]) {
+    const socialIcon = page.getByRole("link", { name: label });
+    await expect(socialIcon).toBeVisible();
+    await expect(socialIcon).toHaveClass(/MuiIconButton-colorInherit/);
+
+    const colors = await socialIcon.evaluate((element) => ({
+      foreground: window.getComputedStyle(element).color,
+      inheritedForeground: window.getComputedStyle(element.parentElement as Element).color
+    }));
+    expect(colors.foreground).toBe("rgb(255, 255, 255)");
+    expect(colors.foreground).toBe(colors.inheritedForeground);
+
+    await socialIcon.focus();
+    const focusStyle = await socialIcon.evaluate((element) => {
+      const style = window.getComputedStyle(element);
+      return {
+        outlineWidth: Number.parseFloat(style.outlineWidth || "0"),
+        boxShadow: style.boxShadow
+      };
+    });
+    expect(focusStyle.outlineWidth).toBeGreaterThanOrEqual(2);
+    expect(focusStyle.boxShadow).not.toBe("none");
+  }
+});
+
 test("Auth routes retain isolated, labeled, responsive forms with stable controls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const fixture = await installUnauthenticatedCmsFixture(page);
@@ -473,6 +504,81 @@ for (const viewport of viewports) {
     console.log(`DESIGN_SYSTEM_ADMIN_${viewport.name.toUpperCase()} ${JSON.stringify(measurements)}`);
   });
 }
+
+for (const viewport of [
+  { name: "desktop", width: 1280, height: 720 },
+  { name: "wide", width: 1440, height: 900 }
+] as const) {
+  test(`${viewport.name} Admin content table preserves readable columns and contained scrolling`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await installAuthenticatedDesignSystemCmsFixture(page);
+    await page.goto("/admin/content");
+    await page.getByRole("heading", { name: "เนื้อหา" }).waitFor();
+
+    const table = page.getByRole("table", { name: "ตารางเนื้อหา" });
+    await expect(table).toBeVisible({ timeout: 10_000 });
+    const tableScroll = page.locator(".table-scroll");
+
+    const tableMetrics = await table.evaluate((element) => {
+      const style = window.getComputedStyle(element);
+      return {
+        minWidth: Number.parseFloat(style.minWidth),
+        width: element.getBoundingClientRect().width
+      };
+    });
+    expect(tableMetrics.minWidth).toBeGreaterThanOrEqual(1_100);
+    expect(tableMetrics.width).toBeGreaterThanOrEqual(1_100);
+
+    for (const [columnId, expectedMinWidth] of [
+      ["type", 88],
+      ["status", 120],
+      ["owner", 120],
+      ["updatedAt", 132],
+      ["actions", 184]
+    ] as const) {
+      const header = table.locator(`thead [data-column-id="${columnId}"]`);
+      const cell = table.locator(`tbody [data-column-id="${columnId}"]`).first();
+      await expect(header).toHaveCSS("white-space", "nowrap");
+      await expect(cell).toHaveCSS("white-space", "nowrap");
+      expect((await header.boundingBox())?.width ?? 0, columnId).toBeGreaterThanOrEqual(expectedMinWidth - 1);
+      expect((await cell.boundingBox())?.width ?? 0, columnId).toBeGreaterThanOrEqual(expectedMinWidth - 1);
+    }
+
+    const titleCell = table.locator('tbody [data-column-id="title"]').first();
+    await expect(titleCell).toHaveCSS("white-space", "normal");
+    await expect(titleCell).toHaveCSS("word-break", "normal");
+    expect((await titleCell.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(459);
+
+    const actionButtons = table.locator('tbody [data-column-id="actions"] .MuiIconButton-root');
+    const actionYPositions = await actionButtons.evaluateAll((elements) =>
+      elements.map((element) => Math.round(element.getBoundingClientRect().y))
+    );
+    expect(new Set(actionYPositions).size).toBe(1);
+    await expect(table.locator('tbody [data-column-id="actions"] .MuiStack-root')).toHaveCSS("flex-wrap", "nowrap");
+
+    expect(await tableScroll.evaluate((element) => element.scrollWidth >= element.clientWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
+  });
+}
+
+test("mobile Admin content table scrolls inside its container without page overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installAuthenticatedDesignSystemCmsFixture(page);
+  await page.goto("/admin/content");
+  await page.getByRole("heading", { name: "เนื้อหา" }).waitFor();
+
+  const table = page.getByRole("table", { name: "ตารางเนื้อหา" });
+  await expect(table).toBeVisible({ timeout: 10_000 });
+  const tableScroll = page.locator(".table-scroll");
+  const scrollMetrics = await tableScroll.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    overflowX: window.getComputedStyle(element).overflowX
+  }));
+  expect(scrollMetrics.scrollWidth).toBeGreaterThan(scrollMetrics.clientWidth);
+  expect(scrollMetrics.overflowX).toBe("auto");
+  await expectNoHorizontalOverflow(page);
+});
 
 test("Admin content dialog retains an accessible title, actions, and destructive distinction", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });

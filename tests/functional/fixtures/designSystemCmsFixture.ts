@@ -2,6 +2,27 @@ import type { Page, Route } from "@playwright/test";
 
 const csrfToken = "D".repeat(43);
 const generatedAt = "2026-07-28T00:00:00.000Z";
+const contentItems = [
+  {
+    id: "content-table-readability",
+    title: "ประกาศวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ดเรื่องกำหนดการรับสมัครนักเรียนและนักศึกษาประจำปีการศึกษาใหม่",
+    slug: "content-table-readability",
+    type: "news",
+    status: "draft",
+    owner: "งานประชาสัมพันธ์และสื่อสารองค์กร",
+    summary: "รายละเอียดกำหนดการรับสมัคร เอกสารประกอบ และขั้นตอนการยืนยันสิทธิ์สำหรับนักเรียน นักศึกษา และผู้ปกครอง",
+    category: "ข่าวประชาสัมพันธ์",
+    template: "standard",
+    canonicalUrl: "",
+    featured: false,
+    featuredMediaId: "",
+    viewCount: 0,
+    lastViewedAt: "",
+    updatedAt: generatedAt,
+    publishAt: "",
+    revision: 1
+  }
+];
 
 const capabilities = [
   "dashboard.read",
@@ -165,8 +186,20 @@ export async function installAuthenticatedDesignSystemCmsFixture(page: Page) {
         return;
       }
 
+      if (adminPath.startsWith("/api/admin/content")) {
+        await fulfillJson(route, {
+          items: contentItems,
+          pagination: {
+            page: 1,
+            pageSize: 25,
+            totalItems: contentItems.length,
+            totalPages: 1
+          }
+        });
+        return;
+      }
+
       if (
-        adminPath.startsWith("/api/admin/content") ||
         adminPath.startsWith("/api/admin/users") ||
         adminPath.startsWith("/api/admin/documents") ||
         adminPath.startsWith("/api/admin/events")
