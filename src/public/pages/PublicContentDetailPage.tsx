@@ -10,6 +10,9 @@ import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined
 import FacebookPostEmbed from "../../components/embeds/FacebookPostEmbed";
 import ContentBlocksRenderer from "../../shared/components/ContentBlocksRenderer";
 import EmptyState from "../../shared/components/EmptyState";
+import PublicDeferredEmbed from "../../shared/media/PublicDeferredEmbed";
+import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
+import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
 import { recordContentView } from "../../features/site-view";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
@@ -225,32 +228,29 @@ function AttachedMediaSection({ attachedMedia }: { attachedMedia: MediaAsset[] }
 
 function FeaturedContentMedia({
   featuredMedia,
-  previewUrl,
   embedUrl,
   layout
 }: {
   featuredMedia: MediaAsset | undefined;
-  previewUrl: string;
   embedUrl: string;
   layout: "feature" | "update";
 }) {
-  if (featuredMedia?.type === "image" && previewUrl) {
+  const imageUrl = resolvePublicImageSource(featuredMedia, "content-featured").src;
+
+  if (featuredMedia?.type === "image" && imageUrl) {
     return (
-      <Box
-        component="img"
+      <PublicResponsiveImage
         className="rcat-image-frame"
-        src={previewUrl}
+        source={featuredMedia}
+        intent="content-featured"
         alt={featuredMedia.name}
-        loading={layout === "feature" ? "eager" : "lazy"}
-        decoding="async"
-        {...(layout === "feature" ? ({ fetchpriority: "high" } as Record<string, string>) : {})}
+        loadMode={layout === "feature" ? "critical" : "near-viewport"}
+        nearViewportMargin="360px 0px"
+        sizes="(max-width: 600px) 100vw, (max-width: 1200px) 85vw, 960px"
+        reservedMinHeight={{ xs: 220, md: layout === "feature" ? 420 : 300 }}
+        imageSx={{ objectFit: "contain" }}
         sx={{
-          width: "100%",
-          height: "auto",
-          maxWidth: "100%",
           borderRadius: 2,
-          objectFit: "contain",
-          display: "block",
           bgcolor: "background.default"
         }}
       />
@@ -259,16 +259,14 @@ function FeaturedContentMedia({
 
   if (featuredMedia?.type === "video" && embedUrl) {
     return (
-      <Box
-        component="iframe"
-        className="rcat-image-frame"
+      <PublicDeferredEmbed
         title={featuredMedia.name}
         src={embedUrl}
-        loading="lazy"
+        loadMode={layout === "feature" ? "eager" : "near-viewport"}
+        nearViewportMargin="480px 0px"
         sx={{
           width: "100%",
           height: layout === "feature" ? { xs: 240, md: 500 } : { xs: 230, md: 340 },
-          border: 0,
           borderRadius: 2
         }}
         allow="autoplay"
@@ -301,7 +299,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   const mediaAssets = data?.media ?? [];
   const contentBlocks = useMemo(() => parseContentBodyToBlocks(item?.body), [item?.body]);
   const featuredMedia = mediaAssets.find((asset) => asset.id === item?.featuredMediaId);
-  const featuredMediaPreviewUrl = normalizeSafeResourceUrl(featuredMedia?.previewUrl);
+  const featuredMediaImageUrl = resolvePublicImageSource(featuredMedia, "content-featured").src;
   const featuredMediaEmbedUrl = normalizeSafeResourceUrl(featuredMedia?.embedUrl);
   const attachedMedia = mediaAssets.filter((asset) => item?.mediaIds?.includes(asset.id));
   const relatedItems = useMemo(() => {
@@ -493,12 +491,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                   )}
                 </Box>
 
-                <FeaturedContentMedia
-                  featuredMedia={featuredMedia}
-                  previewUrl={featuredMediaPreviewUrl}
-                  embedUrl={featuredMediaEmbedUrl}
-                  layout="feature"
-                />
+                <FeaturedContentMedia featuredMedia={featuredMedia} embedUrl={featuredMediaEmbedUrl} layout="feature" />
 
                 <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
                 <Divider />
@@ -583,12 +576,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                   <EmptyState title="ยังไม่มีเนื้อหาที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
                 )}
 
-                <FeaturedContentMedia
-                  featuredMedia={featuredMedia}
-                  previewUrl={featuredMediaPreviewUrl}
-                  embedUrl={featuredMediaEmbedUrl}
-                  layout="update"
-                />
+                <FeaturedContentMedia featuredMedia={featuredMedia} embedUrl={featuredMediaEmbedUrl} layout="update" />
                 <AttachedMediaSection attachedMedia={attachedMedia} />
               </Stack>
             </CardContent>
@@ -653,34 +641,28 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                   )}
                 </Box>
 
-                {featuredMedia?.type === "image" && featuredMediaPreviewUrl && (
-                  <Box
-                    component="img"
+                {featuredMedia?.type === "image" && featuredMediaImageUrl && (
+                  <PublicResponsiveImage
                     className="rcat-image-frame"
-                    src={featuredMediaPreviewUrl}
+                    source={featuredMedia}
+                    intent="content-featured"
                     alt={featuredMedia.name}
-                    loading="eager"
-                    decoding="async"
-                    {...({ fetchpriority: "high" } as Record<string, string>)}
+                    loadMode="critical"
+                    sizes="(max-width: 600px) 100vw, (max-width: 1200px) 85vw, 960px"
+                    reservedMinHeight={{ xs: 220, md: 400 }}
+                    imageSx={{ objectFit: "contain" }}
                     sx={{
-                      width: "100%",
-                      height: "auto",
-                      maxWidth: "100%",
                       borderRadius: 2,
-                      objectFit: "contain",
-                      display: "block",
                       bgcolor: "background.default"
                     }}
                   />
                 )}
                 {featuredMedia?.type === "video" && featuredMediaEmbedUrl && (
-                  <Box
-                    component="iframe"
-                    className="rcat-image-frame"
+                  <PublicDeferredEmbed
                     title={featuredMedia.name}
                     src={featuredMediaEmbedUrl}
-                    loading="lazy"
-                    sx={{ width: "100%", height: { xs: 240, md: 430 }, border: 0, borderRadius: 2 }}
+                    loadMode="eager"
+                    sx={{ width: "100%", height: { xs: 240, md: 430 }, borderRadius: 2 }}
                     allow="autoplay"
                   />
                 )}
@@ -762,36 +744,29 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
               <Box
                 className="rcat-image-frame"
                 sx={{
-                  minHeight: featuredMedia?.type === "image" && featuredMediaPreviewUrl ? 0 : { xs: 180, md: 260 },
+                  minHeight: featuredMedia?.type === "image" && featuredMediaImageUrl ? 0 : { xs: 180, md: 260 },
                   display: "grid",
                   placeItems: "center",
                   bgcolor: "primary.light",
                   color: "primary.main"
                 }}
               >
-                {featuredMedia?.type === "image" && featuredMediaPreviewUrl ? (
-                  <Box
-                    component="img"
-                    src={featuredMediaPreviewUrl}
+                {featuredMedia?.type === "image" && featuredMediaImageUrl ? (
+                  <PublicResponsiveImage
+                    source={featuredMedia}
+                    intent="content-featured"
                     alt={featuredMedia.name}
-                    loading="eager"
-                    decoding="async"
-                    {...({ fetchpriority: "high" } as Record<string, string>)}
-                    sx={{
-                      width: "100%",
-                      height: "auto",
-                      maxWidth: "100%",
-                      objectFit: "contain",
-                      display: "block"
-                    }}
+                    loadMode="critical"
+                    sizes="(max-width: 600px) 100vw, (max-width: 1200px) 85vw, 960px"
+                    reservedMinHeight={{ xs: 220, md: 360 }}
+                    imageSx={{ objectFit: "contain" }}
                   />
                 ) : featuredMedia?.type === "video" && featuredMediaEmbedUrl ? (
-                  <Box
-                    component="iframe"
+                  <PublicDeferredEmbed
                     title={featuredMedia.name}
                     src={featuredMediaEmbedUrl}
-                    loading="lazy"
-                    sx={{ width: "100%", height: { xs: 240, md: 390 }, border: 0 }}
+                    loadMode="eager"
+                    sx={{ width: "100%", height: { xs: 240, md: 390 } }}
                     allow="autoplay"
                   />
                 ) : (

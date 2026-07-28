@@ -185,23 +185,81 @@ describe("PublicHomeCarousel regressions", () => {
     });
   });
 
-  it("marks the first image eager/high priority and later images lazy/auto priority", () => {
+  it("loads only the selected image initially and preloads the next image at low priority after load", () => {
     render(<PublicHomeCarousel slides={createTwoSlides()} />);
 
     const firstImage = screen.getByRole("img", {
       name: "First slide"
     });
+
+    expect(firstImage).toHaveAttribute("loading", "eager");
+    expect(firstImage).toHaveAttribute("fetchpriority", "high");
+    expect(firstImage).toHaveAttribute("decoding", "async");
+    expect(
+      screen.queryByRole("img", {
+        name: "Second slide",
+        hidden: true
+      })
+    ).not.toBeInTheDocument();
+
+    fireEvent.load(firstImage);
+    act(() => {
+      vi.advanceTimersByTime(120);
+    });
+
     const secondImage = screen.getByRole("img", {
       name: "Second slide",
       hidden: true
     });
 
-    expect(firstImage).toHaveAttribute("loading", "eager");
-    expect(firstImage).toHaveAttribute("fetchpriority", "high");
-    expect(firstImage).toHaveAttribute("decoding", "async");
     expect(secondImage).toHaveAttribute("loading", "lazy");
     expect(secondImage).toHaveAttribute("fetchpriority", "auto");
     expect(secondImage).toHaveAttribute("decoding", "async");
+  });
+
+  it("keeps distant slides source-free until direct navigation requests the destination", () => {
+    const slides = Array.from({ length: 5 }, (_, index) =>
+      createSlide({
+        id: `slide-${index + 1}`,
+        title: `Slide ${index + 1}`,
+        imageAlt: `Slide ${index + 1}`,
+        imageUrl: `https://example.edu/slide-${index + 1}.jpg`,
+        order: index + 1
+      })
+    );
+
+    render(<PublicHomeCarousel slides={slides} settings={createSettings({ autoplayEnabled: false })} />);
+
+    expect(screen.getAllByRole("img", { hidden: true })).toHaveLength(1);
+    expect(screen.queryByRole("img", { name: "Slide 5", hidden: true })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "ไปยังสไลด์ 5" }));
+
+    const distantImage = screen.getByRole("img", { name: "Slide 5", hidden: true });
+    expect(distantImage).toHaveAttribute("src", "https://example.edu/slide-5.jpg");
+    expect(distantImage).toHaveAttribute("loading", "lazy");
+    expect(distantImage).toHaveAttribute("fetchpriority", "auto");
+  });
+
+  it("uses looped indexes when requesting the previous slide from the first position", () => {
+    const slides = Array.from({ length: 5 }, (_, index) =>
+      createSlide({
+        id: `loop-${index + 1}`,
+        title: `Loop ${index + 1}`,
+        imageAlt: `Loop ${index + 1}`,
+        imageUrl: `https://example.edu/loop-${index + 1}.jpg`,
+        order: index + 1
+      })
+    );
+
+    render(<PublicHomeCarousel slides={slides} settings={createSettings({ autoplayEnabled: false })} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "สไลด์ก่อนหน้า" }));
+
+    expect(screen.getByRole("img", { name: "Loop 5", hidden: true })).toHaveAttribute(
+      "src",
+      "https://example.edu/loop-5.jpg"
+    );
   });
 
   it("uses a normalized Google Drive URL and responsive candidates", () => {

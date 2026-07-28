@@ -24,7 +24,9 @@ import {
   getEventLifecycle
 } from "../../../features/cms-events/presentation";
 import type { CalendarEvent, MediaAsset } from "../../../types";
-import { normalizePublicImageUrl, normalizeSafeHref } from "../../../utils/safeUrl";
+import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
+import { resolvePublicImageSource } from "../../../shared/media/publicImageSources";
+import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
 interface EventListCardProps {
@@ -66,7 +68,7 @@ function getMediaHref(asset: MediaAsset) {
 }
 
 function getMediaImageUrl(asset: MediaAsset) {
-  return normalizePublicImageUrl(asset.thumbnailUrl || asset.previewUrl || asset.driveUrl || "");
+  return resolvePublicImageSource(asset, "event-attachment").src;
 }
 
 function EventImageAttachment({ asset }: { asset: MediaAsset }) {
@@ -79,20 +81,21 @@ function EventImageAttachment({ asset }: { asset: MediaAsset }) {
 
   const content = (
     <>
-      <Box
-        component="img"
-        src={imageUrl}
+      <PublicResponsiveImage
+        source={asset}
+        intent="event-attachment"
         alt={asset.name}
-        loading="lazy"
-        decoding="async"
+        sizes="(max-width: 600px) calc(100vw - 64px), 420px"
+        loadMode="near-viewport"
+        nearViewportMargin="240px 0px"
+        aspectRatio="4 / 3"
+        fill
         sx={{
           width: "100%",
-          height: "auto",
           maxWidth: "100%",
-          objectFit: "contain",
-          display: "block",
           bgcolor: "background.default"
         }}
+        imageSx={{ objectFit: "contain" }}
       />
 
       <Typography

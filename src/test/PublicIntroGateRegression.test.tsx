@@ -63,6 +63,7 @@ describe("PublicIntroGate regressions", () => {
     expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute(
       "srcset",
       [
+        "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w480 480w",
         "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w640 640w",
         "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w900 900w",
         "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w1200 1200w",

@@ -4,7 +4,8 @@ import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import { ContentItem, MediaAsset } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { isFacebookEmbedContent } from "../../utils/facebookContent";
-import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
+import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
+import { normalizeSafeHref } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 
 interface PublicContentCardProps {
@@ -28,7 +29,6 @@ export default function PublicContentCard({
   featured = false
 }: PublicContentCardProps) {
   const featuredMedia = mediaAssets.find((asset) => asset.id === item.featuredMediaId);
-  const featuredMediaPreviewUrl = normalizeSafeResourceUrl(featuredMedia?.previewUrl);
   const categories = normalizeCategories(item.category);
   const isFacebookEmbed = isFacebookEmbedContent(item);
 
@@ -49,20 +49,25 @@ export default function PublicContentCard({
         <Stack direction={featured ? { xs: "column", md: "row" } : "row"} spacing={2}>
           <Box
             className="rcat-image-frame grid place-items-center"
+            data-public-content-card-media-slot={featured ? "featured" : "regular"}
             sx={{
               width: featured ? { xs: "100%", md: 180 } : 70,
               minWidth: featured ? { md: 180 } : 70,
-              height: featured ? { xs: 150, md: 150 } : 70
+              height: featured ? 150 : 70
             }}
           >
-            {featuredMedia?.type === "image" && featuredMediaPreviewUrl ? (
-              <Box
-                component="img"
-                className="h-full w-full object-cover"
-                src={featuredMediaPreviewUrl}
+            {featuredMedia?.type === "image" ? (
+              <PublicResponsiveImage
+                imageClassName="h-full w-full object-cover"
+                source={featuredMedia}
+                intent={featured ? "featured-card" : "content-card"}
                 alt={featuredMedia.name}
-                loading="lazy"
-                decoding="async"
+                sizes={featured ? "(max-width: 899px) calc(100vw - 64px), 180px" : "70px"}
+                loadMode="near-viewport"
+                nearViewportMargin="240px 0px"
+                fill
+                fallback={icon}
+                imageSx={{ objectFit: "cover" }}
               />
             ) : (
               icon

@@ -9,6 +9,7 @@ import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import EmptyState from "../../shared/components/EmptyState";
+import PublicDeferredEmbed from "../../shared/media/PublicDeferredEmbed";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import PublicSiteShell from "../components/PublicSiteShell";
@@ -32,16 +33,15 @@ function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: st
         <Typography variant="h3">แผนที่</Typography>
         {mapEmbedSrc ? (
           <>
-            <Box
-              component="iframe"
+            <PublicDeferredEmbed
               src={mapEmbedSrc}
               title="แผนที่วิทยาลัย"
-              loading="lazy"
+              loadMode="near-viewport"
+              nearViewportMargin="480px 0px"
               referrerPolicy="no-referrer-when-downgrade"
               sx={{
                 width: "100%",
-                minHeight: { xs: 300, md: 420 },
-                border: 0,
+                height: { xs: 300, md: 420 },
                 borderRadius: 2,
                 display: "block",
                 mt: 2
