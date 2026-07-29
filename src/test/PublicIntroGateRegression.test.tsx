@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PublicIntroGate from "../public/components/PublicIntroGate";
 import type { HomepageIntroGateSettings } from "../types";
@@ -33,12 +33,44 @@ describe("PublicIntroGate regressions", () => {
     render(<PublicIntroGate settings={createSettings()} />);
 
     const introImage = screen.getByRole("img", { name: imageAlt });
+    const responsiveImage = introImage.closest('[data-public-responsive-image="true"]');
+    const imageRegion = document.querySelector('[data-intro-gate-image-region="true"]');
 
     expect(introImage).toHaveAttribute("src", "https://example.edu/intro.jpg");
     expect(introImage).toHaveAttribute("loading", "eager");
     expect(introImage).toHaveAttribute("fetchpriority", "high");
     expect(introImage).toHaveAttribute("decoding", "async");
+    expect(responsiveImage).toHaveAttribute("data-public-image-layout", "intrinsic");
+    expect(responsiveImage).toHaveAttribute("data-public-image-fill", "false");
+    expect(imageRegion).toHaveAttribute("data-intro-gate-image-sizing", "intrinsic-constrained");
+    expect(window.getComputedStyle(introImage).objectFit).toBe("contain");
     expect(screen.getByText(loadingMessage)).toBeInTheDocument();
+  });
+
+  it("renders single and secondary action layouts without changing their controls", () => {
+    const { rerender } = render(<PublicIntroGate settings={createSettings()} />);
+    let actions = document.querySelector('[data-intro-gate-actions="true"]') as HTMLElement;
+
+    expect(actions).toHaveAttribute("data-intro-gate-has-secondary", "false");
+    expect(within(actions).getAllByRole("button")).toHaveLength(1);
+    expect(within(actions).queryByRole("link")).not.toBeInTheDocument();
+
+    rerender(
+      <PublicIntroGate
+        settings={createSettings({
+          secondaryButtonLabel: "อ่านรายละเอียด",
+          secondaryButtonUrl: "https://example.edu/details"
+        })}
+      />
+    );
+    actions = document.querySelector('[data-intro-gate-actions="true"]') as HTMLElement;
+
+    expect(actions).toHaveAttribute("data-intro-gate-has-secondary", "true");
+    expect(within(actions).getByRole("button", { name: primaryButtonLabel })).toBeInTheDocument();
+    expect(within(actions).getByRole("link", { name: /อ่านรายละเอียด/ })).toHaveAttribute(
+      "href",
+      "https://example.edu/details"
+    );
   });
 
   it("renders a stable relative intro image path", () => {
@@ -183,6 +215,33 @@ describe("PublicIntroGate regressions", () => {
 
     expect(window.sessionStorage.getItem("intro-regression")).toBe("dismissed");
     expect(screen.queryByRole("dialog", { name: dialogName })).not.toBeInTheDocument();
+  });
+
+  it("restores body scroll locking styles and scroll position after dismissal", () => {
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+    vi.spyOn(window, "scrollY", "get").mockReturnValue(240);
+    document.documentElement.style.overflow = "auto";
+    document.body.style.overflow = "clip";
+    document.body.style.position = "relative";
+    document.body.style.top = "3px";
+    document.body.style.width = "90%";
+
+    render(<PublicIntroGate settings={createSettings({ storageKey: "scroll-lock-intro" })} />);
+
+    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.style.position).toBe("fixed");
+    expect(document.body.style.top).toBe("-240px");
+    expect(document.body.style.width).toBe("100%");
+
+    fireEvent.click(screen.getByRole("button", { name: primaryButtonLabel }));
+
+    expect(document.documentElement.style.overflow).toBe("auto");
+    expect(document.body.style.overflow).toBe("clip");
+    expect(document.body.style.position).toBe("relative");
+    expect(document.body.style.top).toBe("3px");
+    expect(document.body.style.width).toBe("90%");
+    expect(scrollTo).toHaveBeenCalledWith(0, 240);
   });
 
   it("does not show when sessionStorage already has a dismissed marker for the current storage key", () => {

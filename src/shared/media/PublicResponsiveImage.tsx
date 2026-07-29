@@ -21,6 +21,7 @@ interface PublicResponsiveImageProps {
   height?: number;
   imageSx?: SxProps<Theme>;
   imageClassName?: string;
+  intrinsic?: boolean;
   intent: PublicImageIntent;
   loadMode?: PublicImageLoadMode;
   nearViewportMargin?: string;
@@ -44,6 +45,7 @@ export default function PublicResponsiveImage({
   height,
   imageSx,
   imageClassName,
+  intrinsic = false,
   intent,
   loadMode = "near-viewport",
   nearViewportMargin = "320px 0px",
@@ -68,6 +70,7 @@ export default function PublicResponsiveImage({
   const shouldRenderImage = shouldLoad && hasUsableSource;
   const loading = isNearViewportMode ? "lazy" : "eager";
   const fetchPriority = loadMode === "critical" ? "high" : isNearViewportMode ? "low" : "auto";
+  const usesIntrinsicSizing = intrinsic && !fill;
   const rootSxItems = Array.isArray(sx) ? sx : sx ? [sx] : [];
   const imageSxItems = Array.isArray(imageSx) ? imageSx : imageSx ? [imageSx] : [];
 
@@ -81,12 +84,15 @@ export default function PublicResponsiveImage({
       data-public-image-active={shouldRenderImage ? "true" : "false"}
       data-public-image-aspect-ratio={aspectRatio}
       data-public-image-fill={fill ? "true" : "false"}
+      data-public-image-layout={fill ? "fill" : usesIntrinsicSizing ? "intrinsic" : "responsive"}
       sx={[
         {
           position: "relative",
           display: "block",
-          width: "100%",
+          width: usesIntrinsicSizing ? "fit-content" : "100%",
           height: fill ? "100%" : undefined,
+          maxWidth: usesIntrinsicSizing ? "100%" : undefined,
+          maxHeight: usesIntrinsicSizing ? "inherit" : undefined,
           aspectRatio,
           minHeight: reservedMinHeight,
           overflow: "hidden"
@@ -122,8 +128,10 @@ export default function PublicResponsiveImage({
                   display: "block"
                 }
               : {
-                  width: "100%",
+                  width: usesIntrinsicSizing ? "auto" : "100%",
                   height: "auto",
+                  maxWidth: usesIntrinsicSizing ? "100%" : undefined,
+                  maxHeight: usesIntrinsicSizing ? "inherit" : undefined,
                   display: "block"
                 },
             ...imageSxItems

@@ -15,6 +15,32 @@ import {
 
 type IntroGateImageStatus = "loading" | "loaded" | "failed";
 
+const SINGLE_ACTION_IMAGE_HEIGHT = {
+  maxHeight: {
+    xs: "calc(100vh - 70px - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
+    sm: "calc(100vh - 88px - env(safe-area-inset-top) - env(safe-area-inset-bottom))"
+  },
+  "@supports (height: 100dvh)": {
+    maxHeight: {
+      xs: "calc(100dvh - 70px - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
+      sm: "calc(100dvh - 88px - env(safe-area-inset-top) - env(safe-area-inset-bottom))"
+    }
+  }
+} as const;
+
+const TWO_ACTION_IMAGE_HEIGHT = {
+  maxHeight: {
+    xs: "calc(100vh - 122px - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
+    sm: "calc(100vh - 88px - env(safe-area-inset-top) - env(safe-area-inset-bottom))"
+  },
+  "@supports (height: 100dvh)": {
+    maxHeight: {
+      xs: "calc(100dvh - 122px - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
+      sm: "calc(100dvh - 88px - env(safe-area-inset-top) - env(safe-area-inset-bottom))"
+    }
+  }
+} as const;
+
 function isDismissedInSession(storageKey: string, dismissedKeys: ReadonlySet<string>) {
   if (dismissedKeys.has(storageKey)) {
     return true;
@@ -100,6 +126,7 @@ export default function PublicIntroGate({
   const activeSettings = settings;
   const showImageLoadingState = hasSafeImage && imageStatus === "loading";
   const showImageErrorState = !hasSafeImage || imageStatus === "failed";
+  const imageHeightSx = hasSecondaryButton ? TWO_ACTION_IMAGE_HEIGHT : SINGLE_ACTION_IMAGE_HEIGHT;
 
   return (
     <Box
@@ -111,38 +138,48 @@ export default function PublicIntroGate({
         inset: 0,
         zIndex: theme.zIndex.modal + 20,
         width: "100vw",
-        height: "100dvh",
+        height: "100vh",
+        "@supports (height: 100dvh)": {
+          height: "100dvh"
+        },
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        boxSizing: "border-box",
         bgcolor: alpha(theme.palette.common.black, 0.82),
         px: { xs: 1, sm: 2 },
-        py: { xs: 1, sm: 2 },
-        overflow: "hidden",
-        overscrollBehavior: "none",
-        touchAction: "none"
+        pt: {
+          xs: "calc(8px + env(safe-area-inset-top))",
+          sm: "calc(16px + env(safe-area-inset-top))"
+        },
+        pb: {
+          xs: "calc(8px + env(safe-area-inset-bottom))",
+          sm: "calc(16px + env(safe-area-inset-bottom))"
+        },
+        overflowX: "hidden",
+        overflowY: "auto",
+        overscrollBehavior: "contain",
+        touchAction: "pan-y"
       })}
     >
       <Stack
+        data-intro-gate-content="true"
         spacing={{ xs: 1, sm: 1.25 }}
         alignItems="center"
-        justifyContent="center"
         sx={{
           width: "100%",
-          height: "100%",
           maxWidth: "100vw",
-          maxHeight: "100dvh"
+          my: "auto"
         }}
       >
         <Box
+          data-intro-gate-image-region="true"
+          data-intro-gate-image-sizing="intrinsic-constrained"
           sx={{
             position: "relative",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "min(96vw, 960px)",
-            height: hasSecondaryButton ? "calc(100dvh - 132px)" : "calc(100dvh - 92px)",
-            maxHeight: 720,
+            display: "grid",
+            placeItems: "center",
+            width: "fit-content",
+            maxWidth: "min(96vw, 960px)",
+            ...imageHeightSx,
             overflow: "hidden",
             borderRadius: { xs: 1.5, sm: 2 },
             bgcolor: "transparent",
@@ -152,13 +189,13 @@ export default function PublicIntroGate({
           {showImageLoadingState && (
             <Box
               sx={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                gridArea: "1 / 1",
+                zIndex: 1,
+                width: "min(96vw, 320px)",
+                maxWidth: "100%",
                 borderRadius: { xs: 1.5, sm: 2 },
-                bgcolor: "rgba(255,255,255,0.1)"
+                bgcolor: "rgba(255,255,255,0.1)",
+                textAlign: "center"
               }}
             >
               <Typography
@@ -180,13 +217,12 @@ export default function PublicIntroGate({
           {showImageErrorState && (
             <Box
               sx={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                gridArea: "1 / 1",
+                width: "min(96vw, 560px)",
+                maxWidth: "100%",
                 borderRadius: { xs: 1.5, sm: 2 },
-                bgcolor: "rgba(255,255,255,0.1)"
+                bgcolor: "rgba(255,255,255,0.1)",
+                textAlign: "center"
               }}
             >
               <Typography
@@ -213,17 +249,19 @@ export default function PublicIntroGate({
               alt={activeSettings.imageAlt}
               loadMode="critical"
               bypassPageMediaGate
-              fill
+              intrinsic
               onLoad={() => setImageState({ src: imageSrc, status: "loaded" })}
               onError={() => setImageState({ src: imageSrc, status: "failed" })}
               sx={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
+                gridArea: "1 / 1",
+                maxWidth: "100%",
+                maxHeight: "inherit",
                 opacity: imageStatus === "loaded" ? 1 : 0,
                 transition: "opacity 180ms ease",
-                pointerEvents: "auto"
+                pointerEvents: "auto",
+                "@media (prefers-reduced-motion: reduce)": {
+                  transition: "none"
+                }
               }}
               imageSx={{
                 objectFit: "contain",
@@ -234,6 +272,8 @@ export default function PublicIntroGate({
         </Box>
 
         <Stack
+          data-intro-gate-actions="true"
+          data-intro-gate-has-secondary={hasSecondaryButton ? "true" : "false"}
           direction={{ xs: "column", sm: "row" }}
           spacing={{ xs: 0.75, sm: 1 }}
           justifyContent="center"

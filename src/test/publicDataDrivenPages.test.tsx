@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicSiteShell from "../public/components/PublicSiteShell";
@@ -408,6 +408,7 @@ function createNumberedEvents(count: number): CalendarEvent[] {
 }
 
 beforeEach(() => {
+  window.sessionStorage.clear();
   routerMocks.navigate.mockReset();
   routerMocks.search = {};
   currentSnapshot = createSnapshot();
@@ -511,6 +512,48 @@ describe("public data-driven pages", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.getAllByText("Cached CMS site").length).toBeGreaterThan(0);
     expect(screen.getByText("Cached content")).toBeInTheDocument();
+  });
+
+  it("removes Messenger while Intro Gate is visible and restores it after dismissal", () => {
+    const baseSnapshot = createSnapshot();
+    const homepageSettings = createHomeSnapshot().homepageSettings;
+    currentSnapshot = createSnapshot({
+      siteSettings: {
+        ...baseSnapshot.siteSettings!,
+        messengerEnabled: true,
+        messengerUrl: "https://m.me/rcat",
+        messengerLabel: "สอบถามข้อมูล"
+      },
+      homepageSettings: {
+        ...homepageSettings,
+        introGate: {
+          enabled: true,
+          imageUrl: "/intro-gate-fixture.svg",
+          imageAlt: "Intro gate fixture",
+          primaryButtonLabel: "เข้าสู่เว็บไซต์",
+          secondaryButtonLabel: "",
+          secondaryButtonUrl: "",
+          storageKey: "shell-messenger-intro"
+        }
+      }
+    });
+
+    render(
+      <PublicSiteShell>
+        <div>Loaded content</div>
+      </PublicSiteShell>
+    );
+
+    expect(screen.getByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "สอบถามข้อมูลผ่าน Messenger" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "เข้าสู่เว็บไซต์" }));
+
+    expect(screen.queryByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "สอบถามข้อมูลผ่าน Messenger" })).toHaveAttribute(
+      "href",
+      "https://m.me/rcat"
+    );
   });
 
   it("shows the public error state when the snapshot fails without cached data", () => {

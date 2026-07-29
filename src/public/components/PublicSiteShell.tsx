@@ -949,7 +949,7 @@ function PublicSiteShellFrame({
             </Container>
           </Box>
           <FloatingMessengerButton
-            enabled={siteSettings.messengerEnabled}
+            enabled={siteSettings.messengerEnabled && !introGateVisible}
             href={siteSettings.messengerUrl}
             label={siteSettings.messengerLabel}
           />
