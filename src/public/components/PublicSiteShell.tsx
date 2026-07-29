@@ -12,7 +12,6 @@ import {
   Box,
   Button,
   Container,
-  IconButton,
   InputAdornment,
   LinearProgress,
   Skeleton,
@@ -25,13 +24,13 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
-import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
+
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
-import YouTubeIcon from "@mui/icons-material/YouTube";
+
 import PublicMainMenu from "./PublicMainMenu";
 import PublicErrorState from "./PublicErrorState";
 import PublicFooterDirectory from "./PublicFooterDirectory";
@@ -39,6 +38,7 @@ import FloatingMessengerButton from "./FloatingMessengerButton";
 import PublicIntroGate from "./PublicIntroGate";
 import { getInitialPublicIntroGateVisibility, getPublicIntroGateStorageKey } from "./publicIntroGateState";
 import { UrgentMarqueeSection } from "./home/UrgentMarqueeSection";
+import SocialIconLink from "./SocialIconLink";
 import { PublicMediaLoadingProvider } from "../../shared/media/PublicMediaLoadingContext";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import { projectSettings } from "../../config/projectSettings";
@@ -47,6 +47,7 @@ import { normalizeSiteSettings } from "../../services/siteSettings";
 import { DisplaySettings, HomepageSettings, PublicMenuItem, SiteSettings } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { focusVisibleSx } from "../../design-system/componentStyles";
+import type { SocialPlatform } from "../../design-system/icons/SocialBrandIcon";
 import { useDocumentMetadata } from "../../utils/seo";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
@@ -213,7 +214,7 @@ function handleBackToTop(event: MouseEvent<HTMLButtonElement>) {
 interface TopBarSocialLink {
   label: string;
   href: string;
-  icon: ReactNode;
+  platform: SocialPlatform;
 }
 
 interface TopBarInfoItemProps {
@@ -234,9 +235,6 @@ function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false
           alignItems: "center",
           flexShrink: 0,
           "& svg": {
-            fontSize: compact ? { xs: "0.82rem", sm: "0.96rem", md: "1.05rem" } : { md: "1.05rem" }
-          },
-          "& .svg-inline--fa": {
             fontSize: compact ? { xs: "0.82rem", sm: "0.96rem", md: "1.05rem" } : { md: "1.05rem" }
           }
         }}
@@ -310,43 +308,9 @@ function TopBarSocialIcons({ links, showLabel }: { links: TopBarSocialLink[]; sh
       )}
 
       {links.map((item) => (
-        <IconButton
-          key={item.label}
-          component="a"
-          href={normalizeSafeHref(item.href)}
-          aria-label={item.label}
-          color="inherit"
-          size="medium"
-          sx={(theme) => ({
-            p: 0.5,
-            border: "1px solid",
-            borderColor: alpha(theme.palette.common.white, 0.28),
-            bgcolor: alpha(theme.palette.common.white, 0.08),
-            "& svg": {
-              fontSize: "1.25rem"
-            },
-            "& .svg-inline--fa": {
-              fontSize: "1.25rem"
-            }
-          })}
-        >
-          {item.icon}
-        </IconButton>
+        <SocialIconLink key={item.label} platform={item.platform} href={item.href} label={item.label} />
       ))}
     </Stack>
-  );
-}
-
-function TikTokIcon() {
-  return (
-    <Box
-      component="svg"
-      aria-hidden="true"
-      viewBox="0 0 448 512"
-      sx={{ display: "block", width: "1em", height: "1em", fill: "currentColor" }}
-    >
-      <path d="M448.5 209.9c-44 .1-87-13.6-122.8-39.2l0 178.7c0 33.1-10.1 65.4-29 92.6s-45.6 48-76.6 59.6-64.8 13.5-96.9 5.3-60.9-25.9-82.7-50.8-35.3-56-39-88.9 2.9-66.1 18.6-95.2 40-52.7 69.6-67.7 62.9-20.5 95.7-16l0 89.9c-15-4.7-31.1-4.6-46 .4s-27.9 14.6-37 27.3-14 28.1-13.9 43.9 5.2 31 14.5 43.7 22.4 22.1 37.4 26.9 31.1 4.8 46-.1 28-14.4 37.2-27.1 14.2-28.1 14.2-43.8l0-349.4 88 0c-.1 7.4 .6 14.9 1.9 22.2 3.1 16.3 9.4 31.9 18.7 45.7s21.3 25.6 35.2 34.6c19.9 13.1 43.2 20.1 67 20.1l0 87.4z" />
-    </Box>
   );
 }
 
@@ -603,7 +567,7 @@ function PublicSiteShellFrame({
     socialLinks.push({
       label: "Facebook",
       href: siteSettings.facebookUrl,
-      icon: <FacebookRoundedIcon fontSize="small" />
+      platform: "facebook"
     });
   }
 
@@ -611,7 +575,7 @@ function PublicSiteShellFrame({
     socialLinks.push({
       label: "YouTube",
       href: siteSettings.youtubeUrl,
-      icon: <YouTubeIcon fontSize="small" />
+      platform: "youtube"
     });
   }
 
@@ -619,7 +583,7 @@ function PublicSiteShellFrame({
     socialLinks.push({
       label: "TikTok",
       href: siteSettings.tiktokUrl,
-      icon: <TikTokIcon />
+      platform: "tiktok"
     });
   }
 

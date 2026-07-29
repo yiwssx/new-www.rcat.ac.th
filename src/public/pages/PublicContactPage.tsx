@@ -1,13 +1,13 @@
 import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
+
 import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
-import YouTubeIcon from "@mui/icons-material/YouTube";
+
 import EmptyState from "../../shared/components/EmptyState";
 import PublicDeferredEmbed from "../../shared/media/PublicDeferredEmbed";
 import { normalizeSiteSettings } from "../../services/siteSettings";
@@ -17,6 +17,7 @@ import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { focusVisibleSx } from "../../design-system/componentStyles";
+import SocialBrandIcon, { type SocialPlatform } from "../../design-system/icons/SocialBrandIcon";
 
 function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: string }) {
   const mapEmbedSrc = normalizeSafeResourceUrl(mapEmbedUrl);
@@ -101,19 +102,6 @@ function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: st
   );
 }
 
-function TikTokIcon() {
-  return (
-    <Box
-      component="svg"
-      aria-hidden="true"
-      viewBox="0 0 448 512"
-      sx={{ display: "block", width: "1em", height: "1em", fill: "currentColor" }}
-    >
-      <path d="M448.5 209.9c-44 .1-87-13.6-122.8-39.2l0 178.7c0 33.1-10.1 65.4-29 92.6s-45.6 48-76.6 59.6-64.8 13.5-96.9 5.3-60.9-25.9-82.7-50.8-35.3-56-39-88.9 2.9-66.1 18.6-95.2 40-52.7 69.6-67.7 62.9-20.5 95.7-16l0 89.9c-15-4.7-31.1-4.6-46 .4s-27.9 14.6-37 27.3-14 28.1-13.9 43.9 5.2 31 14.5 43.7 22.4 22.1 37.4 26.9 31.1 4.8 46-.1 28-14.4 37.2-27.1 14.2-28.1 14.2-43.8l0-349.4 88 0c-.1 7.4 .6 14.9 1.9 22.2 3.1 16.3 9.4 31.9 18.7 45.7s21.3 25.6 35.2 34.6c19.9 13.1 43.2 20.1 67 20.1l0 87.4z" />
-    </Box>
-  );
-}
-
 export default function PublicContactPage() {
   const { data, isFetching, isError, refetch } = usePublicCmsSnapshot();
 
@@ -157,23 +145,31 @@ export default function PublicContactPage() {
       icon: <MailOutlineRoundedIcon color="primary" />
     }
   ].filter((item) => item.value);
-  const socialLinks = [
-    {
+  const socialLinks: Array<{ label: string; href: string; platform: SocialPlatform }> = [];
+
+  if (siteSettings.facebookUrl) {
+    socialLinks.push({
       label: "Facebook",
       href: siteSettings.facebookUrl,
-      icon: <FacebookRoundedIcon />
-    },
-    {
+      platform: "facebook"
+    });
+  }
+
+  if (siteSettings.youtubeUrl) {
+    socialLinks.push({
       label: "YouTube",
       href: siteSettings.youtubeUrl,
-      icon: <YouTubeIcon />
-    },
-    {
+      platform: "youtube"
+    });
+  }
+
+  if (siteSettings.tiktokUrl) {
+    socialLinks.push({
       label: "TikTok",
       href: siteSettings.tiktokUrl,
-      icon: <TikTokIcon />
-    }
-  ].filter((item) => item.href);
+      platform: "tiktok"
+    });
+  }
 
   return (
     <PublicSiteShell title="ติดต่อ" description="ข้อมูลติดต่อที่เผยแพร่จาก CMS">
@@ -216,7 +212,7 @@ export default function PublicContactPage() {
                         href={normalizeSafeHref(item.href)}
                         aria-label={item.label}
                         variant="outlined"
-                        startIcon={item.icon}
+                        startIcon={<SocialBrandIcon platform={item.platform} />}
                         sx={{ justifyContent: "flex-start", ...focusVisibleSx }}
                       >
                         {item.label}
