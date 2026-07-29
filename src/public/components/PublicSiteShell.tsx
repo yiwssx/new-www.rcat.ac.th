@@ -316,17 +316,17 @@ function TopBarSocialIcons({ links, showLabel }: { links: TopBarSocialLink[]; sh
           href={normalizeSafeHref(item.href)}
           aria-label={item.label}
           color="inherit"
-          size="small"
+          size="medium"
           sx={(theme) => ({
-            p: { xs: 0.2, sm: 0.3, md: 0.5 },
+            p: 0.5,
             border: "1px solid",
             borderColor: alpha(theme.palette.common.white, 0.28),
             bgcolor: alpha(theme.palette.common.white, 0.08),
             "& svg": {
-              fontSize: { xs: "0.78rem", sm: "0.92rem", md: "1.25rem" }
+              fontSize: "1.25rem"
             },
             "& .svg-inline--fa": {
-              fontSize: { xs: "0.78rem", sm: "0.92rem", md: "1.25rem" }
+              fontSize: "1.25rem"
             }
           })}
         >

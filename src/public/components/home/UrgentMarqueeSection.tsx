@@ -101,9 +101,9 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
     <Box component="section" aria-label="ประกาศด่วน" sx={{ py: { xs: 1, md: 1.2 }, bgcolor: "background.default" }}>
       <Container maxWidth="xl">
         <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={{ xs: 0.8, sm: 1.4 }}
-          alignItems={{ xs: "stretch", sm: "center" }}
+          direction="row"
+          spacing={{ xs: 0.75, sm: 1.4 }}
+          alignItems="center"
           sx={(theme) => ({
             overflow: "hidden",
             borderRadius: `${designTokens.radius.medium}px`,
@@ -129,7 +129,7 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
             label={settings.label}
             color="secondary"
             sx={{
-              alignSelf: { xs: "flex-start", sm: "center" },
+              alignSelf: "center",
               flexShrink: 0,
               color: "secondary.contrastText",
               fontWeight: 900,
