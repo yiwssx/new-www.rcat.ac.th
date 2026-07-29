@@ -103,7 +103,10 @@ export default function PublicDocumentsPage() {
               )
             }
           }}
-          sx={{ flex: "1 1 360px" }}
+          sx={{
+            width: "100%",
+            flex: { xs: "0 0 auto", md: "1 1 360px" }
+          }}
         />
         <TextField
           select
@@ -111,7 +114,11 @@ export default function PublicDocumentsPage() {
           value={categoryFilter}
           onChange={(event) => setCategoryFilter(event.target.value)}
           slotProps={{ htmlInput: { "aria-label": "กรองหมวดหมู่เอกสาร" } }}
-          sx={{ minWidth: { xs: "100%", md: 220 } }}
+          sx={{
+            width: { xs: "100%", md: "auto" },
+            minWidth: { md: 220 },
+            flex: "0 0 auto"
+          }}
         >
           <MenuItem value="">ทุกหมวดหมู่</MenuItem>
           {categories.map((category) => (
@@ -126,6 +133,7 @@ export default function PublicDocumentsPage() {
               setSearchQuery("");
               setCategoryFilter("");
             }}
+            sx={{ alignSelf: { xs: "stretch", md: "center" } }}
           >
             ล้างตัวกรอง
           </Button>
