@@ -644,30 +644,21 @@ function PublicSiteShellFrame({
                   alignItems="center"
                   sx={{ width: "100%", minWidth: 0 }}
                 >
-                  <Box
+                  <PublicResponsiveImage
+                    source={projectSettings.site.logoPath}
+                    intent="logo"
+                    alt={siteName}
+                    loadMode="eager"
+                    width={128}
+                    height={128}
+                    fill
                     sx={{
-                      width: { xs: 54, sm: 58, md: 86 },
-                      height: { xs: 54, sm: 58, md: 86 },
-                      borderRadius: "50%",
-                      display: "grid",
-                      placeItems: "center",
-                      bgcolor: "primary.light",
-                      border: "1px solid",
-                      borderColor: "divider"
+                      width: { xs: 64, sm: 72, md: 88 },
+                      height: { xs: 64, sm: 72, md: 88 },
+                      flexShrink: 0
                     }}
-                  >
-                    <PublicResponsiveImage
-                      source={projectSettings.site.logoPath}
-                      intent="logo"
-                      alt={siteName}
-                      loadMode="eager"
-                      width={128}
-                      height={128}
-                      fill
-                      sx={{ width: { xs: 42, sm: 46, md: 64 }, height: { xs: 42, sm: 46, md: 64 } }}
-                      imageSx={{ objectFit: "contain" }}
-                    />
-                  </Box>
+                    imageSx={{ objectFit: "contain" }}
+                  />
                   <Box sx={{ minWidth: 0 }}>
                     {siteSettings.eyebrow && (
                       <Typography
