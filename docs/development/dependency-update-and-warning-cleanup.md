@@ -1,6 +1,6 @@
 # Dependency Update and Warning Cleanup
 
-This is the current dependency and warning-gate workflow. Use Node `22.23.1` and pnpm `10.34.5`, then install from the lockfile with `pnpm install --frozen-lockfile`.
+This is the current dependency and warning-gate workflow. Use Node `24.18.0` and pnpm `10.34.5`, then install from the lockfile with `pnpm install --frozen-lockfile`.
 
 The pnpm workspace policy uses `onlyBuiltDependencies` with `strictDepBuilds: true`. Only `esbuild`, `workerd`, and `sharp` may run dependency install scripts; this is the pnpm 10 form of the repository's fail-closed build policy.
 

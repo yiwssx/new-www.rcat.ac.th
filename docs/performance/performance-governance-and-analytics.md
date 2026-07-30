@@ -1,165 +1,188 @@
 # Performance Governance and Analytics
 
+- Document status: active
+- Canonical: true
+
 ## Scope
 
-This record covers frontend telemetry ownership, Public-route request behavior, and the synchronous Vite entry graph. The starting source was master commit `1d628a2796f0ef011385edde0c439ddcc735b35c`. The correction was measured from the working tree on `perf/performance-governance-analytics` before its final commit.
-
-The change does not alter Cloudflare Worker routes, D1 schemas, migrations, visitor hashing, CMS authentication, the Vercel CMS proxy, or public content APIs.
+This document defines the current frontend telemetry boundaries and the
+deterministic performance budget for the static Vite entry graph. The controls
+apply to Public, Auth, and Admin routes without changing Cloudflare Worker
+routes, D1 schemas, CMS authentication, the Vercel admin proxy, or public
+content APIs.
 
 ## Telemetry ownership
 
-| System                  | Purpose and metric owner                                | Route scope                           | Trigger                                                                  | Maximum frequency                                                                                                | Data sent                                                                                  | Persistence                                                               |
-| ----------------------- | ------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| Google GTM or direct GA | Public audience page views                              | Genuine Public routes only            | Normalized Public navigation                                             | One explicit `page_view` per normalized pathname; exactly one transport owns it                                  | Pathname, origin plus pathname, and a non-query-derived current title                      | Google transport; no additional browser persistence was added             |
-| Vercel Analytics        | Public deployment analytics                             | Genuine Public routes only            | Public telemetry boundary and SDK automatic navigation tracking          | One script mount per document; event behavior remains governed by the SDK                                        | SDK-managed deployment/page-view fields plus a sanitized Public URL                        | Vercel service; no application persistence was added                      |
-| Vercel Speed Insights   | Public deployment Web Vitals/RUM                        | Genuine Public routes only            | Public telemetry boundary and SDK RUM collection                         | One script mount per document; metric sampling remains governed by the SDK                                       | SDK-collected Web Vital/RUM fields plus sanitized Public URL and normalized route          | Vercel service; no application persistence was added                      |
-| First-party Site View   | Public view, daily-view, and anonymous visitor counters | Genuine Public routes only            | First visit to a normalized path                                         | One POST per anonymous visitor and normalized path in 30 minutes                                                 | Anonymous visitor ID, pathname, timestamp, safe non-search title, and referrer origin only | Existing local visitor ID/throttle plus the unchanged first-party backend |
-| First-party Presence    | Approximate online visitor state                        | Genuine Public routes only            | Initial visible route, new Public route, heartbeat, or return to visible | At most one POST for the same path per 60-second heartbeat window; a new Public path may send immediately        | Anonymous visitor ID and normalized pathname                                               | In-memory client coordinator plus the unchanged first-party backend       |
-| Visitor-stats GET       | Refresh the public counter UI                           | Public home counter only when enabled | Stale visible interval, stale focus, or stale reconnect                  | No immediate GET for a fresh snapshot; at most one GET per 60 seconds while visible; five-minute failure backoff | No browser telemetry payload; reads existing aggregate counters                            | Shared React Query cache; the latest valid snapshot remains rendered      |
+| System                  | Owner and purpose                                       | Route scope                           | Trigger                                                                  | Maximum frequency                                                                                         | Persistence                                                |
+| ----------------------- | ------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Google GTM or direct GA | Explicit Public audience page views                     | Genuine Public routes only            | Normalized Public navigation                                             | One explicit `page_view` per normalized pathname; exactly one Google transport owns it                    | Google transport; no new application persistence           |
+| Vercel Analytics        | Deployment analytics                                    | Genuine Public routes only            | Public telemetry boundary and SDK navigation tracking                    | One script mount per document; event frequency remains SDK-managed                                        | Vercel service; no new application persistence             |
+| Vercel Speed Insights   | Deployment Web Vitals and real-user monitoring          | Genuine Public routes only            | Public telemetry boundary and SDK collection                             | One script mount per document; sampling remains SDK-managed                                               | Vercel service; no new application persistence             |
+| First-party Site View   | Public view, daily-view, and anonymous visitor counters | Genuine Public routes only            | First visit to a normalized path                                         | One POST per anonymous visitor and normalized path within 30 minutes                                      | Existing visitor identifier and Cloudflare Worker/D1 data  |
+| First-party Presence    | Approximate online visitor state                        | Genuine Public routes only            | Initial visible route, new Public route, heartbeat, or return to visible | At most one POST for the same path per 60-second heartbeat window; a new Public path may send immediately | In-memory coordinator and Cloudflare Worker/D1 data        |
+| Visitor-stats GET       | Aggregate counter display                               | Public home counter only when enabled | Stale visible interval, stale focus, or stale reconnect                  | No GET for a fresh snapshot; at most one GET per 60 seconds while visible; five-minute failure backoff    | Shared React Query cache retains the latest valid snapshot |
 
-These systems are not interchangeable. Google owns the explicit Public audience page view, Vercel Analytics owns deployment analytics, Speed Insights owns deployment RUM, Site View owns the first-party counters, Presence owns approximate online state, and visitor-stats GET only refreshes the displayed aggregates.
+These systems are not interchangeable. Google owns the explicit audience page
+view, Vercel owns deployment analytics and RUM, Site View owns first-party
+counters, Presence owns approximate online state, and visitor-stats GET only
+refreshes displayed aggregates.
 
-`VITE_PUBLIC_ANALYTICS_STRATEGY=both` remains accepted only as a deprecated alias for the canonical GTM transport. It no longer initializes GTM and direct gtag together. Direct `gtag` mode still sets `send_page_view: false` before emitting the single explicit page view.
+`VITE_PUBLIC_ANALYTICS_STRATEGY=both` remains a deprecated alias for the
+canonical GTM transport; it does not initialize GTM and direct `gtag` together.
+Direct `gtag` mode sets `send_page_view: false` before the single explicit page
+view.
 
-## Route and failure boundary
+## Public, Auth, and Admin boundaries
 
-`src/shared/telemetry/publicTelemetryRoutes.ts` is the single route policy used by Google, Vercel Analytics, Speed Insights, Site View, and Presence. It strips query strings, hashes, and trailing slashes before deciding scope.
+`src/shared/telemetry/publicTelemetryRoutes.ts` is the shared route policy for
+Google, Vercel Analytics, Speed Insights, Site View, and Presence. It strips
+query strings, hashes, and trailing slashes before determining scope.
 
-The policy blocks:
+Telemetry is blocked for:
 
 - `/login`
 - `/activate-account`
 - `/reset-password`
-- `/admin` and every `/admin/**` path
+- `/admin` and all `/admin/**` paths
 
-Near matches such as `/administrator` remain Public. Normal Public pages and permalinks remain allowed.
+Near matches such as `/administrator` remain Public. Public pages and
+permalinks remain allowed.
 
-`PublicRouteLayout` dynamically imports one optional `PublicTelemetry` entry. A null Suspense fallback and a local silent error boundary keep rendering independent of telemetry availability. `RootRouteLayout` does not import or mount telemetry. Consequently, Auth and Admin routes do not request the optional module or vendor scripts.
+`PublicRouteLayout` dynamically imports the optional `PublicTelemetry` entry.
+Its null Suspense fallback and local silent error boundary keep Public
+rendering independent of telemetry availability. `RootRouteLayout`, Auth, and
+Admin do not synchronously import or mount Public telemetry. Functional tests
+verify that Auth and Admin navigation requests no Google or Vercel scripts, no
+first-party telemetry endpoints, and no Public telemetry chunk.
 
 ## Data minimization
 
 Google page views contain only:
 
-- `page_path`: normalized pathname
-- `page_location`: current origin plus normalized pathname
-- `page_title`: current document title, except that the query-derived `/search` title is omitted
+- `page_path`: normalized pathname;
+- `page_location`: current origin plus normalized pathname; and
+- `page_title`: current document title, except for the query-derived search
+  title.
 
-Arbitrary queries, hashes, search strings, reset or invitation tokens, email addresses, CMS identifiers, authentication state, and browser-storage values are not included. Vercel `beforeSend` hooks reject non-Public events and replace event URLs with the origin plus normalized pathname. First-party Site View retains its anonymous visitor ID and 120-character safe title limit, omits query-derived search titles, and keeps referrers origin-only.
+Arbitrary queries, hashes, search strings, reset or invitation tokens, email
+addresses, CMS identifiers, authentication state, and browser-storage values
+are excluded. Vercel `beforeSend` hooks reject non-Public events and replace
+event URLs with the origin plus normalized pathname. First-party Site View uses
+an anonymous visitor identifier, a safe title limited to 120 characters, and
+an origin-only referrer.
 
-No analytics consent banner was added because this task does not establish a repository consent policy. A privacy or legal review is required before adding another vendor, new identifiers or cookies, cross-route identity, more detailed URLs, marketing attribution, materially different retention, or a consent requirement. This record does not claim GDPR, PDPA, cookie-law, or other legal compliance.
+Adding a vendor, identifier, cookie, cross-route identity, detailed URL,
+marketing attribution, different retention policy, or consent requirement
+requires a separate privacy and legal review. These engineering controls do not
+claim legal compliance.
 
-## Measurement method
+## Deterministic measurement method
 
-The baseline was built from `1d628a2796f0ef011385edde0c439ddcc735b35c` in a temporary detached worktree. Both sources used Node `24.18.0`, pnpm `10.34.5`, the frozen repository lockfile, and Vite `6.4.3`.
+`pnpm perf:check` creates a production Vite build in memory with environment
+files disabled, source maps disabled, and no filesystem output. The checker:
 
-For synchronous bytes:
+1. selects the single `index.html` manifest entry;
+2. recursively follows only static `imports`;
+3. excludes `dynamicImports`;
+4. counts every unique JavaScript output in the static graph;
+5. sums the UTF-8 byte length of those outputs;
+6. gzips each output independently with Node zlib level 9 and sums the result;
+   and
+7. inspects output-chunk module associations for forbidden telemetry sources.
 
-1. Run a production Vite build in memory with environment files disabled and source maps off.
-2. Select the single `index.html` manifest entry.
-3. Recursively follow only manifest `imports`; never follow `dynamicImports`.
-4. Count unique JavaScript outputs and sum their UTF-8 bytes.
-5. Gzip each output independently with Node `zlib.gzipSync` at level 9.
-6. Inspect Rollup module associations for forbidden telemetry sources.
+The checker fails closed for a missing or malformed manifest, a missing static
+import, a missing output chunk, missing module associations, duplicate output
+files, exceeded limits, or forbidden telemetry ownership.
 
-A separate manifest/source-map build was used only to verify module and dynamic-entry associations. The corrected build has one dedicated `PublicTelemetry` dynamic entry: 10,690 raw bytes and 3,802 gzip bytes in that audit build. Its shared imports are not presented as production transfer savings because Public page chunks may load some of them concurrently.
+Vite 8 uses Rolldown and emits shared modules across multiple chunks. The
+measurement therefore follows the full recursive static manifest graph rather
+than assuming a single entry chunk.
 
-Request counts use deterministic Playwright interception. Google, Vercel, and every Public telemetry API are mocked; no production service is contacted. Playwright Clock advances heartbeat and polling time without waiting real minutes.
+## Current performance budget
 
-## Build result
+The fixed constants in `scripts/public-performance-budget.mjs` are:
 
-| Synchronous `index.html` graph       |  Starting master | Corrected |            Delta |
-| ------------------------------------ | ---------------: | --------: | ---------------: |
-| JavaScript files                     |                1 |         1 |                0 |
-| Raw JavaScript bytes                 |          389,608 |   375,507 | -14,101 (-3.62%) |
-| Gzip JavaScript bytes                |          128,011 |   123,506 |  -4,505 (-3.52%) |
-| Telemetry source/vendor associations | 6 groups present |      None |          Removed |
+| Metric                                       |   Limit |
+| -------------------------------------------- | ------: |
+| Synchronous JavaScript files                 |      14 |
+| Synchronous JavaScript raw bytes             | 460,000 |
+| Synchronous JavaScript gzip bytes            | 148,000 |
+| Forbidden synchronous telemetry associations |       0 |
 
-The starting static entry associated all of the following with its single index chunk:
+The last reviewed Vite 8 static graph measured 14 JavaScript files, 432,228 raw
+bytes, and 140,575 gzip bytes. These measurements are evidence for the current
+limits, not additional limits.
 
-- `@vercel/analytics`
-- `@vercel/speed-insights`
-- `src/shared/components/VercelInsights.tsx`
-- `src/shared/components/PublicAnalytics.tsx`
-- `src/shared/utils/publicAnalytics.ts`
-- `src/features/site-view/**`
+## Forbidden synchronous telemetry associations
 
-The corrected static entry associates none of them. They remain reachable through the dynamic Public telemetry entry.
+The static `index.html` graph must not associate any module path containing:
 
-## Request result
+- `/node_modules/@vercel/analytics/`
+- `/node_modules/@vercel/speed-insights/`
+- `/src/shared/telemetry/PublicTelemetry.tsx`
+- `/src/shared/components/VercelInsights.tsx`
+- `/src/shared/components/PublicAnalytics.tsx`
+- `/src/shared/utils/publicAnalytics.ts`
+- `/src/features/site-view/`
 
-The visible-60-second cumulative scenario is: initial home load, an immediate focus plus visibility burst, then one heartbeat interval. “Hidden 60 seconds” reports only requests added while hidden.
+Telemetry may remain reachable only through the dynamic Public telemetry
+boundary. Any association above fails the performance gate even when byte
+limits pass.
 
-| Deterministic scenario                                     | Starting master | Corrected |
-| ---------------------------------------------------------- | --------------: | --------: |
-| Initial home Site View POST                                |               1 |         1 |
-| Initial home Presence POST                                 |               2 |         1 |
-| Initial home visitor-stats GET                             |               1 |         0 |
-| Focus plus visibility burst: additional Presence           |               2 |         0 |
-| Visible 60 seconds: cumulative Presence                    |               5 |         2 |
-| Visible 60 seconds: cumulative visitor-stats GET           |               4 |         1 |
-| Hidden 60 seconds: additional Presence                     |               0 |         0 |
-| Hidden 60 seconds: additional visitor-stats GET            |               0 |         0 |
-| Return visible: additional Presence                        |               2 |         1 |
-| Initial Public lazy telemetry module request               |               0 |         1 |
-| Initial GTM script request                                 |               1 |         1 |
-| Initial direct gtag script request                         |               0 |         0 |
-| Initial Google explicit page view                          |               1 |         1 |
-| Initial Public Vercel Analytics script request             |               1 |         1 |
-| Initial Public Vercel Speed Insights script request        |               1 |         1 |
-| Deprecated `both`: Google scripts                          |               2 |         1 |
-| Deprecated `both`: explicit Google page views              |               1 |         1 |
-| Auth/Admin sequence: first-party telemetry requests        |               0 |         0 |
-| Auth/Admin sequence: Vercel Analytics script requests      |               2 |         0 |
-| Auth/Admin sequence: Vercel Speed Insights script requests |               2 |         0 |
-| Auth/Admin sequence: all measured telemetry requests       |               4 |         0 |
+## Accepted reviewed performance rebaseline
 
-The corrected same-document `/` → `/news` → repeated `/news?token=…#…` → `/content/functional-public-content` scenario records exactly three Site Views, three Presence requests, and three Google page views. The query/hash-only repetition adds none. The home snapshot remains fresh throughout that short scenario, so visitor-stats adds no GET.
+React 19 and Material UI 9 increased the reviewed synchronous JavaScript bytes
+relative to the prior framework baseline. Vite 8 and Rolldown then changed the
+reviewed static topology from one JavaScript output to fourteen while retaining
+lazy telemetry isolation. These changes are an accepted reviewed performance
+rebaseline.
 
-Public rendering also succeeds when the dynamic telemetry module is deliberately failed. Login, activation, password reset, and Admin tests assert zero Google scripts or page views, zero Vercel scripts or queues, zero Site View, Presence, or visitor-stats requests, and zero requests for `PublicTelemetry.tsx`.
+The byte ceilings were not increased for the Vite 8 topology change, and the
+file-count ceiling is exact. A fifteenth static JavaScript file, byte-budget
+excess, or forbidden association fails CI. This rebaseline does not
+characterize the migration as regression-free.
 
-## Committed budget and CI gate
+## CI commands
 
-`pnpm perf:check` enforces fixed ceilings:
+The active verification path is:
 
-| Metric                                       | Corrected actual | Fixed limit |       Headroom |
-| -------------------------------------------- | ---------------: | ----------: | -------------: |
-| Synchronous JavaScript files                 |                1 |           1 |              0 |
-| Raw JavaScript bytes                         |          375,507 |     388,000 | 12,493 (3.33%) |
-| Gzip JavaScript bytes                        |          123,506 |     127,000 |  3,494 (2.83%) |
-| Forbidden synchronous telemetry associations |                0 |           0 |   None allowed |
+```text
+pnpm exec vitest run scripts/public-performance-budget.test.mjs
+pnpm build
+pnpm perf:check
+pnpm test:functional
+```
 
-The byte headroom is intentionally below the usual 5–10% range. A 5% ceiling would exceed the starting baseline. These limits remain below starting master by 1,608 raw bytes and 1,011 gzip bytes, so restoring the prior synchronous telemetry graph fails the gate. The check is dependency-free beyond repository-local Vite, runs entirely in memory, disables environment files, prints actual/limit/difference, and leaves no build output.
-
-The GitHub Actions quality job runs `pnpm perf:check` immediately after the normal production build. The package `quality` chain includes the same gate.
+The GitHub Actions quality job runs the normal build before `pnpm perf:check`.
+The package `quality` chain also includes the performance gate. Budget tests
+lock the Vite 8 file-count ceiling and fail-closed manifest behavior.
 
 ## Reproduction
 
-Baseline worktree:
+From the repository root with the pinned Node and pnpm versions:
 
 ```bash
-git worktree add --detach <temporary-path> 1d628a2796f0ef011385edde0c439ddcc735b35c
-cd <temporary-path>
-pnpm install --frozen-lockfile
-pnpm build
-pnpm exec vite build --manifest --sourcemap --outDir .tmp/perf-baseline-dist
-```
-
-Corrected repository:
-
-```bash
-pnpm build
+pnpm install --frozen-lockfile --strict-peer-dependencies
+pnpm exec vitest run scripts/public-performance-budget.test.mjs
 pnpm perf:check
 pnpm exec playwright test tests/functional/publicTelemetry.spec.ts
-pnpm exec playwright test tests/functional/cms-auth.spec.ts --grep "Public analytics and site-view tracking"
 ```
 
-Temporary worktrees, manifests, source maps, Playwright reports, screenshots, and build output are removed after measurements.
+`pnpm perf:check` prints actual values, limits, differences, forbidden
+associations, and an overall result. It leaves no tracked build output.
+Playwright intercepts telemetry traffic in deterministic fixtures; it does not
+contact production services.
 
-## Limits
+## Current limitations
 
-- These are local deterministic build estimates, not CDN transfer measurements.
-- The static graph deliberately excludes dynamic imports and is not a total application bundle report.
-- The dedicated telemetry chunk size is an emitted-build value, not a claim about cached or observed network transfer.
-- Mocked scripts prove mount and route boundaries; they do not execute vendor collection logic. Unit tests cover the application-owned sanitizers.
-- The request scenarios measure client behavior under the committed fixture, not production latency, vendor availability, Web Vitals, or real-user traffic.
-- No Lighthouse, production network, Core Web Vitals score, deployment, privacy-compliance, or legal-compliance claim is made.
+- The byte totals are deterministic local build estimates, not CDN transfer
+  measurements.
+- The static graph excludes dynamic imports and is not a total application
+  bundle report.
+- Per-chunk gzip totals do not model every browser cache or compression path.
+- Mocked scripts prove application-owned mount and route boundaries but do not
+  execute vendor collection logic.
+- Fixture request counts do not measure production latency, vendor
+  availability, Web Vitals, or real-user traffic.
+- The checks make no Lighthouse score, deployment, privacy-compliance, or
+  legal-compliance claim.

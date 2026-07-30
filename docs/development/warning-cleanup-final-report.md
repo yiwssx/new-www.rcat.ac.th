@@ -70,4 +70,4 @@ The candidate patch was validated with the committed safe Wrangler placeholders 
 - Apps Script deployment is not required; `.gs` runtime source is unchanged.
 - Documentation/CI-only changes require no runtime deployment.
 
-See [current warning inventory](./current-warning-inventory.md) for the concise machine-readable-style status table and [major dependency update plan](./dependency-major-update-plan.md) for deferred upgrades.
+See [current warning inventory](./current-warning-inventory.md) for the concise machine-readable-style status table and [dependency governance](../maintenance/dependencies.md) for the active maintenance policy.
