@@ -1,0 +1,28 @@
+{
+  "compatibilityExceptions": {
+    "typescript": {
+      "selected": "6.0.3",
+      "blockedLatestMajor": 7,
+      "reason": "typescript-eslint 8.65.0 requires TypeScript >=4.8.4 <6.1.0, so TypeScript 7 cannot be selected yet.",
+      "validation": {
+        "kind": "peer-range",
+        "peerPackage": "typescript-eslint",
+        "peerDependency": "typescript"
+      },
+      "verifyWith": [
+        "pnpm view typescript dist-tags --json",
+        "pnpm view typescript-eslint version peerDependencies --json"
+      ]
+    },
+    "@types/node": {
+      "selected": "24.13.3",
+      "blockedLatestMajor": 26,
+      "reason": "The project runtime, local pin, and CI are on Node 24, so the latest @types/node release in major 24 is selected.",
+      "validation": {
+        "kind": "runtime-major",
+        "runtimeFile": ".node-version"
+      },
+      "verifyWith": ["pnpm view @types/node dist-tags --json", "pnpm view @types/node@24 version --json"]
+    }
+  }
+}

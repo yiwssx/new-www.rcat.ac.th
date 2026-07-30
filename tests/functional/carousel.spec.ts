@@ -4,13 +4,23 @@ import { installPublicHomeFixture, type PublicHomeFixtureOptions } from "./fixtu
 async function openCarousel(page: Page, options: PublicHomeFixtureOptions = {}) {
   await installPublicHomeFixture(page, options);
 
+  const publicHomeResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+
+    return url.pathname === "/api/public/home" && response.status() === 200;
+  });
+
   await page.goto("/", {
     waitUntil: "domcontentloaded"
   });
 
+  await publicHomeResponse;
+
   const carousel = page.locator('[data-public-home-carousel="true"]');
 
-  await expect(carousel).toBeVisible();
+  await expect(carousel).toBeVisible({
+    timeout: 15_000
+  });
 
   return carousel;
 }

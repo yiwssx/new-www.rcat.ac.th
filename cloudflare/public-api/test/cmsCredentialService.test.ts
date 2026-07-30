@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, type Mock, vi } from "vitest";
 import { verifyCmsCredential } from "../src/auth/cmsCredentialService";
 import { CMS_PASSWORD_ALGORITHM } from "../src/auth/cmsPassword";
 import {
@@ -11,6 +11,9 @@ import type { AdminAuthUserRow, AdminCredentialRow } from "../src/db/schema";
 
 const fixedNow = new Date("2026-07-20T03:00:00.000Z");
 const password = " exact password value ";
+
+type DummyPasswordComparator = (password: string) => Promise<boolean>;
+type PasswordVerifier = (password: string, storedHash: string, algorithm: string) => Promise<boolean>;
 
 const activeUser: AdminAuthUserRow = {
   id: "admin-user-1",
@@ -81,12 +84,13 @@ function verifyWith(
     identifier?: string;
     submittedPassword?: string;
     passwordMatches?: boolean;
-    dummy?: ReturnType<typeof vi.fn>;
-    verifier?: ReturnType<typeof vi.fn>;
+    dummy?: Mock<DummyPasswordComparator>;
+    verifier?: Mock<PasswordVerifier>;
   } = {}
 ) {
-  const compareDummyPassword = options.dummy ?? vi.fn().mockResolvedValue(false);
-  const verifyPassword = options.verifier ?? vi.fn().mockResolvedValue(options.passwordMatches ?? true);
+  const compareDummyPassword = options.dummy ?? vi.fn<DummyPasswordComparator>().mockResolvedValue(false);
+  const verifyPassword =
+    options.verifier ?? vi.fn<PasswordVerifier>().mockResolvedValue(options.passwordMatches ?? true);
 
   return {
     compareDummyPassword,
@@ -205,7 +209,7 @@ describe("CMS credential verification service", () => {
 
   it("does not normalize password whitespace", async () => {
     const repository = makeRepository();
-    const verifier = vi.fn().mockResolvedValue(true);
+    const verifier = vi.fn<PasswordVerifier>().mockResolvedValue(true);
     const attempt = verifyWith(repository, { submittedPassword: password, verifier });
 
     await expect(attempt.result).resolves.toMatchObject({ status: "success" });

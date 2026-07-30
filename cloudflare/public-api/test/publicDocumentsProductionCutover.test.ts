@@ -11,6 +11,10 @@ import cutoverSource from "../scripts/public-documents-production-cutover.mjs?ra
 import workerPackageJsonSource from "../package.json?raw";
 import wranglerToml from "../wrangler.toml?raw";
 
+type CutoverRuntimeOptions = NonNullable<Parameters<typeof runPublicDocumentsProductionCutover>[1]>;
+type CutoverFetch = NonNullable<CutoverRuntimeOptions["fetch"]>;
+type CutoverExecuteCommand = NonNullable<CutoverRuntimeOptions["executeCommand"]>;
+
 const safeFrontendOrigin = "https://www-production.example.invalid";
 const safeWorkerOrigin = "https://public-api-production.example.invalid";
 const fixedGeneratedAt = "2026-06-11T00:00:00.000Z";
@@ -134,7 +138,7 @@ function makeHtmlResponse(html: string, init: { ok?: boolean; status?: number } 
 }
 
 function makeFetch(snapshot = makeSnapshot()) {
-  return vi.fn(async (input: string) => {
+  return vi.fn<CutoverFetch>(async (input) => {
     if (input === `${safeWorkerOrigin}/api/public/documents`) {
       return makeJsonResponse(snapshot);
     }
@@ -151,14 +155,14 @@ function runCutover(
   args: string[] = [],
   options: {
     env?: Record<string, string | undefined>;
-    fetchImpl?: ReturnType<typeof vi.fn>;
-    executeCommand?: ReturnType<typeof vi.fn>;
+    fetchImpl?: CutoverFetch;
+    executeCommand?: CutoverExecuteCommand;
   } = {}
 ) {
   return runPublicDocumentsProductionCutover(["--generated-at", fixedGeneratedAt, ...args], {
     env: options.env ?? validEnv,
     fetch: options.fetchImpl ?? makeFetch(),
-    executeCommand: options.executeCommand ?? vi.fn(async () => ({ code: 0 }))
+    executeCommand: options.executeCommand ?? vi.fn<CutoverExecuteCommand>(async () => ({ code: 0 }))
   });
 }
 
@@ -192,8 +196,8 @@ describe("M15 production frontend cutover gate", () => {
   });
 
   it("returns a safe default plan without executing commands or fetching production", async () => {
-    const fetchImpl = vi.fn();
-    const executeCommand = vi.fn();
+    const fetchImpl = vi.fn<CutoverFetch>();
+    const executeCommand = vi.fn<CutoverExecuteCommand>();
     const result = await runCutover([], { env: {}, fetchImpl, executeCommand });
 
     expect(result.status).toBe("BLOCKED");
@@ -204,7 +208,7 @@ describe("M15 production frontend cutover gate", () => {
   });
 
   it("returns dry-run cutover and rollback plans without command execution", async () => {
-    const executeCommand = vi.fn();
+    const executeCommand = vi.fn<CutoverExecuteCommand>();
     const cutover = await runCutover(["--cutover"], { executeCommand });
     const rollback = await runCutover(["--rollback"], { executeCommand });
 
@@ -218,7 +222,7 @@ describe("M15 production frontend cutover gate", () => {
 
   it("verify mode performs only injected frontend fetch verification", async () => {
     const fetchImpl = makeFetch();
-    const executeCommand = vi.fn();
+    const executeCommand = vi.fn<CutoverExecuteCommand>();
     const result = await runCutover(["--verify", "--expected-min-count", "2"], { fetchImpl, executeCommand });
 
     expect(result.status).toBe("VERIFIED");
@@ -229,7 +233,7 @@ describe("M15 production frontend cutover gate", () => {
   });
 
   it("approval gates block execute cutover and rollback before command execution", async () => {
-    const executeCommand = vi.fn();
+    const executeCommand = vi.fn<CutoverExecuteCommand>();
     const noCutoverApproval = await runCutover(["--cutover", "--execute"], {
       env: { ...validEnv, RCAT_M15_CUTOVER_APPROVAL: "" },
       executeCommand
@@ -272,7 +276,7 @@ describe("M15 production frontend cutover gate", () => {
     ];
 
     for (const unsafeUrl of unsafeUrls) {
-      const executeCommand = vi.fn();
+      const executeCommand = vi.fn<CutoverExecuteCommand>();
       const result = await runCutover(["--cutover", "--execute"], {
         env: { ...validEnv, RCAT_PROD_FRONTEND_URL: unsafeUrl },
         executeCommand
@@ -283,7 +287,7 @@ describe("M15 production frontend cutover gate", () => {
       expect(executeCommand, unsafeUrl).not.toHaveBeenCalled();
     }
 
-    const executeCommand = vi.fn();
+    const executeCommand = vi.fn<CutoverExecuteCommand>();
     const missingVercel = await runCutover(["--cutover", "--execute"], {
       env: { RCAT_PROD_FRONTEND_URL: safeFrontendOrigin, RCAT_PROD_WORKER_URL: safeWorkerOrigin },
       executeCommand
@@ -295,7 +299,7 @@ describe("M15 production frontend cutover gate", () => {
   });
 
   it("requires Worker smoke before execute cutover and uses injected fetch only", async () => {
-    const executeCommand = vi.fn();
+    const executeCommand = vi.fn<CutoverExecuteCommand>();
     const failedSmokeFetch = vi.fn(async (input: string) => {
       if (input === `${safeWorkerOrigin}/api/public/documents`) {
         return makeJsonResponse({}, { ok: false, status: 503 });

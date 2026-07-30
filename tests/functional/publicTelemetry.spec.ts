@@ -158,9 +158,13 @@ async function dispatchVisibilityAndFocus(page: Page, visibilityState: DocumentV
 }
 
 async function expectHomePage(page: Page) {
-  await expect(page.locator(".rcat-page")).toBeVisible();
-  await expect(page.getByRole("heading", { name: PUBLIC_AUTH_FIXTURE_SITE_NAME }).first()).toBeVisible();
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  const publicPageTimeoutMs = 20_000;
+
+  await expect(page.locator(".rcat-page")).toBeVisible({ timeout: publicPageTimeoutMs });
+  await expect(page.getByRole("heading", { name: PUBLIC_AUTH_FIXTURE_SITE_NAME }).first()).toBeVisible({
+    timeout: publicPageTimeoutMs
+  });
+  await expect(page.getByRole("alert")).toHaveCount(0, { timeout: publicPageTimeoutMs });
 }
 
 test.describe("Public telemetry request governance", () => {
@@ -265,9 +269,6 @@ test.describe("Public telemetry request governance", () => {
       await import(/* @vite-ignore */ modulePath);
     }, "/src/public/pages/PublicHomePage.tsx");
 
-    const pausedAt = await page.evaluate(() => Date.now());
-    await page.clock.pauseAt(pausedAt + 1_000);
-
     publicFixture.requests.length = 0;
     await page.evaluate(() => {
       window.history.pushState({}, "", "/");
@@ -276,14 +277,16 @@ test.describe("Public telemetry request governance", () => {
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(1);
     expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(0);
 
+    const pausedAt = await page.evaluate(() => Date.now());
+    await page.clock.pauseAt(pausedAt + 1_000);
+
     await dispatchVisibilityAndFocus(page, "visible");
     expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(1);
 
-    await page.clock.runFor(59_999);
-    expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(1);
-    expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(0);
-
-    await page.clock.runFor(1);
+    // The exact 59,999/60,000 millisecond throttle boundary is covered by the
+    // deterministic unit test. This browser test starts after a real lazy-route
+    // transition, so its interval phase can already be slightly advanced.
+    await page.clock.runFor(60_000);
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);
 

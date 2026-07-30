@@ -4,6 +4,7 @@ import {
   analyzePublicEntryBuild,
   collectStaticManifestEntries,
   evaluatePublicPerformanceBudget,
+  PUBLIC_PERFORMANCE_BUDGET,
   findIndexHtmlEntry,
   formatPublicPerformanceBudgetReport,
   parseViteManifestSource
@@ -112,6 +113,26 @@ describe("Public performance budget calculator", () => {
         ]
       })
     ).toThrow(/module associations/u);
+  });
+
+  it("keeps the reviewed Vite 8 static-entry chunk baseline exact", () => {
+    expect(PUBLIC_PERFORMANCE_BUDGET.javascriptFiles).toBe(14);
+
+    const atLimit = evaluatePublicPerformanceBudget({
+      javascriptFileCount: 14,
+      rawBytes: 0,
+      gzipBytes: 0,
+      forbiddenAssociations: []
+    });
+    const overLimit = evaluatePublicPerformanceBudget({
+      javascriptFileCount: 15,
+      rawBytes: 0,
+      gzipBytes: 0,
+      forbiddenAssociations: []
+    });
+
+    expect(atLimit.passed).toBe(true);
+    expect(overLimit.passed).toBe(false);
   });
 
   it("reports exceeded limits and forbidden synchronous telemetry associations", () => {

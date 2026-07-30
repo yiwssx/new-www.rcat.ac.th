@@ -17,7 +17,7 @@ function DesignSystemHarness() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Stack spacing={3} sx={{ minHeight: "100vh", p: 4, bgcolor: "background.default" }}>
-        <Stack direction="row" flexWrap="wrap" gap={2} data-testid="focus-surfaces">
+        <Stack direction="row" gap={2} data-testid="focus-surfaces" sx={{ flexWrap: "wrap" }}>
           {focusSurfaces.map(([name, backgroundColor]) => (
             <Box
               key={name}
@@ -43,11 +43,9 @@ function DesignSystemHarness() {
 
         <Stack
           direction="row"
-          flexWrap="wrap"
           gap={2}
-          alignItems="center"
           data-testid="secondary-controls"
-          sx={{ p: 2, bgcolor: "background.paper" }}
+          sx={{ p: 2, bgcolor: "background.paper", flexWrap: "wrap", alignItems: "center" }}
         >
           <Button color="secondary" variant="contained">
             Secondary contained

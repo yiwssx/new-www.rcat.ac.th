@@ -182,10 +182,18 @@ export function inspectDesignSystemRegressionPolicy({
     violations.push("canonical contextual focus token/helper policy is incomplete");
   }
   if (
-    !/containedSecondary[\s\S]*textOnAccent/.test(themeSource) ||
-    !/outlinedSecondary[\s\S]*accentForeground/.test(themeSource) ||
-    !/textSecondary[\s\S]*accentForeground/.test(themeSource) ||
-    !/filledSecondary[\s\S]*textOnAccent/.test(themeSource)
+    !/props:\s*\{\s*variant:\s*["']contained["'],\s*color:\s*["']secondary["']\s*\}[\s\S]{0,600}?color:\s*color\.textOnAccent/.test(
+      themeSource
+    ) ||
+    !/props:\s*\{\s*variant:\s*["']outlined["'],\s*color:\s*["']secondary["']\s*\}[\s\S]{0,600}?color:\s*color\.accentForeground/.test(
+      themeSource
+    ) ||
+    !/props:\s*\{\s*variant:\s*["']text["'],\s*color:\s*["']secondary["']\s*\}[\s\S]{0,600}?color:\s*color\.accentForeground/.test(
+      themeSource
+    ) ||
+    !/props:\s*\{\s*variant:\s*["']filled["'],\s*color:\s*["']secondary["']\s*\}[\s\S]{0,600}?color:\s*color\.textOnAccent/.test(
+      themeSource
+    )
   ) {
     violations.push("MUI secondary variants do not preserve the filled/foreground accent split");
   }

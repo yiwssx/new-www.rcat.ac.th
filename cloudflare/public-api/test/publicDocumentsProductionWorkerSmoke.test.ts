@@ -11,6 +11,9 @@ import workerSmokeSource from "../scripts/public-documents-production-worker-smo
 import workerPackageJsonSource from "../package.json?raw";
 import wranglerToml from "../wrangler.toml?raw";
 
+type WorkerSmokeRuntimeOptions = NonNullable<Parameters<typeof runPublicDocumentsProductionWorkerSmoke>[1]>;
+type WorkerSmokeFetch = NonNullable<WorkerSmokeRuntimeOptions["fetch"]>;
+
 const fixedGeneratedAt = "2026-06-11T00:00:00.000Z";
 const safeWorkerOrigin = "https://public-api-production.example.invalid";
 const forbiddenProductionPattern = new RegExp(
@@ -101,13 +104,13 @@ function makeSnapshot(items = validItems, generatedAt = "2026-06-11T10:00:00.000
 function runSmoke(
   options: {
     env?: Record<string, string | undefined>;
-    fetchImpl?: ReturnType<typeof vi.fn>;
+    fetchImpl?: WorkerSmokeFetch;
     args?: string[];
   } = {}
 ) {
   return runPublicDocumentsProductionWorkerSmoke(["--generated-at", fixedGeneratedAt, ...(options.args ?? [])], {
     env: options.env ?? validEnv,
-    fetch: options.fetchImpl ?? vi.fn(async () => makeResponse(makeSnapshot()))
+    fetch: options.fetchImpl ?? vi.fn<WorkerSmokeFetch>(async () => makeResponse(makeSnapshot()))
   });
 }
 
@@ -137,7 +140,7 @@ describe("M14 production Worker smoke gate", () => {
   });
 
   it("blocks without required env or exact approval and never fetches", async () => {
-    const fetchImpl = vi.fn();
+    const fetchImpl = vi.fn<WorkerSmokeFetch>();
     const noEnv = await runSmoke({ env: {}, fetchImpl });
     const wrongApproval = await runSmoke({
       env: { ...validEnv, RCAT_PROD_WORKER_SMOKE_APPROVAL: "approved" },
@@ -169,7 +172,7 @@ describe("M14 production Worker smoke gate", () => {
     ];
 
     for (const unsafeUrl of unsafeUrls) {
-      const fetchImpl = vi.fn();
+      const fetchImpl = vi.fn<WorkerSmokeFetch>();
       const result = await runSmoke({ env: { ...validEnv, RCAT_PROD_WORKER_URL: unsafeUrl }, fetchImpl });
 
       expect(result.status, unsafeUrl).toBe("BLOCKED");

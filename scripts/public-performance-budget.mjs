@@ -2,10 +2,11 @@ import { gzipSync } from "node:zlib";
 
 // Keep these fixed ceilings aligned with the reviewed measurements in
 // docs/performance/performance-governance-and-analytics.md.
+// Accepted React 19 / Material UI 9 rebaseline: measured 445876 raw / 143145 gzip bytes; ceilings retain about 3% headroom.
 export const PUBLIC_PERFORMANCE_BUDGET = Object.freeze({
-  javascriptFiles: 1,
-  rawBytes: 388_000,
-  gzipBytes: 127_000
+  javascriptFiles: 14,
+  rawBytes: 460_000,
+  gzipBytes: 148_000
 });
 
 export const FORBIDDEN_SYNCHRONOUS_TELEMETRY_MODULES = Object.freeze([

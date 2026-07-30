@@ -43,7 +43,7 @@ async function createInMemoryProductionBuild() {
     return await build({
       root: repositoryRoot,
       configFile: resolve(repositoryRoot, "vite.config.ts"),
-      envFile: false,
+      envDir: false,
       mode: "production",
       logLevel: "warn",
       build: {
