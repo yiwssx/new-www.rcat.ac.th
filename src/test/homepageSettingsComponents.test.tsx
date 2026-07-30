@@ -366,19 +366,21 @@ describe("homepage settings public sections", () => {
 
     vi.stubGlobal(
       "IntersectionObserver",
-      vi.fn((callback: IntersectionObserverCallback) => {
-        intersectionCallback = callback;
+      vi.fn(
+        class {
+          readonly disconnect = disconnect;
+          readonly observe = observe;
+          readonly root = null;
+          readonly rootMargin = "600px 0px";
+          readonly thresholds: number[] = [];
+          readonly takeRecords = () => [];
+          readonly unobserve = vi.fn();
 
-        return {
-          disconnect,
-          observe,
-          takeRecords: () => [],
-          unobserve: vi.fn(),
-          root: null,
-          rootMargin: "600px 0px",
-          thresholds: []
-        };
-      })
+          constructor(callback: IntersectionObserverCallback) {
+            intersectionCallback = callback;
+          }
+        }
+      )
     );
 
     render(
@@ -685,19 +687,21 @@ describe("homepage settings public sections", () => {
 
     vi.stubGlobal(
       "IntersectionObserver",
-      vi.fn((callback: IntersectionObserverCallback) => {
-        intersectionCallback = callback;
+      vi.fn(
+        class {
+          readonly disconnect = vi.fn();
+          readonly observe = vi.fn();
+          readonly root = null;
+          readonly rootMargin = "600px 0px";
+          readonly thresholds: number[] = [];
+          readonly takeRecords = () => [];
+          readonly unobserve = vi.fn();
 
-        return {
-          disconnect: vi.fn(),
-          observe: vi.fn(),
-          takeRecords: () => [],
-          unobserve: vi.fn(),
-          root: null,
-          rootMargin: "600px 0px",
-          thresholds: []
-        };
-      })
+          constructor(callback: IntersectionObserverCallback) {
+            intersectionCallback = callback;
+          }
+        }
+      )
     );
 
     render(

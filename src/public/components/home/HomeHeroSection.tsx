@@ -154,7 +154,13 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
             </Typography>
           )}
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} alignItems={{ xs: "stretch", sm: "center" }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.2}
+            sx={{
+              alignItems: { xs: "stretch", sm: "center" }
+            }}
+          >
             {siteSettings.admissionUrl && (
               <Button
                 variant="contained"
@@ -191,7 +197,6 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
           </Stack>
         </Stack>
       </Box>
-
       <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
         <DirectorHeroCard siteSettings={siteSettings} />
       </Box>

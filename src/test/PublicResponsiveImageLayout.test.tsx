@@ -48,6 +48,7 @@ describe("PublicResponsiveImage layout modes", () => {
     expect(style.width).toBe("auto");
     expect(style.height).toBe("auto");
     expect(style.maxWidth).toBe("100%");
-    expect(style.maxHeight).toBe("inherit");
+    expect(window.getComputedStyle(wrapper as Element).maxHeight).toBe("300px");
+    expect(style.maxHeight).toBe("300px");
   });
 });

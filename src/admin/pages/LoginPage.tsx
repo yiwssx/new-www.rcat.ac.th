@@ -229,7 +229,6 @@ export default function LoginPage() {
           กรุณารอ {retryAfterSeconds} วินาทีก่อนลองอีกครั้ง
         </Alert>
       )}
-
       {step === "password" && (
         <Stack component="form" spacing={2.25} onSubmit={handlePasswordSubmit}>
           <TextField
@@ -278,7 +277,6 @@ export default function LoginPage() {
           />
         </Stack>
       )}
-
       {step === "mfa" && (
         <Stack component="form" spacing={2} onSubmit={handleMfaSubmit}>
           <Typography variant="h3">ยืนยัน MFA</Typography>
@@ -332,7 +330,6 @@ export default function LoginPage() {
           />
         </Stack>
       )}
-
       {step === "enrollment" &&
         (setup ? (
           <MfaSetupPanel
@@ -350,7 +347,6 @@ export default function LoginPage() {
             ลองเริ่มตั้งค่า MFA อีกครั้ง
           </Button>
         ))}
-
       {step !== "password" && step !== "completed" && (
         <Button onClick={restartLogin} disabled={submitting}>
           กลับไปกรอกรหัสผ่าน

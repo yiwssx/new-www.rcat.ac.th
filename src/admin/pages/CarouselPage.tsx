@@ -25,14 +25,14 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { designTokens } from "../../design-system/tokens";
 import { staticSurfaceSx } from "../../design-system/componentStyles";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
@@ -634,7 +634,6 @@ export default function CarouselPage() {
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
-
       <CarouselGlobalSettingsEditor
         settings={carouselSettings}
         disabled={!canManage || homepageSettingsQuery.isLoading}
@@ -645,7 +644,6 @@ export default function CarouselPage() {
         onReset={handleResetCarouselSettings}
         onSave={() => void handleSaveCarouselSettings()}
       />
-
       {homepageSettingsQuery.isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           {homepageSettingsQuery.error instanceof Error
@@ -653,7 +651,6 @@ export default function CarouselPage() {
             : "ไม่สามารถโหลดการตั้งค่าสไลด์หน้าแรกได้"}
         </Alert>
       )}
-
       {orderingMode ? (
         <Card>
           {(orderQuery.isLoading || orderQuery.isFetching) && <LinearProgress />}
@@ -663,7 +660,12 @@ export default function CarouselPage() {
                 <Typography variant="h3" sx={{ fontSize: "1.15rem" }}>
                   จัดลำดับสไลด์ทั้งหมด
                 </Typography>
-                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                <Typography
+                  sx={{
+                    color: "text.secondary",
+                    mt: 0.5
+                  }}
+                >
                   โหลดเฉพาะข้อมูลลำดับแบบย่อ ปรับตำแหน่งและสถานะ แล้วกดบันทึกลำดับ
                 </Typography>
               </Box>
@@ -673,18 +675,35 @@ export default function CarouselPage() {
                 </Alert>
               )}
               {!orderQuery.isLoading && !orderedSlides.length && !orderQuery.isError && (
-                <Typography color="text.secondary">ยังไม่มีสไลด์ให้จัดลำดับ</Typography>
+                <Typography
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
+                  ยังไม่มีสไลด์ให้จัดลำดับ
+                </Typography>
               )}
               {orderedSlides.map((slide, index) => (
                 <Stack
                   key={slide.id}
                   direction={{ xs: "column", sm: "row" }}
                   spacing={1.5}
-                  alignItems={{ xs: "stretch", sm: "center" }}
-                  sx={{ p: 1.5, border: 1, borderColor: "divider", borderRadius: 2 }}
+                  sx={{
+                    alignItems: { xs: "stretch", sm: "center" },
+                    p: 1.5,
+                    border: 1,
+                    borderColor: "divider",
+                    borderRadius: 2
+                  }}
                 >
                   <Chip label={`ลำดับ ${index + 1}`} size="small" sx={{ alignSelf: "flex-start" }} />
-                  <Typography fontWeight={800} sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    sx={{
+                      fontWeight: 800,
+                      flex: 1,
+                      minWidth: 0
+                    }}
+                  >
                     {slide.title || CAROUSEL_FALLBACK_TITLE}
                   </Typography>
                   <FormControlLabel
@@ -779,13 +798,23 @@ export default function CarouselPage() {
           {!adminListQuery.isLoading && !listTransitioning && !slides.length && !adminListQuery.isError && (
             <Card>
               <CardContent>
-                <Stack spacing={2} alignItems="flex-start">
+                <Stack
+                  spacing={2}
+                  sx={{
+                    alignItems: "flex-start"
+                  }}
+                >
                   <ViewCarouselOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
                   <Box>
                     <Typography variant="h3" sx={{ fontSize: "1.2rem" }}>
                       {q || enabledFilter !== "all" ? "ไม่พบสไลด์ที่ตรงกับเงื่อนไข" : "ยังไม่มีสไลด์หน้าแรก"}
                     </Typography>
-                    <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+                    <Typography
+                      sx={{
+                        color: "text.secondary",
+                        mt: 0.75
+                      }}
+                    >
                       เพิ่มสไลด์เพื่อแสดงภาพประชาสัมพันธ์ใน Carousel หน้าแรก
                     </Typography>
                   </Box>
@@ -827,7 +856,15 @@ export default function CarouselPage() {
                     </Box>
                     <CardContent>
                       <Stack spacing={1.5}>
-                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          useFlexGap
+                          sx={{
+                            alignItems: "center",
+                            flexWrap: "wrap"
+                          }}
+                        >
                           <Chip
                             label={slide.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
                             size="small"
@@ -841,23 +878,46 @@ export default function CarouselPage() {
                             {getCarouselSlideDisplayTitle(slide)}
                           </Typography>
                           {slide.subtitle && (
-                            <Typography color="text.secondary" className="content-summary" sx={{ mt: 0.75 }}>
+                            <Typography
+                              className="content-summary"
+                              sx={{
+                                color: "text.secondary",
+                                mt: 0.75
+                              }}
+                            >
                               {slide.subtitle}
                             </Typography>
                           )}
                         </Box>
                         {dateRangeLabel && (
-                          <Typography color="text.secondary" variant="body2">
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary"
+                            }}
+                          >
                             {dateRangeLabel}
                           </Typography>
                         )}
                         {slide.href && (
-                          <Typography color="text.secondary" variant="body2" sx={{ wordBreak: "break-word" }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              wordBreak: "break-word"
+                            }}
+                          >
                             {slide.href}
                           </Typography>
                         )}
                         {canManage && (
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{
+                              justifyContent: "flex-end"
+                            }}
+                          >
                             <IconButton
                               aria-label={`แก้ไขสไลด์หน้าแรก ${getCarouselSlideDisplayTitle(slide)}`}
                               onClick={() => handleEditSlide(slide)}
@@ -897,7 +957,6 @@ export default function CarouselPage() {
           )}
         </>
       )}
-
       <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="lg">
         <DialogTitle>{isCreating ? "เพิ่มสไลด์หน้าแรก" : "แก้ไขสไลด์หน้าแรก"}</DialogTitle>
         <DialogContent dividers>
@@ -956,13 +1015,29 @@ export default function CarouselPage() {
                     }}
                   >
                     <Stack spacing={1.25}>
-                      <Stack direction="row" spacing={1} alignItems="center">
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{
+                          alignItems: "center"
+                        }}
+                      >
                         <ImageOutlinedIcon color="primary" fontSize="small" />
                         <Box>
-                          <Typography fontWeight={900} variant="body2">
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 900
+                            }}
+                          >
                             เลือกจากคลังสื่อ
                           </Typography>
-                          <Typography color="text.secondary" variant="caption">
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary"
+                            }}
+                          >
                             เลือกภาพที่อัปโหลดไว้ในคลังสื่อเพื่อใช้เป็นภาพสไลด์ หรือกรอก URL รูปภาพเองด้านบน
                           </Typography>
                         </Box>
@@ -1036,11 +1111,17 @@ export default function CarouselPage() {
                                     />
                                     <CardContent sx={{ p: 1.25, "&:last-child": { pb: 1.25 } }}>
                                       <Stack spacing={1}>
-                                        <Stack direction="row" spacing={0.75} alignItems="flex-start">
+                                        <Stack
+                                          direction="row"
+                                          spacing={0.75}
+                                          sx={{
+                                            alignItems: "flex-start"
+                                          }}
+                                        >
                                           <Typography
                                             variant="body2"
-                                            fontWeight={800}
                                             sx={{
+                                              fontWeight: 800,
                                               flex: 1,
                                               minWidth: 0,
                                               display: "-webkit-box",

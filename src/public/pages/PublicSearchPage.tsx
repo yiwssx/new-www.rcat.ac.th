@@ -1,7 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Box, Button, Card, CardContent, Chip, Stack, TextField, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import EmptyState from "../../shared/components/EmptyState";
@@ -142,9 +142,7 @@ export default function PublicSearchPage() {
           />
         </CardContent>
       </Card>
-
       <PublicBackgroundProgress active={isFetching} />
-
       {!query && (
         <EmptyState
           title="ค้นหาเนื้อหาในเว็บไซต์"
@@ -152,7 +150,6 @@ export default function PublicSearchPage() {
           icon={<SearchOutlinedIcon />}
         />
       )}
-
       {query && !results.length && (
         <EmptyState
           title="ไม่พบผลการค้นหา"
@@ -160,7 +157,6 @@ export default function PublicSearchPage() {
           icon={<SearchOutlinedIcon />}
         />
       )}
-
       {query && results.length > 0 && (
         <Stack spacing={2.2}>
           <Typography variant="h2" sx={{ fontSize: { xs: "1.35rem", md: "1.75rem" } }}>
@@ -179,12 +175,25 @@ export default function PublicSearchPage() {
                   }}
                 >
                   <CardContent sx={{ height: "100%", display: "flex", flexDirection: "column", gap: 1.4 }}>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      useFlexGap
+                      sx={{
+                        flexWrap: "wrap"
+                      }}
+                    >
                       <Chip size="small" color="primary" label={getContentTypeLabel(item.type)} />
                       {item.category && <Chip size="small" variant="outlined" label={item.category} />}
                     </Stack>
 
-                    <Stack direction="row" spacing={1} alignItems="flex-start">
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{
+                        alignItems: "flex-start"
+                      }}
+                    >
                       <ArticleOutlinedIcon color="primary" sx={{ mt: 0.35 }} />
                       <Box sx={{ minWidth: 0 }}>
                         <Typography
@@ -205,20 +214,38 @@ export default function PublicSearchPage() {
                         >
                           {item.title}
                         </Typography>
-                        <Typography color="text.secondary" variant="body2" sx={{ mt: 0.45 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "text.secondary",
+                            mt: 0.45
+                          }}
+                        >
                           {formatDisplayDate(item.publishAt)}
                         </Typography>
                       </Box>
                     </Stack>
 
                     {item.summary && (
-                      <Typography color="text.secondary" sx={{ lineHeight: 1.75 }}>
+                      <Typography
+                        sx={{
+                          color: "text.secondary",
+                          lineHeight: 1.75
+                        }}
+                      >
                         {item.summary}
                       </Typography>
                     )}
 
                     {!!item.tags?.length && (
-                      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                      <Stack
+                        direction="row"
+                        spacing={0.75}
+                        useFlexGap
+                        sx={{
+                          flexWrap: "wrap"
+                        }}
+                      >
                         {item.tags.slice(0, 3).map((tag) => (
                           <Chip key={tag} label={`#${tag}`} size="small" variant="outlined" />
                         ))}

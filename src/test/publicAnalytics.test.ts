@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, StrictMode } from "react";
 import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublicAnalytics } from "../shared/components/PublicAnalytics";
@@ -220,6 +220,16 @@ describe("public analytics tracking", () => {
     expect(getPageViewEvents()).toHaveLength(1);
   });
 
+  it("does not duplicate a page view during StrictMode effect replay", () => {
+    window.history.replaceState({}, "", "/news");
+
+    const view = render(createElement(StrictMode, null, createElement(PublicAnalytics, { pathname: "/news" })));
+    flushAnalyticsIdle();
+
+    expect(getPageViewEvents()).toHaveLength(1);
+    view.unmount();
+  });
+
   it("deduplicates query and hash variations of the same normalized navigation", () => {
     window.history.replaceState({}, "", "/news?preview=one#first");
     trackPublicPageView("/news?preview=one#first");
@@ -302,6 +312,7 @@ describe("public analytics tracking", () => {
     const firstVisit = render(createElement(PublicAnalytics, { pathname: "/news" }));
     flushAnalyticsIdle();
     firstVisit.unmount();
+    flushAnalyticsIdle();
 
     window.history.replaceState({}, "", "/login");
     window.history.replaceState({}, "", "/news");

@@ -1,5 +1,5 @@
 import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 
 import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
@@ -74,9 +74,20 @@ function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: st
               p: 3
             }}
           >
-            <Stack spacing={1.8} alignItems="center">
+            <Stack
+              spacing={1.8}
+              sx={{
+                alignItems: "center"
+              }}
+            >
               <MapOutlinedIcon sx={{ fontSize: 58, color: "primary.main" }} />
-              <Typography fontWeight={900}>ยังไม่ได้ตั้งค่าแผนที่แบบฝัง</Typography>
+              <Typography
+                sx={{
+                  fontWeight: 900
+                }}
+              >
+                ยังไม่ได้ตั้งค่าแผนที่แบบฝัง
+              </Typography>
               <Button
                 component="a"
                 href={mapHref}
@@ -182,11 +193,29 @@ export default function PublicContactPage() {
                 {contactRows.length ? (
                   <Stack spacing={2.2} sx={{ mt: 2 }}>
                     {contactRows.map((item) => (
-                      <Stack key={item.label} direction="row" spacing={1.4} alignItems="flex-start">
+                      <Stack
+                        key={item.label}
+                        direction="row"
+                        spacing={1.4}
+                        sx={{
+                          alignItems: "flex-start"
+                        }}
+                      >
                         {item.icon}
                         <Box>
-                          <Typography fontWeight={900}>{item.label}</Typography>
-                          <Typography color="text.secondary" sx={{ whiteSpace: "pre-line" }}>
+                          <Typography
+                            sx={{
+                              fontWeight: 900
+                            }}
+                          >
+                            {item.label}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              color: "text.secondary",
+                              whiteSpace: "pre-line"
+                            }}
+                          >
                             {item.value}
                           </Typography>
                         </Box>

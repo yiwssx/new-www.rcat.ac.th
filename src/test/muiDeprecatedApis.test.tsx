@@ -32,7 +32,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("MUI 6 deprecated API migrations", () => {
+describe("MUI 9 deprecated API migrations", () => {
   it("keeps migrated components free of the deprecated prop families", () => {
     expect(settingsPageSource).not.toMatch(/\b(?:InputProps|inputProps)\s*=/);
     expect(publicDocumentsPageSource).not.toMatch(/\b(?:InputProps|inputProps)\s*=/);

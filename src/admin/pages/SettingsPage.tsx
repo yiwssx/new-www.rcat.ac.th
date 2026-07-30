@@ -18,7 +18,7 @@ import {
   TextField,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
@@ -666,11 +666,23 @@ export default function SettingsPage() {
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{
+                  alignItems: "center",
+                  mb: 2
+                }}
+              >
                 <AccessTimeOutlinedIcon color="primary" />
                 <Typography variant="h3">การแสดงวันที่และเวลา</Typography>
               </Stack>
-              <Typography color="text.secondary" sx={{ mb: 2 }}>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  mb: 2
+                }}
+              >
                 ใช้รูปแบบวันที่แบบ WordPress และเลือกรูปแบบเวลา 24 ชั่วโมงหรือ 12 ชั่วโมง
               </Typography>
               <Grid container spacing={1.5}>
@@ -764,9 +776,27 @@ export default function SettingsPage() {
                     ตัวอย่าง
                   </Typography>
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                    <Typography color="text.secondary">วันที่: {previewDate.date}</Typography>
-                    <Typography color="text.secondary">เวลา: {previewDate.time}</Typography>
-                    <Typography color="text.secondary">วันที่และเวลา: {previewDate.dateTime}</Typography>
+                    <Typography
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
+                      วันที่: {previewDate.date}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
+                      เวลา: {previewDate.time}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
+                      วันที่และเวลา: {previewDate.dateTime}
+                    </Typography>
                   </Stack>
                   {displaySettingsQuery.isError && (
                     <Typography color="error" variant="body2" sx={{ mt: 1.2 }}>
@@ -783,11 +813,23 @@ export default function SettingsPage() {
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{
+                  alignItems: "center",
+                  mb: 2
+                }}
+              >
                 <LanguageOutlinedIcon color="primary" />
                 <Typography variant="h3">ข้อมูลเว็บไซต์สาธารณะ</Typography>
               </Stack>
-              <Typography color="text.secondary" sx={{ mb: 2 }}>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  mb: 2
+                }}
+              >
                 ข้อมูลส่วนนี้จะแสดงในหน้าเว็บไซต์สาธารณะและถูกบันทึกใน Settings sheet ของ Apps Script
               </Typography>
               <Grid container spacing={1.5}>
@@ -804,7 +846,14 @@ export default function SettingsPage() {
                       fullWidth
                     />
                     {field.key === "mapEmbedUrl" && (
-                      <Typography color="warning.dark" variant="caption" sx={{ display: "block", mt: 0.6 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "warning.dark",
+                          display: "block",
+                          mt: 0.6
+                        }}
+                      >
                         ตรวจสอบพิกัดให้ถูกต้องก่อนบันทึก เพราะข้อมูลนี้แสดงต่อผู้ใช้เว็บไซต์สาธารณะ
                       </Typography>
                     )}
@@ -815,8 +864,20 @@ export default function SettingsPage() {
                     <CardContent>
                       <Stack spacing={1.5}>
                         <Box>
-                          <Typography fontWeight={900}>โหมดไว้อาลัย / Black-white theme</Typography>
-                          <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
+                          <Typography
+                            sx={{
+                              fontWeight: 900
+                            }}
+                          >
+                            โหมดไว้อาลัย / Black-white theme
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              mt: 0.5
+                            }}
+                          >
                             เมื่อเปิดใช้งาน เว็บไซต์สาธารณะจะแสดงผลแบบขาวดำเพื่อการไว้อาลัย
                           </Typography>
                         </Box>
@@ -856,8 +917,19 @@ export default function SettingsPage() {
                 <Grid size={{ xs: 12 }}>
                   <Divider sx={{ my: 1 }} />
                   <Stack spacing={1}>
-                    <Typography fontWeight={900}>ลิงก์ส่วนท้ายเว็บไซต์และ Messenger</Typography>
-                    <Typography color="text.secondary" variant="body2">
+                    <Typography
+                      sx={{
+                        fontWeight: 900
+                      }}
+                    >
+                      ลิงก์ส่วนท้ายเว็บไซต์และ Messenger
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
                       จัดการไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์และปุ่มแชท Messenger ที่แสดงบนเว็บไซต์สาธารณะ
                     </Typography>
                   </Stack>
@@ -894,8 +966,19 @@ export default function SettingsPage() {
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <Stack spacing={1.5}>
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
-                      <Typography fontWeight={900} sx={{ flex: 1 }}>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={1}
+                      sx={{
+                        alignItems: { sm: "center" }
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontWeight: 900,
+                          flex: 1
+                        }}
+                      >
                         ไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์
                       </Typography>
                       <Button variant="outlined" disabled={!canManage} onClick={handleAddFooterGroup}>
@@ -911,7 +994,12 @@ export default function SettingsPage() {
                           bgcolor: "background.default"
                         }}
                       >
-                        <Typography color="text.secondary" variant="body2">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "text.secondary"
+                          }}
+                        >
                           ยังไม่มีกลุ่มลิงก์ ส่วนท้ายเว็บไซต์จะไม่แสดงไดเรกทอรีลิงก์จนกว่าจะเพิ่มลิงก์ที่เปิดใช้งาน
                         </Typography>
                       </Box>
@@ -926,7 +1014,13 @@ export default function SettingsPage() {
                         }}
                       >
                         <Stack spacing={1.25}>
-                          <Grid container spacing={1.2} alignItems="center">
+                          <Grid
+                            container
+                            spacing={1.2}
+                            sx={{
+                              alignItems: "center"
+                            }}
+                          >
                             <Grid size={{ xs: 12, md: 8 }}>
                               <TextField
                                 label="ชื่อกลุ่มลิงก์"
@@ -937,7 +1031,13 @@ export default function SettingsPage() {
                               />
                             </Grid>
                             <Grid size={{ xs: 12, md: 4 }}>
-                              <Stack direction="row" spacing={1} justifyContent={{ md: "flex-end" }}>
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                sx={{
+                                  justifyContent: { md: "flex-end" }
+                                }}
+                              >
                                 <Button
                                   variant="outlined"
                                   disabled={!canManage}
@@ -960,8 +1060,10 @@ export default function SettingsPage() {
                             <Grid
                               container
                               spacing={1}
-                              alignItems="center"
                               key={`footer-link-${groupIndex}-${linkIndex}`}
+                              sx={{
+                                alignItems: "center"
+                              }}
                             >
                               <Grid size={{ xs: 12, md: 3 }}>
                                 <FormControlLabel
@@ -1041,11 +1143,23 @@ export default function SettingsPage() {
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{
+                  alignItems: "center",
+                  mb: 2
+                }}
+              >
                 <CampaignOutlinedIcon color="primary" />
                 <Typography variant="h3">การตั้งค่าหน้าแรก</Typography>
               </Stack>
-              <Typography color="text.secondary" sx={{ mb: 2 }}>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  mb: 2
+                }}
+              >
                 ควบคุมส่วน Intro Gate, ประกาศวิ่ง และวิดีโอแนะนำสถานศึกษาที่แสดงในหน้าเว็บไซต์สาธารณะ
               </Typography>
 
@@ -1057,7 +1171,14 @@ export default function SettingsPage() {
 
               <Stack spacing={2.4} divider={<Divider flexItem />}>
                 <Box>
-                  <Stack direction="row" alignItems="center" spacing={1.2} sx={{ mb: 1.5 }}>
+                  <Stack
+                    direction="row"
+                    spacing={1.2}
+                    sx={{
+                      alignItems: "center",
+                      mb: 1.5
+                    }}
+                  >
                     <LoginRoundedIcon color="primary" />
                     <Typography variant="h4">Intro Gate</Typography>
                   </Stack>
@@ -1146,7 +1267,14 @@ export default function SettingsPage() {
                 </Box>
 
                 <Box>
-                  <Stack direction="row" alignItems="center" spacing={1.2} sx={{ mb: 1.5 }}>
+                  <Stack
+                    direction="row"
+                    spacing={1.2}
+                    sx={{
+                      alignItems: "center",
+                      mb: 1.5
+                    }}
+                  >
                     <CampaignOutlinedIcon color="primary" />
                     <Typography variant="h4">Urgent Marquee</Typography>
                   </Stack>
@@ -1198,7 +1326,14 @@ export default function SettingsPage() {
                 </Box>
 
                 <Box>
-                  <Stack direction="row" alignItems="center" spacing={1.2} sx={{ mb: 1.5 }}>
+                  <Stack
+                    direction="row"
+                    spacing={1.2}
+                    sx={{
+                      alignItems: "center",
+                      mb: 1.5
+                    }}
+                  >
                     <OndemandVideoOutlinedIcon color="primary" />
                     <Typography variant="h4">Intro Video</Typography>
                   </Stack>
@@ -1253,14 +1388,32 @@ export default function SettingsPage() {
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{
+                  alignItems: "center",
+                  mb: 2
+                }}
+              >
                 <PeopleAltOutlinedIcon color="primary" />
                 <Typography variant="h3">สถิติผู้เข้าชมเว็บไซต์</Typography>
               </Stack>
-              <Typography color="text.secondary" sx={{ mb: 1 }}>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  mb: 1
+                }}
+              >
                 ควบคุมตัวเลขสถิติผู้เข้าชมที่แสดงในหน้าเว็บไซต์สาธารณะ
               </Typography>
-              <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  mb: 2
+                }}
+              >
                 ตัวเลขสถิติถูกนับอัตโนมัติจากหน้าเว็บสาธารณะ ผู้ดูแลสามารถเปิดหรือปิดการแสดงผลได้เท่านั้น
               </Typography>
 
@@ -1314,7 +1467,14 @@ export default function SettingsPage() {
         <Grid size={{ xs: 12, lg: 7 }}>
           <Card>
             <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{
+                  alignItems: "center",
+                  mb: 2
+                }}
+              >
                 <ShieldOutlinedIcon color="primary" />
                 <Typography variant="h3">บทบาท</Typography>
               </Stack>
@@ -1324,24 +1484,45 @@ export default function SettingsPage() {
                     key={role.id}
                     direction={{ xs: "column", sm: "row" }}
                     spacing={1.5}
-                    justifyContent="space-between"
                     sx={{
+                      justifyContent: "space-between",
                       ...staticSurfaceSx,
                       p: 2
                     }}
                   >
                     <Box>
-                      <Typography fontWeight={900}>{role.role}</Typography>
-                      <Typography color="text.secondary" variant="body2">
+                      <Typography
+                        sx={{
+                          fontWeight: 900
+                        }}
+                      >
+                        {role.role}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary"
+                        }}
+                      >
                         {role.scope}
                       </Typography>
                     </Box>
                     <Stack direction="row" spacing={2}>
-                      <Stack direction="row" alignItems="center">
+                      <Stack
+                        direction="row"
+                        sx={{
+                          alignItems: "center"
+                        }}
+                      >
                         <Checkbox checked={role.canPublish} readOnly />
                         <Typography variant="body2">เผยแพร่</Typography>
                       </Stack>
-                      <Stack direction="row" alignItems="center">
+                      <Stack
+                        direction="row"
+                        sx={{
+                          alignItems: "center"
+                        }}
+                      >
                         <Checkbox checked={role.canManageUsers} readOnly />
                         <Typography variant="body2">ผู้ใช้</Typography>
                       </Stack>
@@ -1355,22 +1536,63 @@ export default function SettingsPage() {
         <Grid size={{ xs: 12, lg: 5 }}>
           <Card>
             <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{
+                  alignItems: "center",
+                  mb: 2
+                }}
+              >
                 <KeyOutlinedIcon color="secondary" />
                 <Typography variant="h3">ความปลอดภัย</Typography>
               </Stack>
               <Stack spacing={2}>
                 <Box>
-                  <Typography fontWeight={900}>ระยะเวลาเซสชัน</Typography>
-                  <Typography color="text.secondary">เซสชันที่เข้าสู่ระบบจะหมดอายุตามค่าระบบโดยอัตโนมัติ</Typography>
+                  <Typography
+                    sx={{
+                      fontWeight: 900
+                    }}
+                  >
+                    ระยะเวลาเซสชัน
+                  </Typography>
+                  <Typography
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    เซสชันที่เข้าสู่ระบบจะหมดอายุตามค่าระบบโดยอัตโนมัติ
+                  </Typography>
                 </Box>
                 <Box>
-                  <Typography fontWeight={900}>การป้องกันรหัสผ่าน</Typography>
-                  <Typography color="text.secondary">รหัสผ่านถูกจัดเก็บเป็นแฮชที่ปลอดภัยในชีตผู้ใช้</Typography>
+                  <Typography
+                    sx={{
+                      fontWeight: 900
+                    }}
+                  >
+                    การป้องกันรหัสผ่าน
+                  </Typography>
+                  <Typography
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    รหัสผ่านถูกจัดเก็บเป็นแฮชที่ปลอดภัยในชีตผู้ใช้
+                  </Typography>
                 </Box>
                 <Box>
-                  <Typography fontWeight={900}>การตั้งค่าการ deploy</Typography>
-                  <Typography color="text.secondary">
+                  <Typography
+                    sx={{
+                      fontWeight: 900
+                    }}
+                  >
+                    การตั้งค่าการ deploy
+                  </Typography>
+                  <Typography
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
                     การ rewrite เส้นทางพร้อมใช้งานสำหรับการ deploy ผ่าน vercel.json
                   </Typography>
                 </Box>

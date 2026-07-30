@@ -292,11 +292,16 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
             >
               {mobileMenuOpen ? <CloseRoundedIcon /> : <MenuRoundedIcon />}
             </IconButton>
-            <Typography fontWeight={900}>เมนูหลัก</Typography>
+            <Typography
+              sx={{
+                fontWeight: 900
+              }}
+            >
+              เมนูหลัก
+            </Typography>
           </Box>
         )}
       </Container>
-
       <Drawer
         anchor="left"
         open={mobileMenuOpen}
@@ -313,7 +318,12 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
       >
         <Stack spacing={0} sx={{ height: "100%" }}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1.5 }}>
-            <Typography variant="subtitle1" fontWeight={700}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 700
+              }}
+            >
               เมนูหลัก
             </Typography>
             <IconButton aria-label="ปิดเมนูหลัก" onClick={closeMobileMenu}>
@@ -331,7 +341,13 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
                 toggleOpen={toggleMobileItem}
               />
             ) : (
-              <Typography sx={{ px: 2, py: 2 }} color="text.secondary">
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  px: 2,
+                  py: 2
+                }}
+              >
                 ยังไม่มีรายการเมนู
               </Typography>
             )}
@@ -388,10 +404,12 @@ function MobileMenuList({
                 primary={item.label}
                 slotProps={{
                   primary: {
-                    fontWeight: 700,
-                    fontSize: level ? { xs: "0.88rem", md: "0.92rem" } : { xs: "0.95rem", md: "0.98rem" },
-                    color: level ? "text.secondary" : "text.primary",
-                    whiteSpace: "normal"
+                    sx: {
+                      fontWeight: 700,
+                      fontSize: level ? { xs: "0.88rem", md: "0.92rem" } : { xs: "0.95rem", md: "0.98rem" },
+                      color: level ? "text.secondary" : "text.primary",
+                      whiteSpace: "normal"
+                    }
                   }
                 }}
               />

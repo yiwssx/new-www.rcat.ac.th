@@ -194,7 +194,7 @@ export default function CarouselImageStage({
           sizes={sizes}
           alt={alt}
           loading={loading}
-          {...({ fetchpriority: fetchPriority } as Record<string, string>)}
+          fetchPriority={fetchPriority}
           decoding="async"
           onLoad={(event) => {
             mainImageRef.current = event.currentTarget as HTMLImageElement;
@@ -296,9 +296,9 @@ export default function CarouselImageStage({
           aria-label={alt}
           data-carousel-image-fallback="true"
           spacing={1}
-          alignItems="center"
-          justifyContent="center"
           sx={{
+            alignItems: "center",
+            justifyContent: "center",
             position: "relative",
             zIndex: 2,
             minHeight: 140,
@@ -315,7 +315,13 @@ export default function CarouselImageStage({
             }}
           />
 
-          <Typography fontWeight={800}>{emptyLabel}</Typography>
+          <Typography
+            sx={{
+              fontWeight: 800
+            }}
+          >
+            {emptyLabel}
+          </Typography>
         </Stack>
       )}
     </Box>

@@ -24,9 +24,9 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
@@ -455,13 +455,11 @@ export default function CalendarPage() {
           ) : undefined
         }
       />
-
       {!canManage && (
         <Alert severity="info" sx={{ mb: 3 }}>
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
-
       {eventListQuery.isError && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           {eventListQuery.error instanceof Error
@@ -469,25 +467,26 @@ export default function CalendarPage() {
             : "ไม่สามารถโหลดกิจกรรมปฏิทินได้ในขณะนี้"}
         </Alert>
       )}
-
       {eventListQuery.isLoading && <LinearProgress sx={{ mb: 3 }} />}
-
       {(eventListQuery.isFetching || listTransitioning) && !eventListQuery.isLoading && (
         <LinearProgress sx={{ mb: 1 }} />
       )}
-
       <Stack
         direction={{
           xs: "column",
           lg: "row"
         }}
         spacing={2}
-        justifyContent="space-between"
-        alignItems={{
-          xs: "stretch",
-          lg: "center"
+        sx={{
+          justifyContent: "space-between",
+
+          alignItems: {
+            xs: "stretch",
+            lg: "center"
+          },
+
+          mb: 2
         }}
-        sx={{ mb: 2 }}
       >
         <TextField
           placeholder="ค้นหากิจกรรม"
@@ -529,7 +528,6 @@ export default function CalendarPage() {
           ))}
         </ToggleButtonGroup>
       </Stack>
-
       <Stack
         spacing={2}
         aria-busy={eventListQuery.isFetching}
@@ -547,13 +545,23 @@ export default function CalendarPage() {
                   md: "row"
                 }}
                 spacing={2}
-                alignItems={{
-                  xs: "flex-start",
-                  md: "center"
+                sx={{
+                  alignItems: {
+                    xs: "flex-start",
+                    md: "center"
+                  },
+
+                  justifyContent: "space-between"
                 }}
-                justifyContent="space-between"
               >
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 0 }}>
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  sx={{
+                    alignItems: "center",
+                    minWidth: 0
+                  }}
+                >
                   <Box
                     sx={{
                       width: 68,
@@ -566,17 +574,41 @@ export default function CalendarPage() {
                       flex: "0 0 auto"
                     }}
                   >
-                    <Stack spacing={0} alignItems="center">
-                      <Typography fontWeight={900}>{dayjs(event.date).format("DD")}</Typography>
+                    <Stack
+                      spacing={0}
+                      sx={{
+                        alignItems: "center"
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontWeight: 900
+                        }}
+                      >
+                        {dayjs(event.date).format("DD")}
+                      </Typography>
 
-                      <Typography variant="caption" fontWeight={800}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 800
+                        }}
+                      >
                         {dayjs(event.date).format("MMM")}
                       </Typography>
                     </Stack>
                   </Box>
 
                   <Box sx={{ minWidth: 0 }}>
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      useFlexGap
+                      sx={{
+                        alignItems: "center",
+                        flexWrap: "wrap"
+                      }}
+                    >
                       <Typography
                         variant="h3"
                         sx={{
@@ -609,14 +641,25 @@ export default function CalendarPage() {
                       )}
                     </Stack>
 
-                    <Typography color="text.secondary">
+                    <Typography
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
                       {event.audience}
                       {event.category ? ` / ${event.category}` : ""}
                       {event.location ? ` / ${event.location}` : ""}
                     </Typography>
 
                     {event.description && (
-                      <Typography color="text.secondary" variant="body2" className="content-summary" sx={{ mt: 0.5 }}>
+                      <Typography
+                        variant="body2"
+                        className="content-summary"
+                        sx={{
+                          color: "text.secondary",
+                          mt: 0.5
+                        }}
+                      >
                         {event.description}
                       </Typography>
                     )}
@@ -626,12 +669,14 @@ export default function CalendarPage() {
                 <Stack
                   direction="row"
                   spacing={1.5}
-                  alignItems="center"
-                  justifyContent={{
-                    xs: "space-between",
-                    md: "flex-end"
-                  }}
                   sx={{
+                    alignItems: "center",
+
+                    justifyContent: {
+                      xs: "space-between",
+                      md: "flex-end"
+                    },
+
                     width: {
                       xs: "100%",
                       md: "auto"
@@ -646,9 +691,20 @@ export default function CalendarPage() {
                       }
                     }}
                   >
-                    <Typography fontWeight={900}>{formatDisplayDate(event.date)}</Typography>
+                    <Typography
+                      sx={{
+                        fontWeight: 900
+                      }}
+                    >
+                      {formatDisplayDate(event.date)}
+                    </Typography>
 
-                    <Typography color="text.secondary" variant="body2">
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
                       {formatDisplayTime(event.date)}
                       {event.endDate ? ` - ${formatDisplayTime(event.endDate)}` : ""}
                     </Typography>
@@ -691,10 +747,15 @@ export default function CalendarPage() {
         ))}
 
         {!eventListQuery.isLoading && !events.length && (
-          <Typography color="text.secondary">ไม่มีกิจกรรมที่ตรงกับมุมมองนี้</Typography>
+          <Typography
+            sx={{
+              color: "text.secondary"
+            }}
+          >
+            ไม่มีกิจกรรมที่ตรงกับมุมมองนี้
+          </Typography>
         )}
       </Stack>
-
       {eventListQuery.data && (
         <AdminPagination
           pagination={{
@@ -709,7 +770,6 @@ export default function CalendarPage() {
           isFetching={eventListQuery.isFetching}
         />
       )}
-
       <Dialog open={dialogOpen} onClose={saveMutation.isPending ? undefined : handleClose} fullWidth maxWidth="md">
         <DialogTitle>
           {confirming ? (isEditing ? "บันทึกกิจกรรม?" : "เพิ่มกิจกรรม?") : isEditing ? "แก้ไขกิจกรรม" : "เพิ่มกิจกรรม"}
@@ -720,24 +780,65 @@ export default function CalendarPage() {
             <Stack spacing={1.5} sx={{ pt: 1 }}>
               {formError && <Alert severity="error">{formError}</Alert>}
 
-              <Typography color="text.secondary">ตรวจสอบกิจกรรมนี้ก่อนบันทึก</Typography>
+              <Typography
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
+                ตรวจสอบกิจกรรมนี้ก่อนบันทึก
+              </Typography>
 
-              <Typography fontWeight={900}>{form.title}</Typography>
+              <Typography
+                sx={{
+                  fontWeight: 900
+                }}
+              >
+                {form.title}
+              </Typography>
 
-              <Typography color="text.secondary">{form.audience}</Typography>
+              <Typography
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
+                {form.audience}
+              </Typography>
 
-              <Typography color="text.secondary">
+              <Typography
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
                 {formatDisplayDateTime(fromLocalDateTimeInputValue(form.dateTime))}
                 {" - "}
                 {formatDisplayDateTime(fromLocalDateTimeInputValue(form.endDateTime))}
               </Typography>
 
-              <Typography color="text.secondary">สถานะภายใน: {eventStatusLabels[form.status]}</Typography>
+              <Typography
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
+                สถานะภายใน: {eventStatusLabels[form.status]}
+              </Typography>
 
-              <Typography color="text.secondary">สื่อแนบ: {form.mediaIds.length} รายการ</Typography>
+              <Typography
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
+                สื่อแนบ: {form.mediaIds.length} รายการ
+              </Typography>
 
               {selectedMedia.length > 0 && (
-                <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                <Stack
+                  direction="row"
+                  spacing={0.75}
+                  useFlexGap
+                  sx={{
+                    flexWrap: "wrap"
+                  }}
+                >
                   {selectedMedia.map((asset) => (
                     <Chip key={asset.id} label={asset.name} size="small" variant="outlined" />
                   ))}
@@ -970,9 +1071,20 @@ export default function CalendarPage() {
               <Divider />
 
               <Stack spacing={1}>
-                <Typography fontWeight={900}>สื่อแนบกิจกรรม</Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  สื่อแนบกิจกรรม
+                </Typography>
 
-                <Typography color="text.secondary" variant="body2">
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
                   เลือกรูปภาพ เอกสาร หรือวิดีโอจากคลังสื่อ หากยังไม่มีไฟล์ ให้อัปโหลดที่หน้าคลังสื่อก่อน
                 </Typography>
 
@@ -1030,7 +1142,12 @@ export default function CalendarPage() {
 
               {selectedImages.length > 0 && (
                 <Box>
-                  <Typography fontWeight={900} sx={{ mb: 1 }}>
+                  <Typography
+                    sx={{
+                      fontWeight: 900,
+                      mb: 1
+                    }}
+                  >
                     ตัวอย่างรูปภาพที่เลือก
                   </Typography>
 
@@ -1077,8 +1194,8 @@ export default function CalendarPage() {
 
                             <Typography
                               variant="caption"
-                              fontWeight={800}
                               sx={{
+                                fontWeight: 800,
                                 display: "block",
                                 p: 1,
                                 overflowWrap: "anywhere"

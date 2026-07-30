@@ -33,9 +33,21 @@ export default function MetricCard({ metric, icon }: MetricCardProps) {
   return (
     <Card sx={{ height: "100%" }}>
       <CardContent>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "flex-start"
+          }}
+        >
           <Box>
-            <Typography color="text.secondary" variant="body2">
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary"
+              }}
+            >
               {metric.label}
             </Typography>
             <Typography variant="h2" sx={{ mt: 1 }}>
@@ -56,7 +68,13 @@ export default function MetricCard({ metric, icon }: MetricCardProps) {
             {icon}
           </Box>
         </Stack>
-        <Typography color="text.secondary" variant="body2" sx={{ mt: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mt: 2
+          }}
+        >
           {metric.trend}
         </Typography>
       </CardContent>

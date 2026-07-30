@@ -17,7 +17,7 @@ import {
   TextField,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { staticSurfaceSx } from "../../design-system/componentStyles";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
@@ -371,12 +371,29 @@ export default function UserManagementCard() {
     <Card>
       <CardContent>
         <Stack spacing={2.5}>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2} justifyContent="space-between">
-            <Stack direction="row" spacing={1.5} alignItems="flex-start">
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            sx={{
+              justifyContent: "space-between"
+            }}
+          >
+            <Stack
+              direction="row"
+              spacing={1.5}
+              sx={{
+                alignItems: "flex-start"
+              }}
+            >
               <ManageAccountsOutlinedIcon color="primary" />
               <Box>
                 <Typography variant="h3">ผู้ใช้และวงจรชีวิตบัญชี</Typography>
-                <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+                <Typography
+                  sx={{
+                    color: "text.secondary",
+                    mt: 0.75
+                  }}
+                >
                   จัดการบัญชี คำเชิญ การตั้งรหัสผ่าน เซสชัน และ MFA ผ่านนโยบายของเซิร์ฟเวอร์
                 </Typography>
               </Box>
@@ -407,7 +424,13 @@ export default function UserManagementCard() {
                     slotProps={{ input: { readOnly: true } }}
                     fullWidth
                   />
-                  <Typography color="text.secondary">หมดอายุ: {oneTimeSecret.token.expiresAt}</Typography>
+                  <Typography
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    หมดอายุ: {oneTimeSecret.token.expiresAt}
+                  </Typography>
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                     <Button variant="outlined" onClick={() => void copyOneTimeToken()}>
                       คัดลอก
@@ -483,7 +506,13 @@ export default function UserManagementCard() {
               }}
             >
               <Stack spacing={2}>
-                <Typography fontWeight={900}>{isCreating ? "เพิ่มผู้ใช้" : "แก้ไขผู้ใช้"}</Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  {isCreating ? "เพิ่มผู้ใช้" : "แก้ไขผู้ใช้"}
+                </Typography>
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
@@ -578,7 +607,13 @@ export default function UserManagementCard() {
 
           {listTransitioning && <LinearProgress />}
           {usersQuery.isLoading ? (
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center"
+              }}
+            >
               <CircularProgress size={20} />
               <Typography>กำลังโหลดผู้ใช้</Typography>
             </Stack>
@@ -600,23 +635,50 @@ export default function UserManagementCard() {
                     }}
                   >
                     <Stack spacing={1.5}>
-                      <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={1}>
+                      <Stack
+                        direction={{ xs: "column", md: "row" }}
+                        spacing={1}
+                        sx={{
+                          justifyContent: "space-between"
+                        }}
+                      >
                         <Box>
-                          <Typography fontWeight={900}>
+                          <Typography
+                            sx={{
+                              fontWeight: 900
+                            }}
+                          >
                             {profile.name} {rootProtected ? "(Root)" : ""}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary"
+                            }}
+                          >
                             {profile.email} · {profile.username ?? "ไม่มีชื่อผู้ใช้"}
                           </Typography>
                         </Box>
-                        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          useFlexGap
+                          sx={{
+                            flexWrap: "wrap"
+                          }}
+                        >
                           <Chip size="small" label={userRoleLabels[profile.role]} />
                           <Chip size="small" label={profile.status === "active" ? "ใช้งาน" : "ปิดใช้งาน"} />
                           <Chip size="small" label={invitationLabel(profile)} />
                           {self && <Chip size="small" color="primary" label="บัญชีของคุณ" />}
                         </Stack>
                       </Stack>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary"
+                        }}
+                      >
                         credential: {profile.credentialConfigured ? "พร้อม" : "ยังไม่ตั้งค่า"} · MFA:
                         {profile.mfaConfigured ? " ตั้งค่าแล้ว" : " ยังไม่ตั้งค่า"} · บังคับ:
                         {profile.mfaRequired ? " ใช่" : " ไม่"} · รหัสกู้คืน: {profile.recoveryCodesRemaining ?? 0}
@@ -627,7 +689,14 @@ export default function UserManagementCard() {
                       {profile.lastLoginAt && (
                         <Typography variant="body2">เข้าสู่ระบบล่าสุด: {profile.lastLoginAt}</Typography>
                       )}
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+                      <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={1}
+                        useFlexGap
+                        sx={{
+                          flexWrap: "wrap"
+                        }}
+                      >
                         {canUpdate && (
                           <Button variant="outlined" onClick={() => startEdit(profile)} disabled={operationPending}>
                             แก้ไข
@@ -711,7 +780,15 @@ export default function UserManagementCard() {
                   </Box>
                 );
               })}
-              {!users.length && <Typography color="text.secondary">ไม่พบผู้ใช้</Typography>}
+              {!users.length && (
+                <Typography
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
+                  ไม่พบผู้ใช้
+                </Typography>
+              )}
             </Stack>
           )}
 

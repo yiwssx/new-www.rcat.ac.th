@@ -1,5 +1,5 @@
 import { Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { alpha } from "@mui/material/styles";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
@@ -26,7 +26,6 @@ export function JobOpportunitiesSection({ items }: { items: ContentItem[] }) {
           </Button>
         }
       />
-
       {items.length === 0 ? (
         <EmptyState
           title="ยังไม่มีข่าวสมัครงาน/หางาน"
@@ -51,7 +50,15 @@ export function JobOpportunitiesSection({ items }: { items: ContentItem[] }) {
                     gap: 1.35
                   }}
                 >
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    useFlexGap
+                    sx={{
+                      alignItems: "center",
+                      flexWrap: "wrap"
+                    }}
+                  >
                     <Chip
                       icon={<WorkOutlineRoundedIcon />}
                       label={item.category || "สมัครงาน / หางาน"}
@@ -66,16 +73,40 @@ export function JobOpportunitiesSection({ items }: { items: ContentItem[] }) {
                   </Typography>
 
                   <Stack spacing={0.75}>
-                    <Typography color="text.secondary" variant="body2" fontWeight={800}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary",
+                        fontWeight: 800
+                      }}
+                    >
                       {formatDisplayDate(item.publishAt)}
                     </Typography>
-                    <Stack direction="row" spacing={0.7} alignItems="center">
+                    <Stack
+                      direction="row"
+                      spacing={0.7}
+                      sx={{
+                        alignItems: "center"
+                      }}
+                    >
                       <BusinessCenterOutlinedIcon sx={{ color: "primary.dark", fontSize: 19 }} />
-                      <Typography color="primary.dark" variant="body2" fontWeight={900}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "primary.dark",
+                          fontWeight: 900
+                        }}
+                      >
                         {item.owner || "งานแนะแนวอาชีพและจัดหางาน"}
                       </Typography>
                     </Stack>
-                    <Typography color="text.secondary" variant="body2" sx={{ lineHeight: 1.65 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary",
+                        lineHeight: 1.65
+                      }}
+                    >
                       {item.summary}
                     </Typography>
                   </Stack>
@@ -90,9 +121,21 @@ export function JobOpportunitiesSection({ items }: { items: ContentItem[] }) {
                       borderColor: "secondary.main"
                     })}
                   >
-                    <Stack direction="row" spacing={0.8} alignItems="flex-start">
+                    <Stack
+                      direction="row"
+                      spacing={0.8}
+                      sx={{
+                        alignItems: "flex-start"
+                      }}
+                    >
                       <SchoolOutlinedIcon sx={{ color: "secondary.dark", fontSize: 20, mt: 0.1 }} />
-                      <Typography color="primary.dark" variant="body2" fontWeight={800}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "primary.dark",
+                          fontWeight: 800
+                        }}
+                      >
                         อ่านคุณสมบัติและรายละเอียดเพิ่มเติมในประกาศฉบับเต็ม
                       </Typography>
                     </Stack>

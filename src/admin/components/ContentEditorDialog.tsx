@@ -636,7 +636,12 @@ export default function ContentEditorDialog({
             {confirming ? confirmTitle : title}
           </Typography>
           {!confirming && (
-            <Typography color="text.secondary" variant="body2">
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary"
+              }}
+            >
               แก้ไขเนื้อหา แนบสื่อ และตั้งค่าการเผยแพร่ในพื้นที่ทำงานเดียว
             </Typography>
           )}
@@ -645,9 +650,25 @@ export default function ContentEditorDialog({
           {confirming && pendingDraft ? (
             <Stack spacing={1.5} sx={{ pt: 1 }}>
               {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-              <Typography color="text.secondary">ตรวจสอบรายการนี้ก่อนบันทึก</Typography>
-              <Typography fontWeight={900}>{pendingDraft.title}</Typography>
-              <Typography color="text.secondary">
+              <Typography
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
+                ตรวจสอบรายการนี้ก่อนบันทึก
+              </Typography>
+              <Typography
+                sx={{
+                  fontWeight: 900
+                }}
+              >
+                {pendingDraft.title}
+              </Typography>
+              <Typography
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
                 {contentTypeLabels[pendingDraft.type]} / {contentStatusLabels[pendingDraft.status]} /{" "}
                 {pendingDraft.owner}
               </Typography>
@@ -661,24 +682,50 @@ export default function ContentEditorDialog({
                 <Stack spacing={1}>
                   <Alert severity="info">รายการนี้จะแสดงเป็นโพสต์ Facebook แบบฝังในหน้าเว็บไซต์สาธารณะ</Alert>
                   {pendingDraft.canonicalUrl ? (
-                    <Typography color="text.secondary">{pendingDraft.canonicalUrl}</Typography>
+                    <Typography
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
+                      {pendingDraft.canonicalUrl}
+                    </Typography>
                   ) : (
                     <Alert severity="warning">ยังไม่มี URL หลักสำหรับฝังโพสต์ Facebook</Alert>
                   )}
                 </Stack>
               )}
               {!!pendingDraft.category && (
-                <Typography color="text.secondary">หมวดหมู่: {pendingDraft.category}</Typography>
+                <Typography
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
+                  หมวดหมู่: {pendingDraft.category}
+                </Typography>
               )}
               {!!categoryToSlugList(pendingDraft.category).length && (
-                <Typography color="text.secondary">
+                <Typography
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
                   slug หมวดหมู่: {categoryToSlugList(pendingDraft.category).join(", ")}
                 </Typography>
               )}
               {!!normalizeTags(pendingDraft.tags).length && (
-                <Typography color="text.secondary">แท็ก: {normalizeTags(pendingDraft.tags).join(", ")}</Typography>
+                <Typography
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
+                  แท็ก: {normalizeTags(pendingDraft.tags).join(", ")}
+                </Typography>
               )}
-              <Typography color="text.secondary">
+              <Typography
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
                 แนบสื่อแล้ว {normalizeMediaIds(pendingDraft.mediaIds).length} รายการ
               </Typography>
             </Stack>
@@ -740,7 +787,13 @@ export default function ContentEditorDialog({
                   alignSelf: "start"
                 }}
               >
-                <Typography fontWeight={900}>การเผยแพร่</Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  การเผยแพร่
+                </Typography>
                 <FormControl fullWidth size="small">
                   <InputLabel id="content-type-label">ประเภท</InputLabel>
                   <Select
@@ -794,7 +847,13 @@ export default function ContentEditorDialog({
                   fullWidth
                 />
                 <Divider />
-                <Typography fontWeight={900}>หมวดหมู่และแท็ก</Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  หมวดหมู่และแท็ก
+                </Typography>
                 {!!metadataPresetGroups.length && (
                   <Box
                     sx={{
@@ -803,18 +862,42 @@ export default function ContentEditorDialog({
                       bgcolor: "background.default"
                     }}
                   >
-                    <Typography fontWeight={900} variant="body2">
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 900
+                      }}
+                    >
                       ชุดหมวดหมู่และแท็กสำหรับการแสดงผลหน้าแรก
                     </Typography>
-                    <Typography color="text.secondary" variant="caption">
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
                       เลือกชุดข้อมูลเพื่อช่วยให้เนื้อหาถูกจัดเข้า section หน้าแรกและค้นหาเจอได้ถูกต้อง
                     </Typography>
                     {metadataPresetGroups.map((group) => (
                       <Box key={group.name} sx={{ mt: 1 }}>
-                        <Typography variant="caption" fontWeight={900} color="text.secondary">
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 900,
+                            color: "text.secondary"
+                          }}
+                        >
                           {group.name}
                         </Typography>
-                        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          useFlexGap
+                          sx={{
+                            flexWrap: "wrap",
+                            mt: 0.75
+                          }}
+                        >
                           {group.presets.map((preset) => (
                             <Chip
                               key={preset.label}
@@ -876,9 +959,9 @@ export default function ContentEditorDialog({
 
                     setTagInputValue(nextValue);
                   }}
-                  renderTags={(value, getTagProps) =>
+                  renderValue={(value, getItemProps) =>
                     value.map((option, index) => (
-                      <Chip {...getTagProps({ index })} key={`${option}-${index}`} label={option} size="small" />
+                      <Chip {...getItemProps({ index })} key={`${option}-${index}`} label={option} size="small" />
                     ))
                   }
                   renderInput={(params) => (
@@ -937,7 +1020,13 @@ export default function ContentEditorDialog({
                   label="เรื่องแนะนำ"
                 />
                 <Divider />
-                <Typography fontWeight={900}>SEO</Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  SEO
+                </Typography>
                 <TextField
                   label="ชื่อ SEO"
                   value={draft.seoTitle ?? ""}
@@ -963,7 +1052,13 @@ export default function ContentEditorDialog({
                   fullWidth
                 />
                 <Divider />
-                <Typography fontWeight={900}>สื่อแนะนำ</Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  สื่อแนะนำ
+                </Typography>
                 <Box
                   sx={{
                     ...staticSurfaceSx,
@@ -990,17 +1085,42 @@ export default function ContentEditorDialog({
                       }}
                     />
                   ) : featuredMedia ? (
-                    <Stack spacing={0.75} alignItems="center" sx={{ p: 2, textAlign: "center" }}>
+                    <Stack
+                      spacing={0.75}
+                      sx={{
+                        alignItems: "center",
+                        p: 2,
+                        textAlign: "center"
+                      }}
+                    >
                       {mediaIcon(featuredMedia.type)}
-                      <Typography fontWeight={800}>{featuredMedia.name}</Typography>
+                      <Typography
+                        sx={{
+                          fontWeight: 800
+                        }}
+                      >
+                        {featuredMedia.name}
+                      </Typography>
                     </Stack>
                   ) : (
-                    <Typography color="text.secondary" variant="body2">
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
                       เลือกรูปภาพหรือวิดีโอด้านล่าง
                     </Typography>
                   )}
                 </Box>
-                <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                <Stack
+                  direction="row"
+                  spacing={0.75}
+                  useFlexGap
+                  sx={{
+                    flexWrap: "wrap"
+                  }}
+                >
                   {selectedMedia.map((asset) => (
                     <Chip
                       key={asset.id}
@@ -1011,13 +1131,24 @@ export default function ContentEditorDialog({
                     />
                   ))}
                   {!selectedMedia.length && (
-                    <Typography color="text.secondary" variant="body2">
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
                       ยังไม่ได้แนบสื่อ
                     </Typography>
                   )}
                 </Stack>
                 <Divider />
-                <Typography fontWeight={900}>คลังสื่อ</Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  คลังสื่อ
+                </Typography>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                   <TextField
                     label="ค้นหาในคลังสื่อ"
@@ -1121,11 +1252,27 @@ export default function ContentEditorDialog({
                           )}
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography fontWeight={800} noWrap>
+                          <Typography
+                            noWrap
+                            sx={{
+                              fontWeight: 800
+                            }}
+                          >
                             {asset.name}
                           </Typography>
-                          <Stack direction="row" spacing={0.75} alignItems="center">
-                            <Typography color="text.secondary" variant="caption">
+                          <Stack
+                            direction="row"
+                            spacing={0.75}
+                            sx={{
+                              alignItems: "center"
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "text.secondary"
+                              }}
+                            >
                               {mediaTypeLabels[asset.type]}
                             </Typography>
                             {checked && (asset.type === "image" || asset.type === "video") && (
@@ -1139,7 +1286,12 @@ export default function ContentEditorDialog({
                     );
                   })}
                   {!mediaListQuery.isLoading && !libraryMedia.length && (
-                    <Typography color="text.secondary" variant="body2">
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
                       ไม่พบสื่อที่ตรงกับการค้นหา
                     </Typography>
                   )}
@@ -1162,7 +1314,13 @@ export default function ContentEditorDialog({
                   />
                 )}
                 <Divider />
-                <Typography fontWeight={900}>อัปโหลดด่วน</Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  อัปโหลดด่วน
+                </Typography>
                 {uploadError && <Alert severity="error">{uploadError}</Alert>}
                 <Button
                   component="label"
@@ -1178,11 +1336,21 @@ export default function ContentEditorDialog({
                     onChange={handleFileChange}
                   />
                 </Button>
-                <Typography color="text.secondary" variant="body2">
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
                   รองรับไฟล์ขนาดไม่เกิน 10 MB
                 </Typography>
                 {uploadFile && (
-                  <Typography color="text.secondary" variant="body2">
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
                     {uploadFile.name} / {formatFileSize(uploadFile.size)}
                   </Typography>
                 )}

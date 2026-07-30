@@ -30,12 +30,18 @@ export function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings })
         {hasContactInfo && (
           <Stack spacing={1.15} sx={{ mb: mapEmbedSrc ? 1.8 : 0 }}>
             {(siteSettings.campus || siteSettings.address) && (
-              <Stack direction="row" spacing={1.1} alignItems="flex-start">
+              <Stack
+                direction="row"
+                spacing={1.1}
+                sx={{
+                  alignItems: "flex-start"
+                }}
+              >
                 <LocationOnOutlinedIcon color="primary" fontSize="small" sx={{ mt: 0.2, flexShrink: 0 }} />
                 <Typography
-                  color="text.secondary"
                   variant="body2"
                   sx={{
+                    color: "text.secondary",
                     whiteSpace: "pre-line",
                     lineHeight: 1.55,
                     minWidth: 0
@@ -47,20 +53,56 @@ export function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings })
             )}
 
             {(siteSettings.phone || siteSettings.fax) && (
-              <Stack direction={{ xs: "row", sm: "row" }} spacing={1.4} useFlexGap flexWrap="wrap" alignItems="center">
+              <Stack
+                direction={{ xs: "row", sm: "row" }}
+                spacing={1.4}
+                useFlexGap
+                sx={{
+                  flexWrap: "wrap",
+                  alignItems: "center"
+                }}
+              >
                 {siteSettings.phone && (
-                  <Stack direction="row" spacing={0.8} alignItems="center" sx={{ minWidth: 0, flex: "0 1 auto" }}>
+                  <Stack
+                    direction="row"
+                    spacing={0.8}
+                    sx={{
+                      alignItems: "center",
+                      minWidth: 0,
+                      flex: "0 1 auto"
+                    }}
+                  >
                     <LocalPhoneOutlinedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
-                    <Typography color="text.secondary" variant="body2" noWrap>
+                    <Typography
+                      variant="body2"
+                      noWrap
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
                       {siteSettings.phone}
                     </Typography>
                   </Stack>
                 )}
 
                 {siteSettings.fax && (
-                  <Stack direction="row" spacing={0.8} alignItems="center" sx={{ minWidth: 0, flex: "0 1 auto" }}>
+                  <Stack
+                    direction="row"
+                    spacing={0.8}
+                    sx={{
+                      alignItems: "center",
+                      minWidth: 0,
+                      flex: "0 1 auto"
+                    }}
+                  >
                     <FaxOutlinedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
-                    <Typography color="text.secondary" variant="body2" noWrap>
+                    <Typography
+                      variant="body2"
+                      noWrap
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
                       {siteSettings.fax}
                     </Typography>
                   </Stack>
@@ -69,12 +111,18 @@ export function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings })
             )}
 
             {siteSettings.email && (
-              <Stack direction="row" spacing={1.1} alignItems="center">
+              <Stack
+                direction="row"
+                spacing={1.1}
+                sx={{
+                  alignItems: "center"
+                }}
+              >
                 <MailOutlineRoundedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
                 <Typography
-                  color="text.secondary"
                   variant="body2"
                   sx={{
+                    color: "text.secondary",
                     minWidth: 0,
                     overflowWrap: "anywhere"
                   }}
@@ -102,7 +150,13 @@ export function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings })
           />
         )}
         {!mapEmbedSrc && mapHref !== "#" && (
-          <Typography color="text.secondary" variant="body2" sx={{ mt: hasContactInfo ? 1.2 : 0 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mt: hasContactInfo ? 1.2 : 0
+            }}
+          >
             เปิดแผนที่ใน Google Maps เพื่อดูเส้นทาง
           </Typography>
         )}

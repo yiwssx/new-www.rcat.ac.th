@@ -10,6 +10,7 @@ class TestIntersectionObserver implements IntersectionObserver {
 
   readonly root = null;
   readonly rootMargin: string;
+  readonly scrollMargin: string;
   readonly thresholds = [0];
   readonly observe = vi.fn();
   readonly unobserve = vi.fn();
@@ -21,6 +22,7 @@ class TestIntersectionObserver implements IntersectionObserver {
     options?: IntersectionObserverInit
   ) {
     this.rootMargin = options?.rootMargin || "0px";
+    this.scrollMargin = options?.scrollMargin || "0px";
     TestIntersectionObserver.instances.push(this);
   }
 

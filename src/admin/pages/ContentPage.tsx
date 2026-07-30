@@ -30,7 +30,7 @@ import {
   Typography
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
@@ -287,13 +287,39 @@ export default function ContentPage() {
         header: "ชื่อเรื่อง",
         cell: (info) => (
           <Box>
-            <Typography fontWeight={800}>{info.getValue()}</Typography>
-            <Typography color="text.secondary" variant="body2" className="content-summary">
+            <Typography
+              sx={{
+                fontWeight: 800
+              }}
+            >
+              {info.getValue()}
+            </Typography>
+            <Typography
+              variant="body2"
+              className="content-summary"
+              sx={{
+                color: "text.secondary"
+              }}
+            >
               {info.row.original.summary}
             </Typography>
-            <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+            <Stack
+              direction="row"
+              spacing={0.75}
+              useFlexGap
+              sx={{
+                alignItems: "center",
+                flexWrap: "wrap",
+                mt: 0.5
+              }}
+            >
               {!!info.row.original.category && (
-                <Typography color="text.secondary" variant="caption">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
                   {info.row.original.category}
                 </Typography>
               )}
@@ -323,7 +349,14 @@ export default function ContentPage() {
         id: "actions",
         header: "",
         cell: (info) => (
-          <Stack direction="row" spacing={0.5} justifyContent="flex-end" flexWrap="nowrap">
+          <Stack
+            direction="row"
+            spacing={0.5}
+            sx={{
+              justifyContent: "flex-end",
+              flexWrap: "nowrap"
+            }}
+          >
             <Tooltip title="ดูหน้าสาธารณะ">
               <span>
                 <IconButton
@@ -556,7 +589,13 @@ export default function ContentPage() {
                 {!table.getRowModel().rows.length && (
                   <TableRow>
                     <TableCell colSpan={columns.length}>
-                      <Typography color="text.secondary">No content records are available.</Typography>
+                      <Typography
+                        sx={{
+                          color: "text.secondary"
+                        }}
+                      >
+                        No content records are available.
+                      </Typography>
                     </TableCell>
                   </TableRow>
                 )}

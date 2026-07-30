@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Box, Card, CardContent, LinearProgress, Stack, TextField, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import CloudOutlinedIcon from "@mui/icons-material/CloudOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
@@ -76,19 +76,29 @@ export default function IntegrationsPage() {
           ไม่สามารถตรวจสอบสถานะสะพานสื่อหรือพื้นที่จัดเก็บ Google Drive ได้ในขณะนี้
         </Alert>
       )}
-
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+              <Stack
+                direction="row"
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: "flex-start"
+                }}
+              >
                 <CloudOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
                 <StatusChip status="connected" />
               </Stack>
               <Typography variant="h3" sx={{ mt: 2 }}>
                 Cloudflare structured data
               </Typography>
-              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  mt: 0.5
+                }}
+              >
                 ข้อมูลเว็บไซต์และการเขียนข้อมูลโครงสร้างของผู้ดูแลทำงานผ่าน Worker และ D1
               </Typography>
             </CardContent>
@@ -97,14 +107,25 @@ export default function IntegrationsPage() {
         <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+              <Stack
+                direction="row"
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: "flex-start"
+                }}
+              >
                 <CloudSyncOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
                 <StatusChip status={appsScriptStatus} />
               </Stack>
               <Typography variant="h3" sx={{ mt: 2 }}>
                 Apps Script media bridge
               </Typography>
-              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  mt: 0.5
+                }}
+              >
                 เชื่อมต่อผ่าน Vercel Apps Script Proxy โดยใช้ค่าฝั่งเซิร์ฟเวอร์ ไม่ต้องเปิดเผยปลายทางต่อเบราว์เซอร์
               </Typography>
             </CardContent>
@@ -113,24 +134,41 @@ export default function IntegrationsPage() {
         <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+              <Stack
+                direction="row"
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: "flex-start"
+                }}
+              >
                 <DriveFolderUploadOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
                 <StatusChip status={driveStatus} />
               </Stack>
               <Typography variant="h3" sx={{ mt: 2 }}>
                 Google Drive media storage
               </Typography>
-              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  mt: 0.5
+                }}
+              >
                 ไฟล์ต้นฉบับยังจัดเก็บใน Google Drive ผ่านสะพานสื่อที่จำกัดเฉพาะคำสั่งไฟล์
               </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
-
       <Card sx={{ mt: 2.5 }}>
         <CardContent>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{
+              alignItems: "center",
+              mb: 2
+            }}
+          >
             <CloudSyncOutlinedIcon color="primary" />
             <Typography variant="h3">ช่องทางสะพานสื่อ</Typography>
           </Stack>

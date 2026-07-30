@@ -38,8 +38,20 @@ export function PublicPagination({
   const { start, end } = getVisibleRange(page, pageSize, totalItems);
 
   return (
-    <Stack spacing={1.4} alignItems="center" sx={{ mt: 3 }}>
-      <Typography color="text.secondary" variant="body2" aria-live="polite">
+    <Stack
+      spacing={1.4}
+      sx={{
+        alignItems: "center",
+        mt: 3
+      }}
+    >
+      <Typography
+        variant="body2"
+        aria-live="polite"
+        sx={{
+          color: "text.secondary"
+        }}
+      >
         แสดง {start}–{end} จากทั้งหมด {totalItems} รายการ
       </Typography>
       {pageCount > 1 && (

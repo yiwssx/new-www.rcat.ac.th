@@ -35,7 +35,7 @@ describe("CarouselGlobalSettingsEditor", () => {
     expect(screen.getByRole("button", { name: "บันทึกการตั้งค่า" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "คืนค่า" })).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "แสดงปุ่มลูกศร" }));
+    fireEvent.click(screen.getByRole("switch", { name: "แสดงปุ่มลูกศร" }));
     expect(onChange).toHaveBeenCalledWith("showArrows", false);
 
     fireEvent.change(screen.getByLabelText("ระยะเวลาเปลี่ยนภาพ (วินาที)"), {

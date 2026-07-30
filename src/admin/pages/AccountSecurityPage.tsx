@@ -220,7 +220,13 @@ export default function AccountSecurityPage() {
     <Box>
       <PageHeader title="ความปลอดภัยบัญชี" description="จัดการรหัสผ่าน MFA รหัสกู้คืน และเซสชันของบัญชีปัจจุบัน" />
       {profileQuery.isLoading && (
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "center"
+          }}
+        >
           <CircularProgress size={20} />
           <Typography>กำลังโหลดข้อมูลบัญชี</Typography>
         </Stack>
@@ -231,7 +237,6 @@ export default function AccountSecurityPage() {
           {error}
         </Alert>
       )}
-
       {profile && (
         <Stack spacing={2.5}>
           <Card>
@@ -321,7 +326,13 @@ export default function AccountSecurityPage() {
                             </Alert>
                           )}
                           <Stack component="form" spacing={2} onSubmit={handleDisableMfa}>
-                            <Typography fontWeight={800}>ปิด MFA</Typography>
+                            <Typography
+                              sx={{
+                                fontWeight: 800
+                              }}
+                            >
+                              ปิด MFA
+                            </Typography>
                             <TextField
                               label="รหัสผ่านปัจจุบัน"
                               type="password"
@@ -375,7 +386,13 @@ export default function AccountSecurityPage() {
             <CardContent>
               <Stack spacing={2}>
                 <Typography variant="h3">เซสชัน</Typography>
-                <Typography color="text.secondary">ออกจากระบบทุกอุปกรณ์และบังคับให้เข้าสู่ระบบใหม่</Typography>
+                <Typography
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
+                  ออกจากระบบทุกอุปกรณ์และบังคับให้เข้าสู่ระบบใหม่
+                </Typography>
                 <Button
                   color="warning"
                   variant="outlined"

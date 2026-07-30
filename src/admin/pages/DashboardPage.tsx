@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Box, Button, Card, CardContent, LinearProgress, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { designTokens } from "../../design-system/tokens";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
@@ -131,7 +131,14 @@ export default function DashboardPage() {
         <Grid size={{ xs: 12, lg: 7 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+              <Stack
+                direction="row"
+                sx={{
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 2
+                }}
+              >
                 <Typography variant="h3">คิวเผยแพร่</Typography>
                 <FactCheckOutlinedIcon color="primary" />
               </Stack>
@@ -141,9 +148,9 @@ export default function DashboardPage() {
                     key={item.id}
                     direction={{ xs: "column", sm: "row" }}
                     spacing={1.5}
-                    alignItems={{ xs: "flex-start", sm: "center" }}
-                    justifyContent="space-between"
                     sx={{
+                      alignItems: { xs: "flex-start", sm: "center" },
+                      justifyContent: "space-between",
                       p: 2,
                       borderRadius: designTokens.radius.medium,
                       border: "1px solid",
@@ -151,8 +158,19 @@ export default function DashboardPage() {
                     }}
                   >
                     <Box>
-                      <Typography fontWeight={800}>{item.title}</Typography>
-                      <Typography color="text.secondary" variant="body2">
+                      <Typography
+                        sx={{
+                          fontWeight: 800
+                        }}
+                      >
+                        {item.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary"
+                        }}
+                      >
                         {item.owner} | {formatDisplayDate(item.publishAt)}
                       </Typography>
                     </Box>
@@ -160,7 +178,11 @@ export default function DashboardPage() {
                   </Stack>
                 ))}
                 {!queue.length && (
-                  <Typography color="text.secondary">
+                  <Typography
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
                     ไม่มีรายการรอตรวจสอบหรือรายการตั้งเวลาที่ถึงกำหนดเผยแพร่
                   </Typography>
                 )}
@@ -171,7 +193,14 @@ export default function DashboardPage() {
         <Grid size={{ xs: 12, lg: 5 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+              <Stack
+                direction="row"
+                sx={{
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 2
+                }}
+              >
                 <Typography variant="h3">กำหนดการที่กำลังจะมาถึง</Typography>
                 <EventAvailableOutlinedIcon color="secondary" />
               </Stack>
@@ -190,17 +219,42 @@ export default function DashboardPage() {
                         flex: "0 0 auto"
                       }}
                     >
-                      <Typography fontWeight={900}>{dayjs(event.date).format("DD")}</Typography>
+                      <Typography
+                        sx={{
+                          fontWeight: 900
+                        }}
+                      >
+                        {dayjs(event.date).format("DD")}
+                      </Typography>
                     </Box>
                     <Box>
-                      <Typography fontWeight={800}>{event.title}</Typography>
-                      <Typography color="text.secondary" variant="body2">
+                      <Typography
+                        sx={{
+                          fontWeight: 800
+                        }}
+                      >
+                        {event.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary"
+                        }}
+                      >
                         {event.audience} | {formatDisplayDateTime(event.date)}
                       </Typography>
                     </Box>
                   </Stack>
                 ))}
-                {!events.length && <Typography color="text.secondary">ยังไม่มีกิจกรรมที่กำลังจะมาถึง</Typography>}
+                {!events.length && (
+                  <Typography
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    ยังไม่มีกิจกรรมที่กำลังจะมาถึง
+                  </Typography>
+                )}
               </Stack>
             </CardContent>
           </Card>

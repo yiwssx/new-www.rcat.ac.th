@@ -23,12 +23,31 @@ function CompactAnnouncementList({ items, emptyTitle }: { items: ContentItem[]; 
           className="rcat-focus-ring block rounded-md px-1 py-3"
         >
           <Stack spacing={0.8}>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              sx={{
+                alignItems: "center",
+                flexWrap: "wrap"
+              }}
+            >
               <Chip label="ประกาศ" size="small" color={item.featured ? "secondary" : "default"} />
               {item.category && <Chip label={item.category} size="small" variant="outlined" />}
             </Stack>
-            <Typography fontWeight={900}>{item.title}</Typography>
-            <Typography color="text.secondary" variant="body2">
+            <Typography
+              sx={{
+                fontWeight: 900
+              }}
+            >
+              {item.title}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary"
+              }}
+            >
               {formatDisplayDate(item.publishAt)}
             </Typography>
           </Stack>

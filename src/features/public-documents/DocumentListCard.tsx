@@ -61,12 +61,30 @@ export function DocumentListCard({
                 aria-label={`อ่านเอกสาร ${item.title}`}
                 className="rcat-card-muted rcat-focus-ring block p-3"
               >
-                <Stack direction="row" spacing={1.2} alignItems="flex-start">
+                <Stack
+                  direction="row"
+                  spacing={1.2}
+                  sx={{
+                    alignItems: "flex-start"
+                  }}
+                >
                   <DescriptionOutlinedIcon sx={{ color: "primary.main", mt: 0.2 }} />
                   <Box className="min-w-0 flex-1">
-                    <Typography fontWeight={800}>{item.title}</Typography>
+                    <Typography
+                      sx={{
+                        fontWeight: 800
+                      }}
+                    >
+                      {item.title}
+                    </Typography>
                     {item.category && (
-                      <Typography color="text.secondary" variant="body2" sx={{ mt: 0.45 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary",
+                          mt: 0.45
+                        }}
+                      >
                         {item.category}
                       </Typography>
                     )}

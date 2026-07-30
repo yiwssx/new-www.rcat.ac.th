@@ -31,7 +31,14 @@ export default function FacebookPostEmbed({
 
   if (!pluginUrl) {
     return (
-      <Stack spacing={1.5} alignItems="center" sx={{ width: "100%", textAlign: "center" }}>
+      <Stack
+        spacing={1.5}
+        sx={{
+          alignItems: "center",
+          width: "100%",
+          textAlign: "center"
+        }}
+      >
         <Alert severity="warning" sx={{ width: "100%", maxWidth }}>
           ไม่สามารถแสดงโพสต์ Facebook แบบฝังได้
         </Alert>
@@ -46,7 +53,14 @@ export default function FacebookPostEmbed({
 
   return (
     <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
-      <Stack spacing={1} alignItems="center" sx={{ width: "100%", maxWidth }}>
+      <Stack
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          width: "100%",
+          maxWidth
+        }}
+      >
         <PublicDeferredEmbed
           title={title}
           src={pluginUrl}

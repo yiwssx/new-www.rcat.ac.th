@@ -23,14 +23,14 @@ import {
   TextField,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { designTokens } from "../../design-system/tokens";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
-import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
@@ -553,7 +553,13 @@ export default function ExternalServicesPage() {
         description="จัดการลิงก์บริการออนไลน์ที่แสดงในหน้าเว็บไซต์สาธารณะ"
         action={
           canManage ? (
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              sx={{
+                alignItems: { xs: "stretch", sm: "center" }
+              }}
+            >
               {orderingMode ? (
                 <>
                   <Button color="inherit" onClick={handleCancelOrdering} disabled={saveOrderMutation.isPending}>
@@ -599,13 +605,11 @@ export default function ExternalServicesPage() {
           ) : undefined
         }
       />
-
       {!canManage && (
         <Alert severity="info" sx={{ mb: 3 }}>
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
-
       {orderingMode ? (
         <Card>
           {(orderQuery.isLoading || orderQuery.isFetching) && <LinearProgress />}
@@ -615,7 +619,12 @@ export default function ExternalServicesPage() {
                 <Typography variant="h3" sx={{ fontSize: "1.15rem" }}>
                   จัดลำดับ E-Service ทั้งหมด
                 </Typography>
-                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                <Typography
+                  sx={{
+                    color: "text.secondary",
+                    mt: 0.5
+                  }}
+                >
                   โหลดเฉพาะข้อมูลลำดับแบบย่อ ไม่ใช้รายการที่แบ่งหน้าในการบันทึกทั้งชุด
                 </Typography>
               </Box>
@@ -625,18 +634,35 @@ export default function ExternalServicesPage() {
                 </Alert>
               )}
               {!orderQuery.isLoading && !orderedServices.length && !orderQuery.isError && (
-                <Typography color="text.secondary">ยังไม่มี E-Service ให้จัดลำดับ</Typography>
+                <Typography
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
+                  ยังไม่มี E-Service ให้จัดลำดับ
+                </Typography>
               )}
               {orderedServices.map((service, index) => (
                 <Stack
                   key={service.id}
                   direction={{ xs: "column", sm: "row" }}
                   spacing={1.5}
-                  alignItems={{ xs: "stretch", sm: "center" }}
-                  sx={{ p: 1.5, border: 1, borderColor: "divider", borderRadius: 2 }}
+                  sx={{
+                    alignItems: { xs: "stretch", sm: "center" },
+                    p: 1.5,
+                    border: 1,
+                    borderColor: "divider",
+                    borderRadius: 2
+                  }}
                 >
                   <Chip label={`ลำดับ ${index + 1}`} size="small" sx={{ alignSelf: "flex-start" }} />
-                  <Typography fontWeight={800} sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    sx={{
+                      fontWeight: 800,
+                      flex: 1,
+                      minWidth: 0
+                    }}
+                  >
                     {service.title}
                   </Typography>
                   <FormControlLabel
@@ -751,7 +777,12 @@ export default function ExternalServicesPage() {
           {!adminListQuery.isLoading && !listTransitioning && !services.length && !adminListQuery.isError && (
             <Card>
               <CardContent>
-                <Stack spacing={2} alignItems="flex-start">
+                <Stack
+                  spacing={2}
+                  sx={{
+                    alignItems: "flex-start"
+                  }}
+                >
                   <AppsOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
                   <Typography variant="h3" sx={{ fontSize: "1.2rem" }}>
                     {q || enabledFilter !== "all" || toneFilter !== "all"
@@ -779,9 +810,22 @@ export default function ExternalServicesPage() {
                 >
                   <CardContent>
                     <Stack spacing={1.5} sx={{ height: "100%" }}>
-                      <Stack direction="row" spacing={1.25} alignItems="flex-start" justifyContent="space-between">
+                      <Stack
+                        direction="row"
+                        spacing={1.25}
+                        sx={{
+                          alignItems: "flex-start",
+                          justifyContent: "space-between"
+                        }}
+                      >
                         {renderServiceIcon(service.iconKey, service.tone)}
-                        <Stack direction="row" spacing={0.75} alignItems="center">
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          sx={{
+                            alignItems: "center"
+                          }}
+                        >
                           {service.href && (
                             <IconButton
                               aria-label={`เปิดลิงก์บริการ ${service.title}`}
@@ -817,7 +861,15 @@ export default function ExternalServicesPage() {
                           )}
                         </Stack>
                       </Stack>
-                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        useFlexGap
+                        sx={{
+                          alignItems: "center",
+                          flexWrap: "wrap"
+                        }}
+                      >
                         <Chip
                           label={service.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
                           size="small"
@@ -833,12 +885,24 @@ export default function ExternalServicesPage() {
                           {service.title || "ไม่มีชื่อบริการ"}
                         </Typography>
                         {service.description && (
-                          <Typography color="text.secondary" className="content-summary" sx={{ mt: 0.75 }}>
+                          <Typography
+                            className="content-summary"
+                            sx={{
+                              color: "text.secondary",
+                              mt: 0.75
+                            }}
+                          >
                             {service.description}
                           </Typography>
                         )}
                       </Box>
-                      <Typography color="text.secondary" variant="body2" sx={{ wordBreak: "break-word" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary",
+                          wordBreak: "break-word"
+                        }}
+                      >
                         {service.href || "ยังไม่มี URL"}
                       </Typography>
                     </Stack>
@@ -860,7 +924,6 @@ export default function ExternalServicesPage() {
           )}
         </>
       )}
-
       <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="md" transitionDuration={0}>
         <DialogTitle>{isCreating ? "เพิ่มลิงก์ E-Service" : "แก้ไขลิงก์ E-Service"}</DialogTitle>
         <DialogContent dividers>
@@ -868,7 +931,15 @@ export default function ExternalServicesPage() {
             <Grid container spacing={2.5} sx={{ pt: 1 }}>
               <Grid size={{ xs: 12, md: 7 }}>
                 <Stack spacing={2}>
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    useFlexGap
+                    sx={{
+                      alignItems: "center",
+                      flexWrap: "wrap"
+                    }}
+                  >
                     <Chip label={`ลำดับ ${editingService.order}`} size="small" variant="outlined" />
                     <FormControlLabel
                       control={
@@ -955,7 +1026,14 @@ export default function ExternalServicesPage() {
                 <Card variant="outlined" sx={{ bgcolor: "primary.light", borderColor: "divider" }}>
                   <CardContent>
                     <Stack spacing={1.35}>
-                      <Stack direction="row" spacing={1.1} alignItems="flex-start" justifyContent="space-between">
+                      <Stack
+                        direction="row"
+                        spacing={1.1}
+                        sx={{
+                          alignItems: "flex-start",
+                          justifyContent: "space-between"
+                        }}
+                      >
                         {renderServiceIcon(editingService.iconKey, editingService.tone)}
                         <OpenInNewOutlinedIcon sx={{ color: "text.secondary", fontSize: 19 }} />
                       </Stack>
@@ -963,7 +1041,13 @@ export default function ExternalServicesPage() {
                         <Typography variant="h3" sx={{ fontSize: "1rem", lineHeight: 1.32 }}>
                           {editingService.title || "ชื่อบริการ"}
                         </Typography>
-                        <Typography color="text.secondary" variant="body2" sx={{ lineHeight: 1.55 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "text.secondary",
+                            lineHeight: 1.55
+                          }}
+                        >
                           {editingService.description || "คำอธิบายบริการ"}
                         </Typography>
                       </Stack>

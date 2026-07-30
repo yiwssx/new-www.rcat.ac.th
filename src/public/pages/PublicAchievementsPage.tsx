@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import type { ContentItem } from "../../types";
@@ -85,7 +85,15 @@ export default function PublicAchievementsPage() {
       preloadedMenu={data.menu}
     >
       <PublicBackgroundProgress active={isFetching} />
-      <Stack id="achievements-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
+      <Stack
+        id="achievements-list-heading"
+        direction="row"
+        spacing={1.2}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}
+      >
         <EmojiEventsOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           ผลงานทั้งหมด

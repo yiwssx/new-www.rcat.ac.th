@@ -163,8 +163,8 @@ export default function PublicIntroGate({
       <Stack
         data-intro-gate-content="true"
         spacing={{ xs: 1, sm: 1.25 }}
-        alignItems="center"
         sx={{
+          alignItems: "center",
           width: "100%",
           maxWidth: "100vw",
           my: "auto"
@@ -276,9 +276,9 @@ export default function PublicIntroGate({
           data-intro-gate-has-secondary={hasSecondaryButton ? "true" : "false"}
           direction={{ xs: "column", sm: "row" }}
           spacing={{ xs: 0.75, sm: 1 }}
-          justifyContent="center"
-          alignItems="stretch"
           sx={{
+            justifyContent: "center",
+            alignItems: "stretch",
             width: "100%",
             maxWidth: hasSecondaryButton ? { xs: "96vw", sm: 560 } : { xs: "96vw", sm: 320 },
             flexShrink: 0,

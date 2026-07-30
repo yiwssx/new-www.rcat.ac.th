@@ -52,7 +52,6 @@ export default function RecoveryCodeHandoffDialog() {
   return (
     <Dialog
       open={handoff !== null}
-      disableEscapeKeyDown
       onClose={() => undefined}
       fullWidth
       maxWidth="md"

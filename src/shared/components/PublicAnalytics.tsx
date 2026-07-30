@@ -1,11 +1,12 @@
 import { useEffect } from "react";
-import { releasePublicPageView, trackPublicPageView } from "../utils/publicAnalytics";
+import { retainPublicPageView, trackPublicPageView } from "../utils/publicAnalytics";
 
 export function PublicAnalytics({ pathname }: { pathname: string }) {
   useEffect(() => {
+    const release = retainPublicPageView();
     trackPublicPageView(pathname);
 
-    return releasePublicPageView;
+    return release;
   }, [pathname]);
 
   return null;

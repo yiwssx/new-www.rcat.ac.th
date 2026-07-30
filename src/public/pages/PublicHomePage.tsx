@@ -1,6 +1,6 @@
 import { lazy, ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import { Box, Container, Stack } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
 import PublicHomeCarousel from "../components/PublicHomeCarousel";
@@ -217,7 +217,13 @@ export default function PublicHomePage() {
         <HomeIntroVideoSection settings={homepageSettings.introVideo} />
 
         <Box component="section" id="news" sx={{ mt: { xs: 3, md: 4 } }}>
-          <Grid container spacing={3.2} alignItems="flex-start">
+          <Grid
+            container
+            spacing={3.2}
+            sx={{
+              alignItems: "flex-start"
+            }}
+          >
             <Grid size={{ xs: 12, lg: 8 }} sx={{ order: { xs: 1, lg: 1 } }}>
               <LatestNewsSection items={latestNews} mediaAssets={mediaAssets} />
 

@@ -1,5 +1,5 @@
 import { Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { alpha } from "@mui/material/styles";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
@@ -24,7 +24,6 @@ export function ProcurementNewsSection({ items }: { items: ContentItem[] }) {
           </Button>
         }
       />
-
       {items.length === 0 ? (
         <EmptyState
           title="ยังไม่มีข่าวจัดซื้อจัดจ้าง"
@@ -49,7 +48,15 @@ export function ProcurementNewsSection({ items }: { items: ContentItem[] }) {
                     gap: 1.35
                   }}
                 >
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    useFlexGap
+                    sx={{
+                      alignItems: "center",
+                      flexWrap: "wrap"
+                    }}
+                  >
                     <Chip
                       icon={<RequestQuoteOutlinedIcon />}
                       label={item.category || "จัดซื้อจัดจ้าง"}
@@ -63,10 +70,22 @@ export function ProcurementNewsSection({ items }: { items: ContentItem[] }) {
                     <Typography variant="h3" sx={{ fontSize: { xs: "1.04rem", md: "1.1rem" }, lineHeight: 1.32 }}>
                       {item.title}
                     </Typography>
-                    <Typography color="text.secondary" variant="body2" fontWeight={800}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary",
+                        fontWeight: 800
+                      }}
+                    >
                       {formatDisplayDate(item.publishAt)}
                     </Typography>
-                    <Typography color="text.secondary" variant="body2" sx={{ lineHeight: 1.65 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary",
+                        lineHeight: 1.65
+                      }}
+                    >
                       {item.summary}
                     </Typography>
                     <Box
@@ -79,7 +98,13 @@ export function ProcurementNewsSection({ items }: { items: ContentItem[] }) {
                         borderColor: "divider"
                       })}
                     >
-                      <Typography color="primary.dark" variant="body2" fontWeight={900}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "primary.dark",
+                          fontWeight: 900
+                        }}
+                      >
                         ดูรายละเอียดเพิ่มเติมในประกาศฉบับเต็ม
                       </Typography>
                     </Box>

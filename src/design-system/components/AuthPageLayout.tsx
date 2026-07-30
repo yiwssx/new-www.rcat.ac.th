@@ -28,7 +28,13 @@ export default function AuthPageLayout({ title, description, children, showBrand
           <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
             <Stack spacing={2.5}>
               {showBrand ? (
-                <Stack direction="row" spacing={1.5} alignItems="center">
+                <Stack
+                  direction="row"
+                  spacing={1.5}
+                  sx={{
+                    alignItems: "center"
+                  }}
+                >
                   <Box
                     sx={{
                       width: 52,
@@ -47,7 +53,13 @@ export default function AuthPageLayout({ title, description, children, showBrand
                     <Typography variant="h1" sx={{ overflowWrap: "anywhere" }}>
                       {getCmsSiteName()}
                     </Typography>
-                    <Typography color="text.secondary">ระบบบริหารจัดการเนื้อหา</Typography>
+                    <Typography
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
+                      ระบบบริหารจัดการเนื้อหา
+                    </Typography>
                   </Box>
                 </Stack>
               ) : (
@@ -56,7 +68,12 @@ export default function AuthPageLayout({ title, description, children, showBrand
                     {title}
                   </Typography>
                   {description ? (
-                    <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+                    <Typography
+                      sx={{
+                        color: "text.secondary",
+                        mt: 0.75
+                      }}
+                    >
                       {description}
                     </Typography>
                   ) : null}

@@ -12,7 +12,7 @@ import {
   Stack,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import EmptyState from "../../../shared/components/EmptyState";
@@ -54,10 +54,15 @@ const eventLifecycleStatus: Record<ReturnType<typeof getEventLifecycle>, Semanti
 function EventDetail({ label, value }: EventDetailProps) {
   return (
     <Box>
-      <Typography color="text.secondary" variant="caption" fontWeight={800}>
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+          fontWeight: 800
+        }}
+      >
         {label}
       </Typography>
-
       <Typography>{value}</Typography>
     </Box>
   );
@@ -108,8 +113,8 @@ function EventImageAttachment({ asset }: { asset: MediaAsset }) {
 
       <Typography
         variant="body2"
-        fontWeight={800}
         sx={{
+          fontWeight: 800,
           p: 1.25,
           overflowWrap: "anywhere"
         }}
@@ -281,8 +286,22 @@ export function EventListCard({
                     }}
                   >
                     <Box className="py-3" sx={{ px: 0.5 }}>
-                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                        <Typography fontWeight={900}>{event.title}</Typography>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        useFlexGap
+                        sx={{
+                          alignItems: "center",
+                          flexWrap: "wrap"
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontWeight: 900
+                          }}
+                        >
+                          {event.title}
+                        </Typography>
 
                         <SemanticStatusChip
                           label={EVENT_LIFECYCLE_LABELS[lifecycle]}
@@ -291,21 +310,33 @@ export function EventListCard({
                         />
                       </Stack>
 
-                      <Typography color="text.secondary" variant="body2" sx={{ mt: 0.75 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary",
+                          mt: 0.75
+                        }}
+                      >
                         {formatEventDateTimeRange(event)}
                       </Typography>
 
                       {event.location && (
-                        <Typography color="text.secondary" variant="body2" sx={{ mt: 0.25 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "text.secondary",
+                            mt: 0.25
+                          }}
+                        >
                           {event.location}
                         </Typography>
                       )}
 
                       <Typography
-                        color="primary.main"
                         variant="caption"
-                        fontWeight={800}
                         sx={{
+                          color: "primary.main",
+                          fontWeight: 800,
                           display: "inline-block",
                           mt: 0.5
                         }}
@@ -334,7 +365,6 @@ export function EventListCard({
           )}
         </CardContent>
       </Card>
-
       <Dialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -354,7 +384,13 @@ export function EventListCard({
               />
 
               <Box>
-                <Typography color="text.secondary" variant="caption" fontWeight={800}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 800
+                  }}
+                >
                   สถานะกิจกรรม
                 </Typography>
 
@@ -374,7 +410,13 @@ export function EventListCard({
               <EventDetail label="หมวดหมู่" value={selectedEvent.category || "ไม่ระบุ"} />
 
               <Box>
-                <Typography color="text.secondary" variant="caption" fontWeight={800}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 800
+                  }}
+                >
                   รายละเอียด
                 </Typography>
 
@@ -391,7 +433,13 @@ export function EventListCard({
 
               {selectedImages.length > 0 && (
                 <Box>
-                  <Typography color="text.secondary" variant="caption" fontWeight={800}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: 800
+                    }}
+                  >
                     รูปภาพกิจกรรม
                   </Typography>
 
@@ -413,7 +461,13 @@ export function EventListCard({
 
               {selectedOtherMedia.length > 0 && (
                 <Stack spacing={0.75}>
-                  <Typography color="text.secondary" variant="caption" fontWeight={800}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: 800
+                    }}
+                  >
                     สื่อและเอกสารแนบ
                   </Typography>
 

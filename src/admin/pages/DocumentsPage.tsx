@@ -29,11 +29,11 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
-import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandLessOutlinedIcon from "@mui/icons-material/ExpandLessOutlined";
@@ -550,13 +550,11 @@ export default function DocumentsPage() {
           ) : undefined
         }
       />
-
       {!canManage && (
         <Alert severity="info" sx={{ mb: 3 }}>
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
-
       {(orderingMode ? adminOrderQuery.isLoading : adminListQuery.isLoading || listTransitioning) && (
         <LinearProgress sx={{ mb: 2 }} />
       )}
@@ -567,12 +565,17 @@ export default function DocumentsPage() {
             : "ไม่สามารถโหลดรายการเอกสารได้"}
         </Alert>
       )}
-
       <Card className="rcat-card">
         <CardContent sx={{ p: 0 }}>
           <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
             {!orderingMode && (
-              <Grid container spacing={2} alignItems="center">
+              <Grid
+                container
+                spacing={2}
+                sx={{
+                  alignItems: "center"
+                }}
+              >
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     placeholder="ค้นหาเอกสาร"
@@ -627,8 +630,10 @@ export default function DocumentsPage() {
               <Stack
                 direction={{ xs: "column", sm: "row" }}
                 spacing={1}
-                alignItems={{ xs: "stretch", sm: "center" }}
-                sx={{ mt: 2 }}
+                sx={{
+                  alignItems: { xs: "stretch", sm: "center" },
+                  mt: 2
+                }}
               >
                 <Button
                   variant="outlined"
@@ -678,7 +683,13 @@ export default function DocumentsPage() {
                 {filteredPinnedDocuments.length > 0 && (
                   <TableRow>
                     <TableCell colSpan={6} sx={{ bgcolor: "background.default" }}>
-                      <Typography fontWeight={900} color="text.secondary" variant="body2">
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 900,
+                          color: "text.secondary"
+                        }}
+                      >
                         เอกสารปักหมุด
                       </Typography>
                     </TableCell>
@@ -690,28 +701,54 @@ export default function DocumentsPage() {
                   return (
                     <TableRow key={document.id} hover>
                       <TableCell>
-                        <Stack direction="row" spacing={1.2} alignItems="flex-start">
+                        <Stack
+                          direction="row"
+                          spacing={1.2}
+                          sx={{
+                            alignItems: "flex-start"
+                          }}
+                        >
                           <DescriptionOutlinedIcon color="primary" sx={{ mt: 0.4 }} />
                           <Box sx={{ minWidth: 0 }}>
-                            <Typography fontWeight={800}>{document.title || "ไม่มีชื่อเอกสาร"}</Typography>
+                            <Typography
+                              sx={{
+                                fontWeight: 800
+                              }}
+                            >
+                              {document.title || "ไม่มีชื่อเอกสาร"}
+                            </Typography>
                             <Stack spacing={0.35} sx={{ mt: 0.35 }}>
                               {document.description && (
                                 <Typography
-                                  color="text.secondary"
                                   variant="body2"
                                   className="content-summary"
-                                  sx={{ overflowWrap: "anywhere" }}
+                                  sx={{
+                                    color: "text.secondary",
+                                    overflowWrap: "anywhere"
+                                  }}
                                 >
                                   {document.description}
                                 </Typography>
                               )}
                               {document.fileName && (
-                                <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "text.secondary",
+                                    overflowWrap: "anywhere"
+                                  }}
+                                >
                                   {document.fileName}
                                 </Typography>
                               )}
                               {document.fileUrl && (
-                                <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "text.secondary",
+                                    overflowWrap: "anywhere"
+                                  }}
+                                >
                                   {document.fileUrl}
                                 </Typography>
                               )}
@@ -724,8 +761,19 @@ export default function DocumentsPage() {
                         <StatusChip status={document.status} />
                       </TableCell>
                       <TableCell>
-                        <Stack spacing={0.6} alignItems="flex-start">
-                          <Typography fontWeight={700}>{document.order}</Typography>
+                        <Stack
+                          spacing={0.6}
+                          sx={{
+                            alignItems: "flex-start"
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontWeight: 700
+                            }}
+                          >
+                            {document.order}
+                          </Typography>
                           <Chip label="ปักหมุด" color="secondary" size="small" variant="outlined" />
                         </Stack>
                       </TableCell>
@@ -804,7 +852,13 @@ export default function DocumentsPage() {
                 {filteredUnpinnedDocuments.length > 0 && (
                   <TableRow>
                     <TableCell colSpan={6} sx={{ bgcolor: "background.default" }}>
-                      <Typography fontWeight={900} color="text.secondary" variant="body2">
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 900,
+                          color: "text.secondary"
+                        }}
+                      >
                         เอกสารทั่วไป
                       </Typography>
                     </TableCell>
@@ -816,28 +870,54 @@ export default function DocumentsPage() {
                   return (
                     <TableRow key={document.id} hover>
                       <TableCell>
-                        <Stack direction="row" spacing={1.2} alignItems="flex-start">
+                        <Stack
+                          direction="row"
+                          spacing={1.2}
+                          sx={{
+                            alignItems: "flex-start"
+                          }}
+                        >
                           <DescriptionOutlinedIcon color="primary" sx={{ mt: 0.4 }} />
                           <Box sx={{ minWidth: 0 }}>
-                            <Typography fontWeight={800}>{document.title || "ไม่มีชื่อเอกสาร"}</Typography>
+                            <Typography
+                              sx={{
+                                fontWeight: 800
+                              }}
+                            >
+                              {document.title || "ไม่มีชื่อเอกสาร"}
+                            </Typography>
                             <Stack spacing={0.35} sx={{ mt: 0.35 }}>
                               {document.description && (
                                 <Typography
-                                  color="text.secondary"
                                   variant="body2"
                                   className="content-summary"
-                                  sx={{ overflowWrap: "anywhere" }}
+                                  sx={{
+                                    color: "text.secondary",
+                                    overflowWrap: "anywhere"
+                                  }}
                                 >
                                   {document.description}
                                 </Typography>
                               )}
                               {document.fileName && (
-                                <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "text.secondary",
+                                    overflowWrap: "anywhere"
+                                  }}
+                                >
                                   {document.fileName}
                                 </Typography>
                               )}
                               {document.fileUrl && (
-                                <Typography color="text.secondary" variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "text.secondary",
+                                    overflowWrap: "anywhere"
+                                  }}
+                                >
                                   {document.fileUrl}
                                 </Typography>
                               )}
@@ -850,7 +930,13 @@ export default function DocumentsPage() {
                         <StatusChip status={document.status} />
                       </TableCell>
                       <TableCell>
-                        <Typography fontWeight={700}>{document.order}</Typography>
+                        <Typography
+                          sx={{
+                            fontWeight: 700
+                          }}
+                        >
+                          {document.order}
+                        </Typography>
                       </TableCell>
                       <TableCell>{document.publishedAt ? formatDisplayDateTime(document.publishedAt) : "-"}</TableCell>
                       <TableCell align="right">
@@ -930,7 +1016,11 @@ export default function DocumentsPage() {
                       <TableCell colSpan={6}>
                         <Box sx={{ py: 5, textAlign: "center" }}>
                           <DescriptionOutlinedIcon color="disabled" sx={{ fontSize: 42, mb: 1 }} />
-                          <Typography color="text.secondary">
+                          <Typography
+                            sx={{
+                              color: "text.secondary"
+                            }}
+                          >
                             {documents.length ? "ไม่พบเอกสารที่ตรงกับเงื่อนไขการค้นหา" : "ยังไม่มีเอกสารเผยแพร่"}
                           </Typography>
                         </Box>
@@ -954,7 +1044,6 @@ export default function DocumentsPage() {
           )}
         </CardContent>
       </Card>
-
       <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="md">
         <DialogTitle>{isCreating ? "เพิ่มเอกสารเผยแพร่" : "แก้ไขเอกสารเผยแพร่"}</DialogTitle>
         <DialogContent dividers>
@@ -1010,9 +1099,19 @@ export default function DocumentsPage() {
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 3 }}>
-                <Stack spacing={0.75} alignItems="flex-start">
+                <Stack
+                  spacing={0.75}
+                  sx={{
+                    alignItems: "flex-start"
+                  }}
+                >
                   <Chip label={`ลำดับในกลุ่ม: ${editingDocument.order}`} size="small" variant="outlined" />
-                  <Typography color="text.secondary" variant="caption">
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
                     ปรับลำดับจากรายการเอกสารด้านนอกด้วยปุ่มเลื่อนขึ้น/เลื่อนลง
                   </Typography>
                 </Stack>
@@ -1028,7 +1127,12 @@ export default function DocumentsPage() {
                     }
                     label="ปักหมุด"
                   />
-                  <Typography color="text.secondary" variant="caption">
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
                     เมื่อเปลี่ยนการปักหมุด รายการจะถูกจัดอยู่ในกลุ่มเอกสารปักหมุดหรือเอกสารทั่วไป
                   </Typography>
                 </Stack>

@@ -21,9 +21,9 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
@@ -136,9 +136,21 @@ function MediaPreview({ asset }: { asset: MediaAsset }) {
 
   if (!previewUrl || previewFailed) {
     return (
-      <Stack spacing={1} alignItems="center" sx={{ px: 2, textAlign: "center" }}>
+      <Stack
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          px: 2,
+          textAlign: "center"
+        }}
+      >
         <Box sx={{ fontSize: 40, display: "grid", placeItems: "center" }}>{getMediaIcon(asset.type)}</Box>
-        <Typography color="text.secondary" variant="body2">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary"
+          }}
+        >
           ไม่สามารถแสดงตัวอย่างได้
         </Typography>
       </Stack>
@@ -194,26 +206,62 @@ export function MediaAssetCard({
         >
           <MediaPreview key={previewKey} asset={asset} />
         </Box>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "flex-start"
+          }}
+        >
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="h3" sx={{ fontSize: "1.05rem" }} noWrap>
               {asset.name}
             </Typography>
-            <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mt: 0.5
+              }}
+            >
               {asset.owner}
             </Typography>
           </Box>
           <Chip label={mediaTypeLabels[asset.type]} size="small" />
         </Stack>
-        <Stack direction="row" justifyContent="space-between" sx={{ mt: 1.6 }}>
-          <Typography color="text.secondary" variant="body2">
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: "space-between",
+            mt: 1.6
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary"
+            }}
+          >
             {asset.size || asset.mimeType || "Drive"}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary"
+            }}
+          >
             {formatDisplayDate(asset.updatedAt)}
           </Typography>
         </Stack>
-        <Stack direction="row" spacing={0.5} justifyContent="flex-end" sx={{ mt: 2 }}>
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{
+            justifyContent: "flex-end",
+            mt: 2
+          }}
+        >
           <Tooltip title={asset.driveUrl ? "เปิดใน Drive" : "ไม่มี URL ของ Drive"}>
             <span>
               <IconButton
@@ -723,7 +771,12 @@ export default function MediaPage() {
         ))}
       </Grid>
       {!mediaListQuery.isLoading && !mediaAssets.length && (
-        <Typography color="text.secondary" sx={{ mt: 2 }}>
+        <Typography
+          sx={{
+            color: "text.secondary",
+            mt: 2
+          }}
+        >
           ไม่มีสื่อที่ตรงกับมุมมองนี้
         </Typography>
       )}
@@ -758,12 +811,34 @@ export default function MediaPage() {
                 {saveMutation.isPending && (
                   <Stack spacing={1}>
                     <LinearProgress />
-                    <Typography color="text.secondary">{getSavePendingText(saveOperation)}</Typography>
+                    <Typography
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
+                      {getSavePendingText(saveOperation)}
+                    </Typography>
                   </Stack>
                 )}
-                <Typography color="text.secondary">ตรวจสอบสื่อนี้ก่อนบันทึก</Typography>
-                <Typography fontWeight={900}>{form.name}</Typography>
-                <Typography color="text.secondary">
+                <Typography
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
+                  ตรวจสอบสื่อนี้ก่อนบันทึก
+                </Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  {form.name}
+                </Typography>
+                <Typography
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
                   {mediaTypeLabels[form.type]} / {form.owner} {file ? `/ ${file.name}` : ""}
                 </Typography>
               </Stack>
@@ -784,11 +859,21 @@ export default function MediaPage() {
                     onChange={handleFileChange}
                   />
                 </Button>
-                <Typography color="text.secondary" variant="body2">
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
                   รองรับไฟล์ขนาดไม่เกิน 10 MB
                 </Typography>
                 {file && (
-                  <Typography color="text.secondary" variant="body2">
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
                     {file.name} / {formatFileSize(file.size)}
                   </Typography>
                 )}

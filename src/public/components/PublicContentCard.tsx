@@ -75,7 +75,15 @@ export default function PublicContentCard({
             )}
           </Box>
           <Box className="min-w-0 flex-1">
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              sx={{
+                flexWrap: "wrap",
+                mb: 1
+              }}
+            >
               <Chip label={contentTypeLabels[item.type]} size="small" />
               <Chip label={contentStatusLabels[item.status]} size="small" variant="outlined" />
               {isFacebookEmbed && <Chip label="Facebook" size="small" color="primary" variant="outlined" />}
@@ -90,22 +98,50 @@ export default function PublicContentCard({
             <Typography variant="h3" sx={{ fontSize: featured ? "1.45rem" : "1.05rem" }}>
               {item.title}
             </Typography>
-            <Typography color="text.secondary" className="content-summary mt-2">
+            <Typography
+              className="content-summary mt-2"
+              sx={{
+                color: "text.secondary"
+              }}
+            >
               {item.summary}
             </Typography>
             {!!item.tags?.length && (
-              <Typography color="text.secondary" variant="caption" className="mt-2 block">
+              <Typography
+                variant="caption"
+                className="mt-2 block"
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
                 {item.tags
                   .slice(0, 4)
                   .map((tag) => `#${tag}`)
                   .join(" ")}
               </Typography>
             )}
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={0.5} justifyContent="space-between" sx={{ mt: 2 }}>
-              <Typography color="text.secondary" variant="body2">
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={0.5}
+              sx={{
+                justifyContent: "space-between",
+                mt: 2
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
                 {item.owner}
               </Typography>
-              <Typography color="text.secondary" variant="body2">
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
                 {formatDisplayDate(item.publishAt)}
               </Typography>
             </Stack>

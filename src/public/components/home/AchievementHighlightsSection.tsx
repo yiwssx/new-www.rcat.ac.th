@@ -1,5 +1,5 @@
 import { Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { alpha } from "@mui/material/styles";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
@@ -128,7 +128,14 @@ export function AchievementHighlightsSection({
                     gap: 1.4
                   }}
                 >
-                  <Stack direction="row" spacing={1.2} alignItems="center" justifyContent="space-between">
+                  <Stack
+                    direction="row"
+                    spacing={1.2}
+                    sx={{
+                      alignItems: "center",
+                      justifyContent: "space-between"
+                    }}
+                  >
                     <Box
                       sx={(theme) => ({
                         width: 44,
@@ -162,7 +169,13 @@ export function AchievementHighlightsSection({
                     <Typography variant="h3" sx={{ fontSize: { xs: "1.05rem", md: "1.12rem" }, lineHeight: 1.28 }}>
                       {item.title}
                     </Typography>
-                    <Typography color="text.secondary" variant="body2" sx={{ lineHeight: 1.65 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary",
+                        lineHeight: 1.65
+                      }}
+                    >
                       {item.summary}
                     </Typography>
                   </Stack>

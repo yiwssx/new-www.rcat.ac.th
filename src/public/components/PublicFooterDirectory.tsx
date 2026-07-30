@@ -28,7 +28,7 @@ function FooterDirectoryPlaceholder() {
       aria-hidden="true"
       sx={{
         ...footerDirectorySectionSx,
-        minHeight: { xs: 1051, sm: 560, lg: 302 }
+        minHeight: { xs: 1051, sm: 560, lg: 331 }
       }}
     >
       <Container maxWidth="xl">

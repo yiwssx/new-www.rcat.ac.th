@@ -22,7 +22,7 @@ import {
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import DragIndicatorOutlinedIcon from "@mui/icons-material/DragIndicatorOutlined";
 import { MediaAsset } from "../../types";
 import { ContentBlock, ContentBlockType, createContentBlock } from "../../utils/contentBlocks";
@@ -103,12 +103,29 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
 
   return (
     <Stack spacing={1.5}>
-      <Typography fontWeight={900}>ตัวสร้างเนื้อหา</Typography>
-      <Typography color="text.secondary" variant="body2">
+      <Typography
+        sx={{
+          fontWeight: 900
+        }}
+      >
+        ตัวสร้างเนื้อหา
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary"
+        }}
+      >
         สร้างเนื้อหาด้วยบล็อกที่นำกลับมาใช้ได้ คล้ายการแก้ไขบล็อกของ WordPress
       </Typography>
-
-      <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+      <Stack
+        direction="row"
+        spacing={0.75}
+        useFlexGap
+        sx={{
+          flexWrap: "wrap"
+        }}
+      >
         {blockTemplateOptions.map((option) => (
           <Tooltip key={option.type} title={option.helper}>
             <Button
@@ -122,11 +139,9 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
           </Tooltip>
         ))}
       </Stack>
-
       {!blocks.length && (
         <Alert severity="info">ยังไม่มีบล็อก เริ่มจากบล็อกหัวข้อและย่อหน้าเพื่อสร้างรูปแบบบทความพื้นฐาน</Alert>
       )}
-
       <Stack spacing={1.25}>
         {blocks.map((block, index) => {
           const isFirst = index === 0;
@@ -136,8 +151,21 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
             <Card key={block.id} variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent sx={{ p: 1.75 }}>
                 <Stack spacing={1.25}>
-                  <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
-                    <Stack direction="row" spacing={0.75} alignItems="center">
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      sx={{
+                        alignItems: "center"
+                      }}
+                    >
                       <DragIndicatorOutlinedIcon fontSize="small" color="disabled" />
                       <Chip label={`${index + 1}. ${labelForBlockType(block.type)}`} size="small" />
                     </Stack>
@@ -441,7 +469,12 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                   {block.type === "divider" && (
                     <Box>
                       <Divider sx={{ mb: 1 }} />
-                      <Typography color="text.secondary" variant="body2">
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary"
+                        }}
+                      >
                         บล็อกเส้นแบ่งใช้แยกส่วนเนื้อหาด้วยภาพ
                       </Typography>
                     </Box>

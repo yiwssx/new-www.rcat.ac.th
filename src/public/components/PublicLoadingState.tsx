@@ -1,5 +1,5 @@
 import { Box, LinearProgress, Skeleton, Stack } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { designTokens } from "../../design-system/tokens";
 
 export type PublicLoadingVariant = "listing" | "card-grid" | "search-results" | "content-detail" | "home" | "simple";
@@ -9,7 +9,7 @@ interface PublicLoadingStateProps {
 }
 
 const variantMinHeight: Record<PublicLoadingVariant, { xs: number; md: number }> = {
-  listing: { xs: 3_600, md: 1_700 },
+  listing: { xs: 4_000, md: 1_700 },
   "card-grid": { xs: 2_350, md: 1_250 },
   "search-results": { xs: 3_000, md: 1_900 },
   "content-detail": { xs: 1_350, md: 1_050 },

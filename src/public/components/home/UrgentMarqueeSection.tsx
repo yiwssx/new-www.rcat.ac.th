@@ -103,26 +103,30 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
         <Stack
           direction="row"
           spacing={{ xs: 0.75, sm: 1.4 }}
-          alignItems="center"
-          sx={(theme) => ({
-            overflow: "hidden",
-            borderRadius: `${designTokens.radius.medium}px`,
-            border: "1px solid",
-            borderColor: "secondary.main",
-            bgcolor: alpha(theme.palette.secondary.light, 0.36),
-            boxShadow: designTokens.elevation.low,
-            px: { xs: 1.2, sm: 1.5, md: 2 },
-            py: { xs: 0.85, md: 0.95 },
-            "&:hover .rcat-marquee-track": {
-              animationPlayState: "paused"
+          sx={[
+            {
+              alignItems: "center"
             },
-            "@media (prefers-reduced-motion: reduce)": {
-              "& .rcat-marquee-track": {
-                // This is an urgent public notice, so reduced motion slows the ticker instead of stopping it.
-                animationDuration: "var(--rcat-marquee-reduced-motion-duration)"
+            (theme) => ({
+              overflow: "hidden",
+              borderRadius: `${designTokens.radius.medium}px`,
+              border: "1px solid",
+              borderColor: "secondary.main",
+              bgcolor: alpha(theme.palette.secondary.light, 0.36),
+              boxShadow: designTokens.elevation.low,
+              px: { xs: 1.2, sm: 1.5, md: 2 },
+              py: { xs: 0.85, md: 0.95 },
+              "&:hover .rcat-marquee-track": {
+                animationPlayState: "paused"
+              },
+              "@media (prefers-reduced-motion: reduce)": {
+                "& .rcat-marquee-track": {
+                  // This is an urgent public notice, so reduced motion slows the ticker instead of stopping it.
+                  animationDuration: "var(--rcat-marquee-reduced-motion-duration)"
+                }
               }
-            }
-          })}
+            })
+          ]}
         >
           <Chip
             icon={<CampaignOutlinedIcon />}

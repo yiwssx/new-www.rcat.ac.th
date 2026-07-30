@@ -109,7 +109,13 @@ export default function ReauthenticationDialog() {
         <DialogTitle>ยืนยันตัวตนอีกครั้ง</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
-            <Typography color="text.secondary">การดำเนินการนี้มีความสำคัญ กรุณายืนยันตัวตนก่อนดำเนินการต่อ</Typography>
+            <Typography
+              sx={{
+                color: "text.secondary"
+              }}
+            >
+              การดำเนินการนี้มีความสำคัญ กรุณายืนยันตัวตนก่อนดำเนินการต่อ
+            </Typography>
             {error && (
               <Alert severity="error" aria-live="assertive">
                 {error}
@@ -126,7 +132,11 @@ export default function ReauthenticationDialog() {
               required
               fullWidth
             />
-            <Typography color="text.secondary">
+            <Typography
+              sx={{
+                color: "text.secondary"
+              }}
+            >
               {snapshot.assurance === "mfa"
                 ? "กรุณากรอกรหัสจากแอปหรือรหัสกู้คืนด้วย"
                 : "บัญชีที่เปิดใช้ MFA ต้องกรอกรหัสจากแอปหรือรหัสกู้คืนด้วย"}

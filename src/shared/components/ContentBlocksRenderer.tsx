@@ -65,7 +65,13 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
             เปิดโพสต์บน Facebook
           </Button>
           {block.caption && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mt: 0.75
+              }}
+            >
               {block.caption}
             </Typography>
           )}
@@ -82,7 +88,13 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
     return (
       <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
         <Box sx={{ width: "100%", textAlign: "center" }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 1.5
+            }}
+          >
             ไม่สามารถฝังโพสต์ Facebook นี้ได้โดยตรง
           </Typography>
           {isValidHref && (
@@ -91,7 +103,13 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
             </Button>
           )}
           {block.caption && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mt: 1.5
+              }}
+            >
               {block.caption}
             </Typography>
           )}
@@ -145,7 +163,12 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
             >
               <Typography sx={{ fontStyle: "italic", mb: block.citation ? 0.75 : 0 }}>{block.text}</Typography>
               {block.citation && (
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
                   {block.citation}
                 </Typography>
               )}
@@ -157,7 +180,14 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
           return (
             <Stack key={block.id} spacing={0.75}>
               {block.items.map((item) => (
-                <Stack key={`${block.id}-${item}`} direction="row" spacing={1} alignItems="flex-start">
+                <Stack
+                  key={`${block.id}-${item}`}
+                  direction="row"
+                  spacing={1}
+                  sx={{
+                    alignItems: "flex-start"
+                  }}
+                >
                   <CheckCircleOutlineOutlinedIcon sx={{ fontSize: 19, mt: 0.15, color: "primary.main" }} />
                   <Typography>{item}</Typography>
                 </Stack>
@@ -192,7 +222,13 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 imageSx={{ objectFit: "contain" }}
               />
               {(block.caption || asset.name) && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    mt: 0.75
+                  }}
+                >
                   {block.caption || asset.name}
                 </Typography>
               )}
@@ -216,7 +252,13 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 allow="autoplay"
               />
               {(block.caption || asset.name) && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    mt: 0.75
+                  }}
+                >
                   {block.caption || asset.name}
                 </Typography>
               )}

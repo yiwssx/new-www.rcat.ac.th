@@ -111,7 +111,7 @@ export default function PublicResponsiveImage({
           height={height}
           loading={loading}
           decoding={decoding}
-          {...({ fetchpriority: fetchPriority } as Record<string, string>)}
+          fetchPriority={fetchPriority}
           data-public-responsive-image-element="true"
           onLoad={onLoad}
           onError={() => {

@@ -157,25 +157,27 @@ describe("ContentEditorDialog", () => {
     expect(filesMock.readFileAsBase64).toHaveBeenCalledWith(file);
   });
 
-  it("generates a complete Thai slug from title input and keeps a manual slug authoritative", async () => {
+  it("generates a complete Thai slug from title input and keeps a manual slug authoritative", () => {
     renderEditor(null);
 
     const titleInput = screen.getByRole("textbox", { name: "ชื่อเรื่อง" });
+    const slugInput = screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" });
+
     fireEvent.change(titleInput, { target: { value: "ข่าว" } });
-    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue("ข่าว");
+    expect(slugInput).toHaveValue("ข่าว");
 
-    fireEvent.change(titleInput, { target: { value: "ข่าวประชาสัมพันธ์รับสมัครนักเรียน" } });
+    fireEvent.change(titleInput, {
+      target: { value: "ข่าวประชาสัมพันธ์รับสมัครนักเรียน" }
+    });
+    expect(slugInput).toHaveValue("ข่าวประชาสัมพันธ์รับสมัครนักเรียน");
 
-    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue("ข่าวประชาสัมพันธ์รับสมัครนักเรียน");
-
-    fireEvent.change(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" }), {
+    fireEvent.change(slugInput, {
       target: { value: "ข่าว รับสมัคร / ปี 2569-" }
     });
-    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue("ข่าว-รับสมัคร-ปี-2569-");
+    expect(slugInput).toHaveValue("ข่าว-รับสมัคร-ปี-2569-");
 
     fireEvent.change(titleInput, { target: { value: "ชื่อเรื่องใหม่" } });
-
-    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue("ข่าว-รับสมัคร-ปี-2569-");
+    expect(slugInput).toHaveValue("ข่าว-รับสมัคร-ปี-2569-");
   });
 
   it("preserves an imported Thai slug when opening and saving without edits", async () => {

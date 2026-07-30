@@ -1,5 +1,5 @@
 import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { alpha } from "@mui/material/styles";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
@@ -51,16 +51,18 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
           <Stack
             direction={{ xs: "column", sm: "row", lg: "column", xl: "row" }}
             spacing={{ xs: 1.15, sm: 1.2 }}
-            alignItems={{ xs: "stretch", sm: "flex-start", lg: "stretch", xl: "flex-start" }}
-            justifyContent="space-between"
             useFlexGap
-            sx={{ minWidth: 0 }}
+            sx={{
+              alignItems: { xs: "stretch", sm: "flex-start", lg: "stretch", xl: "flex-start" },
+              justifyContent: "space-between",
+              minWidth: 0
+            }}
           >
             <Stack
               direction="row"
               spacing={1.1}
-              alignItems="center"
               sx={{
+                alignItems: "center",
                 minWidth: 0,
                 width: { xs: "100%", sm: "auto", lg: "100%", xl: "auto" },
                 flex: "1 1 auto"
@@ -83,15 +85,24 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
               <Box sx={{ minWidth: 0, flex: "1 1 auto" }}>
                 <Typography
                   component="h2"
-                  fontWeight={900}
-                  sx={{ color: "primary.dark", fontSize: { xs: "1rem", sm: "1.05rem" }, lineHeight: 1.2 }}
+                  sx={{
+                    fontWeight: 900,
+                    color: "primary.dark",
+                    fontSize: { xs: "1rem", sm: "1.05rem" },
+                    lineHeight: 1.2
+                  }}
                 >
                   Website Visitors
                 </Typography>
                 <Typography
                   variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 0.35, lineHeight: 1.45, whiteSpace: "normal", wordBreak: "normal" }}
+                  sx={{
+                    color: "text.secondary",
+                    mt: 0.35,
+                    lineHeight: 1.45,
+                    whiteSpace: "normal",
+                    wordBreak: "normal"
+                  }}
                 >
                   สถิติผู้เข้าชมเว็บไซต์
                 </Typography>
@@ -120,9 +131,22 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
               bgcolor: alpha(theme.palette.primary.light, 0.45)
             })}
           >
-            <Stack direction="row" spacing={1.2} alignItems="center" justifyContent="space-between">
+            <Stack
+              direction="row"
+              spacing={1.2}
+              sx={{
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}
+            >
               <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" color="text.secondary" fontWeight={800}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 800
+                  }}
+                >
                   Total views
                 </Typography>
                 <Typography sx={{ color: "primary.dark", fontSize: { xs: "1.75rem", md: "2rem" }, fontWeight: 900 }}>
@@ -147,9 +171,14 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
                 >
                   <Typography
                     variant="caption"
-                    color="text.secondary"
-                    fontWeight={800}
-                    sx={{ display: "block", lineHeight: 1.35, whiteSpace: "normal", wordBreak: "normal" }}
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: 800,
+                      display: "block",
+                      lineHeight: 1.35,
+                      whiteSpace: "normal",
+                      wordBreak: "normal"
+                    }}
                   >
                     {stat.label}
                   </Typography>
@@ -169,11 +198,31 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
               bgcolor: "success.light"
             }}
           >
-            <Stack direction="row" spacing={1.2} alignItems="center" justifyContent="space-between">
-              <Stack direction="row" spacing={0.8} alignItems="center" sx={{ minWidth: 0 }}>
+            <Stack
+              direction="row"
+              spacing={1.2}
+              sx={{
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}
+            >
+              <Stack
+                direction="row"
+                spacing={0.8}
+                sx={{
+                  alignItems: "center",
+                  minWidth: 0
+                }}
+              >
                 <FiberManualRecordIcon sx={{ color: "success.main", fontSize: 13 }} />
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="body2" color="text.secondary" fontWeight={800}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: 800
+                    }}
+                  >
                     Who&apos;s Online
                   </Typography>
                   <Typography sx={{ color: "primary.dark", fontWeight: 900 }}>

@@ -33,6 +33,8 @@ let lastTrackedPagePath = "";
 let pendingPageViewHandle: IdleCallbackHandle | null = null;
 let pendingPageViewPath = "";
 let deprecatedBothWarningIssued = false;
+let activePublicAnalyticsConsumers = 0;
+let pendingPublicAnalyticsReleaseId: number | null = null;
 
 export const isPublicAnalyticsPath = isPublicTelemetryPath;
 
@@ -145,6 +147,49 @@ function getCurrentPageViewFields(pathname: string) {
   };
 }
 
+function cancelPendingPublicAnalyticsRelease() {
+  if (pendingPublicAnalyticsReleaseId === null || typeof window === "undefined") {
+    return;
+  }
+
+  window.clearTimeout(pendingPublicAnalyticsReleaseId);
+  pendingPublicAnalyticsReleaseId = null;
+}
+
+export function retainPublicPageView() {
+  activePublicAnalyticsConsumers += 1;
+  cancelPendingPublicAnalyticsRelease();
+  let released = false;
+
+  return () => {
+    if (released) {
+      return;
+    }
+
+    released = true;
+    activePublicAnalyticsConsumers = Math.max(0, activePublicAnalyticsConsumers - 1);
+
+    if (activePublicAnalyticsConsumers > 0) {
+      return;
+    }
+
+    cancelPendingPublicPageView();
+
+    if (typeof window === "undefined") {
+      lastTrackedPagePath = "";
+      return;
+    }
+
+    pendingPublicAnalyticsReleaseId = window.setTimeout(() => {
+      pendingPublicAnalyticsReleaseId = null;
+
+      if (activePublicAnalyticsConsumers === 0) {
+        lastTrackedPagePath = "";
+      }
+    }, 0);
+  };
+}
+
 export function trackPublicPageView(pathname: string) {
   const normalizedPath = normalizePublicTelemetryPath(pathname);
 
@@ -217,7 +262,9 @@ export function cancelPendingPublicPageView() {
 }
 
 export function releasePublicPageView() {
+  cancelPendingPublicAnalyticsRelease();
   cancelPendingPublicPageView();
+  activePublicAnalyticsConsumers = 0;
   lastTrackedPagePath = "";
 }
 

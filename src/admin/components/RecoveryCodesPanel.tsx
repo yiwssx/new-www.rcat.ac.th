@@ -62,7 +62,7 @@ export default function RecoveryCodesPanel({
       <List aria-label="รหัสกู้คืน" sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
         {codes.map((code) => (
           <ListItem key={code}>
-            <ListItemText primary={code} primaryTypographyProps={{ fontFamily: "monospace" }} />
+            <ListItemText primary={code} slotProps={{ primary: { sx: { fontFamily: "monospace" } } }} />
           </ListItem>
         ))}
       </List>

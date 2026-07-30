@@ -54,13 +54,28 @@ export default function AdminPagination({
       component="nav"
       direction={{ xs: "column", md: "row" }}
       spacing={2}
-      alignItems={{ xs: "stretch", md: "center" }}
-      justifyContent="space-between"
-      sx={{ py: 2 }}
       aria-label="การแบ่งหน้ารายการ"
+      sx={{
+        alignItems: { xs: "stretch", md: "center" },
+        justifyContent: "space-between",
+        py: 2
+      }}
     >
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-        <Typography variant="body2" color="text.secondary" aria-live="polite">
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          minWidth: 0
+        }}
+      >
+        <Typography
+          variant="body2"
+          aria-live="polite"
+          sx={{
+            color: "text.secondary"
+          }}
+        >
           {getRangeLabel(pagination)}
         </Typography>
         {isFetching && (
@@ -69,9 +84,20 @@ export default function AdminPagination({
           </Box>
         )}
       </Stack>
-
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
-        <Typography variant="body2" color="text.secondary" textAlign={{ xs: "left", sm: "center" }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1.5}
+        sx={{
+          alignItems: { xs: "stretch", sm: "center" }
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            textAlign: { xs: "left", sm: "center" }
+          }}
+        >
           {isEmpty ? "ไม่มีรายการ" : `หน้าที่ ${formatCount(page)} จาก ${formatCount(totalPages)}`}
         </Typography>
         <Pagination

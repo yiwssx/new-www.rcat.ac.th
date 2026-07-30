@@ -11,9 +11,10 @@ export default function FormActions({ primary, secondary }: FormActionsProps) {
     <Stack
       direction={{ xs: "column-reverse", sm: "row" }}
       spacing={1}
-      justifyContent="flex-end"
-      alignItems={{ xs: "stretch", sm: "center" }}
       sx={{
+        justifyContent: "flex-end",
+        alignItems: { xs: "stretch", sm: "center" },
+
         "& > *": {
           width: { xs: "100%", sm: "auto" }
         }

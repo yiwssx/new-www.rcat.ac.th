@@ -32,7 +32,13 @@ export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings 
         py: { xs: 1.5, md: 1 }
       }}
     >
-      <Stack spacing={1.15} alignItems="center" sx={{ width: "100%" }}>
+      <Stack
+        spacing={1.15}
+        sx={{
+          alignItems: "center",
+          width: "100%"
+        }}
+      >
         <Box sx={{ width: "100%", textAlign: "center" }}>
           <Typography
             component="p"
@@ -49,7 +55,13 @@ export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings 
           </Typography>
         </Box>
         {hasDirectorInfo ? (
-          <Stack spacing={1.15} alignItems="center" sx={{ width: "100%" }}>
+          <Stack
+            spacing={1.15}
+            sx={{
+              alignItems: "center",
+              width: "100%"
+            }}
+          >
             {directorImageUrl ? (
               <PublicResponsiveImage
                 source={siteSettings.directorImageUrl}
@@ -86,7 +98,14 @@ export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings 
                 <SchoolOutlinedIcon sx={{ fontSize: { xs: 52, md: 58 }, color: "primary.dark" }} />
               </Box>
             )}
-            <Stack spacing={0.45} alignItems="center" sx={{ width: "100%", textAlign: "center" }}>
+            <Stack
+              spacing={0.45}
+              sx={{
+                alignItems: "center",
+                width: "100%",
+                textAlign: "center"
+              }}
+            >
               {siteSettings.directorName && (
                 <Typography
                   variant="h3"
@@ -96,7 +115,13 @@ export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings 
                 </Typography>
               )}
               {siteSettings.directorDescription && (
-                <Typography color="text.secondary" sx={{ fontSize: "0.82rem", lineHeight: 1.45 }}>
+                <Typography
+                  sx={{
+                    color: "text.secondary",
+                    fontSize: "0.82rem",
+                    lineHeight: 1.45
+                  }}
+                >
                   {siteSettings.directorDescription}
                 </Typography>
               )}

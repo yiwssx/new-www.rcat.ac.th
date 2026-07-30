@@ -38,7 +38,7 @@ describe("CarouselSlidePresentationEditor", () => {
     fireEvent.change(screen.getByLabelText("ตำแหน่งแนวนอน (%)"), {
       target: { value: "35" }
     });
-    fireEvent.click(screen.getByRole("checkbox", { name: "เปิดลิงก์ในแท็บใหม่" }));
+    fireEvent.click(screen.getByRole("switch", { name: "เปิดลิงก์ในแท็บใหม่" }));
 
     expect(onChange).toHaveBeenCalledWith("mobileImageUrl", " https://example.test/mobile.jpg ");
     expect(onChange).toHaveBeenCalledWith("backgroundColor", "#123456");

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Button, Chip, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EmptyState from "../../shared/components/EmptyState";
@@ -97,14 +97,31 @@ export default function PublicAnnouncementsPage() {
       preloadedMenu={data.menu}
     >
       <PublicBackgroundProgress active={isFetching} />
-      <Stack id="announcements-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
+      <Stack
+        id="announcements-list-heading"
+        direction="row"
+        spacing={1.2}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}
+      >
         <CampaignOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           ประกาศราชการ
         </Typography>
       </Stack>
       {hasActiveFilter && (
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center" sx={{ mb: 2 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          useFlexGap
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "center",
+            mb: 2
+          }}
+        >
           {activeTag && <Chip label={`#${activeTag}`} color="secondary" />}
           {activeCategory && <Chip label={activeCategory} color="secondary" variant="outlined" />}
           <Button href={normalizeSafeHref("/announcements")} size="small">
@@ -138,8 +155,16 @@ export default function PublicAnnouncementsPage() {
           icon={<CampaignOutlinedIcon />}
         />
       )}
-
-      <Stack id="public-pages-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
+      <Stack
+        id="public-pages-list-heading"
+        direction="row"
+        spacing={1.2}
+        sx={{
+          alignItems: "center",
+          mt: 4,
+          mb: 2
+        }}
+      >
         <DescriptionOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           หน้าข้อมูลสาธารณะ

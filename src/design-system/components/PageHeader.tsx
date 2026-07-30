@@ -14,13 +14,24 @@ export default function PageHeader({ title, description, action, eyebrow }: Page
       component="header"
       direction={{ xs: "column", md: "row" }}
       spacing={2}
-      justifyContent="space-between"
-      alignItems={{ xs: "stretch", md: "center" }}
-      sx={{ mb: 3, minWidth: 0 }}
+      sx={{
+        justifyContent: "space-between",
+        alignItems: { xs: "stretch", md: "center" },
+        mb: 3,
+        minWidth: 0
+      }}
     >
       <Box sx={{ minWidth: 0 }}>
         {eyebrow ? (
-          <Typography variant="caption" color="secondary.dark" sx={{ display: "block", mb: 0.5, fontWeight: 800 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "secondary.dark",
+              display: "block",
+              mb: 0.5,
+              fontWeight: 800
+            }}
+          >
             {eyebrow}
           </Typography>
         ) : null}
@@ -28,7 +39,14 @@ export default function PageHeader({ title, description, action, eyebrow }: Page
           {title}
         </Typography>
         {description ? (
-          <Typography color="text.secondary" sx={{ mt: 0.75, maxWidth: 760, overflowWrap: "anywhere" }}>
+          <Typography
+            sx={{
+              color: "text.secondary",
+              mt: 0.75,
+              maxWidth: 760,
+              overflowWrap: "anywhere"
+            }}
+          >
             {description}
           </Typography>
         ) : null}

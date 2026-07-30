@@ -14,7 +14,7 @@ import {
   TextField,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import type { HomepageCarouselSettings } from "../../types";
@@ -44,17 +44,34 @@ export default function CarouselGlobalSettingsEditor({
     <Card sx={{ mb: 3 }}>
       <CardContent>
         <Stack spacing={2.5}>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "center" }}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            sx={{
+              alignItems: { xs: "stretch", md: "center" }
+            }}
+          >
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="h3" sx={{ fontSize: "1.12rem" }}>
                 การทำงานของสไลด์หน้าแรก
               </Typography>
-              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  mt: 0.5
+                }}
+              >
                 ตั้งค่า autoplay, ปุ่มควบคุม การหยุดชั่วคราว และรูปแบบการเปลี่ยนภาพ
               </Typography>
             </Box>
 
-            <Stack direction="row" spacing={1} justifyContent={{ xs: "stretch", sm: "flex-end" }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                justifyContent: { xs: "stretch", sm: "flex-end" }
+              }}
+            >
               <Button
                 color="inherit"
                 variant="outlined"

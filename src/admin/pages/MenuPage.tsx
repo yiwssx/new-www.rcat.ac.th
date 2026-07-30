@@ -20,11 +20,11 @@ import {
   TextField,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
 import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ResponsiveDialogActions from "../../design-system/components/ResponsiveDialogActions";
@@ -460,13 +460,11 @@ export default function MenuPage() {
           ) : undefined
         }
       />
-
       {!canManage && (
         <Alert severity="info" sx={{ mb: 3 }}>
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
-
       {(orderingMode ? orderQuery.isFetching : listQuery.isFetching || listTransitioning) && (
         <LinearProgress sx={{ mb: 2 }} />
       )}
@@ -477,14 +475,18 @@ export default function MenuPage() {
             : "ไม่สามารถโหลดรายการเมนูได้"}
         </Alert>
       )}
-
       {orderingMode ? (
         <Card>
           <CardContent>
             <Stack spacing={2}>
               <Box>
                 <Typography variant="h3">จัดลำดับเมนูทั้งหมด</Typography>
-                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                <Typography
+                  sx={{
+                    color: "text.secondary",
+                    mt: 0.5
+                  }}
+                >
                   โหลดเฉพาะข้อมูลลำดับขนาดเล็กเมื่อเปิดโหมดนี้ การเลื่อนทำงานภายในกลุ่มเมนูระดับเดียวกัน
                 </Typography>
               </Box>
@@ -524,10 +526,28 @@ export default function MenuPage() {
                         p: 1.5
                       }}
                     >
-                      <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{
+                          alignItems: "center",
+                          justifyContent: "space-between"
+                        }}
+                      >
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography fontWeight={900}>{item.label}</Typography>
-                          <Typography color="text.secondary" variant="caption">
+                          <Typography
+                            sx={{
+                              fontWeight: 900
+                            }}
+                          >
+                            {item.label}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary"
+                            }}
+                          >
                             ลำดับ {item.order} {item.parentId ? `/ เมนูแม่ ${item.parentId}` : "/ เมนูหลัก"}
                           </Typography>
                         </Box>
@@ -558,7 +578,13 @@ export default function MenuPage() {
                   );
                 })}
                 {!orderQuery.isLoading && !orderRows.length && (
-                  <Typography color="text.secondary">ยังไม่มีรายการเมนู</Typography>
+                  <Typography
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    ยังไม่มีรายการเมนู
+                  </Typography>
                 )}
               </Stack>
             </Stack>
@@ -610,12 +636,28 @@ export default function MenuPage() {
                   <Stack
                     direction={{ xs: "column", md: "row" }}
                     spacing={1.5}
-                    alignItems={{ xs: "flex-start", md: "center" }}
-                    justifyContent="space-between"
+                    sx={{
+                      alignItems: { xs: "flex-start", md: "center" },
+                      justifyContent: "space-between"
+                    }}
                   >
                     <Box sx={{ minWidth: 0 }}>
-                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                        <Typography fontWeight={900}>{item.label}</Typography>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        useFlexGap
+                        sx={{
+                          alignItems: "center",
+                          flexWrap: "wrap"
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontWeight: 900
+                          }}
+                        >
+                          {item.label}
+                        </Typography>
                         <Chip
                           size="small"
                           label={item.enabled ? "แสดง" : "ซ่อน"}
@@ -623,11 +665,23 @@ export default function MenuPage() {
                         />
                         <Chip size="small" variant="outlined" label={`ลำดับ ${item.order}`} />
                       </Stack>
-                      <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5, overflowWrap: "anywhere" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary",
+                          mt: 0.5,
+                          overflowWrap: "anywhere"
+                        }}
+                      >
                         {item.href}
                       </Typography>
                       {item.parentId && (
-                        <Typography color="text.secondary" variant="caption">
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "text.secondary"
+                          }}
+                        >
                           เมนูแม่: {item.parentId}
                         </Typography>
                       )}
@@ -665,7 +719,13 @@ export default function MenuPage() {
                 </Box>
               ))}
               {!listQuery.isLoading && !listQuery.data?.items.length && (
-                <Typography color="text.secondary">ไม่พบรายการเมนู</Typography>
+                <Typography
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
+                  ไม่พบรายการเมนู
+                </Typography>
               )}
             </Stack>
 
@@ -682,7 +742,6 @@ export default function MenuPage() {
           </CardContent>
         </Card>
       )}
-
       <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm">
         <DialogTitle>
           {editingItem ? "แก้ไขรายการเมนู" : form.parentId ? "เพิ่มเมนูย่อย" : "เพิ่มรายการเมนู"}
@@ -711,7 +770,12 @@ export default function MenuPage() {
               helperText="เว้นว่างสำหรับเมนูหลัก"
               fullWidth
             />
-            <Stack direction="row" alignItems="center">
+            <Stack
+              direction="row"
+              sx={{
+                alignItems: "center"
+              }}
+            >
               <Checkbox
                 checked={form.enabled}
                 onChange={(event) => setForm((current) => ({ ...current, enabled: event.target.checked }))}

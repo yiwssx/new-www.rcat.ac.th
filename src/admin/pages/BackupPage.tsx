@@ -16,7 +16,7 @@ import {
   TableRow,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import BackupOutlinedIcon from "@mui/icons-material/BackupOutlined";
 import CloudDownloadOutlinedIcon from "@mui/icons-material/CloudDownloadOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
@@ -144,7 +144,6 @@ export default function BackupPage() {
         title="สำรองข้อมูลระบบ"
         description="สร้างไฟล์สำรองข้อมูล D1 แบบ JSON จากข้อมูลระบบที่ใช้กับเว็บไซต์และ CMS"
       />
-
       <Stack spacing={2.5}>
         <Alert severity="warning" icon={<WarningAmberOutlinedIcon />}>
           ไฟล์สำรองข้อมูลอาจมีข้อมูลระบบและข้อมูลผู้ดูแล ควรจัดเก็บไว้ในพื้นที่ปลอดภัย และห้ามเผยแพร่สาธารณะ
@@ -160,11 +159,23 @@ export default function BackupPage() {
           <Grid size={{ xs: 12, lg: 7 }}>
             <Card sx={{ height: "100%" }}>
               <CardContent>
-                <Stack direction="row" alignItems="center" spacing={1.4} sx={{ mb: 1.5 }}>
+                <Stack
+                  direction="row"
+                  spacing={1.4}
+                  sx={{
+                    alignItems: "center",
+                    mb: 1.5
+                  }}
+                >
                   <StorageOutlinedIcon color="primary" />
                   <Typography variant="h3">สถานะข้อมูล</Typography>
                 </Stack>
-                <Typography color="text.secondary" sx={{ mb: 2 }}>
+                <Typography
+                  sx={{
+                    color: "text.secondary",
+                    mb: 2
+                  }}
+                >
                   ตรวจนับจำนวนแถวของตารางสำคัญก่อนสร้างไฟล์สำรองข้อมูล
                 </Typography>
                 <Button
@@ -179,7 +190,12 @@ export default function BackupPage() {
                 {isChecking && <LinearProgress sx={{ mb: 2 }} />}
                 {counts && (
                   <Stack spacing={1.5}>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary"
+                      }}
+                    >
                       ตรวจนับล่าสุด: {formatGeneratedAt(counts.generatedAt)}
                     </Typography>
                     <TableContainer>
@@ -197,7 +213,12 @@ export default function BackupPage() {
                               <TableCell>{table.name}</TableCell>
                               <TableCell align="right">{table.rowCount}</TableCell>
                               <TableCell>
-                                <Stack spacing={0.5} alignItems="flex-start">
+                                <Stack
+                                  spacing={0.5}
+                                  sx={{
+                                    alignItems: "flex-start"
+                                  }}
+                                >
                                   <Chip
                                     color={getStatusColor(table.status)}
                                     label={table.status}
@@ -205,7 +226,12 @@ export default function BackupPage() {
                                     variant={table.status === "ok" ? "filled" : "outlined"}
                                   />
                                   {table.message && (
-                                    <Typography color="text.secondary" variant="caption">
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: "text.secondary"
+                                      }}
+                                    >
                                       {table.message}
                                     </Typography>
                                   )}
@@ -225,11 +251,23 @@ export default function BackupPage() {
           <Grid size={{ xs: 12, lg: 5 }}>
             <Card sx={{ height: "100%" }}>
               <CardContent>
-                <Stack direction="row" alignItems="center" spacing={1.4} sx={{ mb: 1.5 }}>
+                <Stack
+                  direction="row"
+                  spacing={1.4}
+                  sx={{
+                    alignItems: "center",
+                    mb: 1.5
+                  }}
+                >
                   <BackupOutlinedIcon color="primary" />
                   <Typography variant="h3">สำรองข้อมูล</Typography>
                 </Stack>
-                <Typography color="text.secondary" sx={{ mb: 2 }}>
+                <Typography
+                  sx={{
+                    color: "text.secondary",
+                    mb: 2
+                  }}
+                >
                   ดาวน์โหลดไฟล์ JSON ที่รวมข้อมูลจากตารางหลักของ Cloudflare D1
                 </Typography>
                 <Button

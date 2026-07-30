@@ -82,22 +82,25 @@ describe("ContentBlocksRenderer", () => {
 
     vi.stubGlobal(
       "IntersectionObserver",
-      vi.fn((callback: IntersectionObserverCallback) => {
-        const record: (typeof observers)[number] = { callback };
-        observers.push(record);
+      vi.fn(
+        class {
+          readonly disconnect = vi.fn();
+          readonly root = null;
+          readonly rootMargin = "0px";
+          readonly thresholds: number[] = [];
+          readonly takeRecords = () => [];
+          readonly unobserve = vi.fn();
+          readonly observe: (target: Element) => void;
 
-        return {
-          disconnect: vi.fn(),
-          observe: vi.fn((target: Element) => {
-            record.target = target;
-          }),
-          takeRecords: () => [],
-          unobserve: vi.fn(),
-          root: null,
-          rootMargin: "0px",
-          thresholds: []
-        };
-      })
+          constructor(callback: IntersectionObserverCallback) {
+            const record: (typeof observers)[number] = { callback };
+            observers.push(record);
+            this.observe = vi.fn((target: Element) => {
+              record.target = target;
+            });
+          }
+        }
+      )
     );
 
     const { container } = render(

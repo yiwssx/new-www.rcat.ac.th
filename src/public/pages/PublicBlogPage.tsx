@@ -1,5 +1,5 @@
 import { Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import EmptyState from "../../shared/components/EmptyState";
@@ -72,7 +72,16 @@ export default function PublicBlogPage() {
       {!blogItems.length && <EmptyState title="ยังไม่มีบทความที่เผยแพร่" icon={<EditNoteOutlinedIcon />} />}
       {!!secondaryItems.length && (
         <>
-          <Stack id="blog-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
+          <Stack
+            id="blog-list-heading"
+            direction="row"
+            spacing={1.2}
+            sx={{
+              alignItems: "center",
+              mt: 4,
+              mb: 2
+            }}
+          >
             <EditNoteOutlinedIcon color="primary" />
             <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
               บทความล่าสุด

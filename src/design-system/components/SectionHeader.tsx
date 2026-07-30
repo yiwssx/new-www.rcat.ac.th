@@ -14,9 +14,12 @@ export default function SectionHeader({ title, description, action, eyebrow }: S
       component="header"
       direction={{ xs: "column", sm: "row" }}
       spacing={1.5}
-      justifyContent="space-between"
-      alignItems={{ xs: "stretch", sm: "flex-end" }}
-      sx={{ mb: 2.5, minWidth: 0 }}
+      sx={{
+        justifyContent: "space-between",
+        alignItems: { xs: "stretch", sm: "flex-end" },
+        mb: 2.5,
+        minWidth: 0
+      }}
     >
       <Box sx={{ minWidth: 0 }}>
         {eyebrow ? (
@@ -32,7 +35,14 @@ export default function SectionHeader({ title, description, action, eyebrow }: S
           {title}
         </Typography>
         {description ? (
-          <Typography color="text.secondary" sx={{ mt: 0.75, maxWidth: 760, overflowWrap: "anywhere" }}>
+          <Typography
+            sx={{
+              color: "text.secondary",
+              mt: 0.75,
+              maxWidth: 760,
+              overflowWrap: "anywhere"
+            }}
+          >
             {description}
           </Typography>
         ) : null}

@@ -81,13 +81,27 @@ export default function PublicDocumentsPage() {
       canonicalPath="/documents"
     >
       <PublicBackgroundProgress active={isFetching} />
-      <Stack id="documents-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
+      <Stack
+        id="documents-list-heading"
+        direction="row"
+        spacing={1.2}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}
+      >
         <DescriptionOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           เอกสารทั้งหมด
         </Typography>
       </Stack>
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ xs: "stretch", md: "center" }}>
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={1.5}
+        sx={{
+          alignItems: { xs: "stretch", md: "center" }
+        }}
+      >
         <TextField
           type="search"
           label="ค้นหาเอกสารเผยแพร่"

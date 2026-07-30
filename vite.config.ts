@@ -88,7 +88,7 @@ export default defineConfig(({ command, mode }) => {
       environment: "jsdom",
       globals: true,
       setupFiles: "./src/test/setup.ts",
-      exclude: ["tests/functional/**", "node_modules/**", "dist/**"]
+      exclude: ["tests/functional/**", "node_modules/**", "dist/**", ".dependency-migration/**"]
     }
   };
 });

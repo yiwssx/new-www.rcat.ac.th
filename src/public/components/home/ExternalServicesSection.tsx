@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { alpha } from "@mui/material/styles";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
@@ -48,7 +48,6 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
         title="บริการออนไลน์และลิงก์ที่เกี่ยวข้อง"
         description="รวมระบบบริการออนไลน์และลิงก์สำคัญสำหรับนักเรียน นักศึกษา ผู้ปกครอง บุคลากร และผู้สนใจ"
       />
-
       <Box
         sx={{
           position: "relative",
@@ -121,7 +120,6 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
           </Typography>
         </Stack>
       </Box>
-
       <Grid container spacing={2}>
         {items.map((item) => {
           const toneStyle = getExternalServiceToneStyle(item.tone);
@@ -149,7 +147,14 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
               >
                 <CardContent sx={{ height: "100%", p: 1.8 }}>
                   <Stack spacing={1.35} sx={{ height: "100%" }}>
-                    <Stack direction="row" spacing={1.1} alignItems="flex-start" justifyContent="space-between">
+                    <Stack
+                      direction="row"
+                      spacing={1.1}
+                      sx={{
+                        alignItems: "flex-start",
+                        justifyContent: "space-between"
+                      }}
+                    >
                       <Box
                         sx={{
                           width: 48,
@@ -174,7 +179,13 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
                         {item.title}
                       </Typography>
                       {item.description && (
-                        <Typography color="text.secondary" variant="body2" sx={{ lineHeight: 1.55 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "text.secondary",
+                            lineHeight: 1.55
+                          }}
+                        >
                           {item.description}
                         </Typography>
                       )}

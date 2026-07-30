@@ -37,6 +37,21 @@ function styleOverride(component: string, slot: string, ownerState: Record<strin
   return typeof override === "function" ? override({ ownerState }) : override;
 }
 
+function variantStyle(component: string, props: Record<string, unknown>) {
+  const root = styleOverride(component, "root") as
+    | {
+        variants?: Array<{
+          props?: Record<string, unknown>;
+          style?: Record<string, unknown>;
+        }>;
+      }
+    | undefined;
+
+  return root?.variants?.find((variant) =>
+    Object.entries(props).every(([key, value]) => variant.props?.[key] === value)
+  )?.style;
+}
+
 function hexToRgb(value: string) {
   const hex = value.replace("#", "");
   const red = Number.parseInt(hex.slice(0, 2), 16);
@@ -66,13 +81,27 @@ describe("design-system theme policy", () => {
     expect(focusVisibleSx).toEqual({
       "&:focus-visible, &:focus-visible:hover": focusRingStyles
     });
-    expect(styleOverride("MuiButton", "containedSecondary")?.color).toBe(designTokens.color.textOnAccent);
-    expect(styleOverride("MuiButton", "outlinedSecondary")?.color).toBe(designTokens.color.accentForeground);
-    expect(styleOverride("MuiButton", "outlinedSecondary")?.borderColor).toBe(designTokens.color.accentForeground);
-    expect(styleOverride("MuiButton", "textSecondary")?.color).toBe(designTokens.color.accentForeground);
-    expect(styleOverride("MuiChip", "filledSecondary")?.color).toBe(designTokens.color.textOnAccent);
-    expect(styleOverride("MuiChip", "outlinedSecondary")?.color).toBe(designTokens.color.accentForeground);
-    expect(styleOverride("MuiChip", "outlinedSecondary")?.borderColor).toBe(designTokens.color.accentForeground);
+    expect(variantStyle("MuiButton", { variant: "contained", color: "secondary" })?.color).toBe(
+      designTokens.color.textOnAccent
+    );
+    expect(variantStyle("MuiButton", { variant: "outlined", color: "secondary" })?.color).toBe(
+      designTokens.color.accentForeground
+    );
+    expect(variantStyle("MuiButton", { variant: "outlined", color: "secondary" })?.borderColor).toBe(
+      designTokens.color.accentForeground
+    );
+    expect(variantStyle("MuiButton", { variant: "text", color: "secondary" })?.color).toBe(
+      designTokens.color.accentForeground
+    );
+    expect(variantStyle("MuiChip", { variant: "filled", color: "secondary" })?.color).toBe(
+      designTokens.color.textOnAccent
+    );
+    expect(variantStyle("MuiChip", { variant: "outlined", color: "secondary" })?.color).toBe(
+      designTokens.color.accentForeground
+    );
+    expect(variantStyle("MuiChip", { variant: "outlined", color: "secondary" })?.borderColor).toBe(
+      designTokens.color.accentForeground
+    );
   });
 
   it("preserves IconButton color roles while keeping inherited top-bar controls white", () => {
@@ -94,8 +123,10 @@ describe("design-system theme policy", () => {
     );
 
     const inheritedButton = screen.getByRole("button", { name: "Facebook" });
-    expect(getComputedStyle(inheritedButton).color).toBe("inherit");
-    expect(getComputedStyle(inheritedButton.parentElement as Element).color).toBe("rgb(255, 255, 255)");
+    const inheritedParentColor = getComputedStyle(inheritedButton.parentElement as Element).color;
+
+    expect(inheritedParentColor).toBe("rgb(255, 255, 255)");
+    expect(getComputedStyle(inheritedButton).color).toBe(inheritedParentColor);
     expect(getComputedStyle(screen.getByRole("button", { name: "ค่าเริ่มต้น" })).color).toBe(
       hexToRgb(designTokens.color.textSecondary)
     );

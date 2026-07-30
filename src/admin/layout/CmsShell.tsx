@@ -161,7 +161,14 @@ export default function CmsShell() {
 
   const drawer = (
     <Stack sx={{ height: "100%" }}>
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ p: 2.5 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          alignItems: "center",
+          p: 2.5
+        }}
+      >
         <Box
           component="img"
           src={projectSettings.site.logoPath}
@@ -172,7 +179,12 @@ export default function CmsShell() {
           <Typography variant="h3" sx={{ fontSize: "1.05rem" }}>
             {getCmsSiteName()}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary"
+            }}
+          >
             ระบบบริหารจัดการเนื้อหา
           </Typography>
         </Box>
@@ -205,7 +217,14 @@ export default function CmsShell() {
       </List>
       <Box sx={{ flex: 1 }} />
       <Divider />
-      <Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ p: 2 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          alignItems: "flex-start",
+          p: 2
+        }}
+      >
         <Avatar sx={{ bgcolor: "secondary.main", color: "secondary.contrastText" }}>
           {session?.user.name.slice(0, 1) ?? "A"}
         </Avatar>
@@ -213,20 +232,50 @@ export default function CmsShell() {
           <Typography variant="subtitle2" noWrap>
             {session?.user.name}
           </Typography>
-          <Typography color="text.secondary" variant="body2" noWrap>
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{
+              color: "text.secondary"
+            }}
+          >
             {session?.user.email}
           </Typography>
-          <Typography color="text.secondary" variant="caption" display="block">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              display: "block"
+            }}
+          >
             {session?.user.role}
             {session?.user.isRoot ? " · Root" : ""}
           </Typography>
-          <Typography color="text.secondary" variant="caption" display="block">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              display: "block"
+            }}
+          >
             {permissionLabel}
           </Typography>
-          <Typography color="text.secondary" variant="caption" display="block">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              display: "block"
+            }}
+          >
             รหัสผ่านล่าสุด: {session?.user.recentPasswordAuthentication ? "ยืนยันแล้ว" : "ต้องยืนยันใหม่"}
           </Typography>
-          <Typography color="text.secondary" variant="caption" display="block">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              display: "block"
+            }}
+          >
             MFA ล่าสุด: {session?.user.recentMfaAuthentication ? "ยืนยันแล้ว" : "ยังไม่ยืนยัน"}
           </Typography>
         </Box>

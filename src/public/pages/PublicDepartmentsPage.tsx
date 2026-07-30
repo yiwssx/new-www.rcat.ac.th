@@ -1,5 +1,5 @@
 import { Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
@@ -58,7 +58,15 @@ export default function PublicDepartmentsPage() {
       preloadedMenu={data.menu}
     >
       <PublicBackgroundProgress active={isFetching} />
-      <Stack id="departments-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
+      <Stack
+        id="departments-list-heading"
+        direction="row"
+        spacing={1.2}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}
+      >
         <SchoolOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           ข้อมูลหลักสูตรที่เผยแพร่

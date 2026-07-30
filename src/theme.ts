@@ -144,7 +144,48 @@ export const theme = createTheme({
           "&.Mui-disabled": {
             color: color.disabledText,
             backgroundColor: color.disabledSurface
-          }
+          },
+          variants: [
+            {
+              props: { variant: "contained", color: "error" },
+              style: {
+                color: color.textInverse
+              }
+            },
+            {
+              props: { variant: "contained", color: "secondary" },
+              style: {
+                color: color.textOnAccent,
+                backgroundColor: color.brandAccent,
+                "&:hover": {
+                  color: color.textOnAccent,
+                  backgroundColor: color.brandAccent
+                }
+              }
+            },
+            {
+              props: { variant: "outlined", color: "secondary" },
+              style: {
+                color: color.accentForeground,
+                borderColor: color.accentForeground,
+                "&:hover": {
+                  color: color.accentForeground,
+                  borderColor: color.accentForeground,
+                  backgroundColor: alpha(color.brandAccent, 0.08)
+                }
+              }
+            },
+            {
+              props: { variant: "text", color: "secondary" },
+              style: {
+                color: color.accentForeground,
+                "&:hover": {
+                  color: color.accentForeground,
+                  backgroundColor: alpha(color.brandAccent, 0.08)
+                }
+              }
+            }
+          ]
         },
         sizeSmall: {
           minHeight: control.compactHeight,
@@ -153,33 +194,6 @@ export const theme = createTheme({
         sizeLarge: {
           minHeight: control.largeHeight,
           paddingInline: 22
-        },
-        containedError: {
-          color: color.textInverse
-        },
-        containedSecondary: {
-          color: color.textOnAccent,
-          backgroundColor: color.brandAccent,
-          "&:hover": {
-            color: color.textOnAccent,
-            backgroundColor: color.brandAccent
-          }
-        },
-        outlinedSecondary: {
-          color: color.accentForeground,
-          borderColor: color.accentForeground,
-          "&:hover": {
-            color: color.accentForeground,
-            borderColor: color.accentForeground,
-            backgroundColor: alpha(color.brandAccent, 0.08)
-          }
-        },
-        textSecondary: {
-          color: color.accentForeground,
-          "&:hover": {
-            color: color.accentForeground,
-            backgroundColor: alpha(color.brandAccent, 0.08)
-          }
         }
       }
     },
@@ -305,41 +319,55 @@ export const theme = createTheme({
           minHeight: 30,
           borderRadius: radius.pill,
           fontWeight: typography.label.fontWeight,
-          transition: `background-color ${motion.duration.standard}ms ${motion.easing}, border-color ${motion.duration.standard}ms ${motion.easing}, color ${motion.duration.standard}ms ${motion.easing}`
+          transition: `background-color ${motion.duration.standard}ms ${motion.easing}, border-color ${motion.duration.standard}ms ${motion.easing}, color ${motion.duration.standard}ms ${motion.easing}`,
+          variants: [
+            {
+              props: { variant: "filled", color: "secondary" },
+              style: {
+                color: color.textOnAccent,
+                backgroundColor: color.brandAccent
+              }
+            },
+            {
+              props: { variant: "outlined", color: "secondary" },
+              style: {
+                color: color.accentForeground,
+                borderColor: color.accentForeground
+              }
+            },
+            {
+              props: { clickable: true, color: "secondary" },
+              style: {
+                "&:hover": {
+                  color: color.accentForeground,
+                  backgroundColor: color.brandAccentSoft
+                }
+              }
+            },
+            {
+              props: { color: "secondary" },
+              style: {
+                "& .MuiChip-deleteIcon": {
+                  color: alpha(color.textOnAccent, 0.72),
+                  "&:hover": {
+                    color: color.textOnAccent
+                  }
+                },
+                "&.MuiChip-outlined .MuiChip-deleteIcon": {
+                  color: alpha(color.accentForeground, 0.72),
+                  "&:hover": {
+                    color: color.accentForeground
+                  }
+                }
+              }
+            }
+          ]
         },
         sizeSmall: {
           minHeight: 26
         },
         clickable: {
           ...focusVisibleSx
-        },
-        filledSecondary: {
-          color: color.textOnAccent,
-          backgroundColor: color.brandAccent
-        },
-        outlinedSecondary: {
-          color: color.accentForeground,
-          borderColor: color.accentForeground
-        },
-        clickableColorSecondary: {
-          "&:hover": {
-            color: color.accentForeground,
-            backgroundColor: color.brandAccentSoft
-          }
-        },
-        deletableColorSecondary: {
-          "& .MuiChip-deleteIcon": {
-            color: alpha(color.textOnAccent, 0.72),
-            "&:hover": {
-              color: color.textOnAccent
-            }
-          },
-          "&.MuiChip-outlined .MuiChip-deleteIcon": {
-            color: alpha(color.accentForeground, 0.72),
-            "&:hover": {
-              color: color.accentForeground
-            }
-          }
         }
       }
     },
@@ -348,27 +376,41 @@ export const theme = createTheme({
         root: {
           border: "1px solid",
           borderRadius: radius.medium,
-          alignItems: "flex-start"
-        },
-        standardSuccess: {
-          color: color.successText,
-          backgroundColor: color.successSurface,
-          borderColor: color.success
-        },
-        standardWarning: {
-          color: color.warningText,
-          backgroundColor: color.warningSurface,
-          borderColor: color.warning
-        },
-        standardError: {
-          color: color.errorText,
-          backgroundColor: color.errorSurface,
-          borderColor: color.error
-        },
-        standardInfo: {
-          color: color.informationText,
-          backgroundColor: color.informationSurface,
-          borderColor: color.information
+          alignItems: "flex-start",
+          variants: [
+            {
+              props: { variant: "standard", severity: "success" },
+              style: {
+                color: color.successText,
+                backgroundColor: color.successSurface,
+                borderColor: color.success
+              }
+            },
+            {
+              props: { variant: "standard", severity: "warning" },
+              style: {
+                color: color.warningText,
+                backgroundColor: color.warningSurface,
+                borderColor: color.warning
+              }
+            },
+            {
+              props: { variant: "standard", severity: "error" },
+              style: {
+                color: color.errorText,
+                backgroundColor: color.errorSurface,
+                borderColor: color.error
+              }
+            },
+            {
+              props: { variant: "standard", severity: "info" },
+              style: {
+                color: color.informationText,
+                backgroundColor: color.informationSurface,
+                borderColor: color.information
+              }
+            }
+          ]
         }
       }
     },

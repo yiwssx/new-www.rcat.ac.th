@@ -76,7 +76,15 @@ export default function PublicCalendarPage() {
       canonicalPath="/calendar"
     >
       <PublicBackgroundProgress active={isFetching} />
-      <Stack id="calendar-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
+      <Stack
+        id="calendar-list-heading"
+        direction="row"
+        spacing={1.2}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}
+      >
         <EventAvailableOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           กำหนดการทั้งหมด

@@ -897,6 +897,7 @@ describe("public data-driven pages", () => {
     class MockIntersectionObserver implements IntersectionObserver {
       readonly root = null;
       readonly rootMargin = "720px 0px";
+      readonly scrollMargin = "0px";
       readonly thresholds = [0];
 
       constructor(callback: IntersectionObserverCallback) {
@@ -984,6 +985,7 @@ describe("public data-driven pages", () => {
     class MockIntersectionObserver implements IntersectionObserver {
       readonly root = null;
       readonly rootMargin = "720px 0px";
+      readonly scrollMargin = "0px";
       readonly thresholds = [0];
 
       constructor(callback: IntersectionObserverCallback) {
@@ -1317,7 +1319,7 @@ describe("public data-driven pages", () => {
     });
 
     render(<PublicDocumentsPage />);
-    expect(screen.getByRole("combobox", { name: /กรองหมวดหมู่เอกสาร/ })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "หมวดหมู่" })).toBeInTheDocument();
     await user.type(screen.getByRole("searchbox", { name: "ค้นหาเอกสารเผยแพร่" }), "student-form");
 
     expect(screen.queryByText("แผนปฏิบัติการประจำปี")).not.toBeInTheDocument();

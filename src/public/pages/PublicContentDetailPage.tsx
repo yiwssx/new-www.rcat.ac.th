@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import { Box, Button, Card, CardContent, Chip, Divider, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
@@ -158,7 +158,14 @@ function ContentDetailMetadata({
 }) {
   return (
     <Stack spacing={1}>
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+      <Stack
+        direction="row"
+        spacing={1}
+        useFlexGap
+        sx={{
+          flexWrap: "wrap"
+        }}
+      >
         <Chip label={contentTypeLabels[item.type]} color="primary" />
         <Chip label={contentStatusLabels[item.status]} variant="outlined" />
         <Chip label={formatContentDetailThaiDate(item.publishAt)} variant="outlined" />
@@ -166,7 +173,14 @@ function ContentDetailMetadata({
         <Chip label={`ผู้เข้าดู ${formatViewCount(displayedViewCount)} ครั้ง`} variant="outlined" />
       </Stack>
       {!!tagList.length && (
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Stack
+          direction="row"
+          spacing={1}
+          useFlexGap
+          sx={{
+            flexWrap: "wrap"
+          }}
+        >
           {tagList.map((tag) => (
             <Chip
               key={tag}
@@ -369,7 +383,11 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
       <PublicSiteShell title="ไม่พบเนื้อหา" description="เนื้อหา CMS ที่ร้องขอยังไม่ได้เผยแพร่ในขณะนี้">
         <Card>
           <CardContent sx={{ p: 3 }}>
-            <Typography color="text.secondary">
+            <Typography
+              sx={{
+                color: "text.secondary"
+              }}
+            >
               เนื้อหาอาจยังไม่เผยแพร่ ถูกย้าย หรือไม่พร้อมให้แสดงต่อสาธารณะ
             </Typography>
             <Button href="/news" sx={{ mt: 2 }} startIcon={<ArrowBackOutlinedIcon />}>
@@ -406,7 +424,15 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
               <Stack spacing={2.5}>
                 <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
                 <Box>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1.5 }}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    useFlexGap
+                    sx={{
+                      flexWrap: "wrap",
+                      mb: 1.5
+                    }}
+                  >
                     <Chip label="Facebook" color="primary" variant="outlined" />
                     {categoryList.map((category) => (
                       <Chip key={category} label={category} variant="outlined" />
@@ -416,7 +442,13 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     {item.seoTitle || item.title}
                   </Typography>
                   {(item.seoDescription || item.summary) && (
-                    <Typography color="text.secondary" sx={{ mt: 1.5, fontSize: "1.05rem" }}>
+                    <Typography
+                      sx={{
+                        color: "text.secondary",
+                        mt: 1.5,
+                        fontSize: "1.05rem"
+                      }}
+                    >
                       {item.seoDescription || item.summary}
                     </Typography>
                   )}
@@ -477,8 +509,12 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                   </Typography>
                   {item.summary && (
                     <Typography
-                      color="text.secondary"
-                      sx={{ mt: 1.75, fontSize: { xs: "1.05rem", md: "1.3rem" }, maxWidth: 900 }}
+                      sx={{
+                        color: "text.secondary",
+                        mt: 1.75,
+                        fontSize: { xs: "1.05rem", md: "1.3rem" },
+                        maxWidth: 900
+                      }}
                     >
                       {item.summary}
                     </Typography>
@@ -557,7 +593,13 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     {item.title}
                   </Typography>
                   {item.summary && (
-                    <Typography color="text.secondary" sx={{ mt: 1.5, fontSize: { xs: "1rem", md: "1.12rem" } }}>
+                    <Typography
+                      sx={{
+                        color: "text.secondary",
+                        mt: 1.5,
+                        fontSize: { xs: "1rem", md: "1.12rem" }
+                      }}
+                    >
                       {item.summary}
                     </Typography>
                   )}
@@ -629,7 +671,13 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     {item.seoTitle || item.title}
                   </Typography>
                   {(item.seoDescription || item.summary) && (
-                    <Typography color="text.secondary" sx={{ mt: 1.5, fontSize: { xs: "1rem", md: "1.12rem" } }}>
+                    <Typography
+                      sx={{
+                        color: "text.secondary",
+                        mt: 1.5,
+                        fontSize: { xs: "1rem", md: "1.12rem" }
+                      }}
+                    >
                       {item.seoDescription || item.summary}
                     </Typography>
                   )}
@@ -771,7 +819,13 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                 <Typography variant="h2" sx={{ fontSize: { xs: "1.55rem", md: "2rem" } }}>
                   {item.seoTitle || item.title}
                 </Typography>
-                <Typography color="text.secondary" sx={{ mt: 1.5, fontSize: "1.05rem" }}>
+                <Typography
+                  sx={{
+                    color: "text.secondary",
+                    mt: 1.5,
+                    fontSize: "1.05rem"
+                  }}
+                >
                   {item.seoDescription || item.summary}
                 </Typography>
               </Box>

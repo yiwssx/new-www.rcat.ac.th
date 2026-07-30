@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Button, Chip, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import EmptyState from "../../shared/components/EmptyState";
@@ -99,14 +99,32 @@ export default function PublicNewsPage() {
           featured
         />
       )}
-      <Stack id="news-list-heading" direction="row" spacing={1.2} alignItems="center" sx={{ mt: 4, mb: 2 }}>
+      <Stack
+        id="news-list-heading"
+        direction="row"
+        spacing={1.2}
+        sx={{
+          alignItems: "center",
+          mt: 4,
+          mb: 2
+        }}
+      >
         <ArticleOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
           ข่าวทั้งหมด
         </Typography>
       </Stack>
       {hasActiveFilter && (
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center" sx={{ mb: 2 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          useFlexGap
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "center",
+            mb: 2
+          }}
+        >
           {activeTag && <Chip label={`#${activeTag}`} color="secondary" />}
           {activeCategory && <Chip label={activeCategory} color="secondary" variant="outlined" />}
           <Button href={normalizeSafeHref("/news")} size="small">

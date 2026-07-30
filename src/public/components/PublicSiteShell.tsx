@@ -273,8 +273,12 @@ function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false
         href={normalizeSafeHref(href)}
         direction="row"
         spacing={{ xs: 0.45, sm: 0.55, md: 0.75 }}
-        alignItems="center"
-        sx={sx}
+        sx={[
+          {
+            alignItems: "center"
+          },
+          ...(Array.isArray(sx) ? sx : [sx])
+        ]}
       >
         {content}
       </Stack>
@@ -282,7 +286,16 @@ function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false
   }
 
   return (
-    <Stack direction="row" spacing={{ xs: 0.45, sm: 0.55, md: 0.75 }} alignItems="center" sx={sx}>
+    <Stack
+      direction="row"
+      spacing={{ xs: 0.45, sm: 0.55, md: 0.75 }}
+      sx={[
+        {
+          alignItems: "center"
+        },
+        ...(Array.isArray(sx) ? sx : [sx])
+      ]}
+    >
       {content}
     </Stack>
   );
@@ -297,16 +310,18 @@ function TopBarSocialIcons({ links, showLabel }: { links: TopBarSocialLink[]; sh
     <Stack
       direction="row"
       spacing={{ xs: 0.35, sm: 0.45, md: 0.75 }}
-      alignItems="center"
-      justifyContent="flex-end"
-      sx={{ minWidth: "max-content", flexShrink: 0 }}
+      sx={{
+        alignItems: "center",
+        justifyContent: "flex-end",
+        minWidth: "max-content",
+        flexShrink: 0
+      }}
     >
       {showLabel && (
         <Typography variant="body2" sx={{ opacity: 0.88, whiteSpace: "nowrap" }}>
           {FOLLOW_LABEL}
         </Typography>
       )}
-
       {links.map((item) => (
         <SocialIconLink key={item.label} platform={item.platform} href={item.href} label={item.label} />
       ))}
@@ -382,23 +397,30 @@ function DesktopTopBar({
     <Stack
       direction="row"
       spacing={2}
-      alignItems="center"
-      justifyContent="space-between"
       sx={{
+        alignItems: "center",
+        justifyContent: "space-between",
         display: { xs: "none", md: "flex" },
         py: { md: 1.1 },
         minWidth: 0,
         overflow: "hidden"
       }}
     >
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 0, flex: "1 1 auto" }}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: "center",
+          minWidth: 0,
+          flex: "1 1 auto"
+        }}
+      >
         <TopBarInfoItem icon={<LocationOnOutlinedIcon />} text={campus || siteName} allowShrink />
 
         {phone && <TopBarInfoItem icon={<LocalPhoneOutlinedIcon />} text={phone} href={getTelephoneHref(phone)} />}
 
         {email && <TopBarInfoItem icon={<MailOutlineRoundedIcon />} text={email} />}
       </Stack>
-
       <TopBarSocialIcons links={socialLinks} showLabel />
     </Stack>
   );
@@ -634,15 +656,20 @@ function PublicSiteShellFrame({
               <Stack
                 direction={{ xs: "column", lg: "row" }}
                 spacing={{ xs: 1.2, md: 2 }}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", lg: "center" }}
-                sx={{ py: { xs: 1.2, md: 2.4 } }}
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: { xs: "flex-start", lg: "center" },
+                  py: { xs: 1.2, md: 2.4 }
+                }}
               >
                 <Stack
                   direction="row"
                   spacing={{ xs: 1.1, md: 2 }}
-                  alignItems="center"
-                  sx={{ width: "100%", minWidth: 0 }}
+                  sx={{
+                    alignItems: "center",
+                    width: "100%",
+                    minWidth: 0
+                  }}
                 >
                   <PublicResponsiveImage
                     source={projectSettings.site.logoPath}
@@ -683,11 +710,18 @@ function PublicSiteShellFrame({
                       {siteName}
                     </Typography>
                     {siteSettings.intro && (
-                      <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: { xs: 0.35, md: 0.6 } }}>
+                      <Stack
+                        direction="row"
+                        spacing={0.8}
+                        sx={{
+                          alignItems: "center",
+                          mt: { xs: 0.35, md: 0.6 }
+                        }}
+                      >
                         <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark", fontSize: { xs: 17, md: 24 } }} />
                         <Typography
-                          color="text.secondary"
                           sx={{
+                            color: "text.secondary",
                             maxWidth: 860,
                             fontSize: { xs: "0.78rem", md: "1rem" },
                             overflow: { xs: "hidden", md: "visible" },
@@ -705,9 +739,12 @@ function PublicSiteShellFrame({
                 <Stack
                   direction="row"
                   spacing={1}
-                  alignItems="center"
                   useFlexGap
-                  sx={{ flexWrap: "wrap", width: { xs: "100%", lg: "auto" } }}
+                  sx={{
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    width: { xs: "100%", lg: "auto" }
+                  }}
                 >
                   {siteSettings.admissionUrl && (
                     <Button
@@ -828,7 +865,13 @@ function PublicSiteShellFrame({
                   </Typography>
                 )}
                 {!pageHeaderLoading && description && (
-                  <Typography color="text.secondary" sx={{ mt: title ? 1 : 0, maxWidth: 820 }}>
+                  <Typography
+                    sx={{
+                      color: "text.secondary",
+                      mt: title ? 1 : 0,
+                      maxWidth: 820
+                    }}
+                  >
                     {description}
                   </Typography>
                 )}
@@ -865,12 +908,20 @@ function PublicSiteShellFrame({
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 spacing={2}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", md: "center" }}
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: { xs: "flex-start", md: "center" }
+                }}
               >
                 <Box>
                   {siteSettings.footerTitle && (
-                    <Typography fontWeight={900} sx={{ letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    <Typography
+                      sx={{
+                        fontWeight: 900,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase"
+                      }}
+                    >
                       {siteSettings.footerTitle}
                     </Typography>
                   )}

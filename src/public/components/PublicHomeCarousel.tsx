@@ -66,6 +66,7 @@ function ensureCarouselBrowserApis() {
     globalThis.IntersectionObserver = class NoopIntersectionObserver implements IntersectionObserver {
       readonly root = null;
       readonly rootMargin = "0px";
+      readonly scrollMargin = "0px";
       readonly thresholds = [];
 
       constructor(_callback: IntersectionObserverCallback) {}
@@ -680,11 +681,9 @@ export default function PublicHomeCarousel({
       <Box id={instructionsId} component="span" sx={visuallyHiddenSx}>
         ใช้ปุ่มลูกศรซ้ายและขวาเพื่อเปลี่ยนสไลด์ กดปุ่มหยุดเพื่อหยุดการเล่นอัตโนมัติ
       </Box>
-
       <Box component="span" aria-live="polite" aria-atomic="true" sx={visuallyHiddenSx}>
         {liveAnnouncement}
       </Box>
-
       <Container maxWidth="xl">
         <Box
           sx={{
@@ -959,27 +958,31 @@ export default function PublicHomeCarousel({
             <Stack
               direction="row"
               spacing={0.15}
-              justifyContent="center"
               data-carousel-dot-controls="true"
-              sx={(theme) => ({
-                position: "absolute",
-                left: "50%",
-                bottom: {
-                  xs: 8,
-                  md: 14
+              sx={[
+                {
+                  justifyContent: "center"
                 },
-                zIndex: 3,
-                maxWidth: "calc(100% - 24px)",
-                overflowX: "auto",
-                transform: "translateX(-50%)",
-                p: 0.25,
-                borderRadius: 999,
-                bgcolor: alpha(theme.palette.common.black, 0.26),
-                border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
-                boxShadow: "0 6px 20px rgba(0, 0, 0, 0.22)",
-                backdropFilter: "blur(8px)",
-                scrollbarWidth: "thin"
-              })}
+                (theme) => ({
+                  position: "absolute",
+                  left: "50%",
+                  bottom: {
+                    xs: 8,
+                    md: 14
+                  },
+                  zIndex: 3,
+                  maxWidth: "calc(100% - 24px)",
+                  overflowX: "auto",
+                  transform: "translateX(-50%)",
+                  p: 0.25,
+                  borderRadius: 999,
+                  bgcolor: alpha(theme.palette.common.black, 0.26),
+                  border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
+                  boxShadow: "0 6px 20px rgba(0, 0, 0, 0.22)",
+                  backdropFilter: "blur(8px)",
+                  scrollbarWidth: "thin"
+                })
+              ]}
             >
               {resolvedSlides.map((slide, index) => (
                 <IconButton

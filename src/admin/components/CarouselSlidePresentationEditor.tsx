@@ -17,7 +17,7 @@ import {
   ToggleButtonGroup,
   Typography
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { designTokens } from "../../design-system/tokens";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import {
@@ -54,10 +54,28 @@ export function CarouselSlidePresentationFields({ slide, disabled, onChange }: C
     <Card variant="outlined">
       <CardContent>
         <Stack spacing={2}>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            sx={{
+              alignItems: { xs: "stretch", sm: "center" }
+            }}
+          >
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography fontWeight={900}>การแสดงผลรูปภาพ</Typography>
-              <Typography color="text.secondary" variant="body2" sx={{ mt: 0.25 }}>
+              <Typography
+                sx={{
+                  fontWeight: 900
+                }}
+              >
+                การแสดงผลรูปภาพ
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  mt: 0.25
+                }}
+              >
                 กำหนดการครอบภาพ จุดโฟกัส ภาพมือถือ และสีพื้นหลัง
               </Typography>
             </Box>
@@ -186,10 +204,27 @@ export function CarouselSlidePresentationPreview({ slide }: CarouselSlidePresent
 
   return (
     <Stack spacing={1.5}>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1}
+        sx={{
+          alignItems: { xs: "stretch", sm: "center" }
+        }}
+      >
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography fontWeight={900}>ตัวอย่างการแสดงผล</Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography
+            sx={{
+              fontWeight: 900
+            }}
+          >
+            ตัวอย่างการแสดงผล
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary"
+            }}
+          >
             ใช้ renderer เดียวกับหน้าเว็บไซต์จริง
           </Typography>
         </Box>
@@ -208,9 +243,7 @@ export function CarouselSlidePresentationPreview({ slide }: CarouselSlidePresent
           <ToggleButton value="mobile">มือถือ</ToggleButton>
         </ToggleButtonGroup>
       </Stack>
-
       {usingDesktopFallback && <Alert severity="info">ยังไม่ได้กำหนดภาพมือถือ ตัวอย่างนี้จึงใช้ภาพหลัก</Alert>}
-
       <Box
         sx={{
           width: "100%",

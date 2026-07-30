@@ -21,13 +21,25 @@ export default function PublicErrorState({ onRetry, isRetrying = false }: Public
       }}
     >
       <Container maxWidth="sm">
-        <Stack spacing={2.2} alignItems="center" textAlign="center">
+        <Stack
+          spacing={2.2}
+          sx={{
+            alignItems: "center",
+            textAlign: "center"
+          }}
+        >
           <ReportProblemOutlinedIcon sx={{ fontSize: 58, color: "error.main" }} />
           <Stack spacing={0.8}>
             <Typography variant="h1" sx={{ fontSize: { xs: "1.8rem", sm: "2.3rem" } }}>
               ไม่สามารถโหลดข้อมูลได้
             </Typography>
-            <Typography color="text.secondary">กรุณาลองใหม่อีกครั้ง</Typography>
+            <Typography
+              sx={{
+                color: "text.secondary"
+              }}
+            >
+              กรุณาลองใหม่อีกครั้ง
+            </Typography>
           </Stack>
           {onRetry && (
             <Button

@@ -54,7 +54,11 @@ export default function MfaSetupPanel({ setup, onConfirm, disabled = false, erro
       <CardContent>
         <Stack component="form" spacing={2} onSubmit={handleSubmit}>
           <Typography variant="h3">ตั้งค่าแอปยืนยันตัวตน</Typography>
-          <Typography color="text.secondary">
+          <Typography
+            sx={{
+              color: "text.secondary"
+            }}
+          >
             เพิ่มบัญชีในแอปยืนยันตัวตนด้วยคีย์ด้านล่าง แล้วกรอกรหัส 6 หลักเพื่อยืนยัน
           </Typography>
           {error && (

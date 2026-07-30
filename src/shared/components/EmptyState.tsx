@@ -29,9 +29,20 @@ export default function EmptyState({ title, description, icon }: EmptyStateProps
     >
       <Box>
         {icon && <Box sx={{ color: "primary.main", mb: 1 }}>{icon}</Box>}
-        <Typography fontWeight={900}>{title}</Typography>
+        <Typography
+          sx={{
+            fontWeight: 900
+          }}
+        >
+          {title}
+        </Typography>
         {description && (
-          <Typography color="text.secondary" sx={{ mt: 0.6 }}>
+          <Typography
+            sx={{
+              color: "text.secondary",
+              mt: 0.6
+            }}
+          >
             {description}
           </Typography>
         )}
