@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CmsAuthError, cmsStepUpCoordinator } from "../../features/cms-auth";
 import ReauthenticationDialog from "./ReauthenticationDialog";
@@ -19,6 +19,7 @@ describe("ReauthenticationDialog", () => {
   });
 
   afterEach(() => {
+    cleanup();
     cmsStepUpCoordinator.resetForTests();
   });
 
@@ -33,9 +34,10 @@ describe("ReauthenticationDialog", () => {
     fireEvent.change(screen.getByLabelText(/รหัสผ่านปัจจุบัน/), {
       target: { value: " exact password " }
     });
-    fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
-
-    await expect(pendingRequest).resolves.toBeUndefined();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
+      await expect(pendingRequest).resolves.toBeUndefined();
+    });
     expect(authMock.reauthenticate).toHaveBeenCalledWith({
       currentPassword: " exact password "
     });
@@ -55,9 +57,10 @@ describe("ReauthenticationDialog", () => {
     fireEvent.change(screen.getByLabelText("รหัส 6 หลัก"), {
       target: { value: "123456" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
-
-    await expect(pendingRequest).resolves.toBeUndefined();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
+      await expect(pendingRequest).resolves.toBeUndefined();
+    });
     expect(authMock.reauthenticate).toHaveBeenCalledWith({
       currentPassword: "root password",
       totpCode: "123456"
@@ -79,9 +82,10 @@ describe("ReauthenticationDialog", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "รหัสกู้คืน" }), {
       target: { value: " Recovery-Code Exact " }
     });
-    fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
-
-    await expect(pendingRequest).resolves.toBeUndefined();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
+      await expect(pendingRequest).resolves.toBeUndefined();
+    });
     expect(authMock.reauthenticate).toHaveBeenCalledWith({
       currentPassword: "root password",
       recoveryCode: " Recovery-Code Exact "
@@ -138,7 +142,9 @@ describe("ReauthenticationDialog", () => {
     fireEvent.change(screen.getByLabelText(/รหัส 6 หลัก/), {
       target: { value: "123456" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
+    });
 
     expect(await screen.findByText("หลักฐานยืนยันไม่ถูกต้อง")).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -147,8 +153,10 @@ describe("ReauthenticationDialog", () => {
       totpCode: "123456"
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
-    await expect(pendingRequest).resolves.toBeUndefined();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
+      await expect(pendingRequest).resolves.toBeUndefined();
+    });
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
@@ -167,9 +175,10 @@ describe("ReauthenticationDialog", () => {
     fireEvent.change(screen.getByLabelText("รหัส 6 หลัก"), {
       target: { value: "654321" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
-
-    await expect(pendingRequest).resolves.toBeUndefined();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
+      await expect(pendingRequest).resolves.toBeUndefined();
+    });
     expect(authMock.reauthenticate).toHaveBeenCalledWith({
       currentPassword: "root password",
       totpCode: "654321"
@@ -188,9 +197,10 @@ describe("ReauthenticationDialog", () => {
     fireEvent.change(screen.getByLabelText(/รหัสผ่านปัจจุบัน/), {
       target: { value: "temporary password" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
-
-    await expect(pendingRequest).rejects.toBe(refreshFailure);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "ยืนยัน" }));
+      await expect(pendingRequest).rejects.toBe(refreshFailure);
+    });
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
     let retryRequest!: Promise<void>;

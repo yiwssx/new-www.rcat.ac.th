@@ -12,6 +12,7 @@ const DOCUMENTS = Object.freeze({
 const INPUTS = Object.freeze({
   packageJson: "package.json",
   lockfile: "pnpm-lock.yaml",
+  workspace: "pnpm-workspace.yaml",
   policy: "config/dependency-policy.json"
 });
 const REMOVED_REFERENCES = Object.freeze([
@@ -61,9 +62,11 @@ const REQUIRED_PERFORMANCE_SECTIONS = Object.freeze([
   "Current limitations"
 ]);
 const ALLOWED_DEPENDENCY_STATUSES = new Set([
-  "Latest",
-  "Compatible exception",
+  "Registry latest",
+  "Validated compatibility exception",
+  "Validated release-age hold",
   "Outdated",
+  "Invalid release-age selection",
   "Registry error",
   "Missing installation",
   "Invalid manifest",
@@ -138,6 +141,11 @@ function validateGovernanceDocument(content) {
     "must retain the frozen strict-peer install command"
   );
   record(path, content.includes("minimumReleaseAge: 4320"), "must retain the three-day release-age policy");
+  record(
+    path,
+    content.includes("Validated release-age hold"),
+    "must define the machine-validated temporary release-age hold"
+  );
   for (const packageName of ["esbuild", "sharp", "workerd"]) {
     record(path, content.includes(`\`${packageName}\``), `must retain ${packageName} in the build-script allowlist`);
   }
@@ -154,7 +162,9 @@ function validateStatusHashes(path, content) {
         ? "package-json-sha256"
         : label === "lockfile"
           ? "pnpm-lock-sha256"
-          : "dependency-policy-sha256";
+          : label === "workspace"
+            ? "pnpm-workspace-sha256"
+            : "dependency-policy-sha256";
     const marker = content.match(new RegExp(`${markerName}:\\s*([a-f0-9]{64}|missing)`, "u"))?.[1];
     const current = hashFile(inputPath);
     record(path, marker === current, `${inputPath} hash is stale`);
@@ -184,15 +194,30 @@ function validateSecurityAuditTable(path, content) {
 
 function validateDependencyMatrix(path, content) {
   const matrixSection = content.match(/## Direct dependency matrix\s+([\s\S]*?)(?=\n## |\s*$)/u)?.[1] || "";
-  const rows = matrixSection
-    .split(/\r?\n/u)
-    .filter((line) => /^\|\s*`[^`]+`\s*\|/u.test(line))
-    .map(markdownCells);
+  const lines = matrixSection.split(/\r?\n/u);
+  const headers = markdownCells(lines.find((line) => /^\|\s*Package\s*\|/u.test(line)) || "");
+  const requiredHeaders = [
+    "Package",
+    "Section",
+    "Manifest",
+    "Installed",
+    "Registry latest",
+    "Newest eligible stable",
+    "Published at",
+    "Eligible at",
+    "Status",
+    "Reason"
+  ];
+  for (const header of requiredHeaders) {
+    record(path, headers.includes(header), `direct dependency matrix is missing the "${header}" column`);
+  }
+  const statusIndex = headers.indexOf("Status");
+  const rows = lines.filter((line) => /^\|\s*`[^`]+`\s*\|/u.test(line)).map(markdownCells);
 
   record(path, rows.length > 0, "direct dependency matrix has no package rows");
   for (const cells of rows) {
     const packageName = cells[0]?.replaceAll("`", "") || "unknown";
-    const status = cells[6] || "";
+    const status = statusIndex >= 0 ? cells[statusIndex] || "" : "";
     record(path, ALLOWED_DEPENDENCY_STATUSES.has(status), `${packageName} has invalid status "${status}"`);
   }
 }
@@ -211,7 +236,7 @@ function validateStatusDocument(content) {
   record(path, /^- Direct dependencies: \d+$/mu.test(content), "direct dependency count is missing");
   record(
     path,
-    /^- Latest or validated compatibility exceptions: \d+$/mu.test(content),
+    /^- Registry latest, validated compatibility exceptions, or validated release-age holds: \d+$/mu.test(content),
     "accepted dependency count is missing"
   );
   for (const heading of ["Security audit", "Direct dependency matrix", "Interpretation"]) {
