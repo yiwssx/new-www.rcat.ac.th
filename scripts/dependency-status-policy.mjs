@@ -1,11 +1,7 @@
-const ISO_UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
-
 export const DEPENDENCY_STATUS = Object.freeze({
   registryLatest: "Registry latest",
   compatibilityException: "Validated compatibility exception",
-  releaseAgeHold: "Validated release-age hold",
   outdated: "Outdated",
-  invalidReleaseAge: "Invalid release-age selection",
   registryError: "Registry error",
   missingInstallation: "Missing installation",
   invalidManifest: "Invalid manifest",
@@ -14,9 +10,30 @@ export const DEPENDENCY_STATUS = Object.freeze({
 
 export const ACCEPTED_DEPENDENCY_STATUSES = new Set([
   DEPENDENCY_STATUS.registryLatest,
-  DEPENDENCY_STATUS.compatibilityException,
-  DEPENDENCY_STATUS.releaseAgeHold
+  DEPENDENCY_STATUS.compatibilityException
 ]);
+
+export const ALLOWED_COMPATIBILITY_EXCEPTION_PACKAGES = Object.freeze(["@types/node", "typescript"]);
+
+export function validateCompatibilityExceptionPackages(exceptions) {
+  if (!exceptions || typeof exceptions !== "object" || Array.isArray(exceptions)) {
+    return {
+      valid: false,
+      errors: ["compatibilityExceptions must be an object"]
+    };
+  }
+
+  const configured = Object.keys(exceptions).sort();
+  const allowed = [...ALLOWED_COMPATIBILITY_EXCEPTION_PACKAGES].sort();
+  const unsupported = configured.filter((packageName) => !allowed.includes(packageName));
+  const missing = allowed.filter((packageName) => !configured.includes(packageName));
+  const errors = [
+    ...unsupported.map((packageName) => `${packageName} is not an allowed compatibility exception`),
+    ...missing.map((packageName) => `${packageName} compatibility exception is missing`)
+  ];
+
+  return { valid: errors.length === 0, errors };
+}
 
 export function parseVersion(value) {
   const match = String(value || "")
@@ -167,153 +184,49 @@ export function validatePeerRangeCompatibility({
   return { valid: errors.length === 0, errors };
 }
 
-export function parseMinimumReleaseAgeMinutes(workspaceConfig) {
-  const matches = [...String(workspaceConfig).matchAll(/^minimumReleaseAge:\s*(\d+)\s*$/gmu)];
-  if (matches.length !== 1) {
-    throw new Error("pnpm-workspace.yaml must declare minimumReleaseAge exactly once.");
-  }
-  const minutes = Number(matches[0][1]);
-  if (!Number.isSafeInteger(minutes) || minutes <= 0) {
-    throw new Error("minimumReleaseAge must be a positive integer number of minutes.");
-  }
-  return minutes;
-}
-
-function parseClock(value) {
-  if (value instanceof Date) {
-    return Number.isFinite(value.getTime()) ? value.getTime() : null;
-  }
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-  if (typeof value === "string" && ISO_UTC_TIMESTAMP.test(value)) {
-    const milliseconds = Date.parse(value);
-    const normalized = value.includes(".") ? value : value.replace(/Z$/u, ".000Z");
-    return Number.isFinite(milliseconds) && new Date(milliseconds).toISOString() === normalized ? milliseconds : null;
-  }
-  return null;
-}
-
-function isoTimestamp(milliseconds) {
-  return new Date(milliseconds).toISOString();
-}
-
-function releaseAgeError(reason) {
-  return {
-    valid: false,
-    error: reason,
-    newestEligibleStable: "—",
-    publishedAt: "—",
-    eligibleAt: "—",
-    latestEligible: false
-  };
-}
-
-export function evaluateReleaseAge({
-  installedVersion,
+export function validateRuntimeMajorCompatibility({
+  selectedVersion,
   registryLatest,
-  registryVersions,
-  releaseTimes,
-  minimumReleaseAgeMinutes,
-  now
+  runtimeVersion,
+  availableVersions
 }) {
-  const installed = parseVersion(installedVersion);
+  const errors = [];
+  const selected = parseVersion(selectedVersion);
   const latest = parseVersion(registryLatest);
-  const nowMilliseconds = parseClock(now);
+  const runtime = parseVersion(runtimeVersion);
+  if (!selected || selected.prerelease) errors.push("selected compatibility version must be stable semantic version");
+  if (!latest || latest.prerelease) errors.push("registry latest must be stable semantic version");
+  if (!runtime || runtime.prerelease) errors.push("runtime version must be stable semantic version");
+  if (
+    !Array.isArray(availableVersions) ||
+    !availableVersions.length ||
+    availableVersions.some((version) => !parseVersion(version))
+  ) {
+    errors.push("runtime-major version inventory is missing or invalid");
+  }
+  if (errors.length) return { valid: false, errors };
 
-  if (!installed || installed.prerelease) {
-    return releaseAgeError("installed version must be a stable semantic version");
+  if (selected.major !== runtime.major) {
+    errors.push(`selected major ${selected.major} does not match runtime major ${runtime.major}`);
   }
-  if (!latest || latest.prerelease) {
-    return releaseAgeError("registry latest must be a stable semantic version");
+  if (latest.major === runtime.major) {
+    errors.push("exception is stale because registry latest matches the runtime major");
   }
-  if (!Number.isSafeInteger(minimumReleaseAgeMinutes) || minimumReleaseAgeMinutes <= 0) {
-    return releaseAgeError("minimum release age must be a positive integer number of minutes");
+  if (compareVersions(selected, latest) > 0) {
+    errors.push(`selected ${selected.raw} is newer than registry latest ${latest.raw}`);
   }
-  if (nowMilliseconds === null) {
-    return releaseAgeError("controlled clock is invalid");
-  }
-  if (!releaseTimes || typeof releaseTimes !== "object" || Array.isArray(releaseTimes)) {
-    return releaseAgeError("registry time metadata is missing");
-  }
-  if (!Array.isArray(registryVersions) || !registryVersions.length) {
-    return releaseAgeError("registry version inventory is missing");
-  }
-
-  const parsedInventory = registryVersions.map((versionValue) => parseVersion(versionValue));
-  if (parsedInventory.some((version) => !version)) {
-    return releaseAgeError("registry version inventory contains a malformed semantic version");
-  }
-  if (!parsedInventory.some((version) => version.raw === latest.raw)) {
-    return releaseAgeError(`registry version inventory is missing registry latest ${latest.raw}`);
-  }
-  if (!parsedInventory.some((version) => version.raw === installed.raw)) {
-    return releaseAgeError(`registry version inventory is missing installed version ${installed.raw}`);
-  }
-  if (compareVersions(installed, latest) > 0) {
-    return releaseAgeError(`installed version ${installed.raw} is newer than registry latest ${latest.raw}`);
+  const latestRuntimeMajor = maxStableVersion(availableVersions, (version) => version.major === runtime.major);
+  if (latestRuntimeMajor !== selected.raw) {
+    errors.push(
+      `selected ${selected.raw} is not latest in runtime major ${runtime.major} (${latestRuntimeMajor || "none"})`
+    );
   }
 
-  const stableCandidates = parsedInventory
-    .filter((version) => !version.prerelease && compareVersions(version, latest) <= 0)
-    .map((version) => {
-      if (!Object.hasOwn(releaseTimes, version.raw)) {
-        return { error: `registry time metadata is missing stable version ${version.raw}` };
-      }
-      const publishedMilliseconds = parseClock(releaseTimes[version.raw]);
-      if (publishedMilliseconds === null) {
-        return { error: `registry time metadata for ${version.raw} is malformed` };
-      }
-      if (publishedMilliseconds > nowMilliseconds) {
-        return { error: `registry publication time for ${version.raw} is in the future` };
-      }
-      return { version, publishedMilliseconds };
-    });
-  const invalidCandidate = stableCandidates.find((release) => release.error);
-  if (invalidCandidate) {
-    return releaseAgeError(invalidCandidate.error);
-  }
-  if (!stableCandidates.length) {
-    return releaseAgeError("registry metadata contains no stable release at or below registry latest");
-  }
-
-  const latestRelease = stableCandidates.find((release) => release.version.raw === latest.raw);
-  const minimumAgeMilliseconds = minimumReleaseAgeMinutes * 60_000;
-  const eligibleReleases = stableCandidates
-    .filter((release) => release.publishedMilliseconds + minimumAgeMilliseconds <= nowMilliseconds)
-    .sort((left, right) => compareVersions(left.version, right.version));
-  const newestEligible = eligibleReleases.at(-1);
-  if (!newestEligible) {
-    return releaseAgeError("registry time metadata contains no stable release old enough to install");
-  }
-
-  const latestEligibleAt = latestRelease.publishedMilliseconds + minimumAgeMilliseconds;
-  return {
-    valid: true,
-    error: "",
-    newestEligibleStable: newestEligible.version.raw,
-    publishedAt: isoTimestamp(latestRelease.publishedMilliseconds),
-    eligibleAt: isoTimestamp(latestEligibleAt),
-    latestEligible: latestEligibleAt <= nowMilliseconds
-  };
+  return { valid: errors.length === 0, errors };
 }
 
-function baseResult({
-  status,
-  reason,
-  registryLatest = "—",
-  newestEligibleStable = "—",
-  publishedAt = "—",
-  eligibleAt = "—"
-}) {
-  return {
-    status,
-    reason,
-    registryLatest,
-    newestEligibleStable,
-    publishedAt,
-    eligibleAt
-  };
+function baseResult({ status, reason, registryLatest = "—" }) {
+  return { status, reason, registryLatest };
 }
 
 export function classifyDependencyStatus({
@@ -321,11 +234,7 @@ export function classifyDependencyStatus({
   installedVersion,
   registryLatest,
   registryError = "",
-  compatibilityValidation,
-  registryVersions,
-  releaseTimes,
-  minimumReleaseAgeMinutes,
-  now
+  compatibilityValidation
 }) {
   const manifest = parseManifestSpecifier(manifestVersion);
   const installed = parseVersion(installedVersion);
@@ -347,7 +256,7 @@ export function classifyDependencyStatus({
   if (!manifest || manifest.version.prerelease) {
     return baseResult({
       status: DEPENDENCY_STATUS.invalidManifest,
-      reason: "manifest must select a stable semantic version",
+      reason: "manifest must select a stable semantic version, not a prerelease",
       registryLatest: latest.raw
     });
   }
@@ -372,6 +281,13 @@ export function classifyDependencyStatus({
       registryLatest: latest.raw
     });
   }
+  if (manifest.version.raw !== installed.raw) {
+    return baseResult({
+      status: DEPENDENCY_STATUS.invalidManifest,
+      reason: `manifest ${manifest.display} selects ${manifest.version.raw}, which does not match installed ${installed.raw}`,
+      registryLatest: latest.raw
+    });
+  }
 
   if (compatibilityValidation) {
     if (compatibilityValidation.valid) {
@@ -392,51 +308,16 @@ export function classifyDependencyStatus({
     return baseResult({
       status: DEPENDENCY_STATUS.registryLatest,
       reason: "Installed version matches the stable registry latest.",
-      registryLatest: latest.raw,
-      newestEligibleStable: latest.raw
-    });
-  }
-
-  const releaseAge = evaluateReleaseAge({
-    installedVersion: installed.raw,
-    registryLatest: latest.raw,
-    registryVersions,
-    releaseTimes,
-    minimumReleaseAgeMinutes,
-    now
-  });
-  if (!releaseAge.valid) {
-    return baseResult({
-      status: DEPENDENCY_STATUS.registryError,
-      reason: releaseAge.error,
       registryLatest: latest.raw
     });
   }
 
-  const releaseFields = {
-    registryLatest: latest.raw,
-    newestEligibleStable: releaseAge.newestEligibleStable,
-    publishedAt: releaseAge.publishedAt,
-    eligibleAt: releaseAge.eligibleAt
-  };
-  if (releaseAge.latestEligible) {
-    return baseResult({
-      ...releaseFields,
-      status: DEPENDENCY_STATUS.outdated,
-      reason: `Registry latest ${latest.raw} has satisfied the minimum release age.`
-    });
-  }
-  if (installed.raw !== releaseAge.newestEligibleStable) {
-    const comparison = compareVersions(installed, releaseAge.newestEligibleStable);
-    return baseResult({
-      ...releaseFields,
-      status: comparison < 0 ? DEPENDENCY_STATUS.outdated : DEPENDENCY_STATUS.invalidReleaseAge,
-      reason: `Installed ${installed.raw} is not the newest eligible stable release ${releaseAge.newestEligibleStable}.`
-    });
-  }
   return baseResult({
-    ...releaseFields,
-    status: DEPENDENCY_STATUS.releaseAgeHold,
-    reason: `Registry latest ${latest.raw} remains ineligible until ${releaseAge.eligibleAt}.`
+    status: DEPENDENCY_STATUS.outdated,
+    reason:
+      compareVersions(installed, latest) < 0
+        ? `Installed ${installed.raw} is lower than stable registry latest ${latest.raw}.`
+        : `Installed ${installed.raw} is newer than stable registry latest ${latest.raw}.`,
+    registryLatest: latest.raw
   });
 }

@@ -6,9 +6,10 @@ import {
   ACCEPTED_DEPENDENCY_STATUSES,
   classifyDependencyStatus,
   compareVersions,
-  parseMinimumReleaseAgeMinutes,
   parseVersion,
-  validatePeerRangeCompatibility
+  validateCompatibilityExceptionPackages,
+  validatePeerRangeCompatibility,
+  validateRuntimeMajorCompatibility
 } from "./dependency-status-policy.mjs";
 
 const PACKAGE_PATH = "package.json";
@@ -179,14 +180,6 @@ function parseDeclaredVersion(specifier) {
     .trim()
     .match(/^(?:\^|~)?(v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/);
   return match ? parseVersion(match[1]) : null;
-}
-
-function maxStableVersion(values, predicate = () => true) {
-  const versions = values
-    .map((value) => parseVersion(value))
-    .filter((version) => version && !version.prerelease && predicate(version));
-  versions.sort(compareVersions);
-  return versions.at(-1)?.raw || "";
 }
 
 function normalizeVersionList(value, label) {
@@ -360,44 +353,6 @@ async function lookupRegistryLatest(packageNames) {
   return new Map(results.map((result) => [result.name, result.version]));
 }
 
-async function lookupRegistryReleaseMetadata(packageNames) {
-  const results = await mapWithConcurrency(packageNames, REGISTRY_CONCURRENCY, async (name) => {
-    try {
-      const value = requireSuccessfulJson(
-        await runPnpmAsync(["view", name, "dist-tags", "versions", "time", "--json"]),
-        `pnpm view ${name} dist-tags versions time --json`
-      );
-      const latest = parseVersion(value?.["dist-tags"]?.latest);
-      if (!latest || latest.prerelease) {
-        throw new Error(
-          `Registry latest for ${name} is not a stable semantic version: ${String(value?.["dist-tags"]?.latest)}`
-        );
-      }
-      const versions = normalizeVersionList(
-        value?.versions,
-        `pnpm view ${name} dist-tags versions time --json versions`
-      );
-      if (!value?.time || typeof value.time !== "object" || Array.isArray(value.time)) {
-        throw new Error(`Registry time metadata for ${name} is not an object.`);
-      }
-      return { name, latest: latest.raw, versions, releaseTimes: value.time, error: "" };
-    } catch (error) {
-      return { name, latest: "", versions: [], releaseTimes: null, error: error.message };
-    }
-  });
-  const errors = results.filter((result) => result.error);
-  if (errors.length) {
-    throw new Error(
-      `Registry metadata lookup failed for ${errors.map((result) => `${result.name}: ${result.error}`).join("; ")}`
-    );
-  }
-  return {
-    registryLatest: new Map(results.map((result) => [result.name, result.latest])),
-    versions: new Map(results.map((result) => [result.name, result.versions])),
-    releaseTimes: new Map(results.map((result) => [result.name, result.releaseTimes]))
-  };
-}
-
 async function fetchMajorVersions(packageName, major) {
   const label = `pnpm view ${packageName}@${major} version --json`;
   const value = requireSuccessfulJson(
@@ -508,19 +463,14 @@ async function validateCompatibilityException({ packageName, exception, directBy
       if (!runtimeVersion) {
         errors.push(`${validation.runtimeFile} does not contain a semantic version`);
       } else {
-        if (selected.major !== runtimeVersion.major) {
-          errors.push(`selected major ${selected.major} does not match runtime major ${runtimeVersion.major}`);
-        }
-        if (latestVersion.major === runtimeVersion.major) {
-          errors.push("exception is stale because registry latest matches the runtime major");
-        }
         const versions = await fetchMajorVersions(packageName, runtimeVersion.major);
-        const latestRuntimeMajor = maxStableVersion(versions);
-        if (latestRuntimeMajor !== selected.raw) {
-          errors.push(
-            `selected ${selected.raw} is not latest in runtime major ${runtimeVersion.major} (${latestRuntimeMajor || "none"})`
-          );
-        }
+        const runtimeValidation = validateRuntimeMajorCompatibility({
+          selectedVersion: selected.raw,
+          registryLatest: latestVersion.raw,
+          runtimeVersion: runtimeVersion.raw,
+          availableVersions: versions
+        });
+        errors.push(...runtimeValidation.errors);
       }
     }
   } else if (validation?.kind) {
@@ -537,8 +487,9 @@ async function validateCompatibilityException({ packageName, exception, directBy
 async function validateCompatibilityPolicy({ policy, directRows, installed, registryLatest }) {
   const directByName = new Map(directRows.map((row) => [row.name, row]));
   const exceptions = policy?.compatibilityExceptions;
-  if (!exceptions || typeof exceptions !== "object" || Array.isArray(exceptions)) {
-    throw new Error(`${POLICY_PATH} must contain a compatibilityExceptions object.`);
+  const configuredPackages = validateCompatibilityExceptionPackages(exceptions);
+  if (!configuredPackages.valid) {
+    throw new Error(`${POLICY_PATH} is invalid: ${configuredPackages.errors.join("; ")}.`);
   }
   const installedVersions = new Map(
     [...installed].map(([name, record]) => [name, parseVersion(record?.version)?.raw || ""])
@@ -638,11 +589,12 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
   const packageJson = JSON.parse(readFileSync(PACKAGE_PATH, "utf8"));
   const workspaceConfig = readFileSync(WORKSPACE_PATH, "utf8");
   const policy = JSON.parse(readFileSync(POLICY_PATH, "utf8"));
-  const minimumReleaseAgeMinutes = parseMinimumReleaseAgeMinutes(workspaceConfig);
+  if (!/^minimumReleaseAge:\s*4320\s*$/mu.test(workspaceConfig)) {
+    throw new Error(`${WORKSPACE_PATH} must retain minimumReleaseAge: 4320.`);
+  }
   if (/^minimumReleaseAgeExclude:/mu.test(workspaceConfig)) {
     throw new Error(`${WORKSPACE_PATH} must not bypass the minimum release age.`);
   }
-  const evaluationClock = new Date().toISOString();
   const directRows = directDependencyRows(packageJson);
   const packageNames = [...new Set(directRows.map((row) => row.name))];
 
@@ -669,19 +621,6 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
     installed: new Map(Object.entries(installedRecords)),
     registryLatest
   });
-  const releaseAgePackageNames = packageNames.filter(
-    (name) => installed.get(name) && installed.get(name) !== registryLatest.get(name) && !policyValidations.has(name)
-  );
-  const releaseMetadata = releaseAgePackageNames.length
-    ? await lookupRegistryReleaseMetadata(releaseAgePackageNames)
-    : { registryLatest: new Map(), versions: new Map(), releaseTimes: new Map() };
-  for (const name of releaseAgePackageNames) {
-    if (releaseMetadata.registryLatest.get(name) !== registryLatest.get(name)) {
-      throw new Error(
-        `Registry latest for ${name} changed while release metadata was being collected; rerun the check.`
-      );
-    }
-  }
 
   const fullAudit = readAuditResult(runPnpm(["audit", "--json"]), "pnpm audit --json");
   const prodAudit = readAuditResult(runPnpm(["audit", "--prod", "--json"]), "pnpm audit --prod --json");
@@ -694,11 +633,7 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
       manifestVersion: direct.specifier,
       installedVersion,
       registryLatest: latestVersion,
-      compatibilityValidation: validation,
-      registryVersions: releaseMetadata.versions.get(direct.name),
-      releaseTimes: releaseMetadata.releaseTimes.get(direct.name),
-      minimumReleaseAgeMinutes,
-      now: evaluationClock
+      compatibilityValidation: validation
     });
 
     return {
@@ -718,32 +653,15 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
   const reportHash = createHash("sha256")
     .update(
       JSON.stringify({
-        minimumReleaseAgeMinutes,
-        rows: rows.map(
-          ({
-            name,
-            section,
-            specifier,
-            installed,
-            registryLatest: latest,
-            newestEligibleStable,
-            publishedAt,
-            eligibleAt,
-            status,
-            reason
-          }) => ({
-            name,
-            section,
-            specifier,
-            installed,
-            registryLatest: latest,
-            newestEligibleStable,
-            publishedAt,
-            eligibleAt,
-            status,
-            reason
-          })
-        ),
+        rows: rows.map(({ name, section, specifier, installed, registryLatest: latest, status, reason }) => ({
+          name,
+          section,
+          specifier,
+          installed,
+          registryLatest: latest,
+          status,
+          reason
+        })),
         fullAudit,
         prodAudit
       })
@@ -777,28 +695,14 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
     ]
   );
   const dependencyTable = markdownTable(
-    [
-      "Package",
-      "Section",
-      "Manifest",
-      "Installed",
-      "Registry latest",
-      "Newest eligible stable",
-      "Published at",
-      "Eligible at",
-      "Status",
-      "Reason"
-    ],
-    ["left", "left", "left", "left", "left", "left", "left", "left", "left", "left"],
+    ["Package", "Section", "Manifest", "Installed", "Registry latest", "Status", "Reason"],
+    ["left", "left", "left", "left", "left", "left", "left"],
     rows.map((row) => [
       `\`${markdownCell(row.name)}\``,
       row.section,
       `\`${markdownCell(row.specifier)}\``,
       `\`${markdownCell(row.installed)}\``,
       `\`${markdownCell(row.registryLatest)}\``,
-      `\`${markdownCell(row.newestEligibleStable)}\``,
-      markdownCell(row.publishedAt),
-      markdownCell(row.eligibleAt),
       row.status,
       markdownCell(row.reason)
     ])
@@ -818,7 +722,7 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
     `- Generated at: ${generatedAt}`,
     `- Registry lookup: PASS (${packageNames.length} direct dependencies)`,
     `- Direct dependencies: ${rows.length}`,
-    `- Registry latest, validated compatibility exceptions, or validated release-age holds: ${acceptedCount}`,
+    `- Registry latest or validated compatibility exceptions: ${acceptedCount}`,
     "",
     "## Security audit",
     "",
@@ -832,9 +736,7 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
     "",
     "- `Registry latest` means the installed stable version matches the registry `latest` dist-tag.",
     "- `Validated compatibility exception` means a machine-checked peer or runtime constraint blocks registry latest.",
-    `- \`Validated release-age hold\` means registry latest is younger than the ${minimumReleaseAgeMinutes}-minute policy and the installed version is the newest eligible stable release.`,
-    "- `Published at` and `Eligible at` describe registry latest when release-age evaluation is required.",
-    "- Release-age holds expire automatically and fail enforcement as soon as registry latest becomes eligible.",
+    "- Direct dependencies must match registry latest even when that release is younger than the install-time minimum release age.",
     "- A security audit status of `PASS` means the command succeeded and reported valid counts for every severity.",
     "- A security audit status of `ERROR` means the result could not be validated and is never interpreted as zero vulnerabilities.",
     "- Regenerate this document whenever package.json, pnpm-lock.yaml, pnpm-workspace.yaml, registry state, or config/dependency-policy.json changes.",
@@ -858,9 +760,7 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
     );
   }
   if (flags.has("--enforce-latest") && enforcementFailures.length) {
-    console.error(
-      "Direct dependencies are not registry latest, a validated compatibility exception, or a validated release-age hold:"
-    );
+    console.error("Direct dependencies are not registry latest or a validated compatibility exception:");
     for (const row of enforcementFailures) {
       console.error(
         `- ${row.name}: installed ${row.installed}; registry latest ${row.registryLatest}; status ${row.status}`

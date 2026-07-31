@@ -18,6 +18,48 @@ const footerDirectoryGridSx = {
   gap: { xs: 2.5, md: 4 }
 } as const;
 
+const footerDirectoryHeadingSx = {
+  color: "primary.dark",
+  fontSize: { xs: "1rem", md: "1.08rem" },
+  fontWeight: 900,
+  mb: 1.25
+} as const;
+
+const footerDirectoryLinkSx = {
+  color: "text.secondary",
+  display: "inline-block",
+  fontSize: { xs: "0.9rem", md: "0.94rem" },
+  lineHeight: 1.55
+} as const;
+
+function PlaceholderText({ width, height }: { width: string; height: number }) {
+  return (
+    <Typography
+      component="div"
+      sx={{
+        position: "relative",
+        ...footerDirectoryLinkSx
+      }}
+    >
+      <Box component="span" sx={{ visibility: "hidden" }}>
+        Placeholder
+      </Box>
+      <Skeleton
+        variant="rounded"
+        animation={false}
+        width={width}
+        height={height}
+        sx={{
+          bgcolor: "action.hover",
+          position: "absolute",
+          top: "50%",
+          transform: "translateY(-50%)"
+        }}
+      />
+    </Typography>
+  );
+}
+
 function FooterDirectoryPlaceholder() {
   return (
     <Box
@@ -26,33 +68,41 @@ function FooterDirectoryPlaceholder() {
       data-footer-directory-state="loading"
       data-footer-directory-columns="responsive-1-2-4"
       aria-hidden="true"
-      sx={{
-        ...footerDirectorySectionSx,
-        minHeight: { xs: 1051, sm: 560, lg: 331 }
-      }}
+      sx={footerDirectorySectionSx}
     >
       <Container maxWidth="xl">
         <Box sx={footerDirectoryGridSx}>
           {Array.from({ length: 4 }, (_, groupIndex) => (
-            <Stack key={groupIndex} spacing={0.9}>
-              <Skeleton
-                variant="rounded"
-                animation={false}
-                width={`${72 - groupIndex * 4}%`}
-                height={26}
-                sx={{ bgcolor: "action.selected", mb: 0.35 }}
-              />
-              {Array.from({ length: 7 }, (_, linkIndex) => (
+            <Box key={groupIndex}>
+              <Typography component="div" sx={{ ...footerDirectoryHeadingSx, position: "relative" }}>
+                <Box component="span" sx={{ display: "block", visibility: "hidden" }}>
+                  Placeholder
+                </Box>
+                {groupIndex === 1 ? (
+                  <Box component="span" sx={{ display: { xs: "none", lg: "block" }, visibility: "hidden" }}>
+                    Placeholder
+                  </Box>
+                ) : null}
                 <Skeleton
-                  key={linkIndex}
                   variant="rounded"
                   animation={false}
-                  width={`${86 - ((groupIndex + linkIndex) % 4) * 8}%`}
-                  height={14}
-                  sx={{ bgcolor: "action.hover" }}
+                  width={`${72 - groupIndex * 4}%`}
+                  height={18}
+                  sx={{
+                    bgcolor: "action.selected",
+                    position: "absolute",
+                    top: 4
+                  }}
                 />
-              ))}
-            </Stack>
+              </Typography>
+              <Stack component="ul" spacing={0.7} sx={{ m: 0, p: 0, listStyle: "none" }}>
+                {Array.from({ length: 7 }, (_, linkIndex) => (
+                  <Box component="li" key={linkIndex}>
+                    <PlaceholderText width={`${86 - ((groupIndex + linkIndex) % 4) * 8}%`} height={14} />
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
           ))}
         </Box>
       </Container>
@@ -99,15 +149,7 @@ export default function PublicFooterDirectory({
         <Box sx={footerDirectoryGridSx}>
           {enabledGroups.map((group) => (
             <Box key={group.title}>
-              <Typography
-                component="h2"
-                sx={{
-                  color: "primary.dark",
-                  fontSize: { xs: "1rem", md: "1.08rem" },
-                  fontWeight: 900,
-                  mb: 1.25
-                }}
-              >
+              <Typography component="h2" sx={footerDirectoryHeadingSx}>
                 {group.title}
               </Typography>
               <Stack component="ul" spacing={0.7} sx={{ m: 0, p: 0, listStyle: "none" }}>
@@ -118,10 +160,7 @@ export default function PublicFooterDirectory({
                       href={normalizeSafeHref(link.href)}
                       aria-label={`เปิดลิงก์ ${link.label}`}
                       sx={{
-                        color: "text.secondary",
-                        display: "inline-block",
-                        fontSize: { xs: "0.9rem", md: "0.94rem" },
-                        lineHeight: 1.55,
+                        ...footerDirectoryLinkSx,
                         textDecoration: "none",
                         transition: `color ${designTokens.motion.duration.standard}ms ${designTokens.motion.easing}`,
                         "&:hover": {

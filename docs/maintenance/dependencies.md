@@ -20,10 +20,10 @@ governance.
 
 Select stable releases from the registry. Do not select a prerelease merely
 because it is numerically newer. A direct dependency may remain below the
-registry `latest` release only when either a validated compatibility exception
-in `config/dependency-policy.json` proves that the latest release is
-incompatible with an active peer or runtime constraint, or a machine-validated
-release-age hold proves that registry latest is not yet eligible.
+registry `latest` release only when a validated compatibility exception in
+`config/dependency-policy.json` proves that the latest release is incompatible
+with an active peer or runtime constraint. Release age is not a direct
+dependency freshness exception.
 
 Registry lookup is fail closed. A missing, malformed, or unreachable registry
 response is an error, never evidence that the installed version is current.
@@ -165,20 +165,17 @@ and retain this protection during routine updates. Only the narrow, one-command
 security response described above may bypass it during the controlled
 installation; no exclusion may persist in the workspace.
 
-The live dependency checker reports `Registry latest` when the installed stable
-version matches the registry `latest` dist-tag. When a newer registry latest
-exists, it validates that tag, the registry version inventory, and publication
-timestamps from one metadata snapshot against a single controlled clock. If
-registry latest is still too young, the checker may report
-`Validated release-age hold` only when the installed version is exactly the
-newest stable release currently eligible under the same window.
+This setting governs installation timing, not the committed freshness result:
+committed direct dependencies must still match registry `latest` unless one of
+the two machine-validated compatibility constraints applies. When an exact
+latest release must be selected before the normal window expires, use the
+narrowest supported one-command override for only the requested package and
+required transitive binaries. Never persist `minimumReleaseAgeExclude`, reduce
+the age window, or select an older direct dependency to make installation pass.
 
-A release-age hold is derived from registry metadata rather than stored as a
-permanent policy exception. It becomes invalid automatically at the recorded
-eligibility time. Missing registry data, malformed timestamps, prereleases,
-an installed version other than the newest eligible stable release, or an
-expired hold must fail closed. Do not add `minimumReleaseAgeExclude` entries for
-routine freshness timing.
+The live dependency checker fails closed on missing or malformed registry data,
+rejects prereleases, verifies exact manifest-to-lockfile alignment, and treats
+every non-exempt direct dependency below registry `latest` as outdated.
 
 ## 16. Install-time build-script allowlist
 

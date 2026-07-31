@@ -8,8 +8,7 @@ interface PublicLoadingStateProps {
   variant?: PublicLoadingVariant;
 }
 
-const variantMinHeight: Record<PublicLoadingVariant, { xs: number; md: number }> = {
-  listing: { xs: 4_000, md: 1_700 },
+const variantMinHeight: Partial<Record<PublicLoadingVariant, { xs: number; md: number }>> = {
   "card-grid": { xs: 2_350, md: 1_250 },
   "search-results": { xs: 3_000, md: 1_900 },
   "content-detail": { xs: 1_350, md: 1_050 },
@@ -55,16 +54,22 @@ function LoadingCard({ height }: { height: number | { xs: number; md: number } }
 
 function ListingLoadingLayout() {
   return (
-    <Stack spacing={3}>
-      <LoadingCard height={250} />
+    <>
+      <LoadingCard height={{ xs: 412, md: 200 }} />
+      <Box sx={{ mt: 4, mb: 2 }}>
+        <LoadingLine width="35%" height={40} />
+      </Box>
       <Grid container spacing={2.5}>
         {Array.from({ length: 12 }, (_, index) => (
-          <Grid key={index} size={{ xs: 12, md: 4 }}>
-            <LoadingCard height={{ xs: 240, md: 320 }} />
+          <Grid key={index} size={{ xs: 12, md: 6 }}>
+            <LoadingCard height={{ xs: 267, md: 207 }} />
           </Grid>
         ))}
       </Grid>
-    </Stack>
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+        <LoadingLine width={180} height={24} />
+      </Box>
+    </>
   );
 }
 

@@ -26,6 +26,7 @@ const REMOVED_REFERENCES = Object.freeze([
   ["dependency", "doc-reference-audit.md"].join("-")
 ]);
 const ROOT_POLICY_REFERENCE = ["dependency", "policy.json"].join("-");
+const REMOVED_RELEASE_AGE_STATUS = ["Validated", "release-age", "hold"].join(" ");
 const REQUIRED_GOVERNANCE_SECTIONS = Object.freeze([
   "Purpose and scope",
   "Stable-release selection policy",
@@ -64,9 +65,7 @@ const REQUIRED_PERFORMANCE_SECTIONS = Object.freeze([
 const ALLOWED_DEPENDENCY_STATUSES = new Set([
   "Registry latest",
   "Validated compatibility exception",
-  "Validated release-age hold",
   "Outdated",
-  "Invalid release-age selection",
   "Registry error",
   "Missing installation",
   "Invalid manifest",
@@ -143,9 +142,10 @@ function validateGovernanceDocument(content) {
   record(path, content.includes("minimumReleaseAge: 4320"), "must retain the three-day release-age policy");
   record(
     path,
-    content.includes("Validated release-age hold"),
-    "must define the machine-validated temporary release-age hold"
+    content.includes("committed direct dependencies must still match registry `latest`"),
+    "must state that the install-time age safeguard does not permit older committed direct dependencies"
   );
+  record(path, !content.includes(REMOVED_RELEASE_AGE_STATUS), "must not define an obsolete age-based passing status");
   for (const packageName of ["esbuild", "sharp", "workerd"]) {
     record(path, content.includes(`\`${packageName}\``), `must retain ${packageName} in the build-script allowlist`);
   }
@@ -196,18 +196,7 @@ function validateDependencyMatrix(path, content) {
   const matrixSection = content.match(/## Direct dependency matrix\s+([\s\S]*?)(?=\n## |\s*$)/u)?.[1] || "";
   const lines = matrixSection.split(/\r?\n/u);
   const headers = markdownCells(lines.find((line) => /^\|\s*Package\s*\|/u.test(line)) || "");
-  const requiredHeaders = [
-    "Package",
-    "Section",
-    "Manifest",
-    "Installed",
-    "Registry latest",
-    "Newest eligible stable",
-    "Published at",
-    "Eligible at",
-    "Status",
-    "Reason"
-  ];
+  const requiredHeaders = ["Package", "Section", "Manifest", "Installed", "Registry latest", "Status", "Reason"];
   for (const header of requiredHeaders) {
     record(path, headers.includes(header), `direct dependency matrix is missing the "${header}" column`);
   }
@@ -236,9 +225,10 @@ function validateStatusDocument(content) {
   record(path, /^- Direct dependencies: \d+$/mu.test(content), "direct dependency count is missing");
   record(
     path,
-    /^- Registry latest, validated compatibility exceptions, or validated release-age holds: \d+$/mu.test(content),
+    /^- Registry latest or validated compatibility exceptions: \d+$/mu.test(content),
     "accepted dependency count is missing"
   );
+  record(path, !content.includes(REMOVED_RELEASE_AGE_STATUS), "must not contain an obsolete age-based passing status");
   for (const heading of ["Security audit", "Direct dependency matrix", "Interpretation"]) {
     record(path, hasHeading(content, heading), `missing required section "${heading}"`);
   }
