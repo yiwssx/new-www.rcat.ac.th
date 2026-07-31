@@ -35,22 +35,17 @@ describe("direct dependency latest policy", () => {
     expect(result.reason).toContain("lower than stable registry latest 1.0.2");
   });
 
-  it("does not accept an older dependency because registry latest is young", () => {
+  it("does not create a direct-dependency freshness exception", () => {
     const result = classify({
       manifestVersion: "^1.0.1",
-      installedVersion: "1.0.1",
-      minimumReleaseAgeMinutes: 4_320,
-      registryLatestPublishedAt: "2026-07-31T00:00:00.000Z"
+      installedVersion: "1.0.1"
     });
 
     expect(result.status).toBe(DEPENDENCY_STATUS.outdated);
   });
 
-  it("accepts registry latest even when that release is young", () => {
-    const result = classify({
-      minimumReleaseAgeMinutes: 4_320,
-      registryLatestPublishedAt: "2026-07-31T00:00:00.000Z"
-    });
+  it("accepts the stable registry latest without publication metadata", () => {
+    const result = classify();
 
     expect(result.status).toBe(DEPENDENCY_STATUS.registryLatest);
   });

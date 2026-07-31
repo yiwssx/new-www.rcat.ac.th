@@ -1,4 +1,5 @@
-import { Box, LinearProgress, Skeleton, Stack } from "@mui/material";
+import type { ReactNode } from "react";
+import { Box, Card, CardContent, Chip, LinearProgress, Skeleton, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { designTokens } from "../../design-system/tokens";
 
@@ -52,23 +53,140 @@ function LoadingCard({ height }: { height: number | { xs: number; md: number } }
   );
 }
 
+const listingLoadingCopy = {
+  title: "หัวข้อข่าวตัวอย่าง",
+  summary: "Loading content reserves the full summary area until the latest page data is ready.",
+  tags: "#fixture #layout",
+  owner: "Layout placeholder",
+  date: "31 กรกฎาคม 2569"
+} as const;
+
+function ListingLoadingText({ children, width, height = 16 }: { children: ReactNode; width: string; height?: number }) {
+  return (
+    <>
+      <Box component="span" sx={{ visibility: "hidden" }}>
+        {children}
+      </Box>
+      <Skeleton
+        animation={false}
+        variant="rounded"
+        width={width}
+        height={height}
+        sx={{
+          bgcolor: "action.hover",
+          position: "absolute",
+          top: "50%",
+          transform: "translateY(-50%)"
+        }}
+      />
+    </>
+  );
+}
+
+function ListingLoadingChip({ label, variant }: { label: string; variant?: "filled" | "outlined" }) {
+  return (
+    <Chip
+      label={
+        <Box component="span" sx={{ visibility: "hidden" }}>
+          {label}
+        </Box>
+      }
+      size="small"
+      variant={variant}
+      sx={{
+        bgcolor: "action.hover",
+        borderColor: "action.hover"
+      }}
+    />
+  );
+}
+
+function ListingLoadingCard({ featured = false }: { featured?: boolean }) {
+  return (
+    <Card aria-hidden="true" className="h-full">
+      <CardContent sx={{ p: featured ? 3 : 2.4 }}>
+        <Stack direction={featured ? { xs: "column", md: "row" } : "row"} spacing={2}>
+          <Box
+            sx={{
+              position: "relative",
+              width: featured ? { xs: "100%", md: 180 } : 70,
+              minWidth: featured ? { md: 180 } : 70,
+              height: featured ? 150 : 70
+            }}
+          >
+            <Skeleton animation={false} variant="rounded" width="100%" height="100%" sx={{ bgcolor: "action.hover" }} />
+          </Box>
+          <Box className="min-w-0 flex-1">
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", mb: 1 }}>
+              <ListingLoadingChip label="ข่าว" />
+              <ListingLoadingChip label="เผยแพร่แล้ว" variant="outlined" />
+              <ListingLoadingChip label="Layout" variant="outlined" />
+            </Stack>
+            <Typography
+              variant="h3"
+              sx={{ color: "transparent", fontSize: featured ? "1.45rem" : "1.05rem", position: "relative" }}
+            >
+              <ListingLoadingText width={featured ? "42%" : "72%"} height={featured ? 22 : 18}>
+                {listingLoadingCopy.title}
+              </ListingLoadingText>
+            </Typography>
+            <Typography className="content-summary mt-2" sx={{ color: "transparent", position: "relative" }}>
+              <ListingLoadingText width="94%">{listingLoadingCopy.summary}</ListingLoadingText>
+            </Typography>
+            <Typography variant="caption" className="mt-2 block" sx={{ color: "transparent", position: "relative" }}>
+              <ListingLoadingText width="38%" height={12}>
+                {listingLoadingCopy.tags}
+              </ListingLoadingText>
+            </Typography>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={0.5}
+              sx={{ justifyContent: "space-between", mt: 2 }}
+            >
+              <Typography variant="body2" sx={{ color: "transparent", position: "relative" }}>
+                <ListingLoadingText width="72%" height={13}>
+                  {listingLoadingCopy.owner}
+                </ListingLoadingText>
+              </Typography>
+              <Typography variant="body2" sx={{ color: "transparent", position: "relative" }}>
+                <ListingLoadingText width="68%" height={13}>
+                  {listingLoadingCopy.date}
+                </ListingLoadingText>
+              </Typography>
+            </Stack>
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ListingLoadingLayout() {
   return (
     <>
-      <LoadingCard height={{ xs: 412, md: 200 }} />
-      <Box sx={{ mt: 4, mb: 2 }}>
-        <LoadingLine width="35%" height={40} />
-      </Box>
+      <ListingLoadingCard featured />
+      <Stack direction="row" spacing={1.2} sx={{ alignItems: "center", mt: 4, mb: 2 }}>
+        <Skeleton animation={false} variant="circular" width={24} height={24} sx={{ bgcolor: "action.hover" }} />
+        <Typography variant="h2" sx={{ color: "transparent", fontSize: "1.65rem", position: "relative" }}>
+          <ListingLoadingText width="72%" height={24}>
+            ข่าวทั้งหมด
+          </ListingLoadingText>
+        </Typography>
+      </Stack>
       <Grid container spacing={2.5}>
         {Array.from({ length: 12 }, (_, index) => (
           <Grid key={index} size={{ xs: 12, md: 6 }}>
-            <LoadingCard height={{ xs: 267, md: 207 }} />
+            <ListingLoadingCard />
           </Grid>
         ))}
       </Grid>
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
-        <LoadingLine width={180} height={24} />
-      </Box>
+      <Stack spacing={1.4} sx={{ alignItems: "center", mt: 3 }}>
+        <Typography variant="body2" sx={{ color: "transparent", position: "relative" }}>
+          <ListingLoadingText width="100%" height={14}>
+            แสดง 1–12 จากทั้งหมด 13 รายการ
+          </ListingLoadingText>
+        </Typography>
+      </Stack>
     </>
   );
 }

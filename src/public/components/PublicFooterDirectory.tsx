@@ -32,6 +32,13 @@ const footerDirectoryLinkSx = {
   lineHeight: 1.55
 } as const;
 
+const footerDirectoryPlaceholderTitles = [
+  "หน่วยงานส่วนกลาง สอศ.(สำนัก)",
+  "หน่วยงานส่วนกลาง (ศูนย์/หน่วย/กลุ่ม)",
+  "อาชีวศึกษาจังหวัดร้อยเอ็ด",
+  "นโยบายการให้บริการ"
+] as const;
+
 function PlaceholderText({ width, height }: { width: string; height: number }) {
   return (
     <Typography
@@ -72,17 +79,12 @@ function FooterDirectoryPlaceholder() {
     >
       <Container maxWidth="xl">
         <Box sx={footerDirectoryGridSx}>
-          {Array.from({ length: 4 }, (_, groupIndex) => (
-            <Box key={groupIndex}>
+          {footerDirectoryPlaceholderTitles.map((title, groupIndex) => (
+            <Box key={title}>
               <Typography component="div" sx={{ ...footerDirectoryHeadingSx, position: "relative" }}>
                 <Box component="span" sx={{ display: "block", visibility: "hidden" }}>
-                  Placeholder
+                  {title}
                 </Box>
-                {groupIndex === 1 ? (
-                  <Box component="span" sx={{ display: { xs: "none", lg: "block" }, visibility: "hidden" }}>
-                    Placeholder
-                  </Box>
-                ) : null}
                 <Skeleton
                   variant="rounded"
                   animation={false}

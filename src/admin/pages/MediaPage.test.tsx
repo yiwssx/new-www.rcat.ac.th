@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MediaAsset, User } from "../../types";
 import MediaPage, { MediaAssetCard } from "./MediaPage";
@@ -341,21 +342,44 @@ describe("MediaPage media mutation feedback", () => {
   });
 
   it("disables media delete actions and marks the current asset while delete is pending", async () => {
+    const user = userEvent.setup();
     paginationMock.media = [asset, secondAsset];
     const deletion = deferred<{ id: string; deleted: boolean }>();
     mediaMock.deleteMediaAsset.mockReturnValue(deletion.promise);
     renderMediaPage();
 
     await screen.findByText(asset.name);
-    fireEvent.click(screen.getAllByRole("button", { name: "ลบสื่อ" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "ลบสื่อ" })[0]);
 
     await waitFor(() => expect(mediaMock.deleteMediaAsset).toHaveBeenCalledWith(asset, expect.anything()));
-    expect(screen.getByText("กำลังลบ")).toBeInTheDocument();
+    expect(screen.getAllByText("กำลังลบ")).not.toHaveLength(0);
     for (const button of screen.getAllByRole("button", { name: "ลบสื่อ" })) {
       expect(button).toBeDisabled();
     }
 
-    deletion.resolve({ id: asset.id, deleted: true });
+    await act(async () => {
+      deletion.resolve({ id: asset.id, deleted: true });
+      await deletion.promise;
+    });
+
+    expect(await screen.findByText("ลบสื่อสำเร็จ: ระบบนำสื่อออกจากคลังเรียบร้อยแล้ว")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryAllByText("กำลังลบ")).toHaveLength(0);
+      for (const button of screen.getAllByRole("button", { name: "ลบสื่อ" })) {
+        expect(button).toBeEnabled();
+      }
+      expect(paginationMock.invalidateAdminListQueries).toHaveBeenCalled();
+      expect(publicInvalidationMock.invalidatePublicCmsData).toHaveBeenCalled();
+      expect(swalMock.close).toHaveBeenCalled();
+      expect(swalMock.fire).toHaveBeenCalledWith(
+        expect.objectContaining({
+          icon: "success",
+          title: "ลบสื่อสำเร็จ",
+          text: "ระบบนำสื่อออกจากคลังเรียบร้อยแล้ว",
+          confirmButtonText: "ตกลง"
+        })
+      );
+    });
   });
 
   it("shows a clear delete success modal after delete finishes", async () => {
