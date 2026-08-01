@@ -267,8 +267,8 @@ describe("CMS-only Vercel admin proxy", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("maps an upstream 401 to the finite invalid-or-expired Session response", async () => {
-    const fetchImpl = vi.fn(async () => Response.json({ error: "private upstream detail" }, { status: 401 }));
+  it("preserves the exact trusted upstream Session-expiry 401", async () => {
+    const fetchImpl = vi.fn(async () => Response.json({ error: "CMS session is invalid or expired" }, { status: 401 }));
     const { response } = await callProxy({
       fetchImpl,
       headers: { cookie: cmsCookie() }
@@ -276,6 +276,28 @@ describe("CMS-only Vercel admin proxy", () => {
 
     expect(response.statusCode).toBe(401);
     expect(JSON.parse(response.bodyText)).toEqual({ error: "CMS session is invalid or expired" });
+  });
+
+  it("preserves the known non-Session MFA verification 401 without falsely expiring CMS auth", async () => {
+    const fetchImpl = vi.fn(async () => Response.json({ error: "MFA reset verification failed" }, { status: 401 }));
+    const { response } = await callProxy({
+      fetchImpl,
+      headers: { cookie: cmsCookie() }
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(JSON.parse(response.bodyText)).toEqual({ error: "MFA reset verification failed" });
+  });
+
+  it("keeps arbitrary upstream 401 details behind a finite non-Session proxy error", async () => {
+    const fetchImpl = vi.fn(async () => Response.json({ error: "private upstream detail" }, { status: 401 }));
+    const { response } = await callProxy({
+      fetchImpl,
+      headers: { cookie: cmsCookie() }
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(JSON.parse(response.bodyText)).toEqual({ error: "Admin request authentication failed" });
   });
 
   it("enforces the request body limit", async () => {

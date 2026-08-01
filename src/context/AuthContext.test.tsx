@@ -2,7 +2,13 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CMS_SESSION_EXPIRED_EVENT, CmsAuthError, cmsStepUpCoordinator, type CmsSafeUser } from "../features/cms-auth";
+import {
+  CMS_SESSION_EXPIRED_EVENT,
+  CMS_SESSION_KEEPALIVE_INTERVAL_MS,
+  CmsAuthError,
+  cmsStepUpCoordinator,
+  type CmsSafeUser
+} from "../features/cms-auth";
 import { AuthProvider } from "./AuthContext";
 import { useAuth } from "./authSessionContext";
 
@@ -127,6 +133,26 @@ function AuthState() {
   );
 }
 
+function ActiveContentEditor({ onPublish, onSave }: { onPublish: () => void; onSave: () => void }) {
+  const auth = useAuth();
+
+  if (auth.status !== "authenticated") {
+    return <span>redirect:login</span>;
+  }
+
+  return (
+    <div>
+      <span>status:{auth.status}</span>
+      <label>
+        Content title
+        <input aria-label="Content title" />
+      </label>
+      <button onClick={onSave}>save content</button>
+      <button onClick={onPublish}>publish content</button>
+    </div>
+  );
+}
+
 function renderAuth(ui: ReactNode = <AuthState />) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } }
@@ -141,6 +167,21 @@ function renderAuth(ui: ReactNode = <AuthState />) {
   };
 }
 
+async function renderAuthenticatedWithFakeTimers(ui: ReactNode = <AuthState />) {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-08-01T05:00:00.000Z"));
+  window.history.replaceState({}, "", "/admin/content");
+  const view = renderAuth(ui);
+
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  expect(screen.getByText("status:authenticated")).toBeInTheDocument();
+  cmsAuthMock.getSession.mockClear();
+  cmsAuthMock.getCapabilities.mockClear();
+  return view;
+}
+
 describe("CMS AuthProvider", () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
@@ -150,6 +191,7 @@ describe("CMS AuthProvider", () => {
     window.localStorage.clear();
     window.sessionStorage.clear();
     vi.clearAllMocks();
+    window.history.replaceState({}, "", "/");
     cmsAuthMock.getSession.mockResolvedValue(user);
     cmsAuthMock.getCapabilities.mockResolvedValue({ role: "admin", capabilities: [...capabilities] });
     cmsAuthMock.login.mockResolvedValue({ kind: "authenticated", user });
@@ -166,6 +208,7 @@ describe("CMS AuthProvider", () => {
     cmsStepUpCoordinator.resetForTests();
     FakeBroadcastChannel.reset();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("keeps bootstrap explicit and restores a validated server Session", async () => {
@@ -434,5 +477,160 @@ describe("CMS AuthProvider", () => {
     expect(screen.getByText("status:authenticated")).toBeInTheDocument();
     expect(screen.getByText("user:user-1")).toBeInTheDocument();
     expect(cmsStepUpCoordinator.getSnapshot().open).toBe(false);
+  });
+
+  it("refreshes at the five-minute cadence after recent Admin input without request storms", async () => {
+    await renderAuthenticatedWithFakeTimers();
+
+    for (let index = 0; index < 20; index += 1) {
+      fireEvent.input(document.body);
+    }
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CMS_SESSION_KEEPALIVE_INTERVAL_MS);
+    });
+
+    expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(1);
+    expect(cmsAuthMock.getCapabilities).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CMS_SESSION_KEEPALIVE_INTERVAL_MS);
+    });
+    expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not heartbeat without activity or while unauthenticated", async () => {
+    const authenticatedView = await renderAuthenticatedWithFakeTimers();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(35 * 60 * 1000);
+    });
+    expect(cmsAuthMock.getSession).not.toHaveBeenCalled();
+
+    authenticatedView.unmount();
+    vi.useRealTimers();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-01T06:00:00.000Z"));
+    cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(401));
+    renderAuth();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByText("status:unauthenticated")).toBeInTheDocument();
+    cmsAuthMock.getSession.mockClear();
+    fireEvent.input(document.body);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(35 * 60 * 1000);
+    });
+    expect(cmsAuthMock.getSession).not.toHaveBeenCalled();
+  });
+
+  it("pauses in hidden documents and refreshes safely when the Admin returns", async () => {
+    let visibilityState: DocumentVisibilityState = "visible";
+    const visibilitySpy = vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visibilityState);
+    await renderAuthenticatedWithFakeTimers();
+
+    fireEvent.input(document.body);
+    visibilityState = "hidden";
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CMS_SESSION_KEEPALIVE_INTERVAL_MS);
+    });
+    expect(cmsAuthMock.getSession).not.toHaveBeenCalled();
+
+    visibilityState = "visible";
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      await Promise.resolve();
+    });
+    expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(1);
+    expect(cmsAuthMock.getCapabilities).toHaveBeenCalledTimes(1);
+    visibilitySpy.mockRestore();
+  });
+
+  it("deduplicates keepalive while one refresh remains in flight", async () => {
+    await renderAuthenticatedWithFakeTimers();
+    const pendingSession = createDeferred<CmsSafeUser>();
+    cmsAuthMock.getSession.mockReturnValueOnce(pendingSession.promise);
+
+    fireEvent.input(document.body);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CMS_SESSION_KEEPALIVE_INTERVAL_MS);
+    });
+    expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(1);
+
+    fireEvent.input(document.body);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CMS_SESSION_KEEPALIVE_INTERVAL_MS);
+    });
+    expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pendingSession.resolve(user);
+      await pendingSession.promise;
+    });
+    expect(screen.getByText("status:authenticated")).toBeInTheDocument();
+  });
+
+  it("removes activity listeners and timers when the provider unmounts", async () => {
+    const view = await renderAuthenticatedWithFakeTimers();
+    view.unmount();
+
+    fireEvent.input(document.body);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2 * CMS_SESSION_KEEPALIVE_INTERVAL_MS);
+    });
+    expect(cmsAuthMock.getSession).not.toHaveBeenCalled();
+  });
+
+  it("clears on a true keepalive 401 but preserves authenticated UI for temporary failures", async () => {
+    const expiredView = await renderAuthenticatedWithFakeTimers();
+    cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(401));
+    fireEvent.input(document.body);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CMS_SESSION_KEEPALIVE_INTERVAL_MS);
+    });
+    expect(screen.getByText("status:unauthenticated")).toBeInTheDocument();
+    expect(FakeBroadcastChannel.messages).toEqual(["logged-out"]);
+
+    expiredView.unmount();
+    vi.useRealTimers();
+    FakeBroadcastChannel.reset();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-01T06:00:00.000Z"));
+    cmsAuthMock.getSession.mockResolvedValue(user);
+    await renderAuthenticatedWithFakeTimers();
+
+    for (const failure of [new CmsAuthError(503), new TypeError("network failure")]) {
+      cmsAuthMock.getSession.mockRejectedValueOnce(failure);
+      fireEvent.input(document.body);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(CMS_SESSION_KEEPALIVE_INTERVAL_MS);
+      });
+      expect(screen.getByText("status:authenticated")).toBeInTheDocument();
+      expect(screen.getByText("user:user-1")).toBeInTheDocument();
+    }
+    expect(FakeBroadcastChannel.messages).toEqual([]);
+  });
+
+  it("keeps a continuously active editor mounted past idle timeout so Save and Publish remain available", async () => {
+    const onSave = vi.fn();
+    const onPublish = vi.fn();
+    await renderAuthenticatedWithFakeTimers(<ActiveContentEditor onSave={onSave} onPublish={onPublish} />);
+
+    for (let interval = 0; interval < 7; interval += 1) {
+      fireEvent.input(screen.getByRole("textbox", { name: "Content title" }), {
+        target: { value: `Active edit ${interval}` }
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(CMS_SESSION_KEEPALIVE_INTERVAL_MS);
+      });
+    }
+
+    expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(7);
+    expect(cmsAuthMock.getCapabilities).toHaveBeenCalledTimes(7);
+    expect(screen.queryByText("redirect:login")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "save content" }));
+    fireEvent.click(screen.getByRole("button", { name: "publish content" }));
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onPublish).toHaveBeenCalledTimes(1);
   });
 });

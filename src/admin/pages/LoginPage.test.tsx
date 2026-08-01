@@ -1,10 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { writeContentDraftRecovery } from "../../features/cms-content/draftRecovery";
+import type { ContentItem } from "../../types";
 import LoginPage from "./LoginPage";
 
 const authMock = vi.hoisted(() => ({
   status: "unauthenticated" as "bootstrapping" | "authenticated" | "unauthenticated" | "unavailable",
+  session: null as null | { user: { id: string }; capabilities: string[] },
   login: vi.fn(),
   verifyMfa: vi.fn(),
   refreshSession: vi.fn()
@@ -30,6 +33,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 vi.mock("../../context/authSessionContext", () => ({
   useAuth: () => ({
     status: authMock.status,
+    session: authMock.session,
     login: authMock.login,
     verifyMfa: authMock.verifyMfa,
     refreshSession: authMock.refreshSession
@@ -57,13 +61,37 @@ vi.mock("../../utils/swal", () => ({
 }));
 
 describe("CMS LoginPage", () => {
+  const authenticatedUser = {
+    id: "user-1",
+    email: "admin@example.test",
+    name: "Admin",
+    username: "admin",
+    role: "admin" as const,
+    isRoot: false,
+    recentPasswordAuthentication: true,
+    recentMfaAuthentication: false
+  };
+  const recoveredItem: ContentItem = {
+    id: "content-1",
+    title: "Recovered",
+    slug: "recovered",
+    type: "news",
+    status: "draft",
+    owner: "Admin",
+    summary: "Recovered draft",
+    body: "Unsaved body",
+    updatedAt: "2026-08-01T05:00:00.000Z",
+    publishAt: ""
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
     window.sessionStorage.clear();
     authMock.status = "unauthenticated";
-    authMock.login.mockResolvedValue({ kind: "authenticated" });
-    authMock.verifyMfa.mockResolvedValue({});
+    authMock.session = null;
+    authMock.login.mockResolvedValue({ kind: "authenticated", user: authenticatedUser });
+    authMock.verifyMfa.mockResolvedValue({ user: authenticatedUser, capabilities: [] });
     authMock.refreshSession.mockResolvedValue({});
     clientMock.startSetup.mockResolvedValue({
       manualEntryKey: "MANUAL-ENTRY-KEY",
@@ -182,9 +210,26 @@ describe("CMS LoginPage", () => {
 
   it("redirects an authenticated user without rendering the password form", () => {
     authMock.status = "authenticated";
+    authMock.session = { user: authenticatedUser, capabilities: [] };
     render(<LoginPage />);
 
     expect(screen.getByText("redirect:/admin")).toBeInTheDocument();
     expect(screen.queryByLabelText(/รหัสผ่าน/)).not.toBeInTheDocument();
+  });
+
+  it("returns the same Admin directly to Content when a recoverable draft exists", async () => {
+    writeContentDraftRecovery({
+      mode: "edit",
+      ownerUserId: authenticatedUser.id,
+      item: recoveredItem,
+      tagInputValue: ""
+    });
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText(/อีเมลหรือชื่อผู้ใช้/), { target: { value: "admin" } });
+    fireEvent.change(screen.getByLabelText(/รหัสผ่าน/), { target: { value: "password" } });
+    fireEvent.click(screen.getByRole("button", { name: "เข้าสู่ระบบ" }));
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: "/admin/content", replace: true }));
   });
 });

@@ -1,6 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  readContentDraftRecovery,
+  writeContentDraftRecovery,
+  type ContentDraftRecoveryMode
+} from "../../features/cms-content/draftRecovery";
 import type { ContentItem, User } from "../../types";
 import ContentPage from "./ContentPage";
 
@@ -101,11 +106,17 @@ vi.mock("../../services/publicCmsInvalidation", () => ({
 vi.mock("../components/ContentEditorDialog", () => ({
   default: ({
     open,
+    item,
+    mode,
+    recovered,
     saving,
     errorMessage,
     onSave
   }: {
     open: boolean;
+    item: ContentItem | null;
+    mode?: ContentDraftRecoveryMode;
+    recovered?: boolean;
     saving?: boolean;
     errorMessage?: string;
     onSave: (item: ContentItem) => void;
@@ -130,6 +141,9 @@ vi.mock("../components/ContentEditorDialog", () => ({
     return (
       <div role="dialog" aria-label="content-editor">
         {errorMessage && <p>{errorMessage}</p>}
+        <span>mock item:{item?.title ?? "new"}</span>
+        <span>mock mode:{mode}</span>
+        <span>mock recovered:{String(recovered)}</span>
         <button type="button" disabled={saving} onClick={() => onSave(draft)}>
           mock save content
         </button>
@@ -208,6 +222,7 @@ function expectAcknowledgedResultModal(options: Record<string, unknown> | undefi
 describe("ContentPage operation feedback", () => {
   beforeEach(() => {
     authMock.role = "editor";
+    window.sessionStorage.clear();
     window.history.replaceState({}, "", "/admin/content");
     paginationMock.content = [contentItem];
     paginationMock.invalidateAdminListQueries.mockReset();
@@ -358,5 +373,30 @@ describe("ContentPage operation feedback", () => {
     await waitFor(() => expect(findSwalCall((options) => options.title === "ไม่สามารถลบเนื้อหาได้")).toBeDefined());
     expect(paginationMock.invalidateAdminListQueries).not.toHaveBeenCalled();
     expect(publicInvalidationMock.invalidateDeletedPublicContent).not.toHaveBeenCalled();
+  });
+
+  it("offers same-user draft recovery and clears the recovery only after a successful save", async () => {
+    expect(
+      writeContentDraftRecovery({
+        mode: "edit",
+        ownerUserId: "cloudflare-editor",
+        item: { ...contentItem, title: "ฉบับร่างหลังเข้าสู่ระบบใหม่" },
+        tagInputValue: "pending-tag"
+      })
+    ).toBe(true);
+    renderContentPage();
+
+    expect(await screen.findByText(/พบฉบับร่างเนื้อหาที่ยังไม่บันทึก/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "เพิ่มเนื้อหา" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "แก้ไข" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "กู้คืนฉบับร่าง" }));
+    expect(screen.getByText("mock item:ฉบับร่างหลังเข้าสู่ระบบใหม่")).toBeInTheDocument();
+    expect(screen.getByText("mock mode:edit")).toBeInTheDocument();
+    expect(screen.getByText("mock recovered:true")).toBeInTheDocument();
+    expect(readContentDraftRecovery("cloudflare-editor")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "mock save content" }));
+    await waitFor(() => expect(contentMock.saveContentItem).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(readContentDraftRecovery("cloudflare-editor")).toBeNull());
   });
 });

@@ -1,7 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CMS_SESSION_EXPIRED_EVENT, CMS_SESSION_NOTICE_KEY } from "../../features/cms-auth";
+import { readContentDraftRecovery, type ContentDraftRecoveryMode } from "../../features/cms-content/draftRecovery";
 import type { MediaAssetInput } from "../../features/cms-media";
 import type { ContentItem, MediaAsset } from "../../types";
 import ContentEditorDialog from "./ContentEditorDialog";
@@ -65,8 +67,13 @@ function renderEditor(
   item: ContentItem | null,
   options: {
     mediaAssets?: MediaAsset[];
+    mode?: ContentDraftRecoveryMode;
+    onClose?: () => void;
     onSave?: (item: ContentItem) => void;
     onUploadMedia?: (input: MediaAssetInput) => Promise<MediaAsset>;
+    ownerUserId?: string;
+    recovered?: boolean;
+    recoveredTagInputValue?: string;
   } = {}
 ) {
   const queryClient = new QueryClient({
@@ -81,8 +88,12 @@ function renderEditor(
       <ContentEditorDialog
         open
         item={item}
+        mode={options.mode}
+        ownerUserId={options.ownerUserId}
+        recovered={options.recovered}
+        recoveredTagInputValue={options.recoveredTagInputValue}
         mediaAssets={options.mediaAssets ?? []}
-        onClose={vi.fn()}
+        onClose={options.onClose ?? vi.fn()}
         onSave={options.onSave ?? vi.fn()}
         onUploadMedia={options.onUploadMedia}
       />
@@ -94,6 +105,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   mediaPaginationMock.getAdminMediaByIds.mockResolvedValue([]);
   filesMock.readFileAsBase64.mockResolvedValue("cGRmLWNvbnRlbnQ=");
+  window.sessionStorage.clear();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 async function selectTemplate(label: string) {
@@ -386,5 +402,63 @@ describe("ContentEditorDialog", () => {
 
     expect(await screen.findByText(selectedAsset.name)).toBeInTheDocument();
     expect(mediaPaginationMock.getAdminMediaByIds).toHaveBeenCalledWith([selectedAsset.id]);
+  });
+
+  it("periodically stores a dirty draft without rerendering on each activity event", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-01T05:00:00.000Z"));
+    renderEditor(createContentItem({ template: "standard" }), { ownerUserId: "editor-1" });
+
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อเรื่อง" }), {
+      target: { value: "ฉบับร่างที่กู้คืนได้" }
+    });
+    expect(readContentDraftRecovery("editor-1")).toBeNull();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(readContentDraftRecovery("editor-1")?.item.title).toBe("ฉบับร่างที่กู้คืนได้");
+  });
+
+  it("flushes unsaved content synchronously when the CMS Session truly expires", () => {
+    renderEditor(createContentItem({ template: "standard" }), { ownerUserId: "editor-1" });
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อเรื่อง" }), {
+      target: { value: "เนื้อหาก่อนเซสชันหมดอายุ" }
+    });
+
+    act(() => window.dispatchEvent(new CustomEvent(CMS_SESSION_EXPIRED_EVENT)));
+
+    expect(readContentDraftRecovery("editor-1")?.item.title).toBe("เนื้อหาก่อนเซสชันหมดอายุ");
+    expect(window.sessionStorage.getItem(CMS_SESSION_NOTICE_KEY)).toContain("เก็บฉบับร่างเนื้อหาไว้");
+  });
+
+  it("requires explicit confirmation before discarding a dirty editor", () => {
+    const onClose = vi.fn();
+    renderEditor(createContentItem({ template: "standard" }), { onClose, ownerUserId: "editor-1" });
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อเรื่อง" }), {
+      target: { value: "ยังไม่ได้บันทึก" }
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "ยกเลิก" }));
+    expect(screen.getByRole("heading", { name: "ละทิ้งฉบับร่างที่ยังไม่บันทึก?" })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "กลับไปแก้ไข" }));
+    expect(screen.getByRole("textbox", { name: "ชื่อเรื่อง" })).toHaveValue("ยังไม่ได้บันทึก");
+    fireEvent.click(screen.getByRole("button", { name: "ยกเลิก" }));
+    fireEvent.click(screen.getByRole("button", { name: "ละทิ้งฉบับร่าง" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  }, 15_000);
+
+  it("labels a recovered draft and preserves its pending tag text", () => {
+    renderEditor(createContentItem({ template: "standard" }), {
+      mode: "edit",
+      ownerUserId: "editor-1",
+      recovered: true,
+      recoveredTagInputValue: "pending-tag"
+    });
+
+    expect(screen.getByText(/กู้คืนฉบับร่างจากก่อนเข้าสู่ระบบอีกครั้งแล้ว/)).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "แท็ก" })).toHaveValue("pending-tag");
   });
 });

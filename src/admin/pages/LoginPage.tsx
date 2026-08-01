@@ -30,6 +30,7 @@ import { appSwal } from "../../utils/swal";
 import MfaSetupPanel from "../components/MfaSetupPanel";
 import AuthPageLayout from "../../design-system/components/AuthPageLayout";
 import FormActions from "../../design-system/components/FormActions";
+import { hasContentDraftRecovery } from "../../features/cms-content/draftRecovery";
 
 type LoginStep = "password" | "mfa" | "enrollment" | "completed";
 
@@ -55,7 +56,7 @@ function LoginAvailabilityState({ unavailable = false, onRetry }: { unavailable?
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, refreshSession, status, verifyMfa } = useAuth();
+  const { login, refreshSession, session, status, verifyMfa } = useAuth();
   const { beginRecoveryCodeHandoff } = useRecoveryCodeHandoff();
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const noticeConsumedRef = useRef(false);
@@ -69,6 +70,8 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [sessionNotice, setSessionNotice] = useState("");
   const { retryAfterSeconds, startRetryCountdown } = useRetryCountdown();
+  const getAuthenticatedDestination = (userId: string) =>
+    hasContentDraftRecovery(userId) ? ("/admin/content" as const) : ("/admin" as const);
 
   useEffect(
     () => () => {
@@ -93,7 +96,7 @@ export default function LoginPage() {
   }, [step]);
 
   if (status === "authenticated") {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to={getAuthenticatedDestination(session?.user.id ?? "")} replace />;
   }
 
   if (status === "bootstrapping") {
@@ -145,7 +148,7 @@ export default function LoginPage() {
           showConfirmButton: false,
           timer: 1200
         });
-        await navigate({ to: "/admin", replace: true });
+        await navigate({ to: getAuthenticatedDestination(result.user.id), replace: true });
         return;
       }
 
@@ -176,10 +179,12 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await verifyMfa(factorType === "totp" ? { totpCode: factorValue } : { recoveryCode: factorValue });
+      const nextSession = await verifyMfa(
+        factorType === "totp" ? { totpCode: factorValue } : { recoveryCode: factorValue }
+      );
       setFactorValue("");
       setStep("completed");
-      await navigate({ to: "/admin", replace: true });
+      await navigate({ to: getAuthenticatedDestination(nextSession.user.id), replace: true });
     } catch (currentError) {
       setFactorValue("");
       setError(getCmsAuthErrorMessage(currentError, "ยืนยัน MFA ไม่สำเร็จ"));

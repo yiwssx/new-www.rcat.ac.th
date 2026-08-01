@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Autocomplete,
@@ -53,6 +53,12 @@ import {
   getAdminMediaByIds,
   useDebouncedValue
 } from "../../features/admin-pagination";
+import {
+  CMS_SESSION_EXPIRED_EVENT,
+  CMS_SESSION_EXPIRED_MESSAGE,
+  CMS_SESSION_NOTICE_KEY
+} from "../../features/cms-auth/constants";
+import { writeContentDraftRecovery, type ContentDraftRecoveryMode } from "../../features/cms-content/draftRecovery";
 
 const contentTypes: ContentType[] = ["page", "news", "program", "announcement", "blog"];
 const contentStatuses: ContentStatus[] = ["draft", "review", "scheduled", "published"];
@@ -311,6 +317,10 @@ function mediaIcon(type: MediaType) {
 interface ContentEditorDialogProps {
   open: boolean;
   item: ContentItem | null;
+  mode?: ContentDraftRecoveryMode;
+  ownerUserId?: string;
+  recovered?: boolean;
+  recoveredTagInputValue?: string;
   mediaAssets?: MediaAsset[];
   saving?: boolean;
   errorMessage?: string;
@@ -322,6 +332,10 @@ interface ContentEditorDialogProps {
 export default function ContentEditorDialog({
   open,
   item,
+  mode = item ? "edit" : "create",
+  ownerUserId = "",
+  recovered = false,
+  recoveredTagInputValue = "",
   mediaAssets = emptyMediaAssets,
   saving = false,
   errorMessage = "",
@@ -329,23 +343,30 @@ export default function ContentEditorDialog({
   onSave,
   onUploadMedia
 }: ContentEditorDialogProps) {
-  const [draftSource, setDraftSource] = useState(() => ({ item, open }));
+  const [draftSource, setDraftSource] = useState(() => ({ item, mode, open, recovered, recoveredTagInputValue }));
   const [draft, setDraft] = useState<ContentItem>(() => createEditorDraft(item));
   const [slugIsUserControlled, setSlugIsUserControlled] = useState(() => Boolean(item?.slug));
   const [pendingDraft, setPendingDraft] = useState<ContentItem | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
   const [uploadedAssets, setUploadedAssets] = useState<MediaAsset[]>([]);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadName, setUploadName] = useState("");
   const [uploadType, setUploadType] = useState<MediaType>("image");
   const [uploadError, setUploadError] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [tagInputValue, setTagInputValue] = useState("");
+  const [tagInputValue, setTagInputValue] = useState(() => (recovered ? recoveredTagInputValue : ""));
   const [bodyBlocks, setBodyBlocks] = useState<ContentBlock[]>(() => createBodyBlocks(item?.body));
   const [mediaPage, setMediaPage] = useState(1);
   const [mediaPageSize, setMediaPageSize] = useState(24);
   const [mediaSearch, setMediaSearch] = useState("");
   const [mediaFilter, setMediaFilter] = useState<MediaLibraryFilter>("all");
+  const draftRef = useRef(draft);
+  const bodyBlocksRef = useRef(bodyBlocks);
+  const tagInputValueRef = useRef(tagInputValue);
+  const dirtyRef = useRef(recovered);
+  const lastRecoveryFingerprintRef = useRef("");
+  const persistRecoveryRef = useRef<(force?: boolean) => boolean>(() => false);
   const debouncedMediaSearch = useDebouncedValue(mediaSearch, 300);
   const mediaListQuery = useQuery({
     ...adminMediaListQueryOptions({
@@ -358,9 +379,9 @@ export default function ContentEditorDialog({
     }),
     enabled: open
   });
-  const title = useMemo(() => (item ? "แก้ไขเนื้อหา" : "เพิ่มเนื้อหาใหม่"), [item]);
-  const confirmTitle = item ? "บันทึกการแก้ไขเนื้อหา?" : "สร้างเนื้อหา?";
-  const confirmButton = item ? "บันทึก" : "สร้าง";
+  const title = useMemo(() => (mode === "edit" ? "แก้ไขเนื้อหา" : "เพิ่มเนื้อหาใหม่"), [mode]);
+  const confirmTitle = mode === "edit" ? "บันทึกการแก้ไขเนื้อหา?" : "สร้างเนื้อหา?";
+  const confirmButton = mode === "edit" ? "บันทึก" : "สร้าง";
   const selectedMediaIds = useMemo(() => normalizeMediaIds(draft.mediaIds), [draft.mediaIds]);
   const allSelectedLookupIds = useMemo(
     () =>
@@ -408,26 +429,130 @@ export default function ContentEditorDialog({
   const selectedMedia = availableMedia.filter((asset) => selectedMediaIds.includes(asset.id));
   const featuredMedia = availableMedia.find((asset) => asset.id === draft.featuredMediaId);
 
-  if (draftSource.item !== item || draftSource.open !== open) {
+  useEffect(() => {
+    draftRef.current = draft;
+    bodyBlocksRef.current = bodyBlocks;
+    tagInputValueRef.current = tagInputValue;
+  }, [bodyBlocks, draft, tagInputValue]);
+
+  useEffect(() => {
+    persistRecoveryRef.current = (force = false) => {
+      if (!open || !ownerUserId || !dirtyRef.current) {
+        return false;
+      }
+
+      const recoveryItem = {
+        ...draftRef.current,
+        body: serializeContentBlocksToBody(bodyBlocksRef.current)
+      };
+      const fingerprint = JSON.stringify({
+        mode,
+        ownerUserId,
+        item: recoveryItem,
+        tagInputValue: tagInputValueRef.current
+      });
+
+      if (!force && fingerprint === lastRecoveryFingerprintRef.current) {
+        return true;
+      }
+
+      const saved = writeContentDraftRecovery({
+        mode,
+        ownerUserId,
+        item: recoveryItem,
+        tagInputValue: tagInputValueRef.current
+      });
+
+      if (saved) {
+        lastRecoveryFingerprintRef.current = fingerprint;
+      }
+
+      return saved;
+    };
+  }, [mode, open, ownerUserId]);
+
+  useEffect(() => {
+    if (!open || !ownerUserId) {
+      return;
+    }
+
+    const persistRecovery = () => persistRecoveryRef.current();
+    const handleSessionExpired = () => {
+      if (!dirtyRef.current) {
+        return;
+      }
+
+      persistRecoveryRef.current(true);
+
+      try {
+        window.sessionStorage.setItem(
+          CMS_SESSION_NOTICE_KEY,
+          `${CMS_SESSION_EXPIRED_MESSAGE} ระบบเก็บฉบับร่างเนื้อหาไว้ในแท็บนี้แล้ว`
+        );
+      } catch {
+        // The standard expiry notice remains available when draft notice storage is blocked.
+      }
+    };
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirtyRef.current) {
+        return;
+      }
+
+      persistRecoveryRef.current(true);
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const recoveryTimer = window.setInterval(persistRecovery, 1000);
+
+    window.addEventListener(CMS_SESSION_EXPIRED_EVENT, handleSessionExpired);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", persistRecovery);
+
+    return () => {
+      window.clearInterval(recoveryTimer);
+      window.removeEventListener(CMS_SESSION_EXPIRED_EVENT, handleSessionExpired);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", persistRecovery);
+    };
+  }, [open, ownerUserId]);
+
+  if (
+    draftSource.item !== item ||
+    draftSource.mode !== mode ||
+    draftSource.open !== open ||
+    draftSource.recovered !== recovered ||
+    draftSource.recoveredTagInputValue !== recoveredTagInputValue
+  ) {
     const nextDraft = createEditorDraft(item);
-    setDraftSource({ item, open });
+    setDraftSource({ item, mode, open, recovered, recoveredTagInputValue });
     setDraft(nextDraft);
     setSlugIsUserControlled(Boolean(item?.slug));
     setPendingDraft(null);
     setConfirming(false);
+    setDiscarding(false);
     setUploadFile(null);
     setUploadName("");
     setUploadType("image");
     setUploadError("");
     setUploading(false);
-    setTagInputValue("");
+    setTagInputValue(recovered ? recoveredTagInputValue : "");
     setBodyBlocks(createBodyBlocks(nextDraft.body));
     setMediaPage(1);
     setMediaSearch("");
     setMediaFilter("all");
   }
 
+  useEffect(() => {
+    dirtyRef.current = recovered;
+    lastRecoveryFingerprintRef.current = "";
+  }, [draftSource, recovered]);
+
+  function markDirty() {
+    dirtyRef.current = true;
+  }
+
   function setDraftTags(nextTags: string[]) {
+    markDirty();
     setDraft((current) => ({
       ...current,
       tags: normalizeTags(nextTags),
@@ -442,6 +567,8 @@ export default function ContentEditorDialog({
       return false;
     }
 
+    markDirty();
+
     setDraft((current) => ({
       ...current,
       tags: normalizeTags([...(current.tags ?? []), ...parsedTags]),
@@ -452,6 +579,7 @@ export default function ContentEditorDialog({
   }
 
   function updateDraft<K extends keyof ContentItem>(key: K, value: ContentItem[K]) {
+    markDirty();
     setDraft((current) => ({
       ...current,
       [key]: value,
@@ -468,6 +596,7 @@ export default function ContentEditorDialog({
   }
 
   function applyMetadataPreset(preset: ContentMetadataPreset) {
+    markDirty();
     setDraft((current) => ({
       ...current,
       category: mergeCategoryValue(current.category, preset.category),
@@ -477,6 +606,7 @@ export default function ContentEditorDialog({
   }
 
   function handleTitleChange(value: string) {
+    markDirty();
     setDraft((current) => ({
       ...current,
       title: value,
@@ -492,6 +622,7 @@ export default function ContentEditorDialog({
   }
 
   function toggleMedia(asset: MediaAsset) {
+    markDirty();
     setDraft((current) => {
       const ids = normalizeMediaIds(current.mediaIds);
       const hasAsset = ids.includes(asset.id);
@@ -559,6 +690,7 @@ export default function ContentEditorDialog({
         mimeType: uploadFile.type
       });
 
+      markDirty();
       setUploadedAssets((current) => [asset, ...current.filter((item) => item.id !== asset.id)]);
       setDraft((current) => ({
         ...current,
@@ -599,21 +731,38 @@ export default function ContentEditorDialog({
 
     setPendingDraft(nextDraft);
     setConfirming(true);
+    writeContentDraftRecovery({ mode, ownerUserId, item: nextDraft, tagInputValue });
   }
 
   function handleConfirmSave() {
     if (pendingDraft) {
+      writeContentDraftRecovery({ mode, ownerUserId, item: pendingDraft, tagInputValue });
       onSave(pendingDraft);
     }
   }
 
   function handleClose() {
+    if (dirtyRef.current) {
+      setConfirming(false);
+      setDiscarding(true);
+      return;
+    }
+
+    setConfirming(false);
+    setPendingDraft(null);
+    onClose();
+  }
+
+  function handleConfirmDiscard() {
+    dirtyRef.current = false;
+    setDiscarding(false);
     setConfirming(false);
     setPendingDraft(null);
     onClose();
   }
 
   function handleBodyBlocksChange(nextBlocks: ContentBlock[]) {
+    markDirty();
     setBodyBlocks(nextBlocks);
     const blockMediaIds = extractMediaIdsFromContentBlocks(nextBlocks);
 
@@ -633,9 +782,9 @@ export default function ContentEditorDialog({
       <form onSubmit={handleSubmit}>
         <DialogTitle>
           <Typography component="span" variant="h2" sx={{ display: "block", fontSize: "1.45rem" }}>
-            {confirming ? confirmTitle : title}
+            {discarding ? "ละทิ้งฉบับร่างที่ยังไม่บันทึก?" : confirming ? confirmTitle : title}
           </Typography>
-          {!confirming && (
+          {!confirming && !discarding && (
             <Typography
               variant="body2"
               sx={{
@@ -647,7 +796,13 @@ export default function ContentEditorDialog({
           )}
         </DialogTitle>
         <DialogContent dividers>
-          {confirming && pendingDraft ? (
+          {discarding ? (
+            <Stack spacing={1.5} sx={{ pt: 1 }}>
+              <Alert severity="warning">
+                การละทิ้งจะลบฉบับร่างกู้คืนของเนื้อหานี้ออกจากแท็บนี้ การแก้ไขที่ยังไม่บันทึกจะไม่สามารถกู้คืนได้
+              </Alert>
+            </Stack>
+          ) : confirming && pendingDraft ? (
             <Stack spacing={1.5} sx={{ pt: 1 }}>
               {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
               <Typography
@@ -740,6 +895,11 @@ export default function ContentEditorDialog({
             >
               <Stack spacing={2.2}>
                 {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
+                {recovered && (
+                  <Alert severity="info">
+                    กู้คืนฉบับร่างจากก่อนเข้าสู่ระบบอีกครั้งแล้ว กรุณาตรวจสอบข้อมูลก่อนบันทึก
+                  </Alert>
+                )}
                 <TextField
                   label="ชื่อเรื่อง"
                   value={draft.title}
@@ -957,6 +1117,7 @@ export default function ContentEditorDialog({
                       return;
                     }
 
+                    markDirty();
                     setTagInputValue(nextValue);
                   }}
                   renderValue={(value, getItemProps) =>
@@ -1388,7 +1549,16 @@ export default function ContentEditorDialog({
           )}
         </DialogContent>
         <ResponsiveDialogActions>
-          {confirming ? (
+          {discarding ? (
+            <>
+              <Button type="button" onClick={() => setDiscarding(false)}>
+                กลับไปแก้ไข
+              </Button>
+              <Button type="button" color="error" variant="contained" onClick={handleConfirmDiscard}>
+                ละทิ้งฉบับร่าง
+              </Button>
+            </>
+          ) : confirming ? (
             <>
               <Button type="button" onClick={() => setConfirming(false)} disabled={saving}>
                 กลับ

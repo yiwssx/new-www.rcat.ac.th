@@ -5,7 +5,7 @@ export interface AuthContextValue {
   status: CmsAuthStatus;
   session: CmsSession | null;
   capabilities: readonly CmsCapability[];
-  refreshSession: (options?: { force?: boolean }) => Promise<CmsSession | null>;
+  refreshSession: (options?: { force?: boolean; activityKeepalive?: boolean }) => Promise<CmsSession | null>;
   login: (identifier: string, password: string) => Promise<CmsLoginResult>;
   verifyMfa: (proof: CmsMfaProof) => Promise<CmsSession>;
   logout: () => Promise<void>;

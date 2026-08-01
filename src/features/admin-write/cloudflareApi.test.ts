@@ -122,14 +122,18 @@ describe("Cloudflare Admin CMS Session integration", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("clears CMS Session state on the exact 401 but never opens step-up for 401 or 403", async () => {
+  it("clears CMS Session only on the exact expiry 401 and never opens step-up for 401 or 403", async () => {
     const expiredListener = vi.fn();
     window.addEventListener("rcat:cms-session-expired", expiredListener);
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(Response.json({ error: "CMS session is invalid or expired" }, { status: 401 }))
+      .mockResolvedValueOnce(Response.json({ error: "MFA reset verification failed" }, { status: 401 }))
       .mockResolvedValueOnce(Response.json({ error: "required permission is missing" }, { status: 403 }));
 
     await expect(requestCloudflareAdmin("/api/admin/users")).rejects.toBeInstanceOf(CmsAuthError);
+    await expect(requestCloudflareAdmin("/api/admin/users/user-1/mfa")).rejects.toThrow(
+      "MFA reset verification failed"
+    );
     await expect(requestCloudflareAdmin("/api/admin/users")).rejects.toThrow("required permission is missing");
     expect(expiredListener).toHaveBeenCalledTimes(1);
     expect(cmsStepUpCoordinator.getSnapshot().open).toBe(false);

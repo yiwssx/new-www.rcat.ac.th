@@ -50,6 +50,12 @@ import {
 import { saveMediaAsset, type MediaAssetInput } from "../../features/cms-media";
 import { ContentItem, ContentStatus } from "../../types";
 import {
+  clearContentDraftRecovery,
+  readContentDraftRecovery,
+  type ContentDraftRecovery,
+  type ContentDraftRecoveryMode
+} from "../../features/cms-content/draftRecovery";
+import {
   ADMIN_PAGE_SIZE_OPTIONS,
   adminListQueryKeys,
   getAdminPageAfterDelete,
@@ -104,7 +110,8 @@ function waitForDialogTransition() {
 
 export default function ContentPage() {
   const queryClient = useQueryClient();
-  const { capabilities, hasCapability } = useAuth();
+  const { capabilities, hasCapability, session } = useAuth();
+  const ownerUserId = session?.user.id ?? "";
   const canManage = canManageContent(capabilities);
   const canCreate = hasCapability("content.create");
   const canUpdate = hasCapability("content.update");
@@ -136,6 +143,11 @@ export default function ContentPage() {
   });
   const listTransitioning = contentListQuery.isPlaceholderData || debouncedSearch !== q;
   const [editorOpen, setEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<ContentDraftRecoveryMode>("create");
+  const [restoredRecovery, setRestoredRecovery] = useState(false);
+  const [draftRecovery, setDraftRecovery] = useState<ContentDraftRecovery | null>(() =>
+    readContentDraftRecovery(ownerUserId)
+  );
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [saveError, setSaveError] = useState("");
   const [loadingEditorItem, setLoadingEditorItem] = useState(false);
@@ -148,6 +160,10 @@ export default function ContentPage() {
       setListState({ page: responsePage }, { replace: true });
     }
   }, [contentListQuery.data?.pagination.page, contentListQuery.isPlaceholderData, page, setListState]);
+
+  useEffect(() => {
+    setDraftRecovery(readContentDraftRecovery(ownerUserId));
+  }, [ownerUserId]);
 
   const saveMutation = useMutation({
     mutationFn: saveContentItem
@@ -172,7 +188,7 @@ export default function ContentPage() {
 
   const handleEdit = useCallback(
     async (item: AdminContentListItem) => {
-      if (!canUpdate || contentWritePending) {
+      if (!canUpdate || contentWritePending || draftRecovery) {
         return;
       }
 
@@ -181,6 +197,8 @@ export default function ContentPage() {
 
       try {
         const detail = await getAdminContentDetail({ id: item.id });
+        setEditorMode("edit");
+        setRestoredRecovery(false);
         setSelectedItem(detail);
         setEditorOpen(true);
       } catch (error) {
@@ -194,7 +212,7 @@ export default function ContentPage() {
         setLoadingEditorItem(false);
       }
     },
-    [canUpdate, contentWritePending]
+    [canUpdate, contentWritePending, draftRecovery]
   );
 
   const handleDelete = useCallback(
@@ -377,7 +395,7 @@ export default function ContentPage() {
                     <IconButton
                       aria-label="แก้ไข"
                       size="small"
-                      disabled={!canUpdate || loadingEditorItem || contentWritePending}
+                      disabled={!canUpdate || loadingEditorItem || contentWritePending || Boolean(draftRecovery)}
                       onClick={() => void handleEdit(info.row.original)}
                     >
                       <EditOutlinedIcon fontSize="small" />
@@ -418,7 +436,17 @@ export default function ContentPage() {
         )
       })
     ],
-    [canDelete, canPublish, canUpdate, contentWritePending, handleDelete, handleEdit, handlePublish, loadingEditorItem]
+    [
+      canDelete,
+      canPublish,
+      canUpdate,
+      contentWritePending,
+      draftRecovery,
+      handleDelete,
+      handleEdit,
+      handlePublish,
+      loadingEditorItem
+    ]
   );
 
   // TanStack Table intentionally returns instance functions that React Compiler cannot memoize safely.
@@ -431,11 +459,13 @@ export default function ContentPage() {
   });
 
   function handleCreate() {
-    if (!canCreate || contentWritePending) {
+    if (!canCreate || contentWritePending || draftRecovery) {
       return;
     }
 
     setSaveError("");
+    setEditorMode("create");
+    setRestoredRecovery(false);
     setSelectedItem(null);
     setEditorOpen(true);
   }
@@ -462,6 +492,9 @@ export default function ContentPage() {
         setListState({ page: 1 }, { replace: true });
       }
       await Promise.all([invalidateAdminListQueries(queryClient, "content"), invalidatePublicCmsData(queryClient)]);
+      clearContentDraftRecovery();
+      setDraftRecovery(null);
+      setRestoredRecovery(false);
       await appSwal.close();
       setEditorOpen(false);
       setSelectedItem(null);
@@ -469,9 +502,6 @@ export default function ContentPage() {
       await showSuccessResult("บันทึกเนื้อหาสำเร็จ");
     } catch (currentError) {
       if (isAdminStaleRevisionError(currentError)) {
-        if (currentError.latestItem) {
-          setSelectedItem(currentError.latestItem);
-        }
         await invalidateAdminListQueries(queryClient, "content");
       }
       await appSwal.close();
@@ -488,6 +518,24 @@ export default function ContentPage() {
     return mediaMutation.mutateAsync(input);
   }
 
+  function handleRestoreDraft() {
+    if (!draftRecovery) {
+      return;
+    }
+
+    setSaveError("");
+    setEditorMode(draftRecovery.mode);
+    setRestoredRecovery(true);
+    setSelectedItem(draftRecovery.item);
+    setEditorOpen(true);
+  }
+
+  function handleDiscardRecoveredDraft() {
+    clearContentDraftRecovery();
+    setDraftRecovery(null);
+    setRestoredRecovery(false);
+  }
+
   return (
     <Box>
       <PageHeader
@@ -495,12 +543,35 @@ export default function ContentPage() {
         description="สร้างและดูแลหน้าเว็บ บทความ ข้อมูลหลักสูตร ข่าว และประกาศ"
         action={
           canCreate ? (
-            <Button variant="contained" startIcon={<AddIcon />} disabled={contentWritePending} onClick={handleCreate}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              disabled={contentWritePending || Boolean(draftRecovery)}
+              onClick={handleCreate}
+            >
               เพิ่มเนื้อหา
             </Button>
           ) : undefined
         }
       />
+      {draftRecovery && !editorOpen && (
+        <Alert
+          severity="warning"
+          action={
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+              <Button color="inherit" size="small" onClick={handleRestoreDraft}>
+                กู้คืนฉบับร่าง
+              </Button>
+              <Button color="inherit" size="small" onClick={handleDiscardRecoveredDraft}>
+                ละทิ้ง
+              </Button>
+            </Stack>
+          }
+          sx={{ mb: 2 }}
+        >
+          พบฉบับร่างเนื้อหาที่ยังไม่บันทึกจากก่อนเข้าสู่ระบบหรือโหลดหน้าใหม่
+        </Alert>
+      )}
       {!canManage && (
         <Alert severity="info" sx={{ mb: 3 }}>
           {ADMIN_READ_ONLY_NOTICE}
@@ -621,9 +692,16 @@ export default function ContentPage() {
       <ContentEditorDialog
         open={editorOpen}
         item={selectedItem}
+        mode={editorMode}
+        ownerUserId={ownerUserId}
+        recovered={restoredRecovery}
+        recoveredTagInputValue={restoredRecovery ? (draftRecovery?.tagInputValue ?? "") : ""}
         saving={saveMutation.isPending}
         errorMessage={saveError}
         onClose={() => {
+          clearContentDraftRecovery();
+          setDraftRecovery(null);
+          setRestoredRecovery(false);
           setSaveError("");
           setEditorOpen(false);
         }}

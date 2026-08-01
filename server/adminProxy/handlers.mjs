@@ -16,6 +16,8 @@ const PROXY_METHODS = new Set(["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS
 const BODY_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 const ADMIN_PATH_PREFIX = "/api/admin/";
 const MAX_PROXY_BODY_BYTES = 1024 * 1024;
+const CMS_SESSION_EXPIRED_ERROR = "CMS session is invalid or expired";
+const SAFE_NON_SESSION_401_ERRORS = new Set(["MFA reset verification failed"]);
 
 function runtimeEnv() {
   return process.env;
@@ -211,6 +213,21 @@ function createCmsUpstreamHeaders(request, configuration, sessionToken, csrfToke
   return headers;
 }
 
+async function getSafeUpstream401Error(response) {
+  try {
+    const payload = await response.clone().json();
+    const error = payload && typeof payload === "object" && !Array.isArray(payload) ? payload.error : "";
+
+    if (error === CMS_SESSION_EXPIRED_ERROR || SAFE_NON_SESSION_401_ERRORS.has(error)) {
+      return error;
+    }
+  } catch {
+    // Keep arbitrary upstream authentication details behind the finite proxy contract.
+  }
+
+  return "Admin request authentication failed";
+}
+
 export async function handleAdminProxyRequest(request, response, options = {}) {
   const env = options.env ?? runtimeEnv();
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
@@ -300,7 +317,7 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
   }
 
   if (upstreamResponse.status === 401) {
-    sendJson(response, 401, { error: "CMS session is invalid or expired" });
+    sendJson(response, 401, { error: await getSafeUpstream401Error(upstreamResponse) });
     return;
   }
 

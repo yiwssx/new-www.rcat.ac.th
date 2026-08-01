@@ -22,3 +22,6 @@ export const CMS_AUTH_CHANNEL_NAME = "rcat-cms-auth";
 export const CMS_SESSION_NOTICE_KEY = "rcat.cms.session.notice";
 export const CMS_SESSION_EXPIRED_EVENT = "rcat:cms-session-expired";
 export const CMS_SESSION_EXPIRED_MESSAGE = "เซสชัน CMS หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง";
+export const CMS_SESSION_KEEPALIVE_CHECK_INTERVAL_MS = 60 * 1000;
+export const CMS_SESSION_KEEPALIVE_INTERVAL_MS = 5 * 60 * 1000;
+export const CMS_SESSION_RECENT_ACTIVITY_MS = 6 * 60 * 1000;

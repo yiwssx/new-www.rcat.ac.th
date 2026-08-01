@@ -4,6 +4,9 @@ import {
   broadcastCmsSessionEvent,
   clearProtectedAdminQueries,
   CMS_SESSION_EXPIRED_EVENT,
+  CMS_SESSION_KEEPALIVE_CHECK_INTERVAL_MS,
+  CMS_SESSION_KEEPALIVE_INTERVAL_MS,
+  CMS_SESSION_RECENT_ACTIVITY_MS,
   cmsStepUpCoordinator,
   getCmsCapabilities,
   getCmsSession,
@@ -11,6 +14,7 @@ import {
   loginCmsAccount,
   logoutAllCmsSessions,
   logoutCmsSession,
+  notifyCmsSessionExpired,
   reauthenticateCmsSession,
   subscribeToCmsSessionEvents,
   verifyCmsMfa,
@@ -34,6 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     generation: number;
     promise: Promise<CmsSession | null>;
   } | null>(null);
+  const lastAdminActivityAtRef = useRef(0);
+  const lastSessionRefreshAtRef = useRef(0);
 
   const commitClearedSession = useCallback(
     (error: CmsAuthError) => {
@@ -61,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshSession = useCallback(
-    (options: { force?: boolean } = {}) => {
+    (options: { force?: boolean; activityKeepalive?: boolean } = {}) => {
       if (!options.force && refreshRequestRef.current) {
         return refreshRequestRef.current.promise;
       }
@@ -113,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
           currentUserIdRef.current = user.id;
           sessionRef.current = nextSession;
+          lastSessionRefreshAtRef.current = Date.now();
           setSession(nextSession);
           setStatus("authenticated");
           return nextSession;
@@ -122,6 +129,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (error instanceof CmsAuthError && error.status === 401) {
+            if (backgroundRefresh && options.activityKeepalive) {
+              notifyCmsSessionExpired();
+              return null;
+            }
+
             commitClearedSession(error);
             return null;
           }
@@ -243,6 +255,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener(CMS_SESSION_EXPIRED_EVENT, handleSessionExpired);
     };
   }, [clearSession, refreshSession]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !session?.user.id) {
+      lastAdminActivityAtRef.current = 0;
+      return;
+    }
+
+    let disposed = false;
+    const recordActivity = () => {
+      lastAdminActivityAtRef.current = Date.now();
+    };
+    const keepSessionAliveIfEligible = () => {
+      const now = Date.now();
+
+      if (
+        disposed ||
+        !window.location.pathname.startsWith("/admin") ||
+        document.visibilityState !== "visible" ||
+        lastAdminActivityAtRef.current === 0 ||
+        now - lastAdminActivityAtRef.current > CMS_SESSION_RECENT_ACTIVITY_MS ||
+        now - lastSessionRefreshAtRef.current < CMS_SESSION_KEEPALIVE_INTERVAL_MS
+      ) {
+        return;
+      }
+
+      lastSessionRefreshAtRef.current = now;
+      void refreshSession({ activityKeepalive: true }).catch(() => undefined);
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      recordActivity();
+      keepSessionAliveIfEligible();
+    };
+    const activityEvents: Array<keyof WindowEventMap> = ["keydown", "input", "pointerdown", "touchstart"];
+
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, recordActivity, { passive: true }));
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    const keepaliveTimer = window.setInterval(keepSessionAliveIfEligible, CMS_SESSION_KEEPALIVE_CHECK_INTERVAL_MS);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(keepaliveTimer);
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, recordActivity));
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refreshSession, session?.user.id, status]);
 
   const value = useMemo(
     () => ({
