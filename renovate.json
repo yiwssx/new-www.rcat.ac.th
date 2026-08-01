@@ -9,7 +9,7 @@
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
   "rangeStrategy": "bump",
-  "rebaseWhen": "never",
+  "rebaseWhen": "behind-base-branch",
   "automergeStrategy": "merge-commit",
   "platformAutomerge": false,
   "ignoreTests": false,
