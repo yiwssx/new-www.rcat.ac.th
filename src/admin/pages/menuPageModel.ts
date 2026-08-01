@@ -1,4 +1,4 @@
-import type { AdminMenuOrderItem } from "../../features/admin-pagination";
+import type { AdminMenuListItem, AdminMenuOrderItem } from "../../features/admin-pagination";
 import type { PublicMenuItem } from "../../features/cms-navigation/types";
 
 export type MenuVisibilityFilter = "all" | "enabled" | "disabled";
@@ -29,6 +29,61 @@ export function normalizeMenuHref(value: string) {
   return raw.startsWith("/") ? raw : `/${raw}`;
 }
 
+function menuSiblingSort(left: AdminMenuListItem, right: AdminMenuListItem) {
+  return left.order - right.order || left.label.localeCompare(right.label, "th");
+}
+
+export function buildMenuTree(items: readonly AdminMenuListItem[]): PublicMenuItem[] {
+  const rowsById = new Map(items.map((item) => [item.id, item]));
+  const byParent = new Map<string | null, AdminMenuListItem[]>();
+
+  items.forEach((item) => {
+    const normalizedParent =
+      item.parentId && item.parentId !== item.id && rowsById.has(item.parentId) ? item.parentId : null;
+    const siblings = byParent.get(normalizedParent) ?? [];
+    siblings.push(item);
+    byParent.set(normalizedParent, siblings);
+  });
+
+  byParent.forEach((siblings) => siblings.sort(menuSiblingSort));
+
+  const emitted = new Set<string>();
+
+  const buildNode = (item: AdminMenuListItem, ancestors: ReadonlySet<string>): PublicMenuItem => {
+    emitted.add(item.id);
+    const nextAncestors = new Set(ancestors);
+    nextAncestors.add(item.id);
+
+    const children = (byParent.get(item.id) ?? [])
+      .filter((child) => !nextAncestors.has(child.id))
+      .map((child) => buildNode(child, nextAncestors));
+
+    return {
+      id: item.id,
+      label: item.label,
+      href: item.href,
+      enabled: item.enabled,
+      ...(children.length ? { children } : {})
+    };
+  };
+
+  const roots: PublicMenuItem[] = [];
+
+  (byParent.get(null) ?? []).forEach((item) => {
+    if (!emitted.has(item.id)) {
+      roots.push(buildNode(item, new Set()));
+    }
+  });
+
+  [...items].sort(menuSiblingSort).forEach((item) => {
+    if (!emitted.has(item.id)) {
+      roots.push(buildNode(item, new Set()));
+    }
+  });
+
+  return roots;
+}
+
 export function flattenPublicMenu(
   items: readonly PublicMenuItem[],
   depth = 0,
@@ -38,21 +93,6 @@ export function flattenPublicMenu(
     { item, depth, parentLabel },
     ...flattenPublicMenu(item.children ?? [], depth + 1, item.label)
   ]);
-}
-
-export function findPublicMenuItem(items: readonly PublicMenuItem[], id: string): PublicMenuItem | null {
-  for (const item of items) {
-    if (item.id === id) {
-      return item;
-    }
-
-    const child = findPublicMenuItem(item.children ?? [], id);
-    if (child) {
-      return child;
-    }
-  }
-
-  return null;
 }
 
 export function filterMenuTree(

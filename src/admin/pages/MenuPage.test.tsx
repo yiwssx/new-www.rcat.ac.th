@@ -1,32 +1,27 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AdminMenuOrderItem } from "../../features/admin-pagination";
-import type { PublicMenuItem } from "../../features/cms-navigation/types";
+import type { AdminMenuListItem, AdminMenuOrderItem } from "../../features/admin-pagination";
 import type { User } from "../../types";
 import MenuPage from "./MenuPage";
 
 const authMock = vi.hoisted(() => ({ role: "admin" as User["role"] }));
 const paginationMock = vi.hoisted(() => ({
+  getAdminMenuList: vi.fn(),
   getAdminMenuOrder: vi.fn(),
   saveAdminMenuItem: vi.fn(),
   deleteAdminMenuItem: vi.fn(),
   saveAdminMenuOrder: vi.fn()
 }));
-const adminWriteMock = vi.hoisted(() => ({ getPublicMenuItemsFromCloudflare: vi.fn() }));
 const publicInvalidationMock = vi.hoisted(() => ({ invalidatePublicCmsData: vi.fn() }));
 const swalInstance = vi.hoisted(() => ({ fire: vi.fn(), close: vi.fn(), showLoading: vi.fn() }));
 
 vi.mock("sweetalert2", () => ({ default: { mixin: vi.fn(() => swalInstance) } }));
 vi.mock("sweetalert2/dist/sweetalert2.min.css", () => ({}));
 
-vi.mock("../../features/admin-write/cloudflareApi", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../features/admin-write/cloudflareApi")>()),
-  getPublicMenuItemsFromCloudflare: adminWriteMock.getPublicMenuItemsFromCloudflare
-}));
-
 vi.mock("../../features/admin-pagination/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../features/admin-pagination/api")>()),
+  getAdminMenuList: paginationMock.getAdminMenuList,
   getAdminMenuOrder: paginationMock.getAdminMenuOrder,
   saveAdminMenuItem: paginationMock.saveAdminMenuItem,
   deleteAdminMenuItem: paginationMock.deleteAdminMenuItem,
@@ -54,26 +49,36 @@ vi.mock("../../context/authSessionContext", () => ({
   }
 }));
 
-const menuTree: PublicMenuItem[] = [
+const flatMenuItems: AdminMenuListItem[] = [
+  {
+    id: "menu-history-internal-id",
+    label: "ประวัติวิทยาลัย",
+    href: "/history",
+    enabled: true,
+    parentId: "menu-about-internal-id",
+    order: 1,
+    updatedAt: "2026-08-01T00:00:00.000Z",
+    revision: 3
+  },
   {
     id: "menu-about-internal-id",
     label: "เกี่ยวกับวิทยาลัย",
     href: "/about",
     enabled: true,
-    children: [
-      {
-        id: "menu-history-internal-id",
-        label: "ประวัติวิทยาลัย",
-        href: "/history",
-        enabled: true
-      }
-    ]
+    parentId: null,
+    order: 1,
+    updatedAt: "2026-08-01T00:00:00.000Z",
+    revision: 2
   },
   {
     id: "menu-news-internal-id",
     label: "ข่าวสาร",
     href: "/news",
-    enabled: true
+    enabled: true,
+    parentId: null,
+    order: 2,
+    updatedAt: "2026-08-01T00:00:00.000Z",
+    revision: 4
   }
 ];
 
@@ -104,6 +109,21 @@ const orderItems: AdminMenuOrderItem[] = [
   }
 ];
 
+function menuPageResponse(items: AdminMenuListItem[]) {
+  return {
+    items,
+    pagination: {
+      page: 1,
+      pageSize: 100,
+      totalItems: items.length,
+      totalPages: 1,
+      hasPreviousPage: false,
+      hasNextPage: false
+    },
+    generatedAt: "2026-08-01T00:00:00.000Z"
+  };
+}
+
 function renderMenuPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
@@ -118,8 +138,8 @@ function renderMenuPage() {
 
 beforeEach(() => {
   authMock.role = "admin";
-  adminWriteMock.getPublicMenuItemsFromCloudflare.mockReset();
-  adminWriteMock.getPublicMenuItemsFromCloudflare.mockResolvedValue(menuTree);
+  paginationMock.getAdminMenuList.mockReset();
+  paginationMock.getAdminMenuList.mockResolvedValue(menuPageResponse(flatMenuItems));
   paginationMock.getAdminMenuOrder.mockReset();
   paginationMock.getAdminMenuOrder.mockResolvedValue(orderItems);
   paginationMock.saveAdminMenuItem.mockReset();
@@ -137,16 +157,34 @@ beforeEach(() => {
   swalInstance.showLoading.mockReset();
 });
 
-describe("MenuPage hierarchy UX", () => {
-  it("renders submenu beneath its parent using readable labels and never exposes internal menu ids", async () => {
+describe("MenuPage WordPress-style hierarchy UX", () => {
+  it("reconstructs a submenu from flat production rows and renders it one level beneath its parent", async () => {
     renderMenuPage();
 
-    expect(await screen.findByText("เกี่ยวกับวิทยาลัย")).toBeInTheDocument();
-    expect(screen.getByText("ประวัติวิทยาลัย")).toBeInTheDocument();
+    const parentLabel = await screen.findByText("เกี่ยวกับวิทยาลัย");
+    const childLabel = screen.getByText("ประวัติวิทยาลัย");
+
+    const parentRow = parentLabel.closest("[data-menu-depth]");
+    const childRow = childLabel.closest("[data-menu-depth]");
+
+    expect(parentRow).toHaveAttribute("data-menu-depth", "0");
+    expect(childRow).toHaveAttribute("data-menu-depth", "1");
     expect(screen.getByText("ภายใต้ เกี่ยวกับวิทยาลัย")).toBeInTheDocument();
+    expect(screen.getByText("เมนูย่อย")).toBeInTheDocument();
     expect(screen.queryByText("menu-about-internal-id")).not.toBeInTheDocument();
     expect(screen.queryByText("menu-history-internal-id")).not.toBeInTheDocument();
-    expect(screen.queryByText(/Menu ID แม่/)).not.toBeInTheDocument();
+  });
+
+  it("loads the real flat Admin menu API instead of assuming /api/admin/menu is already a tree", async () => {
+    renderMenuPage();
+    await screen.findByText("เกี่ยวกับวิทยาลัย");
+
+    expect(paginationMock.getAdminMenuList).toHaveBeenCalledWith({
+      page: 1,
+      pageSize: 100,
+      sortBy: "order",
+      sortDirection: "asc"
+    });
   });
 
   it("preserves a root permalink instead of rewriting it to /content/...", async () => {
@@ -183,11 +221,12 @@ describe("MenuPage hierarchy UX", () => {
     expect(screen.queryByRole("textbox", { name: /Menu ID/i })).not.toBeInTheDocument();
   });
 
-  it("keeps read-only users on the readable tree without mutation controls", async () => {
+  it("keeps read-only users on the readable hierarchy without mutation controls", async () => {
     authMock.role = "viewer";
     renderMenuPage();
 
     expect(await screen.findByText("เกี่ยวกับวิทยาลัย")).toBeInTheDocument();
+    expect(screen.getByText("ประวัติวิทยาลัย")).toBeInTheDocument();
     expect(screen.getByText(/มีสิทธิ์อ่านข้อมูลเท่านั้น/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "เพิ่มเมนูหลัก" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "จัดลำดับ" })).not.toBeInTheDocument();

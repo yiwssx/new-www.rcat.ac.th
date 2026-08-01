@@ -1,115 +1,136 @@
 import { describe, expect, it } from "vitest";
-import type { AdminMenuOrderItem } from "../../features/admin-pagination";
-import type { PublicMenuItem } from "../../features/cms-navigation/types";
+import type { AdminMenuListItem, AdminMenuOrderItem } from "../../features/admin-pagination";
 import {
+  buildMenuTree,
   filterMenuTree,
   flattenMenuOrder,
   flattenPublicMenu,
   getNextSiblingOrder,
   moveMenuSibling,
   normalizeMenuHref,
-  orderIsDirty
+  orderIsDirty,
+  parentMenuOptions
 } from "./menuPageModel";
 
-const tree: PublicMenuItem[] = [
+const flatItems: AdminMenuListItem[] = [
   {
-    id: "menu-about",
-    label: "เกี่ยวกับวิทยาลัย",
-    href: "/about",
+    id: "child",
+    label: "Child",
+    href: "/child",
     enabled: true,
-    children: [
-      {
-        id: "menu-history",
-        label: "ประวัติวิทยาลัย",
-        href: "/history",
-        enabled: true
-      },
-      {
-        id: "menu-vision",
-        label: "วิสัยทัศน์",
-        href: "/vision",
-        enabled: false
-      }
-    ]
+    parentId: "parent",
+    order: 2,
+    updatedAt: "",
+    revision: 1
   },
   {
-    id: "menu-news",
-    label: "ข่าวสาร",
-    href: "/news",
-    enabled: true
+    id: "parent",
+    label: "Parent",
+    href: "/parent",
+    enabled: true,
+    parentId: null,
+    order: 1,
+    updatedAt: "",
+    revision: 1
+  },
+  {
+    id: "child-first",
+    label: "First child",
+    href: "/first-child",
+    enabled: false,
+    parentId: "parent",
+    order: 1,
+    updatedAt: "",
+    revision: 1
   }
 ];
 
-const order: AdminMenuOrderItem[] = [
-  { id: "menu-about", label: "เกี่ยวกับวิทยาลัย", parentId: null, order: 1, enabled: true, revision: 1 },
-  { id: "menu-history", label: "ประวัติวิทยาลัย", parentId: "menu-about", order: 1, enabled: true, revision: 2 },
-  { id: "menu-vision", label: "วิสัยทัศน์", parentId: "menu-about", order: 2, enabled: false, revision: 3 },
-  { id: "menu-news", label: "ข่าวสาร", parentId: null, order: 2, enabled: true, revision: 4 }
+const orderItems: AdminMenuOrderItem[] = [
+  { id: "parent", label: "Parent", parentId: null, order: 1, enabled: true, revision: 1 },
+  { id: "child-first", label: "First child", parentId: "parent", order: 1, enabled: false, revision: 1 },
+  { id: "child", label: "Child", parentId: "parent", order: 2, enabled: true, revision: 1 }
 ];
 
 describe("menuPageModel", () => {
-  it.each([
-    ["admission", "/admission"],
-    ["/admission", "/admission"],
-    ["/content/admission", "/content/admission"],
-    ["https://example.com/a", "https://example.com/a"],
-    ["#contact", "#contact"]
-  ])("normalizes %s without inventing /content/", (input, expected) => {
-    expect(normalizeMenuHref(input)).toBe(expected);
-  });
+  it("reconstructs the parent/child tree from flat Admin rows regardless of flat row order", () => {
+    const tree = buildMenuTree(flatItems);
 
-  it("flattens the public tree with readable parent context", () => {
-    expect(flattenPublicMenu(tree).map(({ item, depth, parentLabel }) => [item.label, depth, parentLabel])).toEqual([
-      ["เกี่ยวกับวิทยาลัย", 0, null],
-      ["ประวัติวิทยาลัย", 1, "เกี่ยวกับวิทยาลัย"],
-      ["วิสัยทัศน์", 1, "เกี่ยวกับวิทยาลัย"],
-      ["ข่าวสาร", 0, null]
+    expect(tree).toHaveLength(1);
+    expect(tree[0]?.id).toBe("parent");
+    expect(tree[0]?.children?.map((item) => item.id)).toEqual(["child-first", "child"]);
+
+    expect(flattenPublicMenu(tree).map(({ item, depth }) => [item.id, depth])).toEqual([
+      ["parent", 0],
+      ["child-first", 1],
+      ["child", 1]
     ]);
   });
 
-  it("keeps a parent visible when only a child matches search", () => {
-    const result = filterMenuTree(tree, "ประวัติ", "all");
-    expect(result).toHaveLength(1);
-    expect(result[0]?.label).toBe("เกี่ยวกับวิทยาลัย");
-    expect(result[0]?.children?.map((item) => item.label)).toEqual(["ประวัติวิทยาลัย"]);
+  it("keeps missing-parent rows reachable as root items instead of losing them", () => {
+    const tree = buildMenuTree([
+      {
+        ...flatItems[0],
+        id: "orphan",
+        parentId: "missing-parent"
+      }
+    ]);
+
+    expect(tree.map((item) => item.id)).toEqual(["orphan"]);
   });
 
-  it("filters visibility without flattening hierarchy", () => {
-    const result = filterMenuTree(tree, "", "disabled");
-    expect(result).toHaveLength(1);
-    expect(result[0]?.label).toBe("เกี่ยวกับวิทยาลัย");
-    expect(result[0]?.children?.map((item) => item.label)).toEqual(["วิสัยทัศน์"]);
+  it("does not create an infinite recursive tree for cyclic parent data", () => {
+    const cyclic: AdminMenuListItem[] = [
+      { ...flatItems[0], id: "a", label: "A", parentId: "b" },
+      { ...flatItems[0], id: "b", label: "B", parentId: "a" }
+    ];
+
+    const rows = flattenPublicMenu(buildMenuTree(cyclic));
+
+    expect(rows.map(({ item }) => item.id).sort()).toEqual(["a", "b"]);
   });
 
-  it("computes the next order only within the selected parent", () => {
-    expect(getNextSiblingOrder(order, null)).toBe(3);
-    expect(getNextSiblingOrder(order, "menu-about")).toBe(3);
-    expect(getNextSiblingOrder(order, "missing")).toBe(1);
+  it("preserves explicit internal and external hrefs without forcing /content", () => {
+    expect(normalizeMenuHref("/admission")).toBe("/admission");
+    expect(normalizeMenuHref("admission")).toBe("/admission");
+    expect(normalizeMenuHref("/content/admission")).toBe("/content/admission");
+    expect(normalizeMenuHref("https://example.org/page")).toBe("https://example.org/page");
+    expect(normalizeMenuHref("#section")).toBe("#section");
   });
 
-  it("moves only siblings under the same parent", () => {
-    const moved = moveMenuSibling(order, "menu-vision", -1);
-    expect(moved.find((item) => item.id === "menu-vision")?.order).toBe(1);
-    expect(moved.find((item) => item.id === "menu-history")?.order).toBe(2);
-    expect(moved.find((item) => item.id === "menu-about")?.order).toBe(1);
+  it("keeps ancestors visible when a child matches search/filter", () => {
+    const tree = buildMenuTree(flatItems);
+    const filtered = filterMenuTree(tree, "first child", "disabled");
+    const rows = flattenPublicMenu(filtered);
+
+    expect(rows.map(({ item }) => item.id)).toEqual(["parent", "child-first"]);
   });
 
-  it("flattens compact order data into parent-first rows", () => {
-    expect(flattenMenuOrder(order).map(({ item, depth }) => [item.id, depth])).toEqual([
-      ["menu-about", 0],
-      ["menu-history", 1],
-      ["menu-vision", 1],
-      ["menu-news", 0]
+  it("returns readable parent options with hierarchy depth", () => {
+    expect(parentMenuOptions(buildMenuTree(flatItems))).toEqual([
+      { id: "parent", label: "Parent", depth: 0 },
+      { id: "child-first", label: "First child", depth: 1 },
+      { id: "child", label: "Child", depth: 1 }
     ]);
   });
 
-  it("detects order changes without depending on array order", () => {
-    expect(orderIsDirty([...order].reverse(), order)).toBe(false);
-    expect(
-      orderIsDirty(
-        order.map((item) => (item.id === "menu-news" ? { ...item, order: 1 } : item)),
-        order
-      )
-    ).toBe(true);
+  it("calculates and moves only sibling order", () => {
+    expect(getNextSiblingOrder(orderItems, "parent")).toBe(3);
+
+    const moved = moveMenuSibling(orderItems, "child", -1);
+
+    expect(moved.find((item) => item.id === "child")?.order).toBe(1);
+    expect(moved.find((item) => item.id === "child-first")?.order).toBe(2);
+    expect(moved.find((item) => item.id === "parent")?.order).toBe(1);
+  });
+
+  it("detects order changes by persisted order fields", () => {
+    expect(orderIsDirty(orderItems, orderItems)).toBe(false);
+    expect(orderIsDirty(moveMenuSibling(orderItems, "child", -1), orderItems)).toBe(true);
+
+    expect(flattenMenuOrder(orderItems).map(({ item, depth }) => [item.id, depth])).toEqual([
+      ["parent", 0],
+      ["child-first", 1],
+      ["child", 1]
+    ]);
   });
 });

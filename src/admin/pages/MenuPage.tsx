@@ -28,7 +28,7 @@ import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
-import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
+import SubdirectoryArrowRightRoundedIcon from "@mui/icons-material/SubdirectoryArrowRightRounded";
 import ResponsiveDialogActions from "../../design-system/components/ResponsiveDialogActions";
 import { staticSurfaceSx } from "../../design-system/componentStyles";
 import PageHeader from "../components/PageHeader";
@@ -37,16 +37,18 @@ import {
   adminListQueryKeys,
   adminMenuOrderQueryOptions,
   deleteAdminMenuItem,
+  getAdminMenuList,
   saveAdminMenuItem,
   saveAdminMenuOrder,
+  type AdminMenuListItem,
   type AdminMenuOrderItem
 } from "../../features/admin-pagination";
-import { getPublicMenuItemsFromCloudflare } from "../../features/admin-write/cloudflareApi";
 import type { PublicMenuItem } from "../../features/cms-navigation/types";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { ADMIN_READ_ONLY_NOTICE, canManageMenu } from "../utils/rbac";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import {
+  buildMenuTree,
   filterMenuTree,
   flattenMenuOrder,
   flattenPublicMenu,
@@ -86,9 +88,45 @@ const emptyForm: MenuFormState = {
 };
 
 const menuTreeQueryKey = ["admin-menu-tree"] as const;
+const ADMIN_MENU_PAGE_SIZE = 100;
 
 function createOrderMap(items: readonly AdminMenuOrderItem[]) {
   return new Map(items.map((item) => [item.id, item]));
+}
+
+async function getAllAdminMenuItems(): Promise<AdminMenuListItem[]> {
+  const firstPage = await getAdminMenuList({
+    page: 1,
+    pageSize: ADMIN_MENU_PAGE_SIZE,
+    sortBy: "order",
+    sortDirection: "asc"
+  });
+
+  if (firstPage.pagination.totalPages <= 1) {
+    return firstPage.items;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.pagination.totalPages - 1 }, (_, index) =>
+      getAdminMenuList({
+        page: index + 2,
+        pageSize: ADMIN_MENU_PAGE_SIZE,
+        sortBy: "order",
+        sortDirection: "asc"
+      })
+    )
+  );
+
+  return [firstPage, ...remainingPages].flatMap((response) => response.items);
+}
+
+function menuIndent(depth: number) {
+  return {
+    pl: {
+      xs: Math.min(depth, 4) * 2.25,
+      sm: Math.min(depth, 4) * 4
+    }
+  } as const;
 }
 
 export default function MenuPage() {
@@ -105,7 +143,7 @@ export default function MenuPage() {
 
   const treeQuery = useQuery({
     queryKey: menuTreeQueryKey,
-    queryFn: getPublicMenuItemsFromCloudflare
+    queryFn: getAllAdminMenuItems
   });
   const orderQuery = useQuery(adminMenuOrderQueryOptions());
 
@@ -114,7 +152,8 @@ export default function MenuPage() {
   const saveOrderMutation = useMutation({ mutationFn: saveAdminMenuOrder });
   const operationPending = saveMutation.isPending || deleteMutation.isPending || saveOrderMutation.isPending;
 
-  const menuTree = useMemo(() => treeQuery.data ?? [], [treeQuery.data]);
+  const flatMenuItems = useMemo(() => treeQuery.data ?? [], [treeQuery.data]);
+  const menuTree = useMemo(() => buildMenuTree(flatMenuItems), [flatMenuItems]);
   const orderItems = useMemo(() => orderQuery.data ?? [], [orderQuery.data]);
   const orderMap = useMemo(() => createOrderMap(orderItems), [orderItems]);
   const labelById = useMemo(() => new Map(orderItems.map((item) => [item.id, item.label])), [orderItems]);
@@ -161,6 +200,8 @@ export default function MenuPage() {
       return;
     }
 
+    const hasChildren = orderItems.some((candidate) => candidate.parentId === item.id);
+
     setEditingItem({
       id: item.id,
       label: item.label,
@@ -169,7 +210,7 @@ export default function MenuPage() {
       order: metadata.order,
       parentId: metadata.parentId,
       revision: metadata.revision,
-      hasChildren: Boolean(item.children?.length)
+      hasChildren
     });
     setForm({
       label: item.label,
@@ -242,9 +283,10 @@ export default function MenuPage() {
       return;
     }
 
+    const hasChildren = orderItems.some((candidate) => candidate.parentId === item.id);
     const confirmation = await appSwal.fire({
       title: "ลบรายการเมนู?",
-      text: item.children?.length ? `${item.label} มีเมนูย่อยอยู่ ต้องย้ายหรือลบเมนูย่อยก่อน` : item.label,
+      text: hasChildren ? `${item.label} มีเมนูย่อยอยู่ ต้องย้ายหรือลบเมนูย่อยก่อน` : item.label,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "ลบ",
@@ -301,7 +343,7 @@ export default function MenuPage() {
     <Box>
       <PageHeader
         title="เมนู"
-        description="จัดการเมนูเว็บไซต์แบบลำดับชั้น โดยแสดงเมนูย่อยอยู่ใต้เมนูหลักและซ่อนรหัสภายในที่ไม่จำเป็น"
+        description="จัดการโครงสร้างเมนูแบบลำดับชั้น เมนูย่อยจะแสดงเยื้องอยู่ใต้เมนูแม่เหมือนหน้าจัดการเมนูของ WordPress"
         action={
           canManage ? (
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
@@ -343,7 +385,7 @@ export default function MenuPage() {
               <Box>
                 <Typography variant="h3">จัดลำดับเมนู</Typography>
                 <Typography sx={{ color: "text.secondary", mt: 0.5 }}>
-                  ปุ่มขึ้น/ลงจะเลื่อนเฉพาะเมนูที่อยู่ภายใต้เมนูแม่เดียวกัน โดยไม่แสดงรหัส Menu ID
+                  เมนูย่อยจะแสดงเยื้องอยู่ใต้เมนูแม่ ปุ่มขึ้น/ลงจะเลื่อนเฉพาะรายการในระดับเดียวกัน
                 </Typography>
               </Box>
 
@@ -377,58 +419,68 @@ export default function MenuPage() {
                   const parentLabel = item.parentId ? (labelById.get(item.parentId) ?? "เมนูแม่") : null;
 
                   return (
-                    <Box
-                      key={item.id}
-                      sx={{
-                        ...staticSurfaceSx,
-                        ml: Math.min(depth, 5) * 2,
-                        p: 1.5,
-                        borderLeft: depth ? "4px solid" : undefined,
-                        borderLeftColor: depth ? "primary.light" : undefined
-                      }}
-                    >
-                      <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
-                            <Typography sx={{ fontWeight: 900 }}>{item.label}</Typography>
-                            <Chip
-                              size="small"
-                              variant={depth ? "outlined" : "filled"}
-                              label={depth ? "เมนูย่อย" : "เมนูหลัก"}
-                              color={depth ? "default" : "primary"}
-                            />
-                            <Chip size="small" variant="outlined" label={`ลำดับ ${item.order}`} />
-                          </Stack>
-                          {parentLabel && (
-                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                              ภายใต้ {parentLabel}
-                            </Typography>
-                          )}
-                        </Box>
+                    <Box key={item.id} data-menu-depth={depth} sx={menuIndent(depth)}>
+                      <Box
+                        sx={{
+                          ...staticSurfaceSx,
+                          p: 1.5,
+                          bgcolor: depth ? "background.default" : "background.paper",
+                          borderLeft: depth ? "3px solid" : undefined,
+                          borderLeftColor: depth ? "divider" : undefined
+                        }}
+                      >
+                        <Stack
+                          direction={{ xs: "column", sm: "row" }}
+                          spacing={1}
+                          sx={{ alignItems: { xs: "flex-start", sm: "center" }, justifyContent: "space-between" }}
+                        >
+                          <Box sx={{ minWidth: 0 }}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              useFlexGap
+                              sx={{ alignItems: "center", flexWrap: "wrap" }}
+                            >
+                              {depth > 0 && <SubdirectoryArrowRightRoundedIcon fontSize="small" color="action" />}
+                              <Typography sx={{ fontWeight: 900 }}>{item.label}</Typography>
+                              {depth > 0 && (
+                                <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>
+                                  เมนูย่อย
+                                </Typography>
+                              )}
+                              <Chip size="small" variant="outlined" label={`ลำดับ ${item.order}`} />
+                            </Stack>
+                            {parentLabel && (
+                              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                ภายใต้ {parentLabel}
+                              </Typography>
+                            )}
+                          </Box>
 
-                        <Stack direction="row" spacing={0.5}>
-                          <Button
-                            size="small"
-                            startIcon={<ArrowUpwardRoundedIcon />}
-                            disabled={siblingIndex <= 0 || operationPending}
-                            onClick={() =>
-                              setOrderDraft((current) => moveMenuSibling(current ?? orderItems, item.id, -1))
-                            }
-                          >
-                            ขึ้น
-                          </Button>
-                          <Button
-                            size="small"
-                            startIcon={<ArrowDownwardRoundedIcon />}
-                            disabled={siblingIndex < 0 || siblingIndex >= siblings.length - 1 || operationPending}
-                            onClick={() =>
-                              setOrderDraft((current) => moveMenuSibling(current ?? orderItems, item.id, 1))
-                            }
-                          >
-                            ลง
-                          </Button>
+                          <Stack direction="row" spacing={0.5}>
+                            <Button
+                              size="small"
+                              startIcon={<ArrowUpwardRoundedIcon />}
+                              disabled={siblingIndex <= 0 || operationPending}
+                              onClick={() =>
+                                setOrderDraft((current) => moveMenuSibling(current ?? orderItems, item.id, -1))
+                              }
+                            >
+                              ขึ้น
+                            </Button>
+                            <Button
+                              size="small"
+                              startIcon={<ArrowDownwardRoundedIcon />}
+                              disabled={siblingIndex < 0 || siblingIndex >= siblings.length - 1 || operationPending}
+                              onClick={() =>
+                                setOrderDraft((current) => moveMenuSibling(current ?? orderItems, item.id, 1))
+                              }
+                            >
+                              ลง
+                            </Button>
+                          </Stack>
                         </Stack>
-                      </Stack>
+                      </Box>
                     </Box>
                   );
                 })}
@@ -473,83 +525,86 @@ export default function MenuPage() {
             <Stack spacing={1.25} aria-busy={fetching}>
               {menuRows.map(({ item, depth, parentLabel }) => {
                 const metadata = orderMap.get(item.id);
+                const hasChildren = orderItems.some((candidate) => candidate.parentId === item.id);
 
                 return (
-                  <Box
-                    key={item.id}
-                    sx={{
-                      ...staticSurfaceSx,
-                      ml: Math.min(depth, 5) * 2.25,
-                      p: depth ? 1.5 : 2,
-                      borderLeft: depth ? "4px solid" : undefined,
-                      borderLeftColor: depth ? "primary.light" : undefined,
-                      bgcolor: depth ? "background.default" : "background.paper"
-                    }}
-                  >
-                    <Stack
-                      direction={{ xs: "column", md: "row" }}
-                      spacing={1.5}
-                      sx={{ alignItems: { xs: "flex-start", md: "center" }, justifyContent: "space-between" }}
+                  <Box key={item.id} data-menu-depth={depth} sx={menuIndent(depth)}>
+                    <Box
+                      sx={{
+                        ...staticSurfaceSx,
+                        p: depth ? 1.5 : 2,
+                        bgcolor: depth ? "background.default" : "background.paper",
+                        borderLeft: depth ? "3px solid" : undefined,
+                        borderLeftColor: depth ? "divider" : undefined
+                      }}
                     >
-                      <Box sx={{ minWidth: 0 }}>
-                        <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
-                          {depth > 0 && <AccountTreeRoundedIcon fontSize="small" color="action" />}
-                          <Typography sx={{ fontWeight: 900 }}>{item.label}</Typography>
-                          <Chip
-                            size="small"
-                            label={depth ? "เมนูย่อย" : "เมนูหลัก"}
-                            color={depth ? "default" : "primary"}
-                            variant={depth ? "outlined" : "filled"}
-                          />
-                          <Chip
-                            size="small"
-                            label={item.enabled ? "แสดง" : "ซ่อน"}
-                            color={item.enabled ? "success" : "default"}
-                          />
-                          {metadata && <Chip size="small" variant="outlined" label={`ลำดับ ${metadata.order}`} />}
-                        </Stack>
+                      <Stack
+                        direction={{ xs: "column", md: "row" }}
+                        spacing={1.5}
+                        sx={{ alignItems: { xs: "flex-start", md: "center" }, justifyContent: "space-between" }}
+                      >
+                        <Box sx={{ minWidth: 0 }}>
+                          <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                            {depth > 0 && <SubdirectoryArrowRightRoundedIcon fontSize="small" color="action" />}
+                            <Typography sx={{ fontWeight: 900 }}>{item.label}</Typography>
+                            {depth > 0 && (
+                              <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>
+                                เมนูย่อย
+                              </Typography>
+                            )}
+                            <Chip
+                              size="small"
+                              label={item.enabled ? "แสดง" : "ซ่อน"}
+                              color={item.enabled ? "success" : "default"}
+                            />
+                            {metadata && <Chip size="small" variant="outlined" label={`ลำดับ ${metadata.order}`} />}
+                          </Stack>
 
-                        {parentLabel && (
-                          <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.25 }}>
-                            ภายใต้ {parentLabel}
+                          {parentLabel && (
+                            <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.25 }}>
+                              ภายใต้ {parentLabel}
+                            </Typography>
+                          )}
+
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "text.secondary", mt: 0.5, overflowWrap: "anywhere" }}
+                          >
+                            {item.href}
                           </Typography>
+                        </Box>
+
+                        {canManage && (
+                          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+                            <Button
+                              size="small"
+                              startIcon={<AddIcon />}
+                              disabled={operationPending}
+                              onClick={() => openCreate(item.id)}
+                            >
+                              เพิ่มเมนูย่อย
+                            </Button>
+                            <Button
+                              size="small"
+                              startIcon={<EditOutlinedIcon />}
+                              disabled={operationPending || !metadata}
+                              onClick={() => void openEdit(item)}
+                            >
+                              แก้ไข
+                            </Button>
+                            <Button
+                              size="small"
+                              color="error"
+                              startIcon={<DeleteOutlineIcon />}
+                              disabled={operationPending || !metadata || hasChildren}
+                              onClick={() => void handleDelete(item)}
+                            >
+                              ลบ
+                            </Button>
+                          </Stack>
                         )}
-
-                        <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5, overflowWrap: "anywhere" }}>
-                          {item.href}
-                        </Typography>
-                      </Box>
-
-                      {canManage && (
-                        <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-                          <Button
-                            size="small"
-                            startIcon={<AddIcon />}
-                            disabled={operationPending}
-                            onClick={() => openCreate(item.id)}
-                          >
-                            เพิ่มเมนูย่อย
-                          </Button>
-                          <Button
-                            size="small"
-                            startIcon={<EditOutlinedIcon />}
-                            disabled={operationPending || !metadata}
-                            onClick={() => void openEdit(item)}
-                          >
-                            แก้ไข
-                          </Button>
-                          <Button
-                            size="small"
-                            color="error"
-                            startIcon={<DeleteOutlineIcon />}
-                            disabled={operationPending || !metadata || Boolean(item.children?.length)}
-                            onClick={() => void handleDelete(item)}
-                          >
-                            ลบ
-                          </Button>
-                        </Stack>
-                      )}
-                    </Stack>
+                      </Stack>
+                    </Box>
                   </Box>
                 );
               })}
