@@ -1,29 +1,32 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AdminMenuListItem, AdminMenuOrderItem } from "../../features/admin-pagination";
+import type { AdminMenuOrderItem } from "../../features/admin-pagination";
+import type { PublicMenuItem } from "../../features/cms-navigation/types";
 import type { User } from "../../types";
 import MenuPage from "./MenuPage";
 
 const authMock = vi.hoisted(() => ({ role: "admin" as User["role"] }));
-
 const paginationMock = vi.hoisted(() => ({
-  getAdminMenuList: vi.fn(),
   getAdminMenuOrder: vi.fn(),
   saveAdminMenuItem: vi.fn(),
   deleteAdminMenuItem: vi.fn(),
   saveAdminMenuOrder: vi.fn()
 }));
-
+const adminWriteMock = vi.hoisted(() => ({ getPublicMenuItemsFromCloudflare: vi.fn() }));
 const publicInvalidationMock = vi.hoisted(() => ({ invalidatePublicCmsData: vi.fn() }));
 const swalInstance = vi.hoisted(() => ({ fire: vi.fn(), close: vi.fn(), showLoading: vi.fn() }));
 
 vi.mock("sweetalert2", () => ({ default: { mixin: vi.fn(() => swalInstance) } }));
 vi.mock("sweetalert2/dist/sweetalert2.min.css", () => ({}));
 
+vi.mock("../../features/admin-write/cloudflareApi", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../features/admin-write/cloudflareApi")>()),
+  getPublicMenuItemsFromCloudflare: adminWriteMock.getPublicMenuItemsFromCloudflare
+}));
+
 vi.mock("../../features/admin-pagination/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../features/admin-pagination/api")>()),
-  getAdminMenuList: paginationMock.getAdminMenuList,
   getAdminMenuOrder: paginationMock.getAdminMenuOrder,
   saveAdminMenuItem: paginationMock.saveAdminMenuItem,
   deleteAdminMenuItem: paginationMock.deleteAdminMenuItem,
@@ -42,9 +45,8 @@ vi.mock("../../context/authSessionContext", () => ({
       email: `${authMock.role}@example.invalid`,
       role: authMock.role
     };
-    const session = { user, capabilities: authMock.role === "admin" ? ["menu.manage"] : [] };
     return {
-      session,
+      session: { user, capabilities: authMock.role === "admin" ? ["menu.manage"] : [] },
       capabilities: authMock.role === "admin" ? ["menu.manage"] : [],
       login: vi.fn(),
       logout: vi.fn()
@@ -52,59 +54,61 @@ vi.mock("../../context/authSessionContext", () => ({
   }
 }));
 
-const menuItem: AdminMenuListItem = {
-  id: "menu-news",
-  label: "ข่าวสาร",
-  href: "/news",
-  enabled: true,
-  parentId: null,
-  order: 1,
-  updatedAt: "2026-07-12T00:00:00.000Z",
-  revision: 2
-};
+const menuTree: PublicMenuItem[] = [
+  {
+    id: "menu-about-internal-id",
+    label: "เกี่ยวกับวิทยาลัย",
+    href: "/about",
+    enabled: true,
+    children: [
+      {
+        id: "menu-history-internal-id",
+        label: "ประวัติวิทยาลัย",
+        href: "/history",
+        enabled: true
+      }
+    ]
+  },
+  {
+    id: "menu-news-internal-id",
+    label: "ข่าวสาร",
+    href: "/news",
+    enabled: true
+  }
+];
 
-const secondMenuItem: AdminMenuListItem = {
-  ...menuItem,
-  id: "menu-about",
-  label: "เกี่ยวกับเรา",
-  href: "/about",
-  order: 2,
-  revision: 4
-};
-
-function menuPageResponse(
-  items: AdminMenuListItem[],
-  pagination: Partial<{
-    page: number;
-    pageSize: number;
-    totalItems: number;
-    totalPages: number;
-    hasPreviousPage: boolean;
-    hasNextPage: boolean;
-  }> = {}
-) {
-  const page = pagination.page ?? 1;
-  const pageSize = pagination.pageSize ?? 25;
-  const totalItems = pagination.totalItems ?? items.length;
-  const totalPages = pagination.totalPages ?? Math.ceil(totalItems / pageSize);
-  return {
-    items,
-    pagination: {
-      page,
-      pageSize,
-      totalItems,
-      totalPages,
-      hasPreviousPage: pagination.hasPreviousPage ?? page > 1,
-      hasNextPage: pagination.hasNextPage ?? page < totalPages
-    },
-    generatedAt: "2026-07-12T00:00:00.000Z"
-  };
-}
+const orderItems: AdminMenuOrderItem[] = [
+  {
+    id: "menu-about-internal-id",
+    label: "เกี่ยวกับวิทยาลัย",
+    parentId: null,
+    order: 1,
+    enabled: true,
+    revision: 2
+  },
+  {
+    id: "menu-history-internal-id",
+    label: "ประวัติวิทยาลัย",
+    parentId: "menu-about-internal-id",
+    order: 1,
+    enabled: true,
+    revision: 3
+  },
+  {
+    id: "menu-news-internal-id",
+    label: "ข่าวสาร",
+    parentId: null,
+    order: 2,
+    enabled: true,
+    revision: 4
+  }
+];
 
 function renderMenuPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
   });
+
   return render(
     <QueryClientProvider client={queryClient}>
       <MenuPage />
@@ -113,21 +117,17 @@ function renderMenuPage() {
 }
 
 beforeEach(() => {
-  window.history.replaceState({}, "", "/admin/menu");
   authMock.role = "admin";
-  paginationMock.getAdminMenuList.mockReset();
-  paginationMock.getAdminMenuList.mockResolvedValue(menuPageResponse([menuItem]));
+  adminWriteMock.getPublicMenuItemsFromCloudflare.mockReset();
+  adminWriteMock.getPublicMenuItemsFromCloudflare.mockResolvedValue(menuTree);
   paginationMock.getAdminMenuOrder.mockReset();
-  paginationMock.getAdminMenuOrder.mockResolvedValue([
-    { id: menuItem.id, label: menuItem.label, order: 1, enabled: true, parentId: null, revision: 2 },
-    { id: secondMenuItem.id, label: secondMenuItem.label, order: 2, enabled: true, parentId: null, revision: 4 }
-  ] satisfies AdminMenuOrderItem[]);
+  paginationMock.getAdminMenuOrder.mockResolvedValue(orderItems);
   paginationMock.saveAdminMenuItem.mockReset();
-  paginationMock.saveAdminMenuItem.mockResolvedValue(menuItem);
+  paginationMock.saveAdminMenuItem.mockResolvedValue({});
   paginationMock.deleteAdminMenuItem.mockReset();
-  paginationMock.deleteAdminMenuItem.mockResolvedValue({ id: menuItem.id, deleted: true });
+  paginationMock.deleteAdminMenuItem.mockResolvedValue({ id: "menu-news-internal-id", deleted: true });
   paginationMock.saveAdminMenuOrder.mockReset();
-  paginationMock.saveAdminMenuOrder.mockResolvedValue([]);
+  paginationMock.saveAdminMenuOrder.mockResolvedValue(orderItems);
   publicInvalidationMock.invalidatePublicCmsData.mockReset();
   publicInvalidationMock.invalidatePublicCmsData.mockResolvedValue(undefined);
   swalInstance.fire.mockReset();
@@ -137,120 +137,61 @@ beforeEach(() => {
   swalInstance.showLoading.mockReset();
 });
 
-describe("MenuPage server pagination", () => {
-  it("renders one server page and sends page/filter state from the URL", async () => {
-    window.history.replaceState({}, "", "/admin/menu?page=2&enabled=false");
-    paginationMock.getAdminMenuList.mockResolvedValue(
-      menuPageResponse([{ ...menuItem, enabled: false }], { page: 2, totalItems: 26, totalPages: 2 })
-    );
+describe("MenuPage hierarchy UX", () => {
+  it("renders submenu beneath its parent using readable labels and never exposes internal menu ids", async () => {
     renderMenuPage();
 
-    expect(await screen.findByText(menuItem.label)).toBeInTheDocument();
-    expect(screen.getByText("แสดง 26–26 จากทั้งหมด 26 รายการ")).toBeInTheDocument();
-    await waitFor(() =>
-      expect(paginationMock.getAdminMenuList).toHaveBeenCalledWith(
-        expect.objectContaining({ page: 2, pageSize: 25, enabled: false, sortBy: "order", sortDirection: "asc" })
-      )
-    );
+    expect(await screen.findByText("เกี่ยวกับวิทยาลัย")).toBeInTheDocument();
+    expect(screen.getByText("ประวัติวิทยาลัย")).toBeInTheDocument();
+    expect(screen.getByText("ภายใต้ เกี่ยวกับวิทยาลัย")).toBeInTheDocument();
+    expect(screen.queryByText("menu-about-internal-id")).not.toBeInTheDocument();
+    expect(screen.queryByText("menu-history-internal-id")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Menu ID แม่/)).not.toBeInTheDocument();
   });
 
-  it("resets page one for debounced search and server visibility filtering", async () => {
-    window.history.replaceState({}, "", "/admin/menu?page=2");
+  it("preserves a root permalink instead of rewriting it to /content/...", async () => {
     renderMenuPage();
-    await screen.findByText(menuItem.label);
+    await screen.findByText("เกี่ยวกับวิทยาลัย");
 
-    fireEvent.change(screen.getByRole("textbox", { name: "ค้นหาเมนู" }), { target: { value: "ข่าว" } });
-
-    await waitFor(
-      () =>
-        expect(paginationMock.getAdminMenuList).toHaveBeenCalledWith(expect.objectContaining({ page: 1, q: "ข่าว" })),
-      { timeout: 1_500 }
-    );
-    expect(new URLSearchParams(window.location.search).get("page")).toBeNull();
-
-    fireEvent.mouseDown(screen.getByRole("combobox", { name: "การแสดงผล" }));
-    fireEvent.click(screen.getByRole("option", { name: "ซ่อน" }));
-
-    await waitFor(() =>
-      expect(paginationMock.getAdminMenuList).toHaveBeenCalledWith(expect.objectContaining({ page: 1, enabled: false }))
-    );
-  });
-
-  it("uses flat item CRUD and falls back after deleting the final item on page two", async () => {
-    window.history.replaceState({}, "", "/admin/menu?page=2");
-    paginationMock.getAdminMenuList.mockImplementation(async (request: { page?: number } = {}) =>
-      request.page === 2
-        ? menuPageResponse([menuItem], { page: 2, totalItems: 26, totalPages: 2 })
-        : menuPageResponse([menuItem], { page: 1, totalItems: 25, totalPages: 1 })
-    );
-    renderMenuPage();
-    await screen.findByText(menuItem.label);
-
-    fireEvent.click(screen.getByRole("button", { name: "ลบ" }));
-
-    await waitFor(() =>
-      expect(paginationMock.deleteAdminMenuItem).toHaveBeenCalledWith(
-        { id: menuItem.id, revision: 2 },
-        expect.any(Object)
-      )
-    );
-    await waitFor(() => expect(new URLSearchParams(window.location.search).get("page")).toBeNull());
-
-    paginationMock.getAdminMenuList.mockImplementation(async (request) =>
-      request.pageSize === 1
-        ? menuPageResponse([{ ...menuItem, order: 26 }], { totalItems: 26, totalPages: 2 })
-        : menuPageResponse([menuItem], { page: 1, totalItems: 25, totalPages: 1 })
-    );
     fireEvent.click(screen.getByRole("button", { name: "เพิ่มเมนูหลัก" }));
-    await screen.findByRole("textbox", { name: "ชื่อเมนู" });
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อเมนู" }), { target: { value: "รับสมัคร" } });
     fireEvent.change(screen.getByRole("textbox", { name: "เส้นทางหรือ URL" }), { target: { value: "/admission" } });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกรายการ" }));
 
     await waitFor(() =>
       expect(paginationMock.saveAdminMenuItem).toHaveBeenCalledWith(
-        expect.objectContaining({ label: "รับสมัคร", href: "/content/admission", parentId: null, order: 27 }),
+        expect.objectContaining({
+          label: "รับสมัคร",
+          href: "/admission",
+          parentId: null,
+          order: 3
+        }),
         expect.any(Object)
       )
     );
   });
 
-  it("keeps read-only roles able to view pagination without mutation controls", async () => {
+  it("creates a submenu from the parent action without asking the user to type an internal id", async () => {
+    renderMenuPage();
+    await screen.findByText("เกี่ยวกับวิทยาลัย");
+
+    fireEvent.click(screen.getAllByRole("button", { name: "เพิ่มเมนูย่อย" })[0]);
+
+    expect(screen.getByRole("heading", { name: "เพิ่มเมนูย่อย" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "เมนูแม่" })).toBeInTheDocument();
+    expect(screen.getByText(/เลือกจากชื่อเมนู/)).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: /Menu ID/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps read-only users on the readable tree without mutation controls", async () => {
     authMock.role = "viewer";
     renderMenuPage();
 
-    expect(await screen.findByText(menuItem.label)).toBeInTheDocument();
+    expect(await screen.findByText("เกี่ยวกับวิทยาลัย")).toBeInTheDocument();
     expect(screen.getByText(/มีสิทธิ์อ่านข้อมูลเท่านั้น/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "เพิ่มเมนูหลัก" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "จัดลำดับ" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "แก้ไข" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ลบ" })).not.toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "การแบ่งหน้ารายการ" })).toBeInTheDocument();
-  });
-});
-
-describe("MenuPage compact ordering", () => {
-  it("does not load global order until opened and saves sibling revisions", async () => {
-    renderMenuPage();
-    await screen.findByText(menuItem.label);
-    expect(paginationMock.getAdminMenuOrder).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "จัดลำดับ" }));
-
-    expect(await screen.findByText(secondMenuItem.label)).toBeInTheDocument();
-    await waitFor(() => expect(paginationMock.getAdminMenuOrder).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getAllByRole("button", { name: "ขึ้น" })[1]);
-    fireEvent.click(screen.getByRole("button", { name: "บันทึกลำดับ" }));
-
-    await waitFor(() =>
-      expect(paginationMock.saveAdminMenuOrder).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          { id: secondMenuItem.id, label: secondMenuItem.label, order: 1, enabled: true, parentId: null, revision: 4 },
-          { id: menuItem.id, label: menuItem.label, order: 2, enabled: true, parentId: null, revision: 2 }
-        ]),
-        expect.any(Object)
-      )
-    );
-    expect(publicInvalidationMock.invalidatePublicCmsData).toHaveBeenCalled();
   });
 });

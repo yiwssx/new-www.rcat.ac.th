@@ -1,95 +1,209 @@
-# RCAT Public Website And CMS
+# RCAT Public Website and CMS
 
 React/Vite public website and CMS for Roi-Et College of Agriculture and Technology.
 
-Current source-of-truth snapshot: 2026-07-19, based on commit `80324e71982411c67e6f3f9b66e06b09ab7bb282` plus the warning-cleanup changes documented in `docs/development/`.
+Updated: 2026-08-01.
+
+This README describes the current runtime and development conventions after the CMS Session reliability work and the Admin Menu hierarchy/URL/test refactor committed with this documentation.
 
 ## Current Runtime Ownership
 
-- Public structured reads: Cloudflare Worker and D1.
-- Public analytics, site view, content view, visitor presence, and live visitor stats: Cloudflare Worker and D1.
-- Admin structured reads and writes: Cloudflare Worker and D1.
-- Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
-- Admin session proxy: Vercel server-side admin proxy.
-- Media/file bridge: Apps Script behind the Vercel proxy.
+- Public structured reads: Cloudflare Worker + D1.
+- Public analytics, site view, content view, visitor presence, and live visitor statistics: Cloudflare Worker + D1.
+- Admin structured reads and writes: Cloudflare Worker + D1.
+- CMS identity, sessions, RBAC, MFA, CSRF, step-up assurance, session revocation, and user lifecycle: Cloudflare Worker + D1, reached through same-origin Vercel proxies.
+- Admin/session proxy: Vercel server-side proxy.
+- Media/file bridge: Apps Script behind the authenticated Vercel proxy.
 - File storage: Google Drive behind the Apps Script media/file bridge.
+- Runtime sitemap: Vercel `/sitemap.xml` -> `/api/sitemap`, backed by live Cloudflare public data.
 
-## Current Project Status
+The authoritative current ownership document is:
 
-M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
+`docs/architecture/current-runtime-ownership.md`
 
-M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final. Remaining public, admin, workflow, validation, layout, Thai wording, and user-facing error issues are tracked under M21.
+Historical M13-M20 migration documents remain useful as historical evidence, but they must not override the current runtime ownership, CMS Session, Node/pnpm, or deployment documentation.
 
-The production custom domain `www.rcat.ac.th` is connected to the Vercel production deployment, the Cloudflare/Vercel redirect loop was resolved at the provider configuration layer, and the Cloudflare Worker allowed origins include the production custom domain. Apps Script is retained only for the media/file bridge and Google Drive operations. Browser-side direct Apps Script structured reads/writes and legacy Apps Script user-management paths have been removed.
+## Current Stabilization Scope
 
-## Admin Operation Feedback
+M20 migration/runtime/domain-cutover scope is closed.
 
-Admin CMS write operations now use blocking loading modals while pending, centered success modals requiring acknowledgment, and centered error modals requiring acknowledgment. Final admin write results must not use short auto-dismiss success toasts.
+M21 owns continuing UI/UX and business-workflow stabilization. Current work includes Admin usability, menu management, content workflows, validation, presentation, Thai wording, error handling, and regression prevention.
 
-The standardized feedback applies to Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings. It was completed by:
+### Admin Menu
 
-- `7f5f95083b5df18c5c73939bf2b1e251c3880a97` `fix(admin): make media operation results explicit`
-- `8aa55b3b22dd6a121fbaa799899670766f776abb` `fix(admin): standardize operation feedback`
+The Admin Menu editor uses a hierarchical mental model:
 
-## Public UX Updates
+- menu items are presented as a tree;
+- child menus are displayed beneath their parent;
+- users select a parent by readable menu name rather than typing an internal menu ID;
+- internal IDs remain implementation details;
+- explicit internal paths are preserved;
+- the editor must not automatically rewrite `/some-path` to `/content/some-path`;
+- `/content/$slug` remains supported, but root permalink `/$slug` is also a valid public content route;
+- ordering is performed within sibling groups.
 
-Urgent marquee speed is device-independent. The ticker uses distance-based animation duration, reduced-motion slows the ticker instead of disabling it, and the change did not require Worker, D1, or Apps Script updates.
+See:
 
-- `4b8f01a2162ef8de002a8c2c46c69110f7b749e2` `fix(ui): normalize marquee speed across devices`
+`docs/admin/admin-menu-management.md`
+
+## CMS Session Behavior
+
+CMS Sessions remain server-authoritative.
+
+Current policy:
+
+- idle timeout: 30 minutes;
+- absolute lifetime: 8 hours;
+- server touch threshold: 5 minutes;
+- meaningful recent Admin activity can trigger a throttled session refresh while the page is visible;
+- a merely open but unattended tab must not keep a Session alive forever;
+- temporary `5xx`/network failures must not be treated as genuine Session expiration;
+- a genuine Session-expiration `401` can clear authentication;
+- unsaved Content Editor state has recovery protection for true Session expiration.
+
+See:
+
+`docs/cms-auth-session-lifecycle.md`
+
+## UI Test Policy
+
+Do not use the complete repository quality/release suite as the first feedback loop for a small UI fix.
+
+For a focused Admin Menu change, run the focused Menu tests first:
+
+```bash
+pnpm exec vitest run src/admin/pages/menuPageModel.test.ts src/admin/pages/MenuPage.test.tsx
+```
+
+Then run the production TypeScript/Vite build:
+
+```bash
+pnpm build
+```
+
+Broader unit, integration, governance, Worker, and functional suites remain important, but they should follow targeted validation rather than block the first edit/test cycle.
+
+See:
+
+`docs/development/ui-testing-policy.md`
 
 ## Stack
 
-- React + TypeScript strict mode
+- React 19 + TypeScript strict mode
 - Vite
 - Tailwind CSS v4
 - MUI
 - TanStack Router
 - TanStack Query and Table
-- Vercel frontend and server-side proxy routes
+- Vercel frontend and same-origin server routes
 - Cloudflare Worker and D1
 - Apps Script media/file bridge
 - Google Drive file storage
 
-## Project Settings
+## Toolchain
 
-Project settings live in `src/config/project-settings.json`.
+The checked-in toolchain contract is:
 
-Use that file for checked-in non-secret defaults such as site name, canonical public site URL, logo path, theme colors, query behavior, storage keys, role permissions, and resource names.
+- Node `24.x`
+- pnpm `10.34.5`
 
-Do not store secrets, tokens, production credentials, Access AUD values, D1 IDs, or private deployment URLs in project settings.
+Use the versions declared by `package.json`, `packageManager`, `.node-version` where applicable, and CI. Do not document or reintroduce Node 22 as the current project requirement.
 
-## Commands
+Install:
 
 ```bash
 pnpm install --frozen-lockfile
+```
+
+## Common Commands
+
+Development:
+
+```bash
 pnpm dev
+```
+
+Focused verification:
+
+```bash
+pnpm exec vitest run <affected-test-files>
+pnpm build
+```
+
+Repository suites:
+
+```bash
 pnpm format:check
 pnpm lint:strict
 pnpm test:unit
 pnpm test:integration
 pnpm test:functional
-pnpm build
 pnpm worker:typecheck
-pnpm deps:peers
-pnpm deps:check
 ```
 
-Use Node `22.23.1` and pnpm `10.34.5`. `package.json` accepts the Vercel-supported Node `22.x` line, while `.node-version`, `packageManager`, and CI pin the exact tested versions.
+Governance/release:
 
-`pnpm-workspace.yaml` permits install scripts only for `esbuild`, `workerd`, and `sharp`. These binaries are required by the Vite/Wrangler toolchain; any unreviewed dependency build script fails installation.
+```bash
+pnpm perf:check
+pnpm media:check
+pnpm layout:check
+pnpm design:check
+pnpm quality
+pnpm quality:full
+pnpm quality:release
+```
 
-pnpm 10 predates the `pnpm peers check` reporter. `pnpm deps:peers` enforces the same acceptance condition through a frozen install with strict peer-dependency validation.
+`quality:release` is a release-scale command. It is intentionally not the default edit-loop command for a small UI change.
+
+## Project Settings
+
+Checked-in non-secret project settings live in:
+
+`src/config/project-settings.json`
+
+Do not store secrets, tokens, production credentials, D1 IDs, Access identifiers, private deployment URLs, Recovery Codes, session tokens, or encryption keys in project settings or documentation.
 
 ## Runtime Sitemap
 
-Vercel rewrites `/sitemap.xml` to the same-origin function `/api/sitemap`. The function reads the current public menu and published news, announcement, and blog content from the Cloudflare Worker/D1 public API, then returns XML with a five-minute shared-cache lifetime. It returns `503` when the public API is unavailable rather than publishing a stale build-time sitemap.
+Vercel rewrites `/sitemap.xml` to `/api/sitemap`.
 
-Server-side Vercel variables are `PUBLIC_SITE_URL` and `CLOUDFLARE_PUBLIC_API_URL`; the function also accepts the corresponding `VITE_` names as deployment-compatibility fallbacks. `pnpm build` does not generate sitemap files. `public/sitemap.xml` is absent and untracked. `public/robots.txt` is tracked and points crawlers to `/sitemap.xml`. `pnpm test:sitemap` covers route normalization and XML generation. The old tracked `scripts/generate-sitemap.mjs` is unreferenced and reserved for a separate removal decision.
+The server function reads current public menu and published content from the Cloudflare Worker/D1 public API. The build does not generate a tracked `public/sitemap.xml`.
+
+Relevant verification:
+
+```bash
+pnpm test:sitemap
+pnpm build
+```
+
+## Deployment
+
+General rule:
+
+- React/Vite or `server/*` change -> Vercel.
+- Cloudflare Worker runtime/config change -> Cloudflare Worker.
+- new D1 migration -> apply migration and deploy compatible Worker as required.
+- Apps Script `.gs` media bridge change -> Apps Script.
+- docs/tests only -> no runtime deployment.
+
+The Admin Menu hierarchy refactor is a frontend/Admin UI change when only `src/admin/**` and documentation/tests change; it requires Vercel deployment, not a Worker/D1 migration.
+
+See:
+
+`docs/deployment/runtime-deployment-guide.md`
 
 ## Documentation
 
-- Current runtime ownership: `docs/architecture/m20-cleanup-runtime-ownership.md`
-- Current migration/stabilization status: `docs/architecture/current-migration-status.md`
+Current documents:
+
+- Runtime ownership: `docs/architecture/current-runtime-ownership.md`
+- Admin Menu behavior: `docs/admin/admin-menu-management.md`
+- CMS Session lifecycle: `docs/cms-auth-session-lifecycle.md`
+- UI test policy: `docs/development/ui-testing-policy.md`
+- Runtime deployment: `docs/deployment/runtime-deployment-guide.md`
+- Historical migration status: `docs/architecture/current-migration-status.md`
+- Historical M20 ownership closure: `docs/architecture/m20-cleanup-runtime-ownership.md`
+- CMS authentication cutover runbook: `docs/cms-auth-final-cutover.md`
 - Environment variables: `docs/development/environment-variables.md`
-- Deployment boundaries: `docs/deployment/runtime-deployment-guide.md`
-- Current warning/dependency state: `docs/development/warning-cleanup-final-report.md`
+
+Historical milestone documents preserve the state and evidence of their milestones. For current Node/pnpm, Session behavior, Menu UX, and deployment decisions, use the current documents listed above.
