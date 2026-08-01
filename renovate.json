@@ -1,0 +1,69 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard"],
+  "baseBranchPatterns": ["master"],
+  "timezone": "Asia/Bangkok",
+  "schedule": ["* 1-5 * * 1-5"],
+  "labels": ["dependencies"],
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "rangeStrategy": "bump",
+  "rebaseWhen": "behind-base-branch",
+  "prConcurrentLimit": 2,
+  "branchConcurrentLimit": 2,
+  "packageRules": [
+    {
+      "description": "Wait three days before normal npm updates",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict"
+    },
+    {
+      "description": "Automatically merge stable patch and minor npm updates",
+      "matchManagers": ["npm"],
+      "matchCurrentVersion": "!/^0/",
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Require manual review for major npm updates",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["major-update", "manual-review"]
+    },
+    {
+      "description": "Require manual review for unstable zero-major packages",
+      "matchManagers": ["npm"],
+      "matchCurrentVersion": "/^0\\./",
+      "automerge": false,
+      "addLabels": ["unstable-package", "manual-review"]
+    },
+    {
+      "description": "Automatically merge patch and minor GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Require manual review for major GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["major-update", "manual-review"]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "vulnerabilityFixStrategy": "highest",
+    "automerge": false,
+    "addLabels": ["security", "manual-review"]
+  }
+}
