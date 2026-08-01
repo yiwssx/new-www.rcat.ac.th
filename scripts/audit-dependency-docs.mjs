@@ -64,6 +64,7 @@ const REQUIRED_PERFORMANCE_SECTIONS = Object.freeze([
 ]);
 const ALLOWED_DEPENDENCY_STATUSES = new Set([
   "Registry latest",
+  "Pending release-age eligibility",
   "Validated compatibility exception",
   "Outdated",
   "Registry error",
@@ -98,9 +99,8 @@ function readRequired(path) {
 }
 
 function hashFile(path) {
-  return createHash("sha256")
-    .update(readFileSync(absolutePath(path)))
-    .digest("hex");
+  const canonicalText = readFileSync(absolutePath(path), "utf8").replaceAll("\r\n", "\n");
+  return createHash("sha256").update(canonicalText).digest("hex");
 }
 
 function escapeRegex(value) {
@@ -142,8 +142,8 @@ function validateGovernanceDocument(content) {
   record(path, content.includes("minimumReleaseAge: 4320"), "must retain the three-day release-age policy");
   record(
     path,
-    content.includes("committed direct dependencies must still match registry `latest`"),
-    "must state that the install-time age safeguard does not permit older committed direct dependencies"
+    /live registry monitoring is separate from blocking\s+push and pull-request CI/iu.test(content),
+    "must separate live registry monitoring from blocking push and pull-request CI"
   );
   record(path, !content.includes(REMOVED_RELEASE_AGE_STATUS), "must not define an obsolete age-based passing status");
   for (const packageName of ["esbuild", "sharp", "workerd"]) {
@@ -223,11 +223,7 @@ function validateStatusDocument(content) {
   );
   record(path, /^- Registry lookup: PASS \(\d+ direct dependencies\)$/mu.test(content), "registry lookup must be PASS");
   record(path, /^- Direct dependencies: \d+$/mu.test(content), "direct dependency count is missing");
-  record(
-    path,
-    /^- Registry latest or validated compatibility exceptions: \d+$/mu.test(content),
-    "accepted dependency count is missing"
-  );
+  record(path, /^- Accepted by live monitoring policy: \d+$/mu.test(content), "accepted dependency count is missing");
   record(path, !content.includes(REMOVED_RELEASE_AGE_STATUS), "must not contain an obsolete age-based passing status");
   for (const heading of ["Security audit", "Direct dependency matrix", "Interpretation"]) {
     record(path, hasHeading(content, heading), `missing required section "${heading}"`);

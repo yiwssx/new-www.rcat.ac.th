@@ -20,10 +20,11 @@ governance.
 
 Select stable releases from the registry. Do not select a prerelease merely
 because it is numerically newer. A direct dependency may remain below the
-registry `latest` release only when a validated compatibility exception in
+registry `latest` release while that release completes the three-day
+supply-chain age window, or when a validated compatibility exception in
 `config/dependency-policy.json` proves that the latest release is incompatible
-with an active peer or runtime constraint. Release age is not a direct
-dependency freshness exception.
+with an active peer or runtime constraint. Release age is a temporary monitoring
+state, not a permanent compatibility exception.
 
 Registry lookup is fail closed. A missing, malformed, or unreachable registry
 response is an error, never evidence that the installed version is current.
@@ -165,17 +166,21 @@ and retain this protection during routine updates. Only the narrow, one-command
 security response described above may bypass it during the controlled
 installation; no exclusion may persist in the workspace.
 
-This setting governs installation timing, not the committed freshness result:
-committed direct dependencies must still match registry `latest` unless one of
-the two machine-validated compatibility constraints applies. When an exact
-latest release must be selected before the normal window expires, use the
-narrowest supported one-command override for only the requested package and
-required transitive binaries. Never persist `minimumReleaseAgeExclude`, reduce
-the age window, or select an older direct dependency to make installation pass.
+This setting governs both normal installation timing and update eligibility.
+The live monitor reports the registry `latest` release and its publication time,
+but it fails freshness only when an installed direct dependency is behind the
+newest stable release that has completed the 72-hour window. It never labels an
+older installed release as registry latest. When an urgent security release must
+be selected before the normal window expires, use the narrow exception in
+section 6. Never persist `minimumReleaseAgeExclude`, reduce the age window, or
+add a permanent package exclusion.
 
-The live dependency checker fails closed on missing or malformed registry data,
-rejects prereleases, verifies exact manifest-to-lockfile alignment, and treats
-every non-exempt direct dependency below registry `latest` as outdated.
+Committed dependency-state validation checks manifest and lockfile alignment,
+strict peers, compatibility-policy structure and local constraints, audits, and
+generated-document hashes. Live registry monitoring is separate from blocking
+push and pull-request CI. It fails closed on missing or malformed registry data,
+rejects prereleases, and runs on the scheduled and manually dispatched
+Dependency Monitoring workflow.
 
 ## 16. Install-time build-script allowlist
 
@@ -196,10 +201,10 @@ needed. Do not add broad script approvals.
 2. Review registry release notes, advisories, peer ranges, and release age.
 3. Update the smallest intended dependency set and regenerate the lockfile.
 4. Run a frozen strict-peer install.
-5. Run `pnpm deps:status`, `pnpm deps:latest:check`, `pnpm deps:check`, and
-   `pnpm deps:docs:audit`.
-6. Run the complete CI gates and package-specific tests for affected behavior.
-7. Review the manifest, lockfile, generated status, and source diff before
+5. Run `pnpm deps:status`, `pnpm deps:check`, and `pnpm deps:docs:audit`.
+6. Run `pnpm deps:latest:check` as the separate live-registry monitoring check.
+7. Run the complete CI gates and package-specific tests for affected behavior.
+8. Review the manifest, lockfile, generated status, and source diff before
    committing.
 
 ## 18. Major migration procedure
@@ -224,7 +229,6 @@ The following checks are blocking:
 pnpm install --frozen-lockfile --strict-peer-dependencies
 pnpm deps:status:check
 pnpm deps:check
-pnpm deps:latest:check
 pnpm deps:docs:audit
 pnpm format:check
 pnpm lint:strict
@@ -242,6 +246,13 @@ pnpm test:functional
 
 No gate may use `continue-on-error`, `|| true`, or another silent failure
 fallback.
+
+The separate `Dependency Monitoring` workflow runs daily at `22:23` UTC
+(`05:23` Asia/Bangkok) and on `workflow_dispatch`. It installs the committed
+frozen lockfile with strict peers, then runs `pnpm deps:latest:check`. The job
+fails visibly when an eligible update, registry error, invalid compatibility
+exception, or audit failure exists. Releases still inside the 72-hour window are
+reported as pending eligibility and do not fail freshness.
 
 ## 20. Rollback procedure
 

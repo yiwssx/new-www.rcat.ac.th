@@ -31,7 +31,6 @@ jobs:
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: pnpm deps:status:check
       - run: pnpm deps:check
-      - run: pnpm deps:latest:check
       - run: pnpm deps:docs:audit
       - run: pnpm format:check
       - run: pnpm lint:strict

@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { validateCompatibilityExceptionPackages } from "./dependency-status-policy.mjs";
 
 const auditLevel = process.argv.find((argument) => argument.startsWith("--audit-level="))?.split("=", 2)[1] || "high";
 const prodAuditLevel =
@@ -9,6 +10,7 @@ const includeOutdated = process.argv.includes("--include-outdated");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 const ciWorkflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const workspaceConfig = readFileSync("pnpm-workspace.yaml", "utf8");
+const dependencyPolicy = JSON.parse(readFileSync("config/dependency-policy.json", "utf8"));
 const localNodeVersion = readFileSync(".node-version", "utf8").trim();
 const manifestErrors = [];
 
@@ -283,6 +285,55 @@ record(
   `runtime ${localNodeVersion}; engines ${engineNode}; @types/node ${directSpecifier("@types/node")}`
 );
 
+const compatibilityPolicyErrors = [];
+const compatibilityExceptions = dependencyPolicy?.compatibilityExceptions;
+const configuredExceptionPackages = validateCompatibilityExceptionPackages(compatibilityExceptions);
+compatibilityPolicyErrors.push(...configuredExceptionPackages.errors);
+for (const [packageName, exception] of Object.entries(compatibilityExceptions || {})) {
+  const selected = parseVersion(exception?.selected);
+  const direct = directVersion(packageName);
+  const installedPackage = readInstalledPackage(packageName);
+  const validation = exception?.validation;
+  if (!selected || selected.prerelease) {
+    compatibilityPolicyErrors.push(`${packageName} selected version is not stable semantic version`);
+  }
+  if (!direct || direct.raw !== selected?.raw) {
+    compatibilityPolicyErrors.push(`${packageName} selected version does not match the manifest`);
+  }
+  if (!installedPackage?.version || installedPackage.version !== selected?.raw) {
+    compatibilityPolicyErrors.push(`${packageName} selected version does not match the installed lockfile result`);
+  }
+  if (!Number.isInteger(exception?.blockedLatestMajor) || exception.blockedLatestMajor <= (selected?.major ?? -1)) {
+    compatibilityPolicyErrors.push(`${packageName} blockedLatestMajor must be greater than the selected major`);
+  }
+  if (typeof exception?.reason !== "string" || exception.reason.trim().length < 20) {
+    compatibilityPolicyErrors.push(`${packageName} reason is missing or too short`);
+  }
+  if (!Array.isArray(exception?.verifyWith) || exception.verifyWith.some((command) => typeof command !== "string")) {
+    compatibilityPolicyErrors.push(`${packageName} verifyWith commands are missing or invalid`);
+  }
+  if (validation?.kind === "peer-range") {
+    const peerPackage = readInstalledPackage(validation.peerPackage);
+    const peerRange = peerPackage?.peerDependencies?.[validation.peerDependency];
+    if (validation.peerDependency !== packageName || !selected || !satisfiesRange(selected, peerRange)) {
+      compatibilityPolicyErrors.push(`${packageName} selected version does not satisfy the installed peer range`);
+    }
+  } else if (validation?.kind === "runtime-major") {
+    if (validation.runtimeFile !== ".node-version" || !selected || selected.major !== localNode?.major) {
+      compatibilityPolicyErrors.push(`${packageName} selected major does not match the committed Node runtime`);
+    }
+  } else {
+    compatibilityPolicyErrors.push(`${packageName} validation kind is missing or unsupported`);
+  }
+}
+record(
+  "committed compatibility exception policy",
+  compatibilityPolicyErrors.length === 0,
+  compatibilityPolicyErrors.length
+    ? compatibilityPolicyErrors.join("; ")
+    : "allowlist, selections, and local constraints align"
+);
+
 const wrangler = readInstalledPackage("wrangler");
 const wranglerVersion = directVersion("wrangler");
 const workersTypes = directVersion("@cloudflare/workers-types");
@@ -338,6 +389,13 @@ record(
   !/\bcontinue-on-error\s*:\s*true\b|\|\|\s*true/u.test(ciWorkflow),
   "no continue-on-error or || true"
 );
+record(
+  "CI excludes live registry freshness",
+  !ciWorkflow.includes("pnpm deps:latest:check"),
+  ciWorkflow.includes("pnpm deps:latest:check")
+    ? "pnpm deps:latest:check is still in blocking push/pull-request CI"
+    : "live freshness is handled outside blocking push/pull-request CI"
+);
 
 const manifestExit = manifestErrors.length ? 1 : 0;
 
@@ -356,9 +414,6 @@ const auditExit = runPnpm(["audit", "--audit-level", auditLevel]).status;
 console.log(`Production dependency audit (enforced at ${prodAuditLevel}):`);
 const prodAuditExit = runPnpm(["audit", "--prod", "--audit-level", prodAuditLevel]).status;
 
-console.log("Fail-closed dependency status, registry-latest, audit, and compatibility-policy validation:");
-const generatorExit = runNode(["scripts/generate-dependency-status.mjs", "--enforce-latest", "--no-write"]).status;
-
 console.log("Dependency documentation freshness:");
 const docsExit = runNode(["scripts/generate-dependency-status.mjs", "--check"]).status;
 
@@ -373,7 +428,6 @@ const exitCodes = {
   peers: peerExit,
   audit: auditExit,
   productionAudit: prodAuditExit,
-  generator: generatorExit,
   documentationFreshness: docsExit,
   outdatedInformational: outdatedExit
 };
@@ -383,8 +437,6 @@ console.log(
     .join("; ")}.`
 );
 
-process.exitCode = [manifestExit, peerExit, auditExit, prodAuditExit, generatorExit, docsExit].some(
-  (exitCode) => exitCode !== 0
-)
+process.exitCode = [manifestExit, peerExit, auditExit, prodAuditExit, docsExit].some((exitCode) => exitCode !== 0)
   ? 1
   : 0;

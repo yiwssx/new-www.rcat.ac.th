@@ -1,5 +1,6 @@
 export const DEPENDENCY_STATUS = Object.freeze({
   registryLatest: "Registry latest",
+  releaseAgePending: "Pending release-age eligibility",
   compatibilityException: "Validated compatibility exception",
   outdated: "Outdated",
   registryError: "Registry error",
@@ -10,6 +11,7 @@ export const DEPENDENCY_STATUS = Object.freeze({
 
 export const ACCEPTED_DEPENDENCY_STATUSES = new Set([
   DEPENDENCY_STATUS.registryLatest,
+  DEPENDENCY_STATUS.releaseAgePending,
   DEPENDENCY_STATUS.compatibilityException
 ]);
 
@@ -84,6 +86,44 @@ export function compareVersions(leftValue, rightValue) {
     if (comparison) return comparison;
   }
   return 0;
+}
+
+export function releaseAgeEligibleVersions({
+  versionTimes,
+  registryLatest,
+  minimumReleaseAgeHours = 72,
+  now = Date.now()
+}) {
+  const latest = typeof registryLatest === "string" ? parseVersion(registryLatest) : registryLatest;
+  const nowMilliseconds = now instanceof Date ? now.getTime() : Number(now);
+  const releaseAgeMilliseconds = Number(minimumReleaseAgeHours) * 60 * 60 * 1000;
+  if (
+    !latest ||
+    latest.prerelease ||
+    !versionTimes ||
+    typeof versionTimes !== "object" ||
+    Array.isArray(versionTimes) ||
+    !Number.isFinite(nowMilliseconds) ||
+    !Number.isFinite(releaseAgeMilliseconds) ||
+    releaseAgeMilliseconds <= 0
+  ) {
+    return [];
+  }
+
+  const cutoff = nowMilliseconds - releaseAgeMilliseconds;
+  return Object.entries(versionTimes)
+    .map(([version, publishedAt]) => ({ version: parseVersion(version), publishedAt: Date.parse(publishedAt) }))
+    .filter(
+      (entry) =>
+        entry.version &&
+        !entry.version.prerelease &&
+        Number.isFinite(entry.publishedAt) &&
+        entry.publishedAt <= cutoff &&
+        compareVersions(entry.version, latest) <= 0
+    )
+    .map((entry) => entry.version)
+    .sort(compareVersions)
+    .map((version) => version.raw);
 }
 
 function satisfiesComparator(version, comparator) {
@@ -233,12 +273,17 @@ export function classifyDependencyStatus({
   manifestVersion,
   installedVersion,
   registryLatest,
+  eligibleLatest = registryLatest,
+  registryLatestPublishedAt = "",
+  minimumReleaseAgeHours = 72,
+  now = Date.now(),
   registryError = "",
   compatibilityValidation
 }) {
   const manifest = parseManifestSpecifier(manifestVersion);
   const installed = parseVersion(installedVersion);
   const latest = parseVersion(registryLatest);
+  const eligible = parseVersion(eligibleLatest);
 
   if (registryError) {
     return baseResult({
@@ -251,6 +296,13 @@ export function classifyDependencyStatus({
       status: DEPENDENCY_STATUS.registryError,
       reason: "registry latest is missing, malformed, or a prerelease",
       registryLatest: registryLatest || "—"
+    });
+  }
+  if (!eligible || eligible.prerelease || compareVersions(eligible, latest) > 0) {
+    return baseResult({
+      status: DEPENDENCY_STATUS.registryError,
+      reason: "release-age-eligible registry version is missing, malformed, or newer than registry latest",
+      registryLatest: latest.raw
     });
   }
   if (!manifest || manifest.version.prerelease) {
@@ -312,12 +364,45 @@ export function classifyDependencyStatus({
     });
   }
 
+  if (compareVersions(installed, latest) > 0) {
+    return baseResult({
+      status: DEPENDENCY_STATUS.outdated,
+      reason: `Installed ${installed.raw} is newer than stable registry latest ${latest.raw}.`,
+      registryLatest: latest.raw
+    });
+  }
+
+  if (compareVersions(installed, eligible) < 0) {
+    return baseResult({
+      status: DEPENDENCY_STATUS.outdated,
+      reason: `Installed ${installed.raw} is lower than release-age-eligible latest ${eligible.raw}.`,
+      registryLatest: latest.raw
+    });
+  }
+
+  const publishedAtMilliseconds = Date.parse(registryLatestPublishedAt);
+  const nowMilliseconds = now instanceof Date ? now.getTime() : Number(now);
+  const releaseAgeMilliseconds = Number(minimumReleaseAgeHours) * 60 * 60 * 1000;
+  const eligibleAtMilliseconds = publishedAtMilliseconds + releaseAgeMilliseconds;
+  if (
+    Number.isFinite(publishedAtMilliseconds) &&
+    Number.isFinite(nowMilliseconds) &&
+    Number.isFinite(releaseAgeMilliseconds) &&
+    releaseAgeMilliseconds > 0 &&
+    nowMilliseconds < eligibleAtMilliseconds
+  ) {
+    return baseResult({
+      status: DEPENDENCY_STATUS.releaseAgePending,
+      reason: `Registry latest ${latest.raw} was published at ${new Date(
+        publishedAtMilliseconds
+      ).toISOString()} and becomes eligible after ${new Date(eligibleAtMilliseconds).toISOString()}; current eligible latest is ${eligible.raw}.`,
+      registryLatest: latest.raw
+    });
+  }
+
   return baseResult({
     status: DEPENDENCY_STATUS.outdated,
-    reason:
-      compareVersions(installed, latest) < 0
-        ? `Installed ${installed.raw} is lower than stable registry latest ${latest.raw}.`
-        : `Installed ${installed.raw} is newer than stable registry latest ${latest.raw}.`,
+    reason: `Installed ${installed.raw} is lower than stable registry latest ${latest.raw}, and no active release-age window or compatibility exception permits it.`,
     registryLatest: latest.raw
   });
 }

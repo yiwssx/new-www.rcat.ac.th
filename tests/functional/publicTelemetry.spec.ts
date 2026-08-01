@@ -296,24 +296,33 @@ test.describe("Public telemetry request governance", () => {
     expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);
 
     await dispatchVisibilityAndFocus(page, "visible");
+    // React Query schedules its focus notification through the browser task
+    // queue. Advance one millisecond so the mocked clock flushes that task
+    // deterministically even under parallel test load.
+    await page.clock.runFor(1);
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(3);
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(2);
 
-    await page.clock.runFor(59_999);
+    // Together with the one-millisecond task flush above, this reaches 59,999
+    // milliseconds after visibility resumed without crossing the next budget.
+    await page.clock.runFor(59_998);
     expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(3);
     expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(2);
   });
 
   test("keeps Public rendering available when the optional telemetry module fails", async ({ page }) => {
     const network = await installTelemetryNetworkMocks(page);
-    await installPublicAuthIsolationFixture(page);
-    await page.route("**/src/shared/telemetry/PublicTelemetry.tsx*", async (route) => {
-      await route.abort("failed");
+    await page.addInitScript(() => {
+      window.__RCAT_FUNCTIONAL_FAIL_PUBLIC_TELEMETRY_IMPORT__ = true;
     });
+    await installPublicAuthIsolationFixture(page);
 
     await page.goto("/");
     await expectHomePage(page);
-    await expect.poll(() => network.lazyPublicTelemetry.length).toBeGreaterThanOrEqual(1);
+    await expect
+      .poll(() => page.evaluate(() => window.__RCAT_FUNCTIONAL_PUBLIC_TELEMETRY_FAILURE_TRIGGERED__))
+      .toBe(true);
+    expect(network.lazyPublicTelemetry).toHaveLength(0);
     await expect(page.getByRole("alert")).toHaveCount(0);
     await expect(page.getByText(/telemetry|analytics/i)).toHaveCount(0);
   });

@@ -1434,6 +1434,8 @@ describe("admin server pagination routes", () => {
     const yesterdayDate = new Date(bangkokNow);
     yesterdayDate.setUTCDate(bangkokNow.getUTCDate() - 1);
     const yesterday = yesterdayDate.toISOString().slice(0, 10);
+    const usersThisMonth = today.slice(0, 7) === yesterday.slice(0, 7) ? 7 : 4;
+    const usersThisYear = today.slice(0, 4) === yesterday.slice(0, 4) ? 7 : 4;
     const state = createPaginationDb({
       ...allEntityRows(),
       visitor_daily_stats: [
@@ -1464,8 +1466,8 @@ describe("admin server pagination routes", () => {
       enabled: true,
       usersToday: 4,
       usersYesterday: 3,
-      usersThisMonth: 7,
-      usersThisYear: 7,
+      usersThisMonth,
+      usersThisYear,
       totalUsers: 7,
       totalViews: 18,
       onlineUsers: 2,

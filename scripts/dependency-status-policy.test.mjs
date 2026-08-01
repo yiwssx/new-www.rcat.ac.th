@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEPENDENCY_STATUS,
   classifyDependencyStatus,
+  releaseAgeEligibleVersions,
   validateCompatibilityExceptionPackages,
   validatePeerRangeCompatibility,
   validateRuntimeMajorCompatibility
@@ -17,6 +18,22 @@ function classify(overrides = {}) {
 }
 
 describe("direct dependency latest policy", () => {
+  it("keeps compatibility validation behind the same 72-hour release-age gate", () => {
+    expect(
+      releaseAgeEligibleVersions({
+        versionTimes: {
+          "1.0.0": "2026-07-31T08:00:00.000Z",
+          "1.1.0": "2026-08-01T08:00:00.000Z",
+          "1.2.0": "2026-08-02T08:00:00.000Z",
+          "1.3.0-beta.1": "2026-07-01T08:00:00.000Z",
+          "2.0.0": "2026-07-01T08:00:00.000Z"
+        },
+        registryLatest: "1.2.0",
+        now: Date.parse("2026-08-04T08:00:00.000Z")
+      })
+    ).toEqual(["1.0.0", "1.1.0"]);
+  });
+
   it("accepts a stable registry-latest installation", () => {
     expect(classify()).toEqual({
       status: DEPENDENCY_STATUS.registryLatest,
@@ -32,16 +49,43 @@ describe("direct dependency latest policy", () => {
     });
 
     expect(result.status).toBe(DEPENDENCY_STATUS.outdated);
-    expect(result.reason).toContain("lower than stable registry latest 1.0.2");
+    expect(result.reason).toContain("lower than release-age-eligible latest 1.0.2");
   });
 
-  it("does not create a direct-dependency freshness exception", () => {
+  it("does not accept a dependency behind the release-age-eligible latest", () => {
     const result = classify({
       manifestVersion: "^1.0.1",
       installedVersion: "1.0.1"
     });
 
     expect(result.status).toBe(DEPENDENCY_STATUS.outdated);
+  });
+
+  it("accepts an installed version while a newer release completes the 72-hour window", () => {
+    const result = classify({
+      manifestVersion: "^1.0.1",
+      installedVersion: "1.0.1",
+      eligibleLatest: "1.0.1",
+      registryLatestPublishedAt: "2026-07-31T08:00:00.000Z",
+      now: Date.parse("2026-08-01T08:00:00.000Z")
+    });
+
+    expect(result.status).toBe(DEPENDENCY_STATUS.releaseAgePending);
+    expect(result.reason).toContain("current eligible latest is 1.0.1");
+    expect(result.reason).toContain("2026-08-03T08:00:00.000Z");
+  });
+
+  it("rejects the same version after registry latest becomes age eligible", () => {
+    const result = classify({
+      manifestVersion: "^1.0.1",
+      installedVersion: "1.0.1",
+      eligibleLatest: "1.0.1",
+      registryLatestPublishedAt: "2026-07-28T08:00:00.000Z",
+      now: Date.parse("2026-08-01T08:00:00.000Z")
+    });
+
+    expect(result.status).toBe(DEPENDENCY_STATUS.outdated);
+    expect(result.reason).toContain("no active release-age window");
   });
 
   it("accepts the stable registry latest without publication metadata", () => {

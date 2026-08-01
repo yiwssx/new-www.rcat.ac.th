@@ -9,9 +9,20 @@
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
   "rangeStrategy": "bump",
-  "rebaseWhen": "behind-base-branch",
+  "rebaseWhen": "never",
+  "automergeStrategy": "merge-commit",
+  "platformAutomerge": false,
+  "ignoreTests": false,
   "prConcurrentLimit": 2,
   "branchConcurrentLimit": 2,
+  "statusCheckWhen": {
+    "artifactError": "always"
+  },
+  "postUpgradeTasks": {
+    "commands": ["pnpm deps:status"],
+    "fileFilters": ["docs/maintenance/dependency-current-status.md"],
+    "executionMode": "branch"
+  },
   "packageRules": [
     {
       "description": "Wait three days before normal npm updates",
@@ -25,9 +36,19 @@
       "matchCurrentVersion": "!/^0/",
       "matchUpdateTypes": ["patch", "minor"],
       "automerge": true,
-      "automergeType": "pr",
-      "automergeStrategy": "squash",
-      "platformAutomerge": true
+      "automergeType": "pr"
+    },
+    {
+      "description": "Keep TypeScript within the installed typescript-eslint peer range",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": ">=4.8.4 <6.1.0"
+    },
+    {
+      "description": "Keep Node declarations aligned with the Node 24 runtime",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@types/node"],
+      "allowedVersions": ">=24.0.0 <25.0.0"
     },
     {
       "description": "Require manual review for major npm updates",
@@ -48,9 +69,7 @@
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["patch", "minor"],
       "automerge": true,
-      "automergeType": "pr",
-      "automergeStrategy": "squash",
-      "platformAutomerge": true
+      "automergeType": "pr"
     },
     {
       "description": "Require manual review for major GitHub Actions updates",
