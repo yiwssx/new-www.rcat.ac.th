@@ -48,7 +48,6 @@ import { ADMIN_READ_ONLY_NOTICE, canManageMenu } from "../utils/rbac";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import {
   filterMenuTree,
-  findPublicMenuItem,
   flattenMenuOrder,
   flattenPublicMenu,
   getNextSiblingOrder,
@@ -115,8 +114,8 @@ export default function MenuPage() {
   const saveOrderMutation = useMutation({ mutationFn: saveAdminMenuOrder });
   const operationPending = saveMutation.isPending || deleteMutation.isPending || saveOrderMutation.isPending;
 
-  const menuTree = treeQuery.data ?? [];
-  const orderItems = orderQuery.data ?? [];
+  const menuTree = useMemo(() => treeQuery.data ?? [], [treeQuery.data]);
+  const orderItems = useMemo(() => orderQuery.data ?? [], [orderQuery.data]);
   const orderMap = useMemo(() => createOrderMap(orderItems), [orderItems]);
   const labelById = useMemo(() => new Map(orderItems.map((item) => [item.id, item.label])), [orderItems]);
   const filteredTree = useMemo(() => filterMenuTree(menuTree, search, visibility), [menuTree, search, visibility]);
