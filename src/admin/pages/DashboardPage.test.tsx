@@ -64,7 +64,10 @@ function contentItem(id: string, title: string): AdminContentListItem {
   };
 }
 
-function dashboardSummary(publishableCount: number): AdminDashboardSummary {
+function dashboardSummary(
+  publishableCount: number,
+  events: AdminDashboardSummary["events"] = []
+): AdminDashboardSummary {
   const content = publishableCount
     ? [contentItem("review-one", "รายการพร้อมเผยแพร่"), contentItem("scheduled-due", "รายการถึงกำหนด")]
     : [];
@@ -77,7 +80,7 @@ function dashboardSummary(publishableCount: number): AdminDashboardSummary {
     recentContent: [],
     documents: [],
     recentDocuments: [],
-    events: [],
+    events,
     recentEvents: [],
     generatedAt: "2026-07-13T00:00:00.000Z"
   };
@@ -135,5 +138,24 @@ describe("DashboardPage publish queue", () => {
       )
     );
     expect(paginationMock.publishAllPendingAdminContent).not.toHaveBeenCalled();
+  });
+
+  it("keeps the event badge and text on the same Bangkok calendar day", async () => {
+    paginationMock.getAdminDashboardSummary.mockResolvedValue(
+      dashboardSummary(0, [
+        {
+          id: "boundary-event",
+          title: "กิจกรรมข้ามเขตเวลา",
+          audience: "นักเรียน",
+          date: "2026-07-31T17:30:00.000Z",
+          status: "confirmed"
+        }
+      ])
+    );
+    renderDashboard();
+
+    expect(await screen.findByText("กิจกรรมข้ามเขตเวลา")).toBeInTheDocument();
+    expect(screen.getByText("01")).toBeInTheDocument();
+    expect(screen.getByText("นักเรียน | 1 สิงหาคม 2569 00:30")).toBeInTheDocument();
   });
 });

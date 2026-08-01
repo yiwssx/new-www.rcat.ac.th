@@ -7,11 +7,11 @@ export const defaultDisplaySettings: DisplaySettings = {
 };
 
 export const dateFormatPresets = [
-  { value: "j F Y", label: "27 เมษายน 2026 (j F Y)" },
-  { value: "F j, Y", label: "เมษายน 27, 2026 (F j, Y)" },
-  { value: "Y-m-d", label: "2026-04-27 (Y-m-d)" },
-  { value: "m/d/Y", label: "04/27/2026 (m/d/Y)" },
-  { value: "d/m/Y", label: "27/04/2026 (d/m/Y)" }
+  { value: "j F Y", label: "27 เมษายน 2569 (j F Y)" },
+  { value: "F j, Y", label: "เมษายน 27, 2569 (F j, Y)" },
+  { value: "Y-m-d", label: "2569-04-27 (Y-m-d)" },
+  { value: "m/d/Y", label: "04/27/2569 (m/d/Y)" },
+  { value: "d/m/Y", label: "27/04/2569 (d/m/Y)" }
 ];
 
 const canonicalDateFormats = new Set(dateFormatPresets.map((preset) => preset.value));

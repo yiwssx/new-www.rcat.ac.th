@@ -579,8 +579,8 @@ describe("homepage settings public sections", () => {
         owner: "Admin",
         summary: "A real CMS achievement highlight.",
         category: "achievement",
-        updatedAt: "2026-05-10T00:00:00.000Z",
-        publishAt: "2026-05-10T00:00:00.000Z"
+        updatedAt: "2026-12-31T17:00:00.000Z",
+        publishAt: "2026-12-31T17:00:00.000Z"
       }
     ];
 
@@ -591,6 +591,7 @@ describe("homepage settings public sections", () => {
       "href",
       "/content/regional-award-winner"
     );
+    expect(screen.getByText("พ.ศ. 2570")).toBeInTheDocument();
   });
 
   it("does not render VisitorStatsCard when disabled", () => {

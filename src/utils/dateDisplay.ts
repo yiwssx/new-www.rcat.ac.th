@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import "dayjs/locale/th";
+import buddhistEra from "dayjs/plugin/buddhistEra";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import type { DisplaySettings } from "../types";
@@ -19,8 +20,8 @@ const WORDPRESS_TO_DAYJS_MAP: Record<string, string> = {
   m: "MM",
   M: "MMM",
   n: "M",
-  Y: "YYYY",
-  y: "YY",
+  Y: "BBBB",
+  y: "BB",
   a: "a",
   A: "A",
   g: "h",
@@ -33,6 +34,7 @@ const WORDPRESS_TO_DAYJS_MAP: Record<string, string> = {
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(buddhistEra);
 dayjs.locale("th");
 
 const THAI_TIME_ZONE = "Asia/Bangkok";
@@ -92,30 +94,42 @@ function resolveDisplaySettings(override?: Partial<DisplaySettings>) {
   });
 }
 
+function formatInThaiTimeZone(value: string | Date, wordpressFormat: string) {
+  const parsed = dayjs(value);
+
+  if (!parsed.isValid()) {
+    return "";
+  }
+
+  return parsed.tz(THAI_TIME_ZONE).locale("th").format(convertWordPressFormatToDayjs(wordpressFormat));
+}
+
 export function formatDisplayDate(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
-  return dayjs(value)
-    .tz(THAI_TIME_ZONE)
-    .locale("th")
-    .format(convertWordPressFormatToDayjs(normalizedSettings.dateFormat));
+  return formatInThaiTimeZone(value, normalizedSettings.dateFormat);
 }
 
 export function formatDisplayTime(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
-  return dayjs(value)
-    .tz(THAI_TIME_ZONE)
-    .locale("th")
-    .format(convertWordPressFormatToDayjs(getTimeWordPressFormat(normalizedSettings.timeMode)));
+  return formatInThaiTimeZone(value, getTimeWordPressFormat(normalizedSettings.timeMode));
 }
 
 export function formatDisplayDateTime(value: string | Date, settings?: Partial<DisplaySettings>) {
   const normalizedSettings = resolveDisplaySettings(settings);
-  return dayjs(value)
-    .tz(THAI_TIME_ZONE)
-    .locale("th")
-    .format(
-      `${convertWordPressFormatToDayjs(normalizedSettings.dateFormat)} ${convertWordPressFormatToDayjs(
-        getTimeWordPressFormat(normalizedSettings.timeMode)
-      )}`
-    );
+  return formatInThaiTimeZone(
+    value,
+    `${normalizedSettings.dateFormat} ${getTimeWordPressFormat(normalizedSettings.timeMode)}`
+  );
+}
+
+export function formatDisplayDay(value: string | Date) {
+  return formatInThaiTimeZone(value, "d");
+}
+
+export function formatDisplayMonthShort(value: string | Date) {
+  return formatInThaiTimeZone(value, "M");
+}
+
+export function formatDisplayYear(value: string | Date) {
+  return formatInThaiTimeZone(value, "Y");
 }

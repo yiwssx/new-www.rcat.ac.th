@@ -7,6 +7,8 @@ import { getPublicSearchIndexSnapshot } from "../public-search/api";
 import { getPublicCmsSnapshotForProvider } from "../../public/hooks/usePublicCmsSnapshot";
 import { recordContentView, recordPresence, recordSiteView } from "../site-view/api";
 import { resetCloudflarePublicApiBackoffForTests } from "./cloudflareApi";
+import { projectSettings } from "../../config/projectSettings";
+import { formatDisplayDate } from "../../utils/dateDisplay";
 
 const generatedAt = "2026-06-20T00:00:00.000Z";
 const publicItem = {
@@ -144,6 +146,10 @@ describe("M20 public read provider parity", () => {
     await expect(getPublicSearchIndexSnapshot()).resolves.toEqual(searchSnapshot);
 
     expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(JSON.parse(window.localStorage.getItem(projectSettings.storageKeys.displaySettings) || "{}")).toEqual(
+      sharedMetadata.displaySettings
+    );
+    expect(formatDisplayDate(generatedAt)).toBe("20 มิถุนายน 2569");
   });
 
   it("builds the Contact/public shell snapshot from Cloudflare without calling Apps Script", async () => {

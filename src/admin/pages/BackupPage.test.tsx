@@ -164,7 +164,7 @@ describe("BackupPage", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("media_assets")).toBeInTheDocument();
     expect(screen.getByText("missing")).toBeInTheDocument();
-    expect(screen.getByText(/ตรวจนับล่าสุด/)).toBeInTheDocument();
+    expect(screen.getByText("ตรวจนับล่าสุด: 8 กรกฎาคม 2569 12:00")).toBeInTheDocument();
   });
 
   it("confirms, downloads, and shows an acknowledged success modal", async () => {

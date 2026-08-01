@@ -11,6 +11,7 @@ import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { interactiveSurfaceSx } from "../../../design-system/componentStyles";
 import { designTokens } from "../../../design-system/tokens";
+import { formatDisplayYear } from "../../../utils/dateDisplay";
 
 function getAchievementHaystack(item: ContentItem) {
   return [item.title, item.summary, item.category, ...(item.tags ?? [])].join(" ").toLowerCase();
@@ -32,16 +33,6 @@ function getAchievementIcon(item: ContentItem) {
   }
 
   return <WorkspacePremiumOutlinedIcon />;
-}
-
-function getThaiYear(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return String(date.getFullYear() + 543);
 }
 
 function getAchievementCategory(item: ContentItem) {
@@ -97,7 +88,7 @@ export function AchievementHighlightsSection({
       />
       <Grid container spacing={2.5}>
         {visibleItems.map((item) => {
-          const thaiYear = getThaiYear(item.publishAt);
+          const thaiYear = formatDisplayYear(item.publishAt);
           const href = normalizeSafeHref(`/content/${item.slug}`);
 
           return (

@@ -47,6 +47,7 @@ import { ADMIN_READ_ONLY_NOTICE } from "../utils/rbac";
 import { userRoleLabels } from "../../utils/thaiLabels";
 import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import AdminPagination from "./AdminPagination";
+import { formatDisplayDateTime } from "../../utils/dateDisplay";
 
 const emptyDraft: Partial<AdminUserProfile> = {
   email: "",
@@ -429,7 +430,7 @@ export default function UserManagementCard() {
                       color: "text.secondary"
                     }}
                   >
-                    หมดอายุ: {oneTimeSecret.token.expiresAt}
+                    หมดอายุ: {formatDisplayDateTime(oneTimeSecret.token.expiresAt)}
                   </Typography>
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                     <Button variant="outlined" onClick={() => void copyOneTimeToken()}>
@@ -684,10 +685,14 @@ export default function UserManagementCard() {
                         {profile.mfaRequired ? " ใช่" : " ไม่"} · รหัสกู้คืน: {profile.recoveryCodesRemaining ?? 0}
                       </Typography>
                       {profile.invitationExpiresAt && (
-                        <Typography variant="body2">คำเชิญหมดอายุ: {profile.invitationExpiresAt}</Typography>
+                        <Typography variant="body2">
+                          คำเชิญหมดอายุ: {formatDisplayDateTime(profile.invitationExpiresAt)}
+                        </Typography>
                       )}
                       {profile.lastLoginAt && (
-                        <Typography variant="body2">เข้าสู่ระบบล่าสุด: {profile.lastLoginAt}</Typography>
+                        <Typography variant="body2">
+                          เข้าสู่ระบบล่าสุด: {formatDisplayDateTime(profile.lastLoginAt)}
+                        </Typography>
                       )}
                       <Stack
                         direction={{ xs: "column", sm: "row" }}

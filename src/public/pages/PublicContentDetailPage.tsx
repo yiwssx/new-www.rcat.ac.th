@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import dayjs from "dayjs";
-import "dayjs/locale/th";
 import { Box, Button, Card, CardContent, Chip, Divider, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
@@ -25,6 +23,7 @@ import { CONTENT_TEMPLATE_LABELS, resolveContentTemplate } from "../../utils/con
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { ContentItem, MediaAsset } from "../../types";
 import { focusVisibleSx } from "../../design-system/componentStyles";
+import { formatDisplayDate } from "../../utils/dateDisplay";
 
 interface PublicContentDetailPageProps {
   slug?: string;
@@ -123,16 +122,6 @@ function formatViewCount(value: number | undefined) {
   return Math.max(0, Number(value) || 0).toLocaleString("th-TH");
 }
 
-function formatContentDetailThaiDate(value: string | Date) {
-  const parsed = dayjs(value).locale("th");
-
-  if (!parsed.isValid()) {
-    return "";
-  }
-
-  return `${parsed.format("D MMMM")} ${parsed.year() + 543}`;
-}
-
 function getSafeMediaHref(asset: { driveUrl?: string; previewUrl?: string; embedUrl?: string }) {
   const candidates = [asset.driveUrl, asset.previewUrl, asset.embedUrl];
 
@@ -168,7 +157,7 @@ function ContentDetailMetadata({
       >
         <Chip label={contentTypeLabels[item.type]} color="primary" />
         <Chip label={contentStatusLabels[item.status]} variant="outlined" />
-        <Chip label={formatContentDetailThaiDate(item.publishAt)} variant="outlined" />
+        <Chip label={formatDisplayDate(item.publishAt)} variant="outlined" />
         <Chip label={`ผู้เผยแพร่: ${item.owner || "ไม่ระบุ"}`} variant="outlined" />
         <Chip label={`ผู้เข้าดู ${formatViewCount(displayedViewCount)} ครั้ง`} variant="outlined" />
       </Stack>

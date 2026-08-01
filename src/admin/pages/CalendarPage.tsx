@@ -30,7 +30,6 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import dayjs from "dayjs";
 import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
@@ -53,7 +52,13 @@ import {
   isEndDateTimeBeforeStart,
   toLocalDateTimeInputValue
 } from "../../utils/calendar";
-import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
+import {
+  formatDisplayDate,
+  formatDisplayDateTime,
+  formatDisplayDay,
+  formatDisplayMonthShort,
+  formatDisplayTime
+} from "../../utils/dateDisplay";
 import { normalizePublicImageUrl } from "../../utils/safeUrl";
 import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
@@ -89,18 +94,22 @@ const eventListUrlOptions = {
   }
 };
 
-const emptyForm: EventFormState = {
-  title: "",
-  audience: "",
-  dateTime: dayjs().add(1, "day").format("YYYY-MM-DDTHH:mm"),
-  endDateTime: "",
-  status: "confirmed",
-  location: "",
-  description: "",
-  category: "วิชาการ",
-  visibility: "public",
-  mediaIds: []
-};
+function createEmptyForm(): EventFormState {
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  return {
+    title: "",
+    audience: "",
+    dateTime: toLocalDateTimeInputValue(tomorrow),
+    endDateTime: "",
+    status: "confirmed",
+    location: "",
+    description: "",
+    category: "วิชาการ",
+    visibility: "public",
+    mediaIds: []
+  };
+}
 
 function waitForDialogTransition() {
   return new Promise((resolve) => {
@@ -185,7 +194,7 @@ export default function CalendarPage() {
 
   const [editingEventId, setEditingEventId] = useState<string | undefined>();
 
-  const [form, setForm] = useState<EventFormState>(emptyForm);
+  const [form, setForm] = useState<EventFormState>(createEmptyForm);
 
   const [formError, setFormError] = useState("");
 
@@ -276,10 +285,7 @@ export default function CalendarPage() {
     }
 
     setEditingEventId(undefined);
-    setForm({
-      ...emptyForm,
-      mediaIds: []
-    });
+    setForm(createEmptyForm());
     setMediaSearch("");
     setFormError("");
     setConfirming(false);
@@ -302,10 +308,7 @@ export default function CalendarPage() {
   function handleClose() {
     setDialogOpen(false);
     setEditingEventId(undefined);
-    setForm({
-      ...emptyForm,
-      mediaIds: []
-    });
+    setForm(createEmptyForm());
     setMediaSearch("");
     setFormError("");
     setConfirming(false);
@@ -585,7 +588,7 @@ export default function CalendarPage() {
                           fontWeight: 900
                         }}
                       >
-                        {dayjs(event.date).format("DD")}
+                        {formatDisplayDay(event.date)}
                       </Typography>
 
                       <Typography
@@ -594,7 +597,7 @@ export default function CalendarPage() {
                           fontWeight: 800
                         }}
                       >
-                        {dayjs(event.date).format("MMM")}
+                        {formatDisplayMonthShort(event.date)}
                       </Typography>
                     </Stack>
                   </Box>

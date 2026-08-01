@@ -32,6 +32,7 @@ import { useRecoveryCodeHandoff } from "../../context/RecoveryCodeHandoffContext
 import { appSwal, showSuccessResult } from "../../utils/swal";
 import MfaSetupPanel from "../components/MfaSetupPanel";
 import PageHeader from "../components/PageHeader";
+import { formatDisplayDateTime } from "../../utils/dateDisplay";
 
 export default function AccountSecurityPage() {
   const navigate = useNavigate();
@@ -250,9 +251,13 @@ export default function AccountSecurityPage() {
                 <Typography>Root: {profile.isRoot ? "ใช่" : "ไม่ใช่"}</Typography>
                 <Typography>บังคับใช้ MFA: {profile.mfaRequired ? "ใช่" : "ไม่ใช่"}</Typography>
                 <Typography>ตั้งค่า MFA แล้ว: {profile.mfaConfigured ? "ใช่" : "ไม่ใช่"}</Typography>
-                {profile.mfaEnabledAt && <Typography>เปิดใช้ MFA: {profile.mfaEnabledAt}</Typography>}
+                {profile.mfaEnabledAt && (
+                  <Typography>เปิดใช้ MFA: {formatDisplayDateTime(profile.mfaEnabledAt)}</Typography>
+                )}
                 <Typography>รหัสกู้คืนคงเหลือ: {profile.recoveryCodesRemaining ?? 0}</Typography>
-                {profile.lastLoginAt && <Typography>เข้าสู่ระบบล่าสุด: {profile.lastLoginAt}</Typography>}
+                {profile.lastLoginAt && (
+                  <Typography>เข้าสู่ระบบล่าสุด: {formatDisplayDateTime(profile.lastLoginAt)}</Typography>
+                )}
               </Stack>
             </CardContent>
           </Card>

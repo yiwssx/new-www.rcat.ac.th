@@ -179,6 +179,21 @@ describe("UserManagementCard profile editing", () => {
     expect(swalMock.fire).toHaveBeenCalledWith(expect.objectContaining({ icon: "warning" }));
   });
 
+  it("renders invitation and login timestamps through the shared Thai display policy", () => {
+    listMock.users = [
+      profile({
+        invitationStatus: "pending",
+        invitationExpiresAt: "2026-07-25T00:00:00.000Z",
+        lastLoginAt: "2026-07-23T00:00:00.000Z"
+      })
+    ];
+
+    renderCard();
+
+    expect(screen.getByText("คำเชิญหมดอายุ: 25 กรกฎาคม 2569 07:00")).toBeInTheDocument();
+    expect(screen.getByText("เข้าสู่ระบบล่าสุด: 23 กรกฎาคม 2569 07:00")).toBeInTheDocument();
+  });
+
   it.each(["editor", "viewer"] as const)("does not expose editing to a %s without users.update-any", (role) => {
     authMock.role = role;
     authMock.capabilities = ["users.read-all"];

@@ -9,7 +9,6 @@ import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlin
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
-import dayjs from "dayjs";
 import MetricCard from "../components/MetricCard";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
@@ -18,7 +17,7 @@ import {
   adminListQueryKeys,
   publishAllPendingAdminContent
 } from "../../features/admin-pagination";
-import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateDisplay";
+import { formatDisplayDate, formatDisplayDateTime, formatDisplayDay } from "../../utils/dateDisplay";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { useAuth } from "../../context/authSessionContext";
@@ -224,7 +223,7 @@ export default function DashboardPage() {
                           fontWeight: 900
                         }}
                       >
-                        {dayjs(event.date).format("DD")}
+                        {formatDisplayDay(event.date)}
                       </Typography>
                     </Box>
                     <Box>

@@ -241,6 +241,18 @@ describe("PublicContentDetailPage", () => {
     expect(within(article).queryByText(/อัปเดต:/)).not.toBeInTheDocument();
   });
 
+  it("uses the Bangkok calendar date at the UTC date boundary", () => {
+    currentDetail = createContent({
+      publishAt: "2026-07-31T17:30:00.000Z"
+    });
+    currentSnapshot = createSnapshot(currentDetail);
+    window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
+
+    render(<PublicContentDetailPage slug="announcement-1" />);
+
+    expect(within(screen.getByRole("article")).getByText("1 สิงหาคม 2569")).toBeInTheDocument();
+  });
+
   it("does not debounce failed content view attempts", async () => {
     siteViewMocks.recordContentView.mockRejectedValueOnce(new Error("offline"));
     currentDetail = createContent();

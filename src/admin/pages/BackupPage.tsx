@@ -33,6 +33,7 @@ import {
 } from "../../features/admin-write/cloudflareApi";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { canDownloadSystemBackup, canReadSystemBackupCounts } from "../utils/rbac";
+import { formatDisplayDateTime } from "../../utils/dateDisplay";
 
 function triggerBackupDownload(download: AdminBackupDownload) {
   const url = URL.createObjectURL(download.blob);
@@ -46,20 +47,6 @@ function triggerBackupDownload(download: AdminBackupDownload) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
-}
-
-function formatGeneratedAt(value: string) {
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return parsed.toLocaleString("th-TH", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Bangkok"
-  });
 }
 
 function getStatusColor(status: AdminBackupTableCount["status"]) {
@@ -196,7 +183,7 @@ export default function BackupPage() {
                         color: "text.secondary"
                       }}
                     >
-                      ตรวจนับล่าสุด: {formatGeneratedAt(counts.generatedAt)}
+                      ตรวจนับล่าสุด: {formatDisplayDateTime(counts.generatedAt) || counts.generatedAt}
                     </Typography>
                     <TableContainer>
                       <Table size="small" aria-label="ตารางตรวจนับข้อมูลสำรอง">

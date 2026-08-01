@@ -113,6 +113,8 @@ describe("AccountSecurityPage", () => {
     renderPage();
 
     expect(await screen.findByText("ชื่อ: Secure User")).toBeInTheDocument();
+    expect(screen.getByText("เปิดใช้ MFA: 20 กรกฎาคม 2569 07:00")).toBeInTheDocument();
+    expect(screen.getByText("เข้าสู่ระบบล่าสุด: 24 กรกฎาคม 2569 07:00")).toBeInTheDocument();
     expect(screen.queryByText(/sessionId|sessionVersion|mfaVerifiedAt/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "สร้างรหัสกู้คืนชุดใหม่" }));
 

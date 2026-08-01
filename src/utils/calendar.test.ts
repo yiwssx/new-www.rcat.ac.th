@@ -9,6 +9,9 @@ import {
 describe("calendar utils", () => {
   it("formats valid ISO dates for datetime-local inputs", () => {
     expect(toLocalDateTimeInputValue("2026-04-26T03:30:00.000Z")).toBe("2026-04-26T10:30");
+    expect(toLocalDateTimeInputValue("2026-07-31T17:30:00.000Z")).toBe("2026-08-01T00:30");
+    expect(toLocalDateTimeInputValue("2026-08-01T16:59:00.000Z")).toBe("2026-08-01T23:59");
+    expect(toLocalDateTimeInputValue("2026-08-01T17:00:00.000Z")).toBe("2026-08-02T00:00");
     expect(toLocalDateTimeInputValue("")).toBe("");
     expect(toLocalDateTimeInputValue("not-a-date")).toBe("");
   });
@@ -40,7 +43,29 @@ describe("calendar utils", () => {
   );
 
   it("rejects invalid local datetime values", () => {
-    expect(fromLocalDateTimeInputValue("2026-06-21T24:00")).toBe("");
+    expect(fromLocalDateTimeInputValue("2024-02-29T08:30")).toBe("2024-02-29T08:30:00+07:00");
+    [
+      "2026-02-29T08:30",
+      "2026-02-30T08:30",
+      "2026-04-31T08:30",
+      "2026-13-01T08:30",
+      "2026-01-00T08:30",
+      "2026-06-21T24:00",
+      "2026-06-21T23:60",
+      "not-a-date"
+    ].forEach((value) => {
+      expect(fromLocalDateTimeInputValue(value)).toBe("");
+      expect(toLocalDateTimeInputValue(value)).toBe("");
+    });
     expect(fromLocalDateTimeInputValue("not-a-date")).toBe("");
+  });
+
+  it("keeps datetime-local values Gregorian at the Bangkok boundary", () => {
+    const localValue = "2026-08-01T00:30";
+    const persisted = fromLocalDateTimeInputValue(localValue);
+
+    expect(localValue).not.toContain("2569");
+    expect(persisted).toBe("2026-08-01T00:30:00+07:00");
+    expect(toLocalDateTimeInputValue(persisted)).toBe(localValue);
   });
 });
