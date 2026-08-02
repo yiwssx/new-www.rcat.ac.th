@@ -317,13 +317,17 @@ const routeTree = rootRoute.addChildren([
   ])
 ]);
 
-export const router = createRouter({
-  routeTree,
-  defaultPreload: "intent"
-});
+export function createAppRouter() {
+  return createRouter({
+    routeTree,
+    defaultPreload: "intent"
+  });
+}
+
+export type AppRouter = ReturnType<typeof createAppRouter>;
 
 declare module "@tanstack/react-router" {
   interface Register {
-    router: typeof router;
+    router: AppRouter;
   }
 }

@@ -1,6 +1,6 @@
 # Current Runtime Ownership
 
-Updated: 2026-08-01.
+Updated: 2026-08-03.
 
 This document is the current source of truth for runtime ownership. Historical migration milestone documents remain evidence of earlier states; when they conflict with this file about current ownership, authentication boundaries, or provider responsibilities, this file takes precedence.
 
@@ -77,6 +77,19 @@ Apps Script is not the structured-data backend and must not be restored as a bro
 ## Sitemap
 
 Owner: Vercel `/api/sitemap`; public route `/sitemap.xml`; data source Cloudflare Public API / D1-backed structured data.
+
+## SSR Readiness
+
+The production frontend remains CSR-only until the dedicated SSR implementation phase is explicitly enabled.
+
+Runtime construction is now factory-based so a future server renderer can create isolated state per request:
+
+- `createAppQueryClient()` creates a new TanStack Query `QueryClient` with the existing project query defaults;
+- `createAppRouter()` creates a new TanStack Router instance from the static route tree;
+- the browser entrypoint creates one QueryClient and one Router instance for the browser runtime and injects both into `App`;
+- `App` no longer owns module-scope runtime singletons.
+
+This refactor does not enable server rendering, hydration, route loaders, or server-side metadata by itself. Those remain separate migration stages and must preserve the existing Public/Admin runtime boundaries.
 
 ## Deployment Boundaries
 
