@@ -11,6 +11,7 @@ on:
       - 'scripts/post-ssr-readiness-fixes-2.mjs'
       - 'scripts/post-ssr-readiness-fixes-3.mjs'
       - 'scripts/post-ssr-readiness-fixes-4.mjs'
+      - 'scripts/post-ssr-readiness-fixes-5.mjs'
 
 permissions:
   contents: write
@@ -42,10 +43,11 @@ jobs:
           node scripts/post-ssr-readiness-fixes-2.mjs
           node scripts/post-ssr-readiness-fixes-3.mjs
           node scripts/post-ssr-readiness-fixes-4.mjs
+          node scripts/post-ssr-readiness-fixes-5.mjs
       - name: Format changed sources
         run: pnpm exec prettier --write src cloudflare/public-api/src cloudflare/public-api/test api README.md docs package.json
       - name: Focused SSR-readiness tests
-        run: pnpm exec vitest run src/test/ssrReadiness.test.ts src/test/sitemap.test.mjs
+        run: pnpm exec vitest run src/test/ssrReadiness.test.ts src/test/sitemap.test.mjs src/test/publicShellLayoutStability.test.tsx
       - name: Strict lint
         run: pnpm lint:strict
       - name: Worker typecheck
@@ -64,7 +66,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          rm -f .github/workflows/ssr-readiness-bootstrap.yml scripts/ssr-readiness-bootstrap.mjs scripts/fix-ssr-readiness-bootstrap.mjs scripts/post-ssr-readiness-fixes.mjs scripts/post-ssr-readiness-fixes-2.mjs scripts/post-ssr-readiness-fixes-3.mjs scripts/post-ssr-readiness-fixes-4.mjs
+          rm -f .github/workflows/ssr-readiness-bootstrap.yml scripts/ssr-readiness-bootstrap.mjs scripts/fix-ssr-readiness-bootstrap.mjs scripts/post-ssr-readiness-fixes.mjs scripts/post-ssr-readiness-fixes-2.mjs scripts/post-ssr-readiness-fixes-3.mjs scripts/post-ssr-readiness-fixes-4.mjs scripts/post-ssr-readiness-fixes-5.mjs
           git add -A
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
