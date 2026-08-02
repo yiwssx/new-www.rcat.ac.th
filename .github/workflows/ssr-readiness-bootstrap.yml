@@ -9,6 +9,7 @@ on:
       - 'scripts/fix-ssr-readiness-bootstrap.mjs'
       - 'scripts/post-ssr-readiness-fixes.mjs'
       - 'scripts/post-ssr-readiness-fixes-2.mjs'
+      - 'scripts/post-ssr-readiness-fixes-3.mjs'
 
 permissions:
   contents: write
@@ -38,6 +39,7 @@ jobs:
           node scripts/ssr-readiness-bootstrap.mjs
           node scripts/post-ssr-readiness-fixes.mjs
           node scripts/post-ssr-readiness-fixes-2.mjs
+          node scripts/post-ssr-readiness-fixes-3.mjs
       - name: Format changed sources
         run: pnpm exec prettier --write src cloudflare/public-api/src cloudflare/public-api/test api README.md docs package.json
       - name: Focused SSR-readiness tests
@@ -60,7 +62,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          rm -f .github/workflows/ssr-readiness-bootstrap.yml scripts/ssr-readiness-bootstrap.mjs scripts/fix-ssr-readiness-bootstrap.mjs scripts/post-ssr-readiness-fixes.mjs scripts/post-ssr-readiness-fixes-2.mjs
+          rm -f .github/workflows/ssr-readiness-bootstrap.yml scripts/ssr-readiness-bootstrap.mjs scripts/fix-ssr-readiness-bootstrap.mjs scripts/post-ssr-readiness-fixes.mjs scripts/post-ssr-readiness-fixes-2.mjs scripts/post-ssr-readiness-fixes-3.mjs
           git add -A
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
