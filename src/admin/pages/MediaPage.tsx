@@ -27,7 +27,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
@@ -273,7 +273,7 @@ export function MediaAssetCard({
                 disabled={driveActionDisabled}
                 size="small"
               >
-                <OpenInNewRoundedIcon fontSize="small" />
+                <OpenInNewOutlinedIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>

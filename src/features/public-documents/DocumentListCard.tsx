@@ -1,7 +1,7 @@
 import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
-import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
+import NavigateNextOutlinedIcon from "@mui/icons-material/NavigateNextOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import type { ContentItem } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
@@ -89,7 +89,7 @@ export function DocumentListCard({
                       </Typography>
                     )}
                   </Box>
-                  <NavigateNextRoundedIcon sx={{ color: "text.secondary" }} />
+                  <NavigateNextOutlinedIcon sx={{ color: "text.secondary" }} />
                 </Stack>
               </Box>
             ))}

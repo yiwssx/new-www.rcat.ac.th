@@ -4,7 +4,7 @@ import Grid from "@mui/material/Grid";
 import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
+import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 
@@ -153,7 +153,7 @@ export default function PublicContactPage() {
     {
       label: "อีเมล",
       value: siteSettings.email,
-      icon: <MailOutlineRoundedIcon color="primary" />
+      icon: <MailOutlineOutlinedIcon color="primary" />
     }
   ].filter((item) => item.value);
   const socialLinks: Array<{ label: string; href: string; platform: SocialPlatform }> = [];

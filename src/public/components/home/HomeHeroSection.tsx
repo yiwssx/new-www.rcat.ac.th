@@ -1,6 +1,6 @@
 import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import AssignmentIcon from "@mui/icons-material/Assignment";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
@@ -167,7 +167,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
                 color="error"
                 size="medium"
                 href={normalizeSafeHref(siteSettings.admissionUrl)}
-                startIcon={<AssignmentIcon />}
+                startIcon={<AssignmentOutlinedIcon />}
               >
                 สมัครเรียน
               </Button>

@@ -29,10 +29,10 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ContentEditorDialog from "../components/ContentEditorDialog";
@@ -384,7 +384,7 @@ export default function ContentPage() {
                   size="small"
                   disabled={info.row.original.status !== "published" && info.row.original.status !== "scheduled"}
                 >
-                  <OpenInNewRoundedIcon fontSize="small" />
+                  <OpenInNewOutlinedIcon fontSize="small" />
                 </IconButton>
               </span>
             </Tooltip>
@@ -545,7 +545,7 @@ export default function ContentPage() {
           canCreate ? (
             <Button
               variant="contained"
-              startIcon={<AddIcon />}
+              startIcon={<AddOutlinedIcon />}
               disabled={contentWritePending || Boolean(draftRecovery)}
               onClick={handleCreate}
             >

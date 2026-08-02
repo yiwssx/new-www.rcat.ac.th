@@ -38,3 +38,7 @@ Source repository:
 ## Performance policy
 
 The paths are compiled locally and tree-shaken with the existing application code. No new package or network request is introduced.
+
+## Relationship to the application icon system
+
+Social brand marks are the documented exception to the MUI Outlined application-icon family. See `docs/design/icon-system.md`.

@@ -2,16 +2,7 @@ import { ReactNode } from "react";
 import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { alpha } from "@mui/material/styles";
-import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
-import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
-import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
-import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
-import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
-import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import { ExternalServiceIconKey, ExternalServiceLink } from "../../../types";
 import { getExternalServiceToneStyle } from "../../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
@@ -19,21 +10,10 @@ import { HomeSectionHeading } from "./HomeSectionHeading";
 import { focusVisibleSx } from "./homeSectionStyles";
 import { interactiveSurfaceSx } from "../../../design-system/componentStyles";
 import { designTokens } from "../../../design-system/tokens";
+import ExternalServiceIcon from "../../../design-system/icons/ExternalServiceIcon";
 
 function getExternalServiceIcon(iconKey: ExternalServiceIconKey): ReactNode {
-  const icons: Record<ExternalServiceIconKey, ReactNode> = {
-    apps: <AppsOutlinedIcon />,
-    calendar: <CalendarMonthOutlinedIcon />,
-    check: <FactCheckOutlinedIcon />,
-    groups: <GroupsOutlinedIcon />,
-    handshake: <HandshakeOutlinedIcon />,
-    registration: <HowToRegOutlinedIcon />,
-    book: <MenuBookOutlinedIcon />,
-    school: <SchoolOutlinedIcon />,
-    link: <LinkOutlinedIcon />
-  };
-
-  return icons[iconKey] ?? icons.link;
+  return <ExternalServiceIcon iconKey={iconKey} />;
 }
 
 export function ExternalServicesSection({ items }: { items: ExternalServiceLink[] }) {

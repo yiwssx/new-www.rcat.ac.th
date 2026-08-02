@@ -23,7 +23,7 @@ import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
 import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
-import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
+import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
@@ -1179,7 +1179,7 @@ export default function SettingsPage() {
                       mb: 1.5
                     }}
                   >
-                    <LoginRoundedIcon color="primary" />
+                    <LoginOutlinedIcon color="primary" />
                     <Typography variant="h4">Intro Gate</Typography>
                   </Stack>
                   <Grid container spacing={1.5}>

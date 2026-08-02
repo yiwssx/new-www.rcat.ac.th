@@ -22,13 +22,13 @@ import {
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import AddIcon from "@mui/icons-material/Add";
-import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
-import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
+import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
-import SubdirectoryArrowRightRoundedIcon from "@mui/icons-material/SubdirectoryArrowRightRounded";
+import SubdirectoryArrowRightOutlinedIcon from "@mui/icons-material/SubdirectoryArrowRightOutlined";
 import ResponsiveDialogActions from "../../design-system/components/ResponsiveDialogActions";
 import { staticSurfaceSx } from "../../design-system/componentStyles";
 import PageHeader from "../components/PageHeader";
@@ -353,7 +353,7 @@ export default function MenuPage() {
               {!orderingMode && (
                 <Button
                   variant="contained"
-                  startIcon={<AddIcon />}
+                  startIcon={<AddOutlinedIcon />}
                   disabled={operationPending || loading}
                   onClick={() => openCreate()}
                 >
@@ -441,7 +441,7 @@ export default function MenuPage() {
                               useFlexGap
                               sx={{ alignItems: "center", flexWrap: "wrap" }}
                             >
-                              {depth > 0 && <SubdirectoryArrowRightRoundedIcon fontSize="small" color="action" />}
+                              {depth > 0 && <SubdirectoryArrowRightOutlinedIcon fontSize="small" color="action" />}
                               <Typography sx={{ fontWeight: 900 }}>{item.label}</Typography>
                               {depth > 0 && (
                                 <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>
@@ -460,7 +460,7 @@ export default function MenuPage() {
                           <Stack direction="row" spacing={0.5}>
                             <Button
                               size="small"
-                              startIcon={<ArrowUpwardRoundedIcon />}
+                              startIcon={<ArrowUpwardOutlinedIcon />}
                               disabled={siblingIndex <= 0 || operationPending}
                               onClick={() =>
                                 setOrderDraft((current) => moveMenuSibling(current ?? orderItems, item.id, -1))
@@ -470,7 +470,7 @@ export default function MenuPage() {
                             </Button>
                             <Button
                               size="small"
-                              startIcon={<ArrowDownwardRoundedIcon />}
+                              startIcon={<ArrowDownwardOutlinedIcon />}
                               disabled={siblingIndex < 0 || siblingIndex >= siblings.length - 1 || operationPending}
                               onClick={() =>
                                 setOrderDraft((current) => moveMenuSibling(current ?? orderItems, item.id, 1))
@@ -545,7 +545,7 @@ export default function MenuPage() {
                       >
                         <Box sx={{ minWidth: 0 }}>
                           <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
-                            {depth > 0 && <SubdirectoryArrowRightRoundedIcon fontSize="small" color="action" />}
+                            {depth > 0 && <SubdirectoryArrowRightOutlinedIcon fontSize="small" color="action" />}
                             <Typography sx={{ fontWeight: 900 }}>{item.label}</Typography>
                             {depth > 0 && (
                               <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>
@@ -578,7 +578,7 @@ export default function MenuPage() {
                           <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
                             <Button
                               size="small"
-                              startIcon={<AddIcon />}
+                              startIcon={<AddOutlinedIcon />}
                               disabled={operationPending}
                               onClick={() => openCreate(item.id)}
                             >

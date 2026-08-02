@@ -194,6 +194,8 @@ See:
 
 ## Documentation
 
+- Icon system: `docs/design/icon-system.md`
+
 Current documents:
 
 - Runtime ownership: `docs/architecture/current-runtime-ownership.md`

@@ -4,7 +4,7 @@ import { alpha } from "@mui/material/styles";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import WorkOutlineRoundedIcon from "@mui/icons-material/WorkOutlineRounded";
+import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
 import type { ContentItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
 import { designTokens } from "../../../design-system/tokens";
@@ -60,7 +60,7 @@ export function JobOpportunitiesSection({ items }: { items: ContentItem[] }) {
                     }}
                   >
                     <Chip
-                      icon={<WorkOutlineRoundedIcon />}
+                      icon={<WorkOutlineOutlinedIcon />}
                       label={item.category || "สมัครงาน / หางาน"}
                       size="small"
                       color="primary"

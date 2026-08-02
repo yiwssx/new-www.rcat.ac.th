@@ -25,7 +25,7 @@ import {
   Typography
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import AddIcon from "@mui/icons-material/Add";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
@@ -452,7 +452,12 @@ export default function CalendarPage() {
         description="สร้าง ตั้งเวลา เผยแพร่ ยกเลิก และลบกิจกรรมปฏิทินสาธารณะ"
         action={
           canManage ? (
-            <Button variant="contained" startIcon={<AddIcon />} disabled={calendarWritePending} onClick={handleCreate}>
+            <Button
+              variant="contained"
+              startIcon={<AddOutlinedIcon />}
+              disabled={calendarWritePending}
+              onClick={handleCreate}
+            >
               เพิ่มกิจกรรม
             </Button>
           ) : undefined

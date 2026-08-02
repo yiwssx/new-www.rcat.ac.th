@@ -14,6 +14,8 @@ describe("design-system governance", () => {
 
   it.each([
     ["broad icon barrel", 'import { Search } from "@mui/icons-material";', /broad/],
+    ["rounded application icon", 'import MenuRoundedIcon from "@mui/icons-material/MenuRounded";', /Outlined family/],
+    ["default semantic action icon", 'import AddIcon from "@mui/icons-material/Add";', /Outlined family/],
     ["hard-coded brand color", 'const sx = { color: "#2c7a3f" };', /hard-coded color/],
     ["duplicate focus", 'const sx = { "&:focus-visible": { outline: "none" } };', /focus-visible/],
     ["unsafe accent foreground", 'const sx = { color: "secondary.main" };', /accentForeground/],

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Button, Stack, Typography } from "@mui/material";
-import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import { alpha } from "@mui/material/styles";
 import type { HomepageIntroGateSettings } from "../../types";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
@@ -295,7 +295,7 @@ export default function PublicIntroGate({
               color="inherit"
               size="large"
               fullWidth
-              endIcon={<OpenInNewRoundedIcon />}
+              endIcon={<OpenInNewOutlinedIcon />}
               sx={(theme) => ({
                 minHeight: 46,
                 fontWeight: 800,
@@ -318,7 +318,7 @@ export default function PublicIntroGate({
             color="primary"
             size="large"
             fullWidth
-            startIcon={<LoginRoundedIcon />}
+            startIcon={<LoginOutlinedIcon />}
             onClick={handleEnterSite}
             sx={{
               minHeight: 46,

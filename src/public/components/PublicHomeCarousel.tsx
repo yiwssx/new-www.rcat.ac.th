@@ -2,11 +2,11 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { Box, Container, IconButton, Stack } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
-import ArrowForwardIosRoundedIcon from "@mui/icons-material/ArrowForwardIosRounded";
+import ArrowBackIosNewOutlinedIcon from "@mui/icons-material/ArrowBackIosNewOutlined";
+import ArrowForwardIosOutlinedIcon from "@mui/icons-material/ArrowForwardIosOutlined";
 import CircleIcon from "@mui/icons-material/Circle";
-import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import PauseOutlinedIcon from "@mui/icons-material/PauseOutlined";
+import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import useEmblaCarousel from "embla-carousel-react";
 import type { CarouselSlide, HomepageCarouselSettings } from "../../types";
 import { normalizeCarouselSlide } from "../../features/cms-carousel/normalization";
@@ -885,7 +885,7 @@ export default function PublicHomeCarousel({
                     }
                   })}
                 >
-                  {autoplayControlPaused ? <PlayArrowRoundedIcon /> : <PauseRoundedIcon />}
+                  {autoplayControlPaused ? <PlayArrowOutlinedIcon /> : <PauseOutlinedIcon />}
                 </IconButton>
               )}
 
@@ -921,7 +921,7 @@ export default function PublicHomeCarousel({
                       }
                     })}
                   >
-                    <ArrowBackIosNewRoundedIcon fontSize="small" />
+                    <ArrowBackIosNewOutlinedIcon fontSize="small" />
                   </IconButton>
 
                   <IconButton
@@ -947,7 +947,7 @@ export default function PublicHomeCarousel({
                       }
                     })}
                   >
-                    <ArrowForwardIosRoundedIcon fontSize="small" />
+                    <ArrowForwardIosOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Box>
               )}

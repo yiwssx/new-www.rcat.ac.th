@@ -22,13 +22,13 @@ import {
 import { alpha } from "@mui/material/styles";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
-import AssignmentIcon from "@mui/icons-material/Assignment";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
+import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 
 import PublicMainMenu from "./PublicMainMenu";
@@ -367,7 +367,7 @@ function MobileTopBar({
 
       {email && (
         <Box sx={{ gridColumn: "1 / 2", gridRow: "2 / 3", minWidth: 0 }}>
-          <TopBarInfoItem icon={<MailOutlineRoundedIcon />} text={email} compact allowShrink />
+          <TopBarInfoItem icon={<MailOutlineOutlinedIcon />} text={email} compact allowShrink />
         </Box>
       )}
 
@@ -419,7 +419,7 @@ function DesktopTopBar({
 
         {phone && <TopBarInfoItem icon={<LocalPhoneOutlinedIcon />} text={phone} href={getTelephoneHref(phone)} />}
 
-        {email && <TopBarInfoItem icon={<MailOutlineRoundedIcon />} text={email} />}
+        {email && <TopBarInfoItem icon={<MailOutlineOutlinedIcon />} text={email} />}
       </Stack>
       <TopBarSocialIcons links={socialLinks} showLabel />
     </Stack>
@@ -751,7 +751,7 @@ function PublicSiteShellFrame({
                       variant="contained"
                       color="error"
                       href={normalizeSafeHref(siteSettings.admissionUrl)}
-                      startIcon={<AssignmentIcon />}
+                      startIcon={<AssignmentOutlinedIcon />}
                       sx={{ flex: { xs: "1 1 132px", sm: "0 0 auto" } }}
                     >
                       สมัครเรียน

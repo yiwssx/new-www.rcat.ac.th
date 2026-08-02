@@ -28,7 +28,7 @@ import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
-import MenuIcon from "@mui/icons-material/Menu";
+import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
@@ -304,7 +304,7 @@ export default function CmsShell() {
         <Toolbar>
           {!isDesktop && (
             <IconButton aria-label="เปิดเมนูนำทาง" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
-              <MenuIcon />
+              <MenuOutlinedIcon />
             </IconButton>
           )}
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>

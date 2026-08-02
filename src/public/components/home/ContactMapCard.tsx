@@ -2,7 +2,7 @@ import { Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
+import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import { SiteSettings } from "../../../types";
@@ -118,7 +118,7 @@ export function ContactMapCard({ siteSettings }: { siteSettings: SiteSettings })
                   alignItems: "center"
                 }}
               >
-                <MailOutlineRoundedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
+                <MailOutlineOutlinedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
                 <Typography
                   variant="body2"
                   sx={{

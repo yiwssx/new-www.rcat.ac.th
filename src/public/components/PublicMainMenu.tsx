@@ -14,12 +14,12 @@ import {
   useMediaQuery
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
-import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
+import ExpandLessOutlinedIcon from "@mui/icons-material/ExpandLessOutlined";
+import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
+import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
+import KeyboardArrowRightOutlinedIcon from "@mui/icons-material/KeyboardArrowRightOutlined";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { PublicMenuItem } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
@@ -86,9 +86,9 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
             <span>{item.label}</span>
             {item.children?.length &&
               (nested ? (
-                <KeyboardArrowRightRoundedIcon sx={{ fontSize: 18 }} />
+                <KeyboardArrowRightOutlinedIcon sx={{ fontSize: 18 }} />
               ) : (
-                <KeyboardArrowDownRoundedIcon sx={{ fontSize: 18 }} />
+                <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 18 }} />
               ))}
           </Box>
           {Boolean(item.children?.length) && (
@@ -154,7 +154,7 @@ function PublicTopLevelMenuMeasurement({ items }: { items: PublicMenuItem[] }) {
             }}
           >
             <span>{item.label}</span>
-            {item.children?.length ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: 18 }} /> : null}
+            {item.children?.length ? <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 18 }} /> : null}
           </Box>
         </Box>
       ))}
@@ -290,7 +290,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
                 color: "inherit"
               })}
             >
-              {mobileMenuOpen ? <CloseRoundedIcon /> : <MenuRoundedIcon />}
+              {mobileMenuOpen ? <CloseOutlinedIcon /> : <MenuOutlinedIcon />}
             </IconButton>
             <Typography
               sx={{
@@ -327,7 +327,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
               เมนูหลัก
             </Typography>
             <IconButton aria-label="ปิดเมนูหลัก" onClick={closeMobileMenu}>
-              <CloseRoundedIcon />
+              <CloseOutlinedIcon />
             </IconButton>
           </Box>
           <Divider />
@@ -413,7 +413,7 @@ function MobileMenuList({
                   }
                 }}
               />
-              {hasChildren && (isOpen ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />)}
+              {hasChildren && (isOpen ? <ExpandLessOutlinedIcon /> : <ExpandMoreOutlinedIcon />)}
             </ListItemButton>
 
             {hasChildren && (

@@ -86,6 +86,20 @@ export function inspectDesignSystemSource(relativePath, source) {
     violations.push("broad @mui/icons-material barrel import");
   }
 
+  const roundedIconImport = imports.find((specifier) => /^@mui\/icons-material\/[^/]+Rounded$/.test(specifier));
+  if (roundedIconImport) {
+    violations.push(`Rounded MUI icon import is not allowed; use the Outlined family: ${roundedIconImport}`);
+  }
+
+  const legacyDefaultSemanticIconImport = imports.find((specifier) =>
+    ["@mui/icons-material/Add", "@mui/icons-material/Menu", "@mui/icons-material/Assignment"].includes(specifier)
+  );
+  if (legacyDefaultSemanticIconImport) {
+    violations.push(
+      `default semantic MUI icon import is not allowed; use the Outlined family: ${legacyDefaultSemanticIconImport}`
+    );
+  }
+
   if (normalizedPath.startsWith("src/design-system/")) {
     const implementationImport = imports.find((specifier) => /(?:^|\/)(?:admin|public)(?:\/|$)/.test(specifier));
     if (implementationImport) {
@@ -261,7 +275,10 @@ export async function runDesignSystemGovernance() {
     workflowSource,
     tokenTestSource,
     functionalSpecSource,
-    mainMenuSource
+    mainMenuSource,
+    externalServiceIconSource,
+    adminExternalServicesSource,
+    publicExternalServicesSource
   ] = await Promise.all([
     readFile(path.join(repositoryRoot, "src/design-system/tokens.ts"), "utf8"),
     readFile(path.join(repositoryRoot, "src/design-system/componentStyles.ts"), "utf8"),
@@ -272,7 +289,10 @@ export async function runDesignSystemGovernance() {
     readFile(path.join(repositoryRoot, ".github/workflows/ci.yml"), "utf8"),
     readFile(path.join(repositoryRoot, "src/test/designSystemTokens.test.ts"), "utf8"),
     readFile(path.join(repositoryRoot, "tests/functional/designSystemUiUx.spec.ts"), "utf8"),
-    readFile(path.join(repositoryRoot, "src/public/components/PublicMainMenu.tsx"), "utf8")
+    readFile(path.join(repositoryRoot, "src/public/components/PublicMainMenu.tsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/design-system/icons/ExternalServiceIcon.tsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/admin/pages/ExternalServicesPage.tsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/public/components/home/ExternalServicesSection.tsx"), "utf8")
   ]);
 
   if (!/export const designTokens/.test(tokensSource) || !/export const designTokenCssVariables/.test(tokensSource)) {
@@ -298,6 +318,18 @@ export async function runDesignSystemGovernance() {
       stylesSource
     })
   );
+
+  const externalServiceMappedIconImport =
+    /@mui\/icons-material\/(?:AppsOutlined|CalendarMonthOutlined|FactCheckOutlined|GroupsOutlined|HandshakeOutlined|HowToRegOutlined|LinkOutlined|MenuBookOutlined|SchoolOutlined)/;
+  if (
+    !/switch\s*\(iconKey\)/.test(externalServiceIconSource) ||
+    !/ExternalServiceIcon/.test(adminExternalServicesSource) ||
+    !/ExternalServiceIcon/.test(publicExternalServicesSource) ||
+    externalServiceMappedIconImport.test(adminExternalServicesSource) ||
+    externalServiceMappedIconImport.test(publicExternalServicesSource)
+  ) {
+    violations.push("E-Service icon mapping must be owned only by src/design-system/icons/ExternalServiceIcon.tsx");
+  }
 
   const cssProperties = extractCssCustomProperties(stylesSource);
   const requiredAliases = new Map([
@@ -333,6 +365,7 @@ export async function runDesignSystemGovernance() {
     "src/test/designSystemTokens.test.ts",
     "src/test/designSystemComponents.test.tsx",
     "src/test/designSystemGovernance.test.mjs",
+    "src/test/ExternalServiceIcon.test.tsx",
     "tests/functional/designSystemUiUx.spec.ts",
     "tests/functional/fixtures/designSystemHarness.html",
     "tests/functional/fixtures/designSystemHarness.tsx"
@@ -378,7 +411,9 @@ async function main() {
   }
 
   console.log("Design-system governance passed.");
-  console.log("Canonical tokens, CSS aliases, focus policy, import boundaries, tests, quality, and CI are consistent.");
+  console.log(
+    "Canonical tokens, icon policy, CSS aliases, focus policy, import boundaries, tests, quality, and CI are consistent."
+  );
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {

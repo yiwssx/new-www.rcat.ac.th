@@ -25,22 +25,14 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { designTokens } from "../../design-system/tokens";
+import ExternalServiceIcon from "../../design-system/icons/ExternalServiceIcon";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
-import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
-import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
-import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
-import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
-import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import SwapVertOutlinedIcon from "@mui/icons-material/SwapVertOutlined";
 import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
@@ -161,19 +153,7 @@ function getIconLabel(iconKey: ExternalServiceIconKey) {
 }
 
 function getExternalServiceIcon(iconKey: ExternalServiceIconKey): ReactNode {
-  const icons: Record<ExternalServiceIconKey, ReactNode> = {
-    apps: <AppsOutlinedIcon />,
-    calendar: <CalendarMonthOutlinedIcon />,
-    check: <FactCheckOutlinedIcon />,
-    groups: <GroupsOutlinedIcon />,
-    handshake: <HandshakeOutlinedIcon />,
-    registration: <HowToRegOutlinedIcon />,
-    book: <MenuBookOutlinedIcon />,
-    school: <SchoolOutlinedIcon />,
-    link: <LinkOutlinedIcon />
-  };
-
-  return icons[iconKey] ?? icons.link;
+  return <ExternalServiceIcon iconKey={iconKey} />;
 }
 
 function isAllowedExternalServiceHref(href: string) {
@@ -783,7 +763,7 @@ export default function ExternalServicesPage() {
                     alignItems: "flex-start"
                   }}
                 >
-                  <AppsOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
+                  <ExternalServiceIcon iconKey="apps" color="primary" sx={{ fontSize: 44 }} />
                   <Typography variant="h3" sx={{ fontSize: "1.2rem" }}>
                     {q || enabledFilter !== "all" || toneFilter !== "all"
                       ? "ไม่พบ E-Service ที่ตรงกับเงื่อนไข"

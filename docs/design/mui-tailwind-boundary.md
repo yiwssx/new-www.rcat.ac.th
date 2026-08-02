@@ -102,9 +102,12 @@ Use the theme target-size and focus policies:
 - Tables may scroll inside an intentional `.table-scroll` container; the complete page must not overflow.
 - Structural wrappers around interactive content must leave the exported focus-ring extent visible. Measurement-only
   overflow containment must not be reused as the visible navigation wrapper.
-- Use per-icon imports such as `@mui/icons-material/SearchOutlined`.
-- Broad `@mui/icons-material` imports are prohibited.
-- Existing third-party brand icons and governed media geometry are narrow, documented exceptions.
+- Use direct per-icon imports such as `@mui/icons-material/SearchOutlined`; broad `@mui/icons-material` imports are prohibited.
+- Semantic application icons use the MUI **Outlined** family. Rounded variants are prohibited by `pnpm design:check`.
+- Filled icons are allowed only when fill communicates state/geometry; the current intentional example is the carousel Circle indicator.
+- Data-driven E-Service icon keys resolve only through `src/design-system/icons/ExternalServiceIcon.tsx` so Admin and Public cannot drift.
+- Facebook, YouTube, and TikTok remain governed local brand SVGs through `SocialBrandIcon`.
+- See `docs/design/icon-system.md` for the complete icon policy.
 
 `brandAccent` is the filled/decorative institutional yellow, not a default foreground for normal-size text on light
 surfaces. Use `textOnAccent` on a `brandAccent` fill and use `accentForeground` for accent text, icons, and outlined
