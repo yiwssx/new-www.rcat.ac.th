@@ -1,0 +1,57 @@
+name: SSR readiness bootstrap
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - '.github/workflows/ssr-readiness-bootstrap.yml'
+      - 'scripts/ssr-readiness-bootstrap.mjs'
+
+permissions:
+  contents: write
+
+jobs:
+  refactor-and-validate:
+    if: github.head_ref == 'refactor/ssr-readiness-1-7'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.34.5 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Apply SSR readiness refactor
+        run: node scripts/ssr-readiness-bootstrap.mjs
+      - name: Format changed sources
+        run: pnpm exec prettier --write src cloudflare/public-api/src cloudflare/public-api/test api README.md docs package.json
+      - name: Focused SSR-readiness tests
+        run: pnpm exec vitest run src/test/ssrReadiness.test.ts src/test/sitemap.test.mjs
+      - name: Strict lint
+        run: pnpm lint:strict
+      - name: Worker typecheck
+        run: pnpm worker:typecheck
+      - name: Build
+        run: pnpm build
+      - name: Public governance checks
+        run: pnpm perf:check && pnpm media:check && pnpm layout:check && pnpm design:check
+      - name: Diff safety
+        run: git diff --check
+      - name: Commit validated refactor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -f .github/workflows/ssr-readiness-bootstrap.yml scripts/ssr-readiness-bootstrap.mjs
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "refactor(ssr): prepare public architecture"
+          git push origin HEAD:${{ github.head_ref }}
