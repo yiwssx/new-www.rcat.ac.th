@@ -8,6 +8,7 @@ on:
       - 'scripts/ssr-readiness-bootstrap.mjs'
       - 'scripts/fix-ssr-readiness-bootstrap.mjs'
       - 'scripts/post-ssr-readiness-fixes.mjs'
+      - 'scripts/post-ssr-readiness-fixes-2.mjs'
 
 permissions:
   contents: write
@@ -16,7 +17,7 @@ jobs:
   refactor-and-validate:
     if: github.head_ref == 'refactor/ssr-readiness-1-7'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,6 +37,7 @@ jobs:
           node scripts/fix-ssr-readiness-bootstrap.mjs
           node scripts/ssr-readiness-bootstrap.mjs
           node scripts/post-ssr-readiness-fixes.mjs
+          node scripts/post-ssr-readiness-fixes-2.mjs
       - name: Format changed sources
         run: pnpm exec prettier --write src cloudflare/public-api/src cloudflare/public-api/test api README.md docs package.json
       - name: Focused SSR-readiness tests
@@ -48,13 +50,17 @@ jobs:
         run: pnpm build
       - name: Public governance checks
         run: pnpm perf:check && pnpm media:check && pnpm layout:check && pnpm design:check
+      - name: Unit suite
+        run: pnpm test:unit
+      - name: Integration suite
+        run: pnpm test:integration
       - name: Diff safety
         run: git diff --check
       - name: Commit validated refactor
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          rm -f .github/workflows/ssr-readiness-bootstrap.yml scripts/ssr-readiness-bootstrap.mjs scripts/fix-ssr-readiness-bootstrap.mjs scripts/post-ssr-readiness-fixes.mjs
+          rm -f .github/workflows/ssr-readiness-bootstrap.yml scripts/ssr-readiness-bootstrap.mjs scripts/fix-ssr-readiness-bootstrap.mjs scripts/post-ssr-readiness-fixes.mjs scripts/post-ssr-readiness-fixes-2.mjs
           git add -A
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
