@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import App from "../../App";
+import { createAppQueryClient } from "../../queryClient";
+import { createAppRouter } from "../../routes";
+
+function renderApp() {
+  render(<App queryClient={createAppQueryClient()} router={createAppRouter()} />);
+}
 
 describe("router + auth integration", () => {
   beforeEach(() => {
@@ -14,7 +20,7 @@ describe("router + auth integration", () => {
   });
 
   it("redirects unauthenticated admin visits to the login page", async () => {
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByRole("button", { name: /เข้าสู่ระบบ/ }, { timeout: 5_000 })).toBeInTheDocument();
   });
@@ -22,7 +28,7 @@ describe("router + auth integration", () => {
   it("protects the public documents admin route", async () => {
     window.history.pushState({}, "", "/admin/documents");
 
-    render(<App />);
+    renderApp();
 
     const loginButton = await screen.findByRole("button", { name: /เข้าสู่ระบบ/ }, { timeout: 5_000 });
 
