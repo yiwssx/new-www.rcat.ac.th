@@ -23,10 +23,10 @@ for (const file of walk("src/test")) {
   if (next !== source) {
     fs.writeFileSync(file, next);
     patched += 1;
-    console.log(`Updated stale full-body search expectation in ${file}`);
+    console.log(`Updated stale literal full-body search expectation in ${file}`);
   }
 }
 
 if (patched === 0) {
-  throw new Error("Expected to update the stale Admissions body v2 search expectation, but no matching test was found.");
+  console.log("No literal Admissions body v2 assertion found; full unit validation will identify any remaining variable-based expectation.");
 }
