@@ -34,11 +34,7 @@ import {
   SettingsPage,
   UsersPage
 } from "./routeComponents";
-import {
-  getCmsRouteHead,
-  getPublicContentRouteHead,
-  getStaticPublicRouteHead
-} from "./public/routing/publicRouteHead";
+import { getCmsRouteHead, getPublicContentRouteHead, getStaticPublicRouteHead } from "./public/routing/publicRouteHead";
 import {
   validatePublicAnnouncementsSearch,
   validatePublicFilteredPaginatedSearch,
