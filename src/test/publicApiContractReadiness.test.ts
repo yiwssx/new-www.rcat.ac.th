@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getPublicContentDetailSnapshot, getPublicContentListPageSnapshot } from "../features/public-content";
-import { getPublicSearchIndexSnapshot } from "../features/public-search";
+import { getPublicSearchIndexSnapshot, getPublicSearchPageSnapshot } from "../features/public-search";
 import { getPublicShellSnapshot } from "../features/public-shell";
 
 const generatedAt = "2026-08-03T00:00:00.000Z";
@@ -49,6 +49,28 @@ describe("Step 4 public API contract readiness", () => {
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "https://public-api.example.test/api/public/search?q=award",
+      expect.objectContaining({ method: "GET" })
+    );
+  });
+
+  it("builds a paginated public search request and validates pagination metadata", async () => {
+    vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.test");
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        ...sharedMetadata,
+        query: "award",
+        items: [summaryItem],
+        pagination: { page: 2, pageSize: 12, totalItems: 13, totalPages: 2 }
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getPublicSearchPageSnapshot(" award ", { page: 2, pageSize: 12 })).resolves.toMatchObject({
+      query: "award",
+      pagination: { page: 2, pageSize: 12, totalItems: 13, totalPages: 2 }
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://public-api.example.test/api/public/search?q=award&page=2&pageSize=12",
       expect.objectContaining({ method: "GET" })
     );
   });
