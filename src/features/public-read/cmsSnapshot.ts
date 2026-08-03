@@ -3,7 +3,11 @@ import { getPublicHomeSnapshot } from "../public-home/api";
 import type { CmsSnapshot, ContentItem } from "../../types";
 import { PUBLIC_SNAPSHOT_CACHE_TTL_MS, setPublicSnapshotCache } from "../../services/publicCmsCache";
 import type { PublicReadRequestOptions } from "./request";
-import { PUBLIC_QUERY_GC_TIME_MS } from "./queryPolicy";
+import {
+  getPublicQueryRequestOptions,
+  PUBLIC_QUERY_GC_TIME_MS,
+  type PublicQueryRuntimeOptions
+} from "./queryPolicy";
 
 export const publicCmsSnapshotQueryKey = ["cms-snapshot"] as const;
 
@@ -35,11 +39,11 @@ export async function getPublicCmsSnapshotForProvider(options: PublicReadRequest
   };
 }
 
-export function publicCmsSnapshotQueryOptions() {
+export function publicCmsSnapshotQueryOptions(runtimeOptions: PublicQueryRuntimeOptions = {}) {
   return queryOptions({
     queryKey: publicCmsSnapshotQueryKey,
-    queryFn: async ({ signal }) => {
-      const snapshot = await getPublicCmsSnapshotForProvider({ signal });
+    queryFn: async (context) => {
+      const snapshot = await getPublicCmsSnapshotForProvider(getPublicQueryRequestOptions(context, runtimeOptions));
       setPublicSnapshotCache(snapshot);
       return snapshot;
     },
