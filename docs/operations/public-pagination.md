@@ -1,6 +1,6 @@
 # Public Pagination
 
-Public list pages use UI/render pagination to avoid mounting large numbers of cards at once. This keeps the public site responsive while preserving the existing Cloudflare Worker and D1 read paths.
+Public list pages use URL-owned pagination so TanStack Router, the browser, and future SSR loaders share the same page state. Most archive pages still render a browser-side page slice from their existing snapshot, while the Worker now exposes true D1-backed pagination contracts for content lists and search.
 
 ## Home Achievements
 
@@ -39,25 +39,54 @@ TanStack Router owns Public URL search state. Public list rendering no longer re
 - Page `1`, invalid page values, and blank text filters are treated as the default and omitted from normalized route search state.
 - Unrelated query parameters are preserved when validated pagination/filter state is normalized.
 - Pagination changes use TanStack Router navigation so browser back/forward behavior and future server rendering share the same URL source of truth.
-- When a filter changes or a requested page exceeds the available page count, pagination replaces the route search value with the safe page instead of adding a duplicate history entry.
+- When a filter changes or a requested page exceeds the available page count, pagination uses the safe page without requiring browser-owned URL parsing.
+
+## Worker Pagination Contracts
+
+### Public content lists
+
+`GET /api/public/content?kind=<kind>&page=<page>&pageSize=<pageSize>` uses a D1 `COUNT(*)` query plus a paged `SELECT ... LIMIT ? OFFSET ?` query. The Worker no longer loads the complete content list and slices it in memory when pagination is requested.
+
+The legacy unpaginated content-list URL remains available for current archive pages that have not yet moved to route-loader pagination.
+
+### Public search
+
+`GET /api/public/search?q=<query>&page=<page>&pageSize=<pageSize>` is the active Search page contract. Search filtering, result ordering, total counting, and page slicing are Worker/D1-owned. The response includes:
+
+- `page`
+- `pageSize`
+- `totalItems`
+- `totalPages`
+
+The Search page renders the returned page directly and uses TanStack Router to update `page` while preserving `q`. A response without pagination metadata remains compatible as an incremental-rollout fallback and is sliced in the browser.
+
+### Limits
+
+- `pageSize` is constrained to 1–100 by the Worker.
+- The default page size is 20 when `page` is supplied without `pageSize`.
+- Requested pages beyond the available range are clamped to the final page.
+- No database schema or D1 migration is required.
+
+## Read Scope Hardening
+
+Paged content/search responses avoid unrelated full-table reads:
+
+- Content list summaries omit article bodies.
+- Content list media is loaded only for media IDs referenced by the returned content/page rows.
+- Content detail media is loaded only by the detail item's `featuredMediaId` and `mediaIds` references.
+- Search uses lightweight shell metadata (`siteSettings`, `homepageSettings`, `displaySettings`, and `menu`) and does not load the complete media, carousel, external-service, or event collections.
+
+These boundaries keep later dehydrated SSR payloads and D1 work proportional to the requested page instead of the total dataset.
 
 ## Current Scope
 
-- Public pages still use UI/render pagination by default, so the established unpaginated content-list URL remains backward compatible.
-- The Cloudflare public content-list contract now also accepts opt-in `page` and `pageSize` parameters and returns pagination metadata. This capability is available for later route-loader/server-pagination adoption without forcing the current browser pages to switch in the same migration step.
-- `pageSize` is constrained to 1–100 by the Worker; the default is 20 when `page` is supplied without `pageSize`.
-- The home achievement payload is limited at the Worker public home snapshot level.
-- Search query filtering is Worker-owned when `q` is supplied; the browser preserves the Worker result order and applies its current UI page slice.
-- No database schema changes are required.
-- No D1 migrations are required.
+- Search now uses Worker-owned server pagination in the current Public UI.
+- Other archive pages can adopt the same paginated content-list contract during the route-loader migration; their current browser pagination remains backward compatible until then.
+- The home achievement payload remains limited at the Worker public home snapshot level.
 - No Apps Script changes are required.
 
 ## SSR Readiness
 
 Router-owned search state is required before server rendering because the server and the hydrating browser must derive the same page/filter selection from the request URL. Browser-only `window.location` snapshots or custom `pushState` events would otherwise produce a different first render during hydration.
 
-The optional Worker pagination contract provides the next-stage server data boundary, but Step 4 does not add route loaders or switch current archive pages to server pagination.
-
-## Future Scale Note
-
-When public datasets grow beyond the current browser snapshot budget, route loaders can adopt the existing Worker `page`/`pageSize` contract incrementally instead of introducing a second pagination API shape.
+The D1-backed content/search pagination contracts are now suitable for route loaders because a request for one page no longer requires loading all matching content rows into the Worker first.
