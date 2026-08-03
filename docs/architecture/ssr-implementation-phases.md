@@ -6,7 +6,7 @@ The seven SSR-readiness steps are complete on the integration line. The implemen
 
 ## Phase 1 — SSR Runtime Foundation
 
-Status: implemented on the SSR runtime foundation branch; production remains CSR-only.
+Status: implemented on the SSR integration line; production remains CSR-only.
 
 Phase 1 establishes the runtime boundary required by later server data loading and hydration work:
 
@@ -20,15 +20,35 @@ Phase 1 establishes the runtime boundary required by later server data loading a
 - `pnpm test:ssr:foundation` validates runtime isolation and route-aware server head rendering;
 - `pnpm build:ssr:foundation` verifies the server entry can be bundled by Vite independently of the client build.
 
-Phase 1 does **not** enable the new renderer in Vercel. It does not add route loaders, Query dehydration/hydration, `hydrateRoot`, dynamic CMS server metadata, Emotion critical CSS extraction, production HTTP redirect/404 semantics, or CDN cache policy.
+## Phase 2 — Public Route Data Loading / Server Prefetch Ownership
+
+Status: implemented on the Phase 2 branch; production remains CSR-only.
+
+Phase 2 gives matched Public routes explicit ownership of the TanStack Query data they require before a server render:
+
+- the Public layout prefetches the lightweight `/api/public/shell` query so navigation/settings are available before shell rendering;
+- Home prefetches the Home snapshot;
+- News and Blog prefetch their reusable content-list queries;
+- Announcements prefetches its list using normalized `pagesPage` loader dependencies so the independently paginated public-page collection uses the same query key as the page hook;
+- Departments prefetches the Public program query;
+- Documents and Calendar prefetch their dedicated document/event queries;
+- Achievements prefetches the current Public search-index query used by that page;
+- Contact prefetches the existing CMS snapshot required by its current component contract;
+- Search prefetches only when `q` is non-empty and keys the request by normalized query/page with the same 12-item page size as the page hook;
+- both content URL forms prefetch content detail plus the supporting CMS snapshot currently used for related content and media;
+- loader query factories are dynamically imported so route-data ownership does not pull the Public data layer into the synchronous browser entry graph;
+- query failures are intentionally non-fatal at the loader boundary during Phase 2, preserving the existing page-level `PublicErrorState`; Phase 6 will map typed errors to production 404/503 semantics.
+
+The loader layer calls the same reusable query-option factories as the React hooks, so server-prefetched data lands in the exact QueryClient keys the page components already consume. No second server-side data store is introduced.
+
+Phase 2 still does **not** dehydrate Query state into HTML or hydrate it in the browser. The browser entry remains `ReactDOM.createRoot()`. Dynamic CMS SEO is not yet derived from loader data, MUI/Emotion critical CSS is not extracted, and Vercel production routing remains unchanged.
 
 ## Remaining implementation phases
 
-1. Phase 2 — Public route data loading and server-prefetch ownership.
-2. Phase 3 — Query dehydration and browser hydration.
-3. Phase 4 — MUI/Emotion SSR styling and critical CSS.
-4. Phase 5 — Full dynamic SEO, social metadata, and structured data.
-5. Phase 6 — HTTP status, canonical redirects, indexing, sitemap, and robots correctness.
-6. Phase 7 — Vercel routing, cache policy, production validation, and cutover.
+1. Phase 3 — Query dehydration and browser hydration.
+2. Phase 4 — MUI/Emotion SSR styling and critical CSS.
+3. Phase 5 — Full dynamic SEO, social metadata, and structured data.
+4. Phase 6 — HTTP status, canonical redirects, indexing, sitemap, and robots correctness.
+5. Phase 7 — Vercel routing, cache policy, production validation, and cutover.
 
 Production SSR/SEO is complete only after the remaining phases are finished and the production Vercel routing is explicitly switched from the CSR fallback to the verified SSR renderer.

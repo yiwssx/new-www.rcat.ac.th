@@ -42,6 +42,19 @@ import {
   getStaticPublicRouteHead
 } from "./public/routing/publicRouteHead";
 import {
+  getAnnouncementPagesLoaderInput,
+  loadPublicCmsSnapshotData,
+  loadPublicContentDetailData,
+  loadPublicContentListData,
+  loadPublicDocumentListData,
+  loadPublicEventListData,
+  loadPublicHomeData,
+  loadPublicProgramListData,
+  loadPublicSearchIndexData,
+  loadPublicSearchResultsData,
+  loadPublicShellData
+} from "./public/routing/publicRouteLoaders";
+import {
   validatePublicAnnouncementsSearch,
   validatePublicFilteredPaginatedSearch,
   validatePublicPaginatedSearch,
@@ -61,12 +74,14 @@ const rootRoute = createRootRouteWithContext<AppRouterContext>()({
 const publicLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "public-layout",
+  loader: ({ context }) => loadPublicShellData(context),
   component: PublicRouteLayout
 });
 
 const publicHomeRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "/",
+  loader: ({ context }) => loadPublicHomeData(context),
   head: () => getStaticPublicRouteHead("/"),
   component: PublicHomePage
 });
@@ -75,6 +90,7 @@ const publicDepartmentsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "departments",
   validateSearch: validatePublicPaginatedSearch,
+  loader: ({ context }) => loadPublicProgramListData(context),
   head: ({ match }) => getStaticPublicRouteHead("/departments", match.search),
   component: PublicDepartmentsPage
 });
@@ -83,6 +99,7 @@ const publicNewsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "news",
   validateSearch: validatePublicFilteredPaginatedSearch,
+  loader: ({ context }) => loadPublicContentListData(context, "news"),
   head: ({ match }) => getStaticPublicRouteHead("/news", match.search),
   component: PublicNewsPage
 });
@@ -91,6 +108,8 @@ const publicAnnouncementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "announcements",
   validateSearch: validatePublicAnnouncementsSearch,
+  loaderDeps: ({ search }) => getAnnouncementPagesLoaderInput(search),
+  loader: ({ context, deps }) => loadPublicContentListData(context, "announcements", deps),
   head: ({ match }) => getStaticPublicRouteHead("/announcements", match.search),
   component: PublicAnnouncementsPage
 });
@@ -99,6 +118,7 @@ const publicAchievementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "achievements",
   validateSearch: validatePublicPaginatedSearch,
+  loader: ({ context }) => loadPublicSearchIndexData(context),
   head: ({ match }) => getStaticPublicRouteHead("/achievements", match.search),
   component: PublicAchievementsPage
 });
@@ -107,6 +127,7 @@ const publicBlogRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "blog",
   validateSearch: validatePublicPaginatedSearch,
+  loader: ({ context }) => loadPublicContentListData(context, "blog"),
   head: ({ match }) => getStaticPublicRouteHead("/blog", match.search),
   component: PublicBlogPage
 });
@@ -115,6 +136,7 @@ const publicDocumentsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "documents",
   validateSearch: validatePublicPaginatedSearch,
+  loader: ({ context }) => loadPublicDocumentListData(context),
   head: ({ match }) => getStaticPublicRouteHead("/documents", match.search),
   component: PublicDocumentsPage
 });
@@ -123,6 +145,7 @@ const publicCalendarRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "calendar",
   validateSearch: validatePublicPaginatedSearch,
+  loader: ({ context }) => loadPublicEventListData(context),
   head: ({ match }) => getStaticPublicRouteHead("/calendar", match.search),
   component: PublicCalendarPage
 });
@@ -130,6 +153,7 @@ const publicCalendarRoute = createRoute({
 const publicContactRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "contact",
+  loader: ({ context }) => loadPublicCmsSnapshotData(context),
   head: () => getStaticPublicRouteHead("/contact"),
   component: PublicContactPage
 });
@@ -138,6 +162,8 @@ const publicSearchRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "search",
   validateSearch: validatePublicSearchRouteSearch,
+  loaderDeps: ({ search }) => ({ query: search.q, page: search.page }),
+  loader: ({ context, deps }) => loadPublicSearchResultsData(context, deps),
   head: () => getStaticPublicRouteHead("/search"),
   component: PublicSearchPage
 });
@@ -145,6 +171,7 @@ const publicSearchRoute = createRoute({
 const publicContentDetailRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "content/$slug",
+  loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug),
   head: ({ params }) => getPublicContentRouteHead(params.slug),
   component: PublicContentDetailRoute
 });
@@ -152,6 +179,7 @@ const publicContentDetailRoute = createRoute({
 const publicPermalinkRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "$slug",
+  loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug),
   head: ({ params }) => getPublicContentRouteHead(params.slug),
   component: PublicContentDetailRoute
 });

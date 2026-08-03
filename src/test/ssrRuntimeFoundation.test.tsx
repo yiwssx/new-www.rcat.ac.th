@@ -1,11 +1,22 @@
 // @vitest-environment node
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { projectSettings } from "../config/projectSettings";
 import { renderSsrResponse } from "../entry-server";
 import { createAppRuntime } from "../runtime";
 
 describe("SSR runtime foundation", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ error: "synthetic upstream unavailable" }, { status: 503 }))
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("creates an isolated QueryClient and Router pair for every runtime", () => {
     const first = createAppRuntime();
     const second = createAppRuntime();
