@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { normalizePublicPageSearchValue } from "../routing/searchParams";
 
 export type PublicPaginationQueryParam = "page" | "announcementsPage" | "pagesPage";
@@ -28,7 +28,7 @@ export function usePublicPagination<T>(
   { pageSize, queryParam = "page", resetKeys = [], scrollTargetId }: UsePublicPaginationOptions
 ) {
   const navigate = useNavigate();
-  const routeSearch = useSearch({ strict: false }) as Record<string, unknown>;
+  const routeSearch = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
   const normalizedPageSize = normalizePageSize(pageSize);
   const totalItems = items.length;
   const pageCount = Math.max(1, Math.ceil(totalItems / normalizedPageSize));
