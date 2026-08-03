@@ -11,6 +11,12 @@ export {
   setPublicContentDetailCache,
   setPublicContentListCache
 } from "./cache";
+export {
+  publicContentDetailQueryKey,
+  publicContentDetailQueryOptions,
+  publicContentListQueryKey,
+  publicContentListQueryOptions
+} from "./query";
 export type {
   ContentItem,
   ContentStatus,

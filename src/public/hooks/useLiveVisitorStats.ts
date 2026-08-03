@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicApiProvider } from "../../config/publicApiProvider";
+import { isPublicReadAbortError } from "../../features/public-read/errors";
 import { getLiveVisitorStats } from "../../features/visitor-stats";
 import type { VisitorStatsSettings } from "../../features/visitor-stats";
 import { normalizeVisitorStats } from "../../services/visitorStats";
@@ -44,9 +45,9 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
   const usesCloudflare = getPublicApiProvider() === "cloudflare";
   const query = useQuery({
     queryKey: LIVE_VISITOR_STATS_QUERY_KEY,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       try {
-        const live = normalizeVisitorStats(await getLiveVisitorStats());
+        const live = normalizeVisitorStats(await getLiveVisitorStats({ signal }));
         liveVisitorStatsBackoffUntil = 0;
         return {
           ...normalizedInitial,
@@ -56,6 +57,10 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
           updatedAt: live.updatedAt
         };
       } catch (error) {
+        if (isPublicReadAbortError(error)) {
+          throw error;
+        }
+
         liveVisitorStatsBackoffUntil = Date.now() + LIVE_VISITOR_STATS_FAILURE_BACKOFF_MS;
         warnLiveVisitorStatsUnavailable(error);
         throw error;
