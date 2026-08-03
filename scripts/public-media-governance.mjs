@@ -11,6 +11,7 @@ const APPROVED_IMAGE_OWNERS = new Set([
 const APPROVED_IFRAME_OWNERS = new Set(["src/shared/media/PublicDeferredEmbed.tsx"]);
 const APPROVED_HIGH_PRIORITY_OWNERS = new Set([
   "src/public/components/PublicHomeCarousel.tsx",
+  "src/public/components/PublicHomeCarouselSsrBoundary.tsx",
   "src/shared/components/CarouselImageStage.tsx",
   "src/shared/media/PublicResponsiveImage.tsx"
 ]);
