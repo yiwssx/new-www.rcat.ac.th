@@ -16,7 +16,7 @@ Public GET routes:
 - `/api/public/content?kind=<news|announcements|blog>`
 - `/api/public/content?kind=<news|announcements|blog>&page=<n>&pageSize=<1-100>` (optional pagination)
 - `/api/public/content/:identifier`
-- `/api/public/search`
+- `/api/public/search?q=<query>`
 - `/api/public/programs`
 - `/api/public/visitor-stats`
 
