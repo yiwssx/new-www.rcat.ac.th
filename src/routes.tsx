@@ -43,6 +43,7 @@ import {
 } from "./public/routing/publicRouteHead";
 import {
   getAnnouncementPagesLoaderInput,
+  loadPublicCmsSnapshotData,
   loadPublicContentDetailData,
   loadPublicContentListData,
   loadPublicDocumentListData,
@@ -152,6 +153,7 @@ const publicCalendarRoute = createRoute({
 const publicContactRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "contact",
+  loader: ({ context }) => loadPublicCmsSnapshotData(context),
   head: () => getStaticPublicRouteHead("/contact"),
   component: PublicContactPage
 });
