@@ -1,10 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { getPublicHomeSnapshot } from "../public-home/api";
 import type { CmsSnapshot, ContentItem } from "../../types";
-import {
-  PUBLIC_SNAPSHOT_CACHE_TTL_MS,
-  setPublicSnapshotCache
-} from "../../services/publicCmsCache";
+import { PUBLIC_SNAPSHOT_CACHE_TTL_MS, setPublicSnapshotCache } from "../../services/publicCmsCache";
 import type { PublicReadRequestOptions } from "./request";
 import { PUBLIC_QUERY_GC_TIME_MS } from "./queryPolicy";
 
