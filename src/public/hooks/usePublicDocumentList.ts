@@ -14,7 +14,7 @@ export function usePublicDocumentList() {
     : false;
 
   return useQuery({
-    ...publicDocumentListQueryOptions(),
+    ...publicDocumentListQueryOptions({ consumeAbortSignal: false }),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     refetchOnMount: cachedSnapshot ? !hasFreshCache : true
