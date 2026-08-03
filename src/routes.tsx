@@ -35,6 +35,11 @@ import {
   UsersPage
 } from "./routeComponents";
 import {
+  getCmsRouteHead,
+  getPublicContentRouteHead,
+  getStaticPublicRouteHead
+} from "./public/routing/publicRouteHead";
+import {
   validatePublicAnnouncementsSearch,
   validatePublicFilteredPaginatedSearch,
   validatePublicPaginatedSearch,
@@ -42,6 +47,7 @@ import {
 } from "./public/routing/searchParams";
 
 const rootRoute = createRootRoute({
+  head: () => getStaticPublicRouteHead("/"),
   component: RootRouteLayout,
   notFoundComponent: NotFoundPage
 });
@@ -55,6 +61,7 @@ const publicLayoutRoute = createRoute({
 const publicHomeRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "/",
+  head: () => getStaticPublicRouteHead("/"),
   component: PublicHomePage
 });
 
@@ -62,6 +69,7 @@ const publicDepartmentsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "departments",
   validateSearch: validatePublicPaginatedSearch,
+  head: () => getStaticPublicRouteHead("/departments"),
   component: PublicDepartmentsPage
 });
 
@@ -69,6 +77,7 @@ const publicNewsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "news",
   validateSearch: validatePublicFilteredPaginatedSearch,
+  head: () => getStaticPublicRouteHead("/news"),
   component: PublicNewsPage
 });
 
@@ -76,6 +85,7 @@ const publicAnnouncementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "announcements",
   validateSearch: validatePublicAnnouncementsSearch,
+  head: () => getStaticPublicRouteHead("/announcements"),
   component: PublicAnnouncementsPage
 });
 
@@ -83,6 +93,7 @@ const publicAchievementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "achievements",
   validateSearch: validatePublicPaginatedSearch,
+  head: () => getStaticPublicRouteHead("/achievements"),
   component: PublicAchievementsPage
 });
 
@@ -90,6 +101,7 @@ const publicBlogRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "blog",
   validateSearch: validatePublicPaginatedSearch,
+  head: () => getStaticPublicRouteHead("/blog"),
   component: PublicBlogPage
 });
 
@@ -97,6 +109,7 @@ const publicDocumentsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "documents",
   validateSearch: validatePublicPaginatedSearch,
+  head: () => getStaticPublicRouteHead("/documents"),
   component: PublicDocumentsPage
 });
 
@@ -104,12 +117,14 @@ const publicCalendarRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "calendar",
   validateSearch: validatePublicPaginatedSearch,
+  head: () => getStaticPublicRouteHead("/calendar"),
   component: PublicCalendarPage
 });
 
 const publicContactRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "contact",
+  head: () => getStaticPublicRouteHead("/contact"),
   component: PublicContactPage
 });
 
@@ -117,24 +132,28 @@ const publicSearchRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "search",
   validateSearch: validatePublicSearchRouteSearch,
+  head: () => getStaticPublicRouteHead("/search"),
   component: PublicSearchPage
 });
 
 const publicContentDetailRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "content/$slug",
+  head: ({ params }) => getPublicContentRouteHead(params.slug),
   component: PublicContentDetailRoute
 });
 
 const publicPermalinkRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "$slug",
+  head: ({ params }) => getPublicContentRouteHead(params.slug),
   component: PublicContentDetailRoute
 });
 
 const cmsAuthLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "cms-auth-layout",
+  head: getCmsRouteHead,
   component: CmsAuthRouteLayout
 });
 
