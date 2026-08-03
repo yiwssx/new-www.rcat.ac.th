@@ -13,10 +13,7 @@ export function getPublicContentListSnapshot(
   return getPublicContentListSnapshotFromCloudflare(kind, options);
 }
 
-export function getContentDetail(
-  input: { id?: string; slug?: string },
-  options: PublicReadRequestOptions = {}
-) {
+export function getContentDetail(input: { id?: string; slug?: string }, options: PublicReadRequestOptions = {}) {
   return getContentDetailFromCloudflare(input, options);
 }
 
