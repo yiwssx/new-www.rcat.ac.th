@@ -82,14 +82,20 @@ Owner: Vercel `/api/sitemap`; public route `/sitemap.xml`; data source Cloudflar
 
 The production frontend remains CSR-only until the dedicated SSR implementation phase is explicitly enabled.
 
-Runtime construction is now factory-based so a future server renderer can create isolated state per request:
+Runtime construction is factory-based so a future server renderer can create isolated state per request:
 
 - `createAppQueryClient()` creates a new TanStack Query `QueryClient` with the existing project query defaults;
 - `createAppRouter()` creates a new TanStack Router instance from the static route tree;
 - the browser entrypoint creates one QueryClient and one Router instance for the browser runtime and injects both into `App`;
 - `App` no longer owns module-scope runtime singletons.
 
-This refactor does not enable server rendering, hydration, route loaders, or server-side metadata by itself. Those remain separate migration stages and must preserve the existing Public/Admin runtime boundaries.
+Public structured reads now expose reusable TanStack Query option factories for Home, CMS shell snapshot, content lists, content detail, programs, search index, events, and documents. Existing React hooks consume those same factories and add browser-only local-storage `initialData`/freshness behavior at the hook boundary. A future route loader can therefore call `ensureQueryData()` with the same key, query function, stale time, and cache policy without importing a React hook.
+
+Every migrated public query function consumes TanStack Query's `AbortSignal` and forwards it to the underlying Cloudflare `fetch`. Public read failures use the shared `PublicReadError` taxonomy: `aborted`, `network`, `http`, `invalid-json`, or `invalid-response`, with HTTP status and existing diagnostic/migration detail retained where available. Cancellation is not treated as a live visitor-stat outage/backoff event.
+
+Live visitor statistics remain intentionally browser-oriented polling rather than an SSR loader dependency, but their request now also consumes query cancellation.
+
+These readiness changes do not enable server rendering, hydration, route loaders, server-side metadata, canonical redirects, or new Public API response contracts. Those remain separate migration stages and must preserve the existing Public/Admin runtime boundaries.
 
 ## Deployment Boundaries
 
