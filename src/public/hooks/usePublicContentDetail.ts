@@ -15,7 +15,7 @@ export function usePublicContentDetail(input: { slug?: string }) {
     : false;
 
   return useQuery({
-    ...publicContentDetailQueryOptions(slug),
+    ...publicContentDetailQueryOptions(slug, { consumeAbortSignal: false }),
     initialData: cachedContent?.data,
     initialDataUpdatedAt: cachedContent?.savedAt,
     refetchOnMount: cachedContent ? !hasFreshCache : true
