@@ -5,7 +5,10 @@ import type { PublicEventListSnapshot } from "./types";
 export async function getPublicEventListFromCloudflare(
   options: PublicReadRequestOptions = {}
 ): Promise<PublicEventListSnapshot> {
-  const payload = await getPublicJson("/api/public/events", "public-event-list", options);
+  const payload = await getPublicJson("/api/public/events", "public-event-list", {
+    ...options,
+    httpErrorMessage: "generic"
+  });
 
   try {
     assertPublicEventListSnapshot(payload);
