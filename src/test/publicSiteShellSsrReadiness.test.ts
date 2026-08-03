@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 describe("PublicSiteShell SSR readiness", () => {
   it("renders nested page content independently of client registration effects", () => {
     expect(publicSiteShellSource).toContain("return <>{children}</>;");
+    expect(publicSiteShellSource).toContain("useEffect(() => {");
     expect(publicSiteShellSource).not.toContain("activeRegistration === registration");
     expect(publicSiteShellSource).not.toContain("useLayoutEffect");
   });
