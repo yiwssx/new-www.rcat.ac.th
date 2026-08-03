@@ -32,6 +32,11 @@ export async function loadPublicHomeData(context: PublicRouteLoaderContext) {
   return ensurePublicQuery(context.queryClient, publicHomeQueryOptions());
 }
 
+export async function loadPublicCmsSnapshotData(context: PublicRouteLoaderContext) {
+  const { publicCmsSnapshotQueryOptions } = await import("../../features/public-read/cmsSnapshot");
+  return ensurePublicQuery(context.queryClient, publicCmsSnapshotQueryOptions());
+}
+
 export async function loadPublicContentListData(
   context: PublicRouteLoaderContext,
   kind: PublicContentListKind,
@@ -86,14 +91,10 @@ export async function loadPublicContentDetailData(context: PublicRouteLoaderCont
     return undefined;
   }
 
-  const [{ publicContentDetailQueryOptions }, { publicCmsSnapshotQueryOptions }] = await Promise.all([
-    import("../../features/public-content"),
-    import("../../features/public-read/cmsSnapshot")
-  ]);
-
+  const { publicContentDetailQueryOptions } = await import("../../features/public-content");
   const [detail] = await Promise.all([
     ensurePublicQuery(context.queryClient, publicContentDetailQueryOptions(slug)),
-    ensurePublicQuery(context.queryClient, publicCmsSnapshotQueryOptions())
+    loadPublicCmsSnapshotData(context)
   ]);
 
   return detail;
