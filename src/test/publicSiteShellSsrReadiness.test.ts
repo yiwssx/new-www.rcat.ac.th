@@ -6,6 +6,8 @@ describe("PublicSiteShell SSR readiness", () => {
   it("renders nested page content independently of client registration effects", () => {
     expect(publicSiteShellSource).toContain("return <>{children}</>;");
     expect(publicSiteShellSource).toContain("useEffect(() => {");
+    expect(publicSiteShellSource).toContain("register?.(registration);");
+    expect(publicSiteShellSource).toContain("return () => unregister?.(token);");
     expect(publicSiteShellSource).not.toContain("activeRegistration === registration");
     expect(publicSiteShellSource).not.toContain("useLayoutEffect");
   });
