@@ -7,11 +7,13 @@ export function createPublicSearchSnapshot(
   query: string,
   rows: PublicContentSummaryReadRow[],
   metadata: PublicMetadataContract,
-  generatedAt = new Date()
+  generatedAt = new Date(),
+  pagination?: PublicSearchSnapshotContract["pagination"]
 ): PublicSearchSnapshotContract {
   return {
     query,
     items: rows.map(mapContentSummaryRowToPublicContentItem),
+    ...(pagination ? { pagination } : {}),
     siteSettings: metadata.siteSettings,
     homepageSettings: metadata.homepageSettings,
     displaySettings: metadata.displaySettings,
