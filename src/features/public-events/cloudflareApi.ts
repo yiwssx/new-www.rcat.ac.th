@@ -1,35 +1,17 @@
-import { buildCloudflarePublicApiUrl } from "../../config/publicApiProvider";
+import { asInvalidPublicReadResponse, getPublicJson, type PublicReadRequestOptions } from "../public-read/request";
 import { assertPublicEventListSnapshot } from "./contract";
 import type { PublicEventListSnapshot } from "./types";
 
-function createErrorWithCause(message: string, cause: unknown) {
-  const error = new Error(message) as Error & { cause?: unknown };
-  error.cause = cause;
-
-  return error;
-}
-
-export async function getPublicEventListFromCloudflare(): Promise<PublicEventListSnapshot> {
-  const response = await fetch(buildCloudflarePublicApiUrl("/api/public/events"), {
-    method: "GET",
-    headers: {
-      Accept: "application/json"
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Cloudflare public-event-list request failed with HTTP ${response.status}`);
-  }
-
-  let payload: unknown;
+export async function getPublicEventListFromCloudflare(
+  options: PublicReadRequestOptions = {}
+): Promise<PublicEventListSnapshot> {
+  const payload = await getPublicJson("/api/public/events", "public-event-list", options);
 
   try {
-    payload = await response.json();
+    assertPublicEventListSnapshot(payload);
   } catch (error) {
-    throw createErrorWithCause("Cloudflare public-event-list returned invalid JSON", error);
+    throw asInvalidPublicReadResponse("public-event-list", error);
   }
-
-  assertPublicEventListSnapshot(payload);
 
   return payload;
 }
