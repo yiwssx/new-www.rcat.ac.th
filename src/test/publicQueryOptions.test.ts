@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAppQueryClient } from "../queryClient";
-import {
-  publicContentDetailQueryOptions,
-  publicContentListQueryOptions
-} from "../features/public-content/query";
+import { publicContentDetailQueryOptions, publicContentListQueryOptions } from "../features/public-content/query";
 import { publicDocumentListQueryOptions } from "../features/public-documents/query";
 import { publicEventListQueryOptions } from "../features/public-events/query";
 import { publicHomeQueryKey, publicHomeQueryOptions } from "../features/public-home/query";
@@ -59,7 +56,11 @@ describe("SSR-ready public query options", () => {
     const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
       receivedSignal = init?.signal instanceof AbortSignal ? init.signal : null;
       return new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+        init?.signal?.addEventListener(
+          "abort",
+          () => reject(new DOMException("Aborted", "AbortError")),
+          { once: true }
+        );
       });
     });
     vi.stubGlobal("fetch", fetchMock);
