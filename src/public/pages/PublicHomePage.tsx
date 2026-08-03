@@ -1,4 +1,4 @@
-import { lazy, ReactNode, Suspense } from "react";
+import { lazy, ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import { Box, Container, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
@@ -56,9 +56,24 @@ const LazyProgramsSection = lazy(() =>
   }))
 );
 
+declare global {
+  interface Window {
+    __RCAT_ENABLE_HOME_DEFER_TEST__?: boolean;
+  }
+}
+
 function getSnapshotReferenceTimeMs(generatedAt: string) {
   const parsed = Date.parse(generatedAt);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function shouldUseHomeDeferTestHarness() {
+  return (
+    import.meta.env.MODE === "test" &&
+    typeof window !== "undefined" &&
+    window.__RCAT_ENABLE_HOME_DEFER_TEST__ === true &&
+    typeof window.IntersectionObserver !== "undefined"
+  );
 }
 
 function DeferredHomeSection({
@@ -68,14 +83,47 @@ function DeferredHomeSection({
   children: ReactNode;
   minHeight?: number | { xs?: number; sm?: number; md?: number; lg?: number };
 }) {
+  const useTestHarness = shouldUseHomeDeferTestHarness();
+  const [testHarnessActivated, setTestHarnessActivated] = useState(() => !useTestHarness);
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!useTestHarness || testHarnessActivated) {
+      return undefined;
+    }
+
+    const section = sectionRef.current;
+    if (!section) {
+      setTestHarnessActivated(true);
+      return undefined;
+    }
+
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0)) {
+          setTestHarnessActivated(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "720px 0px" }
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [testHarnessActivated, useTestHarness]);
+
+  const shouldRender = !useTestHarness || testHarnessActivated;
+
   return (
     <Box
+      ref={sectionRef}
       sx={{
+        minHeight: shouldRender ? undefined : minHeight,
         contentVisibility: "auto",
         containIntrinsicSize: typeof minHeight === "number" ? `auto ${minHeight}px` : undefined
       }}
     >
-      <Suspense fallback={<Box sx={{ minHeight }} />}>{children}</Suspense>
+      {shouldRender ? <Suspense fallback={<Box sx={{ minHeight }} />}>{children}</Suspense> : null}
     </Box>
   );
 }
