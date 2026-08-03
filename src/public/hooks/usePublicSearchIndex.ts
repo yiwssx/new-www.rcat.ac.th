@@ -3,8 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getPublicSearchIndexCache,
   PUBLIC_SEARCH_INDEX_CACHE_TTL_MS,
-  publicSearchIndexQueryOptions,
-  publicSearchPageQueryOptions
+  publicSearchIndexQueryOptions
 } from "../../features/public-search";
 import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
 
@@ -18,16 +17,16 @@ export function usePublicSearchIndex(query = "", page?: number, pageSize?: numbe
   const hasFreshCache = cachedSnapshot
     ? isPublicQueryCacheFresh(cachedSnapshot.savedAt, PUBLIC_SEARCH_INDEX_CACHE_TTL_MS)
     : false;
-  const reusableOptions = paginated
-    ? publicSearchPageQueryOptions(
-        normalizedQuery,
-        {
+  const reusableOptions = publicSearchIndexQueryOptions(
+    normalizedQuery,
+    { consumeAbortSignal: false },
+    paginated
+      ? {
           page,
           pageSize
-        },
-        { consumeAbortSignal: false }
-      )
-    : publicSearchIndexQueryOptions(normalizedQuery, { consumeAbortSignal: false });
+        }
+      : undefined
+  );
 
   return useQuery({
     ...reusableOptions,
