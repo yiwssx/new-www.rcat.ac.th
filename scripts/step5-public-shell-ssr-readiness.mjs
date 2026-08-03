@@ -66,6 +66,12 @@ updateFile("src/public/components/PublicSiteShell.tsx", (source) => {
     "  const { data, isLoading, isFetching, isError, refetch } = usePublicShellSnapshot({\n    enabled: shouldFetchShellData\n  });\n",
     "lightweight public shell hook"
   );
+  next = replaceOnce(
+    next,
+    "      <PublicMediaLoadingProvider pageMediaAllowed={!introGateVisible}>\n",
+    "      <PublicMediaLoadingProvider pageMediaAllowed={hasResolvedShellSettings && !introGateVisible}>\n",
+    "resolved shell media gate"
+  );
 
   return next;
 });
@@ -122,14 +128,14 @@ updateFile("tests/functional/publicShellClsStability.spec.ts", (source) =>
 
 writeFileSync(
   "src/test/publicSiteShellSsrReadiness.test.ts",
-  `import publicSiteShellSource from "../public/components/PublicSiteShell.tsx?raw";\nimport publicShellHookSource from "../public/hooks/usePublicShellSnapshot.ts?raw";\nimport { describe, expect, it } from "vitest";\n\ndescribe("PublicSiteShell SSR readiness", () => {\n  it("renders nested page content independently of client registration effects", () => {\n    expect(publicSiteShellSource).toContain("return <>{children}</>;");\n    expect(publicSiteShellSource).not.toContain("activeRegistration === registration");\n    expect(publicSiteShellSource).not.toContain("useLayoutEffect");\n  });\n\n  it("makes the route shell own the lightweight public shell query through a testable hook boundary", () => {\n    expect(publicSiteShellSource).toContain("usePublicShellSnapshot({");\n    expect(publicSiteShellSource).not.toContain("usePublicCmsSnapshot({");\n    expect(publicSiteShellSource).not.toContain("skipShellDataFetch: true");\n    expect(publicShellHookSource).toContain("publicShellQueryOptions({ consumeAbortSignal: false })");\n  });\n});\n`
+  `import publicSiteShellSource from "../public/components/PublicSiteShell.tsx?raw";\nimport publicShellHookSource from "../public/hooks/usePublicShellSnapshot.ts?raw";\nimport { describe, expect, it } from "vitest";\n\ndescribe("PublicSiteShell SSR readiness", () => {\n  it("renders nested page content independently of client registration effects", () => {\n    expect(publicSiteShellSource).toContain("return <>{children}</>;");\n    expect(publicSiteShellSource).not.toContain("activeRegistration === registration");\n    expect(publicSiteShellSource).not.toContain("useLayoutEffect");\n  });\n\n  it("makes the route shell own the lightweight public shell query through a testable hook boundary", () => {\n    expect(publicSiteShellSource).toContain("usePublicShellSnapshot({");\n    expect(publicSiteShellSource).not.toContain("usePublicCmsSnapshot({");\n    expect(publicSiteShellSource).not.toContain("skipShellDataFetch: true");\n    expect(publicShellHookSource).toContain("publicShellQueryOptions({ consumeAbortSignal: false })");\n  });\n\n  it("keeps page media closed until shell settings resolve so Intro Gate ownership is not bypassed", () => {\n    expect(publicSiteShellSource).toContain(\n      "pageMediaAllowed={hasResolvedShellSettings && !introGateVisible}"\n    );\n  });\n});\n`
 );
 
 updateFile("docs/architecture/current-runtime-ownership.md", (source) =>
   replaceOnce(
     source,
     "These readiness changes do not enable server rendering, hydration, route loaders, server-side metadata, canonical redirects, or the Step 5 PublicSiteShell refactor. Those remain separate migration stages and must preserve the existing Public/Admin runtime boundaries.\n",
-    "Step 5 makes the route-level PublicSiteShell the authoritative shell renderer. Nested page-level PublicSiteShell instances now render their children on the first render pass and no longer gate page HTML on a client registration effect. Their remaining registration is a client-side enhancement for page-specific metadata and preloaded shell props only; it is not required for page-content rendering. The route shell now reads the lightweight /api/public/shell query through a dedicated Public shell hook, including on the home route, instead of depending on a child page effect to provide settings/menu data. This keeps shell ownership compatible with a future server render while preserving the current CSR deployment and a testable data-hook boundary.\n\nThese readiness changes still do not enable server rendering, hydration, route loaders, server-side metadata/head generation, canonical redirects, or Vercel SSR routing. The remaining client metadata registration is intentionally temporary until the later route-head/SEO step replaces it with server-visible metadata ownership.\n",
+    "Step 5 makes the route-level PublicSiteShell the authoritative shell renderer. Nested page-level PublicSiteShell instances now render their children on the first render pass and no longer gate page HTML on a client registration effect. Their remaining registration is a client-side enhancement for page-specific metadata and preloaded shell props only; it is not required for page-content rendering. The route shell now reads the lightweight /api/public/shell query through a dedicated Public shell hook, including on the home route, instead of depending on a child page effect to provide settings/menu data. Until those shell settings resolve, page media stays gated so an enabled Intro Gate cannot be bypassed by first-pass page rendering; server-prefetched shell data can later remove that client wait without changing the contract. This keeps shell ownership compatible with a future server render while preserving the current CSR deployment and a testable data-hook boundary.\n\nThese readiness changes still do not enable server rendering, hydration, route loaders, server-side metadata/head generation, canonical redirects, or Vercel SSR routing. The remaining client metadata registration is intentionally temporary until the later route-head/SEO step replaces it with server-visible metadata ownership.\n",
     "Step 5 runtime ownership documentation"
   )
 );
