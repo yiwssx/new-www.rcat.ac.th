@@ -19,11 +19,9 @@ describe("public read request taxonomy", () => {
       vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
         receivedSignal = init?.signal instanceof AbortSignal ? init.signal : null;
         return new Promise<Response>((_resolve, reject) => {
-          init?.signal?.addEventListener(
-            "abort",
-            () => reject(new DOMException("Aborted", "AbortError")),
-            { once: true }
-          );
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), {
+            once: true
+          });
         });
       })
     );
