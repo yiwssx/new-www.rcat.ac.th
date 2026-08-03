@@ -1,0 +1,46 @@
+name: SSR Readiness Audit Fix
+
+on:
+  pull_request:
+    branches:
+      - refactor/ssr-readiness
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm format:check
+      - run: pnpm lint:strict
+      - run: >-
+          pnpm exec vitest run
+          src/public/routing/publicRouteHead.test.ts
+          src/test/publicRouteHeadSsrReadiness.test.ts
+          src/test/publicRouteSearchParams.test.ts
+          src/test/publicApiContractReadiness.test.ts
+          src/test/publicQueryOptions.test.ts
+          src/test/publicDataDrivenPages.test.tsx
+          cloudflare/public-api/test/publicReadPaginationHardening.test.ts
+          cloudflare/public-api/test/publicReadCoreRoutes.test.ts
+      - run: pnpm worker:typecheck
+      - run: pnpm perf:check
+      - run: pnpm media:check
+      - run: pnpm layout:check
+      - run: pnpm build
