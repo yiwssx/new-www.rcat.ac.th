@@ -5,6 +5,10 @@ export interface PublicReadRequestOptions {
   signal?: AbortSignal;
 }
 
+interface PublicJsonRequestOptions extends PublicReadRequestOptions {
+  httpErrorMessage?: "backend" | "generic";
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -24,7 +28,7 @@ function readErrorDetail(payload: unknown) {
 export async function getPublicJson(
   path: string,
   resource: string,
-  options: PublicReadRequestOptions = {}
+  options: PublicJsonRequestOptions = {}
 ): Promise<Record<string, unknown>> {
   const url = buildCloudflarePublicApiUrl(path);
   let response: Response;
@@ -63,7 +67,10 @@ export async function getPublicJson(
     }
 
     const detail = readErrorDetail(payload);
-    throw new PublicReadError(`Cloudflare ${resource} request failed with HTTP ${response.status}`, {
+    const genericMessage = `Cloudflare ${resource} request failed with HTTP ${response.status}`;
+    const message = options.httpErrorMessage === "generic" ? genericMessage : detail.error || genericMessage;
+
+    throw new PublicReadError(message, {
       kind: "http",
       resource,
       status: response.status,
