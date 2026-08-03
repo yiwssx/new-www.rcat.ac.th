@@ -28,12 +28,12 @@ jobs:
       - run: >-
           pnpm exec prettier --write
           src/public/components/PublicSiteShell.tsx
+          src/public/hooks/usePublicShellSnapshot.ts
           src/test/publicSiteShellSsrReadiness.test.ts
-          tests/functional/fixtures/publicShellClsFixture.ts
-          tests/functional/fixtures/publicAuthIsolationFixture.ts
+          src/test/publicShellLayoutStability.test.tsx
+          src/test/publicDataDrivenPages.test.tsx
           tests/functional/fixtures/publicHomeCarouselFixture.ts
           tests/functional/publicIntroGate.spec.ts
-          tests/functional/publicMediaPerformance.spec.ts
           tests/functional/publicShellClsStability.spec.ts
           docs/architecture/current-runtime-ownership.md
       - name: Focused unit regression suite
@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           git rm scripts/step5-public-shell-ssr-readiness.mjs .github/workflows/step5-public-shell-ssr-readiness.yml
-          git add src/public/components/PublicSiteShell.tsx src/test/publicSiteShellSsrReadiness.test.ts tests/functional/fixtures/publicShellClsFixture.ts tests/functional/fixtures/publicAuthIsolationFixture.ts tests/functional/fixtures/publicHomeCarouselFixture.ts tests/functional/publicIntroGate.spec.ts tests/functional/publicMediaPerformance.spec.ts tests/functional/publicShellClsStability.spec.ts docs/architecture/current-runtime-ownership.md
+          git add src/public/components/PublicSiteShell.tsx src/public/hooks/usePublicShellSnapshot.ts src/test/publicSiteShellSsrReadiness.test.ts src/test/publicShellLayoutStability.test.tsx src/test/publicDataDrivenPages.test.tsx tests/functional/fixtures/publicHomeCarouselFixture.ts tests/functional/publicIntroGate.spec.ts tests/functional/publicShellClsStability.spec.ts docs/architecture/current-runtime-ownership.md
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "refactor(ssr): make public shell first-pass safe"
