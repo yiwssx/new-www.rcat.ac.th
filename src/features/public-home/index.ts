@@ -6,3 +6,4 @@ export {
   PUBLIC_HOME_CACHE_TTL_MS,
   setPublicHomeCache
 } from "./cache";
+export { publicHomeQueryKey, publicHomeQueryOptions } from "./query";
