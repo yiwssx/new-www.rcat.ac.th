@@ -1,4 +1,4 @@
-import type { PublicContentItemContract } from "./publicContent";
+import type { PublicContentSummaryContract } from "./publicContent";
 import type {
   PublicDisplaySettingsContract,
   PublicHomepageSettingsContract,
@@ -8,7 +8,7 @@ import type {
 } from "./publicMetadata";
 
 export interface PublicProgramListSnapshotContract {
-  items: PublicContentItemContract[];
+  items: PublicContentSummaryContract[];
   media: PublicMediaAssetContract[];
   siteSettings: PublicSiteSettingsContract;
   homepageSettings: PublicHomepageSettingsContract;

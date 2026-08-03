@@ -34,16 +34,32 @@ export interface ContentItem {
   revision?: number;
 }
 
+export type PublicContentSummary = Omit<ContentItem, "body">;
+
+export interface PublicContentPagination {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
 export type PublicContentListKind = "news" | "announcements" | "blog";
 
 export interface PublicContentListSnapshot {
   kind: PublicContentListKind;
-  items: ContentItem[];
-  pageItems?: ContentItem[];
+  items: PublicContentSummary[];
+  pageItems?: PublicContentSummary[];
+  pagination?: PublicContentPagination;
   media: MediaAsset[];
   siteSettings: SiteSettings;
   homepageSettings: HomepageSettings;
   displaySettings?: DisplaySettings;
   menu: PublicMenuItem[];
+  generatedAt: string;
+}
+
+export interface PublicContentDetailSnapshot {
+  item: ContentItem;
+  media: MediaAsset[];
   generatedAt: string;
 }

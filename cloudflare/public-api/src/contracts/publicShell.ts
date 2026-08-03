@@ -1,4 +1,3 @@
-import type { PublicContentSummaryContract } from "./publicContent";
 import type {
   PublicDisplaySettingsContract,
   PublicHomepageSettingsContract,
@@ -6,9 +5,7 @@ import type {
   PublicSiteSettingsContract
 } from "./publicMetadata";
 
-export interface PublicSearchSnapshotContract {
-  query: string;
-  items: PublicContentSummaryContract[];
+export interface PublicShellSnapshotContract {
   siteSettings: PublicSiteSettingsContract;
   homepageSettings: PublicHomepageSettingsContract;
   displaySettings: PublicDisplaySettingsContract;

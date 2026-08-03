@@ -1,7 +1,8 @@
 import { createPublicContentDetailSnapshot, createPublicContentListSnapshot } from "../adapters/publicContentAdapter";
+import { mapMediaAssetRowToPublicMediaAsset } from "../adapters/publicMediaAdapter";
 import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
-import { getPublishedContentRowBySlug, listPublishedContentRows } from "../db/contentRepository";
-import { readPublicMetadataRows } from "../db/publicMetadataRepository";
+import { getPublishedContentRowBySlug, listPublishedContentSummaryRows } from "../db/contentRepository";
+import { readPublicMediaRows, readPublicMetadataRows } from "../db/publicMetadataRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -14,6 +15,33 @@ const CONTENT_KIND_TO_TYPE = {
   announcements: "announcement",
   blog: "blog"
 } as const;
+
+function getOptionalPagination(request: Request, totalItems: number) {
+  const url = new URL(request.url);
+  const pageValue = url.searchParams.get("page");
+
+  if (pageValue === null) {
+    return undefined;
+  }
+
+  const requestedPage = Number(pageValue);
+
+  if (!Number.isInteger(requestedPage) || requestedPage <= 0) {
+    return undefined;
+  }
+
+  const requestedPageSize = Number(url.searchParams.get("pageSize"));
+  const pageSize = Number.isInteger(requestedPageSize) ? Math.min(Math.max(requestedPageSize, 1), 100) : 20;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const page = Math.min(requestedPage, totalPages);
+
+  return {
+    page,
+    pageSize,
+    totalItems,
+    totalPages
+  };
+}
 
 export async function publicContentList(request: Request, env: Env) {
   if (!env.DB) {
@@ -35,11 +63,25 @@ export async function publicContentList(request: Request, env: Env) {
 
   try {
     const [rows, pageRows, metadataRows] = await Promise.all([
-      listPublishedContentRows(env, CONTENT_KIND_TO_TYPE[publicKind]),
-      publicKind === "announcements" ? listPublishedContentRows(env, "page") : Promise.resolve([]),
+      listPublishedContentSummaryRows(env, CONTENT_KIND_TO_TYPE[publicKind]),
+      publicKind === "announcements" ? listPublishedContentSummaryRows(env, "page") : Promise.resolve([]),
       readPublicMetadataRows(env)
     ]);
-    return json(createPublicContentListSnapshot(publicKind, rows, pageRows, createPublicMetadata(metadataRows)));
+    const pagination = getOptionalPagination(request, rows.length);
+    const selectedRows = pagination
+      ? rows.slice((pagination.page - 1) * pagination.pageSize, pagination.page * pagination.pageSize)
+      : rows;
+
+    return json(
+      createPublicContentListSnapshot(
+        publicKind,
+        selectedRows,
+        pageRows,
+        createPublicMetadata(metadataRows),
+        new Date(),
+        pagination
+      )
+    );
   } catch {
     return jsonError("Unable to load content-list", 500, {
       resource: CONTENT_LIST_RESOURCE,
@@ -65,7 +107,9 @@ export async function publicContentDetail(env: Env, slug: string) {
       });
     }
 
-    return json(createPublicContentDetailSnapshot(row));
+    const mediaRows = await readPublicMediaRows(env);
+    const media = mediaRows.map(mapMediaAssetRowToPublicMediaAsset);
+    return json(createPublicContentDetailSnapshot(row, media));
   } catch {
     return jsonError("Unable to load content-detail", 500, {
       resource: CONTENT_DETAIL_RESOURCE,

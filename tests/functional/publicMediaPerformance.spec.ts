@@ -355,6 +355,14 @@ async function installFixture(page: Page, introEnabled: boolean): Promise<Ledger
 
     if (url.pathname === "/api/public/home") {
       payload = snapshot;
+    } else if (url.pathname === "/api/public/shell") {
+      payload = {
+        siteSettings: snapshot.siteSettings,
+        homepageSettings: snapshot.homepageSettings,
+        displaySettings: snapshot.displaySettings,
+        menu: snapshot.menu,
+        generatedAt
+      };
     } else if (url.pathname === "/api/public/content" && url.searchParams.get("kind") === "news") {
       payload = {
         kind: "news",
@@ -368,7 +376,7 @@ async function installFixture(page: Page, introEnabled: boolean): Promise<Ledger
         generatedAt
       };
     } else if (url.pathname === `/api/public/content/${contentSlug}`) {
-      payload = { item: detailItem, generatedAt };
+      payload = { item: detailItem, media, generatedAt };
     } else if (url.pathname === "/api/public/content-view") {
       payload = { id: detailItem.id, slug: detailItem.slug, viewCount: 4, lastViewedAt: generatedAt };
     } else if (url.pathname === "/api/public/visitor-stats") {

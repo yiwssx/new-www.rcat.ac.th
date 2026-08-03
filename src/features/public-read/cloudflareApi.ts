@@ -3,11 +3,13 @@ import { projectSettings } from "../../config/projectSettings";
 import type {
   ContentItem,
   DisplaySettings,
+  PublicContentDetailSnapshot,
   PublicContentListKind,
   PublicContentListSnapshot,
   PublicHomeSnapshot,
   PublicProgramListSnapshot,
-  PublicSearchIndexSnapshot
+  PublicSearchIndexSnapshot,
+  PublicShellSnapshot
 } from "../../types";
 import type { ContentViewResponse, SiteViewInput } from "../site-view/types";
 import type { VisitorStatsSettings } from "../visitor-stats";
@@ -16,6 +18,11 @@ import { getPublicJson, type PublicReadRequestOptions } from "./request";
 
 const PRESENCE_FAILURE_BACKOFF_MS = 5 * 60 * 1000;
 let presenceBackoffUntil = 0;
+
+export interface PublicContentListPageInput {
+  page: number;
+  pageSize?: number;
+}
 
 export function isCloudflarePublicApiNotFoundError(error: unknown) {
   return isPublicReadNotFoundError(error);
@@ -118,6 +125,104 @@ function assertPublicSnapshot(value: Record<string, unknown>, resource: string, 
   });
 }
 
+function assertPublicSummaryItems(value: unknown, resource: string) {
+  if (!Array.isArray(value)) {
+    throw new PublicReadError(`Cloudflare ${resource} response is missing items`, {
+      kind: "invalid-response",
+      resource
+    });
+  }
+
+  value.forEach((item) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== "string" ||
+      typeof item.title !== "string" ||
+      typeof item.slug !== "string" ||
+      Object.prototype.hasOwnProperty.call(item, "body") ||
+      Object.prototype.hasOwnProperty.call(item, "content")
+    ) {
+      throw new PublicReadError(`Cloudflare ${resource} returned an invalid summary item`, {
+        kind: "invalid-response",
+        resource
+      });
+    }
+  });
+}
+
+function assertOptionalPagination(value: unknown, resource: string) {
+  if (value === undefined) {
+    return;
+  }
+
+  if (
+    !isRecord(value) ||
+    !Number.isInteger(value.page) ||
+    !Number.isInteger(value.pageSize) ||
+    !Number.isInteger(value.totalItems) ||
+    !Number.isInteger(value.totalPages)
+  ) {
+    throw new PublicReadError(`Cloudflare ${resource} returned invalid pagination metadata`, {
+      kind: "invalid-response",
+      resource
+    });
+  }
+}
+
+function buildContentListPath(kind: PublicContentListKind, pageInput?: PublicContentListPageInput) {
+  const search = new URLSearchParams({ kind });
+
+  if (pageInput) {
+    search.set("page", String(Math.max(1, Math.floor(pageInput.page))));
+    if (pageInput.pageSize !== undefined) {
+      search.set("pageSize", String(Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))));
+    }
+  }
+
+  return `/api/public/content?${search.toString()}`;
+}
+
+async function getPublicContentListAtPath(
+  kind: PublicContentListKind,
+  path: string,
+  options: PublicReadRequestOptions
+): Promise<PublicContentListSnapshot> {
+  const payload = await getPublicJson(path, "content-list", options);
+  assertPublicSnapshot(payload, "content-list", ["items", "media", "menu"]);
+
+  if (payload.kind !== kind) {
+    throw new PublicReadError("Cloudflare content-list response kind does not match the request", {
+      kind: "invalid-response",
+      resource: "content-list"
+    });
+  }
+
+  assertPublicSummaryItems(payload.items, "content-list");
+  if (payload.pageItems !== undefined) {
+    assertPublicSummaryItems(payload.pageItems, "content-list");
+  }
+  assertOptionalPagination(payload.pagination, "content-list");
+  persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
+  return payload as unknown as PublicContentListSnapshot;
+}
+
+export async function getPublicShellSnapshotFromCloudflare(
+  options: PublicReadRequestOptions = {}
+): Promise<PublicShellSnapshot> {
+  const payload = await getPublicJson("/api/public/shell", "public-shell", options);
+  assertPublicSnapshot(payload, "public-shell", ["menu"]);
+
+  if (!isRecord(payload.siteSettings) || !isRecord(payload.homepageSettings) || !isRecord(payload.displaySettings)) {
+    throw new PublicReadError("Cloudflare public-shell response is missing settings", {
+      kind: "invalid-response",
+      resource: "public-shell"
+    });
+  }
+
+  persistDisplaySettings(payload.displaySettings as unknown as DisplaySettings);
+  return payload as unknown as PublicShellSnapshot;
+}
+
 export async function getPublicHomeSnapshotFromCloudflare(
   options: PublicReadRequestOptions = {}
 ): Promise<PublicHomeSnapshot> {
@@ -136,6 +241,14 @@ export async function getPublicHomeSnapshotFromCloudflare(
     "eventItems",
     "media"
   ]);
+  [
+    "latestNews",
+    "latestAnnouncements",
+    "procurementItems",
+    "jobOpportunityItems",
+    "achievementItems",
+    "programItems"
+  ].forEach((key) => assertPublicSummaryItems(payload[key], "public-home"));
   persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
   return payload as unknown as PublicHomeSnapshot;
 }
@@ -144,24 +257,21 @@ export async function getPublicContentListSnapshotFromCloudflare(
   kind: PublicContentListKind,
   options: PublicReadRequestOptions = {}
 ): Promise<PublicContentListSnapshot> {
-  const payload = await getPublicJson(`/api/public/content?kind=${encodeURIComponent(kind)}`, "content-list", options);
-  assertPublicSnapshot(payload, "content-list", ["items", "media", "menu"]);
-
-  if (payload.kind !== kind) {
-    throw new PublicReadError("Cloudflare content-list response kind does not match the request", {
-      kind: "invalid-response",
-      resource: "content-list"
-    });
-  }
-
-  persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
-  return payload as unknown as PublicContentListSnapshot;
+  return getPublicContentListAtPath(kind, buildContentListPath(kind), options);
 }
 
-export async function getContentDetailFromCloudflare(
+export async function getPublicContentListPageSnapshotFromCloudflare(
+  kind: PublicContentListKind,
+  pageInput: PublicContentListPageInput,
+  options: PublicReadRequestOptions = {}
+): Promise<PublicContentListSnapshot> {
+  return getPublicContentListAtPath(kind, buildContentListPath(kind, pageInput), options);
+}
+
+export async function getPublicContentDetailSnapshotFromCloudflare(
   input: { id?: string; slug?: string },
   options: PublicReadRequestOptions = {}
-): Promise<ContentItem> {
+): Promise<PublicContentDetailSnapshot> {
   const identifier = input.slug?.trim() || input.id?.trim();
 
   if (!identifier) {
@@ -177,14 +287,22 @@ export async function getContentDetailFromCloudflare(
     options
   );
 
-  if (!isRecord(payload.item)) {
-    throw new PublicReadError("Cloudflare content-detail response is missing item", {
+  if (!isRecord(payload.item) || !Array.isArray(payload.media) || typeof payload.generatedAt !== "string") {
+    throw new PublicReadError("Cloudflare content-detail response is missing item or media", {
       kind: "invalid-response",
       resource: "content-detail"
     });
   }
 
-  return payload.item as unknown as ContentItem;
+  return payload as unknown as PublicContentDetailSnapshot;
+}
+
+export async function getContentDetailFromCloudflare(
+  input: { id?: string; slug?: string },
+  options: PublicReadRequestOptions = {}
+): Promise<ContentItem> {
+  const snapshot = await getPublicContentDetailSnapshotFromCloudflare(input, options);
+  return snapshot.item;
 }
 
 export async function getPublicProgramListSnapshotFromCloudflare(
@@ -192,15 +310,28 @@ export async function getPublicProgramListSnapshotFromCloudflare(
 ): Promise<PublicProgramListSnapshot> {
   const payload = await getPublicJson("/api/public/programs", "program", options);
   assertPublicSnapshot(payload, "program", ["items", "media", "menu"]);
+  assertPublicSummaryItems(payload.items, "program");
   persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
   return payload as unknown as PublicProgramListSnapshot;
 }
 
 export async function getPublicSearchIndexSnapshotFromCloudflare(
+  query = "",
   options: PublicReadRequestOptions = {}
 ): Promise<PublicSearchIndexSnapshot> {
-  const payload = await getPublicJson("/api/public/search", "search", options);
+  const normalizedQuery = query.trim();
+  const path = normalizedQuery ? `/api/public/search?q=${encodeURIComponent(normalizedQuery)}` : "/api/public/search";
+  const payload = await getPublicJson(path, "search", options);
   assertPublicSnapshot(payload, "search", ["items", "menu"]);
+  assertPublicSummaryItems(payload.items, "search");
+
+  if (typeof payload.query === "string" && payload.query !== normalizedQuery) {
+    throw new PublicReadError("Cloudflare search response query does not match the request", {
+      kind: "invalid-response",
+      resource: "search"
+    });
+  }
+
   persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
   return payload as unknown as PublicSearchIndexSnapshot;
 }

@@ -18,6 +18,14 @@ export const PUBLIC_READ_ROUTE_REGISTRY = [
     implemented: true
   },
   {
+    resource: "public-shell",
+    method: "GET",
+    pathPattern: "/api/public/shell",
+    phase: "SSR-readiness",
+    responseType: "PublicShellSnapshot",
+    implemented: true
+  },
+  {
     resource: "content-list",
     method: "GET",
     pathPattern: "/api/public/content",

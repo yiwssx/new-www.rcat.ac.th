@@ -39,8 +39,11 @@ export type {
   ContentItem,
   ContentStatus,
   ContentType,
+  PublicContentDetailSnapshot,
   PublicContentListKind,
-  PublicContentListSnapshot
+  PublicContentListSnapshot,
+  PublicContentPagination,
+  PublicContentSummary
 } from "./features/public-content/types";
 export type { PublicDocumentItem, PublicDocumentListSnapshot } from "./features/public-documents/types";
 export type { PublicEventListSnapshot } from "./features/public-events/types";
@@ -88,6 +91,14 @@ export interface CmsSnapshot {
   visitorStats?: VisitorStatsSettings;
 }
 
+export interface PublicShellSnapshot {
+  siteSettings: SiteSettings;
+  homepageSettings: HomepageSettings;
+  displaySettings?: DisplaySettings;
+  menu: PublicMenuItem[];
+  generatedAt: string;
+}
+
 export interface PublicHomeSnapshot {
   siteSettings: SiteSettings;
   homepageSettings: HomepageSettings;
@@ -96,12 +107,12 @@ export interface PublicHomeSnapshot {
   carouselSlides: CarouselSlide[];
   externalServices: ExternalServiceLink[];
   visitorStats: VisitorStatsSettings;
-  latestNews: ContentItem[];
-  latestAnnouncements: ContentItem[];
-  procurementItems: ContentItem[];
-  jobOpportunityItems: ContentItem[];
-  achievementItems: ContentItem[];
-  programItems: ContentItem[];
+  latestNews: import("./features/public-content/types").PublicContentSummary[];
+  latestAnnouncements: import("./features/public-content/types").PublicContentSummary[];
+  procurementItems: import("./features/public-content/types").PublicContentSummary[];
+  jobOpportunityItems: import("./features/public-content/types").PublicContentSummary[];
+  achievementItems: import("./features/public-content/types").PublicContentSummary[];
+  programItems: import("./features/public-content/types").PublicContentSummary[];
   documentItems: Array<ContentItem | PublicDocumentItem>;
   eventItems: CalendarEvent[];
   media: MediaAsset[];

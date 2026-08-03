@@ -1,4 +1,4 @@
-import type { PublicContentItemContract } from "./publicContent";
+import type { PublicContentSummaryContract } from "./publicContent";
 import type { PublicDocumentItemContract } from "./publicDocuments";
 import type {
   PublicCarouselSlideContract,
@@ -30,18 +30,18 @@ export interface PublicHomeSnapshotContract {
   carouselSlides: PublicCarouselSlideContract[];
   externalServices: PublicExternalServiceContract[];
   visitorStats: PublicVisitorStatsSnapshotContract;
-  latestNews: PublicContentItemContract[];
-  latestAnnouncements: PublicContentItemContract[];
-  procurementItems: PublicContentItemContract[];
-  jobOpportunityItems: PublicContentItemContract[];
-  achievementItems: PublicContentItemContract[];
-  programItems: PublicContentItemContract[];
+  latestNews: PublicContentSummaryContract[];
+  latestAnnouncements: PublicContentSummaryContract[];
+  procurementItems: PublicContentSummaryContract[];
+  jobOpportunityItems: PublicContentSummaryContract[];
+  achievementItems: PublicContentSummaryContract[];
+  programItems: PublicContentSummaryContract[];
   documentItems: PublicDocumentItemContract[];
   eventItems: PublicEventContract[];
   media: PublicMediaAssetContract[];
   sections: PublicHomeSectionContract[];
-  featuredContent: PublicContentItemContract[];
+  featuredContent: PublicContentSummaryContract[];
   featuredDocuments: PublicDocumentItemContract[];
-  programs: PublicContentItemContract[];
+  programs: PublicContentSummaryContract[];
   generatedAt: string;
 }

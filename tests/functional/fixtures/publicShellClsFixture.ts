@@ -48,7 +48,6 @@ function createContentItem(index: number, type: "news" | "program" = "news") {
     status: "published",
     owner: "Layout Fixture",
     summary: "Deterministic content used to reserve realistic Public route geometry.",
-    body: "Deterministic body paragraph one.\n\nDeterministic body paragraph two.\n\nDeterministic body paragraph three.",
     category: "Layout",
     tags: ["fixture", "layout"],
     updatedAt: generatedAt,
@@ -63,6 +62,7 @@ const detailItem = {
   id: "layout-stability-detail",
   slug: PUBLIC_SHELL_CLS_CONTENT_SLUG,
   title: "Deterministic layout stability content detail",
+  body: "Deterministic body paragraph one.\n\nDeterministic body paragraph two.\n\nDeterministic body paragraph three.",
   template: "standard",
   viewCount: 4
 };
@@ -226,6 +226,11 @@ export async function installPublicShellClsFixture(
       return;
     }
 
+    if (url.pathname === "/api/public/shell") {
+      await fulfillJson(route, 200, shellFields);
+      return;
+    }
+
     if (url.pathname === "/api/public/content" && url.searchParams.get("kind") === "news") {
       await fulfillJson(
         route,
@@ -239,6 +244,7 @@ export async function installPublicShellClsFixture(
 
     if (url.pathname === "/api/public/search") {
       await fulfillJson(route, 200, {
+        query: url.searchParams.get("q")?.trim() || "",
         items: [...newsItems, ...programItems],
         ...shellFields
       });
@@ -255,7 +261,7 @@ export async function installPublicShellClsFixture(
     }
 
     if (url.pathname === `/api/public/content/${PUBLIC_SHELL_CLS_CONTENT_SLUG}`) {
-      await fulfillJson(route, 200, { item: detailItem, generatedAt });
+      await fulfillJson(route, 200, { item: detailItem, media: [], generatedAt });
       return;
     }
 

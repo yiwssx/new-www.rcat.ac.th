@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Box, Button, Card, CardContent, Chip, Stack, TextField, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
@@ -14,7 +14,6 @@ import { usePublicSearchIndex } from "../hooks/usePublicSearchIndex";
 import { ContentItem } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
-import { searchPublishedContent } from "../../utils/search";
 import { interactiveSurfaceSx } from "../../design-system/componentStyles";
 import ActionBar from "../../design-system/components/ActionBar";
 
@@ -45,12 +44,12 @@ function getContentTypeLabel(type: ContentItem["type"]) {
 
 export default function PublicSearchPage() {
   const navigate = useNavigate();
-  const { data, isLoading, isFetching, isError, refetch } = usePublicSearchIndex();
   const search = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
   const query = getSearchQueryFromLocation(search);
+  const { data, isLoading, isFetching, isError, refetch } = usePublicSearchIndex(query);
   const [draftQuery, setDraftQuery] = useState(query);
 
-  const results = useMemo(() => searchPublishedContent(data?.items ?? [], query), [data?.items, query]);
+  const results = data?.items ?? [];
   const resultsPagination = usePublicPagination(results, {
     pageSize: SEARCH_PAGE_SIZE,
     resetKeys: [query],

@@ -1,15 +1,15 @@
-import { mapContentRowToPublicContentItem } from "./publicContentAdapter";
+import { mapContentSummaryRowToPublicContentItem } from "./publicContentAdapter";
 import { filterPublicMedia } from "./publicMetadataAdapter";
 import type { PublicProgramListSnapshotContract } from "../contracts/publicPrograms";
 import type { PublicMetadataContract } from "../contracts/publicMetadata";
-import type { PublicContentReadRow } from "../db/contentRepository";
+import type { PublicContentSummaryReadRow } from "../db/contentRepository";
 
 export function createPublicProgramListSnapshot(
-  rows: PublicContentReadRow[],
+  rows: PublicContentSummaryReadRow[],
   metadata: PublicMetadataContract,
   generatedAt = new Date()
 ): PublicProgramListSnapshotContract {
-  const items = rows.map(mapContentRowToPublicContentItem);
+  const items = rows.map(mapContentSummaryRowToPublicContentItem);
 
   return {
     items,

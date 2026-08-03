@@ -1,9 +1,10 @@
 import type { PublicMenuItem } from "../cms-navigation/types";
 import type { DisplaySettings, HomepageSettings, SiteSettings } from "../cms-settings/types";
-import type { ContentItem } from "../public-content/types";
+import type { PublicContentSummary } from "../public-content/types";
 
 export interface PublicSearchIndexSnapshot {
-  items: ContentItem[];
+  query?: string;
+  items: PublicContentSummary[];
   siteSettings: SiteSettings;
   homepageSettings: HomepageSettings;
   displaySettings?: DisplaySettings;

@@ -43,9 +43,11 @@ TanStack Router owns Public URL search state. Public list rendering no longer re
 
 ## Current Scope
 
-- This is UI/render pagination. The frontend still receives the current public read snapshot, but cards are rendered only for the current page slice.
-- The home achievement payload is also limited at the Worker public home snapshot level.
-- This step changes frontend URL-state ownership only; route search state remains a frontend concern until server loaders and server-side pagination are introduced in later migration work.
+- Public pages still use UI/render pagination by default, so the established unpaginated content-list URL remains backward compatible.
+- The Cloudflare public content-list contract now also accepts opt-in `page` and `pageSize` parameters and returns pagination metadata. This capability is available for later route-loader/server-pagination adoption without forcing the current browser pages to switch in the same migration step.
+- `pageSize` is constrained to 1–100 by the Worker; the default is 20 when `page` is supplied without `pageSize`.
+- The home achievement payload is limited at the Worker public home snapshot level.
+- Search query filtering is Worker-owned when `q` is supplied; the browser preserves the Worker result order and applies its current UI page slice.
 - No database schema changes are required.
 - No D1 migrations are required.
 - No Apps Script changes are required.
@@ -54,6 +56,8 @@ TanStack Router owns Public URL search state. Public list rendering no longer re
 
 Router-owned search state is required before server rendering because the server and the hydrating browser must derive the same page/filter selection from the request URL. Browser-only `window.location` snapshots or custom `pushState` events would otherwise produce a different first render during hydration.
 
+The optional Worker pagination contract provides the next-stage server data boundary, but Step 4 does not add route loaders or switch current archive pages to server pagination.
+
 ## Future Scale Note
 
-If public datasets grow very large, add server-side pagination to the relevant Cloudflare Worker endpoints so the browser does not need to download full list snapshots.
+When public datasets grow beyond the current browser snapshot budget, route loaders can adopt the existing Worker `page`/`pageSize` contract incrementally instead of introducing a second pagination API shape.
