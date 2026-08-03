@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import indexHtmlSource from "../../index.html?raw";
+import clientEntrySource from "../entry-client.tsx?raw";
 import mainSource from "../main.tsx?raw";
 import routeComponentsSource from "../routeComponents.tsx?raw";
 import routesSource from "../routes.tsx?raw";
+import serverEntrySource from "../entry-server.tsx?raw";
 
 describe("public route head SSR readiness", () => {
   it("renders TanStack Router head content at the root layout", () => {
@@ -26,11 +28,14 @@ describe("public route head SSR readiness", () => {
 
   it("does not imperatively assign document.title during browser bootstrap", () => {
     expect(mainSource).not.toContain("document.title =");
+    expect(clientEntrySource).not.toContain("document.title =");
   });
 
-  it("keeps the audit fix free of route data loaders and SSR activation", () => {
+  it("keeps Phase 1 free of route data loaders and browser hydration activation", () => {
     expect(routesSource).not.toContain("loader:");
-    expect(mainSource).toContain("ReactDOM.createRoot");
-    expect(mainSource).not.toContain("hydrateRoot");
+    expect(clientEntrySource).toContain("ReactDOM.createRoot");
+    expect(clientEntrySource).not.toContain("hydrateRoot");
+    expect(serverEntrySource).toContain("renderRouterToString");
+    expect(serverEntrySource).toContain("RouterServer");
   });
 });
