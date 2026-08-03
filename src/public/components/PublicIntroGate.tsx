@@ -10,6 +10,7 @@ import { normalizeSafeHref } from "../../utils/safeUrl";
 import {
   getInitialPublicIntroGateVisibility,
   getPublicIntroGateStorageKey,
+  isPublicIntroGateDismissedInSession,
   shouldShowPublicIntroGate
 } from "./publicIntroGateState";
 
@@ -41,20 +42,8 @@ const TWO_ACTION_IMAGE_HEIGHT = {
   }
 } as const;
 
-function isDismissedInSession(storageKey: string, dismissedKeys: ReadonlySet<string>) {
-  if (dismissedKeys.has(storageKey)) {
-    return true;
-  }
-
-  if (typeof window === "undefined") {
-    return true;
-  }
-
-  try {
-    return window.sessionStorage.getItem(storageKey) === "dismissed";
-  } catch {
-    return false;
-  }
+function isDismissedForRender(storageKey: string, dismissedKeys: ReadonlySet<string>) {
+  return dismissedKeys.has(storageKey);
 }
 
 export default function PublicIntroGate({
@@ -77,8 +66,27 @@ export default function PublicIntroGate({
   const hasSecondaryButton = Boolean(settings?.secondaryButtonLabel.trim() && settings.secondaryButtonUrl.trim());
   const storageKey = getPublicIntroGateStorageKey(settings);
   const uncontrolledVisibility =
-    getInitialPublicIntroGateVisibility(settings) && !isDismissedInSession(storageKey, dismissedKeys);
+    getInitialPublicIntroGateVisibility(settings) && !isDismissedForRender(storageKey, dismissedKeys);
   const isVisible = visible ?? uncontrolledVisibility;
+
+  useEffect(() => {
+    if (!settings || !shouldShowPublicIntroGate(settings) || !isVisible) {
+      return;
+    }
+
+    if (!isPublicIntroGateDismissedInSession(settings)) {
+      return;
+    }
+
+    setDismissedKeys((current) => {
+      if (current.has(storageKey)) {
+        return current;
+      }
+
+      return new Set(current).add(storageKey);
+    });
+    onDismiss?.();
+  }, [isVisible, onDismiss, settings, storageKey]);
 
   useEffect(() => {
     if (!isVisible || typeof document === "undefined" || typeof window === "undefined") {
@@ -119,7 +127,7 @@ export default function PublicIntroGate({
     onDismiss?.();
   }
 
-  if (!settings || !shouldShowPublicIntroGate(settings) || !isVisible) {
+  if (!settings || !shouldShowPublicIntroGate(settings) || !isVisible || dismissedKeys.has(storageKey)) {
     return null;
   }
 
