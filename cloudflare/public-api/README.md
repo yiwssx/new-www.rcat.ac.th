@@ -14,13 +14,16 @@ Public GET routes:
 - `/api/public/home`
 - `/api/public/shell`
 - `/api/public/content?kind=<news|announcements|blog>`
-- `/api/public/content?kind=<news|announcements|blog>&page=<n>&pageSize=<1-100>` (optional pagination)
+- `/api/public/content?kind=<news|announcements|blog>&page=<n>&pageSize=<1-100>`
 - `/api/public/content/:identifier`
 - `/api/public/search?q=<query>`
+- `/api/public/search?q=<query>&page=<n>&pageSize=<1-100>`
 - `/api/public/programs`
 - `/api/public/visitor-stats`
 
-Public list, program, home, and search responses use summary content records and omit full body fields; full bodies remain on content detail, which also returns referenced media. The unpaginated content-list URL remains backward compatible, while page/pageSize is opt-in. `/api/public/search?q=<query>` performs the query in the Worker instead of requiring normal searches to download the complete public index. `/api/public/shell` is a lightweight settings/menu contract for the SSR-readiness migration. Public routes remain GET/OPTIONS-only and never receive credentialed wildcard CORS.
+Public list, program, home, and search responses use summary content records and omit full body fields; full bodies remain on content detail. Content detail returns only media rows referenced by that item. Paginated content/search requests use D1 `COUNT(*)` plus `LIMIT/OFFSET`, so one requested page does not require reading the complete matching dataset into Worker memory. The unpaginated content-list/search URLs remain backward compatible for incremental frontend migration.
+
+`/api/public/search?q=<query>` performs filtering and ordering in the Worker. The paginated form additionally returns `page`, `pageSize`, `totalItems`, and `totalPages`. Search reads lightweight shell metadata only and do not load the complete media, carousel, external-service, or event collections. `/api/public/shell` remains the lightweight settings/menu contract for the SSR-readiness migration. Public routes remain GET/OPTIONS-only and never receive credentialed wildcard CORS.
 
 Structured admin routes include:
 
