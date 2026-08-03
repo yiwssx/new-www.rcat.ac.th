@@ -60,7 +60,8 @@ export function createPublicContentListSnapshot(
   pageRows: PublicContentSummaryReadRow[],
   metadata: PublicMetadataContract,
   generatedAt = new Date(),
-  pagination?: PublicContentListSnapshotContract["pagination"]
+  pagination?: PublicContentListSnapshotContract["pagination"],
+  pageItemsPagination?: PublicContentListSnapshotContract["pageItemsPagination"]
 ): PublicContentListSnapshotContract {
   const items = rows.map(mapContentSummaryRowToPublicContentItem);
   const pageItems = pageRows.map(mapContentSummaryRowToPublicContentItem);
@@ -70,6 +71,7 @@ export function createPublicContentListSnapshot(
     items,
     ...(kind === "announcements" ? { pageItems } : {}),
     ...(pagination ? { pagination } : {}),
+    ...(pageItemsPagination ? { pageItemsPagination } : {}),
     media: filterPublicMedia(metadata.media, [...items, ...pageItems]),
     siteSettings: metadata.siteSettings,
     homepageSettings: metadata.homepageSettings,
