@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { projectSettings } from "../config/projectSettings";
 import { createAppQueryClient } from "../queryClient";
-import { createAppRouter } from "../routes";
+import { createAppRuntime } from "../runtime";
 
 describe("application runtime factories", () => {
   it("creates an isolated QueryClient for each runtime", () => {
@@ -19,10 +19,13 @@ describe("application runtime factories", () => {
     });
   });
 
-  it("creates an isolated TanStack Router for each runtime", () => {
-    const first = createAppRouter();
-    const second = createAppRouter();
+  it("creates an isolated paired TanStack runtime", () => {
+    const first = createAppRuntime();
+    const second = createAppRuntime();
 
-    expect(first).not.toBe(second);
+    expect(first.router).not.toBe(second.router);
+    expect(first.queryClient).not.toBe(second.queryClient);
+    expect(first.router.options.context.queryClient).toBe(first.queryClient);
+    expect(second.router.options.context.queryClient).toBe(second.queryClient);
   });
 });
