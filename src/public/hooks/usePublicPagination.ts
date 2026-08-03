@@ -44,6 +44,7 @@ export function usePublicPagination<T>(
       const clampedPage = Math.min(Math.max(1, Math.floor(nextPage)), pageCount);
 
       void navigate({
+        to: ".",
         search: (previous) => {
           const nextSearch = { ...previous } as typeof previous & Record<string, unknown>;
 
