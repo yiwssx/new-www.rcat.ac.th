@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   normalizePublicPageSearchValue,
@@ -83,14 +84,14 @@ describe("public route search params", () => {
   });
 
   it("keeps Public pagination and filter reads off browser-owned location state", () => {
-    const sourceUrls = [
-      new URL("../public/hooks/usePublicPagination.ts", import.meta.url),
-      new URL("../public/pages/PublicNewsPage.tsx", import.meta.url),
-      new URL("../public/pages/PublicAnnouncementsPage.tsx", import.meta.url)
-    ];
+    const sourcePaths = [
+      "src/public/hooks/usePublicPagination.ts",
+      "src/public/pages/PublicNewsPage.tsx",
+      "src/public/pages/PublicAnnouncementsPage.tsx"
+    ].map((path) => resolve(process.cwd(), path));
 
-    for (const sourceUrl of sourceUrls) {
-      const source = readFileSync(sourceUrl, "utf8");
+    for (const sourcePath of sourcePaths) {
+      const source = readFileSync(sourcePath, "utf8");
       expect(source).not.toContain("window.location.search");
       expect(source).not.toContain("window.history.pushState");
       expect(source).not.toContain("window.history.replaceState");
