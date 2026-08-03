@@ -63,9 +63,7 @@ function getPaginationInput(
 
   return {
     page: Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1,
-    pageSize: Number.isInteger(requestedPageSize)
-      ? Math.min(Math.max(requestedPageSize, 1), 100)
-      : defaultPageSize
+    pageSize: Number.isInteger(requestedPageSize) ? Math.min(Math.max(requestedPageSize, 1), 100) : defaultPageSize
   };
 }
 
@@ -171,15 +169,7 @@ export async function publicContentList(request: Request, env: Env) {
     });
 
     return json(
-      createPublicContentListSnapshot(
-        publicKind,
-        rows,
-        pageRows,
-        metadata,
-        new Date(),
-        pagination,
-        pageItemsPagination
-      )
+      createPublicContentListSnapshot(publicKind, rows, pageRows, metadata, new Date(), pagination, pageItemsPagination)
     );
   } catch {
     return jsonError("Unable to load content-list", 500, {
