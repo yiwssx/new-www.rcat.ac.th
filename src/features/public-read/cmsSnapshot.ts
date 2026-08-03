@@ -3,11 +3,7 @@ import { getPublicHomeSnapshot } from "../public-home/api";
 import type { CmsSnapshot, ContentItem } from "../../types";
 import { PUBLIC_SNAPSHOT_CACHE_TTL_MS, setPublicSnapshotCache } from "../../services/publicCmsCache";
 import type { PublicReadRequestOptions } from "./request";
-import {
-  getPublicQueryRequestOptions,
-  PUBLIC_QUERY_GC_TIME_MS,
-  type PublicQueryRuntimeOptions
-} from "./queryPolicy";
+import { getPublicQueryRequestOptions, PUBLIC_QUERY_GC_TIME_MS, type PublicQueryRuntimeOptions } from "./queryPolicy";
 
 export const publicCmsSnapshotQueryKey = ["cms-snapshot"] as const;
 
