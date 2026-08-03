@@ -46,11 +46,13 @@ export default function PublicSearchPage() {
   const navigate = useNavigate();
   const search = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
   const query = getSearchQueryFromLocation(search);
+  const hasQuery = Boolean(query);
   const requestedPage = normalizePublicPageSearchValue(search.page) ?? 1;
   const { data, isLoading, isFetching, isError, refetch } = usePublicSearchPage(
     query,
     requestedPage,
-    SEARCH_PAGE_SIZE
+    SEARCH_PAGE_SIZE,
+    hasQuery
   );
   const [draftQuery, setDraftQuery] = useState(query);
 
@@ -101,7 +103,7 @@ export default function PublicSearchPage() {
     }
   }
 
-  if (!data && (isLoading || isFetching)) {
+  if (hasQuery && !data && (isLoading || isFetching)) {
     return (
       <PublicSiteShell canonicalPath="/search">
         <PublicLoadingState variant="search-results" />
@@ -109,7 +111,7 @@ export default function PublicSearchPage() {
     );
   }
 
-  if (!data && isError) {
+  if (hasQuery && !data && isError) {
     return (
       <PublicErrorState
         onRetry={() => {
@@ -120,14 +122,6 @@ export default function PublicSearchPage() {
     );
   }
 
-  if (!data) {
-    return (
-      <PublicSiteShell canonicalPath="/search">
-        <PublicLoadingState variant="search-results" />
-      </PublicSiteShell>
-    );
-  }
-
   return (
     <PublicSiteShell
       title="ค้นหา"
@@ -135,10 +129,10 @@ export default function PublicSearchPage() {
       canonicalPath="/search"
       seoTitle={query ? `ค้นหา: ${query}` : "ค้นหา"}
       seoDescription="ค้นหาเนื้อหา ข่าว ประกาศ หลักสูตร และบทความในเว็บไซต์"
-      preloadedSiteSettings={data.siteSettings}
-      preloadedHomepageSettings={data.homepageSettings}
-      preloadedDisplaySettings={data.displaySettings}
-      preloadedMenu={data.menu}
+      preloadedSiteSettings={data?.siteSettings}
+      preloadedHomepageSettings={data?.homepageSettings}
+      preloadedDisplaySettings={data?.displaySettings}
+      preloadedMenu={data?.menu}
     >
       <Card
         component="form"
@@ -175,7 +169,7 @@ export default function PublicSearchPage() {
           />
         </CardContent>
       </Card>
-      <PublicBackgroundProgress active={isFetching} />
+      <PublicBackgroundProgress active={hasQuery && isFetching} />
       {!query && (
         <EmptyState
           title="ค้นหาเนื้อหาในเว็บไซต์"
