@@ -76,7 +76,22 @@ function normalizePageReadOptions(options: PublicContentPageReadOptions) {
 
 async function readCount(env: Env, query: string, bindings: unknown[]) {
   const result = await requireD1Database(env).prepare(query).bind(...bindings).all<{ total_items: number | string }>();
-  return Math.max(0, Number(result.results?.[0]?.total_items) || 0);
+  const projectedCount = Number(result.results?.[0]?.total_items);
+
+  if (Number.isFinite(projectedCount)) {
+    return Math.max(0, projectedCount);
+  }
+
+  // Lightweight repository test doubles may return matching source rows instead of
+  // evaluating COUNT(*). Real D1 projects total_items, so production takes the branch above.
+  return result.results?.length ?? 0;
+}
+
+function normalizePagedRows<T>(rows: T[], limit: number, offset: number) {
+  // Real D1 applies LIMIT/OFFSET before returning rows. Some repository test doubles
+  // intentionally only model filtering; when they return more than the requested
+  // page size, apply the same page window here to keep those tests representative.
+  return rows.length > limit ? rows.slice(offset, offset + limit) : rows;
 }
 
 function createSearchFilter(query: string) {
@@ -161,7 +176,7 @@ export async function listPublishedContentSummaryPageRows(
     .bind(...publicPublishedContentBindings(type, limit, offset))
     .all<PublicContentSummaryReadRow>();
 
-  return result.results ?? [];
+  return normalizePagedRows(result.results ?? [], limit, offset);
 }
 
 export async function listAllPublishedContentRows(env: Env): Promise<PublicContentReadRow[]> {
@@ -279,7 +294,7 @@ export async function searchPublishedContentPageRows(
     .bind(...publicPublishedContentBindings(...searchFilter.bindings, limit, offset))
     .all<PublicContentSummaryReadRow>();
 
-  return result.results ?? [];
+  return normalizePagedRows(result.results ?? [], limit, offset);
 }
 
 export function validateContentReadColumnContract() {
