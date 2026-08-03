@@ -1,4 +1,5 @@
 import { getPublicSiteUrl, projectSettings } from "../../config/projectSettings";
+import { normalizePublicPageSearchValue } from "./searchParams";
 
 export interface PublicRouteHeadInput {
   title?: string;
@@ -16,7 +17,19 @@ export interface StaticPublicRouteHead {
   robots?: string;
 }
 
+type PublicCanonicalPaginationKey = "page" | "announcementsPage" | "pagesPage";
+
 const DEFAULT_PUBLIC_DESCRIPTION = "เว็บไซต์ประชาสัมพันธ์และระบบจัดการเนื้อหาของสถานศึกษา";
+
+const PUBLIC_ROUTE_CANONICAL_PAGINATION_KEYS: Readonly<Record<string, readonly PublicCanonicalPaginationKey[]>> = {
+  "/departments": ["page"],
+  "/news": ["page"],
+  "/announcements": ["announcementsPage", "pagesPage"],
+  "/achievements": ["page"],
+  "/blog": ["page"],
+  "/documents": ["page"],
+  "/calendar": ["page"]
+};
 
 export const STATIC_PUBLIC_ROUTE_HEADS: Readonly<Record<string, StaticPublicRouteHead>> = {
   "/": {
@@ -136,6 +149,27 @@ function resolveRouteCanonicalUrl(input: Pick<PublicRouteHeadInput, "canonicalUr
   return "";
 }
 
+function buildPaginatedCanonicalPath(pathname: string, search?: Record<string, unknown>) {
+  const paginationKeys = PUBLIC_ROUTE_CANONICAL_PAGINATION_KEYS[pathname];
+
+  if (!paginationKeys?.length || !search) {
+    return pathname;
+  }
+
+  const canonicalSearch = new URLSearchParams();
+
+  paginationKeys.forEach((key) => {
+    const page = normalizePublicPageSearchValue(search[key]);
+
+    if (page !== undefined) {
+      canonicalSearch.set(key, String(page));
+    }
+  });
+
+  const queryString = canonicalSearch.toString();
+  return queryString ? `${pathname}?${queryString}` : pathname;
+}
+
 export function buildPublicRouteHead(input: PublicRouteHeadInput) {
   const title = buildRouteDocumentTitle(input.title, input.siteName);
   const description = input.description?.trim();
@@ -156,8 +190,13 @@ export function getRootRouteHead() {
   return buildPublicRouteHead({});
 }
 
-export function getStaticPublicRouteHead(pathname: string) {
-  return buildPublicRouteHead(STATIC_PUBLIC_ROUTE_HEADS[pathname] ?? { description: DEFAULT_PUBLIC_DESCRIPTION });
+export function getStaticPublicRouteHead(pathname: string, search?: Record<string, unknown>) {
+  const routeHead = STATIC_PUBLIC_ROUTE_HEADS[pathname] ?? { description: DEFAULT_PUBLIC_DESCRIPTION };
+
+  return buildPublicRouteHead({
+    ...routeHead,
+    canonicalPath: routeHead.canonicalPath ? buildPaginatedCanonicalPath(routeHead.canonicalPath, search) : undefined
+  });
 }
 
 export function getPublicContentRouteHead(slug: string) {
