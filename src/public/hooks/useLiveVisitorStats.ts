@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicApiProvider } from "../../config/publicApiProvider";
+import { isPublicReadAbortError } from "../../features/public-read/errors";
 import { getLiveVisitorStats } from "../../features/visitor-stats";
 import type { VisitorStatsSettings } from "../../features/visitor-stats";
 import { normalizeVisitorStats } from "../../services/visitorStats";
@@ -56,6 +57,10 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
           updatedAt: live.updatedAt
         };
       } catch (error) {
+        if (isPublicReadAbortError(error)) {
+          throw error;
+        }
+
         liveVisitorStatsBackoffUntil = Date.now() + LIVE_VISITOR_STATS_FAILURE_BACKOFF_MS;
         warnLiveVisitorStatsUnavailable(error);
         throw error;
