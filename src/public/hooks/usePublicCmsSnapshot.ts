@@ -18,7 +18,7 @@ export function usePublicCmsSnapshot(options: UsePublicCmsSnapshotOptions = {}) 
     : false;
 
   return useQuery({
-    ...publicCmsSnapshotQueryOptions(),
+    ...publicCmsSnapshotQueryOptions({ consumeAbortSignal: false }),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     enabled,
