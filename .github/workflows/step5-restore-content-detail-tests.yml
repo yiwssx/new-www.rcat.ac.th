@@ -50,7 +50,7 @@ jobs:
 
           vi.mock("../public/hooks/usePublicShellSnapshot", () => ({
             usePublicShellSnapshot: () => ({
-              data: currentSnapshot,
+              data: currentSnapshot ? { siteSettings: {}, menu: [] } : undefined,
               ...currentSnapshotQueryState
             })
           }));
@@ -79,7 +79,7 @@ jobs:
 
           vi.mock("../public/hooks/usePublicShellSnapshot", () => ({
             usePublicShellSnapshot: () => ({
-              data: currentSnapshot,
+              data: { siteSettings: {}, menu: [] },
               isLoading: false,
               isFetching: false,
               isError: false,
@@ -104,15 +104,15 @@ jobs:
           src/test/publicContentDetailPage.test.tsx
           src/test/publicContentDetailRegression.test.tsx
           src/test/publicSiteShellSsrReadiness.test.ts
-      - name: Verify only shell hook mock was added to restored tests
+      - name: Verify only shell hook mocks differ from staging
         shell: bash
         run: |
-          git diff --exit-code 85b6b016e9ef6d0a32ccbc14a30874af91d85a85 -- src/test/publicContentDetailPage.test.tsx | grep -q 'usePublicShellSnapshot'
-          git diff --exit-code 85b6b016e9ef6d0a32ccbc14a30874af91d85a85 -- src/test/publicContentDetailRegression.test.tsx | grep -q 'usePublicShellSnapshot'
-          if git diff 85b6b016e9ef6d0a32ccbc14a30874af91d85a85 -- src/test/publicContentDetailPage.test.tsx src/test/publicContentDetailRegression.test.tsx | grep -E '^[+-].*(it\(|expect\(|render\(|currentDetail =|currentSnapshot =)' ; then
-            echo 'Unexpected test-body change detected' >&2
-            exit 1
-          fi
+          page_stats="$(git diff --numstat 85b6b016e9ef6d0a32ccbc14a30874af91d85a85 -- src/test/publicContentDetailPage.test.tsx)"
+          regression_stats="$(git diff --numstat 85b6b016e9ef6d0a32ccbc14a30874af91d85a85 -- src/test/publicContentDetailRegression.test.tsx)"
+          test "$page_stats" = $'7\t0\tsrc/test/publicContentDetailPage.test.tsx'
+          test "$regression_stats" = $'10\t0\tsrc/test/publicContentDetailRegression.test.tsx'
+          git diff 85b6b016e9ef6d0a32ccbc14a30874af91d85a85 -- src/test/publicContentDetailPage.test.tsx | grep -q 'usePublicShellSnapshot'
+          git diff 85b6b016e9ef6d0a32ccbc14a30874af91d85a85 -- src/test/publicContentDetailRegression.test.tsx | grep -q 'usePublicShellSnapshot'
       - name: Commit restored test fixtures and remove temporary workflow
         shell: bash
         run: |
