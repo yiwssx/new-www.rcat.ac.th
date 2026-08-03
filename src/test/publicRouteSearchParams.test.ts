@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   normalizePublicPageSearchValue,
@@ -79,5 +80,21 @@ describe("public route search params", () => {
     });
 
     expect(validatePublicSearchRouteSearch({ q: "   ", page: "1" })).toEqual({});
+  });
+
+  it("keeps Public pagination and filter reads off browser-owned location state", () => {
+    const sourceUrls = [
+      new URL("../public/hooks/usePublicPagination.ts", import.meta.url),
+      new URL("../public/pages/PublicNewsPage.tsx", import.meta.url),
+      new URL("../public/pages/PublicAnnouncementsPage.tsx", import.meta.url)
+    ];
+
+    for (const sourceUrl of sourceUrls) {
+      const source = readFileSync(sourceUrl, "utf8");
+      expect(source).not.toContain("window.location.search");
+      expect(source).not.toContain("window.history.pushState");
+      expect(source).not.toContain("window.history.replaceState");
+      expect(source).not.toContain("useSyncExternalStore");
+    }
   });
 });
