@@ -27,10 +27,7 @@ function normalizePageInput(pageInput: PublicContentListPageInput) {
   };
 }
 
-export function publicContentListQueryKey(
-  kind: PublicContentListKind,
-  pageItemsInput?: PublicContentListPageInput
-) {
+export function publicContentListQueryKey(kind: PublicContentListKind, pageItemsInput?: PublicContentListPageInput) {
   if (kind !== "announcements" || !pageItemsInput) {
     return ["public-content-list", kind] as const;
   }
