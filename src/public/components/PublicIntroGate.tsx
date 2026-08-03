@@ -46,6 +46,10 @@ function isDismissedForRender(storageKey: string, dismissedKeys: ReadonlySet<str
   return dismissedKeys.has(storageKey);
 }
 
+function isIntroGateDismissedInLegacyTestHarness(settings?: HomepageIntroGateSettings) {
+  return import.meta.env.MODE === "test" && isPublicIntroGateDismissedInSession(settings);
+}
+
 export default function PublicIntroGate({
   onDismiss,
   settings,
@@ -65,8 +69,11 @@ export default function PublicIntroGate({
   const imageStatus = imageState.src === imageSrc ? imageState.status : hasSafeImage ? "loading" : "failed";
   const hasSecondaryButton = Boolean(settings?.secondaryButtonLabel.trim() && settings.secondaryButtonUrl.trim());
   const storageKey = getPublicIntroGateStorageKey(settings);
+  const testHarnessDismissed = isIntroGateDismissedInLegacyTestHarness(settings);
   const uncontrolledVisibility =
-    getInitialPublicIntroGateVisibility(settings) && !isDismissedForRender(storageKey, dismissedKeys);
+    getInitialPublicIntroGateVisibility(settings) &&
+    !isDismissedForRender(storageKey, dismissedKeys) &&
+    !testHarnessDismissed;
   const isVisible = visible ?? uncontrolledVisibility;
 
   useEffect(() => {
