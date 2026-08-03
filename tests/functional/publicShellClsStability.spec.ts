@@ -107,6 +107,11 @@ for (const layoutCase of directLayoutCases) {
 
     fixture.release();
     await waitForReadyText(page, layoutCase.readyText);
+
+    if (layoutCase.name === "desktop-news") {
+      expect(fixture.requests.filter((request) => request === "/api/public/shell")).toHaveLength(1);
+      expect(fixture.requests.filter((request) => request === "/api/public/home")).toHaveLength(0);
+    }
     await expect(directoryRegion).toHaveAttribute("data-footer-directory-state", "ready");
     await expect(page.getByRole("heading", { name: "หน่วยงานส่วนกลาง สอศ.(สำนัก)" })).toBeVisible();
     const immediatelyAfterResponse = await readPublicLayoutSnapshot(page);

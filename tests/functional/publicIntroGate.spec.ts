@@ -70,6 +70,22 @@ async function installIntroFixture(page: Page) {
     });
   });
 
+  await page.route("**/api/public/shell", async (route) => {
+    const snapshot = createIntroSnapshot();
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        siteSettings: snapshot.siteSettings,
+        homepageSettings: snapshot.homepageSettings,
+        displaySettings: snapshot.displaySettings,
+        menu: snapshot.menu,
+        generatedAt: snapshot.generatedAt
+      })
+    });
+  });
+
   await page.route("**/api/public/visitor-stats", async (route) => {
     await route.fulfill({
       status: 200,

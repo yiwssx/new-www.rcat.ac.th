@@ -166,6 +166,22 @@ export async function installPublicHomeFixture(page: Page, options: PublicHomeFi
     });
   });
 
+  await page.route("**/api/public/shell", async (route) => {
+    const snapshot = createPublicHomeSnapshot(options);
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        siteSettings: snapshot.siteSettings,
+        homepageSettings: snapshot.homepageSettings,
+        displaySettings: snapshot.displaySettings,
+        menu: snapshot.menu,
+        generatedAt: snapshot.generatedAt
+      })
+    });
+  });
+
   await page.route("**/api/public/visitor-stats", async (route) => {
     await route.fulfill({
       status: 200,
