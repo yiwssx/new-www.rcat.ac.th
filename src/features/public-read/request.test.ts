@@ -51,6 +51,17 @@ describe("public read request taxonomy", () => {
     expect(notFound).toBeInstanceOf(PublicReadError);
     expect(isPublicReadNotFoundError(notFound)).toBe(true);
     expect(notFound).toMatchObject({
+      message: "missing",
+      kind: "http",
+      status: 404,
+      resource: "missing",
+      backendMessage: "missing"
+    });
+
+    const genericHttp = await getPublicJson("/missing", "missing", { httpErrorMessage: "generic" }).catch(
+      (caught) => caught
+    );
+    expect(genericHttp).toMatchObject({
       message: "Cloudflare missing request failed with HTTP 404",
       kind: "http",
       status: 404,
