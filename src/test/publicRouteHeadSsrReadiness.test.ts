@@ -12,7 +12,8 @@ describe("public route head SSR readiness", () => {
 
   it("owns public canonical metadata in route head declarations", () => {
     expect(routesSource).toContain("head: getRootRouteHead");
-    expect(routesSource).toContain('head: () => getStaticPublicRouteHead("/news")');
+    expect(routesSource).toContain('head: ({ match }) => getStaticPublicRouteHead("/news", match.search)');
+    expect(routesSource).toContain('head: ({ match }) => getStaticPublicRouteHead("/announcements", match.search)');
     expect(routesSource).toContain('head: () => getStaticPublicRouteHead("/search")');
     expect(routesSource).toContain("head: ({ params }) => getPublicContentRouteHead(params.slug)");
     expect(routesSource).toContain("head: getCmsRouteHead");
@@ -27,7 +28,7 @@ describe("public route head SSR readiness", () => {
     expect(mainSource).not.toContain("document.title =");
   });
 
-  it("keeps Step 7 free of route data loaders and SSR activation", () => {
+  it("keeps the audit fix free of route data loaders and SSR activation", () => {
     expect(routesSource).not.toContain("loader:");
     expect(mainSource).toContain("ReactDOM.createRoot");
     expect(mainSource).not.toContain("hydrateRoot");

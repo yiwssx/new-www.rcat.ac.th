@@ -70,7 +70,7 @@ const publicDepartmentsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "departments",
   validateSearch: validatePublicPaginatedSearch,
-  head: () => getStaticPublicRouteHead("/departments"),
+  head: ({ match }) => getStaticPublicRouteHead("/departments", match.search),
   component: PublicDepartmentsPage
 });
 
@@ -78,7 +78,7 @@ const publicNewsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "news",
   validateSearch: validatePublicFilteredPaginatedSearch,
-  head: () => getStaticPublicRouteHead("/news"),
+  head: ({ match }) => getStaticPublicRouteHead("/news", match.search),
   component: PublicNewsPage
 });
 
@@ -86,7 +86,7 @@ const publicAnnouncementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "announcements",
   validateSearch: validatePublicAnnouncementsSearch,
-  head: () => getStaticPublicRouteHead("/announcements"),
+  head: ({ match }) => getStaticPublicRouteHead("/announcements", match.search),
   component: PublicAnnouncementsPage
 });
 
@@ -94,7 +94,7 @@ const publicAchievementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "achievements",
   validateSearch: validatePublicPaginatedSearch,
-  head: () => getStaticPublicRouteHead("/achievements"),
+  head: ({ match }) => getStaticPublicRouteHead("/achievements", match.search),
   component: PublicAchievementsPage
 });
 
@@ -102,7 +102,7 @@ const publicBlogRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "blog",
   validateSearch: validatePublicPaginatedSearch,
-  head: () => getStaticPublicRouteHead("/blog"),
+  head: ({ match }) => getStaticPublicRouteHead("/blog", match.search),
   component: PublicBlogPage
 });
 
@@ -110,7 +110,7 @@ const publicDocumentsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "documents",
   validateSearch: validatePublicPaginatedSearch,
-  head: () => getStaticPublicRouteHead("/documents"),
+  head: ({ match }) => getStaticPublicRouteHead("/documents", match.search),
   component: PublicDocumentsPage
 });
 
@@ -118,7 +118,7 @@ const publicCalendarRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "calendar",
   validateSearch: validatePublicPaginatedSearch,
-  head: () => getStaticPublicRouteHead("/calendar"),
+  head: ({ match }) => getStaticPublicRouteHead("/calendar", match.search),
   component: PublicCalendarPage
 });
 

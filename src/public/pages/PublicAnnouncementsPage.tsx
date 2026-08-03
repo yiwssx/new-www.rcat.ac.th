@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { useEffect, useMemo } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Button, Chip, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
@@ -12,6 +12,7 @@ import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicContentList } from "../hooks/usePublicContentList";
 import { usePublicPagination } from "../hooks/usePublicPagination";
+import { normalizePublicPageSearchValue } from "../routing/searchParams";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
 const ANNOUNCEMENTS_PAGE_SIZE = 12;
@@ -30,8 +31,13 @@ function normalizeCategoryList(category: string | undefined) {
 }
 
 export default function PublicAnnouncementsPage() {
-  const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("announcements");
+  const navigate = useNavigate();
   const routeSearch = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
+  const requestedPagesPage = normalizePublicPageSearchValue(routeSearch.pagesPage) ?? 1;
+  const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("announcements", {
+    page: requestedPagesPage,
+    pageSize: PUBLIC_PAGES_PAGE_SIZE
+  });
   const activeTag = readTextSearchParam(routeSearch, "tag");
   const activeCategory = readTextSearchParam(routeSearch, "category");
   const hasActiveFilter = Boolean(activeTag || activeCategory);
@@ -53,11 +59,64 @@ export default function PublicAnnouncementsPage() {
     resetKeys: [activeTag, activeCategory],
     scrollTargetId: "announcements-list-heading"
   });
-  const pagesPagination = usePublicPagination(pageItems, {
-    pageSize: PUBLIC_PAGES_PAGE_SIZE,
-    queryParam: "pagesPage",
-    scrollTargetId: "public-pages-list-heading"
-  });
+  const fallbackPagesPageCount = Math.max(1, Math.ceil(pageItems.length / PUBLIC_PAGES_PAGE_SIZE));
+  const fallbackPagesPage = Math.min(requestedPagesPage, fallbackPagesPageCount);
+  const pageItemsPagination = data?.pageItemsPagination;
+  const pagesPage = pageItemsPagination?.page ?? fallbackPagesPage;
+  const pagesPageCount = pageItemsPagination?.totalPages ?? fallbackPagesPageCount;
+  const pagesTotalItems = pageItemsPagination?.totalItems ?? pageItems.length;
+  const visiblePageItems = pageItemsPagination
+    ? pageItems
+    : pageItems.slice((pagesPage - 1) * PUBLIC_PAGES_PAGE_SIZE, pagesPage * PUBLIC_PAGES_PAGE_SIZE);
+
+  useEffect(() => {
+    if (!data || requestedPagesPage === pagesPage) {
+      return;
+    }
+
+    void navigate({
+      to: ".",
+      search: (previous) => {
+        const nextSearch = { ...previous } as typeof previous & Record<string, unknown>;
+
+        if (pagesPage <= 1) {
+          delete nextSearch.pagesPage;
+        } else {
+          nextSearch.pagesPage = pagesPage;
+        }
+
+        return nextSearch;
+      },
+      replace: true,
+      resetScroll: false
+    });
+  }, [data, navigate, pagesPage, requestedPagesPage]);
+
+  function handlePagesPageChange(nextPage: number) {
+    const clampedPage = Math.min(Math.max(1, Math.floor(nextPage)), pagesPageCount);
+
+    void navigate({
+      to: ".",
+      search: (previous) => {
+        const nextSearch = { ...previous } as typeof previous & Record<string, unknown>;
+
+        if (clampedPage <= 1) {
+          delete nextSearch.pagesPage;
+        } else {
+          nextSearch.pagesPage = clampedPage;
+        }
+
+        return nextSearch;
+      },
+      resetScroll: false
+    });
+
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        document.getElementById("public-pages-list-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }
 
   if (!data && (isLoading || isFetching)) {
     return (
@@ -170,7 +229,7 @@ export default function PublicAnnouncementsPage() {
         </Typography>
       </Stack>
       <Grid container spacing={2.5}>
-        {pagesPagination.paginatedItems.map((item) => (
+        {visiblePageItems.map((item) => (
           <Grid size={{ xs: 12, md: 6 }} key={item.id}>
             <PublicContentCard
               item={item}
@@ -180,16 +239,16 @@ export default function PublicAnnouncementsPage() {
           </Grid>
         ))}
       </Grid>
-      {pageItems.length > 0 && (
+      {pagesTotalItems > 0 && (
         <PublicPagination
-          page={pagesPagination.page}
-          pageCount={pagesPagination.pageCount}
-          pageSize={pagesPagination.pageSize}
-          totalItems={pagesPagination.totalItems}
-          onPageChange={(nextPage) => pagesPagination.setPage(nextPage, { scroll: true })}
+          page={pagesPage}
+          pageCount={pagesPageCount}
+          pageSize={pageItemsPagination?.pageSize ?? PUBLIC_PAGES_PAGE_SIZE}
+          totalItems={pagesTotalItems}
+          onPageChange={handlePagesPageChange}
         />
       )}
-      {!pageItems.length && <EmptyState title="ยังไม่มีเอกสารเผยแพร่" icon={<DescriptionOutlinedIcon />} />}
+      {!pagesTotalItems && <EmptyState title="ยังไม่มีเอกสารเผยแพร่" icon={<DescriptionOutlinedIcon />} />}
     </PublicSiteShell>
   );
 }

@@ -35,6 +35,33 @@ describe("public route head metadata", () => {
     expect(head.links).toEqual([{ rel: "canonical", href: `${projectSettings.site.publicSiteUrl}/news` }]);
   });
 
+  it("keeps normalized pagination in self-referencing canonicals without copying filters or tracking params", () => {
+    const pageTwo = getStaticPublicRouteHead("/news", {
+      page: "2",
+      tag: "award",
+      utm_source: "newsletter"
+    });
+    const pageOne = getStaticPublicRouteHead("/news", { page: "1" });
+
+    expect(pageTwo.links).toEqual([{ rel: "canonical", href: `${projectSettings.site.publicSiteUrl}/news?page=2` }]);
+    expect(pageOne.links).toEqual([{ rel: "canonical", href: `${projectSettings.site.publicSiteUrl}/news` }]);
+  });
+
+  it("keeps both independent announcement pagination channels in canonical order", () => {
+    const head = getStaticPublicRouteHead("/announcements", {
+      announcementsPage: "3",
+      pagesPage: 2,
+      category: "ประกาศ"
+    });
+
+    expect(head.links).toEqual([
+      {
+        rel: "canonical",
+        href: `${projectSettings.site.publicSiteUrl}/announcements?announcementsPage=3&pagesPage=2`
+      }
+    ]);
+  });
+
   it("marks the public search results route as noindex while keeping links followable", () => {
     const head = getStaticPublicRouteHead("/search");
 

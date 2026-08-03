@@ -47,6 +47,7 @@ export interface PublicContentListSnapshotContract {
   items: PublicContentSummaryContract[];
   pageItems?: PublicContentSummaryContract[];
   pagination?: PublicContentPaginationContract;
+  pageItemsPagination?: PublicContentPaginationContract;
   media: PublicMediaAssetContract[];
   siteSettings: PublicSiteSettingsContract;
   homepageSettings: PublicHomepageSettingsContract;

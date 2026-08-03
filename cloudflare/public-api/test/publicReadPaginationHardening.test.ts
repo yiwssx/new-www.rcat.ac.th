@@ -92,4 +92,11 @@ describe("Step 4 public-read hardening", () => {
     expect(publicSearchRouteSource).toContain("readPublicShellMetadataRows");
     expect(publicSearchRouteSource).not.toContain("readPublicMetadataRows(env)");
   });
+
+  it("paginates announcement public pages in D1 instead of reading every page row", () => {
+    expect(publicContentRouteSource).toContain('countPublishedContentSummaryRows(env, "page")');
+    expect(publicContentRouteSource).toContain('listPublishedContentSummaryPageRows(env, "page"');
+    expect(publicContentRouteSource).toContain("pageItemsPagination");
+    expect(publicContentRouteSource).not.toContain('listPublishedContentSummaryRows(env, "page")');
+  });
 });

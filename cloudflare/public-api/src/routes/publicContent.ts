@@ -16,6 +16,7 @@ import { json, jsonError } from "../responses";
 const CONTENT_LIST_RESOURCE = "content-list";
 const CONTENT_DETAIL_RESOURCE = "content-detail";
 const PHASE = "M17-B";
+const ANNOUNCEMENT_PUBLIC_PAGES_PAGE_SIZE = 12;
 
 const CONTENT_KIND_TO_TYPE = {
   news: "news",
@@ -28,9 +29,12 @@ interface PaginationInput {
   pageSize: number;
 }
 
-function getOptionalPaginationInput(request: Request): PaginationInput | undefined {
-  const url = new URL(request.url);
-  const pageValue = url.searchParams.get("page");
+function getOptionalPaginationInput(
+  url: URL,
+  pageParam = "page",
+  pageSizeParam = "pageSize"
+): PaginationInput | undefined {
+  const pageValue = url.searchParams.get(pageParam);
 
   if (pageValue === null) {
     return undefined;
@@ -42,10 +46,25 @@ function getOptionalPaginationInput(request: Request): PaginationInput | undefin
     return undefined;
   }
 
-  const requestedPageSize = Number(url.searchParams.get("pageSize"));
+  const requestedPageSize = Number(url.searchParams.get(pageSizeParam));
   const pageSize = Number.isInteger(requestedPageSize) ? Math.min(Math.max(requestedPageSize, 1), 100) : 20;
 
   return { page, pageSize };
+}
+
+function getPaginationInput(
+  url: URL,
+  pageParam: string,
+  pageSizeParam: string,
+  defaultPageSize: number
+): PaginationInput {
+  const requestedPage = Number(url.searchParams.get(pageParam));
+  const requestedPageSize = Number(url.searchParams.get(pageSizeParam));
+
+  return {
+    page: Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1,
+    pageSize: Number.isInteger(requestedPageSize) ? Math.min(Math.max(requestedPageSize, 1), 100) : defaultPageSize
+  };
 }
 
 function createPagination(input: PaginationInput, totalItems: number) {
@@ -95,7 +114,8 @@ export async function publicContentList(request: Request, env: Env) {
     });
   }
 
-  const kind = new URL(request.url).searchParams.get("kind")?.trim().toLowerCase() || "news";
+  const url = new URL(request.url);
+  const kind = url.searchParams.get("kind")?.trim().toLowerCase() || "news";
 
   if (!(kind in CONTENT_KIND_TO_TYPE)) {
     return jsonError("invalid public content list kind", 400, {
@@ -105,28 +125,40 @@ export async function publicContentList(request: Request, env: Env) {
 
   const publicKind = kind as keyof typeof CONTENT_KIND_TO_TYPE;
   const contentType = CONTENT_KIND_TO_TYPE[publicKind];
-  const paginationInput = getOptionalPaginationInput(request);
+  const paginationInput = getOptionalPaginationInput(url);
+  const pageItemsPaginationInput =
+    publicKind === "announcements"
+      ? getPaginationInput(url, "pagesPage", "pagesPageSize", ANNOUNCEMENT_PUBLIC_PAGES_PAGE_SIZE)
+      : undefined;
 
   try {
-    const pageRowsPromise =
-      publicKind === "announcements" ? listPublishedContentSummaryRows(env, "page") : Promise.resolve([]);
     const shellMetadataPromise = readPublicShellMetadataRows(env);
+    const [totalItems, totalPageItems] = await Promise.all([
+      paginationInput ? countPublishedContentSummaryRows(env, contentType) : Promise.resolve(undefined),
+      pageItemsPaginationInput ? countPublishedContentSummaryRows(env, "page") : Promise.resolve(undefined)
+    ]);
 
-    let rows: PublicContentSummaryReadRow[];
-    let pagination: ReturnType<typeof createPagination> | undefined;
+    const pagination =
+      paginationInput && totalItems !== undefined ? createPagination(paginationInput, totalItems) : undefined;
+    const pageItemsPagination =
+      pageItemsPaginationInput && totalPageItems !== undefined
+        ? createPagination(pageItemsPaginationInput, totalPageItems)
+        : undefined;
 
-    if (paginationInput) {
-      const totalItems = await countPublishedContentSummaryRows(env, contentType);
-      pagination = createPagination(paginationInput, totalItems);
-      rows = await listPublishedContentSummaryPageRows(env, contentType, {
-        limit: pagination.pageSize,
-        offset: (pagination.page - 1) * pagination.pageSize
-      });
-    } else {
-      rows = await listPublishedContentSummaryRows(env, contentType);
-    }
+    const rowsPromise = pagination
+      ? listPublishedContentSummaryPageRows(env, contentType, {
+          limit: pagination.pageSize,
+          offset: (pagination.page - 1) * pagination.pageSize
+        })
+      : listPublishedContentSummaryRows(env, contentType);
+    const pageRowsPromise = pageItemsPagination
+      ? listPublishedContentSummaryPageRows(env, "page", {
+          limit: pageItemsPagination.pageSize,
+          offset: (pageItemsPagination.page - 1) * pageItemsPagination.pageSize
+        })
+      : Promise.resolve([]);
 
-    const [pageRows, shellMetadataRows] = await Promise.all([pageRowsPromise, shellMetadataPromise]);
+    const [rows, pageRows, shellMetadataRows] = await Promise.all([rowsPromise, pageRowsPromise, shellMetadataPromise]);
     const mediaRows = await readPublicMediaRowsByIds(env, collectContentMediaIds([...rows, ...pageRows]));
     const metadata = createPublicMetadata({
       ...shellMetadataRows,
@@ -136,7 +168,9 @@ export async function publicContentList(request: Request, env: Env) {
       events: []
     });
 
-    return json(createPublicContentListSnapshot(publicKind, rows, pageRows, metadata, new Date(), pagination));
+    return json(
+      createPublicContentListSnapshot(publicKind, rows, pageRows, metadata, new Date(), pagination, pageItemsPagination)
+    );
   } catch {
     return jsonError("Unable to load content-list", 500, {
       resource: CONTENT_LIST_RESOURCE,

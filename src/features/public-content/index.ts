@@ -1,10 +1,12 @@
 export {
   getContentDetail,
+  getPublicAnnouncementsContentListSnapshot,
   getPublicContentDetailSnapshot,
   getPublicContentListPageSnapshot,
   getPublicContentListSnapshot,
   isPublicContentNotFoundError
 } from "./api";
+export type { PublicContentListPageInput } from "./api";
 export {
   clearPublicContentListCache,
   getPublicContentDetailCache,
