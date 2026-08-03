@@ -14,6 +14,7 @@ Phase 1 establishes the runtime boundary required by later server data loading a
 - the Router receives that exact QueryClient through typed route context;
 - the browser entry remains `ReactDOM.createRoot()` and therefore does not hydrate server markup yet;
 - `entry-server.tsx` accepts a Web API `Request` and renders through TanStack Router `createRequestHandler`, `RouterServer`, and non-streaming `renderRouterToString`;
+- TanStack's request handler/server router path derives request-local server history from the incoming Request instead of using browser history;
 - shared Query/MUI providers are reusable by both browser and server render paths;
 - every call to the server renderer creates a new runtime, preventing QueryClient/Router state from crossing requests;
 - `pnpm test:ssr:foundation` validates runtime isolation and route-aware server head rendering;
