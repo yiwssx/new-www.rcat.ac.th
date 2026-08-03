@@ -7,11 +7,7 @@ import {
   getStaticPublicRouteHead
 } from "./publicRouteHead";
 
-function getMetaContent(
-  head: ReturnType<typeof buildPublicRouteHead>,
-  key: "name" | "title",
-  value?: string
-) {
+function getMetaContent(head: ReturnType<typeof buildPublicRouteHead>, key: "name" | "title", value?: string) {
   if (key === "title") {
     return head.meta.find((entry) => "title" in entry)?.title;
   }
