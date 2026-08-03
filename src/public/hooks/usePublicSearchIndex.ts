@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getPublicSearchIndexCache,
   PUBLIC_SEARCH_INDEX_CACHE_TTL_MS,
-  publicSearchIndexQueryOptions
+  publicSearchIndexQueryOptions,
+  publicSearchPageQueryOptions
 } from "../../features/public-search";
 import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
 
@@ -19,5 +20,18 @@ export function usePublicSearchIndex(query = "") {
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     refetchOnMount: cachedSnapshot ? !hasFreshCache : true
+  });
+}
+
+export function usePublicSearchPage(query: string, page: number, pageSize: number) {
+  return useQuery({
+    ...publicSearchPageQueryOptions(
+      query,
+      {
+        page,
+        pageSize
+      },
+      { consumeAbortSignal: false }
+    )
   });
 }
