@@ -1,9 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import AppProviders from "./AppProviders";
 import type { AppRouter } from "./routes";
-import { theme } from "./theme";
 
 export interface AppProps {
   queryClient: QueryClient;
@@ -12,11 +10,8 @@ export interface AppProps {
 
 export default function App({ queryClient, router }: AppProps) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <RouterProvider router={router} />
-      </ThemeProvider>
-    </QueryClientProvider>
+    <AppProviders queryClient={queryClient}>
+      <RouterProvider router={router} />
+    </AppProviders>
   );
 }
