@@ -9,7 +9,6 @@ import { installBrowserErrorFilters } from "./utils/browserErrorFilters";
 
 installBrowserErrorFilters();
 document.documentElement.lang = projectSettings.site.language;
-document.title = projectSettings.site.name;
 
 const queryClient = createAppQueryClient();
 const router = createAppRouter();
