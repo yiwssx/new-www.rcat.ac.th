@@ -1,0 +1,43 @@
+name: SSR Phase 1 Focused
+
+on:
+  push:
+    branches:
+      - feat/ssr-runtime-foundation
+  pull_request:
+    branches:
+      - refactor/ssr-readiness
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm format:check
+      - run: pnpm lint:strict
+      - run: >-
+          pnpm exec vitest run
+          src/test/ssrRuntimeFoundation.test.tsx
+          src/public/routing/publicRouteHead.test.ts
+          src/test/publicRouteHeadSsrReadiness.test.ts
+          src/test/publicSiteShellSsrReadiness.test.ts
+      - run: pnpm build
+      - run: pnpm exec vite build --ssr src/entry-server.tsx --outDir dist/server-foundation
+      - run: pnpm perf:check
