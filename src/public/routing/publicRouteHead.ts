@@ -1,5 +1,4 @@
-import { projectSettings } from "../../config/projectSettings";
-import { buildDocumentTitle, resolveCanonicalUrl } from "../../utils/seo";
+import { getPublicSiteUrl, projectSettings } from "../../config/projectSettings";
 
 export interface PublicRouteHeadInput {
   title?: string;
@@ -72,14 +71,75 @@ export const STATIC_PUBLIC_ROUTE_HEADS: Readonly<Record<string, StaticPublicRout
   }
 };
 
+function buildRouteDocumentTitle(title?: string, siteName?: string) {
+  const normalizedTitle = title?.trim();
+  const normalizedSiteName = siteName?.trim() || projectSettings.site.name;
+
+  if (!normalizedTitle) {
+    return normalizedSiteName;
+  }
+
+  if (normalizedTitle.includes(normalizedSiteName)) {
+    return normalizedTitle;
+  }
+
+  return `${normalizedTitle} | ${normalizedSiteName}`;
+}
+
+function trimTrailingSlash(value: string) {
+  return value.trim().replace(/\/+$/, "");
+}
+
+function hasProtocol(value: string) {
+  return /^[a-z][a-z\d+.-]*:\/\//i.test(value);
+}
+
+function isLocalSiteUrl(value: string) {
+  return /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[?::1\]?)(:\d+)?$/i.test(value);
+}
+
+function getCanonicalBaseUrl(value = getPublicSiteUrl(), fallback = projectSettings.site.publicSiteUrl): string {
+  const siteUrl = trimTrailingSlash(value || "");
+
+  if (!siteUrl) {
+    return fallback ? getCanonicalBaseUrl(fallback, "") : "https://example.edu";
+  }
+
+  if (isLocalSiteUrl(siteUrl) && fallback) {
+    return getCanonicalBaseUrl(fallback, "");
+  }
+
+  if (hasProtocol(siteUrl)) {
+    return siteUrl;
+  }
+
+  return `https://${siteUrl}`;
+}
+
+function resolveRouteCanonicalUrl(input: Pick<PublicRouteHeadInput, "canonicalUrl" | "canonicalPath">) {
+  for (const candidate of [input.canonicalUrl, input.canonicalPath]) {
+    const canonical = String(candidate || "").trim();
+    const isInternalPath = canonical.startsWith("/") && !canonical.startsWith("//");
+    const isHttpUrl = /^https?:\/\//i.test(canonical);
+
+    if (!isInternalPath && !isHttpUrl) {
+      continue;
+    }
+
+    try {
+      return new URL(canonical, `${getCanonicalBaseUrl()}/`).toString();
+    } catch {
+      continue;
+    }
+  }
+
+  return "";
+}
+
 export function buildPublicRouteHead(input: PublicRouteHeadInput) {
-  const siteName = input.siteName?.trim() || projectSettings.site.name;
-  const title = buildDocumentTitle(input.title, siteName);
+  const title = buildRouteDocumentTitle(input.title, input.siteName);
   const description = input.description?.trim();
-  const canonicalHref = resolveCanonicalUrl({
-    canonicalUrl: input.canonicalUrl,
-    canonicalPath: input.canonicalPath
-  });
+  const canonicalHref = resolveRouteCanonicalUrl(input);
   const robots = input.robots?.trim();
 
   return {
