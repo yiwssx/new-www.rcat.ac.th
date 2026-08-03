@@ -23,7 +23,7 @@ export function usePublicSearchIndex(query = "") {
   });
 }
 
-export function usePublicSearchPage(query: string, page: number, pageSize: number) {
+export function usePublicSearchPage(query: string, page: number, pageSize: number, enabled = true) {
   return useQuery({
     ...publicSearchPageQueryOptions(
       query,
@@ -32,6 +32,7 @@ export function usePublicSearchPage(query: string, page: number, pageSize: numbe
         pageSize
       },
       { consumeAbortSignal: false }
-    )
+    ),
+    enabled
   });
 }
