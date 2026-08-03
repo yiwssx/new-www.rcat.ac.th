@@ -14,7 +14,7 @@ export function usePublicProgramList() {
     : false;
 
   return useQuery({
-    ...publicProgramListQueryOptions(),
+    ...publicProgramListQueryOptions({ consumeAbortSignal: false }),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     refetchOnMount: cachedSnapshot ? !hasFreshCache : true
