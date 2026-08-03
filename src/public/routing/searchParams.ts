@@ -53,9 +53,7 @@ export function validatePublicPaginatedSearch(search: Record<string, unknown>): 
   return normalized;
 }
 
-export function validatePublicFilteredPaginatedSearch(
-  search: Record<string, unknown>
-): PublicFilteredPaginatedSearch {
+export function validatePublicFilteredPaginatedSearch(search: Record<string, unknown>): PublicFilteredPaginatedSearch {
   const normalized: PublicFilteredPaginatedSearch = validatePublicPaginatedSearch(search);
   setOptionalSearchValue(normalized, "tag", normalizeOptionalText(search.tag));
   setOptionalSearchValue(normalized, "category", normalizeOptionalText(search.category));
