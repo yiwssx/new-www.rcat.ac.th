@@ -67,8 +67,8 @@ describe("SSR-ready public query options", () => {
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     await queryClient.cancelQueries({ queryKey: publicHomeQueryKey });
 
-    expect(receivedSignal).not.toBeNull();
-    expect(receivedSignal?.aborted).toBe(true);
+    expect(receivedSignal).toBeInstanceOf(AbortSignal);
+    expect((receivedSignal as AbortSignal).aborted).toBe(true);
     await pending.catch(() => undefined);
   });
 });
