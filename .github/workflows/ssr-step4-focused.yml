@@ -30,9 +30,14 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - name: Show Prettier diff
-        run: |
-          pnpm exec prettier --write cloudflare/public-api/src/db/contentRepository.ts src/features/public-read/cloudflareApi.ts
-          git diff --check
-          git diff -- cloudflare/public-api/src/db/contentRepository.ts src/features/public-read/cloudflareApi.ts
-          exit 1
+      - run: pnpm format:check
+      - run: pnpm lint:strict
+      - run: >-
+          pnpm exec vitest run
+          src/test/publicApiContractReadiness.test.ts
+          src/test/publicQueryOptions.test.ts
+          src/test/publicDataDrivenPages.test.tsx
+          cloudflare/public-api/test/publicReadPaginationHardening.test.ts
+          cloudflare/public-api/test/publicReadCoreRoutes.test.ts
+      - run: pnpm worker:typecheck
+      - run: pnpm build
