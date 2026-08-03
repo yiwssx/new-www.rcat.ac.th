@@ -19,7 +19,12 @@ export class PublicReadError extends Error {
   readonly suggestedMigration: string;
 
   constructor(message: string, options: PublicReadErrorOptions) {
-    super(message, options.cause === undefined ? undefined : { cause: options.cause });
+    super(message);
+
+    if (options.cause !== undefined) {
+      (this as Error & { cause?: unknown }).cause = options.cause;
+    }
+
     this.name = "PublicReadError";
     this.kind = options.kind;
     this.resource = options.resource;
