@@ -11,6 +11,7 @@ describe("public route head SSR readiness", () => {
   });
 
   it("owns public canonical metadata in route head declarations", () => {
+    expect(routesSource).toContain("head: getRootRouteHead");
     expect(routesSource).toContain('head: () => getStaticPublicRouteHead("/news")');
     expect(routesSource).toContain('head: () => getStaticPublicRouteHead("/search")');
     expect(routesSource).toContain("head: ({ params }) => getPublicContentRouteHead(params.slug)");
