@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import App from "../../App";
-import { createAppQueryClient } from "../../queryClient";
-import { createAppRouter } from "../../routes";
+import { createAppRuntime } from "../../runtime";
 
 function renderApp() {
-  render(<App queryClient={createAppQueryClient()} router={createAppRouter()} />);
+  const runtime = createAppRuntime();
+  render(<App queryClient={runtime.queryClient} router={runtime.router} />);
 }
 
 describe("router + auth integration", () => {
