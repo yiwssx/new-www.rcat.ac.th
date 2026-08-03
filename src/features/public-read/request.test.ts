@@ -50,7 +50,13 @@ describe("public read request taxonomy", () => {
     const notFound = await getPublicJson("/missing", "missing").catch((caught) => caught);
     expect(notFound).toBeInstanceOf(PublicReadError);
     expect(isPublicReadNotFoundError(notFound)).toBe(true);
-    expect(notFound).toMatchObject({ kind: "http", status: 404, resource: "missing" });
+    expect(notFound).toMatchObject({
+      message: "Cloudflare missing request failed with HTTP 404",
+      kind: "http",
+      status: 404,
+      resource: "missing",
+      backendMessage: "missing"
+    });
 
     const invalidJsonFetch = vi.fn(async () => new Response("not-json", { status: 200 }));
     vi.stubGlobal("fetch", invalidJsonFetch);
