@@ -28,7 +28,6 @@ const newsItem = {
   status: "published",
   owner: "Functional Fixture",
   summary: "A deterministic news item for the Public route contract.",
-  body: "The Public news fixture rendered successfully.",
   category: "Functional",
   tags: ["public"],
   updatedAt: generatedAt,
@@ -62,7 +61,7 @@ function createHomeSnapshot() {
       siteName: PUBLIC_AUTH_FIXTURE_SITE_NAME
     },
     carouselSlides: [],
-    latestNews: [newsItem, contentItem],
+    latestNews: [newsItem],
     visitorStats: {
       enabled: true,
       usersToday: 2,
@@ -113,6 +112,14 @@ export async function installPublicAuthIsolationFixture(page: Page): Promise<Pub
 
     if (url.pathname === "/api/public/home") {
       payload = homeSnapshot;
+    } else if (url.pathname === "/api/public/shell") {
+      payload = {
+        siteSettings: homeSnapshot.siteSettings,
+        homepageSettings: homeSnapshot.homepageSettings,
+        displaySettings: homeSnapshot.displaySettings,
+        menu: homeSnapshot.menu,
+        generatedAt
+      };
     } else if (url.pathname === "/api/public/content" && url.searchParams.get("kind") === "news") {
       payload = {
         kind: "news",
@@ -126,7 +133,7 @@ export async function installPublicAuthIsolationFixture(page: Page): Promise<Pub
         generatedAt
       };
     } else if (url.pathname === `/api/public/content/${PUBLIC_AUTH_FIXTURE_CONTENT_SLUG}`) {
-      payload = { item: contentItem, generatedAt };
+      payload = { item: contentItem, media: [], generatedAt };
     } else if (url.pathname === "/api/public/content-view") {
       payload = {
         id: contentItem.id,
