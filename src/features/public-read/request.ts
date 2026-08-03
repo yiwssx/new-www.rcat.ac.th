@@ -26,10 +26,11 @@ export async function getPublicJson(
   resource: string,
   options: PublicReadRequestOptions = {}
 ): Promise<Record<string, unknown>> {
+  const url = buildCloudflarePublicApiUrl(path);
   let response: Response;
 
   try {
-    response = await fetch(buildCloudflarePublicApiUrl(path), {
+    response = await fetch(url, {
       method: "GET",
       headers: {
         Accept: "application/json"
@@ -62,10 +63,11 @@ export async function getPublicJson(
     }
 
     const detail = readErrorDetail(payload);
-    throw new PublicReadError(detail.error || `Cloudflare ${resource} request failed with HTTP ${response.status}`, {
+    throw new PublicReadError(`Cloudflare ${resource} request failed with HTTP ${response.status}`, {
       kind: "http",
       resource,
       status: response.status,
+      backendMessage: detail.error,
       diagnostic: detail.diagnostic,
       suggestedMigration: detail.suggestedMigration
     });
