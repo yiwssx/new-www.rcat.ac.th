@@ -81,7 +81,7 @@ export default function PublicSearchPage() {
     void navigate({
       to: "/search",
       search: (previous) => {
-        const nextSearch = { ...previous, q: query } as Record<string, unknown>;
+        const nextSearch = { ...previous, q: query } as typeof previous & Record<string, unknown>;
 
         if (clampedPage <= 1) {
           delete nextSearch.page;
