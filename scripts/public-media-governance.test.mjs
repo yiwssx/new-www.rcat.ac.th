@@ -52,6 +52,22 @@ describe("Public media governance parser", () => {
     ).toEqual([]);
   });
 
+  it("allows high priority for the deterministic Carousel boundary without widening the owner policy", () => {
+    expect(
+      scanPublicMediaSource(
+        "src/public/components/PublicHomeCarouselSsrBoundary.tsx",
+        `export const Boundary = () => <CarouselImageStage fetchPriority="high" />;`
+      )
+    ).toEqual([]);
+
+    expect(
+      scanPublicMediaSource(
+        "src/public/components/UnapprovedCriticalOwner.tsx",
+        `export const Consumer = () => <PublicResponsiveImage fetchPriority="high" />;`
+      ).map((violation) => violation.rule)
+    ).toContain("critical-priority-owner");
+  });
+
   it("detects restricted imports from neutral Public media modules", () => {
     expect(
       scanPublicMediaSource(
