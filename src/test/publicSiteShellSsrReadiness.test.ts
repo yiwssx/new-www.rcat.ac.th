@@ -7,7 +7,8 @@ describe("PublicSiteShell SSR readiness", () => {
     expect(publicSiteShellSource).toContain("return <>{children}</>;");
     expect(publicSiteShellSource).toContain("useEffect(() => {");
     expect(publicSiteShellSource).toContain("register?.(registration);");
-    expect(publicSiteShellSource).toContain("return () => unregister?.(token);");
+    expect(publicSiteShellSource).toContain("return () => {");
+    expect(publicSiteShellSource).toContain("unregister?.(token);");
     expect(publicSiteShellSource).not.toContain("activeRegistration === registration");
     expect(publicSiteShellSource).not.toContain("useLayoutEffect");
   });
