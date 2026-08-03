@@ -17,7 +17,8 @@ export function getPublicSearchQueryKey(query = "") {
 export function getPublicSearchPageQueryKey(query: string, pageInput: PublicSearchPageInput) {
   const normalizedQuery = query.trim();
   const page = Math.max(1, Math.floor(pageInput.page));
-  const pageSize = pageInput.pageSize === undefined ? undefined : Math.max(1, Math.floor(pageInput.pageSize));
+  const pageSize =
+    pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)));
   return [...publicSearchIndexQueryKey, "page", normalizedQuery, page, pageSize ?? null] as const;
 }
 
