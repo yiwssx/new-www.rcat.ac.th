@@ -1,0 +1,65 @@
+name: Step 5 Public Shell SSR Readiness
+
+on:
+  push:
+    branches:
+      - refactor/ssr-readiness-step5
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ssr-readiness-step5
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: node scripts/step5-public-shell-ssr-readiness.mjs
+      - run: >-
+          pnpm exec prettier --write
+          src/public/components/PublicSiteShell.tsx
+          src/test/publicSiteShellSsrReadiness.test.ts
+          tests/functional/fixtures/publicShellClsFixture.ts
+          tests/functional/fixtures/publicAuthIsolationFixture.ts
+          tests/functional/fixtures/publicHomeCarouselFixture.ts
+          tests/functional/publicIntroGate.spec.ts
+          tests/functional/publicMediaPerformance.spec.ts
+          tests/functional/publicShellClsStability.spec.ts
+          docs/architecture/current-runtime-ownership.md
+      - name: Focused unit regression suite
+        run: >-
+          pnpm exec vitest run
+          src/test/publicSiteShellSsrReadiness.test.ts
+          src/test/publicShellLayoutStability.test.tsx
+          src/test/publicDataDrivenPages.test.tsx
+          src/test/publicQueryOptions.test.ts
+      - run: pnpm lint:strict
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Focused functional regression suite
+        run: >-
+          pnpm exec playwright test
+          tests/functional/carousel.spec.ts
+          tests/functional/publicIntroGate.spec.ts
+          tests/functional/publicMediaPerformance.spec.ts
+          tests/functional/publicShellClsStability.spec.ts
+          tests/functional/publicTelemetry.spec.ts
+      - name: Commit product changes and remove temporary files
+        shell: bash
+        run: |
+          git rm scripts/step5-public-shell-ssr-readiness.mjs .github/workflows/step5-public-shell-ssr-readiness.yml
+          git add src/public/components/PublicSiteShell.tsx src/test/publicSiteShellSsrReadiness.test.ts tests/functional/fixtures/publicShellClsFixture.ts tests/functional/fixtures/publicAuthIsolationFixture.ts tests/functional/fixtures/publicHomeCarouselFixture.ts tests/functional/publicIntroGate.spec.ts tests/functional/publicMediaPerformance.spec.ts tests/functional/publicShellClsStability.spec.ts docs/architecture/current-runtime-ownership.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "refactor(ssr): make public shell first-pass safe"
+          git push origin HEAD:refactor/ssr-readiness-step5
