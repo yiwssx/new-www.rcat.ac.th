@@ -181,7 +181,11 @@ function normalizePageInput(pageInput: PublicContentListPageInput | PublicSearch
   };
 }
 
-function buildContentListPath(kind: PublicContentListKind, pageInput?: PublicContentListPageInput) {
+function buildContentListPath(
+  kind: PublicContentListKind,
+  pageInput?: PublicContentListPageInput,
+  pageItemsInput?: PublicContentListPageInput
+) {
   const search = new URLSearchParams({ kind });
 
   if (pageInput) {
@@ -189,6 +193,14 @@ function buildContentListPath(kind: PublicContentListKind, pageInput?: PublicCon
     search.set("page", String(normalized.page));
     if (normalized.pageSize !== undefined) {
       search.set("pageSize", String(normalized.pageSize));
+    }
+  }
+
+  if (kind === "announcements" && pageItemsInput) {
+    const normalized = normalizePageInput(pageItemsInput);
+    search.set("pagesPage", String(normalized.page));
+    if (normalized.pageSize !== undefined) {
+      search.set("pagesPageSize", String(normalized.pageSize));
     }
   }
 
@@ -235,6 +247,7 @@ async function getPublicContentListAtPath(
     assertPublicSummaryItems(payload.pageItems, "content-list");
   }
   assertOptionalPagination(payload.pagination, "content-list");
+  assertOptionalPagination(payload.pageItemsPagination, "content-list");
   persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
   return payload as unknown as PublicContentListSnapshot;
 }
@@ -312,6 +325,17 @@ export async function getPublicContentListSnapshotFromCloudflare(
   options: PublicReadRequestOptions = {}
 ): Promise<PublicContentListSnapshot> {
   return getPublicContentListAtPath(kind, buildContentListPath(kind), options);
+}
+
+export async function getPublicAnnouncementsContentListSnapshotFromCloudflare(
+  pageItemsInput: PublicContentListPageInput,
+  options: PublicReadRequestOptions = {}
+): Promise<PublicContentListSnapshot> {
+  return getPublicContentListAtPath(
+    "announcements",
+    buildContentListPath("announcements", undefined, pageItemsInput),
+    options
+  );
 }
 
 export async function getPublicContentListPageSnapshotFromCloudflare(
