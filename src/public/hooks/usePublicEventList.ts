@@ -14,7 +14,7 @@ export function usePublicEventList() {
     : false;
 
   return useQuery({
-    ...publicEventListQueryOptions(),
+    ...publicEventListQueryOptions({ consumeAbortSignal: false }),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     refetchOnMount: cachedSnapshot ? !hasFreshCache : true
