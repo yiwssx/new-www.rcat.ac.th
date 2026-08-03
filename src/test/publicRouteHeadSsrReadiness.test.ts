@@ -31,8 +31,10 @@ describe("public route head SSR readiness", () => {
     expect(clientEntrySource).not.toContain("document.title =");
   });
 
-  it("keeps Phase 1 free of route data loaders and browser hydration activation", () => {
-    expect(routesSource).not.toContain("loader:");
+  it("allows Phase 2 public data loaders while keeping browser hydration disabled", () => {
+    expect(routesSource).toContain("loader: ({ context }) => loadPublicShellData(context)");
+    expect(routesSource).toContain('loader: ({ context }) => loadPublicContentListData(context, "news")');
+    expect(routesSource).toContain("loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug)");
     expect(clientEntrySource).toContain("ReactDOM.createRoot");
     expect(clientEntrySource).not.toContain("hydrateRoot");
     expect(serverEntrySource).toContain("renderRouterToString");
