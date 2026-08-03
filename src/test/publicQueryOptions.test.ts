@@ -5,7 +5,7 @@ import { publicDocumentListQueryOptions } from "../features/public-documents/que
 import { publicEventListQueryOptions } from "../features/public-events/query";
 import { publicHomeQueryKey, publicHomeQueryOptions } from "../features/public-home/query";
 import { publicProgramListQueryOptions } from "../features/public-programs/query";
-import { publicSearchIndexQueryOptions } from "../features/public-search/query";
+import { publicSearchIndexQueryOptions, publicSearchPageQueryOptions } from "../features/public-search/query";
 import { publicShellQueryOptions } from "../features/public-shell/query";
 import { publicCmsSnapshotQueryOptions } from "../features/public-read/cmsSnapshot";
 import { getPublicQueryRequestOptions, PUBLIC_QUERY_GC_TIME_MS } from "../features/public-read/queryPolicy";
@@ -51,6 +51,13 @@ describe("SSR-ready public query options", () => {
 
     expect(publicContentDetailQueryOptions(undefined).enabled).toBe(false);
     expect(publicSearchIndexQueryOptions("  award  ").queryKey).toEqual(["public-search-index", "award"]);
+    expect(publicSearchPageQueryOptions(" award ", { page: 2, pageSize: 120 }).queryKey).toEqual([
+      "public-search-index",
+      "page",
+      "award",
+      2,
+      100
+    ]);
   });
 
   it("does not consume TanStack's signal for browser-compatible query reuse when opted out", () => {
