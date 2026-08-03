@@ -4,6 +4,7 @@ export interface PublicReadErrorOptions {
   kind: PublicReadErrorKind;
   resource: string;
   status?: number;
+  backendMessage?: string;
   diagnostic?: string;
   suggestedMigration?: string;
   cause?: unknown;
@@ -13,6 +14,7 @@ export class PublicReadError extends Error {
   readonly kind: PublicReadErrorKind;
   readonly resource: string;
   readonly status?: number;
+  readonly backendMessage: string;
   readonly diagnostic: string;
   readonly suggestedMigration: string;
 
@@ -22,6 +24,7 @@ export class PublicReadError extends Error {
     this.kind = options.kind;
     this.resource = options.resource;
     this.status = options.status;
+    this.backendMessage = options.backendMessage ?? "";
     this.diagnostic = options.diagnostic ?? "";
     this.suggestedMigration = options.suggestedMigration ?? "";
   }
