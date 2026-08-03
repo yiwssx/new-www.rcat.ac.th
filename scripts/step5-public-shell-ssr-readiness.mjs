@@ -76,24 +76,6 @@ updateFile("src/public/components/PublicSiteShell.tsx", (source) => {
   return next;
 });
 
-updateFile("tests/functional/fixtures/publicShellClsFixture.ts", (source) =>
-  replaceOnce(
-    source,
-    '    if (url.pathname === "/api/public/home") {\n      await fulfillJson(route, 200, homeSnapshot);\n      return;\n    }\n',
-    '    if (url.pathname === "/api/public/shell") {\n      await fulfillJson(route, 200, shellFields);\n      return;\n    }\n\n    if (url.pathname === "/api/public/home") {\n      await fulfillJson(route, 200, homeSnapshot);\n      return;\n    }\n',
-    "CLS shell endpoint fixture"
-  )
-);
-
-updateFile("tests/functional/fixtures/publicAuthIsolationFixture.ts", (source) =>
-  replaceOnce(
-    source,
-    '    if (url.pathname === "/api/public/home") {\n      payload = homeSnapshot;\n    } else if (url.pathname === "/api/public/content" && url.searchParams.get("kind") === "news") {\n',
-    '    if (url.pathname === "/api/public/home") {\n      payload = homeSnapshot;\n    } else if (url.pathname === "/api/public/shell") {\n      payload = {\n        siteSettings: homeSnapshot.siteSettings,\n        homepageSettings: homeSnapshot.homepageSettings,\n        displaySettings: homeSnapshot.displaySettings,\n        menu: homeSnapshot.menu,\n        generatedAt\n      };\n    } else if (url.pathname === "/api/public/content" && url.searchParams.get("kind") === "news") {\n',
-    "auth isolation shell endpoint fixture"
-  )
-);
-
 updateFile("tests/functional/fixtures/publicHomeCarouselFixture.ts", (source) =>
   replaceOnce(
     source,
@@ -109,15 +91,6 @@ updateFile("tests/functional/publicIntroGate.spec.ts", (source) =>
     '  await page.route("**/api/public/home", async (route) => {\n    await route.fulfill({\n      status: 200,\n      contentType: "application/json",\n      body: JSON.stringify(createIntroSnapshot())\n    });\n  });\n\n',
     '  await page.route("**/api/public/home", async (route) => {\n    await route.fulfill({\n      status: 200,\n      contentType: "application/json",\n      body: JSON.stringify(createIntroSnapshot())\n    });\n  });\n\n  await page.route("**/api/public/shell", async (route) => {\n    const snapshot = createIntroSnapshot();\n\n    await route.fulfill({\n      status: 200,\n      contentType: "application/json",\n      body: JSON.stringify({\n        siteSettings: snapshot.siteSettings,\n        homepageSettings: snapshot.homepageSettings,\n        displaySettings: snapshot.displaySettings,\n        menu: snapshot.menu,\n        generatedAt: snapshot.generatedAt\n      })\n    });\n  });\n\n',
     "intro gate shell endpoint fixture"
-  )
-);
-
-updateFile("tests/functional/publicMediaPerformance.spec.ts", (source) =>
-  replaceOnce(
-    source,
-    '    if (url.pathname === "/api/public/home") {\n      payload = snapshot;\n    } else if (url.pathname === "/api/public/content" && url.searchParams.get("kind") === "news") {\n',
-    '    if (url.pathname === "/api/public/home") {\n      payload = snapshot;\n    } else if (url.pathname === "/api/public/shell") {\n      payload = {\n        siteSettings: snapshot.siteSettings,\n        homepageSettings: snapshot.homepageSettings,\n        displaySettings: snapshot.displaySettings,\n        menu: snapshot.menu,\n        generatedAt: snapshot.generatedAt\n      };\n    } else if (url.pathname === "/api/public/content" && url.searchParams.get("kind") === "news") {\n',
-    "media performance shell endpoint fixture"
   )
 );
 
