@@ -61,6 +61,7 @@ const programSnapshot = {
 };
 const searchSnapshot = {
   ...sharedMetadata,
+  query: "",
   items: [publicItem]
 };
 
@@ -72,6 +73,7 @@ function installCloudflareFetch() {
       "/api/public/content": contentSnapshot,
       "/api/public/content/sample-news": {
         item: publicItem,
+        media: [],
         generatedAt
       },
       "/api/public/programs": programSnapshot,

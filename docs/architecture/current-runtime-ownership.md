@@ -99,7 +99,9 @@ Live visitor statistics remain intentionally browser-oriented polling rather tha
 
 Public list URL state is now owned by TanStack Router. Route search validators normalize `page`, `announcementsPage`, `pagesPage`, `tag`, `category`, and `q` where applicable, while unrelated query parameters are preserved. Public pagination and filter rendering reads the router location instead of `window.location.search`, and pagination writes use TanStack navigation instead of custom `window.history`/event synchronization. This makes request URL state deterministic between a future server render and the hydrating browser without changing the current CSR deployment mode.
 
-These readiness changes do not enable server rendering, hydration, route loaders, server-side metadata, canonical redirects, or new Public API response contracts. Those remain separate migration stages and must preserve the existing Public/Admin runtime boundaries.
+Public API contract readiness now separates list/search/home summaries from full content detail. Summary reads omit article body fields, content detail returns its referenced media, content lists support optional page/pageSize metadata without changing the existing unpaginated URL behavior, and /api/public/shell exposes only site/homepage/display/menu metadata for the later shell migration. Public search queries are delegated to the Worker through q instead of requiring normal searches to download the entire content index. The frontend public-shell API falls back to the home metadata projection only when an older Worker returns 404, allowing a safe incremental rollout.
+
+These readiness changes do not enable server rendering, hydration, route loaders, server-side metadata, canonical redirects, or the Step 5 PublicSiteShell refactor. Those remain separate migration stages and must preserve the existing Public/Admin runtime boundaries.
 
 ## Deployment Boundaries
 

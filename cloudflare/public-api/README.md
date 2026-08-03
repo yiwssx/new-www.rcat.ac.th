@@ -12,13 +12,15 @@ Public GET routes:
 - `/api/health`
 - `/api/public/documents`
 - `/api/public/home`
+- `/api/public/shell`
 - `/api/public/content?kind=<news|announcements|blog>`
+- `/api/public/content?kind=<news|announcements|blog>&page=<n>&pageSize=<1-100>` (optional pagination)
 - `/api/public/content/:identifier`
 - `/api/public/search`
 - `/api/public/programs`
 - `/api/public/visitor-stats`
 
-Public responses preserve the current React snapshot shapes. M17 compatibility fields remain where earlier smoke contracts used them. Public routes remain GET/OPTIONS-only and never receive credentialed wildcard CORS.
+Public list, program, home, and search responses use summary content records and omit full body fields; full bodies remain on content detail, which also returns referenced media. The unpaginated content-list URL remains backward compatible, while page/pageSize is opt-in. /api/public/shell is a lightweight settings/menu contract for the SSR-readiness migration. Public routes remain GET/OPTIONS-only and never receive credentialed wildcard CORS.
 
 Structured admin routes include:
 

@@ -8,6 +8,7 @@ import { publicEvents } from "./routes/publicEvents";
 import { publicHome } from "./routes/publicHome";
 import { publicPrograms } from "./routes/publicPrograms";
 import { publicSearch } from "./routes/publicSearch";
+import { publicShell } from "./routes/publicShell";
 import { publicVisitorStats } from "./routes/publicVisitorStats";
 import { recordPublicContentView, recordPublicPresence, recordPublicSiteView } from "./routes/publicAnalytics";
 import { handleCmsAuthInternal } from "./routes/cmsAuthInternal";
@@ -67,6 +68,10 @@ export async function routeRequest(request: Request, env: Env) {
 
   if (pathname === "/api/public/home") {
     return publicHome(env);
+  }
+
+  if (pathname === "/api/public/shell") {
+    return publicShell(env);
   }
 
   if (pathname === "/api/public/content") {

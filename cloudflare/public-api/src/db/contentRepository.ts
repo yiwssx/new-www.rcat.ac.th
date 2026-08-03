@@ -31,6 +31,8 @@ export type PublicContentReadRow = Pick<
   | "updated_at"
 >;
 
+export type PublicContentSummaryReadRow = Omit<PublicContentReadRow, "body_snapshot">;
+
 const PUBLIC_CONTENT_READ_COLUMNS = [
   "id",
   "slug",
@@ -56,6 +58,10 @@ const PUBLIC_CONTENT_READ_COLUMNS = [
   "updated_at"
 ] as const satisfies readonly (keyof PublicContentReadRow)[];
 
+export const PUBLIC_CONTENT_SUMMARY_READ_COLUMNS = PUBLIC_CONTENT_READ_COLUMNS.filter(
+  (column) => column !== "body_snapshot"
+) as readonly (keyof PublicContentSummaryReadRow)[];
+
 export async function listPublishedContentRows(env: Env, type: string): Promise<PublicContentReadRow[]> {
   const db = requireD1Database(env);
   const result = await db
@@ -73,6 +79,23 @@ export async function listPublishedContentRows(env: Env, type: string): Promise<
   return result.results ?? [];
 }
 
+export async function listPublishedContentSummaryRows(env: Env, type: string): Promise<PublicContentSummaryReadRow[]> {
+  const db = requireD1Database(env);
+  const result = await db
+    .prepare(
+      `SELECT ${PUBLIC_CONTENT_SUMMARY_READ_COLUMNS.join(", ")}
+       FROM contents
+       WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND type = ?
+         AND COALESCE(deleted_at, '') = ''
+       ORDER BY publish_at DESC, updated_at DESC`
+    )
+    .bind(...publicPublishedContentBindings(type))
+    .all<PublicContentSummaryReadRow>();
+
+  return result.results ?? [];
+}
+
 export async function listAllPublishedContentRows(env: Env): Promise<PublicContentReadRow[]> {
   const db = requireD1Database(env);
   const result = await db
@@ -85,6 +108,22 @@ export async function listAllPublishedContentRows(env: Env): Promise<PublicConte
     )
     .bind(...publicPublishedContentBindings())
     .all<PublicContentReadRow>();
+
+  return result.results ?? [];
+}
+
+export async function listAllPublishedContentSummaryRows(env: Env): Promise<PublicContentSummaryReadRow[]> {
+  const db = requireD1Database(env);
+  const result = await db
+    .prepare(
+      `SELECT ${PUBLIC_CONTENT_SUMMARY_READ_COLUMNS.join(", ")}
+       FROM contents
+       WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND COALESCE(deleted_at, '') = ''
+       ORDER BY publish_at DESC, updated_at DESC`
+    )
+    .bind(...publicPublishedContentBindings())
+    .all<PublicContentSummaryReadRow>();
 
   return result.results ?? [];
 }
@@ -125,18 +164,18 @@ export async function getPublishedContentRowBySlug(env: Env, slug: string): Prom
   return result.results?.[0] ?? null;
 }
 
-export async function searchPublishedContentRows(env: Env, query: string): Promise<PublicContentReadRow[]> {
+export async function searchPublishedContentRows(env: Env, query: string): Promise<PublicContentSummaryReadRow[]> {
   const normalizedQuery = query.trim();
 
   if (!normalizedQuery) {
-    return listAllPublishedContentRows(env);
+    return listAllPublishedContentSummaryRows(env);
   }
 
   const pattern = `%${normalizedQuery}%`;
   const db = requireD1Database(env);
   const result = await db
     .prepare(
-      `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
+      `SELECT ${PUBLIC_CONTENT_SUMMARY_READ_COLUMNS.join(", ")}
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND COALESCE(deleted_at, '') = ''
@@ -145,12 +184,12 @@ export async function searchPublishedContentRows(env: Env, query: string): Promi
            OR summary LIKE ?
            OR body_snapshot LIKE ?
            OR category LIKE ?
+           OR tags_json LIKE ?
          )
-       ORDER BY publish_at DESC, updated_at DESC
-       LIMIT 20`
+       ORDER BY publish_at DESC, updated_at DESC`
     )
-    .bind(...publicPublishedContentBindings(pattern, pattern, pattern, pattern))
-    .all<PublicContentReadRow>();
+    .bind(...publicPublishedContentBindings(pattern, pattern, pattern, pattern, pattern))
+    .all<PublicContentSummaryReadRow>();
 
   return result.results ?? [];
 }

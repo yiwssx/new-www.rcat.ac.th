@@ -1,11 +1,11 @@
-import { mapContentRowToPublicContentItem } from "./publicContentAdapter";
+import { mapContentSummaryRowToPublicContentItem } from "./publicContentAdapter";
 import { mapDocumentRowToPublicDocumentItem } from "./publicDocumentsAdapter";
 import { filterPublicMedia } from "./publicMetadataAdapter";
-import type { PublicContentItemContract } from "../contracts/publicContent";
+import type { PublicContentSummaryContract } from "../contracts/publicContent";
 import type { PublicHomeSectionContract, PublicHomeSnapshotContract } from "../contracts/publicHome";
 import type { PublicMetadataContract } from "../contracts/publicMetadata";
 import type { PublicVisitorStatsSnapshotContract } from "../contracts/publicVisitorStats";
-import type { PublicContentReadRow } from "../db/contentRepository";
+import type { PublicContentSummaryReadRow } from "../db/contentRepository";
 import type { DocumentRow, PublicHomeSectionRow } from "../db/schema";
 
 const HOME_ACHIEVEMENT_LIMIT = 6;
@@ -19,7 +19,7 @@ function normalizePublicOrder(value: number) {
   return Math.max(0, Math.floor(value));
 }
 
-function compareContentPublishAtDesc(left: PublicContentItemContract, right: PublicContentItemContract) {
+function compareContentPublishAtDesc(left: PublicContentSummaryContract, right: PublicContentSummaryContract) {
   const leftTime = Date.parse(left.publishAt);
   const rightTime = Date.parse(right.publishAt);
 
@@ -30,7 +30,7 @@ function compareContentPublishAtDesc(left: PublicContentItemContract, right: Pub
   return String(right.publishAt || "").localeCompare(String(left.publishAt || "")) || right.id.localeCompare(left.id);
 }
 
-function isAchievementItem(item: PublicContentItemContract) {
+function isAchievementItem(item: PublicContentSummaryContract) {
   return ACHIEVEMENT_PATTERN.test([item.title, item.summary, item.category, ...item.tags].join(" "));
 }
 
@@ -49,14 +49,14 @@ export function mapHomeSectionRowToPublicHomeSection(row: PublicHomeSectionRow):
 export function createPublicHomeSnapshot(
   input: {
     sections: PublicHomeSectionRow[];
-    content: PublicContentReadRow[];
+    content: PublicContentSummaryReadRow[];
     featuredDocuments: DocumentRow[];
     metadata: PublicMetadataContract;
     visitorStats: PublicVisitorStatsSnapshotContract;
   },
   generatedAt = new Date()
 ): PublicHomeSnapshotContract {
-  const content = input.content.map(mapContentRowToPublicContentItem);
+  const content = input.content.map(mapContentSummaryRowToPublicContentItem);
   const latestNews = content.filter((item) => item.type === "news" || item.type === "blog").slice(0, 6);
   const latestAnnouncements = content.filter((item) => item.type === "announcement").slice(0, 8);
   const programs = content.filter((item) => item.type === "program").slice(0, 8);

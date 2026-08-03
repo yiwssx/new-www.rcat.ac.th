@@ -1,4 +1,10 @@
-export { getContentDetail, getPublicContentListSnapshot, isPublicContentNotFoundError } from "./api";
+export {
+  getContentDetail,
+  getPublicContentDetailSnapshot,
+  getPublicContentListPageSnapshot,
+  getPublicContentListSnapshot,
+  isPublicContentNotFoundError
+} from "./api";
 export {
   clearPublicContentListCache,
   getPublicContentDetailCache,
@@ -21,6 +27,9 @@ export type {
   ContentItem,
   ContentStatus,
   ContentType,
+  PublicContentDetailSnapshot,
   PublicContentListKind,
-  PublicContentListSnapshot
+  PublicContentListSnapshot,
+  PublicContentPagination,
+  PublicContentSummary
 } from "./types";

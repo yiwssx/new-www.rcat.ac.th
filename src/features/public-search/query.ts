@@ -9,12 +9,24 @@ import { PUBLIC_SEARCH_INDEX_CACHE_TTL_MS, setPublicSearchIndexCache } from "./c
 
 export const publicSearchIndexQueryKey = ["public-search-index"] as const;
 
-export function publicSearchIndexQueryOptions(runtimeOptions: PublicQueryRuntimeOptions = {}) {
+export function getPublicSearchQueryKey(query = "") {
+  const normalizedQuery = query.trim();
+  return normalizedQuery ? ([...publicSearchIndexQueryKey, normalizedQuery] as const) : publicSearchIndexQueryKey;
+}
+
+export function publicSearchIndexQueryOptions(query = "", runtimeOptions: PublicQueryRuntimeOptions = {}) {
+  const normalizedQuery = query.trim();
+
   return queryOptions({
-    queryKey: publicSearchIndexQueryKey,
+    queryKey: getPublicSearchQueryKey(normalizedQuery),
     queryFn: async (context) => {
-      const snapshot = await getPublicSearchIndexSnapshot(getPublicQueryRequestOptions(context, runtimeOptions));
-      setPublicSearchIndexCache(snapshot);
+      const snapshot = await getPublicSearchIndexSnapshot(
+        normalizedQuery,
+        getPublicQueryRequestOptions(context, runtimeOptions)
+      );
+      if (!normalizedQuery) {
+        setPublicSearchIndexCache(snapshot);
+      }
       return snapshot;
     },
     staleTime: PUBLIC_SEARCH_INDEX_CACHE_TTL_MS,

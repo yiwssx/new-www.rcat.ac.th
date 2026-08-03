@@ -6,6 +6,7 @@ import { publicEventListQueryOptions } from "../features/public-events/query";
 import { publicHomeQueryKey, publicHomeQueryOptions } from "../features/public-home/query";
 import { publicProgramListQueryOptions } from "../features/public-programs/query";
 import { publicSearchIndexQueryOptions } from "../features/public-search/query";
+import { publicShellQueryOptions } from "../features/public-shell/query";
 import { publicCmsSnapshotQueryOptions } from "../features/public-read/cmsSnapshot";
 import { getPublicQueryRequestOptions, PUBLIC_QUERY_GC_TIME_MS } from "../features/public-read/queryPolicy";
 
@@ -24,6 +25,7 @@ describe("SSR-ready public query options", () => {
       publicContentDetailQueryOptions("sample-news"),
       publicProgramListQueryOptions(),
       publicSearchIndexQueryOptions(),
+      publicShellQueryOptions(),
       publicEventListQueryOptions(),
       publicDocumentListQueryOptions(),
       publicCmsSnapshotQueryOptions()
@@ -35,6 +37,7 @@ describe("SSR-ready public query options", () => {
       ["content-detail", "sample-news"],
       ["public-program-list"],
       ["public-search-index"],
+      ["public-shell"],
       ["public-event-list"],
       ["public-document-list"],
       ["cms-snapshot"]
@@ -47,6 +50,7 @@ describe("SSR-ready public query options", () => {
     });
 
     expect(publicContentDetailQueryOptions(undefined).enabled).toBe(false);
+    expect(publicSearchIndexQueryOptions("  award  ").queryKey).toEqual(["public-search-index", "award"]);
   });
 
   it("does not consume TanStack's signal for browser-compatible query reuse when opted out", () => {

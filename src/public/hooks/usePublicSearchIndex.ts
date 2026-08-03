@@ -7,14 +7,15 @@ import {
 } from "../../features/public-search";
 import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
 
-export function usePublicSearchIndex() {
-  const cachedSnapshot = useMemo(() => getPublicSearchIndexCache(), []);
+export function usePublicSearchIndex(query = "") {
+  const normalizedQuery = query.trim();
+  const cachedSnapshot = useMemo(() => (normalizedQuery ? null : getPublicSearchIndexCache()), [normalizedQuery]);
   const hasFreshCache = cachedSnapshot
     ? isPublicQueryCacheFresh(cachedSnapshot.savedAt, PUBLIC_SEARCH_INDEX_CACHE_TTL_MS)
     : false;
 
   return useQuery({
-    ...publicSearchIndexQueryOptions({ consumeAbortSignal: false }),
+    ...publicSearchIndexQueryOptions(normalizedQuery, { consumeAbortSignal: false }),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     refetchOnMount: cachedSnapshot ? !hasFreshCache : true
