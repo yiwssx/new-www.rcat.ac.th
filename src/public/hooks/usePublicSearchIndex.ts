@@ -7,17 +7,32 @@ import {
 } from "../../features/public-search";
 import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
 
-export function usePublicSearchIndex(query = "") {
+export function usePublicSearchIndex(query = "", page?: number, pageSize?: number, enabled = true) {
   const normalizedQuery = query.trim();
-  const cachedSnapshot = useMemo(() => (normalizedQuery ? null : getPublicSearchIndexCache()), [normalizedQuery]);
+  const paginated = page !== undefined && pageSize !== undefined;
+  const cachedSnapshot = useMemo(
+    () => (paginated || normalizedQuery ? null : getPublicSearchIndexCache()),
+    [normalizedQuery, paginated]
+  );
   const hasFreshCache = cachedSnapshot
     ? isPublicQueryCacheFresh(cachedSnapshot.savedAt, PUBLIC_SEARCH_INDEX_CACHE_TTL_MS)
     : false;
+  const reusableOptions = publicSearchIndexQueryOptions(
+    normalizedQuery,
+    { consumeAbortSignal: false },
+    paginated
+      ? {
+          page,
+          pageSize
+        }
+      : undefined
+  );
 
   return useQuery({
-    ...publicSearchIndexQueryOptions(normalizedQuery, { consumeAbortSignal: false }),
-    initialData: cachedSnapshot?.data,
-    initialDataUpdatedAt: cachedSnapshot?.savedAt,
-    refetchOnMount: cachedSnapshot ? !hasFreshCache : true
+    ...reusableOptions,
+    initialData: paginated ? undefined : cachedSnapshot?.data,
+    initialDataUpdatedAt: paginated ? undefined : cachedSnapshot?.savedAt,
+    refetchOnMount: paginated ? true : cachedSnapshot ? !hasFreshCache : true,
+    enabled
   });
 }

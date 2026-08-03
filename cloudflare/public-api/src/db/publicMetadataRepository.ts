@@ -72,6 +72,35 @@ export async function readPublicMediaRows(env: Env): Promise<MediaAssetRow[]> {
   );
 }
 
+export async function readPublicMediaRowsByIds(env: Env, ids: readonly string[]): Promise<MediaAssetRow[]> {
+  const normalizedIds = [...new Set(ids.map((id) => String(id || "").trim()).filter(Boolean))];
+
+  if (!normalizedIds.length) {
+    return [];
+  }
+
+  const chunkSize = 100;
+  const chunks: string[][] = [];
+  for (let index = 0; index < normalizedIds.length; index += chunkSize) {
+    chunks.push(normalizedIds.slice(index, index + chunkSize));
+  }
+
+  const rows = await Promise.all(
+    chunks.map((chunk) =>
+      readRows<MediaAssetRow>(
+        env,
+        `SELECT ${MEDIA_ASSET_ROW_COLUMNS.join(", ")}
+         FROM media_assets
+         WHERE id IN (${chunk.map(() => "?").join(", ")})
+         ORDER BY updated_at DESC`,
+        chunk
+      )
+    )
+  );
+
+  return rows.flat();
+}
+
 export async function readPublicMetadataRows(env: Env): Promise<PublicMetadataRows> {
   const [siteSettings, homepageSettings, displaySettings, menu, media, carouselSlides, externalServices, events] =
     await Promise.all([
