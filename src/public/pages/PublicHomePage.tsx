@@ -1,4 +1,4 @@
-import { lazy, ReactNode, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, ReactNode, Suspense } from "react";
 import { Box, Container, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
@@ -55,33 +55,10 @@ const LazyProgramsSection = lazy(() =>
     default: module.ProgramsSection
   }))
 );
-declare global {
-  interface Window {
-    __RCAT_ENABLE_HOME_DEFER_TEST__?: boolean;
-  }
-}
 
-function shouldDeferHomeSection() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const runtimeProcess = (
-    globalThis as {
-      process?: { env?: { NODE_ENV?: string; VITEST?: string } };
-    }
-  ).process;
-  const isTestEnvironment =
-    runtimeProcess?.env?.NODE_ENV === "test" ||
-    runtimeProcess?.env?.VITEST === "true" ||
-    import.meta.env.MODE === "test" ||
-    (typeof window.navigator !== "undefined" && window.navigator.userAgent.toLowerCase().includes("jsdom"));
-
-  if (isTestEnvironment && !window.__RCAT_ENABLE_HOME_DEFER_TEST__) {
-    return false;
-  }
-
-  return typeof window.IntersectionObserver !== "undefined";
+function getSnapshotReferenceTimeMs(generatedAt: string) {
+  const parsed = Date.parse(generatedAt);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function DeferredHomeSection({
@@ -91,49 +68,14 @@ function DeferredHomeSection({
   children: ReactNode;
   minHeight?: number | { xs?: number; sm?: number; md?: number; lg?: number };
 }) {
-  const [shouldRender, setShouldRender] = useState(() => !shouldDeferHomeSection());
-  const sectionRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (shouldRender) {
-      return undefined;
-    }
-
-    const section = sectionRef.current;
-    if (!section || typeof window === "undefined" || typeof window.IntersectionObserver === "undefined") {
-      setShouldRender(true);
-      return undefined;
-    }
-
-    const observer = new window.IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0)) {
-          setShouldRender(true);
-          observer.disconnect();
-        }
-      },
-      {
-        rootMargin: "720px 0px"
-      }
-    );
-
-    observer.observe(section);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [shouldRender]);
-
   return (
     <Box
-      ref={sectionRef}
       sx={{
-        minHeight: shouldRender ? undefined : minHeight,
         contentVisibility: "auto",
         containIntrinsicSize: typeof minHeight === "number" ? `auto ${minHeight}px` : undefined
       }}
     >
-      {shouldRender ? <Suspense fallback={<Box sx={{ minHeight }} />}>{children}</Suspense> : null}
+      <Suspense fallback={<Box sx={{ minHeight }} />}>{children}</Suspense>
     </Box>
   );
 }
@@ -198,6 +140,7 @@ export default function PublicHomePage() {
   const carouselSlides = data.carouselSlides ?? [];
   const externalServiceItems = data.externalServices ?? [];
   const hasFloatingMessenger = siteSettings.messengerEnabled && Boolean(siteSettings.messengerUrl);
+  const snapshotReferenceTimeMs = getSnapshotReferenceTimeMs(data.generatedAt);
 
   return (
     <PublicSiteShell
@@ -211,7 +154,11 @@ export default function PublicHomePage() {
       preloadedMenu={data.menu}
     >
       <PublicBackgroundProgress active={isFetching} />
-      <PublicHomeCarousel slides={carouselSlides} settings={homepageSettings.carousel} />
+      <PublicHomeCarousel
+        slides={carouselSlides}
+        settings={homepageSettings.carousel}
+        initialNowMs={snapshotReferenceTimeMs}
+      />
       <Container maxWidth="xl" sx={{ pb: hasFloatingMessenger ? { xs: 9, md: 14 } : undefined }}>
         <HomeHeroSection siteSettings={siteSettings} />
         <HomeIntroVideoSection settings={homepageSettings.introVideo} />
@@ -261,6 +208,7 @@ export default function PublicHomePage() {
                     limit={3}
                     viewAllHref="/calendar"
                     viewAllLabel="ดูกำหนดการทั้งหมด"
+                    initialNowMs={snapshotReferenceTimeMs}
                   />
                 </DeferredHomeSection>
                 <DeferredHomeSection minHeight={220}>
