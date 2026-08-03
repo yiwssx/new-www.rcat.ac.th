@@ -10,7 +10,7 @@ export function usePublicHomeSnapshot() {
     : false;
 
   return useQuery({
-    ...publicHomeQueryOptions(),
+    ...publicHomeQueryOptions({ consumeAbortSignal: false }),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     refetchOnMount: cachedSnapshot ? !hasFreshCache : true
