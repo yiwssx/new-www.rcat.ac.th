@@ -7,9 +7,7 @@ import { PUBLIC_QUERY_GC_TIME_MS } from "./queryPolicy";
 
 export const publicCmsSnapshotQueryKey = ["cms-snapshot"] as const;
 
-export async function getPublicCmsSnapshotForProvider(
-  options: PublicReadRequestOptions = {}
-): Promise<CmsSnapshot> {
+export async function getPublicCmsSnapshotForProvider(options: PublicReadRequestOptions = {}): Promise<CmsSnapshot> {
   const home = await getPublicHomeSnapshot(options);
   const contentById = new Map<string, ContentItem>();
 
