@@ -11,23 +11,14 @@ import type {
 } from "../../types";
 import type { ContentViewResponse, SiteViewInput } from "../site-view/types";
 import type { VisitorStatsSettings } from "../visitor-stats";
+import { isPublicReadNotFoundError, PublicReadError } from "./errors";
+import { getPublicJson, type PublicReadRequestOptions } from "./request";
 
 const PRESENCE_FAILURE_BACKOFF_MS = 5 * 60 * 1000;
 let presenceBackoffUntil = 0;
 
-class CloudflarePublicApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly diagnostic = "",
-    readonly suggestedMigration = ""
-  ) {
-    super(message);
-  }
-}
-
 export function isCloudflarePublicApiNotFoundError(error: unknown) {
-  return error instanceof CloudflarePublicApiError && error.status === 404;
+  return isPublicReadNotFoundError(error);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -48,7 +39,7 @@ function readErrorDetail(payload: unknown) {
 
 function isVisitorPresenceUnavailable(error: unknown) {
   return (
-    error instanceof CloudflarePublicApiError &&
+    error instanceof PublicReadError &&
     (error.diagnostic === "visitor-presence-schema-missing-v1" ||
       /visitor[- ]presence[- ]schema[- ]missing|visitor presence schema/i.test(error.message))
   );
@@ -59,8 +50,7 @@ function warnPublicPresenceBackoff(error: unknown) {
     return;
   }
 
-  const detail =
-    error instanceof CloudflarePublicApiError && error.suggestedMigration ? ` ${error.suggestedMigration}` : "";
+  const detail = error instanceof PublicReadError && error.suggestedMigration ? ` ${error.suggestedMigration}` : "";
   console.warn(`Public presence tracking is temporarily disabled.${detail}`);
 }
 
@@ -75,51 +65,6 @@ function persistDisplaySettings(displaySettings?: DisplaySettings) {
       JSON.stringify(displaySettings)
     );
   }
-}
-
-async function getCloudflareJson(path: string, resource: string) {
-  const response = await fetch(buildCloudflarePublicApiUrl(path), {
-    method: "GET",
-    headers: {
-      Accept: "application/json"
-    }
-  });
-
-  if (!response.ok) {
-    let payload: unknown = null;
-
-    try {
-      payload = await response.json();
-    } catch {
-      // Keep the generic HTTP status message below when the body is not JSON.
-    }
-
-    const detail = readErrorDetail(payload);
-    throw new CloudflarePublicApiError(
-      detail.error || `Cloudflare ${resource} request failed with HTTP ${response.status}`,
-      response.status,
-      detail.diagnostic,
-      detail.suggestedMigration
-    );
-  }
-
-  let payload: unknown;
-
-  try {
-    payload = await response.json();
-  } catch (error) {
-    const invalidJsonError = new Error(`Cloudflare ${resource} returned invalid JSON`) as Error & {
-      cause?: unknown;
-    };
-    invalidJsonError.cause = error;
-    throw invalidJsonError;
-  }
-
-  if (!isRecord(payload)) {
-    throw new Error(`Cloudflare ${resource} returned an invalid response`);
-  }
-
-  return payload;
 }
 
 async function postCloudflareJson<T>(path: string, resource: string, body: unknown): Promise<T> {
@@ -143,12 +88,13 @@ async function postCloudflareJson<T>(path: string, resource: string, body: unkno
     }
 
     const detail = readErrorDetail(payload);
-    throw new CloudflarePublicApiError(
-      detail.error || `Cloudflare ${resource} request failed with HTTP ${response.status}`,
-      response.status,
-      detail.diagnostic,
-      detail.suggestedMigration
-    );
+    throw new PublicReadError(detail.error || `Cloudflare ${resource} request failed with HTTP ${response.status}`, {
+      kind: "http",
+      resource,
+      status: response.status,
+      diagnostic: detail.diagnostic,
+      suggestedMigration: detail.suggestedMigration
+    });
   }
 
   return (await response.json()) as T;
@@ -156,18 +102,26 @@ async function postCloudflareJson<T>(path: string, resource: string, body: unkno
 
 function assertPublicSnapshot(value: Record<string, unknown>, resource: string, requiredArrays: string[]) {
   if (typeof value.generatedAt !== "string") {
-    throw new Error(`Cloudflare ${resource} response is missing generatedAt`);
+    throw new PublicReadError(`Cloudflare ${resource} response is missing generatedAt`, {
+      kind: "invalid-response",
+      resource
+    });
   }
 
   requiredArrays.forEach((key) => {
     if (!Array.isArray(value[key])) {
-      throw new Error(`Cloudflare ${resource} response is missing ${key}`);
+      throw new PublicReadError(`Cloudflare ${resource} response is missing ${key}`, {
+        kind: "invalid-response",
+        resource
+      });
     }
   });
 }
 
-export async function getPublicHomeSnapshotFromCloudflare(): Promise<PublicHomeSnapshot> {
-  const payload = await getCloudflareJson("/api/public/home", "public-home");
+export async function getPublicHomeSnapshotFromCloudflare(
+  options: PublicReadRequestOptions = {}
+): Promise<PublicHomeSnapshot> {
+  const payload = await getPublicJson("/api/public/home", "public-home", options);
   assertPublicSnapshot(payload, "public-home", [
     "menu",
     "carouselSlides",
@@ -187,51 +141,78 @@ export async function getPublicHomeSnapshotFromCloudflare(): Promise<PublicHomeS
 }
 
 export async function getPublicContentListSnapshotFromCloudflare(
-  kind: PublicContentListKind
+  kind: PublicContentListKind,
+  options: PublicReadRequestOptions = {}
 ): Promise<PublicContentListSnapshot> {
-  const payload = await getCloudflareJson(`/api/public/content?kind=${encodeURIComponent(kind)}`, "content-list");
+  const payload = await getPublicJson(
+    `/api/public/content?kind=${encodeURIComponent(kind)}`,
+    "content-list",
+    options
+  );
   assertPublicSnapshot(payload, "content-list", ["items", "media", "menu"]);
 
   if (payload.kind !== kind) {
-    throw new Error("Cloudflare content-list response kind does not match the request");
+    throw new PublicReadError("Cloudflare content-list response kind does not match the request", {
+      kind: "invalid-response",
+      resource: "content-list"
+    });
   }
 
   persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
   return payload as unknown as PublicContentListSnapshot;
 }
 
-export async function getContentDetailFromCloudflare(input: { id?: string; slug?: string }): Promise<ContentItem> {
+export async function getContentDetailFromCloudflare(
+  input: { id?: string; slug?: string },
+  options: PublicReadRequestOptions = {}
+): Promise<ContentItem> {
   const identifier = input.slug?.trim() || input.id?.trim();
 
   if (!identifier) {
-    throw new Error("Cloudflare content-detail requires an id or slug");
+    throw new PublicReadError("Cloudflare content-detail requires an id or slug", {
+      kind: "invalid-response",
+      resource: "content-detail"
+    });
   }
 
-  const payload = await getCloudflareJson(`/api/public/content/${encodeURIComponent(identifier)}`, "content-detail");
+  const payload = await getPublicJson(
+    `/api/public/content/${encodeURIComponent(identifier)}`,
+    "content-detail",
+    options
+  );
 
   if (!isRecord(payload.item)) {
-    throw new Error("Cloudflare content-detail response is missing item");
+    throw new PublicReadError("Cloudflare content-detail response is missing item", {
+      kind: "invalid-response",
+      resource: "content-detail"
+    });
   }
 
   return payload.item as unknown as ContentItem;
 }
 
-export async function getPublicProgramListSnapshotFromCloudflare(): Promise<PublicProgramListSnapshot> {
-  const payload = await getCloudflareJson("/api/public/programs", "program");
+export async function getPublicProgramListSnapshotFromCloudflare(
+  options: PublicReadRequestOptions = {}
+): Promise<PublicProgramListSnapshot> {
+  const payload = await getPublicJson("/api/public/programs", "program", options);
   assertPublicSnapshot(payload, "program", ["items", "media", "menu"]);
   persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
   return payload as unknown as PublicProgramListSnapshot;
 }
 
-export async function getPublicSearchIndexSnapshotFromCloudflare(): Promise<PublicSearchIndexSnapshot> {
-  const payload = await getCloudflareJson("/api/public/search", "search");
+export async function getPublicSearchIndexSnapshotFromCloudflare(
+  options: PublicReadRequestOptions = {}
+): Promise<PublicSearchIndexSnapshot> {
+  const payload = await getPublicJson("/api/public/search", "search", options);
   assertPublicSnapshot(payload, "search", ["items", "menu"]);
   persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
   return payload as unknown as PublicSearchIndexSnapshot;
 }
 
-export async function getVisitorStatsFromCloudflare(): Promise<VisitorStatsSettings> {
-  const payload = await getCloudflareJson("/api/public/visitor-stats", "visitor-stats");
+export async function getVisitorStatsFromCloudflare(
+  options: PublicReadRequestOptions = {}
+): Promise<VisitorStatsSettings> {
+  const payload = await getPublicJson("/api/public/visitor-stats", "visitor-stats", options);
 
   if (
     typeof payload.onlineUsers !== "number" ||
@@ -239,7 +220,10 @@ export async function getVisitorStatsFromCloudflare(): Promise<VisitorStatsSetti
     typeof payload.totalViews !== "number" ||
     typeof payload.updatedAt !== "string"
   ) {
-    throw new Error("Cloudflare visitor-stats returned an invalid response");
+    throw new PublicReadError("Cloudflare visitor-stats returned an invalid response", {
+      kind: "invalid-response",
+      resource: "visitor-stats"
+    });
   }
 
   return payload as unknown as VisitorStatsSettings;
