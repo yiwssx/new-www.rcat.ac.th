@@ -42,6 +42,7 @@ jobs:
           src/test/publicMediaPriorityCoordination.test.tsx
           src/test/homepageSettingsComponents.test.tsx
           src/test/publicCardLayoutRegression.test.tsx
+          scripts/public-media-governance.test.mjs
       - run: pnpm perf:check
       - run: pnpm media:check
       - run: pnpm layout:check
