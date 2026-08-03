@@ -39,7 +39,11 @@ export default function PublicHomeCarouselSsrBoundary({
   }, [referenceNowMs, slides]);
 
   useEffect(() => {
-    setEnhanced(true);
+    const enhancementTimer = window.setTimeout(() => {
+      setEnhanced(true);
+    }, 0);
+
+    return () => window.clearTimeout(enhancementTimer);
   }, []);
 
   if (enhanced) {
