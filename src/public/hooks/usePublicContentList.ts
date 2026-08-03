@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   getPublicContentListCache,
@@ -20,30 +19,33 @@ function normalizePageInput(pageInput: PublicContentListPageInput | undefined) {
   };
 }
 
+function getEligibleContentListCache(
+  kind: PublicContentListKind,
+  pageItemsInput: PublicContentListPageInput | undefined
+) {
+  const cached = getPublicContentListCache(kind);
+
+  if (!cached || kind !== "announcements" || !pageItemsInput) {
+    return cached;
+  }
+
+  const cachedPagination = cached.data.pageItemsPagination;
+
+  if (
+    pageItemsInput.page !== 1 ||
+    !cachedPagination ||
+    cachedPagination.page !== 1 ||
+    (pageItemsInput.pageSize !== undefined && cachedPagination.pageSize !== pageItemsInput.pageSize)
+  ) {
+    return null;
+  }
+
+  return cached;
+}
+
 export function usePublicContentList(kind: PublicContentListKind, pageItemsInput?: PublicContentListPageInput) {
   const normalizedPageItemsInput = normalizePageInput(pageItemsInput);
-  const normalizedPageItemsPage = normalizedPageItemsInput?.page;
-  const normalizedPageItemsPageSize = normalizedPageItemsInput?.pageSize;
-  const cachedSnapshot = useMemo(() => {
-    const cached = getPublicContentListCache(kind);
-
-    if (!cached || kind !== "announcements" || normalizedPageItemsPage === undefined) {
-      return cached;
-    }
-
-    const cachedPagination = cached.data.pageItemsPagination;
-
-    if (
-      normalizedPageItemsPage !== 1 ||
-      !cachedPagination ||
-      cachedPagination.page !== 1 ||
-      (normalizedPageItemsPageSize !== undefined && cachedPagination.pageSize !== normalizedPageItemsPageSize)
-    ) {
-      return null;
-    }
-
-    return cached;
-  }, [kind, normalizedPageItemsPage, normalizedPageItemsPageSize]);
+  const cachedSnapshot = getEligibleContentListCache(kind, normalizedPageItemsInput);
   const hasFreshCache = cachedSnapshot
     ? isPublicQueryCacheFresh(cachedSnapshot.savedAt, PUBLIC_CONTENT_LIST_CACHE_TTL_MS)
     : false;
