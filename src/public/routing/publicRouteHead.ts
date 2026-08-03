@@ -152,6 +152,10 @@ export function buildPublicRouteHead(input: PublicRouteHeadInput) {
   };
 }
 
+export function getRootRouteHead() {
+  return buildPublicRouteHead({});
+}
+
 export function getStaticPublicRouteHead(pathname: string) {
   return buildPublicRouteHead(STATIC_PUBLIC_ROUTE_HEADS[pathname] ?? { description: DEFAULT_PUBLIC_DESCRIPTION });
 }
