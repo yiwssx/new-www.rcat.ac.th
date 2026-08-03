@@ -71,21 +71,25 @@ export default function PublicIntroGate({
 
   useEffect(() => {
     if (!settings || !shouldShowPublicIntroGate(settings) || !isVisible) {
-      return;
+      return undefined;
     }
 
-    if (!isPublicIntroGateDismissedInSession(settings)) {
-      return;
-    }
-
-    setDismissedKeys((current) => {
-      if (current.has(storageKey)) {
-        return current;
+    const reconciliationTimer = window.setTimeout(() => {
+      if (!isPublicIntroGateDismissedInSession(settings)) {
+        return;
       }
 
-      return new Set(current).add(storageKey);
-    });
-    onDismiss?.();
+      setDismissedKeys((current) => {
+        if (current.has(storageKey)) {
+          return current;
+        }
+
+        return new Set(current).add(storageKey);
+      });
+      onDismiss?.();
+    }, 0);
+
+    return () => window.clearTimeout(reconciliationTimer);
   }, [isVisible, onDismiss, settings, storageKey]);
 
   useEffect(() => {
