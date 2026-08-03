@@ -32,6 +32,16 @@ vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
   })
 }));
 
+vi.mock("../public/hooks/usePublicShellSnapshot", () => ({
+  usePublicShellSnapshot: () => ({
+    data: { siteSettings: {}, menu: [] },
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn()
+  })
+}));
+
 vi.mock("../public/hooks/usePublicContentDetail", () => ({
   usePublicContentDetail: () => ({
     data: currentDetail,

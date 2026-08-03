@@ -104,6 +104,8 @@ describe("Public route loading geometry", () => {
     expect(publicShellRouteLayoutSource).toContain("<Outlet />");
     expect(publicSiteShellSource).toContain("PublicSiteShellRegistrationContext.Provider");
     expect(publicSiteShellSource).toContain("RegisteredPublicSiteShell");
-    expect(publicSiteShellSource).toContain("useLayoutEffect");
+    expect(publicSiteShellSource).toContain("return <>{children}</>;");
+    expect(publicSiteShellSource).not.toContain("activeRegistration === registration");
+    expect(publicSiteShellSource).not.toContain("useLayoutEffect");
   });
 });

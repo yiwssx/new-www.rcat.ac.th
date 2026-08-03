@@ -1,13 +1,4 @@
-import {
-  createContext,
-  MouseEvent,
-  ReactNode,
-  useCallback,
-  useContext,
-  useLayoutEffect,
-  useMemo,
-  useState
-} from "react";
+import { createContext, MouseEvent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -40,6 +31,7 @@ import { getInitialPublicIntroGateVisibility, getPublicIntroGateStorageKey } fro
 import { UrgentMarqueeSection } from "./home/UrgentMarqueeSection";
 import SocialIconLink from "./SocialIconLink";
 import { PublicMediaLoadingProvider } from "../../shared/media/PublicMediaLoadingContext";
+import { usePublicShellSnapshot } from "../hooks/usePublicShellSnapshot";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import { projectSettings } from "../../config/projectSettings";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
@@ -49,7 +41,6 @@ import { normalizeSafeHref } from "../../utils/safeUrl";
 import { focusVisibleSx } from "../../design-system/componentStyles";
 import type { SocialPlatform } from "../../design-system/icons/SocialBrandIcon";
 import { useDocumentMetadata } from "../../utils/seo";
-import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 
 export interface PublicSiteShellProps {
   title?: string;
@@ -79,7 +70,6 @@ interface PublicSiteShellRegistration {
 }
 
 interface PublicSiteShellRegistrationController {
-  activeRegistration: PublicSiteShellRegistration | null;
   register: (registration: PublicSiteShellRegistration) => void;
   unregister: (token: symbol) => void;
 }
@@ -110,8 +100,7 @@ function getPublicRouteShellDefaults(pathname: string): PublicRouteShellDefaults
   const routeDefaults: Record<string, PublicRouteShellDefaults> = {
     "/": {
       hidePageHeader: true,
-      disableMainContainer: true,
-      skipShellDataFetch: true
+      disableMainContainer: true
     },
     "/news": {
       title: "ข่าว",
@@ -480,7 +469,7 @@ function RegisteredPublicSiteShell({
     [pathname, stableRegistrationProps, token]
   );
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     register?.(registration);
 
     return () => {
@@ -488,7 +477,7 @@ function RegisteredPublicSiteShell({
     };
   }, [register, registration, token, unregister]);
 
-  return controller?.activeRegistration === registration ? <>{children}</> : null;
+  return <>{children}</>;
 }
 
 function PublicSiteShellFrame({
@@ -519,11 +508,10 @@ function PublicSiteShellFrame({
   }, []);
   const registrationController = useMemo(
     () => ({
-      activeRegistration: registeredPage,
       register,
       unregister
     }),
-    [register, registeredPage, unregister]
+    [register, unregister]
   );
   const activePageProps = registeredPage && registeredPage.pathname === pathname ? registeredPage.props : undefined;
   const routeDefaults = routeLayout ? getPublicRouteShellDefaults(pathname || "/") : {};
@@ -545,7 +533,7 @@ function PublicSiteShellFrame({
   const hasPreloadedShellData =
     Boolean(preloadedSiteSettings) && Boolean(preloadedHomepageSettings) && preloadedMenu !== undefined;
   const shouldFetchShellData = !skipShellDataFetch && !hasPreloadedShellData;
-  const { data, isLoading, isFetching, isError, refetch } = usePublicCmsSnapshot({
+  const { data, isLoading, isFetching, isError, refetch } = usePublicShellSnapshot({
     enabled: shouldFetchShellData
   });
   const [searchQuery, setSearchQuery] = useState("");
@@ -611,7 +599,7 @@ function PublicSiteShellFrame({
 
   return (
     <PublicSiteShellRegistrationContext.Provider value={registrationController}>
-      <PublicMediaLoadingProvider pageMediaAllowed={!introGateVisible}>
+      <PublicMediaLoadingProvider pageMediaAllowed={hasResolvedShellSettings && !introGateVisible}>
         <Box
           id="top"
           sx={{ minHeight: "100vh", bgcolor: "background.default" }}

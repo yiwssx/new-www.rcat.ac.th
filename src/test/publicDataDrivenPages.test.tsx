@@ -92,6 +92,17 @@ vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
   }
 }));
 
+vi.mock("../public/hooks/usePublicShellSnapshot", () => ({
+  usePublicShellSnapshot: (options?: { enabled?: boolean }) => {
+    usePublicCmsSnapshotMock(options);
+
+    return {
+      data: currentSnapshot,
+      ...currentQueryState
+    };
+  }
+}));
+
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-router")>()),
   useNavigate: () => routerMocks.navigate,
