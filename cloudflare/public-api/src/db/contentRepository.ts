@@ -75,7 +75,10 @@ function normalizePageReadOptions(options: PublicContentPageReadOptions) {
 }
 
 async function readCount(env: Env, query: string, bindings: unknown[]) {
-  const result = await requireD1Database(env).prepare(query).bind(...bindings).all<{ total_items: number | string }>();
+  const result = await requireD1Database(env)
+    .prepare(query)
+    .bind(...bindings)
+    .all<{ total_items: number | string }>();
   const projectedCount = Number(result.results?.[0]?.total_items);
 
   if (Number.isFinite(projectedCount)) {
