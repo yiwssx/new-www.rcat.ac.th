@@ -50,6 +50,13 @@ describe("SSR-ready public query options", () => {
     });
 
     expect(publicContentDetailQueryOptions(undefined).enabled).toBe(false);
+    expect(publicContentListQueryOptions("announcements", {}, { page: 2, pageSize: 120 }).queryKey).toEqual([
+      "public-content-list",
+      "announcements",
+      "pages",
+      2,
+      100
+    ]);
     expect(publicSearchIndexQueryOptions("  award  ").queryKey).toEqual(["public-search-index", "award"]);
     expect(publicSearchPageQueryOptions(" award ", { page: 2, pageSize: 120 }).queryKey).toEqual([
       "public-search-index",
