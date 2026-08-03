@@ -20,7 +20,7 @@ Public GET routes:
 - `/api/public/programs`
 - `/api/public/visitor-stats`
 
-Public list, program, home, and search responses use summary content records and omit full body fields; full bodies remain on content detail, which also returns referenced media. The unpaginated content-list URL remains backward compatible, while page/pageSize is opt-in. /api/public/shell is a lightweight settings/menu contract for the SSR-readiness migration. Public routes remain GET/OPTIONS-only and never receive credentialed wildcard CORS.
+Public list, program, home, and search responses use summary content records and omit full body fields; full bodies remain on content detail, which also returns referenced media. The unpaginated content-list URL remains backward compatible, while page/pageSize is opt-in. `/api/public/search?q=<query>` performs the query in the Worker instead of requiring normal searches to download the complete public index. `/api/public/shell` is a lightweight settings/menu contract for the SSR-readiness migration. Public routes remain GET/OPTIONS-only and never receive credentialed wildcard CORS.
 
 Structured admin routes include:
 
