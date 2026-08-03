@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { normalizePublicPageSearchValue } from "../routing/searchParams";
+
+export type PublicPaginationQueryParam = "page" | "announcementsPage" | "pagesPage";
 
 interface UsePublicPaginationOptions {
   pageSize: number;
-  queryParam?: string;
+  queryParam?: PublicPaginationQueryParam;
   resetKeys?: readonly unknown[];
   scrollTargetId?: string;
 }
-
-const PUBLIC_PAGINATION_LOCATION_EVENT = "rcat:public-pagination-location";
 
 function normalizePageSize(value: number) {
   if (!Number.isFinite(value)) {
@@ -15,39 +17,6 @@ function normalizePageSize(value: number) {
   }
 
   return Math.max(1, Math.floor(value));
-}
-
-function getCurrentSearch() {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  return window.location.search;
-}
-
-function subscribeToSearchChanges(onStoreChange: () => void) {
-  if (typeof window === "undefined") {
-    return () => undefined;
-  }
-
-  window.addEventListener("popstate", onStoreChange);
-  window.addEventListener(PUBLIC_PAGINATION_LOCATION_EVENT, onStoreChange);
-
-  return () => {
-    window.removeEventListener("popstate", onStoreChange);
-    window.removeEventListener(PUBLIC_PAGINATION_LOCATION_EVENT, onStoreChange);
-  };
-}
-
-function readPageFromSearch(search: string, queryParam: string) {
-  const rawValue = new URLSearchParams(search).get(queryParam);
-  const value = Number(rawValue);
-
-  if (!Number.isInteger(value) || value < 1) {
-    return 1;
-  }
-
-  return value;
 }
 
 function createResetSignature(resetKeys: readonly unknown[]) {
@@ -58,11 +27,12 @@ export function usePublicPagination<T>(
   items: readonly T[],
   { pageSize, queryParam = "page", resetKeys = [], scrollTargetId }: UsePublicPaginationOptions
 ) {
+  const navigate = useNavigate();
+  const routeSearch = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
   const normalizedPageSize = normalizePageSize(pageSize);
-  const search = useSyncExternalStore(subscribeToSearchChanges, getCurrentSearch, () => "");
   const totalItems = items.length;
   const pageCount = Math.max(1, Math.ceil(totalItems / normalizedPageSize));
-  const requestedPage = readPageFromSearch(search, queryParam);
+  const requestedPage = normalizePublicPageSearchValue(routeSearch[queryParam]) ?? 1;
   const page = Math.min(requestedPage, pageCount);
   const startIndex = (page - 1) * normalizedPageSize;
   const endIndex = Math.min(startIndex + normalizedPageSize, totalItems);
@@ -71,25 +41,26 @@ export function usePublicPagination<T>(
 
   const updatePage = useCallback(
     (nextPage: number, options: { replace?: boolean; scroll?: boolean } = {}) => {
-      if (typeof window === "undefined") {
-        return;
-      }
-
       const clampedPage = Math.min(Math.max(1, Math.floor(nextPage)), pageCount);
-      const url = new URL(window.location.href);
 
-      if (clampedPage <= 1) {
-        url.searchParams.delete(queryParam);
-      } else {
-        url.searchParams.set(queryParam, String(clampedPage));
-      }
+      void navigate({
+        to: ".",
+        search: (previous) => {
+          const nextSearch = { ...previous } as typeof previous & Record<string, unknown>;
 
-      const nextUrl = `${url.pathname}${url.search}${url.hash}`;
-      const method = options.replace ? "replaceState" : "pushState";
-      window.history[method]({}, "", nextUrl);
-      window.dispatchEvent(new Event(PUBLIC_PAGINATION_LOCATION_EVENT));
+          if (clampedPage <= 1) {
+            delete nextSearch[queryParam];
+          } else {
+            nextSearch[queryParam] = clampedPage;
+          }
 
-      if (options.scroll && scrollTargetId) {
+          return nextSearch;
+        },
+        replace: options.replace,
+        resetScroll: false
+      });
+
+      if (options.scroll && scrollTargetId && typeof window !== "undefined") {
         window.requestAnimationFrame(() => {
           const target = document.getElementById(scrollTargetId);
 
@@ -99,7 +70,7 @@ export function usePublicPagination<T>(
         });
       }
     },
-    [pageCount, queryParam, scrollTargetId]
+    [navigate, pageCount, queryParam, scrollTargetId]
   );
 
   useEffect(() => {
@@ -108,11 +79,11 @@ export function usePublicPagination<T>(
     if (previousSignature !== resetSignature) {
       previousResetSignatureRef.current = resetSignature;
 
-      if (readPageFromSearch(getCurrentSearch(), queryParam) !== 1) {
+      if (requestedPage !== 1) {
         updatePage(1, { replace: true });
       }
     }
-  }, [queryParam, resetSignature, updatePage]);
+  }, [requestedPage, resetSignature, updatePage]);
 
   useEffect(() => {
     if (requestedPage !== page) {

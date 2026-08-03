@@ -34,6 +34,12 @@ import {
   SettingsPage,
   UsersPage
 } from "./routeComponents";
+import {
+  validatePublicAnnouncementsSearch,
+  validatePublicFilteredPaginatedSearch,
+  validatePublicPaginatedSearch,
+  validatePublicSearchRouteSearch
+} from "./public/routing/searchParams";
 
 const rootRoute = createRootRoute({
   component: RootRouteLayout,
@@ -55,42 +61,49 @@ const publicHomeRoute = createRoute({
 const publicDepartmentsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "departments",
+  validateSearch: validatePublicPaginatedSearch,
   component: PublicDepartmentsPage
 });
 
 const publicNewsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "news",
+  validateSearch: validatePublicFilteredPaginatedSearch,
   component: PublicNewsPage
 });
 
 const publicAnnouncementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "announcements",
+  validateSearch: validatePublicAnnouncementsSearch,
   component: PublicAnnouncementsPage
 });
 
 const publicAchievementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "achievements",
+  validateSearch: validatePublicPaginatedSearch,
   component: PublicAchievementsPage
 });
 
 const publicBlogRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "blog",
+  validateSearch: validatePublicPaginatedSearch,
   component: PublicBlogPage
 });
 
 const publicDocumentsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "documents",
+  validateSearch: validatePublicPaginatedSearch,
   component: PublicDocumentsPage
 });
 
 const publicCalendarRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "calendar",
+  validateSearch: validatePublicPaginatedSearch,
   component: PublicCalendarPage
 });
 
@@ -103,6 +116,7 @@ const publicContactRoute = createRoute({
 const publicSearchRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "search",
+  validateSearch: validatePublicSearchRouteSearch,
   component: PublicSearchPage
 });
 

@@ -97,6 +97,8 @@ Public read failures use the shared `PublicReadError` taxonomy: `aborted`, `netw
 
 Live visitor statistics remain intentionally browser-oriented polling rather than an SSR loader dependency, but their request now also consumes query cancellation.
 
+Public list URL state is now owned by TanStack Router. Route search validators normalize `page`, `announcementsPage`, `pagesPage`, `tag`, `category`, and `q` where applicable, while unrelated query parameters are preserved. Public pagination and filter rendering reads the router location instead of `window.location.search`, and pagination writes use TanStack navigation instead of custom `window.history`/event synchronization. This makes request URL state deterministic between a future server render and the hydrating browser without changing the current CSR deployment mode.
+
 These readiness changes do not enable server rendering, hydration, route loaders, server-side metadata, canonical redirects, or new Public API response contracts. Those remain separate migration stages and must preserve the existing Public/Admin runtime boundaries.
 
 ## Deployment Boundaries

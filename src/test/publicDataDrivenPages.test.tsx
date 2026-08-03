@@ -1137,7 +1137,7 @@ describe("public data-driven pages", () => {
   });
 
   it("uses the page query parameter on the achievements archive", () => {
-    window.history.pushState({}, "", "/achievements?page=2");
+    routerMocks.search = { page: 2 };
     currentSearchIndexSnapshot = createSearchIndexSnapshot({
       items: createNumberedContentItems({
         count: 13,
@@ -1327,7 +1327,7 @@ describe("public data-driven pages", () => {
   });
 
   it("uses the page query parameter on the public document archive", () => {
-    window.history.pushState({}, "", "/documents?page=2");
+    routerMocks.search = { page: 2 };
     currentDocumentListSnapshot = createDocumentListSnapshot({
       items: createNumberedDocuments(16)
     });
@@ -1340,7 +1340,7 @@ describe("public data-driven pages", () => {
   });
 
   it("clamps invalid document page queries safely", () => {
-    window.history.pushState({}, "", "/documents?page=invalid");
+    routerMocks.search = { page: "invalid" };
     currentDocumentListSnapshot = createDocumentListSnapshot({
       items: createNumberedDocuments(16)
     });
@@ -1815,7 +1815,7 @@ describe("public data-driven pages", () => {
   });
 
   it("filters announcements by clickable tag query params", () => {
-    window.history.pushState({}, "", "/announcements?tag=รับสมัคร");
+    routerMocks.search = { tag: "รับสมัคร" };
     currentContentListSnapshot = createContentListSnapshot({
       kind: "announcements",
       items: [
