@@ -22,19 +22,28 @@ export function getPublicSearchPageQueryKey(query: string, pageInput: PublicSear
   return [...publicSearchIndexQueryKey, "page", normalizedQuery, page, pageSize ?? null] as const;
 }
 
-export function publicSearchIndexQueryOptions(query = "", runtimeOptions: PublicQueryRuntimeOptions = {}) {
+export function publicSearchIndexQueryOptions(
+  query = "",
+  runtimeOptions: PublicQueryRuntimeOptions = {},
+  pageInput?: PublicSearchPageInput
+) {
   const normalizedQuery = query.trim();
+  const queryKey = pageInput
+    ? getPublicSearchPageQueryKey(normalizedQuery, pageInput)
+    : getPublicSearchQueryKey(normalizedQuery);
 
   return queryOptions({
-    queryKey: getPublicSearchQueryKey(normalizedQuery),
+    queryKey,
     queryFn: async (context) => {
-      const snapshot = await getPublicSearchIndexSnapshot(
-        normalizedQuery,
-        getPublicQueryRequestOptions(context, runtimeOptions)
-      );
-      if (!normalizedQuery) {
+      const requestOptions = getPublicQueryRequestOptions(context, runtimeOptions);
+      const snapshot = pageInput
+        ? await getPublicSearchPageSnapshot(normalizedQuery, pageInput, requestOptions)
+        : await getPublicSearchIndexSnapshot(normalizedQuery, requestOptions);
+
+      if (!pageInput && !normalizedQuery) {
         setPublicSearchIndexCache(snapshot);
       }
+
       return snapshot;
     },
     staleTime: PUBLIC_SEARCH_INDEX_CACHE_TTL_MS,
@@ -49,15 +58,5 @@ export function publicSearchPageQueryOptions(
   pageInput: PublicSearchPageInput,
   runtimeOptions: PublicQueryRuntimeOptions = {}
 ) {
-  const normalizedQuery = query.trim();
-
-  return queryOptions({
-    queryKey: getPublicSearchPageQueryKey(normalizedQuery, pageInput),
-    queryFn: (context) =>
-      getPublicSearchPageSnapshot(normalizedQuery, pageInput, getPublicQueryRequestOptions(context, runtimeOptions)),
-    staleTime: PUBLIC_SEARCH_INDEX_CACHE_TTL_MS,
-    gcTime: PUBLIC_QUERY_GC_TIME_MS,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: true
-  });
+  return publicSearchIndexQueryOptions(query, runtimeOptions, pageInput);
 }
