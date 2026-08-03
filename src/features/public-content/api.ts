@@ -1,5 +1,6 @@
 import {
   getContentDetailFromCloudflare,
+  getPublicAnnouncementsContentListSnapshotFromCloudflare,
   getPublicContentDetailSnapshotFromCloudflare,
   getPublicContentListPageSnapshotFromCloudflare,
   getPublicContentListSnapshotFromCloudflare,
@@ -9,8 +10,17 @@ import {
 import type { PublicReadRequestOptions } from "../public-read/request";
 import type { PublicContentListKind } from "./types";
 
+export type { PublicContentListPageInput } from "../public-read/cloudflareApi";
+
 export function getPublicContentListSnapshot(kind: PublicContentListKind, options: PublicReadRequestOptions = {}) {
   return getPublicContentListSnapshotFromCloudflare(kind, options);
+}
+
+export function getPublicAnnouncementsContentListSnapshot(
+  pageItemsInput: PublicContentListPageInput,
+  options: PublicReadRequestOptions = {}
+) {
+  return getPublicAnnouncementsContentListSnapshotFromCloudflare(pageItemsInput, options);
 }
 
 export function getPublicContentListPageSnapshot(
