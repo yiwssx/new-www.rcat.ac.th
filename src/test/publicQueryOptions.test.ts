@@ -52,9 +52,7 @@ describe("SSR-ready public query options", () => {
   it("lets TanStack Query cancellation abort the underlying public fetch", async () => {
     vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.test");
     const queryClient = createAppQueryClient();
-    let receivedSignal: AbortSignal | null = null;
     const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
-      receivedSignal = init?.signal instanceof AbortSignal ? init.signal : null;
       return new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), {
           once: true
@@ -67,8 +65,12 @@ describe("SSR-ready public query options", () => {
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     await queryClient.cancelQueries({ queryKey: publicHomeQueryKey });
 
-    expect(receivedSignal).toBeInstanceOf(AbortSignal);
-    expect((receivedSignal as AbortSignal).aborted).toBe(true);
+    const fetchSignal = fetchMock.mock.calls[0]?.[1]?.signal;
+    expect(fetchSignal).toBeInstanceOf(AbortSignal);
+    if (!(fetchSignal instanceof AbortSignal)) {
+      throw new Error("Expected public query fetch to receive an AbortSignal.");
+    }
+    expect(fetchSignal.aborted).toBe(true);
     await pending.catch(() => undefined);
   });
 });
