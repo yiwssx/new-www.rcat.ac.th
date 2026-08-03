@@ -6,10 +6,7 @@ import {
 import type { PublicReadRequestOptions } from "../public-read/request";
 import type { PublicContentListKind } from "./types";
 
-export function getPublicContentListSnapshot(
-  kind: PublicContentListKind,
-  options: PublicReadRequestOptions = {}
-) {
+export function getPublicContentListSnapshot(kind: PublicContentListKind, options: PublicReadRequestOptions = {}) {
   return getPublicContentListSnapshotFromCloudflare(kind, options);
 }
 
