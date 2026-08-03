@@ -56,11 +56,9 @@ describe("SSR-ready public query options", () => {
     const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
       receivedSignal = init?.signal instanceof AbortSignal ? init.signal : null;
       return new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener(
-          "abort",
-          () => reject(new DOMException("Aborted", "AbortError")),
-          { once: true }
-        );
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), {
+          once: true
+        });
       });
     });
     vi.stubGlobal("fetch", fetchMock);
