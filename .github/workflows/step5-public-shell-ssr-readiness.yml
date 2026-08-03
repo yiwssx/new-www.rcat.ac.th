@@ -1,9 +1,6 @@
 name: Step 5 Public Shell SSR Readiness
 
 on:
-  push:
-    branches:
-      - refactor/ssr-readiness-step5
   pull_request:
     branches:
       - refactor/ssr-readiness
@@ -13,7 +10,6 @@ permissions:
 
 jobs:
   patch-and-validate:
-    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
