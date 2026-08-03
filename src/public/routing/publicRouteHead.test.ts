@@ -4,6 +4,7 @@ import {
   buildPublicRouteHead,
   getCmsRouteHead,
   getPublicContentRouteHead,
+  getRootRouteHead,
   getStaticPublicRouteHead
 } from "./publicRouteHead";
 
@@ -16,6 +17,14 @@ function getMetaContent(head: ReturnType<typeof buildPublicRouteHead>, key: "nam
 }
 
 describe("public route head metadata", () => {
+  it("keeps the root head limited to the default site title", () => {
+    const head = getRootRouteHead();
+
+    expect(getMetaContent(head, "title")).toBe(projectSettings.site.name);
+    expect(getMetaContent(head, "name", "description")).toBeUndefined();
+    expect(head.links).toEqual([]);
+  });
+
   it("builds a static public route title, description, and canonical URL", () => {
     const head = getStaticPublicRouteHead("/news");
 
@@ -44,7 +53,7 @@ describe("public route head metadata", () => {
     ]);
   });
 
-  it("keeps CMS auth and admin routes out of search indexes", () => {
+  it("keeps CMS auth and admin routes out of search indexes without a canonical link", () => {
     const head = getCmsRouteHead();
 
     expect(getMetaContent(head, "name", "robots")).toBe("noindex,nofollow");
