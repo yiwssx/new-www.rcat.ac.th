@@ -45,7 +45,7 @@ TanStack Router owns Public URL search state. Public list rendering no longer re
 
 - This is UI/render pagination. The frontend still receives the current public read snapshot, but cards are rendered only for the current page slice.
 - The home achievement payload is also limited at the Worker public home snapshot level.
-- This step changes frontend URL-state ownership only; it does not add route loaders or server-side data pagination.
+- This step changes frontend URL-state ownership only; route search state remains a frontend concern until server loaders and server-side pagination are introduced in later migration work.
 - No database schema changes are required.
 - No D1 migrations are required.
 - No Apps Script changes are required.
