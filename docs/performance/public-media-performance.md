@@ -13,6 +13,14 @@ Both runs intercepted the Public API plus Google Drive, YouTube, and Facebook. T
 
 Each intercepted image response is the same documented 120-byte SVG body. Request counts and selected `sz=wNNN` candidates are therefore deterministic, but the fixture does not represent production image bytes. Local timings are not production LCP, CLS, Web Vitals, or transfer-size measurements.
 
+### Step 6 SSR-readiness note
+
+The request-count tables in this document are historical measurements from the 2026-07-28 media-performance pass. SSR-readiness Step 6 changes the current semantic-image policy: a normal Public `near-viewport` image now exists as an `<img>` in the first render tree and relies on native `loading="lazy"` with low fetch priority instead of withholding `src`/`srcSet` behind an IntersectionObserver. This is required so future server-rendered HTML contains meaningful image elements and does not hydrate from a placeholder-only tree.
+
+The Public page-media gate remains authoritative. While an enabled Intro Gate owns critical priority, ordinary page images may still be source-gated by the surrounding media-loading context. Carousel distant-slide request windows remain separately controlled by `CarouselImageStage.shouldLoad`. Heavy iframe/embed resources continue to use explicit near-viewport activation because their network/runtime cost is materially higher and their iframe element is not required as semantic image content.
+
+The historical request-count tables below must not be presented as a fresh post-Step-6 measurement until the focused browser media suite is rerun against the Step 6 branch. Governance and SSR determinism tests, rather than those historical numbers, define the current repository contract during this readiness stage.
+
 ## Corrective review note
 
 Review of the initial branch found that `PublicResponsiveImage` could place an
@@ -39,11 +47,11 @@ by this pass.
 
 - `critical`: assigns `loading="eager"` and `fetchpriority="high"`;
 - `eager`: assigns eager loading with automatic priority;
-- `near-viewport`: retains a stable placeholder and omits `src`/`srcSet` until the shared IntersectionObserver registry activates it, then loads lazily at low priority.
+- `near-viewport`: renders the semantic image on the first pass with native `loading="lazy"` and low fetch priority. The browser decides when to fetch the resource; React does not swap a source-free placeholder into an image after hydration.
 
-If IntersectionObserver is unavailable, the image loads normally. Load failure replaces the network-bearing image with an accessible fallback.
+The surrounding Public page-media gate may still withhold a page image while Intro Gate state is unresolved or visible. Load failure replaces the network-bearing image with an accessible fallback.
 
-`PublicDeferredEmbed` applies the same near-viewport activation to iframes. The iframe element and its `src` do not exist before activation. It retains title, allow, fullscreen, referrer policy, scrolling, native width/height, and a stable wrapper.
+`PublicDeferredEmbed` keeps explicit near-viewport activation for iframes. The iframe element and its `src` do not exist before activation. It retains title, allow, fullscreen, referrer policy, scrolling, native width/height, and a stable wrapper.
 
 ### Image intent matrix
 
@@ -80,15 +88,16 @@ Local paths are unchanged. Safe arbitrary HTTPS images remain usable without fab
 
 ## Carousel request window
 
-Every structural slide wrapper remains mounted for Embla, fade transitions, announcements, and accessibility. Only requested slides receive a picture/image source:
+Every structural slide wrapper remains mounted for the interactive Carousel after client enhancement, preserving Embla/fade transitions, announcements, and accessibility. Before enhancement, the Step 6 SSR boundary renders one deterministic active slide from the snapshot reference time. Only requested interactive slides receive a picture/image source:
 
-1. the selected slide loads immediately;
-2. after that foreground loads, the next slide may preload during idle time at automatic priority;
-3. a navigation action requests its destination before/as selection changes;
-4. a newly selected, already-loaded slide may then schedule its next neighbor;
-5. distant slides retain source-free placeholders.
+1. the deterministic first-pass selected slide may load when page media is allowed;
+2. after the interactive Carousel mounts, its selected slide loads immediately;
+3. after that foreground loads, the next slide may preload during idle time at automatic priority;
+4. a navigation action requests its destination before/as selection changes;
+5. a newly selected, already-loaded slide may then schedule its next neighbor;
+6. distant interactive slides retain source-free placeholders.
 
-The loaded-slide set prevents a non-selected preload from cascading through all five slides. Loop indexes, arrows, dots, keyboard controls, swipe, autoplay, pause rules, schedule visibility, desktop/mobile variants, focal points, and fit modes remain intact.
+The loaded-slide set prevents a non-selected preload from cascading through all five slides. Loop indexes, arrows, dots, keyboard controls, swipe, autoplay, pause rules, schedule visibility, desktop/mobile variants, focal points, and fit modes remain intact after the client enhancement boundary activates.
 
 For `fit-blur`, the decorative background is drawn to a canvas from the already-loaded foreground image. It is `aria-hidden`, appears only after foreground load, and does not create a second image URL or request.
 
@@ -96,7 +105,7 @@ For `fit-blur`, the decorative background is drawn to a canvas from the already-
 
 - Logo: native width/height 128 with a fixed visual wrapper.
 - Regular/featured cards: fixed 70 px or responsive 150 px slots.
-- Carousel: existing fixed responsive stage heights.
+- Carousel: existing fixed responsive stage heights on both the deterministic boundary and enhanced Carousel.
 - Director: fixed 3:4 aspect ratio.
 - Intro Gate: fixed loading/failure slot.
 - Hero: fixed section height with a fill layer.
@@ -108,7 +117,7 @@ No production CLS value is claimed.
 
 ## Baseline versus corrected requests
 
-Counts below are intercepted external fixture requests. “Initial” includes the allowed idle next-slide preload where applicable.
+The counts below are the historical 2026-07-28 intercepted external fixture requests. They have not yet been re-measured after the Step 6 semantic-image policy change. “Initial” in this historical table includes the allowed idle next-slide preload where applicable.
 
 | Scenario                                                     | Baseline | Corrected |
 | ------------------------------------------------------------ | -------: | --------: |
@@ -133,8 +142,8 @@ Counts below are intercepted external fixture requests. “Initial” includes t
 | Event attachment after first dialog open                     |        1 |         1 |
 | Public fixture media/embed requests on each Auth/Admin route |        0 |         0 |
 
-The corrected desktop Home count contains two Carousel slides and the director
-portrait. The below-fold featured and regular cards remain unrequested at the
+The historical corrected desktop Home count contains two Carousel slides and the director
+portrait. At that measured revision, the below-fold featured and regular cards remained unrequested at the
 initial snapshot. The production logo is local and is not included in Drive
 counts.
 
@@ -179,14 +188,14 @@ The parser uses the repository TypeScript compiler API instead of exact-format t
 | Synchronous JavaScript gzip bytes            |  123,506 |   123,576 | 127,000 |
 | Forbidden synchronous telemetry associations |        0 |         0 |       0 |
 
-Both snapshots pass `pnpm perf:check`. The corrected raw/gzip changes are
-+221/+70 bytes and remain 12,272/3,424 bytes below their limits.
+Both historical snapshots pass `pnpm perf:check`. The corrected raw/gzip changes are
++221/+70 bytes and remain 12,272/3,424 bytes below their limits. Current Step 6 must be evaluated against the repository's present performance budget separately; the historical table is not a claim about the current bundle size.
 
 ## Limitations
 
-- Measurements are local deterministic request budgets, not observations of the production site.
+- Measurements in the tables are local deterministic request budgets from the documented 2026-07-28 revision, not observations of the production site or fresh Step 6 measurements.
 - The 120-byte SVG fixture makes request identity and candidate selection measurable; it is not evidence of production byte savings.
 - No Lighthouse, LCP, CLS, INP, field Web Vitals, CDN cache, or real Google Drive latency result is claimed.
-- Browser-selected widths depend on viewport, device pixel ratio, and the declared `sizes`; the table records the committed Chromium fixture only.
-- Arbitrary HTTPS hosts receive safe normalization and deferral but no invented responsive variants.
+- Browser-selected widths depend on viewport, device pixel ratio, declared `sizes`, and native lazy-loading behavior; the table records the historical Chromium fixture only.
+- Arbitrary HTTPS hosts receive safe normalization and current native image deferral but no invented responsive variants.
 - If canvas drawing for a fit-blur background is unavailable, the foreground remains usable and the stable background color/gradient remains in place.
