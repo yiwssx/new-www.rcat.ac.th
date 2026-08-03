@@ -25,15 +25,9 @@ updateFile("src/public/components/PublicSiteShell.tsx", (source) => {
   next = replaceOnce(next, "  useContext,\n  useLayoutEffect,\n  useMemo,", "  useContext,\n  useEffect,\n  useMemo,", "React effect import");
   next = replaceOnce(
     next,
-    '} from "react";\nimport {\n',
-    '} from "react";\nimport { useQuery } from "@tanstack/react-query";\nimport {\n',
-    "TanStack Query import"
-  );
-  next = replaceOnce(
-    next,
     'import { PublicMediaLoadingProvider } from "../../shared/media/PublicMediaLoadingContext";\n',
-    'import { publicShellQueryOptions } from "../../features/public-shell";\nimport { PublicMediaLoadingProvider } from "../../shared/media/PublicMediaLoadingContext";\n',
-    "public shell query import"
+    'import { PublicMediaLoadingProvider } from "../../shared/media/PublicMediaLoadingContext";\nimport { usePublicShellSnapshot } from "../hooks/usePublicShellSnapshot";\n',
+    "public shell snapshot hook import"
   );
   next = replaceOnce(
     next,
@@ -69,12 +63,35 @@ updateFile("src/public/components/PublicSiteShell.tsx", (source) => {
   next = replaceOnce(
     next,
     "  const { data, isLoading, isFetching, isError, refetch } = usePublicCmsSnapshot({\n    enabled: shouldFetchShellData\n  });\n",
-    "  const { data, isLoading, isFetching, isError, refetch } = useQuery({\n    ...publicShellQueryOptions({ consumeAbortSignal: false }),\n    enabled: shouldFetchShellData\n  });\n",
-    "lightweight public shell query"
+    "  const { data, isLoading, isFetching, isError, refetch } = usePublicShellSnapshot({\n    enabled: shouldFetchShellData\n  });\n",
+    "lightweight public shell hook"
   );
 
   return next;
 });
+
+writeFileSync(
+  "src/public/hooks/usePublicShellSnapshot.ts",
+  `import { useQuery } from "@tanstack/react-query";\nimport { publicShellQueryOptions } from "../../features/public-shell";\n\ninterface UsePublicShellSnapshotOptions {\n  enabled?: boolean;\n}\n\nexport function usePublicShellSnapshot(options: UsePublicShellSnapshotOptions = {}) {\n  const enabled = options.enabled ?? true;\n\n  return useQuery({\n    ...publicShellQueryOptions({ consumeAbortSignal: false }),\n    enabled\n  });\n}\n`
+);
+
+updateFile("src/test/publicDataDrivenPages.test.tsx", (source) =>
+  replaceOnce(
+    source,
+    'vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({\n  usePublicCmsSnapshot: (options?: { enabled?: boolean }) => {\n    usePublicCmsSnapshotMock(options);\n\n    return {\n      data: currentSnapshot,\n      ...currentQueryState\n    };\n  }\n}));\n',
+    'vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({\n  usePublicCmsSnapshot: (options?: { enabled?: boolean }) => {\n    usePublicCmsSnapshotMock(options);\n\n    return {\n      data: currentSnapshot,\n      ...currentQueryState\n    };\n  }\n}));\n\nvi.mock("../public/hooks/usePublicShellSnapshot", () => ({\n  usePublicShellSnapshot: (options?: { enabled?: boolean }) => {\n    usePublicCmsSnapshotMock(options);\n\n    return {\n      data: currentSnapshot,\n      ...currentQueryState\n    };\n  }\n}));\n',
+    "public shell hook test boundary"
+  )
+);
+
+updateFile("src/test/publicShellLayoutStability.test.tsx", (source) =>
+  replaceOnce(
+    source,
+    '    expect(publicSiteShellSource).toContain("PublicSiteShellRegistrationContext.Provider");\n    expect(publicSiteShellSource).toContain("RegisteredPublicSiteShell");\n    expect(publicSiteShellSource).toContain("useLayoutEffect");\n',
+    '    expect(publicSiteShellSource).toContain("PublicSiteShellRegistrationContext.Provider");\n    expect(publicSiteShellSource).toContain("RegisteredPublicSiteShell");\n    expect(publicSiteShellSource).toContain("return <>{children}</>;");\n    expect(publicSiteShellSource).not.toContain("activeRegistration === registration");\n    expect(publicSiteShellSource).not.toContain("useLayoutEffect");\n',
+    "first-pass shell ownership contract"
+  )
+);
 
 updateFile("tests/functional/fixtures/publicHomeCarouselFixture.ts", (source) =>
   replaceOnce(
@@ -105,14 +122,14 @@ updateFile("tests/functional/publicShellClsStability.spec.ts", (source) =>
 
 writeFileSync(
   "src/test/publicSiteShellSsrReadiness.test.ts",
-  `import { readFileSync } from "node:fs";\nimport { describe, expect, it } from "vitest";\n\nconst source = readFileSync(new URL("../public/components/PublicSiteShell.tsx", import.meta.url), "utf8");\n\ndescribe("PublicSiteShell SSR readiness", () => {\n  it("renders nested page content independently of client registration effects", () => {\n    expect(source).toContain("return <>{children}</>;");\n    expect(source).not.toContain("activeRegistration === registration");\n    expect(source).not.toContain("useLayoutEffect");\n  });\n\n  it("makes the route shell own the lightweight public shell query", () => {\n    expect(source).toContain("publicShellQueryOptions({ consumeAbortSignal: false })");\n    expect(source).not.toContain('usePublicCmsSnapshot({\\n    enabled: shouldFetchShellData');\n    expect(source).not.toContain("skipShellDataFetch: true");\n  });\n});\n`
+  `import publicSiteShellSource from "../public/components/PublicSiteShell.tsx?raw";\nimport publicShellHookSource from "../public/hooks/usePublicShellSnapshot.ts?raw";\nimport { describe, expect, it } from "vitest";\n\ndescribe("PublicSiteShell SSR readiness", () => {\n  it("renders nested page content independently of client registration effects", () => {\n    expect(publicSiteShellSource).toContain("return <>{children}</>;");\n    expect(publicSiteShellSource).not.toContain("activeRegistration === registration");\n    expect(publicSiteShellSource).not.toContain("useLayoutEffect");\n  });\n\n  it("makes the route shell own the lightweight public shell query through a testable hook boundary", () => {\n    expect(publicSiteShellSource).toContain("usePublicShellSnapshot({");\n    expect(publicSiteShellSource).not.toContain("usePublicCmsSnapshot({");\n    expect(publicSiteShellSource).not.toContain("skipShellDataFetch: true");\n    expect(publicShellHookSource).toContain("publicShellQueryOptions({ consumeAbortSignal: false })");\n  });\n});\n`
 );
 
 updateFile("docs/architecture/current-runtime-ownership.md", (source) =>
   replaceOnce(
     source,
     "These readiness changes do not enable server rendering, hydration, route loaders, server-side metadata, canonical redirects, or the Step 5 PublicSiteShell refactor. Those remain separate migration stages and must preserve the existing Public/Admin runtime boundaries.\n",
-    "Step 5 makes the route-level PublicSiteShell the authoritative shell renderer. Nested page-level PublicSiteShell instances now render their children on the first render pass and no longer gate page HTML on a client registration effect. Their remaining registration is a client-side enhancement for page-specific metadata and preloaded shell props only; it is not required for page-content rendering. The route shell now reads the lightweight /api/public/shell query directly, including on the home route, instead of depending on a child page effect to provide settings/menu data. This keeps shell ownership compatible with a future server render while preserving the current CSR deployment.\n\nThese readiness changes still do not enable server rendering, hydration, route loaders, server-side metadata/head generation, canonical redirects, or Vercel SSR routing. The remaining client metadata registration is intentionally temporary until the later route-head/SEO step replaces it with server-visible metadata ownership.\n",
+    "Step 5 makes the route-level PublicSiteShell the authoritative shell renderer. Nested page-level PublicSiteShell instances now render their children on the first render pass and no longer gate page HTML on a client registration effect. Their remaining registration is a client-side enhancement for page-specific metadata and preloaded shell props only; it is not required for page-content rendering. The route shell now reads the lightweight /api/public/shell query through a dedicated Public shell hook, including on the home route, instead of depending on a child page effect to provide settings/menu data. This keeps shell ownership compatible with a future server render while preserving the current CSR deployment and a testable data-hook boundary.\n\nThese readiness changes still do not enable server rendering, hydration, route loaders, server-side metadata/head generation, canonical redirects, or Vercel SSR routing. The remaining client metadata registration is intentionally temporary until the later route-head/SEO step replaces it with server-visible metadata ownership.\n",
     "Step 5 runtime ownership documentation"
   )
 );
