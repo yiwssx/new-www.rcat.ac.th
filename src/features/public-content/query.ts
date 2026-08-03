@@ -25,10 +25,7 @@ export function publicContentListQueryOptions(
   return queryOptions({
     queryKey: publicContentListQueryKey(kind),
     queryFn: async (context) => {
-      const snapshot = await getPublicContentListSnapshot(
-        kind,
-        getPublicQueryRequestOptions(context, runtimeOptions)
-      );
+      const snapshot = await getPublicContentListSnapshot(kind, getPublicQueryRequestOptions(context, runtimeOptions));
       setPublicContentListCache(kind, snapshot);
       return snapshot;
     },
@@ -55,10 +52,7 @@ export function publicContentDetailQueryOptions(
       }
 
       try {
-        const content = await getContentDetail(
-          { slug },
-          getPublicQueryRequestOptions(context, runtimeOptions)
-        );
+        const content = await getContentDetail({ slug }, getPublicQueryRequestOptions(context, runtimeOptions));
         setPublicContentDetailCache(slug, content);
         return content;
       } catch (error) {
