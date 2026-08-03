@@ -24,6 +24,11 @@ export interface PublicContentListPageInput {
   pageSize?: number;
 }
 
+export interface PublicSearchPageInput {
+  page: number;
+  pageSize?: number;
+}
+
 export function isCloudflarePublicApiNotFoundError(error: unknown) {
   return isPublicReadNotFoundError(error);
 }
@@ -169,17 +174,46 @@ function assertOptionalPagination(value: unknown, resource: string) {
   }
 }
 
+function normalizePageInput(pageInput: PublicContentListPageInput | PublicSearchPageInput) {
+  return {
+    page: Math.max(1, Math.floor(pageInput.page)),
+    pageSize:
+      pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))
+  };
+}
+
 function buildContentListPath(kind: PublicContentListKind, pageInput?: PublicContentListPageInput) {
   const search = new URLSearchParams({ kind });
 
   if (pageInput) {
-    search.set("page", String(Math.max(1, Math.floor(pageInput.page))));
-    if (pageInput.pageSize !== undefined) {
-      search.set("pageSize", String(Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))));
+    const normalized = normalizePageInput(pageInput);
+    search.set("page", String(normalized.page));
+    if (normalized.pageSize !== undefined) {
+      search.set("pageSize", String(normalized.pageSize));
     }
   }
 
   return `/api/public/content?${search.toString()}`;
+}
+
+function buildSearchPath(query: string, pageInput?: PublicSearchPageInput) {
+  const search = new URLSearchParams();
+  const normalizedQuery = query.trim();
+
+  if (normalizedQuery) {
+    search.set("q", normalizedQuery);
+  }
+
+  if (pageInput) {
+    const normalized = normalizePageInput(pageInput);
+    search.set("page", String(normalized.page));
+    if (normalized.pageSize !== undefined) {
+      search.set("pageSize", String(normalized.pageSize));
+    }
+  }
+
+  const queryString = search.toString();
+  return queryString ? `/api/public/search?${queryString}` : "/api/public/search";
 }
 
 async function getPublicContentListAtPath(
@@ -204,6 +238,27 @@ async function getPublicContentListAtPath(
   assertOptionalPagination(payload.pagination, "content-list");
   persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
   return payload as unknown as PublicContentListSnapshot;
+}
+
+async function getPublicSearchAtPath(
+  normalizedQuery: string,
+  path: string,
+  options: PublicReadRequestOptions
+): Promise<PublicSearchIndexSnapshot> {
+  const payload = await getPublicJson(path, "search", options);
+  assertPublicSnapshot(payload, "search", ["items", "menu"]);
+  assertPublicSummaryItems(payload.items, "search");
+  assertOptionalPagination(payload.pagination, "search");
+
+  if (typeof payload.query === "string" && payload.query !== normalizedQuery) {
+    throw new PublicReadError("Cloudflare search response query does not match the request", {
+      kind: "invalid-response",
+      resource: "search"
+    });
+  }
+
+  persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
+  return payload as unknown as PublicSearchIndexSnapshot;
 }
 
 export async function getPublicShellSnapshotFromCloudflare(
@@ -320,20 +375,16 @@ export async function getPublicSearchIndexSnapshotFromCloudflare(
   options: PublicReadRequestOptions = {}
 ): Promise<PublicSearchIndexSnapshot> {
   const normalizedQuery = query.trim();
-  const path = normalizedQuery ? `/api/public/search?q=${encodeURIComponent(normalizedQuery)}` : "/api/public/search";
-  const payload = await getPublicJson(path, "search", options);
-  assertPublicSnapshot(payload, "search", ["items", "menu"]);
-  assertPublicSummaryItems(payload.items, "search");
+  return getPublicSearchAtPath(normalizedQuery, buildSearchPath(normalizedQuery), options);
+}
 
-  if (typeof payload.query === "string" && payload.query !== normalizedQuery) {
-    throw new PublicReadError("Cloudflare search response query does not match the request", {
-      kind: "invalid-response",
-      resource: "search"
-    });
-  }
-
-  persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
-  return payload as unknown as PublicSearchIndexSnapshot;
+export async function getPublicSearchPageSnapshotFromCloudflare(
+  query: string,
+  pageInput: PublicSearchPageInput,
+  options: PublicReadRequestOptions = {}
+): Promise<PublicSearchIndexSnapshot> {
+  const normalizedQuery = query.trim();
+  return getPublicSearchAtPath(normalizedQuery, buildSearchPath(normalizedQuery, pageInput), options);
 }
 
 export async function getVisitorStatsFromCloudflare(
