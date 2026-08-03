@@ -9,7 +9,7 @@ import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { usePublicSearchPage } from "../hooks/usePublicSearchIndex";
+import { usePublicSearchIndex } from "../hooks/usePublicSearchIndex";
 import { normalizePublicPageSearchValue } from "../routing/searchParams";
 import { ContentItem } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
@@ -48,7 +48,7 @@ export default function PublicSearchPage() {
   const query = getSearchQueryFromLocation(search);
   const hasQuery = Boolean(query);
   const requestedPage = normalizePublicPageSearchValue(search.page) ?? 1;
-  const { data, isLoading, isFetching, isError, refetch } = usePublicSearchPage(
+  const { data, isLoading, isFetching, isError, refetch } = usePublicSearchIndex(
     query,
     requestedPage,
     SEARCH_PAGE_SIZE,
