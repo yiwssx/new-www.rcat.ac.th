@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { getPublicSiteUrl, projectSettings } from "../config/projectSettings";
 import { normalizeSafeHref } from "./safeUrl";
 
-interface DocumentMetadataInput {
+export interface DocumentMetadataInput {
   title?: string;
   description?: string;
   canonicalUrl?: string;
@@ -96,7 +96,7 @@ function isCanonicalHref(value: string) {
   return value.startsWith("/") || lowerValue.startsWith("http://") || lowerValue.startsWith("https://");
 }
 
-function resolveCanonicalUrl(input: DocumentMetadataInput) {
+export function resolveCanonicalUrl(input: Pick<DocumentMetadataInput, "canonicalUrl" | "canonicalPath">) {
   const candidates = [input.canonicalUrl, input.canonicalPath];
 
   for (const candidate of candidates) {
