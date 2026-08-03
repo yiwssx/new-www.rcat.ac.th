@@ -6,6 +6,12 @@ on:
       - refactor/ssr-readiness-step4
     paths:
       - .github/workflows/step4-public-api-contract-readiness.yml
+  pull_request:
+    branches:
+      - refactor/ssr-readiness
+    paths:
+      - .github/workflows/step4-public-api-contract-readiness.yml
+      - scripts/step4-public-api-contract-readiness.mjs
 
 permissions:
   contents: write
