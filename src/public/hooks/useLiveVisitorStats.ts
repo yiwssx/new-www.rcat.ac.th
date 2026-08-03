@@ -44,9 +44,9 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
   const usesCloudflare = getPublicApiProvider() === "cloudflare";
   const query = useQuery({
     queryKey: LIVE_VISITOR_STATS_QUERY_KEY,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       try {
-        const live = normalizeVisitorStats(await getLiveVisitorStats());
+        const live = normalizeVisitorStats(await getLiveVisitorStats({ signal }));
         liveVisitorStatsBackoffUntil = 0;
         return {
           ...normalizedInitial,
