@@ -1,4 +1,5 @@
-import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import type { QueryClient } from "@tanstack/react-query";
+import { createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
 import {
   AccountSecurityPage,
   ActivateAccountPage,
@@ -47,7 +48,11 @@ import {
   validatePublicSearchRouteSearch
 } from "./public/routing/searchParams";
 
-const rootRoute = createRootRoute({
+export interface AppRouterContext {
+  queryClient: QueryClient;
+}
+
+const rootRoute = createRootRouteWithContext<AppRouterContext>()({
   head: getRootRouteHead,
   component: RootRouteLayout,
   notFoundComponent: NotFoundPage
@@ -351,9 +356,10 @@ const routeTree = rootRoute.addChildren([
   ])
 ]);
 
-export function createAppRouter() {
+export function createAppRouter({ queryClient }: AppRouterContext) {
   return createRouter({
     routeTree,
+    context: { queryClient },
     defaultPreload: "intent"
   });
 }
