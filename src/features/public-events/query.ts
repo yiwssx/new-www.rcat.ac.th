@@ -1,15 +1,19 @@
 import { queryOptions } from "@tanstack/react-query";
-import { PUBLIC_QUERY_GC_TIME_MS } from "../public-read/queryPolicy";
+import {
+  getPublicQueryRequestOptions,
+  PUBLIC_QUERY_GC_TIME_MS,
+  type PublicQueryRuntimeOptions
+} from "../public-read/queryPolicy";
 import { getPublicEventList } from "./api";
 import { PUBLIC_EVENT_LIST_CACHE_TTL_MS, setPublicEventListCache } from "./publicEventListCache";
 
 export const publicEventListQueryKey = ["public-event-list"] as const;
 
-export function publicEventListQueryOptions() {
+export function publicEventListQueryOptions(runtimeOptions: PublicQueryRuntimeOptions = {}) {
   return queryOptions({
     queryKey: publicEventListQueryKey,
-    queryFn: async ({ signal }) => {
-      const snapshot = await getPublicEventList({ signal });
+    queryFn: async (context) => {
+      const snapshot = await getPublicEventList(getPublicQueryRequestOptions(context, runtimeOptions));
       setPublicEventListCache(snapshot);
       return snapshot;
     },
