@@ -12,6 +12,7 @@ on:
     paths:
       - .github/workflows/step4-public-api-contract-readiness.yml
       - scripts/step4-public-api-contract-readiness.mjs
+      - scripts/step4-public-api-contract-fix.mjs
 
 permissions:
   contents: write
@@ -33,6 +34,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: node scripts/step4-public-api-contract-readiness.mjs
+      - run: node scripts/step4-public-api-contract-fix.mjs
       - name: Format Step 4 files
         run: |
           git diff --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|md)$' | xargs -r pnpm exec prettier --write
@@ -49,7 +51,7 @@ jobs:
       - run: pnpm worker:deploy:dry
       - name: Commit Step 4 and remove temporary patch files
         run: |
-          rm scripts/step4-public-api-contract-readiness.mjs .github/workflows/step4-public-api-contract-readiness.yml
+          rm scripts/step4-public-api-contract-readiness.mjs scripts/step4-public-api-contract-fix.mjs .github/workflows/step4-public-api-contract-readiness.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
