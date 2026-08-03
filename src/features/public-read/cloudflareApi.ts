@@ -177,8 +177,7 @@ function assertOptionalPagination(value: unknown, resource: string) {
 function normalizePageInput(pageInput: PublicContentListPageInput | PublicSearchPageInput) {
   return {
     page: Math.max(1, Math.floor(pageInput.page)),
-    pageSize:
-      pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))
+    pageSize: pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))
   };
 }
 
