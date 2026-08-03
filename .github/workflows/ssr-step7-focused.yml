@@ -40,4 +40,6 @@ jobs:
           src/test/publicSiteShellSsrReadiness.test.ts
           src/test/publicDataDrivenPages.test.tsx
       - run: pnpm perf:check
+      - run: pnpm media:check
+      - run: pnpm layout:check
       - run: pnpm build
