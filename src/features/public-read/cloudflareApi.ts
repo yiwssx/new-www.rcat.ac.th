@@ -144,11 +144,7 @@ export async function getPublicContentListSnapshotFromCloudflare(
   kind: PublicContentListKind,
   options: PublicReadRequestOptions = {}
 ): Promise<PublicContentListSnapshot> {
-  const payload = await getPublicJson(
-    `/api/public/content?kind=${encodeURIComponent(kind)}`,
-    "content-list",
-    options
-  );
+  const payload = await getPublicJson(`/api/public/content?kind=${encodeURIComponent(kind)}`, "content-list", options);
   assertPublicSnapshot(payload, "content-list", ["items", "media", "menu"]);
 
   if (payload.kind !== kind) {
