@@ -14,7 +14,7 @@ export function usePublicSearchIndex() {
     : false;
 
   return useQuery({
-    ...publicSearchIndexQueryOptions(),
+    ...publicSearchIndexQueryOptions({ consumeAbortSignal: false }),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     refetchOnMount: cachedSnapshot ? !hasFreshCache : true
