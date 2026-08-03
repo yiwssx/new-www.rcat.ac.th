@@ -50,6 +50,7 @@ export interface PublicContentListSnapshot {
   items: PublicContentSummary[];
   pageItems?: PublicContentSummary[];
   pagination?: PublicContentPagination;
+  pageItemsPagination?: PublicContentPagination;
   media: MediaAsset[];
   siteSettings: SiteSettings;
   homepageSettings: HomepageSettings;
