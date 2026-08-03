@@ -3,19 +3,52 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getPublicContentListCache,
   PUBLIC_CONTENT_LIST_CACHE_TTL_MS,
-  publicContentListQueryOptions
+  publicContentListQueryOptions,
+  type PublicContentListPageInput
 } from "../../features/public-content";
 import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
 import type { PublicContentListKind } from "../../types";
 
-export function usePublicContentList(kind: PublicContentListKind) {
-  const cachedSnapshot = useMemo(() => getPublicContentListCache(kind), [kind]);
+function normalizePageInput(pageInput: PublicContentListPageInput | undefined) {
+  if (!pageInput) {
+    return undefined;
+  }
+
+  return {
+    page: Math.max(1, Math.floor(pageInput.page)),
+    pageSize: pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))
+  };
+}
+
+export function usePublicContentList(kind: PublicContentListKind, pageItemsInput?: PublicContentListPageInput) {
+  const normalizedPageItemsInput = normalizePageInput(pageItemsInput);
+  const cachedSnapshot = useMemo(() => {
+    const cached = getPublicContentListCache(kind);
+
+    if (!cached || kind !== "announcements" || !normalizedPageItemsInput) {
+      return cached;
+    }
+
+    const cachedPagination = cached.data.pageItemsPagination;
+    const requestedPageSize = normalizedPageItemsInput.pageSize;
+
+    if (
+      normalizedPageItemsInput.page !== 1 ||
+      !cachedPagination ||
+      cachedPagination.page !== 1 ||
+      (requestedPageSize !== undefined && cachedPagination.pageSize !== requestedPageSize)
+    ) {
+      return null;
+    }
+
+    return cached;
+  }, [kind, normalizedPageItemsInput?.page, normalizedPageItemsInput?.pageSize]);
   const hasFreshCache = cachedSnapshot
     ? isPublicQueryCacheFresh(cachedSnapshot.savedAt, PUBLIC_CONTENT_LIST_CACHE_TTL_MS)
     : false;
 
   return useQuery({
-    ...publicContentListQueryOptions(kind, { consumeAbortSignal: false }),
+    ...publicContentListQueryOptions(kind, { consumeAbortSignal: false }, normalizedPageItemsInput),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     refetchOnMount: cachedSnapshot ? !hasFreshCache : true
