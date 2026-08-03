@@ -27,12 +27,6 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - run: >-
-          pnpm exec prettier --write
-          cloudflare/public-api/src/routes/publicContent.ts
-          src/features/public-content/query.ts
-          src/public/routing/publicRouteHead.test.ts
-          src/test/publicQueryOptions.test.ts
       - run: pnpm format:check
       - run: pnpm lint:strict
       - run: >-
@@ -50,11 +44,3 @@ jobs:
       - run: pnpm media:check
       - run: pnpm layout:check
       - run: pnpm build
-      - name: Show formatting diff
-        if: always()
-        run: >-
-          git diff --
-          cloudflare/public-api/src/routes/publicContent.ts
-          src/features/public-content/query.ts
-          src/public/routing/publicRouteHead.test.ts
-          src/test/publicQueryOptions.test.ts
