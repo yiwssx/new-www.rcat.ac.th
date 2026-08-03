@@ -43,6 +43,7 @@ export function resetLiveVisitorStatsBackoffForTests() {
 export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initialDataUpdatedAt?: number) {
   const normalizedInitial = useMemo(() => normalizeVisitorStats(initialStats), [initialStats]);
   const usesCloudflare = getPublicApiProvider() === "cloudflare";
+  const isBrowser = typeof window !== "undefined";
   const query = useQuery({
     queryKey: LIVE_VISITOR_STATS_QUERY_KEY,
     queryFn: async ({ signal }) => {
@@ -66,7 +67,7 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
         throw error;
       }
     },
-    enabled: usesCloudflare && Boolean(initialStats?.enabled),
+    enabled: isBrowser && usesCloudflare && Boolean(initialStats?.enabled),
     initialData: initialStats ? normalizedInitial : undefined,
     initialDataUpdatedAt,
     retry: false,
