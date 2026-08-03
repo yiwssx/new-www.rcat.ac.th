@@ -11,13 +11,17 @@ export function getPublicIntroGateStorageKey(settings?: HomepageIntroGateSetting
 }
 
 export function getInitialPublicIntroGateVisibility(settings?: HomepageIntroGateSettings) {
-  if (!settings || !shouldShowPublicIntroGate(settings) || typeof window === "undefined") {
+  return shouldShowPublicIntroGate(settings);
+}
+
+export function isPublicIntroGateDismissedInSession(settings?: HomepageIntroGateSettings) {
+  if (!settings || typeof window === "undefined") {
     return false;
   }
 
   try {
-    return window.sessionStorage.getItem(getPublicIntroGateStorageKey(settings)) !== "dismissed";
+    return window.sessionStorage.getItem(getPublicIntroGateStorageKey(settings)) === "dismissed";
   } catch {
-    return true;
+    return false;
   }
 }
