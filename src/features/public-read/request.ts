@@ -98,9 +98,12 @@ export function asInvalidPublicReadResponse(resource: string, error: unknown): P
     return error;
   }
 
-  return new PublicReadError(error instanceof Error ? error.message : `Cloudflare ${resource} returned an invalid response`, {
-    kind: "invalid-response",
-    resource,
-    cause: error
-  });
+  return new PublicReadError(
+    error instanceof Error ? error.message : `Cloudflare ${resource} returned an invalid response`,
+    {
+      kind: "invalid-response",
+      resource,
+      cause: error
+    }
+  );
 }
