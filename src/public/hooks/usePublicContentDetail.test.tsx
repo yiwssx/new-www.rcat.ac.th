@@ -91,7 +91,7 @@ describe("usePublicContentDetail", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ item: content }), {
+        new Response(JSON.stringify({ item: content, media: [], generatedAt: content.updatedAt }), {
           status: 200,
           headers: { "Content-Type": "application/json" }
         })

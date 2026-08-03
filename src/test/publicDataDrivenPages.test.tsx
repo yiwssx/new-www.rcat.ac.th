@@ -1191,9 +1191,9 @@ describe("public data-driven pages", () => {
     render(<PublicSearchPage />);
 
     expect(screen.getByText('พบ 13 รายการสำหรับ "award"')).toBeInTheDocument();
-    expect(screen.getByText("Award result 13")).toBeInTheDocument();
-    expect(screen.getByText("Award result 2")).toBeInTheDocument();
-    expect(screen.queryByText("Award result 1")).not.toBeInTheDocument();
+    expect(screen.getByText("Award result 1")).toBeInTheDocument();
+    expect(screen.getByText("Award result 12")).toBeInTheDocument();
+    expect(screen.queryByText("Award result 13")).not.toBeInTheDocument();
     expect(screen.getByText("แสดง 1–12 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
   });
 
