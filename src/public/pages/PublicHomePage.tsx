@@ -3,7 +3,7 @@ import { Box, Container, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
-import PublicHomeCarousel from "../components/PublicHomeCarousel";
+import PublicHomeCarouselSsrBoundary from "../components/PublicHomeCarouselSsrBoundary";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import PublicSiteShell from "../components/PublicSiteShell";
@@ -154,7 +154,7 @@ export default function PublicHomePage() {
       preloadedMenu={data.menu}
     >
       <PublicBackgroundProgress active={isFetching} />
-      <PublicHomeCarousel
+      <PublicHomeCarouselSsrBoundary
         slides={carouselSlides}
         settings={homepageSettings.carousel}
         initialNowMs={snapshotReferenceTimeMs}
