@@ -26,8 +26,9 @@ describe("public read request taxonomy", () => {
 
     const request = getPublicJson("/api/public/home", "public-home", { signal: controller.signal });
     controller.abort();
+    const error = await request.catch((caught) => caught);
 
-    await expect(request).rejects.toSatisfy((error: unknown) => isPublicReadAbortError(error));
+    expect(isPublicReadAbortError(error)).toBe(true);
     expect(receivedSignal).toBe(controller.signal);
   });
 
@@ -45,7 +46,7 @@ describe("public read request taxonomy", () => {
       "fetch",
       vi.fn(async () => Response.json({ error: "missing" }, { status: 404 }))
     );
-    const notFound = await getPublicJson("/missing", "missing").catch((error) => error);
+    const notFound = await getPublicJson("/missing", "missing").catch((caught) => caught);
     expect(notFound).toBeInstanceOf(PublicReadError);
     expect(isPublicReadNotFoundError(notFound)).toBe(true);
     expect(notFound).toMatchObject({ kind: "http", status: 404, resource: "missing" });
