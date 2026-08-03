@@ -22,27 +22,28 @@ function normalizePageInput(pageInput: PublicContentListPageInput | undefined) {
 
 export function usePublicContentList(kind: PublicContentListKind, pageItemsInput?: PublicContentListPageInput) {
   const normalizedPageItemsInput = normalizePageInput(pageItemsInput);
+  const normalizedPageItemsPage = normalizedPageItemsInput?.page;
+  const normalizedPageItemsPageSize = normalizedPageItemsInput?.pageSize;
   const cachedSnapshot = useMemo(() => {
     const cached = getPublicContentListCache(kind);
 
-    if (!cached || kind !== "announcements" || !normalizedPageItemsInput) {
+    if (!cached || kind !== "announcements" || normalizedPageItemsPage === undefined) {
       return cached;
     }
 
     const cachedPagination = cached.data.pageItemsPagination;
-    const requestedPageSize = normalizedPageItemsInput.pageSize;
 
     if (
-      normalizedPageItemsInput.page !== 1 ||
+      normalizedPageItemsPage !== 1 ||
       !cachedPagination ||
       cachedPagination.page !== 1 ||
-      (requestedPageSize !== undefined && cachedPagination.pageSize !== requestedPageSize)
+      (normalizedPageItemsPageSize !== undefined && cachedPagination.pageSize !== normalizedPageItemsPageSize)
     ) {
       return null;
     }
 
     return cached;
-  }, [kind, normalizedPageItemsInput?.page, normalizedPageItemsInput?.pageSize]);
+  }, [kind, normalizedPageItemsPage, normalizedPageItemsPageSize]);
   const hasFreshCache = cachedSnapshot
     ? isPublicQueryCacheFresh(cachedSnapshot.savedAt, PUBLIC_CONTENT_LIST_CACHE_TTL_MS)
     : false;
