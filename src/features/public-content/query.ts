@@ -1,5 +1,9 @@
 import { queryOptions } from "@tanstack/react-query";
-import { PUBLIC_QUERY_GC_TIME_MS } from "../public-read/queryPolicy";
+import {
+  getPublicQueryRequestOptions,
+  PUBLIC_QUERY_GC_TIME_MS,
+  type PublicQueryRuntimeOptions
+} from "../public-read/queryPolicy";
 import { getContentDetail, getPublicContentListSnapshot, isPublicContentNotFoundError } from "./api";
 import {
   PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS,
@@ -14,11 +18,17 @@ export function publicContentListQueryKey(kind: PublicContentListKind) {
   return ["public-content-list", kind] as const;
 }
 
-export function publicContentListQueryOptions(kind: PublicContentListKind) {
+export function publicContentListQueryOptions(
+  kind: PublicContentListKind,
+  runtimeOptions: PublicQueryRuntimeOptions = {}
+) {
   return queryOptions({
     queryKey: publicContentListQueryKey(kind),
-    queryFn: async ({ signal }) => {
-      const snapshot = await getPublicContentListSnapshot(kind, { signal });
+    queryFn: async (context) => {
+      const snapshot = await getPublicContentListSnapshot(
+        kind,
+        getPublicQueryRequestOptions(context, runtimeOptions)
+      );
       setPublicContentListCache(kind, snapshot);
       return snapshot;
     },
@@ -33,16 +43,22 @@ export function publicContentDetailQueryKey(slug: string | undefined) {
   return ["content-detail", slug] as const;
 }
 
-export function publicContentDetailQueryOptions(slug: string | undefined) {
+export function publicContentDetailQueryOptions(
+  slug: string | undefined,
+  runtimeOptions: PublicQueryRuntimeOptions = {}
+) {
   return queryOptions({
     queryKey: publicContentDetailQueryKey(slug),
-    queryFn: async ({ signal }) => {
+    queryFn: async (context) => {
       if (!slug) {
         throw new Error("Content slug is required.");
       }
 
       try {
-        const content = await getContentDetail({ slug }, { signal });
+        const content = await getContentDetail(
+          { slug },
+          getPublicQueryRequestOptions(context, runtimeOptions)
+        );
         setPublicContentDetailCache(slug, content);
         return content;
       } catch (error) {
