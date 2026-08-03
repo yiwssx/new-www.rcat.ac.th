@@ -15,7 +15,7 @@ export function usePublicContentList(kind: PublicContentListKind) {
     : false;
 
   return useQuery({
-    ...publicContentListQueryOptions(kind),
+    ...publicContentListQueryOptions(kind, { consumeAbortSignal: false }),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     refetchOnMount: cachedSnapshot ? !hasFreshCache : true
