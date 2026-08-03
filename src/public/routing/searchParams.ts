@@ -58,11 +58,7 @@ export function validatePublicFilteredPaginatedSearch(
 
 export function validatePublicAnnouncementsSearch(search: Record<string, unknown>): PublicAnnouncementsSearch {
   const normalized: PublicAnnouncementsSearch = { ...search };
-  setOptionalSearchValue(
-    normalized,
-    "announcementsPage",
-    normalizePublicPageSearchValue(search.announcementsPage)
-  );
+  setOptionalSearchValue(normalized, "announcementsPage", normalizePublicPageSearchValue(search.announcementsPage));
   setOptionalSearchValue(normalized, "pagesPage", normalizePublicPageSearchValue(search.pagesPage));
   setOptionalSearchValue(normalized, "tag", normalizeOptionalText(search.tag));
   setOptionalSearchValue(normalized, "category", normalizeOptionalText(search.category));
