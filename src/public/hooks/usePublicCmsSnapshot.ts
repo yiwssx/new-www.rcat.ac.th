@@ -1,14 +1,8 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  getPublicCmsSnapshotForProvider,
-  publicCmsSnapshotQueryOptions
-} from "../../features/public-read/cmsSnapshot";
+import { getPublicCmsSnapshotForProvider, publicCmsSnapshotQueryOptions } from "../../features/public-read/cmsSnapshot";
 import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
-import {
-  getPublicSnapshotCache,
-  PUBLIC_SNAPSHOT_CACHE_TTL_MS
-} from "../../services/publicCmsCache";
+import { getPublicSnapshotCache, PUBLIC_SNAPSHOT_CACHE_TTL_MS } from "../../services/publicCmsCache";
 
 interface UsePublicCmsSnapshotOptions {
   enabled?: boolean;
