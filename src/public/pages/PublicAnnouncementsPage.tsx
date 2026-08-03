@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useSearch } from "@tanstack/react-router";
 import { Button, Chip, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
@@ -16,14 +17,6 @@ import { normalizeSafeHref } from "../../utils/safeUrl";
 const ANNOUNCEMENTS_PAGE_SIZE = 12;
 const PUBLIC_PAGES_PAGE_SIZE = 12;
 
-function readSearchParam(name: string) {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  return new URLSearchParams(window.location.search).get(name)?.trim() || "";
-}
-
 function normalizeCategoryList(category: string | undefined) {
   return String(category || "")
     .split(",")
@@ -33,8 +26,7 @@ function normalizeCategoryList(category: string | undefined) {
 
 export default function PublicAnnouncementsPage() {
   const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("announcements");
-  const activeTag = readSearchParam("tag");
-  const activeCategory = readSearchParam("category");
+  const { tag: activeTag = "", category: activeCategory = "" } = useSearch({ from: "/announcements" });
   const hasActiveFilter = Boolean(activeTag || activeCategory);
   const announcementItems = useMemo(() => data?.items ?? [], [data?.items]);
   const pageItems = useMemo(() => data?.pageItems ?? [], [data?.pageItems]);
