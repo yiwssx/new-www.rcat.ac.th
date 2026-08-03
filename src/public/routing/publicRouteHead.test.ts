@@ -43,9 +43,7 @@ describe("public route head metadata", () => {
     });
     const pageOne = getStaticPublicRouteHead("/news", { page: "1" });
 
-    expect(pageTwo.links).toEqual([
-      { rel: "canonical", href: `${projectSettings.site.publicSiteUrl}/news?page=2` }
-    ]);
+    expect(pageTwo.links).toEqual([{ rel: "canonical", href: `${projectSettings.site.publicSiteUrl}/news?page=2` }]);
     expect(pageOne.links).toEqual([{ rel: "canonical", href: `${projectSettings.site.publicSiteUrl}/news` }]);
   });
 
