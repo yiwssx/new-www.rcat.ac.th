@@ -23,7 +23,13 @@ function normalizeOptionalText(value: unknown) {
 }
 
 export function normalizePublicPageSearchValue(value: unknown) {
-  const page = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+  let page = Number.NaN;
+
+  if (typeof value === "number") {
+    page = value;
+  } else if (typeof value === "string") {
+    page = Number(value);
+  }
 
   if (!Number.isInteger(page) || page <= 1) {
     return undefined;
