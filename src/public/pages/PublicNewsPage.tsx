@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useSearch } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { Button, Chip, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
@@ -16,6 +16,11 @@ import { normalizeSafeHref } from "../../utils/safeUrl";
 
 const NEWS_PAGE_SIZE = 12;
 
+function readTextSearchParam(search: Record<string, unknown>, name: string) {
+  const value = search[name];
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function normalizeCategoryList(category: string | undefined) {
   return String(category || "")
     .split(",")
@@ -25,7 +30,9 @@ function normalizeCategoryList(category: string | undefined) {
 
 export default function PublicNewsPage() {
   const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("news");
-  const { tag: activeTag = "", category: activeCategory = "" } = useSearch({ from: "/news" });
+  const routeSearch = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
+  const activeTag = readTextSearchParam(routeSearch, "tag");
+  const activeCategory = readTextSearchParam(routeSearch, "category");
   const hasActiveFilter = Boolean(activeTag || activeCategory);
   const newsItems = useMemo(() => data?.items ?? [], [data?.items]);
   const mediaAssets = data?.media ?? [];
