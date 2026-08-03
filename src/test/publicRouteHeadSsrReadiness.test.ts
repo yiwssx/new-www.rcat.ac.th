@@ -34,7 +34,9 @@ describe("public route head SSR readiness", () => {
   it("allows Phase 2 public data loaders while keeping browser hydration disabled", () => {
     expect(routesSource).toContain("loader: ({ context }) => loadPublicShellData(context)");
     expect(routesSource).toContain('loader: ({ context }) => loadPublicContentListData(context, "news")');
-    expect(routesSource).toContain("loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug)");
+    expect(routesSource).toContain(
+      "loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug)"
+    );
     expect(clientEntrySource).toContain("ReactDOM.createRoot");
     expect(clientEntrySource).not.toContain("hydrateRoot");
     expect(serverEntrySource).toContain("renderRouterToString");
