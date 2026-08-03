@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Outlet, useParams } from "@tanstack/react-router";
+import { HeadContent, Outlet, useParams } from "@tanstack/react-router";
 import { RouteFallback } from "./shared/components/RouteFallback";
 
 export const AccountSecurityPage = lazy(() => import("./admin/pages/AccountSecurityPage"));
@@ -42,9 +42,12 @@ export const CapabilityGuard = lazy(() =>
 );
 export function RootRouteLayout() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Outlet />
-    </Suspense>
+    <>
+      <HeadContent />
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+    </>
   );
 }
 
