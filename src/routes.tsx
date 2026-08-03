@@ -34,7 +34,12 @@ import {
   SettingsPage,
   UsersPage
 } from "./routeComponents";
-import { getCmsRouteHead, getPublicContentRouteHead, getStaticPublicRouteHead } from "./public/routing/publicRouteHead";
+import {
+  getCmsRouteHead,
+  getPublicContentRouteHead,
+  getRootRouteHead,
+  getStaticPublicRouteHead
+} from "./public/routing/publicRouteHead";
 import {
   validatePublicAnnouncementsSearch,
   validatePublicFilteredPaginatedSearch,
@@ -43,7 +48,7 @@ import {
 } from "./public/routing/searchParams";
 
 const rootRoute = createRootRoute({
-  head: () => getStaticPublicRouteHead("/"),
+  head: getRootRouteHead,
   component: RootRouteLayout,
   notFoundComponent: NotFoundPage
 });
