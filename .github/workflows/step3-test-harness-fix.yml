@@ -1,0 +1,39 @@
+name: Step 3 Test Harness Fix
+
+on:
+  push:
+    branches:
+      - refactor/ssr-readiness-step3
+    paths:
+      - .github/workflows/step3-test-harness-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ssr-readiness-step3
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: node scripts/step3-test-harness-fix.mjs
+      - run: pnpm exec prettier --write src/test/publicDataDrivenPages.test.tsx
+      - run: pnpm exec vitest run src/test/publicDataDrivenPages.test.tsx
+      - name: Commit patched tests and remove temporary files
+        run: |
+          rm scripts/step3-test-harness-fix.mjs .github/workflows/step3-test-harness-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/test/publicDataDrivenPages.test.tsx scripts/step3-test-harness-fix.mjs .github/workflows/step3-test-harness-fix.yml
+          git commit -m "test(ssr): align public page tests with router search state"
+          git push origin HEAD:refactor/ssr-readiness-step3
