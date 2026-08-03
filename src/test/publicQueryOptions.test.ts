@@ -7,7 +7,7 @@ import { publicHomeQueryKey, publicHomeQueryOptions } from "../features/public-h
 import { publicProgramListQueryOptions } from "../features/public-programs/query";
 import { publicSearchIndexQueryOptions } from "../features/public-search/query";
 import { publicCmsSnapshotQueryOptions } from "../features/public-read/cmsSnapshot";
-import { PUBLIC_QUERY_GC_TIME_MS } from "../features/public-read/queryPolicy";
+import { getPublicQueryRequestOptions, PUBLIC_QUERY_GC_TIME_MS } from "../features/public-read/queryPolicy";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -47,6 +47,22 @@ describe("SSR-ready public query options", () => {
     });
 
     expect(publicContentDetailQueryOptions(undefined).enabled).toBe(false);
+  });
+
+  it("does not consume TanStack's signal for browser-compatible query reuse when opted out", () => {
+    const controller = new AbortController();
+    let signalReads = 0;
+    const context = {
+      get signal() {
+        signalReads += 1;
+        return controller.signal;
+      }
+    };
+
+    expect(getPublicQueryRequestOptions(context, { consumeAbortSignal: false })).toEqual({});
+    expect(signalReads).toBe(0);
+    expect(getPublicQueryRequestOptions(context)).toEqual({ signal: controller.signal });
+    expect(signalReads).toBe(1);
   });
 
   it("lets TanStack Query cancellation abort the underlying public fetch", async () => {
