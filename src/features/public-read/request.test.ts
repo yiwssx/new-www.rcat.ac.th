@@ -19,7 +19,11 @@ describe("public read request taxonomy", () => {
       vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
         receivedSignal = init?.signal instanceof AbortSignal ? init.signal : null;
         return new Promise<Response>((_resolve, reject) => {
-          init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("Aborted", "AbortError")),
+            { once: true }
+          );
         });
       })
     );
@@ -42,10 +46,7 @@ describe("public read request taxonomy", () => {
       resource: "network"
     });
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => Response.json({ error: "missing" }, { status: 404 }))
-    );
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "missing" }, { status: 404 })));
     const notFound = await getPublicJson("/missing", "missing").catch((caught) => caught);
     expect(notFound).toBeInstanceOf(PublicReadError);
     expect(isPublicReadNotFoundError(notFound)).toBe(true);
