@@ -133,25 +133,29 @@ function createInvalidRewriteResponse() {
   });
 }
 
-export async function handleVercelPublicSsrRequest(request: Request) {
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    return createMethodNotAllowedResponse();
-  }
-
+export async function renderVercelPublicSsrRequest(request: Request) {
   const publicRequest = reconstructPublicSsrRequest(request);
   if (!publicRequest) {
     return createInvalidRewriteResponse();
   }
 
+  const rendered = await renderSsrResponse(publicRequest);
+  const cached = applyVercelPublicSsrCachePolicy(publicRequest, rendered);
+
+  if (request.method === "HEAD") {
+    return withResponseHeaders(cached, new Headers(cached.headers), null);
+  }
+
+  return cached;
+}
+
+export async function handleVercelPublicSsrRequest(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return createMethodNotAllowedResponse();
+  }
+
   try {
-    const rendered = await renderSsrResponse(publicRequest);
-    const cached = applyVercelPublicSsrCachePolicy(publicRequest, rendered);
-
-    if (request.method === "HEAD") {
-      return withResponseHeaders(cached, new Headers(cached.headers), null);
-    }
-
-    return cached;
+    return await renderVercelPublicSsrRequest(request);
   } catch (error) {
     console.error("Public SSR render failed", {
       message: error instanceof Error ? error.message : String(error)
