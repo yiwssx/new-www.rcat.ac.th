@@ -21,7 +21,7 @@ export function mountClientApp(rootElement: HTMLElement) {
     hydrateRoot(
       rootElement,
       <React.StrictMode>
-        <AppProviders queryClient={runtime.queryClient}>
+        <AppProviders emotionCache={runtime.emotionCache} queryClient={runtime.queryClient}>
           <RouterClient router={runtime.router} />
         </AppProviders>
       </React.StrictMode>
@@ -32,7 +32,7 @@ export function mountClientApp(rootElement: HTMLElement) {
 
   createRoot(rootElement).render(
     <React.StrictMode>
-      <App queryClient={runtime.queryClient} router={runtime.router} />
+      <App emotionCache={runtime.emotionCache} queryClient={runtime.queryClient} router={runtime.router} />
     </React.StrictMode>
   );
 
