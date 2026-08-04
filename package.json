@@ -46,6 +46,7 @@
     "test:unit": "node scripts/run-vitest.mjs run --exclude src/test/integration/** --exclude cloudflare/public-api/test/cmsMfaD1Integration.test.ts --exclude cloudflare/public-api/test/cmsUserLifecycleD1Integration.test.ts",
     "test:integration": "node scripts/run-vitest.mjs run src/test/integration cloudflare/public-api/test/cmsMfaD1Integration.test.ts cloudflare/public-api/test/cmsUserLifecycleD1Integration.test.ts",
     "test:ssr:foundation": "vitest run src/test/ssrRuntimeFoundation.test.tsx src/public/routing/publicRouteHead.test.ts src/test/publicRouteHeadSsrReadiness.test.ts src/test/publicSiteShellSsrReadiness.test.ts",
+    "test:ssr:hydration": "vitest run src/test/queryHydration.test.ts src/test/ssrRuntimeFoundation.test.tsx src/test/publicRouteLoaders.test.ts src/test/publicRouteHeadSsrReadiness.test.ts src/test/publicSiteShellSsrReadiness.test.ts src/public/routing/publicRouteHead.test.ts",
     "test:functional:install": "playwright install chromium",
     "test:functional": "playwright test",
     "test:all": "pnpm test:unit && pnpm test:integration && pnpm test:functional",
