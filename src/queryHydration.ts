@@ -26,27 +26,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-export function dehydrateAppQueryClient(
-  queryClient: QueryClient
-): AppRouterDehydratedData {
+export function dehydrateAppQueryClient(queryClient: QueryClient): AppRouterDehydratedData {
   return {
     queryClientState: dehydrate(queryClient, {
       shouldDehydrateQuery: (query) => {
         const rootKey = query.queryKey[0];
         return (
-          typeof rootKey === "string" &&
-          PUBLIC_SSR_QUERY_KEY_ROOTS.has(rootKey) &&
-          defaultShouldDehydrateQuery(query)
+          typeof rootKey === "string" && PUBLIC_SSR_QUERY_KEY_ROOTS.has(rootKey) && defaultShouldDehydrateQuery(query)
         );
       }
     })
   };
 }
 
-export function hydrateAppQueryClient(
-  queryClient: QueryClient,
-  dehydrated: unknown
-) {
+export function hydrateAppQueryClient(queryClient: QueryClient, dehydrated: unknown) {
   if (!isRecord(dehydrated) || !("queryClientState" in dehydrated)) {
     return false;
   }
