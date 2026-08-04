@@ -61,15 +61,43 @@ jobs:
       - name: Enforce security update boundaries
         shell: bash
         run: |
-          if ! git diff --quiet -- package.json pnpm-workspace.yaml config/dependency-policy.json .node-version; then
-            echo "Security refresh changed a protected manifest/policy/runtime pin."
-            git diff -- package.json pnpm-workspace.yaml config/dependency-policy.json .node-version
+          if ! git diff --quiet -- pnpm-workspace.yaml config/dependency-policy.json .node-version; then
+            echo "Security refresh changed a protected policy/runtime pin."
+            git diff -- pnpm-workspace.yaml config/dependency-policy.json .node-version
             exit 1
           fi
           if grep -q "minimumReleaseAgeExclude" pnpm-workspace.yaml; then
             echo "Persistent release-age exclusion detected."
             exit 1
           fi
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { readFileSync } from 'node:fs';
+
+          const before = JSON.parse(execFileSync('git', ['show', 'HEAD:package.json'], { encoding: 'utf8' }));
+          const after = JSON.parse(readFileSync('package.json', 'utf8'));
+          const allowed = {
+            dependencies: { jose: '^6.2.6' },
+            devDependencies: {
+              '@cloudflare/workers-types': '^5.20260801.1',
+              'lint-staged': '^17.3.0',
+              wrangler: '^4.118.0'
+            }
+          };
+
+          for (const [section, entries] of Object.entries(allowed)) {
+            for (const [name, expected] of Object.entries(entries)) {
+              if (after[section]?.[name] !== expected) {
+                throw new Error(`Unexpected ${section}.${name}: ${after[section]?.[name]} (expected ${expected})`);
+              }
+              after[section][name] = before[section][name];
+            }
+          }
+
+          if (JSON.stringify(after) !== JSON.stringify(before)) {
+            throw new Error('package.json contains changes outside the reviewed direct dependency updates');
+          }
+          NODE
 
       - name: Verify patched transitive versions
         shell: bash
@@ -96,13 +124,13 @@ jobs:
         if: github.event_name == 'push'
         shell: bash
         run: |
-          if git diff --quiet -- pnpm-lock.yaml docs/maintenance/dependency-current-status.md; then
+          if git diff --quiet -- package.json pnpm-lock.yaml docs/maintenance/dependency-current-status.md; then
             echo "No dependency files changed."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pnpm-lock.yaml docs/maintenance/dependency-current-status.md
+          git add package.json pnpm-lock.yaml docs/maintenance/dependency-current-status.md
           git diff --cached --check
           git commit -m "fix(deps): resolve high severity toolchain advisories"
           git push origin HEAD:fix/dependency-security-release-gate
