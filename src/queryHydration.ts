@@ -26,7 +26,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-export function dehydrateAppQueryClient(queryClient: QueryClient): AppRouterDehydratedData {
+export function dehydrateAppQueryClient(
+  queryClient: QueryClient
+): AppRouterDehydratedData {
   return {
     queryClientState: dehydrate(queryClient, {
       shouldDehydrateQuery: (query) => {
@@ -41,7 +43,10 @@ export function dehydrateAppQueryClient(queryClient: QueryClient): AppRouterDehy
   };
 }
 
-export function hydrateAppQueryClient(queryClient: QueryClient, dehydrated: unknown) {
+export function hydrateAppQueryClient(
+  queryClient: QueryClient,
+  dehydrated: unknown
+) {
   if (!isRecord(dehydrated) || !("queryClientState" in dehydrated)) {
     return false;
   }
