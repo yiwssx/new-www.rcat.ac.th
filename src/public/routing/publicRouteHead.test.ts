@@ -98,13 +98,8 @@ const detailSnapshot: PublicContentDetailSnapshot = {
 
 const detailLoaderData = {
   item: detailSnapshot.item,
-  cmsSnapshot: {
-    metrics: [],
-    content: [detailSnapshot.item],
-    media: detailSnapshot.media,
-    events: [],
-    siteSettings
-  }
+  siteSettings,
+  featuredMedia: detailSnapshot.media[0]
 };
 
 describe("public route head metadata", () => {
