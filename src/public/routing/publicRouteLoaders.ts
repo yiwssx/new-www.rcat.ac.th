@@ -1,9 +1,15 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { PublicContentListKind } from "../../types";
+import type { ContentItem, MediaAsset, PublicContentListKind, SiteSettings } from "../../types";
 import { normalizePublicPageSearchValue } from "./searchParams";
 
 export interface PublicRouteLoaderContext {
   queryClient: QueryClient;
+}
+
+export interface PublicContentDetailLoaderData {
+  item: ContentItem | null | undefined;
+  siteSettings: SiteSettings | undefined;
+  featuredMedia: MediaAsset | undefined;
 }
 
 export const PUBLIC_SEARCH_PAGE_SIZE = 12;
@@ -87,18 +93,28 @@ export async function loadPublicSearchResultsData(
   );
 }
 
-export async function loadPublicContentDetailData(context: PublicRouteLoaderContext, slug: string | undefined) {
+export async function loadPublicContentDetailData(
+  context: PublicRouteLoaderContext,
+  slug: string | undefined
+): Promise<PublicContentDetailLoaderData | undefined> {
   if (!slug) {
     return undefined;
   }
 
   const { publicContentDetailQueryOptions } = await import("../../features/public-content");
-  const [detail] = await Promise.all([
+  const [item, cmsSnapshot] = await Promise.all([
     ensurePublicQuery(() => context.queryClient.ensureQueryData(publicContentDetailQueryOptions(slug))),
     loadPublicCmsSnapshotData(context)
   ]);
+  const featuredMedia = item?.featuredMediaId
+    ? cmsSnapshot?.media.find((asset) => asset.id === item.featuredMediaId && asset.type === "image")
+    : undefined;
 
-  return detail;
+  return {
+    item,
+    siteSettings: cmsSnapshot?.siteSettings,
+    featuredMedia
+  };
 }
 
 export function getAnnouncementPagesLoaderInput(search: Record<string, unknown>) {

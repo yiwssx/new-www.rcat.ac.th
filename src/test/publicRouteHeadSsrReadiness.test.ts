@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import indexHtmlSource from "../../index.html?raw";
 import clientEntrySource from "../entry-client.tsx?raw";
 import mainSource from "../main.tsx?raw";
+import publicRouteHeadSource from "../public/routing/publicRouteHead.ts?raw";
 import routeComponentsSource from "../routeComponents.tsx?raw";
 import routesSource from "../routes.tsx?raw";
 import serverEntrySource from "../entry-server.tsx?raw";
@@ -12,13 +13,20 @@ describe("public route head SSR readiness", () => {
     expect(routeComponentsSource).toContain("<HeadContent />");
   });
 
-  it("owns public canonical metadata in route head declarations", () => {
+  it("owns public canonical and dynamic SEO metadata in route head declarations", () => {
     expect(routesSource).toContain("head: getRootRouteHead");
+    expect(routesSource).toContain("head: ({ loaderData }) => getPublicLayoutRouteHead(loaderData)");
     expect(routesSource).toContain('head: ({ match }) => getStaticPublicRouteHead("/news", match.search)');
     expect(routesSource).toContain('head: ({ match }) => getStaticPublicRouteHead("/announcements", match.search)');
-    expect(routesSource).toContain('head: () => getStaticPublicRouteHead("/search")');
-    expect(routesSource).toContain("head: ({ params }) => getPublicContentRouteHead(params.slug)");
+    expect(routesSource).toContain('getStaticPublicRouteHead("/search", match.search, { loaderData, matches })');
+    expect(routesSource).toContain("getPublicContentRouteHead(params.slug, loaderData, { matches })");
     expect(routesSource).toContain("head: getCmsRouteHead");
+  });
+
+  it("lazy-loads the full SEO implementation so structured-data builders stay out of the synchronous entry graph", () => {
+    expect(publicRouteHeadSource).toContain('import("./publicRouteHeadImpl")');
+    expect(publicRouteHeadSource).not.toContain("buildPublicOrganizationJsonLd");
+    expect(publicRouteHeadSource).not.toContain("resolvePublicImageSource");
   });
 
   it("does not leave competing title or description ownership in the Vite HTML template", () => {
