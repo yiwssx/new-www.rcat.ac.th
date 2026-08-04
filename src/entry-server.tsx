@@ -1,11 +1,12 @@
 import React from "react";
 import { RouterServer, createRequestHandler, renderRouterToString } from "@tanstack/react-router/ssr/server";
 import AppProviders from "./AppProviders";
-import { injectEmotionCriticalCssIntoResponse } from "./emotionSsr";
+import { createEmotionSsrResponseFinalizer } from "./emotionSsr";
 import { createAppRuntime } from "./runtime";
 
 export async function renderSsrResponse(request: Request) {
   const runtime = createAppRuntime();
+  const finalizeEmotionSsrResponse = createEmotionSsrResponseFinalizer(runtime.emotionCache);
   const handler = createRequestHandler({
     request,
     createRouter: () => runtime.router
@@ -22,6 +23,6 @@ export async function renderSsrResponse(request: Request) {
       )
     });
 
-    return injectEmotionCriticalCssIntoResponse(response, runtime.emotionCache);
+    return finalizeEmotionSsrResponse(response);
   });
 }
