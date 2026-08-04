@@ -58,7 +58,7 @@ Phase 3 carries the request-scoped QueryClient cache produced by Phase 2 across 
 
 ## Phase 4 — MUI/Emotion SSR Styling + Critical CSS
 
-Status: implemented on the Phase 4 branch; production Vercel routing remains unchanged until Phase 7.
+Status: implemented on the SSR integration line; production Vercel routing remains unchanged until Phase 7.
 
 Phase 4 makes the shared MUI/Emotion styling layer safe for the non-streaming SSR path established by Phases 1–3:
 
@@ -74,10 +74,28 @@ Phase 4 makes the shared MUI/Emotion styling layer safe for the non-streaming SS
 
 Phase 4 intentionally remains non-streaming. CSP nonce support belongs with the production response/CSP boundary rather than being invented here; if a strict nonce-based `style-src` policy is introduced later, the nonce must be passed consistently to both the request-scoped Emotion cache and the emitted critical style tags.
 
+## Phase 5 — Full Dynamic SEO + Social Metadata + Structured Data
+
+Status: implemented on the Phase 5 branch; production remains on the CSR deployment path until Phase 7.
+
+Phase 5 turns the baseline Step 7 route metadata into a loader-driven SEO contract that is usable by both the current browser router and the SSR renderer:
+
+- the Public layout consumes its `/api/public/shell` loader data for the current site name, description, hero social image, and `EducationalOrganization` JSON-LD;
+- Home uses loader-backed site settings for its description/social image and emits `WebSite` JSON-LD;
+- Public archive routes retain validated canonical pagination and now emit Open Graph, Twitter, locale, and breadcrumb metadata through the same route `head` model;
+- Search remains `noindex,follow`, keeps a stable `/search` canonical, and derives a human-readable title/description from the validated `q` value without making search results indexable;
+- content detail routes consume their own loader result plus the Public layout match data, prioritizing CMS `seoTitle`, `seoDescription`, and `canonicalUrl` over fallback title/summary/path values;
+- content social images come from the referenced featured media when available and otherwise fall back to the Public site's hero image;
+- News/Blog/Announcement detail emits article-oriented Open Graph metadata plus published/modified/section fields; News uses `NewsArticle` JSON-LD, Blog/Announcement use `Article`, and Page/Program detail uses `WebPage`;
+- detail routes emit route-aware `BreadcrumbList` JSON-LD while the Public layout supplies the shared organization entity;
+- inline JSON-LD serialization escapes less-than characters so CMS text cannot prematurely terminate a structured-data script tag;
+- the heavy SEO implementation is dynamically imported behind the small `publicRouteHead.ts` facade, keeping structured-data/image-resolution logic out of the synchronous browser entry graph.
+
+Phase 5 intentionally does not convert alternate content URLs into HTTP redirects or choose final error/status behavior. Those response-level semantics, robots/sitemap cleanup, and canonical redirect enforcement remain Phase 6 responsibilities.
+
 ## Remaining implementation phases
 
-1. Phase 5 — Full dynamic SEO, social metadata, and structured data.
-2. Phase 6 — HTTP status, canonical redirects, indexing, sitemap, and robots correctness.
-3. Phase 7 — Vercel routing, cache policy, production validation, and cutover.
+1. Phase 6 — HTTP status, canonical redirects, indexing, sitemap, and robots correctness.
+2. Phase 7 — Vercel routing, cache policy, production validation, and cutover.
 
 Production SSR/SEO is complete only after the remaining phases are finished and the production Vercel routing is explicitly switched from the CSR fallback to the verified SSR renderer.
