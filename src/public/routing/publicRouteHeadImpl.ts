@@ -1,5 +1,5 @@
 import { projectSettings } from "../../config/projectSettings";
-import type { CmsSnapshot, ContentItem, SiteSettings } from "../../types";
+import type { ContentItem, MediaAsset, SiteSettings } from "../../types";
 import { normalizePublicPageSearchValue } from "./searchParams";
 import {
   buildPublicBreadcrumbJsonLd,
@@ -53,7 +53,8 @@ type PublicCanonicalPaginationKey = "page" | "announcementsPage" | "pagesPage";
 
 interface PublicContentHeadLoaderData {
   item: ContentItem;
-  cmsSnapshot?: CmsSnapshot;
+  siteSettings?: SiteSettings;
+  featuredMedia?: MediaAsset;
 }
 
 const DEFAULT_PUBLIC_DESCRIPTION = "เว็บไซต์ประชาสัมพันธ์และระบบจัดการเนื้อหาของสถานศึกษา";
@@ -135,19 +136,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function readSiteSettings(value: unknown): SiteSettings | undefined {
-  if (!isRecord(value)) {
+  if (!isRecord(value) || !isRecord(value.siteSettings)) {
     return undefined;
   }
 
-  if (isRecord(value.siteSettings)) {
-    return value.siteSettings as unknown as SiteSettings;
-  }
-
-  if (isRecord(value.cmsSnapshot) && isRecord(value.cmsSnapshot.siteSettings)) {
-    return value.cmsSnapshot.siteSettings as unknown as SiteSettings;
-  }
-
-  return undefined;
+  return value.siteSettings as unknown as SiteSettings;
 }
 
 function getContextSiteSettings(context?: PublicRouteHeadContextData) {
@@ -174,7 +167,8 @@ function readContentHeadLoaderData(value: unknown): PublicContentHeadLoaderData 
 
   return {
     item: value.item as unknown as ContentItem,
-    cmsSnapshot: isRecord(value.cmsSnapshot) ? (value.cmsSnapshot as unknown as CmsSnapshot) : undefined
+    siteSettings: isRecord(value.siteSettings) ? (value.siteSettings as unknown as SiteSettings) : undefined,
+    featuredMedia: isRecord(value.featuredMedia) ? (value.featuredMedia as unknown as MediaAsset) : undefined
   };
 }
 
@@ -351,7 +345,7 @@ export function getStaticPublicRouteHead(
 export function getPublicContentRouteHead(slug: string, loaderData?: unknown, context?: PublicRouteHeadContextData) {
   const normalizedSlug = String(slug || "").trim();
   const detailData = readContentHeadLoaderData(loaderData);
-  const siteSettings = detailData?.cmsSnapshot?.siteSettings || getContextSiteSettings(context);
+  const siteSettings = detailData?.siteSettings || getContextSiteSettings(context);
 
   if (!detailData) {
     return buildPublicRouteHead({
@@ -370,7 +364,7 @@ export function getPublicContentRouteHead(slug: string, loaderData?: unknown, co
   const canonicalUrl = resolvePublicSeoUrl(item.canonicalUrl || internalContentPath);
   const description = item.seoDescription?.trim() || item.summary?.trim() || DEFAULT_CONTENT_DESCRIPTION;
   const title = item.seoTitle?.trim() || item.title?.trim() || "เนื้อหา";
-  const imageUrl = getPublicContentSocialImageUrl(item, detailData.cmsSnapshot?.media || [], siteSettings);
+  const imageUrl = getPublicContentSocialImageUrl(detailData.featuredMedia, siteSettings);
   const archive = PUBLIC_CONTENT_ARCHIVE[item.type];
   const breadcrumbs = [
     { name: "หน้าหลัก", path: "/" },
