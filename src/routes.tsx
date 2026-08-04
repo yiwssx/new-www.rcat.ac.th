@@ -38,6 +38,7 @@ import {
 import {
   getCmsRouteHead,
   getPublicContentRouteHead,
+  getPublicLayoutRouteHead,
   getRootRouteHead,
   getStaticPublicRouteHead
 } from "./public/routing/publicRouteHead";
@@ -76,6 +77,7 @@ const publicLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "public-layout",
   loader: ({ context }) => loadPublicShellData(context),
+  head: ({ loaderData }) => getPublicLayoutRouteHead(loaderData),
   component: PublicRouteLayout
 });
 
@@ -83,7 +85,7 @@ const publicHomeRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "/",
   loader: ({ context }) => loadPublicHomeData(context),
-  head: () => getStaticPublicRouteHead("/"),
+  head: ({ loaderData, matches }) => getStaticPublicRouteHead("/", undefined, { loaderData, matches }),
   component: PublicHomePage
 });
 
@@ -165,7 +167,8 @@ const publicSearchRoute = createRoute({
   validateSearch: validatePublicSearchRouteSearch,
   loaderDeps: ({ search }) => ({ query: search.q, page: search.page }),
   loader: ({ context, deps }) => loadPublicSearchResultsData(context, deps),
-  head: () => getStaticPublicRouteHead("/search"),
+  head: ({ match, loaderData, matches }) =>
+    getStaticPublicRouteHead("/search", match.search, { loaderData, matches }),
   component: PublicSearchPage
 });
 
@@ -173,7 +176,7 @@ const publicContentDetailRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "content/$slug",
   loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug),
-  head: ({ params }) => getPublicContentRouteHead(params.slug),
+  head: ({ params, loaderData, matches }) => getPublicContentRouteHead(params.slug, loaderData, { matches }),
   component: PublicContentDetailRoute
 });
 
@@ -181,7 +184,7 @@ const publicPermalinkRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "$slug",
   loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug),
-  head: ({ params }) => getPublicContentRouteHead(params.slug),
+  head: ({ params, loaderData, matches }) => getPublicContentRouteHead(params.slug, loaderData, { matches }),
   component: PublicContentDetailRoute
 });
 
