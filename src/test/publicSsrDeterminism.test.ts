@@ -57,6 +57,9 @@ describe("Public SSR determinism readiness", () => {
 
   it("keeps live visitor polling outside server rendering", () => {
     expect(liveVisitorStatsSource).toContain('const isBrowser = typeof window !== "undefined";');
-    expect(liveVisitorStatsSource).toContain("enabled: isBrowser && usesCloudflare && Boolean(initialStats?.enabled)");
+    expect(liveVisitorStatsSource).toContain(
+      "const liveEnabled = isBrowser && usesCloudflare && Boolean(initialStats?.enabled);"
+    );
+    expect(liveVisitorStatsSource).toContain("enabled: liveEnabled");
   });
 });
