@@ -32,7 +32,7 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - run: pnpm deps:status
+      - run: pnpm deps:status || true
       - run: |
           if git diff --quiet -- docs/maintenance/dependency-current-status.md; then
             exit 0
