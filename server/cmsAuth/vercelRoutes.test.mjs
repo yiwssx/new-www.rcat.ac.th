@@ -28,6 +28,12 @@ const expectedRetiredRoutes = [
   ["/api/admin-proxy-session/logout", "retired-admin-proxy-logout"]
 ];
 
+function findPublicSsrCatchAllIndex() {
+  return rewrites.findIndex(
+    ({ source, destination }) => source === "/(.*)" && destination === "/api/ssr?_rcatPath=/$1"
+  );
+}
+
 describe("Vercel CMS-auth rewrite contract", () => {
   it("preserves every exact public CMS-auth URL with a unique dispatcher route", () => {
     const cmsRewrites = rewrites.filter(({ source }) => source.startsWith("/api/cms-auth/"));
@@ -58,27 +64,27 @@ describe("Vercel CMS-auth rewrite contract", () => {
     ).toBe(expectedCmsRoutes.length);
   });
 
-  it("places every CMS-auth rewrite before the final SPA fallback", () => {
-    const spaIndex = rewrites.findIndex(({ source, destination }) => source === "/(.*)" && destination === "/");
+  it("places every CMS-auth rewrite before the final Public SSR catch-all", () => {
+    const ssrIndex = findPublicSsrCatchAllIndex();
     const cmsIndices = rewrites
       .map((rewrite, index) => ({ rewrite, index }))
       .filter(({ rewrite }) => rewrite.source.startsWith("/api/cms-auth/"))
       .map(({ index }) => index);
 
-    expect(spaIndex).toBe(rewrites.length - 1);
+    expect(ssrIndex).toBe(rewrites.length - 1);
     expect(cmsIndices).toHaveLength(expectedCmsRoutes.length);
-    expect(cmsIndices.every((index) => index < spaIndex)).toBe(true);
+    expect(cmsIndices.every((index) => index < ssrIndex)).toBe(true);
   });
 
-  it("routes the two retired authentication endpoints through the consolidated Function before the SPA", () => {
-    const spaIndex = rewrites.findIndex(({ source, destination }) => source === "/(.*)" && destination === "/");
+  it("routes the two retired authentication endpoints through the consolidated Function before Public SSR", () => {
+    const ssrIndex = findPublicSsrCatchAllIndex();
 
     for (const [source, routeId] of expectedRetiredRoutes) {
       const index = rewrites.findIndex(
         (rewrite) => rewrite.source === source && rewrite.destination === `/api/cms-auth?_rcatCmsRoute=${routeId}`
       );
       expect(index).toBeGreaterThanOrEqual(0);
-      expect(index).toBeLessThan(spaIndex);
+      expect(index).toBeLessThan(ssrIndex);
     }
   });
 

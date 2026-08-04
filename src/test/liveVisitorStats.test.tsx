@@ -131,6 +131,27 @@ describe("live public visitor stats", () => {
     expect(screen.getByText("7")).toBeInTheDocument();
   });
 
+  it("does not duplicate a completed interval refresh on immediate focus or reconnect", async () => {
+    renderLiveStats();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    await flushTimers();
+    expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+      onlineManager.setOnline(false);
+      onlineManager.setOnline(true);
+      await Promise.resolve();
+    });
+    await flushTimers();
+
+    expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
+  });
+
   it("refreshes an already stale snapshot on mount while retaining it during the request", async () => {
     const pendingStats = createDeferred<VisitorStatsSettings>();
     getLiveVisitorStatsMock.mockReturnValue(pendingStats.promise);
