@@ -167,8 +167,7 @@ const publicSearchRoute = createRoute({
   validateSearch: validatePublicSearchRouteSearch,
   loaderDeps: ({ search }) => ({ query: search.q, page: search.page }),
   loader: ({ context, deps }) => loadPublicSearchResultsData(context, deps),
-  head: ({ match, loaderData, matches }) =>
-    getStaticPublicRouteHead("/search", match.search, { loaderData, matches }),
+  head: ({ match, loaderData, matches }) => getStaticPublicRouteHead("/search", match.search, { loaderData, matches }),
   component: PublicSearchPage
 });
 
