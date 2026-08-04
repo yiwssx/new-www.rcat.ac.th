@@ -20,11 +20,7 @@ export function createPublicRouteLoadFailure(): PublicRouteLoadFailure {
 }
 
 export function isPublicRouteLoadFailure(value: unknown): value is PublicRouteLoadFailure {
-  return (
-    isRecord(value) &&
-    value.__rcatPublicRouteFailure === PUBLIC_ROUTE_FAILURE_MARKER &&
-    value.status === 503
-  );
+  return isRecord(value) && value.__rcatPublicRouteFailure === PUBLIC_ROUTE_FAILURE_MARKER && value.status === 503;
 }
 
 export function hasPublicRouteLoadFailure(matches: readonly unknown[]) {
