@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
+import { isPublicRouteLoadFailure } from "../public/routing/publicHttpSemantics";
 import {
   getAnnouncementPagesLoaderInput,
   loadPublicContentDetailData,
@@ -12,8 +13,11 @@ import {
   type PublicRouteLoaderContext
 } from "../public/routing/publicRouteLoaders";
 
-function createLoaderContext() {
-  const ensureQueryData = vi.fn(async (options: { queryKey?: readonly unknown[] }) => options.queryKey);
+function createLoaderContext(resolveData?: (queryKey: readonly unknown[]) => unknown) {
+  const ensureQueryData = vi.fn(async (options: { queryKey?: readonly unknown[] }) => {
+    const queryKey = options.queryKey ?? [];
+    return resolveData ? resolveData(queryKey) : queryKey;
+  });
   const queryClient = { ensureQueryData } as unknown as QueryClient;
 
   return {
@@ -75,18 +79,58 @@ describe("public route loader ownership", () => {
     ]);
   });
 
-  it("prefetches both detail and supporting CMS snapshot for content routes without changing their query keys", async () => {
-    const runtime = createLoaderContext();
+  it("prefetches detail plus CMS support data and returns only the lightweight head projection", async () => {
+    const item = {
+      id: "content-1",
+      title: "ข่าว",
+      slug: "sample-slug",
+      type: "news",
+      status: "published",
+      owner: "ประชาสัมพันธ์",
+      summary: "สรุป",
+      featuredMediaId: "media-1",
+      updatedAt: "2026-08-04T00:00:00.000Z",
+      publishAt: "2026-08-04T00:00:00.000Z"
+    };
+    const featuredMedia = {
+      id: "media-1",
+      name: "ภาพข่าว",
+      type: "image",
+      size: "1200x630",
+      owner: "ประชาสัมพันธ์",
+      updatedAt: "2026-08-04T00:00:00.000Z"
+    };
+    const siteSettings = { siteName: "RCAT" };
+    const runtime = createLoaderContext((queryKey) => {
+      if (queryKey[0] === "content-detail") return item;
+      if (queryKey[0] === "cms-snapshot") return { media: [featuredMedia], siteSettings };
+      return queryKey;
+    });
 
     const loaderData = await loadPublicContentDetailData(runtime.context, "sample-slug");
 
     const keys = runtime.ensureQueryData.mock.calls.map((call) => call[0]?.queryKey);
     expect(keys).toContainEqual(["content-detail", "sample-slug"]);
     expect(keys).toContainEqual(["cms-snapshot"]);
-    expect(loaderData).toEqual({
-      item: ["content-detail", "sample-slug"],
-      siteSettings: undefined,
-      featuredMedia: undefined
+    expect(loaderData).toEqual({ item, siteSettings, featuredMedia });
+  });
+
+  it("returns a JSON-safe 503 marker when Public prefetch fails instead of exposing the error object", async () => {
+    const ensureQueryData = vi.fn(async () => {
+      throw new Error("upstream secret detail");
     });
+    const context = {
+      queryClient: { ensureQueryData } as unknown as QueryClient
+    } satisfies PublicRouteLoaderContext;
+
+    const loaderData = await loadPublicContentListData(context, "news");
+
+    expect(isPublicRouteLoadFailure(loaderData)).toBe(true);
+    expect(loaderData).toEqual({
+      __rcatPublicRouteFailure: "rcat-public-route-upstream-failure",
+      status: 503,
+      retryAfterSeconds: 300
+    });
+    expect(JSON.stringify(loaderData)).not.toContain("upstream secret detail");
   });
 });
