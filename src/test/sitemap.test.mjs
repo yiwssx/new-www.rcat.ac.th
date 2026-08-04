@@ -1,54 +1,69 @@
 import { describe, expect, it } from "vitest";
-import { buildSitemapUrls, createSitemapXml, normalizeInternalRoute } from "../../api/sitemap.mjs";
+import {
+  STATIC_INDEXABLE_ROUTES,
+  buildSitemapUrls,
+  createSitemapXml,
+  getPublishedContentSitemapRoute,
+  normalizeInternalRoute
+} from "../../api/sitemap.mjs";
 
 describe("runtime sitemap generation", () => {
-  it("includes static routes, published content, and enabled nested menu routes", () => {
+  it("includes every indexable static route and only canonical published content URLs", () => {
     const urls = buildSitemapUrls({
       siteUrl: "https://school.example/",
-      menu: [
-        {
-          id: "about",
-          label: "เกี่ยวกับเรา",
-          href: "/about",
-          enabled: true,
-          children: [
-            {
-              id: "history",
-              label: "ประวัติ",
-              href: "/about/history",
-              enabled: true
-            }
-          ]
-        },
-        {
-          id: "disabled",
-          label: "ปิดใช้งาน",
-          href: "/disabled",
-          enabled: false
-        }
-      ],
       content: [
         { slug: "published-news", status: "published" },
         { slug: "draft-news", status: "draft" }
       ]
     });
 
-    expect(urls).toContain("https://school.example/");
-    expect(urls).toContain("https://school.example/news");
-    expect(urls).toContain("https://school.example/about");
-    expect(urls).toContain("https://school.example/about/history");
+    for (const route of STATIC_INDEXABLE_ROUTES) {
+      const expected = route === "/" ? "https://school.example/" : `https://school.example${route}`;
+      expect(urls).toContain(expected);
+    }
+
     expect(urls).toContain("https://school.example/content/published-news");
-    expect(urls).toContain("https://school.example/published-news");
-    expect(urls.join("\n")).not.toContain("/disabled");
+    expect(urls).not.toContain("https://school.example/published-news");
     expect(urls.join("\n")).not.toContain("draft-news");
+    expect(urls.join("\n")).not.toContain("/search");
   });
 
-  it("excludes external, administrative, API, contact protocol, and fragment links", () => {
+  it("excludes locally hosted content when CMS declares an external canonical URL", () => {
+    expect(
+      getPublishedContentSitemapRoute(
+        {
+          slug: "syndicated-news",
+          status: "published",
+          canonicalUrl: "https://publisher.example/story/syndicated-news"
+        },
+        "https://www.rcat.ac.th"
+      )
+    ).toBe("");
+  });
+
+  it("keeps same-site content in the canonical /content namespace", () => {
+    expect(
+      getPublishedContentSitemapRoute(
+        {
+          slug: "same-site-news",
+          status: "published",
+          canonicalUrl: "/same-site-news"
+        },
+        "https://www.rcat.ac.th"
+      )
+    ).toBe("/content/same-site-news");
+  });
+
+  it("excludes external, administrative, API, auth, search, contact protocol, and fragment links", () => {
     const siteUrl = "https://www.rcat.ac.th";
 
     expect(normalizeInternalRoute("https://facebook.com/rcat", siteUrl)).toBe("");
     expect(normalizeInternalRoute("/admin/users", siteUrl)).toBe("");
     expect(normalizeInternalRoute("/api/public/home", siteUrl)).toBe("");
+    expect(normalizeInternalRoute("/login", siteUrl)).toBe("");
+    expect(normalizeInternalRoute("/activate-account", siteUrl)).toBe("");
+    expect(normalizeInternalRoute("/reset-password", siteUrl)).toBe("");
+    expect(normalizeInternalRoute("/search?q=เกษตร", siteUrl)).toBe("");
     expect(normalizeInternalRoute("mailto:test@rcat.ac.th", siteUrl)).toBe("");
     expect(normalizeInternalRoute("tel:043569117", siteUrl)).toBe("");
     expect(normalizeInternalRoute("#contact", siteUrl)).toBe("");
@@ -58,7 +73,7 @@ describe("runtime sitemap generation", () => {
     expect(normalizeInternalRoute("https://rcat.ac.th/about", "https://www.rcat.ac.th")).toBe("/about");
   });
 
-  it("removes query strings and fragments from canonical menu routes", () => {
+  it("removes query strings and fragments from normalized internal routes", () => {
     expect(normalizeInternalRoute("/news?page=2#latest", "https://www.rcat.ac.th")).toBe("/news");
   });
 
