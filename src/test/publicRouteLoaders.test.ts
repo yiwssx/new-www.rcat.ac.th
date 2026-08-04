@@ -75,13 +75,17 @@ describe("public route loader ownership", () => {
     ]);
   });
 
-  it("prefetches both detail and supporting CMS snapshot for content routes", async () => {
+  it("prefetches both detail and supporting CMS snapshot for content routes without changing their query keys", async () => {
     const runtime = createLoaderContext();
 
-    await loadPublicContentDetailData(runtime.context, "sample-slug");
+    const loaderData = await loadPublicContentDetailData(runtime.context, "sample-slug");
 
     const keys = runtime.ensureQueryData.mock.calls.map((call) => call[0]?.queryKey);
     expect(keys).toContainEqual(["content-detail", "sample-slug"]);
     expect(keys).toContainEqual(["cms-snapshot"]);
+    expect(loaderData).toEqual({
+      item: ["content-detail", "sample-slug"],
+      cmsSnapshot: ["cms-snapshot"]
+    });
   });
 });
