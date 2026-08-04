@@ -30,8 +30,11 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - name: Show exact Prettier diff
-        run: |
-          pnpm prettier src/public/routing/publicRouteHeadImpl.ts src/routes.tsx --write
-          git diff -- src/public/routing/publicRouteHeadImpl.ts src/routes.tsx
-          exit 1
+      - run: pnpm format:check
+      - run: pnpm lint:strict
+      - run: pnpm vitest run src/public/routing/publicRouteHead.test.ts src/test/dynamicSeoSsr.test.tsx src/test/publicRouteHeadSsrReadiness.test.ts src/test/ssrRuntimeFoundation.test.tsx src/test/emotionSsr.test.tsx src/test/emotionClientHydration.test.ts src/test/queryHydration.test.ts src/test/publicRouteLoaders.test.ts src/test/publicSiteShellSsrReadiness.test.ts
+      - run: pnpm build
+      - run: pnpm build:ssr:foundation
+      - run: pnpm perf:check
+      - run: pnpm media:check
+      - run: pnpm layout:check
