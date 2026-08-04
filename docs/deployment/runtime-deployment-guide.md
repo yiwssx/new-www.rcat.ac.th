@@ -13,17 +13,17 @@ Node 22 is no longer the current project requirement.
 
 ## Deployment Matrix
 
-| Change type | Required deployment | Notes |
-| --- | --- | --- |
-| React/Vite frontend (`src/**`) | Vercel | Includes Public SSR hydration client plus Admin/Public/Auth UI. |
-| Public SSR / Vercel functions (`api/**`, SSR runtime) | Vercel | Revalidate SSR routing, HTTP semantics, cache headers, and crawler output. |
-| Vercel same-origin proxies (`server/**`, other `api/**`) | Vercel | Revalidate proxy/auth behavior when touched. |
-| Cloudflare Worker runtime (`cloudflare/public-api/src/**`) | Cloudflare Worker | Run relevant Worker tests/typecheck first. |
-| Worker config | Cloudflare Worker/config operation | Environment changes are explicit operations. |
-| New D1 schema migration | D1 migration + compatible Worker as required | Append-only; do not rewrite historical migrations. |
-| Apps Script `.gs` media bridge | Apps Script | Explicit deployment required. |
-| Documentation only | No runtime deployment | Source-control only. |
-| Tests only | No runtime deployment | Unless accompanying runtime code. |
+| Change type                                                | Required deployment                          | Notes                                                                      |
+| ---------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------- |
+| React/Vite frontend (`src/**`)                             | Vercel                                       | Includes Public SSR hydration client plus Admin/Public/Auth UI.            |
+| Public SSR / Vercel functions (`api/**`, SSR runtime)      | Vercel                                       | Revalidate SSR routing, HTTP semantics, cache headers, and crawler output. |
+| Vercel same-origin proxies (`server/**`, other `api/**`)   | Vercel                                       | Revalidate proxy/auth behavior when touched.                               |
+| Cloudflare Worker runtime (`cloudflare/public-api/src/**`) | Cloudflare Worker                            | Run relevant Worker tests/typecheck first.                                 |
+| Worker config                                              | Cloudflare Worker/config operation           | Environment changes are explicit operations.                               |
+| New D1 schema migration                                    | D1 migration + compatible Worker as required | Append-only; do not rewrite historical migrations.                         |
+| Apps Script `.gs` media bridge                             | Apps Script                                  | Explicit deployment required.                                              |
+| Documentation only                                         | No runtime deployment                        | Source-control only.                                                       |
+| Tests only                                                 | No runtime deployment                        | Unless accompanying runtime code.                                          |
 
 ## Runtime Ownership
 
