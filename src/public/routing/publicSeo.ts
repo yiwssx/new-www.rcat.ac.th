@@ -1,5 +1,5 @@
 import { getPublicSiteUrl, projectSettings } from "../../config/projectSettings";
-import type { ContentItem, MediaAsset, PublicContentDetailSnapshot, SiteSettings } from "../../types";
+import type { ContentItem, MediaAsset, SiteSettings } from "../../types";
 import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
 
 export interface PublicBreadcrumbItem {
@@ -81,9 +81,13 @@ function getContentFeaturedMedia(item: ContentItem, media: MediaAsset[]) {
   return media.find((asset) => asset.type === "image");
 }
 
-export function getPublicContentSocialImageUrl(snapshot?: PublicContentDetailSnapshot, siteSettings?: SiteSettings) {
-  if (snapshot) {
-    const featuredMedia = getContentFeaturedMedia(snapshot.item, snapshot.media);
+export function getPublicContentSocialImageUrl(
+  item: ContentItem | null | undefined,
+  media: MediaAsset[],
+  siteSettings?: SiteSettings
+) {
+  if (item) {
+    const featuredMedia = getContentFeaturedMedia(item, media);
     const source = resolvePublicImageSource(featuredMedia, "content-featured").src;
     const resolved = resolvePublicSeoUrl(source);
 
@@ -192,13 +196,13 @@ export function isPublicArticleContent(item: ContentItem) {
 }
 
 export function buildPublicContentJsonLd(input: {
-  snapshot: PublicContentDetailSnapshot;
+  item: ContentItem;
   siteSettings?: SiteSettings;
   canonicalUrl: string;
   description: string;
   imageUrl?: string;
 }) {
-  const { item } = input.snapshot;
+  const { item } = input;
   const type = getContentStructuredDataType(item);
   const common = {
     "@context": "https://schema.org",
