@@ -155,7 +155,12 @@ function getContextSiteSettings(context?: PublicRouteHeadContextData) {
 }
 
 function readContentDetailSnapshot(value: unknown): PublicContentDetailSnapshot | undefined {
-  if (!isRecord(value) || !isRecord(value.item) || !Array.isArray(value.media) || typeof value.generatedAt !== "string") {
+  if (
+    !isRecord(value) ||
+    !isRecord(value.item) ||
+    !Array.isArray(value.media) ||
+    typeof value.generatedAt !== "string"
+  ) {
     return undefined;
   }
 
@@ -332,11 +337,7 @@ export function getStaticPublicRouteHead(
   });
 }
 
-export function getPublicContentRouteHead(
-  slug: string,
-  loaderData?: unknown,
-  context?: PublicRouteHeadContextData
-) {
+export function getPublicContentRouteHead(slug: string, loaderData?: unknown, context?: PublicRouteHeadContextData) {
   const normalizedSlug = String(slug || "").trim();
   const snapshot = readContentDetailSnapshot(loaderData);
   const siteSettings = getContextSiteSettings(context);
