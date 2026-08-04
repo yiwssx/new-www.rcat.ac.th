@@ -44,14 +44,22 @@ jobs:
             && grep -q "brace-expansion@5.0.9" pnpm-lock.yaml; then
             echo "Patched transitive versions already present."
           else
+            cp pnpm-workspace.yaml pnpm-workspace.yaml.security-backup
+            trap 'mv -f pnpm-workspace.yaml.security-backup pnpm-workspace.yaml' EXIT
+            cat >> pnpm-workspace.yaml <<'EOF'
+
+          minimumReleaseAgeExclude:
+            - undici@7.29.0
+            - fast-uri@3.1.5
+            - brace-expansion@5.0.9
+          EOF
             pnpm update \
               undici@7.29.0 \
               fast-uri@3.1.5 \
               brace-expansion@5.0.9 \
-              --depth Infinity \
-              --minimum-release-age-exclude="undici@7.29.0" \
-              --minimum-release-age-exclude="fast-uri@3.1.5" \
-              --minimum-release-age-exclude="brace-expansion@5.0.9"
+              --depth Infinity
+            mv -f pnpm-workspace.yaml.security-backup pnpm-workspace.yaml
+            trap - EXIT
           fi
 
       - name: Enforce lockfile-only security update
@@ -60,6 +68,10 @@ jobs:
           if ! git diff --quiet -- package.json pnpm-workspace.yaml config/dependency-policy.json; then
             echo "Security update changed persistent dependency policy or manifest unexpectedly."
             git diff -- package.json pnpm-workspace.yaml config/dependency-policy.json
+            exit 1
+          fi
+          if grep -q "minimumReleaseAgeExclude" pnpm-workspace.yaml; then
+            echo "Persistent release-age exclusion detected."
             exit 1
           fi
 
