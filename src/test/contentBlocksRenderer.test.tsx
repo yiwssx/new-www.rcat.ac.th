@@ -74,7 +74,7 @@ describe("ContentBlocksRenderer", () => {
     expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
   });
 
-  it("keeps body image and video network sources absent until each stable slot nears the viewport", async () => {
+  it("renders semantic body images immediately while deferring video network sources until near viewport", async () => {
     const observers: Array<{
       callback: IntersectionObserverCallback;
       target?: Element;
@@ -135,10 +135,15 @@ describe("ContentBlocksRenderer", () => {
       />
     );
 
-    expect(screen.queryByRole("img", { name: "Body image caption" })).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Body image caption" })).toHaveAttribute(
+      "src",
+      "https://drive.google.com/thumbnail?id=body-preview-source&sz=w1200"
+    );
+    expect(screen.getByRole("img", { name: "Body image caption" })).toHaveAttribute("loading", "lazy");
     expect(screen.queryByTitle("Body video")).not.toBeInTheDocument();
-    expect(container.querySelectorAll('[data-public-image-placeholder="true"]')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-public-image-placeholder="true"]')).toHaveLength(0);
     expect(container.querySelectorAll('[data-public-embed-placeholder="true"]')).toHaveLength(1);
+    expect(observers).toHaveLength(1);
 
     act(() => {
       observers[0].callback(
@@ -147,25 +152,6 @@ describe("ContentBlocksRenderer", () => {
             isIntersecting: true,
             intersectionRatio: 1,
             target: observers[0].target
-          } as IntersectionObserverEntry
-        ],
-        {} as IntersectionObserver
-      );
-    });
-
-    expect(await screen.findByRole("img", { name: "Body image caption" })).toHaveAttribute(
-      "src",
-      "https://drive.google.com/thumbnail?id=body-preview-source&sz=w1200"
-    );
-    expect(screen.queryByTitle("Body video")).not.toBeInTheDocument();
-
-    act(() => {
-      observers[1].callback(
-        [
-          {
-            isIntersecting: true,
-            intersectionRatio: 1,
-            target: observers[1].target
           } as IntersectionObserverEntry
         ],
         {} as IntersectionObserver
