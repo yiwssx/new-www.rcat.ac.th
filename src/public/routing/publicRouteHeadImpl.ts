@@ -1,5 +1,5 @@
 import { projectSettings } from "../../config/projectSettings";
-import type { PublicContentDetailSnapshot, SiteSettings } from "../../types";
+import type { CmsSnapshot, ContentItem, SiteSettings } from "../../types";
 import { normalizePublicPageSearchValue } from "./searchParams";
 import {
   buildPublicBreadcrumbJsonLd,
@@ -50,6 +50,11 @@ export interface PublicRouteHeadContextData {
 }
 
 type PublicCanonicalPaginationKey = "page" | "announcementsPage" | "pagesPage";
+
+interface PublicContentHeadLoaderData {
+  item: ContentItem;
+  cmsSnapshot?: CmsSnapshot;
+}
 
 const DEFAULT_PUBLIC_DESCRIPTION = "เว็บไซต์ประชาสัมพันธ์และระบบจัดการเนื้อหาของสถานศึกษา";
 const DEFAULT_CONTENT_DESCRIPTION = "เนื้อหาที่เผยแพร่ต่อสาธารณะของสถานศึกษา";
@@ -130,11 +135,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function readSiteSettings(value: unknown): SiteSettings | undefined {
-  if (!isRecord(value) || !isRecord(value.siteSettings)) {
+  if (!isRecord(value)) {
     return undefined;
   }
 
-  return value.siteSettings as unknown as SiteSettings;
+  if (isRecord(value.siteSettings)) {
+    return value.siteSettings as unknown as SiteSettings;
+  }
+
+  if (isRecord(value.cmsSnapshot) && isRecord(value.cmsSnapshot.siteSettings)) {
+    return value.cmsSnapshot.siteSettings as unknown as SiteSettings;
+  }
+
+  return undefined;
 }
 
 function getContextSiteSettings(context?: PublicRouteHeadContextData) {
@@ -154,17 +167,15 @@ function getContextSiteSettings(context?: PublicRouteHeadContextData) {
   return undefined;
 }
 
-function readContentDetailSnapshot(value: unknown): PublicContentDetailSnapshot | undefined {
-  if (
-    !isRecord(value) ||
-    !isRecord(value.item) ||
-    !Array.isArray(value.media) ||
-    typeof value.generatedAt !== "string"
-  ) {
+function readContentHeadLoaderData(value: unknown): PublicContentHeadLoaderData | undefined {
+  if (!isRecord(value) || !isRecord(value.item)) {
     return undefined;
   }
 
-  return value as unknown as PublicContentDetailSnapshot;
+  return {
+    item: value.item as unknown as ContentItem,
+    cmsSnapshot: isRecord(value.cmsSnapshot) ? (value.cmsSnapshot as unknown as CmsSnapshot) : undefined
+  };
 }
 
 function buildRouteDocumentTitle(title?: string, siteName?: string) {
@@ -339,10 +350,10 @@ export function getStaticPublicRouteHead(
 
 export function getPublicContentRouteHead(slug: string, loaderData?: unknown, context?: PublicRouteHeadContextData) {
   const normalizedSlug = String(slug || "").trim();
-  const snapshot = readContentDetailSnapshot(loaderData);
-  const siteSettings = getContextSiteSettings(context);
+  const detailData = readContentHeadLoaderData(loaderData);
+  const siteSettings = detailData?.cmsSnapshot?.siteSettings || getContextSiteSettings(context);
 
-  if (!snapshot) {
+  if (!detailData) {
     return buildPublicRouteHead({
       title: "เนื้อหา",
       description: DEFAULT_CONTENT_DESCRIPTION,
@@ -353,13 +364,13 @@ export function getPublicContentRouteHead(slug: string, loaderData?: unknown, co
     });
   }
 
-  const { item } = snapshot;
+  const { item } = detailData;
   const contentSlug = item.slug?.trim() || normalizedSlug;
   const internalContentPath = contentSlug ? `/content/${contentSlug}` : undefined;
   const canonicalUrl = resolvePublicSeoUrl(item.canonicalUrl || internalContentPath);
   const description = item.seoDescription?.trim() || item.summary?.trim() || DEFAULT_CONTENT_DESCRIPTION;
   const title = item.seoTitle?.trim() || item.title?.trim() || "เนื้อหา";
-  const imageUrl = getPublicContentSocialImageUrl(snapshot, siteSettings);
+  const imageUrl = getPublicContentSocialImageUrl(item, detailData.cmsSnapshot?.media || [], siteSettings);
   const archive = PUBLIC_CONTENT_ARCHIVE[item.type];
   const breadcrumbs = [
     { name: "หน้าหลัก", path: "/" },
@@ -371,7 +382,7 @@ export function getPublicContentRouteHead(slug: string, loaderData?: unknown, co
     {
       id: "rcat-content-jsonld",
       data: buildPublicContentJsonLd({
-        snapshot,
+        item,
         siteSettings,
         canonicalUrl: resolvedCanonical,
         description,
