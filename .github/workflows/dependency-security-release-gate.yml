@@ -135,10 +135,20 @@ jobs:
               raise SystemExit("Unable to locate stale cross-route footer movement assertion")
           cls = cls.replace(stale_footer_assertion, '', 1)
           cls_path.write_text(cls)
+
+          design_path = Path("tests/functional/designSystemUiUx.spec.ts")
+          design = design_path.read_text()
+          old_focus = '''async function inspectFocusEffect(target: Locator): Promise<FocusEffectMeasurement> {\n  const before = await target.boundingBox();\n'''
+          new_focus = '''async function inspectFocusEffect(target: Locator): Promise<FocusEffectMeasurement> {\n  await target.evaluate(async () => {\n    await document.fonts.ready;\n  });\n  const before = await target.boundingBox();\n'''
+          if old_focus in design:
+              design = design.replace(old_focus, new_focus, 1)
+          elif new_focus not in design:
+              raise SystemExit("Unable to locate focus measurement helper")
+          design_path.write_text(design)
           PY
 
       - name: Format updated functional tests with repository Prettier
-        run: pnpm exec prettier --write tests/functional/publicShellClsStability.spec.ts tests/functional/publicMediaPerformance.spec.ts tests/functional/publicTelemetry.spec.ts
+        run: pnpm exec prettier --write tests/functional/publicShellClsStability.spec.ts tests/functional/publicMediaPerformance.spec.ts tests/functional/publicTelemetry.spec.ts tests/functional/designSystemUiUx.spec.ts
 
       - name: Frozen strict-peer install on resolved tree
         run: pnpm install --frozen-lockfile --strict-peer-dependencies
@@ -167,7 +177,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json pnpm-workspace.yaml pnpm-lock.yaml docs/maintenance/dependency-current-status.md \
             tests/functional/publicShellClsStability.spec.ts tests/functional/publicMediaPerformance.spec.ts \
-            tests/functional/publicTelemetry.spec.ts
+            tests/functional/publicTelemetry.spec.ts tests/functional/designSystemUiUx.spec.ts
           git diff --cached --check
           git commit -m "fix(deps): resolve high severity toolchain advisories"
           git push origin HEAD:fix/dependency-security-release-gate
