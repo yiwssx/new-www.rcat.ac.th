@@ -11,6 +11,7 @@ import {
 } from "../vercelSsr";
 
 const generatedAt = "2026-08-04T06:00:00.000Z";
+const fetchedUrls: string[] = [];
 const siteSettings = {
   siteName: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
   eyebrow: "RCAT",
@@ -124,6 +125,7 @@ function stubPublicApi() {
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : String(input));
+      fetchedUrls.push(url.toString());
 
       if (url.pathname === "/api/public/shell") {
         return Response.json(createShellPayload());
@@ -157,6 +159,7 @@ function stubPublicApi() {
 
 describe("Vercel Public SSR production cutover", () => {
   beforeEach(() => {
+    fetchedUrls.length = 0;
     vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
     vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.edu");
     stubPublicApi();
@@ -184,7 +187,7 @@ describe("Vercel Public SSR production cutover", () => {
     );
     const html = await response.text();
 
-    expect(response.status).toBe(200);
+    expect(response.status, fetchedUrls.join("\n")).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe(PUBLIC_SSR_BROWSER_CACHE_CONTROL);
     expect(response.headers.get("Vercel-CDN-Cache-Control")).toBe(PUBLIC_SSR_CDN_CACHE_CONTROL);
     expect(html).toContain("<!DOCTYPE html>");
@@ -214,7 +217,7 @@ describe("Vercel Public SSR production cutover", () => {
       new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/published-news")
     );
 
-    expect(response.status).toBe(301);
+    expect(response.status, fetchedUrls.join("\n")).toBe(301);
     expect(response.headers.get("Location")).toContain("/content/published-news");
     expect(response.headers.get("Cache-Control")).toBe(PUBLIC_SSR_BROWSER_CACHE_CONTROL);
     expect(response.headers.get("Vercel-CDN-Cache-Control")).toBe(PUBLIC_REDIRECT_CDN_CACHE_CONTROL);
@@ -228,7 +231,7 @@ describe("Vercel Public SSR production cutover", () => {
       new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/content/published-news", { method: "POST" })
     );
 
-    expect(headResponse.status).toBe(200);
+    expect(headResponse.status, fetchedUrls.join("\n")).toBe(200);
     expect(await headResponse.text()).toBe("");
     expect(postResponse.status).toBe(405);
     expect(postResponse.headers.get("Allow")).toBe("GET, HEAD");
