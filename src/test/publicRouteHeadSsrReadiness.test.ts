@@ -31,15 +31,13 @@ describe("public route head SSR readiness", () => {
     expect(clientEntrySource).not.toContain("document.title =");
   });
 
-  it("allows Phase 2 public data loaders while keeping browser hydration disabled", () => {
-    expect(routesSource).toContain("loader: ({ context }) => loadPublicShellData(context)");
-    expect(routesSource).toContain('loader: ({ context }) => loadPublicContentListData(context, "news")');
-    expect(routesSource).toContain(
-      "loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug)"
-    );
-    expect(clientEntrySource).toContain("ReactDOM.createRoot");
-    expect(clientEntrySource).not.toContain("hydrateRoot");
+  it("enables Phase 3 Query hydration while preserving the empty-root CSR fallback", () => {
+    expect(routesSource).toContain("dehydrate: () => dehydrateAppQueryClient(queryClient)");
+    expect(routesSource).toContain("hydrateAppQueryClient(queryClient, dehydrated)");
+    expect(clientEntrySource).toContain("hydrateRoot(");
+    expect(clientEntrySource).toContain("<RouterClient router={runtime.router} />");
+    expect(clientEntrySource).toContain("createRoot(rootElement).render(");
     expect(serverEntrySource).toContain("renderRouterToString");
-    expect(serverEntrySource).toContain("RouterServer");
+    expect(serverEntrySource).toContain("request: handlerRequest");
   });
 });
