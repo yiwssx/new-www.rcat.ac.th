@@ -148,7 +148,7 @@ function createPublicHomePayload() {
     programItems: [],
     documentItems: [],
     eventItems: [],
-    media: [],
+    media: detailSnapshot.media,
     generatedAt
   };
 }
@@ -163,6 +163,8 @@ function getRequestUrl(input: RequestInfo | URL) {
 
 describe("dynamic Public SEO SSR", () => {
   beforeEach(() => {
+    vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
+    vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.edu");
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
@@ -186,6 +188,7 @@ describe("dynamic Public SEO SSR", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
 
