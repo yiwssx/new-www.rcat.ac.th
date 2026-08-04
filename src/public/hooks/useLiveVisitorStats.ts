@@ -13,6 +13,9 @@ const LIVE_VISITOR_STATS_STALE_MS = 60_000;
 export const LIVE_VISITOR_STATS_QUERY_KEY = ["public-visitor-stats-live"] as const;
 
 let liveVisitorStatsBackoffUntil = 0;
+let liveVisitorStatsLastNetworkAt = 0;
+let liveVisitorStatsLastNetworkValue: VisitorStatsSettings | undefined;
+let liveVisitorStatsInFlight: Promise<VisitorStatsSettings> | null = null;
 
 function isDocumentVisible() {
   return typeof document === "undefined" || document.visibilityState === "visible";
@@ -37,6 +40,50 @@ function shouldRefreshLiveVisitorStats(query: { state: { dataUpdatedAt: number }
   return dataUpdatedAt <= 0 || Date.now() - dataUpdatedAt >= LIVE_VISITOR_STATS_STALE_MS;
 }
 
+function isWithinLiveVisitorStatsNetworkBudget(now = Date.now()) {
+  return liveVisitorStatsLastNetworkAt > 0 && now - liveVisitorStatsLastNetworkAt < LIVE_VISITOR_STATS_INTERVAL_MS;
+}
+
+function mergeLiveVisitorStats(initial: VisitorStatsSettings, live: VisitorStatsSettings) {
+  return {
+    ...initial,
+    onlineUsers: live.onlineUsers,
+    usersToday: live.usersToday,
+    totalViews: live.totalViews,
+    updatedAt: live.updatedAt
+  };
+}
+
+async function readLiveVisitorStatsWithinBudget(signal: AbortSignal | undefined) {
+  if (liveVisitorStatsInFlight) {
+    return liveVisitorStatsInFlight;
+  }
+
+  if (isWithinLiveVisitorStatsNetworkBudget() && liveVisitorStatsLastNetworkValue) {
+    return liveVisitorStatsLastNetworkValue;
+  }
+
+  liveVisitorStatsLastNetworkAt = Date.now();
+  const request = getLiveVisitorStats({ signal }).then((stats) => normalizeVisitorStats(stats));
+  liveVisitorStatsInFlight = request;
+
+  try {
+    const live = await request;
+    liveVisitorStatsBackoffUntil = 0;
+    liveVisitorStatsLastNetworkValue = live;
+    return live;
+  } catch (error) {
+    if (!isPublicReadAbortError(error)) {
+      liveVisitorStatsBackoffUntil = Date.now() + LIVE_VISITOR_STATS_FAILURE_BACKOFF_MS;
+    }
+    throw error;
+  } finally {
+    if (liveVisitorStatsInFlight === request) {
+      liveVisitorStatsInFlight = null;
+    }
+  }
+}
+
 function warnLiveVisitorStatsUnavailable(error: unknown) {
   if (!import.meta.env.DEV) {
     return;
@@ -47,6 +94,9 @@ function warnLiveVisitorStatsUnavailable(error: unknown) {
 
 export function resetLiveVisitorStatsBackoffForTests() {
   liveVisitorStatsBackoffUntil = 0;
+  liveVisitorStatsLastNetworkAt = 0;
+  liveVisitorStatsLastNetworkValue = undefined;
+  liveVisitorStatsInFlight = null;
 }
 
 export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initialDataUpdatedAt?: number) {
@@ -57,21 +107,13 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
     queryKey: LIVE_VISITOR_STATS_QUERY_KEY,
     queryFn: async ({ signal }) => {
       try {
-        const live = normalizeVisitorStats(await getLiveVisitorStats({ signal }));
-        liveVisitorStatsBackoffUntil = 0;
-        return {
-          ...normalizedInitial,
-          onlineUsers: live.onlineUsers,
-          usersToday: live.usersToday,
-          totalViews: live.totalViews,
-          updatedAt: live.updatedAt
-        };
+        const live = await readLiveVisitorStatsWithinBudget(signal);
+        return mergeLiveVisitorStats(normalizedInitial, live);
       } catch (error) {
         if (isPublicReadAbortError(error)) {
           throw error;
         }
 
-        liveVisitorStatsBackoffUntil = Date.now() + LIVE_VISITOR_STATS_FAILURE_BACKOFF_MS;
         warnLiveVisitorStatsUnavailable(error);
         throw error;
       }
