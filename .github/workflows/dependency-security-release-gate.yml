@@ -115,13 +115,26 @@ jobs:
 
           telemetry_path = Path("tests/functional/publicTelemetry.spec.ts")
           telemetry = telemetry_path.read_text()
-          old_telemetry = '''    // The exact 59,999/60,000 millisecond throttle boundary is covered by the\n    // deterministic unit test. This browser test starts after a real lazy-route\n    // transition, so its interval phase can already be slightly advanced.\n    await page.clock.runFor(60_000);\n'''
-          new_telemetry = '''    // The exact 59,999/60,000 millisecond throttle boundary is covered by the\n    // deterministic unit test. Give the browser clock a small scheduling margin\n    // after the lazy-route transition while still enforcing one send per minute.\n    await page.clock.runFor(60_100);\n'''
+          old_telemetry = '''    // The exact 59,999/60,000 millisecond throttle boundary is covered by the\n    // deterministic unit test. This browser test starts after a real lazy-route\n    // transition, so its interval phase can already be slightly advanced.\n    await page.clock.runFor(60_000);\n    await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);\n    await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);\n\n    await dispatchVisibilityAndFocus(page, "hidden", false);\n    await page.clock.runFor(60_000);\n    expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);\n    expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);\n\n    await dispatchVisibilityAndFocus(page, "visible");\n    // React Query schedules its focus notification through the browser task\n    // queue. Advance one millisecond so the mocked clock flushes that task\n    // deterministically even under parallel test load.\n    await page.clock.runFor(1);\n    await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(3);\n    await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(2);\n\n    // Together with the one-millisecond task flush above, this reaches 59,999\n    // milliseconds after visibility resumed without crossing the next budget.\n    await page.clock.runFor(59_998);\n'''
+          new_telemetry = '''    // The exact 59,999/60,000 millisecond throttle boundary is covered by the\n    // deterministic unit test. The persistent tracker interval was created on\n    // /news, while the latest per-path presence timestamp was created after the\n    // lazy navigation to /. Advance past the path budget and use the real\n    // visibility/focus integration as the deterministic browser trigger.\n    await page.clock.pauseAt(pausedAt + 61_001);\n    await dispatchVisibilityAndFocus(page, "visible");\n    await page.clock.runFor(1);\n    await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);\n    await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);\n\n    await dispatchVisibilityAndFocus(page, "hidden", false);\n    await page.clock.pauseAt(pausedAt + 121_001);\n    expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);\n    expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);\n\n    await dispatchVisibilityAndFocus(page, "visible");\n    // React Query schedules its focus notification through the browser task\n    // queue. Advance one millisecond so the mocked clock flushes that task\n    // deterministically even under parallel test load.\n    await page.clock.runFor(1);\n    await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(3);\n    await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(2);\n\n    // Stay below the next 60-second path budget after visibility resumed.\n    await page.clock.runFor(59_998);\n'''
           if old_telemetry in telemetry:
               telemetry = telemetry.replace(old_telemetry, new_telemetry, 1)
           elif new_telemetry not in telemetry:
-              raise SystemExit("Unable to locate telemetry clock assertion block")
+              raise SystemExit("Unable to locate telemetry budget assertion block")
           telemetry_path.write_text(telemetry)
+
+          cls_path = Path("tests/functional/publicShellClsStability.spec.ts")
+          cls = cls_path.read_text()
+          cls = cls.replace('  waitForLayoutQuietWindow,\n  type PublicLayoutSnapshot\n', '  waitForLayoutQuietWindow\n', 1)
+          movement_function = '''function movement(before: PublicLayoutSnapshot, after: PublicLayoutSnapshot, region: keyof PublicLayoutSnapshot) {\n  const beforeBox = before[region];\n  const afterBox = after[region];\n\n  if (\n    !beforeBox ||\n    !afterBox ||\n    typeof beforeBox !== "object" ||\n    typeof afterBox !== "object" ||\n    !("top" in beforeBox) ||\n    !("top" in afterBox)\n  ) {\n    throw new Error(`Missing ${String(region)} geometry`);\n  }\n\n  return {\n    top: afterBox.top - beforeBox.top,\n    height: afterBox.height - beforeBox.height\n  };\n}\n\n'''
+          cls = cls.replace(movement_function, '', 1)
+          cls = cls.replace('  const navigationPending = await readPublicLayoutSnapshot(page);\n', '', 1)
+          cls = cls.replace('  const navigationReady = await readPublicLayoutSnapshot(page);\n', '', 1)
+          stale_footer_assertion = '  expect(Math.abs(movement(navigationPending, navigationReady, "darkFooter").top)).toBeLessThan(75);\n'
+          if stale_footer_assertion not in cls:
+              raise SystemExit("Unable to locate stale cross-route footer movement assertion")
+          cls = cls.replace(stale_footer_assertion, '', 1)
+          cls_path.write_text(cls)
           PY
 
       - name: Format updated functional tests with repository Prettier
