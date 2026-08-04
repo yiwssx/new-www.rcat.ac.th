@@ -24,8 +24,8 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - name: Resolve only eligible patched transitives
-        run: pnpm update --lockfile-only fast-uri@3.1.5 brace-expansion@5.0.9
+      - name: Resolve only eligible patched transitives at any depth
+        run: pnpm update --lockfile-only --depth Infinity fast-uri@3.1.5 brace-expansion@5.0.9
       - name: Show manifest and lockfile diff
         run: git diff -- package.json pnpm-lock.yaml
       - name: Verify package manifest is unchanged
