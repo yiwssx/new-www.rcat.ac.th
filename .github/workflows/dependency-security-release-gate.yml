@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - fix/dependency-security-release-gate
+  pull_request:
+    branches:
+      - feat/ssr-phase7-vercel-cutover
 
 permissions:
   contents: write
@@ -82,6 +85,7 @@ jobs:
       - run: pnpm vite build --ssr api/ssr.ts --outDir dist/vercel-function-release
 
       - name: Commit validated security lockfile update
+        if: github.event_name == 'push'
         shell: bash
         run: |
           if git diff --quiet -- pnpm-lock.yaml docs/maintenance/dependency-current-status.md; then
