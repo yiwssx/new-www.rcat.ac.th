@@ -119,7 +119,7 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
         throw error;
       }
     },
-    enabled: liveEnabled,
+    enabled: isBrowser && usesCloudflare && Boolean(initialStats?.enabled),
     initialData: initialStats ? normalizedInitial : undefined,
     initialDataUpdatedAt,
     retry: false,
