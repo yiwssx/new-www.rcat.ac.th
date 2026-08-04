@@ -6,7 +6,8 @@ import {
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_CDN_CACHE_CONTROL,
   handleVercelPublicSsrRequest,
-  reconstructPublicSsrRequest
+  reconstructPublicSsrRequest,
+  renderVercelPublicSsrRequest
 } from "../vercelSsr";
 
 const generatedAt = "2026-08-04T06:00:00.000Z";
@@ -136,6 +137,19 @@ function stubPublicApi() {
         return Response.json({ item: publishedItem, media: [], generatedAt });
       }
 
+      if (url.pathname === "/api/public/search") {
+        return Response.json({
+          query: url.searchParams.get("q") || "",
+          items: [],
+          menu: [],
+          siteSettings,
+          homepageSettings,
+          displaySettings: { dateFormat: "D MMMM BBBB", timeMode: "24h" },
+          pagination: { page: 1, pageSize: 12, totalItems: 0, totalPages: 0 },
+          generatedAt
+        });
+      }
+
       return Response.json({ error: `Unexpected request: ${url.pathname}${url.search}` }, { status: 404 });
     })
   );
@@ -165,7 +179,7 @@ describe("Vercel Public SSR production cutover", () => {
   });
 
   it("returns a complete no-JavaScript document with semantic content and hydration assets", async () => {
-    const response = await handleVercelPublicSsrRequest(
+    const response = await renderVercelPublicSsrRequest(
       new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/content/published-news")
     );
     const html = await response.text();
@@ -185,7 +199,7 @@ describe("Vercel Public SSR production cutover", () => {
   });
 
   it("keeps Search out of CDN cache and index", async () => {
-    const response = await handleVercelPublicSsrRequest(
+    const response = await renderVercelPublicSsrRequest(
       new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/search&q=rice")
     );
 
@@ -196,7 +210,7 @@ describe("Vercel Public SSR production cutover", () => {
   });
 
   it("caches permanent legacy redirects at the CDN while browsers revalidate", async () => {
-    const response = await handleVercelPublicSsrRequest(
+    const response = await renderVercelPublicSsrRequest(
       new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/published-news")
     );
 
@@ -207,7 +221,7 @@ describe("Vercel Public SSR production cutover", () => {
   });
 
   it("returns no body for HEAD and rejects non-page methods", async () => {
-    const headResponse = await handleVercelPublicSsrRequest(
+    const headResponse = await renderVercelPublicSsrRequest(
       new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/content/published-news", { method: "HEAD" })
     );
     const postResponse = await handleVercelPublicSsrRequest(
