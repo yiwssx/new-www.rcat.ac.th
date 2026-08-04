@@ -124,6 +124,9 @@ jobs:
           telemetry_path.write_text(telemetry)
           PY
 
+      - name: Format updated functional tests with repository Prettier
+        run: pnpm exec prettier --write tests/functional/publicShellClsStability.spec.ts tests/functional/publicMediaPerformance.spec.ts tests/functional/publicTelemetry.spec.ts
+
       - name: Frozen strict-peer install on resolved tree
         run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: pnpm deps:status
@@ -150,7 +153,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json pnpm-workspace.yaml pnpm-lock.yaml docs/maintenance/dependency-current-status.md \
-            tests/functional/publicMediaPerformance.spec.ts tests/functional/publicTelemetry.spec.ts
+            tests/functional/publicShellClsStability.spec.ts tests/functional/publicMediaPerformance.spec.ts \
+            tests/functional/publicTelemetry.spec.ts
           git diff --cached --check
           git commit -m "fix(deps): resolve high severity toolchain advisories"
           git push origin HEAD:fix/dependency-security-release-gate
