@@ -1,5 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { notFound, redirect } from "@tanstack/react-router";
 import type { ContentItem, MediaAsset, PublicContentListKind, SiteSettings } from "../../types";
+import {
+  createPublicRouteLoadFailure,
+  isPublicRouteLoadFailure,
+  type PublicRouteLoadFailure
+} from "./publicHttpSemantics";
 import { normalizePublicPageSearchValue } from "./searchParams";
 
 export interface PublicRouteLoaderContext {
@@ -7,7 +13,7 @@ export interface PublicRouteLoaderContext {
 }
 
 export interface PublicContentDetailLoaderData {
-  item: ContentItem | null | undefined;
+  item: ContentItem;
   siteSettings: SiteSettings | undefined;
   featuredMedia: MediaAsset | undefined;
 }
@@ -15,14 +21,11 @@ export interface PublicContentDetailLoaderData {
 export const PUBLIC_SEARCH_PAGE_SIZE = 12;
 export const PUBLIC_ANNOUNCEMENT_PAGES_PAGE_SIZE = 12;
 
-async function ensurePublicQuery<T>(prefetch: () => Promise<T>) {
+async function ensurePublicQuery<T>(prefetch: () => Promise<T>): Promise<T | PublicRouteLoadFailure> {
   try {
     return await prefetch();
   } catch {
-    // Phase 2 owns prefetch timing but intentionally preserves the existing
-    // page-level PublicErrorState contract. Phase 6 will map typed read errors
-    // to production HTTP status/redirect semantics.
-    return undefined;
+    return createPublicRouteLoadFailure();
   }
 }
 
@@ -96,25 +99,52 @@ export async function loadPublicSearchResultsData(
 export async function loadPublicContentDetailData(
   context: PublicRouteLoaderContext,
   slug: string | undefined
-): Promise<PublicContentDetailLoaderData | undefined> {
+): Promise<PublicContentDetailLoaderData | PublicRouteLoadFailure | undefined> {
   if (!slug) {
     return undefined;
   }
 
   const { publicContentDetailQueryOptions } = await import("../../features/public-content");
-  const [item, cmsSnapshot] = await Promise.all([
+  const [itemResult, cmsSnapshotResult] = await Promise.all([
     ensurePublicQuery(() => context.queryClient.ensureQueryData(publicContentDetailQueryOptions(slug))),
     loadPublicCmsSnapshotData(context)
   ]);
-  const featuredMedia = item?.featuredMediaId
-    ? cmsSnapshot?.media.find((asset) => asset.id === item.featuredMediaId && asset.type === "image")
+
+  if (isPublicRouteLoadFailure(itemResult)) {
+    return itemResult;
+  }
+
+  if (itemResult === null || itemResult === undefined) {
+    throw notFound({ data: { resource: "content", slug } });
+  }
+
+  if (isPublicRouteLoadFailure(cmsSnapshotResult)) {
+    return cmsSnapshotResult;
+  }
+
+  const featuredMedia = itemResult.featuredMediaId
+    ? cmsSnapshotResult?.media.find((asset) => asset.id === itemResult.featuredMediaId && asset.type === "image")
     : undefined;
 
   return {
-    item,
-    siteSettings: cmsSnapshot?.siteSettings,
+    item: itemResult,
+    siteSettings: cmsSnapshotResult?.siteSettings,
     featuredMedia
   };
+}
+
+export async function loadPublicContentPermalinkData(context: PublicRouteLoaderContext, slug: string | undefined) {
+  const loaderData = await loadPublicContentDetailData(context, slug);
+
+  if (!slug || !loaderData || isPublicRouteLoadFailure(loaderData)) {
+    return loaderData;
+  }
+
+  throw redirect({
+    to: "/content/$slug",
+    params: { slug },
+    statusCode: 301
+  });
 }
 
 export function getAnnouncementPagesLoaderInput(search: Record<string, unknown>) {

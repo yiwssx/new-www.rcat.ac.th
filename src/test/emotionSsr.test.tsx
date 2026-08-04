@@ -73,12 +73,13 @@ describe("Emotion SSR styling", () => {
     expect(html.indexOf('<style data-emotion="css ')).toBeLessThan(html.indexOf("Styled content"));
   });
 
-  it("returns route HTML with an Emotion style payload immediately after the current doctype shell", async () => {
+  it("returns route HTML with an Emotion style payload while preserving upstream status", async () => {
     const response = await renderSsrResponse(new Request("https://www.rcat.ac.th/news?page=2"));
     const html = await response.text();
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
     expect(response.headers.get("content-type")).toContain("text/html");
+    expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
     expect(html).toContain("ข่าว | วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด");
 
     const styleIndex = html.indexOf('<style data-emotion="css');

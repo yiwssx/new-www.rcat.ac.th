@@ -1,6 +1,16 @@
 const CONTENT_KINDS = ["news", "announcements", "blog"];
 
-const STATIC_ROUTES = ["/", "/news", "/announcements", "/departments", "/blog", "/contact"];
+export const STATIC_INDEXABLE_ROUTES = [
+  "/",
+  "/news",
+  "/announcements",
+  "/achievements",
+  "/departments",
+  "/blog",
+  "/documents",
+  "/calendar",
+  "/contact"
+];
 
 function trimTrailingSlash(value) {
   return String(value || "")
@@ -23,10 +33,6 @@ function normalizeHostname(value) {
     .trim()
     .toLowerCase()
     .replace(/^www\./, "");
-}
-
-function isRecord(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function decodePathSegment(value) {
@@ -75,6 +81,9 @@ export function normalizeInternalRoute(href, siteUrl) {
     pathname === "/api" ||
     pathname.startsWith("/api/") ||
     pathname === "/login" ||
+    pathname === "/activate-account" ||
+    pathname === "/reset-password" ||
+    pathname === "/search" ||
     pathname === "/sitemap.xml" ||
     pathname === "/robots.txt"
   ) {
@@ -82,19 +91,6 @@ export function normalizeInternalRoute(href, siteUrl) {
   }
 
   return encodeRoute(pathname);
-}
-
-export function collectMenuRoutes(items, siteUrl, routes = new Set()) {
-  if (!Array.isArray(items)) return routes;
-
-  for (const item of items) {
-    if (!isRecord(item) || item.enabled === false) continue;
-    const route = normalizeInternalRoute(item.href, siteUrl);
-    if (route) routes.add(route);
-    collectMenuRoutes(item.children, siteUrl, routes);
-  }
-
-  return routes;
 }
 
 function normalizeSlug(value) {
@@ -120,30 +116,43 @@ function isPublishedContent(item) {
   return Boolean(item?.slug) && item.status === "published";
 }
 
-export function buildSitemapUrls({ siteUrl, menu = [], content = [] }) {
-  const normalizedSiteUrl = normalizeSiteUrl(siteUrl);
-  const routes = new Set(STATIC_ROUTES);
+function hasExternalCanonical(item, siteUrl) {
+  const canonicalUrl = String(item?.canonicalUrl || "").trim();
+  if (!/^https?:\/\//i.test(canonicalUrl)) return false;
 
-  collectMenuRoutes(menu, normalizedSiteUrl, routes);
+  try {
+    const site = new URL(normalizeSiteUrl(siteUrl));
+    const canonical = new URL(canonicalUrl);
+    return normalizeHostname(canonical.hostname) !== normalizeHostname(site.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function getPublishedContentSitemapRoute(item, siteUrl) {
+  if (!isPublishedContent(item) || hasExternalCanonical(item, siteUrl)) {
+    return "";
+  }
+
+  const slug = normalizeSlug(item.slug);
+  if (!slug) return "";
+
+  const encodedSlug = slug
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(decodePathSegment(segment)))
+    .join("/");
+
+  return `/content/${encodedSlug}`;
+}
+
+export function buildSitemapUrls({ siteUrl, content = [] }) {
+  const normalizedSiteUrl = normalizeSiteUrl(siteUrl);
+  const routes = new Set(STATIC_INDEXABLE_ROUTES);
 
   for (const item of content) {
-    if (!isPublishedContent(item)) continue;
-    const slug = normalizeSlug(item.slug);
-    if (!slug) continue;
-
-    const encodedSlug = slug
-      .split("/")
-      .filter(Boolean)
-      .map((segment) => encodeURIComponent(decodePathSegment(segment)))
-      .join("/");
-
-    const canonicalRoute = normalizeInternalRoute(item.canonicalUrl, normalizedSiteUrl);
-    if (canonicalRoute) {
-      routes.add(canonicalRoute);
-    } else {
-      routes.add(`/content/${encodedSlug}`);
-      routes.add(`/${encodedSlug}`);
-    }
+    const route = getPublishedContentSitemapRoute(item, normalizedSiteUrl);
+    if (route) routes.add(route);
   }
 
   return [...routes]
@@ -180,20 +189,20 @@ export async function loadSitemapData(apiBaseUrl) {
   const baseUrl = trimTrailingSlash(apiBaseUrl);
   if (!baseUrl) throw new Error("Cloudflare Public API URL is not configured");
 
-  const [home, ...contentSnapshots] = await Promise.all([
-    fetchJson(`${baseUrl}/api/public/home`),
+  const [programs, ...contentSnapshots] = await Promise.all([
+    fetchJson(`${baseUrl}/api/public/programs`),
     ...CONTENT_KINDS.map((kind) => fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(kind)}`))
   ]);
 
-  const content = contentSnapshots.flatMap((snapshot) => [
-    ...(Array.isArray(snapshot?.items) ? snapshot.items : []),
-    ...(Array.isArray(snapshot?.pageItems) ? snapshot.pageItems : [])
-  ]);
+  const content = [
+    ...(Array.isArray(programs?.items) ? programs.items : []),
+    ...contentSnapshots.flatMap((snapshot) => [
+      ...(Array.isArray(snapshot?.items) ? snapshot.items : []),
+      ...(Array.isArray(snapshot?.pageItems) ? snapshot.pageItems : [])
+    ])
+  ];
 
-  return {
-    menu: Array.isArray(home?.menu) ? home.menu : [],
-    content
-  };
+  return { content };
 }
 
 function inferSiteUrl(request) {
@@ -220,7 +229,7 @@ export default async function sitemap(request, response) {
     const apiBaseUrl = process.env.CLOUDFLARE_PUBLIC_API_URL || process.env.VITE_CLOUDFLARE_PUBLIC_API_URL;
 
     const data = await loadSitemapData(apiBaseUrl);
-    const urls = buildSitemapUrls({ siteUrl, menu: data.menu, content: data.content });
+    const urls = buildSitemapUrls({ siteUrl, content: data.content });
     const xml = createSitemapXml(urls);
 
     response.setHeader("Content-Type", "application/xml; charset=utf-8");
@@ -241,6 +250,7 @@ export default async function sitemap(request, response) {
     response.setHeader("Content-Type", "text/plain; charset=utf-8");
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("Retry-After", "300");
+    response.setHeader("X-Robots-Tag", "noindex, nofollow");
     response.status(503).end("Sitemap is temporarily unavailable");
   }
 }

@@ -27,12 +27,13 @@ describe("SSR runtime foundation", () => {
     expect(second.router.options.context.queryClient).toBe(second.queryClient);
   });
 
-  it("renders a route-aware HTML response from a Web Request", async () => {
+  it("renders route-aware HTML while preserving Phase 6 upstream HTTP semantics", async () => {
     const response = await renderSsrResponse(new Request("https://www.rcat.ac.th/news?page=2"));
     const html = await response.text();
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
     expect(response.headers.get("content-type")).toContain("text/html");
+    expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
     expect(html).toContain(`ข่าว | ${projectSettings.site.name}`);
     expect(html).toContain("https://www.rcat.ac.th/news?page=2");
   });
