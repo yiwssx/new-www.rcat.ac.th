@@ -19,19 +19,22 @@ export function injectEmotionCriticalStyleTags(html: string, styleTags: string) 
   return `${styleTags}${html}`;
 }
 
-export async function injectEmotionCriticalCssIntoResponse(response: Response, cache: EmotionCache) {
-  const html = await response.text();
+export function createEmotionSsrResponseFinalizer(cache: EmotionCache) {
   const { constructStyleTagsFromChunks, extractCriticalToChunks } = createEmotionServer(cache);
-  const chunks = extractCriticalToChunks(html);
-  const styleTags = constructStyleTagsFromChunks(chunks);
-  const renderedHtml = injectEmotionCriticalStyleTags(html, styleTags);
-  const headers = new Headers(response.headers);
 
-  headers.delete("content-length");
+  return async function finalizeEmotionSsrResponse(response: Response) {
+    const html = await response.text();
+    const chunks = extractCriticalToChunks(html);
+    const styleTags = constructStyleTagsFromChunks(chunks);
+    const renderedHtml = injectEmotionCriticalStyleTags(html, styleTags);
+    const headers = new Headers(response.headers);
 
-  return new Response(renderedHtml, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
+    headers.delete("content-length");
+
+    return new Response(renderedHtml, {
+      status: response.status,
+      statusText: response.statusText,
+      headers
+    });
+  };
 }
