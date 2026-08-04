@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicApiProvider } from "../../config/publicApiProvider";
 import { isPublicReadAbortError } from "../../features/public-read/errors";
@@ -19,6 +19,23 @@ let liveVisitorStatsInFlight: Promise<VisitorStatsSettings> | null = null;
 
 function isDocumentVisible() {
   return typeof document === "undefined" || document.visibilityState === "visible";
+}
+
+function subscribeDocumentVisibility(onStoreChange: () => void) {
+  if (typeof document === "undefined") {
+    return () => undefined;
+  }
+
+  document.addEventListener("visibilitychange", onStoreChange);
+  return () => document.removeEventListener("visibilitychange", onStoreChange);
+}
+
+function getDocumentVisibilitySnapshot() {
+  return isDocumentVisible();
+}
+
+function getDocumentVisibilityServerSnapshot() {
+  return true;
 }
 
 function isLiveVisitorStatsBackedOff() {
@@ -101,6 +118,11 @@ export function resetLiveVisitorStatsBackoffForTests() {
 
 export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initialDataUpdatedAt?: number) {
   const normalizedInitial = useMemo(() => normalizeVisitorStats(initialStats), [initialStats]);
+  const documentVisible = useSyncExternalStore(
+    subscribeDocumentVisibility,
+    getDocumentVisibilitySnapshot,
+    getDocumentVisibilityServerSnapshot
+  );
   const usesCloudflare = getPublicApiProvider() === "cloudflare";
   const isBrowser = typeof window !== "undefined";
   const query = useQuery({
@@ -123,7 +145,7 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
     initialDataUpdatedAt,
     retry: false,
     staleTime: LIVE_VISITOR_STATS_STALE_MS,
-    refetchInterval: getLiveVisitorStatsRefetchInterval,
+    refetchInterval: documentVisible ? getLiveVisitorStatsRefetchInterval : false,
     refetchIntervalInBackground: false,
     refetchOnMount: () => !isLiveVisitorStatsBackedOff(),
     refetchOnWindowFocus: shouldRefreshLiveVisitorStats,
