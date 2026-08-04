@@ -47,6 +47,7 @@ import {
   loadPublicCmsSnapshotData,
   loadPublicContentDetailData,
   loadPublicContentListData,
+  loadPublicContentPermalinkData,
   loadPublicDocumentListData,
   loadPublicEventListData,
   loadPublicHomeData,
@@ -182,7 +183,7 @@ const publicContentDetailRoute = createRoute({
 const publicPermalinkRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "$slug",
-  loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug),
+  loader: ({ context, params }) => loadPublicContentPermalinkData(context, params.slug),
   head: ({ params, loaderData, matches }) => getPublicContentRouteHead(params.slug, loaderData, { matches }),
   component: PublicContentDetailRoute
 });
