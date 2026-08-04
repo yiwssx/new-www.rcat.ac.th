@@ -42,7 +42,7 @@ The loader layer calls the same reusable query-option factories as the React hoo
 
 ## Phase 3 — Query Dehydration / Browser Hydration
 
-Status: implemented on the Phase 3 branch; production Vercel routing is still not switched to the SSR renderer.
+Status: implemented on the SSR integration line; production Vercel routing is still not switched to the SSR renderer.
 
 Phase 3 carries the request-scoped QueryClient cache produced by Phase 2 across the server/client boundary:
 
@@ -54,15 +54,30 @@ Phase 3 carries the request-scoped QueryClient cache produced by Phase 2 across 
 - `renderRouterToString` consumes the request-bound Router produced by `createRequestHandler`; the installed TanStack Router render helper receives the Router, response headers, and rendered children, and emits Router/application hydration state from that request-local Router;
 - the browser SSR path uses `RouterClient` with React `hydrateRoot()` when `#root` already contains server-rendered markup;
 - the existing empty-root `createRoot()` path remains as a CSR fallback so current Vite/Vercel SPA deployment continues to work until the explicit production cutover;
-- `pnpm test:ssr:hydration` validates Public query round-trip hydration, the Public-only serialization boundary, route-loader readiness, and SSR runtime/head regressions.
+- focused hydration tests validate Public query round-trip hydration, the Public-only serialization boundary, route-loader readiness, and SSR runtime/head regressions.
 
-Phase 3 still does **not** extract Emotion/MUI critical CSS, generate full dynamic CMS SEO/structured data, map Public errors to final 301/404/503 responses, or change Vercel production routing/cache policy.
+## Phase 4 — MUI/Emotion SSR Styling + Critical CSS
+
+Status: implemented on the Phase 4 branch; production Vercel routing remains unchanged until Phase 7.
+
+Phase 4 makes the shared MUI/Emotion styling layer safe for the non-streaming SSR path established by Phases 1–3:
+
+- `createAppEmotionCache()` creates an explicit Emotion cache with the stable `css` key used by both server and browser runtimes;
+- `createAppRuntime()` creates a fresh Emotion cache together with its request-local QueryClient and Router, preventing inserted-style state from leaking between requests;
+- `AppProviders` owns Emotion `CacheProvider` outside the existing Query and MUI theme providers, so the exact same styling cache is used by MUI components throughout a render;
+- the server creates `createEmotionServer(cache)` before React rendering, then buffers the existing non-streaming Router response and extracts only the styles used by that render with `extractCriticalToChunks()`;
+- generated `<style data-emotion>` tags are inserted into `</head>` when a document head exists; the current pre-cutover SSR shell falls back to placing them immediately after the doctype so critical CSS precedes styled markup;
+- response status, status text, and headers are preserved while a stale `content-length` is removed after body rewriting;
+- the browser creates the same Emotion cache before `hydrateRoot()`, allowing Emotion to adopt the server-rendered `data-emotion` ids instead of generating a competing cache namespace;
+- the empty-root `createRoot()` CSR fallback uses that same cache factory, so adding Phase 4 does not require production SSR routing to be enabled;
+- focused tests cover cache isolation, critical-style placement/extraction, browser adoption of server style ids, and Phase 1–3 SSR regressions.
+
+Phase 4 intentionally remains non-streaming. CSP nonce support belongs with the production response/CSP boundary rather than being invented here; if a strict nonce-based `style-src` policy is introduced later, the nonce must be passed consistently to both the request-scoped Emotion cache and the emitted critical style tags.
 
 ## Remaining implementation phases
 
-1. Phase 4 — MUI/Emotion SSR styling and critical CSS.
-2. Phase 5 — Full dynamic SEO, social metadata, and structured data.
-3. Phase 6 — HTTP status, canonical redirects, indexing, sitemap, and robots correctness.
-4. Phase 7 — Vercel routing, cache policy, production validation, and cutover.
+1. Phase 5 — Full dynamic SEO, social metadata, and structured data.
+2. Phase 6 — HTTP status, canonical redirects, indexing, sitemap, and robots correctness.
+3. Phase 7 — Vercel routing, cache policy, production validation, and cutover.
 
 Production SSR/SEO is complete only after the remaining phases are finished and the production Vercel routing is explicitly switched from the CSR fallback to the verified SSR renderer.

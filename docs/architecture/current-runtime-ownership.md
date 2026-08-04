@@ -86,7 +86,8 @@ Runtime construction is factory-based so a server renderer can create isolated s
 
 - `createAppQueryClient()` creates a new TanStack Query `QueryClient` with the existing project query defaults;
 - `createAppRouter()` creates a new TanStack Router instance from the static route tree and receives that runtime's QueryClient through typed context;
-- `createAppRuntime()` creates the paired QueryClient/Router runtime used by browser and server entrypoints;
+- `createAppEmotionCache()` creates an explicit Emotion cache using the stable `css` namespace;
+- `createAppRuntime()` creates one fresh Emotion cache, QueryClient, and Router for each browser runtime or server request;
 - `App` no longer owns module-scope runtime singletons.
 
 Public structured reads expose reusable TanStack Query option factories for Home, CMS shell snapshot, content lists, content detail, programs, search index, events, and documents. Existing React hooks consume those same factories and add browser-only local-storage `initialData`/freshness behavior at the hook boundary. Public route loaders call `ensureQueryData()` with those same factories, keys, query functions, stale times, and cache policies rather than creating a second server-side data store.
@@ -115,9 +116,11 @@ Implementation Phase 2 makes matched Public routes own server prefetch timing. T
 
 Implementation Phase 3 carries successful Public Query state across the server/client boundary. TanStack Router `dehydrate` calls TanStack Query `dehydrate()` on the request-local QueryClient and only permits known Public query-key roots. Mutations are excluded. The resulting Query state is normalized through a JSON-safe DTO before entering the Router serializer, which both satisfies the Router serializability contract and prevents arbitrary non-JSON values from crossing the Public SSR boundary. The Router `hydrate` callback restores that state into the browser runtime's QueryClient before hydrated route hooks consume it.
 
-The browser entry now has a deliberate dual bootstrap. When `#root` already contains server-rendered markup, it uses React `hydrateRoot()` with TanStack Router `RouterClient`; when `#root` is empty, it retains the existing `createRoot()` CSR path. This allows hydration behavior to be implemented and validated before production routing is switched to the server renderer.
+Implementation Phase 4 makes MUI/Emotion styling request-scoped and SSR-safe. Shared providers now wrap the application in Emotion `CacheProvider`, and the server creates `createEmotionServer(cache)` against that request's cache before rendering. After the existing non-streaming Router response is produced, the server extracts the styles used by that render and emits critical `data-emotion` style tags before rendered markup, preferring the document head when one exists. The browser uses the same cache key and creates its Emotion cache before `hydrateRoot()`, allowing the server style ids to be adopted rather than creating a competing namespace. Response body rewriting preserves status and headers while dropping stale `content-length`.
 
-Production is still **not** considered SSR-enabled. Vercel continues to serve the current CSR application until the later cutover phase. Emotion/MUI critical CSS extraction, full CMS-driven server SEO/structured data, final 301/404/503 behavior, CDN cache policy, and Vercel SSR routing remain future implementation phases.
+The browser entry has a deliberate dual bootstrap. When `#root` already contains server-rendered markup, it uses React `hydrateRoot()` with TanStack Router `RouterClient`; when `#root` is empty, it retains the existing `createRoot()` CSR path. Both paths use the same Emotion cache factory. This allows hydration and critical-CSS behavior to be implemented and validated before production routing is switched to the server renderer.
+
+Production is still **not** considered SSR-enabled. Vercel continues to serve the current CSR application until the later cutover phase. Full CMS-driven server SEO/structured data, final 301/404/503 behavior, CDN cache policy, and Vercel SSR routing remain future implementation phases.
 
 See `docs/architecture/ssr-implementation-phases.md`.
 
