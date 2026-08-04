@@ -1,6 +1,7 @@
 import React from "react";
 import { RouterServer, createRequestHandler, renderRouterToString } from "@tanstack/react-router/ssr/server";
 import AppProviders from "./AppProviders";
+import { injectEmotionCriticalCssIntoResponse } from "./emotionSsr";
 import { createAppRuntime } from "./runtime";
 
 export async function renderSsrResponse(request: Request) {
@@ -10,15 +11,17 @@ export async function renderSsrResponse(request: Request) {
     createRouter: () => runtime.router
   });
 
-  return handler(({ responseHeaders, router }) =>
-    renderRouterToString({
+  return handler(async ({ responseHeaders, router }) => {
+    const response = await renderRouterToString({
       responseHeaders,
       router,
       children: (
-        <AppProviders queryClient={runtime.queryClient}>
+        <AppProviders emotionCache={runtime.emotionCache} queryClient={runtime.queryClient}>
           <RouterServer router={router} />
         </AppProviders>
       )
-    })
-  );
+    });
+
+    return injectEmotionCriticalCssIntoResponse(response, runtime.emotionCache);
+  });
 }
