@@ -1,4 +1,4 @@
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicApiProvider } from "../../config/publicApiProvider";
 import { isPublicReadAbortError } from "../../features/public-read/errors";
@@ -21,28 +21,11 @@ function isDocumentVisible() {
   return typeof document === "undefined" || document.visibilityState === "visible";
 }
 
-function subscribeDocumentVisibility(onStoreChange: () => void) {
-  if (typeof document === "undefined") {
-    return () => undefined;
-  }
-
-  document.addEventListener("visibilitychange", onStoreChange);
-  return () => document.removeEventListener("visibilitychange", onStoreChange);
-}
-
-function getDocumentVisibilitySnapshot() {
-  return isDocumentVisible();
-}
-
-function getDocumentVisibilityServerSnapshot() {
-  return true;
-}
-
 function isLiveVisitorStatsBackedOff() {
   return Date.now() < liveVisitorStatsBackoffUntil;
 }
 
-function getLiveVisitorStatsRefetchInterval() {
+function getLiveVisitorStatsPollDelay() {
   const backoffRemaining = liveVisitorStatsBackoffUntil - Date.now();
 
   return backoffRemaining > 0 ? backoffRemaining : LIVE_VISITOR_STATS_INTERVAL_MS;
@@ -118,13 +101,9 @@ export function resetLiveVisitorStatsBackoffForTests() {
 
 export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initialDataUpdatedAt?: number) {
   const normalizedInitial = useMemo(() => normalizeVisitorStats(initialStats), [initialStats]);
-  const documentVisible = useSyncExternalStore(
-    subscribeDocumentVisibility,
-    getDocumentVisibilitySnapshot,
-    getDocumentVisibilityServerSnapshot
-  );
   const usesCloudflare = getPublicApiProvider() === "cloudflare";
   const isBrowser = typeof window !== "undefined";
+  const liveEnabled = isBrowser && usesCloudflare && Boolean(initialStats?.enabled);
   const query = useQuery({
     queryKey: LIVE_VISITOR_STATS_QUERY_KEY,
     queryFn: async ({ signal }) => {
@@ -140,17 +119,53 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
         throw error;
       }
     },
-    enabled: isBrowser && usesCloudflare && Boolean(initialStats?.enabled),
+    enabled: liveEnabled,
     initialData: initialStats ? normalizedInitial : undefined,
     initialDataUpdatedAt,
     retry: false,
     staleTime: LIVE_VISITOR_STATS_STALE_MS,
-    refetchInterval: documentVisible ? getLiveVisitorStatsRefetchInterval : false,
-    refetchIntervalInBackground: false,
+    refetchInterval: false,
     refetchOnMount: () => !isLiveVisitorStatsBackedOff(),
     refetchOnWindowFocus: shouldRefreshLiveVisitorStats,
     refetchOnReconnect: shouldRefreshLiveVisitorStats
   });
+  const refetch = query.refetch;
+
+  useEffect(() => {
+    if (!liveEnabled || typeof window === "undefined") {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let timeoutId: number | undefined;
+
+    const scheduleNextPoll = () => {
+      if (cancelled) {
+        return;
+      }
+
+      timeoutId = window.setTimeout(async () => {
+        if (cancelled) {
+          return;
+        }
+
+        if (isDocumentVisible() && !isLiveVisitorStatsBackedOff()) {
+          await refetch({ cancelRefetch: false });
+        }
+
+        scheduleNextPoll();
+      }, getLiveVisitorStatsPollDelay());
+    };
+
+    scheduleNextPoll();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [liveEnabled, refetch]);
 
   return query.data ?? normalizedInitial;
 }
