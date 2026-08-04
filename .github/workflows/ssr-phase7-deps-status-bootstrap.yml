@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feat/ssr-phase7-vercel-cutover
+  pull_request:
+    branches:
+      - refactor/ssr-readiness
 
 permissions:
   contents: write
