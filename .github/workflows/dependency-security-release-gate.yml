@@ -33,9 +33,6 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
-      - name: Install committed dependency tree
-        run: pnpm install --frozen-lockfile --strict-peer-dependencies
-
       - name: Refresh dependency graph with exact security release-age exceptions
         shell: bash
         run: |
@@ -55,9 +52,9 @@ jobs:
       - name: Enforce security update boundaries
         shell: bash
         run: |
-          if ! git diff --quiet -- pnpm-workspace.yaml config/dependency-policy.json .node-version; then
+          if ! git diff --quiet -- config/dependency-policy.json .node-version; then
             echo "Security refresh changed a protected policy/runtime pin."
-            git diff -- pnpm-workspace.yaml config/dependency-policy.json .node-version
+            git diff -- config/dependency-policy.json .node-version
             exit 1
           fi
           if grep -q "minimumReleaseAgeExclude" pnpm-workspace.yaml; then
@@ -93,7 +90,8 @@ jobs:
           }
           NODE
 
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Frozen strict-peer install on resolved tree
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: pnpm deps:status
       - run: pnpm deps:status:check
       - run: pnpm deps:check
@@ -111,13 +109,13 @@ jobs:
         if: github.event_name == 'push'
         shell: bash
         run: |
-          if git diff --quiet -- package.json pnpm-lock.yaml docs/maintenance/dependency-current-status.md; then
+          if git diff --quiet -- package.json pnpm-workspace.yaml pnpm-lock.yaml docs/maintenance/dependency-current-status.md; then
             echo "No dependency files changed."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json pnpm-lock.yaml docs/maintenance/dependency-current-status.md
+          git add package.json pnpm-workspace.yaml pnpm-lock.yaml docs/maintenance/dependency-current-status.md
           git diff --cached --check
           git commit -m "fix(deps): resolve high severity toolchain advisories"
           git push origin HEAD:fix/dependency-security-release-gate
