@@ -36,8 +36,8 @@ function shouldRefreshLiveVisitorStats(query: { state: { dataUpdatedAt: number }
     return false;
   }
 
-  const dataUpdatedAt = Number(query.state.dataUpdatedAt || 0);
-  return dataUpdatedAt <= 0 || Date.now() - dataUpdatedAt >= LIVE_VISITOR_STATS_STALE_MS;
+  const freshnessAt = liveVisitorStatsLastNetworkAt || Number(query.state.dataUpdatedAt || 0);
+  return freshnessAt <= 0 || Date.now() - freshnessAt >= LIVE_VISITOR_STATS_STALE_MS ? "always" : false;
 }
 
 function isWithinLiveVisitorStatsNetworkBudget(now = Date.now()) {
@@ -107,6 +107,12 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
   const query = useQuery({
     queryKey: LIVE_VISITOR_STATS_QUERY_KEY,
     queryFn: async ({ signal }) => {
+      if (!isDocumentVisible()) {
+        return liveVisitorStatsLastNetworkValue
+          ? mergeLiveVisitorStats(normalizedInitial, liveVisitorStatsLastNetworkValue)
+          : normalizedInitial;
+      }
+
       try {
         const live = await readLiveVisitorStatsWithinBudget(signal);
         return mergeLiveVisitorStats(normalizedInitial, live);
