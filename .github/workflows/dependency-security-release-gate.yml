@@ -53,21 +53,17 @@ jobs:
             - fast-uri@3.1.5
             - brace-expansion@5.0.9
           EOF
-            pnpm update \
-              undici@7.29.0 \
-              fast-uri@3.1.5 \
-              brace-expansion@5.0.9 \
-              --depth Infinity
+            pnpm update --depth Infinity
             mv -f pnpm-workspace.yaml.security-backup pnpm-workspace.yaml
             trap - EXIT
           fi
 
-      - name: Enforce lockfile-only security update
+      - name: Enforce security update boundaries
         shell: bash
         run: |
-          if ! git diff --quiet -- package.json pnpm-workspace.yaml config/dependency-policy.json; then
-            echo "Security update changed persistent dependency policy or manifest unexpectedly."
-            git diff -- package.json pnpm-workspace.yaml config/dependency-policy.json
+          if ! git diff --quiet -- package.json pnpm-workspace.yaml config/dependency-policy.json .node-version; then
+            echo "Security refresh changed a protected manifest/policy/runtime pin."
+            git diff -- package.json pnpm-workspace.yaml config/dependency-policy.json .node-version
             exit 1
           fi
           if grep -q "minimumReleaseAgeExclude" pnpm-workspace.yaml; then
@@ -96,7 +92,7 @@ jobs:
       - run: pnpm build:ssr:foundation
       - run: pnpm vite build --ssr api/ssr.ts --outDir dist/vercel-function-release
 
-      - name: Commit validated security lockfile update
+      - name: Commit validated dependency resolution
         if: github.event_name == 'push'
         shell: bash
         run: |
