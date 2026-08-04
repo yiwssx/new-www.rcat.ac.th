@@ -153,12 +153,20 @@ function createPublicHomePayload() {
   };
 }
 
+function getRequestUrl(input: RequestInfo | URL) {
+  if (input instanceof Request) {
+    return input.url;
+  }
+
+  return String(input);
+}
+
 describe("dynamic Public SEO SSR", () => {
   beforeEach(() => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
-        const url = new URL(String(input), "https://www.rcat.ac.th");
+        const url = new URL(getRequestUrl(input), "https://www.rcat.ac.th");
 
         if (url.pathname === "/api/public/shell") {
           return Response.json(createPublicShellPayload());
