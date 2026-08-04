@@ -10,8 +10,9 @@ export async function renderSsrResponse(request: Request) {
     createRouter: () => runtime.router
   });
 
-  return handler(({ responseHeaders, router }) =>
+  return handler(({ request: handlerRequest, responseHeaders, router }) =>
     renderRouterToString({
+      request: handlerRequest,
       responseHeaders,
       router,
       children: (
