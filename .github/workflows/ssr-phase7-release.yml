@@ -1,0 +1,43 @@
+name: SSR Phase 7 Release Gate
+
+on:
+  push:
+    branches:
+      - feat/ssr-phase7-vercel-cutover
+  pull_request:
+    branches:
+      - refactor/ssr-readiness
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm deps:status:check
+      - run: pnpm deps:check
+      - run: pnpm deps:docs:audit
+      - run: pnpm quality:full
+      - run: pnpm worker:deploy:dry
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:functional
+      - run: node scripts/prepare-ssr-cutover-output.mjs
+      - run: test -f dist/csr.html && test ! -e dist/index.html && test -f dist/assets/rcat-client.js && test -f dist/assets/rcat-client.css
+      - run: pnpm build:ssr:foundation
+      - run: pnpm vite build --ssr api/ssr.ts --outDir dist/vercel-function-release
