@@ -355,6 +355,14 @@ async function installFixture(page: Page, introEnabled: boolean): Promise<Ledger
 
     if (url.pathname === "/api/public/home") {
       payload = snapshot;
+    } else if (url.pathname === "/api/public/shell") {
+      payload = {
+        siteSettings: snapshot.siteSettings,
+        homepageSettings: snapshot.homepageSettings,
+        displaySettings: snapshot.displaySettings,
+        menu: snapshot.menu,
+        generatedAt
+      };
     } else if (url.pathname === "/api/public/content" && url.searchParams.get("kind") === "news") {
       payload = {
         kind: "news",
@@ -368,7 +376,7 @@ async function installFixture(page: Page, introEnabled: boolean): Promise<Ledger
         generatedAt
       };
     } else if (url.pathname === `/api/public/content/${contentSlug}`) {
-      payload = { item: detailItem, generatedAt };
+      payload = { item: detailItem, media, generatedAt };
     } else if (url.pathname === "/api/public/content-view") {
       payload = { id: detailItem.id, slug: detailItem.slug, viewCount: 4, lastViewedAt: generatedAt };
     } else if (url.pathname === "/api/public/visitor-stats") {
@@ -570,7 +578,7 @@ test.describe("Public media request budgets", () => {
     );
   });
 
-  test("content detail defers body images, video, and Facebook until their slots near the viewport", async ({
+  test("content detail emits lazy body images first-pass while deferring video and Facebook embeds", async ({
     page
   }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
@@ -584,12 +592,15 @@ test.describe("Public media request budgets", () => {
       dom: await domSummary(page)
     };
 
-    expect(driveRequestsFor(ledger, ids.bodyOne)).toHaveLength(0);
-    expect(driveRequestsFor(ledger, ids.bodyTwo)).toHaveLength(0);
+    const bodySlots = page.locator('[data-public-image-intent="content-body"]');
+    await expect(bodySlots).toHaveCount(2);
+    await expect(bodySlots.nth(0).locator("img")).toHaveAttribute("loading", "lazy");
+    await expect(bodySlots.nth(1).locator("img")).toHaveAttribute("loading", "lazy");
+    expect(driveRequestsFor(ledger, ids.bodyOne).length).toBeLessThanOrEqual(1);
+    expect(driveRequestsFor(ledger, ids.bodyTwo).length).toBeLessThanOrEqual(1);
     expect(ledger.embeds).toHaveLength(0);
     expect(before.dom.highCount).toBe(1);
 
-    const bodySlots = page.locator('[data-public-image-intent="content-body"]');
     await bodySlots.nth(0).scrollIntoViewIfNeeded();
     await expectRequestCount(() => driveRequestsFor(ledger, ids.bodyOne).length, 1);
     const afterFirstImage = summarizeRequests(ledger);

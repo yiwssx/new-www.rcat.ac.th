@@ -18,6 +18,7 @@
     "ai:ask": "sigmap ask",
     "ai:validate": "sigmap validate",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build:ssr:foundation": "vite build --ssr src/entry-server.tsx --outDir dist/server-foundation",
     "generate:sitemap": "node -e \"console.log('Sitemap is generated at runtime: /sitemap.xml')\"",
     "preview": "vite preview",
     "worker:dev": "wrangler dev --config cloudflare/public-api/wrangler.toml",
@@ -44,6 +45,8 @@
     "test": "node scripts/run-vitest.mjs run",
     "test:unit": "node scripts/run-vitest.mjs run --exclude src/test/integration/** --exclude cloudflare/public-api/test/cmsMfaD1Integration.test.ts --exclude cloudflare/public-api/test/cmsUserLifecycleD1Integration.test.ts",
     "test:integration": "node scripts/run-vitest.mjs run src/test/integration cloudflare/public-api/test/cmsMfaD1Integration.test.ts cloudflare/public-api/test/cmsUserLifecycleD1Integration.test.ts",
+    "test:ssr:foundation": "vitest run src/test/ssrRuntimeFoundation.test.tsx src/public/routing/publicRouteHead.test.ts src/test/publicRouteHeadSsrReadiness.test.ts src/test/publicSiteShellSsrReadiness.test.ts",
+    "test:ssr:hydration": "vitest run src/test/queryHydration.test.ts src/test/ssrRuntimeFoundation.test.tsx src/test/publicRouteLoaders.test.ts src/test/publicRouteHeadSsrReadiness.test.ts src/test/publicSiteShellSsrReadiness.test.ts src/public/routing/publicRouteHead.test.ts",
     "test:functional:install": "playwright install chromium",
     "test:functional": "playwright test",
     "test:all": "pnpm test:unit && pnpm test:integration && pnpm test:functional",
@@ -86,7 +89,9 @@
     "test:sitemap": "vitest run src/test/sitemap.test.mjs"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
+    "@emotion/server": "^11.11.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
@@ -98,14 +103,14 @@
     "bcryptjs": "^3.0.3",
     "dayjs": "^1.11.21",
     "embla-carousel-react": "^8.6.0",
-    "jose": "^6.2.5",
+    "jose": "^6.2.6",
     "jwt-decode": "^4.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "sweetalert2": "^11.26.25"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260731.1",
+    "@cloudflare/workers-types": "^5.20260801.1",
     "@commitlint/cli": "21.2.1",
     "@commitlint/config-conventional": "21.2.0",
     "@eslint/js": "^10.0.1",
@@ -125,7 +130,7 @@
     "globals": "^17.8.0",
     "husky": "^9.1.7",
     "jsdom": "^30.0.1",
-    "lint-staged": "^17.2.0",
+    "lint-staged": "^17.3.0",
     "postcss": "^8.5.25",
     "prettier": "^3.9.6",
     "sigmap": "^8.24.0",
@@ -135,7 +140,7 @@
     "vite": "^8.2.0",
     "vite-plugin-checker": "^0.14.5",
     "vitest": "^4.1.10",
-    "wrangler": "^4.116.0"
+    "wrangler": "^4.118.0"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs}": [

@@ -152,7 +152,7 @@ describe("PublicResponsiveImage", () => {
     expect(slot).toHaveStyle({ width: "88px", height: "44px" });
   });
 
-  it("keeps network-bearing attributes absent until the slot nears the viewport", async () => {
+  it("renders a semantic lazy image on the first pass while preserving reserved geometry", () => {
     const { container } = render(
       <PublicResponsiveImage
         source="https://images.example.edu/deferred.jpg"
@@ -162,20 +162,15 @@ describe("PublicResponsiveImage", () => {
       />
     );
 
-    const slot = container.querySelector('[data-public-responsive-image="true"]') as Element;
-    expect(screen.queryByRole("img", { name: "Deferred image" })).not.toBeInTheDocument();
-    expect(container.querySelector('[data-public-image-placeholder="true"]')).toBeInTheDocument();
-    expect(slot).toHaveStyle({ minHeight: "180px" });
+    const slot = container.querySelector('[data-public-responsive-image="true"]') as HTMLElement;
+    const image = screen.getByRole("img", { name: "Deferred image" });
 
-    act(() => {
-      TestIntersectionObserver.instances[0].trigger(slot);
-    });
-
-    const image = await screen.findByRole("img", { name: "Deferred image" });
     expect(image).toHaveAttribute("src", "https://images.example.edu/deferred.jpg");
     expect(image).toHaveAttribute("loading", "lazy");
     expect(image).toHaveAttribute("fetchpriority", "low");
+    expect(container.querySelector('[data-public-image-placeholder="true"]')).not.toBeInTheDocument();
     expect(slot).toHaveStyle({ minHeight: "180px" });
+    expect(TestIntersectionObserver.instances).toHaveLength(0);
   });
 
   it("loads safely when IntersectionObserver is unavailable", async () => {

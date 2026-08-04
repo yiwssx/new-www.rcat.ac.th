@@ -1,4 +1,5 @@
 export { getPublicEventList } from "./api";
+export { publicEventListQueryKey, publicEventListQueryOptions } from "./query";
 export type { PublicEventListSnapshot } from "./types";
 export {
   clearPublicEventListCache,

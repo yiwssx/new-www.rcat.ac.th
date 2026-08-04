@@ -89,9 +89,10 @@ describe("CMS authentication final-cutover regression guard", () => {
 
   it("mounts exactly one reauthentication dialog inside the CMS Auth route boundary", () => {
     const app = readFileSync(join(srcRoot, "App.tsx"), "utf8");
+    const appProviders = readFileSync(join(srcRoot, "AppProviders.tsx"), "utf8");
     const authRouteComponents = readFileSync(join(srcRoot, "cmsAuthRouteComponents.tsx"), "utf8");
     const shell = readFileSync(join(srcRoot, "admin", "layout", "CmsShell.tsx"), "utf8");
-    const combined = `${app}\n${authRouteComponents}\n${shell}`;
+    const combined = `${app}\n${appProviders}\n${authRouteComponents}\n${shell}`;
 
     expect(combined.match(/<ReauthenticationDialog\s*\/>/g)).toHaveLength(1);
     expect(app).not.toContain("ReauthenticationDialog");
@@ -100,8 +101,10 @@ describe("CMS authentication final-cutover regression guard", () => {
     expect(authRouteComponents.indexOf("<AuthProvider>")).toBeLessThan(
       authRouteComponents.indexOf("<ReauthenticationDialog />")
     );
-    expect(app).toContain("<ThemeProvider");
+    expect(app).toContain("<AppProviders");
+    expect(appProviders).toContain("<ThemeProvider");
     expect(app).not.toContain("AuthProvider");
+    expect(appProviders).not.toContain("AuthProvider");
   });
 
   it("keeps raw Recovery Codes in the application-level React handoff only", () => {

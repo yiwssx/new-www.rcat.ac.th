@@ -38,6 +38,13 @@ vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
   })
 }));
 
+vi.mock("../public/hooks/usePublicShellSnapshot", () => ({
+  usePublicShellSnapshot: () => ({
+    data: currentSnapshot ? { siteSettings: {}, menu: [] } : undefined,
+    ...currentSnapshotQueryState
+  })
+}));
+
 vi.mock("../public/hooks/usePublicContentDetail", () => ({
   usePublicContentDetail: () => ({
     data: currentDetail,

@@ -4,7 +4,6 @@ import { Box, type SxProps, type Theme } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { resolvePublicImageSource, type PublicImageAssetSource, type PublicImageIntent } from "./publicImageSources";
 import { usePublicMediaLoading } from "./publicMediaLoadingState";
-import { useNearViewportActivation } from "./useNearViewportActivation";
 
 export type PublicImageLoadMode = "critical" | "eager" | "near-viewport";
 
@@ -48,7 +47,6 @@ export default function PublicResponsiveImage({
   intrinsic = false,
   intent,
   loadMode = "near-viewport",
-  nearViewportMargin = "320px 0px",
   onError,
   onLoad,
   reservedMinHeight,
@@ -63,11 +61,9 @@ export default function PublicResponsiveImage({
   const { pageMediaAllowed } = usePublicMediaLoading();
   const allowed = bypassPageMediaGate || pageMediaAllowed;
   const isNearViewportMode = loadMode === "near-viewport";
-  const { activated, rootRef } = useNearViewportActivation(allowed && isNearViewportMode, nearViewportMargin);
-  const shouldLoad = allowed && (!isNearViewportMode || activated);
   const failed = failedSourceKey === sourceKey;
   const hasUsableSource = Boolean(resolvedSource.src) && !failed;
-  const shouldRenderImage = shouldLoad && hasUsableSource;
+  const shouldRenderImage = allowed && hasUsableSource;
   const loading = isNearViewportMode ? "lazy" : "eager";
   const fetchPriority = loadMode === "critical" ? "high" : isNearViewportMode ? "low" : "auto";
   const usesIntrinsicSizing = intrinsic && !fill;
@@ -76,7 +72,6 @@ export default function PublicResponsiveImage({
 
   return (
     <Box
-      ref={rootRef}
       className={className}
       data-public-responsive-image="true"
       data-public-image-intent={intent}

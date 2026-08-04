@@ -1,4 +1,5 @@
-import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import type { QueryClient } from "@tanstack/react-query";
+import { createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
 import {
   AccountSecurityPage,
   ActivateAccountPage,
@@ -34,8 +35,47 @@ import {
   SettingsPage,
   UsersPage
 } from "./routeComponents";
+import {
+  getCmsRouteHead,
+  getPublicContentRouteHead,
+  getPublicLayoutRouteHead,
+  getRootRouteHead,
+  getStaticPublicRouteHead
+} from "./public/routing/publicRouteHead";
+import {
+  getAnnouncementPagesLoaderInput,
+  loadPublicCmsSnapshotData,
+  loadPublicContentDetailData,
+  loadPublicContentListData,
+  loadPublicContentPermalinkData,
+  loadPublicDocumentListData,
+  loadPublicEventListData,
+  loadPublicHomeData,
+  loadPublicProgramListData,
+  loadPublicSearchIndexData,
+  loadPublicSearchResultsData,
+  loadPublicShellData
+} from "./public/routing/publicRouteLoaders";
+import {
+  validatePublicAnnouncementsSearch,
+  validatePublicFilteredPaginatedSearch,
+  validatePublicPaginatedSearch,
+  validatePublicSearchRouteSearch
+} from "./public/routing/searchParams";
+import { dehydrateAppQueryClient, hydrateAppQueryClient } from "./queryHydration";
 
-const rootRoute = createRootRoute({
+export interface AppRouterContext {
+  queryClient: QueryClient;
+  documentMode: boolean;
+}
+
+export interface CreateAppRouterInput {
+  queryClient: QueryClient;
+  documentMode?: boolean;
+}
+
+const rootRoute = createRootRouteWithContext<AppRouterContext>()({
+  head: getRootRouteHead,
   component: RootRouteLayout,
   notFoundComponent: NotFoundPage
 });
@@ -43,84 +83,121 @@ const rootRoute = createRootRoute({
 const publicLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "public-layout",
+  loader: ({ context }) => loadPublicShellData(context),
+  head: ({ loaderData }) => getPublicLayoutRouteHead(loaderData),
   component: PublicRouteLayout
 });
 
 const publicHomeRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "/",
+  loader: ({ context }) => loadPublicHomeData(context),
+  head: ({ loaderData, matches }) => getStaticPublicRouteHead("/", undefined, { loaderData, matches }),
   component: PublicHomePage
 });
 
 const publicDepartmentsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "departments",
+  validateSearch: validatePublicPaginatedSearch,
+  loader: ({ context }) => loadPublicProgramListData(context),
+  head: ({ match }) => getStaticPublicRouteHead("/departments", match.search),
   component: PublicDepartmentsPage
 });
 
 const publicNewsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "news",
+  validateSearch: validatePublicFilteredPaginatedSearch,
+  loader: ({ context }) => loadPublicContentListData(context, "news"),
+  head: ({ match }) => getStaticPublicRouteHead("/news", match.search),
   component: PublicNewsPage
 });
 
 const publicAnnouncementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "announcements",
+  validateSearch: validatePublicAnnouncementsSearch,
+  loaderDeps: ({ search }) => getAnnouncementPagesLoaderInput(search),
+  loader: ({ context, deps }) => loadPublicContentListData(context, "announcements", deps),
+  head: ({ match }) => getStaticPublicRouteHead("/announcements", match.search),
   component: PublicAnnouncementsPage
 });
 
 const publicAchievementsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "achievements",
+  validateSearch: validatePublicPaginatedSearch,
+  loader: ({ context }) => loadPublicSearchIndexData(context),
+  head: ({ match }) => getStaticPublicRouteHead("/achievements", match.search),
   component: PublicAchievementsPage
 });
 
 const publicBlogRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "blog",
+  validateSearch: validatePublicPaginatedSearch,
+  loader: ({ context }) => loadPublicContentListData(context, "blog"),
+  head: ({ match }) => getStaticPublicRouteHead("/blog", match.search),
   component: PublicBlogPage
 });
 
 const publicDocumentsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "documents",
+  validateSearch: validatePublicPaginatedSearch,
+  loader: ({ context }) => loadPublicDocumentListData(context),
+  head: ({ match }) => getStaticPublicRouteHead("/documents", match.search),
   component: PublicDocumentsPage
 });
 
 const publicCalendarRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "calendar",
+  validateSearch: validatePublicPaginatedSearch,
+  loader: ({ context }) => loadPublicEventListData(context),
+  head: ({ match }) => getStaticPublicRouteHead("/calendar", match.search),
   component: PublicCalendarPage
 });
 
 const publicContactRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "contact",
+  loader: ({ context }) => loadPublicCmsSnapshotData(context),
+  head: () => getStaticPublicRouteHead("/contact"),
   component: PublicContactPage
 });
 
 const publicSearchRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "search",
+  validateSearch: validatePublicSearchRouteSearch,
+  loaderDeps: ({ search }) => ({ query: search.q, page: search.page }),
+  loader: ({ context, deps }) => loadPublicSearchResultsData(context, deps),
+  head: ({ match, loaderData, matches }) => getStaticPublicRouteHead("/search", match.search, { loaderData, matches }),
   component: PublicSearchPage
 });
 
 const publicContentDetailRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "content/$slug",
+  loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug),
+  head: ({ params, loaderData, matches }) => getPublicContentRouteHead(params.slug, loaderData, { matches }),
   component: PublicContentDetailRoute
 });
 
 const publicPermalinkRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "$slug",
+  loader: ({ context, params }) => loadPublicContentPermalinkData(context, params.slug),
+  head: ({ params, loaderData, matches }) => getPublicContentRouteHead(params.slug, loaderData, { matches }),
   component: PublicContentDetailRoute
 });
 
 const cmsAuthLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "cms-auth-layout",
+  head: getCmsRouteHead,
   component: CmsAuthRouteLayout
 });
 
@@ -317,13 +394,22 @@ const routeTree = rootRoute.addChildren([
   ])
 ]);
 
-export const router = createRouter({
-  routeTree,
-  defaultPreload: "intent"
-});
+export function createAppRouter({ queryClient, documentMode = false }: CreateAppRouterInput) {
+  return createRouter({
+    routeTree,
+    context: { queryClient, documentMode },
+    defaultPreload: "intent",
+    dehydrate: () => dehydrateAppQueryClient(queryClient),
+    hydrate: (dehydrated) => {
+      hydrateAppQueryClient(queryClient, dehydrated);
+    }
+  });
+}
+
+export type AppRouter = ReturnType<typeof createAppRouter>;
 
 declare module "@tanstack/react-router" {
   interface Register {
-    router: typeof router;
+    router: AppRouter;
   }
 }

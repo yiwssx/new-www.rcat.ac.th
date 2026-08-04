@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Box, Button, Card, CardContent, Chip, Stack, TextField, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
@@ -9,12 +9,11 @@ import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
-import { usePublicPagination } from "../hooks/usePublicPagination";
 import { usePublicSearchIndex } from "../hooks/usePublicSearchIndex";
+import { normalizePublicPageSearchValue } from "../routing/searchParams";
 import { ContentItem } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../utils/safeUrl";
-import { searchPublishedContent } from "../../utils/search";
 import { interactiveSurfaceSx } from "../../design-system/componentStyles";
 import ActionBar from "../../design-system/components/ActionBar";
 
@@ -45,17 +44,27 @@ function getContentTypeLabel(type: ContentItem["type"]) {
 
 export default function PublicSearchPage() {
   const navigate = useNavigate();
-  const { data, isLoading, isFetching, isError, refetch } = usePublicSearchIndex();
   const search = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
   const query = getSearchQueryFromLocation(search);
+  const hasQuery = Boolean(query);
+  const requestedPage = normalizePublicPageSearchValue(search.page) ?? 1;
+  const { data, isLoading, isFetching, isError, refetch } = usePublicSearchIndex(
+    query,
+    requestedPage,
+    SEARCH_PAGE_SIZE,
+    hasQuery
+  );
   const [draftQuery, setDraftQuery] = useState(query);
 
-  const results = useMemo(() => searchPublishedContent(data?.items ?? [], query), [data?.items, query]);
-  const resultsPagination = usePublicPagination(results, {
-    pageSize: SEARCH_PAGE_SIZE,
-    resetKeys: [query],
-    scrollTargetId: "search-results-heading"
-  });
+  const results = data?.items ?? [];
+  const fallbackPageCount = Math.max(1, Math.ceil(results.length / SEARCH_PAGE_SIZE));
+  const page = data?.pagination?.page ?? Math.min(requestedPage, fallbackPageCount);
+  const pageSize = data?.pagination?.pageSize ?? SEARCH_PAGE_SIZE;
+  const pageCount = data?.pagination?.totalPages ?? fallbackPageCount;
+  const totalItems = data?.pagination?.totalItems ?? results.length;
+  const visibleResults = data?.pagination
+    ? results
+    : results.slice((page - 1) * SEARCH_PAGE_SIZE, page * SEARCH_PAGE_SIZE);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,7 +77,33 @@ export default function PublicSearchPage() {
     void navigate({ to: "/search", search: { q: nextQuery } });
   }
 
-  if (!data && (isLoading || isFetching)) {
+  function handlePageChange(nextPage: number) {
+    const clampedPage = Math.min(Math.max(1, Math.floor(nextPage)), pageCount);
+
+    void navigate({
+      to: "/search",
+      search: (previous) => {
+        const nextSearch = { ...previous, q: query } as typeof previous & Record<string, unknown>;
+
+        if (clampedPage <= 1) {
+          delete nextSearch.page;
+        } else {
+          nextSearch.page = clampedPage;
+        }
+
+        return nextSearch;
+      },
+      resetScroll: false
+    });
+
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        document.getElementById("search-results-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }
+
+  if (hasQuery && !data && (isLoading || isFetching)) {
     return (
       <PublicSiteShell canonicalPath="/search">
         <PublicLoadingState variant="search-results" />
@@ -76,7 +111,7 @@ export default function PublicSearchPage() {
     );
   }
 
-  if (!data && isError) {
+  if (hasQuery && !data && isError) {
     return (
       <PublicErrorState
         onRetry={() => {
@@ -87,14 +122,6 @@ export default function PublicSearchPage() {
     );
   }
 
-  if (!data) {
-    return (
-      <PublicSiteShell canonicalPath="/search">
-        <PublicLoadingState variant="search-results" />
-      </PublicSiteShell>
-    );
-  }
-
   return (
     <PublicSiteShell
       title="ค้นหา"
@@ -102,10 +129,10 @@ export default function PublicSearchPage() {
       canonicalPath="/search"
       seoTitle={query ? `ค้นหา: ${query}` : "ค้นหา"}
       seoDescription="ค้นหาเนื้อหา ข่าว ประกาศ หลักสูตร และบทความในเว็บไซต์"
-      preloadedSiteSettings={data.siteSettings}
-      preloadedHomepageSettings={data.homepageSettings}
-      preloadedDisplaySettings={data.displaySettings}
-      preloadedMenu={data.menu}
+      preloadedSiteSettings={data?.siteSettings}
+      preloadedHomepageSettings={data?.homepageSettings}
+      preloadedDisplaySettings={data?.displaySettings}
+      preloadedMenu={data?.menu}
     >
       <Card
         component="form"
@@ -142,7 +169,7 @@ export default function PublicSearchPage() {
           />
         </CardContent>
       </Card>
-      <PublicBackgroundProgress active={isFetching} />
+      <PublicBackgroundProgress active={hasQuery && isFetching} />
       {!query && (
         <EmptyState
           title="ค้นหาเนื้อหาในเว็บไซต์"
@@ -150,23 +177,23 @@ export default function PublicSearchPage() {
           icon={<SearchOutlinedIcon />}
         />
       )}
-      {query && !results.length && (
+      {query && !totalItems && (
         <EmptyState
           title="ไม่พบผลการค้นหา"
           description={`ไม่พบเนื้อหาที่ตรงกับ "${query}"`}
           icon={<SearchOutlinedIcon />}
         />
       )}
-      {query && results.length > 0 && (
+      {query && totalItems > 0 && (
         <Stack spacing={2.2}>
           <Typography variant="h2" sx={{ fontSize: { xs: "1.35rem", md: "1.75rem" } }}>
             <span id="search-results-heading">
-              พบ {results.length} รายการสำหรับ "{query}"
+              พบ {totalItems} รายการสำหรับ "{query}"
             </span>
           </Typography>
 
           <Grid container spacing={2.2}>
-            {resultsPagination.paginatedItems.map((item) => (
+            {visibleResults.map((item) => (
               <Grid key={item.id} size={{ xs: 12, md: 6 }}>
                 <Card
                   sx={{
@@ -265,11 +292,11 @@ export default function PublicSearchPage() {
             ))}
           </Grid>
           <PublicPagination
-            page={resultsPagination.page}
-            pageCount={resultsPagination.pageCount}
-            pageSize={resultsPagination.pageSize}
-            totalItems={resultsPagination.totalItems}
-            onPageChange={(nextPage) => resultsPagination.setPage(nextPage, { scroll: true })}
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageChange={handlePageChange}
           />
         </Stack>
       )}

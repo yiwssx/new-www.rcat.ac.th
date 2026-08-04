@@ -1,5 +1,6 @@
 export { getPublicDocumentList } from "./api";
 export { DocumentListCard } from "./DocumentListCard";
+export { publicDocumentListQueryKey, publicDocumentListQueryOptions } from "./query";
 export type { PublicDocumentItem, PublicDocumentListSnapshot } from "./types";
 export {
   clearPublicDocumentListCache,

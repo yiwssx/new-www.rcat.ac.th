@@ -1,36 +1,59 @@
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   getPublicContentListCache,
-  getPublicContentListSnapshot,
   PUBLIC_CONTENT_LIST_CACHE_TTL_MS,
-  setPublicContentListCache
+  publicContentListQueryOptions,
+  type PublicContentListPageInput
 } from "../../features/public-content";
+import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
 import type { PublicContentListKind } from "../../types";
 
-const publicContentListQueryGcTimeMs = 60 * 60 * 1000;
+function normalizePageInput(pageInput: PublicContentListPageInput | undefined) {
+  if (!pageInput) {
+    return undefined;
+  }
 
-function isFresh(savedAt: number, ttlMs: number) {
-  return savedAt + ttlMs > Date.now();
+  return {
+    page: Math.max(1, Math.floor(pageInput.page)),
+    pageSize: pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))
+  };
 }
 
-export function usePublicContentList(kind: PublicContentListKind) {
-  const cachedSnapshot = useMemo(() => getPublicContentListCache(kind), [kind]);
-  const hasFreshCache = cachedSnapshot ? isFresh(cachedSnapshot.savedAt, PUBLIC_CONTENT_LIST_CACHE_TTL_MS) : false;
+function getEligibleContentListCache(
+  kind: PublicContentListKind,
+  pageItemsInput: PublicContentListPageInput | undefined
+) {
+  const cached = getPublicContentListCache(kind);
+
+  if (!cached || kind !== "announcements" || !pageItemsInput) {
+    return cached;
+  }
+
+  const cachedPagination = cached.data.pageItemsPagination;
+
+  if (
+    pageItemsInput.page !== 1 ||
+    !cachedPagination ||
+    cachedPagination.page !== 1 ||
+    (pageItemsInput.pageSize !== undefined && cachedPagination.pageSize !== pageItemsInput.pageSize)
+  ) {
+    return null;
+  }
+
+  return cached;
+}
+
+export function usePublicContentList(kind: PublicContentListKind, pageItemsInput?: PublicContentListPageInput) {
+  const normalizedPageItemsInput = normalizePageInput(pageItemsInput);
+  const cachedSnapshot = getEligibleContentListCache(kind, normalizedPageItemsInput);
+  const hasFreshCache = cachedSnapshot
+    ? isPublicQueryCacheFresh(cachedSnapshot.savedAt, PUBLIC_CONTENT_LIST_CACHE_TTL_MS)
+    : false;
 
   return useQuery({
-    queryKey: ["public-content-list", kind],
-    queryFn: async () => {
-      const snapshot = await getPublicContentListSnapshot(kind);
-      setPublicContentListCache(kind, snapshot);
-      return snapshot;
-    },
+    ...publicContentListQueryOptions(kind, { consumeAbortSignal: false }, normalizedPageItemsInput),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
-    staleTime: PUBLIC_CONTENT_LIST_CACHE_TTL_MS,
-    gcTime: publicContentListQueryGcTimeMs,
-    refetchOnMount: cachedSnapshot ? !hasFreshCache : true,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: true
+    refetchOnMount: cachedSnapshot ? !hasFreshCache : true
   });
 }

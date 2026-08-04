@@ -274,6 +274,7 @@ describe("M17 Cloudflare Core public read routes", () => {
     expect(PUBLIC_READ_ROUTE_REGISTRY.map((route) => route.resource)).toEqual([
       "public-document-list",
       "public-home",
+      "public-shell",
       "content-list",
       "content-detail",
       "search",
@@ -336,6 +337,28 @@ describe("M17 Cloudflare Core public read routes", () => {
       expect.objectContaining({ id: "sample-media-001" }),
       expect.objectContaining({ id: "sample-media-002" })
     ]);
+    const homeNews = (payload.latestNews as Array<Record<string, unknown>>)[0];
+    expect(homeNews).not.toHaveProperty("body");
+    expect(homeNews).not.toHaveProperty("content");
+    expectGeneratedAt(payload);
+    expectNoLeakage(text);
+  });
+
+  it("returns lightweight shell metadata without loading content or public media collections", async () => {
+    const { env, calls } = createPublicReadMockDb();
+    const response = await worker.fetch(new Request("https://public-api.example.test/api/public/shell"), env);
+    const { payload, text } = await readTextAndJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      siteSettings: expect.any(Object),
+      homepageSettings: expect.any(Object),
+      displaySettings: expect.any(Object),
+      menu: expect.any(Array)
+    });
+    expect(
+      calls.some((call) => /FROM\s+(contents|media_assets|events|carousel_slides|external_services)/i.test(call.query))
+    ).toBe(false);
     expectGeneratedAt(payload);
     expectNoLeakage(text);
   });
@@ -524,16 +547,36 @@ describe("M17 Cloudflare Core public read routes", () => {
           slug: "sample-news",
           type: "news",
           status: "published",
-          owner: "",
-          body: "Fake local-only public content body.",
-          content: "Fake local-only public content body."
+          owner: ""
         })
       ]
     });
+    const listedItem = (payload.items as Array<Record<string, unknown>>)[0];
+    expect(listedItem).not.toHaveProperty("body");
+    expect(listedItem).not.toHaveProperty("content");
     expect(payload.media).toEqual([expect.objectContaining({ id: "sample-media-001" })]);
     expect(JSON.stringify(payload)).not.toContain("sample-program");
     expectGeneratedAt(payload);
     expectNoLeakage(text);
+  });
+
+  it("supports opt-in content pagination without changing the unpaginated contract", async () => {
+    const paginatedRows = [1, 2, 3].map((number) => ({
+      ...sampleContentRows[0],
+      id: `sample-news-00${number}`,
+      slug: `sample-news-${number}`,
+      title: `Sample public news ${number}`
+    }));
+    const { env } = createPublicReadMockDb({ contentRows: paginatedRows });
+    const response = await worker.fetch(
+      new Request("https://public-api.example.test/api/public/content?kind=news&page=2&pageSize=1"),
+      env
+    );
+    const { payload } = await readTextAndJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.items).toEqual([expect.objectContaining({ id: "sample-news-002" })]);
+    expect(payload.pagination).toEqual({ page: 2, pageSize: 1, totalItems: 3, totalPages: 3 });
   });
 
   it("returns a public content detail item or a safe 404", async () => {
@@ -559,7 +602,8 @@ describe("M17 Cloudflare Core public read routes", () => {
         category: "news",
         publishedAt: "2026-02-01T00:00:00.000Z",
         updatedAt: "2026-02-02T00:00:00.000Z"
-      }
+      },
+      media: [expect.objectContaining({ id: "sample-media-001" })]
     });
     expectGeneratedAt(found.payload);
     expectNoLeakage(found.text);
@@ -613,6 +657,9 @@ describe("M17 Cloudflare Core public read routes", () => {
       menu: expect.any(Array),
       items: [expect.objectContaining({ slug: "sample-news", type: "news", status: "published" })]
     });
+    const searchItem = (payload.items as Array<Record<string, unknown>>)[0];
+    expect(searchItem).not.toHaveProperty("body");
+    expect(searchItem).not.toHaveProperty("content");
     expectGeneratedAt(payload);
     expectNoLeakage(text);
   });
@@ -631,6 +678,9 @@ describe("M17 Cloudflare Core public read routes", () => {
       media: expect.any(Array),
       items: [expect.objectContaining({ slug: "sample-program", type: "program", status: "published" })]
     });
+    const programItem = (payload.items as Array<Record<string, unknown>>)[0];
+    expect(programItem).not.toHaveProperty("body");
+    expect(programItem).not.toHaveProperty("content");
     expect(payload.media).toEqual([expect.objectContaining({ id: "sample-media-002" })]);
     expectGeneratedAt(payload);
     expectNoLeakage(text);

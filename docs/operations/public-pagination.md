@@ -1,6 +1,6 @@
 # Public Pagination
 
-Public list pages use UI/render pagination to avoid mounting large numbers of cards at once. This keeps the public site responsive while preserving the existing Cloudflare Worker and D1 read paths.
+Public list pages use URL-owned pagination so TanStack Router, the browser, and future SSR loaders share the same page state. Most archive pages still render a browser-side page slice from their existing snapshot, while the Worker now exposes true D1-backed pagination contracts for content lists, the announcements public-page list, and search.
 
 ## Home Achievements
 
@@ -27,21 +27,99 @@ Public list pages use UI/render pagination to avoid mounting large numbers of ca
 
 ## Query Parameters
 
+TanStack Router owns Public URL search state. Public list rendering no longer reads `window.location.search` or mutates `window.history` directly.
+
 - Most public list pages use `page`.
 - The announcements page has two independent lists:
   - `announcementsPage` for announcements.
   - `pagesPage` for public page items.
-- Existing query filters such as `tag`, `category`, `search`, and `q` are preserved when the page changes.
-- Invalid page values are clamped safely.
+- News and announcements preserve `tag` and `category` filters while paging.
+- Search preserves `q` while paging.
+- Route search validators normalize positive integer page values and trimmed text filters before route components consume the location.
+- Page `1`, invalid page values, and blank text filters are treated as the default and omitted from normalized route search state.
+- Unrelated query parameters are preserved when validated pagination/filter state is normalized.
+- Pagination changes use TanStack Router navigation so browser back/forward behavior and future server rendering share the same URL source of truth.
+- When a filter changes or a requested page exceeds the available page count, pagination uses the safe page without requiring browser-owned URL parsing.
+
+## Canonical Pagination Policy
+
+Indexable Public archive pages use self-referencing canonicals for normalized pagination state:
+
+- `/news?page=2` canonicals to `/news?page=2`.
+- `/blog?page=3` canonicals to `/blog?page=3`.
+- `/announcements?announcementsPage=2&pagesPage=3` keeps both independent page channels in the canonical URL.
+- Page `1` and invalid page values canonicalize to the base route.
+- Filter/tracking parameters such as `tag`, `category`, and `utm_*` are not copied into the pagination canonical by this policy.
+- `/search` remains `noindex,follow` and canonicals to `/search`; query-specific Search SEO can be revisited with the later server-loader phase.
+
+This keeps page 2+ crawlable as distinct archive pages without making arbitrary filters or tracking parameters canonical URL variants.
+
+## Worker Pagination Contracts
+
+### Public content lists
+
+`GET /api/public/content?kind=<kind>&page=<page>&pageSize=<pageSize>` uses a D1 `COUNT(*)` query plus a paged `SELECT ... LIMIT ? OFFSET ?` query. The Worker no longer loads the complete content list and slices it in memory when pagination is requested.
+
+The legacy unpaginated content-list URL remains available for current archive pages that have not yet moved to route-loader pagination.
+
+### Announcement public pages
+
+The `pageItems` collection returned with `kind=announcements` is independently paginated. The active UI uses:
+
+`GET /api/public/content?kind=announcements&pagesPage=<page>&pagesPageSize=<pageSize>`
+
+The Worker performs a D1 `COUNT(*)` for published `type=page` rows and a matching `LIMIT/OFFSET` read. The response returns only the requested `pageItems` slice plus `pageItemsPagination` containing:
+
+- `page`
+- `pageSize`
+- `totalItems`
+- `totalPages`
+
+The default public-page slice is page 1 with 12 items even when the auxiliary pagination parameters are omitted. This prevents the announcements endpoint from loading every published page row merely to render the first Public page list.
+
+`announcementsPage` remains independent and currently paginates the announcement snapshot in the browser. `pagesPage` changes the TanStack Query key and issues a new Worker request for the selected Public page slice.
+
+### Public search
+
+`GET /api/public/search?q=<query>&page=<page>&pageSize=<pageSize>` is the active Search page contract. Search filtering, result ordering, total counting, and page slicing are Worker/D1-owned. The response includes:
+
+- `page`
+- `pageSize`
+- `totalItems`
+- `totalPages`
+
+The Search page renders the returned page directly and uses TanStack Router to update `page` while preserving `q`. A response without pagination metadata remains compatible as an incremental-rollout fallback and is sliced in the browser.
+
+### Limits
+
+- `pageSize` and `pagesPageSize` are constrained to 1–100 by the Worker.
+- The default main content-list page size is 20 when `page` is supplied without `pageSize`.
+- The default announcement Public page slice is 12.
+- Requested pages beyond the available range are clamped to the final page.
+- No database schema or D1 migration is required.
+
+## Read Scope Hardening
+
+Paged content/search responses avoid unrelated full-table reads:
+
+- Content list summaries omit article bodies.
+- Announcement `pageItems` use D1 `COUNT + LIMIT/OFFSET`; the route does not call the unpaginated `type=page` list reader.
+- Content list media is loaded only for media IDs referenced by the returned content/page rows.
+- Content detail media is loaded only by the detail item's `featuredMediaId` and `mediaIds` references.
+- Search uses lightweight shell metadata (`siteSettings`, `homepageSettings`, `displaySettings`, and `menu`) and does not load the complete media, carousel, external-service, or event collections.
+
+These boundaries keep later dehydrated SSR payloads and D1 work proportional to the requested page instead of the total dataset.
 
 ## Current Scope
 
-- This is UI/render pagination. The frontend still receives the current public read snapshot, but cards are rendered only for the current page slice.
-- The home achievement payload is also limited at the Worker public home snapshot level.
-- No database schema changes are required.
-- No D1 migrations are required.
+- Search uses Worker-owned server pagination in the current Public UI.
+- The Public page list inside `/announcements` uses Worker-owned server pagination through `pagesPage`.
+- The main announcement list and other archive pages can adopt the same paginated content-list contract during the route-loader migration; their current browser pagination remains backward compatible until then.
+- The home achievement payload remains limited at the Worker public home snapshot level.
 - No Apps Script changes are required.
 
-## Future Scale Note
+## SSR Readiness
 
-If public datasets grow very large, add server-side pagination to the relevant Cloudflare Worker endpoints so the browser does not need to download full list snapshots.
+Router-owned search state is required before server rendering because the server and the hydrating browser must derive the same page/filter selection from the request URL. Browser-only `window.location` snapshots or custom `pushState` events would otherwise produce a different first render during hydration.
+
+The D1-backed content/search/public-page pagination contracts and route-owned pagination canonicals are now suitable for route loaders because a request for one page no longer requires loading all matching Public page rows into the Worker first, and the request URL already determines the canonical archive page.

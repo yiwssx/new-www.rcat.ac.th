@@ -18,18 +18,24 @@ describe("public document API provider config", () => {
   it("resolves explicit Apps Script and Cloudflare providers", () => {
     expect(resolvePublicApiProvider({ VITE_PUBLIC_API_PROVIDER: "apps-script" })).toBe("apps-script");
     expect(resolvePublicApiProvider({ VITE_PUBLIC_API_PROVIDER: "cloudflare" })).toBe("cloudflare");
+    expect(resolvePublicApiProvider({ PUBLIC_API_PROVIDER: "cloudflare" })).toBe("cloudflare");
   });
 
   it("does not require a Cloudflare URL when Apps Script is selected", () => {
     expect(resolvePublicApiProvider({ VITE_PUBLIC_API_PROVIDER: "apps-script" })).toBe("apps-script");
   });
 
-  it("normalizes the Cloudflare base URL by removing trailing slashes", () => {
+  it("normalizes browser and server Cloudflare base URLs by removing trailing slashes", () => {
     expect(
       resolveCloudflarePublicApiBaseUrl({
         VITE_CLOUDFLARE_PUBLIC_API_URL: " http://127.0.0.1:8787/// "
       })
     ).toBe("http://127.0.0.1:8787");
+    expect(
+      resolveCloudflarePublicApiBaseUrl({
+        CLOUDFLARE_PUBLIC_API_URL: " https://public-api.example.edu/// "
+      })
+    ).toBe("https://public-api.example.edu");
   });
 
   it("requires a Cloudflare URL when building a Cloudflare public API URL", () => {

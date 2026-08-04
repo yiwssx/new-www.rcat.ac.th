@@ -1,6 +1,13 @@
 import { Suspense, lazy } from "react";
-import { Outlet, useParams } from "@tanstack/react-router";
+import { HeadContent, Outlet, Scripts, useParams, useRouter } from "@tanstack/react-router";
+import { projectSettings } from "./config/projectSettings";
 import { RouteFallback } from "./shared/components/RouteFallback";
+import {
+  SSR_CLIENT_ENTRY_PATH,
+  SSR_CLIENT_STYLESHEET_PATH,
+  SSR_DOCUMENT_MARKER_ATTRIBUTE,
+  SSR_DOCUMENT_MARKER_VALUE
+} from "./ssrAssets";
 
 export const AccountSecurityPage = lazy(() => import("./admin/pages/AccountSecurityPage"));
 export const ActivateAccountPage = lazy(() => import("./admin/pages/ActivateAccountPage"));
@@ -40,11 +47,55 @@ export const ProtectedLayout = lazy(() =>
 export const CapabilityGuard = lazy(() =>
   import("./cmsAuthRouteComponents").then((module) => ({ default: module.CapabilityGuard }))
 );
-export function RootRouteLayout() {
+
+function RouteOutlet() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Outlet />
     </Suspense>
+  );
+}
+
+function ProductionSsrDocument() {
+  return (
+    <html lang={projectSettings.site.language} {...{ [SSR_DOCUMENT_MARKER_ATTRIBUTE]: SSR_DOCUMENT_MARKER_VALUE }}>
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#2c7a3f" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700;800&display=swap"
+          rel="stylesheet"
+        />
+        <link rel="icon" type="image/png" href="/rcat-logo-128.png" />
+        <link rel="stylesheet" href={SSR_CLIENT_STYLESHEET_PATH} />
+        <HeadContent />
+      </head>
+      <body>
+        <div id="root">
+          <RouteOutlet />
+        </div>
+        <Scripts />
+        <script type="module" src={SSR_CLIENT_ENTRY_PATH} />
+      </body>
+    </html>
+  );
+}
+
+export function RootRouteLayout() {
+  const router = useRouter();
+
+  if (router.options.context.documentMode) {
+    return <ProductionSsrDocument />;
+  }
+
+  return (
+    <>
+      <HeadContent />
+      <RouteOutlet />
+    </>
   );
 }
 

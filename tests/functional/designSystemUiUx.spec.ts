@@ -185,6 +185,9 @@ async function readVisibleKeyboardFocus(page: Page, scope?: Locator) {
 }
 
 async function inspectFocusEffect(target: Locator): Promise<FocusEffectMeasurement> {
+  await target.evaluate(async () => {
+    await document.fonts.ready;
+  });
   const before = await target.boundingBox();
   expect(before).not.toBeNull();
   await target.focus();

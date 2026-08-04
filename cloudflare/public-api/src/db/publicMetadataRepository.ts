@@ -45,6 +45,62 @@ async function readRows<T>(env: Env, query: string, bindings: unknown[] = []): P
   return result.results ?? [];
 }
 
+export type PublicShellMetadataRows = Pick<
+  PublicMetadataRows,
+  "siteSettings" | "homepageSettings" | "displaySettings" | "menu"
+>;
+
+export async function readPublicShellMetadataRows(env: Env): Promise<PublicShellMetadataRows> {
+  const [siteSettings, homepageSettings, displaySettings, menu] = await Promise.all([
+    readSingleton<SiteSettingsRow>(env, "site_settings", SITE_SETTINGS_ROW_COLUMNS),
+    readSingleton<HomepageSettingsRow>(env, "homepage_settings", HOMEPAGE_SETTINGS_ROW_COLUMNS),
+    readSingleton<DisplaySettingsRow>(env, "display_settings", DISPLAY_SETTINGS_ROW_COLUMNS),
+    readRows<MenuItemRow>(
+      env,
+      `SELECT ${MENU_ITEM_ROW_COLUMNS.join(", ")} FROM menu_items WHERE enabled = ? ORDER BY sort_order ASC`,
+      [1]
+    )
+  ]);
+
+  return { siteSettings, homepageSettings, displaySettings, menu };
+}
+
+export async function readPublicMediaRows(env: Env): Promise<MediaAssetRow[]> {
+  return readRows<MediaAssetRow>(
+    env,
+    `SELECT ${MEDIA_ASSET_ROW_COLUMNS.join(", ")} FROM media_assets ORDER BY updated_at DESC`
+  );
+}
+
+export async function readPublicMediaRowsByIds(env: Env, ids: readonly string[]): Promise<MediaAssetRow[]> {
+  const normalizedIds = [...new Set(ids.map((id) => String(id || "").trim()).filter(Boolean))];
+
+  if (!normalizedIds.length) {
+    return [];
+  }
+
+  const chunkSize = 100;
+  const chunks: string[][] = [];
+  for (let index = 0; index < normalizedIds.length; index += chunkSize) {
+    chunks.push(normalizedIds.slice(index, index + chunkSize));
+  }
+
+  const rows = await Promise.all(
+    chunks.map((chunk) =>
+      readRows<MediaAssetRow>(
+        env,
+        `SELECT ${MEDIA_ASSET_ROW_COLUMNS.join(", ")}
+         FROM media_assets
+         WHERE id IN (${chunk.map(() => "?").join(", ")})
+         ORDER BY updated_at DESC`,
+        chunk
+      )
+    )
+  );
+
+  return rows.flat();
+}
+
 export async function readPublicMetadataRows(env: Env): Promise<PublicMetadataRows> {
   const [siteSettings, homepageSettings, displaySettings, menu, media, carouselSlides, externalServices, events] =
     await Promise.all([

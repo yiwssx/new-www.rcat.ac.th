@@ -33,10 +33,21 @@ export interface PublicContentItemContract {
   updatedAt: string;
 }
 
+export type PublicContentSummaryContract = Omit<PublicContentItemContract, "body" | "content">;
+
+export interface PublicContentPaginationContract {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
 export interface PublicContentListSnapshotContract {
   kind: "news" | "announcements" | "blog";
-  items: PublicContentItemContract[];
-  pageItems?: PublicContentItemContract[];
+  items: PublicContentSummaryContract[];
+  pageItems?: PublicContentSummaryContract[];
+  pagination?: PublicContentPaginationContract;
+  pageItemsPagination?: PublicContentPaginationContract;
   media: PublicMediaAssetContract[];
   siteSettings: PublicSiteSettingsContract;
   homepageSettings: PublicHomepageSettingsContract;
@@ -47,5 +58,6 @@ export interface PublicContentListSnapshotContract {
 
 export interface PublicContentDetailSnapshotContract {
   item: PublicContentItemContract;
+  media: PublicMediaAssetContract[];
   generatedAt: string;
 }

@@ -1,10 +1,11 @@
 import type {
   PublicContentDetailSnapshotContract,
   PublicContentItemContract,
-  PublicContentListSnapshotContract
+  PublicContentListSnapshotContract,
+  PublicContentSummaryContract
 } from "../contracts/publicContent";
-import type { PublicMetadataContract } from "../contracts/publicMetadata";
-import type { PublicContentReadRow } from "../db/contentRepository";
+import type { PublicMediaAssetContract, PublicMetadataContract } from "../contracts/publicMetadata";
+import type { PublicContentReadRow, PublicContentSummaryReadRow } from "../db/contentRepository";
 import { filterPublicMedia } from "./publicMetadataAdapter";
 
 function parseStringArray(value: string | undefined) {
@@ -16,7 +17,9 @@ function parseStringArray(value: string | undefined) {
   }
 }
 
-export function mapContentRowToPublicContentItem(row: PublicContentReadRow): PublicContentItemContract {
+export function mapContentSummaryRowToPublicContentItem(
+  row: PublicContentSummaryReadRow
+): PublicContentSummaryContract {
   return {
     id: row.id || "",
     title: row.title || "",
@@ -25,8 +28,6 @@ export function mapContentRowToPublicContentItem(row: PublicContentReadRow): Pub
     status: "published",
     owner: row.owner || "",
     summary: row.summary || "",
-    body: row.body_snapshot || "",
-    content: row.body_snapshot || "",
     category: row.category || "",
     tags: parseStringArray(row.tags_json),
     seoTitle: row.seo_title || "",
@@ -45,20 +46,32 @@ export function mapContentRowToPublicContentItem(row: PublicContentReadRow): Pub
   };
 }
 
+export function mapContentRowToPublicContentItem(row: PublicContentReadRow): PublicContentItemContract {
+  return {
+    ...mapContentSummaryRowToPublicContentItem(row),
+    body: row.body_snapshot || "",
+    content: row.body_snapshot || ""
+  };
+}
+
 export function createPublicContentListSnapshot(
   kind: PublicContentListSnapshotContract["kind"],
-  rows: PublicContentReadRow[],
-  pageRows: PublicContentReadRow[],
+  rows: PublicContentSummaryReadRow[],
+  pageRows: PublicContentSummaryReadRow[],
   metadata: PublicMetadataContract,
-  generatedAt = new Date()
+  generatedAt = new Date(),
+  pagination?: PublicContentListSnapshotContract["pagination"],
+  pageItemsPagination?: PublicContentListSnapshotContract["pageItemsPagination"]
 ): PublicContentListSnapshotContract {
-  const items = rows.map(mapContentRowToPublicContentItem);
-  const pageItems = pageRows.map(mapContentRowToPublicContentItem);
+  const items = rows.map(mapContentSummaryRowToPublicContentItem);
+  const pageItems = pageRows.map(mapContentSummaryRowToPublicContentItem);
 
   return {
     kind,
     items,
     ...(kind === "announcements" ? { pageItems } : {}),
+    ...(pagination ? { pagination } : {}),
+    ...(pageItemsPagination ? { pageItemsPagination } : {}),
     media: filterPublicMedia(metadata.media, [...items, ...pageItems]),
     siteSettings: metadata.siteSettings,
     homepageSettings: metadata.homepageSettings,
@@ -70,10 +83,14 @@ export function createPublicContentListSnapshot(
 
 export function createPublicContentDetailSnapshot(
   row: PublicContentReadRow,
+  media: PublicMediaAssetContract[] = [],
   generatedAt = new Date()
 ): PublicContentDetailSnapshotContract {
+  const item = mapContentRowToPublicContentItem(row);
+
   return {
-    item: mapContentRowToPublicContentItem(row),
+    item,
+    media: filterPublicMedia(media, [item]),
     generatedAt: generatedAt.toISOString()
   };
 }

@@ -38,6 +38,7 @@ interface EventListCardProps {
   viewAllHref?: string;
   viewAllLabel?: string;
   emptyTitle?: string;
+  initialNowMs?: number;
 }
 
 interface EventDetailProps {
@@ -82,6 +83,10 @@ function getMediaHref(asset: MediaAsset) {
 
 function getMediaImageUrl(asset: MediaAsset) {
   return resolvePublicImageSource(asset, "event-attachment").src;
+}
+
+function normalizeInitialNowMs(value: number | undefined) {
+  return Number.isFinite(value) ? Math.max(0, Number(value)) : 0;
 }
 
 function EventImageAttachment({ asset }: { asset: MediaAsset }) {
@@ -201,17 +206,19 @@ export function EventListCard({
   limit,
   viewAllHref,
   viewAllLabel = "ดูทั้งหมด",
-  emptyTitle = "ยังไม่มีกิจกรรมที่เผยแพร่"
+  emptyTitle = "ยังไม่มีกิจกรรมที่เผยแพร่",
+  initialNowMs
 }: EventListCardProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [nowMs, setNowMs] = useState(() => normalizeInitialNowMs(initialNowMs));
 
   useEffect(() => {
     const updateNow = () => {
       setNowMs(Date.now());
     };
+
+    updateNow();
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {

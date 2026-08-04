@@ -92,6 +92,17 @@ vi.mock("../public/hooks/usePublicCmsSnapshot", () => ({
   }
 }));
 
+vi.mock("../public/hooks/usePublicShellSnapshot", () => ({
+  usePublicShellSnapshot: (options?: { enabled?: boolean }) => {
+    usePublicCmsSnapshotMock(options);
+
+    return {
+      data: currentSnapshot,
+      ...currentQueryState
+    };
+  }
+}));
+
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-router")>()),
   useNavigate: () => routerMocks.navigate,
@@ -1137,7 +1148,7 @@ describe("public data-driven pages", () => {
   });
 
   it("uses the page query parameter on the achievements archive", () => {
-    window.history.pushState({}, "", "/achievements?page=2");
+    routerMocks.search = { page: 2 };
     currentSearchIndexSnapshot = createSearchIndexSnapshot({
       items: createNumberedContentItems({
         count: 13,
@@ -1191,9 +1202,9 @@ describe("public data-driven pages", () => {
     render(<PublicSearchPage />);
 
     expect(screen.getByText('พบ 13 รายการสำหรับ "award"')).toBeInTheDocument();
-    expect(screen.getByText("Award result 13")).toBeInTheDocument();
-    expect(screen.getByText("Award result 2")).toBeInTheDocument();
-    expect(screen.queryByText("Award result 1")).not.toBeInTheDocument();
+    expect(screen.getByText("Award result 1")).toBeInTheDocument();
+    expect(screen.getByText("Award result 12")).toBeInTheDocument();
+    expect(screen.queryByText("Award result 13")).not.toBeInTheDocument();
     expect(screen.getByText("แสดง 1–12 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
   });
 
@@ -1327,7 +1338,7 @@ describe("public data-driven pages", () => {
   });
 
   it("uses the page query parameter on the public document archive", () => {
-    window.history.pushState({}, "", "/documents?page=2");
+    routerMocks.search = { page: 2 };
     currentDocumentListSnapshot = createDocumentListSnapshot({
       items: createNumberedDocuments(16)
     });
@@ -1340,7 +1351,7 @@ describe("public data-driven pages", () => {
   });
 
   it("clamps invalid document page queries safely", () => {
-    window.history.pushState({}, "", "/documents?page=invalid");
+    routerMocks.search = { page: "invalid" };
     currentDocumentListSnapshot = createDocumentListSnapshot({
       items: createNumberedDocuments(16)
     });
@@ -1815,7 +1826,7 @@ describe("public data-driven pages", () => {
   });
 
   it("filters announcements by clickable tag query params", () => {
-    window.history.pushState({}, "", "/announcements?tag=รับสมัคร");
+    routerMocks.search = { tag: "รับสมัคร" };
     currentContentListSnapshot = createContentListSnapshot({
       kind: "announcements",
       items: [

@@ -1,4 +1,4 @@
-import type { PublicContentItemContract } from "./publicContent";
+import type { PublicContentPaginationContract, PublicContentSummaryContract } from "./publicContent";
 import type {
   PublicDisplaySettingsContract,
   PublicHomepageSettingsContract,
@@ -8,7 +8,8 @@ import type {
 
 export interface PublicSearchSnapshotContract {
   query: string;
-  items: PublicContentItemContract[];
+  items: PublicContentSummaryContract[];
+  pagination?: PublicContentPaginationContract;
   siteSettings: PublicSiteSettingsContract;
   homepageSettings: PublicHomepageSettingsContract;
   displaySettings: PublicDisplaySettingsContract;

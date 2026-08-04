@@ -29,6 +29,11 @@ function isPublicConfirmedEvent(event: CalendarEvent) {
   return event.status === "confirmed" && (event.visibility ?? "public") === "public";
 }
 
+function getSnapshotReferenceTimeMs(generatedAt: string) {
+  const parsed = Date.parse(generatedAt);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export default function PublicCalendarPage() {
   const { data, isLoading, isFetching, isError, refetch } = usePublicEventList();
   const events = useMemo(
@@ -67,6 +72,8 @@ export default function PublicCalendarPage() {
     );
   }
 
+  const snapshotReferenceTimeMs = getSnapshotReferenceTimeMs(data.generatedAt);
+
   return (
     <PublicSiteShell
       title="กำหนดการ"
@@ -94,6 +101,7 @@ export default function PublicCalendarPage() {
         items={eventsPagination.paginatedItems}
         mediaAssets={data.media}
         emptyTitle="ยังไม่มีกำหนดการเผยแพร่"
+        initialNowMs={snapshotReferenceTimeMs}
       />
       {events.length > 0 && (
         <PublicPagination
