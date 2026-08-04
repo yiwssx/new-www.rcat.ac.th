@@ -203,7 +203,7 @@ export function buildPublicContentJsonLd(input: {
   const common = {
     "@context": "https://schema.org",
     "@type": type,
-    "@id": `${input.canonicalUrl}#primary",
+    "@id": `${input.canonicalUrl}#primary`,
     url: input.canonicalUrl,
     name: item.title.trim(),
     description: input.description.trim(),
