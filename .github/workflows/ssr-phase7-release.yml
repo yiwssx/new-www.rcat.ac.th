@@ -1,3 +1,4 @@
+# Temporary final release gate; remove before squash merge.
 name: SSR Phase 7 Release Gate
 
 on:
