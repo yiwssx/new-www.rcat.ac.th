@@ -5,9 +5,7 @@ import { createAppRuntime } from "../../runtime";
 
 function renderApp() {
   const runtime = createAppRuntime();
-  render(
-    <App emotionCache={runtime.emotionCache} queryClient={runtime.queryClient} router={runtime.router} />
-  );
+  render(<App emotionCache={runtime.emotionCache} queryClient={runtime.queryClient} router={runtime.router} />);
 }
 
 describe("router + auth integration", () => {
