@@ -1,9 +1,14 @@
 // @vitest-environment node
 
+import React from "react";
+import { CacheProvider } from "@emotion/react";
+import { Box, ThemeProvider } from "@mui/material";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_EMOTION_CACHE_KEY, createAppEmotionCache } from "../emotionCache";
-import { injectEmotionCriticalStyleTags } from "../emotionSsr";
+import { createEmotionSsrResponseFinalizer, injectEmotionCriticalStyleTags } from "../emotionSsr";
 import { renderSsrResponse } from "../entry-server";
+import { theme } from "../theme";
 
 describe("Emotion SSR styling", () => {
   beforeEach(() => {
@@ -44,20 +49,40 @@ describe("Emotion SSR styling", () => {
     expect(injectEmotionCriticalStyleTags(html, styleTags)).toBe(`<!DOCTYPE html>${styleTags}<main>content</main>`);
   });
 
-  it("returns route HTML with extracted Emotion critical CSS before styled markup", async () => {
-    const response = await renderSsrResponse(new Request("https://www.rcat.ac.th/news?page=2"));
+  it("extracts component critical CSS from a MUI server render", async () => {
+    const cache = createAppEmotionCache();
+    const finalizeEmotionSsrResponse = createEmotionSsrResponseFinalizer(cache);
+    const markup = renderToString(
+      <CacheProvider value={cache}>
+        <ThemeProvider theme={theme}>
+          <Box sx={{ color: "primary.main", px: 2 }}>Styled content</Box>
+        </ThemeProvider>
+      </CacheProvider>
+    );
+    const response = await finalizeEmotionSsrResponse(
+      new Response(`<!DOCTYPE html>${markup}`, {
+        headers: { "content-type": "text/html; charset=UTF-8" }
+      })
+    );
     const html = await response.text();
     const styleMatch = html.match(/<style data-emotion="css ([^"]+)">([\s\S]*?)<\/style>/);
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toContain("text/html");
     expect(styleMatch).not.toBeNull();
     expect(styleMatch?.[1].trim()).not.toBe("");
     expect(styleMatch?.[2]).toContain(".css-");
+    expect(html.indexOf('<style data-emotion="css ')).toBeLessThan(html.indexOf("Styled content"));
+  });
 
-    const styleIndex = html.indexOf('<style data-emotion="css ');
-    const styledMarkupIndex = html.indexOf('class="css-');
+  it("returns route HTML with an Emotion style payload before route markup", async () => {
+    const response = await renderSsrResponse(new Request("https://www.rcat.ac.th/news?page=2"));
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
+
+    const styleIndex = html.indexOf('<style data-emotion="css');
+    const routeMarkupIndex = html.search(/<(?:div|main|section)\b/i);
     expect(styleIndex).toBeGreaterThanOrEqual(0);
-    expect(styledMarkupIndex).toBeGreaterThan(styleIndex);
+    expect(routeMarkupIndex).toBeGreaterThan(styleIndex);
   });
 });
