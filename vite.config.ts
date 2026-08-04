@@ -5,6 +5,8 @@ import type { Plugin } from "vite";
 import checker from "vite-plugin-checker";
 
 const WRANGLER_REPOSITORY_PATH = "cloudflare/public-api/wrangler.toml";
+const CLIENT_ENTRY_FILE = "assets/rcat-client.js";
+const CLIENT_STYLESHEET_FILE = "assets/rcat-client.css";
 
 function committedWranglerSafetySource(): Plugin {
   let committedSource: string | undefined;
@@ -56,7 +58,17 @@ function utf8HtmlCharset(): Plugin {
   };
 }
 
-export default defineConfig(({ command, mode }) => {
+function clientAssetFileName(assetInfo: { name?: string; names?: string[] }) {
+  const names = assetInfo.names?.length ? assetInfo.names : [assetInfo.name || ""];
+
+  if (names.some((name) => name.endsWith(".css"))) {
+    return CLIENT_STYLESHEET_FILE;
+  }
+
+  return "assets/[name]-[hash][extname]";
+}
+
+export default defineConfig(({ command, mode, isSsrBuild }) => {
   const plugins = [react(), utf8HtmlCharset()] as Plugin[];
 
   if (mode === "test") {
@@ -78,7 +90,18 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins,
     build: {
-      cssCodeSplit: true
+      cssCodeSplit: true,
+      ...(!isSsrBuild
+        ? {
+            rollupOptions: {
+              output: {
+                entryFileNames: CLIENT_ENTRY_FILE,
+                chunkFileNames: "assets/[name]-[hash].js",
+                assetFileNames: clientAssetFileName
+              }
+            }
+          }
+        : {})
     },
     server: {
       host: "127.0.0.1",
