@@ -6,7 +6,7 @@ import { applyPublicSsrHttpSemantics } from "./public/routing/publicHttpSemantic
 import { createAppRuntime } from "./runtime";
 
 export async function renderSsrResponse(request: Request) {
-  const runtime = createAppRuntime();
+  const runtime = createAppRuntime({ documentMode: true });
   const finalizeEmotionSsrResponse = createEmotionSsrResponseFinalizer(runtime.emotionCache);
   const handler = createRequestHandler({
     request,
