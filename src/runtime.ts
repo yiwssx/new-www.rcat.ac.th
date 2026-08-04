@@ -2,10 +2,14 @@ import { createAppEmotionCache } from "./emotionCache";
 import { createAppQueryClient } from "./queryClient";
 import { createAppRouter } from "./routes";
 
-export function createAppRuntime() {
+export interface CreateAppRuntimeOptions {
+  documentMode?: boolean;
+}
+
+export function createAppRuntime({ documentMode = false }: CreateAppRuntimeOptions = {}) {
   const emotionCache = createAppEmotionCache();
   const queryClient = createAppQueryClient();
-  const router = createAppRouter({ queryClient });
+  const router = createAppRouter({ queryClient, documentMode });
 
   return {
     emotionCache,
