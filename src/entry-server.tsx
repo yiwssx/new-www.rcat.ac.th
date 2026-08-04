@@ -2,6 +2,7 @@ import React from "react";
 import { RouterServer, createRequestHandler, renderRouterToString } from "@tanstack/react-router/ssr/server";
 import AppProviders from "./AppProviders";
 import { createEmotionSsrResponseFinalizer } from "./emotionSsr";
+import { applyPublicSsrHttpSemantics } from "./public/routing/publicHttpSemantics";
 import { createAppRuntime } from "./runtime";
 
 export async function renderSsrResponse(request: Request) {
@@ -22,7 +23,12 @@ export async function renderSsrResponse(request: Request) {
         </AppProviders>
       )
     });
+    const emotionResponse = await finalizeEmotionSsrResponse(response);
 
-    return finalizeEmotionSsrResponse(response);
+    return applyPublicSsrHttpSemantics({
+      request,
+      response: emotionResponse,
+      matches: router.state.matches
+    });
   });
 }
