@@ -58,10 +58,7 @@ function RouteOutlet() {
 
 function ProductionSsrDocument() {
   return (
-    <html
-      lang={projectSettings.site.language}
-      {...{ [SSR_DOCUMENT_MARKER_ATTRIBUTE]: SSR_DOCUMENT_MARKER_VALUE }}
-    >
+    <html lang={projectSettings.site.language} {...{ [SSR_DOCUMENT_MARKER_ATTRIBUTE]: SSR_DOCUMENT_MARKER_VALUE }}>
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
