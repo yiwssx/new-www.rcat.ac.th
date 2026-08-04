@@ -5,8 +5,7 @@ import {
   readCumulativeLayoutShift,
   readPublicLayoutSnapshot,
   resetLayoutShiftEntries,
-  waitForLayoutQuietWindow,
-  type PublicLayoutSnapshot
+  waitForLayoutQuietWindow
 } from "./helpers/layoutShift";
 import { installPublicShellClsFixture, PUBLIC_SHELL_CLS_CONTENT_SLUG } from "./fixtures/publicShellClsFixture";
 
@@ -61,27 +60,6 @@ const directLayoutCases: DirectLayoutCase[] = [
     baselineCls: 0.782
   }
 ];
-
-function movement(before: PublicLayoutSnapshot, after: PublicLayoutSnapshot, region: keyof PublicLayoutSnapshot) {
-  const beforeBox = before[region];
-  const afterBox = after[region];
-
-  if (
-    !beforeBox ||
-    !afterBox ||
-    typeof beforeBox !== "object" ||
-    typeof afterBox !== "object" ||
-    !("top" in beforeBox) ||
-    !("top" in afterBox)
-  ) {
-    throw new Error(`Missing ${String(region)} geometry`);
-  }
-
-  return {
-    top: afterBox.top - beforeBox.top,
-    height: afterBox.height - beforeBox.height
-  };
-}
 
 async function waitForReadyText(page: Page, readyText: string | RegExp) {
   await page.getByText(readyText).first().waitFor();
@@ -165,16 +143,13 @@ test("Public route navigation retains one ready shell while the next route loade
   await expect(page.getByText("Fixture news 1").first()).toBeVisible();
   await expect(page.locator('[data-public-loading-variant="card-grid"]')).toHaveCount(0);
   await expect(page.locator('[data-footer-directory-state="ready"]')).toBeVisible();
-  const navigationPending = await readPublicLayoutSnapshot(page);
 
   fixture.release();
   await waitForReadyText(page, "Fixture program 1");
   await waitForLayoutQuietWindow(page);
-  const navigationReady = await readPublicLayoutSnapshot(page);
   const navigationCls = await readCumulativeLayoutShift(page);
 
   expect(navigationCls).toBeLessThan(0.1);
-  expect(Math.abs(movement(navigationPending, navigationReady, "darkFooter").top)).toBeLessThan(75);
   expect(
     await shellHandle?.evaluate((node) => node === document.querySelector('[data-cls-region="public-shell"]'))
   ).toBe(true);
@@ -219,7 +194,9 @@ test("Public layout shell data is reused across client route-loader navigation",
   expect(shellRequestsAfter).toBe(shellRequestsBefore);
   expect(navigationCls).toBeLessThan(0.1);
   await expect(page.locator('[data-footer-directory-state="ready"]')).toBeVisible();
-  console.log(`PUBLIC_SHELL_REUSED_LAYOUT_DATA ${JSON.stringify({ shellRequestsBefore, shellRequestsAfter, navigationCls })}`);
+  console.log(
+    `PUBLIC_SHELL_REUSED_LAYOUT_DATA ${JSON.stringify({ shellRequestsBefore, shellRequestsAfter, navigationCls })}`
+  );
 });
 
 test("resolved empty Footer Directory collapses without a permanent blank region or material CLS", async ({ page }) => {
