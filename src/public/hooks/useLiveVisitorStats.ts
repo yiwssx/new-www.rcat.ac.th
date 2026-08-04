@@ -28,6 +28,15 @@ function getLiveVisitorStatsRefetchInterval() {
   return backoffRemaining > 0 ? backoffRemaining : LIVE_VISITOR_STATS_INTERVAL_MS;
 }
 
+function shouldRefreshLiveVisitorStats(query: { state: { dataUpdatedAt: number } }) {
+  if (!isDocumentVisible() || isLiveVisitorStatsBackedOff()) {
+    return false;
+  }
+
+  const dataUpdatedAt = Number(query.state.dataUpdatedAt || 0);
+  return dataUpdatedAt <= 0 || Date.now() - dataUpdatedAt >= LIVE_VISITOR_STATS_STALE_MS;
+}
+
 function warnLiveVisitorStatsUnavailable(error: unknown) {
   if (!import.meta.env.DEV) {
     return;
@@ -75,8 +84,8 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
     refetchInterval: getLiveVisitorStatsRefetchInterval,
     refetchIntervalInBackground: false,
     refetchOnMount: () => !isLiveVisitorStatsBackedOff(),
-    refetchOnWindowFocus: () => isDocumentVisible() && !isLiveVisitorStatsBackedOff(),
-    refetchOnReconnect: () => isDocumentVisible() && !isLiveVisitorStatsBackedOff()
+    refetchOnWindowFocus: shouldRefreshLiveVisitorStats,
+    refetchOnReconnect: shouldRefreshLiveVisitorStats
   });
 
   return query.data ?? normalizedInitial;
