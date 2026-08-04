@@ -50,7 +50,8 @@ Phase 3 carries the request-scoped QueryClient cache produced by Phase 2 across 
 - the Router `hydrate` callback restores that state into the browser runtime's QueryClient before hydrated route components consume their query hooks;
 - dehydration is restricted to known Public query-key roots, so unrelated or future privileged query caches cannot be serialized into Public SSR HTML accidentally;
 - TanStack Query's default successful-query dehydration rule remains in force, so failed loader/query states are not serialized during this phase;
-- `renderRouterToString` receives the active Web `Request`, allowing TanStack Router's non-streaming SSR serializer to emit its router/application dehydration payload;
+- the Public Query cache crosses the Router serializer through an explicit JSON-safe DTO boundary; mutations are excluded, and Public API snapshots/query keys remain JSON-compatible by contract;
+- `renderRouterToString` consumes the request-bound Router produced by `createRequestHandler`; the installed TanStack Router render helper receives the Router, response headers, and rendered children, and emits Router/application hydration state from that request-local Router;
 - the browser SSR path uses `RouterClient` with React `hydrateRoot()` when `#root` already contains server-rendered markup;
 - the existing empty-root `createRoot()` path remains as a CSR fallback so current Vite/Vercel SPA deployment continues to work until the explicit production cutover;
 - `pnpm test:ssr:hydration` validates Public query round-trip hydration, the Public-only serialization boundary, route-loader readiness, and SSR runtime/head regressions.
