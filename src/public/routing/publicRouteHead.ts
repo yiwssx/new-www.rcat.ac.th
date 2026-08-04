@@ -1,9 +1,4 @@
-import type {
-  PublicRouteHeadContextData,
-  PublicRouteHeadInput,
-  PublicStructuredDataEntry,
-  StaticPublicRouteHead
-} from "./publicRouteHeadImpl";
+import type { PublicRouteHeadContextData, PublicRouteHeadInput } from "./publicRouteHeadImpl";
 
 export type {
   PublicRouteHeadContextData,
