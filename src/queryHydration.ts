@@ -7,12 +7,7 @@ import {
 } from "@tanstack/react-query";
 
 export type PublicHydrationJsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | PublicHydrationJsonValue[]
-  | { [key: string]: PublicHydrationJsonValue };
+  null | boolean | number | string | PublicHydrationJsonValue[] | { [key: string]: PublicHydrationJsonValue };
 
 export interface AppRouterDehydratedData {
   queryClientState: {
