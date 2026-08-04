@@ -85,7 +85,8 @@ describe("public route loader ownership", () => {
     expect(keys).toContainEqual(["cms-snapshot"]);
     expect(loaderData).toEqual({
       item: ["content-detail", "sample-slug"],
-      cmsSnapshot: ["cms-snapshot"]
+      siteSettings: undefined,
+      featuredMedia: undefined
     });
   });
 });
