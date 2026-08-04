@@ -1,0 +1,96 @@
+# Temporary controlled security update/release gate. Remove before merge.
+name: Dependency Security Release Gate
+
+on:
+  push:
+    branches:
+      - fix/dependency-security-release-gate
+
+permissions:
+  contents: write
+
+jobs:
+  update-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/dependency-security-release-gate
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install committed dependency tree
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Apply exact security-only release-age exceptions
+        shell: bash
+        run: |
+          if grep -q "undici@7.29.0" pnpm-lock.yaml \
+            && grep -q "fast-uri@3.1.5" pnpm-lock.yaml \
+            && grep -q "brace-expansion@5.0.9" pnpm-lock.yaml; then
+            echo "Patched transitive versions already present."
+          else
+            pnpm update \
+              undici@7.29.0 \
+              fast-uri@3.1.5 \
+              brace-expansion@5.0.9 \
+              --depth Infinity \
+              --minimum-release-age-exclude="undici@7.29.0" \
+              --minimum-release-age-exclude="fast-uri@3.1.5" \
+              --minimum-release-age-exclude="brace-expansion@5.0.9"
+          fi
+
+      - name: Enforce lockfile-only security update
+        shell: bash
+        run: |
+          if ! git diff --quiet -- package.json pnpm-workspace.yaml config/dependency-policy.json; then
+            echo "Security update changed persistent dependency policy or manifest unexpectedly."
+            git diff -- package.json pnpm-workspace.yaml config/dependency-policy.json
+            exit 1
+          fi
+
+      - name: Verify patched transitive versions
+        shell: bash
+        run: |
+          grep -q "undici@7.29.0" pnpm-lock.yaml
+          grep -q "fast-uri@3.1.5" pnpm-lock.yaml
+          grep -q "brace-expansion@5.0.9" pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm deps:status
+      - run: pnpm deps:status:check
+      - run: pnpm deps:check
+      - run: pnpm deps:docs:audit
+      - run: pnpm quality:full
+      - run: pnpm worker:deploy:dry
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:functional
+      - run: node scripts/prepare-ssr-cutover-output.mjs
+      - run: test -f dist/csr.html && test ! -e dist/index.html && test -f dist/assets/rcat-client.js && test -f dist/assets/rcat-client.css
+      - run: pnpm build:ssr:foundation
+      - run: pnpm vite build --ssr api/ssr.ts --outDir dist/vercel-function-release
+
+      - name: Commit validated security lockfile update
+        shell: bash
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml docs/maintenance/dependency-current-status.md; then
+            echo "No dependency files changed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml docs/maintenance/dependency-current-status.md
+          git diff --cached --check
+          git commit -m "fix(deps): resolve high severity toolchain advisories"
+          git push origin HEAD:fix/dependency-security-release-gate
