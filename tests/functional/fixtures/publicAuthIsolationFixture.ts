@@ -107,6 +107,7 @@ export async function installPublicAuthIsolationFixture(page: Page): Promise<Pub
     const request = route.request();
     const url = new URL(request.url());
     const homeSnapshot = createHomeSnapshot();
+    const recordAfterResponse = url.pathname === "/api/public/visitor-stats";
     let payload: unknown;
     let body: unknown;
 
@@ -116,12 +117,16 @@ export async function installPublicAuthIsolationFixture(page: Page): Promise<Pub
       body = request.postData();
     }
 
-    requests.push({
+    const requestRecord: PublicFixtureRequest = {
       method: request.method(),
       pathname: url.pathname,
       search: url.search,
       body
-    });
+    };
+
+    if (!recordAfterResponse) {
+      requests.push(requestRecord);
+    }
 
     if (url.pathname === "/api/public/home") {
       payload = homeSnapshot;
@@ -172,6 +177,14 @@ export async function installPublicAuthIsolationFixture(page: Page): Promise<Pub
       contentType: "application/json",
       body: JSON.stringify(payload)
     });
+
+    if (recordAfterResponse) {
+      // Let the browser-side fetch/query promise consume the fulfilled response
+      // before exposing it to request-count assertions. Duplicate requests still
+      // produce distinct records, but "1" now means the first refresh settled.
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      requests.push(requestRecord);
+    }
   });
 
   return {
