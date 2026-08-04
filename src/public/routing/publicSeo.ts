@@ -70,24 +70,8 @@ export function getDefaultPublicSocialImageUrl(siteSettings?: SiteSettings) {
   return resolvePublicSeoUrl(source);
 }
 
-function getContentFeaturedMedia(item: ContentItem, media: MediaAsset[]) {
-  if (item.featuredMediaId) {
-    const featured = media.find((asset) => asset.id === item.featuredMediaId && asset.type === "image");
-    if (featured) {
-      return featured;
-    }
-  }
-
-  return media.find((asset) => asset.type === "image");
-}
-
-export function getPublicContentSocialImageUrl(
-  item: ContentItem | null | undefined,
-  media: MediaAsset[],
-  siteSettings?: SiteSettings
-) {
-  if (item) {
-    const featuredMedia = getContentFeaturedMedia(item, media);
+export function getPublicContentSocialImageUrl(featuredMedia?: MediaAsset, siteSettings?: SiteSettings) {
+  if (featuredMedia?.type === "image") {
     const source = resolvePublicImageSource(featuredMedia, "content-featured").src;
     const resolved = resolvePublicSeoUrl(source);
 
