@@ -60,6 +60,7 @@ import {
   validatePublicPaginatedSearch,
   validatePublicSearchRouteSearch
 } from "./public/routing/searchParams";
+import { dehydrateAppQueryClient, hydrateAppQueryClient } from "./queryHydration";
 
 export interface AppRouterContext {
   queryClient: QueryClient;
@@ -388,7 +389,11 @@ export function createAppRouter({ queryClient }: AppRouterContext) {
   return createRouter({
     routeTree,
     context: { queryClient },
-    defaultPreload: "intent"
+    defaultPreload: "intent",
+    dehydrate: () => dehydrateAppQueryClient(queryClient),
+    hydrate: (dehydrated) => {
+      hydrateAppQueryClient(queryClient, dehydrated);
+    }
   });
 }
 
