@@ -36,7 +36,7 @@ Phase 2 gives matched Public routes explicit ownership of the TanStack Query dat
 - Search prefetches only when `q` is non-empty and keys the request by normalized query/page with the same 12-item page size as the page hook;
 - both content URL forms prefetch content detail plus the supporting CMS snapshot currently used for related content and media;
 - loader query factories are dynamically imported so route-data ownership does not pull the Public data layer into the synchronous browser entry graph;
-- query failures remain intentionally non-fatal at the loader boundary until Phase 6 maps typed errors to production HTTP semantics.
+- Phase 6 now converts loader-query failures into a JSON-safe upstream-failure marker so the SSR response can emit production-correct HTTP semantics without serializing raw error objects.
 
 The loader layer calls the same reusable query-option factories as the React hooks, so server-prefetched data lands in the exact QueryClient keys the page components already consume. No second server-side data store is introduced.
 
@@ -76,7 +76,7 @@ Phase 4 intentionally remains non-streaming. CSP nonce support belongs with the 
 
 ## Phase 5 — Full Dynamic SEO + Social Metadata + Structured Data
 
-Status: implemented on the Phase 5 branch; production remains on the CSR deployment path until Phase 7.
+Status: implemented on the SSR integration line; production remains on the CSR deployment path until Phase 7.
 
 Phase 5 turns the baseline Step 7 route metadata into a loader-driven SEO contract that is usable by both the current browser router and the SSR renderer:
 
@@ -91,11 +91,27 @@ Phase 5 turns the baseline Step 7 route metadata into a loader-driven SEO contra
 - inline JSON-LD serialization escapes less-than characters so CMS text cannot prematurely terminate a structured-data script tag;
 - the heavy SEO implementation is dynamically imported behind the small `publicRouteHead.ts` facade, keeping structured-data/image-resolution logic out of the synchronous browser entry graph.
 
-Phase 5 intentionally does not convert alternate content URLs into HTTP redirects or choose final error/status behavior. Those response-level semantics, robots/sitemap cleanup, and canonical redirect enforcement remain Phase 6 responsibilities.
+## Phase 6 — HTTP Status + Canonical Redirects + Indexing + Sitemap + Robots
+
+Status: implemented on the Phase 6 branch; production remains on the CSR deployment path until Phase 7.
+
+Phase 6 establishes response-level correctness around the SSR renderer and aligns crawl/index signals with the canonical route model:
+
+- published content at `/content/$slug` remains HTTP `200`;
+- content detail that resolves to no published Public item throws TanStack Router `notFound()`, producing HTTP `404` instead of rendering a soft-404 page under `200`;
+- legacy `/$slug` requests resolve the content first, then use a permanent Router redirect with HTTP `301` to `/content/$slug`; a missing legacy slug remains a true `404` rather than redirecting to a missing target;
+- Public query failures are converted to a small JSON-safe loader marker rather than serializing backend error objects or diagnostic details into Router hydration state;
+- the SSR response boundary promotes an otherwise successful render containing that marker to HTTP `503 Service Unavailable`, adds `Retry-After: 300`, `Cache-Control: no-store`, and `X-Robots-Tag: noindex, nofollow`;
+- all `4xx`/`5xx` SSR responses are no-store and receive response-level noindex protection;
+- Search receives `X-Robots-Tag: noindex, follow`, while Login/Activation/Reset/Admin surfaces receive `noindex, nofollow` in addition to their route-head robots metadata;
+- the runtime sitemap uses an explicit indexable static-route set and published content/program data, emits only canonical `/content/$slug` content URLs, removes legacy permalink duplicates, excludes Search, drafts, Admin/Auth/API surfaces, menu aliases, and locally hosted copies whose CMS canonical is an external absolute URL;
+- sitemap generation failure remains HTTP `503` with no-store/Retry-After and now also emits response-level noindex protection;
+- `robots.txt` permits Public crawling, blocks Admin/Auth/API surfaces, advertises `/sitemap.xml`, and intentionally leaves Search crawlable so crawlers can receive its noindex directive.
+
+Phase 6 does not switch Vercel traffic to the SSR renderer and does not set the final CDN cache policy for successful SSR pages. Those deployment/runtime concerns belong to Phase 7.
 
 ## Remaining implementation phases
 
-1. Phase 6 — HTTP status, canonical redirects, indexing, sitemap, and robots correctness.
-2. Phase 7 — Vercel routing, cache policy, production validation, and cutover.
+1. Phase 7 — Vercel routing, successful-response cache policy, production crawler/smoke validation, and cutover.
 
-Production SSR/SEO is complete only after the remaining phases are finished and the production Vercel routing is explicitly switched from the CSR fallback to the verified SSR renderer.
+Production SSR/SEO is complete only after Phase 7 is finished and the production Vercel routing is explicitly switched from the CSR fallback to the verified SSR renderer.
