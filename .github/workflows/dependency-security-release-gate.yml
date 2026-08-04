@@ -36,27 +36,21 @@ jobs:
       - name: Install committed dependency tree
         run: pnpm install --frozen-lockfile --strict-peer-dependencies
 
-      - name: Apply exact security-only release-age exceptions
+      - name: Refresh dependency graph with exact security release-age exceptions
         shell: bash
         run: |
-          if grep -q "undici@7.29.0" pnpm-lock.yaml \
-            && grep -q "fast-uri@3.1.5" pnpm-lock.yaml \
-            && grep -q "brace-expansion@5.0.9" pnpm-lock.yaml; then
-            echo "Patched transitive versions already present."
-          else
-            cp pnpm-workspace.yaml pnpm-workspace.yaml.security-backup
-            trap 'mv -f pnpm-workspace.yaml.security-backup pnpm-workspace.yaml' EXIT
-            cat >> pnpm-workspace.yaml <<'EOF'
+          cp pnpm-workspace.yaml pnpm-workspace.yaml.security-backup
+          trap 'mv -f pnpm-workspace.yaml.security-backup pnpm-workspace.yaml' EXIT
+          cat >> pnpm-workspace.yaml <<'EOF'
 
           minimumReleaseAgeExclude:
             - undici@7.29.0
             - fast-uri@3.1.5
             - brace-expansion@5.0.9
           EOF
-            pnpm update --depth Infinity
-            mv -f pnpm-workspace.yaml.security-backup pnpm-workspace.yaml
-            trap - EXIT
-          fi
+          pnpm update --depth Infinity
+          mv -f pnpm-workspace.yaml.security-backup pnpm-workspace.yaml
+          trap - EXIT
 
       - name: Enforce security update boundaries
         shell: bash
@@ -98,13 +92,6 @@ jobs:
             throw new Error('package.json contains changes outside the reviewed direct dependency updates');
           }
           NODE
-
-      - name: Verify patched transitive versions
-        shell: bash
-        run: |
-          grep -q "undici@7.29.0" pnpm-lock.yaml
-          grep -q "fast-uri@3.1.5" pnpm-lock.yaml
-          grep -q "brace-expansion@5.0.9" pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: pnpm deps:status
