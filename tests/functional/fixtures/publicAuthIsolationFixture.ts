@@ -2,12 +2,14 @@ import type { Page } from "@playwright/test";
 import { createPublicHomeSnapshot } from "./publicHomeCarouselFixture";
 
 const generatedAt = "2026-07-27T00:00:00.000Z";
+const liveVisitorGeneratedAt = "2026-07-27T00:01:00.000Z";
 
 export const PUBLIC_AUTH_FIXTURE_SITE_NAME = "RCAT Public Auth Isolation Fixture";
 export const PUBLIC_AUTH_FIXTURE_NEWS_TITLE = "Deterministic public news";
 export const PUBLIC_AUTH_FIXTURE_CONTENT_SLUG = "functional-public-content";
 export const PUBLIC_AUTH_FIXTURE_CONTENT_TITLE = "Deterministic public content detail";
 export const PUBLIC_AUTH_FIXTURE_GENERATED_AT = generatedAt;
+export const PUBLIC_AUTH_FIXTURE_LIVE_ONLINE_USERS = 2;
 
 export interface PublicFixtureRequest {
   method: string;
@@ -77,6 +79,17 @@ function createHomeSnapshot() {
   };
 }
 
+function createLiveVisitorStats() {
+  const snapshot = createHomeSnapshot().visitorStats;
+
+  return {
+    ...snapshot,
+    totalViews: snapshot.totalViews + 1,
+    onlineUsers: PUBLIC_AUTH_FIXTURE_LIVE_ONLINE_USERS,
+    updatedAt: liveVisitorGeneratedAt
+  };
+}
+
 export async function installPublicAuthIsolationFixture(page: Page): Promise<PublicAuthIsolationFixture> {
   const requests: PublicFixtureRequest[] = [];
 
@@ -142,7 +155,7 @@ export async function installPublicAuthIsolationFixture(page: Page): Promise<Pub
         lastViewedAt: generatedAt
       };
     } else if (url.pathname === "/api/public/visitor-stats") {
-      payload = homeSnapshot.visitorStats;
+      payload = createLiveVisitorStats();
     } else if (url.pathname === "/api/public/site-view" || url.pathname === "/api/public/presence") {
       payload = { accepted: true };
     } else {
