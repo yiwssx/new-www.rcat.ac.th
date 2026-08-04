@@ -1,9 +1,15 @@
 import React from "react";
-import ReactDOM from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
+import { RouterClient } from "@tanstack/react-router/ssr/client";
 import App from "./App";
+import AppProviders from "./AppProviders";
 import { projectSettings } from "./config/projectSettings";
 import { createAppRuntime } from "./runtime";
 import { installBrowserErrorFilters } from "./utils/browserErrorFilters";
+
+export function shouldHydrateClientApp(rootElement: HTMLElement) {
+  return rootElement.hasChildNodes();
+}
 
 export function mountClientApp(rootElement: HTMLElement) {
   installBrowserErrorFilters();
@@ -11,7 +17,20 @@ export function mountClientApp(rootElement: HTMLElement) {
 
   const runtime = createAppRuntime();
 
-  ReactDOM.createRoot(rootElement).render(
+  if (shouldHydrateClientApp(rootElement)) {
+    hydrateRoot(
+      rootElement,
+      <React.StrictMode>
+        <AppProviders queryClient={runtime.queryClient}>
+          <RouterClient router={runtime.router} />
+        </AppProviders>
+      </React.StrictMode>
+    );
+
+    return runtime;
+  }
+
+  createRoot(rootElement).render(
     <React.StrictMode>
       <App queryClient={runtime.queryClient} router={runtime.router} />
     </React.StrictMode>
