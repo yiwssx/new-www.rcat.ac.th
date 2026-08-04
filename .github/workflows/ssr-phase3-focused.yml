@@ -30,11 +30,9 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - run: pnpm format:check
-      - run: pnpm lint:strict
-      - run: pnpm test:ssr:hydration
-      - run: pnpm build
-      - run: pnpm build:ssr:foundation
-      - run: pnpm perf:check
-      - run: pnpm media:check
-      - run: pnpm layout:check
+      - name: Show Prettier diff
+        run: |
+          cp src/queryHydration.ts /tmp/queryHydration.before.ts
+          pnpm exec prettier src/queryHydration.ts --write
+          diff -u /tmp/queryHydration.before.ts src/queryHydration.ts || true
+          exit 1
