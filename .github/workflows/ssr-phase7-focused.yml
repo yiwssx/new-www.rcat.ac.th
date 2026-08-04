@@ -14,17 +14,31 @@ permissions:
 jobs:
   focused:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10.34.5
           run_install: false
+
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - run: pnpm prettier --write docs/deployment/runtime-deployment-guide.md && git diff -- docs/deployment/runtime-deployment-guide.md && exit 1
+      - run: pnpm format:check
+      - run: pnpm lint:strict
+      - run: pnpm eslint api/ssr.ts --max-warnings=0
+      - run: pnpm vitest run src/test/vercelSsrCutover.test.tsx src/test/vercelSsrRouting.test.mjs src/test/publicHttpSemantics.test.tsx src/test/dynamicSeoSsr.test.tsx src/test/emotionSsr.test.tsx src/test/emotionClientHydration.test.ts src/test/queryHydration.test.ts src/test/ssrRuntimeFoundation.test.tsx src/test/publicRouteLoaders.test.ts src/test/publicRouteHeadSsrReadiness.test.ts src/public/routing/publicRouteHead.test.ts src/features/public-documents/publicApiProvider.test.ts src/test/sitemap.test.mjs src/test/robots.test.mjs
+      - run: pnpm build
+      - run: pnpm perf:check
+      - run: pnpm media:check
+      - run: pnpm layout:check
+      - run: node scripts/prepare-ssr-cutover-output.mjs
+      - run: test -f dist/csr.html && test ! -e dist/index.html && test -f dist/assets/rcat-client.js && test -f dist/assets/rcat-client.css
+      - run: pnpm build:ssr:foundation
+      - run: pnpm vite build --ssr api/ssr.ts --outDir dist/vercel-function-smoke
