@@ -284,14 +284,24 @@ test.describe("Public telemetry request governance", () => {
     expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(1);
 
     // The exact 59,999/60,000 millisecond throttle boundary is covered by the
-    // deterministic unit test. This browser test starts after a real lazy-route
-    // transition, so its interval phase can already be slightly advanced.
-    await page.clock.runFor(60_000);
+    // deterministic unit test. The persistent tracker interval was created on
+    // /news, while the latest per-path presence timestamp was created after the
+    // lazy navigation to /. Advance past the budget and first wait for the
+    // interval-triggered network work to settle before testing focus deduplication.
+    await page.clock.pauseAt(pausedAt + 61_001);
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);
 
+    await dispatchVisibilityAndFocus(page, "visible");
+    await page.clock.runFor(1);
+    expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);
+    expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);
+
     await dispatchVisibilityAndFocus(page, "hidden", false);
-    await page.clock.runFor(60_000);
+    // Let useSyncExternalStore publish the hidden state and React Query cancel
+    // the visible polling interval before the test advances through 60 seconds.
+    await page.clock.runFor(1);
+    await page.clock.pauseAt(pausedAt + 121_001);
     expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);
     expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);
 
@@ -303,8 +313,7 @@ test.describe("Public telemetry request governance", () => {
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(3);
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(2);
 
-    // Together with the one-millisecond task flush above, this reaches 59,999
-    // milliseconds after visibility resumed without crossing the next budget.
+    // Stay below the next 60-second path budget after visibility resumed.
     await page.clock.runFor(59_998);
     expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(3);
     expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(2);

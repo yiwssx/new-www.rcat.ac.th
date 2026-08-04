@@ -77,7 +77,7 @@ export default function PublicHomeCarouselSsrBoundary({
             overflow: "hidden",
             borderRadius: { xs: 1.5, md: 2 },
             bgcolor: "primary.dark",
-            boxShadow: "0 18px 34px rgba(31, 90, 44, 0.16)"
+            boxShadow: 3
           }}
         >
           <CarouselImageStage

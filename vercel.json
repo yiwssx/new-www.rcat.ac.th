@@ -1,10 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm build && node scripts/prepare-ssr-cutover-output.mjs",
+  "outputDirectory": "dist",
   "git": {
     "deploymentEnabled": {
       "master": true,
       "preview-*": true,
       "*": false
+    }
+  },
+  "functions": {
+    "api/ssr.ts": {
+      "supportsCancellation": true,
+      "maxDuration": 15
     }
   },
   "headers": [
@@ -34,20 +42,33 @@
       ]
     },
     {
-      "source": "/",
+      "source": "/csr.html",
       "headers": [
         {
-          "key": "Content-Type",
-          "value": "text/html; charset=utf-8"
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
         }
       ]
     },
     {
-      "source": "/(.*).html",
+      "source": "/assets/rcat-client.js",
       "headers": [
         {
-          "key": "Content-Type",
-          "value": "text/html; charset=utf-8"
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rcat-client.css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     }
@@ -126,8 +147,28 @@
       "destination": "/api/cms-auth?_rcatCmsRoute=retired-admin-proxy-logout"
     },
     {
+      "source": "/login",
+      "destination": "/csr.html"
+    },
+    {
+      "source": "/activate-account",
+      "destination": "/csr.html"
+    },
+    {
+      "source": "/reset-password",
+      "destination": "/csr.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/csr.html"
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "/csr.html"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/"
+      "destination": "/api/ssr?_rcatPath=/$1"
     }
   ]
 }

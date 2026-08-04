@@ -66,6 +66,12 @@ import { dehydrateAppQueryClient, hydrateAppQueryClient } from "./queryHydration
 
 export interface AppRouterContext {
   queryClient: QueryClient;
+  documentMode: boolean;
+}
+
+export interface CreateAppRouterInput {
+  queryClient: QueryClient;
+  documentMode?: boolean;
 }
 
 const rootRoute = createRootRouteWithContext<AppRouterContext>()({
@@ -388,10 +394,10 @@ const routeTree = rootRoute.addChildren([
   ])
 ]);
 
-export function createAppRouter({ queryClient }: AppRouterContext) {
+export function createAppRouter({ queryClient, documentMode = false }: CreateAppRouterInput) {
   return createRouter({
     routeTree,
-    context: { queryClient },
+    context: { queryClient, documentMode },
     defaultPreload: "intent",
     dehydrate: () => dehydrateAppQueryClient(queryClient),
     hydrate: (dehydrated) => {

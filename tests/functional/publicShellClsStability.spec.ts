@@ -5,8 +5,7 @@ import {
   readCumulativeLayoutShift,
   readPublicLayoutSnapshot,
   resetLayoutShiftEntries,
-  waitForLayoutQuietWindow,
-  type PublicLayoutSnapshot
+  waitForLayoutQuietWindow
 } from "./helpers/layoutShift";
 import { installPublicShellClsFixture, PUBLIC_SHELL_CLS_CONTENT_SLUG } from "./fixtures/publicShellClsFixture";
 
@@ -62,48 +61,24 @@ const directLayoutCases: DirectLayoutCase[] = [
   }
 ];
 
-function movement(before: PublicLayoutSnapshot, after: PublicLayoutSnapshot, region: keyof PublicLayoutSnapshot) {
-  const beforeBox = before[region];
-  const afterBox = after[region];
-
-  if (
-    !beforeBox ||
-    !afterBox ||
-    typeof beforeBox !== "object" ||
-    typeof afterBox !== "object" ||
-    !("top" in beforeBox) ||
-    !("top" in afterBox)
-  ) {
-    throw new Error(`Missing ${String(region)} geometry`);
-  }
-
-  return {
-    top: afterBox.top - beforeBox.top,
-    height: afterBox.height - beforeBox.height
-  };
-}
-
 async function waitForReadyText(page: Page, readyText: string | RegExp) {
   await page.getByText(readyText).first().waitFor();
 }
 
 for (const layoutCase of directLayoutCases) {
-  test(`${layoutCase.name} keeps the Public shell stable across delayed API resolution`, async ({ page }) => {
+  test(`${layoutCase.name} gates partial Public UI until delayed route-loader data resolves`, async ({ page }) => {
     await page.setViewportSize({ width: layoutCase.width, height: layoutCase.height });
     await installLayoutShiftObserver(page);
     const fixture = await installPublicShellClsFixture(page);
 
     await page.goto(layoutCase.path);
-    const loadingRegion = page.locator('[data-cls-region="public-loading"]');
-    const directoryRegion = page.locator('[data-cls-region="footer-directory"]');
-    await expect(loadingRegion).toBeVisible();
-    await expect(directoryRegion).toHaveAttribute("data-footer-directory-state", "loading");
     await page.waitForTimeout(350);
 
-    const before = await readPublicLayoutSnapshot(page);
-    expect(before.loading?.height).toBeGreaterThan(layoutCase.height);
-    expect(before.footerDirectory?.height).toBeGreaterThan(250);
-    expect(before.darkFooter?.top).toBeGreaterThan(layoutCase.height);
+    // Phase 2 route loaders now own initial Public data readiness. The former
+    // page-level loading skeleton is intentionally not mounted while those
+    // loaders are unresolved, so partial shell/footer geometry cannot drift.
+    await expect(page.locator('[data-cls-region="public-loading"]')).toHaveCount(0);
+    const whilePending = await readPublicLayoutSnapshot(page);
 
     fixture.release();
     await waitForReadyText(page, layoutCase.readyText);
@@ -112,34 +87,29 @@ for (const layoutCase of directLayoutCases) {
       expect(fixture.requests.filter((request) => request === "/api/public/shell")).toHaveLength(1);
       expect(fixture.requests.filter((request) => request === "/api/public/home")).toHaveLength(0);
     }
+
+    const directoryRegion = page.locator('[data-cls-region="footer-directory"]');
     await expect(directoryRegion).toHaveAttribute("data-footer-directory-state", "ready");
     await expect(page.getByRole("heading", { name: "หน่วยงานส่วนกลาง สอศ.(สำนัก)" })).toBeVisible();
-    const immediatelyAfterResponse = await readPublicLayoutSnapshot(page);
     await waitForLayoutQuietWindow(page);
 
-    const after = await readPublicLayoutSnapshot(page);
+    const ready = await readPublicLayoutSnapshot(page);
     const cls = await readCumulativeLayoutShift(page);
     const sources = await groupLayoutShiftsBySource(page);
-    const directoryMovement = movement(before, after, "footerDirectory");
-    const darkFooterMovement = movement(before, after, "darkFooter");
 
     console.log(
-      `PUBLIC_SHELL_CORRECTED ${layoutCase.name} ${JSON.stringify({
+      `PUBLIC_SHELL_ROUTE_LOADER ${layoutCase.name} ${JSON.stringify({
         baselineCls: layoutCase.baselineCls,
         cls,
-        directoryMovement,
-        darkFooterMovement,
-        before,
-        immediatelyAfterResponse,
-        after,
+        whilePending,
+        ready,
         sources
       })}`
     );
 
     expect(cls).toBeLessThan(0.1);
-    expect(Math.abs(directoryMovement.top)).toBeLessThan(75);
-    expect(Math.abs(directoryMovement.height)).toBeLessThan(2);
-    expect(Math.abs(darkFooterMovement.top)).toBeLessThan(75);
+    expect(ready.footerDirectory?.height).toBeGreaterThan(250);
+    expect(ready.darkFooter?.top).toBeGreaterThan(layoutCase.height);
 
     if (layoutCase.name === "mobile-news") {
       const horizontalOverflow = await page.evaluate(
@@ -150,7 +120,7 @@ for (const layoutCase of directLayoutCases) {
   });
 }
 
-test("Public route navigation retains one shell, ready directory content, and cached geometry", async ({ page }) => {
+test("Public route navigation retains one ready shell while the next route loader is pending", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await installLayoutShiftObserver(page);
   const fixture = await installPublicShellClsFixture(page, { delayed: false });
@@ -168,19 +138,18 @@ test("Public route navigation retains one shell, ready directory content, and ca
     window.history.pushState({}, "", "/departments");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
-  await expect(page.locator('[data-public-loading-variant="card-grid"]')).toBeVisible();
-  await expect(page.locator('[data-footer-directory-state="ready"]')).toBeVisible();
-  const navigationLoading = await readPublicLayoutSnapshot(page);
-
   await page.waitForTimeout(650);
+
+  await expect(page.getByText("Fixture news 1").first()).toBeVisible();
+  await expect(page.locator('[data-public-loading-variant="card-grid"]')).toHaveCount(0);
+  await expect(page.locator('[data-footer-directory-state="ready"]')).toBeVisible();
+
   fixture.release();
   await waitForReadyText(page, "Fixture program 1");
   await waitForLayoutQuietWindow(page);
-  const navigationReady = await readPublicLayoutSnapshot(page);
   const navigationCls = await readCumulativeLayoutShift(page);
 
   expect(navigationCls).toBeLessThan(0.1);
-  expect(Math.abs(movement(navigationLoading, navigationReady, "darkFooter").top)).toBeLessThan(75);
   expect(
     await shellHandle?.evaluate((node) => node === document.querySelector('[data-cls-region="public-shell"]'))
   ).toBe(true);
@@ -200,36 +169,34 @@ test("Public route navigation retains one shell, ready directory content, and ca
   await expect(page.locator('[data-footer-directory-state="ready"]')).toHaveCount(1);
 });
 
-test("background refetch retains ready route content and Footer Directory", async ({ page }) => {
+test("Public layout shell data is reused across client route-loader navigation", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await installLayoutShiftObserver(page);
-  const fixture = await installPublicShellClsFixture(page, {
-    staleNewsCache: true
-  });
+  const fixture = await installPublicShellClsFixture(page, { delayed: false });
 
   await page.goto("/news");
   await waitForReadyText(page, "Fixture news 1");
-  await expect(page.locator('[data-public-loading-variant="listing"]')).toHaveCount(0);
-  await expect(page.locator('[data-cls-region="background-progress"]')).toBeVisible();
   await expect(page.locator('[data-footer-directory-state="ready"]')).toBeVisible();
-  await page.evaluate(() => document.fonts.ready);
+  const shellRequestsBefore = fixture.requests.filter((request) => request === "/api/public/shell").length;
+  expect(shellRequestsBefore).toBe(1);
+
   await resetLayoutShiftEntries(page);
-  const before = await readPublicLayoutSnapshot(page);
-
-  fixture.release();
-  await expect
-    .poll(() => fixture.requests.filter((request) => request.startsWith("/api/public/content?")).length)
-    .toBe(1);
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/departments");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await waitForReadyText(page, "Fixture program 1");
   await waitForLayoutQuietWindow(page);
-  const after = await readPublicLayoutSnapshot(page);
-  const backgroundRefetchCls = await readCumulativeLayoutShift(page);
-  const darkFooterMovement = movement(before, after, "darkFooter");
 
-  await expect(page.getByText("Fixture news 1").first()).toBeVisible();
+  const shellRequestsAfter = fixture.requests.filter((request) => request === "/api/public/shell").length;
+  const navigationCls = await readCumulativeLayoutShift(page);
+
+  expect(shellRequestsAfter).toBe(shellRequestsBefore);
+  expect(navigationCls).toBeLessThan(0.1);
   await expect(page.locator('[data-footer-directory-state="ready"]')).toBeVisible();
-  expect(Math.abs(darkFooterMovement.top)).toBeLessThan(5);
-  expect(backgroundRefetchCls).toBeLessThan(0.02);
-  console.log(`PUBLIC_SHELL_BACKGROUND_REFETCH ${JSON.stringify({ backgroundRefetchCls, darkFooterMovement })}`);
+  console.log(
+    `PUBLIC_SHELL_REUSED_LAYOUT_DATA ${JSON.stringify({ shellRequestsBefore, shellRequestsAfter, navigationCls })}`
+  );
 });
 
 test("resolved empty Footer Directory collapses without a permanent blank region or material CLS", async ({ page }) => {
@@ -238,7 +205,7 @@ test("resolved empty Footer Directory collapses without a permanent blank region
   const fixture = await installPublicShellClsFixture(page, { emptyFooterDirectory: true });
 
   await page.goto("/news");
-  await expect(page.locator('[data-footer-directory-state="loading"]')).toBeVisible();
+  await expect(page.locator('[data-footer-directory-state="loading"]')).toHaveCount(0);
   fixture.release();
   await waitForReadyText(page, "Fixture news 1");
   await expect(page.locator('[data-footer-directory-state="empty"]')).toBeHidden();
@@ -259,7 +226,7 @@ test("route API errors keep the shell, directory, and accessible retry state", a
   });
 
   await page.goto("/news");
-  await expect(page.locator('[data-footer-directory-state="loading"]')).toBeVisible();
+  await expect(page.locator('[data-footer-directory-state="loading"]')).toHaveCount(0);
   fixture.release();
   await expect(page.getByRole("alert")).toContainText("ไม่สามารถโหลดข้อมูลได้");
   await expect(page.getByRole("button", { name: "ลองอีกครั้ง" })).toBeVisible();

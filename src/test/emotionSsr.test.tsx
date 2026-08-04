@@ -42,7 +42,7 @@ describe("Emotion SSR styling", () => {
     expect(rendered).toContain(`<title>RCAT</title>${styleTags}</head>`);
   });
 
-  it("places critical styles immediately after the doctype for the current non-document SSR shell", () => {
+  it("retains the pre-cutover fallback placement for non-document render fragments", () => {
     const html = "<!DOCTYPE html><main>content</main>";
     const styleTags = '<style data-emotion="css test">.css-test{color:red}</style>';
 
@@ -73,7 +73,7 @@ describe("Emotion SSR styling", () => {
     expect(html.indexOf('<style data-emotion="css ')).toBeLessThan(html.indexOf("Styled content"));
   });
 
-  it("returns route HTML with an Emotion style payload while preserving upstream status", async () => {
+  it("returns a full route document with Emotion critical styles inside head", async () => {
     const response = await renderSsrResponse(new Request("https://www.rcat.ac.th/news?page=2"));
     const html = await response.text();
 
@@ -82,7 +82,10 @@ describe("Emotion SSR styling", () => {
     expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
     expect(html).toContain("ข่าว | วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด");
 
+    const headStart = html.indexOf("<head>");
     const styleIndex = html.indexOf('<style data-emotion="css');
-    expect(styleIndex).toBe("<!DOCTYPE html>".length);
+    const headEnd = html.indexOf("</head>");
+    expect(styleIndex).toBeGreaterThan(headStart);
+    expect(styleIndex).toBeLessThan(headEnd);
   });
 });

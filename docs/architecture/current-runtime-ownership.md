@@ -9,7 +9,7 @@ This document is the current source of truth for runtime ownership. Historical m
 ```mermaid
 flowchart LR
   Browser[React/Vite browser]
-  Vercel[Vercel frontend + same-origin proxies]
+  Vercel[Vercel frontend + Public SSR + same-origin proxies]
   Worker[Cloudflare Worker]
   D1[(D1)]
   Apps[Apps Script media/file bridge]
@@ -22,9 +22,13 @@ flowchart LR
   Apps --> Drive
 ```
 
+The Phase 7 code path makes Public pages server-rendered on Vercel when that integration is deployed. Admin/Auth deliberately remain CSR. The currently deployed production site does not change merely because this code exists on the integration branch; live cutover requires an explicit promotion to `master` and a successful Vercel deployment.
+
 ## Public Structured Data
 
 Owner: Cloudflare Worker + D1.
+
+Public SSR is a presentation/runtime layer only. It consumes the existing Cloudflare Public API; it does not move structured-data ownership into Vercel.
 
 ## Admin Structured Data
 
@@ -80,64 +84,94 @@ Owner: Vercel `/api/sitemap`; public route `/sitemap.xml`; data source Cloudflar
 
 The runtime sitemap contains only the known indexable Public route set plus published canonical content URLs in the `/content/$slug` namespace. Search, Admin/Auth/API surfaces, legacy `/$slug` permalinks, menu aliases, drafts, and content with an external absolute canonical are excluded. Program content is sourced from the Public programs contract alongside News, Announcements, and Blog content.
 
-## SSR Readiness
+## Public SSR Runtime
 
-The production frontend remains CSR-only until the dedicated SSR implementation path is explicitly enabled in Vercel.
+Runtime construction is request-scoped:
 
-Runtime construction is factory-based so a server renderer can create isolated state per request:
+- `createAppQueryClient()` creates a new TanStack Query `QueryClient` with project defaults;
+- `createAppRouter()` creates a new TanStack Router and receives the runtime QueryClient through typed context;
+- `createAppEmotionCache()` creates an Emotion cache with the stable `css` namespace;
+- `createAppRuntime()` creates one fresh Emotion cache, QueryClient, and Router per browser runtime or server request;
+- server runtimes set Router `documentMode=true` so the root route renders a complete HTML document rather than the CSR fragment shell.
 
-- `createAppQueryClient()` creates a new TanStack Query `QueryClient` with the existing project query defaults;
-- `createAppRouter()` creates a new TanStack Router instance from the static route tree and receives that runtime's QueryClient through typed context;
-- `createAppEmotionCache()` creates an explicit Emotion cache using the stable `css` namespace;
-- `createAppRuntime()` creates one fresh Emotion cache, QueryClient, and Router for each browser runtime or server request;
-- `App` no longer owns module-scope runtime singletons.
+Public route loaders call `ensureQueryData()` with the same reusable query factories already consumed by React hooks. No second server-side data store is introduced. Successful known-Public query roots are dehydrated through a JSON-safe DTO and restored into the browser QueryClient before hydrated route hooks consume them.
 
-Public structured reads expose reusable TanStack Query option factories for Home, CMS shell snapshot, content lists, content detail, programs, search index, events, and documents. Existing React hooks consume those same factories and add browser-only local-storage `initialData`/freshness behavior at the hook boundary. Public route loaders call `ensureQueryData()` with those same factories, keys, query functions, stale times, and cache policies rather than creating a second server-side data store.
+The server renderer is non-streaming. `entry-server.tsx` binds a Web `Request` to a request-local Router through TanStack Router `createRequestHandler`, renders `RouterServer` with `renderRouterToString`, extracts request-local Emotion critical CSS, and then applies Phase 6 HTTP/indexing semantics.
 
-The reusable query factories are cancellable by default: they consume TanStack Query's `AbortSignal` and forward it to the underlying Cloudflare `fetch`. Existing browser hooks deliberately use the same factories with `consumeAbortSignal: false`. This preserves the established browser behavior where an in-flight query survives a transient inactive observer while server/loaders and explicit cancellable query consumers retain end-to-end request cancellation.
+The production SSR document includes:
 
-Public read failures use the shared `PublicReadError` taxonomy: `aborted`, `network`, `http`, `invalid-json`, or `invalid-response`, with HTTP status, backend message, and existing diagnostic/migration detail retained where available. Phase 6 keeps raw error objects out of Router loader serialization: a failed Public prefetch becomes a small JSON-safe `503` marker, and the SSR response boundary promotes an otherwise successful shell response to HTTP `503` with `Retry-After`, `Cache-Control: no-store`, and `X-Robots-Tag: noindex, nofollow`. Missing content detail uses TanStack Router `notFound()` for HTTP `404`, while a valid legacy `/$slug` permalink resolves the content first and then permanently redirects with HTTP `301` to `/content/$slug`.
+- semantic route HTML before JavaScript;
+- route-owned title, description, canonical, Open Graph, Twitter metadata, and JSON-LD;
+- request-specific Emotion critical CSS in the document head;
+- TanStack Router/Query hydration state;
+- deterministic `/assets/rcat-client.css` and `/assets/rcat-client.js` entry assets.
 
-Live visitor statistics remain intentionally browser-oriented polling rather than an SSR loader dependency. Their request consumes query cancellation, and Step 6 explicitly disables the live polling query when no browser runtime exists so the server-visible value remains the prefetched snapshot.
+SSR documents carry `data-rcat-ssr="true"`. The browser detects that marker and hydrates at the document root with `hydrateRoot(document, ...)`. Admin/Auth CSR pages retain the empty-`#root` `createRoot()` bootstrap.
 
-Public list URL state is owned by TanStack Router. Route search validators normalize `page`, `announcementsPage`, `pagesPage`, `tag`, `category`, and `q` where applicable, while unrelated query parameters are preserved. Public pagination and filter rendering reads the router location instead of `window.location.search`, and pagination writes use TanStack navigation instead of custom `window.history`/event synchronization. This keeps request URL state deterministic between server rendering and browser hydration.
+## Public API / loader error semantics
 
-Public API contract readiness separates list/search/home summaries from full content detail. Summary reads omit article body fields, and content detail retains the full body plus only media rows referenced by that item. Paginated public content-list requests execute D1 `COUNT(*)` plus `LIMIT/OFFSET` reads instead of loading the complete matching dataset and slicing it in Worker memory. The Public page collection embedded in `/announcements` is independently D1-paginated through `pagesPage`/`pagesPageSize` and returns `pageItemsPagination`. Search supports the same D1-backed pagination boundary. Search and content-list metadata reads are scoped to lightweight shell metadata, and media reads are ID-scoped rather than full-table reads. `/api/public/shell` exposes only site/homepage/display/menu metadata, with the frontend 404 fallback to the home metadata projection retained for incremental Worker rollout.
+Public reads use the shared `PublicReadError` taxonomy: `aborted`, `network`, `http`, `invalid-json`, or `invalid-response`.
 
-Step 5 makes the route-level PublicSiteShell the authoritative shell renderer. Nested page-level PublicSiteShell instances render their children on the first render pass and no longer gate page HTML on a client registration effect. Their remaining registration is a client-side enhancement for page-specific metadata and preloaded shell props only. The route shell reads the lightweight `/api/public/shell` query through a dedicated Public shell hook, including on the home route. Until shell settings resolve, page media stays gated so an enabled Intro Gate cannot be bypassed by first-pass page rendering.
+Raw backend errors are not serialized into Router hydration data. Failed Public prefetches become a small JSON-safe upstream-failure marker. The SSR response boundary maps that condition to HTTP `503 Service Unavailable` with `Retry-After: 300`, `Cache-Control: no-store`, and `X-Robots-Tag: noindex, nofollow`.
 
-Step 6 makes browser-sensitive Public presentation deterministic across a server render and the hydrating browser. Production Home sections no longer depend on IntersectionObserver to exist in the semantic first-pass tree; `content-visibility` and Suspense remain performance/layout tools without removing their content from the render contract. The Home Carousel has a deterministic static first-pass boundary seeded from snapshot `generatedAt` time and becomes the interactive Carousel only after a client effect. Intro Gate initial visibility is derived only from its settings, while sessionStorage dismissal is reconciled after mount. Event lifecycle labels are seeded from snapshot `generatedAt` and move to the live browser clock after mount. Normal Public images remain semantic `<img>` elements and use native lazy loading/low priority rather than suppressing `src` until an IntersectionObserver fires. Heavy iframe/embed resources remain eligible for explicit near-viewport activation.
+Published canonical content returns `200`. Missing/unpublished content returns Router-native `404`. A valid legacy `/$slug` resolves the content first and then permanently redirects with `301` to `/content/$slug`; missing legacy slugs remain `404`.
 
-Step 7 moves baseline document-head ownership into TanStack Router route `head` descriptors and renders `HeadContent` from the root route layout. Static Public routes own baseline title, description, and canonical URL at route-match time; indexable archive routes derive canonical pagination from validated Router search state. Normalized page 2+ values are self-referencing, page 1/invalid values collapse to the base route, and filter/tracking parameters are not copied into pagination canonicals. `/announcements` preserves independent `announcementsPage` and `pagesPage` channels in canonical order. Search remains `noindex,follow`; CMS Auth/Admin remains `noindex,nofollow`. Both content URL forms establish `/content/$slug` as the baseline canonical path. The root route is canonical-neutral so Public canonical metadata cannot leak into CMS/Admin routes.
+Search receives `X-Robots-Tag: noindex, follow`. CMS/Auth/Admin surfaces receive `noindex, nofollow`.
 
-## SSR/SEO Implementation Runtime
+## Public URL state and data contracts
 
-Implementation Phase 1 adds a request-scoped non-streaming server renderer. `entry-server.tsx` accepts a Web `Request`, `createRequestHandler` binds the request to a fresh Router/QueryClient runtime, and `RouterServer` + `renderRouterToString` produce route-aware HTML. The server bundle can be built independently with `pnpm build:ssr:foundation`. This renderer is not yet wired into production Vercel routing.
+Public list URL state is owned by TanStack Router. Route search validators normalize `page`, `announcementsPage`, `pagesPage`, `tag`, `category`, and `q` where applicable; unrelated query parameters are preserved. Pagination writes use TanStack navigation rather than browser-history shadow state.
 
-Implementation Phase 2 makes matched Public routes own server prefetch timing. The Public layout prefetches shell data; Public pages prefetch the exact reusable query factories they already consume; Search and Announcements use normalized loader dependencies for URL-specific query keys; both content URL forms prefetch detail plus the supporting CMS snapshot. Loader factories are dynamically imported to avoid pulling the Public data layer into the synchronous browser entry graph.
+Public API list/search/home contracts use summary items without article body fields. Content detail retains the full body plus referenced media only. Paginated content/search reads use D1 `COUNT(*)` plus `LIMIT/OFFSET`; the secondary Public-page collection in Announcements is independently D1-paginated with `pagesPage`/`pagesPageSize`.
 
-Implementation Phase 3 carries successful Public Query state across the server/client boundary. TanStack Router `dehydrate` calls TanStack Query `dehydrate()` on the request-local QueryClient and only permits known Public query-key roots. Mutations are excluded. The resulting Query state is normalized through a JSON-safe DTO before entering the Router serializer, which both satisfies the Router serializability contract and prevents arbitrary non-JSON values from crossing the Public SSR boundary. The Router `hydrate` callback restores that state into the browser runtime's QueryClient before hydrated route hooks consume it.
+Live visitor statistics remain browser-oriented polling rather than an SSR loader dependency.
 
-Implementation Phase 4 makes MUI/Emotion styling request-scoped and SSR-safe. Shared providers now wrap the application in Emotion `CacheProvider`, and the server creates `createEmotionServer(cache)` against that request's cache before rendering. After the existing non-streaming Router response is produced, the server extracts the styles used by that render and emits critical `data-emotion` style tags before rendered markup, preferring the document head when one exists. The browser uses the same cache key and creates its Emotion cache before `hydrateRoot()`, allowing the server style ids to be adopted rather than creating a competing namespace. Response body rewriting preserves status and headers while dropping stale `content-length`.
+## SEO ownership
 
-Implementation Phase 5 promotes the Step 7 baseline head model into loader-driven Public SEO. The Public layout owns the current site identity, default social image, and `EducationalOrganization` JSON-LD; Home adds `WebSite` JSON-LD; archive routes add Open Graph, Twitter, locale, and breadcrumb metadata while retaining validated canonical pagination; Search stays `noindex,follow` with a stable `/search` canonical and a query-aware display title. Content detail loaders still prefetch the existing detail and CMS snapshot queries, but expose only a lightweight head projection (`item`, `siteSettings`, and referenced `featuredMedia`) instead of serializing the full supporting CMS snapshot again. Detail metadata prioritizes CMS `seoTitle`, `seoDescription`, and `canonicalUrl`, uses featured media with the site hero as fallback, emits article dates/section for News/Blog/Announcement, and renders `NewsArticle`/`Article`/`WebPage` plus `BreadcrumbList` JSON-LD. Inline JSON-LD escapes `<`, and the heavy SEO implementation is dynamically imported behind `publicRouteHead.ts` so structured-data/image-resolution logic stays out of the synchronous browser entry graph.
+TanStack Router route `head` descriptors own document metadata. Public canonical pagination is derived from validated Router search state. Page 2+ is self-canonical; page 1/invalid values collapse to the base route; filter/tracking parameters are not copied into archive canonicals. Search stays `noindex,follow` with canonical `/search`.
 
-Implementation Phase 6 makes HTTP and indexing semantics explicit. Published canonical content remains `200`; missing content detail is a Router-native `404`; valid legacy `/$slug` requests receive a permanent `301` to `/content/$slug`; and Public loader failures are promoted to `503` without exposing raw backend error objects in serialized loader data. Error responses are `no-store` and carry response-level noindex protection, with `Retry-After: 300` on `503`. Search receives `X-Robots-Tag: noindex, follow`, while CMS/Auth/Admin surfaces receive `noindex, nofollow` in addition to their document-head metadata. The runtime sitemap now emits only indexable static Public routes and published `/content/$slug` URLs, and `robots.txt` blocks CMS/Auth/API crawling while intentionally leaving Search crawlable so crawlers can observe its noindex directive.
+Content detail prioritizes CMS `seoTitle`, `seoDescription`, and `canonicalUrl`, uses referenced featured media with site hero fallback for social images, and emits article metadata plus `NewsArticle`/`Article`/`WebPage`, `BreadcrumbList`, `EducationalOrganization`, and `WebSite` JSON-LD where appropriate.
 
-The browser entry has a deliberate dual bootstrap. When `#root` already contains server-rendered markup, it uses React `hydrateRoot()` with TanStack Router `RouterClient`; when `#root` is empty, it retains the existing `createRoot()` CSR path. Both paths use the same Emotion cache factory. This allows hydration, critical-CSS, dynamic-head, HTTP, and indexing behavior to be implemented and validated before production routing is switched to the server renderer.
+## Vercel SSR / CSR routing boundary
 
-Production is still **not** considered SSR-enabled. Vercel continues to serve the current CSR application until Phase 7. The remaining work is production SSR routing, successful-response CDN cache policy, production crawler/smoke validation, and the explicit cutover.
+When the completed SSR integration is deployed:
 
-See `docs/architecture/ssr-implementation-phases.md`.
+- Public application routes -> `api/ssr.ts` through the final Vercel catch-all rewrite;
+- `/login`, `/activate-account`, `/reset-password`, `/admin`, and `/admin/:path*` -> static CSR fallback `csr.html`;
+- API/proxy/sitemap rewrites remain ahead of the Public catch-all;
+- static files continue to be served by Vercel's filesystem handling.
+
+The production build runs normal Vite client build first, validates the deterministic client JS/CSS assets, then renames `dist/index.html` to `dist/csr.html`. `dist/index.html` is intentionally absent from deployment output so Vercel filesystem precedence cannot bypass the Public SSR rewrite at `/`.
+
+The Public SSR adapter reconstructs the original route URL from the Vercel rewrite parameter, supports GET/HEAD, rejects unsupported methods with `405`, and converts unexpected adapter/render exceptions to a protected `503` response.
+
+Server-side Public API configuration may use `PUBLIC_API_PROVIDER=cloudflare` and `CLOUDFLARE_PUBLIC_API_URL`; the existing `VITE_PUBLIC_API_PROVIDER` and `VITE_CLOUDFLARE_PUBLIC_API_URL` names remain supported for compatibility.
+
+## Cache policy
+
+When deployed to Vercel:
+
+- successful indexable Public SSR: browser `Cache-Control: public, max-age=0, must-revalidate`; Vercel CDN `public, max-age=300, stale-while-revalidate=86400`;
+- Search and error responses: `Cache-Control: no-store`, no Vercel CDN cache directive;
+- permanent legacy redirects: browser revalidation plus Vercel CDN `max-age=86400, stale-while-revalidate=604800`;
+- `csr.html`: `no-store`, `X-Robots-Tag: noindex, nofollow`;
+- fixed client entry JS/CSS: browser revalidation; hashed lazy chunks retain Vite hashed filenames.
+
+## Production activation status
+
+All SSR/SEO implementation code is complete once Phase 7 is merged into `refactor/ssr-readiness`, but the live website remains whatever `master` currently deploys until the user explicitly authorizes promotion of the integration line to `master`.
+
+A Phase 7 Vercel Preview request was blocked by the account's Free-plan build-rate limit (`upgradeToPro=build-rate-limit`). Focused repository validation, full document rendering, cutover output validation, and SSR/function bundle smoke pass independently. Live Vercel crawler validation remains a required post-deployment check when deployment capacity is available.
+
+See `docs/architecture/ssr-implementation-phases.md` and `docs/operations/public-ssr-cutover.md`.
 
 ## Deployment Boundaries
 
-- frontend/UI -> Vercel
-- Vercel proxy/function -> Vercel
-- Worker source/config -> Cloudflare Worker
-- D1 schema -> D1 migration
-- Apps Script `.gs` -> Apps Script
-- docs/tests only -> no runtime deployment
+- frontend/UI + Public SSR + Vercel functions/proxies -> Vercel;
+- Worker source/config -> Cloudflare Worker;
+- D1 schema -> D1 migration;
+- Apps Script `.gs` -> Apps Script;
+- docs/tests only -> no runtime deployment.
 
 See `docs/deployment/runtime-deployment-guide.md`.
 
@@ -145,8 +179,8 @@ See `docs/deployment/runtime-deployment-guide.md`.
 
 Current repository contract:
 
-- Node `24.x`
-- pnpm `10.34.5`
+- Node `24.x`;
+- pnpm `10.34.5`.
 
 Any document that still describes Node 22 as current is stale historical text.
 
