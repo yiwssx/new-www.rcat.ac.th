@@ -96,6 +96,17 @@ const detailSnapshot: PublicContentDetailSnapshot = {
   generatedAt: "2026-08-03T09:01:00.000Z"
 };
 
+const detailLoaderData = {
+  item: detailSnapshot.item,
+  cmsSnapshot: {
+    metrics: [],
+    content: [detailSnapshot.item],
+    media: detailSnapshot.media,
+    events: [],
+    siteSettings
+  }
+};
+
 describe("public route head metadata", () => {
   it("keeps the root head limited to the default site title", () => {
     const head = getRootRouteHead();
@@ -184,9 +195,7 @@ describe("public route head metadata", () => {
   });
 
   it("uses CMS SEO fields, featured image, Article metadata and NewsArticle JSON-LD for content detail", () => {
-    const head = getPublicContentRouteHead("dynamic-seo-news", detailSnapshot, {
-      matches: [{ loaderData: { siteSettings } }]
-    });
+    const head = getPublicContentRouteHead("dynamic-seo-news", detailLoaderData);
     const contentJsonLd = getJsonLd(head, "rcat-content-jsonld");
     const breadcrumbJsonLd = getJsonLd(head, "rcat-breadcrumb-jsonld");
 
