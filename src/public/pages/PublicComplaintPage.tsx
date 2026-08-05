@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, useRef, useState } from "react";
+import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import PublicSiteShell from "../components/PublicSiteShell";
 
 const MAX_FILE_MB = 1.5;
@@ -252,10 +253,16 @@ export default function PublicComplaintPage() {
         <div className="relative mx-auto w-full max-w-2xl">
           <section id="formCard" className={cardClass}>
             <div className="mb-8 text-center">
-              <img
-                src="/rcat-logo-128.png"
+              <PublicResponsiveImage
+                source="/rcat-logo-128.png"
+                intent="logo"
                 alt="RCAT Logo"
-                className="mx-auto mb-4 h-20 w-auto rounded-xl bg-white p-2 shadow-lg ring-1 ring-slate-200"
+                intrinsic
+                width={80}
+                height={80}
+                loadMode="eager"
+                bypassPageMediaGate
+                className="mx-auto mb-4 rounded-xl bg-white p-2 shadow-lg ring-1 ring-slate-200"
               />
               <p className="text-m font-medium text-slate-500">วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด</p>
               <p className="text-sm font-medium text-slate-500">Roi-et College of Agriculture and Technology</p>
