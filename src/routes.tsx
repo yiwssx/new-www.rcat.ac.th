@@ -22,6 +22,7 @@ import {
   PublicAnnouncementsPage,
   PublicBlogPage,
   PublicCalendarPage,
+  PublicComplaintPage,
   PublicContactPage,
   PublicContentDetailRoute,
   PublicDepartmentsPage,
@@ -36,6 +37,7 @@ import {
   UsersPage
 } from "./routeComponents";
 import {
+  buildPublicRouteHead,
   getCmsRouteHead,
   getPublicContentRouteHead,
   getPublicLayoutRouteHead,
@@ -166,6 +168,18 @@ const publicContactRoute = createRoute({
   loader: ({ context }) => loadPublicCmsSnapshotData(context),
   head: () => getStaticPublicRouteHead("/contact"),
   component: PublicContactPage
+});
+
+const publicComplaintRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "complaint",
+  head: () =>
+    buildPublicRouteHead({
+      title: "แบบฟอร์มแจ้งเรื่องร้องเรียน",
+      description: "กรอกข้อมูลให้ครบถ้วน ระบบจะส่งเรื่องให้ผู้ดูแลทันที",
+      canonicalPath: "/complaint"
+    }),
+  component: PublicComplaintPage
 });
 
 const publicSearchRoute = createRoute({
@@ -368,6 +382,7 @@ const routeTree = rootRoute.addChildren([
     publicDocumentsRoute,
     publicCalendarRoute,
     publicContactRoute,
+    publicComplaintRoute,
     publicSearchRoute,
     publicContentDetailRoute,
     publicPermalinkRoute
