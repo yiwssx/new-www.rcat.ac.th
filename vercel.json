@@ -1,10 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm build && node scripts/prepare-ssr-cutover-output.mjs",
+  "buildCommand": "pnpm build && pnpm exec vite build --ssr src/vercelSsr.ts --outDir server-build --emptyOutDir && node scripts/prepare-ssr-cutover-output.mjs",
   "outputDirectory": "dist",
   "git": {
     "deploymentEnabled": {
-      "master": true,
+      "master": false,
       "preview-*": true,
       "*": false
     }
