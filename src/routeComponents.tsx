@@ -27,6 +27,7 @@ export const PublicAchievementsPage = lazy(() => import("./public/pages/PublicAc
 export const PublicAnnouncementsPage = lazy(() => import("./public/pages/PublicAnnouncementsPage"));
 export const PublicBlogPage = lazy(() => import("./public/pages/PublicBlogPage"));
 export const PublicCalendarPage = lazy(() => import("./public/pages/PublicCalendarPage"));
+export const PublicComplaintPage = lazy(() => import("./public/pages/PublicComplaintPage"));
 export const PublicContactPage = lazy(() => import("./public/pages/PublicContactPage"));
 export const PublicContentDetailPage = lazy(() => import("./public/pages/PublicContentDetailPage"));
 export const PublicDepartmentsPage = lazy(() => import("./public/pages/PublicDepartmentsPage"));

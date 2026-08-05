@@ -161,3 +161,22 @@ a {
     box-shadow: var(--rcat-elevation-low);
   }
 }
+
+.form-shell {
+  animation: cardIn 300ms ease-out both;
+}
+
+#status {
+  transition: color 180ms ease;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
