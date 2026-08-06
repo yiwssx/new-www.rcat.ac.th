@@ -203,7 +203,9 @@ async function loadAnnouncementSnapshot(baseUrl) {
   const firstSnapshot = await getPage(1);
   const totalPages = Math.max(1, Number(firstSnapshot?.pageItemsPagination?.totalPages) || 1);
   const remainingSnapshots =
-    totalPages > 1 ? await Promise.all(Array.from({ length: totalPages - 1 }, (_, index) => getPage(index + 2))) : [];
+    totalPages > 1
+      ? await Promise.all(Array.from({ length: totalPages - 1 }, (_, index) => getPage(index + 2)))
+      : [];
 
   return {
     items: getSnapshotItems(firstSnapshot),
