@@ -26,7 +26,8 @@ function loadSsrClientAssets() {
     manifest = JSON.parse(readFileSync(CLIENT_MANIFEST_PATH, "utf8")) as Record<string, ClientManifestChunk>;
   } catch (error) {
     throw new Error(
-      `Unable to read the production client manifest at ${CLIENT_MANIFEST_PATH}: ${error instanceof Error ? error.message : String(error)}`
+      `Unable to read the production client manifest at ${CLIENT_MANIFEST_PATH}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
     );
   }
 
