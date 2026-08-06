@@ -1,12 +1,50 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import checker from "vite-plugin-checker";
 
 const WRANGLER_REPOSITORY_PATH = "cloudflare/public-api/wrangler.toml";
-const CLIENT_ENTRY_FILE = "assets/rcat-client.js";
-const CLIENT_STYLESHEET_FILE = "assets/rcat-client.css";
+const CLIENT_MANIFEST_PATH = path.resolve("dist", ".vite", "manifest.json");
+
+type ClientManifestChunk = {
+  css?: string[];
+  file?: string;
+  isEntry?: boolean;
+};
+
+function toPublicAssetPath(file: string) {
+  return `/${file.replace(/^\/+/, "")}`;
+}
+
+function loadSsrClientAssets() {
+  let manifest: Record<string, ClientManifestChunk>;
+
+  try {
+    manifest = JSON.parse(readFileSync(CLIENT_MANIFEST_PATH, "utf8")) as Record<string, ClientManifestChunk>;
+  } catch (error) {
+    throw new Error(
+      `Unable to read the production client manifest at ${CLIENT_MANIFEST_PATH}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  const entry = manifest["index.html"] ?? Object.values(manifest).find((chunk) => chunk.isEntry);
+  if (!entry?.file) {
+    throw new Error("Production client manifest does not contain an application entry chunk");
+  }
+
+  const stylesheetPaths = (entry.css ?? []).map(toPublicAssetPath);
+  if (stylesheetPaths.length === 0) {
+    throw new Error("Production client manifest does not contain an application stylesheet");
+  }
+
+  return {
+    entryPath: toPublicAssetPath(entry.file),
+    stylesheetPaths
+  };
+}
 
 function committedWranglerSafetySource(): Plugin {
   let committedSource: string | undefined;
@@ -58,18 +96,9 @@ function utf8HtmlCharset(): Plugin {
   };
 }
 
-function clientAssetFileName(assetInfo: { name?: string; names?: string[] }) {
-  const names = assetInfo.names?.length ? assetInfo.names : [assetInfo.name || ""];
-
-  if (names.some((name) => name.endsWith(".css"))) {
-    return CLIENT_STYLESHEET_FILE;
-  }
-
-  return "assets/[name]-[hash][extname]";
-}
-
 export default defineConfig(({ command, mode, isSsrBuild }) => {
   const plugins = [react(), utf8HtmlCharset()] as Plugin[];
+  const ssrClientAssets = isSsrBuild ? loadSsrClientAssets() : null;
 
   if (mode === "test") {
     plugins.push(committedWranglerSafetySource());
@@ -89,15 +118,24 @@ export default defineConfig(({ command, mode, isSsrBuild }) => {
 
   return {
     plugins,
+    ...(ssrClientAssets
+      ? {
+          define: {
+            __RCAT_SSR_CLIENT_ENTRY_PATH__: JSON.stringify(ssrClientAssets.entryPath),
+            __RCAT_SSR_CLIENT_STYLESHEET_PATHS__: JSON.stringify(ssrClientAssets.stylesheetPaths)
+          }
+        }
+      : {}),
     build: {
       cssCodeSplit: true,
+      manifest: !isSsrBuild,
       ...(!isSsrBuild
         ? {
             rollupOptions: {
               output: {
-                entryFileNames: CLIENT_ENTRY_FILE,
+                entryFileNames: "assets/[name]-[hash].js",
                 chunkFileNames: "assets/[name]-[hash].js",
-                assetFileNames: clientAssetFileName
+                assetFileNames: "assets/[name]-[hash][extname]"
               }
             }
           }
