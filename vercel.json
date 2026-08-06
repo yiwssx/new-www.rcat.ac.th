@@ -5,7 +5,6 @@
   "git": {
     "deploymentEnabled": {
       "master": true,
-      "preview-*": true,
       "*": false
     }
   },
