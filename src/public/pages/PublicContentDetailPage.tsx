@@ -772,38 +772,6 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
           <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
             <Stack spacing={2.5}>
               <ContentDetailMetadata item={item} tagList={tagList} displayedViewCount={displayedViewCount} />
-              <Box
-                className="rcat-image-frame"
-                sx={{
-                  minHeight: featuredMedia?.type === "image" && featuredMediaImageUrl ? 0 : { xs: 180, md: 260 },
-                  display: "grid",
-                  placeItems: "center",
-                  bgcolor: "primary.light",
-                  color: "primary.main"
-                }}
-              >
-                {featuredMedia?.type === "image" && featuredMediaImageUrl ? (
-                  <PublicResponsiveImage
-                    source={featuredMedia}
-                    intent="content-featured"
-                    alt={featuredMedia.name}
-                    loadMode="critical"
-                    sizes="(max-width: 600px) 100vw, (max-width: 1200px) 85vw, 960px"
-                    reservedMinHeight={{ xs: 220, md: 360 }}
-                    imageSx={{ objectFit: "contain" }}
-                  />
-                ) : featuredMedia?.type === "video" && featuredMediaEmbedUrl ? (
-                  <PublicDeferredEmbed
-                    title={featuredMedia.name}
-                    src={featuredMediaEmbedUrl}
-                    loadMode="eager"
-                    sx={{ width: "100%", height: { xs: 240, md: 390 } }}
-                    allow="autoplay"
-                  />
-                ) : (
-                  <ArticleOutlinedIcon sx={{ fontSize: 92 }} />
-                )}
-              </Box>
               <Box>
                 <Typography variant="h2" sx={{ fontSize: { xs: "1.55rem", md: "2rem" } }}>
                   {item.seoTitle || item.title}
