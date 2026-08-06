@@ -5,8 +5,8 @@ import {
   type PublicQueryRuntimeOptions
 } from "../public-read/queryPolicy";
 import {
-  getContentDetail,
   getPublicAnnouncementsContentListSnapshot,
+  getPublicContentDetailSnapshot,
   getPublicContentListSnapshot,
   isPublicContentNotFoundError,
   type PublicContentListPageInput
@@ -79,9 +79,12 @@ export function publicContentDetailQueryOptions(
       }
 
       try {
-        const content = await getContentDetail({ slug }, getPublicQueryRequestOptions(context, runtimeOptions));
-        setPublicContentDetailCache(slug, content);
-        return content;
+        const snapshot = await getPublicContentDetailSnapshot(
+          { slug },
+          getPublicQueryRequestOptions(context, runtimeOptions)
+        );
+        setPublicContentDetailCache(slug, snapshot);
+        return snapshot;
       } catch (error) {
         if (isPublicContentNotFoundError(error)) {
           removePublicContentDetailCache(slug);
