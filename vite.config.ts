@@ -20,16 +20,7 @@ function toPublicAssetPath(file: string) {
 }
 
 function loadSsrClientAssets() {
-  let manifest: Record<string, ClientManifestChunk>;
-
-  try {
-    manifest = JSON.parse(readFileSync(CLIENT_MANIFEST_PATH, "utf8")) as Record<string, ClientManifestChunk>;
-  } catch (error) {
-    throw new Error(
-      `Unable to read the production client manifest at ${CLIENT_MANIFEST_PATH}: ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error }
-    );
-  }
+  const manifest = JSON.parse(readFileSync(CLIENT_MANIFEST_PATH, "utf8")) as Record<string, ClientManifestChunk>;
 
   const entry = manifest["index.html"] ?? Object.values(manifest).find((chunk) => chunk.isEntry);
   if (!entry?.file) {
