@@ -36,6 +36,8 @@ describe("Public SSR determinism readiness", () => {
     expect(publicIntroGateStateSource).toContain("isPublicIntroGateDismissedInSession");
     expect(publicIntroGateSource).toContain("useEffect(() => {");
     expect(publicIntroGateSource).toContain("isPublicIntroGateDismissedInSession(settings)");
+    expect(publicIntroGateSource).toContain("const sessionReconciled = reconciledStorageKeys.has(storageKey);");
+    expect(publicIntroGateSource).toContain("const isVisible = (visible ?? uncontrolledVisibility) && sessionReconciled;");
   });
 
   it("uses snapshot time for lifecycle-sensitive first renders", () => {

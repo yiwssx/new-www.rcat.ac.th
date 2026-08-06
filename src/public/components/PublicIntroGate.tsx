@@ -60,6 +60,7 @@ export default function PublicIntroGate({
   visible?: boolean;
 }) {
   const [dismissedKeys, setDismissedKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const [reconciledStorageKeys, setReconciledStorageKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [imageState, setImageState] = useState<{ src: string; status: IntroGateImageStatus }>({
     src: "",
     status: "failed"
@@ -69,35 +70,44 @@ export default function PublicIntroGate({
   const imageStatus = imageState.src === imageSrc ? imageState.status : hasSafeImage ? "loading" : "failed";
   const hasSecondaryButton = Boolean(settings?.secondaryButtonLabel.trim() && settings.secondaryButtonUrl.trim());
   const storageKey = getPublicIntroGateStorageKey(settings);
+  const sessionReconciled = reconciledStorageKeys.has(storageKey);
   const testHarnessDismissed = isIntroGateDismissedInLegacyTestHarness(settings);
   const uncontrolledVisibility =
     getInitialPublicIntroGateVisibility(settings) &&
     !isDismissedForRender(storageKey, dismissedKeys) &&
     !testHarnessDismissed;
-  const isVisible = visible ?? uncontrolledVisibility;
+  const isVisible = (visible ?? uncontrolledVisibility) && sessionReconciled;
 
   useEffect(() => {
-    if (!settings || !shouldShowPublicIntroGate(settings) || !isVisible) {
+    if (!settings || !shouldShowPublicIntroGate(settings)) {
       return undefined;
     }
 
     const reconciliationTimer = window.setTimeout(() => {
-      if (!isPublicIntroGateDismissedInSession(settings)) {
-        return;
+      const dismissedInSession = isPublicIntroGateDismissedInSession(settings);
+
+      if (dismissedInSession) {
+        setDismissedKeys((current) => {
+          if (current.has(storageKey)) {
+            return current;
+          }
+
+          return new Set(current).add(storageKey);
+        });
+        onDismiss?.();
       }
 
-      setDismissedKeys((current) => {
+      setReconciledStorageKeys((current) => {
         if (current.has(storageKey)) {
           return current;
         }
 
         return new Set(current).add(storageKey);
       });
-      onDismiss?.();
     }, 0);
 
     return () => window.clearTimeout(reconciliationTimer);
-  }, [isVisible, onDismiss, settings, storageKey]);
+  }, [onDismiss, settings, storageKey]);
 
   useEffect(() => {
     if (!isVisible || typeof document === "undefined" || typeof window === "undefined") {
