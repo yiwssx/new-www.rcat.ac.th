@@ -25,7 +25,7 @@ describe("Public SSR determinism readiness", () => {
     expect(publicResponsiveImageSource).toContain('isNearViewportMode ? "low" : "auto"');
   });
 
-  it("keeps Intro Gate first-pass visibility pure and reconciles session state after mount", () => {
+  it("keeps Intro Gate hidden until session dismissal state is reconciled after mount", () => {
     const initialVisibilityFunction = publicIntroGateStateSource.match(
       /export function getInitialPublicIntroGateVisibility[\s\S]*?\n}\n/
     )?.[0];
