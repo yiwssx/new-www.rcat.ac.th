@@ -79,7 +79,7 @@ describe("public route loader ownership", () => {
     ]);
   });
 
-  it("prefetches detail plus CMS support data and returns only the lightweight head projection", async () => {
+  it("uses detail-scoped media for the lightweight head projection even when home media excludes it", async () => {
     const item = {
       id: "content-1",
       title: "ข่าว",
@@ -102,8 +102,14 @@ describe("public route loader ownership", () => {
     };
     const siteSettings = { siteName: "RCAT" };
     const runtime = createLoaderContext((queryKey) => {
-      if (queryKey[0] === "content-detail") return item;
-      if (queryKey[0] === "cms-snapshot") return { media: [featuredMedia], siteSettings };
+      if (queryKey[0] === "content-detail") {
+        return {
+          item,
+          media: [featuredMedia],
+          generatedAt: "2026-08-04T00:00:00.000Z"
+        };
+      }
+      if (queryKey[0] === "cms-snapshot") return { media: [], siteSettings };
       return queryKey;
     });
 
