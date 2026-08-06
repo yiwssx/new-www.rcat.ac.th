@@ -9,7 +9,7 @@ import { HomeSectionHeading } from "./HomeSectionHeading";
 export function ProgramsSection({ items, mediaAssets }: { items: ContentItem[]; mediaAssets: MediaAsset[] }) {
   return (
     <Box component="section" id="departments" sx={{ mt: { xs: 4, md: 5.5 } }}>
-      <HomeSectionHeading label="หลักสูตร" title="หลักสูตรที่เปิดสอน" />
+      <HomeSectionHeading label="แผนกวิชา" title="แผนกวิชาที่เปิดสอน" />
       {items.length ? (
         <Grid container spacing={2.5}>
           {items.map((item) => (
@@ -23,7 +23,7 @@ export function ProgramsSection({ items, mediaAssets }: { items: ContentItem[]; 
           ))}
         </Grid>
       ) : (
-        <EmptyState title="ยังไม่มีข้อมูลหลักสูตรที่เผยแพร่" icon={<SchoolOutlinedIcon />} />
+        <EmptyState title="ยังไม่มีข้อมูลแผนกวิชาที่เผยแพร่" icon={<SchoolOutlinedIcon />} />
       )}
     </Box>
   );

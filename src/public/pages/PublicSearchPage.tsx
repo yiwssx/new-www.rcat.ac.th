@@ -32,7 +32,7 @@ function getContentTypeLabel(type: ContentItem["type"]) {
     case "announcement":
       return "ประกาศ";
     case "program":
-      return "หลักสูตร";
+      return "แผนกวิชา";
     case "blog":
       return "บทความ";
     case "page":
@@ -128,7 +128,7 @@ export default function PublicSearchPage() {
       description="ผลการค้นหาในเว็บไซต์"
       canonicalPath="/search"
       seoTitle={query ? `ค้นหา: ${query}` : "ค้นหา"}
-      seoDescription="ค้นหาเนื้อหา ข่าว ประกาศ หลักสูตร และบทความในเว็บไซต์"
+      seoDescription="ค้นหาเนื้อหา ข่าว ประกาศ แผนกวิชา และบทความในเว็บไซต์"
       preloadedSiteSettings={data?.siteSettings}
       preloadedHomepageSettings={data?.homepageSettings}
       preloadedDisplaySettings={data?.displaySettings}
@@ -173,7 +173,7 @@ export default function PublicSearchPage() {
       {!query && (
         <EmptyState
           title="ค้นหาเนื้อหาในเว็บไซต์"
-          description="กรอกคำค้น เช่น ข่าวสมัครงาน จัดซื้อจัดจ้าง ผลงาน หรือชื่อหลักสูตร"
+          description="กรอกคำค้น เช่น ข่าวสมัครงาน จัดซื้อจัดจ้าง ผลงาน หรือชื่อแผนกวิชา"
           icon={<SearchOutlinedIcon />}
         />
       )}

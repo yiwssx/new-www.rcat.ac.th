@@ -540,7 +540,7 @@ export default function ContentPage() {
     <Box>
       <PageHeader
         title="เนื้อหา"
-        description="สร้างและดูแลหน้าเว็บ บทความ ข้อมูลหลักสูตร ข่าว และประกาศ"
+        description="สร้างและดูแลหน้าเว็บ บทความ ข้อมูลแผนกวิชา ข่าว และประกาศ"
         action={
           canCreate ? (
             <Button

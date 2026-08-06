@@ -1073,7 +1073,7 @@ describe("public data-driven pages", () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByText("ยังไม่มีข้อมูลหลักสูตรที่เผยแพร่")).toBeInTheDocument();
+    expect(screen.getByText("ยังไม่มีข้อมูลแผนกวิชาที่เผยแพร่")).toBeInTheDocument();
   });
 
   it("renders departments from the public program list snapshot", () => {
@@ -1104,15 +1104,15 @@ describe("public data-driven pages", () => {
       items: createNumberedContentItems({
         count: 13,
         prefix: "program",
-        titlePrefix: "หลักสูตรลำดับ",
+        titlePrefix: "แผนกวิชาลำดับ",
         type: "program"
       })
     });
 
     render(<PublicDepartmentsPage />);
 
-    expect(screen.getByText("หลักสูตรลำดับ 12")).toBeInTheDocument();
-    expect(screen.queryByText("หลักสูตรลำดับ 13")).not.toBeInTheDocument();
+    expect(screen.getByText("แผนกวิชาลำดับ 12")).toBeInTheDocument();
+    expect(screen.queryByText("แผนกวิชาลำดับ 13")).not.toBeInTheDocument();
     expect(screen.getByText("แสดง 1–12 จากทั้งหมด 13 รายการ")).toBeInTheDocument();
   });
 
@@ -1634,12 +1634,12 @@ describe("public data-driven pages", () => {
     const programItems: PublicHomeSnapshot["programItems"] = [
       {
         id: "program-1",
-        title: "หลักสูตรช่างยนต์",
+        title: "แผนกวิชาช่างยนต์",
         slug: "auto-program",
         type: "program",
         status: "published",
         owner: "Admin",
-        summary: "ข้อมูลหลักสูตร",
+        summary: "ข้อมูลแผนกวิชา",
         updatedAt: "2026-05-03T00:00:00.000Z",
         publishAt: "2026-05-03T00:00:00.000Z"
       }
@@ -1753,7 +1753,7 @@ describe("public data-driven pages", () => {
     const heroIndex = pageText.indexOf("ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง");
     const directorIndex = pageText.indexOf("สารจากผู้อำนวยการ");
     const newsIndex = pageText.indexOf("ข่าวสารและกิจกรรมล่าสุด");
-    const programsIndex = pageText.indexOf("หลักสูตรที่เปิดสอน");
+    const programsIndex = pageText.indexOf("แผนกวิชาที่เปิดสอน");
     const announcementsIndex = pageText.indexOf("ประกาศล่าสุด");
     const eventsIndex = pageText.indexOf("กำหนดการ");
     const documentsIndex = pageText.indexOf("เอกสารเผยแพร่");
@@ -1789,7 +1789,7 @@ describe("public data-driven pages", () => {
     expect(contactIndex).toBeLessThan(visitorStatsIndex);
 
     expect(screen.getByText("ข่าวเปิดบ้านวิทยาลัย")).toBeInTheDocument();
-    expect(screen.getByText("หลักสูตรช่างยนต์")).toBeInTheDocument();
+    expect(screen.getByText("แผนกวิชาช่างยนต์")).toBeInTheDocument();
     expect(screen.getByText("ประกาศรับสมัครนักเรียน")).toBeInTheDocument();
     expect(screen.getByText("ปฐมนิเทศนักศึกษาใหม่")).toBeInTheDocument();
     expect(screen.getByText("เอกสารแผนปฏิบัติการ")).toBeInTheDocument();
