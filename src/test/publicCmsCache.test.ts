@@ -35,6 +35,7 @@ import {
 import {
   CmsSnapshot,
   ContentItem,
+  PublicContentDetailSnapshot,
   PublicContentListSnapshot,
   PublicDocumentListSnapshot,
   PublicHomeSnapshot,
@@ -56,6 +57,14 @@ function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
     updatedAt: "2026-04-29T00:00:00.000Z",
     publishAt: "2026-04-29T00:00:00.000Z",
     ...overrides
+  };
+}
+
+function createPublicContentDetailSnapshot(item: ContentItem): PublicContentDetailSnapshot {
+  return {
+    item,
+    media: [],
+    generatedAt: item.updatedAt
   };
 }
 
@@ -212,11 +221,12 @@ describe("publicCmsCache", () => {
     const slug = "ข่าว/รับสมัคร 2026";
     const expectedKey = `${PUBLIC_CONTENT_DETAIL_CACHE_PREFIX}${encodeURIComponent(slug)}`;
     const content = createContentItem({ slug });
+    const detailSnapshot = createPublicContentDetailSnapshot(content);
 
-    setPublicContentDetailCache(slug, content);
+    setPublicContentDetailCache(slug, detailSnapshot);
 
     expect(window.localStorage.getItem(expectedKey)).not.toBeNull();
-    expect(getPublicContentDetailCache(slug)?.data).toEqual(content);
+    expect(getPublicContentDetailCache(slug)?.data).toEqual(detailSnapshot);
   });
 
   it("removes only the requested encoded content detail cache", () => {
@@ -227,16 +237,18 @@ describe("publicCmsCache", () => {
     const doubleEncodedKey = `${PUBLIC_CONTENT_DETAIL_CACHE_PREFIX}${encodeURIComponent(encodeURIComponent(deletedSlug))}`;
     const deletedContent = createContentItem({ id: "deleted-content", slug: deletedSlug });
     const otherContent = createContentItem({ id: "other-content", slug: otherSlug });
+    const deletedSnapshot = createPublicContentDetailSnapshot(deletedContent);
+    const otherSnapshot = createPublicContentDetailSnapshot(otherContent);
 
-    setPublicContentDetailCache(deletedSlug, deletedContent);
-    setPublicContentDetailCache(otherSlug, otherContent);
+    setPublicContentDetailCache(deletedSlug, deletedSnapshot);
+    setPublicContentDetailCache(otherSlug, otherSnapshot);
     removePublicContentDetailCache(deletedSlug);
 
     expect(window.localStorage.getItem(deletedKey)).toBeNull();
     expect(window.localStorage.getItem(doubleEncodedKey)).toBeNull();
     expect(getPublicContentDetailCache(deletedSlug)).toBeNull();
     expect(window.localStorage.getItem(otherKey)).not.toBeNull();
-    expect(getPublicContentDetailCache(otherSlug)?.data).toEqual(otherContent);
+    expect(getPublicContentDetailCache(otherSlug)?.data).toEqual(otherSnapshot);
   });
 
   it("ignores empty content detail cache removals", () => {
