@@ -549,7 +549,9 @@ function PublicSiteShellFrame({
   const siteName = siteSettings.siteName;
   const introGateStorageKey = getPublicIntroGateStorageKey(homepageSettings.introGate);
   const introGateVisible =
-    getInitialPublicIntroGateVisibility(homepageSettings.introGate) && !dismissedIntroGateKeys.has(introGateStorageKey);
+    pathname === "/" &&
+    getInitialPublicIntroGateVisibility(homepageSettings.introGate) &&
+    !dismissedIntroGateKeys.has(introGateStorageKey);
 
   useDocumentMetadata({
     title: isInitialPublicError ? "ไม่สามารถโหลดข้อมูลได้" : (seoTitle ?? title ?? siteName),
