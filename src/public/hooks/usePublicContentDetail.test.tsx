@@ -7,7 +7,7 @@ import {
   getPublicContentDetailCache,
   setPublicContentDetailCache
 } from "../../services/publicCmsCache";
-import type { ContentItem } from "../../types";
+import type { ContentItem, PublicContentDetailSnapshot } from "../../types";
 import { usePublicContentDetail } from "./usePublicContentDetail";
 
 const slug = "deleted-news";
@@ -25,6 +25,14 @@ function createContent(overrides: Partial<ContentItem> = {}): ContentItem {
     updatedAt: "2026-07-13T00:00:00.000Z",
     publishAt: "2026-07-13T00:00:00.000Z",
     ...overrides
+  };
+}
+
+function createDetailSnapshot(item: ContentItem): PublicContentDetailSnapshot {
+  return {
+    item,
+    media: [],
+    generatedAt: item.updatedAt
   };
 }
 
@@ -66,7 +74,7 @@ describe("usePublicContentDetail", () => {
       })
     );
     vi.stubGlobal("fetch", fetchMock);
-    setPublicContentDetailCache(slug, staleContent);
+    setPublicContentDetailCache(slug, createDetailSnapshot(staleContent));
 
     const { result } = renderHook(() => usePublicContentDetail({ slug }), {
       wrapper: createWrapper(queryClient)
@@ -85,13 +93,14 @@ describe("usePublicContentDetail", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("returns successful content and persists it with the existing detail cache", async () => {
+  it("returns successful content and persists the full detail snapshot", async () => {
     const queryClient = createQueryClient();
     const content = createContent({ title: "Fresh content" });
+    const snapshot = createDetailSnapshot(content);
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ item: content, media: [], generatedAt: content.updatedAt }), {
+        new Response(JSON.stringify(snapshot), {
           status: 200,
           headers: { "Content-Type": "application/json" }
         })
@@ -104,12 +113,14 @@ describe("usePublicContentDetail", () => {
 
     await waitFor(() => expect(result.current.data).toEqual(content));
     expect(result.current.isSuccess).toBe(true);
-    expect(getPublicContentDetailCache(slug)?.data).toEqual(content);
+    expect(result.current.media).toEqual([]);
+    expect(getPublicContentDetailCache(slug)?.data).toEqual(snapshot);
   });
 
-  it("keeps valid persisted content and exposes non-404 failures as query errors", async () => {
+  it("keeps valid persisted detail media and exposes non-404 failures as query errors", async () => {
     const queryClient = createQueryClient();
     const staleContent = createContent();
+    const staleSnapshot = createDetailSnapshot(staleContent);
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -119,7 +130,7 @@ describe("usePublicContentDetail", () => {
         })
       )
     );
-    setPublicContentDetailCache(slug, staleContent);
+    setPublicContentDetailCache(slug, staleSnapshot);
 
     const { result } = renderHook(() => usePublicContentDetail({ slug }), {
       wrapper: createWrapper(queryClient)
@@ -133,6 +144,7 @@ describe("usePublicContentDetail", () => {
     expect(result.current.error).toBeInstanceOf(Error);
     expect(result.current.error?.message).toBe("temporary failure");
     expect(result.current.data).toEqual(staleContent);
-    expect(getPublicContentDetailCache(slug)?.data).toEqual(staleContent);
+    expect(result.current.media).toEqual([]);
+    expect(getPublicContentDetailCache(slug)?.data).toEqual(staleSnapshot);
   });
 });
