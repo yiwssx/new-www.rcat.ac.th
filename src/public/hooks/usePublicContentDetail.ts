@@ -13,11 +13,17 @@ export function usePublicContentDetail(input: { slug?: string }) {
   const hasFreshCache = cachedContent
     ? isPublicQueryCacheFresh(cachedContent.savedAt, PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS)
     : false;
-
-  return useQuery({
+  const query = useQuery({
     ...publicContentDetailQueryOptions(slug, { consumeAbortSignal: false }),
     initialData: cachedContent?.data,
     initialDataUpdatedAt: cachedContent?.savedAt,
     refetchOnMount: cachedContent ? !hasFreshCache : true
   });
+  const detail = query.data;
+
+  return {
+    ...query,
+    data: detail === null || detail === undefined ? detail : detail.item,
+    media: detail?.media ?? []
+  };
 }
