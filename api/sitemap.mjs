@@ -189,18 +189,16 @@ export async function loadSitemapData(apiBaseUrl) {
   const baseUrl = trimTrailingSlash(apiBaseUrl);
   if (!baseUrl) throw new Error("Cloudflare Public API URL is not configured");
 
-  const [programs, ...contentSnapshots] = await Promise.all([
-    fetchJson(`${baseUrl}/api/public/programs`),
-    ...CONTENT_KINDS.map((kind) => fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(kind)}`))
-  ]);
+  // Programs currently have a listing route (/departments) but no public detail route.
+  // Only real content records may be emitted under the canonical /content/:slug namespace.
+  const contentSnapshots = await Promise.all(
+    CONTENT_KINDS.map((kind) => fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(kind)}`))
+  );
 
-  const content = [
-    ...(Array.isArray(programs?.items) ? programs.items : []),
-    ...contentSnapshots.flatMap((snapshot) => [
-      ...(Array.isArray(snapshot?.items) ? snapshot.items : []),
-      ...(Array.isArray(snapshot?.pageItems) ? snapshot.pageItems : [])
-    ])
-  ];
+  const content = contentSnapshots.flatMap((snapshot) => [
+    ...(Array.isArray(snapshot?.items) ? snapshot.items : []),
+    ...(Array.isArray(snapshot?.pageItems) ? snapshot.pageItems : [])
+  ]);
 
   return { content };
 }
