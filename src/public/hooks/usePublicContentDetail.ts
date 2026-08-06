@@ -6,6 +6,7 @@ import {
   publicContentDetailQueryOptions
 } from "../../features/public-content";
 import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
+import type { ContentItem, MediaAsset, PublicContentDetailSnapshot } from "../../types";
 
 export function usePublicContentDetail(input: { slug?: string }) {
   const slug = input.slug;
@@ -19,11 +20,16 @@ export function usePublicContentDetail(input: { slug?: string }) {
     initialDataUpdatedAt: cachedContent?.savedAt,
     refetchOnMount: cachedContent ? !hasFreshCache : true
   });
-  const detail = query.data;
+  const detail = query.data as PublicContentDetailSnapshot | null | undefined;
+  const item: ContentItem | null | undefined = detail === null || detail === undefined ? detail : detail.item;
+  const media: MediaAsset[] = detail?.media ?? [];
 
   return {
     ...query,
-    data: detail === null || detail === undefined ? detail : detail.item,
-    media: detail?.media ?? []
+    data: item,
+    media
+  } as Omit<typeof query, "data"> & {
+    data: ContentItem | null | undefined;
+    media: MediaAsset[];
   };
 }
