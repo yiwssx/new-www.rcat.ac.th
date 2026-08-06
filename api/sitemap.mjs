@@ -1,4 +1,5 @@
 const CONTENT_KINDS = ["news", "announcements", "blog"];
+const SITEMAP_PAGE_SIZE = 100;
 
 export const STATIC_INDEXABLE_ROUTES = [
   "/",
@@ -185,20 +186,49 @@ async function fetchJson(url) {
   }
 }
 
+function getSnapshotItems(snapshot) {
+  return Array.isArray(snapshot?.items) ? snapshot.items : [];
+}
+
+function getSnapshotPageItems(snapshot) {
+  return Array.isArray(snapshot?.pageItems) ? snapshot.pageItems : [];
+}
+
+async function loadAnnouncementSnapshot(baseUrl) {
+  const getPage = (page) =>
+    fetchJson(
+      `${baseUrl}/api/public/content?kind=announcements&pagesPage=${page}&pagesPageSize=${SITEMAP_PAGE_SIZE}`
+    );
+
+  const firstSnapshot = await getPage(1);
+  const totalPages = Math.max(1, Number(firstSnapshot?.pageItemsPagination?.totalPages) || 1);
+  const remainingSnapshots =
+    totalPages > 1 ? await Promise.all(Array.from({ length: totalPages - 1 }, (_, index) => getPage(index + 2))) : [];
+
+  return {
+    items: getSnapshotItems(firstSnapshot),
+    pageItems: [firstSnapshot, ...remainingSnapshots].flatMap(getSnapshotPageItems)
+  };
+}
+
 export async function loadSitemapData(apiBaseUrl) {
   const baseUrl = trimTrailingSlash(apiBaseUrl);
   if (!baseUrl) throw new Error("Cloudflare Public API URL is not configured");
 
   // Programs currently have a listing route (/departments) but no public detail route.
   // Only real content records may be emitted under the canonical /content/:slug namespace.
-  const contentSnapshots = await Promise.all(
-    CONTENT_KINDS.map((kind) => fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(kind)}`))
-  );
-
-  const content = contentSnapshots.flatMap((snapshot) => [
-    ...(Array.isArray(snapshot?.items) ? snapshot.items : []),
-    ...(Array.isArray(snapshot?.pageItems) ? snapshot.pageItems : [])
+  const [newsSnapshot, announcementsSnapshot, blogSnapshot] = await Promise.all([
+    fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(CONTENT_KINDS[0])}`),
+    loadAnnouncementSnapshot(baseUrl),
+    fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(CONTENT_KINDS[2])}`)
   ]);
+
+  const content = [
+    ...getSnapshotItems(newsSnapshot),
+    ...announcementsSnapshot.items,
+    ...announcementsSnapshot.pageItems,
+    ...getSnapshotItems(blogSnapshot)
+  ];
 
   return { content };
 }
