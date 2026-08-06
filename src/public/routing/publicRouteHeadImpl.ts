@@ -96,8 +96,8 @@ export const STATIC_PUBLIC_ROUTE_HEADS: Readonly<Record<string, StaticPublicRout
     canonicalPath: "/blog"
   },
   "/departments": {
-    title: "หลักสูตร",
-    description: "ข้อมูลหลักสูตรที่เผยแพร่จาก CMS",
+    title: "แผนกวิชา",
+    description: "ข้อมูลแผนกวิชาที่เผยแพร่จาก CMS",
     canonicalPath: "/departments"
   },
   "/documents": {
@@ -117,7 +117,7 @@ export const STATIC_PUBLIC_ROUTE_HEADS: Readonly<Record<string, StaticPublicRout
   },
   "/search": {
     title: "ค้นหา",
-    description: "ค้นหาเนื้อหา ข่าว ประกาศ หลักสูตร และบทความในเว็บไซต์",
+    description: "ค้นหาเนื้อหา ข่าว ประกาศ แผนกวิชา และบทความในเว็บไซต์",
     canonicalPath: "/search",
     robots: "noindex,follow"
   }
@@ -127,7 +127,7 @@ const PUBLIC_CONTENT_ARCHIVE: Readonly<Record<string, { name: string; path: stri
   news: { name: "ข่าว", path: "/news" },
   announcement: { name: "ประกาศ", path: "/announcements" },
   blog: { name: "บทความ", path: "/blog" },
-  program: { name: "หลักสูตร", path: "/departments" },
+  program: { name: "แผนกวิชา", path: "/departments" },
   page: undefined
 };
 

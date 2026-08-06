@@ -619,9 +619,9 @@ test("desktop Public menu keeps top-level and submenu focus visible without clip
   const topLevelLink = navigation.getByRole("link", { name: "หน้าหลัก", exact: true });
   const topLevelFocus = await expectAccessibleFocus(topLevelLink);
 
-  const submenuOwner = navigation.getByRole("link", { name: "หลักสูตร", exact: true });
+  const submenuOwner = navigation.getByRole("link", { name: "แผนกวิชา", exact: true });
   await submenuOwner.focus();
-  const submenuLink = navigation.getByRole("link", { name: "หลักสูตรเกษตร", exact: true });
+  const submenuLink = navigation.getByRole("link", { name: "แผนกวิชาเกษตร", exact: true });
   await expect(submenuLink).toBeVisible();
   const submenuFocus = await expectAccessibleFocus(submenuLink);
   await expect(submenuLink).toBeVisible();
@@ -640,7 +640,7 @@ test("compact Public menu and Drawer items preserve contextual focus geometry", 
   const menuButtonFocus = await expectAccessibleFocus(menuButton);
   await menuButton.click();
 
-  const drawerItem = page.getByRole("button", { name: "หลักสูตร", exact: true });
+  const drawerItem = page.getByRole("button", { name: "แผนกวิชา", exact: true });
   await expect(drawerItem).toBeVisible();
   await expect
     .poll(async () => (await drawerItem.boundingBox())?.x ?? -1, {

@@ -11,7 +11,7 @@ import type {
 export const contentTypeLabels: Record<ContentType, string> = {
   page: "หน้าเว็บ",
   news: "ข่าว",
-  program: "หลักสูตร",
+  program: "แผนกวิชา",
   announcement: "ประกาศ",
   blog: "บทความ"
 };

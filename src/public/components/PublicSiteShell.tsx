@@ -87,6 +87,14 @@ const fallbackPublicShellSettings: Partial<SiteSettings> = {
   footerTitle: projectSettings.site.name
 };
 
+function normalizeDepartmentMenuLabels(items: PublicMenuItem[]): PublicMenuItem[] {
+  return items.map((item) => ({
+    ...item,
+    label: item.label.replace(/หลักสูตร/g, "แผนกวิชา"),
+    children: item.children ? normalizeDepartmentMenuLabels(item.children) : item.children
+  }));
+}
+
 interface PublicRouteShellDefaults {
   title?: string;
   description?: string;
@@ -119,8 +127,8 @@ function getPublicRouteShellDefaults(pathname: string): PublicRouteShellDefaults
       description: "บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS"
     },
     "/departments": {
-      title: "หลักสูตร",
-      description: "ข้อมูลหลักสูตรที่เผยแพร่จาก CMS"
+      title: "แผนกวิชา",
+      description: "ข้อมูลแผนกวิชาที่เผยแพร่จาก CMS"
     },
     "/documents": {
       title: "เอกสารเผยแพร่",
@@ -540,6 +548,7 @@ function PublicSiteShellFrame({
   const [dismissedIntroGateKeys, setDismissedIntroGateKeys] = useState<ReadonlySet<string>>(() => new Set());
   const shellSiteSettings = preloadedSiteSettings ?? data?.siteSettings ?? fallbackPublicShellSettings;
   const shellHomepageSettings = preloadedHomepageSettings ?? data?.homepageSettings;
+  const shellMenu = normalizeDepartmentMenuLabels(preloadedMenu ?? data?.menu ?? []);
   const hasResolvedShellSettings = Boolean(preloadedSiteSettings ?? data?.siteSettings);
   const isShellFetching = shouldFetchShellData && !data && (isLoading || isFetching);
   const isInitialPublicError = shouldFetchShellData && !data && isError && !isShellFetching;
@@ -810,7 +819,7 @@ function PublicSiteShellFrame({
             </Container>
           </Box>
 
-          <PublicMainMenu preloadedMenu={preloadedMenu ?? data?.menu ?? []} />
+          <PublicMainMenu preloadedMenu={shellMenu} />
 
           <UrgentMarqueeSection settings={homepageSettings.marquee} />
 

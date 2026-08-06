@@ -50,8 +50,8 @@ export default function PublicDepartmentsPage() {
 
   return (
     <PublicSiteShell
-      title="หลักสูตร"
-      description="ข้อมูลหลักสูตรที่เผยแพร่จาก CMS"
+      title="แผนกวิชา"
+      description="ข้อมูลแผนกวิชาที่เผยแพร่จาก CMS"
       preloadedSiteSettings={data.siteSettings}
       preloadedHomepageSettings={data.homepageSettings}
       preloadedDisplaySettings={data.displaySettings}
@@ -69,7 +69,7 @@ export default function PublicDepartmentsPage() {
       >
         <SchoolOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
-          ข้อมูลหลักสูตรที่เผยแพร่
+          ข้อมูลแผนกวิชาที่เผยแพร่
         </Typography>
       </Stack>
       {programItems.length ? (
@@ -94,7 +94,7 @@ export default function PublicDepartmentsPage() {
           />
         </>
       ) : (
-        <EmptyState title="ยังไม่มีข้อมูลหลักสูตรที่เผยแพร่" icon={<SchoolOutlinedIcon />} />
+        <EmptyState title="ยังไม่มีข้อมูลแผนกวิชาที่เผยแพร่" icon={<SchoolOutlinedIcon />} />
       )}
     </PublicSiteShell>
   );
