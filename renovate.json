@@ -15,14 +15,6 @@
   "ignoreTests": false,
   "prConcurrentLimit": 2,
   "branchConcurrentLimit": 2,
-  "statusCheckWhen": {
-    "artifactError": "always"
-  },
-  "postUpgradeTasks": {
-    "commands": ["pnpm deps:status"],
-    "fileFilters": ["docs/maintenance/dependency-current-status.md"],
-    "executionMode": "branch"
-  },
   "packageRules": [
     {
       "description": "Wait three days before normal npm updates",
