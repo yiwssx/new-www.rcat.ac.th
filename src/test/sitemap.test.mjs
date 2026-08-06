@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   STATIC_INDEXABLE_ROUTES,
   buildSitemapUrls,
   createSitemapXml,
   getPublishedContentSitemapRoute,
+  loadSitemapData,
   normalizeInternalRoute
 } from "../../api/sitemap.mjs";
 
@@ -26,6 +27,60 @@ describe("runtime sitemap generation", () => {
     expect(urls).not.toContain("https://school.example/published-news");
     expect(urls.join("\n")).not.toContain("draft-news");
     expect(urls.join("\n")).not.toContain("/search");
+  });
+
+  it("loads only real content and paginates all announcement page items", async () => {
+    const requestedUrls = [];
+    const originalFetch = globalThis.fetch;
+
+    globalThis.fetch = vi.fn(async (input) => {
+      const url = String(input);
+      requestedUrls.push(url);
+      const parsed = new URL(url);
+      const kind = parsed.searchParams.get("kind");
+      const pagesPage = Number(parsed.searchParams.get("pagesPage") || 0);
+
+      if (kind === "announcements") {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [{ slug: "announcement-item", status: "published" }],
+            pageItems: [{ slug: `page-${pagesPage}`, status: "published" }],
+            pageItemsPagination: { page: pagesPage, pageSize: 100, totalItems: 200, totalPages: 2 }
+          })
+        };
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          items: [{ slug: `${kind}-item`, status: "published" }]
+        })
+      };
+    });
+
+    try {
+      const data = await loadSitemapData("https://api.school.example/");
+
+      expect(requestedUrls.some((url) => url.includes("/programs"))).toBe(false);
+      expect(requestedUrls).toContain("https://api.school.example/api/public/content?kind=news");
+      expect(requestedUrls).toContain(
+        "https://api.school.example/api/public/content?kind=announcements&pagesPage=1&pagesPageSize=100"
+      );
+      expect(requestedUrls).toContain(
+        "https://api.school.example/api/public/content?kind=announcements&pagesPage=2&pagesPageSize=100"
+      );
+      expect(requestedUrls).toContain("https://api.school.example/api/public/content?kind=blog");
+      expect(data.content.map((item) => item.slug)).toEqual([
+        "news-item",
+        "announcement-item",
+        "page-1",
+        "page-2",
+        "blog-item"
+      ]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("excludes locally hosted content when CMS declares an external canonical URL", () => {
