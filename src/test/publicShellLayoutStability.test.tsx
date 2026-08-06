@@ -43,7 +43,7 @@ describe("Public Footer Directory stability", () => {
   });
 
   it("renders a responsive non-focusable loading placeholder with the same outer contract", () => {
-    const { container } = render(<PublicFooterDirectory groups={footerGroups.map((group) => ({ ...group, links: [] }))} pending />);
+    const { container } = render(<PublicFooterDirectory groups={[]} pending />);
     const directory = container.querySelector('[data-cls-region="footer-directory"]');
 
     expect(directory).toHaveAttribute("data-footer-directory-state", "loading");
