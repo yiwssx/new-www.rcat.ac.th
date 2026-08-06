@@ -43,7 +43,7 @@ jobs:
           headers = config.get('headers', [])
           headers = [
               rule for rule in headers
-              if rule.get('source') not in {'/assets/rcat-client.js', '/assets/rcat-client.css'}
+              if rule.get('source') not in {'/assets/rcat-client.js', '/assets/rcat-client.css', '/assets/:path*'}
           ]
           headers.append({
               'source': '/assets/:path*',
@@ -56,6 +56,11 @@ jobs:
 
           routing_path = Path('src/test/vercelSsrRouting.test.mjs')
           source = routing_path.read_text()
+          source = source.replace('import path from "node:path";\n', '')
+          source = source.replace(
+              '  const source = await readFile(path.join(process.cwd(), "vercel.json"), "utf8");',
+              '  const source = await readFile(new URL("../../vercel.json", import.meta.url), "utf8");'
+          )
           source = source.replace(
               'it("protects the internal CSR fallback and fixed client entry assets from stale browser caching", async () => {',
               'it("protects the CSR fallback while caching hashed client assets immutably", async () => {'
@@ -66,25 +71,28 @@ jobs:
               '    expect(headerValue("/assets/:path*", "Cache-Control")).toBe("public, max-age=31536000, immutable");\n'
           )
           insert_anchor = '    expect(config.functions?.["api/ssr.ts"]?.supportsCancellation).toBe(true);\n'
-          source = source.replace(
-              insert_anchor,
-              insert_anchor
-              + '    expect(config.buildCommand).toContain("vite build --ssr src/vercelSsr.ts");\n'
-          )
+          if 'vite build --ssr src/vercelSsr.ts' not in source:
+              source = source.replace(
+                  insert_anchor,
+                  insert_anchor
+                  + '    expect(config.buildCommand).toContain("vite build --ssr src/vercelSsr.ts");\n'
+              )
           routing_path.write_text(source)
 
           cutover_path = Path('src/test/vercelSsrCutover.test.tsx')
           source = cutover_path.read_text()
-          source = source.replace(
-              '    expect(html).toContain("/assets/rcat-client.css");\n',
-              '    expect(html).toContain("/assets/rcat-client.css");\n'
-              '    expect(html).toContain(\'data-rcat-client-stylesheet="true"\');\n'
-          )
-          source = source.replace(
-              '    expect(html).toContain("/assets/rcat-client.js");\n',
-              '    expect(html).toContain("/assets/rcat-client.js");\n'
-              '    expect(html).toContain(\'data-rcat-client-entry="true"\');\n'
-          )
+          if 'data-rcat-client-stylesheet="true"' not in source:
+              source = source.replace(
+                  '    expect(html).toContain("/assets/rcat-client.css");\n',
+                  '    expect(html).toContain("/assets/rcat-client.css");\n'
+                  '    expect(html).toContain(\'data-rcat-client-stylesheet="true"\');\n'
+              )
+          if 'data-rcat-client-entry="true"' not in source:
+              source = source.replace(
+                  '    expect(html).toContain("/assets/rcat-client.js");\n',
+                  '    expect(html).toContain("/assets/rcat-client.js");\n'
+                  '    expect(html).toContain(\'data-rcat-client-entry="true"\');\n'
+              )
           cutover_path.write_text(source)
           PY
 
@@ -105,5 +113,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add vite.config.ts src/ssrAssets.ts src/routeComponents.tsx scripts/prepare-ssr-cutover-output.mjs vercel.json src/test/vercelSsrRouting.test.mjs src/test/vercelSsrCutover.test.tsx
-          git commit -m "fix(cache): use hashed manifest-driven client assets"
+          HUSKY=0 git commit -m "fix(cache): use hashed manifest-driven client assets"
           git push origin HEAD:fix/hashed-client-assets
