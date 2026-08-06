@@ -123,10 +123,14 @@ export async function loadPublicContentDetailData(
   }
 
   const item = detailResult.item;
-  const featuredMedia = item.featuredMediaId
-    ? detailResult.media.find((asset) => asset.id === item.featuredMediaId && asset.type === "image") ??
-      cmsSnapshotResult?.media.find((asset) => asset.id === item.featuredMediaId && asset.type === "image")
+  const featuredMediaId = item.featuredMediaId;
+  const detailFeaturedMedia = featuredMediaId
+    ? detailResult.media.find((asset) => asset.id === featuredMediaId && asset.type === "image")
     : undefined;
+  const snapshotFeaturedMedia = featuredMediaId
+    ? cmsSnapshotResult?.media.find((asset) => asset.id === featuredMediaId && asset.type === "image")
+    : undefined;
+  const featuredMedia = detailFeaturedMedia ?? snapshotFeaturedMedia;
 
   return {
     item,
