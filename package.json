@@ -103,7 +103,7 @@
     "bcryptjs": "^3.0.3",
     "dayjs": "^1.11.21",
     "embla-carousel-react": "^8.6.0",
-    "jose": "^6.2.6",
+    "jose": "^6.2.7",
     "jwt-decode": "^4.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
