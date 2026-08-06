@@ -30,7 +30,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: node scripts/generate-dependency-status.mjs --no-write
-      - run: pnpm deps:check
+      - run: node scripts/check-dependencies-ci.mjs
       - run: pnpm deps:docs:audit
       - run: pnpm format:check
       - run: pnpm lint:strict
