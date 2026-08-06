@@ -79,7 +79,7 @@ export default function PublicIntroGate({
   const isVisible = (visible ?? uncontrolledVisibility) && sessionReconciled;
 
   useEffect(() => {
-    if (!settings || !shouldShowPublicIntroGate(settings)) {
+    if (!settings || !shouldShowPublicIntroGate(settings) || sessionReconciled) {
       return undefined;
     }
 
@@ -107,7 +107,7 @@ export default function PublicIntroGate({
     }, 0);
 
     return () => window.clearTimeout(reconciliationTimer);
-  }, [onDismiss, settings, storageKey]);
+  }, [onDismiss, sessionReconciled, settings, storageKey]);
 
   useEffect(() => {
     if (!isVisible || typeof document === "undefined" || typeof window === "undefined") {
