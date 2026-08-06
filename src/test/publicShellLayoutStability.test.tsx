@@ -43,7 +43,7 @@ describe("Public Footer Directory stability", () => {
   });
 
   it("renders a responsive non-focusable loading placeholder with the same outer contract", () => {
-    const { container } = render(<PublicFooterDirectory groups={[]} pending />);
+    const { container } = render(<PublicFooterDirectory groups={footerGroups.map((group) => ({ ...group, links: [] }))} pending />);
     const directory = container.querySelector('[data-cls-region="footer-directory"]');
 
     expect(directory).toHaveAttribute("data-footer-directory-state", "loading");
@@ -106,6 +106,7 @@ describe("Public route loading geometry", () => {
     expect(publicSiteShellSource).toContain("RegisteredPublicSiteShell");
     expect(publicSiteShellSource).toContain("return <>{children}</>;");
     expect(publicSiteShellSource).not.toContain("activeRegistration === registration");
+    // Intro Gate is intentionally scoped to the homepage and must never activate on /news or other public routes.
     expect(publicSiteShellSource).toContain('pathname === "/" &&');
     expect(publicSiteShellSource).not.toContain("useLayoutEffect");
   });
