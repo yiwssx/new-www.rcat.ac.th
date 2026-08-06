@@ -3,10 +3,11 @@ import { HeadContent, Outlet, Scripts, useParams, useRouter } from "@tanstack/re
 import { projectSettings } from "./config/projectSettings";
 import { RouteFallback } from "./shared/components/RouteFallback";
 import {
-  SSR_CLIENT_ENTRY_PATH,
-  SSR_CLIENT_STYLESHEET_PATH,
+  SSR_CLIENT_ENTRY_MARKER_ATTRIBUTE,
+  SSR_CLIENT_STYLESHEET_MARKER_ATTRIBUTE,
   SSR_DOCUMENT_MARKER_ATTRIBUTE,
-  SSR_DOCUMENT_MARKER_VALUE
+  SSR_DOCUMENT_MARKER_VALUE,
+  resolveSsrClientAssets
 } from "./ssrAssets";
 
 export const AccountSecurityPage = lazy(() => import("./admin/pages/AccountSecurityPage"));
@@ -58,6 +59,8 @@ function RouteOutlet() {
 }
 
 function ProductionSsrDocument() {
+  const { entryPath, stylesheetPaths } = resolveSsrClientAssets();
+
   return (
     <html lang={projectSettings.site.language} {...{ [SSR_DOCUMENT_MARKER_ATTRIBUTE]: SSR_DOCUMENT_MARKER_VALUE }}>
       <head>
@@ -71,7 +74,14 @@ function ProductionSsrDocument() {
           rel="stylesheet"
         />
         <link rel="icon" type="image/png" href="/rcat-logo-128.png" />
-        <link rel="stylesheet" href={SSR_CLIENT_STYLESHEET_PATH} />
+        {stylesheetPaths.map((stylesheetPath) => (
+          <link
+            key={stylesheetPath}
+            rel="stylesheet"
+            href={stylesheetPath}
+            {...{ [SSR_CLIENT_STYLESHEET_MARKER_ATTRIBUTE]: "true" }}
+          />
+        ))}
         <HeadContent />
       </head>
       <body>
@@ -79,7 +89,7 @@ function ProductionSsrDocument() {
           <RouteOutlet />
         </div>
         <Scripts />
-        <script type="module" src={SSR_CLIENT_ENTRY_PATH} />
+        <script type="module" src={entryPath} {...{ [SSR_CLIENT_ENTRY_MARKER_ATTRIBUTE]: "true" }} />
       </body>
     </html>
   );
