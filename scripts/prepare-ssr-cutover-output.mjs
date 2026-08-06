@@ -20,10 +20,7 @@ function toPublicAssetPath(file) {
   return `/${String(file || "").replace(/^\/+/, "")}`;
 }
 
-await Promise.all([
-  assertFile(indexPath, "Vite index document"),
-  assertFile(manifestPath, "Vite client manifest")
-]);
+await Promise.all([assertFile(indexPath, "Vite index document"), assertFile(manifestPath, "Vite client manifest")]);
 
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 const entry = manifest["index.html"] ?? Object.values(manifest).find((chunk) => chunk?.isEntry);

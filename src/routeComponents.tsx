@@ -89,11 +89,7 @@ function ProductionSsrDocument() {
           <RouteOutlet />
         </div>
         <Scripts />
-        <script
-          type="module"
-          src={entryPath}
-          {...{ [SSR_CLIENT_ENTRY_MARKER_ATTRIBUTE]: "true" }}
-        />
+        <script type="module" src={entryPath} {...{ [SSR_CLIENT_ENTRY_MARKER_ATTRIBUTE]: "true" }} />
       </body>
     </html>
   );

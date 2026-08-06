@@ -195,10 +195,12 @@ describe("Vercel Public SSR production cutover", () => {
     expect(html).toContain('<html lang="th" data-rcat-ssr="true">');
     expect(html).toContain("<head>");
     expect(html).toContain("/assets/rcat-client.css");
+    expect(html).toContain('data-rcat-client-stylesheet="true"');
     expect(html).toContain('<div id="root">');
     expect(html).toContain("ข่าว SSR Production");
     expect(html).toContain("เนื้อหาที่ crawler ต้องเห็นโดยไม่ใช้ JavaScript");
     expect(html).toContain("/assets/rcat-client.js");
+    expect(html).toContain('data-rcat-client-entry="true"');
     expect(html).toContain("application/ld+json");
   });
 
