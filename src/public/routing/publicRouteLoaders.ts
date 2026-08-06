@@ -105,16 +105,16 @@ export async function loadPublicContentDetailData(
   }
 
   const { publicContentDetailQueryOptions } = await import("../../features/public-content");
-  const [itemResult, cmsSnapshotResult] = await Promise.all([
+  const [detailResult, cmsSnapshotResult] = await Promise.all([
     ensurePublicQuery(() => context.queryClient.ensureQueryData(publicContentDetailQueryOptions(slug))),
     loadPublicCmsSnapshotData(context)
   ]);
 
-  if (isPublicRouteLoadFailure(itemResult)) {
-    return itemResult;
+  if (isPublicRouteLoadFailure(detailResult)) {
+    return detailResult;
   }
 
-  if (itemResult === null || itemResult === undefined) {
+  if (detailResult === null || detailResult === undefined) {
     throw notFound({ data: { resource: "content", slug } });
   }
 
@@ -122,12 +122,18 @@ export async function loadPublicContentDetailData(
     return cmsSnapshotResult;
   }
 
-  const featuredMedia = itemResult.featuredMediaId
-    ? cmsSnapshotResult?.media.find((asset) => asset.id === itemResult.featuredMediaId && asset.type === "image")
+  const item = detailResult.item;
+  const featuredMediaId = item.featuredMediaId;
+  const detailFeaturedMedia = featuredMediaId
+    ? detailResult.media.find((asset) => asset.id === featuredMediaId && asset.type === "image")
     : undefined;
+  const snapshotFeaturedMedia = featuredMediaId
+    ? cmsSnapshotResult?.media.find((asset) => asset.id === featuredMediaId && asset.type === "image")
+    : undefined;
+  const featuredMedia = detailFeaturedMedia ?? snapshotFeaturedMedia;
 
   return {
-    item: itemResult,
+    item,
     siteSettings: cmsSnapshotResult?.siteSettings,
     featuredMedia
   };
