@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { ContentItem } from "../types";
+import type { ContentItem, PublicContentDetailSnapshot } from "../types";
 import { getPublicContentDetailCache, setPublicContentDetailCache, writePublicCache } from "./publicCmsCache";
 import { invalidateDeletedPublicContent, invalidatePublicCmsData } from "./publicCmsInvalidation";
 
@@ -15,6 +15,14 @@ function createContentItem(id: string, slug: string): ContentItem {
     summary: "Cached content",
     updatedAt: "2026-07-13T00:00:00.000Z",
     publishAt: "2026-07-13T00:00:00.000Z"
+  };
+}
+
+function createDetailSnapshot(item: ContentItem): PublicContentDetailSnapshot {
+  return {
+    item,
+    media: [],
+    generatedAt: item.updatedAt
   };
 }
 
@@ -43,7 +51,7 @@ describe("public CMS invalidation after admin mutations", () => {
       "rcat.cms.public.event-list",
       "rcat.cms.public.program-list.v2",
       "rcat.cms.public.content-list.v2.news",
-      "rcat.cms.public.content-detail.v2.sample",
+      "rcat.cms.public.content-detail.v3.sample",
       "rcat.cms.public.search-index.v2",
       "rcat.cms.public.home.snapshot",
       "rcat.cms.public.program-list",
@@ -65,18 +73,20 @@ describe("public CMS invalidation after admin mutations", () => {
     const queryClient = new QueryClient();
     const deleted = createContentItem("deleted-content", "deleted-slug");
     const other = createContentItem("other-content", "other-slug");
+    const deletedSnapshot = createDetailSnapshot(deleted);
+    const otherSnapshot = createDetailSnapshot(other);
     const otherPublicKeys = [["public-content-list", "news"], ["public-home-snapshot"], ["public-search-index"]];
 
-    queryClient.setQueryData(["content-detail", deleted.slug], deleted);
-    queryClient.setQueryData(["content-detail", other.slug], other);
+    queryClient.setQueryData(["content-detail", deleted.slug], deletedSnapshot);
+    queryClient.setQueryData(["content-detail", other.slug], otherSnapshot);
     otherPublicKeys.forEach((key) => queryClient.setQueryData(key, { cached: true }));
-    setPublicContentDetailCache(deleted.slug, deleted);
-    setPublicContentDetailCache(other.slug, other);
+    setPublicContentDetailCache(deleted.slug, deletedSnapshot);
+    setPublicContentDetailCache(other.slug, otherSnapshot);
 
     await invalidateDeletedPublicContent(queryClient, deleted.slug);
 
     expect(queryClient.getQueryData(["content-detail", deleted.slug])).toBeUndefined();
-    expect(queryClient.getQueryData(["content-detail", other.slug])).toEqual(other);
+    expect(queryClient.getQueryData(["content-detail", other.slug])).toEqual(otherSnapshot);
     expect(queryClient.getQueryState(["content-detail", other.slug])?.isInvalidated).toBe(true);
     otherPublicKeys.forEach((key) => {
       expect(queryClient.getQueryData(key)).toEqual({ cached: true });
