@@ -1,7 +1,7 @@
 export const CONTENT_BLOCKS_MARKER = "[[RCAT_BLOCKS_V1]]";
 
 export type ContentBlockType =
-  "paragraph" | "heading" | "quote" | "checklist" | "image" | "video" | "facebookPost" | "button" | "divider";
+  "paragraph" | "heading" | "quote" | "checklist" | "image" | "video" | "pdf" | "facebookPost" | "button" | "divider";
 
 interface ContentBlockBase {
   id: string;
@@ -31,7 +31,7 @@ export interface ChecklistContentBlock extends ContentBlockBase {
 }
 
 export interface MediaContentBlock extends ContentBlockBase {
-  type: "image" | "video";
+  type: "image" | "video" | "pdf";
   mediaId: string;
   caption: string;
 }
@@ -92,6 +92,7 @@ function normalizeBlockType(value: unknown): ContentBlockType | "" {
     value === "checklist" ||
     value === "image" ||
     value === "video" ||
+    value === "pdf" ||
     value === "facebookPost" ||
     value === "button" ||
     value === "divider"
@@ -160,7 +161,7 @@ export function createContentBlock(type: ContentBlockType): ContentBlock {
     return { id, type, items: [] };
   }
 
-  if (type === "image" || type === "video") {
+  if (type === "image" || type === "video" || type === "pdf") {
     return { id, type, mediaId: "", caption: "" };
   }
 
@@ -225,7 +226,7 @@ function normalizeContentBlock(value: unknown): ContentBlock | null {
     };
   }
 
-  if (type === "image" || type === "video") {
+  if (type === "image" || type === "video" || type === "pdf") {
     return {
       id,
       type,
@@ -282,7 +283,7 @@ function isMeaningfulBlock(block: ContentBlock) {
     return block.items.length > 0;
   }
 
-  if (block.type === "image" || block.type === "video") {
+  if (block.type === "image" || block.type === "video" || block.type === "pdf") {
     return Boolean(block.mediaId);
   }
 
@@ -354,7 +355,7 @@ export function serializeContentBlocksToBody(blocks: ContentBlock[]): string {
 
 export function extractMediaIdsFromContentBlocks(blocks: ContentBlock[]) {
   const ids = blocks
-    .filter((block): block is MediaContentBlock => block.type === "image" || block.type === "video")
+    .filter((block): block is MediaContentBlock => block.type === "image" || block.type === "video" || block.type === "pdf")
     .map((block) => block.mediaId)
     .filter(Boolean);
 

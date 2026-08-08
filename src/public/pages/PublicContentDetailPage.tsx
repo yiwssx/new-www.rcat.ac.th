@@ -10,6 +10,8 @@ import ContentBlocksRenderer from "../../shared/components/ContentBlocksRenderer
 import EmptyState from "../../shared/components/EmptyState";
 import PublicDeferredEmbed from "../../shared/media/PublicDeferredEmbed";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
+import PublicPdfViewer from "../../shared/media/PublicPdfViewer";
+import { isPdfMediaAsset } from "../../shared/media/pdfMedia";
 import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
 import { recordContentView } from "../../features/site-view";
 import PublicContentCard from "../components/PublicContentCard";
@@ -187,38 +189,53 @@ function ContentDetailMetadata({
   );
 }
 
-function AttachedMediaSection({ attachedMedia }: { attachedMedia: MediaAsset[] }) {
+function AttachedMediaSection({
+  attachedMedia,
+  title = "สื่อแนบ"
+}: {
+  attachedMedia: MediaAsset[];
+  title?: string;
+}) {
   if (!attachedMedia.length) {
     return null;
   }
 
+  const pdfMedia = attachedMedia.filter((asset) => isPdfMediaAsset(asset));
+  const linkedMedia = attachedMedia.filter((asset) => !isPdfMediaAsset(asset));
+
   return (
-    <Box
-      className="rcat-card-muted"
-      sx={{
-        p: { xs: 2, md: 2.5 }
-      }}
-    >
-      <Typography variant="h3">สื่อแนบ</Typography>
+    <Box className="rcat-card-muted" sx={{ p: { xs: 2, md: 2.5 } }}>
+      <Typography variant="h3">{title}</Typography>
       <Divider sx={{ my: 1.5 }} />
-      <Grid container spacing={1.2}>
-        {attachedMedia.map((asset) => (
-          <Grid size={{ xs: 12, sm: 6 }} key={asset.id}>
-            <Button
-              component="a"
-              href={getSafeMediaHref(asset)}
-              target="_blank"
-              rel="noreferrer"
-              variant="outlined"
-              fullWidth
-              startIcon={asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />}
-              sx={{ justifyContent: "flex-start", ...focusVisibleSx }}
-            >
-              {asset.name}
-            </Button>
-          </Grid>
-        ))}
-      </Grid>
+
+      {!!pdfMedia.length && (
+        <Stack spacing={2}>
+          {pdfMedia.map((asset) => (
+            <PublicPdfViewer key={asset.id} asset={asset} />
+          ))}
+        </Stack>
+      )}
+
+      {!!linkedMedia.length && (
+        <Grid container spacing={1.2} sx={{ mt: pdfMedia.length ? 1.5 : 0 }}>
+          {linkedMedia.map((asset) => (
+            <Grid size={{ xs: 12, sm: 6 }} key={asset.id}>
+              <Button
+                component="a"
+                href={getSafeMediaHref(asset)}
+                target="_blank"
+                rel="noreferrer"
+                variant="outlined"
+                fullWidth
+                startIcon={asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />}
+                sx={{ justifyContent: "flex-start", ...focusVisibleSx }}
+              >
+                {asset.name}
+              </Button>
+            </Grid>
+          ))}
+        </Grid>
+      )}
     </Box>
   );
 }
@@ -298,7 +315,19 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   const featuredMedia = mediaAssets.find((asset) => asset.id === item?.featuredMediaId);
   const featuredMediaImageUrl = resolvePublicImageSource(featuredMedia, "content-featured").src;
   const featuredMediaEmbedUrl = normalizeSafeResourceUrl(featuredMedia?.embedUrl);
-  const attachedMedia = mediaAssets.filter((asset) => item?.mediaIds?.includes(asset.id));
+  const embeddedPdfMediaIds = useMemo(
+    () =>
+      new Set(
+        contentBlocks
+          .filter((block) => block.type === "pdf")
+          .map((block) => block.mediaId)
+          .filter(Boolean)
+      ),
+    [contentBlocks]
+  );
+  const attachedMedia = mediaAssets.filter(
+    (asset) => item?.mediaIds?.includes(asset.id) && !embeddedPdfMediaIds.has(asset.id)
+  );
   const relatedItems = useMemo(() => {
     if (!item) {
       return [];
@@ -706,31 +735,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                   <EmptyState title="ยังไม่มีรายละเอียดประกาศที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
                 )}
 
-                {!!attachedMedia.length && (
-                  <Box className="rcat-card-muted" sx={{ p: { xs: 2, md: 2.5 } }}>
-                    <Typography variant="h3" sx={{ mb: 1.5 }}>
-                      เอกสารแนบ
-                    </Typography>
-                    <Stack spacing={1.2}>
-                      {attachedMedia.map((asset) => (
-                        <Button
-                          key={asset.id}
-                          component="a"
-                          href={getSafeMediaHref(asset)}
-                          target="_blank"
-                          rel="noreferrer"
-                          variant="outlined"
-                          startIcon={
-                            asset.type === "video" ? <OndemandVideoOutlinedIcon /> : <InsertDriveFileOutlinedIcon />
-                          }
-                          sx={{ justifyContent: "flex-start", ...focusVisibleSx }}
-                        >
-                          {asset.name}
-                        </Button>
-                      ))}
-                    </Stack>
-                  </Box>
-                )}
+                <AttachedMediaSection attachedMedia={attachedMedia} title="เอกสารแนบ" />
               </Stack>
             </CardContent>
           </Card>
