@@ -193,10 +193,14 @@ function mapMenuRows(rows: MenuItemRow[]): PublicMenuItemContract[] {
       return;
     }
 
-    const parent = row.parent_id ? nodes.get(row.parent_id) : undefined;
+    if (!row.parent_id) {
+      roots.push(node);
+      return;
+    }
+
+    const parent = nodes.get(row.parent_id);
 
     if (!parent) {
-      roots.push(node);
       return;
     }
 
