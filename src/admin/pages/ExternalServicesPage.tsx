@@ -64,7 +64,7 @@ import {
 } from "../../features/cms-external-services";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { ExternalServiceLink, ExternalServiceTone, MediaAsset } from "../../types";
-import { getExternalServiceToneStyle } from "../../utils/externalServiceTheme";
+import { getExternalServiceIconSurfaceStyle } from "../../utils/externalServiceTheme";
 import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
@@ -85,6 +85,9 @@ const externalServiceToneOptions: Array<{ value: ExternalServiceTone; label: str
   { value: "career", label: "อาชีพ / สถานประกอบการ" },
   { value: "general", label: "ทั่วไป" }
 ];
+
+const MEDIA_ICON_SURFACE = getExternalServiceIconSurfaceStyle("media");
+const LINK_ICON_SURFACE = getExternalServiceIconSurfaceStyle("link");
 
 function createDraftKey() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -561,18 +564,14 @@ export default function ExternalServicesPage() {
     }
   }
 
-  function renderServiceIcon(
-    iconKey: ExternalServiceLink["iconKey"],
-    tone: ExternalServiceTone,
-    mediaAsset?: MediaAsset
-  ) {
-    const toneStyle = getExternalServiceToneStyle(tone);
+  function renderServiceIcon(iconKey: ExternalServiceLink["iconKey"], mediaAsset?: MediaAsset) {
     const mediaId = getExternalServiceIconMediaId(iconKey);
     const imageSource =
       mediaId && mediaAsset?.id === mediaId && mediaAsset.type === "image"
         ? resolvePublicImageSource(mediaAsset, "tiny-thumbnail")
         : null;
     const hasMediaIcon = Boolean(imageSource?.src);
+    const iconSurface = hasMediaIcon ? MEDIA_ICON_SURFACE : LINK_ICON_SURFACE;
 
     return (
       <Box
@@ -580,12 +579,14 @@ export default function ExternalServicesPage() {
         sx={{
           width: 48,
           height: 48,
+          border: "1px solid",
+          borderColor: iconSurface.borderColor,
           borderRadius: designTokens.radius.medium,
           display: "grid",
           placeItems: "center",
-          color: toneStyle.iconColor,
-          bgcolor: toneStyle.iconBg,
-          boxShadow: designTokens.elevation.medium,
+          color: iconSurface.color,
+          bgcolor: iconSurface.backgroundColor,
+          boxShadow: iconSurface.boxShadow,
           overflow: "hidden",
           "& svg": {
             fontSize: 27
@@ -601,7 +602,7 @@ export default function ExternalServicesPage() {
             alt=""
             loading="lazy"
             decoding="async"
-            sx={{ width: 38, height: 38, objectFit: "contain" }}
+            sx={{ width: 44, height: 44, objectFit: "contain" }}
           />
         ) : (
           <ExternalServiceIcon iconKey="link" />
@@ -792,10 +793,10 @@ export default function ExternalServicesPage() {
                 </Grid>
                 <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                   <FormControl fullWidth size="small">
-                    <InputLabel id="external-service-tone-filter-label">ประเภท</InputLabel>
+                    <InputLabel id="external-service-tone-filter-label">หมวดบริการ</InputLabel>
                     <Select
                       labelId="external-service-tone-filter-label"
-                      label="ประเภท"
+                      label="หมวดบริการ"
                       value={toneFilter}
                       onChange={(event) => setFilter("tone", event.target.value)}
                     >
@@ -884,7 +885,6 @@ export default function ExternalServicesPage() {
                       >
                         {renderServiceIcon(
                           service.iconKey,
-                          service.tone,
                           serviceIconMediaById.get(getExternalServiceIconMediaId(service.iconKey))
                         )}
                         <Stack
@@ -1055,10 +1055,10 @@ export default function ExternalServicesPage() {
                     fullWidth
                   />
                   <FormControl fullWidth>
-                    <InputLabel id="external-service-tone-label">ประเภทสี</InputLabel>
+                    <InputLabel id="external-service-tone-label">หมวดบริการ</InputLabel>
                     <Select
                       labelId="external-service-tone-label"
-                      label="ประเภทสี"
+                      label="หมวดบริการ"
                       value={editingService.tone}
                       onChange={(event) => updateEditingService("tone", event.target.value as ExternalServiceTone)}
                       disabled={!canManage}
@@ -1193,7 +1193,7 @@ export default function ExternalServicesPage() {
               </Grid>
 
               <Grid size={{ xs: 12, md: 5 }}>
-                <Card variant="outlined" sx={{ bgcolor: "primary.light", borderColor: "divider" }}>
+                <Card variant="outlined" sx={{ bgcolor: "background.paper", borderColor: "divider" }}>
                   <CardContent>
                     <Stack spacing={1.35}>
                       <Stack
@@ -1204,7 +1204,7 @@ export default function ExternalServicesPage() {
                           justifyContent: "space-between"
                         }}
                       >
-                        {renderServiceIcon(editingService.iconKey, editingService.tone, selectedIconMedia)}
+                        {renderServiceIcon(editingService.iconKey, selectedIconMedia)}
                         <OpenInNewOutlinedIcon sx={{ color: "text.secondary", fontSize: 19 }} />
                       </Stack>
                       <Stack spacing={0.75}>
