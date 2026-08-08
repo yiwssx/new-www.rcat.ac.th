@@ -12,9 +12,9 @@ export function publicShellQueryOptions(runtimeOptions: PublicQueryRuntimeOption
   return queryOptions({
     queryKey: publicShellQueryKey,
     queryFn: (context) => getPublicShellSnapshot(getPublicQueryRequestOptions(context, runtimeOptions)),
-    staleTime: 15 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
     gcTime: PUBLIC_QUERY_GC_TIME_MS,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     refetchOnReconnect: true
   });
 }

@@ -2,7 +2,7 @@ import { renderSsrResponse } from "./entry-server";
 
 export const SSR_REWRITE_PATH_PARAM = "_rcatPath";
 export const PUBLIC_SSR_BROWSER_CACHE_CONTROL = "public, max-age=0, must-revalidate";
-export const PUBLIC_SSR_CDN_CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=86400";
+export const PUBLIC_SSR_CDN_CACHE_CONTROL = "public, max-age=120, stale-while-revalidate=3600";
 export const PUBLIC_REDIRECT_CDN_CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=604800";
 
 const STATIC_PUBLIC_SSR_PATHS = new Set([
