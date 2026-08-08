@@ -22,8 +22,6 @@ const externalServiceIconSurfaceStyles: Record<ExternalServiceIconSource, Extern
   }
 };
 
-export function getExternalServiceIconSurfaceStyle(
-  source: ExternalServiceIconSource
-): ExternalServiceIconSurfaceStyle {
+export function getExternalServiceIconSurfaceStyle(source: ExternalServiceIconSource): ExternalServiceIconSurfaceStyle {
   return externalServiceIconSurfaceStyles[source];
 }
