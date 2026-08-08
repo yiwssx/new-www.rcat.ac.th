@@ -355,7 +355,9 @@ export function serializeContentBlocksToBody(blocks: ContentBlock[]): string {
 
 export function extractMediaIdsFromContentBlocks(blocks: ContentBlock[]) {
   const ids = blocks
-    .filter((block): block is MediaContentBlock => block.type === "image" || block.type === "video" || block.type === "pdf")
+    .filter(
+      (block): block is MediaContentBlock => block.type === "image" || block.type === "video" || block.type === "pdf"
+    )
     .map((block) => block.mediaId)
     .filter(Boolean);
 

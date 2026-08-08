@@ -238,8 +238,7 @@ describe("PublicContentDetailPage", () => {
 
   it("renders a PDF block at its body position without duplicating it in attachments", () => {
     currentDetail = createContent({
-      body:
-        '[[RCAT_BLOCKS_V1]]\n{"version":1,"blocks":[{"id":"paragraph-1","type":"paragraph","text":"ก่อนเอกสาร"},{"id":"pdf-1","type":"pdf","mediaId":"media-1","caption":"เอกสารฉบับเต็ม"},{"id":"paragraph-2","type":"paragraph","text":"หลังเอกสาร"}]}'
+      body: '[[RCAT_BLOCKS_V1]]\n{"version":1,"blocks":[{"id":"paragraph-1","type":"paragraph","text":"ก่อนเอกสาร"},{"id":"pdf-1","type":"pdf","mediaId":"media-1","caption":"เอกสารฉบับเต็ม"},{"id":"paragraph-2","type":"paragraph","text":"หลังเอกสาร"}]}'
     });
     currentSnapshot = createSnapshot(currentDetail);
     window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));

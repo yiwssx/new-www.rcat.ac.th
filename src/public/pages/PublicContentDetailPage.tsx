@@ -189,13 +189,7 @@ function ContentDetailMetadata({
   );
 }
 
-function AttachedMediaSection({
-  attachedMedia,
-  title = "สื่อแนบ"
-}: {
-  attachedMedia: MediaAsset[];
-  title?: string;
-}) {
+function AttachedMediaSection({ attachedMedia, title = "สื่อแนบ" }: { attachedMedia: MediaAsset[]; title?: string }) {
   if (!attachedMedia.length) {
     return null;
   }

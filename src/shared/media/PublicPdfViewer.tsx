@@ -12,11 +12,7 @@ interface PublicPdfViewerProps {
   loadMode?: "eager" | "near-viewport";
 }
 
-export default function PublicPdfViewer({
-  asset,
-  caption = "",
-  loadMode = "near-viewport"
-}: PublicPdfViewerProps) {
+export default function PublicPdfViewer({ asset, caption = "", loadMode = "near-viewport" }: PublicPdfViewerProps) {
   if (!isPdfMediaAsset(asset)) {
     return null;
   }
