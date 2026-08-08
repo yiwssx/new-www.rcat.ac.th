@@ -17,6 +17,7 @@ describe("E-Service media icon references", () => {
     expect(createExternalServiceMediaIconKey(" ")).toBe("link");
     expect(normalizeExternalServiceIconValue(undefined)).toBe("link");
     expect(normalizeExternalServiceIconValue("apps")).toBe("link");
+    expect(normalizeExternalServiceIconValue("media:")).toBe("link");
   });
 
   it("preserves a valid media reference while normalizing whitespace", () => {
