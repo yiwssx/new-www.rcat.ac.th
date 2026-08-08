@@ -5,7 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_CMS_SITE_NAME?: string;
   readonly VITE_PUBLIC_API_PROVIDER?: string;
   readonly VITE_CLOUDFLARE_PUBLIC_API_URL?: string;
-  readonly VITE_COMPLAINT_API_URI?: string;
   /** `both` is a deprecated compatibility alias for the default `gtm` transport. */
   readonly VITE_PUBLIC_ANALYTICS_STRATEGY?: "gtm" | "gtag" | "both";
 }
