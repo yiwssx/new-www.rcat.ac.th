@@ -31,7 +31,7 @@ describe("public CMS invalidation after admin mutations", () => {
     window.localStorage.clear();
   });
 
-  it("clears persisted caches and invalidates public list, detail, program, search, and home queries", async () => {
+  it("clears persisted caches and invalidates public list, detail, program, search, home, and shell queries", async () => {
     const queryClient = new QueryClient();
     const roots = [
       "cms-snapshot",
@@ -41,7 +41,8 @@ describe("public CMS invalidation after admin mutations", () => {
       "public-event-list",
       "public-home-snapshot",
       "public-program-list",
-      "public-search-index"
+      "public-search-index",
+      "public-shell"
     ];
 
     roots.forEach((root) => queryClient.setQueryData([root, "sample"], { stale: true }));
