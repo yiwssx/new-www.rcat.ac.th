@@ -26,6 +26,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import DragIndicatorOutlinedIcon from "@mui/icons-material/DragIndicatorOutlined";
 import { MediaAsset } from "../../types";
 import { ContentBlock, ContentBlockType, createContentBlock } from "../../utils/contentBlocks";
+import { isPdfMediaAsset } from "../../shared/media/pdfMedia";
 
 interface ContentBlockBuilderProps {
   blocks: ContentBlock[];
@@ -46,6 +47,7 @@ const blockTemplateOptions: BlockTemplateOption[] = [
   { type: "checklist", label: "รายการตรวจสอบ", helper: "หัวข้อย่อยและขั้นตอน" },
   { type: "image", label: "รูปภาพ", helper: "รูปภาพเด่นจากคลังสื่อ" },
   { type: "video", label: "วิดีโอ", helper: "วิดีโอฝังจากคลังสื่อ" },
+  { type: "pdf", label: "PDF", helper: "ฝังเอกสาร PDF จากคลังสื่อในตำแหน่งที่ต้องการ" },
   { type: "facebookPost", label: "โพสต์ Facebook", helper: "ฝังโพสต์ Facebook แบบ public" },
   { type: "button", label: "ปุ่ม", helper: "ลิงก์เรียกให้ดำเนินการ" },
   { type: "divider", label: "เส้นแบ่ง", helper: "เส้นแบ่งส่วนเนื้อหา" }
@@ -100,6 +102,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
 
   const imageAssets = mediaAssets.filter((asset) => asset.type === "image");
   const videoAssets = mediaAssets.filter((asset) => asset.type === "video");
+  const pdfAssets = mediaAssets.filter((asset) => isPdfMediaAsset(asset));
 
   return (
     <Stack spacing={1.5}>
@@ -352,6 +355,40 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                           )
                         }
                         placeholder="คำบรรยายวิดีโอ (ไม่บังคับ)"
+                        fullWidth
+                      />
+                    </Fragment>
+                  )}
+
+                  {block.type === "pdf" && (
+                    <Fragment>
+                      <TextField
+                        label="ไฟล์ PDF"
+                        select
+                        value={block.mediaId}
+                        onChange={(event) =>
+                          updateBlock(block.id, (current) =>
+                            current.type === "pdf" ? { ...current, mediaId: event.target.value } : current
+                          )
+                        }
+                        fullWidth
+                      >
+                        <MenuItem value="">เลือก PDF จากคลังสื่อ</MenuItem>
+                        {pdfAssets.map((asset) => (
+                          <MenuItem key={asset.id} value={asset.id}>
+                            {asset.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                      <TextField
+                        label="คำบรรยาย"
+                        value={block.caption}
+                        onChange={(event) =>
+                          updateBlock(block.id, (current) =>
+                            current.type === "pdf" ? { ...current, caption: event.target.value } : current
+                          )
+                        }
+                        placeholder="คำบรรยายเอกสาร PDF (ไม่บังคับ)"
                         fullWidth
                       />
                     </Fragment>

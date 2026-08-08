@@ -84,6 +84,9 @@ function createSnapshot(content: ContentItem, additionalMedia: MediaAsset[] = []
         size: "",
         owner: "",
         driveUrl: "https://drive.google.com/file/d/media-1/view",
+        mimeType: "application/pdf",
+        previewUrl: "https://drive.google.com/file/d/media-1/preview",
+        embedUrl: "https://drive.google.com/file/d/media-1/preview",
         updatedAt: ""
       },
       ...additionalMedia
@@ -208,6 +211,8 @@ describe("PublicContentDetailPage", () => {
     expect(within(article).queryByText(/อัปเดต:/)).not.toBeInTheDocument();
     expect(within(article).getByText("เอกสารแนบ")).toBeInTheDocument();
     expect(within(article).getByRole("link", { name: "ใบสมัคร.pdf" })).toBeInTheDocument();
+    expect(within(article).getByText("เปิด PDF ในแท็บใหม่")).toBeInTheDocument();
+    expect(article.querySelector('[data-public-pdf-viewer="true"]')).toBeTruthy();
 
     const articleText = article.textContent || "";
     expect(articleText.indexOf("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeLessThan(articleText.indexOf("ประกาศรับสมัคร"));
@@ -230,6 +235,27 @@ describe("PublicContentDetailPage", () => {
     expect(await within(article).findByText("ผู้เข้าดู 13 ครั้ง")).toBeInTheDocument();
     expect(window.localStorage.getItem("rcat.cms.viewed.content-1")).toMatch(/^\d+$/);
   }, 10_000);
+
+  it("renders a PDF block at its body position without duplicating it in attachments", () => {
+    currentDetail = createContent({
+      body: '[[RCAT_BLOCKS_V1]]\n{"version":1,"blocks":[{"id":"paragraph-1","type":"paragraph","text":"ก่อนเอกสาร"},{"id":"pdf-1","type":"pdf","mediaId":"media-1","caption":"เอกสารฉบับเต็ม"},{"id":"paragraph-2","type":"paragraph","text":"หลังเอกสาร"}]}'
+    });
+    currentSnapshot = createSnapshot(currentDetail);
+    window.localStorage.setItem("rcat.cms.viewed.content-1", String(Date.now()));
+
+    render(<PublicContentDetailPage slug="announcement-1" />);
+
+    const article = screen.getByRole("article");
+    const pdfViewers = article.querySelectorAll('[data-public-pdf-viewer="true"]');
+
+    expect(pdfViewers).toHaveLength(1);
+    expect(within(article).getByText("เอกสารฉบับเต็ม")).toBeInTheDocument();
+    expect(within(article).queryByText("เอกสารแนบ")).not.toBeInTheDocument();
+
+    const articleText = article.textContent || "";
+    expect(articleText.indexOf("ก่อนเอกสาร")).toBeLessThan(articleText.indexOf("เอกสารฉบับเต็ม"));
+    expect(articleText.indexOf("เอกสารฉบับเต็ม")).toBeLessThan(articleText.indexOf("หลังเอกสาร"));
+  });
 
   it("uses full Thai date without update or time metadata for announcements", () => {
     currentDetail = createContent({
@@ -303,7 +329,7 @@ describe("PublicContentDetailPage", () => {
     expect(screen.getByText("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeInTheDocument();
     expect(screen.getByText("ผู้เข้าดู 12 ครั้ง")).toBeInTheDocument();
     expect(within(article).getByText("สื่อแนบ")).toBeInTheDocument();
-    expect(within(article).getByRole("link", { name: "ใบสมัคร.pdf" })).toBeInTheDocument();
+    expect(within(article).queryByRole("link", { name: "ใบสมัคร.pdf" })).not.toBeNull();
     expect(within(article).queryByRole("link", { name: "กลับไปหน้ารายการ" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "กลับไปหน้ารายการ" })).toBeInTheDocument();
     expect(screen.getByText("#ข่าวกิจกรรม").closest("a")?.getAttribute("href")).toBe(

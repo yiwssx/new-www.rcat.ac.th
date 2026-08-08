@@ -4,6 +4,8 @@ import { MediaAsset } from "../../types";
 import { ContentBlock, FacebookPostContentBlock } from "../../utils/contentBlocks";
 import PublicDeferredEmbed from "../media/PublicDeferredEmbed";
 import PublicResponsiveImage from "../media/PublicResponsiveImage";
+import PublicPdfViewer from "../media/PublicPdfViewer";
+import { isPdfMediaAsset } from "../media/pdfMedia";
 import { resolvePublicImageSource } from "../media/publicImageSources";
 import {
   buildFacebookPostPluginUrl,
@@ -264,6 +266,16 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
               )}
             </Box>
           );
+        }
+
+        if (block.type === "pdf") {
+          const asset = mediaById.get(block.mediaId);
+
+          if (!asset || !isPdfMediaAsset(asset)) {
+            return null;
+          }
+
+          return <PublicPdfViewer key={block.id} asset={asset} caption={block.caption} />;
         }
 
         if (block.type === "facebookPost") {

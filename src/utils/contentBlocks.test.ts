@@ -80,7 +80,31 @@ describe("contentBlocks", () => {
     ]);
   });
 
-  it("extracts unique media ids from image/video blocks", () => {
+  it("creates and preserves PDF media blocks", () => {
+    const block = createContentBlock("pdf");
+
+    expect(block).toMatchObject({ type: "pdf", mediaId: "", caption: "" });
+
+    const serialized = serializeContentBlocksToBody([
+      {
+        id: "pdf-1",
+        type: "pdf",
+        mediaId: "media-pdf",
+        caption: "คู่มือนักศึกษา"
+      }
+    ]);
+
+    expect(parseContentBodyToBlocks(serialized)).toEqual([
+      {
+        id: "pdf-1",
+        type: "pdf",
+        mediaId: "media-pdf",
+        caption: "คู่มือนักศึกษา"
+      }
+    ]);
+  });
+
+  it("extracts unique media ids from image/video/pdf blocks", () => {
     const mediaIds = extractMediaIdsFromContentBlocks([
       {
         id: "image-1",
@@ -95,6 +119,12 @@ describe("contentBlocks", () => {
         caption: ""
       },
       {
+        id: "pdf-1",
+        type: "pdf",
+        mediaId: "media-3",
+        caption: "PDF"
+      },
+      {
         id: "image-2",
         type: "image",
         mediaId: "media-1",
@@ -102,6 +132,6 @@ describe("contentBlocks", () => {
       }
     ]);
 
-    expect(mediaIds).toEqual(["media-1", "media-2"]);
+    expect(mediaIds).toEqual(["media-1", "media-2", "media-3"]);
   });
 });
