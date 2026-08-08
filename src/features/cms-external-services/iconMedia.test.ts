@@ -15,6 +15,7 @@ describe("E-Service media icon references", () => {
 
   it("uses Link as the default when no uploaded media image is selected", () => {
     expect(createExternalServiceMediaIconKey(" ")).toBe("link");
+    expect(getExternalServiceIconMediaId("link")).toBe("");
     expect(normalizeExternalServiceIconValue(undefined)).toBe("link");
     expect(normalizeExternalServiceIconValue("apps")).toBe("link");
     expect(normalizeExternalServiceIconValue("media:")).toBe("link");
