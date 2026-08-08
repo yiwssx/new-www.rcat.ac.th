@@ -1,25 +1,30 @@
-import { ReactNode } from "react";
 import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { alpha } from "@mui/material/styles";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
-import { ExternalServiceIconKey, ExternalServiceLink } from "../../../types";
+import { ExternalServiceLink, MediaAsset } from "../../../types";
+import { getExternalServiceIconMediaId } from "../../../features/cms-external-services";
 import { getExternalServiceToneStyle } from "../../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
+import { resolvePublicImageSource } from "../../../shared/media/publicImageSources";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { focusVisibleSx } from "./homeSectionStyles";
 import { interactiveSurfaceSx } from "../../../design-system/componentStyles";
 import { designTokens } from "../../../design-system/tokens";
 import ExternalServiceIcon from "../../../design-system/icons/ExternalServiceIcon";
 
-function getExternalServiceIcon(iconKey: ExternalServiceIconKey): ReactNode {
-  return <ExternalServiceIcon iconKey={iconKey} />;
-}
-
-export function ExternalServicesSection({ items }: { items: ExternalServiceLink[] }) {
+export function ExternalServicesSection({
+  items,
+  mediaAssets = []
+}: {
+  items: ExternalServiceLink[];
+  mediaAssets?: MediaAsset[];
+}) {
   if (items.length === 0) {
     return null;
   }
+
+  const mediaById = new Map(mediaAssets.map((asset) => [asset.id, asset]));
 
   return (
     <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
@@ -103,6 +108,10 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
       <Grid container spacing={2}>
         {items.map((item) => {
           const toneStyle = getExternalServiceToneStyle(item.tone);
+          const iconMediaId = getExternalServiceIconMediaId(item.iconKey);
+          const iconMediaAsset = iconMediaId ? mediaById.get(iconMediaId) : undefined;
+          const iconImage = resolvePublicImageSource(iconMediaAsset, "tiny-thumbnail");
+          const hasMediaIcon = Boolean(iconMediaAsset?.type === "image" && iconImage.src);
 
           return (
             <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.id}>
@@ -136,6 +145,7 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
                       }}
                     >
                       <Box
+                        data-external-service-icon-source={hasMediaIcon ? "media" : "link"}
                         sx={{
                           width: 48,
                           height: 48,
@@ -145,12 +155,26 @@ export function ExternalServicesSection({ items }: { items: ExternalServiceLink[
                           color: toneStyle.iconColor,
                           bgcolor: toneStyle.iconBg,
                           boxShadow: designTokens.elevation.low,
+                          overflow: "hidden",
                           "& svg": {
                             fontSize: 27
                           }
                         }}
                       >
-                        {getExternalServiceIcon(item.iconKey)}
+                        {hasMediaIcon ? (
+                          <Box
+                            component="img"
+                            src={iconImage.src}
+                            srcSet={iconImage.srcSet || undefined}
+                            sizes="48px"
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            sx={{ width: 38, height: 38, objectFit: "contain" }}
+                          />
+                        ) : (
+                          <ExternalServiceIcon iconKey="link" />
+                        )}
                       </Box>
                       <OpenInNewOutlinedIcon sx={{ color: "text.secondary", fontSize: 19 }} />
                     </Stack>
