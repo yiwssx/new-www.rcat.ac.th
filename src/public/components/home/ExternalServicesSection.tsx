@@ -4,7 +4,7 @@ import { alpha } from "@mui/material/styles";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import { ExternalServiceLink, MediaAsset } from "../../../types";
 import { getExternalServiceIconMediaId } from "../../../features/cms-external-services";
-import { getExternalServiceToneStyle } from "../../../utils/externalServiceTheme";
+import { getExternalServiceIconSurfaceStyle } from "../../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
 import { resolvePublicImageSource } from "../../../shared/media/publicImageSources";
@@ -13,6 +13,9 @@ import { focusVisibleSx } from "./homeSectionStyles";
 import { interactiveSurfaceSx } from "../../../design-system/componentStyles";
 import { designTokens } from "../../../design-system/tokens";
 import ExternalServiceIcon from "../../../design-system/icons/ExternalServiceIcon";
+
+const MEDIA_ICON_SURFACE = getExternalServiceIconSurfaceStyle("media");
+const LINK_ICON_SURFACE = getExternalServiceIconSurfaceStyle("link");
 
 export function ExternalServicesSection({
   items,
@@ -108,11 +111,11 @@ export function ExternalServicesSection({
       </Box>
       <Grid container spacing={2}>
         {items.map((item) => {
-          const toneStyle = getExternalServiceToneStyle(item.tone);
           const iconMediaId = getExternalServiceIconMediaId(item.iconKey);
           const iconMediaAsset = iconMediaId ? mediaById.get(iconMediaId) : undefined;
           const iconImage = resolvePublicImageSource(iconMediaAsset, "tiny-thumbnail");
           const hasMediaIcon = Boolean(iconMediaAsset?.type === "image" && iconImage.src);
+          const iconSurface = hasMediaIcon ? MEDIA_ICON_SURFACE : LINK_ICON_SURFACE;
 
           return (
             <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.id}>
@@ -150,12 +153,14 @@ export function ExternalServicesSection({
                         sx={{
                           width: 48,
                           height: 48,
+                          border: "1px solid",
+                          borderColor: iconSurface.borderColor,
                           borderRadius: `${designTokens.radius.medium}px`,
                           display: "grid",
                           placeItems: "center",
-                          color: toneStyle.iconColor,
-                          bgcolor: toneStyle.iconBg,
-                          boxShadow: designTokens.elevation.low,
+                          color: iconSurface.color,
+                          bgcolor: iconSurface.backgroundColor,
+                          boxShadow: iconSurface.boxShadow,
                           overflow: "hidden",
                           "& svg": {
                             fontSize: 27
@@ -169,12 +174,25 @@ export function ExternalServicesSection({
                             alt=""
                             loadMode="near-viewport"
                             intrinsic
-                            width={38}
-                            height={38}
+                            width={44}
+                            height={44}
                             sizes="48px"
-                            fallback={<ExternalServiceIcon iconKey="link" />}
-                            sx={{ width: 38, height: 38 }}
-                            imageSx={{ width: 38, height: 38, objectFit: "contain" }}
+                            fallback={
+                              <Box
+                                sx={{
+                                  width: "100%",
+                                  height: "100%",
+                                  display: "grid",
+                                  placeItems: "center",
+                                  color: LINK_ICON_SURFACE.color,
+                                  bgcolor: LINK_ICON_SURFACE.backgroundColor
+                                }}
+                              >
+                                <ExternalServiceIcon iconKey="link" />
+                              </Box>
+                            }
+                            sx={{ width: 44, height: 44 }}
+                            imageSx={{ width: 44, height: 44, objectFit: "contain" }}
                           />
                         ) : (
                           <ExternalServiceIcon iconKey="link" />
@@ -186,7 +204,7 @@ export function ExternalServicesSection({
                       <Typography variant="h3" sx={{ fontSize: "1rem", lineHeight: 1.32 }}>
                         {item.title}
                       </Typography>
-                      {item.description && (
+                      {item.description ? (
                         <Typography
                           variant="body2"
                           sx={{
@@ -196,7 +214,7 @@ export function ExternalServicesSection({
                         >
                           {item.description}
                         </Typography>
-                      )}
+                      ) : null}
                     </Stack>
                   </Stack>
                 </CardContent>
