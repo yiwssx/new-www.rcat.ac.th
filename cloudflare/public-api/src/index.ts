@@ -1,3 +1,4 @@
+import { prunePublicAnalyticsData } from "./analyticsRetention";
 import type { Env } from "./env";
 import { jsonError, withCors } from "./responses";
 import { routeRequest } from "./router";
@@ -10,5 +11,9 @@ export default {
     } catch {
       return withSecurityHeaders(withCors(jsonError("internal server error", 500), request, env));
     }
+  },
+
+  async scheduled(_controller: ScheduledController, env: Env, context: ExecutionContext) {
+    context.waitUntil(prunePublicAnalyticsData(env));
   }
 };

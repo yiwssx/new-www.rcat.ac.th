@@ -9,9 +9,17 @@ import {
 } from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
+import {
+  enforcePublicAnalyticsRateLimit,
+  PublicAnalyticsRateLimitExceeded,
+  PublicAnalyticsRateLimitSchemaMissing
+} from "../analyticsAbuseGuard";
 
 const VISITOR_ID_PATTERN = /^rcat_[A-Za-z0-9_-]{12,64}$/;
 const MAX_PATH_LENGTH = 240;
+const SITE_VIEW_RATE_LIMIT_PER_MINUTE = 120;
+const PRESENCE_RATE_LIMIT_PER_MINUTE = 240;
+const CONTENT_VIEW_RATE_LIMIT_PER_MINUTE = 90;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -46,6 +54,34 @@ function visitorPresenceSchemaError(resource: string) {
   });
 }
 
+function analyticsRateLimitSchemaError(resource: string) {
+  return jsonError("public analytics abuse guard schema is not available", 503, {
+    resource,
+    diagnostic: "public-analytics-rate-limit-schema-missing-v1",
+    suggestedMigration: "run 0007_public_analytics_abuse_guard.sql"
+  });
+}
+
+async function guardAnalyticsWrite(request: Request, env: Env, resource: string, limit: number) {
+  try {
+    await enforcePublicAnalyticsRateLimit(request, env, { scope: resource, limit });
+    return null;
+  } catch (error) {
+    if (error instanceof PublicAnalyticsRateLimitExceeded) {
+      return jsonError("too many analytics requests", 429, {
+        resource,
+        retryAfterSeconds: error.retryAfterSeconds
+      });
+    }
+
+    if (error instanceof PublicAnalyticsRateLimitSchemaMissing) {
+      return analyticsRateLimitSchemaError(resource);
+    }
+
+    throw error;
+  }
+}
+
 function parseVisitorInput(body: Record<string, unknown>) {
   const visitorId = typeof body.visitorId === "string" ? body.visitorId.trim() : "";
   const path = typeof body.path === "string" ? body.path.trim().slice(0, MAX_PATH_LENGTH) : "";
@@ -66,6 +102,11 @@ async function refreshVisitorPresence(env: Env, visitorId: string, path: string,
 export async function recordPublicPresence(request: Request, env: Env) {
   if (!env.DB) {
     return jsonError("database binding is not configured", 503, { resource: "presence" });
+  }
+
+  const rateLimited = await guardAnalyticsWrite(request, env, "presence", PRESENCE_RATE_LIMIT_PER_MINUTE);
+  if (rateLimited) {
+    return rateLimited;
   }
 
   const input = parseVisitorInput((await readBody(request)) ?? {});
@@ -90,6 +131,11 @@ export async function recordPublicPresence(request: Request, env: Env) {
 export async function recordPublicSiteView(request: Request, env: Env) {
   if (!env.DB) {
     return jsonError("database binding is not configured", 503, { resource: "site-view" });
+  }
+
+  const rateLimited = await guardAnalyticsWrite(request, env, "site-view", SITE_VIEW_RATE_LIMIT_PER_MINUTE);
+  if (rateLimited) {
+    return rateLimited;
   }
 
   const body = (await readBody(request)) ?? {};
@@ -117,6 +163,7 @@ export async function recordPublicSiteView(request: Request, env: Env) {
 
     throw error;
   }
+
   const existingVisitor = await db
     .prepare("SELECT id FROM visitor_events WHERE visitor_id = ? LIMIT 1")
     .bind(dailyVisitorId)
@@ -157,9 +204,14 @@ export async function recordPublicContentView(request: Request, env: Env) {
     return jsonError("database binding is not configured", 503, { resource: "content-view" });
   }
 
+  const rateLimited = await guardAnalyticsWrite(request, env, "content-view", CONTENT_VIEW_RATE_LIMIT_PER_MINUTE);
+  if (rateLimited) {
+    return rateLimited;
+  }
+
   const body = (await readBody(request)) ?? {};
   const identifier =
-    typeof body?.slug === "string" ? body.slug.trim() : typeof body?.id === "string" ? body.id.trim() : "";
+    typeof body.slug === "string" ? body.slug.trim() : typeof body.id === "string" ? body.id.trim() : "";
 
   if (!identifier) {
     return jsonError("content id or slug is required", 400, { resource: "content-view" });

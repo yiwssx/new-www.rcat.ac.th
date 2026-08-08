@@ -42,6 +42,9 @@ ENVIRONMENT = "production"
 ADMIN_WRITE_PREVIEW_ENABLED = "false"
 ADMIN_WRITE_SMOKE_ENABLED = "false"
 
+[env.production.triggers]
+crons = ["17 19 * * *"]
+
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "rcat-public-api-production"

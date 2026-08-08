@@ -5,6 +5,8 @@ import PublicSiteShell from "../components/PublicSiteShell";
 const MAX_FILE_MB = 1.5;
 const MAX_FILES = 3;
 const MAX_TOTAL_MB = 5;
+const REQUEST_TIMEOUT_MS = 25_000;
+const ALLOWED_FILE_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"]);
 
 const STATUS_CLASS = {
   idle: "mt-5 min-h-6 text-center text-sm font-semibold text-slate-600",
@@ -47,8 +49,8 @@ class ComplaintFormError extends Error {
   }
 }
 
-const API_URI = String(import.meta.env.VITE_COMPLAINT_API_URI || "").trim();
 const sanitize = (value: string) => String(value || "").trim();
+const normalizePhone = (value: string) => sanitize(value).replace(/\D/g, "");
 
 function validate(data: ComplaintPayload) {
   if (!data.subject) return new ComplaintFormError("กรุณาเลือกหัวข้อ", "subject");
@@ -58,7 +60,7 @@ function validate(data: ComplaintPayload) {
     return new ComplaintFormError("อีเมลไม่ถูกต้อง", "email");
   }
 
-  if (!/^[0-9]{9,10}$/.test(data.phone.replace(/\D/g, ""))) {
+  if (!/^[0-9]{9,10}$/.test(data.phone)) {
     return new ComplaintFormError("เบอร์โทรไม่ถูกต้อง", "phone");
   }
 
@@ -96,6 +98,10 @@ async function readFiles(list: File[]) {
   for (const file of list) {
     total += file.size;
 
+    if (!ALLOWED_FILE_TYPES.has(file.type)) {
+      throw new ComplaintFormError(`ไฟล์ ${file.name} ต้องเป็น JPG, PNG, GIF, WEBP หรือ PDF`, "files");
+    }
+
     if (file.size > MAX_FILE_MB * 1024 * 1024) {
       throw new ComplaintFormError(`ไฟล์ ${file.name} ใหญ่เกินกำหนด`, "files");
     }
@@ -115,32 +121,40 @@ async function readFiles(list: File[]) {
 }
 
 async function submitToApi(data: ComplaintPayload) {
-  if (!API_URI) {
-    throw new ComplaintFormError("Missing VITE_COMPLAINT_API_URI in environment");
-  }
-
-  const response = await fetch(API_URI, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8"
-    },
-    body: JSON.stringify(data)
-  });
-
-  const text = await response.text();
-  let parsed: ComplaintApiResponse;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    parsed = JSON.parse(text) as ComplaintApiResponse;
-  } catch {
-    throw new ComplaintFormError(`Unexpected API response: ${text.slice(0, 120)}`);
-  }
+    const response = await fetch("/api/complaint", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data),
+      signal: controller.signal
+    });
 
-  if (!parsed.ok) {
-    throw new ComplaintFormError(parsed.message || "ระบบขัดข้อง");
-  }
+    const parsed = (await response.json()) as ComplaintApiResponse;
 
-  return parsed;
+    if (!response.ok || !parsed.ok) {
+      throw new ComplaintFormError(parsed.message || "ระบบขัดข้อง");
+    }
+
+    return parsed;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ComplaintFormError("ระบบใช้เวลาตอบกลับนานเกินไป กรุณาลองใหม่อีกครั้ง");
+    }
+
+    if (error instanceof ComplaintFormError) {
+      throw error;
+    }
+
+    throw new ComplaintFormError("ไม่สามารถส่งเรื่องร้องเรียนได้ กรุณาลองใหม่อีกครั้ง");
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 const defaultForm = {
@@ -216,7 +230,7 @@ export default function PublicComplaintPage() {
         subject: sanitize(formData.subject),
         name: sanitize(formData.name),
         email: sanitize(formData.email),
-        phone: sanitize(formData.phone),
+        phone: normalizePhone(formData.phone),
         complaint: sanitize(formData.complaint),
         ua: navigator.userAgent
       };
@@ -336,6 +350,7 @@ export default function PublicComplaintPage() {
                     id="phone"
                     name="phone"
                     type="tel"
+                    inputMode="numeric"
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="08xxxxxxxx"
@@ -371,11 +386,13 @@ export default function PublicComplaintPage() {
                   id="files"
                   type="file"
                   multiple
-                  accept="image/*,.pdf"
+                  accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.jpg,.jpeg,.png,.gif,.webp,.pdf"
                   onChange={handleFiles}
                   className="block w-full cursor-pointer rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600 file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:border-blue-300"
                 />
-                <p className="mt-1 text-xs text-slate-500">แนบได้สูงสุด 3 ไฟล์ ขนาดรวมไม่เกิน 5MB</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  แนบได้สูงสุด 3 ไฟล์ ขนาดรวมไม่เกิน 5MB รองรับ JPG, PNG, GIF, WEBP และ PDF
+                </p>
               </div>
 
               <button
