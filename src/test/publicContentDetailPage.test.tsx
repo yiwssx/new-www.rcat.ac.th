@@ -212,7 +212,7 @@ describe("PublicContentDetailPage", () => {
     expect(within(article).getByText("เอกสารแนบ")).toBeInTheDocument();
     expect(within(article).getByRole("link", { name: "ใบสมัคร.pdf" })).toBeInTheDocument();
     expect(within(article).getByText("เปิด PDF ในแท็บใหม่")).toBeInTheDocument();
-    expect(within(article).container.querySelector('[data-public-pdf-viewer="true"]')).toBeTruthy();
+    expect(article.querySelector('[data-public-pdf-viewer="true"]')).toBeTruthy();
 
     const articleText = article.textContent || "";
     expect(articleText.indexOf("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeLessThan(articleText.indexOf("ประกาศรับสมัคร"));
@@ -246,7 +246,7 @@ describe("PublicContentDetailPage", () => {
     render(<PublicContentDetailPage slug="announcement-1" />);
 
     const article = screen.getByRole("article");
-    const pdfViewers = within(article).container.querySelectorAll('[data-public-pdf-viewer="true"]');
+    const pdfViewers = article.querySelectorAll('[data-public-pdf-viewer="true"]');
 
     expect(pdfViewers).toHaveLength(1);
     expect(within(article).getByText("เอกสารฉบับเต็ม")).toBeInTheDocument();
