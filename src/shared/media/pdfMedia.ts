@@ -10,7 +10,7 @@ export function isPdfMediaAsset(asset: MediaAsset | null | undefined) {
     .trim()
     .toLowerCase();
 
-  // Keep filename detection for legacy CMS media rows that predate persisted MIME metadata.
+  // Preserve filename detection so legacy CMS media rows without MIME metadata still render as PDFs.
   return mimeType === "application/pdf" || fileName.endsWith(".pdf");
 }
 
