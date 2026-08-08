@@ -6,6 +6,7 @@ import { ExternalServiceLink, MediaAsset } from "../../../types";
 import { getExternalServiceIconMediaId } from "../../../features/cms-external-services";
 import { getExternalServiceToneStyle } from "../../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
+import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
 import { resolvePublicImageSource } from "../../../shared/media/publicImageSources";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { focusVisibleSx } from "./homeSectionStyles";
@@ -162,15 +163,18 @@ export function ExternalServicesSection({
                         }}
                       >
                         {hasMediaIcon ? (
-                          <Box
-                            component="img"
-                            src={iconImage.src}
-                            srcSet={iconImage.srcSet || undefined}
-                            sizes="48px"
+                          <PublicResponsiveImage
+                            source={iconMediaAsset}
+                            intent="tiny-thumbnail"
                             alt=""
-                            loading="lazy"
-                            decoding="async"
-                            sx={{ width: 38, height: 38, objectFit: "contain" }}
+                            loadMode="near-viewport"
+                            intrinsic
+                            width={38}
+                            height={38}
+                            sizes="48px"
+                            fallback={<ExternalServiceIcon iconKey="link" />}
+                            sx={{ width: 38, height: 38 }}
+                            imageSx={{ width: 38, height: 38, objectFit: "contain" }}
                           />
                         ) : (
                           <ExternalServiceIcon iconKey="link" />
