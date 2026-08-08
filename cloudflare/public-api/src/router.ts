@@ -1,5 +1,5 @@
 import type { Env } from "./env";
-import { methodNotAllowed, notFound } from "./responses";
+import { jsonError, methodNotAllowed, notFound } from "./responses";
 import { adminWrite } from "./routes/adminWrite";
 import { health } from "./routes/health";
 import { publicContentDetail, publicContentList } from "./routes/publicContent";
@@ -22,6 +22,16 @@ export async function routeRequest(request: Request, env: Env) {
     return cmsAuthResponse;
   }
 
+  const { pathname } = new URL(request.url);
+
+  // The current Admin UI uses revision-aware item/order endpoints. The legacy
+  // whole-tree replacement can erase or overwrite concurrent menu changes, so
+  // it is intentionally unavailable in production while remaining usable by
+  // historical preview parity tooling.
+  if (env.ENVIRONMENT === "production" && request.method === "PUT" && pathname === "/api/admin/menu") {
+    return jsonError("bulk menu replacement is retired; use revision-aware menu item and order endpoints", 405);
+  }
+
   const adminResponse = await adminWrite(request, env);
 
   if (adminResponse) {
@@ -33,8 +43,6 @@ export async function routeRequest(request: Request, env: Env) {
       status: 204
     });
   }
-
-  const { pathname } = new URL(request.url);
 
   if (request.method === "POST" && pathname === "/api/public/site-view") {
     return recordPublicSiteView(request, env);

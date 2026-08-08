@@ -7,7 +7,14 @@ import { describe, expect, it } from "vitest";
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const apiDirectory = path.join(repositoryRoot, "api");
 const executableExtensions = new Set([".js", ".mjs", ".cjs", ".ts", ".mts", ".cts"]);
-const expectedFunctions = ["admin-proxy.mjs", "apps-script-proxy.mjs", "cms-auth.mjs", "sitemap.mjs", "ssr.ts"];
+const expectedFunctions = [
+  "admin-proxy.mjs",
+  "apps-script-proxy.mjs",
+  "cms-auth.mjs",
+  "complaint.mjs",
+  "sitemap.mjs",
+  "ssr.ts"
+];
 const retiredFunctions = ["admin-proxy-session/login.mjs", "admin-proxy-session/logout.mjs"];
 const obsoleteCmsAuthFunctions = [
   "cms-auth/login.mjs",
@@ -48,10 +55,10 @@ function listExecutableApiFiles(directory, prefix = "") {
 }
 
 describe("direct Vercel Function budget", () => {
-  it("keeps exactly the five reviewed direct Functions including Public SSR", () => {
+  it("keeps exactly the six reviewed direct Functions including Complaint and Public SSR", () => {
     const functions = listExecutableApiFiles(apiDirectory);
 
-    expect(functions).toHaveLength(5);
+    expect(functions).toHaveLength(6);
     expect(functions).toEqual(expectedFunctions);
   });
 
