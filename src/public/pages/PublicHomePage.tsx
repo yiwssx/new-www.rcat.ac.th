@@ -241,7 +241,7 @@ export default function PublicHomePage() {
               </DeferredHomeSection>
               <DeferredHomeSection minHeight={{ xs: 240, md: 280 }}>
                 <Box sx={{ display: { xs: "none", lg: "block" } }}>
-                  <LazyExternalServicesSection items={externalServiceItems} />
+                  <LazyExternalServicesSection items={externalServiceItems} mediaAssets={mediaAssets} />
                 </Box>
               </DeferredHomeSection>
             </Grid>
@@ -269,7 +269,7 @@ export default function PublicHomePage() {
                 </DeferredHomeSection>
                 <DeferredHomeSection minHeight={260}>
                   <Box sx={{ display: { xs: "block", lg: "none" } }}>
-                    <LazyExternalServicesSection items={externalServiceItems} />
+                    <LazyExternalServicesSection items={externalServiceItems} mediaAssets={mediaAssets} />
                   </Box>
                 </DeferredHomeSection>
                 <DeferredHomeSection minHeight={320}>

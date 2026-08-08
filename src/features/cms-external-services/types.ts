@@ -4,13 +4,15 @@ export type ExternalServiceTone =
 export type ExternalServiceIconKey =
   "apps" | "calendar" | "check" | "groups" | "handshake" | "registration" | "book" | "school" | "link";
 
+export type ExternalServiceIconValue = ExternalServiceIconKey | `media:${string}`;
+
 export interface ExternalServiceLink {
   id: string;
   title: string;
   description: string;
   href: string;
   tone: ExternalServiceTone;
-  iconKey: ExternalServiceIconKey;
+  iconKey: ExternalServiceIconValue;
   enabled: boolean;
   order: number;
   updatedAt: string;

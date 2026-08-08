@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
@@ -31,6 +31,7 @@ import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SwapVertOutlinedIcon from "@mui/icons-material/SwapVertOutlined";
@@ -38,10 +39,13 @@ import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
 import {
+  ADMIN_MEDIA_PAGE_SIZE_OPTIONS,
   ADMIN_PAGE_SIZE_OPTIONS,
   adminExternalServiceOrderQueryOptions,
+  adminMediaListQueryOptions,
   adminListQueryKeys,
   getAdminExternalServiceList,
+  getAdminMediaByIds,
   getAdminPageAfterDelete,
   invalidateAdminListQueries,
   saveAdminExternalServiceOrder,
@@ -51,13 +55,17 @@ import {
   type AdminExternalServiceOrderItem
 } from "../../features/admin-pagination";
 import {
+  createExternalServiceMediaIconKey,
   deleteExternalServiceLinkFromApi,
+  getExternalServiceIconMediaId,
+  normalizeExternalServiceIconValue,
   saveExternalServiceLinkToApi,
   type ExternalServiceLinkInput
 } from "../../features/cms-external-services";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
-import { ExternalServiceIconKey, ExternalServiceLink, ExternalServiceTone } from "../../types";
+import { ExternalServiceLink, ExternalServiceTone, MediaAsset } from "../../types";
 import { getExternalServiceToneStyle } from "../../utils/externalServiceTheme";
+import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { ADMIN_READ_ONLY_NOTICE, canManageExternalServices } from "../utils/rbac";
@@ -78,18 +86,6 @@ const externalServiceToneOptions: Array<{ value: ExternalServiceTone; label: str
   { value: "general", label: "ทั่วไป" }
 ];
 
-const externalServiceIconOptions: Array<{ value: ExternalServiceIconKey; label: string }> = [
-  { value: "apps", label: "แอป / ระบบ" },
-  { value: "calendar", label: "ปฏิทิน" },
-  { value: "check", label: "ตรวจสอบ" },
-  { value: "groups", label: "กลุ่ม / ผู้เรียน" },
-  { value: "handshake", label: "ความร่วมมือ" },
-  { value: "registration", label: "ลงทะเบียน" },
-  { value: "book", label: "การเรียนรู้" },
-  { value: "school", label: "สถานศึกษา" },
-  { value: "link", label: "ลิงก์ทั่วไป" }
-];
-
 function createDraftKey() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `draft-${crypto.randomUUID()}`;
@@ -107,7 +103,7 @@ function normalizeExternalServiceDraft(service: ExternalServiceLink | ExternalSe
     description: service.description.trim(),
     href: service.href.trim(),
     tone: service.tone || "general",
-    iconKey: service.iconKey || "link",
+    iconKey: normalizeExternalServiceIconValue(service.iconKey),
     enabled: Boolean(service.enabled),
     order: Number.isFinite(Number(service.order)) ? Number(service.order) : 0,
     updatedAt: service.updatedAt || new Date().toISOString()
@@ -148,12 +144,9 @@ function getToneLabel(tone: ExternalServiceTone) {
   return externalServiceToneOptions.find((option) => option.value === tone)?.label ?? "ทั่วไป";
 }
 
-function getIconLabel(iconKey: ExternalServiceIconKey) {
-  return externalServiceIconOptions.find((option) => option.value === iconKey)?.label ?? "ลิงก์ทั่วไป";
-}
-
-function getExternalServiceIcon(iconKey: ExternalServiceIconKey): ReactNode {
-  return <ExternalServiceIcon iconKey={iconKey} />;
+function getIconLabel(iconKey: ExternalServiceLink["iconKey"], mediaAsset?: MediaAsset) {
+  const mediaId = getExternalServiceIconMediaId(iconKey);
+  return mediaId && mediaAsset?.id === mediaId && mediaAsset.type === "image" ? "รูปจากคลังสื่อ" : "ไอคอน Link";
 }
 
 function isAllowedExternalServiceHref(href: string) {
@@ -272,7 +265,7 @@ export default function ExternalServicesPage() {
     sortDirection
   });
   const listTransitioning = adminListQuery.isPlaceholderData || debouncedSearch !== q;
-  const services = adminListQuery.data?.items ?? [];
+  const services = useMemo(() => adminListQuery.data?.items ?? [], [adminListQuery.data?.items]);
   useEffect(() => {
     const responsePage = adminListQuery.data?.pagination.page;
 
@@ -292,6 +285,50 @@ export default function ExternalServicesPage() {
   const [orderDraft, setOrderDraft] = useState<AdminExternalServiceOrderItem[] | null>(null);
   const orderedServices = orderDraft ?? serverOrder;
   const orderDirty = orderDraft !== null && !externalServiceOrdersEqual(orderDraft, serverOrder);
+  const serviceIconMediaIds = useMemo(
+    () => [...new Set(services.map((service) => getExternalServiceIconMediaId(service.iconKey)).filter(Boolean))],
+    [services]
+  );
+  const serviceIconMediaQuery = useQuery({
+    queryKey: ["admin-media-by-ids", "external-service-icons", serviceIconMediaIds.join(",")],
+    queryFn: async () => {
+      const batches: Promise<MediaAsset[]>[] = [];
+      for (let index = 0; index < serviceIconMediaIds.length; index += 50) {
+        batches.push(getAdminMediaByIds(serviceIconMediaIds.slice(index, index + 50)));
+      }
+      return (await Promise.all(batches)).flat();
+    },
+    enabled: serviceIconMediaIds.length > 0
+  });
+  const serviceIconMediaById = useMemo(
+    () => new Map((serviceIconMediaQuery.data ?? []).map((asset) => [asset.id, asset])),
+    [serviceIconMediaQuery.data]
+  );
+  const [mediaSearch, setMediaSearch] = useState("");
+  const debouncedMediaSearch = useDebouncedValue(mediaSearch, 300);
+  const [mediaPage, setMediaPage] = useState(1);
+  const [mediaPageSize, setMediaPageSize] = useState(24);
+  const mediaQuery = useQuery({
+    ...adminMediaListQueryOptions({
+      page: mediaPage,
+      pageSize: mediaPageSize,
+      q: debouncedMediaSearch,
+      type: "image",
+      sortBy: "updatedAt",
+      sortDirection: "desc"
+    }),
+    enabled: dialogOpen
+  });
+  const mediaTransitioning = mediaQuery.isPlaceholderData || debouncedMediaSearch !== mediaSearch;
+  const imageMediaAssets = mediaTransitioning ? [] : (mediaQuery.data?.items ?? []);
+  const selectedIconMediaId = editingService ? getExternalServiceIconMediaId(editingService.iconKey) : "";
+  const selectedIconMediaFromList = selectedIconMediaId ? serviceIconMediaById.get(selectedIconMediaId) : undefined;
+  const selectedIconMediaQuery = useQuery({
+    queryKey: ["admin-media-by-ids", "external-service-selected-icon", selectedIconMediaId],
+    queryFn: () => getAdminMediaByIds([selectedIconMediaId]),
+    enabled: dialogOpen && Boolean(selectedIconMediaId) && !selectedIconMediaFromList
+  });
+  const selectedIconMedia = selectedIconMediaFromList ?? selectedIconMediaQuery.data?.[0];
 
   const saveExternalServiceMutation = useMutation({
     mutationFn: saveExternalServiceLinkToApi
@@ -318,6 +355,22 @@ export default function ExternalServicesPage() {
     );
   }
 
+  function handleSelectIconMedia(asset: MediaAsset) {
+    if (!canManage || asset.type !== "image") {
+      return;
+    }
+
+    updateEditingService("iconKey", createExternalServiceMediaIconKey(asset.id));
+  }
+
+  function handleUseDefaultLinkIcon() {
+    if (!canManage) {
+      return;
+    }
+
+    updateEditingService("iconKey", "link");
+  }
+
   async function handleAddService() {
     if (!canManage || listTransitioning) {
       return;
@@ -331,6 +384,8 @@ export default function ExternalServicesPage() {
         sortDirection: "desc"
       });
       setEditingService(createExternalServiceDraft((response.items[0]?.order ?? 0) + 1));
+      setMediaSearch("");
+      setMediaPage(1);
       setIsCreating(true);
       setDialogOpen(true);
     } catch (error) {
@@ -344,6 +399,8 @@ export default function ExternalServicesPage() {
     }
 
     setEditingService(normalizeExternalServiceDraft(service));
+    setMediaSearch("");
+    setMediaPage(1);
     setIsCreating(false);
     setDialogOpen(true);
   }
@@ -355,6 +412,8 @@ export default function ExternalServicesPage() {
 
     setDialogOpen(false);
     setEditingService(null);
+    setMediaSearch("");
+    setMediaPage(1);
     setIsCreating(false);
   }
 
@@ -502,11 +561,22 @@ export default function ExternalServicesPage() {
     }
   }
 
-  function renderServiceIcon(iconKey: ExternalServiceIconKey, tone: ExternalServiceTone) {
+  function renderServiceIcon(
+    iconKey: ExternalServiceLink["iconKey"],
+    tone: ExternalServiceTone,
+    mediaAsset?: MediaAsset
+  ) {
     const toneStyle = getExternalServiceToneStyle(tone);
+    const mediaId = getExternalServiceIconMediaId(iconKey);
+    const imageSource =
+      mediaId && mediaAsset?.id === mediaId && mediaAsset.type === "image"
+        ? resolvePublicImageSource(mediaAsset, "tiny-thumbnail")
+        : null;
+    const hasMediaIcon = Boolean(imageSource?.src);
 
     return (
       <Box
+        data-external-service-icon-source={hasMediaIcon ? "media" : "link"}
         sx={{
           width: 48,
           height: 48,
@@ -516,12 +586,26 @@ export default function ExternalServicesPage() {
           color: toneStyle.iconColor,
           bgcolor: toneStyle.iconBg,
           boxShadow: designTokens.elevation.medium,
+          overflow: "hidden",
           "& svg": {
             fontSize: 27
           }
         }}
       >
-        {getExternalServiceIcon(iconKey)}
+        {hasMediaIcon && imageSource ? (
+          <Box
+            component="img"
+            src={imageSource.src}
+            srcSet={imageSource.srcSet || undefined}
+            sizes="48px"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            sx={{ width: 38, height: 38, objectFit: "contain" }}
+          />
+        ) : (
+          <ExternalServiceIcon iconKey="link" />
+        )}
       </Box>
     );
   }
@@ -798,7 +882,11 @@ export default function ExternalServicesPage() {
                           justifyContent: "space-between"
                         }}
                       >
-                        {renderServiceIcon(service.iconKey, service.tone)}
+                        {renderServiceIcon(
+                          service.iconKey,
+                          service.tone,
+                          serviceIconMediaById.get(getExternalServiceIconMediaId(service.iconKey))
+                        )}
                         <Stack
                           direction="row"
                           spacing={0.75}
@@ -857,7 +945,14 @@ export default function ExternalServicesPage() {
                           variant={service.enabled ? "filled" : "outlined"}
                         />
                         <Chip label={getToneLabel(service.tone)} size="small" variant="outlined" />
-                        <Chip label={getIconLabel(service.iconKey)} size="small" variant="outlined" />
+                        <Chip
+                          label={getIconLabel(
+                            service.iconKey,
+                            serviceIconMediaById.get(getExternalServiceIconMediaId(service.iconKey))
+                          )}
+                          size="small"
+                          variant="outlined"
+                        />
                         <Chip label={`ลำดับ ${service.order}`} size="small" variant="outlined" />
                       </Stack>
                       <Box sx={{ flex: 1 }}>
@@ -959,46 +1054,141 @@ export default function ExternalServicesPage() {
                     disabled={!canManage}
                     fullWidth
                   />
-                  <Grid container spacing={1.5}>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                      <FormControl fullWidth>
-                        <InputLabel id="external-service-tone-label">ประเภทสี</InputLabel>
-                        <Select
-                          labelId="external-service-tone-label"
-                          label="ประเภทสี"
-                          value={editingService.tone}
-                          onChange={(event) => updateEditingService("tone", event.target.value as ExternalServiceTone)}
-                          disabled={!canManage}
-                        >
-                          {externalServiceToneOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value}>
-                              {option.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                  <FormControl fullWidth>
+                    <InputLabel id="external-service-tone-label">ประเภทสี</InputLabel>
+                    <Select
+                      labelId="external-service-tone-label"
+                      label="ประเภทสี"
+                      value={editingService.tone}
+                      onChange={(event) => updateEditingService("tone", event.target.value as ExternalServiceTone)}
+                      disabled={!canManage}
+                    >
+                      {externalServiceToneOptions.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <Box>
+                    <Typography variant="h3" sx={{ fontSize: "1rem", mb: 0.5 }}>
+                      รูปไอคอน E-Service
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
+                      เลือกจากรูปภาพที่อัปโหลดไว้ในคลังสื่อ หากไม่เลือกจะใช้ไอคอน Link เป็นค่าเริ่มต้น
+                    </Typography>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 1.5 }}>
+                      <Button
+                        variant={selectedIconMediaId ? "outlined" : "contained"}
+                        startIcon={<ExternalServiceIcon iconKey="link" />}
+                        onClick={handleUseDefaultLinkIcon}
+                        disabled={!canManage}
+                      >
+                        ใช้ไอคอน Link
+                      </Button>
+                      {selectedIconMediaId && (
+                        <Chip
+                          label={selectedIconMedia?.name || "ไม่พบรูปที่เลือก — จะใช้ Link แทน"}
+                          color={selectedIconMedia?.type === "image" ? "success" : "warning"}
+                          variant="outlined"
+                        />
+                      )}
+                    </Stack>
+                    <TextField
+                      label="ค้นหารูปภาพไอคอน"
+                      value={mediaSearch}
+                      onChange={(event) => {
+                        setMediaSearch(event.target.value);
+                        setMediaPage(1);
+                      }}
+                      disabled={!canManage}
+                      fullWidth
+                      size="small"
+                      sx={{ mb: 1.5 }}
+                    />
+                    {(mediaQuery.isFetching || debouncedMediaSearch !== mediaSearch) && (
+                      <LinearProgress sx={{ mb: 1.5 }} />
+                    )}
+                    {mediaQuery.isError && (
+                      <Alert severity="error" sx={{ mb: 1.5 }}>
+                        {mediaQuery.error instanceof Error ? mediaQuery.error.message : "ไม่สามารถโหลดคลังรูปภาพได้"}
+                      </Alert>
+                    )}
+                    {!mediaQuery.isLoading &&
+                      !mediaTransitioning &&
+                      !imageMediaAssets.length &&
+                      !mediaQuery.isError && (
+                        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
+                          ยังไม่มีรูปภาพที่ตรงกับเงื่อนไขในคลังสื่อ
+                        </Typography>
+                      )}
+                    <Grid container spacing={1} aria-busy={mediaTransitioning}>
+                      {imageMediaAssets.map((asset) => {
+                        const source = resolvePublicImageSource(asset, "tiny-thumbnail");
+                        const isSelected = selectedIconMediaId === asset.id;
+
+                        return (
+                          <Grid key={asset.id} size={{ xs: 6, sm: 4 }}>
+                            <Button
+                              aria-label={`เลือกไอคอน ${asset.name}`}
+                              variant={isSelected ? "contained" : "outlined"}
+                              onClick={() => handleSelectIconMedia(asset)}
+                              disabled={!canManage || !source.src}
+                              fullWidth
+                              sx={{
+                                minHeight: 116,
+                                p: 1,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 0.75,
+                                justifyContent: "center"
+                              }}
+                            >
+                              {source.src ? (
+                                <Box
+                                  component="img"
+                                  src={source.src}
+                                  srcSet={source.srcSet || undefined}
+                                  sizes="72px"
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                  sx={{ width: 64, height: 64, objectFit: "contain", borderRadius: 1 }}
+                                />
+                              ) : (
+                                <ImageOutlinedIcon sx={{ fontSize: 42 }} />
+                              )}
+                              <Typography
+                                component="span"
+                                variant="caption"
+                                sx={{
+                                  maxWidth: "100%",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap"
+                                }}
+                              >
+                                {asset.name}
+                              </Typography>
+                            </Button>
+                          </Grid>
+                        );
+                      })}
                     </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                      <FormControl fullWidth>
-                        <InputLabel id="external-service-icon-label">ไอคอน</InputLabel>
-                        <Select
-                          labelId="external-service-icon-label"
-                          label="ไอคอน"
-                          value={editingService.iconKey}
-                          onChange={(event) =>
-                            updateEditingService("iconKey", event.target.value as ExternalServiceIconKey)
-                          }
-                          disabled={!canManage}
-                        >
-                          {externalServiceIconOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value}>
-                              {option.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                  </Grid>
+                    {mediaQuery.data && (
+                      <AdminPagination
+                        pagination={mediaQuery.data.pagination}
+                        pageSizeOptions={ADMIN_MEDIA_PAGE_SIZE_OPTIONS}
+                        onPageChange={setMediaPage}
+                        onPageSizeChange={(nextPageSize) => {
+                          setMediaPageSize(nextPageSize);
+                          setMediaPage(1);
+                        }}
+                        disabled={mediaTransitioning || !canManage}
+                        isFetching={mediaQuery.isFetching}
+                      />
+                    )}
+                  </Box>
                 </Stack>
               </Grid>
 
@@ -1014,7 +1204,7 @@ export default function ExternalServicesPage() {
                           justifyContent: "space-between"
                         }}
                       >
-                        {renderServiceIcon(editingService.iconKey, editingService.tone)}
+                        {renderServiceIcon(editingService.iconKey, editingService.tone, selectedIconMedia)}
                         <OpenInNewOutlinedIcon sx={{ color: "text.secondary", fontSize: 19 }} />
                       </Stack>
                       <Stack spacing={0.75}>

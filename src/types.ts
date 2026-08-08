@@ -19,6 +19,7 @@ export type { CmsDocumentItem, DocumentStatus } from "./features/cms-documents/t
 export type { CalendarEvent } from "./features/cms-events/types";
 export type {
   ExternalServiceIconKey,
+  ExternalServiceIconValue,
   ExternalServiceLink,
   ExternalServiceTone
 } from "./features/cms-external-services/types";

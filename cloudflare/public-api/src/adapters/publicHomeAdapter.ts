@@ -10,6 +10,7 @@ import type { DocumentRow, PublicHomeSectionRow } from "../db/schema";
 
 const HOME_ACHIEVEMENT_LIMIT = 6;
 const ACHIEVEMENT_PATTERN = /achievement|award|รางวัล|ผลงาน|ความสำเร็จ|ความภาคภูมิใจ|ชนะเลิศ|รองชนะเลิศ|เหรียญ/i;
+const EXTERNAL_SERVICE_MEDIA_ICON_PREFIX = "media:";
 
 function normalizePublicOrder(value: number) {
   if (!Number.isFinite(value)) {
@@ -32,6 +33,13 @@ function compareContentPublishAtDesc(left: PublicContentSummaryContract, right: 
 
 function isAchievementItem(item: PublicContentSummaryContract) {
   return ACHIEVEMENT_PATTERN.test([item.title, item.summary, item.category, ...item.tags].join(" "));
+}
+
+function getExternalServiceIconMediaId(iconKey: unknown) {
+  const normalized = String(iconKey || "").trim();
+  return normalized.startsWith(EXTERNAL_SERVICE_MEDIA_ICON_PREFIX)
+    ? normalized.slice(EXTERNAL_SERVICE_MEDIA_ICON_PREFIX.length).trim()
+    : "";
 }
 
 export function mapHomeSectionRowToPublicHomeSection(row: PublicHomeSectionRow): PublicHomeSectionContract {
@@ -71,7 +79,11 @@ export function createPublicHomeSnapshot(
     ...homeContent,
     ...input.metadata.events.map((event) => ({
       mediaIds: event.mediaIds ?? []
-    }))
+    })),
+    ...input.metadata.externalServices.map((service) => {
+      const iconMediaId = getExternalServiceIconMediaId(service.iconKey);
+      return { mediaIds: iconMediaId ? [iconMediaId] : [] };
+    })
   ];
 
   return {
