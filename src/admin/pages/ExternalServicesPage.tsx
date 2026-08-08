@@ -882,7 +882,11 @@ export default function ExternalServicesPage() {
                           justifyContent: "space-between"
                         }}
                       >
-                        {renderServiceIcon(service.iconKey, service.tone, serviceIconMediaById.get(getExternalServiceIconMediaId(service.iconKey)))}
+                        {renderServiceIcon(
+                          service.iconKey,
+                          service.tone,
+                          serviceIconMediaById.get(getExternalServiceIconMediaId(service.iconKey))
+                        )}
                         <Stack
                           direction="row"
                           spacing={0.75}
@@ -1102,17 +1106,22 @@ export default function ExternalServicesPage() {
                       size="small"
                       sx={{ mb: 1.5 }}
                     />
-                    {(mediaQuery.isFetching || debouncedMediaSearch !== mediaSearch) && <LinearProgress sx={{ mb: 1.5 }} />}
+                    {(mediaQuery.isFetching || debouncedMediaSearch !== mediaSearch) && (
+                      <LinearProgress sx={{ mb: 1.5 }} />
+                    )}
                     {mediaQuery.isError && (
                       <Alert severity="error" sx={{ mb: 1.5 }}>
                         {mediaQuery.error instanceof Error ? mediaQuery.error.message : "ไม่สามารถโหลดคลังรูปภาพได้"}
                       </Alert>
                     )}
-                    {!mediaQuery.isLoading && !mediaTransitioning && !imageMediaAssets.length && !mediaQuery.isError && (
-                      <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
-                        ยังไม่มีรูปภาพที่ตรงกับเงื่อนไขในคลังสื่อ
-                      </Typography>
-                    )}
+                    {!mediaQuery.isLoading &&
+                      !mediaTransitioning &&
+                      !imageMediaAssets.length &&
+                      !mediaQuery.isError && (
+                        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
+                          ยังไม่มีรูปภาพที่ตรงกับเงื่อนไขในคลังสื่อ
+                        </Typography>
+                      )}
                     <Grid container spacing={1} aria-busy={mediaTransitioning}>
                       {imageMediaAssets.map((asset) => {
                         const source = resolvePublicImageSource(asset, "tiny-thumbnail");
@@ -1152,7 +1161,12 @@ export default function ExternalServicesPage() {
                               <Typography
                                 component="span"
                                 variant="caption"
-                                sx={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                sx={{
+                                  maxWidth: "100%",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap"
+                                }}
                               >
                                 {asset.name}
                               </Typography>
