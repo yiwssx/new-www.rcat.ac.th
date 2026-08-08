@@ -8,6 +8,7 @@ export function isPdfMediaAsset(asset: MediaAsset | null | undefined) {
     .toLowerCase();
   const fileName = String(asset?.name || "").trim().toLowerCase();
 
+  // Keep filename detection for legacy CMS media rows that predate persisted MIME metadata.
   return mimeType === "application/pdf" || fileName.endsWith(".pdf");
 }
 
