@@ -19,7 +19,7 @@ import PublicSiteShell from "../components/PublicSiteShell";
 import PublicLoadingState from "../components/PublicLoadingState";
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { usePublicContentDetail } from "../hooks/usePublicContentDetail";
-import { parseContentBodyToBlocks } from "../../utils/contentBlocks";
+import { MediaContentBlock, parseContentBodyToBlocks } from "../../utils/contentBlocks";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { CONTENT_TEMPLATE_LABELS, resolveContentTemplate } from "../../utils/contentTemplate";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
@@ -313,7 +313,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
     () =>
       new Set(
         contentBlocks
-          .filter((block) => block.type === "pdf")
+          .filter((block): block is MediaContentBlock => block.type === "pdf")
           .map((block) => block.mediaId)
           .filter(Boolean)
       ),
