@@ -1,49 +1,29 @@
-import type { ExternalServiceTone } from "../types";
+export type ExternalServiceIconSource = "media" | "link";
 
-interface ExternalServiceToneStyle {
-  iconBg: string;
-  iconColor: string;
+interface ExternalServiceIconSurfaceStyle {
+  backgroundColor: string;
+  borderColor: string;
+  boxShadow: string;
+  color: string;
 }
 
-const externalServiceToneStyles: Record<ExternalServiceTone, ExternalServiceToneStyle> = {
-  student: {
-    iconBg: "var(--rcat-primary)",
-    iconColor: "var(--rcat-surface)"
+const externalServiceIconSurfaceStyles: Record<ExternalServiceIconSource, ExternalServiceIconSurfaceStyle> = {
+  media: {
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+    boxShadow: "none",
+    color: "inherit"
   },
-  homeroom: {
-    iconBg: "var(--rcat-secondary)",
-    iconColor: "var(--rcat-text-on-accent)"
-  },
-  management: {
-    iconBg: "var(--rcat-primary-hover)",
-    iconColor: "var(--rcat-surface)"
-  },
-  learning: {
-    iconBg: "var(--rcat-primary)",
-    iconColor: "var(--rcat-surface)"
-  },
-  calendar: {
-    iconBg: "var(--rcat-accent-soft)",
-    iconColor: "var(--rcat-primary-hover)"
-  },
-  check: {
-    iconBg: "var(--rcat-secondary)",
-    iconColor: "var(--rcat-text-on-accent)"
-  },
-  admission: {
-    iconBg: "var(--rcat-accent)",
-    iconColor: "var(--rcat-text-on-accent)"
-  },
-  career: {
-    iconBg: "var(--rcat-primary-hover)",
-    iconColor: "var(--rcat-surface)"
-  },
-  general: {
-    iconBg: "var(--rcat-primary)",
-    iconColor: "var(--rcat-surface)"
+  link: {
+    backgroundColor: "var(--rcat-primary-soft)",
+    borderColor: "var(--rcat-border)",
+    boxShadow: "none",
+    color: "var(--rcat-primary-hover)"
   }
 };
 
-export function getExternalServiceToneStyle(tone: ExternalServiceTone): ExternalServiceToneStyle {
-  return externalServiceToneStyles[tone] ?? externalServiceToneStyles.general;
+export function getExternalServiceIconSurfaceStyle(
+  source: ExternalServiceIconSource
+): ExternalServiceIconSurfaceStyle {
+  return externalServiceIconSurfaceStyles[source];
 }
