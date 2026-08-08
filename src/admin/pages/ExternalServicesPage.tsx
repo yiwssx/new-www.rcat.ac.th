@@ -265,7 +265,7 @@ export default function ExternalServicesPage() {
     sortDirection
   });
   const listTransitioning = adminListQuery.isPlaceholderData || debouncedSearch !== q;
-  const services = adminListQuery.data?.items ?? [];
+  const services = useMemo(() => adminListQuery.data?.items ?? [], [adminListQuery.data?.items]);
   useEffect(() => {
     const responsePage = adminListQuery.data?.pagination.page;
 
