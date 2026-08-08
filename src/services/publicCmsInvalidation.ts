@@ -9,7 +9,8 @@ const PUBLIC_QUERY_ROOTS = new Set([
   "public-event-list",
   "public-home-snapshot",
   "public-program-list",
-  "public-search-index"
+  "public-search-index",
+  "public-shell"
 ]);
 
 export async function invalidatePublicCmsData(queryClient: QueryClient) {
