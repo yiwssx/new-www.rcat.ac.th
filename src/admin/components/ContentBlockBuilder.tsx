@@ -49,6 +49,11 @@ const blockTemplateOptions: BlockTemplateOption[] = [
   { type: "video", label: "วิดีโอ", helper: "วิดีโอฝังจากคลังสื่อ" },
   { type: "pdf", label: "PDF", helper: "ฝังเอกสาร PDF จากคลังสื่อในตำแหน่งที่ต้องการ" },
   { type: "facebookPost", label: "โพสต์ Facebook", helper: "ฝังโพสต์ Facebook แบบ public" },
+  {
+    type: "link",
+    label: "ลิงก์ / ไฟล์แนบ",
+    helper: "แนบลิงก์ภายนอกหรือไฟล์จากคลังสื่อ พร้อมกำหนดข้อความที่แสดง"
+  },
   { type: "button", label: "ปุ่ม", helper: "ลิงก์เรียกให้ดำเนินการ" },
   { type: "divider", label: "เส้นแบ่ง", helper: "เส้นแบ่งส่วนเนื้อหา" }
 ];
@@ -451,6 +456,79 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                           )
                         }
                         placeholder="คำบรรยายใต้โพสต์ (ไม่บังคับ)"
+                        fullWidth
+                      />
+                    </Fragment>
+                  )}
+
+                  {block.type === "link" && (
+                    <Fragment>
+                      <TextField
+                        label="แหล่งลิงก์"
+                        select
+                        value={block.source}
+                        onChange={(event) =>
+                          updateBlock(block.id, (current) => {
+                            if (current.type !== "link") {
+                              return current;
+                            }
+
+                            return event.target.value === "media"
+                              ? { ...current, source: "media", href: "" }
+                              : { ...current, source: "external", mediaId: "" };
+                          })
+                        }
+                        fullWidth
+                      >
+                        <MenuItem value="external">ลิงก์ภายนอก</MenuItem>
+                        <MenuItem value="media">ไฟล์จากคลังสื่อ</MenuItem>
+                      </TextField>
+
+                      {block.source === "external" ? (
+                        <TextField
+                          label="URL ภายนอก"
+                          value={block.href}
+                          onChange={(event) =>
+                            updateBlock(block.id, (current) =>
+                              current.type === "link" ? { ...current, href: event.target.value } : current
+                            )
+                          }
+                          placeholder="https://example.org/document"
+                          helperText="ลิงก์จะเปิดในแท็บใหม่เมื่อผู้ชมคลิก"
+                          fullWidth
+                        />
+                      ) : (
+                        <TextField
+                          label="ไฟล์จากคลังสื่อ"
+                          select
+                          value={block.mediaId}
+                          onChange={(event) =>
+                            updateBlock(block.id, (current) =>
+                              current.type === "link" ? { ...current, mediaId: event.target.value } : current
+                            )
+                          }
+                          helperText="ใช้ช่องค้นหาคลังสื่อด้านข้างเพื่อหาไฟล์ที่ต้องการ หากยังไม่เห็นในรายการ"
+                          fullWidth
+                        >
+                          <MenuItem value="">เลือกไฟล์จากคลังสื่อ</MenuItem>
+                          {mediaAssets.map((asset) => (
+                            <MenuItem key={asset.id} value={asset.id}>
+                              {asset.name}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      )}
+
+                      <TextField
+                        label="ข้อความที่แสดง"
+                        value={block.label}
+                        onChange={(event) =>
+                          updateBlock(block.id, (current) =>
+                            current.type === "link" ? { ...current, label: event.target.value } : current
+                          )
+                        }
+                        placeholder="เช่น ดาวน์โหลดแบบฟอร์มสมัครเรียน"
+                        helperText="ถ้าเว้นว่าง ระบบจะใช้ชื่อไฟล์จากคลังสื่อ หรือ URL ของลิงก์แทน"
                         fullWidth
                       />
                     </Fragment>

@@ -1,5 +1,7 @@
 import { Box, Button, Divider, Stack, Typography } from "@mui/material";
+import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import { MediaAsset } from "../../types";
 import { ContentBlock, FacebookPostContentBlock } from "../../utils/contentBlocks";
 import PublicDeferredEmbed from "../media/PublicDeferredEmbed";
@@ -280,6 +282,34 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
 
         if (block.type === "facebookPost") {
           return <FacebookPostEmbed key={block.id} block={block} />;
+        }
+
+        if (block.type === "link") {
+          const asset = block.source === "media" ? mediaById.get(block.mediaId) : undefined;
+          const rawHref =
+            block.source === "media" ? asset?.driveUrl || asset?.previewUrl || asset?.embedUrl || "" : block.href;
+          const safeHref = normalizeSafeHref(rawHref);
+          const isValidHref = safeHref !== "#";
+          const label = block.label.trim() || (block.source === "media" ? asset?.name || "" : block.href.trim());
+
+          if (!isValidHref || !label) {
+            return null;
+          }
+
+          return (
+            <Box key={block.id}>
+              <Button
+                component="a"
+                href={safeHref}
+                target="_blank"
+                rel="noreferrer"
+                variant="outlined"
+                startIcon={block.source === "media" ? <AttachFileOutlinedIcon /> : <LinkOutlinedIcon />}
+              >
+                {label}
+              </Button>
+            </Box>
+          );
         }
 
         if (block.type === "button") {

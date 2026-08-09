@@ -1,7 +1,17 @@
 export const CONTENT_BLOCKS_MARKER = "[[RCAT_BLOCKS_V1]]";
 
 export type ContentBlockType =
-  "paragraph" | "heading" | "quote" | "checklist" | "image" | "video" | "pdf" | "facebookPost" | "button" | "divider";
+  | "paragraph"
+  | "heading"
+  | "quote"
+  | "checklist"
+  | "image"
+  | "video"
+  | "pdf"
+  | "facebookPost"
+  | "link"
+  | "button"
+  | "divider";
 
 interface ContentBlockBase {
   id: string;
@@ -45,6 +55,16 @@ export interface FacebookPostContentBlock extends ContentBlockBase {
   height?: number;
 }
 
+export type LinkContentSource = "external" | "media";
+
+export interface LinkContentBlock extends ContentBlockBase {
+  type: "link";
+  source: LinkContentSource;
+  label: string;
+  href: string;
+  mediaId: string;
+}
+
 export interface ButtonContentBlock extends ContentBlockBase {
   type: "button";
   label: string;
@@ -63,6 +83,7 @@ export type ContentBlock =
   | ChecklistContentBlock
   | MediaContentBlock
   | FacebookPostContentBlock
+  | LinkContentBlock
   | ButtonContentBlock
   | DividerContentBlock;
 
@@ -94,6 +115,7 @@ function normalizeBlockType(value: unknown): ContentBlockType | "" {
     value === "video" ||
     value === "pdf" ||
     value === "facebookPost" ||
+    value === "link" ||
     value === "button" ||
     value === "divider"
   ) {
@@ -167,6 +189,10 @@ export function createContentBlock(type: ContentBlockType): ContentBlock {
 
   if (type === "facebookPost") {
     return { id, type, href: "", caption: "", showText: true, width: 500 };
+  }
+
+  if (type === "link") {
+    return { id, type, source: "external", label: "", href: "", mediaId: "" };
   }
 
   if (type === "button") {
@@ -249,6 +275,17 @@ function normalizeContentBlock(value: unknown): ContentBlock | null {
     };
   }
 
+  if (type === "link") {
+    return {
+      id,
+      type,
+      source: value.source === "media" ? "media" : "external",
+      label: normalizeString(value.label),
+      href: normalizeString(value.href).trim(),
+      mediaId: normalizeString(value.mediaId).trim()
+    };
+  }
+
   if (type === "button") {
     const variant = value.variant === "outlined" ? "outlined" : "contained";
     return {
@@ -289,6 +326,10 @@ function isMeaningfulBlock(block: ContentBlock) {
 
   if (block.type === "facebookPost") {
     return Boolean(block.href.trim());
+  }
+
+  if (block.type === "link") {
+    return block.source === "media" ? Boolean(block.mediaId) : Boolean(block.href.trim());
   }
 
   if (block.type === "button") {
@@ -355,10 +396,17 @@ export function serializeContentBlocksToBody(blocks: ContentBlock[]): string {
 
 export function extractMediaIdsFromContentBlocks(blocks: ContentBlock[]) {
   const ids = blocks
-    .filter(
-      (block): block is MediaContentBlock => block.type === "image" || block.type === "video" || block.type === "pdf"
-    )
-    .map((block) => block.mediaId)
+    .flatMap((block) => {
+      if (block.type === "image" || block.type === "video" || block.type === "pdf") {
+        return [block.mediaId];
+      }
+
+      if (block.type === "link" && block.source === "media") {
+        return [block.mediaId];
+      }
+
+      return [];
+    })
     .filter(Boolean);
 
   return Array.from(new Set(ids));
