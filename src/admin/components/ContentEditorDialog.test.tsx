@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CMS_SESSION_EXPIRED_EVENT, CMS_SESSION_NOTICE_KEY } from "../../features/cms-auth";
 import { readContentDraftRecovery, type ContentDraftRecoveryMode } from "../../features/cms-content/draftRecovery";
-import type { MediaAssetInput } from "../../features/cms-media";
+import type { MediaAssetInput, MediaUploadOptions } from "../../features/cms-media";
 import type { ContentItem, MediaAsset } from "../../types";
 import ContentEditorDialog from "./ContentEditorDialog";
 
@@ -70,7 +70,7 @@ function renderEditor(
     mode?: ContentDraftRecoveryMode;
     onClose?: () => void;
     onSave?: (item: ContentItem) => void;
-    onUploadMedia?: (input: MediaAssetInput) => Promise<MediaAsset>;
+    onUploadMedia?: (input: MediaAssetInput, options?: MediaUploadOptions) => Promise<MediaAsset>;
     ownerUserId?: string;
     recovered?: boolean;
     recoveredTagInputValue?: string;
@@ -167,10 +167,53 @@ describe("ContentEditorDialog", () => {
           fileName: "annual-report.pdf",
           mimeType: "application/pdf",
           fileBase64: "cGRmLWNvbnRlbnQ="
-        })
+        }),
+        expect.objectContaining({ onProgress: expect.any(Function) })
       )
     );
     expect(filesMock.readFileAsBase64).toHaveBeenCalledWith(file);
+  });
+
+  it("shows progress and blocks duplicate quick-upload clicks during file preparation", async () => {
+    const uploadedPdf: MediaAsset = {
+      id: "pdf-progress-1",
+      name: "large-report",
+      type: "document",
+      size: "10 B",
+      owner: "editor",
+      driveUrl: "https://drive.google.com/file/d/pdf-progress-1/view",
+      previewUrl: "https://drive.google.com/file/d/pdf-progress-1/preview",
+      updatedAt: "2026-08-09T00:00:00.000Z"
+    };
+    let resolveRead!: (value: string) => void;
+    const readPromise = new Promise<string>((resolve) => {
+      resolveRead = resolve;
+    });
+    filesMock.readFileAsBase64.mockReturnValue(readPromise);
+    const onUploadMedia = vi.fn(async (_input: MediaAssetInput, options?: MediaUploadOptions) => {
+      options?.onProgress?.({ uploadedBytes: 6, totalBytes: 10, percent: 60 });
+      return uploadedPdf;
+    });
+    renderEditor(createContentItem({ template: "standard", owner: "editor" }), { onUploadMedia });
+    const fileInput = document.body.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = new File(["0123456789"], "large-report.pdf", { type: "application/pdf" });
+
+    fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+    const uploadButton = screen.getByRole("button", { name: "อัปโหลดและแนบ" });
+    fireEvent.click(uploadButton);
+    fireEvent.click(uploadButton);
+
+    expect(filesMock.readFileAsBase64).toHaveBeenCalledTimes(1);
+    expect(onUploadMedia).not.toHaveBeenCalled();
+    expect(screen.getByText("กำลังเตรียมไฟล์สำหรับอัปโหลด")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "กำลังเตรียมไฟล์" })).toBeDisabled();
+
+    await act(async () => {
+      resolveRead("MDEyMzQ1Njc4OQ==");
+    });
+
+    await waitFor(() => expect(onUploadMedia).toHaveBeenCalledTimes(1));
+    expect(filesMock.readFileAsBase64).toHaveBeenCalledTimes(1);
   });
 
   it("generates a complete Thai slug from title input and keeps a manual slug authoritative", () => {

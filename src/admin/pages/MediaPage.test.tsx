@@ -220,7 +220,8 @@ describe("MediaPage media mutation feedback", () => {
     swalMock.close.mockReset();
     swalMock.close.mockResolvedValue(undefined);
     swalMock.showLoading.mockReset();
-    filesMock.readFileAsBase64.mockClear();
+    filesMock.readFileAsBase64.mockReset();
+    filesMock.readFileAsBase64.mockResolvedValue("aW1hZ2UtY29udGVudA==");
   });
 
   it("rejects files over 100 MB before reading the file or opening loading feedback", async () => {
@@ -242,27 +243,50 @@ describe("MediaPage media mutation feedback", () => {
     expect(swalMock.fire).not.toHaveBeenCalled();
   });
 
-  it("shows clear upload pending feedback while the upload is in progress", async () => {
+  it("shows exact byte progress while the upload is in progress", async () => {
     const upload = deferred<MediaAsset>();
-    mediaMock.saveMediaAsset.mockReturnValue(upload.promise);
+    mediaMock.saveMediaAsset.mockImplementation((_input, options) => {
+      options?.onProgress?.({ uploadedBytes: 5, totalBytes: 10, percent: 50 });
+      return upload.promise;
+    });
     await openUploadConfirmation();
 
     fireEvent.click(screen.getByRole("button", { name: "อัปโหลด" }));
 
     await waitFor(() => expect(mediaMock.saveMediaAsset).toHaveBeenCalledTimes(1));
     expect(screen.getByText("กำลังอัปโหลดไฟล์ไปยัง Drive และบันทึกข้อมูล")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "กำลังบันทึก" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "กลับ" })).toBeDisabled();
-    expect(swalMock.fire).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "กำลังอัปโหลดสื่อ",
-        text: "กรุณารอสักครู่ อย่าปิดหน้านี้",
-        showConfirmButton: false,
-        allowOutsideClick: false,
-        allowEscapeKey: false
-      })
+    expect(screen.getByText("50%")).toBeInTheDocument();
+    expect(screen.getByText("5 B / 10 B")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "ความคืบหน้าการอัปโหลด 50%" })).toHaveAttribute(
+      "aria-valuenow",
+      "50"
     );
+    expect(screen.getByRole("button", { name: "กำลังอัปโหลด 50%" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "กลับ" })).toBeDisabled();
+    expect(findSwalCall((options) => options.title === "กำลังอัปโหลดสื่อ")).toBeUndefined();
   }, 15_000);
+
+  it("blocks duplicate upload clicks while the file is still being prepared", async () => {
+    const fileRead = deferred<string>();
+    filesMock.readFileAsBase64.mockReturnValue(fileRead.promise);
+    await openUploadConfirmation();
+
+    const uploadButton = screen.getByRole("button", { name: "อัปโหลด" });
+    fireEvent.click(uploadButton);
+    fireEvent.click(uploadButton);
+
+    expect(filesMock.readFileAsBase64).toHaveBeenCalledTimes(1);
+    expect(mediaMock.saveMediaAsset).not.toHaveBeenCalled();
+    expect(screen.getByText("กำลังเตรียมไฟล์สำหรับอัปโหลด")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "กำลังเตรียมไฟล์" })).toBeDisabled();
+
+    await act(async () => {
+      fileRead.resolve("aW1hZ2UtY29udGVudA==");
+    });
+
+    await waitFor(() => expect(mediaMock.saveMediaAsset).toHaveBeenCalledTimes(1));
+    expect(filesMock.readFileAsBase64).toHaveBeenCalledTimes(1);
+  });
 
   it("shows a clear upload success modal after upload finishes", async () => {
     await openUploadConfirmation();

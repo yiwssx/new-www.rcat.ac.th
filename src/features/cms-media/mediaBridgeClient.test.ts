@@ -201,6 +201,7 @@ describe("same-origin Apps Script media bridge client", () => {
     const bytes = Buffer.alloc(MEDIA_UPLOAD_CHUNK_BYTES + 2, 7);
     const requests: BridgeRequest[] = [];
     const createUploadKey = vi.fn(() => TEST_UPLOAD_KEY);
+    const onProgress = vi.fn();
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const request = parseBridgeRequest(init);
       requests.push(request);
@@ -219,7 +220,10 @@ describe("same-origin Apps Script media bridge client", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
-      saveMediaAssetToBridge(createFileInput(bytes.toString("base64")), createRecoveryOptions(createUploadKey))
+      saveMediaAssetToBridge(createFileInput(bytes.toString("base64")), {
+        ...createRecoveryOptions(createUploadKey),
+        onProgress
+      })
     ).resolves.toEqual(uploadedAsset);
 
     expect(createUploadKey).toHaveBeenCalledTimes(1);
@@ -236,6 +240,16 @@ describe("same-origin Apps Script media bridge client", () => {
       endByte: MEDIA_UPLOAD_CHUNK_BYTES + 1
     });
     expect(JSON.stringify(requests)).not.toContain("fileBase64");
+    expect(onProgress.mock.calls.map(([progress]) => progress.uploadedBytes)).toEqual([
+      0,
+      MEDIA_UPLOAD_CHUNK_BYTES,
+      bytes.length
+    ]);
+    expect(onProgress.mock.calls.at(-1)?.[0]).toEqual({
+      uploadedBytes: bytes.length,
+      totalBytes: bytes.length,
+      percent: 100
+    });
   });
 
   it("queries status before resending after a network failure", async () => {
