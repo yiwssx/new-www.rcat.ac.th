@@ -129,7 +129,7 @@ describe("ContentEditorDialog", () => {
     expect(screen.getByText("รองรับไฟล์ขนาดไม่เกิน 10 MB")).toBeInTheDocument();
     fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
 
-    expect(screen.getByText("ไฟล์ต้องมีขนาดไม่เกิน 10 MB")).toBeInTheDocument();
+    expect(screen.getByText("ไฟล์ต้องมีขนาดไม่เกิน 100 MB")).toBeInTheDocument();
     expect(fileInput).toHaveValue("");
     expect(screen.getByRole("button", { name: "อัปโหลดและแนบ" })).toBeDisabled();
     expect(filesMock.readFileAsBase64).not.toHaveBeenCalled();

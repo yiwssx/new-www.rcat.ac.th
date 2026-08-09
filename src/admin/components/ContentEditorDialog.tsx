@@ -648,7 +648,7 @@ export default function ContentEditorDialog({
       setUploadFile(null);
       setUploadName("");
       setUploadType("image");
-      setUploadError("ไฟล์ต้องมีขนาดไม่เกิน 10 MB");
+      setUploadError("ไฟล์ต้องมีขนาดไม่เกิน 100 MB");
       event.target.value = "";
       return;
     }
@@ -672,7 +672,7 @@ export default function ContentEditorDialog({
       setUploadFile(null);
       setUploadName("");
       setUploadType("image");
-      setUploadError("ไฟล์ต้องมีขนาดไม่เกิน 10 MB");
+      setUploadError("ไฟล์ต้องมีขนาดไม่เกิน 100 MB");
       return;
     }
 

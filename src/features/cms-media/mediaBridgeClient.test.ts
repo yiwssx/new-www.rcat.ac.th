@@ -515,7 +515,7 @@ describe("same-origin Apps Script media bridge client", () => {
     await expect(saveMediaAssetToBridge(createFileInput("not-base64"))).rejects.toThrow("ข้อมูลไฟล์ Base64 ไม่ถูกต้อง");
     await expect(saveMediaAssetToBridge(createFileInput(""))).rejects.toThrow("ข้อมูลไฟล์ Base64 ไม่ถูกต้อง");
     const tooLarge = Buffer.alloc(MAX_MEDIA_UPLOAD_BYTES + 1).toString("base64");
-    await expect(saveMediaAssetToBridge(createFileInput(tooLarge))).rejects.toThrow("ไฟล์ต้องมีขนาดไม่เกิน 10 MB");
+    await expect(saveMediaAssetToBridge(createFileInput(tooLarge))).rejects.toThrow("ไฟล์ต้องมีขนาดไม่เกิน 100 MB");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

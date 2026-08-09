@@ -491,7 +491,7 @@ export default function MediaPage() {
 
     if (nextFile && nextFile.size > MAX_MEDIA_UPLOAD_BYTES) {
       setFile(null);
-      setFormError("ไฟล์ต้องมีขนาดไม่เกิน 10 MB");
+      setFormError("ไฟล์ต้องมีขนาดไม่เกิน 100 MB");
       event.target.value = "";
       return;
     }
@@ -547,7 +547,7 @@ export default function MediaPage() {
     }
 
     if (file && file.size > MAX_MEDIA_UPLOAD_BYTES) {
-      setFormError("ไฟล์ต้องมีขนาดไม่เกิน 10 MB");
+      setFormError("ไฟล์ต้องมีขนาดไม่เกิน 100 MB");
       setFile(null);
       return;
     }

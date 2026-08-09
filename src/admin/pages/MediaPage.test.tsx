@@ -235,7 +235,7 @@ describe("MediaPage media mutation feedback", () => {
 
     fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
 
-    expect(screen.getByText("ไฟล์ต้องมีขนาดไม่เกิน 10 MB")).toBeInTheDocument();
+    expect(screen.getByText("ไฟล์ต้องมีขนาดไม่เกิน 100 MB")).toBeInTheDocument();
     expect(fileInput).toHaveValue("");
     expect(filesMock.readFileAsBase64).not.toHaveBeenCalled();
     expect(mediaMock.saveMediaAsset).not.toHaveBeenCalled();
