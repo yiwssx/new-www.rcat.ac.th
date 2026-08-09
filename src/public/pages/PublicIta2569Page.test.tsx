@@ -23,9 +23,13 @@ describe("PublicIta2569Page", () => {
     expect(itemCodes).toEqual(Array.from({ length: 23 }, (_, index) => `O${index + 1}`));
   });
 
-  it("shows a clear placeholder while hard-coded links are still empty", () => {
+  it("keeps placeholders for empty links and renders the configured E-Service link", () => {
     render(<PublicIta2569Page />);
 
-    expect(screen.getAllByText("รอใส่ลิงก์")).toHaveLength(23);
+    expect(screen.getAllByText("รอใส่ลิงก์")).toHaveLength(22);
+    expect(screen.getByRole("link", { name: "เข้าสู่ E-Service" })).toHaveAttribute(
+      "href",
+      "https://www.rcat.ac.th/#e-service"
+    );
   });
 });
