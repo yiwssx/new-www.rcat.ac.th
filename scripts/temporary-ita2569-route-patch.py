@@ -43,8 +43,8 @@ replace_once(
 # Make the static ITA page discoverable in the runtime sitemap.
 replace_once(
     "api/sitemap.mjs",
-    '  "/contact",\n  "/complaint"',
-    '  "/contact",\n  "/complaint",\n  "/ita2569"'
+    '  "/calendar",\n  "/contact"\n];',
+    '  "/calendar",\n  "/contact",\n  "/ita2569"\n];'
 )
 
 # Explicit regression coverage for sitemap registration.
