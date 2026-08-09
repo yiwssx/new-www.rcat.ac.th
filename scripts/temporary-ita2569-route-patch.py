@@ -16,6 +16,23 @@ replace_once(
     '''            <div\n              aria-label="ITA 2569"\n              className="mx-auto mb-5 flex h-20 w-20 flex-col items-center justify-center rounded-2xl border border-white/30 bg-white/10 shadow-lg ring-4 ring-white/10 backdrop-blur"\n            >\n              <span className="text-xl font-black leading-none text-amber-200">ITA</span>\n              <span className="mt-1 text-xs font-extrabold tracking-wider text-white">2569</span>\n            </div>'''
 )
 
+# Keep hard-coded data in this page file without exporting non-component symbols.
+replace_once(
+    "src/public/pages/PublicIta2569Page.tsx",
+    "export const ITA_SECTIONS: ItaSection[] = [",
+    "const ITA_SECTIONS: ItaSection[] = ["
+)
+replace_once(
+    "src/public/pages/PublicIta2569Page.test.tsx",
+    'import PublicIta2569Page, { ITA_SECTIONS } from "./PublicIta2569Page";',
+    'import PublicIta2569Page from "./PublicIta2569Page";'
+)
+replace_once(
+    "src/public/pages/PublicIta2569Page.test.tsx",
+    '''\n  it("keeps hard-coded resource links centralized and supports multiple links per item", () => {\n    const items = ITA_SECTIONS.flatMap((section) => section.items);\n\n    expect(items).toHaveLength(23);\n    expect(items.every((item) => item.links.length >= 1)).toBe(true);\n    expect(items.every((item) => item.links.every((link) => typeof link.href === "string"))).toBe(true);\n  });\n''',
+    ""
+)
+
 # Lazy-load the custom public page.
 replace_once(
     "src/routeComponents.tsx",
