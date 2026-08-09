@@ -17,7 +17,7 @@ const NO_PROGRESS_MESSAGE = "การอัปโหลดไม่คืบห
 const MEDIA_UPLOAD_KEY_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
 const MEDIA_UPLOAD_TYPES: MediaType[] = ["image", "document", "sheet", "video"];
 
-export const MAX_MEDIA_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const MAX_MEDIA_UPLOAD_BYTES = 100 * 1024 * 1024;
 export const MEDIA_UPLOAD_CHUNK_BYTES = 6 * 256 * 1024;
 
 const MAX_CHUNK_RETRIES = 2;
@@ -516,7 +516,7 @@ export async function saveMediaAssetToBridge(
 
   if (totalBytes < 1 || totalBytes > MAX_MEDIA_UPLOAD_BYTES) {
     throw new Error(
-      totalBytes > MAX_MEDIA_UPLOAD_BYTES ? "ไฟล์ต้องมีขนาดไม่เกิน 10 MB" : "ไฟล์ไม่มีข้อมูลสำหรับอัปโหลด"
+      totalBytes > MAX_MEDIA_UPLOAD_BYTES ? "ไฟล์ต้องมีขนาดไม่เกิน 100 MB" : "ไฟล์ไม่มีข้อมูลสำหรับอัปโหลด"
     );
   }
 
