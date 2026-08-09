@@ -10,7 +10,8 @@ export const STATIC_INDEXABLE_ROUTES = [
   "/blog",
   "/documents",
   "/calendar",
-  "/contact"
+  "/contact",
+  "/ita2569"
 ];
 
 function trimTrailingSlash(value) {

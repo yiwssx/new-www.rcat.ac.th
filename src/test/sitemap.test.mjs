@@ -1,3 +1,4 @@
+import { URL } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import {
   STATIC_INDEXABLE_ROUTES,
@@ -23,6 +24,8 @@ describe("runtime sitemap generation", () => {
       expect(urls).toContain(expected);
     }
 
+    expect(STATIC_INDEXABLE_ROUTES).toContain("/ita2569");
+    expect(urls).toContain("https://school.example/ita2569");
     expect(urls).toContain("https://school.example/content/published-news");
     expect(urls).not.toContain("https://school.example/published-news");
     expect(urls.join("\n")).not.toContain("draft-news");

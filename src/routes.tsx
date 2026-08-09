@@ -28,6 +28,7 @@ import {
   PublicDepartmentsPage,
   PublicDocumentsPage,
   PublicHomePage,
+  PublicIta2569Page,
   PublicNewsPage,
   PublicRouteLayout,
   PublicSearchPage,
@@ -180,6 +181,19 @@ const publicComplaintRoute = createRoute({
       canonicalPath: "/complaint"
     }),
   component: PublicComplaintPage
+});
+
+const publicIta2569Route = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "ita2569",
+  head: () =>
+    buildPublicRouteHead({
+      title: "ITA ประจำปีงบประมาณ พ.ศ. 2569",
+      description:
+        "การเปิดเผยข้อมูลสาธารณะ (OIT) เพื่อการประเมินคุณธรรมและความโปร่งใสในการดำเนินงานของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด ประจำปีงบประมาณ พ.ศ. 2569",
+      canonicalPath: "/ita2569"
+    }),
+  component: PublicIta2569Page
 });
 
 const publicSearchRoute = createRoute({
@@ -383,6 +397,7 @@ const routeTree = rootRoute.addChildren([
     publicCalendarRoute,
     publicContactRoute,
     publicComplaintRoute,
+    publicIta2569Route,
     publicSearchRoute,
     publicContentDetailRoute,
     publicPermalinkRoute
