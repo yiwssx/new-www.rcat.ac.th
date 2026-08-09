@@ -1,0 +1,74 @@
+name: Temporary Apply Media Progress V6
+
+on:
+  push:
+    branches:
+      - agent/media-upload-progress-lock
+    paths:
+      - .github/workflows/temporary-apply-media-progress-v6.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/media-upload-progress-lock
+      - name: Apply source patch and remove render-time ref reset
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/temporary-apply-media-progress-v4.yml').read_text()
+          start_marker = "          python - <<'PY'\n"
+          end_marker = "\n          PY\n      - name: Format and typecheck"
+          script = workflow.split(start_marker, 1)[1].split(end_marker, 1)[0]
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in script.splitlines())
+          exec(compile(script, '<media-progress-v4>', 'exec'), {})
+
+          path = Path('src/admin/components/ContentEditorDialog.tsx')
+          lines = path.read_text().splitlines()
+          matches = [index for index, line in enumerate(lines) if line.strip() == 'uploadLockRef.current = false;']
+          if len(matches) != 2:
+              raise SystemExit(f'expected 2 upload lock reset lines, found {len(matches)}')
+          del lines[matches[0]]
+          path.write_text('\n'.join(lines) + '\n')
+          PY
+      - name: Format, lint, and typecheck
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile --strict-peer-dependencies
+          pnpm exec prettier --write \
+            src/features/cms-media/mediaBridgeClient.ts \
+            src/features/cms-media/api.ts \
+            src/features/cms-media/index.ts \
+            src/admin/components/MediaUploadProgressFeedback.tsx \
+            src/admin/components/ContentEditorDialog.tsx \
+            src/admin/pages/MediaPage.tsx \
+            src/admin/pages/ContentPage.tsx
+          pnpm exec eslint \
+            src/features/cms-media/mediaBridgeClient.ts \
+            src/features/cms-media/api.ts \
+            src/features/cms-media/index.ts \
+            src/admin/components/MediaUploadProgressFeedback.tsx \
+            src/admin/components/ContentEditorDialog.tsx \
+            src/admin/pages/MediaPage.tsx \
+            src/admin/pages/ContentPage.tsx
+          pnpm exec tsc --noEmit
+      - name: Commit source only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/cms-media/mediaBridgeClient.ts \
+            src/features/cms-media/api.ts \
+            src/features/cms-media/index.ts \
+            src/admin/components/MediaUploadProgressFeedback.tsx \
+            src/admin/components/ContentEditorDialog.tsx \
+            src/admin/pages/MediaPage.tsx \
+            src/admin/pages/ContentPage.tsx
+          git commit -m "feat(media): show upload progress and block duplicate submits"
+          git push origin HEAD:agent/media-upload-progress-lock
