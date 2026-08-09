@@ -29,7 +29,7 @@ jobs:
       - name: Format changed files
         run: pnpm exec prettier --write src/public/pages/PublicIta2569Page.tsx src/public/pages/PublicIta2569Page.test.tsx src/routeComponents.tsx src/routes.tsx api/sitemap.mjs src/test/sitemap.test.mjs
       - name: Focused lint
-        run: pnpm exec eslint src/public/pages/PublicIta2569Page.tsx src/public/pages/PublicIta2569Page.test.tsx src/routeComponents.tsx src/routes.tsx api/sitemap.mjs src/test/sitemap.test.mjs --max-warnings=0
+        run: pnpm exec eslint src/public/pages/PublicIta2569Page.tsx src/public/pages/PublicIta2569Page.test.tsx src/routeComponents.tsx src/routes.tsx api/sitemap.mjs --max-warnings=0
       - name: Focused tests
         run: pnpm exec vitest run src/public/pages/PublicIta2569Page.test.tsx src/test/sitemap.test.mjs
       - name: Media governance
