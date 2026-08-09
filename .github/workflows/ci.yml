@@ -32,7 +32,11 @@ jobs:
       - run: pnpm deps:status:check
       - run: pnpm deps:check
       - run: pnpm deps:docs:audit
-      - run: pnpm format:check
+      - name: Show exact ITA Prettier diff
+        run: |
+          pnpm exec prettier src/public/pages/PublicIta2569Page.tsx --write
+          git diff -- src/public/pages/PublicIta2569Page.tsx
+          exit 1
       - run: pnpm lint:strict
       - run: pnpm test:unit
       - run: pnpm test:integration
