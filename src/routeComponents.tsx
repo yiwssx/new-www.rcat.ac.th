@@ -34,6 +34,7 @@ export const PublicContentDetailPage = lazy(() => import("./public/pages/PublicC
 export const PublicDepartmentsPage = lazy(() => import("./public/pages/PublicDepartmentsPage"));
 export const PublicDocumentsPage = lazy(() => import("./public/pages/PublicDocumentsPage"));
 export const PublicHomePage = lazy(() => import("./public/pages/PublicHomePage"));
+export const PublicIta2569Page = lazy(() => import("./public/pages/PublicIta2569Page"));
 export const PublicNewsPage = lazy(() => import("./public/pages/PublicNewsPage"));
 export const PublicSearchPage = lazy(() => import("./public/pages/PublicSearchPage"));
 export const ResetPasswordPage = lazy(() => import("./admin/pages/ResetPasswordPage"));

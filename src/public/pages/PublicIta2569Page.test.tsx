@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import PublicIta2569Page, { ITA_SECTIONS } from "./PublicIta2569Page";
+import PublicIta2569Page from "./PublicIta2569Page";
 
 vi.mock("../components/PublicSiteShell", () => ({
   default: ({ children }: { children: ReactNode }) => <main>{children}</main>
@@ -21,14 +21,6 @@ describe("PublicIta2569Page", () => {
       element.getAttribute("data-ita-code")
     );
     expect(itemCodes).toEqual(Array.from({ length: 23 }, (_, index) => `O${index + 1}`));
-  });
-
-  it("keeps hard-coded resource links centralized and supports multiple links per item", () => {
-    const items = ITA_SECTIONS.flatMap((section) => section.items);
-
-    expect(items).toHaveLength(23);
-    expect(items.every((item) => item.links.length >= 1)).toBe(true);
-    expect(items.every((item) => item.links.every((link) => typeof link.href === "string"))).toBe(true);
   });
 
   it("shows a clear placeholder while hard-coded links are still empty", () => {

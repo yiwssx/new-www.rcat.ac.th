@@ -30,7 +30,7 @@ const emptyLink = (): ItaResourceLink[] => [{ label: "เปิดข้อม�
  * - เปลี่ยน label ได้ตามข้อความที่ต้องการให้แสดง
  * - หากหัวข้อเดียวมีหลายลิงก์ ให้เพิ่ม { label: "...", href: "..." } ใน links
  */
-export const ITA_SECTIONS: ItaSection[] = [
+const ITA_SECTIONS: ItaSection[] = [
   {
     id: "indicator-9-1",
     indicator: "ตัวชี้วัดย่อยที่ 9.1",
@@ -240,8 +240,12 @@ export default function PublicIta2569Page() {
           <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-rcat-yellow/30 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-24 -left-12 h-56 w-56 rounded-full bg-emerald-300/20 blur-3xl" />
           <div className="relative mx-auto max-w-5xl text-center">
-            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-white p-2 shadow-lg ring-4 ring-white/15">
-              <img src="/rcat-logo-128.png" alt="ตราวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด" width={64} height={64} />
+            <div
+              aria-label="ITA 2569"
+              className="mx-auto mb-5 flex h-20 w-20 flex-col items-center justify-center rounded-2xl border border-white/30 bg-white/10 shadow-lg ring-4 ring-white/10 backdrop-blur"
+            >
+              <span className="text-xl font-black leading-none text-amber-200">ITA</span>
+              <span className="mt-1 text-xs font-extrabold tracking-wider text-white">2569</span>
             </div>
             <span className="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-extrabold tracking-wider text-amber-200 backdrop-blur">
               ITA 2569 · OPEN DATA INTEGRITY AND TRANSPARENCY ASSESSMENT
@@ -257,12 +261,20 @@ export default function PublicIta2569Page() {
           </div>
         </section>
 
-        <section aria-label="สรุปตัวชี้วัด" className="relative z-10 mx-auto -mt-5 grid max-w-5xl gap-4 px-3 md:grid-cols-3">
+        <section
+          aria-label="สรุปตัวชี้วัด"
+          className="relative z-10 mx-auto -mt-5 grid max-w-5xl gap-4 px-3 md:grid-cols-3"
+        >
           {INDICATOR_SUMMARIES.map((summary) => (
-            <div key={summary.group} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-200/60">
+            <div
+              key={summary.group}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-200/60"
+            >
               <div className="flex items-start justify-between gap-3">
                 <span className="text-sm font-extrabold text-rcat-deep-green">{summary.label}</span>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">{summary.range}</span>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
+                  {summary.range}
+                </span>
               </div>
               <p className="mt-3 text-lg font-black text-slate-900">{summary.title}</p>
               <p className="mt-2 text-xs leading-5 text-slate-500">{summary.detail}</p>
@@ -274,12 +286,17 @@ export default function PublicIta2569Page() {
               <span className="rounded-full bg-amber-200 px-2.5 py-1 text-xs font-black text-amber-900">O1–O23</span>
             </div>
             <p className="mt-3 text-3xl font-black text-slate-900">23 หัวข้อ</p>
-            <p className="mt-2 text-xs leading-5 text-slate-600">จัดกลุ่มตามตัวชี้วัดที่ 9 และตัวชี้วัดที่ 10 เพื่อค้นหาข้อมูลได้สะดวก</p>
+            <p className="mt-2 text-xs leading-5 text-slate-600">
+              จัดกลุ่มตามตัวชี้วัดที่ 9 และตัวชี้วัดที่ 10 เพื่อค้นหาข้อมูลได้สะดวก
+            </p>
           </div>
         </section>
 
         <div className="mx-auto mt-8 max-w-6xl">
-          <nav aria-label="สารบัญ ITA 2569" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <nav
+            aria-label="สารบัญ ITA 2569"
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5"
+          >
             <div className="mb-3 flex items-center justify-between gap-3">
               <p className="text-sm font-extrabold text-slate-900">เลือกหมวดข้อมูล</p>
               <span className="text-xs font-semibold text-slate-400">7 หมวด</span>
@@ -298,8 +315,9 @@ export default function PublicIta2569Page() {
           </nav>
 
           <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm leading-6 text-emerald-950">
-            <strong>หมายเหตุ:</strong> ข้อมูลในหน้านี้จัดทำเพื่อการเปิดเผยข้อมูลสาธารณะของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด
-            ประจำปีงบประมาณ พ.ศ. 2569 โดยลิงก์เอกสารแต่ละรายการสามารถเผยแพร่จากเว็บไซต์หรือแหล่งข้อมูลภายนอกได้
+            <strong>หมายเหตุ:</strong>{" "}
+            ข้อมูลในหน้านี้จัดทำเพื่อการเปิดเผยข้อมูลสาธารณะของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด ประจำปีงบประมาณ พ.ศ.
+            2569 โดยลิงก์เอกสารแต่ละรายการสามารถเผยแพร่จากเว็บไซต์หรือแหล่งข้อมูลภายนอกได้
           </div>
 
           <div className="mt-10 flex items-center gap-4">
@@ -321,7 +339,9 @@ export default function PublicIta2569Page() {
             <div className="h-px flex-1 bg-amber-200" />
             <div className="text-center">
               <p className="text-xs font-extrabold uppercase tracking-wider text-amber-700">Indicator 10</p>
-              <h2 className="mt-1 text-xl font-black text-slate-900 md:text-2xl">ตัวชี้วัดที่ 10 การป้องกันการทุจริต</h2>
+              <h2 className="mt-1 text-xl font-black text-slate-900 md:text-2xl">
+                ตัวชี้วัดที่ 10 การป้องกันการทุจริต
+              </h2>
             </div>
             <div className="h-px flex-1 bg-amber-200" />
           </div>
