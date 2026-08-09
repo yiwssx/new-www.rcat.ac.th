@@ -56,6 +56,9 @@ const LazyProgramsSection = lazy(() =>
   }))
 );
 
+const E_SERVICE_HASH = "#e-service";
+const E_SERVICE_REANCHOR_DELAYS_MS = [0, 120, 320, 700, 1400, 2600, 4200] as const;
+
 declare global {
   interface Window {
     __RCAT_ENABLE_HOME_DEFER_TEST__?: boolean;
@@ -128,46 +131,124 @@ function DeferredHomeSection({
   );
 }
 
-function HomeHashScroller() {
+export function HomeHashScroller() {
   useEffect(() => {
     if (typeof window === "undefined") {
       return undefined;
     }
 
     let observer: MutationObserver | undefined;
+    let scheduledTimeouts: number[] = [];
+    let listeningForUserIntent = false;
 
-    const scrollToHashTarget = () => {
-      if (window.location.hash !== "#e-service") {
-        observer?.disconnect();
-        observer = undefined;
-        return;
-      }
-
-      const target = Array.from(document.querySelectorAll<HTMLElement>("[data-e-service-anchor]")).find(
+    const findVisibleTarget = () =>
+      Array.from(document.querySelectorAll<HTMLElement>("[data-e-service-anchor]")).find(
         (element) => element.getClientRects().length > 0
       );
 
-      if (target) {
-        observer?.disconnect();
-        observer = undefined;
-        window.requestAnimationFrame(() => {
-          target.scrollIntoView({ block: "start" });
-        });
+    const clearScheduledTimeouts = () => {
+      scheduledTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      scheduledTimeouts = [];
+    };
+
+    const removeUserIntentListeners = () => {
+      if (!listeningForUserIntent) {
         return;
       }
 
-      if (!observer) {
-        observer = new MutationObserver(scrollToHashTarget);
-        observer.observe(document.body, { childList: true, subtree: true });
-      }
+      window.removeEventListener("wheel", stopForUserIntent);
+      window.removeEventListener("touchstart", stopForUserIntent);
+      window.removeEventListener("pointerdown", stopForUserIntent);
+      window.removeEventListener("keydown", stopForUserIntent);
+      listeningForUserIntent = false;
     };
 
-    scrollToHashTarget();
-    window.addEventListener("hashchange", scrollToHashTarget);
+    const stopCurrentSession = () => {
+      observer?.disconnect();
+      observer = undefined;
+      clearScheduledTimeouts();
+      removeUserIntentListeners();
+    };
+
+    function stopForUserIntent() {
+      stopCurrentSession();
+    }
+
+    const addUserIntentListeners = () => {
+      if (listeningForUserIntent) {
+        return;
+      }
+
+      window.addEventListener("wheel", stopForUserIntent, { passive: true });
+      window.addEventListener("touchstart", stopForUserIntent, { passive: true });
+      window.addEventListener("pointerdown", stopForUserIntent, { passive: true });
+      window.addEventListener("keydown", stopForUserIntent);
+      listeningForUserIntent = true;
+    };
+
+    const scrollToVisibleTarget = () => {
+      const target = findVisibleTarget();
+      if (!target) {
+        return false;
+      }
+
+      target.scrollIntoView({ block: "start" });
+      return true;
+    };
+
+    const scheduleReanchoring = () => {
+      observer?.disconnect();
+      observer = undefined;
+      clearScheduledTimeouts();
+      addUserIntentListeners();
+
+      const lastDelay = E_SERVICE_REANCHOR_DELAYS_MS[E_SERVICE_REANCHOR_DELAYS_MS.length - 1];
+
+      E_SERVICE_REANCHOR_DELAYS_MS.forEach((delay) => {
+        const timeoutId = window.setTimeout(() => {
+          if (window.location.hash !== E_SERVICE_HASH) {
+            stopCurrentSession();
+            return;
+          }
+
+          scrollToVisibleTarget();
+
+          if (delay === lastDelay) {
+            scheduledTimeouts = [];
+            removeUserIntentListeners();
+          }
+        }, delay);
+
+        scheduledTimeouts.push(timeoutId);
+      });
+    };
+
+    const startHashSession = () => {
+      stopCurrentSession();
+
+      if (window.location.hash !== E_SERVICE_HASH) {
+        return;
+      }
+
+      if (findVisibleTarget()) {
+        scheduleReanchoring();
+        return;
+      }
+
+      observer = new MutationObserver(() => {
+        if (findVisibleTarget()) {
+          scheduleReanchoring();
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    };
+
+    startHashSession();
+    window.addEventListener("hashchange", startHashSession);
 
     return () => {
-      observer?.disconnect();
-      window.removeEventListener("hashchange", scrollToHashTarget);
+      window.removeEventListener("hashchange", startHashSession);
+      stopCurrentSession();
     };
   }, []);
 
