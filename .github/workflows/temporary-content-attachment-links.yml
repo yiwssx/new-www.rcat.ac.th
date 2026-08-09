@@ -25,7 +25,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - name: Apply attachment link patch
-        run: python scripts/temporary-content-attachment-links.py
+        run: |
+          python scripts/temporary-content-attachment-links.py
+          python scripts/temporary-content-attachment-links-test-fix.py
       - name: Format changed files
         run: pnpm exec prettier --write src/utils/contentBlocks.ts src/admin/components/ContentBlockBuilder.tsx src/admin/components/ContentBlockBuilder.test.tsx src/shared/components/ContentBlocksRenderer.tsx src/utils/contentBlocks.test.ts src/test/contentBlocksRenderer.test.tsx
       - name: Focused lint
