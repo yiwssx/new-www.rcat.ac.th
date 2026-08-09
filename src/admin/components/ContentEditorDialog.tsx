@@ -1503,7 +1503,7 @@ export default function ContentEditorDialog({
                     color: "text.secondary"
                   }}
                 >
-                  รองรับไฟล์ขนาดไม่เกิน 10 MB
+                  รองรับไฟล์ขนาดไม่เกิน 100 MB
                 </Typography>
                 {uploadFile && (
                   <Typography

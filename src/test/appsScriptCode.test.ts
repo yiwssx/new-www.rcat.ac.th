@@ -392,7 +392,7 @@ describe("Apps Script media bridge", () => {
     expect(context.uploadedFile.setSharing).toHaveBeenCalledWith("ANYONE_WITH_LINK", "VIEW");
   });
 
-  it("rejects invalid upload keys, MIME types, and files over 10 MB before Drive fetch", () => {
+  it("rejects invalid upload keys, MIME types, and files over 100 MB before Drive fetch", () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const context = loadAppsScriptBridge();
 
@@ -403,7 +403,7 @@ describe("Apps Script media bridge", () => {
       context.doPost(postEvent("media-upload-start", resumablePayload({ mimeType: "application/x-executable" })))
     );
     const overLimit = parseResult(
-      context.doPost(postEvent("media-upload-start", resumablePayload({ totalBytes: 10 * 1024 * 1024 + 1 })))
+      context.doPost(postEvent("media-upload-start", resumablePayload({ totalBytes: 100 * 1024 * 1024 + 1 })))
     );
 
     expect(invalidKey).toMatchObject({ statusCode: 400, body: { error: "Invalid media upload key." } });

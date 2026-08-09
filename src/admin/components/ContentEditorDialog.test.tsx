@@ -119,14 +119,14 @@ async function selectTemplate(label: string) {
 }
 
 describe("ContentEditorDialog", () => {
-  it("rejects quick-upload files over 10 MB before reading or sending them", () => {
+  it("rejects quick-upload files over 100 MB before reading or sending them", () => {
     const onUploadMedia = vi.fn();
     renderEditor(createContentItem({ template: "standard" }), { onUploadMedia });
     const fileInput = document.body.querySelector<HTMLInputElement>('input[type="file"]');
     const file = new File(["pdf"], "too-large.pdf", { type: "application/pdf" });
-    Object.defineProperty(file, "size", { value: 10 * 1024 * 1024 + 1 });
+    Object.defineProperty(file, "size", { value: 100 * 1024 * 1024 + 1 });
 
-    expect(screen.getByText("รองรับไฟล์ขนาดไม่เกิน 10 MB")).toBeInTheDocument();
+    expect(screen.getByText("รองรับไฟล์ขนาดไม่เกิน 100 MB")).toBeInTheDocument();
     fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
 
     expect(screen.getByText("ไฟล์ต้องมีขนาดไม่เกิน 100 MB")).toBeInTheDocument();
