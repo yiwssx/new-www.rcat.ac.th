@@ -47,7 +47,7 @@ import {
   publishContent,
   saveContentItem
 } from "../../features/cms-content";
-import { saveMediaAsset, type MediaAssetInput } from "../../features/cms-media";
+import { saveMediaAsset, type MediaAssetInput, type MediaUploadOptions } from "../../features/cms-media";
 import { ContentItem, ContentStatus } from "../../types";
 import {
   clearContentDraftRecovery,
@@ -178,7 +178,8 @@ export default function ContentPage() {
   });
 
   const mediaMutation = useMutation({
-    mutationFn: saveMediaAsset,
+    mutationFn: ({ input, options }: { input: MediaAssetInput; options?: MediaUploadOptions }) =>
+      saveMediaAsset(input, options),
     onSuccess: async () => {
       await invalidateAdminListQueries(queryClient, "media");
     }
@@ -510,12 +511,12 @@ export default function ContentPage() {
     }
   }
 
-  async function handleUploadMedia(input: MediaAssetInput) {
+  async function handleUploadMedia(input: MediaAssetInput, options?: MediaUploadOptions) {
     if (!canManageMedia) {
       throw new Error(ADMIN_READ_ONLY_NOTICE);
     }
 
-    return mediaMutation.mutateAsync(input);
+    return mediaMutation.mutateAsync({ input, options });
   }
 
   function handleRestoreDraft() {

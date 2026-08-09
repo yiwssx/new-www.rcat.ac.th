@@ -54,10 +54,17 @@ type MediaUploadStartResult =
 type MediaUploadChunkResult = MediaUploadCompleteResult | MediaUploadIncompleteResult;
 type MediaUploadStatusResult = MediaUploadCompleteResult | MediaUploadIncompleteResult;
 
-interface MediaUploadRecoveryOptions {
+export interface MediaUploadProgress {
+  uploadedBytes: number;
+  totalBytes: number;
+  percent: number;
+}
+
+export interface MediaUploadOptions {
   createUploadKey?: () => string;
   delay?: (milliseconds: number) => Promise<void>;
   random?: () => number;
+  onProgress?: (progress: MediaUploadProgress) => void;
 }
 
 export interface MediaUploadChunk {
@@ -375,6 +382,17 @@ function validateNextByte(value: unknown, totalBytes: number) {
   return Number(value);
 }
 
+function reportUploadProgress(options: MediaUploadOptions, totalBytes: number, uploadedBytes: number) {
+  const safeUploadedBytes = Math.min(Math.max(uploadedBytes, 0), totalBytes);
+  const percent = totalBytes > 0 ? Math.round((safeUploadedBytes / totalBytes) * 100) : 0;
+
+  try {
+    options.onProgress?.({ uploadedBytes: safeUploadedBytes, totalBytes, percent });
+  } catch {
+    // UI feedback must never interrupt the upload transport.
+  }
+}
+
 function validateUploadProgressResult(value: unknown, totalBytes: number): MediaUploadChunkResult {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(getInvalidResponseMessage(200));
@@ -446,7 +464,7 @@ function defaultRetryDelay(milliseconds: number) {
   });
 }
 
-async function waitBeforeRetry(retryNumber: number, options: MediaUploadRecoveryOptions) {
+async function waitBeforeRetry(retryNumber: number, options: MediaUploadOptions) {
   const bases = [250, 750];
   const base = bases[Math.min(Math.max(retryNumber - 1, 0), bases.length - 1)];
   const random = options.random?.() ?? Math.random();
@@ -457,7 +475,7 @@ async function waitBeforeRetry(retryNumber: number, options: MediaUploadRecovery
 async function requestStartWithRetries(
   payload: Record<string, unknown>,
   totalBytes: number,
-  options: MediaUploadRecoveryOptions
+  options: MediaUploadOptions
 ) {
   for (let attempt = 0; ; attempt += 1) {
     try {
@@ -475,7 +493,7 @@ async function requestStartWithRetries(
 async function requestStatusWithRetries(
   payload: Record<string, unknown>,
   totalBytes: number,
-  options: MediaUploadRecoveryOptions
+  options: MediaUploadOptions
 ) {
   for (let attempt = 0; ; attempt += 1) {
     try {
@@ -500,7 +518,7 @@ export function uploadMediaAssetToBridge(asset: MediaAsset): Promise<MediaAsset>
 
 export async function saveMediaAssetToBridge(
   asset: MediaAssetInput,
-  recoveryOptions: MediaUploadRecoveryOptions = {}
+  recoveryOptions: MediaUploadOptions = {}
 ): Promise<MediaAsset> {
   if (asset.fileBase64 === undefined) {
     return requestMediaBridge<MediaAsset>("media", asset as unknown as Record<string, unknown>);
@@ -532,9 +550,11 @@ export async function saveMediaAssetToBridge(
     uploadKey
   };
   const startPayload = { ...metadata, totalBytes };
+  const reportProgress = (uploadedBytes: number) => reportUploadProgress(recoveryOptions, totalBytes, uploadedBytes);
   let startResult = await requestStartWithRetries(startPayload, totalBytes, recoveryOptions);
 
   if (startResult.uploadComplete) {
+    reportProgress(totalBytes);
     return startResult.asset;
   }
 
@@ -543,6 +563,7 @@ export async function saveMediaAssetToBridge(
   let sessionRestarts = 0;
   let chunkRetriesAtCurrentByte = 0;
   let noProgressCycles = 0;
+  reportProgress(currentByte);
 
   async function restartSession() {
     if (sessionRestarts >= MAX_SESSION_RESTARTS) {
@@ -559,6 +580,7 @@ export async function saveMediaAssetToBridge(
     currentByte = startResult.nextByte;
     chunkRetriesAtCurrentByte = 0;
     noProgressCycles = 0;
+    reportProgress(currentByte);
     return null;
   }
 
@@ -586,6 +608,7 @@ export async function saveMediaAssetToBridge(
       chunkRetriesAtCurrentByte = 0;
     }
     currentByte = nextByte;
+    reportProgress(currentByte);
   }
 
   while (true) {
@@ -593,6 +616,7 @@ export async function saveMediaAssetToBridge(
       try {
         const status = await queryCurrentStatus();
         if (status.uploadComplete) {
+          reportProgress(totalBytes);
           return status.asset;
         }
         await recordProgress(status.nextByte);
@@ -602,6 +626,7 @@ export async function saveMediaAssetToBridge(
         }
         const restarted = await restartSession();
         if (restarted?.uploadComplete) {
+          reportProgress(totalBytes);
           return restarted.asset;
         }
       }
@@ -622,6 +647,7 @@ export async function saveMediaAssetToBridge(
       });
       const result = validateUploadProgressResult(rawResult, totalBytes);
       if (result.uploadComplete) {
+        reportProgress(totalBytes);
         return result.asset;
       }
       chunkRetriesAtCurrentByte = 0;
@@ -630,6 +656,7 @@ export async function saveMediaAssetToBridge(
       if (isExpiredMediaUploadSessionError(error)) {
         const restarted = await restartSession();
         if (restarted?.uploadComplete) {
+          reportProgress(totalBytes);
           return restarted.asset;
         }
         continue;
@@ -648,12 +675,14 @@ export async function saveMediaAssetToBridge(
         }
         const restarted = await restartSession();
         if (restarted?.uploadComplete) {
+          reportProgress(totalBytes);
           return restarted.asset;
         }
         continue;
       }
 
       if (status.uploadComplete) {
+        reportProgress(totalBytes);
         return status.asset;
       }
 

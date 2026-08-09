@@ -1,6 +1,11 @@
 import { deleteMediaMetadataFromCloudflare, saveMediaMetadataToCloudflare } from "../admin-write/cloudflareApi";
 import { cacheBridgeMediaAsset, removeBridgeMediaAsset } from "./bridgeCache";
-import { deleteMediaAssetFromBridge, saveMediaAssetToBridge, uploadMediaAssetToBridge } from "./mediaBridgeClient";
+import {
+  deleteMediaAssetFromBridge,
+  saveMediaAssetToBridge,
+  uploadMediaAssetToBridge,
+  type MediaUploadOptions
+} from "./mediaBridgeClient";
 import type { MediaAsset, MediaAssetInput } from "./types";
 
 async function persistBridgeMetadata(asset: MediaAsset) {
@@ -14,8 +19,8 @@ async function persistBridgeMetadata(asset: MediaAsset) {
   }
 }
 
-export async function saveMediaAsset(input: MediaAssetInput) {
-  return persistBridgeMetadata(await saveMediaAssetToBridge(input));
+export async function saveMediaAsset(input: MediaAssetInput, options: MediaUploadOptions = {}) {
+  return persistBridgeMetadata(await saveMediaAssetToBridge(input, options));
 }
 
 export async function uploadMediaAsset(asset: MediaAsset) {
@@ -41,3 +46,4 @@ export async function deleteMediaAsset(asset: string | MediaAsset) {
 }
 
 export type { MediaAssetInput } from "./types";
+export type { MediaUploadOptions, MediaUploadProgress } from "./mediaBridgeClient";
