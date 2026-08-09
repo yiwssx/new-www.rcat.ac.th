@@ -64,7 +64,12 @@ replace_once(
     '  "/calendar",\n  "/contact",\n  "/ita2569"\n];'
 )
 
-# Explicit regression coverage for sitemap registration.
+# Explicit regression coverage for sitemap registration, and make the existing URL use lint-safe when staged.
+replace_once(
+    "src/test/sitemap.test.mjs",
+    'import { describe, expect, it, vi } from "vitest";',
+    'import { URL } from "node:url";\nimport { describe, expect, it, vi } from "vitest";'
+)
 replace_once(
     "src/test/sitemap.test.mjs",
     '''    expect(urls).toContain("https://school.example/content/published-news");''',
