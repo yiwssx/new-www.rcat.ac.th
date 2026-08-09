@@ -24,8 +24,32 @@ export interface ItaSection {
   items: ItaItem[];
 }
 
-const E_SERVICE_HOME_HREF = "/#e-service";
-const emptyLink = (): ItaResourceLink[] => [{ label: "เปิดข้อมูล", href: "" }];
+const RCAT_ORIGIN = "https://www.rcat.ac.th";
+
+type ItaInternalPath =
+  | "/"
+  | "/rcat-organization"
+  | "/rcat-director"
+  | "/development-plan"
+  | "/contact"
+  | "/action-plan"
+  | "/sar"
+  | "/news";
+
+const INTERNAL_RCAT_PATHS = new Set<ItaInternalPath>([
+  "/",
+  "/rcat-organization",
+  "/rcat-director",
+  "/development-plan",
+  "/contact",
+  "/action-plan",
+  "/sar",
+  "/news"
+]);
+
+function isItaInternalPath(pathname: string): pathname is ItaInternalPath {
+  return INTERNAL_RCAT_PATHS.has(pathname as ItaInternalPath);
+}
 
 /**
  * แก้ลิงก์เอกสาร ITA 2569 ตรง ITA_SECTIONS เท่านั้น
@@ -41,11 +65,36 @@ const ITA_SECTIONS: ItaSection[] = [
     range: "O1–O5",
     group: "9",
     items: [
-      { code: "O1", title: "โครงสร้างและอำนาจหน้าที่", links: emptyLink() },
-      { code: "O2", title: "ข้อมูลผู้บริหารสถานศึกษา", links: emptyLink() },
-      { code: "O3", title: "แผนพัฒนาสถานศึกษา", links: emptyLink() },
-      { code: "O4", title: "ข้อมูลการติดต่อ", links: emptyLink() },
-      { code: "O5", title: "กฎหมายที่เกี่ยวข้อง", links: emptyLink() }
+      {
+        code: "O1",
+        title: "โครงสร้างและอำนาจหน้าที่",
+        links: [{ label: "เปิดข้อมูล", href: "https://www.rcat.ac.th/rcat-organization" }]
+      },
+      {
+        code: "O2",
+        title: "ข้อมูลผู้บริหารสถานศึกษา",
+        links: [{ label: "เปิดข้อมูล", href: "https://www.rcat.ac.th/rcat-director" }]
+      },
+      {
+        code: "O3",
+        title: "แผนพัฒนาสถานศึกษา",
+        links: [{ label: "เปิดข้อมูล", href: "https://www.rcat.ac.th/development-plan" }]
+      },
+      {
+        code: "O4",
+        title: "ข้อมูลการติดต่อ",
+        links: [{ label: "เปิดข้อมูล", href: "https://www.rcat.ac.th/contact" }]
+      },
+      {
+        code: "O5",
+        title: "กฎหมายที่เกี่ยวข้อง",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1tTaQEtfDpLbucjtkzxnNmtZfSCdcgxQX&usp=drive_fs"
+          }
+        ]
+      }
     ]
   },
   {
@@ -55,10 +104,31 @@ const ITA_SECTIONS: ItaSection[] = [
     range: "O6–O9",
     group: "9",
     items: [
-      { code: "O6", title: "แผนปฏิบัติราชการและแผนการใช้จ่ายงบประมาณประจำปี", links: emptyLink() },
-      { code: "O7", title: "รายงานผลการดำเนินงานของสถานศึกษาประจำปี", links: emptyLink() },
-      { code: "O8", title: "รายงานผลการประเมินตนเอง (SAR) ของสถานศึกษาประจำปี", links: emptyLink() },
-      { code: "O9", title: "ข่าวประชาสัมพันธ์", links: emptyLink() }
+      {
+        code: "O6",
+        title: "แผนปฏิบัติราชการและแผนการใช้จ่ายงบประมาณประจำปี",
+        links: [{ label: "เปิดข้อมูล", href: "https://www.rcat.ac.th/action-plan" }]
+      },
+      {
+        code: "O7",
+        title: "รายงานผลการดำเนินงานของสถานศึกษาประจำปี",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1uXOZ0BHbIAb_YLNEMCuNUOTqN82AXs7c&usp=drive_fs"
+          }
+        ]
+      },
+      {
+        code: "O8",
+        title: "รายงานผลการประเมินตนเอง (SAR) ของสถานศึกษาประจำปี",
+        links: [{ label: "เปิดข้อมูล", href: "https://www.rcat.ac.th/sar" }]
+      },
+      {
+        code: "O9",
+        title: "ข่าวประชาสัมพันธ์",
+        links: [{ label: "เปิดข้อมูล", href: "https://www.rcat.ac.th/news" }]
+      }
     ]
   },
   {
@@ -68,8 +138,26 @@ const ITA_SECTIONS: ItaSection[] = [
     range: "O10–O11",
     group: "9",
     items: [
-      { code: "O10", title: "ประกาศต่าง ๆ เกี่ยวกับการจัดซื้อจัดจ้างหรือการจัดหาพัสดุ", links: emptyLink() },
-      { code: "O11", title: "รายงานผลการจัดซื้อจัดจ้างหรือการจัดหาพัสดุประจำปี", links: emptyLink() }
+      {
+        code: "O10",
+        title: "ประกาศต่าง ๆ เกี่ยวกับการจัดซื้อจัดจ้างหรือการจัดหาพัสดุ",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1GyJinLTWeP940I0am4dvyjc2eVaz3obW&usp=drive_fs"
+          }
+        ]
+      },
+      {
+        code: "O11",
+        title: "รายงานผลการจัดซื้อจัดจ้างหรือการจัดหาพัสดุประจำปี",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=16oGiE8AiXpD8PyTRRFK2WxVCLNFCZqvm&usp=drive_fs"
+          }
+        ]
+      }
     ]
   },
   {
@@ -79,14 +167,41 @@ const ITA_SECTIONS: ItaSection[] = [
     range: "O12–O15",
     group: "9",
     items: [
-      { code: "O12", title: "คู่มือหรือขั้นตอนการปฏิบัติงานภายในสถานศึกษา", links: emptyLink() },
-      { code: "O13", title: "คู่มือหรือขั้นตอนการให้บริการ", links: emptyLink() },
+      {
+        code: "O12",
+        title: "คู่มือหรือขั้นตอนการปฏิบัติงานภายในสถานศึกษา",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1YHiu7A1jW3v0RL7YVsFUZNQtaLxS4HFm&usp=drive_fs"
+          }
+        ]
+      },
+      {
+        code: "O13",
+        title: "คู่มือหรือขั้นตอนการให้บริการ",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1tBCJfsbg5Tsby9lhAZTO1apRf8zgeQA2&usp=drive_fs"
+          }
+        ]
+      },
       {
         code: "O14",
         title: "E-Service",
-        links: [{ label: "เข้าสู่ E-Service", href: E_SERVICE_HOME_HREF }]
+        links: [{ label: "เปิดข้อมูล", href: "https://www.rcat.ac.th/#e-service" }]
       },
-      { code: "O15", title: "ข้อมูลเชิงสถิติและความพึงพอใจต่อการให้บริการ", links: emptyLink() }
+      {
+        code: "O15",
+        title: "ข้อมูลเชิงสถิติและความพึงพอใจต่อการให้บริการ",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1Flnk1IvIqP3dlc4TAB3hxsCENI_TTj7j&usp=drive_fs"
+          }
+        ]
+      }
     ]
   },
   {
@@ -96,11 +211,25 @@ const ITA_SECTIONS: ItaSection[] = [
     range: "O16–O17",
     group: "9",
     items: [
-      { code: "O16", title: "การบริหารและพัฒนาทรัพยากรบุคคล", links: emptyLink() },
+      {
+        code: "O16",
+        title: "การบริหารและพัฒนาทรัพยากรบุคคล",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1GCmOmnlIOY4gHU2cF7rW5l8YqhDEpUZn&usp=drive_fs"
+          }
+        ]
+      },
       {
         code: "O17",
         title: "ประมวลจริยธรรมและการขับเคลื่อนจริยธรรมของข้าราชการครูและบุคลากรทางการศึกษา",
-        links: emptyLink()
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1D1v0DuRxGkB4EvwVbT-hAGp1htstxbf-&usp=drive_fs"
+          }
+        ]
       }
     ]
   },
@@ -111,8 +240,26 @@ const ITA_SECTIONS: ItaSection[] = [
     range: "O18–O19",
     group: "10",
     items: [
-      { code: "O18", title: "แนวทางปฏิบัติการจัดการร้องเรียนการทุจริตและประพฤติมิชอบ", links: emptyLink() },
-      { code: "O19", title: "ข้อมูลเชิงสถิติเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ", links: emptyLink() }
+      {
+        code: "O18",
+        title: "แนวทางปฏิบัติการจัดการร้องเรียนการทุจริตและประพฤติมิชอบ",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1sJPjuI47Bt9uq5MK_VUZS3ILP5lVF6rd&usp=drive_fs"
+          }
+        ]
+      },
+      {
+        code: "O19",
+        title: "ข้อมูลเชิงสถิติเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1yZ47N9xrEFvFqBPE2SSZcwHI4f3kdQCM&usp=drive_fs"
+          }
+        ]
+      }
     ]
   },
   {
@@ -122,10 +269,46 @@ const ITA_SECTIONS: ItaSection[] = [
     range: "O20–O23",
     group: "10",
     items: [
-      { code: "O20", title: "ประกาศเจตนารมณ์นโยบายไม่รับของขวัญ (No Gift Policy)", links: emptyLink() },
-      { code: "O21", title: "การประเมินผลควบคุมภายในของสถานศึกษา", links: emptyLink() },
-      { code: "O22", title: "การเสริมสร้างวัฒนธรรมองค์กรให้มีความซื่อสัตย์สุจริต", links: emptyLink() },
-      { code: "O23", title: "มาตรการส่งเสริมคุณธรรมและความโปร่งใสภายในสถานศึกษา", links: emptyLink() }
+      {
+        code: "O20",
+        title: "ประกาศเจตนารมณ์นโยบายไม่รับของขวัญ (No Gift Policy)",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1W9AgBcPHVGwO3Gz9iXfsjOnvCIeEE1Mx&usp=drive_fs"
+          }
+        ]
+      },
+      {
+        code: "O21",
+        title: "การประเมินผลควบคุมภายในของสถานศึกษา",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1q5iOCxUCENzcJ7GTJbbN7ADaxKR9y4DX&usp=drive_fs"
+          }
+        ]
+      },
+      {
+        code: "O22",
+        title: "การเสริมสร้างวัฒนธรรมองค์กรให้มีความซื่อสัตย์สุจริต",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=1CKf4ZsU1QvaUh0SBTvbHQuKWm-6w_7cc&usp=drive_fs"
+          }
+        ]
+      },
+      {
+        code: "O23",
+        title: "มาตรการส่งเสริมคุณธรรมและความโปร่งใสภายในสถานศึกษา",
+        links: [
+          {
+            label: "เปิดข้อมูล",
+            href: "https://drive.google.com/open?id=19ukICUTYplRaBVqa86TtSMBSo1BieISQ&usp=drive_fs"
+          }
+        ]
+      }
     ]
   }
 ];
@@ -151,7 +334,33 @@ function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
 
-function ItaHomeHashLink({ link }: { link: ItaResourceLink }) {
+function getInternalRcatTarget(href: string) {
+  try {
+    const url = new URL(href, RCAT_ORIGIN);
+    const pathname = url.pathname || "/";
+
+    if (url.origin !== RCAT_ORIGIN || !isItaInternalPath(pathname)) {
+      return null;
+    }
+
+    return {
+      pathname,
+      hash: url.hash.replace(/^#/, "")
+    };
+  } catch {
+    return null;
+  }
+}
+
+function ItaInternalLink({
+  link,
+  pathname,
+  hash
+}: {
+  link: ItaResourceLink;
+  pathname: ItaInternalPath;
+  hash: string;
+}) {
   const navigate = useNavigate();
 
   return (
@@ -163,17 +372,23 @@ function ItaHomeHashLink({ link }: { link: ItaResourceLink }) {
         }
 
         event.preventDefault();
-        void navigate({
-          to: "/",
-          hash: "e-service",
-          resetScroll: false,
-          hashScrollIntoView: false
-        });
+
+        if (hash) {
+          void navigate({
+            to: pathname,
+            hash,
+            resetScroll: false,
+            hashScrollIntoView: false
+          });
+          return;
+        }
+
+        void navigate({ to: pathname });
       }}
       className="inline-flex items-center gap-1.5 rounded-lg bg-rcat-green px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rcat-deep-green focus:outline-none focus:ring-4 focus:ring-emerald-100"
     >
       {link.label || "เปิดข้อมูล"}
-      <span aria-hidden="true">↓</span>
+      <span aria-hidden="true">→</span>
     </a>
   );
 }
@@ -187,8 +402,10 @@ function ItaLinkButton({ link }: { link: ItaResourceLink }) {
     );
   }
 
-  if (link.href === E_SERVICE_HOME_HREF) {
-    return <ItaHomeHashLink link={link} />;
+  const internalTarget = getInternalRcatTarget(link.href);
+
+  if (internalTarget) {
+    return <ItaInternalLink link={link} pathname={internalTarget.pathname} hash={internalTarget.hash} />;
   }
 
   return (
