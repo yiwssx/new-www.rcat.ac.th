@@ -43,12 +43,12 @@ const EXPECTED_LINKS = {
 } as const;
 
 const INTERNAL_NAVIGATIONS = {
-  O1: { to: "/rcat-organization" },
-  O2: { to: "/rcat-director" },
-  O3: { to: "/development-plan" },
+  O1: { to: "/$slug", params: { slug: "rcat-organization" } },
+  O2: { to: "/$slug", params: { slug: "rcat-director" } },
+  O3: { to: "/$slug", params: { slug: "development-plan" } },
   O4: { to: "/contact" },
-  O6: { to: "/action-plan" },
-  O8: { to: "/sar" },
+  O6: { to: "/$slug", params: { slug: "action-plan" } },
+  O8: { to: "/$slug", params: { slug: "sar" } },
   O9: { to: "/news" },
   O14: {
     to: "/",

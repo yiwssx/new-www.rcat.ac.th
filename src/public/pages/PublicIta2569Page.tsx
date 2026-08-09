@@ -26,23 +26,8 @@ export interface ItaSection {
 
 const RCAT_ORIGIN = "https://www.rcat.ac.th";
 
-type ItaInternalPath =
-  "/" | "/rcat-organization" | "/rcat-director" | "/development-plan" | "/contact" | "/action-plan" | "/sar" | "/news";
-
-const INTERNAL_RCAT_PATHS = new Set<ItaInternalPath>([
-  "/",
-  "/rcat-organization",
-  "/rcat-director",
-  "/development-plan",
-  "/contact",
-  "/action-plan",
-  "/sar",
-  "/news"
-]);
-
-function isItaInternalPath(pathname: string): pathname is ItaInternalPath {
-  return INTERNAL_RCAT_PATHS.has(pathname as ItaInternalPath);
-}
+type ItaInternalTarget =
+  { kind: "home"; hash: string } | { kind: "static"; to: "/contact" | "/news" } | { kind: "permalink"; slug: string };
 
 /**
  * แก้ลิงก์เอกสาร ITA 2569 ตรง ITA_SECTIONS เท่านั้น
@@ -327,25 +312,35 @@ function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
 
-function getInternalRcatTarget(href: string) {
+function getInternalRcatTarget(href: string): ItaInternalTarget | null {
   try {
     const url = new URL(href, RCAT_ORIGIN);
-    const pathname = url.pathname || "/";
+    const pathname = url.pathname.replace(/\/+$/, "") || "/";
 
-    if (url.origin !== RCAT_ORIGIN || !isItaInternalPath(pathname)) {
+    if (url.origin !== RCAT_ORIGIN) {
       return null;
     }
 
-    return {
-      pathname,
-      hash: url.hash.replace(/^#/, "")
-    };
+    if (pathname === "/") {
+      return { kind: "home", hash: url.hash.replace(/^#/, "") };
+    }
+
+    if (pathname === "/contact" || pathname === "/news") {
+      return { kind: "static", to: pathname };
+    }
+
+    const slug = pathname.slice(1);
+    if (!slug || slug.includes("/")) {
+      return null;
+    }
+
+    return { kind: "permalink", slug };
   } catch {
     return null;
   }
 }
 
-function ItaInternalLink({ link, pathname, hash }: { link: ItaResourceLink; pathname: ItaInternalPath; hash: string }) {
+function ItaInternalLink({ link, target }: { link: ItaResourceLink; target: ItaInternalTarget }) {
   const navigate = useNavigate();
 
   return (
@@ -358,17 +353,27 @@ function ItaInternalLink({ link, pathname, hash }: { link: ItaResourceLink; path
 
         event.preventDefault();
 
-        if (hash) {
-          void navigate({
-            to: pathname,
-            hash,
-            resetScroll: false,
-            hashScrollIntoView: false
-          });
+        if (target.kind === "home") {
+          if (target.hash) {
+            void navigate({
+              to: "/",
+              hash: target.hash,
+              resetScroll: false,
+              hashScrollIntoView: false
+            });
+            return;
+          }
+
+          void navigate({ to: "/" });
           return;
         }
 
-        void navigate({ to: pathname });
+        if (target.kind === "static") {
+          void navigate({ to: target.to });
+          return;
+        }
+
+        void navigate({ to: "/$slug", params: { slug: target.slug } });
       }}
       className="inline-flex items-center gap-1.5 rounded-lg bg-rcat-green px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rcat-deep-green focus:outline-none focus:ring-4 focus:ring-emerald-100"
     >
@@ -390,7 +395,7 @@ function ItaLinkButton({ link }: { link: ItaResourceLink }) {
   const internalTarget = getInternalRcatTarget(link.href);
 
   if (internalTarget) {
-    return <ItaInternalLink link={link} pathname={internalTarget.pathname} hash={internalTarget.hash} />;
+    return <ItaInternalLink link={link} target={internalTarget} />;
   }
 
   return (
