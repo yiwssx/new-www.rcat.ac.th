@@ -223,19 +223,19 @@ describe("MediaPage media mutation feedback", () => {
     filesMock.readFileAsBase64.mockClear();
   });
 
-  it("rejects files over 10 MB before reading the file or opening loading feedback", async () => {
+  it("rejects files over 100 MB before reading the file or opening loading feedback", async () => {
     renderMediaPage();
 
     await screen.findByText(asset.name);
     fireEvent.click(screen.getByRole("button", { name: "เพิ่มสื่อ" }));
-    expect(screen.getByText("รองรับไฟล์ขนาดไม่เกิน 10 MB")).toBeInTheDocument();
+    expect(screen.getByText("รองรับไฟล์ขนาดไม่เกิน 100 MB")).toBeInTheDocument();
     const fileInput = document.body.querySelector<HTMLInputElement>('input[type="file"]');
     const file = new File(["pdf"], "too-large.pdf", { type: "application/pdf" });
-    Object.defineProperty(file, "size", { value: 10 * 1024 * 1024 + 1 });
+    Object.defineProperty(file, "size", { value: 100 * 1024 * 1024 + 1 });
 
     fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
 
-    expect(screen.getByText("ไฟล์ต้องมีขนาดไม่เกิน 10 MB")).toBeInTheDocument();
+    expect(screen.getByText("ไฟล์ต้องมีขนาดไม่เกิน 100 MB")).toBeInTheDocument();
     expect(fileInput).toHaveValue("");
     expect(filesMock.readFileAsBase64).not.toHaveBeenCalled();
     expect(mediaMock.saveMediaAsset).not.toHaveBeenCalled();

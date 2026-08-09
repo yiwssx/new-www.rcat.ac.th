@@ -278,7 +278,7 @@ function validateResumableMediaPayload(asset) {
   const uploadKey = normalizeMediaUploadKey(asset.uploadKey);
 
   if (totalBytes < 1 || totalBytes > MAX_UPLOAD_BYTES) {
-    throw createHttpError("File upload must be between 1 byte and 10 MB.", 413);
+    throw createHttpError("File upload must be between 1 byte and 100 MB.", 413);
   }
 
   return {
