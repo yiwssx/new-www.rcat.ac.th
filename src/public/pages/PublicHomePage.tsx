@@ -143,8 +143,9 @@ function HomeHashScroller() {
         return;
       }
 
-      const target = Array.from(document.querySelectorAll<HTMLElement>("[data-e-service-anchor]"))
-        .find((element) => element.getClientRects().length > 0);
+      const target = Array.from(document.querySelectorAll<HTMLElement>("[data-e-service-anchor]")).find(
+        (element) => element.getClientRects().length > 0
+      );
 
       if (target) {
         observer?.disconnect();
@@ -288,7 +289,10 @@ export default function PublicHomePage() {
               <DeferredHomeSection minHeight={{ xs: 240, md: 280 }}>
                 <Box
                   data-e-service-anchor="true"
-                  sx={{ display: { xs: "none", lg: "block" }, scrollMarginTop: { xs: 80, md: 96 } }}
+                  sx={{
+                    display: { xs: "none", lg: "block" },
+                    scrollMarginTop: { xs: 80, md: 96 }
+                  }}
                 >
                   <LazyExternalServicesSection items={externalServiceItems} mediaAssets={mediaAssets} />
                 </Box>
@@ -319,7 +323,10 @@ export default function PublicHomePage() {
                 <DeferredHomeSection minHeight={260}>
                   <Box
                     data-e-service-anchor="true"
-                    sx={{ display: { xs: "block", lg: "none" }, scrollMarginTop: { xs: 80, md: 96 } }}
+                    sx={{
+                      display: { xs: "block", lg: "none" },
+                      scrollMarginTop: { xs: 80, md: 96 }
+                    }}
                   >
                     <LazyExternalServicesSection items={externalServiceItems} mediaAssets={mediaAssets} />
                   </Box>
