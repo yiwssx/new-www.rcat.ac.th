@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import PublicSiteShell from "../components/PublicSiteShell";
+import { projectSettings } from "../../config/projectSettings";
 
 type ItaIndicatorGroup = "9" | "10";
 
@@ -375,7 +376,7 @@ function ItaInternalLink({ link, target }: { link: ItaResourceLink; target: ItaI
 
         void navigate({ to: "/$slug", params: { slug: target.slug } });
       }}
-      className="inline-flex items-center gap-1.5 rounded-lg bg-rcat-green px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rcat-deep-green focus:outline-none focus:ring-4 focus:ring-emerald-100"
+      className="group inline-flex min-h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3.5 py-2 text-xs font-extrabold text-emerald-800 shadow-sm shadow-emerald-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-950 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-emerald-100"
     >
       {link.label || "เปิดข้อมูล"}
       <span aria-hidden="true">→</span>
@@ -403,7 +404,7 @@ function ItaLinkButton({ link }: { link: ItaResourceLink }) {
       href={link.href}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center gap-1.5 rounded-lg bg-rcat-green px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rcat-deep-green focus:outline-none focus:ring-4 focus:ring-emerald-100"
+      className="group inline-flex min-h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3.5 py-2 text-xs font-extrabold text-emerald-800 shadow-sm shadow-emerald-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-950 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-emerald-100"
     >
       {link.label || "เปิดข้อมูล"}
       <span aria-hidden="true">↗</span>
@@ -490,11 +491,16 @@ export default function PublicIta2569Page() {
           <div className="pointer-events-none absolute -bottom-24 -left-12 h-56 w-56 rounded-full bg-emerald-300/20 blur-3xl" />
           <div className="relative mx-auto max-w-5xl text-center">
             <div
-              aria-label="ITA 2569"
-              className="mx-auto mb-5 flex h-20 w-20 flex-col items-center justify-center rounded-2xl border border-white/30 bg-white/10 shadow-lg ring-4 ring-white/10 backdrop-blur"
+              aria-label={projectSettings.site.logoAlt}
+              className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full border border-white/50 bg-white p-2 shadow-xl shadow-black/20 ring-4 ring-white/10"
             >
-              <span className="text-xl font-black leading-none text-amber-200">ITA</span>
-              <span className="mt-1 text-xs font-extrabold tracking-wider text-white">2569</span>
+              <img
+                src={projectSettings.site.logoPath}
+                alt={projectSettings.site.logoAlt}
+                width={128}
+                height={128}
+                className="h-full w-full object-contain"
+              />
             </div>
             <span className="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-extrabold tracking-wider text-amber-200 backdrop-blur">
               ITA 2569 · OPEN DATA INTEGRITY AND TRANSPARENCY ASSESSMENT
