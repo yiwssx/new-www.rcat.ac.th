@@ -1,0 +1,345 @@
+import PublicSiteShell from "../components/PublicSiteShell";
+
+type ItaIndicatorGroup = "9" | "10";
+
+export interface ItaResourceLink {
+  label: string;
+  href: string;
+}
+
+export interface ItaItem {
+  code: string;
+  title: string;
+  links: ItaResourceLink[];
+}
+
+export interface ItaSection {
+  id: string;
+  indicator: string;
+  title: string;
+  range: string;
+  group: ItaIndicatorGroup;
+  items: ItaItem[];
+}
+
+const emptyLink = (): ItaResourceLink[] => [{ label: "เปิดข้อมูล", href: "" }];
+
+/**
+ * แก้ลิงก์เอกสาร ITA 2569 ตรง ITA_SECTIONS เท่านั้น
+ * - เปลี่ยน href เป็น URL ที่ต้องการ
+ * - เปลี่ยน label ได้ตามข้อความที่ต้องการให้แสดง
+ * - หากหัวข้อเดียวมีหลายลิงก์ ให้เพิ่ม { label: "...", href: "..." } ใน links
+ */
+export const ITA_SECTIONS: ItaSection[] = [
+  {
+    id: "indicator-9-1",
+    indicator: "ตัวชี้วัดย่อยที่ 9.1",
+    title: "ข้อมูลพื้นฐาน",
+    range: "O1–O5",
+    group: "9",
+    items: [
+      { code: "O1", title: "โครงสร้างและอำนาจหน้าที่", links: emptyLink() },
+      { code: "O2", title: "ข้อมูลผู้บริหารสถานศึกษา", links: emptyLink() },
+      { code: "O3", title: "แผนพัฒนาสถานศึกษา", links: emptyLink() },
+      { code: "O4", title: "ข้อมูลการติดต่อ", links: emptyLink() },
+      { code: "O5", title: "กฎหมายที่เกี่ยวข้อง", links: emptyLink() }
+    ]
+  },
+  {
+    id: "indicator-9-2",
+    indicator: "ตัวชี้วัดย่อยที่ 9.2",
+    title: "การบริหารงาน ปฏิสัมพันธ์ข้อมูล และการดำเนินงาน",
+    range: "O6–O9",
+    group: "9",
+    items: [
+      { code: "O6", title: "แผนปฏิบัติราชการและแผนการใช้จ่ายงบประมาณประจำปี", links: emptyLink() },
+      { code: "O7", title: "รายงานผลการดำเนินงานของสถานศึกษาประจำปี", links: emptyLink() },
+      { code: "O8", title: "รายงานผลการประเมินตนเอง (SAR) ของสถานศึกษาประจำปี", links: emptyLink() },
+      { code: "O9", title: "ข่าวประชาสัมพันธ์", links: emptyLink() }
+    ]
+  },
+  {
+    id: "indicator-9-3",
+    indicator: "ตัวชี้วัดย่อยที่ 9.3",
+    title: "การจัดซื้อจัดจ้างหรือการจัดหาพัสดุ",
+    range: "O10–O11",
+    group: "9",
+    items: [
+      { code: "O10", title: "ประกาศต่าง ๆ เกี่ยวกับการจัดซื้อจัดจ้างหรือการจัดหาพัสดุ", links: emptyLink() },
+      { code: "O11", title: "รายงานผลการจัดซื้อจัดจ้างหรือการจัดหาพัสดุประจำปี", links: emptyLink() }
+    ]
+  },
+  {
+    id: "indicator-9-4",
+    indicator: "ตัวชี้วัดย่อยที่ 9.4",
+    title: "การปฏิบัติหน้าที่",
+    range: "O12–O15",
+    group: "9",
+    items: [
+      { code: "O12", title: "คู่มือหรือขั้นตอนการปฏิบัติงานภายในสถานศึกษา", links: emptyLink() },
+      { code: "O13", title: "คู่มือหรือขั้นตอนการให้บริการ", links: emptyLink() },
+      { code: "O14", title: "E-Service", links: emptyLink() },
+      { code: "O15", title: "ข้อมูลเชิงสถิติและความพึงพอใจต่อการให้บริการ", links: emptyLink() }
+    ]
+  },
+  {
+    id: "indicator-9-5",
+    indicator: "ตัวชี้วัดย่อยที่ 9.5",
+    title: "การบริหารและพัฒนาทรัพยากรบุคคล",
+    range: "O16–O17",
+    group: "9",
+    items: [
+      { code: "O16", title: "การบริหารและพัฒนาทรัพยากรบุคคล", links: emptyLink() },
+      {
+        code: "O17",
+        title: "ประมวลจริยธรรมและการขับเคลื่อนจริยธรรมของข้าราชการครูและบุคลากรทางการศึกษา",
+        links: emptyLink()
+      }
+    ]
+  },
+  {
+    id: "indicator-10-1",
+    indicator: "ตัวชี้วัดย่อยที่ 10.1",
+    title: "การจัดการเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ",
+    range: "O18–O19",
+    group: "10",
+    items: [
+      { code: "O18", title: "แนวทางปฏิบัติการจัดการร้องเรียนการทุจริตและประพฤติมิชอบ", links: emptyLink() },
+      { code: "O19", title: "ข้อมูลเชิงสถิติเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ", links: emptyLink() }
+    ]
+  },
+  {
+    id: "indicator-10-2",
+    indicator: "ตัวชี้วัดย่อยที่ 10.2",
+    title: "มาตรการภายในเพื่อป้องกันการทุจริต",
+    range: "O20–O23",
+    group: "10",
+    items: [
+      { code: "O20", title: "ประกาศเจตนารมณ์นโยบายไม่รับของขวัญ (No Gift Policy)", links: emptyLink() },
+      { code: "O21", title: "การประเมินผลควบคุมภายในของสถานศึกษา", links: emptyLink() },
+      { code: "O22", title: "การเสริมสร้างวัฒนธรรมองค์กรให้มีความซื่อสัตย์สุจริต", links: emptyLink() },
+      { code: "O23", title: "มาตรการส่งเสริมคุณธรรมและความโปร่งใสภายในสถานศึกษา", links: emptyLink() }
+    ]
+  }
+];
+
+const INDICATOR_SUMMARIES = [
+  {
+    group: "9" as const,
+    label: "ตัวชี้วัดที่ 9",
+    range: "O1–O17",
+    title: "การเปิดเผยข้อมูล",
+    detail: "ข้อมูลพื้นฐาน การบริหารงาน พัสดุ การปฏิบัติหน้าที่ และทรัพยากรบุคคล"
+  },
+  {
+    group: "10" as const,
+    label: "ตัวชี้วัดที่ 10",
+    range: "O18–O23",
+    title: "การป้องกันการทุจริต",
+    detail: "การจัดการเรื่องร้องเรียนและมาตรการภายในเพื่อป้องกันการทุจริต"
+  }
+];
+
+function ItaLinkButton({ link }: { link: ItaResourceLink }) {
+  if (!link.href.trim()) {
+    return (
+      <span className="inline-flex items-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+        รอใส่ลิงก์
+      </span>
+    );
+  }
+
+  return (
+    <a
+      href={link.href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1.5 rounded-lg bg-rcat-green px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rcat-deep-green focus:outline-none focus:ring-4 focus:ring-emerald-100"
+    >
+      {link.label || "เปิดข้อมูล"}
+      <span aria-hidden="true">↗</span>
+    </a>
+  );
+}
+
+function ItaSectionCard({ section }: { section: ItaSection }) {
+  const isIndicatorTen = section.group === "10";
+
+  return (
+    <section
+      id={section.id}
+      className="scroll-mt-28 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+    >
+      <div
+        className={
+          isIndicatorTen
+            ? "border-b border-amber-200 bg-amber-50 px-5 py-5 md:px-7"
+            : "border-b border-emerald-200 bg-emerald-50 px-5 py-5 md:px-7"
+        }
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className={isIndicatorTen ? "text-sm font-bold text-amber-800" : "text-sm font-bold text-emerald-800"}>
+              {section.indicator}
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold leading-snug text-slate-900 md:text-2xl">{section.title}</h2>
+          </div>
+          <span
+            className={
+              isIndicatorTen
+                ? "w-fit rounded-full bg-amber-200 px-3 py-1 text-xs font-extrabold text-amber-900"
+                : "w-fit rounded-full bg-emerald-200 px-3 py-1 text-xs font-extrabold text-emerald-900"
+            }
+          >
+            {section.range}
+          </span>
+        </div>
+      </div>
+
+      <div className="divide-y divide-slate-100">
+        {section.items.map((item) => (
+          <article
+            key={item.code}
+            data-ita-code={item.code}
+            className="grid gap-4 px-5 py-5 transition hover:bg-slate-50 md:grid-cols-[5rem_minmax(0,1fr)_auto] md:items-center md:px-7"
+          >
+            <div className="flex items-center gap-3 md:block">
+              <span
+                className={
+                  isIndicatorTen
+                    ? "inline-flex min-w-14 justify-center rounded-xl bg-amber-100 px-3 py-2 text-sm font-black text-amber-800"
+                    : "inline-flex min-w-14 justify-center rounded-xl bg-emerald-100 px-3 py-2 text-sm font-black text-emerald-800"
+                }
+              >
+                {item.code}
+              </span>
+            </div>
+            <h3 className="text-sm font-bold leading-6 text-slate-800 md:text-base">{item.title}</h3>
+            <div className="flex flex-wrap gap-2 md:max-w-72 md:justify-end">
+              {item.links.map((link, index) => (
+                <ItaLinkButton key={`${item.code}-${index}-${link.label}`} link={link} />
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export default function PublicIta2569Page() {
+  return (
+    <PublicSiteShell
+      title="ITA ประจำปีงบประมาณ พ.ศ. 2569"
+      description="การเปิดเผยข้อมูลสาธารณะ (OIT) ของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด ประจำปีงบประมาณ พ.ศ. 2569"
+      canonicalPath="/ita2569"
+      hidePageHeader
+    >
+      <div className="w-full [font-family:'Sarabun',sans-serif]">
+        <section className="relative isolate overflow-hidden rounded-3xl bg-rcat-deep-green px-5 py-10 text-white shadow-xl md:px-10 md:py-14">
+          <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-rcat-yellow/30 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 -left-12 h-56 w-56 rounded-full bg-emerald-300/20 blur-3xl" />
+          <div className="relative mx-auto max-w-5xl text-center">
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-white p-2 shadow-lg ring-4 ring-white/15">
+              <img src="/rcat-logo-128.png" alt="ตราวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด" width={64} height={64} />
+            </div>
+            <span className="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-extrabold tracking-wider text-amber-200 backdrop-blur">
+              ITA 2569 · OPEN DATA INTEGRITY AND TRANSPARENCY ASSESSMENT
+            </span>
+            <h1 className="mx-auto mt-5 max-w-4xl text-2xl font-black leading-tight md:text-4xl">
+              การประเมินคุณธรรมและความโปร่งใสในการดำเนินงาน
+            </h1>
+            <p className="mt-3 text-lg font-bold text-emerald-50 md:text-2xl">ประจำปีงบประมาณ พ.ศ. 2569</p>
+            <p className="mx-auto mt-5 max-w-3xl text-sm font-medium leading-7 text-emerald-50/90 md:text-base">
+              วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด เผยแพร่ข้อมูลสาธารณะตามแบบวัดการเปิดเผยข้อมูลสาธารณะ (OIT)
+              เพื่อส่งเสริมคุณธรรม ความโปร่งใส และการตรวจสอบได้ของสถานศึกษา
+            </p>
+          </div>
+        </section>
+
+        <section aria-label="สรุปตัวชี้วัด" className="relative z-10 mx-auto -mt-5 grid max-w-5xl gap-4 px-3 md:grid-cols-3">
+          {INDICATOR_SUMMARIES.map((summary) => (
+            <div key={summary.group} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-200/60">
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-sm font-extrabold text-rcat-deep-green">{summary.label}</span>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">{summary.range}</span>
+              </div>
+              <p className="mt-3 text-lg font-black text-slate-900">{summary.title}</p>
+              <p className="mt-2 text-xs leading-5 text-slate-500">{summary.detail}</p>
+            </div>
+          ))}
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-lg shadow-amber-100/60">
+            <div className="flex items-start justify-between gap-3">
+              <span className="text-sm font-extrabold text-amber-800">ข้อมูล OIT</span>
+              <span className="rounded-full bg-amber-200 px-2.5 py-1 text-xs font-black text-amber-900">O1–O23</span>
+            </div>
+            <p className="mt-3 text-3xl font-black text-slate-900">23 หัวข้อ</p>
+            <p className="mt-2 text-xs leading-5 text-slate-600">จัดกลุ่มตามตัวชี้วัดที่ 9 และตัวชี้วัดที่ 10 เพื่อค้นหาข้อมูลได้สะดวก</p>
+          </div>
+        </section>
+
+        <div className="mx-auto mt-8 max-w-6xl">
+          <nav aria-label="สารบัญ ITA 2569" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-sm font-extrabold text-slate-900">เลือกหมวดข้อมูล</p>
+              <span className="text-xs font-semibold text-slate-400">7 หมวด</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ITA_SECTIONS.map((section) => (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-rcat-green hover:bg-emerald-50 hover:text-rcat-deep-green focus:outline-none focus:ring-4 focus:ring-emerald-100"
+                >
+                  {section.indicator.replace("ตัวชี้วัดย่อยที่ ", "")} · {section.title}
+                </a>
+              ))}
+            </div>
+          </nav>
+
+          <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm leading-6 text-emerald-950">
+            <strong>หมายเหตุ:</strong> ข้อมูลในหน้านี้จัดทำเพื่อการเปิดเผยข้อมูลสาธารณะของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด
+            ประจำปีงบประมาณ พ.ศ. 2569 โดยลิงก์เอกสารแต่ละรายการสามารถเผยแพร่จากเว็บไซต์หรือแหล่งข้อมูลภายนอกได้
+          </div>
+
+          <div className="mt-10 flex items-center gap-4">
+            <div className="h-px flex-1 bg-emerald-200" />
+            <div className="text-center">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-700">Indicator 9</p>
+              <h2 className="mt-1 text-xl font-black text-slate-900 md:text-2xl">ตัวชี้วัดที่ 9 การเปิดเผยข้อมูล</h2>
+            </div>
+            <div className="h-px flex-1 bg-emerald-200" />
+          </div>
+
+          <div className="mt-6 space-y-6">
+            {ITA_SECTIONS.filter((section) => section.group === "9").map((section) => (
+              <ItaSectionCard key={section.id} section={section} />
+            ))}
+          </div>
+
+          <div className="mt-12 flex items-center gap-4">
+            <div className="h-px flex-1 bg-amber-200" />
+            <div className="text-center">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-amber-700">Indicator 10</p>
+              <h2 className="mt-1 text-xl font-black text-slate-900 md:text-2xl">ตัวชี้วัดที่ 10 การป้องกันการทุจริต</h2>
+            </div>
+            <div className="h-px flex-1 bg-amber-200" />
+          </div>
+
+          <div className="mt-6 space-y-6">
+            {ITA_SECTIONS.filter((section) => section.group === "10").map((section) => (
+              <ItaSectionCard key={section.id} section={section} />
+            ))}
+          </div>
+
+          <footer className="mt-10 rounded-2xl bg-slate-900 px-5 py-7 text-center text-white md:px-8">
+            <p className="font-extrabold">วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              การประเมินคุณธรรมและความโปร่งใสในการดำเนินงานของสถานศึกษา ประจำปีงบประมาณ พ.ศ. 2569
+            </p>
+          </footer>
+        </div>
+      </div>
+    </PublicSiteShell>
+  );
+}
