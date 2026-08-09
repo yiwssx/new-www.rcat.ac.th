@@ -128,6 +128,51 @@ function DeferredHomeSection({
   );
 }
 
+function HomeHashScroller() {
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    let observer: MutationObserver | undefined;
+
+    const scrollToHashTarget = () => {
+      if (window.location.hash !== "#e-service") {
+        observer?.disconnect();
+        observer = undefined;
+        return;
+      }
+
+      const target = Array.from(document.querySelectorAll<HTMLElement>("[data-e-service-anchor]"))
+        .find((element) => element.getClientRects().length > 0);
+
+      if (target) {
+        observer?.disconnect();
+        observer = undefined;
+        window.requestAnimationFrame(() => {
+          target.scrollIntoView({ block: "start" });
+        });
+        return;
+      }
+
+      if (!observer) {
+        observer = new MutationObserver(scrollToHashTarget);
+        observer.observe(document.body, { childList: true, subtree: true });
+      }
+    };
+
+    scrollToHashTarget();
+    window.addEventListener("hashchange", scrollToHashTarget);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("hashchange", scrollToHashTarget);
+    };
+  }, []);
+
+  return null;
+}
+
 function LiveVisitorStatsCard({
   initialStats,
   initialDataUpdatedAt
@@ -201,6 +246,7 @@ export default function PublicHomePage() {
       preloadedDisplaySettings={data.displaySettings}
       preloadedMenu={data.menu}
     >
+      <HomeHashScroller />
       <PublicBackgroundProgress active={isFetching} />
       <PublicHomeCarouselSsrBoundary
         slides={carouselSlides}
@@ -240,7 +286,10 @@ export default function PublicHomePage() {
                 />
               </DeferredHomeSection>
               <DeferredHomeSection minHeight={{ xs: 240, md: 280 }}>
-                <Box sx={{ display: { xs: "none", lg: "block" } }}>
+                <Box
+                  data-e-service-anchor="true"
+                  sx={{ display: { xs: "none", lg: "block" }, scrollMarginTop: { xs: 80, md: 96 } }}
+                >
                   <LazyExternalServicesSection items={externalServiceItems} mediaAssets={mediaAssets} />
                 </Box>
               </DeferredHomeSection>
@@ -268,7 +317,10 @@ export default function PublicHomePage() {
                   />
                 </DeferredHomeSection>
                 <DeferredHomeSection minHeight={260}>
-                  <Box sx={{ display: { xs: "block", lg: "none" } }}>
+                  <Box
+                    data-e-service-anchor="true"
+                    sx={{ display: { xs: "block", lg: "none" }, scrollMarginTop: { xs: 80, md: 96 } }}
+                  >
                     <LazyExternalServicesSection items={externalServiceItems} mediaAssets={mediaAssets} />
                   </Box>
                 </DeferredHomeSection>
