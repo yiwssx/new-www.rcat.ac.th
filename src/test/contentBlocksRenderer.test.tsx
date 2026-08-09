@@ -74,6 +74,91 @@ describe("ContentBlocksRenderer", () => {
     expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
   });
 
+  it("renders custom labels for external links and media-library attachments", () => {
+    render(
+      <ContentBlocksRenderer
+        mediaAssets={[
+          {
+            id: "attachment-document",
+            name: "original-file-name.pdf",
+            type: "document",
+            size: "2 MB",
+            owner: "Public",
+            driveUrl: "https://drive.google.com/file/d/attachment-document/view",
+            updatedAt: "2026-08-09T00:00:00.000Z"
+          }
+        ]}
+        blocks={[
+          {
+            id: "external-link",
+            type: "link",
+            source: "external",
+            label: "อ่านข้อมูลจากหน่วยงานต้นทาง",
+            href: "https://example.org/source",
+            mediaId: ""
+          },
+          {
+            id: "media-link",
+            type: "link",
+            source: "media",
+            label: "ดาวน์โหลดแบบฟอร์มสมัครเรียน",
+            href: "",
+            mediaId: "attachment-document"
+          }
+        ]}
+      />
+    );
+
+    expect(screen.getByRole("link", { name: "อ่านข้อมูลจากหน่วยงานต้นทาง" })).toHaveAttribute(
+      "href",
+      "https://example.org/source"
+    );
+    expect(screen.getByRole("link", { name: "ดาวน์โหลดแบบฟอร์มสมัครเรียน" })).toHaveAttribute(
+      "href",
+      "https://drive.google.com/file/d/attachment-document/view"
+    );
+    expect(screen.queryByText("original-file-name.pdf")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the media filename or external URL when no custom link label is set", () => {
+    render(
+      <ContentBlocksRenderer
+        mediaAssets={[
+          {
+            id: "attachment-document",
+            name: "คู่มือการสมัคร.pdf",
+            type: "document",
+            size: "2 MB",
+            owner: "Public",
+            driveUrl: "https://drive.google.com/file/d/attachment-document/view",
+            updatedAt: "2026-08-09T00:00:00.000Z"
+          }
+        ]}
+        blocks={[
+          {
+            id: "external-link",
+            type: "link",
+            source: "external",
+            label: "",
+            href: "https://example.org/source",
+            mediaId: ""
+          },
+          {
+            id: "media-link",
+            type: "link",
+            source: "media",
+            label: "",
+            href: "",
+            mediaId: "attachment-document"
+          }
+        ]}
+      />
+    );
+
+    expect(screen.getByRole("link", { name: "https://example.org/source" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "คู่มือการสมัคร.pdf" })).toBeInTheDocument();
+  });
+
   it("renders semantic body images immediately while deferring video network sources until near viewport", async () => {
     const observers: Array<{
       callback: IntersectionObserverCallback;

@@ -80,6 +80,54 @@ describe("contentBlocks", () => {
     ]);
   });
 
+  it("creates and preserves external and media attachment link blocks", () => {
+    expect(createContentBlock("link")).toMatchObject({
+      type: "link",
+      source: "external",
+      label: "",
+      href: "",
+      mediaId: ""
+    });
+
+    const serialized = serializeContentBlocksToBody([
+      {
+        id: "external-link",
+        type: "link",
+        source: "external",
+        label: "ประกาศต้นฉบับ",
+        href: " https://example.org/notice ",
+        mediaId: ""
+      },
+      {
+        id: "media-link",
+        type: "link",
+        source: "media",
+        label: "ดาวน์โหลดแบบฟอร์ม",
+        href: "",
+        mediaId: " media-document "
+      }
+    ]);
+
+    expect(parseContentBodyToBlocks(serialized)).toEqual([
+      {
+        id: "external-link",
+        type: "link",
+        source: "external",
+        label: "ประกาศต้นฉบับ",
+        href: "https://example.org/notice",
+        mediaId: ""
+      },
+      {
+        id: "media-link",
+        type: "link",
+        source: "media",
+        label: "ดาวน์โหลดแบบฟอร์ม",
+        href: "",
+        mediaId: "media-document"
+      }
+    ]);
+  });
+
   it("creates and preserves PDF media blocks", () => {
     const block = createContentBlock("pdf");
 
@@ -104,7 +152,7 @@ describe("contentBlocks", () => {
     ]);
   });
 
-  it("extracts unique media ids from image/video/pdf blocks", () => {
+  it("extracts unique media ids from visual blocks and media attachment links", () => {
     const mediaIds = extractMediaIdsFromContentBlocks([
       {
         id: "image-1",
@@ -129,9 +177,25 @@ describe("contentBlocks", () => {
         type: "image",
         mediaId: "media-1",
         caption: ""
+      },
+      {
+        id: "media-link",
+        type: "link",
+        source: "media",
+        label: "Download",
+        href: "",
+        mediaId: "media-4"
+      },
+      {
+        id: "external-link",
+        type: "link",
+        source: "external",
+        label: "Source",
+        href: "https://example.org",
+        mediaId: "media-should-not-be-used"
       }
     ]);
 
-    expect(mediaIds).toEqual(["media-1", "media-2", "media-3"]);
+    expect(mediaIds).toEqual(["media-1", "media-2", "media-3", "media-4"]);
   });
 });
