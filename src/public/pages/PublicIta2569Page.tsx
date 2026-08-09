@@ -78,7 +78,11 @@ const ITA_SECTIONS: ItaSection[] = [
     items: [
       { code: "O12", title: "คู่มือหรือขั้นตอนการปฏิบัติงานภายในสถานศึกษา", links: emptyLink() },
       { code: "O13", title: "คู่มือหรือขั้นตอนการให้บริการ", links: emptyLink() },
-      { code: "O14", title: "E-Service", links: emptyLink() },
+      {
+        code: "O14",
+        title: "E-Service",
+        links: [{ label: "เข้าสู่ E-Service", href: "https://www.rcat.ac.th/#e-service" }]
+      },
       { code: "O15", title: "ข้อมูลเชิงสถิติและความพึงพอใจต่อการให้บริการ", links: emptyLink() }
     ]
   },
