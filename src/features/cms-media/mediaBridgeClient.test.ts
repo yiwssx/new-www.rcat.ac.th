@@ -245,7 +245,7 @@ describe("same-origin Apps Script media bridge client", () => {
       MEDIA_UPLOAD_CHUNK_BYTES,
       bytes.length
     ]);
-    expect(onProgress.mock.calls.at(-1)?.[0]).toEqual({
+    expect(onProgress.mock.calls[onProgress.mock.calls.length - 1]?.[0]).toEqual({
       uploadedBytes: bytes.length,
       totalBytes: bytes.length,
       percent: 100
