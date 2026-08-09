@@ -1,3 +1,5 @@
+import type { MouseEvent } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import PublicSiteShell from "../components/PublicSiteShell";
 
 type ItaIndicatorGroup = "9" | "10";
@@ -22,6 +24,7 @@ export interface ItaSection {
   items: ItaItem[];
 }
 
+const E_SERVICE_HOME_HREF = "/#e-service";
 const emptyLink = (): ItaResourceLink[] => [{ label: "เปิดข้อมูล", href: "" }];
 
 /**
@@ -81,7 +84,7 @@ const ITA_SECTIONS: ItaSection[] = [
       {
         code: "O14",
         title: "E-Service",
-        links: [{ label: "เข้าสู่ E-Service", href: "https://www.rcat.ac.th/#e-service" }]
+        links: [{ label: "เข้าสู่ E-Service", href: E_SERVICE_HOME_HREF }]
       },
       { code: "O15", title: "ข้อมูลเชิงสถิติและความพึงพอใจต่อการให้บริการ", links: emptyLink() }
     ]
@@ -144,6 +147,37 @@ const INDICATOR_SUMMARIES = [
   }
 ];
 
+function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>) {
+  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+}
+
+function ItaHomeHashLink({ link }: { link: ItaResourceLink }) {
+  const navigate = useNavigate();
+
+  return (
+    <a
+      href={link.href}
+      onClick={(event) => {
+        if (!isPlainLeftClick(event)) {
+          return;
+        }
+
+        event.preventDefault();
+        void navigate({
+          to: "/",
+          hash: "e-service",
+          resetScroll: false,
+          hashScrollIntoView: false
+        });
+      }}
+      className="inline-flex items-center gap-1.5 rounded-lg bg-rcat-green px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rcat-deep-green focus:outline-none focus:ring-4 focus:ring-emerald-100"
+    >
+      {link.label || "เปิดข้อมูล"}
+      <span aria-hidden="true">↓</span>
+    </a>
+  );
+}
+
 function ItaLinkButton({ link }: { link: ItaResourceLink }) {
   if (!link.href.trim()) {
     return (
@@ -151,6 +185,10 @@ function ItaLinkButton({ link }: { link: ItaResourceLink }) {
         รอใส่ลิงก์
       </span>
     );
+  }
+
+  if (link.href === E_SERVICE_HOME_HREF) {
+    return <ItaHomeHashLink link={link} />;
   }
 
   return (
