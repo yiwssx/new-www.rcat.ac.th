@@ -140,6 +140,7 @@ Verify on public homepage:
 - [ ] Verify filenames are understandable.
 - [ ] Verify image previews load.
 - [ ] Verify alt text where applicable.
+- [ ] Verify large document uploads up to 100 MB complete through the resumable Drive upload path.
 - [ ] Use 16:9 or wide landscape images for carousel slides.
 - [ ] Avoid blurry, cropped, stretched, or unofficial images.
 
