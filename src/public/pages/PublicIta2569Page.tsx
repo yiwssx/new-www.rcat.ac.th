@@ -27,14 +27,7 @@ export interface ItaSection {
 const RCAT_ORIGIN = "https://www.rcat.ac.th";
 
 type ItaInternalPath =
-  | "/"
-  | "/rcat-organization"
-  | "/rcat-director"
-  | "/development-plan"
-  | "/contact"
-  | "/action-plan"
-  | "/sar"
-  | "/news";
+  "/" | "/rcat-organization" | "/rcat-director" | "/development-plan" | "/contact" | "/action-plan" | "/sar" | "/news";
 
 const INTERNAL_RCAT_PATHS = new Set<ItaInternalPath>([
   "/",
@@ -352,15 +345,7 @@ function getInternalRcatTarget(href: string) {
   }
 }
 
-function ItaInternalLink({
-  link,
-  pathname,
-  hash
-}: {
-  link: ItaResourceLink;
-  pathname: ItaInternalPath;
-  hash: string;
-}) {
+function ItaInternalLink({ link, pathname, hash }: { link: ItaResourceLink; pathname: ItaInternalPath; hash: string }) {
   const navigate = useNavigate();
 
   return (
