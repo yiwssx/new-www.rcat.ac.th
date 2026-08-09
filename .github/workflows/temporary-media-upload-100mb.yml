@@ -1,0 +1,68 @@
+name: Temporary Media Upload 100 MB Update
+
+on:
+  push:
+    branches:
+      - agent/media-upload-100mb
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/media-upload-100mb
+          fetch-depth: 0
+
+      - name: Align 100 MB media upload wording and tests
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const thaiFiles = [
+            'src/admin/pages/MediaPage.tsx',
+            'src/admin/components/ContentEditorDialog.tsx',
+            'src/features/cms-media/mediaBridgeClient.test.ts',
+            'src/admin/pages/MediaPage.test.tsx',
+            'src/admin/components/ContentEditorDialog.test.tsx'
+          ];
+
+          for (const file of thaiFiles) {
+            if (!fs.existsSync(file)) continue;
+            const before = fs.readFileSync(file, 'utf8');
+            const after = before.replaceAll('ไฟล์ต้องมีขนาดไม่เกิน 10 MB', 'ไฟล์ต้องมีขนาดไม่เกิน 100 MB');
+            if (after !== before) fs.writeFileSync(file, after);
+          }
+
+          const cmsFile = 'apps-script/Cms.gs';
+          const cmsBefore = fs.readFileSync(cmsFile, 'utf8');
+          const cmsAfter = cmsBefore.replaceAll(
+            'File upload must be between 1 byte and 10 MB.',
+            'File upload must be between 1 byte and 100 MB.'
+          );
+          if (cmsAfter !== cmsBefore) fs.writeFileSync(cmsFile, cmsAfter);
+
+          const appsScriptTest = 'src/test/appsScriptCode.test.ts';
+          if (fs.existsSync(appsScriptTest)) {
+            const before = fs.readFileSync(appsScriptTest, 'utf8');
+            const after = before
+              .replaceAll('File upload must be between 1 byte and 10 MB.', 'File upload must be between 1 byte and 100 MB.')
+              .replaceAll('MAX_UPLOAD_BYTES = 10 * 1024 * 1024', 'MAX_UPLOAD_BYTES = 100 * 1024 * 1024');
+            if (after !== before) fs.writeFileSync(appsScriptTest, after);
+          }
+          NODE
+
+      - name: Remove temporary workflow and commit
+        shell: bash
+        run: |
+          git rm .github/workflows/temporary-media-upload-100mb.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps-script/Cms.gs src/admin/pages/MediaPage.tsx src/admin/components/ContentEditorDialog.tsx src/features/cms-media/mediaBridgeClient.test.ts src/admin/pages/MediaPage.test.tsx src/admin/components/ContentEditorDialog.test.tsx src/test/appsScriptCode.test.ts
+          git commit -m "test(media): align 100 MB upload limit"
+          git push origin HEAD:agent/media-upload-100mb
