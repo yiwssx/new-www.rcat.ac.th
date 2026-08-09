@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -34,9 +34,17 @@ import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import ResponsiveDialogActions from "../../design-system/components/ResponsiveDialogActions";
 import AdminPagination from "../components/AdminPagination";
+import MediaUploadProgressFeedback from "../components/MediaUploadProgressFeedback";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
-import { deleteMediaAsset, MAX_MEDIA_UPLOAD_BYTES, saveMediaAsset } from "../../features/cms-media";
+import {
+  deleteMediaAsset,
+  MAX_MEDIA_UPLOAD_BYTES,
+  saveMediaAsset,
+  type MediaAssetInput,
+  type MediaUploadOptions,
+  type MediaUploadProgress
+} from "../../features/cms-media";
 import { MediaAsset, MediaType } from "../../types";
 import {
   ADMIN_MEDIA_PAGE_SIZE_OPTIONS,
@@ -339,6 +347,10 @@ type OperationNotice = {
   severity: "success" | "error";
   message: string;
 };
+type MediaSaveRequest = {
+  input: MediaAssetInput;
+  options?: MediaUploadOptions;
+};
 
 const loadingModalText = "กรุณารอสักครู่ อย่าปิดหน้านี้";
 const deleteSuccessTitle = "ลบสื่อสำเร็จ";
@@ -422,6 +434,9 @@ export default function MediaPage() {
   const [file, setFile] = useState<File | null>(null);
   const [formError, setFormError] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const saveLockRef = useRef(false);
+  const [saveStarting, setSaveStarting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<MediaUploadProgress | null>(null);
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
   const [operationNotice, setOperationNotice] = useState<OperationNotice | null>(null);
   const isEditing = Boolean(editingAsset);
@@ -435,14 +450,14 @@ export default function MediaPage() {
   }, [mediaListQuery.data?.pagination.page, mediaListQuery.isPlaceholderData, page, setListState]);
 
   const saveMutation = useMutation({
-    mutationFn: saveMediaAsset
+    mutationFn: ({ input, options }: MediaSaveRequest) => saveMediaAsset(input, options)
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteMediaAsset
   });
-  const mediaActionsDisabled =
-    saveMutation.isPending || deleteMutation.isPending || deletingMediaId !== null || listTransitioning;
+  const isSaveBusy = saveStarting || saveMutation.isPending;
+  const mediaActionsDisabled = isSaveBusy || deleteMutation.isPending || deletingMediaId !== null || listTransitioning;
   const saveOperation: MediaSaveOperation = isEditing ? "update" : "upload";
 
   function handleOpenCreate() {
@@ -537,6 +552,10 @@ export default function MediaPage() {
   }
 
   async function handleConfirmSave() {
+    if (saveLockRef.current) {
+      return;
+    }
+
     if (!canManage) {
       setFormError(ADMIN_READ_ONLY_NOTICE);
       return;
@@ -552,32 +571,48 @@ export default function MediaPage() {
       return;
     }
 
+    saveLockRef.current = true;
+    setSaveStarting(true);
+    setUploadProgress(null);
     const currentOperation = saveOperation;
-    showMediaLoadingModal(getSaveLoadingTitle(currentOperation));
+
+    if (!file) {
+      showMediaLoadingModal(getSaveLoadingTitle(currentOperation));
+    }
 
     try {
-      const filePayload = file
-        ? {
-            size: formatFileSize(file.size),
-            fileName: file.name,
-            fileBase64: await readFileAsBase64(file),
-            mimeType: file.type
-          }
-        : {};
+      let filePayload: Partial<MediaAssetInput> = {};
+      let uploadOptions: MediaUploadOptions | undefined;
+
+      if (file) {
+        const currentFile = file;
+        const fileBase64 = await readFileAsBase64(currentFile);
+        setUploadProgress({ uploadedBytes: 0, totalBytes: currentFile.size, percent: 0 });
+        uploadOptions = { onProgress: setUploadProgress };
+        filePayload = {
+          size: formatFileSize(currentFile.size),
+          fileName: currentFile.name,
+          fileBase64,
+          mimeType: currentFile.type
+        };
+      }
 
       await saveMutation.mutateAsync({
-        id: editingAsset?.id,
-        name: form.name.trim(),
-        type: form.type,
-        owner: form.owner.trim(),
-        driveUrl: form.driveUrl.trim() || editingAsset?.driveUrl || "",
-        fileId: editingAsset?.fileId,
-        thumbnailUrl: editingAsset?.thumbnailUrl,
-        previewUrl: editingAsset?.previewUrl,
-        embedUrl: editingAsset?.embedUrl,
-        mimeType: editingAsset?.mimeType,
-        size: editingAsset?.size,
-        ...filePayload
+        input: {
+          id: editingAsset?.id,
+          name: form.name.trim(),
+          type: form.type,
+          owner: form.owner.trim(),
+          driveUrl: form.driveUrl.trim() || editingAsset?.driveUrl || "",
+          fileId: editingAsset?.fileId,
+          thumbnailUrl: editingAsset?.thumbnailUrl,
+          previewUrl: editingAsset?.previewUrl,
+          embedUrl: editingAsset?.embedUrl,
+          mimeType: editingAsset?.mimeType,
+          size: editingAsset?.size,
+          ...filePayload
+        },
+        options: uploadOptions
       });
       if (currentOperation === "upload") {
         setListState({ page: 1 }, { replace: true });
@@ -613,9 +648,12 @@ export default function MediaPage() {
         text: message,
         confirmButtonText: "ตกลง"
       });
+    } finally {
+      saveLockRef.current = false;
+      setSaveStarting(false);
+      setUploadProgress(null);
     }
   }
-
   async function handleDelete(asset: MediaAsset) {
     if (!canManage || mediaActionsDisabled) {
       return;
@@ -794,12 +832,7 @@ export default function MediaPage() {
           isFetching={mediaListQuery.isFetching}
         />
       )}
-      <Dialog
-        open={dialogOpen}
-        onClose={saveMutation.isPending ? undefined : handleCloseDialog}
-        fullWidth
-        maxWidth="sm"
-      >
+      <Dialog open={dialogOpen} onClose={isSaveBusy ? undefined : handleCloseDialog} fullWidth maxWidth="sm">
         <form onSubmit={handleSubmit}>
           <DialogTitle>
             {confirming ? (isEditing ? "บันทึกการแก้ไขสื่อ?" : "อัปโหลดสื่อ?") : isEditing ? "แก้ไขสื่อ" : "เพิ่มสื่อ"}
@@ -808,18 +841,14 @@ export default function MediaPage() {
             {confirming ? (
               <Stack spacing={1.5} sx={{ pt: 1 }}>
                 {formError && <Alert severity="error">{formError}</Alert>}
-                {saveMutation.isPending && (
+                {isSaveBusy && file ? (
+                  <MediaUploadProgressFeedback preparing={!uploadProgress} progress={uploadProgress} />
+                ) : isSaveBusy ? (
                   <Stack spacing={1}>
                     <LinearProgress />
-                    <Typography
-                      sx={{
-                        color: "text.secondary"
-                      }}
-                    >
-                      {getSavePendingText(saveOperation)}
-                    </Typography>
+                    <Typography sx={{ color: "text.secondary" }}>{getSavePendingText(saveOperation)}</Typography>
                   </Stack>
-                )}
+                ) : null}
                 <Typography
                   sx={{
                     color: "text.secondary"
@@ -927,22 +956,30 @@ export default function MediaPage() {
                   type="button"
                   color="inherit"
                   onClick={() => setConfirming(false)}
-                  disabled={!canManage || saveMutation.isPending}
+                  disabled={!canManage || isSaveBusy}
                 >
                   กลับ
                 </Button>
                 <Button
                   type="button"
                   variant="contained"
-                  disabled={saveMutation.isPending}
+                  disabled={isSaveBusy}
                   onClick={() => void handleConfirmSave()}
                 >
-                  {saveMutation.isPending ? "กำลังบันทึก" : isEditing ? "บันทึก" : "อัปโหลด"}
+                  {isSaveBusy
+                    ? file && uploadProgress
+                      ? `กำลังอัปโหลด ${uploadProgress.percent}%`
+                      : file
+                        ? "กำลังเตรียมไฟล์"
+                        : "กำลังบันทึก"
+                    : isEditing
+                      ? "บันทึก"
+                      : "อัปโหลด"}
                 </Button>
               </>
             ) : (
               <>
-                <Button type="button" color="inherit" onClick={handleCloseDialog} disabled={saveMutation.isPending}>
+                <Button type="button" color="inherit" onClick={handleCloseDialog} disabled={isSaveBusy}>
                   ยกเลิก
                 </Button>
                 <Button type="submit" variant="contained" disabled={!canManage || saveMutation.isPending}>

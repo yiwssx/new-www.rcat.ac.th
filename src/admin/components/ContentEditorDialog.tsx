@@ -30,10 +30,11 @@ import ResponsiveDialogActions from "../../design-system/components/ResponsiveDi
 import { designTokens } from "../../design-system/tokens";
 import { staticSurfaceSx } from "../../design-system/componentStyles";
 import AdminPagination from "./AdminPagination";
+import MediaUploadProgressFeedback from "./MediaUploadProgressFeedback";
 import ContentBlockBuilder from "./ContentBlockBuilder";
 import { ContentItem, ContentStatus, ContentType, MediaAsset, MediaType } from "../../types";
 import { MAX_MEDIA_UPLOAD_BYTES } from "../../features/cms-media";
-import type { MediaAssetInput } from "../../features/cms-media";
+import type { MediaAssetInput, MediaUploadOptions, MediaUploadProgress } from "../../features/cms-media";
 import { contentStatusLabels, contentTypeLabels, mediaTypeLabels } from "../../utils/thaiLabels";
 import { CONTENT_TEMPLATE_LABELS, CONTENT_TEMPLATES, resolveContentTemplate } from "../../utils/contentTemplate";
 import {
@@ -326,7 +327,7 @@ interface ContentEditorDialogProps {
   errorMessage?: string;
   onClose: () => void;
   onSave: (item: ContentItem) => void;
-  onUploadMedia?: (input: MediaAssetInput) => Promise<MediaAsset>;
+  onUploadMedia?: (input: MediaAssetInput, options?: MediaUploadOptions) => Promise<MediaAsset>;
 }
 
 export default function ContentEditorDialog({
@@ -354,7 +355,9 @@ export default function ContentEditorDialog({
   const [uploadName, setUploadName] = useState("");
   const [uploadType, setUploadType] = useState<MediaType>("image");
   const [uploadError, setUploadError] = useState("");
+  const uploadLockRef = useRef(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<MediaUploadProgress | null>(null);
   const [tagInputValue, setTagInputValue] = useState(() => (recovered ? recoveredTagInputValue : ""));
   const [bodyBlocks, setBodyBlocks] = useState<ContentBlock[]>(() => createBodyBlocks(item?.body));
   const [mediaPage, setMediaPage] = useState(1);
@@ -535,6 +538,7 @@ export default function ContentEditorDialog({
     setUploadType("image");
     setUploadError("");
     setUploading(false);
+    setUploadProgress(null);
     setTagInputValue(recovered ? recoveredTagInputValue : "");
     setBodyBlocks(createBodyBlocks(nextDraft.body));
     setMediaPage(1);
@@ -663,6 +667,10 @@ export default function ContentEditorDialog({
   }
 
   async function handleUploadMedia() {
+    if (uploadLockRef.current) {
+      return;
+    }
+
     if (!uploadFile || !onUploadMedia) {
       setUploadError("กรุณาเลือกไฟล์ก่อนอัปโหลด");
       return;
@@ -676,19 +684,26 @@ export default function ContentEditorDialog({
       return;
     }
 
+    uploadLockRef.current = true;
     try {
       setUploading(true);
+      setUploadProgress(null);
       setUploadError("");
-      const fileBase64 = await readFileAsBase64(uploadFile);
-      const asset = await onUploadMedia({
-        name: uploadName.trim() || uploadFile.name,
-        type: uploadType,
-        size: formatFileSize(uploadFile.size),
-        owner: draft.owner.trim() || "ผู้แก้ไข CMS",
-        fileName: uploadFile.name,
-        fileBase64,
-        mimeType: uploadFile.type
-      });
+      const currentFile = uploadFile;
+      const fileBase64 = await readFileAsBase64(currentFile);
+      setUploadProgress({ uploadedBytes: 0, totalBytes: currentFile.size, percent: 0 });
+      const asset = await onUploadMedia(
+        {
+          name: uploadName.trim() || currentFile.name,
+          type: uploadType,
+          size: formatFileSize(currentFile.size),
+          owner: draft.owner.trim() || "ผู้แก้ไข CMS",
+          fileName: currentFile.name,
+          fileBase64,
+          mimeType: currentFile.type
+        },
+        { onProgress: setUploadProgress }
+      );
 
       markDirty();
       setUploadedAssets((current) => [asset, ...current.filter((item) => item.id !== asset.id)]);
@@ -704,10 +719,11 @@ export default function ContentEditorDialog({
     } catch (currentError) {
       setUploadError(currentError instanceof Error ? currentError.message : "ไม่สามารถอัปโหลดสื่อได้");
     } finally {
+      uploadLockRef.current = false;
       setUploading(false);
+      setUploadProgress(null);
     }
   }
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const serializedBody = serializeContentBlocksToBody(bodyBlocks);
@@ -1515,9 +1531,11 @@ export default function ContentEditorDialog({
                     {uploadFile.name} / {formatFileSize(uploadFile.size)}
                   </Typography>
                 )}
+                {uploading && <MediaUploadProgressFeedback preparing={!uploadProgress} progress={uploadProgress} />}
                 <TextField
                   label="ชื่อสื่อ"
                   value={uploadName}
+                  disabled={uploading}
                   onChange={(event) => setUploadName(event.target.value)}
                   size="small"
                   fullWidth
@@ -1525,6 +1543,7 @@ export default function ContentEditorDialog({
                 <TextField
                   label="ประเภท"
                   value={uploadType}
+                  disabled={uploading}
                   onChange={(event) => setUploadType(event.target.value as MediaType)}
                   size="small"
                   select
@@ -1542,7 +1561,11 @@ export default function ContentEditorDialog({
                   disabled={uploading || !uploadFile || !onUploadMedia}
                   onClick={() => void handleUploadMedia()}
                 >
-                  {uploading ? "กำลังอัปโหลด" : "อัปโหลดและแนบ"}
+                  {uploading
+                    ? uploadProgress
+                      ? `กำลังอัปโหลด ${uploadProgress.percent}%`
+                      : "กำลังเตรียมไฟล์"
+                    : "อัปโหลดและแนบ"}
                 </Button>
               </Stack>
             </Box>
