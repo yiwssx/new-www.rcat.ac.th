@@ -1,0 +1,161 @@
+name: Facebook Reels Block Layout
+
+on:
+  push:
+    branches:
+      - feature/facebook-reels-embed
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Apply Reel layout to content blocks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          renderer_path = Path('src/shared/components/ContentBlocksRenderer.tsx')
+          source = renderer_path.read_text(encoding='utf-8')
+
+          old_import = '''  buildFacebookPostPluginUrl,
+            clampFacebookPostPluginWidth,
+            isUnsupportedFacebookUrl,
+            normalizeFacebookPostUrl'''
+          # Prettier keeps these imports at two spaces, but normalize indentation defensively.
+          old_import = '''  buildFacebookPostPluginUrl,
+  clampFacebookPostPluginWidth,
+  isUnsupportedFacebookUrl,
+  normalizeFacebookPostUrl'''
+          new_import = '''  buildFacebookPostPluginUrl,
+  clampFacebookPostPluginWidth,
+  isFacebookReelUrl,
+  isUnsupportedFacebookUrl,
+  normalizeFacebookPostUrl'''
+          assert old_import in source, 'facebookEmbed import block not found'
+          source = source.replace(old_import, new_import, 1)
+
+          old_constant = 'const defaultFacebookPostHeight = 761;'
+          new_constant = 'const defaultFacebookPostHeight = 761;\nconst maximumFacebookReelWidth = 440;'
+          assert old_constant in source, 'Facebook height constant not found'
+          source = source.replace(old_constant, new_constant, 1)
+
+          old_setup = '''  const href = normalizeFacebookPostUrl(block.href);
+  const isUnsupported = isUnsupportedFacebookUrl(block.href);
+  const width = clampFacebookPostPluginWidth(block.width || 500);
+  const pluginUrl = buildFacebookPostPluginUrl({ href, showText: block.showText, width });'''
+          new_setup = '''  const href = normalizeFacebookPostUrl(block.href);
+  const isUnsupported = isUnsupportedFacebookUrl(block.href);
+  const isReel = isFacebookReelUrl(href);
+  const requestedWidth = clampFacebookPostPluginWidth(block.width || 500);
+  const width = isReel ? Math.min(requestedWidth, maximumFacebookReelWidth) : requestedWidth;
+  const pluginUrl = buildFacebookPostPluginUrl({ href, showText: block.showText, width });'''
+          assert old_setup in source, 'Facebook block setup not found'
+          source = source.replace(old_setup, new_setup, 1)
+
+          old_embed = '''          <PublicDeferredEmbed
+            title="Facebook post"
+            src={pluginUrl}
+            scrolling="no"
+            frameBorder="0"
+            allowFullScreen
+            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+            width={width}
+            height={block.height || defaultFacebookPostHeight}
+            sx={{
+              width: "100%",
+              maxWidth: width,
+              height: block.height || defaultFacebookPostHeight,
+              borderRadius: designTokens.radius.small
+            }}
+          />'''
+          new_embed = '''          <PublicDeferredEmbed
+            title={isReel ? "Facebook Reel" : "Facebook post"}
+            src={pluginUrl}
+            scrolling="no"
+            frameBorder="0"
+            allowFullScreen
+            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+            width={width}
+            height={isReel && !block.height ? undefined : block.height || defaultFacebookPostHeight}
+            sx={
+              isReel && !block.height
+                ? {
+                    width: "100%",
+                    maxWidth: width,
+                    aspectRatio: "9 / 16",
+                    borderRadius: designTokens.radius.small
+                  }
+                : {
+                    width: "100%",
+                    maxWidth: width,
+                    height: block.height || defaultFacebookPostHeight,
+                    borderRadius: designTokens.radius.small
+                  }
+            }
+          />'''
+          assert old_embed in source, 'Facebook block embed markup not found'
+          source = source.replace(old_embed, new_embed, 1)
+
+          old_button = '''          >
+            เปิดโพสต์บน Facebook
+          </Button>'''
+          new_button = '''          >
+            {isReel ? "เปิด Reels บน Facebook" : "เปิดโพสต์บน Facebook"}
+          </Button>'''
+          assert old_button in source, 'Facebook source button not found'
+          source = source.replace(old_button, new_button, 1)
+
+          old_fallback = 'ไม่สามารถฝังโพสต์ Facebook นี้ได้โดยตรง'
+          new_fallback = 'ไม่สามารถฝังเนื้อหา Facebook นี้ได้โดยตรง'
+          assert old_fallback in source, 'Facebook fallback text not found'
+          source = source.replace(old_fallback, new_fallback, 1)
+
+          renderer_path.write_text(source, encoding='utf-8')
+
+          test_path = Path('src/test/facebookEmbedRegression.test.tsx')
+          test_source = test_path.read_text(encoding='utf-8')
+          test_source = test_source.replace(
+              'const iframe = screen.getByTitle("Facebook post");\n    const iframeSrc = iframe.getAttribute("src") || "";\n    const pluginUrl = new URL(iframeSrc);\n\n    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/video.php");',
+              'const iframe = screen.getByTitle("Facebook Reel");\n    const iframeSrc = iframe.getAttribute("src") || "";\n    const pluginUrl = new URL(iframeSrc);\n\n    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/video.php");',
+              1
+          )
+          test_source = test_source.replace(
+              'expect(pluginUrl.searchParams.get("show_text")).toBe("false");\n    expect(screen.getByRole("link", { name: "เปิดโพสต์บน Facebook" })).toHaveAttribute("href", facebookReelUrl);',
+              'expect(pluginUrl.searchParams.get("show_text")).toBe("false");\n    expect(pluginUrl.searchParams.get("width")).toBe("440");\n    expect(screen.getByRole("link", { name: "เปิด Reels บน Facebook" })).toHaveAttribute("href", facebookReelUrl);',
+              1
+          )
+          test_source = test_source.replace(
+              'expect(screen.getByText("ไม่สามารถฝังโพสต์ Facebook นี้ได้โดยตรง")).toBeInTheDocument();',
+              'expect(screen.getByText("ไม่สามารถฝังเนื้อหา Facebook นี้ได้โดยตรง")).toBeInTheDocument();'
+          )
+          test_path.write_text(test_source, encoding='utf-8')
+          PY
+      - name: Format with project Prettier
+        run: pnpm exec prettier src/shared/components/ContentBlocksRenderer.tsx src/test/facebookEmbedRegression.test.tsx --write
+      - name: Run focused Reels tests
+        run: pnpm exec vitest run src/utils/facebookEmbed.test.ts src/components/embeds/FacebookPostEmbed.test.tsx src/test/facebookEmbedRegression.test.tsx src/test/contentBlocksRenderer.test.tsx
+      - name: Typecheck and build
+        run: pnpm build
+      - name: Remove temporary workflow and commit validated changes
+        run: |
+          rm .github/workflows/facebook-reels-block-layout.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/shared/components/ContentBlocksRenderer.tsx src/test/facebookEmbedRegression.test.tsx .github/workflows/facebook-reels-block-layout.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "feat(content): optimize Facebook Reels block layout [skip ci]"
+          git push origin HEAD:feature/facebook-reels-embed
