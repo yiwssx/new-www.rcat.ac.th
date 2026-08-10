@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Stack } from "@mui/material";
 import PublicDeferredEmbed from "../../shared/media/PublicDeferredEmbed";
-import { buildFacebookPostPluginUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
+import { buildFacebookPostPluginUrl, isFacebookReelUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
 interface FacebookPostEmbedProps {
@@ -12,22 +12,28 @@ interface FacebookPostEmbedProps {
 const defaultEmbedMaxWidth = 560;
 const facebookPluginWidth = 500;
 const facebookPostHeight = 820;
+const facebookReelMaxWidth = 440;
 
 export default function FacebookPostEmbed({
   postUrl,
-  title = "Facebook post",
+  title,
   maxWidth = defaultEmbedMaxWidth
 }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
+  const isReel = isFacebookReelUrl(normalizedPostUrl);
+  const pluginWidth = isReel ? Math.min(facebookPluginWidth, facebookReelMaxWidth) : facebookPluginWidth;
   const pluginUrl = normalizedPostUrl
     ? buildFacebookPostPluginUrl({
         href: normalizedPostUrl,
         showText: true,
-        width: facebookPluginWidth
+        width: pluginWidth
       })
     : "";
   const safeSourceHref = normalizeSafeHref(normalizedPostUrl || postUrl);
   const canOpenSource = Boolean(postUrl.trim()) && safeSourceHref !== "#";
+  const embedTitle = title || (isReel ? "Facebook Reel" : "Facebook post");
+  const sourceLabel = isReel ? "เปิด Reels ต้นทางบน Facebook" : "เปิดโพสต์ต้นทางบน Facebook";
+  const fallbackLabel = isReel ? "ดู Reels ต้นทางบน Facebook" : "ดูโพสต์ต้นทางบน Facebook";
 
   if (!pluginUrl) {
     return (
@@ -40,16 +46,18 @@ export default function FacebookPostEmbed({
         }}
       >
         <Alert severity="warning" sx={{ width: "100%", maxWidth }}>
-          ไม่สามารถแสดงโพสต์ Facebook แบบฝังได้
+          ไม่สามารถแสดงเนื้อหา Facebook แบบฝังได้
         </Alert>
         {canOpenSource && (
           <Button component="a" href={safeSourceHref} target="_blank" rel="noreferrer" variant="outlined">
-            ดูโพสต์ต้นทางบน Facebook
+            {fallbackLabel}
           </Button>
         )}
       </Stack>
     );
   }
+
+  const embedMaxWidth = isReel ? Math.min(maxWidth, facebookReelMaxWidth) : maxWidth;
 
   return (
     <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
@@ -58,21 +66,29 @@ export default function FacebookPostEmbed({
         sx={{
           alignItems: "center",
           width: "100%",
-          maxWidth
+          maxWidth: embedMaxWidth
         }}
       >
         <PublicDeferredEmbed
-          title={title}
+          title={embedTitle}
           src={pluginUrl}
           scrolling="no"
           frameBorder="0"
           allowFullScreen
           allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-          sx={{
-            width: "100%",
-            height: { xs: 760, md: facebookPostHeight },
-            borderRadius: 1
-          }}
+          sx={
+            isReel
+              ? {
+                  width: "100%",
+                  aspectRatio: "9 / 16",
+                  borderRadius: 1
+                }
+              : {
+                  width: "100%",
+                  height: { xs: 760, md: facebookPostHeight },
+                  borderRadius: 1
+                }
+          }
         />
         <Button
           component="a"
@@ -83,7 +99,7 @@ export default function FacebookPostEmbed({
           variant="text"
           sx={{ px: 0 }}
         >
-          เปิดโพสต์ต้นทางบน Facebook
+          {sourceLabel}
         </Button>
       </Stack>
     </Box>
