@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildFacebookPostPluginUrl,
   clampFacebookPostPluginWidth,
+  getFacebookEmbedKind,
+  isFacebookReelUrl,
   isFacebookUrl,
   isValidFacebookPostUrl,
   normalizeFacebookPostUrl
@@ -23,10 +25,19 @@ describe("facebookEmbed", () => {
     );
   });
 
+  it("accepts direct Facebook Reel permalinks", () => {
+    const reelUrl = "https://www.facebook.com/reel/123456789012345/?mibextid=test";
+
+    expect(normalizeFacebookPostUrl(reelUrl)).toBe(reelUrl);
+    expect(getFacebookEmbedKind(reelUrl)).toBe("reel");
+    expect(isFacebookReelUrl(reelUrl)).toBe(true);
+    expect(isValidFacebookPostUrl(reelUrl)).toBe(true);
+  });
+
   it("rejects unsupported Facebook URL types", () => {
     expect(normalizeFacebookPostUrl("https://www.facebook.com/share/p/abc123/")).toBe("");
+    expect(normalizeFacebookPostUrl("https://www.facebook.com/share/r/abc123/")).toBe("");
     expect(normalizeFacebookPostUrl("https://www.facebook.com/watch/?v=12345")).toBe("");
-    expect(normalizeFacebookPostUrl("https://www.facebook.com/reel/12345")).toBe("");
   });
 
   it("rejects unsafe or non-Facebook URLs", () => {
@@ -48,7 +59,7 @@ describe("facebookEmbed", () => {
     expect(isFacebookUrl("https://example.com/settings")).toBe(false);
   });
 
-  it("builds an encoded iframe plugin URL from the original post URL", () => {
+  it("builds an encoded post iframe plugin URL from the original post URL", () => {
     const pluginUrl = buildFacebookPostPluginUrl({
       href: "https://www.facebook.com/rcat/posts/12345",
       showText: false,
@@ -62,6 +73,22 @@ describe("facebookEmbed", () => {
     expect(parsed.searchParams.get("href")).toBe("https://www.facebook.com/rcat/posts/12345");
     expect(parsed.searchParams.get("show_text")).toBe("false");
     expect(parsed.searchParams.get("width")).toBe("520");
+  });
+
+  it("builds Facebook Reels with the embedded video plugin", () => {
+    const reelUrl = "https://www.facebook.com/reel/123456789012345/";
+    const pluginUrl = buildFacebookPostPluginUrl({
+      href: reelUrl,
+      showText: true,
+      width: 440
+    });
+
+    const parsed = new URL(pluginUrl);
+
+    expect(parsed.origin + parsed.pathname).toBe("https://www.facebook.com/plugins/video.php");
+    expect(parsed.searchParams.get("href")).toBe(reelUrl);
+    expect(parsed.searchParams.get("show_text")).toBe("false");
+    expect(parsed.searchParams.get("width")).toBe("440");
   });
 
   it("does not build plugin URLs for invalid post URLs", () => {

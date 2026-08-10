@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import FacebookPostEmbed from "./FacebookPostEmbed";
 
 const facebookPostUrl = "https://www.facebook.com/100063746585360/posts/111";
+const facebookReelUrl = "https://www.facebook.com/reel/859331548878917/";
 
 describe("FacebookPostEmbed", () => {
   it("renders a responsive lazy Facebook post iframe and source link", () => {
@@ -20,6 +21,22 @@ describe("FacebookPostEmbed", () => {
     expect(iframe).toHaveAttribute("scrolling", "no");
     expect(iframe).toHaveAttribute("allowfullscreen");
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
+  });
+
+  it("renders a Facebook Reel with the video plugin", () => {
+    render(<FacebookPostEmbed postUrl={facebookReelUrl} />);
+
+    const iframe = screen.getByTitle("Facebook Reel");
+    const iframeSrc = iframe.getAttribute("src") || "";
+    const pluginUrl = new URL(iframeSrc);
+
+    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/video.php");
+    expect(pluginUrl.searchParams.get("href")).toBe(facebookReelUrl);
+    expect(pluginUrl.searchParams.get("show_text")).toBe("false");
+    expect(pluginUrl.searchParams.get("width")).toBe("440");
+    expect(iframe).toHaveAttribute("loading", "lazy");
+    expect(iframe).toHaveAttribute("allowfullscreen");
+    expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute("href", facebookReelUrl);
   });
 
   it("shows a safe fallback for invalid URLs", () => {
