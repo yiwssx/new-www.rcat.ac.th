@@ -58,14 +58,15 @@ describe("Facebook embed regressions", () => {
       />
     );
 
-    const iframe = screen.getByTitle("Facebook post");
+    const iframe = screen.getByTitle("Facebook Reel");
     const iframeSrc = iframe.getAttribute("src") || "";
     const pluginUrl = new URL(iframeSrc);
 
     expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/video.php");
     expect(pluginUrl.searchParams.get("href")).toBe(facebookReelUrl);
     expect(pluginUrl.searchParams.get("show_text")).toBe("false");
-    expect(screen.getByRole("link", { name: "เปิดโพสต์บน Facebook" })).toHaveAttribute("href", facebookReelUrl);
+    expect(pluginUrl.searchParams.get("width")).toBe("440");
+    expect(screen.getByRole("link", { name: "เปิด Reels บน Facebook" })).toHaveAttribute("href", facebookReelUrl);
     expect(screen.getByText("คลิปกิจกรรม")).toBeInTheDocument();
     expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
     expect(container.querySelector(".fb-post")).not.toBeInTheDocument();
@@ -126,7 +127,7 @@ describe("Facebook embed regressions", () => {
     );
 
     expect(screen.queryByTitle("Facebook post")).not.toBeInTheDocument();
-    expect(screen.getByText("ไม่สามารถฝังโพสต์ Facebook นี้ได้โดยตรง")).toBeInTheDocument();
+    expect(screen.getByText("ไม่สามารถฝังเนื้อหา Facebook นี้ได้โดยตรง")).toBeInTheDocument();
 
     const fallbackLink = screen.getByRole("link", { name: "เปิดโพสต์บน Facebook" });
     expect(fallbackLink).toHaveAttribute("href", url);

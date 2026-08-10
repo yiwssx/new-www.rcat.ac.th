@@ -12,6 +12,7 @@ import { resolvePublicImageSource } from "../media/publicImageSources";
 import {
   buildFacebookPostPluginUrl,
   clampFacebookPostPluginWidth,
+  isFacebookReelUrl,
   isUnsupportedFacebookUrl,
   normalizeFacebookPostUrl
 } from "../../utils/facebookEmbed";
@@ -24,11 +25,14 @@ interface ContentBlocksRendererProps {
 }
 
 const defaultFacebookPostHeight = 761;
+const maximumFacebookReelWidth = 440;
 
 function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
   const href = normalizeFacebookPostUrl(block.href);
   const isUnsupported = isUnsupportedFacebookUrl(block.href);
-  const width = clampFacebookPostPluginWidth(block.width || 500);
+  const isReel = isFacebookReelUrl(href);
+  const requestedWidth = clampFacebookPostPluginWidth(block.width || 500);
+  const width = isReel ? Math.min(requestedWidth, maximumFacebookReelWidth) : requestedWidth;
   const pluginUrl = buildFacebookPostPluginUrl({ href, showText: block.showText, width });
 
   // If it's an unsafe or non-Facebook URL, render nothing
@@ -42,20 +46,29 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
       <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
         <Box sx={{ width: "100%", maxWidth: width }}>
           <PublicDeferredEmbed
-            title="Facebook post"
+            title={isReel ? "Facebook Reel" : "Facebook post"}
             src={pluginUrl}
             scrolling="no"
             frameBorder="0"
             allowFullScreen
             allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
             width={width}
-            height={block.height || defaultFacebookPostHeight}
-            sx={{
-              width: "100%",
-              maxWidth: width,
-              height: block.height || defaultFacebookPostHeight,
-              borderRadius: designTokens.radius.small
-            }}
+            height={isReel && !block.height ? undefined : block.height || defaultFacebookPostHeight}
+            sx={
+              isReel && !block.height
+                ? {
+                    width: "100%",
+                    maxWidth: width,
+                    aspectRatio: "9 / 16",
+                    borderRadius: designTokens.radius.small
+                  }
+                : {
+                    width: "100%",
+                    maxWidth: width,
+                    height: block.height || defaultFacebookPostHeight,
+                    borderRadius: designTokens.radius.small
+                  }
+            }
           />
           <Button
             component="a"
@@ -66,7 +79,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
             variant="text"
             sx={{ mt: 0.75, px: 0 }}
           >
-            เปิดโพสต์บน Facebook
+            {isReel ? "เปิด Reels บน Facebook" : "เปิดโพสต์บน Facebook"}
           </Button>
           {block.caption && (
             <Typography
@@ -99,7 +112,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
               mb: 1.5
             }}
           >
-            ไม่สามารถฝังโพสต์ Facebook นี้ได้โดยตรง
+            ไม่สามารถฝังเนื้อหา Facebook นี้ได้โดยตรง
           </Typography>
           {isValidHref && (
             <Button component="a" href={safeHref} target="_blank" rel="noreferrer" size="small" variant="outlined">
