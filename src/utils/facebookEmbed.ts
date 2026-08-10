@@ -1,8 +1,11 @@
 const allowedFacebookHosts = new Set(["facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"]);
 const facebookPostPluginBaseUrl = "https://www.facebook.com/plugins/post.php";
+const facebookVideoPluginBaseUrl = "https://www.facebook.com/plugins/video.php";
 const defaultFacebookPostWidth = 500;
 const minimumFacebookPostWidth = 350;
 const maximumFacebookPostWidth = 750;
+
+export type FacebookEmbedKind = "post" | "reel";
 
 function hasUnsafeUrlCharacter(value: string) {
   for (const char of value) {
@@ -17,8 +20,7 @@ function hasUnsafeUrlCharacter(value: string) {
 }
 
 /**
- * Checks if a Facebook URL is supported for iframe embedding.
- * Only permalink.php, story.php, and /posts paths are supported.
+ * Checks if a Facebook URL is supported by the embedded post plugin.
  */
 function isSupportedFacebookPostPath(pathname: string, searchParams: URLSearchParams) {
   const normalizedPath = pathname.toLowerCase();
@@ -43,6 +45,24 @@ function isSupportedFacebookPostPath(pathname: string, searchParams: URLSearchPa
 }
 
 /**
+ * Checks if a Facebook URL is a direct Reel permalink that can be passed to
+ * the embedded video player. Share redirect URLs are intentionally excluded.
+ */
+function isSupportedFacebookReelPath(pathname: string) {
+  const segments = pathname.toLowerCase().split("/").filter(Boolean);
+
+  return segments.length === 2 && segments[0] === "reel" && Boolean(segments[1]);
+}
+
+function getSupportedFacebookEmbedKind(pathname: string, searchParams: URLSearchParams): FacebookEmbedKind | "" {
+  if (isSupportedFacebookReelPath(pathname)) {
+    return "reel";
+  }
+
+  return isSupportedFacebookPostPath(pathname, searchParams) ? "post" : "";
+}
+
+/**
  * Checks if a URL is a valid Facebook URL but not supported for iframe embedding.
  * These URLs should show a fallback message instead of an iframe.
  */
@@ -60,13 +80,13 @@ function isValidButUnsupportedFacebookPath(pathname: string, searchParams: URLSe
     return true;
   }
 
-  // /watch/... paths (videos)
-  if (segments[0] === "watch" && (segments.length >= 2 || Boolean(searchParams.get("v")))) {
+  // /share/r/... Reel redirect paths are not stable plugin permalinks.
+  if (segments[0] === "share" && segments[1] === "r" && segments.length >= 3) {
     return true;
   }
 
-  // /reel/... paths
-  if (segments[0] === "reel" && segments.length >= 2) {
+  // /watch/... paths (videos)
+  if (segments[0] === "watch" && (segments.length >= 2 || Boolean(searchParams.get("v")))) {
     return true;
   }
 
@@ -83,6 +103,10 @@ function isValidButUnsupportedFacebookPath(pathname: string, searchParams: URLSe
   return false;
 }
 
+/**
+ * Backward-compatible normalizer for Facebook content embeds.
+ * It accepts public post permalinks and direct /reel/{id} permalinks.
+ */
 export function normalizeFacebookPostUrl(value: string): string {
   const url = String(value || "").trim();
 
@@ -97,10 +121,29 @@ export function normalizeFacebookPostUrl(value: string): string {
       return "";
     }
 
-    return isSupportedFacebookPostPath(parsed.pathname, parsed.searchParams) ? parsed.toString() : "";
+    return getSupportedFacebookEmbedKind(parsed.pathname, parsed.searchParams) ? parsed.toString() : "";
   } catch {
     return "";
   }
+}
+
+export function getFacebookEmbedKind(value: string): FacebookEmbedKind | "" {
+  const url = normalizeFacebookPostUrl(value);
+
+  if (!url) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(url);
+    return getSupportedFacebookEmbedKind(parsed.pathname, parsed.searchParams);
+  } catch {
+    return "";
+  }
+}
+
+export function isFacebookReelUrl(value: string): boolean {
+  return getFacebookEmbedKind(value) === "reel";
 }
 
 /**
@@ -121,7 +164,6 @@ export function isUnsupportedFacebookUrl(value: string): boolean {
       return false;
     }
 
-    // It's a valid Facebook URL but not supported for iframe
     return isValidButUnsupportedFacebookPath(parsed.pathname, parsed.searchParams);
   } catch {
     return false;
@@ -162,9 +204,10 @@ export function buildFacebookPostPluginUrl(input: { href: string; showText: bool
     return "";
   }
 
-  const pluginUrl = new URL(facebookPostPluginBaseUrl);
+  const embedKind = getFacebookEmbedKind(href);
+  const pluginUrl = new URL(embedKind === "reel" ? facebookVideoPluginBaseUrl : facebookPostPluginBaseUrl);
   pluginUrl.searchParams.set("href", href);
-  pluginUrl.searchParams.set("show_text", input.showText ? "true" : "false");
+  pluginUrl.searchParams.set("show_text", embedKind === "reel" ? "false" : input.showText ? "true" : "false");
   pluginUrl.searchParams.set("width", String(clampFacebookPostPluginWidth(input.width)));
 
   return pluginUrl.toString();
