@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import PublicSiteShell from "../components/PublicSiteShell";
+import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import { projectSettings } from "../../config/projectSettings";
 
 type ItaIndicatorGroup = "9" | "10";
@@ -490,18 +491,17 @@ export default function PublicIta2569Page() {
           <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-rcat-yellow/30 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-24 -left-12 h-56 w-56 rounded-full bg-emerald-300/20 blur-3xl" />
           <div className="relative mx-auto max-w-5xl text-center">
-            <div
-              aria-label={projectSettings.site.logoAlt}
-              className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full border border-white/50 bg-white p-2 shadow-xl shadow-black/20 ring-4 ring-white/10"
-            >
-              <img
-                src={projectSettings.site.logoPath}
-                alt={projectSettings.site.logoAlt}
-                width={128}
-                height={128}
-                className="h-full w-full object-contain"
-              />
-            </div>
+            <PublicResponsiveImage
+              source={projectSettings.site.logoPath}
+              intent="logo"
+              alt={projectSettings.site.logoAlt}
+              intrinsic
+              width={96}
+              height={96}
+              loadMode="eager"
+              bypassPageMediaGate
+              className="mx-auto mb-5 rounded-full border border-white/50 bg-white p-2 shadow-xl shadow-black/20 ring-4 ring-white/10"
+            />
             <span className="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-extrabold tracking-wider text-amber-200 backdrop-blur">
               ITA 2569 · OPEN DATA INTEGRITY AND TRANSPARENCY ASSESSMENT
             </span>
