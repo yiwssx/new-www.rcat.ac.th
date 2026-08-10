@@ -43,7 +43,7 @@ describe("FacebookPostEmbed", () => {
     render(<FacebookPostEmbed postUrl="https://example.com/not-facebook" />);
 
     expect(screen.queryByTitle("Facebook post")).not.toBeInTheDocument();
-    expect(screen.getByText("ไม่สามารถแสดงเนื้อหา Facebook แบบฝังได้")).toBeInTheDocument();
+    expect(screen.getByText("ไม่สามารถแสดงโพสต์ Facebook แบบฝังได้")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ดูโพสต์ต้นทางบน Facebook" })).toHaveAttribute(
       "href",
       "https://example.com/not-facebook"
@@ -54,7 +54,7 @@ describe("FacebookPostEmbed", () => {
     render(<FacebookPostEmbed postUrl="" />);
 
     expect(screen.queryByTitle("Facebook post")).not.toBeInTheDocument();
-    expect(screen.getByText("ไม่สามารถแสดงเนื้อหา Facebook แบบฝังได้")).toBeInTheDocument();
+    expect(screen.getByText("ไม่สามารถแสดงโพสต์ Facebook แบบฝังได้")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "ดูโพสต์ต้นทางบน Facebook" })).not.toBeInTheDocument();
   });
 });
