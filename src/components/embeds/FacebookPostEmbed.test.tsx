@@ -36,10 +36,7 @@ describe("FacebookPostEmbed", () => {
     expect(pluginUrl.searchParams.get("width")).toBe("440");
     expect(iframe).toHaveAttribute("loading", "lazy");
     expect(iframe).toHaveAttribute("allowfullscreen");
-    expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute(
-      "href",
-      facebookReelUrl
-    );
+    expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute("href", facebookReelUrl);
   });
 
   it("shows a safe fallback for invalid URLs", () => {

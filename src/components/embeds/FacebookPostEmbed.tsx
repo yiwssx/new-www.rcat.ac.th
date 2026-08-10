@@ -14,11 +14,7 @@ const facebookPluginWidth = 500;
 const facebookPostHeight = 820;
 const facebookReelMaxWidth = 440;
 
-export default function FacebookPostEmbed({
-  postUrl,
-  title,
-  maxWidth = defaultEmbedMaxWidth
-}: FacebookPostEmbedProps) {
+export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const isReel = isFacebookReelUrl(normalizedPostUrl);
   const pluginWidth = isReel ? Math.min(facebookPluginWidth, facebookReelMaxWidth) : facebookPluginWidth;

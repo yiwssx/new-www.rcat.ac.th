@@ -48,7 +48,7 @@ const blockTemplateOptions: BlockTemplateOption[] = [
   { type: "image", label: "รูปภาพ", helper: "รูปภาพเด่นจากคลังสื่อ" },
   { type: "video", label: "วิดีโอ", helper: "วิดีโอฝังจากคลังสื่อ" },
   { type: "pdf", label: "PDF", helper: "ฝังเอกสาร PDF จากคลังสื่อในตำแหน่งที่ต้องการ" },
-  { type: "facebookPost", label: "โพสต์ Facebook", helper: "ฝังโพสต์ Facebook แบบ public" },
+  { type: "facebookPost", label: "Facebook / Reels", helper: "ฝังโพสต์หรือคลิป Reels Facebook แบบ Public" },
   {
     type: "link",
     label: "ลิงก์ / ไฟล์แนบ",
@@ -402,17 +402,18 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                   {block.type === "facebookPost" && (
                     <Fragment>
                       <Alert severity="warning">
-                        โพสต์ต้องตั้งค่าเป็น Public หากภายหลังเปลี่ยนสิทธิ์การมองเห็น Facebook อาจไม่แสดงบนเว็บไซต์
+                        โพสต์หรือ Reels ต้องตั้งค่าเป็น Public หากภายหลังเปลี่ยนสิทธิ์การมองเห็น Facebook
+                        อาจไม่แสดงบนเว็บไซต์
                       </Alert>
                       <TextField
-                        label="Facebook Post URL"
+                        label="Facebook Post / Reels URL"
                         value={block.href}
                         onChange={(event) =>
                           updateBlock(block.id, (current) =>
                             current.type === "facebookPost" ? { ...current, href: event.target.value } : current
                           )
                         }
-                        helperText="วาง URL โพสต์ Facebook เท่านั้น ไม่ต้องวางโค้ด iframe แนะนำให้คัดลอก URL จากวันที่/เวลาของโพสต์"
+                        helperText="วาง URL โพสต์ Facebook หรือ permalink แบบ /reel/{id} เท่านั้น ไม่ต้องวางโค้ด iframe"
                         placeholder="https://www.facebook.com/..."
                         fullWidth
                       />
@@ -430,7 +431,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                             size="small"
                           />
                         }
-                        label="แสดงข้อความโพสต์"
+                        label="แสดงข้อความโพสต์ (เฉพาะโพสต์ปกติ)"
                       />
                       <TextField
                         type="number"
@@ -455,7 +456,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                             current.type === "facebookPost" ? { ...current, caption: event.target.value } : current
                           )
                         }
-                        placeholder="คำบรรยายใต้โพสต์ (ไม่บังคับ)"
+                        placeholder="คำบรรยายใต้โพสต์หรือ Reels (ไม่บังคับ)"
                         fullWidth
                       />
                     </Fragment>
