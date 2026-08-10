@@ -42,7 +42,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
         }}
       >
         <Alert severity="warning" sx={{ width: "100%", maxWidth }}>
-          ไม่สามารถแสดงเนื้อหา Facebook แบบฝังได้
+          ไม่สามารถแสดงโพสต์ Facebook แบบฝังได้
         </Alert>
         {canOpenSource && (
           <Button component="a" href={safeSourceHref} target="_blank" rel="noreferrer" variant="outlined">
