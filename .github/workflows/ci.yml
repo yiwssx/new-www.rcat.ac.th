@@ -29,8 +29,8 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - name: Refresh dependency status for Renovate PR
-        if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'renovate[bot]'
+      - name: Refresh dependency status for Renovate update
+        if: (github.event_name == 'pull_request' && github.event.pull_request.user.login == 'renovate[bot]') || (github.event_name == 'push' && github.actor == 'renovate[bot]')
         run: pnpm deps:status
       - run: pnpm deps:status:check
       - run: pnpm deps:check
