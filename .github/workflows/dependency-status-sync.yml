@@ -1,0 +1,66 @@
+name: Dependency Status Sync
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - config/dependency-policy.json
+      - .node-version
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dependency-status-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies --ignore-scripts
+
+      - name: Refresh dependency status document
+        run: pnpm deps:status
+
+      - name: Verify generated change scope
+        shell: bash
+        run: |
+          unexpected="$(git status --porcelain --untracked-files=no | awk '$2 != "docs/maintenance/dependency-current-status.md" { print }')"
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected tracked changes after dependency status generation:"
+            echo "$unexpected"
+            exit 1
+          fi
+
+      - name: Commit refreshed dependency status
+        shell: bash
+        run: |
+          if git diff --quiet -- docs/maintenance/dependency-current-status.md; then
+            echo "Dependency status document is already current."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/maintenance/dependency-current-status.md
+          git commit -m "docs(deps): refresh dependency status"
+          git push
