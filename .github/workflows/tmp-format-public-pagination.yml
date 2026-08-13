@@ -1,0 +1,46 @@
+name: Temporary Public Pagination Format
+
+on:
+  push:
+    branches:
+      - perf/public-archive-pagination-2026-08-13
+    paths:
+      - .github/workflows/tmp-format-public-pagination.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: perf/public-archive-pagination-2026-08-13
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Format pagination files
+        run: >-
+          pnpm exec prettier --write
+          src/features/public-content/query.ts
+          src/public/pages/PublicBlogPage.tsx
+          src/public/pages/PublicNewsPage.tsx
+          src/test/publicQueryOptions.test.ts
+          src/test/publicRouteLoaders.test.ts
+      - name: Commit formatted files
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/public-content/query.ts src/public/pages/PublicBlogPage.tsx src/public/pages/PublicNewsPage.tsx src/test/publicQueryOptions.test.ts src/test/publicRouteLoaders.test.ts
+          git commit -m "style(content): format pagination changes"
+          git push origin HEAD:perf/public-archive-pagination-2026-08-13
