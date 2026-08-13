@@ -32,7 +32,7 @@ function createResetSignature(resetKeys: readonly unknown[]) {
 }
 
 export function usePublicPagination<T>(
-  items: readonly T[],
+  items: T[],
   { pageSize, queryParam = "page", resetKeys = [], scrollTargetId, serverPagination }: UsePublicPaginationOptions
 ) {
   const navigate = useNavigate();
