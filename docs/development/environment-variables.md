@@ -29,9 +29,9 @@ Admin structured reads and writes always use the fixed same-origin `/api/admin-p
 
 Configure the Cloudflare Public API origin server-side for SSR:
 
-| Variable                    | Purpose                                                                                                                     |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_PUBLIC_API_URL` | Preferred server-side Cloudflare Worker public API origin used by SSR and server Public reads.                              |
+| Variable                         | Purpose                                                                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_PUBLIC_API_URL`      | Preferred server-side Cloudflare Worker public API origin used by SSR and server Public reads.                            |
 | `VITE_CLOUDFLARE_PUBLIC_API_URL` | Browser-safe compatibility fallback when the server-only variable is absent; browser bundles also use this public origin. |
 
 Server-side code gives `CLOUDFLARE_PUBLIC_API_URL` precedence over the `VITE_` alias.
@@ -63,8 +63,8 @@ The runtime sitemap reads published News and Blog content and the Announcements 
 
 Canonical server-only Vercel configuration:
 
-| Variable            | Purpose                                                                    |
-| ------------------- | -------------------------------------------------------------------------- |
+| Variable            | Purpose                                                                   |
+| ------------------- | ------------------------------------------------------------------------- |
 | `COMPLAINT_API_URI` | Dedicated complaint Apps Script `/exec` endpoint used only by the proxy.  |
 
 The browser submits to same-origin `/api/complaint`; do not expose the complaint Apps Script endpoint to browser code.
@@ -75,12 +75,12 @@ Configure these in Cloudflare Worker environment settings.
 
 `CMS_MFA_ENCRYPTION_KEY` and `CMS_MFA_ENCRYPTION_KEY_VERSION` are Worker-only. Do not configure them in Vercel.
 
-| Variable                         | Purpose                                                              |
-| -------------------------------- | -------------------------------------------------------------------- |
-| `ADMIN_WRITE_ALLOWED_ORIGINS`    | Allowed frontend/admin origins.                                      |
-| `CMS_AUTH_PROXY_SECRET`          | Server-only secret shared with the Vercel CMS proxies.               |
-| `CMS_MFA_ENCRYPTION_KEY`         | Server-only encryption key for CMS MFA secrets.                      |
-| `CMS_MFA_ENCRYPTION_KEY_VERSION` | Version label for the active CMS MFA encryption key.                 |
+| Variable                         | Purpose                                                                    |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| `ADMIN_WRITE_ALLOWED_ORIGINS`    | Allowed frontend/admin origins.                                            |
+| `CMS_AUTH_PROXY_SECRET`          | Server-only secret shared with the Vercel CMS proxies.                     |
+| `CMS_MFA_ENCRYPTION_KEY`         | Server-only encryption key for CMS MFA secrets.                            |
+| `CMS_MFA_ENCRYPTION_KEY_VERSION` | Version label for the active CMS MFA encryption key.                       |
 | `DB`                             | D1 database binding containing CMS data, users, credentials, and Sessions. |
 
 ## Apps Script Media Bridge Variables
