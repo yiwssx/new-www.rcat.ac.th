@@ -139,7 +139,7 @@ const publicAchievementsRoute = createRoute({
 const publicBlogRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "blog",
-  validateSearch: validatePublicPaginatedSearch,
+  validateSearch: validatePublicFilteredPaginatedSearch,
   loader: ({ context }) => loadPublicContentListData(context, "blog"),
   head: ({ match }) => getStaticPublicRouteHead("/blog", match.search),
   component: PublicBlogPage
