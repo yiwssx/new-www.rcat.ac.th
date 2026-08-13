@@ -17,6 +17,8 @@ const BACKUP_TABLES = [
   "visitor_daily_stats"
 ] as const;
 
+const encoder = new TextEncoder();
+
 type BackupEnvironment = "preview" | "production" | "unknown";
 type BackupTableName = (typeof BACKUP_TABLES)[number];
 type BackupTableStatus = "ok" | "missing" | "error";
@@ -131,6 +133,61 @@ function backupMethodNotAllowed() {
   return response;
 }
 
+function enqueueJson(controller: ReadableStreamDefaultController<Uint8Array>, value: unknown) {
+  controller.enqueue(encoder.encode(JSON.stringify(value)));
+}
+
+function createBackupDownloadStream(db: D1Database, generatedAt: string, environment: BackupEnvironment) {
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const counts: Record<string, number> = {};
+      const warnings: string[] = [];
+
+      try {
+        controller.enqueue(
+          encoder.encode(
+            `{"schemaVersion":1,"generatedAt":${JSON.stringify(generatedAt)},"environment":${JSON.stringify(
+              environment
+            )},"source":{"app":"new-www.rcat.ac.th","backend":"cloudflare-d1"},"tables":{`
+          )
+        );
+
+        for (const [index, table] of BACKUP_TABLES.entries()) {
+          const result = await readTableRows(db, table);
+          counts[table] = result.rowCount;
+
+          if (result.warning) {
+            warnings.push(result.warning);
+          }
+
+          if (index > 0) {
+            controller.enqueue(encoder.encode(","));
+          }
+
+          controller.enqueue(encoder.encode(`${JSON.stringify(table)}:`));
+          enqueueJson(controller, {
+            rowCount: result.rowCount,
+            rows: result.rows
+          });
+        }
+
+        controller.enqueue(encoder.encode(`},"counts":`));
+        enqueueJson(controller, counts);
+
+        if (warnings.length > 0) {
+          controller.enqueue(encoder.encode(`,"warnings":`));
+          enqueueJson(controller, warnings);
+        }
+
+        controller.enqueue(encoder.encode("}"));
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    }
+  });
+}
+
 async function handleCounts(env: Env) {
   const db = requireD1Database(env);
   const tables = await Promise.all(BACKUP_TABLES.map((table) => readTableCount(db, table)));
@@ -151,44 +208,18 @@ async function handleCounts(env: Env) {
   );
 }
 
-async function handleDownload(env: Env) {
+function handleDownload(env: Env) {
   const db = requireD1Database(env);
   const generatedAt = new Date().toISOString();
   const environment = normalizeEnvironment(env.ENVIRONMENT);
-  const entries = await Promise.all(
-    BACKUP_TABLES.map(async (table) => [table, await readTableRows(db, table)] as const)
-  );
-  const tables = Object.fromEntries(
-    entries.map(([table, result]) => [
-      table,
-      {
-        rowCount: result.rowCount,
-        rows: result.rows
-      }
-    ])
-  ) as Record<BackupTableName, { rowCount: number; rows: JsonRecord[] }>;
-  const warnings = entries.flatMap(([, result]) => (result.warning ? [result.warning] : []));
   const timestamp = generatedAt.replace(/[:.]/g, "-");
 
-  return json(
-    {
-      schemaVersion: 1,
-      generatedAt,
-      environment,
-      source: {
-        app: "new-www.rcat.ac.th",
-        backend: "cloudflare-d1"
-      },
-      tables,
-      counts: Object.fromEntries(entries.map(([table, result]) => [table, result.rowCount])),
-      ...(warnings.length ? { warnings } : {})
-    },
-    {
-      headers: noStoreHeaders({
-        "Content-Disposition": `attachment; filename="rcat-d1-backup-${environment}-${timestamp}.json"`
-      })
-    }
-  );
+  return new Response(createBackupDownloadStream(db, generatedAt, environment), {
+    headers: noStoreHeaders({
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Disposition": `attachment; filename="rcat-d1-backup-${environment}-${timestamp}.json"`
+    })
+  });
 }
 
 export async function handleAdminBackup(request: Request, env: Env, segments: string[]) {
