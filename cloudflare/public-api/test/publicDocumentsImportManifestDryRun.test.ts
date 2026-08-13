@@ -227,7 +227,7 @@ describe("M12 public document import manifest dry-run CLI", () => {
     expect(first.manifest.input.sha256).not.toBe(second.manifest.input.sha256);
   });
 
-  it("keeps source local-only, committed config safe, and frontend default Apps Script", () => {
+  it("keeps source local-only, committed config safe, and the current Cloudflare frontend contract intact", () => {
     expect(manifestScriptSource).not.toMatch(/\bfetch\s*\(/);
     expect(manifestScriptSource).not.toMatch(/\bXMLHttpRequest\b/);
     expect(manifestScriptSource).not.toMatch(/\bwrangler\b/i);
@@ -242,7 +242,10 @@ describe("M12 public document import manifest dry-run CLI", () => {
     expect(manifestScriptSource).not.toMatch(realD1IdPattern);
     expect(wranglerToml).toContain('database_id = "local-placeholder"');
     expect(wranglerToml).toContain('database_id = "preview-placeholder"');
-    expect(publicApiProviderSource).toContain('return provider === "cloudflare" ? "cloudflare" : "apps-script"');
+    expect(publicApiProviderSource).toMatch(/VITE_CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).toMatch(/CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).not.toMatch(/VITE_PUBLIC_API_PROVIDER/);
+    expect(publicApiProviderSource).not.toMatch(/apps-script/);
   });
 
   it("documents M12 local manifest scope and production safety", () => {
