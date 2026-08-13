@@ -8,6 +8,10 @@ import checker from "vite-plugin-checker";
 
 const WRANGLER_REPOSITORY_PATH = "cloudflare/public-api/wrangler.toml";
 const CLIENT_MANIFEST_PATH = path.resolve("dist", ".vite", "manifest.json");
+const TEST_SSR_CLIENT_ASSETS = {
+  entryPath: "/assets/index-vitest-a1b2c3.js",
+  stylesheetPaths: ["/assets/index-vitest-a1b2c3.css"]
+};
 
 type ClientManifestChunk = {
   css?: string[];
@@ -90,7 +94,7 @@ function utf8HtmlCharset(): Plugin {
 
 export default defineConfig(({ command, mode, isSsrBuild }) => {
   const plugins = [react(), utf8HtmlCharset()] as Plugin[];
-  const ssrClientAssets = isSsrBuild ? loadSsrClientAssets() : null;
+  const ssrClientAssets = isSsrBuild ? loadSsrClientAssets() : mode === "test" ? TEST_SSR_CLIENT_ASSETS : null;
 
   if (mode === "test") {
     plugins.push(committedWranglerSafetySource());
