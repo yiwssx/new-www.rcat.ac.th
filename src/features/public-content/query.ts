@@ -62,7 +62,10 @@ export function publicContentListQueryOptions(
           ? await getPublicAnnouncementsContentListSnapshot(pageItemsInput, requestOptions)
           : await getPublicContentListSnapshot(kind, requestOptions);
 
-      if (!pageInput && (kind !== "announcements" || !pageItemsInput || normalizePageInput(pageItemsInput).page === 1)) {
+      if (
+        !pageInput &&
+        (kind !== "announcements" || !pageItemsInput || normalizePageInput(pageItemsInput).page === 1)
+      ) {
         setPublicContentListCache(kind, snapshot);
       }
 

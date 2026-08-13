@@ -45,7 +45,9 @@ export default function PublicBlogPage() {
       hasActiveFilter
         ? blogItems.filter((item) => {
             const matchesTag = activeTag ? (item.tags ?? []).includes(activeTag) : true;
-            const matchesCategory = activeCategory ? normalizeCategoryList(item.category).includes(activeCategory) : true;
+            const matchesCategory = activeCategory
+              ? normalizeCategoryList(item.category).includes(activeCategory)
+              : true;
             return matchesTag && matchesCategory;
           })
         : blogItems,
