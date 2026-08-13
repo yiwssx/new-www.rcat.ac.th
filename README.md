@@ -2,9 +2,9 @@
 
 React/Vite public website and CMS for Roi-Et College of Agriculture and Technology.
 
-Updated: 2026-08-01.
+Updated: 2026-08-13.
 
-This README describes the current runtime and development conventions after the CMS Session reliability work and the Admin Menu hierarchy/URL/test refactor committed with this documentation.
+This README describes the current runtime and development conventions after the CMS Session reliability work, Admin Menu hierarchy/URL refactor, Public SSR cutover, and Cloudflare-only Public runtime cleanup.
 
 ## Current Runtime Ownership
 
@@ -16,6 +16,8 @@ This README describes the current runtime and development conventions after the 
 - Media/file bridge: Apps Script behind the authenticated Vercel proxy.
 - File storage: Google Drive behind the Apps Script media/file bridge.
 - Runtime sitemap: Vercel `/sitemap.xml` -> `/api/sitemap`, backed by live Cloudflare public data.
+
+Public structured data has no runtime provider selector. Cloudflare Worker + D1 is the current Public structured-data and analytics owner.
 
 The authoritative current ownership document is:
 
@@ -95,7 +97,7 @@ See:
 - MUI
 - TanStack Router
 - TanStack Query and Table
-- Vercel frontend and same-origin server routes
+- Vercel frontend, Public SSR, and same-origin server routes
 - Cloudflare Worker and D1
 - Apps Script media/file bridge
 - Google Drive file storage
@@ -167,7 +169,9 @@ Do not store secrets, tokens, production credentials, D1 IDs, Access identifiers
 
 Vercel rewrites `/sitemap.xml` to `/api/sitemap`.
 
-The server function reads current public menu and published content from the Cloudflare Worker/D1 public API. The build does not generate a tracked `public/sitemap.xml`.
+The server function combines the known indexable Public route set with published canonical content records from Cloudflare Worker/D1. Dynamic sitemap content currently comes from News, Announcements (including published Public page items), and Blog. It does not derive routes from the Public menu. Program records remain represented by the indexable `/departments` listing route because there is no canonical Public program-detail route.
+
+The build does not generate a tracked `public/sitemap.xml`.
 
 Relevant verification:
 
@@ -203,9 +207,10 @@ Current documents:
 - CMS Session lifecycle: `docs/cms-auth-session-lifecycle.md`
 - UI test policy: `docs/development/ui-testing-policy.md`
 - Runtime deployment: `docs/deployment/runtime-deployment-guide.md`
+- Public SSR verification: `docs/operations/public-ssr-cutover.md`
+- Environment variables: `docs/development/environment-variables.md`
 - Historical migration status: `docs/architecture/current-migration-status.md`
 - Historical M20 ownership closure: `docs/architecture/m20-cleanup-runtime-ownership.md`
 - CMS authentication cutover runbook: `docs/cms-auth-final-cutover.md`
-- Environment variables: `docs/development/environment-variables.md`
 
-Historical milestone documents preserve the state and evidence of their milestones. For current Node/pnpm, Session behavior, Menu UX, and deployment decisions, use the current documents listed above.
+Historical milestone documents preserve the state and evidence of their milestones. For current Node/pnpm, Session behavior, Menu UX, Public provider ownership, SSR asset behavior, and deployment decisions, use the current documents listed above.
