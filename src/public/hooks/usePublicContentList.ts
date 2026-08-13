@@ -8,6 +8,10 @@ import {
 import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
 import type { PublicContentListKind } from "../../types";
 
+interface UsePublicContentListOptions {
+  pageInput?: PublicContentListPageInput;
+}
+
 function normalizePageInput(pageInput: PublicContentListPageInput | undefined) {
   if (!pageInput) {
     return undefined;
@@ -21,8 +25,13 @@ function normalizePageInput(pageInput: PublicContentListPageInput | undefined) {
 
 function getEligibleContentListCache(
   kind: PublicContentListKind,
-  pageItemsInput: PublicContentListPageInput | undefined
+  pageItemsInput: PublicContentListPageInput | undefined,
+  pageInput: PublicContentListPageInput | undefined
 ) {
+  if (pageInput) {
+    return null;
+  }
+
   const cached = getPublicContentListCache(kind);
 
   if (!cached || kind !== "announcements" || !pageItemsInput) {
@@ -43,15 +52,25 @@ function getEligibleContentListCache(
   return cached;
 }
 
-export function usePublicContentList(kind: PublicContentListKind, pageItemsInput?: PublicContentListPageInput) {
+export function usePublicContentList(
+  kind: PublicContentListKind,
+  pageItemsInput?: PublicContentListPageInput,
+  options: UsePublicContentListOptions = {}
+) {
   const normalizedPageItemsInput = normalizePageInput(pageItemsInput);
-  const cachedSnapshot = getEligibleContentListCache(kind, normalizedPageItemsInput);
+  const normalizedPageInput = normalizePageInput(options.pageInput);
+  const cachedSnapshot = getEligibleContentListCache(kind, normalizedPageItemsInput, normalizedPageInput);
   const hasFreshCache = cachedSnapshot
     ? isPublicQueryCacheFresh(cachedSnapshot.savedAt, PUBLIC_CONTENT_LIST_CACHE_TTL_MS)
     : false;
 
   return useQuery({
-    ...publicContentListQueryOptions(kind, { consumeAbortSignal: false }, normalizedPageItemsInput),
+    ...publicContentListQueryOptions(
+      kind,
+      { consumeAbortSignal: false },
+      normalizedPageItemsInput,
+      normalizedPageInput
+    ),
     initialData: cachedSnapshot?.data,
     initialDataUpdatedAt: cachedSnapshot?.savedAt,
     refetchOnMount: cachedSnapshot ? !hasFreshCache : true
