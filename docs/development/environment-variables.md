@@ -52,10 +52,10 @@ Configure these in Vercel environment settings.
 
 Configure these as server-side Vercel variables for `api/sitemap.mjs`.
 
-| Variable                    | Purpose                                                                                                                      |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `PUBLIC_SITE_URL`           | Canonical public origin written into sitemap URLs. Falls back to `VITE_PUBLIC_SITE_URL` and then the request host.           |
-| `CLOUDFLARE_PUBLIC_API_URL` | Cloudflare Worker public API origin used to read published content. Falls back to `VITE_CLOUDFLARE_PUBLIC_API_URL`.         |
+| Variable                    | Purpose                                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_SITE_URL`           | Canonical public origin written into sitemap URLs. Falls back to `VITE_PUBLIC_SITE_URL` and then the request host.  |
+| `CLOUDFLARE_PUBLIC_API_URL` | Cloudflare Worker public API origin used to read published content. Falls back to `VITE_CLOUDFLARE_PUBLIC_API_URL`. |
 
 The runtime sitemap reads published News and Blog content and the Announcements contract, including paginated published Public page items. It combines those canonical content records with the known indexable static route set. It does not depend on `/api/public/home` or the Public menu to construct sitemap routes. These URLs are server configuration, not secrets, but private preview origins should not be committed.
 
@@ -63,9 +63,9 @@ The runtime sitemap reads published News and Blog content and the Announcements 
 
 Canonical server-only Vercel configuration:
 
-| Variable            | Purpose                                                                   |
-| ------------------- | ------------------------------------------------------------------------- |
-| `COMPLAINT_API_URI` | Dedicated complaint Apps Script `/exec` endpoint used only by the proxy.  |
+| Variable            | Purpose                                                                  |
+| ------------------- | ------------------------------------------------------------------------ |
+| `COMPLAINT_API_URI` | Dedicated complaint Apps Script `/exec` endpoint used only by the proxy. |
 
 The browser submits to same-origin `/api/complaint`; do not expose the complaint Apps Script endpoint to browser code.
 
