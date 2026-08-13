@@ -15,9 +15,18 @@ describe("Cloudflare public API config", () => {
     ).toBe("https://public-api.example.edu");
   });
 
+  it("prefers the server-only Cloudflare URL when both server and browser aliases are present", () => {
+    expect(
+      resolveCloudflarePublicApiBaseUrl({
+        CLOUDFLARE_PUBLIC_API_URL: "https://server-public-api.example.edu/",
+        VITE_CLOUDFLARE_PUBLIC_API_URL: "https://browser-public-api.example.edu/"
+      })
+    ).toBe("https://server-public-api.example.edu");
+  });
+
   it("requires a Cloudflare URL when building a public API URL", () => {
     expect(() => buildCloudflarePublicApiUrl("/api/public/documents", {})).toThrow(
-      "VITE_CLOUDFLARE_PUBLIC_API_URL or CLOUDFLARE_PUBLIC_API_URL"
+      "CLOUDFLARE_PUBLIC_API_URL or VITE_CLOUDFLARE_PUBLIC_API_URL"
     );
   });
 

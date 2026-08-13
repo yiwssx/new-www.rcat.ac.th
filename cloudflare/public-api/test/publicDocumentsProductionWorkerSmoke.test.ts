@@ -302,7 +302,10 @@ describe("M14 production Worker smoke gate", () => {
     expect(wranglerToml).toContain('database_id = "local-placeholder"');
     expect(wranglerToml).toContain('database_id = "preview-placeholder"');
     expect(wranglerToml).not.toMatch(realD1IdPattern);
-    expect(publicApiProviderSource).toContain('return provider === "cloudflare" ? "cloudflare" : "apps-script"');
+    expect(publicApiProviderSource).toMatch(/CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).toMatch(/VITE_CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).not.toMatch(/VITE_PUBLIC_API_PROVIDER/);
+    expect(publicApiProviderSource).not.toMatch(/apps-script/);
   });
 
   it("documents that M14 is direct Worker smoke only and not frontend cutover", () => {

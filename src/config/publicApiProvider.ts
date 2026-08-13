@@ -18,7 +18,7 @@ function getRuntimePublicApiEnv(): PublicApiProviderEnv {
 
 function readCloudflareBaseUrl(env: PublicApiProviderEnv) {
   return (
-    readEnvString(env, "VITE_CLOUDFLARE_PUBLIC_API_URL") || readEnvString(env, "CLOUDFLARE_PUBLIC_API_URL")
+    readEnvString(env, "CLOUDFLARE_PUBLIC_API_URL") || readEnvString(env, "VITE_CLOUDFLARE_PUBLIC_API_URL")
   ).replace(/\/+$/, "");
 }
 
@@ -26,7 +26,7 @@ export function resolveCloudflarePublicApiBaseUrl(env: PublicApiProviderEnv = ge
   const baseUrl = readCloudflareBaseUrl(env);
 
   if (!baseUrl) {
-    throw new Error("VITE_CLOUDFLARE_PUBLIC_API_URL or CLOUDFLARE_PUBLIC_API_URL is required for Public API requests");
+    throw new Error("CLOUDFLARE_PUBLIC_API_URL or VITE_CLOUDFLARE_PUBLIC_API_URL is required for Public API requests");
   }
 
   return baseUrl;
