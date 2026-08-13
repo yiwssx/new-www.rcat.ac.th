@@ -153,6 +153,16 @@ describe("public Cloudflare runtime ownership", () => {
     expect(formatDisplayDate(generatedAt)).toBe("20 มิถุนายน 2569");
   });
 
+  it("keeps public reads successful when display cache writes are blocked", async () => {
+    installCloudflareFetch();
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage blocked");
+    });
+
+    await expect(getPublicHomeSnapshot()).resolves.toEqual(homeSnapshot);
+    setItemSpy.mockRestore();
+  });
+
   it("builds the Contact/public shell snapshot from Cloudflare without calling Apps Script", async () => {
     const fetchMock = installCloudflareFetch();
 

@@ -1,5 +1,5 @@
 import { buildCloudflarePublicApiUrl } from "../../config/publicApiProvider";
-import { projectSettings } from "../../config/projectSettings";
+import { persistDisplaySettings as persistStoredDisplaySettings } from "../../services/displaySettings";
 import type {
   ContentItem,
   DisplaySettings,
@@ -71,11 +71,8 @@ export function resetCloudflarePublicApiBackoffForTests() {
 }
 
 function persistDisplaySettings(displaySettings?: DisplaySettings) {
-  if (typeof window !== "undefined" && displaySettings) {
-    window.localStorage.setItem(
-      projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings",
-      JSON.stringify(displaySettings)
-    );
+  if (displaySettings) {
+    persistStoredDisplaySettings(displaySettings);
   }
 }
 

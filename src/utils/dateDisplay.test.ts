@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { projectSettings } from "../config/projectSettings";
 import {
   dateFormatPresets,
@@ -75,8 +75,11 @@ describe("Thai display date normalization", () => {
     expect(formatDisplayYear("2026-12-31T17:00:00.000Z")).toBe("2570");
   });
 
-  it("always uses a 24-hour clock even when stale settings request 12-hour time", () => {
-    expect(formatDisplayTime("2026-08-01T14:30:00+07:00", { timeMode: "12h" })).toBe("14:30");
+  it("normalizes stale 12-hour settings to the fixed 24-hour contract", () => {
+    const normalized = normalizeDisplaySettings({ dateFormat: "j F Y", timeMode: "12h" });
+
+    expect(normalized).toEqual(defaultDisplaySettings);
+    expect(formatDisplayTime("2026-08-01T14:30:00+07:00", normalized)).toBe("14:30");
   });
 
   it("returns an empty string for invalid presentation values", () => {
@@ -91,8 +94,9 @@ describe("Thai display date normalization", () => {
   it.each(["D MMMM MMMM YYYY YYYY", "YYYYYYYY-MM-DD", "j F Y j F Y", "not-a-date-format"])(
     "falls back safely for corrupted format %s",
     (dateFormat) => {
-      expect(normalizeDisplaySettings({ dateFormat, timeMode: "12h" })).toEqual(defaultDisplaySettings);
-      expect(formatDisplayDateTime(bangkokDate, { dateFormat, timeMode: "12h" })).toBe("5 มิถุนายน 2569 10:50");
+      const normalized = normalizeDisplaySettings({ dateFormat, timeMode: "12h" });
+      expect(normalized).toEqual(defaultDisplaySettings);
+      expect(formatDisplayDateTime(bangkokDate, normalized)).toBe("5 มิถุนายน 2569 10:50");
     }
   );
 
@@ -119,5 +123,25 @@ describe("Thai display date normalization", () => {
 
     expect(getStoredDisplaySettings()).toEqual(defaultDisplaySettings);
     expect(JSON.parse(window.localStorage.getItem(storageKey) || "{}")).toEqual(defaultDisplaySettings);
+  });
+
+  it("falls back safely when local storage reads are blocked", () => {
+    const getItemSpy = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("storage blocked");
+    });
+
+    expect(getStoredDisplaySettings()).toEqual(defaultDisplaySettings);
+    getItemSpy.mockRestore();
+  });
+
+  it("keeps normalized settings usable when local storage writes are blocked", () => {
+    const storageKey = projectSettings.storageKeys.displaySettings;
+    window.localStorage.setItem(storageKey, JSON.stringify({ dateFormat: "D MMMM MMMM YYYY YYYY", timeMode: "12h" }));
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage blocked");
+    });
+
+    expect(getStoredDisplaySettings()).toEqual(defaultDisplaySettings);
+    setItemSpy.mockRestore();
   });
 });
