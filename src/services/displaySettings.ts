@@ -78,7 +78,7 @@ function parseStoredDisplaySettings(): DisplaySettings | null {
     return null;
   }
 
-  let raw = "";
+  let raw: string;
 
   try {
     raw = storage.getItem(displaySettingsStorageKey) || "";
