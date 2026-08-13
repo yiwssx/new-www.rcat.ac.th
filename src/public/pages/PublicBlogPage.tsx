@@ -12,6 +12,7 @@ import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicContentList } from "../hooks/usePublicContentList";
 import { usePublicPagination } from "../hooks/usePublicPagination";
+import { normalizePublicPageSearchValue } from "../routing/searchParams";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
 const BLOG_PAGE_SIZE = 12;
@@ -29,28 +30,37 @@ function normalizeCategoryList(category: string | undefined) {
 }
 
 export default function PublicBlogPage() {
-  const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("blog");
   const routeSearch = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
   const activeTag = readTextSearchParam(routeSearch, "tag");
   const activeCategory = readTextSearchParam(routeSearch, "category");
   const hasActiveFilter = Boolean(activeTag || activeCategory);
+  const requestedPage = normalizePublicPageSearchValue(routeSearch.page) ?? 1;
+  const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("blog", undefined, {
+    pageInput: hasActiveFilter ? undefined : { page: requestedPage, pageSize: BLOG_PAGE_SIZE }
+  });
   const blogItems = useMemo(() => data?.items ?? [], [data?.items]);
   const mediaAssets = data?.media ?? [];
   const filteredBlogItems = useMemo(
     () =>
-      blogItems.filter((item) => {
-        const matchesTag = activeTag ? (item.tags ?? []).includes(activeTag) : true;
-        const matchesCategory = activeCategory ? normalizeCategoryList(item.category).includes(activeCategory) : true;
-        return matchesTag && matchesCategory;
-      }),
-    [activeCategory, activeTag, blogItems]
+      hasActiveFilter
+        ? blogItems.filter((item) => {
+            const matchesTag = activeTag ? (item.tags ?? []).includes(activeTag) : true;
+            const matchesCategory = activeCategory ? normalizeCategoryList(item.category).includes(activeCategory) : true;
+            return matchesTag && matchesCategory;
+          })
+        : blogItems,
+    [activeCategory, activeTag, hasActiveFilter, blogItems]
   );
-
-  const [featuredItem, ...secondaryItems] = filteredBlogItems;
+  const serverPagination = hasActiveFilter ? undefined : data?.pagination;
+  const archivePage = serverPagination?.page ?? requestedPage;
+  const shouldFeatureFirstItem = !serverPagination || archivePage === 1;
+  const featuredItem = shouldFeatureFirstItem ? filteredBlogItems[0] : undefined;
+  const secondaryItems = shouldFeatureFirstItem ? filteredBlogItems.slice(1) : filteredBlogItems;
   const blogPagination = usePublicPagination(secondaryItems, {
     pageSize: BLOG_PAGE_SIZE,
     resetKeys: [activeTag, activeCategory],
-    scrollTargetId: "blog-list-heading"
+    scrollTargetId: "blog-list-heading",
+    serverPagination
   });
 
   if (!data && (isLoading || isFetching)) {
@@ -150,14 +160,16 @@ export default function PublicBlogPage() {
               </Grid>
             ))}
           </Grid>
-          <PublicPagination
-            page={blogPagination.page}
-            pageCount={blogPagination.pageCount}
-            pageSize={blogPagination.pageSize}
-            totalItems={blogPagination.totalItems}
-            onPageChange={(nextPage) => blogPagination.setPage(nextPage, { scroll: true })}
-          />
         </>
+      )}
+      {blogPagination.totalItems > 0 && blogPagination.pageCount > 1 && (
+        <PublicPagination
+          page={blogPagination.page}
+          pageCount={blogPagination.pageCount}
+          pageSize={blogPagination.pageSize}
+          totalItems={blogPagination.totalItems}
+          onPageChange={(nextPage) => blogPagination.setPage(nextPage, { scroll: true })}
+        />
       )}
     </PublicSiteShell>
   );
