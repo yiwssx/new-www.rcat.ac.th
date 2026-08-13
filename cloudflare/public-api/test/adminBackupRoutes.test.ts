@@ -32,6 +32,20 @@ const editorHeaders = {
   ...adminHeaders,
   [CMS_SESSION_TOKEN_HEADER]: editorSessionToken
 };
+const backupTableNames = [
+  "contents",
+  "media_assets",
+  "documents",
+  "menu_items",
+  "carousel_slides",
+  "external_services",
+  "events",
+  "site_settings",
+  "homepage_settings",
+  "display_settings",
+  "public_home_sections",
+  "visitor_daily_stats"
+];
 
 authenticateCmsSessionMock.mockImplementation(async ({ sessionToken }: { sessionToken: string }) => {
   const role = sessionToken === editorSessionToken ? "editor" : "admin";
@@ -97,6 +111,44 @@ function createBackupMockDb(tables: Record<string, Array<Record<string, unknown>
       };
     }
   } as unknown as D1Database;
+}
+
+function createSequentialReadProbeDb() {
+  let activeReads = 0;
+  let maximumConcurrentReads = 0;
+  const tables = Object.fromEntries(backupTableNames.map((table) => [table, [] as Array<Record<string, unknown>>]));
+  tables.contents = [{ id: "content-1", revision: 2 }];
+
+  const db = {
+    prepare(query: string) {
+      const tableName = tableFromQuery(query);
+
+      return {
+        bind() {
+          return this;
+        },
+        async first<T>() {
+          return { rowCount: tables[tableName]?.length ?? 0 } as T;
+        },
+        async all<T>() {
+          activeReads += 1;
+          maximumConcurrentReads = Math.max(maximumConcurrentReads, activeReads);
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          activeReads -= 1;
+
+          return {
+            results: (tables[tableName] ?? []) as T[],
+            success: true
+          };
+        }
+      };
+    }
+  } as unknown as D1Database;
+
+  return {
+    db,
+    getMaximumConcurrentReads: () => maximumConcurrentReads
+  };
 }
 
 async function readJson(response: Response) {
@@ -201,6 +253,24 @@ describe("M21 admin D1 backup routes", () => {
       }
     });
     expect(typeof payload.generatedAt).toBe("string");
+  });
+
+  it("reads backup tables sequentially to bound Worker export memory", async () => {
+    const probe = createSequentialReadProbeDb();
+    const response = await worker.fetch(
+      makeRequest("/api/admin/backup/download", {
+        headers: adminHeaders
+      }),
+      createEnv(probe.db)
+    );
+
+    expect(response.status).toBe(200);
+    await expect(readJson(response)).resolves.toMatchObject({
+      counts: {
+        contents: 1
+      }
+    });
+    expect(probe.getMaximumConcurrentReads()).toBe(1);
   });
 
   it("returns a safe error when the D1 binding is missing", async () => {
