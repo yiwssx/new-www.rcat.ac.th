@@ -19,6 +19,7 @@ export interface PublicContentDetailLoaderData {
 }
 
 export const PUBLIC_SEARCH_PAGE_SIZE = 12;
+export const PUBLIC_CONTENT_ARCHIVE_PAGE_SIZE = 12;
 export const PUBLIC_ANNOUNCEMENT_PAGES_PAGE_SIZE = 12;
 
 async function ensurePublicQuery<T>(prefetch: () => Promise<T>): Promise<T | PublicRouteLoadFailure> {
@@ -27,6 +28,21 @@ async function ensurePublicQuery<T>(prefetch: () => Promise<T>): Promise<T | Pub
   } catch {
     return createPublicRouteLoadFailure();
   }
+}
+
+function hasArchiveFilters(search: Record<string, unknown>) {
+  return Boolean(String(search.tag || "").trim() || String(search.category || "").trim());
+}
+
+export function getContentArchiveLoaderInput(search: Record<string, unknown>) {
+  if (hasArchiveFilters(search)) {
+    return undefined;
+  }
+
+  return {
+    page: normalizePublicPageSearchValue(search.page) ?? 1,
+    pageSize: PUBLIC_CONTENT_ARCHIVE_PAGE_SIZE
+  };
 }
 
 export async function loadPublicShellData(context: PublicRouteLoaderContext) {
@@ -47,11 +63,12 @@ export async function loadPublicCmsSnapshotData(context: PublicRouteLoaderContex
 export async function loadPublicContentListData(
   context: PublicRouteLoaderContext,
   kind: PublicContentListKind,
-  pageItemsInput?: { page: number; pageSize?: number }
+  pageItemsInput?: { page: number; pageSize?: number },
+  pageInput?: { page: number; pageSize?: number }
 ) {
   const { publicContentListQueryOptions } = await import("../../features/public-content");
   return ensurePublicQuery(() =>
-    context.queryClient.ensureQueryData(publicContentListQueryOptions(kind, {}, pageItemsInput))
+    context.queryClient.ensureQueryData(publicContentListQueryOptions(kind, {}, pageItemsInput, pageInput))
   );
 }
 
