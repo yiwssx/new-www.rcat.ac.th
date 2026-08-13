@@ -1,6 +1,6 @@
 # Runtime Deployment Guide
 
-Updated: 2026-08-08.
+Updated: 2026-08-13.
 
 ## Toolchain
 
@@ -44,11 +44,10 @@ See `docs/architecture/current-runtime-ownership.md` for the canonical ownership
 Required server-side Public read configuration:
 
 ```text
-PUBLIC_API_PROVIDER=cloudflare
 CLOUDFLARE_PUBLIC_API_URL=<production Cloudflare Public API base URL>
 ```
 
-The existing `VITE_PUBLIC_API_PROVIDER` and `VITE_CLOUDFLARE_PUBLIC_API_URL` names remain supported for compatibility, but server-only names are preferred for SSR.
+The Public structured-data runtime is Cloudflare-only and has no provider selector. Browser code uses the public `VITE_CLOUDFLARE_PUBLIC_API_URL` alias. Server-side code prefers `CLOUDFLARE_PUBLIC_API_URL` and accepts `VITE_CLOUDFLARE_PUBLIC_API_URL` only as a compatibility fallback because the Worker origin itself is not secret.
 
 ### Complaint proxy configuration
 
@@ -64,12 +63,13 @@ The complaint proxy validates fields, normalizes phone numbers, checks attachmen
 
 ### Public SSR build behavior
 
-1. Vite builds the browser client normally.
-2. The client entry and global stylesheet are emitted as deterministic `/assets/rcat-client.js` and `/assets/rcat-client.css`; lazy chunks remain content-hashed.
-3. `scripts/prepare-ssr-cutover-output.mjs` verifies those assets.
-4. `dist/index.html` is renamed to `dist/csr.html`.
-5. `dist/index.html` is intentionally absent so Vercel filesystem precedence cannot bypass Public SSR at `/`.
-6. Login/Activation/Reset/Admin rewrite to `csr.html`; Public application routes rewrite to `api/ssr.ts`.
+1. Vite builds the browser client normally and emits content-hashed client assets.
+2. `scripts/prepare-ssr-cutover-output.mjs` reads the Vite manifest and verifies the manifest-selected entry JavaScript and stylesheet files exist and are content-hashed.
+3. The SSR build injects those manifest-selected public asset paths through `__RCAT_SSR_CLIENT_ENTRY_PATH__` and `__RCAT_SSR_CLIENT_STYLESHEET_PATHS__`.
+4. `src/ssrAssets.ts` fails closed if the build-time manifest injection is unavailable; it does not fall back to fixed `/assets/rcat-client.*` names.
+5. `dist/index.html` is renamed to `dist/csr.html`.
+6. `dist/index.html` is intentionally absent so Vercel filesystem precedence cannot bypass Public SSR at `/`.
+7. Login/Activation/Reset/Admin rewrite to `csr.html`; Public application routes rewrite to `api/ssr.ts`.
 
 The Public SSR adapter supports GET/HEAD. Unexpected server-render exceptions return protected HTTP `503` rather than leaking implementation details.
 
@@ -81,6 +81,7 @@ The Public SSR adapter supports GET/HEAD. Unexpected server-render exceptions re
 - 4xx/5xx: `no-store` and noindex protection where applicable.
 - Permanent legacy `/$slug` redirect: browser revalidation; Vercel CDN one-day freshness with seven-day stale-while-revalidate.
 - `csr.html`: `no-store`, `noindex, nofollow`.
+- Client entry/styles and lazy chunks are manifest-selected content-hashed assets; do not restore fixed client asset names.
 
 See `docs/operations/public-ssr-cutover.md` for live verification and rollback.
 
@@ -152,6 +153,8 @@ Do not deploy Worker/D1 merely because a feature relates to authentication or SS
 ## Sitemap
 
 Vercel rewrites `/sitemap.xml` to `/api/sitemap`, which reads live Public data from the Cloudflare API.
+
+The sitemap function emits the known indexable static Public routes and canonical published content routes from News, Announcements (including published Public page items), and Blog. Program records are not emitted as content-detail URLs because the current Public programs surface has the `/departments` listing route but no canonical program detail route.
 
 Verification:
 

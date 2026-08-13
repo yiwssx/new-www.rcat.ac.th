@@ -7,7 +7,8 @@ const repositoryChecks = [
   {
     name: "publicProviderDefault",
     file: "src/config/publicApiProvider.ts",
-    patterns: [/provider === "cloudflare" \? "cloudflare" : "apps-script"/]
+    patterns: [/CLOUDFLARE_PUBLIC_API_URL/, /VITE_CLOUDFLARE_PUBLIC_API_URL/, /required for Public API requests/],
+    forbiddenPatterns: [/VITE_PUBLIC_API_PROVIDER/, /apps-script/]
   },
   {
     name: "publicReadProviderParity",
@@ -73,7 +74,9 @@ export async function runM19ParityReadiness(options = {}) {
       validationIssues.push(`${check.name}: required repository file is unavailable`);
     }
 
-    const passed = source.length > 0 && check.patterns.every((pattern) => pattern.test(source));
+    const hasRequiredPatterns = source.length > 0 && check.patterns.every((pattern) => pattern.test(source));
+    const hasForbiddenPattern = check.forbiddenPatterns?.some((pattern) => pattern.test(source)) ?? false;
+    const passed = hasRequiredPatterns && !hasForbiddenPattern;
     checks[check.name] = passed ? "passed" : "blocked";
 
     if (!passed && !validationIssues.some((issue) => issue.startsWith(`${check.name}:`))) {

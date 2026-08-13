@@ -6,15 +6,12 @@ export const SSR_DOCUMENT_MARKER_VALUE = "true";
 export const SSR_CLIENT_ENTRY_MARKER_ATTRIBUTE = "data-rcat-client-entry";
 export const SSR_CLIENT_STYLESHEET_MARKER_ATTRIBUTE = "data-rcat-client-stylesheet";
 
-const FALLBACK_CLIENT_ENTRY_PATH = "/assets/rcat-client.js";
-const FALLBACK_CLIENT_STYLESHEET_PATHS = ["/assets/rcat-client.css"];
-
 function getBuildClientEntryPath() {
   if (typeof __RCAT_SSR_CLIENT_ENTRY_PATH__ === "string" && __RCAT_SSR_CLIENT_ENTRY_PATH__) {
     return __RCAT_SSR_CLIENT_ENTRY_PATH__;
   }
 
-  return FALLBACK_CLIENT_ENTRY_PATH;
+  throw new Error("SSR client entry asset was not injected from the Vite production manifest");
 }
 
 function getBuildClientStylesheetPaths() {
@@ -26,7 +23,7 @@ function getBuildClientStylesheetPaths() {
     return __RCAT_SSR_CLIENT_STYLESHEET_PATHS__;
   }
 
-  return FALLBACK_CLIENT_STYLESHEET_PATHS;
+  throw new Error("SSR client stylesheet assets were not injected from the Vite production manifest");
 }
 
 export function resolveSsrClientAssets() {

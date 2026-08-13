@@ -309,14 +309,15 @@ describe("M7 production-readiness gate safety", () => {
     expect(m7ProductionReadinessDoc).not.toMatch(forbiddenProductionUrlPatterns);
   });
 
-  it("keeps the committed provider and Worker config safe while M7 is only a gate", () => {
+  it("keeps the current frontend contract and Worker config safe", () => {
     const previewBlock = getPreviewConfigBlock(wranglerToml);
 
     expect(previewBlock).toMatch(/^\s*database_id\s*=\s*"preview-placeholder"\s*$/m);
     expect(wranglerToml).not.toMatch(committedD1DatabaseIdPattern);
-    expect(publicApiProviderSource).toMatch(/provider === "cloudflare" \? "cloudflare" : "apps-script"/);
-    expect(publicApiProviderSource).toMatch(/VITE_PUBLIC_API_PROVIDER/);
     expect(publicApiProviderSource).toMatch(/VITE_CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).toMatch(/CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).not.toMatch(/VITE_PUBLIC_API_PROVIDER/);
+    expect(publicApiProviderSource).not.toMatch(/apps-script/);
     expect(publicApiProviderSource).not.toMatch(/production-cloudflare/);
   });
 });

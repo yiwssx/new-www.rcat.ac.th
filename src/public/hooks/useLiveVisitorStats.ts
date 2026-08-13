@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicApiProvider } from "../../config/publicApiProvider";
 import { isPublicReadAbortError } from "../../features/public-read/errors";
 import { getLiveVisitorStats } from "../../features/visitor-stats";
 import type { VisitorStatsSettings } from "../../features/visitor-stats";
@@ -101,9 +100,8 @@ export function resetLiveVisitorStatsBackoffForTests() {
 
 export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initialDataUpdatedAt?: number) {
   const normalizedInitial = useMemo(() => normalizeVisitorStats(initialStats), [initialStats]);
-  const usesCloudflare = getPublicApiProvider() === "cloudflare";
   const isBrowser = typeof window !== "undefined";
-  const liveEnabled = isBrowser && usesCloudflare && Boolean(initialStats?.enabled);
+  const liveEnabled = isBrowser && Boolean(initialStats?.enabled);
   const query = useQuery({
     queryKey: LIVE_VISITOR_STATS_QUERY_KEY,
     queryFn: async ({ signal }) => {
@@ -125,7 +123,7 @@ export function useLiveVisitorStats(initialStats?: VisitorStatsSettings, initial
         throw error;
       }
     },
-    enabled: isBrowser && usesCloudflare && Boolean(initialStats?.enabled),
+    enabled: liveEnabled,
     initialData: initialStats ? normalizedInitial : undefined,
     initialDataUpdatedAt,
     retry: false,

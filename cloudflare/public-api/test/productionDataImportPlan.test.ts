@@ -82,10 +82,11 @@ describe("M9 public document production data import planning safety", () => {
     expect(wranglerToml).not.toMatch(committedD1DatabaseIdPattern);
   });
 
-  it("keeps the frontend provider default as Apps Script while planning production import", () => {
-    expect(publicApiProviderSource).toMatch(/provider === "cloudflare" \? "cloudflare" : "apps-script"/);
-    expect(publicApiProviderSource).toMatch(/VITE_PUBLIC_API_PROVIDER/);
+  it("keeps the current frontend public API contract Cloudflare-only", () => {
     expect(publicApiProviderSource).toMatch(/VITE_CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).toMatch(/CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).not.toMatch(/VITE_PUBLIC_API_PROVIDER/);
+    expect(publicApiProviderSource).not.toMatch(/apps-script/);
     expect(publicApiProviderSource).not.toMatch(/production-cloudflare/);
   });
 });

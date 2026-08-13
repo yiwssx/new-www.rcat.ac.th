@@ -38,11 +38,6 @@ export function normalizeDateFormat(value: unknown) {
   return canonicalDateFormats.has(nextValue) ? nextValue : defaultDisplaySettings.dateFormat;
 }
 
-function sanitizeTimeMode(value: unknown): DisplaySettings["timeMode"] {
-  void value;
-  return "24h";
-}
-
 export function normalizeDisplaySettings(input: unknown): DisplaySettings {
   if (!isRecord(input)) {
     return defaultDisplaySettings;
@@ -50,26 +45,47 @@ export function normalizeDisplaySettings(input: unknown): DisplaySettings {
 
   return {
     dateFormat: normalizeDateFormat(input.dateFormat),
-    timeMode: sanitizeTimeMode(input.timeMode)
+    timeMode: "24h"
   };
 }
 
 const displaySettingsStorageKey = projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings";
 
-function persistDisplaySettings(settings: DisplaySettings) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(displaySettingsStorageKey, JSON.stringify(settings));
-}
-
-function parseStoredDisplaySettings(): DisplaySettings | null {
+function getDisplaySettingsStorage() {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const raw = window.localStorage.getItem(displaySettingsStorageKey);
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+export function persistDisplaySettings(settings: DisplaySettings) {
+  try {
+    getDisplaySettingsStorage()?.setItem(displaySettingsStorageKey, JSON.stringify(settings));
+  } catch {
+    // Display settings are a local presentation cache; API data remains authoritative.
+  }
+}
+
+function parseStoredDisplaySettings(): DisplaySettings | null {
+  const storage = getDisplaySettingsStorage();
+
+  if (!storage) {
+    return null;
+  }
+
+  let raw: string;
+
+  try {
+    raw = storage.getItem(displaySettingsStorageKey) || "";
+  } catch {
+    return null;
+  }
+
   if (!raw) {
     return null;
   }

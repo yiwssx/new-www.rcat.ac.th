@@ -1,6 +1,6 @@
 # Current Runtime Ownership
 
-Updated: 2026-08-08.
+Updated: 2026-08-13.
 
 This document is the current source of truth for runtime ownership. Historical migration milestone documents remain evidence of earlier states; when they conflict with this file about current ownership, authentication boundaries, provider responsibilities, cache policy, or deployment behavior, this file takes precedence.
 
@@ -30,7 +30,7 @@ Public pages are server-rendered on Vercel. Admin/Auth remain CSR. Structured Pu
 
 Owner: Cloudflare Worker + D1.
 
-Public SSR is a presentation/runtime layer only. It consumes the Cloudflare Public API; it does not move structured-data ownership into Vercel.
+Public SSR is a presentation/runtime layer only. It consumes the Cloudflare Public API; it does not move structured-data ownership into Vercel. There is no runtime provider selector for Public structured data: current Public reads and analytics are Cloudflare-owned.
 
 ## Admin Structured Data
 
@@ -107,7 +107,7 @@ The dedicated Complaint Apps Script is not the CMS structured-data backend and i
 
 Owner: Vercel `/api/sitemap`; public route `/sitemap.xml`; data source Cloudflare Public API / D1-backed structured data.
 
-The runtime sitemap contains only the known indexable Public route set plus published canonical content URLs in the `/content/$slug` namespace. Search, Admin/Auth/API surfaces, legacy `/$slug` permalinks, menu aliases, drafts, and content with an external absolute canonical are excluded. Program content is sourced from the Public programs contract alongside News, Announcements, and Blog content.
+The runtime sitemap contains the known indexable Public route set plus published canonical content URLs in the `/content/$slug` namespace. Dynamic content is sourced from News, Announcements (including published Public page items), and Blog content. Programs currently have the indexable `/departments` listing route but no canonical Public content-detail route, so program records are not emitted as `/content/$slug` sitemap entries. Search, Admin/Auth/API surfaces, legacy `/$slug` permalinks, menu aliases, drafts, and content with an external absolute canonical are excluded.
 
 ## Public SSR Runtime
 
@@ -120,7 +120,7 @@ Runtime construction is request-scoped:
 
 Public route loaders reuse the same TanStack Query factories consumed by browser hooks. Successful known-Public query roots are dehydrated through a JSON-safe DTO and restored into the browser QueryClient before hydrated route hooks consume them.
 
-The server renderer is non-streaming. It renders semantic route HTML, route-owned metadata/JSON-LD, request-local Emotion critical CSS, TanStack hydration state, and deterministic client entry assets.
+The server renderer is non-streaming. It renders semantic route HTML, route-owned metadata/JSON-LD, request-local Emotion critical CSS, TanStack hydration state, and manifest-selected content-hashed client assets.
 
 SSR documents carry `data-rcat-ssr="true"`; Admin/Auth CSR pages retain the empty-`#root` bootstrap.
 
@@ -175,11 +175,11 @@ Content detail prioritizes CMS `seoTitle`, `seoDescription`, and `canonicalUrl`,
 - API/proxy/sitemap routes remain ahead of the Public catch-all;
 - static files continue to be served by Vercel filesystem handling.
 
-The production build runs the normal Vite client build, validates deterministic client JS/CSS assets, and renames `dist/index.html` to `dist/csr.html`. `dist/index.html` is intentionally absent from deployment output so filesystem precedence cannot bypass Public SSR at `/`.
+The production build runs the normal Vite client build, validates manifest-selected content-hashed client JS/CSS assets, and renames `dist/index.html` to `dist/csr.html`. `dist/index.html` is intentionally absent from deployment output so filesystem precedence cannot bypass Public SSR at `/`.
 
 The Public SSR adapter supports GET/HEAD, rejects unsupported methods with `405`, and converts unexpected adapter/render exceptions to a protected `503` response.
 
-Server-side Public API configuration may use `PUBLIC_API_PROVIDER=cloudflare` and `CLOUDFLARE_PUBLIC_API_URL`; existing `VITE_PUBLIC_API_PROVIDER` and `VITE_CLOUDFLARE_PUBLIC_API_URL` names remain supported for compatibility.
+Server-side Public API configuration uses `CLOUDFLARE_PUBLIC_API_URL`. Browser code uses `VITE_CLOUDFLARE_PUBLIC_API_URL`; the server may consume that browser-safe alias only as a compatibility fallback when the server-only variable is absent. There is no `PUBLIC_API_PROVIDER` or `VITE_PUBLIC_API_PROVIDER` runtime selector.
 
 ## Cache Policy
 
@@ -190,7 +190,7 @@ When deployed to Vercel:
 - Search and error responses: `Cache-Control: no-store`, no Vercel CDN cache directive;
 - permanent legacy redirects: browser revalidation plus Vercel CDN `max-age=86400, stale-while-revalidate=604800`;
 - `csr.html`: `no-store`, `X-Robots-Tag: noindex, nofollow`;
-- fixed client entry JS/CSS: browser revalidation; hashed lazy chunks retain Vite hashed filenames.
+- manifest-selected client entry/styles and lazy chunks use content-hashed filenames; the SSR build fails closed if the manifest-selected entry/styles are unavailable.
 
 This policy intentionally bounds stale navigation/settings exposure without disabling SSR/CDN caching globally.
 

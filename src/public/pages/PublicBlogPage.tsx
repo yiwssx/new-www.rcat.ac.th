@@ -1,4 +1,6 @@
-import { Stack, Typography } from "@mui/material";
+import { useMemo } from "react";
+import { useRouterState } from "@tanstack/react-router";
+import { Button, Chip, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
@@ -10,17 +12,44 @@ import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicContentList } from "../hooks/usePublicContentList";
 import { usePublicPagination } from "../hooks/usePublicPagination";
+import { normalizeSafeHref } from "../../utils/safeUrl";
 
 const BLOG_PAGE_SIZE = 12;
 
+function readTextSearchParam(search: Record<string, unknown>, name: string) {
+  const value = search[name];
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeCategoryList(category: string | undefined) {
+  return String(category || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export default function PublicBlogPage() {
   const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("blog");
-  const blogItems = data?.items ?? [];
+  const routeSearch = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
+  const activeTag = readTextSearchParam(routeSearch, "tag");
+  const activeCategory = readTextSearchParam(routeSearch, "category");
+  const hasActiveFilter = Boolean(activeTag || activeCategory);
+  const blogItems = useMemo(() => data?.items ?? [], [data?.items]);
   const mediaAssets = data?.media ?? [];
+  const filteredBlogItems = useMemo(
+    () =>
+      blogItems.filter((item) => {
+        const matchesTag = activeTag ? (item.tags ?? []).includes(activeTag) : true;
+        const matchesCategory = activeCategory ? normalizeCategoryList(item.category).includes(activeCategory) : true;
+        return matchesTag && matchesCategory;
+      }),
+    [activeCategory, activeTag, blogItems]
+  );
 
-  const [featuredItem, ...secondaryItems] = blogItems;
+  const [featuredItem, ...secondaryItems] = filteredBlogItems;
   const blogPagination = usePublicPagination(secondaryItems, {
     pageSize: BLOG_PAGE_SIZE,
+    resetKeys: [activeTag, activeCategory],
     scrollTargetId: "blog-list-heading"
   });
 
@@ -61,6 +90,24 @@ export default function PublicBlogPage() {
       preloadedMenu={data.menu}
     >
       <PublicBackgroundProgress active={isFetching} />
+      {hasActiveFilter && (
+        <Stack
+          direction="row"
+          spacing={1}
+          useFlexGap
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "center",
+            mb: 2
+          }}
+        >
+          {activeTag && <Chip label={`#${activeTag}`} color="secondary" />}
+          {activeCategory && <Chip label={activeCategory} color="secondary" variant="outlined" />}
+          <Button href={normalizeSafeHref("/blog")} size="small">
+            ล้างตัวกรอง
+          </Button>
+        </Stack>
+      )}
       {featuredItem && (
         <PublicContentCard
           item={featuredItem}
@@ -69,7 +116,12 @@ export default function PublicBlogPage() {
           featured
         />
       )}
-      {!blogItems.length && <EmptyState title="ยังไม่มีบทความที่เผยแพร่" icon={<EditNoteOutlinedIcon />} />}
+      {!filteredBlogItems.length && (
+        <EmptyState
+          title={hasActiveFilter ? "ไม่พบบทความตามตัวกรองที่เลือก" : "ยังไม่มีบทความที่เผยแพร่"}
+          icon={<EditNoteOutlinedIcon />}
+        />
+      )}
       {!!secondaryItems.length && (
         <>
           <Stack

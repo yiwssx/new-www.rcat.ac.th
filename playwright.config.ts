@@ -28,7 +28,6 @@ export default defineConfig({
     timeout: 120_000,
     reuseExistingServer: true,
     env: {
-      VITE_PUBLIC_API_PROVIDER: "cloudflare",
       VITE_CLOUDFLARE_PUBLIC_API_URL: functionalApiBaseUrl,
       VITE_PUBLIC_ANALYTICS_STRATEGY: "gtm",
       VITE_BACKEND_MIGRATION_MODE: "cloudflare-first-preview",

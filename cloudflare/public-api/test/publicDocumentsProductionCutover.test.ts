@@ -434,11 +434,14 @@ describe("M15 production frontend cutover gate", () => {
     expect(getProductionCutoverExitCode("UNEXPECTED")).toBe(1);
   });
 
-  it("keeps committed repository guardrails intact", () => {
+  it("keeps committed repository guardrails and current frontend contract intact", () => {
     expect(wranglerToml).toContain('database_id = "local-placeholder"');
     expect(wranglerToml).toContain('database_id = "preview-placeholder"');
     expect(wranglerToml).not.toMatch(realD1IdPattern);
-    expect(publicApiProviderSource).toContain('return provider === "cloudflare" ? "cloudflare" : "apps-script"');
+    expect(publicApiProviderSource).toMatch(/VITE_CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).toMatch(/CLOUDFLARE_PUBLIC_API_URL/);
+    expect(publicApiProviderSource).not.toMatch(/VITE_PUBLIC_API_PROVIDER/);
+    expect(publicApiProviderSource).not.toMatch(/apps-script/);
     expect(cutoverSource).not.toMatch(/d1\s+execute/i);
     expect(cutoverSource).not.toMatch(/d1\s+migrations/i);
     expect(cutoverSource).not.toMatch(/wrangler\s+deploy/i);

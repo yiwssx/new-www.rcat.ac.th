@@ -74,20 +74,8 @@ function getReturnPath(type: string) {
   return "/news";
 }
 
-function getFilterListPath(type: string) {
-  if (type === "announcement") {
-    return "/announcements";
-  }
-
-  if (type === "news" || type === "blog") {
-    return "/news";
-  }
-
-  return getReturnPath(type);
-}
-
 function getFilterHref(type: string, key: "tag" | "category", value: string) {
-  return `${getFilterListPath(type)}?${key}=${encodeURIComponent(value)}`;
+  return `${getReturnPath(type)}?${key}=${encodeURIComponent(value)}`;
 }
 
 function getViewCountStorageKey(item: { id?: string; slug?: string }) {

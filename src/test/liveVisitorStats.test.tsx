@@ -6,14 +6,8 @@ import type { VisitorStatsSettings } from "../features/visitor-stats";
 import { VisitorStatsCard } from "../public/components/home/VisitorStatsCard";
 import { resetLiveVisitorStatsBackoffForTests, useLiveVisitorStats } from "../public/hooks/useLiveVisitorStats";
 
-const providerState = vi.hoisted(() => ({ value: "cloudflare" }));
-
 vi.mock("../features/visitor-stats/api", () => ({
   getLiveVisitorStats: vi.fn()
-}));
-
-vi.mock("../config/publicApiProvider", () => ({
-  getPublicApiProvider: () => providerState.value
 }));
 
 const getLiveVisitorStatsMock = vi.mocked(getLiveVisitorStats);
@@ -83,7 +77,6 @@ describe("live public visitor stats", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(TEST_NOW);
-    providerState.value = "cloudflare";
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     focusManager.setFocused(undefined);
     onlineManager.setOnline(true);
@@ -305,17 +298,9 @@ describe("live public visitor stats", () => {
     expect(getLiveVisitorStatsMock).not.toHaveBeenCalled();
   });
 
-  it("does not request live stats when disabled or when Cloudflare is not selected", async () => {
-    const disabledView = renderLiveStats({ ...initialStats, enabled: false });
+  it("does not request live stats when visitor statistics are disabled", async () => {
+    renderLiveStats({ ...initialStats, enabled: false });
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(120_000);
-    });
-    expect(getLiveVisitorStatsMock).not.toHaveBeenCalled();
-    disabledView.unmount();
-
-    providerState.value = "apps-script";
-    renderLiveStats();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(120_000);
     });

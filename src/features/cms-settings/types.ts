@@ -1,6 +1,6 @@
 export interface DisplaySettings {
   dateFormat: string;
-  timeMode: "24h" | "12h";
+  timeMode: "24h";
 }
 
 export interface HomepageIntroGateSettings {
