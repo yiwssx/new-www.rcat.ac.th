@@ -124,7 +124,6 @@ function installCloudflareFetch() {
 }
 
 beforeEach(() => {
-  vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "");
   vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.test");
   resetCloudflarePublicApiBackoffForTests();
 });
@@ -137,7 +136,7 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-describe("M20 public read provider parity", () => {
+describe("public Cloudflare runtime ownership", () => {
   it("uses Cloudflare for every migrated public structured read", async () => {
     const fetchMock = installCloudflareFetch();
 
@@ -166,8 +165,7 @@ describe("M20 public read provider parity", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("records Cloudflare site views without calling Apps Script", () => {
-    vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
+  it("records site views through Cloudflare", () => {
     const fetchMock = installCloudflareFetch();
     const input = {
       visitorId: "rcat_abcdefghijkl",
@@ -185,8 +183,7 @@ describe("M20 public read provider parity", () => {
     );
   });
 
-  it("treats public analytics as Cloudflare-only and no-ops when the provider is not Cloudflare", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  it("records public analytics through Cloudflare without a provider selector", async () => {
     const fetchMock = installCloudflareFetch();
     const input = {
       visitorId: "rcat_abcdefghijkl",
@@ -194,31 +191,29 @@ describe("M20 public read provider parity", () => {
       timestamp: "2026-06-22T00:00:00.000Z"
     };
 
-    expect(recordSiteView(input)).toBe(false);
-    expect(recordPresence(input)).toBe(false);
-    await expect(recordContentView({ slug: "sample-news" })).rejects.toThrow(
-      "Public content-view analytics is Cloudflare-only"
-    );
+    expect(recordSiteView(input)).toBe(true);
+    expect(recordPresence(input)).toBe(true);
+    await expect(recordContentView({ slug: "sample-news" })).resolves.toMatchObject({
+      slug: "sample-news",
+      viewCount: 8
+    });
 
-    expect(warnSpy).toHaveBeenNthCalledWith(
-      1,
-      "Public site-view analytics is Cloudflare-only in M20 and is disabled for the current provider."
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://public-api.example.test/api/public/site-view",
+      expect.objectContaining({ method: "POST" })
     );
-    expect(warnSpy).toHaveBeenNthCalledWith(
-      2,
-      "Public presence analytics is Cloudflare-only in M20 and is disabled for the current provider."
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://public-api.example.test/api/public/presence",
+      expect.objectContaining({ method: "POST" })
     );
-    expect(warnSpy).toHaveBeenNthCalledWith(
-      3,
-      "Public content-view analytics is Cloudflare-only in M20 and is disabled for the current provider."
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://public-api.example.test/api/public/content-view",
+      expect.objectContaining({ method: "POST" })
     );
-    expect(fetchMock).not.toHaveBeenCalled();
-    warnSpy.mockRestore();
   });
 
   it("backs off Cloudflare presence writes after the preview presence schema is missing", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
     const fetchMock = vi.fn(
       async () =>
         new Response(
@@ -247,25 +242,5 @@ describe("M20 public read provider parity", () => {
       "Public presence tracking is temporarily disabled. run 0006_m20_visitor_presence.sql"
     );
     warnSpy.mockRestore();
-  });
-
-  it("records Cloudflare presence and content views when explicitly selected", async () => {
-    vi.stubEnv("VITE_PUBLIC_API_PROVIDER", "cloudflare");
-    const fetchMock = installCloudflareFetch();
-
-    expect(recordPresence({ visitorId: "rcat_abcdefghijkl", path: "/news" })).toBe(true);
-    await expect(recordContentView({ slug: "sample-news" })).resolves.toMatchObject({
-      slug: "sample-news",
-      viewCount: 8
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://public-api.example.test/api/public/presence",
-      expect.objectContaining({ method: "POST" })
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://public-api.example.test/api/public/content-view",
-      expect.objectContaining({ method: "POST" })
-    );
   });
 });

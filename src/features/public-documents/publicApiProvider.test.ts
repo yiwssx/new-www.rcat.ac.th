@@ -1,30 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildCloudflarePublicApiUrl,
-  resolveCloudflarePublicApiBaseUrl,
-  resolvePublicApiProvider
-} from "../../config/publicApiProvider";
+import { buildCloudflarePublicApiUrl, resolveCloudflarePublicApiBaseUrl } from "../../config/publicApiProvider";
 
-describe("public document API provider config", () => {
-  it("defaults missing provider config to Apps Script", () => {
-    expect(resolvePublicApiProvider({})).toBe("apps-script");
-    expect(resolvePublicApiProvider({ VITE_PUBLIC_API_PROVIDER: "" })).toBe("apps-script");
-  });
-
-  it("defaults unknown provider config to Apps Script", () => {
-    expect(resolvePublicApiProvider({ VITE_PUBLIC_API_PROVIDER: "worker" })).toBe("apps-script");
-  });
-
-  it("resolves explicit Apps Script and Cloudflare providers", () => {
-    expect(resolvePublicApiProvider({ VITE_PUBLIC_API_PROVIDER: "apps-script" })).toBe("apps-script");
-    expect(resolvePublicApiProvider({ VITE_PUBLIC_API_PROVIDER: "cloudflare" })).toBe("cloudflare");
-    expect(resolvePublicApiProvider({ PUBLIC_API_PROVIDER: "cloudflare" })).toBe("cloudflare");
-  });
-
-  it("does not require a Cloudflare URL when Apps Script is selected", () => {
-    expect(resolvePublicApiProvider({ VITE_PUBLIC_API_PROVIDER: "apps-script" })).toBe("apps-script");
-  });
-
+describe("Cloudflare public API config", () => {
   it("normalizes browser and server Cloudflare base URLs by removing trailing slashes", () => {
     expect(
       resolveCloudflarePublicApiBaseUrl({
@@ -38,12 +15,10 @@ describe("public document API provider config", () => {
     ).toBe("https://public-api.example.edu");
   });
 
-  it("requires a Cloudflare URL when building a Cloudflare public API URL", () => {
-    expect(() =>
-      buildCloudflarePublicApiUrl("/api/public/documents", {
-        VITE_PUBLIC_API_PROVIDER: "cloudflare"
-      })
-    ).toThrow("VITE_CLOUDFLARE_PUBLIC_API_URL");
+  it("requires a Cloudflare URL when building a public API URL", () => {
+    expect(() => buildCloudflarePublicApiUrl("/api/public/documents", {})).toThrow(
+      "VITE_CLOUDFLARE_PUBLIC_API_URL or CLOUDFLARE_PUBLIC_API_URL"
+    );
   });
 
   it("builds public API URLs without double slashes", () => {
