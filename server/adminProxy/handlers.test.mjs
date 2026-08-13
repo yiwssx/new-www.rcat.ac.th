@@ -36,9 +36,12 @@ function createRequest({ body, headers = {}, method = "GET", url = "/" } = {}) {
 
 function createResponse() {
   const headers = new Map();
+  const chunks = [];
   let body = Buffer.alloc(0);
+  let writeCount = 0;
 
   return {
+    headersSent: false,
     statusCode: 200,
     setHeader(name, value) {
       headers.set(name.toLowerCase(), value);
@@ -46,11 +49,24 @@ function createResponse() {
     getHeader(name) {
       return headers.get(name.toLowerCase());
     },
+    write(value) {
+      this.headersSent = true;
+      writeCount += 1;
+      chunks.push(Buffer.from(value));
+      return true;
+    },
     end(value) {
-      body = value === undefined ? Buffer.alloc(0) : Buffer.from(value);
+      if (value !== undefined) {
+        chunks.push(Buffer.from(value));
+      }
+      body = Buffer.concat(chunks);
+      this.headersSent = true;
     },
     get bodyText() {
       return body.toString("utf8");
+    },
+    get writeCount() {
+      return writeCount;
     }
   };
 }
@@ -138,6 +154,37 @@ describe("CMS-only Vercel admin proxy", () => {
     expect(init.headers.get("X-RCAT-Admin-Smoke-Token")).toBeNull();
     expect(init.headers.get("X-RCAT-Admin-Proxy-Email")).toBeNull();
     expect(init.headers.get("X-RCAT-Admin-Proxy-Role")).toBeNull();
+  });
+
+  it("streams upstream response chunks through the Node response", async () => {
+    const encoder = new TextEncoder();
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(encoder.encode('{"part":1}'));
+              controller.enqueue(encoder.encode('{"part":2}'));
+              controller.close();
+            }
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json; charset=utf-8"
+            }
+          }
+        )
+    );
+    const { response } = await callProxy({
+      fetchImpl,
+      headers: { cookie: cmsCookie() },
+      path: "/api/admin/backup/download"
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.writeCount).toBe(2);
+    expect(response.bodyText).toBe('{"part":1}{"part":2}');
   });
 
   it("forwards a valid CMS mutation only with exact CSRF", async () => {

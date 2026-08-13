@@ -228,6 +228,37 @@ async function getSafeUpstream401Error(response) {
   return "Admin request authentication failed";
 }
 
+async function streamUpstreamBody(upstreamResponse, response) {
+  if (!upstreamResponse.body) {
+    response.end();
+    return;
+  }
+
+  const reader = upstreamResponse.body.getReader();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      if (value?.byteLength) {
+        const canContinue = response.write(Buffer.from(value));
+
+        if (canContinue === false && typeof response.once === "function") {
+          await new Promise((resolve) => response.once("drain", resolve));
+        }
+      }
+    }
+
+    response.end();
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export async function handleAdminProxyRequest(request, response, options = {}) {
   const env = options.env ?? runtimeEnv();
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
@@ -332,5 +363,19 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
     }
   }
 
-  response.end(Buffer.from(await upstreamResponse.arrayBuffer()));
+  try {
+    await streamUpstreamBody(upstreamResponse, response);
+  } catch {
+    if (!response.headersSent) {
+      sendJson(response, 502, { error: "admin proxy upstream response failed" });
+      return;
+    }
+
+    if (typeof response.destroy === "function") {
+      response.destroy();
+      return;
+    }
+
+    response.end();
+  }
 }
