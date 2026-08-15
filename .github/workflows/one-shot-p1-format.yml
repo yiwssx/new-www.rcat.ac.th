@@ -1,0 +1,45 @@
+name: One-shot P1 Format
+
+on:
+  push:
+    branches:
+      - feat/p1-resilience-hardening
+    paths:
+      - .github/workflows/one-shot-p1-format.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/p1-resilience-hardening
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies --ignore-scripts
+
+      - name: Format P1 files
+        run: pnpm exec prettier --write api/csp-report.mjs api/sitemap.mjs src/features/public-read/request.test.ts
+
+      - name: Commit formatting and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/one-shot-p1-format.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api/csp-report.mjs api/sitemap.mjs src/features/public-read/request.test.ts .github/workflows/one-shot-p1-format.yml
+          git commit -m "style(p1): apply project formatting"
+          git push origin HEAD:feat/p1-resilience-hardening
