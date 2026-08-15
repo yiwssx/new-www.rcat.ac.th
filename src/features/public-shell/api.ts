@@ -17,7 +17,7 @@ export async function getPublicShellSnapshot(options: PublicReadRequestOptions =
       throw error;
     }
 
-    const legacyHome = await getPublicHomeSnapshotFromCloudflare(options);
+    const legacyHome = (await getPublicHomeSnapshotFromCloudflare(options)) as unknown as PublicShellSnapshot;
     return {
       siteSettings: legacyHome.siteSettings,
       homepageSettings: legacyHome.homepageSettings,
