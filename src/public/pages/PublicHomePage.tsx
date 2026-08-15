@@ -14,6 +14,7 @@ import { LatestNewsSection } from "../components/home/LatestNewsSection";
 import { VisitorStatsCard } from "../components/home/VisitorStatsCard";
 import { useLiveVisitorStats } from "../hooks/useLiveVisitorStats";
 import { usePublicHomeSnapshot } from "../hooks/usePublicHomeSnapshot";
+import { usePublicShellSnapshot } from "../hooks/usePublicShellSnapshot";
 
 const LazyAchievementHighlightsSection = lazy(() =>
   import("../components/home/AchievementHighlightsSection").then((module) => ({
@@ -268,9 +269,17 @@ function LiveVisitorStatsCard({
 }
 
 export default function PublicHomePage() {
-  const { data, dataUpdatedAt, isLoading, isFetching, isError, refetch } = usePublicHomeSnapshot();
+  const homeQuery = usePublicHomeSnapshot();
+  const shellQuery = usePublicShellSnapshot();
+  const { data, dataUpdatedAt, isFetching } = homeQuery;
+  const shellData = shellQuery.data;
+  const missingRequiredData = !data || !shellData;
+  const loadingRequiredData =
+    (!data && (homeQuery.isLoading || homeQuery.isFetching)) ||
+    (!shellData && (shellQuery.isLoading || shellQuery.isFetching));
+  const requiredDataError = (!data && homeQuery.isError) || (!shellData && shellQuery.isError);
 
-  if (!data && (isLoading || isFetching)) {
+  if (missingRequiredData && loadingRequiredData) {
     return (
       <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/" skipShellDataFetch>
         <Container maxWidth="xl">
@@ -280,18 +289,18 @@ export default function PublicHomePage() {
     );
   }
 
-  if (!data && isError) {
+  if (missingRequiredData && requiredDataError) {
     return (
       <PublicErrorState
         onRetry={() => {
-          void refetch();
+          void Promise.all([homeQuery.refetch(), shellQuery.refetch()]);
         }}
-        isRetrying={isFetching}
+        isRetrying={homeQuery.isFetching || shellQuery.isFetching}
       />
     );
   }
 
-  if (!data) {
+  if (!data || !shellData) {
     return (
       <PublicSiteShell hidePageHeader disableMainContainer canonicalPath="/" skipShellDataFetch>
         <Container maxWidth="xl">
@@ -301,8 +310,8 @@ export default function PublicHomePage() {
     );
   }
 
-  const siteSettings = normalizeSiteSettings(data.siteSettings);
-  const homepageSettings = normalizeHomepageSettings(data.homepageSettings);
+  const siteSettings = normalizeSiteSettings(shellData.siteSettings);
+  const homepageSettings = normalizeHomepageSettings(shellData.homepageSettings);
   const latestNews = data.latestNews ?? [];
   const latestAnnouncements = data.latestAnnouncements ?? [];
   const procurementItems = data.procurementItems ?? [];
@@ -323,10 +332,10 @@ export default function PublicHomePage() {
       disableMainContainer
       seoDescription={siteSettings.heroDescription || siteSettings.intro}
       canonicalPath="/"
-      preloadedSiteSettings={data.siteSettings}
-      preloadedHomepageSettings={data.homepageSettings}
-      preloadedDisplaySettings={data.displaySettings}
-      preloadedMenu={data.menu}
+      preloadedSiteSettings={shellData.siteSettings}
+      preloadedHomepageSettings={shellData.homepageSettings}
+      preloadedDisplaySettings={shellData.displaySettings}
+      preloadedMenu={shellData.menu}
     >
       <HomeHashScroller />
       <PublicBackgroundProgress active={isFetching} />
