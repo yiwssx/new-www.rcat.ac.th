@@ -26,8 +26,9 @@ describe("public read request taxonomy", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const request = getPublicJson("/api/public/home", "public-home", { signal: controller.signal });
+    const errorPromise = request.catch((caught) => caught);
     controller.abort();
-    const error = await request.catch((caught) => caught);
+    const error = await errorPromise;
 
     expect(isPublicReadAbortError(error)).toBe(true);
     expect(receivedSignals).toHaveLength(1);
@@ -49,8 +50,9 @@ describe("public read request taxonomy", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const request = getPublicJson("/api/public/home", "public-home", { timeoutMs: 25 });
+    const errorPromise = request.catch((caught) => caught);
     await vi.advanceTimersByTimeAsync(25);
-    const error = await request.catch((caught) => caught);
+    const error = await errorPromise;
 
     expect(isPublicReadTimeoutError(error)).toBe(true);
     expect(error).toMatchObject({
@@ -77,8 +79,9 @@ describe("public read request taxonomy", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const request = getPublicJson("/api/public/home", "public-home", { timeoutMs: 25 });
+    const errorPromise = request.catch((caught) => caught);
     await vi.advanceTimersByTimeAsync(25);
-    const error = await request.catch((caught) => caught);
+    const error = await errorPromise;
 
     expect(isPublicReadTimeoutError(error)).toBe(true);
     expect(error).toMatchObject({ kind: "timeout", resource: "public-home" });
