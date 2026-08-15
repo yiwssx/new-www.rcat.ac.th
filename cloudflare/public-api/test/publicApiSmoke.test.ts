@@ -100,7 +100,7 @@ describe("rcat public API Worker", () => {
     });
   });
 
-  it("advertises the public analytics POST method for OPTIONS requests", async () => {
+  it("keeps public read CORS open without granting credentials", async () => {
     const response = await worker.fetch(
       new Request("https://public-api.example.test/api/public/documents", {
         method: "OPTIONS"
@@ -115,7 +115,66 @@ describe("rcat public API Worker", () => {
     expect(response.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
   });
 
-  it("echoes a configured allowed origin and varies the response by origin", async () => {
+  it("allows analytics preflight only for the dedicated configured origin", async () => {
+    const response = await worker.fetch(
+      new Request("https://public-api.example.test/api/public/site-view", {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://www.rcat.ac.th"
+        }
+      }),
+      {
+        PUBLIC_ANALYTICS_ALLOWED_ORIGINS: "https://www.rcat.ac.th"
+      }
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://www.rcat.ac.th");
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
+    expect(response.headers.get("Vary")).toBe("Origin");
+  });
+
+  it("fails analytics CORS closed when its allowlist is missing", async () => {
+    const response = await worker.fetch(
+      new Request("https://public-api.example.test/api/public/site-view", {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://www.rcat.ac.th"
+        }
+      }),
+      localEnv
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.has("Access-Control-Allow-Origin")).toBe(false);
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
+  });
+
+  it("rejects an untrusted browser origin before a public analytics write reaches D1", async () => {
+    const response = await worker.fetch(
+      new Request("https://public-api.example.test/api/public/site-view", {
+        method: "POST",
+        headers: {
+          Origin: "https://untrusted.example.test",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ visitorId: "rcat_abcdefghijkl", path: "/" })
+      }),
+      {
+        PUBLIC_ANALYTICS_ALLOWED_ORIGINS: "https://www.rcat.ac.th"
+      }
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.has("Access-Control-Allow-Origin")).toBe(false);
+    await expect(getJson(response)).resolves.toEqual({
+      error: "origin is not allowed",
+      resource: "site-view",
+      diagnostic: "public-analytics-origin-denied-v1"
+    });
+  });
+
+  it("echoes a configured allowed public-read origin and varies the response by origin", async () => {
     const response = await worker.fetch(
       new Request("https://public-api.example.test/health", {
         headers: {
@@ -131,7 +190,7 @@ describe("rcat public API Worker", () => {
     expect(response.headers.get("Vary")).toBe("Origin");
   });
 
-  it("does not add a wildcard fallback for an untrusted configured origin", async () => {
+  it("does not add a wildcard fallback for an untrusted configured public-read origin", async () => {
     const response = await worker.fetch(
       new Request("https://public-api.example.test/health", {
         headers: {

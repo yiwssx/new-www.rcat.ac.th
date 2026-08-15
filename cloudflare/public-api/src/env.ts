@@ -1,5 +1,6 @@
 export interface Env {
   PUBLIC_API_ALLOWED_ORIGINS?: string;
+  PUBLIC_ANALYTICS_ALLOWED_ORIGINS?: string;
   PUBLIC_API_VERSION?: string;
   ADMIN_WRITE_ALLOWED_ORIGINS?: string;
   CMS_AUTH_PROXY_SECRET?: string;
