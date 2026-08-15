@@ -10,6 +10,8 @@ The GitHub Actions workflow `.github/workflows/d1-recovery-drill.yml` is intenti
 
 The workflow may run only from `master` after explicit non-production acknowledgement. It uses the protected GitHub `production` environment solely as the existing credential boundary for `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`; it does not receive `RCAT_PRODUCTION_D1_DATABASE_ID`, target the production database, deploy a Worker, apply a migration, or perform a restore. The environment reviewer and protected-branch rules therefore remain an additional credential-access gate rather than evidence that the drill itself is a production deployment.
 
+The committed preview binding intentionally retains `database_id = "preview-placeholder"`. The drill does not pass the preview Wrangler config/environment to its read-only D1 lookup commands. Instead it first confirms that exactly one account-scoped D1 database named `rcat-public-api-preview` exists, then resolves metadata and Time Travel information by that exact database name. This keeps the real preview database ID outside source control and prevents the committed placeholder from being interpreted as a Cloudflare resource ID.
+
 A production restore remains a manual incident action governed by `docs/operations/admin-backup.md`. Production restore must require an explicit operator decision, a captured pre-restore bookmark, an approved target, and post-restore validation.
 
 ## Running The Drill
@@ -21,13 +23,14 @@ The workflow:
 1. installs the repository's pinned Node/pnpm dependencies;
 2. verifies the protected Cloudflare account/token credentials are present;
 3. scans itself for destructive restore commands;
-4. resolves metadata for `rcat-public-api-preview`;
-5. confirms the preview database uses the D1 production storage backend required for Time Travel;
-6. resolves the preview database's current Time Travel metadata/bookmark;
-7. rejects output that unexpectedly references `rcat-public-api-production`;
-8. writes a summary confirming that no restore or production D1 write was performed.
+4. lists account-scoped D1 resources and confirms exactly one database is named `rcat-public-api-preview`;
+5. resolves metadata for `rcat-public-api-preview` by exact database name without consuming the committed preview `database_id` placeholder;
+6. confirms the preview database uses the D1 production storage backend required for Time Travel;
+7. resolves the preview database's current Time Travel metadata/bookmark by exact database name;
+8. rejects metadata output that unexpectedly references `rcat-public-api-production`;
+9. writes a summary confirming that no restore or production D1 write was performed.
 
-The workflow needs Cloudflare credentials capable of reading preview D1 metadata. Missing credentials or missing preview access is a drill failure and should be recorded as an operational access gap, not bypassed by switching the target to production or exposing the protected credentials as repository-wide secrets.
+The workflow needs Cloudflare credentials capable of listing D1 databases and reading preview D1 metadata/Time Travel information. Missing credentials, missing preview access, a missing/duplicate preview database name, or an incompatible storage backend is a drill failure and should be recorded as an operational access gap, not bypassed by switching the target to production or exposing the protected credentials as repository-wide secrets.
 
 ## Evidence To Record
 
@@ -36,6 +39,7 @@ For every quarterly drill, record outside source control when it contains accoun
 - drill date/time;
 - operator;
 - workflow run URL;
+- whether the exact preview database name resolved uniquely;
 - whether preview metadata resolved;
 - whether Time Travel metadata resolved;
 - credential/access blockers;
@@ -56,4 +60,4 @@ This read-only preview drill validates operator/tooling readiness but does **not
 
 ## Escalation
 
-If preview Time Travel cannot be resolved, fix credentials, Wrangler command drift, or preview D1 availability before the next high-risk production migration/import. Do not use production as a substitute test target merely to make the drill pass.
+If preview Time Travel cannot be resolved, fix credentials, account-scoped preview resource resolution, Wrangler command drift, or preview D1 availability before the next high-risk production migration/import. Do not use production as a substitute test target merely to make the drill pass.
