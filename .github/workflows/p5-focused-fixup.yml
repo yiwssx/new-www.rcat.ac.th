@@ -33,36 +33,42 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          def replace_once(path, old, new):
+          def sub_once(path, pattern, replacement, *, flags=0, already=None):
               file = Path(path)
               text = file.read_text()
-              if new in text:
+              if already and already in text:
                   return
-              count = text.count(old)
+              updated, count = re.subn(pattern, replacement, text, count=1, flags=flags)
               if count != 1:
-                  raise RuntimeError(f"{path}: expected exactly one match, found {count}: {old[:100]!r}")
-              file.write_text(text.replace(old, new, 1))
+                  raise RuntimeError(f"{path}: expected exactly one regex match, found {count}: {pattern[:120]!r}")
+              file.write_text(updated)
 
-          replace_once(
+          sub_once(
               "src/public/pages/PublicContentDetailPage.tsx",
-              "  const mediaAssets = contentDetailQuery.media;\n  const relatedItems = contentDetailQuery.relatedItems;",
+              r"  const mediaAssets = contentDetailQuery\.media;\n  const relatedItems = contentDetailQuery\.relatedItems;",
               "  const mediaAssets = contentDetailQuery.media ?? [];\n  const relatedItems = contentDetailQuery.relatedItems ?? [];",
+              already="const mediaAssets = contentDetailQuery.media ?? [];",
           )
 
-          replace_once(
+          sub_once(
               "src/test/publicRouteLoaders.test.ts",
-              '    const siteSettings = { siteName: "RCAT" };\n',
+              r'^\s*const siteSettings = \{ siteName: "RCAT" \};\n',
               "",
+              flags=re.M,
+              already='expect(keys).not.toContainEqual(["cms-snapshot"]);',
           )
-          replace_once(
+          sub_once(
               "src/test/publicRouteLoaders.test.ts",
-              '      if (queryKey[0] === "cms-snapshot") return { media: [], siteSettings };\n',
+              r'^\s*if \(queryKey\[0\] === "cms-snapshot"\) return \{ media: \[\], siteSettings \};\n',
               "",
+              flags=re.M,
+              already='expect(keys).not.toContainEqual(["cms-snapshot"]);',
           )
-          replace_once(
+          sub_once(
               "src/test/publicRouteLoaders.test.ts",
-              '    expect(keys).toContainEqual(["cms-snapshot"]);\n    expect(loaderData).toEqual({ item, siteSettings, featuredMedia });',
+              r'    expect\(keys\)\.toContainEqual\(\["cms-snapshot"\]\);\n    expect\(loaderData\)\.toEqual\(\{ item, siteSettings, featuredMedia \}\);',
               '''    expect(keys).not.toContainEqual(["cms-snapshot"]);
               expect(loaderData).toEqual({
                 item: {
@@ -81,82 +87,87 @@ jobs:
                 },
                 featuredMedia
               });''',
+              already='expect(keys).not.toContainEqual(["cms-snapshot"]);',
           )
 
-          replace_once(
+          sub_once(
               "src/test/publicDataDrivenPages.test.tsx",
-              '    expect(usePublicCmsSnapshotMock.mock.calls.every(([options]) => options?.enabled === false)).toBe(true);',
+              r'    expect\(usePublicCmsSnapshotMock\.mock\.calls\.every\(\(\[options\]\) => options\?\.enabled === false\)\)\.toBe\(true\);',
               '    expect(usePublicCmsSnapshotMock).toHaveBeenCalledWith(undefined);',
+              already='expect(usePublicCmsSnapshotMock).toHaveBeenCalledWith(undefined);',
           )
 
           data_path = Path("src/test/publicDataDrivenPages.test.tsx")
           data = data_path.read_text()
 
           marquee_anchor = '  it("renders one shared marquee on the homepage", () => {'
+          marquee_next = '  it("renders shared marquee and public-only mourning mode from shell settings"'
           marquee_start = data.index(marquee_anchor)
-          marquee_end = data.index('\n  it("renders shared marquee and public-only mourning mode from shell settings"', marquee_start)
+          marquee_end = data.index(marquee_next, marquee_start)
           marquee_block = data[marquee_start:marquee_end]
-          shell_marquee = '''    currentSnapshot = createSnapshot({
-              homepageSettings: {
-                ...createHomeSnapshot().homepageSettings,
-                marquee: {
-                  enabled: true,
-                  label: "ประกาศ",
-                  text: "ประกาศสำหรับทุกหน้า",
-                  speedSeconds: 60
+          if "currentSnapshot = createSnapshot" not in marquee_block:
+              shell_marquee = '''    currentSnapshot = createSnapshot({
+                homepageSettings: {
+                  ...createHomeSnapshot().homepageSettings,
+                  marquee: {
+                    enabled: true,
+                    label: "ประกาศ",
+                    text: "ประกาศสำหรับทุกหน้า",
+                    speedSeconds: 60
+                  }
                 }
-              }
-            });
+              });
+
           '''
-          if shell_marquee not in marquee_block:
-              marker = '    currentHomeSnapshot = createHomeSnapshot({' 
-              if marquee_block.count(marker) != 1:
-                  raise RuntimeError("marquee test home marker is not unique")
-              marquee_block = marquee_block.replace(marker, shell_marquee + marker, 1)
+              marquee_block, count = re.subn(
+                  r'(\n\s*)currentHomeSnapshot = createHomeSnapshot\(',
+                  lambda match: "\n" + shell_marquee + match.group(1) + "currentHomeSnapshot = createHomeSnapshot(",
+                  marquee_block,
+                  count=1,
+              )
+              if count != 1:
+                  raise RuntimeError("marquee test home marker not found")
               data = data[:marquee_start] + marquee_block + data[marquee_end:]
 
           ia_anchor = '  it("renders the approved homepage information architecture", async () => {'
           ia_start = data.index(ia_anchor)
           ia_end = data.index('\n  });', ia_start) + len('\n  });')
           ia_block = data[ia_start:ia_end]
-          shell_site = '''    currentSnapshot = createSnapshot({
-              siteSettings: {
-                ...baseSiteSettings,
-                heroTitle: "ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง",
-                directorTitle: "สารจากผู้อำนวยการ",
-                directorName: "ผู้อำนวยการตัวอย่าง",
-                directorDescription: "มุ่งพัฒนาผู้เรียนสู่อาชีพ",
-                campus: "วิทยาลัยเทคนิคตัวอย่าง",
-                address: "1 ถนนการศึกษา",
-                phone: "02-000-0000",
-                mapUrl: "https://www.google.com/maps/place/example",
-                mapEmbedUrl: "https://www.google.com/maps/embed?pb=test"
-              }
-            });
+          if "currentSnapshot = createSnapshot" not in ia_block:
+              shell_site = '''    currentSnapshot = createSnapshot({
+                siteSettings: {
+                  ...baseSiteSettings,
+                  heroTitle: "ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง",
+                  directorTitle: "สารจากผู้อำนวยการ",
+                  directorName: "ผู้อำนวยการตัวอย่าง",
+                  directorDescription: "มุ่งพัฒนาผู้เรียนสู่อาชีพ",
+                  campus: "วิทยาลัยเทคนิคตัวอย่าง",
+                  address: "1 ถนนการศึกษา",
+                  phone: "02-000-0000",
+                  mapUrl: "https://www.google.com/maps/place/example",
+                  mapEmbedUrl: "https://www.google.com/maps/embed?pb=test"
+                }
+              });
+
           '''
-          if shell_site not in ia_block:
-              marker = '    currentHomeSnapshot = createHomeSnapshot({\n      latestNews,'
-              if ia_block.count(marker) != 1:
-                  raise RuntimeError("approved IA home marker is not unique")
-              ia_block = ia_block.replace(marker, shell_site + marker, 1)
+              ia_block, count = re.subn(
+                  r'(\n\s*)currentHomeSnapshot = createHomeSnapshot\(\{\n\s*latestNews,',
+                  lambda match: "\n" + shell_site + match.group(1) + "currentHomeSnapshot = createHomeSnapshot({\n      latestNews,",
+                  ia_block,
+                  count=1,
+              )
+              if count != 1:
+                  raise RuntimeError("approved IA home marker not found")
               data = data[:ia_start] + ia_block + data[ia_end:]
 
           data_path.write_text(data)
 
-          replace_once(
+          sub_once(
               "src/test/publicContentDetailRegression.test.tsx",
-              '''  usePublicContentDetail: () => ({
-              data: currentDetail,
-              isLoading: false,
-              isFetching: false
-            })''',
-              '''  usePublicContentDetail: () => ({
-              data: currentDetail,
-              media: currentSnapshot?.media ?? [],
-              relatedItems: (currentSnapshot?.content ?? []).filter((item) => item.id !== currentDetail?.id),
-              isLoading: false,
-              isFetching: false
-            })''',
+              r'(usePublicContentDetail:\s*\(\) => \(\{\s*data: currentDetail,)(\s*isLoading: false,\s*isFetching: false)',
+              r'\1\n    media: currentSnapshot?.media ?? [],\n    relatedItems: (currentSnapshot?.content ?? []).filter((item) => item.id !== currentDetail?.id),\2',
+              flags=re.S,
+              already="media: currentSnapshot?.media ?? [],",
           )
 
           detail_test = Path("src/test/publicContentDetailPage.test.tsx")
@@ -165,18 +176,15 @@ jobs:
           start = text.index(anchor)
           end = text.index('\n  });', start) + len('\n  });')
           block = text[start:end]
-          old_state = '''    currentDetailQueryState = {
-              isLoading: false,
-              isFetching: false
-            };'''
-          new_state = '''    currentDetailQueryState = {
-              isLoading: true,
-              isFetching: false
-            };'''
-          if new_state not in block:
-              if block.count(old_state) != 1:
-                  raise RuntimeError("detail loading-state marker is not unique")
-              block = block.replace(old_state, new_state, 1)
+          if "currentDetailQueryState = {\n      isLoading: true," not in block:
+              block, count = re.subn(
+                  r'(currentDetailQueryState = \{\s*)isLoading: false,',
+                  r'\1isLoading: true,',
+                  block,
+                  count=1,
+              )
+              if count != 1:
+                  raise RuntimeError("detail loading-state marker not found")
               text = text[:start] + block + text[end:]
               detail_test.write_text(text)
           PY
