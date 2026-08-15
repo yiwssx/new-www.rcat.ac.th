@@ -36,6 +36,25 @@ export interface ContentItem {
 
 export type PublicContentSummary = Omit<ContentItem, "body">;
 
+export type PublicContentCardItem = Pick<
+  ContentItem,
+  | "id"
+  | "title"
+  | "slug"
+  | "type"
+  | "status"
+  | "owner"
+  | "summary"
+  | "category"
+  | "tags"
+  | "canonicalUrl"
+  | "featured"
+  | "readingMinutes"
+  | "template"
+  | "featuredMediaId"
+  | "publishAt"
+>;
+
 export interface PublicContentPagination {
   page: number;
   pageSize: number;
@@ -62,5 +81,6 @@ export interface PublicContentListSnapshot {
 export interface PublicContentDetailSnapshot {
   item: ContentItem;
   media: MediaAsset[];
+  relatedItems: PublicContentCardItem[];
   generatedAt: string;
 }
