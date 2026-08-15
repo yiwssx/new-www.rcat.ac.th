@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeCspReportPayload } from "../../api/csp-report.mjs";
+import { normalizeCspReportPayload } from "../../server/cspReport/handler.mjs";
 
 describe("CSP report collector", () => {
   it("normalizes legacy CSP reports without retaining query strings", () => {
