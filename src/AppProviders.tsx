@@ -4,6 +4,8 @@ import { CacheProvider } from "@emotion/react";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { theme } from "./theme";
 
 export interface AppProvidersProps extends PropsWithChildren {
@@ -18,6 +20,8 @@ export default function AppProviders({ emotionCache, queryClient, children }: Ap
         <ThemeProvider theme={theme}>
           <CssBaseline />
           {children}
+          <Analytics />
+          <SpeedInsights />
         </ThemeProvider>
       </QueryClientProvider>
     </CacheProvider>
