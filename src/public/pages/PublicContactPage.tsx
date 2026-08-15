@@ -15,7 +15,7 @@ import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl
 import PublicSiteShell from "../components/PublicSiteShell";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
-import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
+import { usePublicShellSnapshot } from "../hooks/usePublicShellSnapshot";
 import { focusVisibleSx } from "../../design-system/componentStyles";
 import SocialBrandIcon, { type SocialPlatform } from "../../design-system/icons/SocialBrandIcon";
 
@@ -114,7 +114,7 @@ function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: st
 }
 
 export default function PublicContactPage() {
-  const { data, isFetching, isError, refetch } = usePublicCmsSnapshot();
+  const { data, isFetching, isError, refetch } = usePublicShellSnapshot();
 
   if (!data) {
     return (
