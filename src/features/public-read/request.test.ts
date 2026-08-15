@@ -18,9 +18,9 @@ describe("public read request taxonomy", () => {
   it("propagates caller cancellation through the bounded request signal", async () => {
     vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.test");
     const controller = new AbortController();
-    let receivedSignal: AbortSignal | null = null;
+    const receivedSignals: AbortSignal[] = [];
     const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
-      receivedSignal = init?.signal instanceof AbortSignal ? init.signal : null;
+      if (init?.signal) receivedSignals.push(init.signal);
 
       return new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), {
@@ -35,9 +35,9 @@ describe("public read request taxonomy", () => {
     const error = await request.catch((caught) => caught);
 
     expect(isPublicReadAbortError(error)).toBe(true);
-    expect(receivedSignal).not.toBeNull();
-    expect(receivedSignal).not.toBe(controller.signal);
-    expect(receivedSignal?.aborted).toBe(true);
+    expect(receivedSignals).toHaveLength(1);
+    expect(receivedSignals[0]).not.toBe(controller.signal);
+    expect(receivedSignals[0]?.aborted).toBe(true);
   });
 
   it("aborts slow upstream requests at the configured deadline", async () => {
