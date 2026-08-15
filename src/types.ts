@@ -6,7 +6,7 @@ import type { ExternalServiceLink } from "./features/cms-external-services/types
 import type { MediaAsset } from "./features/cms-media/types";
 import type { PublicMenuItem } from "./features/cms-navigation/types";
 import type { DisplaySettings, HomepageSettings, SiteSettings } from "./features/cms-settings/types";
-import type { ContentItem } from "./features/public-content/types";
+import type { ContentItem, PublicContentCardItem } from "./features/public-content/types";
 import type { PublicDocumentItem } from "./features/public-documents/types";
 import type { VisitorStatsSettings } from "./features/visitor-stats/types";
 
@@ -40,6 +40,7 @@ export type {
   ContentItem,
   ContentStatus,
   ContentType,
+  PublicContentCardItem,
   PublicContentDetailSnapshot,
   PublicContentListKind,
   PublicContentListSnapshot,
@@ -101,19 +102,15 @@ export interface PublicShellSnapshot {
 }
 
 export interface PublicHomeSnapshot {
-  siteSettings: SiteSettings;
-  homepageSettings: HomepageSettings;
-  displaySettings?: DisplaySettings;
-  menu: PublicMenuItem[];
   carouselSlides: CarouselSlide[];
   externalServices: ExternalServiceLink[];
   visitorStats: VisitorStatsSettings;
-  latestNews: import("./features/public-content/types").PublicContentSummary[];
-  latestAnnouncements: import("./features/public-content/types").PublicContentSummary[];
-  procurementItems: import("./features/public-content/types").PublicContentSummary[];
-  jobOpportunityItems: import("./features/public-content/types").PublicContentSummary[];
-  achievementItems: import("./features/public-content/types").PublicContentSummary[];
-  programItems: import("./features/public-content/types").PublicContentSummary[];
+  latestNews: PublicContentCardItem[];
+  latestAnnouncements: PublicContentCardItem[];
+  procurementItems: PublicContentCardItem[];
+  jobOpportunityItems: PublicContentCardItem[];
+  achievementItems: PublicContentCardItem[];
+  programItems: PublicContentCardItem[];
   documentItems: Array<ContentItem | PublicDocumentItem>;
   eventItems: CalendarEvent[];
   media: MediaAsset[];
