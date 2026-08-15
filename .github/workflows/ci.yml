@@ -143,6 +143,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: node scripts/check-d1-migration-sequences.mjs
       - run: pnpm worker:typecheck
       - run: pnpm worker:deploy:dry
 
