@@ -135,42 +135,21 @@ jobs:
       GH_REPO: ${{ github.repository }}
 
     steps:
+      - uses: actions/checkout@v7
+
       - name: Delete this drill's GitHub Environment pseudo-deployment
         shell: bash
         run: |
           set -euo pipefail
 
-          run_json="$(gh api "/repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID")"
-          deployments_json="$(gh api "/repos/$GH_REPO/deployments?sha=$GITHUB_SHA&environment=production&per_page=100")"
+          gh api "/repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/d1-drill-run.json"
+          gh api "/repos/$GH_REPO/deployments?sha=$GITHUB_SHA&per_page=100" > "$RUNNER_TEMP/d1-drill-deployments.json"
 
-          deployment_id="$(RUN_JSON="$run_json" DEPLOYMENTS_JSON="$deployments_json" node - <<'NODE'
-          const run = JSON.parse(process.env.RUN_JSON);
-          const deployments = JSON.parse(process.env.DEPLOYMENTS_JSON);
-          const runStartedAt = Date.parse(run.run_started_at ?? run.created_at);
-          const earliest = runStartedAt - 5000;
-          const latest = runStartedAt + 30000;
-
-          const candidates = deployments.filter((deployment) => {
-            const createdAt = Date.parse(deployment.created_at);
-            return (
-              deployment.environment === "production" &&
-              deployment.ref === "master" &&
-              deployment.sha === process.env.GITHUB_SHA &&
-              deployment.creator?.login === process.env.GITHUB_ACTOR &&
-              deployment.performed_via_github_app?.slug === "github-actions" &&
-              deployment.production_environment === false &&
-              createdAt >= earliest &&
-              createdAt <= latest
-            );
-          });
-
-          if (candidates.length !== 1) {
-            throw new Error(`expected exactly one D1 drill environment deployment for this run, found ${candidates.length}`);
-          }
-
-          process.stdout.write(String(candidates[0].id));
-          NODE
-          )"
+          deployment_id="$(node scripts/resolve-d1-drill-environment-deployment.mjs \
+            --run "$RUNNER_TEMP/d1-drill-run.json" \
+            --deployments "$RUNNER_TEMP/d1-drill-deployments.json" \
+            --sha "$GITHUB_SHA" \
+            --actor "$GITHUB_ACTOR")"
 
           gh api --method POST "/repos/$GH_REPO/deployments/$deployment_id/statuses" \
             -f state=inactive \
@@ -178,4 +157,4 @@ jobs:
             -f description='D1 recovery drill credential-gate deployment retired' >/dev/null
 
           gh api --method DELETE "/repos/$GH_REPO/deployments/$deployment_id"
-          echo "Retired and deleted GitHub Environment pseudo-deployment $deployment_id; workflow run remains as audit evidence."
+          echo "Retired and deleted the current D1 drill GitHub Environment pseudo-deployment; workflow run remains as audit evidence."
