@@ -67,6 +67,32 @@ function createRequestDeadline(parentSignal: AbortSignal | undefined, timeoutMs:
   };
 }
 
+function getCancellationError(
+  resource: string,
+  timeoutMs: number,
+  options: PublicJsonRequestOptions,
+  deadline: RequestDeadline,
+  cause: unknown
+) {
+  if (deadline.didTimeout()) {
+    return new PublicReadError(`Cloudflare ${resource} request timed out after ${timeoutMs}ms`, {
+      kind: "timeout",
+      resource,
+      cause
+    });
+  }
+
+  if (isAbortLikeError(cause) || options.signal?.aborted || deadline.signal.aborted) {
+    return new PublicReadError(`Cloudflare ${resource} request was aborted`, {
+      kind: "aborted",
+      resource,
+      cause
+    });
+  }
+
+  return null;
+}
+
 export async function getPublicJson(
   path: string,
   resource: string,
@@ -75,85 +101,80 @@ export async function getPublicJson(
   const url = buildCloudflarePublicApiUrl(path);
   const timeoutMs = normalizeTimeoutMs(options.timeoutMs);
   const deadline = createRequestDeadline(options.signal, timeoutMs);
-  let response: Response;
 
   try {
-    response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Accept: "application/json"
-      },
-      signal: deadline.signal
-    });
-  } catch (error) {
-    if (deadline.didTimeout()) {
-      throw new PublicReadError(`Cloudflare ${resource} request timed out after ${timeoutMs}ms`, {
-        kind: "timeout",
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json"
+        },
+        signal: deadline.signal
+      });
+    } catch (error) {
+      const cancellationError = getCancellationError(resource, timeoutMs, options, deadline, error);
+      if (cancellationError) throw cancellationError;
+
+      throw new PublicReadError(`Cloudflare ${resource} request failed`, {
+        kind: "network",
         resource,
         cause: error
       });
     }
 
-    if (isAbortLikeError(error) || options.signal?.aborted || deadline.signal.aborted) {
-      throw new PublicReadError(`Cloudflare ${resource} request was aborted`, {
-        kind: "aborted",
+    if (!response.ok) {
+      let payload: unknown = null;
+
+      try {
+        payload = await response.json();
+      } catch (error) {
+        const cancellationError = getCancellationError(resource, timeoutMs, options, deadline, error);
+        if (cancellationError) throw cancellationError;
+        // Keep the generic HTTP status message when the error body is not JSON.
+      }
+
+      const detail = readErrorDetail(payload);
+      const genericMessage = `Cloudflare ${resource} request failed with HTTP ${response.status}`;
+      const message = options.httpErrorMessage === "generic" ? genericMessage : detail.error || genericMessage;
+
+      throw new PublicReadError(message, {
+        kind: "http",
         resource,
-        cause: error
+        status: response.status,
+        backendMessage: detail.error,
+        diagnostic: detail.diagnostic,
+        suggestedMigration: detail.suggestedMigration
       });
     }
 
-    throw new PublicReadError(`Cloudflare ${resource} request failed`, {
-      kind: "network",
-      resource,
-      cause: error
-    });
-  } finally {
-    deadline.cleanup();
-  }
-
-  if (!response.ok) {
-    let payload: unknown = null;
+    let payload: unknown;
 
     try {
       payload = await response.json();
-    } catch {
-      // Keep the generic HTTP status message when the error body is not JSON.
+    } catch (error) {
+      const cancellationError = getCancellationError(resource, timeoutMs, options, deadline, error);
+      if (cancellationError) throw cancellationError;
+
+      throw new PublicReadError(`Cloudflare ${resource} returned invalid JSON`, {
+        kind: "invalid-json",
+        resource,
+        cause: error
+      });
     }
 
-    const detail = readErrorDetail(payload);
-    const genericMessage = `Cloudflare ${resource} request failed with HTTP ${response.status}`;
-    const message = options.httpErrorMessage === "generic" ? genericMessage : detail.error || genericMessage;
+    if (!isRecord(payload)) {
+      throw new PublicReadError(`Cloudflare ${resource} returned an invalid response`, {
+        kind: "invalid-response",
+        resource
+      });
+    }
 
-    throw new PublicReadError(message, {
-      kind: "http",
-      resource,
-      status: response.status,
-      backendMessage: detail.error,
-      diagnostic: detail.diagnostic,
-      suggestedMigration: detail.suggestedMigration
-    });
+    return payload;
+  } finally {
+    deadline.cleanup();
   }
-
-  let payload: unknown;
-
-  try {
-    payload = await response.json();
-  } catch (error) {
-    throw new PublicReadError(`Cloudflare ${resource} returned invalid JSON`, {
-      kind: "invalid-json",
-      resource,
-      cause: error
-    });
-  }
-
-  if (!isRecord(payload)) {
-    throw new PublicReadError(`Cloudflare ${resource} returned an invalid response`, {
-      kind: "invalid-response",
-      resource
-    });
-  }
-
-  return payload;
 }
 
 export function asInvalidPublicReadResponse(resource: string, error: unknown): PublicReadError {
