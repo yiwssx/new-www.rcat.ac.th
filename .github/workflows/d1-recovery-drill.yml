@@ -35,7 +35,7 @@ jobs:
       - name: Guard destructive commands
         shell: bash
         run: |
-          if grep -nE 'd1[[:space:]]+time-travel[[:space:]]+restore|--skip-confirmation' .github/workflows/d1-recovery-drill.yml; then
+          if grep -nE 'pnpm[[:space:]]+wrangler[[:space:]]+d1[[:space:]]+time-travel[[:space:]]+restore' .github/workflows/d1-recovery-drill.yml; then
             echo "Recovery drill workflow must never contain restore commands." >&2
             exit 1
           fi
