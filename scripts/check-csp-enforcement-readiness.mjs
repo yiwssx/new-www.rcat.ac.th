@@ -22,7 +22,9 @@ async function readJson(path) {
 const vercelConfig = await readJson("vercel.json");
 const readiness = await readJson("config/csp-enforcement-readiness.json");
 const allRoutes = vercelConfig.headers?.find((entry) => entry.source === "/(.*)");
-const reportOnly = allRoutes?.headers?.find((header) => header.key === "Content-Security-Policy-Report-Only")?.value;
+const reportOnly = allRoutes?.headers?.find(
+  (header) => header.key === "Content-Security-Policy-Report-Only"
+)?.value;
 const enforcing = allRoutes?.headers?.find((header) => header.key === "Content-Security-Policy")?.value;
 
 if (!allRoutes) {
@@ -39,7 +41,9 @@ if (readiness?.schemaVersion !== 1 || typeof readiness?.surfaces !== "object" ||
   fail("readiness evidence has an unsupported shape");
 }
 
-const unknownSurfaces = Object.keys(readiness?.surfaces ?? {}).filter((surface) => !REQUIRED_SURFACES.includes(surface));
+const unknownSurfaces = Object.keys(readiness?.surfaces ?? {}).filter(
+  (surface) => !REQUIRED_SURFACES.includes(surface)
+);
 if (unknownSurfaces.length > 0) {
   fail(`unexpected evidence surfaces: ${unknownSurfaces.join(", ")}`);
 }
