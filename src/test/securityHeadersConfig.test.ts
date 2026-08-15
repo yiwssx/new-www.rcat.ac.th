@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import vercelConfig from "../../vercel.json";
 
@@ -30,12 +31,18 @@ describe("M21 Vercel security headers", () => {
     expect(reportOnlyPolicy).toContain("report-uri /api/csp-report");
     expect(enforcingPolicy).toBeUndefined();
     expect(JSON.stringify(vercelConfig)).not.toContain("preload");
+
+    expect(vercelConfig.rewrites).toContainEqual({
+      source: "/api/csp-report",
+      destination: "/api/complaint?_rcatComplaintRoute=csp-report"
+    });
   });
 
   it("loads Sarabun locally and never depends on Google-hosted fonts", () => {
-    const indexHtml = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
-    const routeComponents = readFileSync(new URL("../routeComponents.tsx", import.meta.url), "utf8");
-    const fontCss = readFileSync(new URL("../../public/fonts/sarabun.css", import.meta.url), "utf8");
+    const repositoryRoot = process.cwd();
+    const indexHtml = readFileSync(path.join(repositoryRoot, "index.html"), "utf8");
+    const routeComponents = readFileSync(path.join(repositoryRoot, "src", "routeComponents.tsx"), "utf8");
+    const fontCss = readFileSync(path.join(repositoryRoot, "public", "fonts", "sarabun.css"), "utf8");
     const combined = `${indexHtml}\n${routeComponents}`;
 
     expect(combined).toContain('href="/fonts/sarabun.css"');
