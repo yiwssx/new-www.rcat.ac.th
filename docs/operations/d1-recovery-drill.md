@@ -12,6 +12,8 @@ The workflow may run only from `master` after explicit non-production acknowledg
 
 The committed preview binding intentionally retains `database_id = "preview-placeholder"`. The drill does not pass the preview Wrangler config/environment to its read-only D1 lookup commands. Instead it first confirms that exactly one account-scoped D1 database named `rcat-public-api-preview` exists, then resolves metadata and Time Travel information by that exact database name. This keeps the real preview database ID outside source control and prevents the committed placeholder from being interpreted as a Cloudflare resource ID.
 
+Wrangler `4.121.0` intentionally removes the `version` field from `d1 info` output because legacy alpha databases have been removed. Therefore the drill does not infer Time Travel readiness from `d1 info.version`. The authoritative readiness gate is successful execution of `wrangler d1 time-travel info rcat-public-api-preview --json` together with a non-empty bookmark. Wrangler itself rejects unsupported alpha databases before retrieving a bookmark.
+
 A production restore remains a manual incident action governed by `docs/operations/admin-backup.md`. Production restore must require an explicit operator decision, a captured pre-restore bookmark, an approved target, and post-restore validation.
 
 ## Running The Drill
@@ -25,12 +27,12 @@ The workflow:
 3. scans itself for destructive restore commands;
 4. lists account-scoped D1 resources and confirms exactly one database is named `rcat-public-api-preview`;
 5. resolves metadata for `rcat-public-api-preview` by exact database name without consuming the committed preview `database_id` placeholder;
-6. confirms the preview database uses the D1 production storage backend required for Time Travel;
-7. resolves the preview database's current Time Travel metadata/bookmark by exact database name;
-8. rejects metadata output that unexpectedly references `rcat-public-api-production`;
+6. confirms the metadata still names exactly `rcat-public-api-preview` and rejects unexpected production references;
+7. invokes Wrangler's read-only Time Travel info command for `rcat-public-api-preview`;
+8. requires a non-empty current bookmark as the readiness proof and rejects unexpected production references;
 9. writes a summary confirming that no restore or production D1 write was performed.
 
-The workflow needs Cloudflare credentials capable of listing D1 databases and reading preview D1 metadata/Time Travel information. Missing credentials, missing preview access, a missing/duplicate preview database name, or an incompatible storage backend is a drill failure and should be recorded as an operational access gap, not bypassed by switching the target to production or exposing the protected credentials as repository-wide secrets.
+The workflow needs Cloudflare credentials capable of listing D1 databases and reading preview D1 metadata/Time Travel information. Missing credentials, missing preview access, a missing/duplicate preview database name, failure to retrieve a Time Travel bookmark, or Wrangler command incompatibility is a drill failure and should be recorded as an operational access gap, not bypassed by switching the target to production or exposing the protected credentials as repository-wide secrets.
 
 ## Evidence To Record
 
@@ -41,7 +43,7 @@ For every quarterly drill, record outside source control when it contains accoun
 - workflow run URL;
 - whether the exact preview database name resolved uniquely;
 - whether preview metadata resolved;
-- whether Time Travel metadata resolved;
+- whether Time Travel returned a current bookmark;
 - credential/access blockers;
 - command drift or Wrangler incompatibility;
 - elapsed time from drill start to successful readiness confirmation;
