@@ -4,6 +4,7 @@ import cleanupSql from "../../cloudflare/public-api/sql/production-fixture-clean
 import integrityWorkflow from "../../.github/workflows/production-data-integrity.yml?raw";
 import workerProductionWorkflow from "../../.github/workflows/worker-production.yml?raw";
 import parserSource from "../../scripts/check-production-fixture-audit.mjs?raw";
+import diagnosticSanitizerSource from "../../scripts/sanitize-cloudflare-cli-output.mjs?raw";
 
 const exactFixtureIds = [
   "sample-public-read-home-section-001",
@@ -39,6 +40,21 @@ describe("P5A production data-integrity safety", () => {
     expect(integrityWorkflow).toContain("production-fixture-cleanup.sql");
     expect(integrityWorkflow).toContain("--expect-clean");
     expect(integrityWorkflow).not.toMatch(/d1\s+time-travel\s+restore/i);
+  });
+
+  it("surfaces sanitized Wrangler diagnostics without weakening the production gates", () => {
+    expect(integrityWorkflow).toContain("production-fixture-audit.stderr");
+    expect(integrityWorkflow).toContain("sanitize-cloudflare-cli-output.mjs");
+    expect(integrityWorkflow).toContain("wrangler stdout");
+    expect(integrityWorkflow).toContain("wrangler stderr");
+    expect(integrityWorkflow).toContain('exit "$audit_status"');
+    expect(workerProductionWorkflow).toContain("production-fixture-audit.stderr");
+    expect(workerProductionWorkflow).toContain("sanitize-cloudflare-cli-output.mjs");
+    expect(workerProductionWorkflow).toContain('exit "$audit_status"');
+    expect(diagnosticSanitizerSource).toContain("/accounts/");
+    expect(diagnosticSanitizerSource).toContain("/d1/database/");
+    expect(diagnosticSanitizerSource).toContain("authorization");
+    expect(diagnosticSanitizerSource).toContain("diagnostic output truncated");
   });
 
   it("blocks Worker production releases until the exact fixture sentinel is clean", () => {
