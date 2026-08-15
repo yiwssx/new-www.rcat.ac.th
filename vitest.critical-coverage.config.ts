@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 
+// Baselines measured on 2026-08-15; thresholds intentionally retain small regression headroom.
 export default defineConfig({
   test: {
     environment: "jsdom",
