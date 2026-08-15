@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable
-} from "@tanstack/react-table";
+import { createColumnHelper, flexRender, stockFeatures, useTable, type StockFeatures } from "@tanstack/react-table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
@@ -76,7 +70,7 @@ import ActionBar from "../../design-system/components/ActionBar";
 type FilterStatus = ContentStatus | "all";
 type ContentFilterKey = "status";
 
-const columnHelper = createColumnHelper<AdminContentListItem>();
+const columnHelper = createColumnHelper<StockFeatures, AdminContentListItem>();
 const contentListUrlOptions = {
   defaultPageSize: 25,
   pageSizeOptions: ADMIN_PAGE_SIZE_OPTIONS,
@@ -162,6 +156,8 @@ export default function ContentPage() {
   }, [contentListQuery.data?.pagination.page, contentListQuery.isPlaceholderData, page, setListState]);
 
   useEffect(() => {
+    // This effect intentionally rehydrates owner-scoped recovery state when the authenticated owner changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraftRecovery(readContentDraftRecovery(ownerUserId));
   }, [ownerUserId]);
 
@@ -259,7 +255,7 @@ export default function ContentPage() {
         await showErrorResult("ไม่สามารถลบเนื้อหาได้", currentError, "กรุณาลองอีกครั้ง");
       }
     },
-    [canDelete, contentListQuery.data?.pagination, contentWritePending, deleteMutation, page, setListState, queryClient]
+    [canDelete, contentListQuery.data, contentWritePending, deleteMutation, page, setListState, queryClient]
   );
 
   const handlePublish = useCallback(
@@ -301,142 +297,143 @@ export default function ContentPage() {
   );
 
   const columns = useMemo(
-    () => [
-      columnHelper.accessor("title", {
-        header: "ชื่อเรื่อง",
-        cell: (info) => (
-          <Box>
-            <Typography
-              sx={{
-                fontWeight: 800
-              }}
-            >
-              {info.getValue()}
-            </Typography>
-            <Typography
-              variant="body2"
-              className="content-summary"
-              sx={{
-                color: "text.secondary"
-              }}
-            >
-              {info.row.original.summary}
-            </Typography>
+    () =>
+      columnHelper.columns([
+        columnHelper.accessor("title", {
+          header: "ชื่อเรื่อง",
+          cell: (info) => (
+            <Box>
+              <Typography
+                sx={{
+                  fontWeight: 800
+                }}
+              >
+                {info.getValue()}
+              </Typography>
+              <Typography
+                variant="body2"
+                className="content-summary"
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
+                {info.row.original.summary}
+              </Typography>
+              <Stack
+                direction="row"
+                spacing={0.75}
+                useFlexGap
+                sx={{
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  mt: 0.5
+                }}
+              >
+                {!!info.row.original.category && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    {info.row.original.category}
+                  </Typography>
+                )}
+                {isFacebookEmbedContent(info.row.original) && (
+                  <Chip label={FACEBOOK_EMBED_LABEL} size="small" color="primary" variant="outlined" />
+                )}
+              </Stack>
+            </Box>
+          )
+        }),
+        columnHelper.accessor("type", {
+          header: "ประเภท",
+          cell: (info) => <Typography>{contentTypeLabels[info.getValue()]}</Typography>
+        }),
+        columnHelper.accessor("status", {
+          header: "สถานะ",
+          cell: (info) => <StatusChip status={info.getValue()} />
+        }),
+        columnHelper.accessor("owner", {
+          header: "ผู้รับผิดชอบ"
+        }),
+        columnHelper.accessor("updatedAt", {
+          header: "ปรับปรุง",
+          cell: (info) => formatDisplayDate(info.getValue())
+        }),
+        columnHelper.display({
+          id: "actions",
+          header: "",
+          cell: (info) => (
             <Stack
               direction="row"
-              spacing={0.75}
-              useFlexGap
+              spacing={0.5}
               sx={{
-                alignItems: "center",
-                flexWrap: "wrap",
-                mt: 0.5
+                justifyContent: "flex-end",
+                flexWrap: "nowrap"
               }}
             >
-              {!!info.row.original.category && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "text.secondary"
-                  }}
-                >
-                  {info.row.original.category}
-                </Typography>
-              )}
-              {isFacebookEmbedContent(info.row.original) && (
-                <Chip label={FACEBOOK_EMBED_LABEL} size="small" color="primary" variant="outlined" />
-              )}
-            </Stack>
-          </Box>
-        )
-      }),
-      columnHelper.accessor("type", {
-        header: "ประเภท",
-        cell: (info) => <Typography>{contentTypeLabels[info.getValue()]}</Typography>
-      }),
-      columnHelper.accessor("status", {
-        header: "สถานะ",
-        cell: (info) => <StatusChip status={info.getValue()} />
-      }),
-      columnHelper.accessor("owner", {
-        header: "ผู้รับผิดชอบ"
-      }),
-      columnHelper.accessor("updatedAt", {
-        header: "ปรับปรุง",
-        cell: (info) => formatDisplayDate(info.getValue())
-      }),
-      columnHelper.display({
-        id: "actions",
-        header: "",
-        cell: (info) => (
-          <Stack
-            direction="row"
-            spacing={0.5}
-            sx={{
-              justifyContent: "flex-end",
-              flexWrap: "nowrap"
-            }}
-          >
-            <Tooltip title="ดูหน้าสาธารณะ">
-              <span>
-                <IconButton
-                  aria-label="ดูหน้าสาธารณะ"
-                  component="a"
-                  href={`/content/${info.row.original.slug}`}
-                  size="small"
-                  disabled={info.row.original.status !== "published" && info.row.original.status !== "scheduled"}
-                >
-                  <OpenInNewOutlinedIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-            {(canUpdate || canPublish || canDelete) && (
-              <>
-                <Tooltip title="แก้ไข">
-                  <span>
-                    <IconButton
-                      aria-label="แก้ไข"
-                      size="small"
-                      disabled={!canUpdate || loadingEditorItem || contentWritePending || Boolean(draftRecovery)}
-                      onClick={() => void handleEdit(info.row.original)}
-                    >
-                      <EditOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-                {canPublish && info.row.original.status !== "published" && (
-                  <Tooltip title="เผยแพร่">
+              <Tooltip title="ดูหน้าสาธารณะ">
+                <span>
+                  <IconButton
+                    aria-label="ดูหน้าสาธารณะ"
+                    component="a"
+                    href={`/content/${info.row.original.slug}`}
+                    size="small"
+                    disabled={info.row.original.status !== "published" && info.row.original.status !== "scheduled"}
+                  >
+                    <OpenInNewOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              {(canUpdate || canPublish || canDelete) && (
+                <>
+                  <Tooltip title="แก้ไข">
                     <span>
                       <IconButton
-                        aria-label="เผยแพร่"
+                        aria-label="แก้ไข"
                         size="small"
-                        color="primary"
-                        disabled={contentWritePending}
-                        onClick={() => void handlePublish(info.row.original)}
+                        disabled={!canUpdate || loadingEditorItem || contentWritePending || Boolean(draftRecovery)}
+                        onClick={() => void handleEdit(info.row.original)}
                       >
-                        <PublishOutlinedIcon fontSize="small" />
+                        <EditOutlinedIcon fontSize="small" />
                       </IconButton>
                     </span>
                   </Tooltip>
-                )}
-                <Tooltip title="ลบ">
-                  <span>
-                    <IconButton
-                      aria-label="ลบ"
-                      size="small"
-                      color="error"
-                      disabled={!canDelete || contentWritePending}
-                      onClick={() => void handleDelete(info.row.original)}
-                    >
-                      <DeleteOutlineIcon fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </>
-            )}
-          </Stack>
-        )
-      })
-    ],
+                  {canPublish && info.row.original.status !== "published" && (
+                    <Tooltip title="เผยแพร่">
+                      <span>
+                        <IconButton
+                          aria-label="เผยแพร่"
+                          size="small"
+                          color="primary"
+                          disabled={contentWritePending}
+                          onClick={() => void handlePublish(info.row.original)}
+                        >
+                          <PublishOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  )}
+                  <Tooltip title="ลบ">
+                    <span>
+                      <IconButton
+                        aria-label="ลบ"
+                        size="small"
+                        color="error"
+                        disabled={!canDelete || contentWritePending}
+                        onClick={() => void handleDelete(info.row.original)}
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                </>
+              )}
+            </Stack>
+          )
+        })
+      ]),
     [
       canDelete,
       canPublish,
@@ -449,14 +446,10 @@ export default function ContentPage() {
       loadingEditorItem
     ]
   );
-
-  // TanStack Table intentionally returns instance functions that React Compiler cannot memoize safely.
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  const table = useTable({
+    features: stockFeatures,
     data: items,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel()
+    columns
   });
 
   function handleCreate() {
