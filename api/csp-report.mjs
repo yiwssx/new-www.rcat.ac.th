@@ -2,7 +2,9 @@ const MAX_REPORT_BYTES = 32 * 1024;
 const MAX_TEXT_LENGTH = 512;
 
 function trimText(value) {
-  return String(value || "").trim().slice(0, MAX_TEXT_LENGTH);
+  return String(value || "")
+    .trim()
+    .slice(0, MAX_TEXT_LENGTH);
 }
 
 function sanitizeUri(value) {

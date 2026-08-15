@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  isPublicReadAbortError,
-  isPublicReadNotFoundError,
-  isPublicReadTimeoutError,
-  PublicReadError
-} from "./errors";
+import { isPublicReadAbortError, isPublicReadNotFoundError, isPublicReadTimeoutError, PublicReadError } from "./errors";
 import { getPublicJson, PUBLIC_READ_DEFAULT_TIMEOUT_MS } from "./request";
 
 afterEach(() => {
@@ -43,12 +38,13 @@ describe("public read request taxonomy", () => {
   it("aborts slow upstream requests at the configured deadline", async () => {
     vi.useFakeTimers();
     vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.test");
-    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
-      new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), {
-          once: true
-        });
-      })
+    const fetchMock = vi.fn(
+      (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), {
+            once: true
+          });
+        })
     );
     vi.stubGlobal("fetch", fetchMock);
 

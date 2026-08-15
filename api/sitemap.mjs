@@ -270,7 +270,9 @@ export default async function sitemap(request, response) {
     return;
   }
 
-  const siteUrl = normalizeSiteUrl(process.env.PUBLIC_SITE_URL || process.env.VITE_PUBLIC_SITE_URL || inferSiteUrl(request));
+  const siteUrl = normalizeSiteUrl(
+    process.env.PUBLIC_SITE_URL || process.env.VITE_PUBLIC_SITE_URL || inferSiteUrl(request)
+  );
   const apiBaseUrl = process.env.CLOUDFLARE_PUBLIC_API_URL || process.env.VITE_CLOUDFLARE_PUBLIC_API_URL;
 
   try {
