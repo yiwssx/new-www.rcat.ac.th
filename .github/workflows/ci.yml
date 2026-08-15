@@ -73,6 +73,13 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: pnpm test:unit
+      - name: Enforce critical coverage thresholds
+        run: >-
+          node scripts/run-vitest.mjs run
+          server/cmsAuth/handlers.test.mjs
+          src/features/public-read/request.test.ts
+          --config vitest.critical-coverage.config.ts
+          --coverage
 
   integration:
     name: Integration Tests
