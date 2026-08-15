@@ -1,3 +1,4 @@
+import { ensureNodeRequestId } from "../observability/requestId.mjs";
 import {
   handleCmsAuthLogin,
   handleCmsAuthLogout,
@@ -215,6 +216,7 @@ function canonicalizeRequestUrl(request, canonicalUrl) {
 }
 
 export async function handleCmsAuthDispatch(request, response, options = {}) {
+  ensureNodeRequestId(request, response, { createId: options.createRequestId });
   const route = findRoute(request?.url);
 
   if (!route) {
