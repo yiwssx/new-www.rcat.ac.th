@@ -1,0 +1,84 @@
+name: One-shot P1 Sarabun Assets
+
+on:
+  push:
+    branches:
+      - feat/p1-resilience-hardening
+    paths:
+      - .github/workflows/one-shot-p1-font-assets.yml
+
+permissions:
+  contents: write
+
+jobs:
+  vendor-fonts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/p1-resilience-hardening
+
+      - name: Download pinned Sarabun assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit="352f6b7d9d6cc4fa9e242b931291d31b21a6dc84"
+          base="https://raw.githubusercontent.com/google/fonts/${commit}/ofl/sarabun"
+
+          mkdir -p public/fonts/sarabun
+          curl --fail --silent --show-error --location "$base/Sarabun-Regular.ttf" -o public/fonts/sarabun/Sarabun-Regular.ttf
+          curl --fail --silent --show-error --location "$base/Sarabun-Medium.ttf" -o public/fonts/sarabun/Sarabun-Medium.ttf
+          curl --fail --silent --show-error --location "$base/Sarabun-Bold.ttf" -o public/fonts/sarabun/Sarabun-Bold.ttf
+          curl --fail --silent --show-error --location "$base/Sarabun-ExtraBold.ttf" -o public/fonts/sarabun/Sarabun-ExtraBold.ttf
+          curl --fail --silent --show-error --location "$base/OFL.txt" -o public/fonts/sarabun/OFL.txt
+
+          test "$(git hash-object public/fonts/sarabun/Sarabun-Regular.ttf)" = "161c9ac9a14e26dba0b9be14496fae451e5c2e24"
+          test "$(git hash-object public/fonts/sarabun/Sarabun-Medium.ttf)" = "baa59c922d9a4f1fa8dc74dec00983dc458b1cc0"
+          test "$(git hash-object public/fonts/sarabun/Sarabun-Bold.ttf)" = "7e5d768073a16576b75830c3c0c0011090b50a88"
+          test "$(git hash-object public/fonts/sarabun/Sarabun-ExtraBold.ttf)" = "61d6e8f15085d5008b83297c7b262541d1ed2c22"
+          test "$(git hash-object public/fonts/sarabun/OFL.txt)" = "a7d3a1261866388dac5f9dc2c51982121c1e0c07"
+
+          cat > public/fonts/sarabun.css <<'CSS'
+          @font-face {
+            font-family: "Sarabun";
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("/fonts/sarabun/Sarabun-Regular.ttf") format("truetype");
+          }
+
+          @font-face {
+            font-family: "Sarabun";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("/fonts/sarabun/Sarabun-Medium.ttf") format("truetype");
+          }
+
+          @font-face {
+            font-family: "Sarabun";
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url("/fonts/sarabun/Sarabun-Bold.ttf") format("truetype");
+          }
+
+          @font-face {
+            font-family: "Sarabun";
+            font-style: normal;
+            font-weight: 800;
+            font-display: swap;
+            src: url("/fonts/sarabun/Sarabun-ExtraBold.ttf") format("truetype");
+          }
+          CSS
+
+      - name: Commit assets and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/one-shot-p1-font-assets.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/fonts .github/workflows/one-shot-p1-font-assets.yml
+          git commit -m "feat(p1): self-host pinned Sarabun fonts"
+          git push origin HEAD:feat/p1-resilience-hardening
