@@ -37,9 +37,7 @@ describe("CI Vercel compatibility", () => {
     }
   });
 
-  it("skips Vercel builds only for dependency-status docs-only commits", () => {
-    expect(vercelConfig.ignoreCommand).toBe(
-      "git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/maintenance/dependency-current-status.md'"
-    );
+  it("delegates Vercel build suppression to the tested runtime classifier", () => {
+    expect(vercelConfig.ignoreCommand).toBe("node scripts/vercel-ignore-build.mjs");
   });
 });
