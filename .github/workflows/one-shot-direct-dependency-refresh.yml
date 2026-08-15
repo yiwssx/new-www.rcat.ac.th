@@ -28,52 +28,62 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Update only direct package.json dependencies
+      - name: Update only named direct package.json dependencies
         run: |
+          pnpm update --latest --lockfile-only \
+            @mui/icons-material \
+            @mui/material \
+            @tanstack/react-router \
+            @tanstack/react-table \
+            @cloudflare/workers-types \
+            @commitlint/cli \
+            @commitlint/config-conventional \
+            @testing-library/jest-dom \
+            @testing-library/user-event \
+            eslint-plugin-react-refresh \
+            globals \
+            wrangler
+
+      - name: Verify dependency policy boundaries
+        run: |
+          git diff --exit-code -- pnpm-workspace.yaml .node-version .github/workflows/ci.yml .github/workflows/dependency-monitoring.yml .github/workflows/dependency-status-sync.yml .github/workflows/worker-production.yml
           node <<'NODE'
-          const fs = require('fs');
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const { execFileSync } = require('child_process');
+          const before = JSON.parse(execFileSync('git', ['show', 'HEAD:package.json'], { encoding: 'utf8' }));
+          const after = require('./package.json');
+          const allowed = new Set([
+            '@mui/icons-material',
+            '@mui/material',
+            '@tanstack/react-router',
+            '@tanstack/react-table',
+            '@cloudflare/workers-types',
+            '@commitlint/cli',
+            '@commitlint/config-conventional',
+            '@testing-library/jest-dom',
+            '@testing-library/user-event',
+            'eslint-plugin-react-refresh',
+            'globals',
+            'wrangler'
+          ]);
 
-          const runtime = {
-            '@mui/icons-material': '^9.3.1',
-            '@mui/material': '^9.3.1',
-            '@tanstack/react-router': '^1.170.29',
-            '@tanstack/react-table': '^9.1.2'
-          };
-
-          const dev = {
-            '@cloudflare/workers-types': '^5.20260815.1',
-            '@commitlint/cli': '21.2.2',
-            '@commitlint/config-conventional': '21.2.2',
-            '@testing-library/jest-dom': '^7.0.1',
-            '@testing-library/user-event': '^14.6.4',
-            'eslint-plugin-react-refresh': '^0.5.4',
-            'globals': '^17.10.0',
-            'wrangler': '^4.121.0'
-          };
-
-          for (const [name, version] of Object.entries(runtime)) {
-            if (!Object.prototype.hasOwnProperty.call(pkg.dependencies ?? {}, name)) {
-              throw new Error(`Refusing to add undeclared runtime dependency: ${name}`);
+          for (const section of ['dependencies', 'devDependencies']) {
+            const names = new Set([
+              ...Object.keys(before[section] || {}),
+              ...Object.keys(after[section] || {})
+            ]);
+            for (const name of names) {
+              if ((before[section] || {})[name] !== (after[section] || {})[name] && !allowed.has(name)) {
+                throw new Error(`Unexpected direct dependency change: ${section}.${name}`);
+              }
             }
-            pkg.dependencies[name] = version;
           }
 
-          for (const [name, version] of Object.entries(dev)) {
-            if (!Object.prototype.hasOwnProperty.call(pkg.devDependencies ?? {}, name)) {
-              throw new Error(`Refusing to add undeclared dev dependency: ${name}`);
+          for (const field of ['engines', 'packageManager']) {
+            if (JSON.stringify(before[field]) !== JSON.stringify(after[field])) {
+              throw new Error(`Unexpected package metadata change: ${field}`);
             }
-            pkg.devDependencies[name] = version;
           }
-
-          fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
           NODE
-
-      - name: Refresh lockfile only as required by direct updates
-        run: pnpm install --lockfile-only
-
-      - name: Verify no workspace override file was changed
-        run: git diff --exit-code -- pnpm-workspace.yaml
 
       - name: Commit direct dependency refresh
         run: |
@@ -81,8 +91,8 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add package.json pnpm-lock.yaml
           if git diff --cached --quiet; then
-            echo 'No dependency changes to commit.'
+            echo 'No mature direct dependency changes to commit.'
             exit 0
           fi
-          git commit -m 'chore(deps): refresh direct package.json dependencies'
+          git commit -m 'chore(deps): refresh mature direct dependencies'
           git push origin HEAD:deps/direct-package-json-refresh-2026-08-15
