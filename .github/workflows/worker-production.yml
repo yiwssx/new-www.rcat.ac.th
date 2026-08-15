@@ -41,12 +41,25 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
+          audit_json="$RUNNER_TEMP/production-fixture-audit.json"
+          audit_stderr="$RUNNER_TEMP/production-fixture-audit.stderr"
+          set +e
           pnpm wrangler d1 execute rcat-public-api-production \
             --remote \
             --file cloudflare/public-api/sql/production-fixture-audit.sql \
-            --json > "$RUNNER_TEMP/production-fixture-audit.json"
+            --json > "$audit_json" 2> "$audit_stderr"
+          audit_status=$?
+          set -e
+
+          if [[ "$audit_status" -ne 0 ]]; then
+            echo "::error::Production fixture sentinel query failed before payload validation (wrangler exit $audit_status)."
+            node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_stderr" --label "wrangler stderr" || true
+            node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_json" --label "wrangler stdout" || true
+            exit "$audit_status"
+          fi
+
           node scripts/check-production-fixture-audit.mjs \
-            --file "$RUNNER_TEMP/production-fixture-audit.json" \
+            --file "$audit_json" \
             --expect-clean
 
       - run: node cloudflare/public-api/scripts/worker-production-deploy.mjs
