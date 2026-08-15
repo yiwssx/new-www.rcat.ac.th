@@ -54,7 +54,13 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - run: pnpm format:check
+      - name: Check formatting and expose exact diff
+        run: |
+          if ! pnpm format:check; then
+            pnpm exec prettier scripts/check-csp-enforcement-readiness.mjs --write
+            git diff -- scripts/check-csp-enforcement-readiness.mjs
+            exit 1
+          fi
       - run: pnpm lint:strict
 
   unit:
