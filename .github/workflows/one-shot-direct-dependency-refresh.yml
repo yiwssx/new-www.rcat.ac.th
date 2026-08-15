@@ -1,0 +1,88 @@
+name: One-shot direct dependency refresh
+
+on:
+  push:
+    branches:
+      - deps/direct-package-json-refresh-2026-08-15
+    paths:
+      - .github/workflows/one-shot-direct-dependency-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: deps/direct-package-json-refresh-2026-08-15
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Update only direct package.json dependencies
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+
+          const runtime = {
+            '@mui/icons-material': '^9.3.1',
+            '@mui/material': '^9.3.1',
+            '@tanstack/react-router': '^1.170.29',
+            '@tanstack/react-table': '^9.1.2'
+          };
+
+          const dev = {
+            '@cloudflare/workers-types': '^5.20260815.1',
+            '@commitlint/cli': '21.2.2',
+            '@commitlint/config-conventional': '21.2.2',
+            '@testing-library/jest-dom': '^7.0.1',
+            '@testing-library/user-event': '^14.6.4',
+            'eslint-plugin-react-refresh': '^0.5.4',
+            'globals': '^17.10.0',
+            'wrangler': '^4.121.0'
+          };
+
+          for (const [name, version] of Object.entries(runtime)) {
+            if (!Object.prototype.hasOwnProperty.call(pkg.dependencies ?? {}, name)) {
+              throw new Error(`Refusing to add undeclared runtime dependency: ${name}`);
+            }
+            pkg.dependencies[name] = version;
+          }
+
+          for (const [name, version] of Object.entries(dev)) {
+            if (!Object.prototype.hasOwnProperty.call(pkg.devDependencies ?? {}, name)) {
+              throw new Error(`Refusing to add undeclared dev dependency: ${name}`);
+            }
+            pkg.devDependencies[name] = version;
+          }
+
+          fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
+          NODE
+
+      - name: Refresh lockfile only as required by direct updates
+        run: pnpm install --lockfile-only
+
+      - name: Verify no workspace override file was changed
+        run: git diff --exit-code -- pnpm-workspace.yaml
+
+      - name: Commit direct dependency refresh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo 'No dependency changes to commit.'
+            exit 0
+          fi
+          git commit -m 'chore(deps): refresh direct package.json dependencies'
+          git push origin HEAD:deps/direct-package-json-refresh-2026-08-15
