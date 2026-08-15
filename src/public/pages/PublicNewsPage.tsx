@@ -12,6 +12,7 @@ import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { usePublicContentList } from "../hooks/usePublicContentList";
 import { usePublicPagination } from "../hooks/usePublicPagination";
+import { normalizePublicPageSearchValue } from "../routing/searchParams";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
 const NEWS_PAGE_SIZE = 12;
@@ -29,28 +30,39 @@ function normalizeCategoryList(category: string | undefined) {
 }
 
 export default function PublicNewsPage() {
-  const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("news");
   const routeSearch = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
   const activeTag = readTextSearchParam(routeSearch, "tag");
   const activeCategory = readTextSearchParam(routeSearch, "category");
   const hasActiveFilter = Boolean(activeTag || activeCategory);
+  const requestedPage = normalizePublicPageSearchValue(routeSearch.page) ?? 1;
+  const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("news", undefined, {
+    pageInput: hasActiveFilter ? undefined : { page: requestedPage, pageSize: NEWS_PAGE_SIZE }
+  });
   const newsItems = useMemo(() => data?.items ?? [], [data?.items]);
   const mediaAssets = data?.media ?? [];
   const filteredNewsItems = useMemo(
     () =>
-      newsItems.filter((item) => {
-        const matchesTag = activeTag ? (item.tags ?? []).includes(activeTag) : true;
-        const matchesCategory = activeCategory ? normalizeCategoryList(item.category).includes(activeCategory) : true;
-        return matchesTag && matchesCategory;
-      }),
-    [activeCategory, activeTag, newsItems]
+      hasActiveFilter
+        ? newsItems.filter((item) => {
+            const matchesTag = activeTag ? (item.tags ?? []).includes(activeTag) : true;
+            const matchesCategory = activeCategory
+              ? normalizeCategoryList(item.category).includes(activeCategory)
+              : true;
+            return matchesTag && matchesCategory;
+          })
+        : newsItems,
+    [activeCategory, activeTag, hasActiveFilter, newsItems]
   );
-
-  const [featuredItem, ...secondaryItems] = filteredNewsItems;
+  const serverPagination = hasActiveFilter ? undefined : data?.pagination;
+  const archivePage = serverPagination?.page ?? requestedPage;
+  const shouldFeatureFirstItem = !serverPagination || archivePage === 1;
+  const featuredItem = shouldFeatureFirstItem ? filteredNewsItems[0] : undefined;
+  const secondaryItems = shouldFeatureFirstItem ? filteredNewsItems.slice(1) : filteredNewsItems;
   const newsPagination = usePublicPagination(secondaryItems, {
     pageSize: NEWS_PAGE_SIZE,
     resetKeys: [activeTag, activeCategory],
-    scrollTargetId: "news-list-heading"
+    scrollTargetId: "news-list-heading",
+    serverPagination
   });
 
   if (!data && (isLoading || isFetching)) {
@@ -138,7 +150,7 @@ export default function PublicNewsPage() {
           </Grid>
         ))}
       </Grid>
-      {secondaryItems.length > 0 && (
+      {newsPagination.totalItems > 0 && newsPagination.pageCount > 1 && (
         <PublicPagination
           page={newsPagination.page}
           pageCount={newsPagination.pageCount}

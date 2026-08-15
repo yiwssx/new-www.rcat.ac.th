@@ -3,12 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 import { isPublicRouteLoadFailure } from "../public/routing/publicHttpSemantics";
 import {
   getAnnouncementPagesLoaderInput,
+  getContentArchiveLoaderInput,
   loadPublicContentDetailData,
   loadPublicContentListData,
   loadPublicHomeData,
   loadPublicSearchResultsData,
   loadPublicShellData,
   PUBLIC_ANNOUNCEMENT_PAGES_PAGE_SIZE,
+  PUBLIC_CONTENT_ARCHIVE_PAGE_SIZE,
   PUBLIC_SEARCH_PAGE_SIZE,
   type PublicRouteLoaderContext
 } from "../public/routing/publicRouteLoaders";
@@ -44,6 +46,29 @@ describe("public route loader ownership", () => {
     await loadPublicContentListData(runtime.context, "news");
 
     expect(runtime.ensureQueryData.mock.calls[0]?.[0]?.queryKey).toEqual(["public-content-list", "news"]);
+  });
+
+  it("prefetches unfiltered content archives by server page while keeping filtered archives on the full-list key", async () => {
+    const pagedRuntime = createLoaderContext();
+    const filteredRuntime = createLoaderContext();
+    const pagedDeps = getContentArchiveLoaderInput({ page: "3" });
+    const filteredDeps = getContentArchiveLoaderInput({ page: "3", tag: "สมัครเรียน" });
+
+    await loadPublicContentListData(pagedRuntime.context, "news", undefined, pagedDeps);
+    await loadPublicContentListData(filteredRuntime.context, "news", undefined, filteredDeps);
+
+    expect(pagedDeps).toEqual({
+      pageInput: { page: 3, pageSize: PUBLIC_CONTENT_ARCHIVE_PAGE_SIZE }
+    });
+    expect(filteredDeps).toEqual({ pageInput: undefined });
+    expect(pagedRuntime.ensureQueryData.mock.calls[0]?.[0]?.queryKey).toEqual([
+      "public-content-list",
+      "news",
+      "page",
+      3,
+      PUBLIC_CONTENT_ARCHIVE_PAGE_SIZE
+    ]);
+    expect(filteredRuntime.ensureQueryData.mock.calls[0]?.[0]?.queryKey).toEqual(["public-content-list", "news"]);
   });
 
   it("keys announcement public-page prefetch by normalized pagesPage", async () => {
