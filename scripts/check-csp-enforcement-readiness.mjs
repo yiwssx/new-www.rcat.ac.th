@@ -16,22 +16,14 @@ function fail(message) {
 }
 
 async function readJson(path) {
-  return JSON.parse(
-    await readFile(new URL(`../${path}`, import.meta.url), "utf8")
-  );
+  return JSON.parse(await readFile(new URL(`../${path}`, import.meta.url), "utf8"));
 }
 
 const vercelConfig = await readJson("vercel.json");
 const readiness = await readJson("config/csp-enforcement-readiness.json");
-const allRoutes = vercelConfig.headers?.find(
-  (entry) => entry.source === "/(.*)"
-);
-const reportOnly = allRoutes?.headers?.find(
-  (header) => header.key === "Content-Security-Policy-Report-Only"
-)?.value;
-const enforcing = allRoutes?.headers?.find(
-  (header) => header.key === "Content-Security-Policy"
-)?.value;
+const allRoutes = vercelConfig.headers?.find((entry) => entry.source === "/(.*)");
+const reportOnly = allRoutes?.headers?.find((header) => header.key === "Content-Security-Policy-Report-Only")?.value;
+const enforcing = allRoutes?.headers?.find((header) => header.key === "Content-Security-Policy")?.value;
 
 if (!allRoutes) {
   fail("missing the global Vercel header block");
@@ -43,11 +35,7 @@ if (reportOnly && !reportOnly.includes("report-uri /api/csp-report")) {
   fail("report-only CSP must keep the sanitized /api/csp-report collector");
 }
 
-if (
-  readiness?.schemaVersion !== 1 ||
-  typeof readiness?.surfaces !== "object" ||
-  readiness.surfaces === null
-) {
+if (readiness?.schemaVersion !== 1 || typeof readiness?.surfaces !== "object" || readiness.surfaces === null) {
   fail("readiness evidence has an unsupported shape");
 }
 
@@ -65,25 +53,14 @@ for (const surface of REQUIRED_SURFACES) {
   }
 }
 
-const cleanSurfaces = REQUIRED_SURFACES.filter(
-  (surface) => readiness?.surfaces?.[surface] === "clean"
-);
+const cleanSurfaces = REQUIRED_SURFACES.filter((surface) => readiness?.surfaces?.[surface] === "clean");
 
 if (enforcing) {
   const allClean = cleanSurfaces.length === REQUIRED_SURFACES.length;
-  const reviewedAt =
-    typeof readiness.reviewedAt === "string" &&
-    Number.isFinite(Date.parse(readiness.reviewedAt));
-  const rollbackOwner =
-    typeof readiness.rollbackOwner === "string" &&
-    readiness.rollbackOwner.trim().length > 0;
+  const reviewedAt = typeof readiness.reviewedAt === "string" && Number.isFinite(Date.parse(readiness.reviewedAt));
+  const rollbackOwner = typeof readiness.rollbackOwner === "string" && readiness.rollbackOwner.trim().length > 0;
 
-  if (
-    readiness.approvedForEnforcement !== true ||
-    !allClean ||
-    !reviewedAt ||
-    !rollbackOwner
-  ) {
+  if (readiness.approvedForEnforcement !== true || !allClean || !reviewedAt || !rollbackOwner) {
     fail(
       "enforcing CSP requires explicit approval, clean evidence for every representative surface, reviewedAt, and rollbackOwner"
     );
