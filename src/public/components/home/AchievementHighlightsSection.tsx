@@ -6,18 +6,18 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
-import { ContentItem } from "../../../types";
+import { PublicContentCardItem } from "../../../types";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { interactiveSurfaceSx } from "../../../design-system/componentStyles";
 import { designTokens } from "../../../design-system/tokens";
 import { formatDisplayYear } from "../../../utils/dateDisplay";
 
-function getAchievementHaystack(item: ContentItem) {
+function getAchievementHaystack(item: PublicContentCardItem) {
   return [item.title, item.summary, item.category, ...(item.tags ?? [])].join(" ").toLowerCase();
 }
 
-function getAchievementIcon(item: ContentItem) {
+function getAchievementIcon(item: PublicContentCardItem) {
   const haystack = getAchievementHaystack(item);
 
   if (haystack.includes("นวัตกรรม") || haystack.includes("innovation")) {
@@ -35,11 +35,11 @@ function getAchievementIcon(item: ContentItem) {
   return <WorkspacePremiumOutlinedIcon />;
 }
 
-function getAchievementCategory(item: ContentItem) {
+function getAchievementCategory(item: PublicContentCardItem) {
   return item.category || item.tags?.[0] || "ผลงาน";
 }
 
-function compareContentPublishAtDesc(left: ContentItem, right: ContentItem) {
+function compareContentPublishAtDesc(left: PublicContentCardItem, right: PublicContentCardItem) {
   const leftTime = Date.parse(left.publishAt);
   const rightTime = Date.parse(right.publishAt);
 
@@ -50,7 +50,7 @@ function compareContentPublishAtDesc(left: ContentItem, right: ContentItem) {
   return String(right.publishAt || "").localeCompare(String(left.publishAt || "")) || right.id.localeCompare(left.id);
 }
 
-function getVisibleItems(items: ContentItem[], limit: number | undefined) {
+function getVisibleItems(items: PublicContentCardItem[], limit: number | undefined) {
   const sortedItems = [...items].sort(compareContentPublishAtDesc);
 
   if (limit === undefined) {
@@ -61,7 +61,7 @@ function getVisibleItems(items: ContentItem[], limit: number | undefined) {
 }
 
 interface AchievementHighlightsSectionProps {
-  items: ContentItem[];
+  items: PublicContentCardItem[];
   limit?: number;
   viewAllHref?: string;
   viewAllLabel?: string;
