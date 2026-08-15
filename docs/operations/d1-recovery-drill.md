@@ -10,6 +10,8 @@ The GitHub Actions workflow `.github/workflows/d1-recovery-drill.yml` is intenti
 
 The workflow may run only from `master` after explicit non-production acknowledgement. It uses the protected GitHub `production` environment solely as the existing credential boundary for `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`; it does not receive `RCAT_PRODUCTION_D1_DATABASE_ID`, target the production database, deploy a Worker, apply a migration, or perform a restore. The environment reviewer and protected-branch rules therefore remain an additional credential-access gate rather than evidence that the drill itself is a production deployment.
 
+GitHub creates an Environment deployment record whenever a job references the protected `production` environment, even when the job is only using that environment as a credential gate. After the preview-readiness job finishes, a separate cleanup job resolves exactly the Environment deployment created for the current workflow attempt, marks it inactive, and deletes that pseudo-deployment. The workflow run itself remains available as the audit record. The cleanup job fails closed if it cannot identify exactly one matching deployment and does not interact with Cloudflare resources.
+
 The committed preview binding intentionally retains `database_id = "preview-placeholder"`. The drill does not pass the preview Wrangler config/environment to its read-only D1 lookup commands. Instead it first confirms that exactly one account-scoped D1 database named `rcat-public-api-preview` exists, then resolves metadata and Time Travel information by that exact database name. This keeps the real preview database ID outside source control and prevents the committed placeholder from being interpreted as a Cloudflare resource ID.
 
 Wrangler `4.121.0` intentionally removes the `version` field from `d1 info` output because legacy alpha databases have been removed. Therefore the drill does not infer Time Travel readiness from `d1 info.version`. The authoritative readiness gate is successful execution of `wrangler d1 time-travel info rcat-public-api-preview --json` together with a non-empty bookmark. Wrangler itself rejects unsupported alpha databases before retrieving a bookmark.
@@ -30,9 +32,10 @@ The workflow:
 6. confirms the metadata still names exactly `rcat-public-api-preview` and rejects unexpected production references;
 7. invokes Wrangler's read-only Time Travel info command for `rcat-public-api-preview`;
 8. requires a non-empty current bookmark as the readiness proof and rejects unexpected production references;
-9. writes a summary confirming that no restore or production D1 write was performed.
+9. writes a summary confirming that no restore or production D1 write was performed;
+10. after the credential-gated job finishes, retires and deletes only the GitHub Environment pseudo-deployment created for the current D1 drill attempt while retaining the workflow run as audit evidence.
 
-The workflow needs Cloudflare credentials capable of listing D1 databases and reading preview D1 metadata/Time Travel information. Missing credentials, missing preview access, a missing/duplicate preview database name, failure to retrieve a Time Travel bookmark, or Wrangler command incompatibility is a drill failure and should be recorded as an operational access gap, not bypassed by switching the target to production or exposing the protected credentials as repository-wide secrets.
+The workflow needs Cloudflare credentials capable of listing D1 databases and reading preview D1 metadata/Time Travel information. Missing credentials, missing preview access, a missing/duplicate preview database name, failure to retrieve a Time Travel bookmark, Wrangler command incompatibility, or an ambiguous GitHub Environment deployment match is a drill failure and should be recorded as an operational access gap, not bypassed by switching the target to production or exposing the protected credentials as repository-wide secrets.
 
 ## Evidence To Record
 
@@ -44,6 +47,7 @@ For every quarterly drill, record outside source control when it contains accoun
 - whether the exact preview database name resolved uniquely;
 - whether preview metadata resolved;
 - whether Time Travel returned a current bookmark;
+- whether the transient GitHub Environment deployment record was retired successfully;
 - credential/access blockers;
 - command drift or Wrangler incompatibility;
 - elapsed time from drill start to successful readiness confirmation;
@@ -62,4 +66,4 @@ This read-only preview drill validates operator/tooling readiness but does **not
 
 ## Escalation
 
-If preview Time Travel cannot be resolved, fix credentials, account-scoped preview resource resolution, Wrangler command drift, or preview D1 availability before the next high-risk production migration/import. Do not use production as a substitute test target merely to make the drill pass.
+If preview Time Travel cannot be resolved, fix credentials, account-scoped preview resource resolution, Wrangler command drift, preview D1 availability, or GitHub Environment deployment cleanup before the next high-risk production migration/import. Do not use production as a substitute test target merely to make the drill pass.
