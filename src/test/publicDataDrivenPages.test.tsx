@@ -261,7 +261,7 @@ function createHomeSnapshot(overrides: Partial<TestHomeSnapshot> = {}): TestHome
         youtubeEmbedUrl: ""
       }
     },
-    displaySettings: snapshot.displaySettings,
+    displaySettings: snapshot.displaySettings!,
     menu: snapshot.menu ?? [],
     carouselSlides: snapshot.carouselSlides ?? [],
     externalServices: snapshot.externalServices ?? [],
