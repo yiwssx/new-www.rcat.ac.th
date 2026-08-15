@@ -86,8 +86,8 @@ jobs:
             const metadata = Array.isArray(value) ? value[0] : value;
             const text = JSON.stringify(value);
             if (text.includes("rcat-public-api-production")) throw new Error("production database appeared in preview drill output");
-            if (metadata?.version !== "production") throw new Error("preview D1 must use the production storage backend for Time Travel");
-            console.log("Preview D1 production storage backend resolved without production database target.");
+            if (metadata?.name !== "rcat-public-api-preview") throw new Error("preview D1 metadata did not resolve the expected database name");
+            console.log("Preview D1 metadata resolved for the expected non-production database.");
           '
 
       - name: Resolve preview Time Travel bookmark
@@ -102,7 +102,8 @@ jobs:
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-preview-time-travel.json", "utf8"));
             const text = JSON.stringify(value);
             if (text.includes("rcat-public-api-production")) throw new Error("production database appeared in preview drill output");
-            console.log("Preview Time Travel metadata resolved. No restore was executed.");
+            if (typeof value?.bookmark !== "string" || value.bookmark.length === 0) throw new Error("preview Time Travel bookmark was not returned");
+            console.log("Preview Time Travel bookmark resolved. No restore was executed.");
           '
 
       - name: Drill summary
@@ -114,7 +115,7 @@ jobs:
             echo "- Target: rcat-public-api-preview"
             echo "- Resolution: exact account-scoped D1 name; committed preview database_id placeholder is not used"
             echo "- Credentials: protected production environment; production database ID is not provided"
-            echo "- Backend: production storage subsystem required"
+            echo "- Readiness proof: Wrangler Time Travel info returned a current preview bookmark"
             echo "- Mode: read-only metadata / Time Travel bookmark resolution"
             echo "- Production restore: not present in this workflow"
             echo "- Production D1 write: none"
