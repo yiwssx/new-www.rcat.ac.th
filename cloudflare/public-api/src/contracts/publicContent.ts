@@ -1,10 +1,4 @@
-import type {
-  PublicDisplaySettingsContract,
-  PublicHomepageSettingsContract,
-  PublicMediaAssetContract,
-  PublicMenuItemContract,
-  PublicSiteSettingsContract
-} from "./publicMetadata";
+import type { PublicMediaAssetContract } from "./publicMetadata";
 
 export interface PublicContentItemContract {
   id: string;
@@ -35,6 +29,25 @@ export interface PublicContentItemContract {
 
 export type PublicContentSummaryContract = Omit<PublicContentItemContract, "body" | "content">;
 
+export type PublicContentCardContract = Pick<
+  PublicContentItemContract,
+  | "id"
+  | "title"
+  | "slug"
+  | "type"
+  | "status"
+  | "owner"
+  | "summary"
+  | "category"
+  | "tags"
+  | "canonicalUrl"
+  | "featured"
+  | "readingMinutes"
+  | "template"
+  | "featuredMediaId"
+  | "publishAt"
+>;
+
 export interface PublicContentPaginationContract {
   page: number;
   pageSize: number;
@@ -49,15 +62,16 @@ export interface PublicContentListSnapshotContract {
   pagination?: PublicContentPaginationContract;
   pageItemsPagination?: PublicContentPaginationContract;
   media: PublicMediaAssetContract[];
-  siteSettings: PublicSiteSettingsContract;
-  homepageSettings: PublicHomepageSettingsContract;
-  displaySettings: PublicDisplaySettingsContract;
-  menu: PublicMenuItemContract[];
+  siteSettings: import("./publicMetadata").PublicSiteSettingsContract;
+  homepageSettings: import("./publicMetadata").PublicHomepageSettingsContract;
+  displaySettings: import("./publicMetadata").PublicDisplaySettingsContract;
+  menu: import("./publicMetadata").PublicMenuItemContract[];
   generatedAt: string;
 }
 
 export interface PublicContentDetailSnapshotContract {
   item: PublicContentItemContract;
   media: PublicMediaAssetContract[];
+  relatedItems: PublicContentCardContract[];
   generatedAt: string;
 }
