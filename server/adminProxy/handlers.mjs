@@ -11,6 +11,12 @@ import {
   getCmsClientMetadata,
   readCmsAuthConfiguration
 } from "../cmsAuth/handlers.mjs";
+import {
+  ensureNodeRequestId,
+  getNodeRequestId,
+  logOperationalError,
+  RCAT_REQUEST_ID_HEADER
+} from "../observability/requestId.mjs";
 
 const PROXY_METHODS = new Set(["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"]);
 const BODY_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
@@ -195,8 +201,13 @@ function createCmsUpstreamHeaders(request, configuration, sessionToken, csrfToke
     [CMS_CLIENT_IP_HEADER]: metadata.clientIp,
     [CMS_USER_AGENT_HEADER]: metadata.userAgent
   });
+  const requestId = getNodeRequestId(request);
   const contentType = getHeader(request, "content-type");
   const expectedRevision = getHeader(request, "x-rcat-expected-revision");
+
+  if (requestId) {
+    headers.set(RCAT_REQUEST_ID_HEADER, requestId);
+  }
 
   if (contentType) {
     headers.set("Content-Type", contentType);
@@ -260,8 +271,10 @@ async function streamUpstreamBody(upstreamResponse, response) {
 }
 
 export async function handleAdminProxyRequest(request, response, options = {}) {
+  const requestId = ensureNodeRequestId(request, response, { createId: options.createRequestId });
   const env = options.env ?? runtimeEnv();
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  const logger = options.logger ?? console.error;
   const method = String(request.method || "GET").toUpperCase();
 
   if (!PROXY_METHODS.has(method)) {
@@ -342,7 +355,16 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
       body: requestBody?.toString("utf8"),
       redirect: "error"
     });
-  } catch {
+  } catch (error) {
+    logOperationalError({
+      component: "admin-proxy",
+      error,
+      event: "admin_proxy_upstream_request_failed",
+      logger,
+      method,
+      pathname: targetPath,
+      requestId
+    });
     sendJson(response, 502, { error: "admin proxy upstream request failed" });
     return;
   }
@@ -365,7 +387,18 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
 
   try {
     await streamUpstreamBody(upstreamResponse, response);
-  } catch {
+  } catch (error) {
+    logOperationalError({
+      component: "admin-proxy",
+      error,
+      event: "admin_proxy_upstream_response_failed",
+      logger,
+      method,
+      pathname: targetPath,
+      requestId,
+      status: upstreamResponse.status
+    });
+
     if (!response.headersSent) {
       sendJson(response, 502, { error: "admin proxy upstream response failed" });
       return;
