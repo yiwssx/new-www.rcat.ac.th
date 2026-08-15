@@ -218,7 +218,10 @@ function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
   };
 }
 
-function createHomeSnapshot(overrides: Partial<PublicHomeSnapshot> = {}): PublicHomeSnapshot {
+type TestHomeSnapshot = PublicHomeSnapshot &
+  Pick<Required<CmsSnapshot>, "siteSettings" | "homepageSettings" | "displaySettings" | "menu">;
+
+function createHomeSnapshot(overrides: Partial<PublicHomeSnapshot> = {}): TestHomeSnapshot {
   const snapshot = createSnapshot();
 
   return {

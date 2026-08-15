@@ -81,6 +81,6 @@ export interface PublicContentListSnapshot {
 export interface PublicContentDetailSnapshot {
   item: ContentItem;
   media: MediaAsset[];
-  relatedItems: PublicContentCardItem[];
+  relatedItems?: PublicContentCardItem[];
   generatedAt: string;
 }

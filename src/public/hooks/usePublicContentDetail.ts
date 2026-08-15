@@ -6,12 +6,7 @@ import {
   publicContentDetailQueryOptions
 } from "../../features/public-content";
 import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
-import type {
-  ContentItem,
-  MediaAsset,
-  PublicContentCardItem,
-  PublicContentDetailSnapshot
-} from "../../types";
+import type { ContentItem, MediaAsset, PublicContentCardItem, PublicContentDetailSnapshot } from "../../types";
 
 export function usePublicContentDetail(input: { slug?: string }) {
   const slug = input.slug;

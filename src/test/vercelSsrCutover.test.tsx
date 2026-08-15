@@ -187,9 +187,9 @@ describe("Vercel Public SSR production cutover", () => {
       new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/content/published-news")
     );
     const html = await response.text();
-    const requestedPaths = vi.mocked(globalThis.fetch).mock.calls.map(([input]) =>
-      new URL(input instanceof Request ? input.url : String(input)).pathname
-    );
+    const requestedPaths = vi
+      .mocked(globalThis.fetch)
+      .mock.calls.map(([input]) => new URL(input instanceof Request ? input.url : String(input)).pathname);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe(PUBLIC_SSR_BROWSER_CACHE_CONTROL);

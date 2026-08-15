@@ -102,7 +102,7 @@ export async function loadPublicHomeData(context: PublicRouteLoaderContext) {
   return prefetchPublicQuery(() => context.queryClient.ensureQueryData(publicHomeQueryOptions()));
 }
 
-export async function loadPublicCmsSnapshotData() {
+export async function loadPublicCmsSnapshotData(_context?: PublicRouteLoaderContext) {
   // Retained temporarily for route compatibility. Public pages should use the
   // parent shell query or their route-specific public query instead of a CMS-wide snapshot.
   return undefined;

@@ -50,7 +50,10 @@ export type PublicShellMetadataRows = Pick<
   "siteSettings" | "homepageSettings" | "displaySettings" | "menu"
 >;
 
-export type PublicHomeMetadataRows = Pick<PublicMetadataRows, "media" | "carouselSlides" | "externalServices" | "events">;
+export type PublicHomeMetadataRows = Pick<
+  PublicMetadataRows,
+  "media" | "carouselSlides" | "externalServices" | "events"
+>;
 
 export async function readPublicShellMetadataRows(env: Env): Promise<PublicShellMetadataRows> {
   const [siteSettings, homepageSettings, displaySettings, menu] = await Promise.all([

@@ -9,13 +9,10 @@ function readArgument(name, argv = process.argv.slice(2)) {
 export function collectFixtureAuditRows(value) {
   const statements = Array.isArray(value) ? value : [value];
   return statements.flatMap((statement) => {
-    const rows = statement && typeof statement === "object" && Array.isArray(statement.results) ? statement.results : [];
+    const rows =
+      statement && typeof statement === "object" && Array.isArray(statement.results) ? statement.results : [];
     return rows.filter(
-      (row) =>
-        row &&
-        typeof row === "object" &&
-        typeof row.source === "string" &&
-        typeof row.fixture_key === "string"
+      (row) => row && typeof row === "object" && typeof row.source === "string" && typeof row.fixture_key === "string"
     );
   });
 }

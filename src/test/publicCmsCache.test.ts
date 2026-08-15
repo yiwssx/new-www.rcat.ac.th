@@ -263,7 +263,7 @@ describe("publicCmsCache", () => {
       media: [],
       events: []
     };
-    const homeSnapshot: PublicHomeSnapshot = {
+    const homeSnapshot = {
       siteSettings: {
         siteName: "Test site",
         eyebrow: "",

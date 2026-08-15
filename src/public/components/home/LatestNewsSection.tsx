@@ -9,7 +9,13 @@ import EmptyState from "../../../shared/components/EmptyState";
 import PublicContentCard from "../PublicContentCard";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
-export function LatestNewsSection({ items, mediaAssets }: { items: PublicContentCardItem[]; mediaAssets: MediaAsset[] }) {
+export function LatestNewsSection({
+  items,
+  mediaAssets
+}: {
+  items: PublicContentCardItem[];
+  mediaAssets: MediaAsset[];
+}) {
   return (
     <>
       <HomeSectionHeading
