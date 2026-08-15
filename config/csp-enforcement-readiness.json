@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "approvedForEnforcement": false,
+  "reviewedAt": null,
+  "rollbackOwner": null,
+  "surfaces": {
+    "public-ssr": "pending",
+    "public-navigation": "pending",
+    "auth": "pending",
+    "admin": "pending",
+    "media": "pending",
+    "complaint": "pending",
+    "facebook-embed": "pending"
+  },
+  "notes": "Report-only remains required until representative production evidence is reviewed. Mark a surface clean only from observed browser/report evidence, not from absence of retained logs."
+}
