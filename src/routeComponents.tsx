@@ -68,6 +68,7 @@ function ProductionSsrDocument() {
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#2c7a3f" />
+        <link rel="stylesheet" href="/fonts/sarabun.css" />
         <link rel="icon" type="image/png" href="/rcat-logo-128.png" />
         {stylesheetPaths.map((stylesheetPath) => (
           <link
