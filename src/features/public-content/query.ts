@@ -7,6 +7,7 @@ import {
 import {
   getPublicAnnouncementsContentListSnapshot,
   getPublicContentDetailSnapshot,
+  getPublicContentListPageSnapshot,
   getPublicContentListSnapshot,
   isPublicContentNotFoundError,
   type PublicContentListPageInput
@@ -27,7 +28,16 @@ function normalizePageInput(pageInput: PublicContentListPageInput) {
   };
 }
 
-export function publicContentListQueryKey(kind: PublicContentListKind, pageItemsInput?: PublicContentListPageInput) {
+export function publicContentListQueryKey(
+  kind: PublicContentListKind,
+  pageItemsInput?: PublicContentListPageInput,
+  pageInput?: PublicContentListPageInput
+) {
+  if (pageInput) {
+    const normalized = normalizePageInput(pageInput);
+    return ["public-content-list", kind, "page", normalized.page, normalized.pageSize ?? null] as const;
+  }
+
   if (kind !== "announcements" || !pageItemsInput) {
     return ["public-content-list", kind] as const;
   }
@@ -39,18 +49,23 @@ export function publicContentListQueryKey(kind: PublicContentListKind, pageItems
 export function publicContentListQueryOptions(
   kind: PublicContentListKind,
   runtimeOptions: PublicQueryRuntimeOptions = {},
-  pageItemsInput?: PublicContentListPageInput
+  pageItemsInput?: PublicContentListPageInput,
+  pageInput?: PublicContentListPageInput
 ) {
   return queryOptions({
-    queryKey: publicContentListQueryKey(kind, pageItemsInput),
+    queryKey: publicContentListQueryKey(kind, pageItemsInput, pageInput),
     queryFn: async (context) => {
       const requestOptions = getPublicQueryRequestOptions(context, runtimeOptions);
-      const snapshot =
-        kind === "announcements" && pageItemsInput
+      const snapshot = pageInput
+        ? await getPublicContentListPageSnapshot(kind, pageInput, requestOptions)
+        : kind === "announcements" && pageItemsInput
           ? await getPublicAnnouncementsContentListSnapshot(pageItemsInput, requestOptions)
           : await getPublicContentListSnapshot(kind, requestOptions);
 
-      if (kind !== "announcements" || !pageItemsInput || normalizePageInput(pageItemsInput).page === 1) {
+      if (
+        !pageInput &&
+        (kind !== "announcements" || !pageItemsInput || normalizePageInput(pageItemsInput).page === 1)
+      ) {
         setPublicContentListCache(kind, snapshot);
       }
 

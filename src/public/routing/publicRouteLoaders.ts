@@ -18,7 +18,17 @@ export interface PublicContentDetailLoaderData {
   featuredMedia: MediaAsset | undefined;
 }
 
+interface PublicContentPageInput {
+  page: number;
+  pageSize?: number;
+}
+
+interface PublicContentArchiveLoaderDeps {
+  pageInput: PublicContentPageInput | undefined;
+}
+
 export const PUBLIC_SEARCH_PAGE_SIZE = 12;
+export const PUBLIC_CONTENT_ARCHIVE_PAGE_SIZE = 12;
 export const PUBLIC_ANNOUNCEMENT_PAGES_PAGE_SIZE = 12;
 
 async function ensurePublicQuery<T>(prefetch: () => Promise<T>): Promise<T | PublicRouteLoadFailure> {
@@ -27,6 +37,31 @@ async function ensurePublicQuery<T>(prefetch: () => Promise<T>): Promise<T | Pub
   } catch {
     return createPublicRouteLoadFailure();
   }
+}
+
+function hasArchiveFilters(search: Record<string, unknown>) {
+  return Boolean(String(search.tag || "").trim() || String(search.category || "").trim());
+}
+
+export function getContentArchiveLoaderInput(search: Record<string, unknown>): PublicContentArchiveLoaderDeps {
+  return {
+    pageInput: hasArchiveFilters(search)
+      ? undefined
+      : {
+          page: normalizePublicPageSearchValue(search.page) ?? 1,
+          pageSize: PUBLIC_CONTENT_ARCHIVE_PAGE_SIZE
+        }
+  };
+}
+
+function resolveContentArchivePageInput(
+  input: PublicContentPageInput | PublicContentArchiveLoaderDeps | undefined
+): PublicContentPageInput | undefined {
+  if (input && "pageInput" in input) {
+    return input.pageInput;
+  }
+
+  return input;
 }
 
 export async function loadPublicShellData(context: PublicRouteLoaderContext) {
@@ -47,11 +82,13 @@ export async function loadPublicCmsSnapshotData(context: PublicRouteLoaderContex
 export async function loadPublicContentListData(
   context: PublicRouteLoaderContext,
   kind: PublicContentListKind,
-  pageItemsInput?: { page: number; pageSize?: number }
+  pageItemsInput?: PublicContentPageInput,
+  pageInput?: PublicContentPageInput | PublicContentArchiveLoaderDeps
 ) {
   const { publicContentListQueryOptions } = await import("../../features/public-content");
+  const resolvedPageInput = resolveContentArchivePageInput(pageInput);
   return ensurePublicQuery(() =>
-    context.queryClient.ensureQueryData(publicContentListQueryOptions(kind, {}, pageItemsInput))
+    context.queryClient.ensureQueryData(publicContentListQueryOptions(kind, {}, pageItemsInput, resolvedPageInput))
   );
 }
 

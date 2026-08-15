@@ -47,6 +47,7 @@ import {
 } from "./public/routing/publicRouteHead";
 import {
   getAnnouncementPagesLoaderInput,
+  getContentArchiveLoaderInput,
   loadPublicCmsSnapshotData,
   loadPublicContentDetailData,
   loadPublicContentListData,
@@ -112,7 +113,8 @@ const publicNewsRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "news",
   validateSearch: validatePublicFilteredPaginatedSearch,
-  loader: ({ context }) => loadPublicContentListData(context, "news"),
+  loaderDeps: ({ search }) => getContentArchiveLoaderInput(search),
+  loader: ({ context, deps }) => loadPublicContentListData(context, "news", undefined, deps),
   head: ({ match }) => getStaticPublicRouteHead("/news", match.search),
   component: PublicNewsPage
 });
@@ -140,7 +142,8 @@ const publicBlogRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "blog",
   validateSearch: validatePublicFilteredPaginatedSearch,
-  loader: ({ context }) => loadPublicContentListData(context, "blog"),
+  loaderDeps: ({ search }) => getContentArchiveLoaderInput(search),
+  loader: ({ context, deps }) => loadPublicContentListData(context, "blog", undefined, deps),
   head: ({ match }) => getStaticPublicRouteHead("/blog", match.search),
   component: PublicBlogPage
 });
