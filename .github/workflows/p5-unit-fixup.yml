@@ -73,13 +73,81 @@ jobs:
 
           replace(
             "src/test/publicDataDrivenPages.test.tsx",
-            "    return {\n      data: currentSnapshot,\n      ...currentQueryState\n    };\n  }\n}));\n\nvi.mock(\"@tanstack/react-router\"",
-            "    const legacyHomeShell =\n      currentHomeSnapshot && \"siteSettings\" in currentHomeSnapshot ? currentHomeSnapshot : undefined;\n\n    return {\n      data: legacyHomeShell ?? currentSnapshot,\n      ...currentQueryState\n    };\n  }\n}));\n\nvi.mock(\"@tanstack/react-router\""
+            "    expect(usePublicCmsSnapshotMock.mock.calls.every(([options]) => options?.enabled === false)).toBe(true);",
+            "    expect(usePublicCmsSnapshotMock).toHaveBeenCalledWith(undefined);"
           );
           replace(
             "src/test/publicDataDrivenPages.test.tsx",
-            "    expect(usePublicCmsSnapshotMock.mock.calls.every(([options]) => options?.enabled === false)).toBe(true);",
-            "    expect(usePublicCmsSnapshotMock).toHaveBeenCalledWith(undefined);"
+            `  it("renders one shared marquee on the homepage", () => {
+              currentHomeSnapshot = createHomeSnapshot({
+                homepageSettings: {
+                  ...createHomeSnapshot().homepageSettings,
+                  marquee: {
+                    enabled: true,
+                    label: "ประกาศ",
+                    text: "ประกาศสำหรับทุกหน้า",
+                    speedSeconds: 60
+                  }
+                }
+              });`,
+            `  it("renders one shared marquee on the homepage", () => {
+              currentSnapshot = createSnapshot({
+                homepageSettings: {
+                  ...createHomeSnapshot().homepageSettings,
+                  marquee: {
+                    enabled: true,
+                    label: "ประกาศ",
+                    text: "ประกาศสำหรับทุกหน้า",
+                    speedSeconds: 60
+                  }
+                }
+              });
+              currentHomeSnapshot = createHomeSnapshot();`
+          );
+          replace(
+            "src/test/publicDataDrivenPages.test.tsx",
+            `    currentHomeSnapshot = createHomeSnapshot({
+              latestNews,`,
+            `    currentSnapshot = createSnapshot({
+              siteSettings: {
+                ...baseSiteSettings,
+                heroTitle: "ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง",
+                directorTitle: "สารจากผู้อำนวยการ",
+                directorName: "ผู้อำนวยการตัวอย่าง",
+                directorDescription: "มุ่งพัฒนาผู้เรียนสู่อาชีพ",
+                campus: "วิทยาลัยเทคนิคตัวอย่าง",
+                address: "1 ถนนการศึกษา",
+                phone: "02-000-0000",
+                mapUrl: "https://www.google.com/maps/place/example",
+                mapEmbedUrl: "https://www.google.com/maps/embed?pb=test"
+              }
+            });
+
+            currentHomeSnapshot = createHomeSnapshot({
+              latestNews,`
+          );
+          replace(
+            "src/test/publicDataDrivenPages.test.tsx",
+            `      },
+              siteSettings: {
+                ...baseSiteSettings,
+                heroTitle: "ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง",
+                directorTitle: "สารจากผู้อำนวยการ",
+                directorName: "ผู้อำนวยการตัวอย่าง",
+                directorDescription: "มุ่งพัฒนาผู้เรียนสู่อาชีพ",
+                campus: "วิทยาลัยเทคนิคตัวอย่าง",
+                address: "1 ถนนการศึกษา",
+                phone: "02-000-0000",
+                mapUrl: "https://www.google.com/maps/place/example",
+                mapEmbedUrl: "https://www.google.com/maps/embed?pb=test"
+              }
+            });
+
+            render(<PublicHomePage />);`,
+            `      }
+            });
+
+            render(<PublicHomePage />);`
           );
 
           replace(
