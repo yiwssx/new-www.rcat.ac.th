@@ -1,6 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":dependencyDashboard"],
+  "extends": ["config:recommended"],
+  "dependencyDashboard": false,
+  "enabledManagers": ["npm"],
+  "includePaths": ["package.json"],
   "baseBranchPatterns": ["master"],
   "timezone": "Asia/Bangkok",
   "schedule": ["* 1-5 * * 1-5"],
@@ -10,21 +13,52 @@
   "semanticCommitScope": "deps",
   "rangeStrategy": "bump",
   "rebaseWhen": "behind-base-branch",
+  "recreateWhen": "always",
   "automergeStrategy": "merge-commit",
   "platformAutomerge": false,
   "ignoreTests": false,
   "prConcurrentLimit": 2,
   "branchConcurrentLimit": 2,
+  "lockFileMaintenance": {
+    "enabled": false
+  },
+  "osvVulnerabilityAlerts": false,
   "packageRules": [
     {
-      "description": "Wait three days before normal npm updates",
-      "matchDatasources": ["npm"],
+      "description": "Manage only direct dependencies declared in the root package.json",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["package.json"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
+      "enabled": true
+    },
+    {
+      "description": "Do not manage runtime metadata, package-manager metadata, overrides, peers, or other non-direct dependency fields",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["package.json"],
+      "matchDepTypes": [
+        "engines",
+        "packageManager",
+        "optionalDependencies",
+        "peerDependencies",
+        "resolutions",
+        "overrides",
+        "pnpm",
+        "pnpm.overrides",
+        "pnpm-workspace.overrides"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Wait three days before normal direct npm updates",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
       "minimumReleaseAge": "3 days",
       "internalChecksFilter": "strict"
     },
     {
-      "description": "Automatically merge stable patch and minor npm updates",
+      "description": "Automatically merge stable patch and minor direct npm updates",
       "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
       "matchCurrentVersion": "!/^0/",
       "matchUpdateTypes": ["patch", "minor"],
       "automerge": true,
@@ -33,48 +67,35 @@
     {
       "description": "Keep TypeScript within the installed typescript-eslint peer range",
       "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
       "matchPackageNames": ["typescript"],
       "allowedVersions": ">=4.8.4 <6.1.0"
     },
     {
       "description": "Keep Node declarations aligned with the Node 24 runtime",
       "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
       "matchPackageNames": ["@types/node"],
       "allowedVersions": ">=24.0.0 <25.0.0"
     },
     {
-      "description": "Require manual review for major npm updates",
+      "description": "Require manual review for major direct npm updates",
       "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
       "matchUpdateTypes": ["major"],
       "automerge": false,
       "addLabels": ["major-update", "manual-review"]
     },
     {
-      "description": "Require manual review for unstable zero-major packages",
+      "description": "Require manual review for unstable zero-major direct packages",
       "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
       "matchCurrentVersion": "/^0\\./",
       "automerge": false,
       "addLabels": ["unstable-package", "manual-review"]
-    },
-    {
-      "description": "Automatically merge patch and minor GitHub Actions updates",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["patch", "minor"],
-      "automerge": true,
-      "automergeType": "pr"
-    },
-    {
-      "description": "Require manual review for major GitHub Actions updates",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["major"],
-      "automerge": false,
-      "addLabels": ["major-update", "manual-review"]
     }
   ],
   "vulnerabilityAlerts": {
-    "enabled": true,
-    "vulnerabilityFixStrategy": "highest",
-    "automerge": false,
-    "addLabels": ["security", "manual-review"]
+    "enabled": false
   }
 }
