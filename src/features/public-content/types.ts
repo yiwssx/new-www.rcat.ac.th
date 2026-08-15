@@ -53,7 +53,8 @@ export type PublicContentCardItem = Pick<
   | "template"
   | "featuredMediaId"
   | "publishAt"
->;
+> &
+  Pick<Partial<ContentItem>, "updatedAt">;
 
 export interface PublicContentPagination {
   page: number;
