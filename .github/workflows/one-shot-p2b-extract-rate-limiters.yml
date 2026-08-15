@@ -1,0 +1,112 @@
+name: One-shot P2B CMS Auth Extraction
+
+on:
+  push:
+    branches:
+      - p2-cms-auth-modularization-20260815
+    paths:
+      - .github/workflows/one-shot-p2b-extract-rate-limiters.yml
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: p2-cms-auth-modularization-20260815
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Extract rate limiter engine without behavior changes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("server/cmsAuth/handlers.mjs")
+          source = path.read_text()
+
+          crypto_import = 'import { createHmac, timingSafeEqual } from "node:crypto";'
+          if source.count(crypto_import) != 1:
+              raise SystemExit("unexpected crypto import shape")
+          source = source.replace(crypto_import, 'import { timingSafeEqual } from "node:crypto";', 1)
+
+          cookies_marker = '} from "./cookies.mjs";\n'
+          if source.count(cookies_marker) != 1:
+              raise SystemExit("unexpected cookies import shape")
+          rate_import = '''import {
+            MAX_RATE_LIMIT_BUCKETS,
+            createCmsLifecycleRateLimitKeys,
+            createCmsLifecycleRateLimiter,
+            createCmsLoginRateLimitKeys,
+            createCmsLoginRateLimiter
+          } from "./rateLimiters.mjs";
+          export { createCmsLifecycleRateLimiter, createCmsLoginRateLimiter };
+          '''
+          source = source.replace(cookies_marker, cookies_marker + rate_import, 1)
+
+          constants = '''const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+          const LOGIN_BLOCK_MS = 15 * 60 * 1000;
+          const MAX_FAILURES_PER_IDENTIFIER = 5;
+          const MAX_FAILURES_PER_IP = 20;
+          const MAX_RATE_LIMIT_BUCKETS = 5000;
+          '''
+          if source.count(constants) != 1:
+              raise SystemExit("unexpected rate limit constants shape")
+          source = source.replace(constants, "", 1)
+
+          start_marker = "function rateLimitKey(secret, value) {"
+          end_marker = "function sendRateLimitError(response, result) {"
+          start = source.find(start_marker)
+          end = source.find(end_marker)
+          if start < 0 or end <= start:
+              raise SystemExit("unable to locate rate limiter block")
+
+          rate_block = source[start:end]
+          if rate_block.count("export function createCmsLoginRateLimiter") != 1:
+              raise SystemExit("login limiter export not found exactly once")
+          if rate_block.count("export function createCmsLifecycleRateLimiter") != 1:
+              raise SystemExit("lifecycle limiter export not found exactly once")
+
+          rate_block = rate_block.replace(
+              "function createCmsLoginRateLimitKeys(",
+              "export function createCmsLoginRateLimitKeys(",
+              1,
+          ).replace(
+              "function createCmsLifecycleRateLimitKeys(",
+              "export function createCmsLifecycleRateLimitKeys(",
+              1,
+          )
+
+          rate_module = '''import { createHmac } from "node:crypto";
+
+          const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+          const LOGIN_BLOCK_MS = 15 * 60 * 1000;
+          const MAX_FAILURES_PER_IDENTIFIER = 5;
+          const MAX_FAILURES_PER_IP = 20;
+          export const MAX_RATE_LIMIT_BUCKETS = 5000;
+
+          ''' + rate_block
+
+          source = source[:start] + source[end:]
+          path.write_text(source)
+          Path("server/cmsAuth/rateLimiters.mjs").write_text(rate_module)
+          PY
+      - run: pnpm exec prettier --write server/cmsAuth/handlers.mjs server/cmsAuth/rateLimiters.mjs
+      - name: Commit extraction and remove one-shot workflow
+        run: |
+          rm .github/workflows/one-shot-p2b-extract-rate-limiters.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server/cmsAuth/handlers.mjs server/cmsAuth/rateLimiters.mjs .github/workflows/one-shot-p2b-extract-rate-limiters.yml
+          git commit -m "refactor(p2): extract CMS auth rate limiter engine"
+          git push origin HEAD:p2-cms-auth-modularization-20260815
