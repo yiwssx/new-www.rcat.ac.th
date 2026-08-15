@@ -1,6 +1,7 @@
 name: Dependency Status Sync
 
-# Re-register this workflow after GitHub Actions history cleanup on 2026-08-15.
+# Dependency status is intentionally read-only under the protected-master policy.
+# Renovate remains responsible only for direct dependencies declared in package.json.
 on:
   push:
     branches:
@@ -13,7 +14,7 @@ on:
       - .node-version
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: dependency-status-sync
@@ -40,7 +41,7 @@ jobs:
       - name: Install dependencies without lifecycle scripts
         run: pnpm install --frozen-lockfile --strict-peer-dependencies --ignore-scripts
 
-      - name: Refresh dependency status document
+      - name: Refresh dependency status document in workspace
         run: pnpm deps:status
 
       - name: Verify generated change scope
@@ -53,16 +54,23 @@ jobs:
             exit 1
           fi
 
-      - name: Commit refreshed dependency status
+      - name: Report dependency status drift
         shell: bash
         run: |
           if git diff --quiet -- docs/maintenance/dependency-current-status.md; then
-            echo "Dependency status document is already current."
+            echo "Dependency status snapshot is already current."
+            {
+              echo "## Dependency status"
+              echo "The checked-in dependency status snapshot is current."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/maintenance/dependency-current-status.md
-          git commit -m "docs(deps): refresh dependency status"
-          git push
+          echo "Dependency status snapshot differs from the generated result."
+          git diff --stat -- docs/maintenance/dependency-current-status.md
+          {
+            echo "## Dependency status drift detected"
+            echo "The generated dependency status differs from the checked-in snapshot."
+            echo "Direct pushes to master are intentionally disabled by repository governance."
+            echo "Refresh the snapshot through a normal pull request when the report needs to be persisted."
+          } >> "$GITHUB_STEP_SUMMARY"
