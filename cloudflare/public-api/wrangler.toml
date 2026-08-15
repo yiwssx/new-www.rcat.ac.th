@@ -25,6 +25,7 @@ ADMIN_WRITE_SMOKE_ENABLED = "true"
 ADMIN_WRITE_AUTH_MODE = "cloudflare-access"
 ADMIN_WRITE_ALLOWED_ORIGINS = "https://preview-placeholder.example.invalid"
 PUBLIC_API_ALLOWED_ORIGINS = "https://preview-placeholder.example.invalid"
+PUBLIC_ANALYTICS_ALLOWED_ORIGINS = "https://preview-placeholder.example.invalid"
 ADMIN_WRITE_ACCESS_TEAM_DOMAIN = "preview-placeholder"
 ADMIN_WRITE_ACCESS_AUD = "preview-placeholder"
 ADMIN_WRITE_ALLOWED_EMAILS = "admin@example.invalid"
@@ -41,6 +42,7 @@ name = "rcat-public-api-production"
 ENVIRONMENT = "production"
 ADMIN_WRITE_PREVIEW_ENABLED = "false"
 ADMIN_WRITE_SMOKE_ENABLED = "false"
+PUBLIC_ANALYTICS_ALLOWED_ORIGINS = "https://www.rcat.ac.th"
 
 [env.production.triggers]
 crons = ["17 19 * * *"]

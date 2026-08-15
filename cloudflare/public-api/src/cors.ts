@@ -1,9 +1,11 @@
 import type { Env } from "./env";
 
-const ALLOWED_METHODS = "GET, POST, OPTIONS";
+const PUBLIC_READ_ALLOWED_METHODS = "GET, POST, OPTIONS";
+const PUBLIC_ANALYTICS_ALLOWED_METHODS = "POST, OPTIONS";
 const ALLOWED_HEADERS = "Content-Type";
 const ADMIN_ALLOWED_METHODS = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
 const ADMIN_ALLOWED_HEADERS = "Content-Type, X-RCAT-Expected-Revision";
+const PUBLIC_ANALYTICS_PATHS = new Set(["/api/public/site-view", "/api/public/presence", "/api/public/content-view"]);
 
 function getConfiguredOrigins(value: string | undefined) {
   return (value ?? "")
@@ -36,7 +38,7 @@ function normalizeOrigin(value: string | null | undefined) {
   }
 }
 
-function getConfiguredAdminOrigins(value: string | undefined) {
+function getConfiguredNormalizedOrigins(value: string | undefined) {
   return Array.from(
     new Set(
       (value ?? "")
@@ -47,27 +49,71 @@ function getConfiguredAdminOrigins(value: string | undefined) {
   );
 }
 
-function isAdminWriteRequest(request: Request) {
+function getRequestPathname(request: Request) {
   try {
-    return new URL(request.url).pathname.startsWith("/api/admin/");
+    return new URL(request.url).pathname;
   } catch {
+    return "";
+  }
+}
+
+function isAdminWriteRequest(request: Request) {
+  return getRequestPathname(request).startsWith("/api/admin/");
+}
+
+function isPublicAnalyticsRequest(request: Request) {
+  return PUBLIC_ANALYTICS_PATHS.has(getRequestPathname(request));
+}
+
+function getAllowedMethods(isAdmin: boolean, isPublicAnalytics: boolean) {
+  if (isAdmin) {
+    return ADMIN_ALLOWED_METHODS;
+  }
+
+  return isPublicAnalytics ? PUBLIC_ANALYTICS_ALLOWED_METHODS : PUBLIC_READ_ALLOWED_METHODS;
+}
+
+function getAllowedOrigins(isAdmin: boolean, isPublicAnalytics: boolean, env: Env) {
+  if (isAdmin) {
+    return getConfiguredNormalizedOrigins(env.ADMIN_WRITE_ALLOWED_ORIGINS);
+  }
+
+  if (isPublicAnalytics) {
+    return getConfiguredNormalizedOrigins(env.PUBLIC_ANALYTICS_ALLOWED_ORIGINS);
+  }
+
+  return getConfiguredOrigins(env.PUBLIC_API_ALLOWED_ORIGINS);
+}
+
+export function isPublicAnalyticsOriginAllowed(request: Request, env: Env) {
+  const requestOrigin = request.headers.get("Origin");
+
+  // Non-browser/server-to-server clients do not send Origin. They remain
+  // governed by the existing D1-backed public analytics rate limits.
+  if (!requestOrigin) {
+    return true;
+  }
+
+  const normalizedRequestOrigin = normalizeOrigin(requestOrigin);
+  if (!normalizedRequestOrigin) {
     return false;
   }
+
+  return getConfiguredNormalizedOrigins(env.PUBLIC_ANALYTICS_ALLOWED_ORIGINS).includes(normalizedRequestOrigin);
 }
 
 export function getCorsHeaders(request: Request, env: Env) {
   const isAdmin = isAdminWriteRequest(request);
+  const isPublicAnalytics = isPublicAnalyticsRequest(request);
   const headers = new Headers({
     "Access-Control-Allow-Headers": isAdmin ? ADMIN_ALLOWED_HEADERS : ALLOWED_HEADERS,
-    "Access-Control-Allow-Methods": isAdmin ? ADMIN_ALLOWED_METHODS : ALLOWED_METHODS
+    "Access-Control-Allow-Methods": getAllowedMethods(isAdmin, isPublicAnalytics)
   });
-  const configuredOrigins = isAdmin
-    ? getConfiguredAdminOrigins(env.ADMIN_WRITE_ALLOWED_ORIGINS)
-    : getConfiguredOrigins(env.PUBLIC_API_ALLOWED_ORIGINS);
+  const configuredOrigins = getAllowedOrigins(isAdmin, isPublicAnalytics, env);
   const requestOrigin = request.headers.get("Origin");
 
   if (configuredOrigins.length === 0) {
-    if (isAdmin) {
+    if (isAdmin || isPublicAnalytics) {
       return headers;
     }
 
@@ -78,7 +124,7 @@ export function getCorsHeaders(request: Request, env: Env) {
   headers.set("Vary", "Origin");
 
   const requestOriginMatches = requestOrigin
-    ? isAdmin
+    ? isAdmin || isPublicAnalytics
       ? configuredOrigins.includes(normalizeOrigin(requestOrigin) ?? "")
       : configuredOrigins.includes(requestOrigin)
     : false;

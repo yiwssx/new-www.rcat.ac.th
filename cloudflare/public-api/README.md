@@ -1,6 +1,6 @@
 # RCAT Public API Worker
 
-Updated: 2026-08-13.
+Updated: 2026-08-15.
 
 This Cloudflare Worker is the D1-backed public-read, public analytics, structured-admin, and CMS authentication API. Apps Script remains only for the server-side media/file bridge to Google Drive. The dedicated complaint Apps Script is a separate isolated endpoint behind the Vercel complaint proxy.
 
@@ -23,9 +23,21 @@ Public GET routes include:
 - `/api/public/programs`
 - `/api/public/visitor-stats`
 
-Public write routes include site-view, content-view, and presence analytics. They are unauthenticated by design but use Worker-side abuse protection and D1-backed rate-limit buckets.
+Public write routes include site-view, content-view, and presence analytics. They are unauthenticated by design but use Worker-side abuse protection, D1-backed rate-limit buckets, and an explicit browser-origin allowlist.
 
 Public list, program, home, and search responses use summary content records and omit full body fields; full bodies remain on content detail. Content detail returns only media rows referenced by that item. Paginated content/search requests use D1 `COUNT(*)` plus `LIMIT/OFFSET`, so one requested page does not require reading the complete matching dataset into Worker memory. Legacy unpaginated content-list URLs remain for archive surfaces that have not yet migrated to route-owned server pagination.
+
+## CORS And Browser Analytics Writes
+
+Public-read and public-write CORS are intentionally separate:
+
+- public GET routes use `PUBLIC_API_ALLOWED_ORIGINS` when configured and retain the wildcard fallback when it is omitted;
+- public analytics POST routes use `PUBLIC_ANALYTICS_ALLOWED_ORIGINS` and fail closed for browser requests when that allowlist is missing or the request origin is not listed;
+- production permits browser analytics from the canonical `www.rcat.ac.th` origin;
+- requests without an `Origin` remain available to server-to-server tooling and are still subject to the analytics abuse guard;
+- Admin routes remain credentialed and fail closed through `ADMIN_WRITE_ALLOWED_ORIGINS`.
+
+CORS is not the analytics abuse boundary by itself. Keep the D1-backed rate limits enabled even when the origin allowlist is correct.
 
 ## Structured Admin and CMS Auth
 

@@ -1,3 +1,4 @@
+import { isPublicAnalyticsOriginAllowed } from "./cors";
 import type { Env } from "./env";
 import { jsonError, methodNotAllowed, notFound } from "./responses";
 import { adminWrite } from "./routes/adminWrite";
@@ -14,6 +15,12 @@ import { recordPublicContentView, recordPublicPresence, recordPublicSiteView } f
 import { handleCmsAuthInternal } from "./routes/cmsAuthInternal";
 
 const CONTENT_DETAIL_PREFIX = "/api/public/content/";
+
+function rejectUntrustedPublicAnalyticsOrigin(request: Request, env: Env, resource: string) {
+  return isPublicAnalyticsOriginAllowed(request, env)
+    ? null
+    : jsonError("origin is not allowed", 403, { resource, diagnostic: "public-analytics-origin-denied-v1" });
+}
 
 export async function routeRequest(request: Request, env: Env) {
   const cmsAuthResponse = await handleCmsAuthInternal(request, env);
@@ -45,15 +52,18 @@ export async function routeRequest(request: Request, env: Env) {
   }
 
   if (request.method === "POST" && pathname === "/api/public/site-view") {
-    return recordPublicSiteView(request, env);
+    const denied = rejectUntrustedPublicAnalyticsOrigin(request, env, "site-view");
+    return denied ?? recordPublicSiteView(request, env);
   }
 
   if (request.method === "POST" && pathname === "/api/public/presence") {
-    return recordPublicPresence(request, env);
+    const denied = rejectUntrustedPublicAnalyticsOrigin(request, env, "presence");
+    return denied ?? recordPublicPresence(request, env);
   }
 
   if (request.method === "POST" && pathname === "/api/public/content-view") {
-    return recordPublicContentView(request, env);
+    const denied = rejectUntrustedPublicAnalyticsOrigin(request, env, "content-view");
+    return denied ?? recordPublicContentView(request, env);
   }
 
   if (request.method !== "GET") {
