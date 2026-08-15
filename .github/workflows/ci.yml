@@ -162,3 +162,49 @@ jobs:
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:functional
+
+  # Compatibility contract: Vercel deployment checks historically consume the
+  # GitHub Actions check named `quality`. Keep this aggregate check even though
+  # the real CI work runs in parallel lanes above.
+  quality:
+    if: ${{ always() }}
+    needs:
+      - dependencies
+      - static-quality
+      - unit
+      - integration
+      - build
+      - governance
+      - worker
+      - functional
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify all CI lanes passed
+        env:
+          DEPENDENCIES: ${{ needs.dependencies.result }}
+          STATIC_QUALITY: ${{ needs.static-quality.result }}
+          UNIT: ${{ needs.unit.result }}
+          INTEGRATION: ${{ needs.integration.result }}
+          BUILD: ${{ needs.build.result }}
+          GOVERNANCE: ${{ needs.governance.result }}
+          WORKER: ${{ needs.worker.result }}
+          FUNCTIONAL: ${{ needs.functional.result }}
+        run: |
+          printf '%s\n' \
+            "dependencies=$DEPENDENCIES" \
+            "static-quality=$STATIC_QUALITY" \
+            "unit=$UNIT" \
+            "integration=$INTEGRATION" \
+            "build=$BUILD" \
+            "governance=$GOVERNANCE" \
+            "worker=$WORKER" \
+            "functional=$FUNCTIONAL"
+          test "$DEPENDENCIES" = "success"
+          test "$STATIC_QUALITY" = "success"
+          test "$UNIT" = "success"
+          test "$INTEGRATION" = "success"
+          test "$BUILD" = "success"
+          test "$GOVERNANCE" = "success"
+          test "$WORKER" = "success"
+          test "$FUNCTIONAL" = "success"
