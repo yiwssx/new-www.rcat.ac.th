@@ -7,6 +7,9 @@ import { describe, expect, it } from "vitest";
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const workflow = readFileSync(join(repositoryRoot, ".github", "workflows", "ci.yml"), "utf8");
+const vercelConfig = JSON.parse(readFileSync(join(repositoryRoot, "vercel.json"), "utf8")) as {
+  ignoreCommand?: string;
+};
 const requiredLanes = [
   "dependencies",
   "static-quality",
@@ -32,5 +35,11 @@ describe("CI Vercel compatibility", () => {
       expect(qualityJob, lane).toContain(`      - ${lane}`);
       expect(qualityJob, lane).toContain(`needs.${lane}.result`);
     }
+  });
+
+  it("skips Vercel builds only for dependency-status docs-only commits", () => {
+    expect(vercelConfig.ignoreCommand).toBe(
+      "git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/maintenance/dependency-current-status.md'"
+    );
   });
 });
