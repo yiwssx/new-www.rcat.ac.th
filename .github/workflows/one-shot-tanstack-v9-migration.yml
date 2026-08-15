@@ -40,39 +40,51 @@ jobs:
           path = Path('src/admin/pages/ContentPage.tsx')
           text = path.read_text()
 
-          import_pattern = re.compile(
-              r'import \{\s*createColumnHelper,\s*flexRender,\s*getCoreRowModel,\s*getSortedRowModel,\s*useReactTable\s*\} from "@tanstack/react-table";'
-          )
-          import_replacement = '''import {
-            createColumnHelper,
-            flexRender,
-            stockFeatures,
-            useTable,
-            type StockFeatures
-          } from "@tanstack/react-table";'''.replace('          ', '')
-
-          helper_pattern = re.compile(r'const columnHelper = createColumnHelper<AdminContentListItem>\(\);')
-          helper_replacement = 'const columnHelper = createColumnHelper<StockFeatures, AdminContentListItem>();'
-
-          table_pattern = re.compile(
-              r'const table = useReactTable\(\{\s*data: items,\s*columns,\s*getCoreRowModel: getCoreRowModel\(\),\s*getSortedRowModel: getSortedRowModel\(\)\s*\}\);'
-          )
-          table_replacement = '''const table = useTable({
-            features: stockFeatures,
-            data: items,
-            columns
-          });'''.replace('          ', '')
-
           replacements = [
-              (import_pattern, import_replacement, 'TanStack import block'),
-              (helper_pattern, helper_replacement, 'column helper'),
-              (table_pattern, table_replacement, 'table hook'),
+              (
+                  re.compile(r'import \{\s*createColumnHelper,\s*flexRender,\s*getCoreRowModel,\s*getSortedRowModel,\s*useReactTable\s*\} from "@tanstack/react-table";'),
+                  '''import {
+                    createColumnHelper,
+                    flexRender,
+                    stockFeatures,
+                    useTable,
+                    type StockFeatures
+                  } from "@tanstack/react-table";'''.replace('                  ', ''),
+                  'TanStack import block',
+              ),
+              (
+                  re.compile(r'const columnHelper = createColumnHelper<AdminContentListItem>\(\);'),
+                  'const columnHelper = createColumnHelper<StockFeatures, AdminContentListItem>();',
+                  'column helper',
+              ),
+              (
+                  re.compile(r'const table = useReactTable\(\{\s*data: items,\s*columns,\s*getCoreRowModel: getCoreRowModel\(\),\s*getSortedRowModel: getSortedRowModel\(\)\s*\}\);'),
+                  '''const table = useTable({
+                    features: stockFeatures,
+                    data: items,
+                    columns
+                  });'''.replace('                  ', ''),
+                  'table hook',
+              ),
           ]
 
           for pattern, replacement, label in replacements:
               text, count = pattern.subn(replacement, text, count=1)
               if count != 1:
                   raise SystemExit(f'Expected exactly one {label} match, found {count}')
+
+          columns_start = '  const columns = useMemo(\n    () => ['
+          columns_start_replacement = '  const columns = useMemo(\n    () =>\n      columnHelper.columns(['
+          if text.count(columns_start) != 1:
+              raise SystemExit(f'Expected exactly one columns start, found {text.count(columns_start)}')
+          text = text.replace(columns_start, columns_start_replacement, 1)
+
+          columns_tail = '\n    ],\n    [\n      canDelete,'
+          columns_tail_replacement = '\n      ]),\n    [\n      canDelete,'
+          tail_index = text.find(columns_tail, text.find(columns_start_replacement))
+          if tail_index < 0:
+              raise SystemExit('Unable to find columns dependency-array boundary')
+          text = text[:tail_index] + columns_tail_replacement + text[tail_index + len(columns_tail):]
 
           path.write_text(text)
           PY
