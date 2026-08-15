@@ -1,5 +1,6 @@
 name: CI
 
+# Re-register this workflow after GitHub Actions history cleanup on 2026-08-15.
 on:
   push:
     branches:
