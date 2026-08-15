@@ -1,0 +1,107 @@
+name: One-shot TanStack Table v9 migration
+
+on:
+  push:
+    branches:
+      - deps/direct-package-json-refresh-2026-08-15
+    paths:
+      - .github/workflows/one-shot-tanstack-v9-migration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: deps/direct-package-json-refresh-2026-08-15
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install frozen dependency graph
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Migrate the existing table adapter to TanStack Table v9
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('src/admin/pages/ContentPage.tsx')
+          text = path.read_text()
+
+          old_import = '''import {
+            createColumnHelper,
+            flexRender,
+            getCoreRowModel,
+            getSortedRowModel,
+            useReactTable
+          } from "@tanstack/react-table";'''.replace('          ', '')
+          new_import = '''import {
+            createColumnHelper,
+            flexRender,
+            stockFeatures,
+            useTable,
+            type StockFeatures
+          } from "@tanstack/react-table";'''.replace('          ', '')
+
+          old_helper = 'const columnHelper = createColumnHelper<AdminContentListItem>();'
+          new_helper = 'const columnHelper = createColumnHelper<StockFeatures, AdminContentListItem>();'
+
+          old_table = '''  const table = useReactTable({
+            data: items,
+            columns,
+            getCoreRowModel: getCoreRowModel(),
+            getSortedRowModel: getSortedRowModel()
+          });'''.replace('          ', '')
+          new_table = '''  const table = useTable({
+            features: stockFeatures,
+            data: items,
+            columns
+          });'''.replace('          ', '')
+
+          replacements = [
+              (old_import, new_import, 'TanStack import block'),
+              (old_helper, new_helper, 'column helper'),
+              (old_table, new_table, 'table hook'),
+          ]
+
+          for old, new, label in replacements:
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected exactly one {label} match, found {text.count(old)}')
+              text = text.replace(old, new)
+
+          path.write_text(text)
+          PY
+
+      - name: Format migrated source
+        run: pnpm exec prettier --write src/admin/pages/ContentPage.tsx
+
+      - name: Refresh dependency status document
+        run: pnpm deps:status
+
+      - name: Verify build and performance budget
+        run: |
+          pnpm build
+          pnpm perf:check
+
+      - name: Commit migration and dependency status
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/admin/pages/ContentPage.tsx docs/maintenance/dependency-current-status.md
+          if git diff --cached --quiet; then
+            echo 'No migration changes to commit.'
+            exit 0
+          fi
+          git commit -m 'fix(deps): migrate content table to TanStack Table v9'
+          git push origin HEAD:deps/direct-package-json-refresh-2026-08-15
