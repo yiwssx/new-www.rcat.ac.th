@@ -1,15 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isPublicReadAbortError, isPublicReadNotFoundError, PublicReadError } from "./errors";
-import { getPublicJson } from "./request";
+import {
+  isPublicReadAbortError,
+  isPublicReadNotFoundError,
+  isPublicReadTimeoutError,
+  PublicReadError
+} from "./errors";
+import { getPublicJson, PUBLIC_READ_DEFAULT_TIMEOUT_MS } from "./request";
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("public read request taxonomy", () => {
-  it("passes AbortSignal to fetch and classifies cancellation", async () => {
+  it("propagates caller cancellation through the bounded request signal", async () => {
     vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.test");
     const controller = new AbortController();
     let receivedSignal: AbortSignal | null = null;
@@ -29,7 +35,37 @@ describe("public read request taxonomy", () => {
     const error = await request.catch((caught) => caught);
 
     expect(isPublicReadAbortError(error)).toBe(true);
-    expect(receivedSignal).toBe(controller.signal);
+    expect(receivedSignal).not.toBeNull();
+    expect(receivedSignal).not.toBe(controller.signal);
+    expect(receivedSignal?.aborted).toBe(true);
+  });
+
+  it("aborts slow upstream requests at the configured deadline", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.test");
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), {
+          once: true
+        });
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const request = getPublicJson("/api/public/home", "public-home", { timeoutMs: 25 });
+    await vi.advanceTimersByTimeAsync(25);
+    const error = await request.catch((caught) => caught);
+
+    expect(isPublicReadTimeoutError(error)).toBe(true);
+    expect(error).toMatchObject({
+      kind: "timeout",
+      resource: "public-home",
+      message: "Cloudflare public-home request timed out after 25ms"
+    });
+  });
+
+  it("uses a four-second default deadline for public reads", () => {
+    expect(PUBLIC_READ_DEFAULT_TIMEOUT_MS).toBe(4_000);
   });
 
   it("classifies network, HTTP, invalid JSON, and invalid response failures", async () => {
