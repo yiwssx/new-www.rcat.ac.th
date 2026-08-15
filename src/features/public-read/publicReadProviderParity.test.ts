@@ -70,6 +70,7 @@ function installCloudflareFetch() {
     const url = new URL(String(input));
     const payloadByPath: Record<string, unknown> = {
       "/api/public/home": homeSnapshot,
+      "/api/public/shell": sharedMetadata,
       "/api/public/content": contentSnapshot,
       "/api/public/content/sample-news": {
         item: publicItem,
@@ -172,7 +173,7 @@ describe("public Cloudflare runtime ownership", () => {
       content: [publicItem]
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("records site views through Cloudflare", () => {

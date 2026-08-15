@@ -1453,7 +1453,7 @@ describe("M18 admin structured write routes", () => {
   });
 
   it("writes public home sections and visitor daily stats as structured data", async () => {
-    const { db } = createAdminWriteMockDb();
+    const { db, tables } = createAdminWriteMockDb();
     const env = makeEnv(db);
     const homeResponse = await worker.fetch(
       makeJsonRequest("/api/admin/home-sections", {
@@ -1484,9 +1484,11 @@ describe("M18 admin structured write routes", () => {
 
     expect(homeResponse.status).toBe(201);
     expect(visitorResponse.status).toBe(200);
-    await expect(readJson(homePublicResponse)).resolves.toMatchObject({
-      sections: [expect.objectContaining({ id: "m18-preview-home-section-001", key: "m18-preview" })]
-    });
+    const homePublicPayload = await readJson(homePublicResponse);
+    expect(homePublicPayload).not.toHaveProperty("sections");
+    expect(tables.public_home_sections).toEqual([
+      expect.objectContaining({ id: "m18-preview-home-section-001", section_key: "m18-preview" })
+    ]);
     await expect(readJson(visitorPublicResponse)).resolves.toMatchObject({
       total: 9
     });
