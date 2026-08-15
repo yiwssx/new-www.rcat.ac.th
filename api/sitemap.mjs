@@ -1,5 +1,7 @@
 const CONTENT_KINDS = ["news", "announcements", "blog"];
 const SITEMAP_PAGE_SIZE = 100;
+const SITEMAP_FETCH_TIMEOUT_MS = 4_000;
+let lastKnownGoodSitemap = null;
 
 export const STATIC_INDEXABLE_ROUTES = [
   "/",
@@ -168,9 +170,13 @@ export function createSitemapXml(urls) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
 }
 
+export function createStaticSitemapXml(siteUrl) {
+  return createSitemapXml(buildSitemapUrls({ siteUrl, content: [] }));
+}
+
 async function fetchJson(url) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+  const timeoutId = setTimeout(() => controller.abort(), SITEMAP_FETCH_TIMEOUT_MS);
   try {
     const response = await fetch(url, {
       headers: { Accept: "application/json" },
@@ -242,6 +248,21 @@ function inferSiteUrl(request) {
   return forwardedHost ? `${forwardedProto}://${forwardedHost}` : "https://www.rcat.ac.th";
 }
 
+function sendSitemapResponse(request, response, xml, mode, cacheControl) {
+  response.setHeader("Content-Type", "application/xml; charset=utf-8");
+  response.setHeader("Cache-Control", cacheControl);
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("X-RCAT-Sitemap-Mode", mode);
+  response.status(200);
+
+  if (request.method === "HEAD") {
+    response.end();
+    return;
+  }
+
+  response.end(xml);
+}
+
 export default async function sitemap(request, response) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     response.setHeader("Allow", "GET, HEAD");
@@ -249,35 +270,38 @@ export default async function sitemap(request, response) {
     return;
   }
 
-  try {
-    const siteUrl = normalizeSiteUrl(
-      process.env.PUBLIC_SITE_URL || process.env.VITE_PUBLIC_SITE_URL || inferSiteUrl(request)
-    );
-    const apiBaseUrl = process.env.CLOUDFLARE_PUBLIC_API_URL || process.env.VITE_CLOUDFLARE_PUBLIC_API_URL;
+  const siteUrl = normalizeSiteUrl(process.env.PUBLIC_SITE_URL || process.env.VITE_PUBLIC_SITE_URL || inferSiteUrl(request));
+  const apiBaseUrl = process.env.CLOUDFLARE_PUBLIC_API_URL || process.env.VITE_CLOUDFLARE_PUBLIC_API_URL;
 
+  try {
     const data = await loadSitemapData(apiBaseUrl);
     const urls = buildSitemapUrls({ siteUrl, content: data.content });
     const xml = createSitemapXml(urls);
+    lastKnownGoodSitemap = { siteUrl, xml };
 
-    response.setHeader("Content-Type", "application/xml; charset=utf-8");
-    response.setHeader("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=86400");
-    response.setHeader("X-Content-Type-Options", "nosniff");
-    response.status(200);
-
-    if (request.method === "HEAD") {
-      response.end();
-      return;
-    }
-
-    response.end(xml);
+    sendSitemapResponse(
+      request,
+      response,
+      xml,
+      "live",
+      "public, max-age=0, s-maxage=300, stale-while-revalidate=86400, stale-if-error=86400"
+    );
   } catch (error) {
-    console.error("Runtime sitemap generation failed", {
-      message: error instanceof Error ? error.message : String(error)
+    const hasCompatibleLastKnownGood = lastKnownGoodSitemap?.siteUrl === siteUrl;
+    const xml = hasCompatibleLastKnownGood ? lastKnownGoodSitemap.xml : createStaticSitemapXml(siteUrl);
+    const mode = hasCompatibleLastKnownGood ? "last-known-good" : "static-fallback";
+
+    console.error("Runtime sitemap generation degraded", {
+      message: error instanceof Error ? error.message : String(error),
+      mode
     });
-    response.setHeader("Content-Type", "text/plain; charset=utf-8");
-    response.setHeader("Cache-Control", "no-store");
-    response.setHeader("Retry-After", "300");
-    response.setHeader("X-Robots-Tag", "noindex, nofollow");
-    response.status(503).end("Sitemap is temporarily unavailable");
+
+    sendSitemapResponse(
+      request,
+      response,
+      xml,
+      mode,
+      "public, max-age=0, s-maxage=60, stale-while-revalidate=86400, stale-if-error=86400"
+    );
   }
 }
