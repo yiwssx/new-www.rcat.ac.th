@@ -28,16 +28,15 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Update only named direct package.json dependencies
+      - name: Restore dependency files from master
+        run: git checkout origin/master -- package.json pnpm-lock.yaml
+
+      - name: Update only mature named direct package.json dependencies
         run: |
           pnpm update --latest --lockfile-only \
             @mui/icons-material \
             @mui/material \
-            @tanstack/react-router \
             @tanstack/react-table \
-            @cloudflare/workers-types \
-            @commitlint/cli \
-            @commitlint/config-conventional \
             @testing-library/jest-dom \
             @testing-library/user-event \
             eslint-plugin-react-refresh \
@@ -49,16 +48,12 @@ jobs:
           git diff --exit-code -- pnpm-workspace.yaml .node-version .github/workflows/ci.yml .github/workflows/dependency-monitoring.yml .github/workflows/dependency-status-sync.yml .github/workflows/worker-production.yml
           node <<'NODE'
           const { execFileSync } = require('child_process');
-          const before = JSON.parse(execFileSync('git', ['show', 'HEAD:package.json'], { encoding: 'utf8' }));
+          const before = JSON.parse(execFileSync('git', ['show', 'origin/master:package.json'], { encoding: 'utf8' }));
           const after = require('./package.json');
           const allowed = new Set([
             '@mui/icons-material',
             '@mui/material',
-            '@tanstack/react-router',
             '@tanstack/react-table',
-            '@cloudflare/workers-types',
-            '@commitlint/cli',
-            '@commitlint/config-conventional',
             '@testing-library/jest-dom',
             '@testing-library/user-event',
             'eslint-plugin-react-refresh',
@@ -94,5 +89,5 @@ jobs:
             echo 'No mature direct dependency changes to commit.'
             exit 0
           fi
-          git commit -m 'chore(deps): refresh mature direct dependencies'
+          git commit -m 'chore(deps): refresh mature direct dependencies only'
           git push origin HEAD:deps/direct-package-json-refresh-2026-08-15
