@@ -1,15 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
-const NON_RUNTIME_PREFIXES = [
-  ".github/",
-  ".husky/",
-  "apps-script/",
-  "cloudflare/",
-  "docs/",
-  "imports/",
-  "src/test/",
-];
+const NON_RUNTIME_PREFIXES = [".github/", ".husky/", "apps-script/", "cloudflare/", "docs/", "imports/", "src/test/"];
 
 const RUNTIME_EXACT_FILES = new Set([
   "index.html",
@@ -26,13 +18,11 @@ const RUNTIME_EXACT_FILES = new Set([
   "vercel.json",
   "vite.config.js",
   "vite.config.mjs",
-  "vite.config.ts",
+  "vite.config.ts"
 ]);
 
 const RUNTIME_PREFIXES = ["api/", "public/", "server/"];
-const RUNTIME_BUILD_SCRIPTS = new Set([
-  "scripts/prepare-ssr-cutover-output.mjs",
-]);
+const RUNTIME_BUILD_SCRIPTS = new Set(["scripts/prepare-ssr-cutover-output.mjs"]);
 const TEST_FILE_PATTERN = /(?:^|\/)[^/]+\.(?:test|spec)\.[cm]?[jt]sx?$/;
 
 export function isVercelRuntimeImpactingPath(path) {
@@ -42,18 +32,14 @@ export function isVercelRuntimeImpactingPath(path) {
   if (RUNTIME_EXACT_FILES.has(normalized)) return true;
   if (RUNTIME_BUILD_SCRIPTS.has(normalized)) return true;
 
-  const hasRuntimePrefix = RUNTIME_PREFIXES.some((prefix) =>
-    normalized.startsWith(prefix),
-  );
+  const hasRuntimePrefix = RUNTIME_PREFIXES.some((prefix) => normalized.startsWith(prefix));
   if (hasRuntimePrefix) return true;
 
   if (normalized.startsWith("src/")) {
     return !TEST_FILE_PATTERN.test(normalized);
   }
 
-  const hasNonRuntimePrefix = NON_RUNTIME_PREFIXES.some((prefix) =>
-    normalized.startsWith(prefix),
-  );
+  const hasNonRuntimePrefix = NON_RUNTIME_PREFIXES.some((prefix) => normalized.startsWith(prefix));
   if (hasNonRuntimePrefix) return false;
   if (TEST_FILE_PATTERN.test(normalized)) return false;
 
@@ -70,16 +56,12 @@ function readChangedPaths() {
   try {
     const parent = execFileSync("git", ["rev-parse", "HEAD^"], {
       encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
+      stdio: ["ignore", "pipe", "ignore"]
     }).trim();
-    const output = execFileSync(
-      "git",
-      ["diff", "--name-only", "-z", parent, "HEAD"],
-      {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "inherit"],
-      },
-    );
+    const output = execFileSync("git", ["diff", "--name-only", "-z", parent, "HEAD"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "inherit"]
+    });
     return output.split("\0").filter(Boolean);
   } catch {
     return null;
@@ -90,18 +72,14 @@ function main() {
   const changedPaths = readChangedPaths();
 
   if (!changedPaths) {
-    console.log(
-      "Vercel build required: unable to resolve the previous commit safely.",
-    );
+    console.log("Vercel build required: unable to resolve the previous commit safely.");
     process.exit(1);
   }
 
   const runtimePaths = changedPaths.filter(isVercelRuntimeImpactingPath);
 
   if (runtimePaths.length === 0 && changedPaths.length > 0) {
-    console.log(
-      `Vercel build ignored: ${changedPaths.length} non-runtime path(s) changed.`,
-    );
+    console.log(`Vercel build ignored: ${changedPaths.length} non-runtime path(s) changed.`);
     process.exit(0);
   }
 
