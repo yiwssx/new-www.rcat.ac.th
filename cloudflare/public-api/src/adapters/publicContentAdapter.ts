@@ -122,6 +122,18 @@ export function selectRelatedPublicContentCards(
     .map((entry) => entry.candidate);
 }
 
+export function selectRelatedPublicContentCardRows(
+  row: PublicContentReadRow,
+  candidateRows: PublicContentCardReadRow[],
+  limit = 3
+) {
+  const item = mapContentRowToPublicContentItem(row);
+  const rowsById = new Map(candidateRows.map((candidate) => [candidate.id, candidate]));
+  return selectRelatedPublicContentCards(item, candidateRows.map(mapContentCardRowToPublicContentCard), limit)
+    .map((candidate) => rowsById.get(candidate.id))
+    .filter((candidate): candidate is PublicContentCardReadRow => Boolean(candidate));
+}
+
 export function createPublicContentListSnapshot(
   kind: PublicContentListSnapshotContract["kind"],
   rows: PublicContentSummaryReadRow[],
@@ -156,7 +168,7 @@ export function createPublicContentDetailSnapshot(
   generatedAt = new Date()
 ): PublicContentDetailSnapshotContract {
   const item = mapContentRowToPublicContentItem(row);
-  const relatedItems = selectRelatedPublicContentCards(item, relatedRows.map(mapContentCardRowToPublicContentCard));
+  const relatedItems = relatedRows.map(mapContentCardRowToPublicContentCard);
 
   return {
     item,
