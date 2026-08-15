@@ -17,7 +17,6 @@ import { recordContentView } from "../../features/site-view";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicSiteShell from "../components/PublicSiteShell";
 import PublicLoadingState from "../components/PublicLoadingState";
-import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { usePublicContentDetail } from "../hooks/usePublicContentDetail";
 import { MediaContentBlock, parseContentBodyToBlocks } from "../../utils/contentBlocks";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
@@ -42,20 +41,6 @@ function normalizeCategoryList(category: string | undefined) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
-}
-
-function sharedTagScore(left: string[] | undefined, right: string[] | undefined) {
-  const leftTags = normalizeTags(left);
-  const rightTags = normalizeTags(right);
-  const rightLookup = new Set(rightTags);
-  return leftTags.filter((tag) => rightLookup.has(tag)).length;
-}
-
-function sharedCategoryScore(left: string | undefined, right: string | undefined) {
-  const leftCategories = normalizeCategoryList(left);
-  const rightCategories = normalizeCategoryList(right);
-  const rightLookup = new Set(rightCategories);
-  return leftCategories.filter((item) => rightLookup.has(item)).length;
 }
 
 function getReturnPath(type: string) {
@@ -274,7 +259,6 @@ function FeaturedContentMedia({
 }
 
 export default function PublicContentDetailPage({ slug }: PublicContentDetailPageProps) {
-  const { data, isLoading, isFetching } = usePublicCmsSnapshot();
   const contentDetailQuery = usePublicContentDetail({ slug });
   const [recordedViewCountState, setRecordedViewCountState] = useState<{
     count: number | null;
@@ -284,15 +268,9 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
     storageKey: ""
   });
 
-  const visibleContent = useMemo(
-    () =>
-      (data?.content ?? [])
-        .filter((item) => item.status === "published")
-        .sort((left, right) => new Date(right.publishAt).getTime() - new Date(left.publishAt).getTime()),
-    [data]
-  );
   const item = contentDetailQuery.data;
-  const mediaAssets = data?.media ?? [];
+  const mediaAssets = contentDetailQuery.media;
+  const relatedItems = contentDetailQuery.relatedItems;
   const contentBlocks = useMemo(() => parseContentBodyToBlocks(item?.body), [item?.body]);
   const featuredMedia = mediaAssets.find((asset) => asset.id === item?.featuredMediaId);
   const featuredMediaImageUrl = resolvePublicImageSource(featuredMedia, "content-featured").src;
@@ -310,36 +288,6 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   const attachedMedia = mediaAssets.filter(
     (asset) => item?.mediaIds?.includes(asset.id) && !embeddedPdfMediaIds.has(asset.id)
   );
-  const relatedItems = useMemo(() => {
-    if (!item) {
-      return [];
-    }
-
-    return visibleContent
-      .filter((candidate) => candidate.id !== item.id)
-      .map((candidate) => {
-        const score =
-          (candidate.type === item.type ? 4 : 0) +
-          sharedCategoryScore(candidate.category, item.category) * 3 +
-          sharedTagScore(candidate.tags, item.tags);
-
-        return {
-          candidate,
-          score
-        };
-      })
-      .sort((left, right) => {
-        if (right.score !== left.score) {
-          return right.score - left.score;
-        }
-
-        return new Date(right.candidate.publishAt).getTime() - new Date(left.candidate.publishAt).getTime();
-      })
-      .filter((entry) => entry.score > 0)
-      .slice(0, 3)
-      .map((entry) => entry.candidate);
-  }, [item, visibleContent]);
-  const isInitialSnapshotLoading = !data && (isLoading || isFetching);
   const isInitialContentLoading = !item && (contentDetailQuery.isLoading || contentDetailQuery.isFetching);
 
   useEffect(() => {
@@ -366,16 +314,12 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
       });
   }, [item]);
 
-  if (isInitialSnapshotLoading || isInitialContentLoading) {
+  if (isInitialContentLoading) {
     return (
       <PublicSiteShell hidePageHeader seoTitle="" seoDescription="" canonicalPath={`/content/${slug || ""}`}>
         <PublicLoadingState variant="content-detail" />
       </PublicSiteShell>
     );
-  }
-
-  if (!data) {
-    return <PublicSiteShell>{null}</PublicSiteShell>;
   }
 
   if (!item || item.status !== "published") {
