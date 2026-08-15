@@ -1,10 +1,9 @@
 import { createPublicHomeSnapshot } from "../adapters/publicHomeAdapter";
 import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
-import { listAllPublishedContentSummaryRows } from "../db/contentRepository";
+import { listAllPublishedContentCardRows } from "../db/contentRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
-import { listPublishedHomeSectionRows } from "../db/homeRepository";
-import { readPublicMetadataRows } from "../db/publicMetadataRepository";
+import { readPublicHomeMetadataRows } from "../db/publicMetadataRepository";
 import { countOnlineVisitors, listVisitorDailyStatsRows } from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
@@ -22,22 +21,27 @@ export async function publicHome(env: Env) {
 
   try {
     const generatedAt = new Date();
-    const [sections, content, featuredDocuments, metadataRows, visitorRows, onlineUsers] = await Promise.all([
-      listPublishedHomeSectionRows(env),
-      listAllPublishedContentSummaryRows(env),
+    const [content, featuredDocuments, homeMetadataRows, visitorRows, onlineUsers] = await Promise.all([
+      listAllPublishedContentCardRows(env),
       listPublishedDocumentRows(env),
-      readPublicMetadataRows(env),
+      readPublicHomeMetadataRows(env),
       listVisitorDailyStatsRows(env),
       countOnlineVisitors(env, generatedAt)
     ]);
+    const metadata = createPublicMetadata({
+      siteSettings: null,
+      homepageSettings: null,
+      displaySettings: null,
+      menu: [],
+      ...homeMetadataRows
+    });
 
     return json(
       createPublicHomeSnapshot(
         {
-          sections,
           content,
           featuredDocuments,
-          metadata: createPublicMetadata(metadataRows),
+          metadata,
           visitorStats: createPublicVisitorStatsSnapshot(visitorRows, generatedAt, onlineUsers)
         },
         generatedAt
