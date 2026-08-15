@@ -38,7 +38,6 @@ import {
   PublicContentDetailSnapshot,
   PublicContentListSnapshot,
   PublicDocumentListSnapshot,
-  PublicHomeSnapshot,
   PublicProgramListSnapshot,
   PublicSearchIndexSnapshot
 } from "../types";
