@@ -1,0 +1,50 @@
+name: One-shot P2C Coverage Baseline
+
+on:
+  push:
+    branches:
+      - p2-critical-coverage-20260815
+    paths:
+      - .github/workflows/one-shot-p2c-coverage-baseline.yml
+
+permissions:
+  contents: write
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: p2-critical-coverage-20260815
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Add Vitest V8 coverage provider as a direct dev dependency
+        run: pnpm add --save-dev --save-exact @vitest/coverage-v8@4.1.10
+      - name: Measure critical coverage baseline
+        run: |
+          node scripts/run-vitest.mjs run \
+            server/cmsAuth/handlers.test.mjs \
+            src/features/public-read/request.test.ts \
+            --coverage \
+            --coverage.provider=v8 \
+            --coverage.reporter=text \
+            --coverage.include=server/cmsAuth/rateLimiters.mjs \
+            --coverage.include=server/cmsAuth/cookies.mjs \
+            --coverage.include=src/features/public-read/request.ts
+      - name: Commit direct provider dependency and remove one-shot workflow
+        run: |
+          rm .github/workflows/one-shot-p2c-coverage-baseline.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml .github/workflows/one-shot-p2c-coverage-baseline.yml
+          git commit -m "test(p2): add direct Vitest V8 coverage provider"
+          git push origin HEAD:p2-critical-coverage-20260815
