@@ -56,16 +56,30 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve exact preview D1 name
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-databases.json", "utf8"));
+            if (!Array.isArray(value)) throw new Error("unexpected D1 list response shape");
+            const matches = value.filter((database) => database?.name === "rcat-public-api-preview");
+            if (matches.length !== 1) throw new Error(`expected exactly one rcat-public-api-preview database, found ${matches.length}`);
+            if (matches[0]?.name === "rcat-public-api-production") throw new Error("production database resolved as preview target");
+            console.log("Exact preview D1 name resolved in the protected Cloudflare account.");
+          '
+
       - name: Inspect preview D1 metadata
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          pnpm wrangler d1 info rcat-public-api-preview \
-            --config cloudflare/public-api/wrangler.toml \
-            --env preview \
-            --json > "$RUNNER_TEMP/d1-preview-info.json"
+          pnpm wrangler d1 info rcat-public-api-preview --json > "$RUNNER_TEMP/d1-preview-info.json"
           node -e '
             const fs = require("fs");
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-preview-info.json", "utf8"));
@@ -82,10 +96,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          pnpm wrangler d1 time-travel info rcat-public-api-preview \
-            --config cloudflare/public-api/wrangler.toml \
-            --env preview \
-            --json > "$RUNNER_TEMP/d1-preview-time-travel.json"
+          pnpm wrangler d1 time-travel info rcat-public-api-preview --json > "$RUNNER_TEMP/d1-preview-time-travel.json"
           node -e '
             const fs = require("fs");
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-preview-time-travel.json", "utf8"));
@@ -101,6 +112,7 @@ jobs:
             echo "## D1 Recovery Drill"
             echo
             echo "- Target: rcat-public-api-preview"
+            echo "- Resolution: exact account-scoped D1 name; committed preview database_id placeholder is not used"
             echo "- Credentials: protected production environment; production database ID is not provided"
             echo "- Backend: production storage subsystem required"
             echo "- Mode: read-only metadata / Time Travel bookmark resolution"
