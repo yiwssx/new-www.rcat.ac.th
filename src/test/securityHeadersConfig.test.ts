@@ -32,12 +32,23 @@ describe("M21 Vercel security headers", () => {
     expect(JSON.stringify(vercelConfig)).not.toContain("preload");
   });
 
-  it("does not depend on Google-hosted fonts before CSP enforcement", () => {
+  it("loads Sarabun locally and never depends on Google-hosted fonts", () => {
     const indexHtml = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
     const routeComponents = readFileSync(new URL("../routeComponents.tsx", import.meta.url), "utf8");
+    const fontCss = readFileSync(new URL("../../public/fonts/sarabun.css", import.meta.url), "utf8");
     const combined = `${indexHtml}\n${routeComponents}`;
 
+    expect(combined).toContain('href="/fonts/sarabun.css"');
     expect(combined).not.toContain("fonts.googleapis.com");
     expect(combined).not.toContain("fonts.gstatic.com");
+    expect(fontCss).toContain('font-family: "Sarabun"');
+    expect(fontCss).toContain('url("/fonts/sarabun/Sarabun-Regular.ttf")');
+    expect(fontCss).toContain('url("/fonts/sarabun/Sarabun-ExtraBold.ttf")');
+
+    const fontHeader = vercelConfig.headers.find((entry) => entry.source === "/fonts/:path*");
+    expect(fontHeader?.headers).toContainEqual({
+      key: "Cache-Control",
+      value: "public, max-age=31536000, immutable"
+    });
   });
 });
