@@ -9,13 +9,25 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text"],
-      include: ["server/cmsAuth/cookies.mjs", "server/cmsAuth/rateLimiters.mjs", "src/features/public-read/request.ts"],
+      include: [
+        "server/cmsAuth/cookies.mjs",
+        "server/cmsAuth/protocol.mjs",
+        "server/cmsAuth/rateLimiters.mjs",
+        "src/features/public-read/request.ts"
+      ],
       thresholds: {
         "server/cmsAuth/cookies.mjs": {
           statements: 78,
           branches: 72,
           functions: 85,
           lines: 78,
+          perFile: true
+        },
+        "server/cmsAuth/protocol.mjs": {
+          statements: 70,
+          branches: 60,
+          functions: 75,
+          lines: 70,
           perFile: true
         },
         "server/cmsAuth/rateLimiters.mjs": {
