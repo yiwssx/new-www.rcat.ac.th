@@ -1,0 +1,134 @@
+name: P5 Unit Contract Fixup
+
+on:
+  push:
+    branches:
+      - agent/p5a-p5d-data-ssr-efficiency
+
+permissions:
+  contents: write
+
+jobs:
+  fixup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/p5a-p5d-data-ssr-efficiency
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Align unit contracts with P5 ownership
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Provider parity: shell is now a distinct Cloudflare read.
+          path = Path("src/features/public-read/publicReadProviderParity.test.ts")
+          text = path.read_text()
+          if '"/api/public/shell": sharedMetadata,' not in text:
+              marker = '      "/api/public/home": homeSnapshot,\n'
+              if marker not in text:
+                  raise RuntimeError("provider parity home route marker missing")
+              text = text.replace(marker, marker + '      "/api/public/shell": sharedMetadata,\n', 1)
+          old = '    expect(fetchMock).toHaveBeenCalledTimes(1);\n  });\n\n  it("records site views through Cloudflare"'
+          new = '    expect(fetchMock).toHaveBeenCalledTimes(2);\n  });\n\n  it("records site views through Cloudflare"'
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise RuntimeError("provider parity call-count marker missing")
+          path.write_text(text)
+
+          # Core route contract: /public/home is content-only; shell and legacy collections are gone.
+          path = Path("cloudflare/public-api/test/publicReadCoreRoutes.test.ts")
+          text = path.read_text()
+          test_anchor = '  it("returns a D1-backed public home response instead of the M17 skeleton", async () => {'
+          start = text.index(test_anchor)
+          end = text.index('\n  });', start) + len('\n  });')
+          block = text[start:end]
+          expected_start = block.index('    expect(payload).toMatchObject({')
+          expected_end = block.index('    expect(payload.media).toEqual(', expected_start)
+          expected = '''    expect(payload).toMatchObject({
+              carouselSlides: expect.any(Array),
+              externalServices: expect.any(Array),
+              visitorStats: expect.any(Object),
+              latestNews: [expect.objectContaining({ slug: "sample-news", type: "news" })],
+              latestAnnouncements: expect.any(Array),
+              procurementItems: expect.any(Array),
+              jobOpportunityItems: expect.any(Array),
+              achievementItems: expect.any(Array),
+              programItems: [expect.objectContaining({ slug: "sample-program", type: "program" })],
+              documentItems: expect.any(Array),
+              eventItems: expect.any(Array),
+              media: expect.any(Array)
+            });
+            expect(payload).not.toHaveProperty("siteSettings");
+            expect(payload).not.toHaveProperty("homepageSettings");
+            expect(payload).not.toHaveProperty("displaySettings");
+            expect(payload).not.toHaveProperty("menu");
+            expect(payload).not.toHaveProperty("sections");
+            expect(payload).not.toHaveProperty("featuredContent");
+            expect(payload).not.toHaveProperty("featuredDocuments");
+            expect(payload).not.toHaveProperty("programs");
+          '''
+          block = block[:expected_start] + expected + block[expected_end:]
+          text = text[:start] + block + text[end:]
+          text = text.replace(
+              '    expect(payload.featuredContent).toEqual([]);',
+              '    expect(payload).not.toHaveProperty("featuredContent");',
+              1,
+          )
+          path.write_text(text)
+
+          # Admin home-section writes remain stored, but they are no longer part of the public-home DTO.
+          path = Path("cloudflare/public-api/test/adminWriteRoutes.test.ts")
+          text = path.read_text()
+          test_anchor = '  it("writes public home sections and visitor daily stats as structured data", async () => {'
+          start = text.index(test_anchor)
+          end = text.index('\n  });', start) + len('\n  });')
+          block = text[start:end]
+          block = block.replace('    const { db } = createAdminWriteMockDb();', '    const { db, tables } = createAdminWriteMockDb();', 1)
+          old = '''    await expect(readJson(homePublicResponse)).resolves.toMatchObject({
+              sections: [expect.objectContaining({ id: "m18-preview-home-section-001", key: "m18-preview" })]
+            });'''
+          new = '''    const homePublicPayload = await readJson(homePublicResponse);
+            expect(homePublicPayload).not.toHaveProperty("sections");
+            expect(tables.public_home_sections).toEqual([
+              expect.objectContaining({ id: "m18-preview-home-section-001", section_key: "m18-preview" })
+            ]);'''
+          if old in block:
+              block = block.replace(old, new, 1)
+          elif new not in block:
+              raise RuntimeError("admin home-section expectation marker missing")
+          text = text[:start] + block + text[end:]
+          path.write_text(text)
+          PY
+
+      - run: pnpm format
+      - name: Verify focused unit contracts
+        run: >-
+          node scripts/run-vitest.mjs run
+          src/features/public-read/publicReadProviderParity.test.ts
+          cloudflare/public-api/test/publicReadCoreRoutes.test.ts
+          cloudflare/public-api/test/adminWriteRoutes.test.ts
+
+      - name: Commit verified contract updates
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No contract changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test(p5): align public-home and shell contracts"
+          git push origin HEAD:agent/p5a-p5d-data-ssr-efficiency
