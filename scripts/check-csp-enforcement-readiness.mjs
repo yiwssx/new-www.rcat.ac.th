@@ -1,14 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-const REQUIRED_SURFACES = [
-  "public-ssr",
-  "public-navigation",
-  "auth",
-  "admin",
-  "media",
-  "complaint",
-  "facebook-embed"
-];
+const REQUIRED_SURFACES = ["public-ssr", "public-navigation", "auth", "admin", "media", "complaint", "facebook-embed"];
 
 function fail(message) {
   console.error(`CSP enforcement readiness: ${message}`);
