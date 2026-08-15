@@ -33,6 +33,24 @@ export type PublicContentReadRow = Pick<
 
 export type PublicContentSummaryReadRow = Omit<PublicContentReadRow, "body_snapshot">;
 
+export type PublicContentCardReadRow = Pick<
+  ContentRow,
+  | "id"
+  | "slug"
+  | "type"
+  | "owner"
+  | "title"
+  | "summary"
+  | "category"
+  | "tags_json"
+  | "canonical_url"
+  | "featured"
+  | "reading_minutes"
+  | "template"
+  | "featured_media_id"
+  | "publish_at"
+>;
+
 export interface PublicContentPageReadOptions {
   limit: number;
   offset: number;
@@ -66,6 +84,23 @@ const PUBLIC_CONTENT_READ_COLUMNS = [
 export const PUBLIC_CONTENT_SUMMARY_READ_COLUMNS = PUBLIC_CONTENT_READ_COLUMNS.filter(
   (column) => column !== "body_snapshot"
 ) as readonly (keyof PublicContentSummaryReadRow)[];
+
+export const PUBLIC_CONTENT_CARD_READ_COLUMNS = [
+  "id",
+  "slug",
+  "type",
+  "owner",
+  "title",
+  "summary",
+  "category",
+  "tags_json",
+  "canonical_url",
+  "featured",
+  "reading_minutes",
+  "template",
+  "featured_media_id",
+  "publish_at"
+] as const satisfies readonly (keyof PublicContentCardReadRow)[];
 
 function normalizePageReadOptions(options: PublicContentPageReadOptions) {
   return {
@@ -210,6 +245,22 @@ export async function listAllPublishedContentSummaryRows(env: Env): Promise<Publ
     )
     .bind(...publicPublishedContentBindings())
     .all<PublicContentSummaryReadRow>();
+
+  return result.results ?? [];
+}
+
+export async function listAllPublishedContentCardRows(env: Env): Promise<PublicContentCardReadRow[]> {
+  const db = requireD1Database(env);
+  const result = await db
+    .prepare(
+      `SELECT ${PUBLIC_CONTENT_CARD_READ_COLUMNS.join(", ")}
+       FROM contents
+       WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND COALESCE(deleted_at, '') = ''
+       ORDER BY publish_at DESC, updated_at DESC`
+    )
+    .bind(...publicPublishedContentBindings())
+    .all<PublicContentCardReadRow>();
 
   return result.results ?? [];
 }

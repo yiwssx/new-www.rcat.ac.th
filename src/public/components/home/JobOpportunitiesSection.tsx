@@ -5,7 +5,7 @@ import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
-import type { ContentItem } from "../../../types";
+import type { PublicContentCardItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
 import { designTokens } from "../../../design-system/tokens";
 import SemanticStatusChip from "../../../design-system/components/SemanticStatusChip";
@@ -13,7 +13,7 @@ import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
-export function JobOpportunitiesSection({ items }: { items: ContentItem[] }) {
+export function JobOpportunitiesSection({ items }: { items: PublicContentCardItem[] }) {
   return (
     <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
       <HomeSectionHeading

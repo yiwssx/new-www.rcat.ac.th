@@ -1,26 +1,18 @@
-import { mapContentSummaryRowToPublicContentItem } from "./publicContentAdapter";
+import { mapContentCardRowToPublicContentCard } from "./publicContentAdapter";
 import { mapDocumentRowToPublicDocumentItem } from "./publicDocumentsAdapter";
 import { filterPublicMedia } from "./publicMetadataAdapter";
-import type { PublicContentSummaryContract } from "../contracts/publicContent";
-import type { PublicHomeSectionContract, PublicHomeSnapshotContract } from "../contracts/publicHome";
+import type { PublicContentCardContract } from "../contracts/publicContent";
+import type { PublicHomeSnapshotContract } from "../contracts/publicHome";
 import type { PublicMetadataContract } from "../contracts/publicMetadata";
 import type { PublicVisitorStatsSnapshotContract } from "../contracts/publicVisitorStats";
-import type { PublicContentSummaryReadRow } from "../db/contentRepository";
-import type { DocumentRow, PublicHomeSectionRow } from "../db/schema";
+import type { PublicContentCardReadRow } from "../db/contentRepository";
+import type { DocumentRow } from "../db/schema";
 
 const HOME_ACHIEVEMENT_LIMIT = 6;
 const ACHIEVEMENT_PATTERN = /achievement|award|รางวัล|ผลงาน|ความสำเร็จ|ความภาคภูมิใจ|ชนะเลิศ|รองชนะเลิศ|เหรียญ/i;
 const EXTERNAL_SERVICE_MEDIA_ICON_PREFIX = "media:";
 
-function normalizePublicOrder(value: number) {
-  if (!Number.isFinite(value)) {
-    return 0;
-  }
-
-  return Math.max(0, Math.floor(value));
-}
-
-function compareContentPublishAtDesc(left: PublicContentSummaryContract, right: PublicContentSummaryContract) {
+function compareContentPublishAtDesc(left: PublicContentCardContract, right: PublicContentCardContract) {
   const leftTime = Date.parse(left.publishAt);
   const rightTime = Date.parse(right.publishAt);
 
@@ -31,7 +23,7 @@ function compareContentPublishAtDesc(left: PublicContentSummaryContract, right: 
   return String(right.publishAt || "").localeCompare(String(left.publishAt || "")) || right.id.localeCompare(left.id);
 }
 
-function isAchievementItem(item: PublicContentSummaryContract) {
+function isAchievementItem(item: PublicContentCardContract) {
   return ACHIEVEMENT_PATTERN.test([item.title, item.summary, item.category, ...item.tags].join(" "));
 }
 
@@ -42,39 +34,25 @@ function getExternalServiceIconMediaId(iconKey: unknown) {
     : "";
 }
 
-export function mapHomeSectionRowToPublicHomeSection(row: PublicHomeSectionRow): PublicHomeSectionContract {
-  return {
-    id: row.id || "",
-    key: row.section_key || "",
-    title: row.title || "",
-    summary: row.summary || "",
-    href: row.href || "",
-    order: normalizePublicOrder(row.sort_order),
-    updatedAt: row.updated_at || ""
-  };
-}
-
 export function createPublicHomeSnapshot(
   input: {
-    sections: PublicHomeSectionRow[];
-    content: PublicContentSummaryReadRow[];
+    content: PublicContentCardReadRow[];
     featuredDocuments: DocumentRow[];
     metadata: PublicMetadataContract;
     visitorStats: PublicVisitorStatsSnapshotContract;
   },
   generatedAt = new Date()
 ): PublicHomeSnapshotContract {
-  const content = input.content.map(mapContentSummaryRowToPublicContentItem);
+  const content = input.content.map(mapContentCardRowToPublicContentCard);
   const latestNews = content.filter((item) => item.type === "news" || item.type === "blog").slice(0, 6);
   const latestAnnouncements = content.filter((item) => item.type === "announcement").slice(0, 8);
   const programs = content.filter((item) => item.type === "program").slice(0, 8);
-  const featuredContent = content.filter((item) => item.type !== "program" && item.featured).slice(0, 6);
   const achievementItems = content
     .filter(isAchievementItem)
     .sort(compareContentPublishAtDesc)
     .slice(0, HOME_ACHIEVEMENT_LIMIT);
   const publicDocuments = input.featuredDocuments.map(mapDocumentRowToPublicDocumentItem);
-  const homeContent = [...latestNews, ...latestAnnouncements, ...programs, ...featuredContent];
+  const homeContent = [...latestNews, ...latestAnnouncements, ...programs, ...achievementItems];
   const homeMediaReferences = [
     ...homeContent,
     ...input.metadata.events.map((event) => ({
@@ -87,10 +65,6 @@ export function createPublicHomeSnapshot(
   ];
 
   return {
-    siteSettings: input.metadata.siteSettings,
-    homepageSettings: input.metadata.homepageSettings,
-    displaySettings: input.metadata.displaySettings,
-    menu: input.metadata.menu,
     carouselSlides: input.metadata.carouselSlides,
     externalServices: input.metadata.externalServices,
     visitorStats: input.visitorStats,
@@ -111,10 +85,6 @@ export function createPublicHomeSnapshot(
     documentItems: publicDocuments,
     eventItems: input.metadata.events,
     media: filterPublicMedia(input.metadata.media, homeMediaReferences),
-    sections: input.sections.map(mapHomeSectionRowToPublicHomeSection),
-    featuredContent,
-    featuredDocuments: publicDocuments,
-    programs,
     generatedAt: generatedAt.toISOString()
   };
 }

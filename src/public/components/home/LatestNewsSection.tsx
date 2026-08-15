@@ -4,12 +4,18 @@ import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
-import { ContentItem, MediaAsset } from "../../../types";
+import { MediaAsset, PublicContentCardItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
 import PublicContentCard from "../PublicContentCard";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
-export function LatestNewsSection({ items, mediaAssets }: { items: ContentItem[]; mediaAssets: MediaAsset[] }) {
+export function LatestNewsSection({
+  items,
+  mediaAssets
+}: {
+  items: PublicContentCardItem[];
+  mediaAssets: MediaAsset[];
+}) {
   return (
     <>
       <HomeSectionHeading

@@ -125,7 +125,6 @@ describe("public route loader ownership", () => {
       owner: "ประชาสัมพันธ์",
       updatedAt: "2026-08-04T00:00:00.000Z"
     };
-    const siteSettings = { siteName: "RCAT" };
     const runtime = createLoaderContext((queryKey) => {
       if (queryKey[0] === "content-detail") {
         return {
@@ -134,7 +133,6 @@ describe("public route loader ownership", () => {
           generatedAt: "2026-08-04T00:00:00.000Z"
         };
       }
-      if (queryKey[0] === "cms-snapshot") return { media: [], siteSettings };
       return queryKey;
     });
 
@@ -142,8 +140,24 @@ describe("public route loader ownership", () => {
 
     const keys = runtime.ensureQueryData.mock.calls.map((call) => call[0]?.queryKey);
     expect(keys).toContainEqual(["content-detail", "sample-slug"]);
-    expect(keys).toContainEqual(["cms-snapshot"]);
-    expect(loaderData).toEqual({ item, siteSettings, featuredMedia });
+    expect(keys).not.toContainEqual(["cms-snapshot"]);
+    expect(loaderData).toEqual({
+      item: {
+        id: item.id,
+        title: item.title,
+        slug: item.slug,
+        type: item.type,
+        summary: item.summary,
+        seoTitle: undefined,
+        seoDescription: undefined,
+        canonicalUrl: undefined,
+        publishAt: item.publishAt,
+        updatedAt: item.updatedAt,
+        category: undefined,
+        tags: undefined
+      },
+      featuredMedia
+    });
   });
 
   it("returns a JSON-safe 503 marker when Public prefetch fails instead of exposing the error object", async () => {

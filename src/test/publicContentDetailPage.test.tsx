@@ -48,6 +48,8 @@ vi.mock("../public/hooks/usePublicShellSnapshot", () => ({
 vi.mock("../public/hooks/usePublicContentDetail", () => ({
   usePublicContentDetail: () => ({
     data: currentDetail,
+    media: currentSnapshot?.media ?? [],
+    relatedItems: [],
     ...currentDetailQueryState
   })
 }));
@@ -150,7 +152,7 @@ describe("PublicContentDetailPage", () => {
       isFetching: false
     };
     currentDetailQueryState = {
-      isLoading: false,
+      isLoading: true,
       isFetching: false
     };
 

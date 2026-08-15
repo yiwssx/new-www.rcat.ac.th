@@ -34,6 +34,21 @@ jobs:
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: pnpm worker:typecheck
+
+      - name: Require clean production fixture sentinel
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 execute rcat-public-api-production \
+            --remote \
+            --file cloudflare/public-api/sql/production-fixture-audit.sql \
+            --json > "$RUNNER_TEMP/production-fixture-audit.json"
+          node scripts/check-production-fixture-audit.mjs \
+            --file "$RUNNER_TEMP/production-fixture-audit.json" \
+            --expect-clean
+
       - run: node cloudflare/public-api/scripts/worker-production-deploy.mjs
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

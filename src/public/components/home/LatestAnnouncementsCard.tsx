@@ -2,12 +2,12 @@ import { Box, Button, Card, CardContent, Chip, Divider, Stack, Typography } from
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import EmptyState from "../../../shared/components/EmptyState";
-import { ContentItem } from "../../../types";
+import { PublicContentCardItem } from "../../../types";
 import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
-function CompactAnnouncementList({ items, emptyTitle }: { items: ContentItem[]; emptyTitle: string }) {
+function CompactAnnouncementList({ items, emptyTitle }: { items: PublicContentCardItem[]; emptyTitle: string }) {
   if (!items.length) {
     return <EmptyState title={emptyTitle} icon={<CampaignOutlinedIcon />} />;
   }
@@ -57,7 +57,7 @@ function CompactAnnouncementList({ items, emptyTitle }: { items: ContentItem[]; 
   );
 }
 
-export function LatestAnnouncementsCard({ items }: { items: ContentItem[] }) {
+export function LatestAnnouncementsCard({ items }: { items: PublicContentCardItem[] }) {
   return (
     <Card id="announcements" className="rcat-card h-full">
       <CardContent sx={{ p: 2.5 }}>

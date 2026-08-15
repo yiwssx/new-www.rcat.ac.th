@@ -3,7 +3,7 @@ import Grid from "@mui/material/Grid";
 import { alpha } from "@mui/material/styles";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
-import type { ContentItem } from "../../../types";
+import type { PublicContentCardItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
 import { designTokens } from "../../../design-system/tokens";
 import SemanticStatusChip from "../../../design-system/components/SemanticStatusChip";
@@ -11,7 +11,7 @@ import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
-export function ProcurementNewsSection({ items }: { items: ContentItem[] }) {
+export function ProcurementNewsSection({ items }: { items: PublicContentCardItem[] }) {
   return (
     <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
       <HomeSectionHeading

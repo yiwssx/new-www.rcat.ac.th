@@ -312,10 +312,6 @@ describe("M17 Cloudflare Core public read routes", () => {
 
     expect(response.status).toBe(200);
     expect(payload).toMatchObject({
-      siteSettings: expect.any(Object),
-      homepageSettings: expect.any(Object),
-      displaySettings: expect.any(Object),
-      menu: expect.any(Array),
       carouselSlides: expect.any(Array),
       externalServices: expect.any(Array),
       visitorStats: expect.any(Object),
@@ -327,12 +323,16 @@ describe("M17 Cloudflare Core public read routes", () => {
       programItems: [expect.objectContaining({ slug: "sample-program", type: "program" })],
       documentItems: expect.any(Array),
       eventItems: expect.any(Array),
-      media: expect.any(Array),
-      sections: [expect.objectContaining({ id: "sample-home-section-001", key: "intro" })],
-      featuredContent: [expect.objectContaining({ slug: "sample-news" })],
-      featuredDocuments: [expect.objectContaining({ id: "sample-public-document-001" })],
-      programs: [expect.objectContaining({ slug: "sample-program" })]
+      media: expect.any(Array)
     });
+    expect(payload).not.toHaveProperty("siteSettings");
+    expect(payload).not.toHaveProperty("homepageSettings");
+    expect(payload).not.toHaveProperty("displaySettings");
+    expect(payload).not.toHaveProperty("menu");
+    expect(payload).not.toHaveProperty("sections");
+    expect(payload).not.toHaveProperty("featuredContent");
+    expect(payload).not.toHaveProperty("featuredDocuments");
+    expect(payload).not.toHaveProperty("programs");
     expect(payload.media).toEqual([
       expect.objectContaining({ id: "sample-media-001" }),
       expect.objectContaining({ id: "sample-media-002" })
@@ -371,7 +371,7 @@ describe("M17 Cloudflare Core public read routes", () => {
 
     expect(response.status).toBe(200);
     expect(payload.latestNews).toEqual([expect.objectContaining({ id: publishedNews.id })]);
-    expect(payload.featuredContent).toEqual([]);
+    expect(payload).not.toHaveProperty("featuredContent");
   });
 
   it("limits public home achievements to the latest six items", async () => {

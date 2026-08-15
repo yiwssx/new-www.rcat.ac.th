@@ -218,7 +218,14 @@ function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
   };
 }
 
-function createHomeSnapshot(overrides: Partial<PublicHomeSnapshot> = {}): PublicHomeSnapshot {
+type TestHomeSnapshot = PublicHomeSnapshot & {
+  siteSettings: NonNullable<CmsSnapshot["siteSettings"]>;
+  homepageSettings: NonNullable<CmsSnapshot["homepageSettings"]>;
+  displaySettings: NonNullable<CmsSnapshot["displaySettings"]>;
+  menu: NonNullable<CmsSnapshot["menu"]>;
+};
+
+function createHomeSnapshot(overrides: Partial<TestHomeSnapshot> = {}): TestHomeSnapshot {
   const snapshot = createSnapshot();
 
   return {
@@ -254,7 +261,7 @@ function createHomeSnapshot(overrides: Partial<PublicHomeSnapshot> = {}): Public
         youtubeEmbedUrl: ""
       }
     },
-    displaySettings: snapshot.displaySettings,
+    displaySettings: snapshot.displaySettings!,
     menu: snapshot.menu ?? [],
     carouselSlides: snapshot.carouselSlides ?? [],
     externalServices: snapshot.externalServices ?? [],
@@ -600,7 +607,7 @@ describe("public data-driven pages", () => {
     expect(document.body).not.toHaveTextContent("กำลังเชื่อมต่อระบบฐานข้อมูล");
     expect(screen.queryByText("ยังไม่มีเอกสารเผยแพร่")).not.toBeInTheDocument();
     expect(screen.getAllByText("CMS public site").length).toBeGreaterThan(0);
-    expect(usePublicCmsSnapshotMock.mock.calls.every(([options]) => options?.enabled === false)).toBe(true);
+    expect(usePublicCmsSnapshotMock).toHaveBeenCalledWith(undefined);
   });
 
   it("does not render mock document titles when no CMS content exists", async () => {
@@ -796,6 +803,18 @@ describe("public data-driven pages", () => {
 
   it("renders one shared marquee on the homepage", () => {
     currentHomeSnapshot = createHomeSnapshot({
+      homepageSettings: {
+        ...createHomeSnapshot().homepageSettings,
+        marquee: {
+          enabled: true,
+          label: "ประกาศ",
+          text: "ประกาศสำหรับทุกหน้า",
+          speedSeconds: 60
+        }
+      }
+    });
+
+    currentSnapshot = createSnapshot({
       homepageSettings: {
         ...createHomeSnapshot().homepageSettings,
         marquee: {
@@ -1727,6 +1746,21 @@ describe("public data-driven pages", () => {
         onlineUsers: 7,
         updatedAt: "2026-05-10T00:00:00.000Z"
       },
+      siteSettings: {
+        ...baseSiteSettings,
+        heroTitle: "ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง",
+        directorTitle: "สารจากผู้อำนวยการ",
+        directorName: "ผู้อำนวยการตัวอย่าง",
+        directorDescription: "มุ่งพัฒนาผู้เรียนสู่อาชีพ",
+        campus: "วิทยาลัยเทคนิคตัวอย่าง",
+        address: "1 ถนนการศึกษา",
+        phone: "02-000-0000",
+        mapUrl: "https://www.google.com/maps/place/example",
+        mapEmbedUrl: "https://www.google.com/maps/embed?pb=test"
+      }
+    });
+
+    currentSnapshot = createSnapshot({
       siteSettings: {
         ...baseSiteSettings,
         heroTitle: "ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง",

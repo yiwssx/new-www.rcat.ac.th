@@ -24,8 +24,7 @@ const PUBLIC_SSR_QUERY_KEY_ROOTS = new Set([
   "public-document-list",
   "public-event-list",
   "public-search-index",
-  "content-detail",
-  "cms-snapshot"
+  "content-detail"
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {

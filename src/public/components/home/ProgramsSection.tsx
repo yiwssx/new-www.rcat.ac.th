@@ -1,12 +1,12 @@
 import { Box } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import { ContentItem, MediaAsset } from "../../../types";
+import { MediaAsset, PublicContentCardItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
 import PublicContentCard from "../PublicContentCard";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
-export function ProgramsSection({ items, mediaAssets }: { items: ContentItem[]; mediaAssets: MediaAsset[] }) {
+export function ProgramsSection({ items, mediaAssets }: { items: PublicContentCardItem[]; mediaAssets: MediaAsset[] }) {
   return (
     <Box component="section" id="departments" sx={{ mt: { xs: 4, md: 5.5 } }}>
       <HomeSectionHeading label="แผนกวิชา" title="แผนกวิชาที่เปิดสอน" />

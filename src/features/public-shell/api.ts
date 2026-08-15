@@ -10,17 +10,20 @@ export async function getPublicShellSnapshot(options: PublicReadRequestOptions =
   try {
     return await getPublicShellSnapshotFromCloudflare(options);
   } catch (error) {
+    // Deployment-order bridge only: an older Worker can still expose shell fields
+    // through its pre-P5 home contract. The P5 Worker owns these fields exclusively
+    // at /api/public/shell, so this path disappears naturally after cutover.
     if (!isCloudflarePublicApiNotFoundError(error)) {
       throw error;
     }
 
-    const home = await getPublicHomeSnapshotFromCloudflare(options);
+    const legacyHome = (await getPublicHomeSnapshotFromCloudflare(options)) as unknown as PublicShellSnapshot;
     return {
-      siteSettings: home.siteSettings,
-      homepageSettings: home.homepageSettings,
-      displaySettings: home.displaySettings,
-      menu: home.menu,
-      generatedAt: home.generatedAt
+      siteSettings: legacyHome.siteSettings,
+      homepageSettings: legacyHome.homepageSettings,
+      displaySettings: legacyHome.displaySettings,
+      menu: legacyHome.menu,
+      generatedAt: legacyHome.generatedAt
     };
   }
 }

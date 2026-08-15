@@ -38,7 +38,6 @@ import {
   PublicContentDetailSnapshot,
   PublicContentListSnapshot,
   PublicDocumentListSnapshot,
-  PublicHomeSnapshot,
   PublicProgramListSnapshot,
   PublicSearchIndexSnapshot
 } from "../types";
@@ -263,7 +262,7 @@ describe("publicCmsCache", () => {
       media: [],
       events: []
     };
-    const homeSnapshot: PublicHomeSnapshot = {
+    const homeSnapshot = {
       siteSettings: {
         siteName: "Test site",
         eyebrow: "",
