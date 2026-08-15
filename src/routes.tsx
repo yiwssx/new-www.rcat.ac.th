@@ -260,7 +260,11 @@ const adminRoute = createRoute({
 const adminDashboardRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "/",
-  component: DashboardPage
+  component: () => (
+    <CapabilityGuard capability="dashboard.read">
+      <DashboardPage />
+    </CapabilityGuard>
+  )
 });
 
 const adminContentRoute = createRoute({
@@ -269,46 +273,6 @@ const adminContentRoute = createRoute({
   component: () => (
     <CapabilityGuard capability="content.read">
       <ContentPage />
-    </CapabilityGuard>
-  )
-});
-
-const adminMediaRoute = createRoute({
-  getParentRoute: () => adminRoute,
-  path: "media",
-  component: () => (
-    <CapabilityGuard capability="media.read">
-      <MediaPage />
-    </CapabilityGuard>
-  )
-});
-
-const adminMenuRoute = createRoute({
-  getParentRoute: () => adminRoute,
-  path: "menu",
-  component: () => (
-    <CapabilityGuard capability="menu.read">
-      <MenuPage />
-    </CapabilityGuard>
-  )
-});
-
-const adminCarouselRoute = createRoute({
-  getParentRoute: () => adminRoute,
-  path: "carousel",
-  component: () => (
-    <CapabilityGuard capability="carousel.read">
-      <CarouselPage />
-    </CapabilityGuard>
-  )
-});
-
-const adminCalendarRoute = createRoute({
-  getParentRoute: () => adminRoute,
-  path: "calendar",
-  component: () => (
-    <CapabilityGuard capability="calendar.read">
-      <CalendarPage />
     </CapabilityGuard>
   )
 });
@@ -323,32 +287,12 @@ const adminDocumentsRoute = createRoute({
   )
 });
 
-const adminUsersRoute = createRoute({
+const adminCarouselRoute = createRoute({
   getParentRoute: () => adminRoute,
-  path: "users",
+  path: "carousel",
   component: () => (
-    <CapabilityGuard capability="users.read">
-      <UsersPage />
-    </CapabilityGuard>
-  )
-});
-
-const adminSettingsRoute = createRoute({
-  getParentRoute: () => adminRoute,
-  path: "settings",
-  component: () => (
-    <CapabilityGuard capability="settings.read">
-      <SettingsPage />
-    </CapabilityGuard>
-  )
-});
-
-const adminIntegrationsRoute = createRoute({
-  getParentRoute: () => adminRoute,
-  path: "integrations",
-  component: () => (
-    <CapabilityGuard capability="integrations.read">
-      <IntegrationsPage />
+    <CapabilityGuard capability="carousel.read">
+      <CarouselPage />
     </CapabilityGuard>
   )
 });
@@ -363,11 +307,71 @@ const adminExternalServicesRoute = createRoute({
   )
 });
 
+const adminMediaRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "media",
+  component: () => (
+    <CapabilityGuard capability="media.read">
+      <MediaPage />
+    </CapabilityGuard>
+  )
+});
+
+const adminCalendarRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "calendar",
+  component: () => (
+    <CapabilityGuard capability="events.read">
+      <CalendarPage />
+    </CapabilityGuard>
+  )
+});
+
+const adminMenuRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "menus",
+  component: () => (
+    <CapabilityGuard capability="menu.read">
+      <MenuPage />
+    </CapabilityGuard>
+  )
+});
+
+const adminIntegrationsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "integrations",
+  component: () => (
+    <CapabilityGuard capability="media.read">
+      <IntegrationsPage />
+    </CapabilityGuard>
+  )
+});
+
+const adminSettingsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "settings",
+  component: () => (
+    <CapabilityGuard capability="settings.read">
+      <SettingsPage />
+    </CapabilityGuard>
+  )
+});
+
+const adminUsersRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "users",
+  component: () => (
+    <CapabilityGuard capability="users.read-all">
+      <UsersPage />
+    </CapabilityGuard>
+  )
+});
+
 const adminBackupRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "backup",
   component: () => (
-    <CapabilityGuard capability="backup.read">
+    <CapabilityGuard anyOf={["backup.counts", "backup.download"]}>
       <BackupPage />
     </CapabilityGuard>
   )
@@ -375,8 +379,14 @@ const adminBackupRoute = createRoute({
 
 const adminAccountSecurityRoute = createRoute({
   getParentRoute: () => adminRoute,
-  path: "account-security",
-  component: AccountSecurityPage
+  path: "account/security",
+  component: () => (
+    <CapabilityGuard
+      anyOf={["users.read-self", "auth.change-password-self", "auth.reauthenticate-self", "auth.mfa.manage-self"]}
+    >
+      <AccountSecurityPage />
+    </CapabilityGuard>
+  )
 });
 
 const routeTree = rootRoute.addChildren([
@@ -403,48 +413,37 @@ const routeTree = rootRoute.addChildren([
     adminRoute.addChildren([
       adminDashboardRoute,
       adminContentRoute,
-      adminMediaRoute,
-      adminMenuRoute,
-      adminCarouselRoute,
-      adminCalendarRoute,
       adminDocumentsRoute,
-      adminUsersRoute,
-      adminSettingsRoute,
-      adminIntegrationsRoute,
+      adminCarouselRoute,
       adminExternalServicesRoute,
+      adminMediaRoute,
+      adminCalendarRoute,
+      adminMenuRoute,
+      adminIntegrationsRoute,
+      adminSettingsRoute,
+      adminUsersRoute,
       adminBackupRoute,
       adminAccountSecurityRoute
     ])
   ])
 ]);
 
-export function createAppRouter(input: CreateAppRouterInput) {
-  const router = createRouter({
+export function createAppRouter({ queryClient, documentMode = false }: CreateAppRouterInput) {
+  return createRouter({
     routeTree,
-    context: {
-      queryClient: input.queryClient,
-      documentMode: input.documentMode ?? false
-    },
+    context: { queryClient, documentMode },
     defaultPreload: "intent",
-    defaultPreloadStaleTime: 30_000,
-    defaultPendingMs: 150,
-    defaultPendingMinMs: 250,
-    defaultNotFoundComponent: NotFoundPage
+    dehydrate: () => dehydrateAppQueryClient(queryClient),
+    hydrate: (dehydrated) => {
+      hydrateAppQueryClient(queryClient, dehydrated);
+    }
   });
-
-  return router;
 }
 
-export function hydrateAppRouterQueryClient(queryClient: QueryClient, dehydratedState: unknown) {
-  hydrateAppQueryClient(queryClient, dehydratedState);
-}
-
-export function dehydrateAppRouterQueryClient(queryClient: QueryClient) {
-  return dehydrateAppQueryClient(queryClient);
-}
+export type AppRouter = ReturnType<typeof createAppRouter>;
 
 declare module "@tanstack/react-router" {
   interface Register {
-    router: ReturnType<typeof createAppRouter>;
+    router: AppRouter;
   }
 }
