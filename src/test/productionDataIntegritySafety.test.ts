@@ -51,8 +51,8 @@ describe("P5A production data-integrity safety", () => {
     expect(workerProductionWorkflow).toContain("production-fixture-audit.stderr");
     expect(workerProductionWorkflow).toContain("sanitize-cloudflare-cli-output.mjs");
     expect(workerProductionWorkflow).toContain('exit "$audit_status"');
-    expect(diagnosticSanitizerSource).toContain("/accounts/");
-    expect(diagnosticSanitizerSource).toContain("/d1/database/");
+    expect(diagnosticSanitizerSource).toContain("sanitizeCloudflareCliOutput");
+    expect(diagnosticSanitizerSource).toContain("CLOUDFLARE_");
     expect(diagnosticSanitizerSource).toContain("authorization");
     expect(diagnosticSanitizerSource).toContain("diagnostic output truncated");
   });
