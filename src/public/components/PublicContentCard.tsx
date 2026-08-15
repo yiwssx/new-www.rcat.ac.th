@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
-import { ContentItem, MediaAsset } from "../../types";
+import { MediaAsset, PublicContentCardItem } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { isFacebookEmbedContent } from "../../utils/facebookContent";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
@@ -10,7 +10,7 @@ import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { interactiveSurfaceSx } from "../../design-system/componentStyles";
 
 interface PublicContentCardProps {
-  item: ContentItem;
+  item: PublicContentCardItem;
   mediaAssets?: MediaAsset[];
   icon?: ReactNode;
   featured?: boolean;
