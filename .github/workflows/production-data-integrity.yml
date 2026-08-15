@@ -1,0 +1,162 @@
+name: Production Data Integrity
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Audit exact local/dev fixtures or remove only the confirmed exact fixture rows"
+        required: true
+        type: choice
+        default: audit
+        options:
+          - audit
+          - cleanup
+      cleanup_confirmation:
+        description: "For cleanup only, enter DELETE_CONFIRMED_LOCAL_FIXTURES_ONLY"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  production-fixture-integrity:
+    name: Production Fixture Integrity
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Require protected Cloudflare credentials
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || {
+            echo "CLOUDFLARE_ACCOUNT_ID is unavailable from the protected production environment." >&2
+            exit 1
+          }
+          test -n "$CLOUDFLARE_API_TOKEN" || {
+            echo "CLOUDFLARE_API_TOKEN is unavailable from the protected production environment." >&2
+            exit 1
+          }
+
+      - name: Resolve exact production D1 name
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-databases.json", "utf8"));
+            if (!Array.isArray(value)) throw new Error("unexpected D1 list response shape");
+            const matches = value.filter((database) => database?.name === "rcat-public-api-production");
+            if (matches.length !== 1) throw new Error(`expected exactly one rcat-public-api-production database, found ${matches.length}`);
+            if (matches[0]?.name === "rcat-public-api-preview") throw new Error("preview database resolved as production target");
+            console.log("Exact production D1 name resolved in the protected Cloudflare account.");
+          '
+
+      - name: Capture pre-change Time Travel bookmark
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 time-travel info rcat-public-api-production --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-time-travel.json", "utf8"));
+            const metadata = Array.isArray(value) ? value[0] : value;
+            if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) {
+              throw new Error("production Time Travel bookmark was not returned");
+            }
+            console.log("Pre-change production Time Travel bookmark resolved and retained only in runner temp storage.");
+          '
+
+      - name: Audit exact local/dev fixtures
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 execute rcat-public-api-production \
+            --remote \
+            --file cloudflare/public-api/sql/production-fixture-audit.sql \
+            --json > "$RUNNER_TEMP/production-fixture-audit.json"
+          node scripts/check-production-fixture-audit.mjs --file "$RUNNER_TEMP/production-fixture-audit.json"
+
+      - name: Require exact cleanup confirmation
+        if: ${{ inputs.mode == 'cleanup' }}
+        shell: bash
+        env:
+          CLEANUP_CONFIRMATION: ${{ inputs.cleanup_confirmation }}
+        run: |
+          test "$CLEANUP_CONFIRMATION" = "DELETE_CONFIRMED_LOCAL_FIXTURES_ONLY" || {
+            echo "Cleanup confirmation does not match the required exact phrase." >&2
+            exit 1
+          }
+
+      - name: Delete only confirmed exact fixture rows
+        if: ${{ inputs.mode == 'cleanup' }}
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 execute rcat-public-api-production \
+            --remote \
+            --file cloudflare/public-api/sql/production-fixture-cleanup.sql
+
+      - name: Verify production fixture sentinel is clean
+        if: ${{ inputs.mode == 'cleanup' }}
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 execute rcat-public-api-production \
+            --remote \
+            --file cloudflare/public-api/sql/production-fixture-audit.sql \
+            --json > "$RUNNER_TEMP/production-fixture-post-audit.json"
+          node scripts/check-production-fixture-audit.mjs \
+            --file "$RUNNER_TEMP/production-fixture-post-audit.json" \
+            --expect-clean
+
+      - name: Integrity summary
+        shell: bash
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          {
+            echo "## Production Data Integrity"
+            echo
+            echo "- Target: rcat-public-api-production (resolved by exact account-scoped name)"
+            echo "- Mode: $MODE"
+            echo "- Pre-change Time Travel bookmark: verified; value not printed"
+            echo "- Audit scope: exact local/dev fixtures from public-read-core.seed.sql"
+            echo "- Wildcard deletes: none"
+            if [[ "$MODE" == "cleanup" ]]; then
+              echo "- Cleanup: exact guarded deletes only"
+              echo "- Post-cleanup sentinel: required clean"
+            else
+              echo "- Cleanup: not executed"
+            fi
+            echo "- Time Travel restore: not executed"
+          } >> "$GITHUB_STEP_SUMMARY"
