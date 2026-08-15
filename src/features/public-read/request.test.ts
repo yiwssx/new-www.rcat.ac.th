@@ -64,6 +64,30 @@ describe("public read request taxonomy", () => {
     });
   });
 
+  it("keeps the deadline active while the response body is being parsed", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.test");
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const signal = init?.signal;
+
+      return {
+        ok: true,
+        json: () =>
+          new Promise((_resolve, reject) => {
+            signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+          })
+      } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const request = getPublicJson("/api/public/home", "public-home", { timeoutMs: 25 });
+    await vi.advanceTimersByTimeAsync(25);
+    const error = await request.catch((caught) => caught);
+
+    expect(isPublicReadTimeoutError(error)).toBe(true);
+    expect(error).toMatchObject({ kind: "timeout", resource: "public-home" });
+  });
+
   it("uses a four-second default deadline for public reads", () => {
     expect(PUBLIC_READ_DEFAULT_TIMEOUT_MS).toBe(4_000);
   });
