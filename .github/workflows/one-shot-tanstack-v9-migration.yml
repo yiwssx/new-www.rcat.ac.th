@@ -86,6 +86,22 @@ jobs:
               raise SystemExit('Unable to find columns dependency-array boundary')
           text = text[:tail_index] + columns_tail_replacement + text[tail_index + len(columns_tail):]
 
+          effect_target = '  useEffect(() => {\n    setDraftRecovery(readContentDraftRecovery(ownerUserId));\n  }, [ownerUserId]);'
+          effect_replacement = '''  useEffect(() => {
+            // This effect intentionally rehydrates owner-scoped recovery state when the authenticated owner changes.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setDraftRecovery(readContentDraftRecovery(ownerUserId));
+          }, [ownerUserId]);'''.replace('          ', '')
+          if text.count(effect_target) != 1:
+              raise SystemExit(f'Expected exactly one owner recovery effect, found {text.count(effect_target)}')
+          text = text.replace(effect_target, effect_replacement, 1)
+
+          callback_deps = '[canDelete, contentListQuery.data?.pagination, contentWritePending, deleteMutation, page, setListState, queryClient]'
+          callback_deps_replacement = '[canDelete, contentListQuery.data, contentWritePending, deleteMutation, page, setListState, queryClient]'
+          if text.count(callback_deps) != 1:
+              raise SystemExit(f'Expected exactly one delete callback dependency list, found {text.count(callback_deps)}')
+          text = text.replace(callback_deps, callback_deps_replacement, 1)
+
           path.write_text(text)
           PY
 
@@ -95,8 +111,9 @@ jobs:
       - name: Refresh dependency status document
         run: pnpm deps:status
 
-      - name: Verify build and performance budget
+      - name: Verify strict lint, build, and performance budget
         run: |
+          pnpm lint:strict
           pnpm build
           pnpm perf:check
 
