@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { notFound, redirect } from "@tanstack/react-router";
-import type { ContentItem, MediaAsset, PublicContentListKind, SiteSettings } from "../../types";
+import type { ContentItem, MediaAsset, PublicContentListKind } from "../../types";
 import {
   createPublicRouteLoadFailure,
   isPublicRouteLoadFailure,
@@ -12,9 +12,24 @@ export interface PublicRouteLoaderContext {
   queryClient: QueryClient;
 }
 
+export type PublicContentHeadItem = Pick<
+  ContentItem,
+  | "id"
+  | "title"
+  | "slug"
+  | "type"
+  | "summary"
+  | "seoTitle"
+  | "seoDescription"
+  | "canonicalUrl"
+  | "publishAt"
+  | "updatedAt"
+  | "category"
+  | "tags"
+>;
+
 export interface PublicContentDetailLoaderData {
-  item: ContentItem;
-  siteSettings: SiteSettings | undefined;
+  item: PublicContentHeadItem;
   featuredMedia: MediaAsset | undefined;
 }
 
@@ -37,6 +52,11 @@ async function ensurePublicQuery<T>(prefetch: () => Promise<T>): Promise<T | Pub
   } catch {
     return createPublicRouteLoadFailure();
   }
+}
+
+async function prefetchPublicQuery<T>(prefetch: () => Promise<T>): Promise<PublicRouteLoadFailure | undefined> {
+  const result = await ensurePublicQuery(prefetch);
+  return isPublicRouteLoadFailure(result) ? result : undefined;
 }
 
 function hasArchiveFilters(search: Record<string, unknown>) {
@@ -66,17 +86,26 @@ function resolveContentArchivePageInput(
 
 export async function loadPublicShellData(context: PublicRouteLoaderContext) {
   const { publicShellQueryOptions } = await import("../../features/public-shell");
-  return ensurePublicQuery(() => context.queryClient.ensureQueryData(publicShellQueryOptions()));
+  const result = await ensurePublicQuery(() => context.queryClient.ensureQueryData(publicShellQueryOptions()));
+
+  if (isPublicRouteLoadFailure(result)) {
+    return result;
+  }
+
+  return {
+    siteSettings: result.siteSettings
+  };
 }
 
 export async function loadPublicHomeData(context: PublicRouteLoaderContext) {
   const { publicHomeQueryOptions } = await import("../../features/public-home");
-  return ensurePublicQuery(() => context.queryClient.ensureQueryData(publicHomeQueryOptions()));
+  return prefetchPublicQuery(() => context.queryClient.ensureQueryData(publicHomeQueryOptions()));
 }
 
-export async function loadPublicCmsSnapshotData(context: PublicRouteLoaderContext) {
-  const { publicCmsSnapshotQueryOptions } = await import("../../features/public-read/cmsSnapshot");
-  return ensurePublicQuery(() => context.queryClient.ensureQueryData(publicCmsSnapshotQueryOptions()));
+export async function loadPublicCmsSnapshotData() {
+  // Retained temporarily for route compatibility. Public pages should use the
+  // parent shell query or their route-specific public query instead of a CMS-wide snapshot.
+  return undefined;
 }
 
 export async function loadPublicContentListData(
@@ -87,29 +116,29 @@ export async function loadPublicContentListData(
 ) {
   const { publicContentListQueryOptions } = await import("../../features/public-content");
   const resolvedPageInput = resolveContentArchivePageInput(pageInput);
-  return ensurePublicQuery(() =>
+  return prefetchPublicQuery(() =>
     context.queryClient.ensureQueryData(publicContentListQueryOptions(kind, {}, pageItemsInput, resolvedPageInput))
   );
 }
 
 export async function loadPublicProgramListData(context: PublicRouteLoaderContext) {
   const { publicProgramListQueryOptions } = await import("../../features/public-programs");
-  return ensurePublicQuery(() => context.queryClient.ensureQueryData(publicProgramListQueryOptions()));
+  return prefetchPublicQuery(() => context.queryClient.ensureQueryData(publicProgramListQueryOptions()));
 }
 
 export async function loadPublicDocumentListData(context: PublicRouteLoaderContext) {
   const { publicDocumentListQueryOptions } = await import("../../features/public-documents");
-  return ensurePublicQuery(() => context.queryClient.ensureQueryData(publicDocumentListQueryOptions()));
+  return prefetchPublicQuery(() => context.queryClient.ensureQueryData(publicDocumentListQueryOptions()));
 }
 
 export async function loadPublicEventListData(context: PublicRouteLoaderContext) {
   const { publicEventListQueryOptions } = await import("../../features/public-events");
-  return ensurePublicQuery(() => context.queryClient.ensureQueryData(publicEventListQueryOptions()));
+  return prefetchPublicQuery(() => context.queryClient.ensureQueryData(publicEventListQueryOptions()));
 }
 
 export async function loadPublicSearchIndexData(context: PublicRouteLoaderContext) {
   const { publicSearchIndexQueryOptions } = await import("../../features/public-search");
-  return ensurePublicQuery(() => context.queryClient.ensureQueryData(publicSearchIndexQueryOptions()));
+  return prefetchPublicQuery(() => context.queryClient.ensureQueryData(publicSearchIndexQueryOptions()));
 }
 
 export async function loadPublicSearchResultsData(
@@ -123,7 +152,7 @@ export async function loadPublicSearchResultsData(
 
   const page = normalizePublicPageSearchValue(input.page) ?? 1;
   const { publicSearchPageQueryOptions } = await import("../../features/public-search");
-  return ensurePublicQuery(() =>
+  return prefetchPublicQuery(() =>
     context.queryClient.ensureQueryData(
       publicSearchPageQueryOptions(query, {
         page,
@@ -131,6 +160,23 @@ export async function loadPublicSearchResultsData(
       })
     )
   );
+}
+
+function createContentHeadItem(item: ContentItem): PublicContentHeadItem {
+  return {
+    id: item.id,
+    title: item.title,
+    slug: item.slug,
+    type: item.type,
+    summary: item.summary,
+    seoTitle: item.seoTitle,
+    seoDescription: item.seoDescription,
+    canonicalUrl: item.canonicalUrl,
+    publishAt: item.publishAt,
+    updatedAt: item.updatedAt,
+    category: item.category,
+    tags: item.tags
+  };
 }
 
 export async function loadPublicContentDetailData(
@@ -142,10 +188,9 @@ export async function loadPublicContentDetailData(
   }
 
   const { publicContentDetailQueryOptions } = await import("../../features/public-content");
-  const [detailResult, cmsSnapshotResult] = await Promise.all([
-    ensurePublicQuery(() => context.queryClient.ensureQueryData(publicContentDetailQueryOptions(slug))),
-    loadPublicCmsSnapshotData(context)
-  ]);
+  const detailResult = await ensurePublicQuery(() =>
+    context.queryClient.ensureQueryData(publicContentDetailQueryOptions(slug))
+  );
 
   if (isPublicRouteLoadFailure(detailResult)) {
     return detailResult;
@@ -155,23 +200,14 @@ export async function loadPublicContentDetailData(
     throw notFound({ data: { resource: "content", slug } });
   }
 
-  if (isPublicRouteLoadFailure(cmsSnapshotResult)) {
-    return cmsSnapshotResult;
-  }
-
   const item = detailResult.item;
   const featuredMediaId = item.featuredMediaId;
-  const detailFeaturedMedia = featuredMediaId
+  const featuredMedia = featuredMediaId
     ? detailResult.media.find((asset) => asset.id === featuredMediaId && asset.type === "image")
     : undefined;
-  const snapshotFeaturedMedia = featuredMediaId
-    ? cmsSnapshotResult?.media.find((asset) => asset.id === featuredMediaId && asset.type === "image")
-    : undefined;
-  const featuredMedia = detailFeaturedMedia ?? snapshotFeaturedMedia;
 
   return {
-    item,
-    siteSettings: cmsSnapshotResult?.siteSettings,
+    item: createContentHeadItem(item),
     featuredMedia
   };
 }
