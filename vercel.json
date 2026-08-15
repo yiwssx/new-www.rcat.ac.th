@@ -83,6 +83,10 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/api/csp-report",
+      "destination": "/api/complaint?_rcatComplaintRoute=csp-report"
+    },
+    {
       "source": "/api/cms-auth/login",
       "destination": "/api/cms-auth?_rcatCmsRoute=login"
     },
