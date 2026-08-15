@@ -102,12 +102,12 @@ jobs:
               raise SystemExit(f'Expected exactly one delete callback dependency list, found {text.count(callback_deps)}')
           text = text.replace(callback_deps, callback_deps_replacement, 1)
 
-          obsolete_table_lint = '''  // TanStack Table intentionally returns instance functions that React Compiler cannot memoize safely.
-          // eslint-disable-next-line react-hooks/incompatible-library
-          '''.replace('          ', '')
-          if text.count(obsolete_table_lint) != 1:
-              raise SystemExit(f'Expected exactly one obsolete table lint suppression, found {text.count(obsolete_table_lint)}')
-          text = text.replace(obsolete_table_lint, '', 1)
+          obsolete_pattern = re.compile(
+              r'\n\s*// TanStack Table intentionally returns instance functions that React Compiler cannot memoize safely\.\n\s*// eslint-disable-next-line react-hooks/incompatible-library\n'
+          )
+          text, count = obsolete_pattern.subn('\n', text, count=1)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one obsolete table lint suppression, found {count}')
 
           path.write_text(text)
           PY
