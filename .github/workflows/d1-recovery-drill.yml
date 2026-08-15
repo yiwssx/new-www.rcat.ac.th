@@ -1,0 +1,92 @@
+name: D1 Recovery Drill
+
+on:
+  workflow_dispatch:
+    inputs:
+      acknowledge_non_production:
+        description: "Confirm this drill must remain read-only and preview-only"
+        required: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  preview-readiness:
+    name: Preview Time Travel Readiness
+    if: ${{ inputs.acknowledge_non_production == true }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Guard destructive commands
+        shell: bash
+        run: |
+          if grep -nE 'pnpm[[:space:]]+wrangler[[:space:]]+d1[[:space:]]+time-travel[[:space:]]+restore' .github/workflows/d1-recovery-drill.yml; then
+            echo "Recovery drill workflow must never contain restore commands." >&2
+            exit 1
+          fi
+
+      - name: Inspect preview D1 metadata
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 info rcat-public-api-preview \
+            --config cloudflare/public-api/wrangler.toml \
+            --env preview \
+            --json > "$RUNNER_TEMP/d1-preview-info.json"
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-preview-info.json", "utf8"));
+            const metadata = Array.isArray(value) ? value[0] : value;
+            const text = JSON.stringify(value);
+            if (text.includes("rcat-public-api-production")) throw new Error("production database appeared in preview drill output");
+            if (metadata?.version !== "production") throw new Error("preview D1 must use the production storage backend for Time Travel");
+            console.log("Preview D1 production storage backend resolved without production database target.");
+          '
+
+      - name: Resolve preview Time Travel bookmark
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 time-travel info rcat-public-api-preview \
+            --config cloudflare/public-api/wrangler.toml \
+            --env preview \
+            --json > "$RUNNER_TEMP/d1-preview-time-travel.json"
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-preview-time-travel.json", "utf8"));
+            const text = JSON.stringify(value);
+            if (text.includes("rcat-public-api-production")) throw new Error("production database appeared in preview drill output");
+            console.log("Preview Time Travel metadata resolved. No restore was executed.");
+          '
+
+      - name: Drill summary
+        shell: bash
+        run: |
+          {
+            echo "## D1 Recovery Drill"
+            echo
+            echo "- Target: rcat-public-api-preview"
+            echo "- Backend: production storage subsystem required"
+            echo "- Mode: read-only metadata / Time Travel bookmark resolution"
+            echo "- Production restore: not present in this workflow"
+            echo "- Production D1 write: none"
+          } >> "$GITHUB_STEP_SUMMARY"

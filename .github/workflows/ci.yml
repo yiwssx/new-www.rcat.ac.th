@@ -134,6 +134,7 @@ jobs:
       - run: pnpm media:check
       - run: pnpm layout:check
       - run: pnpm design:check
+      - run: node scripts/check-csp-enforcement-readiness.mjs
 
   worker:
     name: Worker
