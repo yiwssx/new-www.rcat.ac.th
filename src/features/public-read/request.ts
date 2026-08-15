@@ -1,12 +1,22 @@
 import { buildCloudflarePublicApiUrl } from "../../config/publicApiProvider";
 import { isAbortLikeError, PublicReadError } from "./errors";
 
+export const PUBLIC_READ_DEFAULT_TIMEOUT_MS = 4_000;
+const PUBLIC_READ_MAX_TIMEOUT_MS = 60_000;
+
 export interface PublicReadRequestOptions {
   signal?: AbortSignal;
+  timeoutMs?: number;
 }
 
 interface PublicJsonRequestOptions extends PublicReadRequestOptions {
   httpErrorMessage?: "backend" | "generic";
+}
+
+interface RequestDeadline {
+  signal: AbortSignal;
+  didTimeout: () => boolean;
+  cleanup: () => void;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -25,12 +35,46 @@ function readErrorDetail(payload: unknown) {
   };
 }
 
+function normalizeTimeoutMs(value: number | undefined) {
+  if (value === undefined) return PUBLIC_READ_DEFAULT_TIMEOUT_MS;
+  if (!Number.isFinite(value) || value <= 0) return PUBLIC_READ_DEFAULT_TIMEOUT_MS;
+  return Math.min(Math.floor(value), PUBLIC_READ_MAX_TIMEOUT_MS);
+}
+
+function createRequestDeadline(parentSignal: AbortSignal | undefined, timeoutMs: number): RequestDeadline {
+  const controller = new AbortController();
+  let timedOut = false;
+
+  const abortFromParent = () => controller.abort();
+  if (parentSignal?.aborted) {
+    abortFromParent();
+  } else {
+    parentSignal?.addEventListener("abort", abortFromParent, { once: true });
+  }
+
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
+  return {
+    signal: controller.signal,
+    didTimeout: () => timedOut,
+    cleanup: () => {
+      clearTimeout(timeoutId);
+      parentSignal?.removeEventListener("abort", abortFromParent);
+    }
+  };
+}
+
 export async function getPublicJson(
   path: string,
   resource: string,
   options: PublicJsonRequestOptions = {}
 ): Promise<Record<string, unknown>> {
   const url = buildCloudflarePublicApiUrl(path);
+  const timeoutMs = normalizeTimeoutMs(options.timeoutMs);
+  const deadline = createRequestDeadline(options.signal, timeoutMs);
   let response: Response;
 
   try {
@@ -39,10 +83,18 @@ export async function getPublicJson(
       headers: {
         Accept: "application/json"
       },
-      signal: options.signal
+      signal: deadline.signal
     });
   } catch (error) {
-    if (isAbortLikeError(error) || options.signal?.aborted) {
+    if (deadline.didTimeout()) {
+      throw new PublicReadError(`Cloudflare ${resource} request timed out after ${timeoutMs}ms`, {
+        kind: "timeout",
+        resource,
+        cause: error
+      });
+    }
+
+    if (isAbortLikeError(error) || options.signal?.aborted || deadline.signal.aborted) {
       throw new PublicReadError(`Cloudflare ${resource} request was aborted`, {
         kind: "aborted",
         resource,
@@ -55,6 +107,8 @@ export async function getPublicJson(
       resource,
       cause: error
     });
+  } finally {
+    deadline.cleanup();
   }
 
   if (!response.ok) {
