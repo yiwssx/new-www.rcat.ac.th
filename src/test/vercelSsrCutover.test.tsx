@@ -11,6 +11,7 @@ import {
 } from "../vercelSsr";
 
 const generatedAt = "2026-08-04T06:00:00.000Z";
+const representativeSsrDocumentBudgetBytes = 192 * 1024;
 const siteSettings = {
   siteName: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
   eyebrow: "RCAT",
@@ -76,12 +77,12 @@ const publishedSummary = {
   status: "published",
   owner: "งานประชาสัมพันธ์",
   summary: "ข่าวสำหรับตรวจ production SSR cutover",
-  updatedAt: "2026-08-04T05:30:00.000Z",
   publishAt: "2026-08-04T05:00:00.000Z"
 };
 
 const publishedItem = {
   ...publishedSummary,
+  updatedAt: "2026-08-04T05:30:00.000Z",
   body: "เนื้อหาที่ crawler ต้องเห็นโดยไม่ใช้ JavaScript"
 };
 
@@ -97,7 +98,6 @@ function createShellPayload() {
 
 function createHomePayload() {
   return {
-    ...createShellPayload(),
     carouselSlides: [],
     externalServices: [],
     visitorStats: {
@@ -119,7 +119,8 @@ function createHomePayload() {
     programItems: [],
     documentItems: [],
     eventItems: [],
-    media: []
+    media: [],
+    generatedAt
   };
 }
 
@@ -138,7 +139,7 @@ function stubPublicApi() {
       }
 
       if (url.pathname === "/api/public/content/published-news") {
-        return Response.json({ item: publishedItem, media: [], generatedAt });
+        return Response.json({ item: publishedItem, media: [], relatedItems: [], generatedAt });
       }
 
       if (url.pathname === "/api/public/search") {
@@ -181,11 +182,14 @@ describe("Vercel Public SSR production cutover", () => {
     );
   });
 
-  it("returns a complete no-JavaScript document with semantic content and hydration assets", async () => {
+  it("returns a bounded no-JavaScript detail document without loading the home snapshot", async () => {
     const response = await renderVercelPublicSsrRequest(
       new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/content/published-news")
     );
     const html = await response.text();
+    const requestedPaths = vi.mocked(globalThis.fetch).mock.calls.map(([input]) =>
+      new URL(input instanceof Request ? input.url : String(input)).pathname
+    );
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe(PUBLIC_SSR_BROWSER_CACHE_CONTROL);
@@ -201,6 +205,10 @@ describe("Vercel Public SSR production cutover", () => {
     expect(html).toContain("/assets/index-vitest-a1b2c3.js");
     expect(html).toContain('data-rcat-client-entry="true"');
     expect(html).toContain("application/ld+json");
+    expect(Buffer.byteLength(html, "utf8")).toBeLessThanOrEqual(representativeSsrDocumentBudgetBytes);
+    expect(requestedPaths).toContain("/api/public/shell");
+    expect(requestedPaths).toContain("/api/public/content/published-news");
+    expect(requestedPaths).not.toContain("/api/public/home");
   });
 
   it("keeps Search out of CDN cache and index", async () => {
