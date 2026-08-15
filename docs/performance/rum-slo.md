@@ -2,7 +2,7 @@
 
 Updated: 2026-08-15.
 
-RCAT uses Vercel Web Analytics and Speed Insights at the application provider boundary so performance decisions can combine build-time governance with real-user field data. The telemetry packages were already direct runtime dependencies; P3 activates them without adding another observability provider.
+RCAT uses Vercel Web Analytics and Speed Insights through the existing lazy Public telemetry boundary so performance decisions can combine build-time governance with real-user field data. P3 formalizes the operating objectives and review process without adding another observability provider or changing telemetry route ownership.
 
 ## Scope
 
@@ -14,11 +14,11 @@ The existing build-time performance budget remains mandatory. RUM does not repla
 
 Use the Vercel Speed Insights p75 value as the operating signal for representative production traffic.
 
-| Metric | Initial objective | Interpretation |
-| --- | --- | --- |
-| LCP | <= 2.5 s | Main content becomes visible quickly |
-| INP | <= 200 ms | User interactions remain responsive |
-| CLS | <= 0.10 | Layout remains visually stable |
+| Metric | Initial objective | Interpretation                       |
+| ------ | ----------------- | ------------------------------------ |
+| LCP    | <= 2.5 s          | Main content becomes visible quickly |
+| INP    | <= 200 ms         | User interactions remain responsive  |
+| CLS    | <= 0.10           | Layout remains visually stable       |
 
 These are engineering objectives, not contractual guarantees. Segment mobile and desktop when enough samples exist; do not hide a poor mobile distribution behind a blended aggregate.
 
@@ -44,7 +44,7 @@ A release does not fail merely because field telemetry has not accumulated enoug
 
 ## Relationship To CSP
 
-Vercel Analytics and Speed Insights load through Vercel-owned same-origin endpoints, which fits the current `script-src 'self'` and `connect-src 'self'` report-only CSP model. CSP enforcement remains a separate evidence gate; activating RUM is not permission to weaken CSP directives.
+Vercel Analytics and Speed Insights remain dynamically loaded by the Public telemetry boundary and use privacy sanitizers defined by the existing telemetry implementation. CSP enforcement remains a separate evidence gate; the SLO contract is not permission to move telemetry into the synchronous application graph or weaken CSP directives.
 
 ## Review Cadence
 
