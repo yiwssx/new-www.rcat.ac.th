@@ -16,6 +16,7 @@ import {
   handleCmsPasswordResetInspect,
   handleCmsReauthenticate
 } from "./handlers.mjs";
+import { createCmsCorrelatedFetch } from "./upstreamFetch.mjs";
 
 const ROUTE_PARAMETER = "_rcatCmsRoute";
 
@@ -232,9 +233,10 @@ export async function handleCmsAuthDispatch(request, response, options = {}) {
   }
 
   const canonicalRequest = canonicalizeRequestUrl(request, route.publicPath);
+  const fetchImpl = createCmsCorrelatedFetch(canonicalRequest.request, options.fetchImpl ?? globalThis.fetch);
 
   try {
-    await handler(canonicalRequest.request, response);
+    await handler(canonicalRequest.request, response, { fetchImpl });
   } finally {
     canonicalRequest.restore();
   }
