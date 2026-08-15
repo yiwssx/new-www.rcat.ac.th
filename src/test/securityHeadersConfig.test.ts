@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import vercelConfig from "../../vercel.json";
 
@@ -25,7 +26,18 @@ describe("M21 Vercel security headers", () => {
     expect(reportOnlyPolicy).toContain("script-src 'self'");
     expect(reportOnlyPolicy).toContain("frame-src https://www.facebook.com");
     expect(reportOnlyPolicy).toContain("connect-src 'self' https://*.workers.dev https://*.rcat.ac.th");
+    expect(reportOnlyPolicy).toContain("font-src 'self' data:");
+    expect(reportOnlyPolicy).toContain("report-uri /api/csp-report");
     expect(enforcingPolicy).toBeUndefined();
     expect(JSON.stringify(vercelConfig)).not.toContain("preload");
+  });
+
+  it("does not depend on Google-hosted fonts before CSP enforcement", () => {
+    const indexHtml = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+    const routeComponents = readFileSync(new URL("../routeComponents.tsx", import.meta.url), "utf8");
+    const combined = `${indexHtml}\n${routeComponents}`;
+
+    expect(combined).not.toContain("fonts.googleapis.com");
+    expect(combined).not.toContain("fonts.gstatic.com");
   });
 });
