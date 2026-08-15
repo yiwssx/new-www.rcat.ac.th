@@ -1,0 +1,211 @@
+name: P5 Focused Fixup
+
+on:
+  push:
+    branches:
+      - agent/p5a-p5d-data-ssr-efficiency
+
+permissions:
+  contents: write
+
+jobs:
+  fixup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/p5a-p5d-data-ssr-efficiency
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Apply focused P5 compatibility fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              file = Path(path)
+              text = file.read_text()
+              if new in text:
+                  return
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f"{path}: expected exactly one match, found {count}: {old[:100]!r}")
+              file.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "src/public/pages/PublicContentDetailPage.tsx",
+              "  const mediaAssets = contentDetailQuery.media;\n  const relatedItems = contentDetailQuery.relatedItems;",
+              "  const mediaAssets = contentDetailQuery.media ?? [];\n  const relatedItems = contentDetailQuery.relatedItems ?? [];",
+          )
+
+          replace_once(
+              "src/test/publicRouteLoaders.test.ts",
+              '    const siteSettings = { siteName: "RCAT" };\n',
+              "",
+          )
+          replace_once(
+              "src/test/publicRouteLoaders.test.ts",
+              '      if (queryKey[0] === "cms-snapshot") return { media: [], siteSettings };\n',
+              "",
+          )
+          replace_once(
+              "src/test/publicRouteLoaders.test.ts",
+              '    expect(keys).toContainEqual(["cms-snapshot"]);\n    expect(loaderData).toEqual({ item, siteSettings, featuredMedia });',
+              '''    expect(keys).not.toContainEqual(["cms-snapshot"]);
+              expect(loaderData).toEqual({
+                item: {
+                  id: item.id,
+                  title: item.title,
+                  slug: item.slug,
+                  type: item.type,
+                  summary: item.summary,
+                  seoTitle: undefined,
+                  seoDescription: undefined,
+                  canonicalUrl: undefined,
+                  publishAt: item.publishAt,
+                  updatedAt: item.updatedAt,
+                  category: undefined,
+                  tags: undefined
+                },
+                featuredMedia
+              });''',
+          )
+
+          replace_once(
+              "src/test/publicDataDrivenPages.test.tsx",
+              '    expect(usePublicCmsSnapshotMock.mock.calls.every(([options]) => options?.enabled === false)).toBe(true);',
+              '    expect(usePublicCmsSnapshotMock).toHaveBeenCalledWith(undefined);',
+          )
+
+          data_path = Path("src/test/publicDataDrivenPages.test.tsx")
+          data = data_path.read_text()
+
+          marquee_anchor = '  it("renders one shared marquee on the homepage", () => {'
+          marquee_start = data.index(marquee_anchor)
+          marquee_end = data.index('\n  it("renders shared marquee and public-only mourning mode from shell settings"', marquee_start)
+          marquee_block = data[marquee_start:marquee_end]
+          shell_marquee = '''    currentSnapshot = createSnapshot({
+              homepageSettings: {
+                ...createHomeSnapshot().homepageSettings,
+                marquee: {
+                  enabled: true,
+                  label: "ประกาศ",
+                  text: "ประกาศสำหรับทุกหน้า",
+                  speedSeconds: 60
+                }
+              }
+            });
+          '''
+          if shell_marquee not in marquee_block:
+              marker = '    currentHomeSnapshot = createHomeSnapshot({' 
+              if marquee_block.count(marker) != 1:
+                  raise RuntimeError("marquee test home marker is not unique")
+              marquee_block = marquee_block.replace(marker, shell_marquee + marker, 1)
+              data = data[:marquee_start] + marquee_block + data[marquee_end:]
+
+          ia_anchor = '  it("renders the approved homepage information architecture", async () => {'
+          ia_start = data.index(ia_anchor)
+          ia_end = data.index('\n  });', ia_start) + len('\n  });')
+          ia_block = data[ia_start:ia_end]
+          shell_site = '''    currentSnapshot = createSnapshot({
+              siteSettings: {
+                ...baseSiteSettings,
+                heroTitle: "ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง",
+                directorTitle: "สารจากผู้อำนวยการ",
+                directorName: "ผู้อำนวยการตัวอย่าง",
+                directorDescription: "มุ่งพัฒนาผู้เรียนสู่อาชีพ",
+                campus: "วิทยาลัยเทคนิคตัวอย่าง",
+                address: "1 ถนนการศึกษา",
+                phone: "02-000-0000",
+                mapUrl: "https://www.google.com/maps/place/example",
+                mapEmbedUrl: "https://www.google.com/maps/embed?pb=test"
+              }
+            });
+          '''
+          if shell_site not in ia_block:
+              marker = '    currentHomeSnapshot = createHomeSnapshot({\n      latestNews,'
+              if ia_block.count(marker) != 1:
+                  raise RuntimeError("approved IA home marker is not unique")
+              ia_block = ia_block.replace(marker, shell_site + marker, 1)
+              data = data[:ia_start] + ia_block + data[ia_end:]
+
+          data_path.write_text(data)
+
+          replace_once(
+              "src/test/publicContentDetailRegression.test.tsx",
+              '''  usePublicContentDetail: () => ({
+              data: currentDetail,
+              isLoading: false,
+              isFetching: false
+            })''',
+              '''  usePublicContentDetail: () => ({
+              data: currentDetail,
+              media: currentSnapshot?.media ?? [],
+              relatedItems: (currentSnapshot?.content ?? []).filter((item) => item.id !== currentDetail?.id),
+              isLoading: false,
+              isFetching: false
+            })''',
+          )
+
+          detail_test = Path("src/test/publicContentDetailPage.test.tsx")
+          text = detail_test.read_text()
+          anchor = '  it("shows loading instead of not found while the snapshot is loading", () => {'
+          start = text.index(anchor)
+          end = text.index('\n  });', start) + len('\n  });')
+          block = text[start:end]
+          old_state = '''    currentDetailQueryState = {
+              isLoading: false,
+              isFetching: false
+            };'''
+          new_state = '''    currentDetailQueryState = {
+              isLoading: true,
+              isFetching: false
+            };'''
+          if new_state not in block:
+              if block.count(old_state) != 1:
+                  raise RuntimeError("detail loading-state marker is not unique")
+              block = block.replace(old_state, new_state, 1)
+              text = text[:start] + block + text[end:]
+              detail_test.write_text(text)
+          PY
+
+      - run: pnpm format
+
+      - name: Run focused P5 regressions
+        run: >-
+          node scripts/run-vitest.mjs run
+          src/test/publicRouteLoaders.test.ts
+          src/test/publicDataDrivenPages.test.tsx
+          src/test/publicContentDetailRegression.test.tsx
+          src/test/publicContentDetailPage.test.tsx
+          src/test/publicBlogFilters.test.tsx
+          src/test/publicApiContractReadiness.test.ts
+          src/test/vercelSsrCutover.test.tsx
+          src/test/productionDataIntegritySafety.test.ts
+
+      - run: pnpm build
+
+      - name: Commit verified fixes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No fixup changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test(p5): align regressions with split data ownership"
+          git push origin HEAD:agent/p5a-p5d-data-ssr-efficiency
