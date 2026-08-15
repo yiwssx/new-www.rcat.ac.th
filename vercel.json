@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "pnpm build && pnpm exec vite build --ssr src/vercelSsr.ts --outDir server-build --emptyOutDir && node scripts/prepare-ssr-cutover-output.mjs",
   "outputDirectory": "dist",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/maintenance/dependency-current-status.md'",
+  "ignoreCommand": "node scripts/vercel-ignore-build.mjs",
   "git": {
     "deploymentEnabled": {
       "master": true,
