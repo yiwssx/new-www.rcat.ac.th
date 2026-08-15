@@ -50,6 +50,8 @@ export type PublicShellMetadataRows = Pick<
   "siteSettings" | "homepageSettings" | "displaySettings" | "menu"
 >;
 
+export type PublicHomeMetadataRows = Pick<PublicMetadataRows, "media" | "carouselSlides" | "externalServices" | "events">;
+
 export async function readPublicShellMetadataRows(env: Env): Promise<PublicShellMetadataRows> {
   const [siteSettings, homepageSettings, displaySettings, menu] = await Promise.all([
     readSingleton<SiteSettingsRow>(env, "site_settings", SITE_SETTINGS_ROW_COLUMNS),
@@ -101,50 +103,41 @@ export async function readPublicMediaRowsByIds(env: Env, ids: readonly string[])
   return rows.flat();
 }
 
+export async function readPublicHomeMetadataRows(env: Env): Promise<PublicHomeMetadataRows> {
+  const [media, carouselSlides, externalServices, events] = await Promise.all([
+    readRows<MediaAssetRow>(
+      env,
+      `SELECT ${MEDIA_ASSET_ROW_COLUMNS.join(", ")} FROM media_assets ORDER BY updated_at DESC`
+    ),
+    readRows<CarouselSlideRow>(
+      env,
+      `SELECT ${CAROUSEL_SLIDE_ROW_COLUMNS.join(", ")} FROM carousel_slides WHERE enabled = ? ORDER BY sort_order ASC`,
+      [1]
+    ),
+    readRows<ExternalServiceRow>(
+      env,
+      `SELECT ${EXTERNAL_SERVICE_ROW_COLUMNS.join(", ")} FROM external_services WHERE enabled = ? ORDER BY sort_order ASC`,
+      [1]
+    ),
+    readRows<EventRow>(
+      env,
+      `SELECT ${EVENT_ROW_COLUMNS.join(", ")}
+       FROM events
+       WHERE visibility = ?
+         AND status = ?
+       ORDER BY date DESC, updated_at DESC`,
+      ["public", "confirmed"]
+    )
+  ]);
+
+  return { media, carouselSlides, externalServices, events };
+}
+
 export async function readPublicMetadataRows(env: Env): Promise<PublicMetadataRows> {
-  const [siteSettings, homepageSettings, displaySettings, menu, media, carouselSlides, externalServices, events] =
-    await Promise.all([
-      readSingleton<SiteSettingsRow>(env, "site_settings", SITE_SETTINGS_ROW_COLUMNS),
-      readSingleton<HomepageSettingsRow>(env, "homepage_settings", HOMEPAGE_SETTINGS_ROW_COLUMNS),
-      readSingleton<DisplaySettingsRow>(env, "display_settings", DISPLAY_SETTINGS_ROW_COLUMNS),
-      readRows<MenuItemRow>(
-        env,
-        `SELECT ${MENU_ITEM_ROW_COLUMNS.join(", ")} FROM menu_items WHERE enabled = ? ORDER BY sort_order ASC`,
-        [1]
-      ),
-      readRows<MediaAssetRow>(
-        env,
-        `SELECT ${MEDIA_ASSET_ROW_COLUMNS.join(", ")} FROM media_assets ORDER BY updated_at DESC`
-      ),
-      readRows<CarouselSlideRow>(
-        env,
-        `SELECT ${CAROUSEL_SLIDE_ROW_COLUMNS.join(", ")} FROM carousel_slides WHERE enabled = ? ORDER BY sort_order ASC`,
-        [1]
-      ),
-      readRows<ExternalServiceRow>(
-        env,
-        `SELECT ${EXTERNAL_SERVICE_ROW_COLUMNS.join(", ")} FROM external_services WHERE enabled = ? ORDER BY sort_order ASC`,
-        [1]
-      ),
-      readRows<EventRow>(
-        env,
-        `SELECT ${EVENT_ROW_COLUMNS.join(", ")}
-         FROM events
-         WHERE visibility = ?
-           AND status = ?
-         ORDER BY date DESC, updated_at DESC`,
-        ["public", "confirmed"]
-      )
-    ]);
+  const [shell, home] = await Promise.all([readPublicShellMetadataRows(env), readPublicHomeMetadataRows(env)]);
 
   return {
-    siteSettings,
-    homepageSettings,
-    displaySettings,
-    menu,
-    media,
-    carouselSlides,
-    externalServices,
-    events
+    ...shell,
+    ...home
   };
 }
