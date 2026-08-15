@@ -34,19 +34,16 @@ jobs:
       - name: Migrate the existing table adapter to TanStack Table v9
         run: |
           python3 <<'PY'
+          import re
           from pathlib import Path
 
           path = Path('src/admin/pages/ContentPage.tsx')
           text = path.read_text()
 
-          old_import = '''import {
-            createColumnHelper,
-            flexRender,
-            getCoreRowModel,
-            getSortedRowModel,
-            useReactTable
-          } from "@tanstack/react-table";'''.replace('          ', '')
-          new_import = '''import {
+          import_pattern = re.compile(
+              r'import \{\s*createColumnHelper,\s*flexRender,\s*getCoreRowModel,\s*getSortedRowModel,\s*useReactTable\s*\} from "@tanstack/react-table";'
+          )
+          import_replacement = '''import {
             createColumnHelper,
             flexRender,
             stockFeatures,
@@ -54,31 +51,28 @@ jobs:
             type StockFeatures
           } from "@tanstack/react-table";'''.replace('          ', '')
 
-          old_helper = 'const columnHelper = createColumnHelper<AdminContentListItem>();'
-          new_helper = 'const columnHelper = createColumnHelper<StockFeatures, AdminContentListItem>();'
+          helper_pattern = re.compile(r'const columnHelper = createColumnHelper<AdminContentListItem>\(\);')
+          helper_replacement = 'const columnHelper = createColumnHelper<StockFeatures, AdminContentListItem>();'
 
-          old_table = '''  const table = useReactTable({
-            data: items,
-            columns,
-            getCoreRowModel: getCoreRowModel(),
-            getSortedRowModel: getSortedRowModel()
-          });'''.replace('          ', '')
-          new_table = '''  const table = useTable({
+          table_pattern = re.compile(
+              r'const table = useReactTable\(\{\s*data: items,\s*columns,\s*getCoreRowModel: getCoreRowModel\(\),\s*getSortedRowModel: getSortedRowModel\(\)\s*\}\);'
+          )
+          table_replacement = '''const table = useTable({
             features: stockFeatures,
             data: items,
             columns
           });'''.replace('          ', '')
 
           replacements = [
-              (old_import, new_import, 'TanStack import block'),
-              (old_helper, new_helper, 'column helper'),
-              (old_table, new_table, 'table hook'),
+              (import_pattern, import_replacement, 'TanStack import block'),
+              (helper_pattern, helper_replacement, 'column helper'),
+              (table_pattern, table_replacement, 'table hook'),
           ]
 
-          for old, new, label in replacements:
-              if text.count(old) != 1:
-                  raise SystemExit(f'Expected exactly one {label} match, found {text.count(old)}')
-              text = text.replace(old, new)
+          for pattern, replacement, label in replacements:
+              text, count = pattern.subn(replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one {label} match, found {count}')
 
           path.write_text(text)
           PY
