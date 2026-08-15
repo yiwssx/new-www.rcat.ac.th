@@ -1,11 +1,17 @@
-import { createPublicContentDetailSnapshot, createPublicContentListSnapshot } from "../adapters/publicContentAdapter";
+import {
+  createPublicContentDetailSnapshot,
+  createPublicContentListSnapshot,
+  selectRelatedPublicContentCardRows
+} from "../adapters/publicContentAdapter";
 import { mapMediaAssetRowToPublicMediaAsset } from "../adapters/publicMediaAdapter";
 import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
 import {
   countPublishedContentSummaryRows,
   getPublishedContentRowBySlug,
+  listAllPublishedContentCardRows,
   listPublishedContentSummaryPageRows,
   listPublishedContentSummaryRows,
+  type PublicContentCardReadRow,
   type PublicContentReadRow,
   type PublicContentSummaryReadRow
 } from "../db/contentRepository";
@@ -106,6 +112,16 @@ function collectContentMediaIds(rows: Array<PublicContentReadRow | PublicContent
   return [...ids];
 }
 
+function collectDetailMediaIds(row: PublicContentReadRow, relatedRows: PublicContentCardReadRow[]) {
+  const ids = new Set(collectContentMediaIds([row]));
+  relatedRows.forEach((relatedRow) => {
+    if (relatedRow.featured_media_id) {
+      ids.add(relatedRow.featured_media_id);
+    }
+  });
+  return [...ids];
+}
+
 export async function publicContentList(request: Request, env: Env) {
   if (!env.DB) {
     return jsonError("database binding is not configured", 503, {
@@ -196,9 +212,11 @@ export async function publicContentDetail(env: Env, slug: string) {
       });
     }
 
-    const mediaRows = await readPublicMediaRowsByIds(env, collectContentMediaIds([row]));
+    const candidateRows = await listAllPublishedContentCardRows(env);
+    const relatedRows = selectRelatedPublicContentCardRows(row, candidateRows);
+    const mediaRows = await readPublicMediaRowsByIds(env, collectDetailMediaIds(row, relatedRows));
     const media = mediaRows.map(mapMediaAssetRowToPublicMediaAsset);
-    return json(createPublicContentDetailSnapshot(row, media));
+    return json(createPublicContentDetailSnapshot(row, media, relatedRows));
   } catch {
     return jsonError("Unable to load content-detail", 500, {
       resource: CONTENT_DETAIL_RESOURCE,
