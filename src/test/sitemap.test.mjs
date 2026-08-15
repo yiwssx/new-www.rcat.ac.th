@@ -4,6 +4,7 @@ import {
   STATIC_INDEXABLE_ROUTES,
   buildSitemapUrls,
   createSitemapXml,
+  createStaticSitemapXml,
   getPublishedContentSitemapRoute,
   loadSitemapData,
   normalizeInternalRoute
@@ -30,6 +31,19 @@ describe("runtime sitemap generation", () => {
     expect(urls).not.toContain("https://school.example/published-news");
     expect(urls.join("\n")).not.toContain("draft-news");
     expect(urls.join("\n")).not.toContain("/search");
+  });
+
+  it("builds a crawler-safe static sitemap when the public API is unavailable", () => {
+    const xml = createStaticSitemapXml("https://www.rcat.ac.th/");
+
+    for (const route of STATIC_INDEXABLE_ROUTES) {
+      const expected = route === "/" ? "https://www.rcat.ac.th/" : `https://www.rcat.ac.th${route}`;
+      expect(xml).toContain(`<loc>${expected}</loc>`);
+    }
+
+    expect(xml).not.toContain("/complaint");
+    expect(xml).not.toContain("/search");
+    expect(xml).not.toContain("/content/");
   });
 
   it("loads only real content and paginates all announcement page items", async () => {

@@ -181,7 +181,8 @@ const publicComplaintRoute = createRoute({
     buildPublicRouteHead({
       title: "แบบฟอร์มแจ้งเรื่องร้องเรียน",
       description: "กรอกข้อมูลให้ครบถ้วน ระบบจะส่งเรื่องให้ผู้ดูแลทันที",
-      canonicalPath: "/complaint"
+      canonicalPath: "/complaint",
+      robots: "noindex,follow"
     }),
   component: PublicComplaintPage
 });

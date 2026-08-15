@@ -1,4 +1,4 @@
-export type PublicReadErrorKind = "aborted" | "network" | "http" | "invalid-json" | "invalid-response";
+export type PublicReadErrorKind = "aborted" | "timeout" | "network" | "http" | "invalid-json" | "invalid-response";
 
 export interface PublicReadErrorOptions {
   kind: PublicReadErrorKind;
@@ -41,6 +41,10 @@ export function isPublicReadError(error: unknown): error is PublicReadError {
 
 export function isPublicReadAbortError(error: unknown) {
   return error instanceof PublicReadError && error.kind === "aborted";
+}
+
+export function isPublicReadTimeoutError(error: unknown) {
+  return error instanceof PublicReadError && error.kind === "timeout";
 }
 
 export function isPublicReadNotFoundError(error: unknown) {

@@ -83,12 +83,16 @@ describe("getPublicDocumentListFromCloudflare", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(getPublicDocumentListFromCloudflare()).resolves.toEqual(validSnapshot);
-    expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:8787/api/public/documents", {
-      method: "GET",
-      headers: {
-        Accept: "application/json"
-      }
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8787/api/public/documents",
+      expect.objectContaining({
+        method: "GET",
+        headers: {
+          Accept: "application/json"
+        },
+        signal: expect.any(AbortSignal)
+      })
+    );
   });
 
   it("requires the Cloudflare public API URL", async () => {

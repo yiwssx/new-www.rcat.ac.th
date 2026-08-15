@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import vercelConfig from "../../vercel.json";
 
@@ -25,7 +27,35 @@ describe("M21 Vercel security headers", () => {
     expect(reportOnlyPolicy).toContain("script-src 'self'");
     expect(reportOnlyPolicy).toContain("frame-src https://www.facebook.com");
     expect(reportOnlyPolicy).toContain("connect-src 'self' https://*.workers.dev https://*.rcat.ac.th");
+    expect(reportOnlyPolicy).toContain("font-src 'self' data:");
+    expect(reportOnlyPolicy).toContain("report-uri /api/csp-report");
     expect(enforcingPolicy).toBeUndefined();
     expect(JSON.stringify(vercelConfig)).not.toContain("preload");
+
+    expect(vercelConfig.rewrites).toContainEqual({
+      source: "/api/csp-report",
+      destination: "/api/complaint?_rcatComplaintRoute=csp-report"
+    });
+  });
+
+  it("loads Sarabun locally and never depends on Google-hosted fonts", () => {
+    const repositoryRoot = process.cwd();
+    const indexHtml = readFileSync(path.join(repositoryRoot, "index.html"), "utf8");
+    const routeComponents = readFileSync(path.join(repositoryRoot, "src", "routeComponents.tsx"), "utf8");
+    const fontCss = readFileSync(path.join(repositoryRoot, "public", "fonts", "sarabun.css"), "utf8");
+    const combined = `${indexHtml}\n${routeComponents}`;
+
+    expect(combined).toContain('href="/fonts/sarabun.css"');
+    expect(combined).not.toContain("fonts.googleapis.com");
+    expect(combined).not.toContain("fonts.gstatic.com");
+    expect(fontCss).toContain('font-family: "Sarabun"');
+    expect(fontCss).toContain('url("/fonts/sarabun/Sarabun-Regular.ttf")');
+    expect(fontCss).toContain('url("/fonts/sarabun/Sarabun-ExtraBold.ttf")');
+
+    const fontHeader = vercelConfig.headers.find((entry) => entry.source === "/fonts/:path*");
+    expect(fontHeader?.headers).toContainEqual({
+      key: "Cache-Control",
+      value: "public, max-age=31536000, immutable"
+    });
   });
 });

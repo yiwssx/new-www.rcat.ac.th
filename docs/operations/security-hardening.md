@@ -1,6 +1,6 @@
 # Security Hardening Notes
 
-M21 adds baseline response headers for the Vercel frontend/admin app and the Cloudflare Worker API. The August 2026 hardening pass adds a report-only CSP baseline and separates public analytics write origins from intentionally open public-read CORS.
+M21 adds baseline response headers for the Vercel frontend/admin app and the Cloudflare Worker API. The August 2026 hardening pass adds a report-only CSP baseline and separates public analytics write origins from intentionally open public-read CORS. P1 self-hosts Sarabun and adds a sanitized CSP report collector so enforcement decisions can be based on observed violations instead of guesswork.
 
 ## Vercel Frontend Headers
 
@@ -17,7 +17,7 @@ HSTS preload is intentionally not enabled.
 
 ## CSP Rollout
 
-CSP is now present in report-only mode rather than being enforced immediately. The baseline intentionally models the current runtime without risking a production outage:
+CSP remains in report-only mode rather than being enforced immediately. The baseline intentionally models the current runtime without risking a production outage:
 
 - `default-src 'self'`
 - `base-uri 'self'`
@@ -33,8 +33,19 @@ CSP is now present in report-only mode rather than being enforced immediately. T
 - `media-src 'self' blob: https:`
 - `worker-src 'self' blob:`
 - `manifest-src 'self'`
+- `report-uri /api/csp-report`
 
-The next CSP step is evidence-driven enforcement: review browser/report-only violations on representative Public, auth, Admin, media, complaint, Facebook embed, and SSR routes; narrow broad `https:` media allowances where practical; then replace the report-only header with `Content-Security-Policy` only after false positives are resolved. Do not add `unsafe-eval` merely to silence a report.
+The public/auth documents no longer request CSS or fonts from `fonts.googleapis.com` or `fonts.gstatic.com`. Sarabun weights 400, 500, 700, and 800 are self-hosted under `public/fonts` with `font-display: swap`. The source files and `OFL.txt` are pinned from the official `google/fonts` repository at commit `352f6b7d9d6cc4fa9e242b931291d31b21a6dc84`; the one-shot vendoring workflow verified each downloaded Git blob hash before committing and removed itself afterward. Vercel serves `/fonts/:path*` with a one-year immutable cache header.
+
+`/api/csp-report` accepts browser CSP reports, strips query strings/fragments from reported URLs, caps report size, logs only a small allowlisted violation shape, and returns `Cache-Control: no-store`. It must not become a general telemetry payload endpoint. Do not expand it to log request headers, cookies, raw report bodies, or URL query strings merely for debugging convenience.
+
+The next CSP step is evidence-driven enforcement:
+
+1. Review report-only violations on representative Public, auth, Admin, media, complaint, Facebook embed, and SSR routes.
+2. Separate genuine application requirements from extension/browser noise.
+3. Resolve inline script requirements with nonce/hash support if TanStack SSR emits script violations; do not add `unsafe-eval` merely to silence a report.
+4. Narrow broad `https:` image/media allowances where practical.
+5. Replace the report-only header with `Content-Security-Policy` only after representative traffic is clean and a rollback path is ready.
 
 ## Worker Headers
 
