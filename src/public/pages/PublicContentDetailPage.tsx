@@ -269,8 +269,8 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
   });
 
   const item = contentDetailQuery.data;
-  const mediaAssets = contentDetailQuery.media;
-  const relatedItems = contentDetailQuery.relatedItems;
+  const mediaAssets = contentDetailQuery.media ?? [];
+  const relatedItems = contentDetailQuery.relatedItems ?? [];
   const contentBlocks = useMemo(() => parseContentBodyToBlocks(item?.body), [item?.body]);
   const featuredMedia = mediaAssets.find((asset) => asset.id === item?.featuredMediaId);
   const featuredMediaImageUrl = resolvePublicImageSource(featuredMedia, "content-featured").src;

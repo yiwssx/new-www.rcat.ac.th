@@ -152,7 +152,7 @@ describe("PublicContentDetailPage", () => {
       isFetching: false
     };
     currentDetailQueryState = {
-      isLoading: false,
+      isLoading: true,
       isFetching: false
     };
 

@@ -45,6 +45,8 @@ vi.mock("../public/hooks/usePublicShellSnapshot", () => ({
 vi.mock("../public/hooks/usePublicContentDetail", () => ({
   usePublicContentDetail: () => ({
     data: currentDetail,
+    media: currentSnapshot?.media ?? [],
+    relatedItems: (currentSnapshot?.content ?? []).filter((item) => item.id !== currentDetail?.id),
     isLoading: false,
     isFetching: false
   })
