@@ -26,7 +26,8 @@ Request IDs are UUID-shaped opaque operational values. They are not credentials,
 - The CMS auth dispatcher creates a fresh server-owned request ID before route selection.
 - The ID is present even for rejected/unknown CMS auth routes, which makes support correlation possible for 4xx outcomes.
 - The canonical request adapter preserves the same request ID when dispatching to the selected auth handler.
-- Propagating this ID from the current monolithic `server/cmsAuth/handlers.mjs` private-header builder to every Worker auth call is intentionally deferred to the handler modularization phase. The 48 KB auth handler is already a maintainability hotspot; correlation does not justify a large whole-file rewrite that could destabilize login, session, MFA, recovery, and lifecycle behavior.
+- The dispatcher injects a correlation-aware `fetchImpl` into the selected handler. Existing CMS private headers, cookies, tokens, payloads, rate limits, and MFA/lifecycle logic remain owned by `handlers.mjs`; the wrapper adds only `X-RCAT-Request-ID` to the outgoing Worker request.
+- Login, session, logout, lifecycle, password, and MFA Worker calls therefore preserve the same server-owned request ID without rewriting the 48 KB auth handler monolith.
 
 ### Cloudflare Worker
 
@@ -62,6 +63,6 @@ The Admin proxy logs only unexpected upstream request/response failures under th
 
 When a user reports an Admin/CMS error, capture the `X-RCAT-Request-ID` response header together with the approximate time and affected page. Search Vercel/Worker operational logs by request ID first. Do not ask users to provide session cookies, tokens, request bodies, or screenshots containing credentials when the request ID is sufficient.
 
-## Next Step
+## Maintainability Next Step
 
-When `server/cmsAuth/handlers.mjs` is split into focused modules, move private Worker-header construction into a shared CMS upstream client and propagate the dispatcher-owned request ID there. Add tests that prove login/session/MFA/lifecycle requests preserve the same ID across Vercel and Worker before calling CMS correlation end-to-end complete.
+CMS request correlation is now end-to-end without requiring a whole-file rewrite of `server/cmsAuth/handlers.mjs`. The next maintainability phase can therefore split that file by business responsibility rather than by observability pressure. Prefer extracting shared protocol/upstream primitives first, then login/session, lifecycle, password, and MFA handlers in small behavior-preserving PRs with the existing authentication regression suite kept intact.
