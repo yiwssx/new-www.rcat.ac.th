@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isVercelRuntimeImpactingPath,
-  shouldIgnoreVercelBuild
+  shouldIgnoreVercelBuild,
 } from "../../scripts/vercel-ignore-build.mjs";
 
 describe("Vercel runtime change classifier", () => {
@@ -13,8 +13,8 @@ describe("Vercel runtime change classifier", () => {
         ".github/workflows/dependency-monitoring.yml",
         "docs/maintenance/dependencies.md",
         "cloudflare/public-api/migrations/0012_example.sql",
-        "src/test/example.test.ts"
-      ])
+        "src/test/example.test.ts",
+      ]),
     ).toBe(true);
   });
 
@@ -29,7 +29,7 @@ describe("Vercel runtime change classifier", () => {
       "pnpm-lock.yaml",
       "vite.config.ts",
       "vercel.json",
-      "scripts/prepare-ssr-cutover-output.mjs"
+      "scripts/prepare-ssr-cutover-output.mjs",
     ]) {
       expect(isVercelRuntimeImpactingPath(path), path).toBe(true);
     }
@@ -37,11 +37,20 @@ describe("Vercel runtime change classifier", () => {
 
   it("treats unknown paths conservatively as runtime-impacting", () => {
     expect(isVercelRuntimeImpactingPath("new-runtime-config.toml")).toBe(true);
-    expect(shouldIgnoreVercelBuild(["docs/readme.md", "new-runtime-config.toml"])).toBe(false);
+    expect(
+      shouldIgnoreVercelBuild([
+        "docs/readme.md",
+        "new-runtime-config.toml",
+      ]),
+    ).toBe(false);
   });
 
   it("does not treat tests under src as runtime changes", () => {
-    expect(isVercelRuntimeImpactingPath("src/features/example/foo.test.ts")).toBe(false);
-    expect(isVercelRuntimeImpactingPath("src/features/example/foo.spec.tsx")).toBe(false);
+    expect(
+      isVercelRuntimeImpactingPath("src/features/example/foo.test.ts"),
+    ).toBe(false);
+    expect(
+      isVercelRuntimeImpactingPath("src/features/example/foo.spec.tsx"),
+    ).toBe(false);
   });
 });
