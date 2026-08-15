@@ -37,7 +37,7 @@ CSP remains in report-only mode rather than being enforced immediately. The base
 
 The public/auth documents no longer request CSS or fonts from `fonts.googleapis.com` or `fonts.gstatic.com`. Sarabun weights 400, 500, 700, and 800 are self-hosted under `public/fonts` with `font-display: swap`. The source files and `OFL.txt` are pinned from the official `google/fonts` repository at commit `352f6b7d9d6cc4fa9e242b931291d31b21a6dc84`; the one-shot vendoring workflow verified each downloaded Git blob hash before committing and removed itself afterward. Vercel serves `/fonts/:path*` with a one-year immutable cache header.
 
-`/api/csp-report` accepts browser CSP reports, strips query strings/fragments from reported URLs, caps report size, logs only a small allowlisted violation shape, and returns `Cache-Control: no-store`. It must not become a general telemetry payload endpoint.
+`/api/csp-report` accepts browser CSP reports, strips query strings/fragments from reported URLs, caps report size, logs only a small allowlisted violation shape, and returns `Cache-Control: no-store`. It must not become a general telemetry payload endpoint. Do not expand it to log request headers, cookies, raw report bodies, or URL query strings merely for debugging convenience.
 
 The next CSP step is evidence-driven enforcement:
 
