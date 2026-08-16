@@ -12,16 +12,20 @@ const PRIVILEGED_SECRET = "secrets.CLOUDFLARE_API_TOKEN";
 
 const pureReadWorkflows = [
   ".github/workflows/worker-production-preflight.yml",
-  ".github/workflows/d1-recovery-drill.yml"
+  ".github/workflows/d1-recovery-drill.yml",
 ];
 
 for (const workflow of pureReadWorkflows) {
   const source = read(workflow);
   if (!source.includes(D1_READ_SECRET)) {
-    fail(`${workflow} must consume the dedicated CLOUDFLARE_D1_READ_TOKEN secret`);
+    fail(
+      `${workflow} must consume the dedicated CLOUDFLARE_D1_READ_TOKEN secret`,
+    );
   }
   if (source.includes(PRIVILEGED_SECRET)) {
-    fail(`${workflow} must not consume the privileged CLOUDFLARE_API_TOKEN secret`);
+    fail(
+      `${workflow} must not consume the privileged CLOUDFLARE_API_TOKEN secret`,
+    );
   }
 }
 
@@ -29,18 +33,26 @@ const integritySource = read(".github/workflows/production-data-integrity.yml");
 const integritySelector =
   "inputs.mode == 'cleanup' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN";
 if (!integritySource.includes(integritySelector)) {
-  fail("Production Data Integrity must select D1 read credentials for audit mode and privileged credentials for cleanup mode");
+  fail(
+    "Production Data Integrity must select D1 read credentials for audit mode and privileged credentials for cleanup mode",
+  );
 }
 if (!integritySource.includes("if: ${{ inputs.mode == 'cleanup' }}")) {
-  fail("Production Data Integrity must keep write steps behind the cleanup mode guard");
+  fail(
+    "Production Data Integrity must keep write steps behind the cleanup mode guard",
+  );
 }
 
 const workerReleaseSource = read(".github/workflows/worker-production.yml");
 if (!workerReleaseSource.includes(PRIVILEGED_SECRET)) {
-  fail("Worker Production Release must retain the privileged token for migration/deploy operations");
+  fail(
+    "Worker Production Release must retain the privileged token for migration/deploy operations",
+  );
 }
 if (workerReleaseSource.includes(D1_READ_SECRET)) {
-  fail("Worker Production Release must not blur the read-only token into the privileged release path");
+  fail(
+    "Worker Production Release must not blur the read-only token into the privileged release path",
+  );
 }
 
 const evidence = JSON.parse(read("config/csp-production-evidence.json"));
@@ -51,11 +63,13 @@ const requiredSurfaces = [
   "admin",
   "media",
   "complaint",
-  "facebook-embed"
+  "facebook-embed",
 ];
 const actualSurfaces = Object.keys(evidence.surfaces || {}).sort();
 if (actualSurfaces.join("\n") !== [...requiredSurfaces].sort().join("\n")) {
-  fail(`CSP evidence must contain exactly these seven surfaces: ${requiredSurfaces.join(", ")}`);
+  fail(
+    `CSP evidence must contain exactly these seven surfaces: ${requiredSurfaces.join(", ")}`,
+  );
 }
 
 const allowedEvidenceStates = new Set(["pending", "blocked", "clean"]);
@@ -64,11 +78,16 @@ for (const surface of requiredSurfaces) {
   if (!allowedEvidenceStates.has(record?.state)) {
     fail(`${surface} has an invalid CSP evidence state`);
   }
-  if (typeof record?.representativePath !== "string" || !record.representativePath.startsWith("/")) {
+  if (
+    typeof record?.representativePath !== "string" ||
+    !record.representativePath.startsWith("/")
+  ) {
     fail(`${surface} must define a representative production path`);
   }
   if (!Array.isArray(record?.evidence) || record.evidence.length === 0) {
-    fail(`${surface} must record positive evidence; absence of retained logs is not evidence`);
+    fail(
+      `${surface} must record positive evidence; absence of retained logs is not evidence`,
+    );
   }
 }
 
@@ -78,15 +97,20 @@ if (readiness.approvedForEnforcement !== false) {
 }
 
 const vercel = JSON.parse(read("vercel.json"));
-const responseHeaders = (vercel.headers || []).flatMap((entry) => entry.headers || []);
+const responseHeaders = (vercel.headers || []).flatMap(
+  (entry) => entry.headers || [],
+);
 const reportOnlyHeaders = responseHeaders.filter(
-  (header) => String(header.key).toLowerCase() === "content-security-policy-report-only"
+  (header) =>
+    String(header.key).toLowerCase() === "content-security-policy-report-only",
 );
 const enforcingHeaders = responseHeaders.filter(
-  (header) => String(header.key).toLowerCase() === "content-security-policy"
+  (header) => String(header.key).toLowerCase() === "content-security-policy",
 );
 if (reportOnlyHeaders.length === 0) {
-  fail("Content-Security-Policy-Report-Only must remain enabled during P5F evidence collection");
+  fail(
+    "Content-Security-Policy-Report-Only must remain enabled during P5F evidence collection",
+  );
 }
 if (enforcingHeaders.length > 0) {
   fail("P5F must not switch CSP to enforcement");
@@ -113,9 +137,9 @@ const counts = requiredSurfaces.reduce(
     summary[evidence.surfaces[surface].state] += 1;
     return summary;
   },
-  { clean: 0, blocked: 0, pending: 0 }
+  { clean: 0, blocked: 0, pending: 0 },
 );
 
 console.log(
-  `P5F security boundary: dedicated D1 read paths verified; CSP evidence ${counts.clean} clean / ${counts.blocked} blocked / ${counts.pending} pending; enforcement remains off.`
+  `P5F security boundary: dedicated D1 read paths verified; CSP evidence ${counts.clean} clean / ${counts.blocked} blocked / ${counts.pending} pending; enforcement remains off.`,
 );
