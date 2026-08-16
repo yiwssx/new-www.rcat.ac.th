@@ -20,7 +20,12 @@ const linkAuditWorkflow = read(".github/workflows/cms-link-integrity-audit.yml")
 if (!pagination.includes('import { handleAdminMenuMutation } from "./adminMenuMutations";')) {
   fail("adminPagination must delegate menu mutations to the extracted route module");
 }
-for (const forbidden of ["handleMenuItemMutation", "INSERT INTO menu_items", "UPDATE menu_items", "DELETE FROM menu_items"]) {
+for (const forbidden of [
+  "handleMenuItemMutation",
+  "INSERT INTO menu_items",
+  "UPDATE menu_items",
+  "DELETE FROM menu_items"
+]) {
   if (pagination.includes(forbidden)) {
     fail(`adminPagination regained menu write responsibility: ${forbidden}`);
   }

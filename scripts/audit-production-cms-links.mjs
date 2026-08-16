@@ -90,13 +90,7 @@ for (const row of rows("homepage-settings.json")) {
   const value = parseSettings(row, "homepage_settings");
   if (!value || typeof value !== "object") continue;
   check("homepage_settings", row.id, "introGate.imageUrl", value.introGate?.imageUrl, "resource");
-  check(
-    "homepage_settings",
-    row.id,
-    "introGate.secondaryButtonUrl",
-    value.introGate?.secondaryButtonUrl,
-    "navigation"
-  );
+  check("homepage_settings", row.id, "introGate.secondaryButtonUrl", value.introGate?.secondaryButtonUrl, "navigation");
   check("homepage_settings", row.id, "introVideo.youtubeEmbedUrl", value.introVideo?.youtubeEmbedUrl, "resource");
 }
 
