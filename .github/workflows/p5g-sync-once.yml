@@ -1,0 +1,65 @@
+name: P5G Sync Once
+
+on:
+  push:
+    branches:
+      - agent/p5g-apps-script-release-governance
+    paths:
+      - .github/workflows/p5g-sync-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/p5g-apps-script-release-governance
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm deps:status
+      - name: Apply repository formatter to P5G files
+        run: >-
+          pnpm exec prettier --write
+          .github/workflows/apps-script-production-preflight.yml
+          .github/workflows/apps-script-production-release.yml
+          .github/workflows/apps-script-production-rollback.yml
+          .github/workflows/ci.yml
+          apps-script/README.md
+          docs/deployment/apps-script-deployment-checklist.md
+          docs/maintenance/dependency-current-status.md
+          package.json
+          scripts/apps-script-release-tools.mjs
+          scripts/check-p5g-apps-script-release-governance.mjs
+          src/test/appsScriptReleaseTools.test.ts
+      - name: Commit generated/format updates
+        run: |
+          if git diff --quiet; then
+            echo "Generated status and formatting already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/apps-script-production-preflight.yml \
+            .github/workflows/apps-script-production-release.yml \
+            .github/workflows/apps-script-production-rollback.yml \
+            .github/workflows/ci.yml \
+            apps-script/README.md \
+            docs/deployment/apps-script-deployment-checklist.md \
+            docs/maintenance/dependency-current-status.md \
+            package.json \
+            scripts/apps-script-release-tools.mjs \
+            scripts/check-p5g-apps-script-release-governance.mjs \
+            src/test/appsScriptReleaseTools.test.ts
+          git commit -m "chore(p5g): sync generated status and formatting"
+          git push origin HEAD:agent/p5g-apps-script-release-governance
