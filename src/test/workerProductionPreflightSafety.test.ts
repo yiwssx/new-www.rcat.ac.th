@@ -24,7 +24,7 @@ describe("P5 Worker production preflight safety", () => {
     }
 
     expect(preflightSource).toContain("assertProductionDatabaseIdentity");
-    expect(preflightSource).toContain("production-placeholder");
+    expect(preflightSource).toContain("createProductionWranglerConfig");
     expect(preflightSource).toContain("--experimental-provision=false");
     expect(preflightSource).toContain("--experimental-auto-create=false");
   });
