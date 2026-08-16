@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   PRODUCTION_DATABASE_NAME,
   assertProductionDatabaseIdentity,
-  buildProductionMigrationListArgs
+  buildProductionMigrationListArgs,
 } from "./worker-production-preflight.mjs";
 
 const productionDatabaseId = "123e4567-e89b-42d3-a456-426614174000";
@@ -11,11 +11,17 @@ const productionDatabaseId = "123e4567-e89b-42d3-a456-426614174000";
 describe("Worker production migration preflight", () => {
   it("requires the exact account-scoped production database identity", () => {
     expect(
-      assertProductionDatabaseIdentity([{ name: PRODUCTION_DATABASE_NAME, uuid: productionDatabaseId }], productionDatabaseId)
+      assertProductionDatabaseIdentity(
+        [{ name: PRODUCTION_DATABASE_NAME, uuid: productionDatabaseId }],
+        productionDatabaseId,
+      ),
     ).toBe(true);
 
     expect(() =>
-      assertProductionDatabaseIdentity([{ name: PRODUCTION_DATABASE_NAME, uuid: "123e4567-e89b-42d3-a456-426614174001" }], productionDatabaseId)
+      assertProductionDatabaseIdentity(
+        [{ name: PRODUCTION_DATABASE_NAME, uuid: "123e4567-e89b-42d3-a456-426614174001" }],
+        productionDatabaseId,
+      ),
     ).toThrow(/does not match the exact account-scoped production database/);
 
     expect(() => assertProductionDatabaseIdentity([], productionDatabaseId)).toThrow(/expected exactly one/);
@@ -23,10 +29,10 @@ describe("Worker production migration preflight", () => {
       assertProductionDatabaseIdentity(
         [
           { name: PRODUCTION_DATABASE_NAME, uuid: productionDatabaseId },
-          { name: PRODUCTION_DATABASE_NAME, uuid: productionDatabaseId }
+          { name: PRODUCTION_DATABASE_NAME, uuid: productionDatabaseId },
         ],
-        productionDatabaseId
-      )
+        productionDatabaseId,
+      ),
     ).toThrow(/expected exactly one/);
   });
 
