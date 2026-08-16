@@ -18,7 +18,8 @@ import type { PublicContentListKind } from "./types";
 function normalizePageInput(pageInput: PublicContentListPageInput) {
   return {
     page: Math.max(1, Math.floor(pageInput.page)),
-    pageSize: pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))
+    pageSize:
+      pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))
   };
 }
 
@@ -51,11 +52,15 @@ export function publicContentListQueryOptions(
     queryFn: async (context) => {
       const requestOptions = getPublicQueryRequestOptions(context, runtimeOptions);
 
-      return pageInput
-        ? getPublicContentListPageSnapshot(kind, pageInput, requestOptions)
-        : kind === "announcements" && pageItemsInput
-          ? getPublicAnnouncementsContentListSnapshot(pageItemsInput, requestOptions)
-          : getPublicContentListSnapshot(kind, requestOptions);
+      if (pageInput) {
+        return getPublicContentListPageSnapshot(kind, pageInput, requestOptions);
+      }
+
+      if (kind === "announcements" && pageItemsInput) {
+        return getPublicAnnouncementsContentListSnapshot(pageItemsInput, requestOptions);
+      }
+
+      return getPublicContentListSnapshot(kind, requestOptions);
     },
     staleTime: PUBLIC_CACHE_FRESHNESS_MS.collection,
     gcTime: PUBLIC_QUERY_GC_TIME_MS,
