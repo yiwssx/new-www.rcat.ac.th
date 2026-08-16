@@ -98,10 +98,11 @@ jobs:
         run: |
           audit_json="$RUNNER_TEMP/production-fixture-audit.json"
           audit_stderr="$RUNNER_TEMP/production-fixture-audit.stderr"
+          audit_sql="$(cat cloudflare/public-api/sql/production-fixture-audit.sql)"
           set +e
           pnpm wrangler d1 execute rcat-public-api-production \
             --remote \
-            --file cloudflare/public-api/sql/production-fixture-audit.sql \
+            --command "$audit_sql" \
             --json > "$audit_json" 2> "$audit_stderr"
           audit_status=$?
           set -e
@@ -146,10 +147,11 @@ jobs:
         run: |
           audit_json="$RUNNER_TEMP/production-fixture-post-audit.json"
           audit_stderr="$RUNNER_TEMP/production-fixture-post-audit.stderr"
+          audit_sql="$(cat cloudflare/public-api/sql/production-fixture-audit.sql)"
           set +e
           pnpm wrangler d1 execute rcat-public-api-production \
             --remote \
-            --file cloudflare/public-api/sql/production-fixture-audit.sql \
+            --command "$audit_sql" \
             --json > "$audit_json" 2> "$audit_stderr"
           audit_status=$?
           set -e
