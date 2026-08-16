@@ -2,11 +2,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  clearPublicCmsCache,
-  getPublicContentDetailCache,
-  setPublicContentDetailCache
-} from "../../services/publicCmsCache";
 import type { ContentItem, PublicContentDetailSnapshot } from "../../types";
 import { usePublicContentDetail } from "./usePublicContentDetail";
 
@@ -53,20 +48,19 @@ function createWrapper(queryClient: QueryClient) {
 }
 
 beforeEach(() => {
-  window.localStorage.clear();
   vi.stubEnv("VITE_CLOUDFLARE_PUBLIC_API_URL", "https://public-api.example.test");
 });
 
 afterEach(() => {
-  clearPublicCmsCache();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
 
 describe("usePublicContentDetail", () => {
-  it("replaces stale query data with null and removes the exact persistent cache after HTTP 404", async () => {
+  it("replaces stale TanStack query data with null after HTTP 404", async () => {
     const queryClient = createQueryClient();
     const staleContent = createContent();
+    const staleSnapshot = createDetailSnapshot(staleContent);
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ error: "not found" }), {
         status: 404,
@@ -74,7 +68,7 @@ describe("usePublicContentDetail", () => {
       })
     );
     vi.stubGlobal("fetch", fetchMock);
-    setPublicContentDetailCache(slug, createDetailSnapshot(staleContent));
+    queryClient.setQueryData(["content-detail", slug], staleSnapshot);
 
     const { result } = renderHook(() => usePublicContentDetail({ slug }), {
       wrapper: createWrapper(queryClient)
@@ -89,11 +83,10 @@ describe("usePublicContentDetail", () => {
     await waitFor(() => expect(result.current.data).toBeNull());
     expect(result.current.isSuccess).toBe(true);
     expect(queryClient.getQueryData(["content-detail", slug])).toBeNull();
-    expect(getPublicContentDetailCache(slug)).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("returns successful content and persists the full detail snapshot", async () => {
+  it("returns successful content and keeps the full detail snapshot in TanStack Query", async () => {
     const queryClient = createQueryClient();
     const content = createContent({ title: "Fresh content" });
     const snapshot = createDetailSnapshot(content);
@@ -114,10 +107,10 @@ describe("usePublicContentDetail", () => {
     await waitFor(() => expect(result.current.data).toEqual(content));
     expect(result.current.isSuccess).toBe(true);
     expect(result.current.media).toEqual([]);
-    expect(getPublicContentDetailCache(slug)?.data).toEqual(snapshot);
+    expect(queryClient.getQueryData(["content-detail", slug])).toEqual(snapshot);
   });
 
-  it("keeps valid persisted detail media and exposes non-404 failures as query errors", async () => {
+  it("keeps stale TanStack data while exposing a non-404 refetch failure", async () => {
     const queryClient = createQueryClient();
     const staleContent = createContent();
     const staleSnapshot = createDetailSnapshot(staleContent);
@@ -130,7 +123,7 @@ describe("usePublicContentDetail", () => {
         })
       )
     );
-    setPublicContentDetailCache(slug, staleSnapshot);
+    queryClient.setQueryData(["content-detail", slug], staleSnapshot);
 
     const { result } = renderHook(() => usePublicContentDetail({ slug }), {
       wrapper: createWrapper(queryClient)
@@ -145,6 +138,6 @@ describe("usePublicContentDetail", () => {
     expect(result.current.error?.message).toBe("temporary failure");
     expect(result.current.data).toEqual(staleContent);
     expect(result.current.media).toEqual([]);
-    expect(getPublicContentDetailCache(slug)?.data).toEqual(staleSnapshot);
+    expect(queryClient.getQueryData(["content-detail", slug])).toEqual(staleSnapshot);
   });
 });

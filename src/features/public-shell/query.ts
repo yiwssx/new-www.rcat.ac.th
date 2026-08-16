@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import {
   getPublicQueryRequestOptions,
+  PUBLIC_CACHE_FRESHNESS_MS,
   PUBLIC_QUERY_GC_TIME_MS,
   type PublicQueryRuntimeOptions
 } from "../public-read/queryPolicy";
@@ -12,7 +13,7 @@ export function publicShellQueryOptions(runtimeOptions: PublicQueryRuntimeOption
   return queryOptions({
     queryKey: publicShellQueryKey,
     queryFn: (context) => getPublicShellSnapshot(getPublicQueryRequestOptions(context, runtimeOptions)),
-    staleTime: 2 * 60 * 1000,
+    staleTime: PUBLIC_CACHE_FRESHNESS_MS.shell,
     gcTime: PUBLIC_QUERY_GC_TIME_MS,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true

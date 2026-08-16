@@ -1,8 +1,9 @@
+import { PUBLIC_CACHE_FRESHNESS_MS } from "../../config/publicCachePolicy";
 import { readPublicCache, removePublicCache, writePublicCache } from "../../services/publicCmsCache";
 import type { PublicDocumentListSnapshot } from "./types";
 
 export const PUBLIC_DOCUMENT_LIST_CACHE_KEY = "rcat.cms.public.document-list";
-export const PUBLIC_DOCUMENT_LIST_CACHE_TTL_MS = 15 * 60 * 1000;
+export const PUBLIC_DOCUMENT_LIST_CACHE_TTL_MS = PUBLIC_CACHE_FRESHNESS_MS.collection;
 
 export function getPublicDocumentListCache() {
   return readPublicCache<PublicDocumentListSnapshot>(PUBLIC_DOCUMENT_LIST_CACHE_KEY);
