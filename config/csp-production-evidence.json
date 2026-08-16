@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "collectedAt": "2026-08-16T09:16:00Z",
+  "environment": "production",
+  "edge": "Cloudflare",
+  "policyMode": "report-only",
+  "currentDeploymentCommit": "df4fafdb50bbfb58ad658585a83dc3f48ef9c90f",
+  "notes": "Evidence is intentionally fail-closed. A surface is not marked clean from absence of retained logs. Browser violation samples immediately before the P5E deployment remain applicable because P5E did not change the CSP policy; current Edge responses were rechecked after P5E where noted.",
+  "surfaces": {
+    "public-ssr": {
+      "state": "blocked",
+      "representativePath": "/",
+      "evidence": [
+        "Production browser report: script-src-elem blocked inline TanStack SSR script",
+        "Production browser report: script-src-elem blocked https://www.googletagmanager.com/gtm.js",
+        "Production browser report: frame-src blocked https://www.youtube-nocookie.com/",
+        "Production browser report: frame-src blocked https://www.google.com/",
+        "Current post-P5E Cloudflare Edge response still delivers Content-Security-Policy-Report-Only"
+      ]
+    },
+    "public-navigation": {
+      "state": "blocked",
+      "representativePath": "/search",
+      "evidence": [
+        "Production browser report: script-src-elem blocked inline SSR script on /search",
+        "Production browser report: script-src-elem blocked https://www.googletagmanager.com/gtm.js on /search"
+      ]
+    },
+    "auth": {
+      "state": "pending",
+      "representativePath": "/login",
+      "evidence": [
+        "2026-08-16 post-P5E Cloudflare Edge response returned HTTP 200 and Content-Security-Policy-Report-Only for /login; browser violation sampling is still required before clean"
+      ]
+    },
+    "admin": {
+      "state": "pending",
+      "representativePath": "/admin",
+      "evidence": [
+        "2026-08-16 post-P5E Cloudflare Edge response returned HTTP 200 and Content-Security-Policy-Report-Only for /admin; authenticated browser violation sampling is still required before clean"
+      ]
+    },
+    "media": {
+      "state": "pending",
+      "representativePath": "/admin/media",
+      "evidence": [
+        "2026-08-16 post-P5E Cloudflare Edge response returned HTTP 200 and Content-Security-Policy-Report-Only for /admin/media; authenticated media-library browser sampling is still required before clean",
+        "Separate production public-content reports show frame-src currently blocks https://drive.google.com/, so Drive embed requirements must be classified before enforcement"
+      ]
+    },
+    "complaint": {
+      "state": "blocked",
+      "representativePath": "/complaint",
+      "evidence": [
+        "2026-08-16 post-P5E Cloudflare Edge response returned HTTP 200 with an inline TanStack SSR stream script while the delivered report-only policy keeps script-src 'self'",
+        "Current post-P5E Cloudflare Edge response still delivers Content-Security-Policy-Report-Only"
+      ]
+    },
+    "facebook-embed": {
+      "state": "blocked",
+      "representativePath": "/content/facebook-1609435494524655-1623514416450096",
+      "evidence": [
+        "Production browser report: script-src-elem blocked inline SSR script on a Facebook content route",
+        "Production browser report: script-src-elem blocked https://www.googletagmanager.com/gtm.js on a Facebook content route",
+        "No Facebook frame-src violation was observed in the captured sample; this does not by itself qualify the surface as clean"
+      ]
+    }
+  }
+}
