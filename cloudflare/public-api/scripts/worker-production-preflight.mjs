@@ -44,7 +44,9 @@ export function assertProductionDatabaseIdentity(databases, expectedDatabaseId) 
   }
 
   if (!ids.includes(validatedId)) {
-    throw new Error("protected production D1 database ID does not match the promoted account-scoped production resource");
+    throw new Error(
+      "protected production D1 database ID does not match the promoted account-scoped production resource"
+    );
   }
 
   return true;
