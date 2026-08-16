@@ -25,6 +25,8 @@ jobs:
     if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     environment: production
+    env:
+      PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
 
     steps:
       - uses: actions/checkout@v7
@@ -41,11 +43,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
 
-      - name: Require protected Cloudflare credentials
+      - name: Require protected Cloudflare production credentials
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           test -n "$CLOUDFLARE_ACCOUNT_ID" || {
             echo "CLOUDFLARE_ACCOUNT_ID is unavailable from the protected production environment." >&2
@@ -55,23 +58,22 @@ jobs:
             echo "CLOUDFLARE_API_TOKEN is unavailable from the protected production environment." >&2
             exit 1
           }
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || {
+            echo "RCAT_PRODUCTION_D1_DATABASE_ID is unavailable from the protected production environment." >&2
+            exit 1
+          }
 
-      - name: Resolve exact production D1 name
+      - name: Resolve exact production D1 identity
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
-          node -e '
-            const fs = require("fs");
-            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-databases.json", "utf8"));
-            if (!Array.isArray(value)) throw new Error("unexpected D1 list response shape");
-            const matches = value.filter((database) => database?.name === "rcat-public-api-production");
-            if (matches.length !== 1) throw new Error(`expected exactly one rcat-public-api-production database, found ${matches.length}`);
-            if (matches[0]?.name === "rcat-public-api-preview") throw new Error("preview database resolved as production target");
-            console.log("Exact production D1 name resolved in the protected Cloudflare account.");
-          '
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            --verify-identity-only
 
       - name: Capture pre-change Time Travel bookmark
         shell: bash
@@ -79,7 +81,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          pnpm wrangler d1 time-travel info rcat-public-api-production --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+          pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-time-travel.json"
           node -e '
             const fs = require("fs");
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-time-travel.json", "utf8"));
@@ -100,7 +102,7 @@ jobs:
           schema_stderr="$RUNNER_TEMP/production-fixture-schema.stderr"
           schema_sql="SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('documents','contents','visitor_daily_stats','public_home_sections') ORDER BY name;"
           set +e
-          pnpm wrangler d1 execute rcat-public-api-production \
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
             --command="$schema_sql" \
             --json > "$schema_json" 2> "$schema_stderr"
@@ -137,7 +139,7 @@ jobs:
           audit_stderr="$RUNNER_TEMP/production-fixture-audit.stderr"
           audit_sql="$(cat cloudflare/public-api/sql/production-fixture-audit.sql)"
           set +e
-          pnpm wrangler d1 execute rcat-public-api-production \
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
             --command="$audit_sql" \
             --json > "$audit_json" 2> "$audit_stderr"
@@ -164,7 +166,7 @@ jobs:
           audit_stderr="$RUNNER_TEMP/production-home-section-fixture-audit.stderr"
           audit_sql="$(cat cloudflare/public-api/sql/production-home-section-fixture-audit.sql)"
           set +e
-          pnpm wrangler d1 execute rcat-public-api-production \
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
             --command="$audit_sql" \
             --json > "$audit_json" 2> "$audit_stderr"
@@ -198,7 +200,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          pnpm wrangler d1 execute rcat-public-api-production \
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
             --file cloudflare/public-api/sql/production-fixture-cleanup.sql
 
@@ -209,7 +211,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          pnpm wrangler d1 execute rcat-public-api-production \
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
             --file cloudflare/public-api/sql/production-home-section-fixture-cleanup.sql
 
@@ -224,7 +226,7 @@ jobs:
           audit_stderr="$RUNNER_TEMP/production-fixture-post-audit.stderr"
           audit_sql="$(cat cloudflare/public-api/sql/production-fixture-audit.sql)"
           set +e
-          pnpm wrangler d1 execute rcat-public-api-production \
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
             --command="$audit_sql" \
             --json > "$audit_json" 2> "$audit_stderr"
@@ -253,7 +255,7 @@ jobs:
           audit_stderr="$RUNNER_TEMP/production-home-section-fixture-post-audit.stderr"
           audit_sql="$(cat cloudflare/public-api/sql/production-home-section-fixture-audit.sql)"
           set +e
-          pnpm wrangler d1 execute rcat-public-api-production \
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
             --command="$audit_sql" \
             --json > "$audit_json" 2> "$audit_stderr"
@@ -279,7 +281,9 @@ jobs:
           {
             echo "## Production Data Integrity"
             echo
-            echo "- Target: rcat-public-api-production (resolved by exact account-scoped name)"
+            echo "- Canonical role: production"
+            echo "- D1 physical resource label: legacy preview name retained; protected UUID is authoritative"
+            echo "- Exact physical resource + protected D1 ID: verified"
             echo "- Mode: $MODE"
             echo "- Pre-change Time Travel bookmark: verified; value not printed"
             echo "- Required pre-M17-B tables: verified"
