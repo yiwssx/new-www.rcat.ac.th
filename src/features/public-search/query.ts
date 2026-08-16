@@ -1,11 +1,11 @@
 import { queryOptions } from "@tanstack/react-query";
 import {
   getPublicQueryRequestOptions,
+  PUBLIC_CACHE_FRESHNESS_MS,
   PUBLIC_QUERY_GC_TIME_MS,
   type PublicQueryRuntimeOptions
 } from "../public-read/queryPolicy";
 import { getPublicSearchIndexSnapshot, getPublicSearchPageSnapshot, type PublicSearchPageInput } from "./api";
-import { PUBLIC_SEARCH_INDEX_CACHE_TTL_MS, setPublicSearchIndexCache } from "./cache";
 
 export const publicSearchIndexQueryKey = ["public-search-index"] as const;
 
@@ -34,19 +34,14 @@ export function publicSearchIndexQueryOptions(
 
   return queryOptions({
     queryKey,
-    queryFn: async (context) => {
+    queryFn: (context) => {
       const requestOptions = getPublicQueryRequestOptions(context, runtimeOptions);
-      const snapshot = pageInput
-        ? await getPublicSearchPageSnapshot(normalizedQuery, pageInput, requestOptions)
-        : await getPublicSearchIndexSnapshot(normalizedQuery, requestOptions);
 
-      if (!pageInput && !normalizedQuery) {
-        setPublicSearchIndexCache(snapshot);
-      }
-
-      return snapshot;
+      return pageInput
+        ? getPublicSearchPageSnapshot(normalizedQuery, pageInput, requestOptions)
+        : getPublicSearchIndexSnapshot(normalizedQuery, requestOptions);
     },
-    staleTime: PUBLIC_SEARCH_INDEX_CACHE_TTL_MS,
+    staleTime: PUBLIC_CACHE_FRESHNESS_MS.collection,
     gcTime: PUBLIC_QUERY_GC_TIME_MS,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true
