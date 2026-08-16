@@ -3,8 +3,8 @@ name: D1 Recovery Drill
 on:
   workflow_dispatch:
     inputs:
-      acknowledge_non_production:
-        description: "Confirm this drill must remain read-only and preview-only"
+      acknowledge_read_only_production:
+        description: "Confirm this production readiness drill is read-only and never restores"
         required: true
         type: boolean
 
@@ -12,11 +12,13 @@ permissions:
   contents: read
 
 jobs:
-  preview-readiness:
-    name: Preview Time Travel Readiness
-    if: ${{ inputs.acknowledge_non_production == true && github.ref == 'refs/heads/master' }}
+  production-readiness:
+    name: Production Time Travel Readiness
+    if: ${{ inputs.acknowledge_read_only_production == true && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     environment: production
+    env:
+      PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
 
     steps:
       - uses: actions/checkout@v7
@@ -33,11 +35,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
 
-      - name: Require protected Cloudflare credentials
+      - name: Require protected Cloudflare production credentials
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           test -n "$CLOUDFLARE_ACCOUNT_ID" || {
             echo "CLOUDFLARE_ACCOUNT_ID is unavailable from the protected production environment." >&2
@@ -45,6 +48,10 @@ jobs:
           }
           test -n "$CLOUDFLARE_API_TOKEN" || {
             echo "CLOUDFLARE_API_TOKEN is unavailable from the protected production environment." >&2
+            exit 1
+          }
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || {
+            echo "RCAT_PRODUCTION_D1_DATABASE_ID is unavailable from the protected production environment." >&2
             exit 1
           }
 
@@ -56,54 +63,46 @@ jobs:
             exit 1
           fi
 
-      - name: Resolve exact preview D1 name
+      - name: Resolve exact production D1 identity
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
-          node -e '
-            const fs = require("fs");
-            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-databases.json", "utf8"));
-            if (!Array.isArray(value)) throw new Error("unexpected D1 list response shape");
-            const matches = value.filter((database) => database?.name === "rcat-public-api-preview");
-            if (matches.length !== 1) throw new Error(`expected exactly one rcat-public-api-preview database, found ${matches.length}`);
-            if (matches[0]?.name === "rcat-public-api-production") throw new Error("production database resolved as preview target");
-            console.log("Exact preview D1 name resolved in the protected Cloudflare account.");
-          '
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            --verify-identity-only
 
-      - name: Inspect preview D1 metadata
+      - name: Inspect production D1 metadata
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          pnpm wrangler d1 info rcat-public-api-preview --json > "$RUNNER_TEMP/d1-preview-info.json"
+          pnpm wrangler d1 info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-info.json"
           node -e '
             const fs = require("fs");
-            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-preview-info.json", "utf8"));
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-info.json", "utf8"));
             const metadata = Array.isArray(value) ? value[0] : value;
-            const text = JSON.stringify(value);
-            if (text.includes("rcat-public-api-production")) throw new Error("production database appeared in preview drill output");
-            if (metadata?.name !== "rcat-public-api-preview") throw new Error("preview D1 metadata did not resolve the expected database name");
-            console.log("Preview D1 metadata resolved for the expected non-production database.");
+            if (metadata?.name !== process.env.PRODUCTION_D1_RESOURCE_NAME) throw new Error("production D1 metadata did not resolve the expected physical resource");
+            console.log("Production D1 metadata resolved for the promoted data-bearing resource.");
           '
 
-      - name: Resolve preview Time Travel bookmark
+      - name: Resolve production Time Travel bookmark
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          pnpm wrangler d1 time-travel info rcat-public-api-preview --json > "$RUNNER_TEMP/d1-preview-time-travel.json"
+          pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-time-travel.json"
           node -e '
             const fs = require("fs");
-            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-preview-time-travel.json", "utf8"));
-            const text = JSON.stringify(value);
-            if (text.includes("rcat-public-api-production")) throw new Error("production database appeared in preview drill output");
-            if (typeof value?.bookmark !== "string" || value.bookmark.length === 0) throw new Error("preview Time Travel bookmark was not returned");
-            console.log("Preview Time Travel bookmark resolved. No restore was executed.");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-time-travel.json", "utf8"));
+            const metadata = Array.isArray(value) ? value[0] : value;
+            if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) throw new Error("production Time Travel bookmark was not returned");
+            console.log("Production Time Travel bookmark resolved. No restore was executed.");
           '
 
       - name: Drill summary
@@ -112,19 +111,19 @@ jobs:
           {
             echo "## D1 Recovery Drill"
             echo
-            echo "- Target: rcat-public-api-preview"
-            echo "- Resolution: exact account-scoped D1 name; committed preview database_id placeholder is not used"
-            echo "- Credentials: protected production environment; production database ID is not provided"
-            echo "- Readiness proof: Wrangler Time Travel info returned a current preview bookmark"
+            echo "- Canonical role: production"
+            echo "- D1 physical resource label: legacy preview name retained; protected UUID is authoritative"
+            echo "- Credentials: protected production environment"
+            echo "- Readiness proof: Wrangler Time Travel info returned a current production bookmark"
             echo "- Mode: read-only metadata / Time Travel bookmark resolution"
-            echo "- Production restore: not present in this workflow"
+            echo "- Time Travel restore: not present in this workflow"
             echo "- Production D1 write: none"
           } >> "$GITHUB_STEP_SUMMARY"
 
   retire-environment-deployment:
     name: Retire drill environment deployment
-    needs: preview-readiness
-    if: ${{ always() && inputs.acknowledge_non_production == true && github.ref == 'refs/heads/master' }}
+    needs: production-readiness
+    if: ${{ always() && inputs.acknowledge_read_only_production == true && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
