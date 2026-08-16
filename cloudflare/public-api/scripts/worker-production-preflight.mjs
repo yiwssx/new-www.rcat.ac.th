@@ -3,7 +3,10 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { sanitizeCloudflareCliOutput } from "../../../scripts/sanitize-cloudflare-cli-output.mjs";
-import { createProductionWranglerConfig, validateProductionDatabaseId } from "./productionDeployGuard.mjs";
+import {
+  createProductionWranglerConfig,
+  validateProductionDatabaseId,
+} from "./productionDeployGuard.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const workerDirectory = path.resolve(scriptDirectory, "..");
@@ -40,7 +43,9 @@ export function assertProductionDatabaseIdentity(databases, expectedDatabaseId) 
   }
 
   if (!ids.includes(validatedId)) {
-    throw new Error("protected production D1 database ID does not match the exact account-scoped production database");
+    throw new Error(
+      "protected production D1 database ID does not match the exact account-scoped production database",
+    );
   }
 
   return true;
@@ -60,14 +65,17 @@ export function buildProductionMigrationListArgs(configPath) {
     "--env",
     "production",
     "--experimental-provision=false",
-    "--experimental-auto-create=false"
+    "--experimental-auto-create=false",
   ];
 }
 
 export function listPendingProductionMigrations(databaseId = process.env.RCAT_PRODUCTION_D1_DATABASE_ID) {
   const sourceConfig = readFileSync(sourceConfigPath, "utf8");
   const preparedConfig = createProductionWranglerConfig(sourceConfig, databaseId);
-  const temporaryConfigPath = path.join(workerDirectory, `.wrangler.production-preflight-${process.pid}-${Date.now()}.toml`);
+  const temporaryConfigPath = path.join(
+    workerDirectory,
+    `.wrangler.production-preflight-${process.pid}-${Date.now()}.toml`,
+  );
   const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
   try {
@@ -75,7 +83,7 @@ export function listPendingProductionMigrations(databaseId = process.env.RCAT_PR
     const result = spawnSync(command, buildProductionMigrationListArgs(temporaryConfigPath), {
       cwd: repositoryRoot,
       env: process.env,
-      encoding: "utf8"
+      encoding: "utf8",
     });
 
     if (result.error) {
@@ -88,7 +96,7 @@ export function listPendingProductionMigrations(databaseId = process.env.RCAT_PR
     if (result.status !== 0) {
       const details = [stderr, stdout].filter(Boolean).join("\n");
       throw new Error(
-        `Wrangler production migration preflight failed with exit code ${result.status ?? "unknown"}${details ? `\n${details}` : ""}`
+        `Wrangler production migration preflight failed with exit code ${result.status ?? "unknown"}${details ? `\n${details}` : ""}`,
       );
     }
 
