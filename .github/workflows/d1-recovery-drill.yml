@@ -35,11 +35,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
 
-      - name: Require protected Cloudflare production credentials
+      - name: Require protected Cloudflare D1 read credentials
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           test -n "$CLOUDFLARE_ACCOUNT_ID" || {
@@ -47,7 +47,7 @@ jobs:
             exit 1
           }
           test -n "$CLOUDFLARE_API_TOKEN" || {
-            echo "CLOUDFLARE_API_TOKEN is unavailable from the protected production environment." >&2
+            echo "CLOUDFLARE_D1_READ_TOKEN is unavailable from the protected production environment." >&2
             exit 1
           }
           test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || {
@@ -67,7 +67,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
@@ -79,7 +79,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
         run: |
           pnpm wrangler d1 info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-info.json"
           node -e '
@@ -94,7 +94,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
         run: |
           pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-time-travel.json"
           node -e '
@@ -113,7 +113,7 @@ jobs:
             echo
             echo "- Canonical role: production"
             echo "- D1 physical resource label: legacy preview name retained; protected UUID is authoritative"
-            echo "- Credentials: protected production environment"
+            echo "- Credential role: dedicated D1 read token from protected production Environment"
             echo "- Readiness proof: Wrangler Time Travel info returned a current production bookmark"
             echo "- Mode: read-only metadata / Time Travel bookmark resolution"
             echo "- Time Travel restore: not present in this workflow"
