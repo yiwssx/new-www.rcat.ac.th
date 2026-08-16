@@ -64,7 +64,7 @@ const routes = [
   }
 ];
 
-function createRequest({ url, method = "PATCH", headers = {}, body = { marker: "body" } }) {
+function createRequest({ url, method = "PATCH", headers = {}, body = { marker: "body" }, query }) {
   const read = vi.fn(function readBody() {
     this.push("request-body");
     this.push(null);
@@ -74,6 +74,9 @@ function createRequest({ url, method = "PATCH", headers = {}, body = { marker: "
   stream.method = method;
   stream.headers = headers;
   stream.body = body;
+  if (query !== undefined) {
+    stream.query = query;
+  }
   return { request: stream, read };
 }
 
@@ -136,6 +139,51 @@ describe("CMS-auth dispatcher", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
+  it.each(routes)(
+    "dispatches $id when Vercel exposes rewrite parameters on request.query",
+    async ({ id, publicPath }) => {
+      const headers = { host: "cms.example.invalid", "x-vercel-test": "preserved" };
+      const body = { marker: "preserved" };
+      const { request, read } = createRequest({
+        url: publicPath,
+        headers,
+        body,
+        query: { _rcatCmsRoute: id }
+      });
+      const response = createResponse();
+      const handlers = createHandlerMap();
+
+      handlers[id].mockImplementation(async (selectedRequest) => {
+        expect(selectedRequest.url).toBe(publicPath);
+        expect(selectedRequest.headers).toBe(headers);
+        expect(selectedRequest.body).toBe(body);
+      });
+
+      await handleCmsAuthDispatch(request, response, { handlers });
+
+      expect(handlers[id]).toHaveBeenCalledTimes(1);
+      expect(callCount(handlers)).toBe(1);
+      expect(request.url).toBe(publicPath);
+      expect(read).not.toHaveBeenCalled();
+    }
+  );
+
+  it("accepts the internal function path when Vercel exposes only the rewrite query object", async () => {
+    const { request, read } = createRequest({
+      url: "/api/cms-auth",
+      method: "GET",
+      query: { _rcatCmsRoute: "session" }
+    });
+    const handlers = createHandlerMap();
+
+    await handleCmsAuthDispatch(request, createResponse(), { handlers });
+
+    expect(handlers.session).toHaveBeenCalledTimes(1);
+    expect(callCount(handlers)).toBe(1);
+    expect(request.url).toBe("/api/cms-auth");
+    expect(read).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["missing route", "/api/cms-auth"],
     ["unknown route", "/api/cms-auth?_rcatCmsRoute=unknown"],
@@ -158,6 +206,40 @@ describe("CMS-auth dispatcher", () => {
     expect(response.bodyText).toBe('{"error":"not found"}');
     expect(callCount(handlers)).toBe(0);
     expect(request.url).toBe(url);
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["unknown query route", { _rcatCmsRoute: "unknown" }],
+    ["array query route", { _rcatCmsRoute: ["login", "session"] }],
+    ["additional query value", { _rcatCmsRoute: "login", token: "secret" }],
+    ["wrong query key", { route: "login" }]
+  ])("rejects an invalid Vercel %s with a no-store 404", async (_name, query) => {
+    const { request, read } = createRequest({ url: "/api/cms-auth/login", query });
+    const response = createResponse();
+    const handlers = createHandlerMap();
+
+    await handleCmsAuthDispatch(request, response, { handlers });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.getHeader("Cache-Control")).toBe("no-store");
+    expect(response.bodyText).toBe('{"error":"not found"}');
+    expect(callCount(handlers)).toBe(0);
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it("does not let a Vercel query route select a different public CMS-auth path", async () => {
+    const { request, read } = createRequest({
+      url: "/api/cms-auth/session",
+      query: { _rcatCmsRoute: "login" }
+    });
+    const response = createResponse();
+    const handlers = createHandlerMap();
+
+    await handleCmsAuthDispatch(request, response, { handlers });
+
+    expect(response.statusCode).toBe(404);
+    expect(callCount(handlers)).toBe(0);
     expect(read).not.toHaveBeenCalled();
   });
 
