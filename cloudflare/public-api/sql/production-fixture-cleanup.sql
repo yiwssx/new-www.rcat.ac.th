@@ -1,7 +1,6 @@
 -- P5A exact cleanup for fixtures in tables that exist before M17-B.
 -- This file intentionally contains no wildcard deletes and no production-wide reset.
-
-BEGIN TRANSACTION;
+-- D1 remote --file execution rejects explicit SQL transaction control; Wrangler handles rollback on failed imports.
 
 DELETE FROM documents
 WHERE id = 'sample-public-read-document-001'
@@ -43,5 +42,3 @@ WHERE day = '2026-01-01'
   AND unique_visitors = 4
   AND online_users = 0
   AND updated_at = '2026-01-01T00:00:00.000Z';
-
-COMMIT;
