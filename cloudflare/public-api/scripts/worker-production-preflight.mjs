@@ -3,7 +3,10 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { sanitizeCloudflareCliOutput } from "../../../scripts/sanitize-cloudflare-cli-output.mjs";
-import { createProductionWranglerConfig, validateProductionDatabaseId } from "./productionDeployGuard.mjs";
+import {
+  createProductionWranglerConfig,
+  validateProductionDatabaseId,
+} from "./productionDeployGuard.mjs";
 import { PRODUCTION_D1_RESOURCE_NAME } from "./productionResource.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -33,7 +36,9 @@ export function assertProductionDatabaseIdentity(databases, expectedDatabaseId) 
 
   const matches = databases.filter((database) => database?.name === PRODUCTION_D1_RESOURCE_NAME);
   if (matches.length !== 1) {
-    throw new Error(`expected exactly one promoted production D1 resource ${PRODUCTION_D1_RESOURCE_NAME}, found ${matches.length}`);
+    throw new Error(
+      `expected exactly one promoted production D1 resource ${PRODUCTION_D1_RESOURCE_NAME}, found ${matches.length}`,
+    );
   }
 
   const ids = databaseRecordIds(matches[0]);
@@ -42,7 +47,9 @@ export function assertProductionDatabaseIdentity(databases, expectedDatabaseId) 
   }
 
   if (!ids.includes(validatedId)) {
-    throw new Error("protected production D1 database ID does not match the promoted account-scoped production resource");
+    throw new Error(
+      "protected production D1 database ID does not match the promoted account-scoped production resource",
+    );
   }
 
   return true;
@@ -62,7 +69,7 @@ export function buildProductionMigrationListArgs(configPath) {
     "--env",
     "production",
     "--experimental-provision=false",
-    "--experimental-auto-create=false"
+    "--experimental-auto-create=false",
   ];
 }
 
@@ -71,7 +78,7 @@ export function listPendingProductionMigrations(databaseId = process.env.RCAT_PR
   const preparedConfig = createProductionWranglerConfig(sourceConfig, databaseId);
   const temporaryConfigPath = path.join(
     workerDirectory,
-    `.wrangler.production-preflight-${process.pid}-${Date.now()}.toml`
+    `.wrangler.production-preflight-${process.pid}-${Date.now()}.toml`,
   );
   const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
@@ -80,7 +87,7 @@ export function listPendingProductionMigrations(databaseId = process.env.RCAT_PR
     const result = spawnSync(command, buildProductionMigrationListArgs(temporaryConfigPath), {
       cwd: repositoryRoot,
       env: process.env,
-      encoding: "utf8"
+      encoding: "utf8",
     });
 
     if (result.error) {
@@ -93,7 +100,7 @@ export function listPendingProductionMigrations(databaseId = process.env.RCAT_PR
     if (result.status !== 0) {
       const details = [stderr, stdout].filter(Boolean).join("\n");
       throw new Error(
-        `Wrangler production migration preflight failed with exit code ${result.status ?? "unknown"}${details ? `\n${details}` : ""}`
+        `Wrangler production migration preflight failed with exit code ${result.status ?? "unknown"}${details ? `\n${details}` : ""}`,
       );
     }
 
