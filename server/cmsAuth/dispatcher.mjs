@@ -19,6 +19,7 @@ import {
 import { createCmsCorrelatedFetch } from "./upstreamFetch.mjs";
 
 const ROUTE_PARAMETER = "_rcatCmsRoute";
+const VERCEL_SHARE_PARAMETER = "_vercel_share";
 const INTERNAL_DISPATCH_PATH = "/api/cms-auth";
 
 export function handleRetiredLegacyAuthentication(request, response) {
@@ -115,6 +116,10 @@ function readRequestQueryEntries(request) {
   return Object.entries(query);
 }
 
+function removeVercelShareMetadata(entries) {
+  return Array.isArray(entries) ? entries.filter(([name]) => name !== VERCEL_SHARE_PARAMETER) : null;
+}
+
 function findRouteByMarker(entries, pathname) {
   if (!Array.isArray(entries) || entries.length !== 1) {
     return null;
@@ -135,6 +140,23 @@ function findRouteByMarker(entries, pathname) {
   return route;
 }
 
+function hasCanonicalUrlRouteMarker(parsedUrl, route) {
+  const routeSegments = parsedUrl.search
+    .slice(1)
+    .split("&")
+    .filter((segment) => {
+      const [rawName = ""] = segment.split("=", 1);
+
+      try {
+        return decodeURIComponent(rawName.replace(/\+/gu, " ")) === ROUTE_PARAMETER;
+      } catch {
+        return false;
+      }
+    });
+
+  return routeSegments.length === 1 && routeSegments[0] === `${ROUTE_PARAMETER}=${route.id}`;
+}
+
 function findRoute(request) {
   const requestUrl = request?.url;
 
@@ -150,22 +172,23 @@ function findRoute(request) {
   try {
     const parsedUrl = new URL(requestUrl, "https://cms-auth-dispatch.invalid");
     const urlEntries = [...parsedUrl.searchParams.entries()];
+    const applicationUrlEntries = removeVercelShareMetadata(urlEntries);
 
     if (!parsedUrl.pathname.startsWith("/") || !["http:", "https:"].includes(parsedUrl.protocol)) {
       return null;
     }
 
-    if (urlEntries.length > 0) {
-      const route = findRouteByMarker(urlEntries, parsedUrl.pathname);
+    if (applicationUrlEntries.length > 0) {
+      const route = findRouteByMarker(applicationUrlEntries, parsedUrl.pathname);
 
-      if (!route || parsedUrl.search !== `?${ROUTE_PARAMETER}=${route.id}`) {
+      if (!route || !hasCanonicalUrlRouteMarker(parsedUrl, route)) {
         return null;
       }
 
       return route;
     }
 
-    const requestQueryEntries = readRequestQueryEntries(request);
+    const requestQueryEntries = removeVercelShareMetadata(readRequestQueryEntries(request));
     const publicRoute = CMS_AUTH_ROUTE_TABLE.find((candidate) => candidate.publicPath === parsedUrl.pathname);
 
     if (publicRoute) {
