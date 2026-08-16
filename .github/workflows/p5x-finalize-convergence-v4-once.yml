@@ -1,0 +1,160 @@
+name: P5X Finalize Convergence V4 Once
+
+on:
+  push:
+    branches:
+      - agent/p5x-production-convergence
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: "${{ github.event.head_commit.message != 'test(p5x): align convergence contracts' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/p5x-production-convergence
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Align convergence contracts
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_required(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"expected text not found in {path}: {old[:100]!r}")
+              p.write_text(text.replace(old, new))
+
+          replace_required(
+              "src/test/productionDataIntegritySafety.test.ts",
+              '    expect(integrityWorkflow).toContain("d1 time-travel info rcat-public-api-production");',
+              '    expect(integrityWorkflow).toContain("PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview");\n'
+              '    expect(integrityWorkflow).toContain(\'d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME"\');'
+          )
+          replace_required(
+              "src/test/workerProductionPreflightSafety.test.ts",
+              '    expect(preflightWorkflow).toContain("d1 time-travel info rcat-public-api-production");',
+              '    expect(preflightWorkflow).toContain("PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview");\n'
+              '    expect(preflightWorkflow).toContain(\'d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME"\');'
+          )
+
+          for path in [
+              "cloudflare/public-api/test/productionDataImportPlan.test.ts",
+              "cloudflare/public-api/test/publicDocumentsImportDryRunParity.test.ts",
+              "cloudflare/public-api/test/publicDocumentsImportManifestDryRun.test.ts",
+              "cloudflare/public-api/test/publicDocumentsProductionCutover.test.ts",
+              "cloudflare/public-api/test/publicDocumentsProductionImport.test.ts",
+              "cloudflare/public-api/test/publicDocumentsProductionWorkerSmoke.test.ts",
+          ]:
+              p = Path(path)
+              text = p.read_text()
+              if "preview-placeholder" not in text:
+                  raise SystemExit(f"preview placeholder expectation missing in {path}")
+              p.write_text(text.replace("preview-placeholder", "production-placeholder"))
+
+          replace_required(
+              "cloudflare/public-api/test/productionCutoverPreflight.test.mjs",
+              '''  it("is exposed through the root package scripts", () => {
+              const rootPackageJson = JSON.parse(rootPackageJsonSource);
+              const workerPackageJson = JSON.parse(workerPackageJsonSource);
+
+              expect(rootPackageJson.scripts["worker:production:preflight"]).toBe(
+                "node cloudflare/public-api/scripts/production-cutover-preflight.mjs"
+              );
+              expect(workerPackageJson.scripts["worker:production:preflight"]).toBe(
+                "node scripts/production-cutover-preflight.mjs"
+              );
+            });''',
+              '''  it("retains the historical helper without exposing it through the current package command surface", () => {
+              const rootPackageJson = JSON.parse(rootPackageJsonSource);
+              const workerPackageJson = JSON.parse(workerPackageJsonSource);
+
+              expect(rootPackageJson.scripts["worker:production:preflight"]).toBeUndefined();
+              expect(workerPackageJson.scripts["worker:production:preflight"]).toBeUndefined();
+            });'''
+          )
+
+          replace_required(
+              "cloudflare/public-api/test/schemaContract.test.ts",
+              '    expect(productionSection).toMatch(/canonical production/i);',
+              '    expect(wranglerToml).toMatch(/# Canonical production runtime\\./i);'
+          )
+          replace_required(
+              "cloudflare/public-api/test/seedContract.test.ts",
+              '    expect(wranglerToml).toMatch(/local\\/non-production/i);',
+              '    expect(wranglerToml).toMatch(/# Local-only D1 binding/i);'
+          )
+
+          replace_required(
+              "docs/architecture/production-environment-convergence-2026-08-16.md",
+              "The existing data-bearing D1 is promoted in place. No D1 export/import, copy, rebuild, reseed, or data transfer is part of this decision. The previous D1 named `rcat-public-api-production` is not the canonical production database because it never became the live data source.",
+              "The existing data-bearing D1 is promoted in place. No D1 export/import, copy, rebuild, reseed, or data transfer is part of this decision. The previous empty D1 and Worker named `rcat-public-api-production` never became the live data source and were manually deleted on 2026-08-16. The protected production release recreates the Worker service only; it does not recreate that empty D1."
+          )
+          replace_required(
+              "docs/architecture/production-environment-convergence-2026-08-16.md",
+              "## Retirement\n\nAfter production smoke validation succeeds:\n\n- the unused empty D1 previously named `rcat-public-api-production` may be retired manually after an independent empty-data check;\n- any obsolete Preview Worker deployment may be retired after confirming Vercel no longer references it;\n- historical M5/M6 Preview documents remain audit history and must be read as historical, not as current architecture.\n\nNever delete the promoted data-bearing D1 merely because its physical name still contains `preview`.",
+              "## Retirement\n\nCompleted on 2026-08-16 before cutover:\n\n- the unused empty D1 previously named `rcat-public-api-production` was deleted manually;\n- the unused Worker previously named `rcat-public-api-production` was deleted manually and will be recreated by the protected production release.\n\nAfter production smoke validation succeeds, any obsolete Preview Worker deployment may be retired after confirming Vercel no longer references it. Historical M5/M6 Preview documents remain audit history and must be read as historical, not as current architecture.\n\nNever delete the promoted data-bearing D1 merely because its physical name still contains `preview`."
+          )
+
+          for path in [
+              "docs/architecture/current-runtime-ownership.md",
+              "docs/deployment/runtime-deployment-guide.md",
+          ]:
+              p = Path(path)
+              text = p.read_text()
+              text = text.replace(
+                  "The old empty D1 named `rcat-public-api-production` is not the production source of truth and may be retired separately after an independent empty-data verification.",
+                  "The old empty D1 named `rcat-public-api-production` was manually deleted on 2026-08-16. The old Worker of the same name was also deleted and will be recreated by the protected production release."
+              )
+              text = text.replace(
+                  "The old D1 physically named `rcat-public-api-production` never became the live structured-data source and is not a release target. It may be retired separately only after an independent check confirms it contains no required data.",
+                  "The old empty D1 physically named `rcat-public-api-production` never became the live structured-data source and was manually deleted on 2026-08-16. The old Worker of the same name was also deleted; the protected release recreates that Worker service while binding it to the promoted data-bearing D1."
+              )
+              p.write_text(text)
+
+          replace_required(
+              "docs/development/environment-variables.md",
+              "Do not set `RCAT_PRODUCTION_D1_DATABASE_ID` to the unused empty D1 that was physically named `rcat-public-api-production`. Do not commit either UUID to git.",
+              "The unused empty D1 that was physically named `rcat-public-api-production` was deleted on 2026-08-16. Set `RCAT_PRODUCTION_D1_DATABASE_ID` only to the UUID of the promoted data-bearing D1 and never commit that UUID to git."
+          )
+
+          p = Path("cloudflare/public-api/README.md")
+          text = p.read_text()
+          marker = "See `docs/architecture/production-environment-convergence-2026-08-16.md`."
+          addition = marker + "\n\nThe previous empty Worker and D1 named `rcat-public-api-production` were manually deleted on 2026-08-16. The protected production release recreates the Worker service with that name and binds it to the promoted data-bearing D1; it does not create a replacement D1."
+          if addition not in text:
+              if marker not in text:
+                  raise SystemExit("README convergence marker missing")
+              text = text.replace(marker, addition, 1)
+          p.write_text(text)
+          PY
+
+      - name: Format supported changed files
+        run: pnpm exec prettier --write src/test/productionDataIntegritySafety.test.ts src/test/workerProductionPreflightSafety.test.ts cloudflare/public-api/test/productionDataImportPlan.test.ts cloudflare/public-api/test/publicDocumentsImportDryRunParity.test.ts cloudflare/public-api/test/publicDocumentsImportManifestDryRun.test.ts cloudflare/public-api/test/publicDocumentsProductionCutover.test.ts cloudflare/public-api/test/publicDocumentsProductionImport.test.ts cloudflare/public-api/test/publicDocumentsProductionWorkerSmoke.test.ts cloudflare/public-api/test/productionCutoverPreflight.test.mjs cloudflare/public-api/test/schemaContract.test.ts cloudflare/public-api/test/seedContract.test.ts docs/architecture/production-environment-convergence-2026-08-16.md docs/architecture/current-runtime-ownership.md docs/deployment/runtime-deployment-guide.md docs/development/environment-variables.md cloudflare/public-api/README.md
+
+      - name: Run focused convergence tests
+        run: pnpm exec vitest run src/test/productionDataIntegritySafety.test.ts src/test/workerProductionPreflightSafety.test.ts cloudflare/public-api/test/productionDataImportPlan.test.ts cloudflare/public-api/test/publicDocumentsImportDryRunParity.test.ts cloudflare/public-api/test/publicDocumentsImportManifestDryRun.test.ts cloudflare/public-api/test/publicDocumentsProductionCutover.test.ts cloudflare/public-api/test/publicDocumentsProductionImport.test.ts cloudflare/public-api/test/publicDocumentsProductionWorkerSmoke.test.ts cloudflare/public-api/test/productionCutoverPreflight.test.mjs cloudflare/public-api/test/schemaContract.test.ts cloudflare/public-api/test/seedContract.test.ts
+
+      - name: Commit convergence contract updates
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/test/productionDataIntegritySafety.test.ts src/test/workerProductionPreflightSafety.test.ts cloudflare/public-api/test/productionDataImportPlan.test.ts cloudflare/public-api/test/publicDocumentsImportDryRunParity.test.ts cloudflare/public-api/test/publicDocumentsImportManifestDryRun.test.ts cloudflare/public-api/test/publicDocumentsProductionCutover.test.ts cloudflare/public-api/test/publicDocumentsProductionImport.test.ts cloudflare/public-api/test/publicDocumentsProductionWorkerSmoke.test.ts cloudflare/public-api/test/productionCutoverPreflight.test.mjs cloudflare/public-api/test/schemaContract.test.ts cloudflare/public-api/test/seedContract.test.ts docs/architecture/production-environment-convergence-2026-08-16.md docs/architecture/current-runtime-ownership.md docs/deployment/runtime-deployment-guide.md docs/development/environment-variables.md cloudflare/public-api/README.md
+          git commit -m "test(p5x): align convergence contracts"
+          git push origin HEAD:agent/p5x-production-convergence
