@@ -47,6 +47,7 @@ import {
   type PublicHomeSectionRow,
   type VisitorDailyStatsRow
 } from "../db/schema";
+import { validateAdminLinkWriteRequest } from "../adminLinkValidation";
 import type { Env } from "../env";
 import { json, jsonError, methodNotAllowed } from "../responses";
 import { handleAdminBackup } from "./adminBackup";
@@ -2114,6 +2115,7 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
   }
 
   try {
+    await validateAdminLinkWriteRequest(request);
     const schemaMismatch = await getPreviewSchemaMismatch(env, request, segments);
 
     if (schemaMismatch) {
