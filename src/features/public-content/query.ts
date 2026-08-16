@@ -18,10 +18,7 @@ import type { PublicContentListKind } from "./types";
 function normalizePageInput(pageInput: PublicContentListPageInput) {
   return {
     page: Math.max(1, Math.floor(pageInput.page)),
-    pageSize:
-      pageInput.pageSize === undefined
-        ? undefined
-        : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))
+    pageSize: pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)))
   };
 }
 
@@ -53,16 +50,13 @@ export function publicContentListQueryOptions(
     queryKey: publicContentListQueryKey(kind, pageItemsInput, pageInput),
     queryFn: async (context) => {
       const requestOptions = getPublicQueryRequestOptions(context, runtimeOptions);
+      const snapshot = pageInput
+        ? await getPublicContentListPageSnapshot(kind, pageInput, requestOptions)
+        : kind === "announcements" && pageItemsInput
+          ? await getPublicAnnouncementsContentListSnapshot(pageItemsInput, requestOptions)
+          : await getPublicContentListSnapshot(kind, requestOptions);
 
-      if (pageInput) {
-        return getPublicContentListPageSnapshot(kind, pageInput, requestOptions);
-      }
-
-      if (kind === "announcements" && pageItemsInput) {
-        return getPublicAnnouncementsContentListSnapshot(pageItemsInput, requestOptions);
-      }
-
-      return getPublicContentListSnapshot(kind, requestOptions);
+      return snapshot;
     },
     staleTime: PUBLIC_CACHE_FRESHNESS_MS.collection,
     gcTime: PUBLIC_QUERY_GC_TIME_MS,
@@ -87,10 +81,11 @@ export function publicContentDetailQueryOptions(
       }
 
       try {
-        return await getPublicContentDetailSnapshot(
+        const snapshot = await getPublicContentDetailSnapshot(
           { slug },
           getPublicQueryRequestOptions(context, runtimeOptions)
         );
+        return snapshot;
       } catch (error) {
         if (isPublicContentNotFoundError(error)) {
           return null;
