@@ -143,3 +143,5 @@ const counts = requiredSurfaces.reduce(
 console.log(
   `P5F security boundary: dedicated D1 read paths verified; CSP evidence ${counts.clean} clean / ${counts.blocked} blocked / ${counts.pending} pending; enforcement remains off.`,
 );
+
+
