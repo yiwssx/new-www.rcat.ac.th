@@ -35,7 +35,7 @@ Node 22 is no longer the current project requirement.
 - Dedicated Complaint Apps Script: isolated complaint destination reached only through Vercel `/api/complaint`.
 - Google Drive: file/media storage behind the main media bridge.
 
-Cloudflare has only local development plus one canonical remote production role. There is no persistent Preview deployment tier. The data-bearing D1 originally provisioned with the physical name `rcat-public-api-preview` is promoted in place and is the canonical production database. See `docs/architecture/production-environment-convergence-2026-08-16.md` and `docs/architecture/current-runtime-ownership.md`.
+Cloudflare has only local development plus one canonical remote production role. There is no persistent Preview deployment tier. The existing Worker and data-bearing D1 originally provisioned with the physical name `rcat-public-api-preview` are promoted in place and are the canonical production runtime. Their physical names and Worker endpoint remain unchanged. See `docs/architecture/production-environment-convergence-2026-08-16.md` and `docs/architecture/current-runtime-ownership.md`.
 
 ## Vercel Production
 
@@ -49,7 +49,7 @@ CLOUDFLARE_PUBLIC_API_URL=<production Cloudflare Public API base URL>
 
 The Public structured-data runtime is Cloudflare-only and has no provider selector. Browser code uses the public `VITE_CLOUDFLARE_PUBLIC_API_URL` alias. Server-side code prefers `CLOUDFLARE_PUBLIC_API_URL` and accepts `VITE_CLOUDFLARE_PUBLIC_API_URL` only as a compatibility fallback because the Worker origin itself is not secret.
 
-Vercel production configuration must point to the canonical production Worker endpoint after Cloudflare cutover. Vercel configuration is managed separately from Worker/D1 repository convergence.
+If Vercel Production already points at the existing `rcat-public-api-preview` Worker endpoint, the environment convergence does not require changing `CLOUDFLARE_PUBLIC_API_URL`, `VITE_CLOUDFLARE_PUBLIC_API_URL`, or `CLOUDFLARE_ADMIN_API_URL`. A Vercel redeploy is required only when a Vercel value or consuming Vercel code actually changes.
 
 ### Complaint proxy configuration
 
@@ -91,13 +91,13 @@ See `docs/operations/public-ssr-cutover.md` for live verification and rollback.
 
 A merge to `master` does **not** deploy the Cloudflare Worker automatically.
 
-### Canonical production database
+### Canonical production runtime
 
-The canonical production D1 is the existing data-bearing database whose legacy physical Cloudflare name is `rcat-public-api-preview`. It is promoted in place; do not export/import, copy, rebuild, or reseed it merely to obtain a production-looking physical name.
+The canonical production Worker and D1 are the existing resources whose legacy physical Cloudflare name is `rcat-public-api-preview`. They are promoted in place. Do not create replacement resources merely to obtain production-looking physical names.
 
-The old empty D1 physically named `rcat-public-api-production` never became the live structured-data source and was manually deleted on 2026-08-16. The old Worker of the same name was also deleted; the protected release recreates that Worker service while binding it to the promoted data-bearing D1.
+The old empty D1 physically named `rcat-public-api-production` never became the live structured-data source and was manually deleted on 2026-08-16. The unused Worker of the same name was also deleted and is not recreated.
 
-The legacy physical `preview` label must not be interpreted as a non-production environment. Release identity is the pair of:
+The legacy physical `preview` label must not be interpreted as a non-production environment. D1 release identity is the pair of:
 
 - exact physical D1 resource name expected by the repository;
 - protected UUID in `RCAT_PRODUCTION_D1_DATABASE_ID`.
@@ -126,13 +126,15 @@ CLOUDFLARE_API_TOKEN
 RCAT_PRODUCTION_D1_DATABASE_ID
 ```
 
-`RCAT_PRODUCTION_D1_DATABASE_ID` must contain the UUID of the promoted data-bearing D1, not the unused empty D1.
+`RCAT_PRODUCTION_D1_DATABASE_ID` must contain the UUID of the promoted data-bearing D1.
 
 The tracked `cloudflare/public-api/wrangler.toml` must keep:
 
 ```toml
+keep_vars = true
+
 [env.production]
-name = "rcat-public-api-production"
+name = "rcat-public-api-preview"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -140,17 +142,17 @@ database_name = "rcat-public-api-preview"
 database_id = "production-placeholder"
 ```
 
-Never commit the real D1 UUID. The `env.production` Worker service name is production-facing; the D1 `database_name` retains the legacy physical label only because the existing data-bearing database is promoted without data movement.
+Never commit the real D1 UUID. `env.production` is the canonical deployment role while the Worker and D1 retain their historical physical names. `keep_vars = true` preserves dashboard-managed non-secret Worker variables that are not represented in the tracked configuration; Cloudflare encrypted secrets are preserved by Wrangler deployment unless they are explicitly deleted.
 
 `worker-production-preflight.mjs` and `worker-production-deploy.mjs` create temporary production configs next to `wrangler.toml` using the protected D1 UUID. The release workflow verifies exact D1 identity, captures a fresh pre-release Time Travel bookmark, lists unapplied migrations, rechecks the production fixture sentinel, and only then allows the mutating release step.
 
 The mutating release helper performs:
 
-1. `wrangler d1 migrations apply` against the promoted data-bearing D1 using the temporary `env.production` config;
-2. `wrangler deploy --env production` only if migration succeeds;
+1. `wrangler d1 migrations apply` against the existing data-bearing D1 using the temporary `env.production` config;
+2. `wrangler deploy --env production` back onto the existing Worker physical resource `rcat-public-api-preview` only if migration succeeds;
 3. removal of the temporary config even on failure.
 
-The workflow therefore fails closed when the production D1 UUID is missing/malformed, does not match the promoted account-scoped resource, the tracked configuration no longer contains the placeholder contract, fixture sentinels are not clean, or migration application fails.
+The workflow therefore fails closed when the production D1 UUID is missing/malformed, does not match the promoted account-scoped resource, the tracked configuration no longer contains the in-place Worker identity and placeholder contract, fixture sentinels are not clean, or migration application fails.
 
 ### Production data integrity
 
@@ -247,11 +249,10 @@ Before a Vercel deployment:
 Before a Worker deployment:
 
 1. merge the validated Worker/D1 convergence/release changes to `master`;
-2. set `RCAT_PRODUCTION_D1_DATABASE_ID` to the promoted data-bearing D1 UUID in the protected GitHub `Production` environment;
+2. keep `RCAT_PRODUCTION_D1_DATABASE_ID` set to the existing data-bearing D1 UUID in the protected GitHub `Production` environment;
 3. invoke `Worker Production Preflight` manually on `master` and inspect the unapplied-migration list;
 4. confirm exact promoted-D1 identity, Time Travel readiness, and the pending migration set;
 5. invoke `Worker Production Release` manually on the same `master` revision;
-6. require successful fixture gates, migration apply, and Worker deploy output;
-7. update/verify Vercel production Worker URL separately;
-8. verify Worker health, Public API, Admin/Auth, analytics, and representative SSR pages immediately after release;
-9. retire obsolete empty/Preview-era Cloudflare resources only after the new production path is verified.
+6. require successful fixture gates, migration apply, and in-place Worker deploy output;
+7. do not change Vercel Worker URL variables if they already point to the existing Worker endpoint;
+8. verify Worker health, Public API, Admin/Auth, analytics, and representative SSR pages immediately after release.

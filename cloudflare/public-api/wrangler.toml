@@ -1,6 +1,7 @@
 name = "rcat-public-api"
 main = "src/index.ts"
 compatibility_date = "2026-05-27"
+keep_vars = true
 
 # Local-only D1 binding for development, tests, and fake sample data.
 [[d1_databases]]
@@ -8,13 +9,14 @@ binding = "DB"
 database_name = "rcat-public-api-local"
 database_id = "local-placeholder"
 
-# Canonical production runtime.
-# The data-bearing D1 was originally provisioned under the physical Cloudflare
-# name `rcat-public-api-preview`. It is promoted in place as the sole production
-# database to avoid copying or rebuilding live data. The protected production
-# UUID is injected at release time; never commit the real D1 database_id.
+# Canonical production runtime promoted in place.
+# Both the existing Worker and data-bearing D1 retain their historical physical
+# Cloudflare name `rcat-public-api-preview`, while their canonical role is now
+# production. This preserves the live Worker URL, dashboard-managed non-secret
+# vars not represented here, encrypted secrets, and all D1 data. The protected
+# production D1 UUID is injected at release time; never commit the real ID.
 [env.production]
-name = "rcat-public-api-production"
+name = "rcat-public-api-preview"
 
 [env.production.vars]
 ENVIRONMENT = "production"

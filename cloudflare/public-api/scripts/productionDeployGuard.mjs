@@ -1,5 +1,8 @@
 const PRODUCTION_DATABASE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PRODUCTION_BINDING_PATTERN = /(\[\[env\.production\.d1_databases\]\][\s\S]*?database_id\s*=\s*")([^"]+)(")/;
+const PRODUCTION_WORKER_PATTERN = /\[env\.production\][\s\S]*?\nname\s*=\s*"([^"]+)"/;
+
+export const PRODUCTION_WORKER_RESOURCE_NAME = "rcat-public-api-preview";
 
 export function validateProductionDatabaseId(value) {
   const databaseId = String(value || "").trim();
@@ -15,9 +18,14 @@ export function createProductionWranglerConfig(source, databaseId) {
   const validatedDatabaseId = validateProductionDatabaseId(databaseId);
   const config = String(source || "");
   const match = config.match(PRODUCTION_BINDING_PATTERN);
+  const workerMatch = config.match(PRODUCTION_WORKER_PATTERN);
 
   if (!config.includes("[env.production]")) {
     throw new Error("wrangler config is missing [env.production]");
+  }
+
+  if (!workerMatch || workerMatch[1] !== PRODUCTION_WORKER_RESOURCE_NAME) {
+    throw new Error(`tracked production Worker must remain ${PRODUCTION_WORKER_RESOURCE_NAME} for in-place promotion`);
   }
 
   if (!match) {

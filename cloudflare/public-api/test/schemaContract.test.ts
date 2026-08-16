@@ -260,13 +260,14 @@ describe("M2.1 D1 schema and sample safety contract", () => {
     const productionSection = wranglerToml.split("[env.production]")[1] || "";
 
     expect(wranglerToml).not.toMatch(/^\[env\.preview\]\s*$/m);
+    expect(wranglerToml).toMatch(/^keep_vars\s*=\s*true\s*$/m);
     expect(localSection).toMatch(/^\[\[d1_databases\]\]/m);
     expect(localSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-local"\s*$/m);
     expect(localSection).toMatch(/^\s*database_id\s*=\s*"local-placeholder"\s*$/m);
-    expect(productionSection).toMatch(/^\s*name\s*=\s*"rcat-public-api-production"\s*$/m);
+    expect(productionSection).toMatch(/^\s*name\s*=\s*"rcat-public-api-preview"\s*$/m);
     expect(productionSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-preview"\s*$/m);
     expect(productionSection).toMatch(/^\s*database_id\s*=\s*"production-placeholder"\s*$/m);
-    expect(wranglerToml).toMatch(/# Canonical production runtime\./i);
+    expect(wranglerToml).toMatch(/# Canonical production runtime promoted in place\./i);
   });
 
   it("keeps Worker row column constants aligned to the migration chain", () => {

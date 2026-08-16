@@ -26,7 +26,7 @@ flowchart LR
 
 Public pages are server-rendered on Vercel. Admin/Auth remain CSR. Structured Public/Admin data remains owned by Cloudflare Worker + D1. Google Drive media/file operations remain behind the Apps Script media bridge. The complaint form is an isolated exception that reaches its dedicated Apps Script endpoint only through the same-origin Vercel complaint proxy.
 
-Cloudflare runtime environments are intentionally reduced to local development plus one canonical production runtime. There is no persistent Preview tier. The data-bearing D1 originally provisioned under the physical name `rcat-public-api-preview` is promoted in place as production; its protected UUID is the authoritative release identity. See `docs/architecture/production-environment-convergence-2026-08-16.md`.
+Cloudflare runtime environments are intentionally reduced to local development plus one canonical production runtime. There is no persistent Preview tier. The existing Worker and data-bearing D1 originally provisioned under the physical Cloudflare name `rcat-public-api-preview` are promoted in place as Production. Their physical names and the existing Worker endpoint remain unchanged; `preview` is now only a historical label. The protected D1 UUID is the authoritative database release identity. See `docs/architecture/production-environment-convergence-2026-08-16.md`.
 
 ## Public Structured Data
 
@@ -199,8 +199,8 @@ This policy intentionally bounds stale navigation/settings exposure without disa
 ## Production Deployment Boundaries
 
 - frontend/UI + Public SSR + Vercel functions/proxies -> Vercel;
-- Worker source/config -> Cloudflare production Worker;
-- D1 schema and structured data -> canonical production D1;
+- Worker source/config -> existing Cloudflare production Worker physical resource;
+- D1 schema and structured data -> existing canonical production D1;
 - Apps Script media bridge `.gs` -> Apps Script;
 - dedicated Complaint Apps Script -> its own Apps Script deployment;
 - docs/tests only -> no runtime deployment.
@@ -209,11 +209,13 @@ Vercel deploys `master` through Git integration. Non-master Vercel deployments a
 
 Cloudflare has no persistent Preview deployment tier. Local development uses `rcat-public-api-local`; all remote structured data and Worker releases target the canonical production role.
 
-The canonical production D1 is the existing data-bearing database whose legacy physical Cloudflare name remains `rcat-public-api-preview`. It is promoted in place: no export/import or data copy is part of the environment convergence. The old empty D1 named `rcat-public-api-production` was manually deleted on 2026-08-16. The old Worker of the same name was also deleted and will be recreated by the protected production release.
+The canonical production Worker and D1 are the existing data-bearing resources whose legacy physical Cloudflare name remains `rcat-public-api-preview`. They are promoted in place: no replacement Worker URL, export/import, or data copy is part of the environment convergence. The old empty D1 named `rcat-public-api-production` and the unused Worker of the same name were manually deleted on 2026-08-16 and are not recreated.
 
-Cloudflare production release is explicit rather than automatic. `.github/workflows/worker-production.yml` is manual (`workflow_dispatch`), must run from `master`, typechecks first, verifies that the legacy physical D1 resource matches the protected production UUID, captures a current Time Travel bookmark, lists pending migrations, runs fixture gates, injects the production D1 UUID from the `RCAT_PRODUCTION_D1_DATABASE_ID` GitHub secret into a temporary config, applies pending D1 migrations to the promoted data-bearing D1, and only then deploys the `env.production` Worker.
+Cloudflare production release is explicit rather than automatic. `.github/workflows/worker-production.yml` is manual (`workflow_dispatch`), must run from `master`, typechecks first, verifies that the legacy physical D1 resource matches the protected production UUID, captures a current Time Travel bookmark, lists pending migrations, runs fixture gates, injects the production D1 UUID from the `RCAT_PRODUCTION_D1_DATABASE_ID` GitHub secret into a temporary config, applies pending D1 migrations to the promoted data-bearing D1, and then deploys the `env.production` configuration back onto the same existing Worker physical resource `rcat-public-api-preview`.
 
-The tracked `wrangler.toml` must keep `production-placeholder`; a real production D1 ID must never be committed. The physical D1 name containing `preview` is a legacy resource label only and must not be treated as a non-production environment.
+The tracked `wrangler.toml` must keep `production-placeholder`; a real production D1 ID must never be committed. Both physical Worker and D1 names containing `preview` are legacy resource labels only and must not be treated as non-production environments. `keep_vars = true` preserves dashboard-managed non-secret Worker variables not represented in the tracked configuration, while encrypted Worker secrets remain preserved unless explicitly deleted.
+
+If Vercel Production already points to the existing `rcat-public-api-preview` Worker endpoint, no Vercel URL variable change is required solely for this convergence.
 
 Required Worker release secrets:
 
