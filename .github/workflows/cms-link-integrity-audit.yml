@@ -1,0 +1,103 @@
+name: CMS Link Integrity Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-link-audit:
+    name: Production CMS Link Integrity
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Require protected D1 read credentials
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID"
+
+      - name: Resolve exact production D1 identity
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            --verify-identity-only
+
+      - name: Read link-bearing CMS fields
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          audit_dir="$RUNNER_TEMP/cms-link-audit"
+          mkdir -p "$audit_dir"
+
+          query() {
+            local output="$1"
+            local sql="$2"
+            pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
+              --remote \
+              --command="$sql" \
+              --json > "$audit_dir/$output"
+          }
+
+          query contents.json "SELECT id, canonical_url, body_doc_url FROM contents WHERE COALESCE(deleted_at, '') = '';"
+          query documents.json "SELECT id, file_url FROM documents WHERE COALESCE(deleted_at, '') = '';"
+          query home-sections.json "SELECT id, href FROM public_home_sections WHERE COALESCE(deleted_at, '') = '';"
+          query menu.json "SELECT id, href FROM menu_items;"
+          query carousel.json "SELECT id, image_url, mobile_image_url, href FROM carousel_slides;"
+          query external-services.json "SELECT id, href FROM external_services;"
+          query media.json "SELECT id, drive_url, preview_url, embed_url, thumbnail_url FROM media_assets;"
+          query site-settings.json "SELECT id, settings_json FROM site_settings;"
+          query homepage-settings.json "SELECT id, settings_json FROM homepage_settings;"
+
+      - name: Validate CMS link policy
+        shell: bash
+        run: node scripts/audit-production-cms-links.mjs "$RUNNER_TEMP/cms-link-audit"
+
+      - name: Audit summary
+        shell: bash
+        run: |
+          {
+            echo "## CMS Link Integrity Audit"
+            echo
+            echo "- Branch: master"
+            echo "- Protected Environment: production"
+            echo "- D1 identity: exact protected production UUID verified"
+            echo "- Credential role: dedicated D1 Read token"
+            echo "- Query mode: SELECT only"
+            echo "- Link values printed: no"
+            echo "- D1 writes: none"
+            echo "- Worker deploy: none"
+          } >> "$GITHUB_STEP_SUMMARY"
