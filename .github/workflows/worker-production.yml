@@ -34,6 +34,67 @@ jobs:
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: pnpm worker:typecheck
+      - run: node scripts/check-d1-migration-sequences.mjs
+
+      - name: Require protected Cloudflare production credentials
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || {
+            echo "CLOUDFLARE_ACCOUNT_ID is unavailable from the protected production environment." >&2
+            exit 1
+          }
+          test -n "$CLOUDFLARE_API_TOKEN" || {
+            echo "CLOUDFLARE_API_TOKEN is unavailable from the protected production environment." >&2
+            exit 1
+          }
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || {
+            echo "RCAT_PRODUCTION_D1_DATABASE_ID is unavailable from the protected production environment." >&2
+            exit 1
+          }
+
+      - name: Resolve exact production D1 identity
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            --verify-identity-only
+
+      - name: Capture pre-release Time Travel bookmark
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 time-travel info rcat-public-api-production --json > "$RUNNER_TEMP/d1-production-pre-release-time-travel.json"
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-pre-release-time-travel.json", "utf8"));
+            const metadata = Array.isArray(value) ? value[0] : value;
+            if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) {
+              throw new Error("production Time Travel bookmark was not returned before release");
+            }
+            console.log("Pre-release production Time Travel bookmark resolved and retained only in runner temp storage.");
+          '
+
+      - name: List unapplied production migrations before release
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            | tee "$RUNNER_TEMP/worker-production-migrations-before-release.txt"
 
       - name: Inspect production fixture schema
         shell: bash
@@ -129,7 +190,8 @@ jobs:
             --file "$audit_json" \
             --expect-clean
 
-      - run: node cloudflare/public-api/scripts/worker-production-deploy.mjs
+      - name: Apply pending migrations and deploy production Worker
+        run: node cloudflare/public-api/scripts/worker-production-deploy.mjs
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

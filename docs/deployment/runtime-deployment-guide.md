@@ -1,6 +1,6 @@
 # Runtime Deployment Guide
 
-Updated: 2026-08-13.
+Updated: 2026-08-16.
 
 ## Toolchain
 
@@ -89,13 +89,21 @@ See `docs/operations/public-ssr-cutover.md` for live verification and rollback.
 
 A merge to `master` does **not** deploy the Cloudflare Worker automatically.
 
+Production migration inspection is intentionally separate and read-only through:
+
+```text
+.github/workflows/worker-production-preflight.yml
+```
+
+Run this workflow on `master` before the first production Worker release after Worker/D1 changes. It verifies that the exact account-scoped D1 name matches the protected production D1 UUID, validates migration filename sequencing, resolves a current Time Travel bookmark without printing it, and runs `wrangler d1 migrations list ... --remote`. The preflight does not apply migrations, execute SQL files, deploy a Worker, or restore Time Travel state.
+
 Production Worker release is intentionally manual through:
 
 ```text
 .github/workflows/worker-production.yml
 ```
 
-The workflow is `workflow_dispatch` only and refuses to release from a ref other than `master`.
+Both workflows are `workflow_dispatch` only, use the protected `production` environment, and refuse to operate from a ref other than `master`.
 
 Required GitHub `production` environment/repository secrets:
 
@@ -111,14 +119,15 @@ The tracked `cloudflare/public-api/wrangler.toml` must keep:
 database_id = "production-placeholder"
 ```
 
-Never commit the real production D1 ID. `worker-production-deploy.mjs` validates `RCAT_PRODUCTION_D1_DATABASE_ID`, creates a temporary production config next to `wrangler.toml`, then performs:
+Never commit the real production D1 ID. `worker-production-preflight.mjs` and `worker-production-deploy.mjs` create temporary production configs next to `wrangler.toml` using the protected D1 UUID. The release workflow now verifies exact D1 identity, captures a fresh pre-release Time Travel bookmark, lists unapplied migrations, rechecks the production fixture sentinel, and only then allows the mutating release step.
 
-1. production Worker typecheck in the workflow;
-2. `wrangler d1 migrations apply ... --remote --env production`;
-3. `wrangler deploy --env production` only if migration succeeds;
-4. removal of the temporary config even on failure.
+The mutating release helper performs:
 
-The workflow therefore fails closed when the production D1 UUID is missing/malformed or tracked configuration no longer contains the placeholder contract.
+1. `wrangler d1 migrations apply ... --remote --env production`;
+2. `wrangler deploy --env production` only if migration succeeds;
+3. removal of the temporary config even on failure.
+
+The workflow therefore fails closed when the production D1 UUID is missing/malformed, does not match the exact named database, the tracked configuration no longer contains the placeholder contract, fixture sentinels are not clean, or migration application fails.
 
 ### Analytics migration and retention
 
@@ -208,6 +217,8 @@ Before a Worker deployment:
 
 1. merge the validated Worker/D1 changes to `master`;
 2. confirm the three production release secrets are configured;
-3. invoke `Worker Production Release` manually on `master`;
-4. require successful migration and Worker deploy output;
-5. verify Worker health/Public API behavior immediately after release.
+3. invoke `Worker Production Preflight` manually on `master` and inspect the unapplied-migration list;
+4. confirm the pending migration set is expected for the release and the preflight is green;
+5. invoke `Worker Production Release` manually on the same `master` revision;
+6. require successful exact-D1 identity verification, fresh Time Travel bookmark capture, fixture sentinel checks, migration apply, and Worker deploy output;
+7. verify Worker health/Public API behavior immediately after release.
