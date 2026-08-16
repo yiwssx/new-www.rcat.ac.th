@@ -13,6 +13,8 @@ const exactFixtureIds = [
   "sample-public-read-program-001"
 ];
 
+const auditFilePath = "cloudflare/public-api/sql/production-fixture-audit.sql";
+
 describe("P5A production data-integrity safety", () => {
   it("keeps the production audit read-only and scoped to exact fixture identities", () => {
     expect(auditSql).toMatch(/^-- P5A production data-integrity sentinel/m);
@@ -20,6 +22,14 @@ describe("P5A production data-integrity safety", () => {
     exactFixtureIds.forEach((id) => expect(auditSql).toContain(id));
     expect(auditSql).toContain("2026-06-13");
     expect(auditSql).toContain("2026-01-01");
+  });
+
+  it("uses the D1 query path for read-only audits instead of the import path", () => {
+    for (const workflow of [integrityWorkflow, workerProductionWorkflow]) {
+      expect(workflow).toContain(`audit_sql="$(cat ${auditFilePath})"`);
+      expect(workflow).toContain('--command "$audit_sql"');
+      expect(workflow).not.toContain(`--file ${auditFilePath}`);
+    }
   });
 
   it("allows cleanup only through exact predicates and never wildcard deletes", () => {
