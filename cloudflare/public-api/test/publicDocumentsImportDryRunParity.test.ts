@@ -196,7 +196,7 @@ describe("M11.1 public document import dry-run parity guard", () => {
     expect(cliSource).not.toMatch(/\bd1\s+(?:execute|migrations)\b/i);
     expect(cliSource).not.toMatch(/AppsScript|googleApi/i);
     expect(wranglerToml).toContain('database_id = "local-placeholder"');
-    expect(wranglerToml).toContain('database_id = "preview-placeholder"');
+    expect(wranglerToml).toContain('database_id = "production-placeholder"');
     expect(publicApiProviderSource).toMatch(/VITE_CLOUDFLARE_PUBLIC_API_URL/);
     expect(publicApiProviderSource).toMatch(/CLOUDFLARE_PUBLIC_API_URL/);
     expect(publicApiProviderSource).not.toMatch(/VITE_PUBLIC_API_PROVIDER/);

@@ -95,7 +95,7 @@ A merge to `master` does **not** deploy the Cloudflare Worker automatically.
 
 The canonical production D1 is the existing data-bearing database whose legacy physical Cloudflare name is `rcat-public-api-preview`. It is promoted in place; do not export/import, copy, rebuild, or reseed it merely to obtain a production-looking physical name.
 
-The old D1 physically named `rcat-public-api-production` never became the live structured-data source and is not a release target. It may be retired separately only after an independent check confirms it contains no required data.
+The old empty D1 physically named `rcat-public-api-production` never became the live structured-data source and was manually deleted on 2026-08-16. The old Worker of the same name was also deleted; the protected release recreates that Worker service while binding it to the promoted data-bearing D1.
 
 The legacy physical `preview` label must not be interpreted as a non-production environment. Release identity is the pair of:
 

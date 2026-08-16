@@ -13,7 +13,7 @@ RCAT Cloudflare structured data uses two operational tiers only:
 
 There is no persistent Preview runtime after this convergence.
 
-The existing data-bearing D1 is promoted in place. No D1 export/import, copy, rebuild, reseed, or data transfer is part of this decision. The previous D1 named `rcat-public-api-production` is not the canonical production database because it never became the live data source.
+The existing data-bearing D1 is promoted in place. No D1 export/import, copy, rebuild, reseed, or data transfer is part of this decision. The previous empty D1 and Worker named `rcat-public-api-production` never became the live data source and were manually deleted on 2026-08-16. The protected production release recreates the Worker service only; it does not recreate that empty D1.
 
 ## Naming Contract
 
@@ -69,11 +69,12 @@ Vercel production configuration must point at the canonical production Worker en
 
 ## Retirement
 
-After production smoke validation succeeds:
+Completed on 2026-08-16 before cutover:
 
-- the unused empty D1 previously named `rcat-public-api-production` may be retired manually after an independent empty-data check;
-- any obsolete Preview Worker deployment may be retired after confirming Vercel no longer references it;
-- historical M5/M6 Preview documents remain audit history and must be read as historical, not as current architecture.
+- the unused empty D1 previously named `rcat-public-api-production` was deleted manually;
+- the unused Worker previously named `rcat-public-api-production` was deleted manually and will be recreated by the protected production release.
+
+After production smoke validation succeeds, any obsolete Preview Worker deployment may be retired after confirming Vercel no longer references it. Historical M5/M6 Preview documents remain audit history and must be read as historical, not as current architecture.
 
 Never delete the promoted data-bearing D1 merely because its physical name still contains `preview`.
 

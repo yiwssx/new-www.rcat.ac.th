@@ -78,7 +78,7 @@ describe("M9 public document production data import planning safety", () => {
     expect(m9ImportPlanDoc).not.toMatch(committedD1DatabaseIdPattern);
     expect(m9ImportPlanDoc).not.toMatch(forbiddenUrlPattern);
     expect(wranglerToml).toMatch(/database_id\s*=\s*"local-placeholder"/);
-    expect(wranglerToml).toMatch(/database_id\s*=\s*"preview-placeholder"/);
+    expect(wranglerToml).toMatch(/database_id\s*=\s*"production-placeholder"/);
     expect(wranglerToml).not.toMatch(committedD1DatabaseIdPattern);
   });
 

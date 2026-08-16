@@ -8,7 +8,8 @@ describe("P5 Worker production preflight safety", () => {
     expect(preflightWorkflow).toContain("github.ref == 'refs/heads/master'");
     expect(preflightWorkflow).toMatch(/environment:\s*production/);
     expect(preflightWorkflow).toContain("worker-production-preflight.mjs");
-    expect(preflightWorkflow).toContain("d1 time-travel info rcat-public-api-production");
+    expect(preflightWorkflow).toContain("PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview");
+    expect(preflightWorkflow).toContain('d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME"');
     expect(preflightWorkflow).toContain("List unapplied production migrations");
     expect(preflightWorkflow).not.toMatch(/d1\s+migrations\s+apply/i);
     expect(preflightWorkflow).not.toMatch(/wrangler\s+deploy/i);

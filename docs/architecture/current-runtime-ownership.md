@@ -209,7 +209,7 @@ Vercel deploys `master` through Git integration. Non-master Vercel deployments a
 
 Cloudflare has no persistent Preview deployment tier. Local development uses `rcat-public-api-local`; all remote structured data and Worker releases target the canonical production role.
 
-The canonical production D1 is the existing data-bearing database whose legacy physical Cloudflare name remains `rcat-public-api-preview`. It is promoted in place: no export/import or data copy is part of the environment convergence. The old empty D1 named `rcat-public-api-production` is not the production source of truth and may be retired separately after an independent empty-data verification.
+The canonical production D1 is the existing data-bearing database whose legacy physical Cloudflare name remains `rcat-public-api-preview`. It is promoted in place: no export/import or data copy is part of the environment convergence. The old empty D1 named `rcat-public-api-production` was manually deleted on 2026-08-16. The old Worker of the same name was also deleted and will be recreated by the protected production release.
 
 Cloudflare production release is explicit rather than automatic. `.github/workflows/worker-production.yml` is manual (`workflow_dispatch`), must run from `master`, typechecks first, verifies that the legacy physical D1 resource matches the protected production UUID, captures a current Time Travel bookmark, lists pending migrations, runs fixture gates, injects the production D1 UUID from the `RCAT_PRODUCTION_D1_DATABASE_ID` GitHub secret into a temporary config, applies pending D1 migrations to the promoted data-bearing D1, and only then deploys the `env.production` Worker.
 

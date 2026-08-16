@@ -97,7 +97,7 @@ Cloudflare release workflows run only through the protected GitHub `Production` 
 | `CLOUDFLARE_API_TOKEN`           | Protected Wrangler credential for the explicitly approved release workflow.                                             |
 | `RCAT_PRODUCTION_D1_DATABASE_ID` | UUID of the promoted data-bearing D1, physically still named `rcat-public-api-preview`; authoritative release identity. |
 
-Do not set `RCAT_PRODUCTION_D1_DATABASE_ID` to the unused empty D1 that was physically named `rcat-public-api-production`. Do not commit either UUID to git.
+The unused empty D1 that was physically named `rcat-public-api-production` was deleted on 2026-08-16. Set `RCAT_PRODUCTION_D1_DATABASE_ID` only to the UUID of the promoted data-bearing D1 and never commit that UUID to git.
 
 ## Apps Script Media Bridge Variables
 

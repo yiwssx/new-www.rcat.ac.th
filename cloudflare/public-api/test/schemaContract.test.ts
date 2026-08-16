@@ -266,7 +266,7 @@ describe("M2.1 D1 schema and sample safety contract", () => {
     expect(productionSection).toMatch(/^\s*name\s*=\s*"rcat-public-api-production"\s*$/m);
     expect(productionSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-preview"\s*$/m);
     expect(productionSection).toMatch(/^\s*database_id\s*=\s*"production-placeholder"\s*$/m);
-    expect(productionSection).toMatch(/canonical production/i);
+    expect(wranglerToml).toMatch(/# Canonical production runtime\./i);
   });
 
   it("keeps Worker row column constants aligned to the migration chain", () => {

@@ -225,7 +225,7 @@ describe("M13 controlled public document production import runner", () => {
 
   it("rejects placeholder and malformed D1 ids while redacting valid ids in output", async () => {
     const placeholder = await runWithRecords(validRecords, ["--execute"], {
-      env: { ...validEnv, RCAT_PROD_D1_DATABASE_ID: "preview-placeholder" }
+      env: { ...validEnv, RCAT_PROD_D1_DATABASE_ID: "production-placeholder" }
     });
     const malformed = await runWithRecords(validRecords, ["--execute"], {
       env: { ...validEnv, RCAT_PROD_D1_DATABASE_ID: "not-a-uuid" }
@@ -383,7 +383,7 @@ describe("M13 controlled public document production import runner", () => {
 
   it("keeps committed config and current frontend safety boundaries intact", () => {
     expect(wranglerToml).toContain('database_id = "local-placeholder"');
-    expect(wranglerToml).toContain('database_id = "preview-placeholder"');
+    expect(wranglerToml).toContain('database_id = "production-placeholder"');
     expect(wranglerToml).not.toMatch(realD1IdPattern);
     expect(publicApiProviderSource).toMatch(/VITE_CLOUDFLARE_PUBLIC_API_URL/);
     expect(publicApiProviderSource).toMatch(/CLOUDFLARE_PUBLIC_API_URL/);

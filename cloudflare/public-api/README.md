@@ -14,6 +14,8 @@ The canonical production D1 is the existing data-bearing database originally pro
 
 See `docs/architecture/production-environment-convergence-2026-08-16.md`.
 
+The previous empty Worker and D1 named `rcat-public-api-production` were manually deleted on 2026-08-16. The protected production release recreates the Worker service with that name and binds it to the promoted data-bearing D1; it does not create a replacement D1.
+
 ## Current Public Surface
 
 Public GET routes include:
