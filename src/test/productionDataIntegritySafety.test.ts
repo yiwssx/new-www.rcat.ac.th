@@ -56,13 +56,16 @@ describe("P5A production data-integrity safety", () => {
     }
   });
 
-  it("allows cleanup only through exact predicates and D1-compatible import SQL", () => {
+  it("allows cleanup only through reserved exact fixture identities and D1-compatible import SQL", () => {
     for (const sql of [cleanupSql, homeCleanupSql]) {
       expect(sql).not.toMatch(/\b(?:begin\s+transaction|commit|savepoint)\b/i);
       expect(sql).not.toMatch(/\bdelete\s+from\s+\w+\s*;/i);
       expect(sql).not.toMatch(/\b(?:like|glob)\b/i);
       expect(sql).not.toMatch(/delete\s+from\s+(?:site_settings|homepage_settings|menu_items|media_assets)\b/i);
     }
+    expect(cleanupSql).toContain("DELETE FROM documents\nWHERE id = 'sample-public-read-document-001';");
+    expect(cleanupSql).toContain("DELETE FROM contents\nWHERE id = 'sample-public-read-content-001';");
+    expect(cleanupSql).toContain("DELETE FROM contents\nWHERE id = 'sample-public-read-program-001';");
     baseFixtureIds.forEach((id) => expect(cleanupSql).toContain(id));
     expect(cleanupSql).not.toContain("DELETE FROM public_home_sections");
     expect(homeCleanupSql).toContain("DELETE FROM public_home_sections");
