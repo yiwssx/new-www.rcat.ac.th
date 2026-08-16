@@ -1,8 +1,8 @@
 # Current Runtime Ownership
 
-Updated: 2026-08-13.
+Updated: 2026-08-16.
 
-This document is the current source of truth for runtime ownership. Historical migration milestone documents remain evidence of earlier states; when they conflict with this file about current ownership, authentication boundaries, provider responsibilities, cache policy, or deployment behavior, this file takes precedence.
+This document is the current source of truth for runtime ownership. Historical migration milestone documents remain evidence of earlier states; when they conflict with this file about current ownership, authentication boundaries, provider responsibilities, cache policy, environment naming, or deployment behavior, this file takes precedence.
 
 ## Runtime Map
 
@@ -10,8 +10,8 @@ This document is the current source of truth for runtime ownership. Historical m
 flowchart LR
   Browser[React/Vite browser]
   Vercel[Vercel frontend + Public SSR + same-origin proxies]
-  Worker[Cloudflare Worker]
-  D1[(D1)]
+  Worker[Cloudflare Production Worker]
+  D1[(Canonical Production D1)]
   MediaApps[Apps Script media/file bridge]
   ComplaintApps[Dedicated Complaint Apps Script]
   Drive[(Google Drive)]
@@ -25,6 +25,8 @@ flowchart LR
 ```
 
 Public pages are server-rendered on Vercel. Admin/Auth remain CSR. Structured Public/Admin data remains owned by Cloudflare Worker + D1. Google Drive media/file operations remain behind the Apps Script media bridge. The complaint form is an isolated exception that reaches its dedicated Apps Script endpoint only through the same-origin Vercel complaint proxy.
+
+Cloudflare runtime environments are intentionally reduced to local development plus one canonical production runtime. There is no persistent Preview tier. The data-bearing D1 originally provisioned under the physical name `rcat-public-api-preview` is promoted in place as production; its protected UUID is the authoritative release identity. See `docs/architecture/production-environment-convergence-2026-08-16.md`.
 
 ## Public Structured Data
 
@@ -197,23 +199,29 @@ This policy intentionally bounds stale navigation/settings exposure without disa
 ## Production Deployment Boundaries
 
 - frontend/UI + Public SSR + Vercel functions/proxies -> Vercel;
-- Worker source/config -> Cloudflare Worker;
-- D1 schema -> D1 migration;
+- Worker source/config -> Cloudflare production Worker;
+- D1 schema and structured data -> canonical production D1;
 - Apps Script media bridge `.gs` -> Apps Script;
 - dedicated Complaint Apps Script -> its own Apps Script deployment;
 - docs/tests only -> no runtime deployment.
 
 Vercel deploys `master` through Git integration. Non-master Vercel deployments are disabled by repository configuration.
 
-Cloudflare production release is explicit rather than automatic. `.github/workflows/worker-production.yml` is manual (`workflow_dispatch`), must run from `master`, typechecks first, injects the production D1 UUID from the `RCAT_PRODUCTION_D1_DATABASE_ID` GitHub secret into a temporary config, applies pending D1 migrations remotely, and only then deploys the Worker. The tracked `wrangler.toml` must keep `production-placeholder`; a real production D1 ID must never be committed.
+Cloudflare has no persistent Preview deployment tier. Local development uses `rcat-public-api-local`; all remote structured data and Worker releases target the canonical production role.
+
+The canonical production D1 is the existing data-bearing database whose legacy physical Cloudflare name remains `rcat-public-api-preview`. It is promoted in place: no export/import or data copy is part of the environment convergence. The old empty D1 named `rcat-public-api-production` is not the production source of truth and may be retired separately after an independent empty-data verification.
+
+Cloudflare production release is explicit rather than automatic. `.github/workflows/worker-production.yml` is manual (`workflow_dispatch`), must run from `master`, typechecks first, verifies that the legacy physical D1 resource matches the protected production UUID, captures a current Time Travel bookmark, lists pending migrations, runs fixture gates, injects the production D1 UUID from the `RCAT_PRODUCTION_D1_DATABASE_ID` GitHub secret into a temporary config, applies pending D1 migrations to the promoted data-bearing D1, and only then deploys the `env.production` Worker.
+
+The tracked `wrangler.toml` must keep `production-placeholder`; a real production D1 ID must never be committed. The physical D1 name containing `preview` is a legacy resource label only and must not be treated as a non-production environment.
 
 Required Worker release secrets:
 
 - `CLOUDFLARE_ACCOUNT_ID`;
 - `CLOUDFLARE_API_TOKEN`;
-- `RCAT_PRODUCTION_D1_DATABASE_ID`.
+- `RCAT_PRODUCTION_D1_DATABASE_ID` — UUID of the promoted data-bearing D1.
 
-See `docs/deployment/runtime-deployment-guide.md`.
+See `docs/architecture/production-environment-convergence-2026-08-16.md` and `docs/deployment/runtime-deployment-guide.md`.
 
 ## Toolchain
 
@@ -232,4 +240,6 @@ Complaint endpoint configuration is server-owned. `COMPLAINT_API_URI` may be sto
 
 ## Historical Documentation
 
-`docs/architecture/current-migration-status.md`, milestone readiness/cutover notes, and `docs/architecture/m20-cleanup-runtime-ownership.md` retain historical value but are not the current ownership source when they contain older provider/auth/cache/deployment descriptions.
+`docs/architecture/current-migration-status.md`, milestone readiness/cutover notes, `docs/architecture/m20-cleanup-runtime-ownership.md`, and the M5/M6 Preview provisioning/smoke documents retain historical value but are not the current ownership or environment source when they contain older provider/auth/cache/deployment descriptions.
+
+In particular, references in historical M5/M6 documents to a persistent non-production `preview` environment describe the migration process at that time. They do not describe the post-2026-08-16 runtime. See `docs/architecture/production-environment-convergence-2026-08-16.md`.
