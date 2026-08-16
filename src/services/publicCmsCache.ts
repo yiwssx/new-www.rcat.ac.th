@@ -1,4 +1,5 @@
 import type { CmsSnapshot, PublicContentDetailSnapshot } from "../types";
+import { PUBLIC_CACHE_FRESHNESS_MS } from "../config/publicCachePolicy";
 
 export const PUBLIC_SNAPSHOT_CACHE_KEY = "rcat.cms.public.snapshot.v2";
 const PUBLIC_HOME_CACHE_KEY = "rcat.cms.public.home.snapshot.v2";
@@ -9,8 +10,8 @@ const PUBLIC_PROGRAM_LIST_CACHE_KEY = "rcat.cms.public.program-list.v2";
 const PUBLIC_SEARCH_INDEX_CACHE_KEY = "rcat.cms.public.search-index.v2";
 const PUBLIC_CACHE_ROOT_PREFIX = "rcat.cms.public.";
 export const PUBLIC_CONTENT_DETAIL_CACHE_PREFIX = "rcat.cms.public.content-detail.v3.";
-export const PUBLIC_SNAPSHOT_CACHE_TTL_MS = 15 * 60 * 1000;
-export const PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS = 30 * 60 * 1000;
+export const PUBLIC_SNAPSHOT_CACHE_TTL_MS = PUBLIC_CACHE_FRESHNESS_MS.shell;
+export const PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS = PUBLIC_CACHE_FRESHNESS_MS.detail;
 
 const maxContentDetailCacheEntries = 20;
 const trackedPublicCacheKeys = new Set<string>();
