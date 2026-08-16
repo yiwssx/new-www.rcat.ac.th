@@ -19,16 +19,14 @@ The most important shell conflict was the legacy `cms-snapshot` projection. It c
 
 TanStack Query is the active browser cache owner for structured public reads.
 
-| Data family | Query owner | Freshness class |
-| --- | --- | --- |
-| Site settings / display settings / homepage settings / menu | `public-shell` | `shell` = 2 minutes |
-| Public home | `public-home-snapshot` | `collection` = 15 minutes |
-| Content lists | `public-content-list` | `collection` = 15 minutes |
-| Documents | `public-document-list` | `collection` = 15 minutes |
-| Events | `public-event-list` | `collection` = 15 minutes |
-| Programs | `public-program-list` | `collection` = 15 minutes |
-| Search | `public-search-index` | `collection` = 15 minutes |
-| Content detail | `content-detail` | `detail` = 30 minutes |
+- Site settings, display settings, homepage settings, and menu use `public-shell` with the `shell` freshness class of 2 minutes.
+- Public home uses `public-home-snapshot` with the `collection` freshness class of 15 minutes.
+- Content lists use `public-content-list` with the `collection` freshness class of 15 minutes.
+- Documents use `public-document-list` with the `collection` freshness class of 15 minutes.
+- Events use `public-event-list` with the `collection` freshness class of 15 minutes.
+- Programs use `public-program-list` with the `collection` freshness class of 15 minutes.
+- Search uses `public-search-index` with the `collection` freshness class of 15 minutes.
+- Content detail uses `content-detail` with the `detail` freshness class of 30 minutes.
 
 All public query families use a 60-minute TanStack Query GC window. GC controls unused in-memory retention and is not a freshness promise.
 
