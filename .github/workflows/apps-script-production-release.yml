@@ -1,0 +1,171 @@
+name: Apps Script Production Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_confirmation:
+        description: "Enter DEPLOY_EXISTING_APPS_SCRIPT_WEB_APP"
+        required: true
+        type: string
+      release_note:
+        description: "Optional release note"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Release Existing Production Media Bridge
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Require exact release confirmation
+        shell: bash
+        env:
+          RELEASE_CONFIRMATION: ${{ inputs.release_confirmation }}
+        run: |
+          test "$RELEASE_CONFIRMATION" = "DEPLOY_EXISTING_APPS_SCRIPT_WEB_APP" || {
+            echo "Apps Script production release confirmation does not match the required exact phrase." >&2
+            exit 1
+          }
+
+      - name: Verify Apps Script media bridge contracts
+        run: pnpm vitest run src/test/appsScriptCode.test.ts server/appsScriptProxy/handler.test.mjs
+
+      - name: Require protected Apps Script production credentials
+        shell: bash
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          CLASP_JSON: ${{ secrets.CLASP_JSON }}
+          APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID: ${{ secrets.APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID }}
+        run: |
+          test -n "$CLASPRC_JSON" || { echo "CLASPRC_JSON is unavailable from the protected production Environment." >&2; exit 1; }
+          test -n "$CLASP_JSON" || { echo "CLASP_JSON is unavailable from the protected production Environment." >&2; exit 1; }
+          test -n "$APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID" || { echo "APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID is unavailable from the protected production Environment." >&2; exit 1; }
+          echo "::add-mask::$APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID"
+          umask 077
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          printf '%s' "$CLASP_JSON" > apps-script/.clasp.json
+          node -e 'JSON.parse(require("fs").readFileSync(process.env.HOME + "/.clasprc.json", "utf8")); console.log("Apps Script OAuth config parsed.")'
+          node scripts/apps-script-release-tools.mjs validate-config \
+            --project apps-script/.clasp.json \
+            --deployment-id "$APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID"
+
+      - name: Resolve current production deployment version
+        id: before
+        shell: bash
+        env:
+          APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID: ${{ secrets.APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID }}
+        run: |
+          cd apps-script
+          pnpm dlx @google/clasp@3.3.0 list-deployments > "$RUNNER_TEMP/apps-script-deployments-before.txt"
+          cd ..
+          previous_version="$(node scripts/apps-script-release-tools.mjs current-version \
+            --deployments "$RUNNER_TEMP/apps-script-deployments-before.txt" \
+            --deployment-id "$APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID")"
+          echo "previous_version=$previous_version" >> "$GITHUB_OUTPUT"
+          echo "Existing production deployment verified before source push."
+
+      - name: Push repository source to Apps Script HEAD
+        working-directory: apps-script
+        run: pnpm dlx @google/clasp@3.3.0 push --force
+
+      - name: Create immutable Apps Script version
+        id: version
+        shell: bash
+        env:
+          RELEASE_NOTE: ${{ inputs.release_note }}
+        run: |
+          short_sha="${GITHUB_SHA::12}"
+          description="github:${short_sha}"
+          if [[ -n "$RELEASE_NOTE" ]]; then
+            description="$description $RELEASE_NOTE"
+          fi
+          description="${description:0:180}"
+          cd apps-script
+          pnpm dlx @google/clasp@3.3.0 create-version "$description" \
+            | tee "$RUNNER_TEMP/apps-script-created-version.txt"
+          cd ..
+          version="$(node scripts/apps-script-release-tools.mjs created-version \
+            --file "$RUNNER_TEMP/apps-script-created-version.txt")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Created immutable Apps Script version $version for commit $short_sha."
+
+      - name: Update only the existing production Web App deployment
+        shell: bash
+        env:
+          APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID: ${{ secrets.APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID }}
+          VERSION_NUMBER: ${{ steps.version.outputs.version }}
+        run: |
+          short_sha="${GITHUB_SHA::12}"
+          cd apps-script
+          pnpm dlx @google/clasp@3.3.0 create-deployment \
+            --deploymentId "$APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID" \
+            --versionNumber "$VERSION_NUMBER" \
+            --description "github:${short_sha}"
+
+      - name: Verify production deployment version
+        shell: bash
+        env:
+          APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID: ${{ secrets.APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID }}
+          VERSION_NUMBER: ${{ steps.version.outputs.version }}
+        run: |
+          cd apps-script
+          pnpm dlx @google/clasp@3.3.0 list-deployments > "$RUNNER_TEMP/apps-script-deployments-after.txt"
+          cd ..
+          node scripts/apps-script-release-tools.mjs assert-deployment-version \
+            --deployments "$RUNNER_TEMP/apps-script-deployments-after.txt" \
+            --deployment-id "$APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID" \
+            --version "$VERSION_NUMBER"
+
+      - name: Read-only production bridge health smoke
+        shell: bash
+        env:
+          APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID: ${{ secrets.APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID }}
+        run: |
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://script.google.com/macros/s/${APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID}/exec" \
+            > "$RUNNER_TEMP/apps-script-health.json"
+          node scripts/apps-script-release-tools.mjs verify-health \
+            --file "$RUNNER_TEMP/apps-script-health.json"
+
+      - name: Release summary
+        env:
+          PREVIOUS_VERSION: ${{ steps.before.outputs.previous_version }}
+          RELEASED_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          {
+            echo "## Apps Script Production Release"
+            echo
+            echo "- Source: master@$GITHUB_SHA"
+            echo "- Protected Environment: production"
+            echo "- Existing deployment updated in place: yes"
+            echo "- Previous immutable version: $PREVIOUS_VERSION"
+            echo "- Released immutable version: $RELEASED_VERSION"
+            echo "- Web App URL changed: no"
+            echo "- New deployment created: no"
+            echo "- Production health contract: passed"
+            echo "- Rollback target if required: version $PREVIOUS_VERSION"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove temporary Apps Script credentials
+        if: ${{ always() }}
+        run: rm -f "$HOME/.clasprc.json" apps-script/.clasp.json
