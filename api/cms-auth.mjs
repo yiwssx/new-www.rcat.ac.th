@@ -25,18 +25,26 @@ function getRequestQueryShape(query) {
   };
 }
 
+function getOwnKeys(value) {
+  return value && typeof value === "object" ? Object.keys(value).sort() : [];
+}
+
 export default async function cmsAuth(request, response) {
   const queryShape = getRequestQueryShape(request?.query);
 
   console.error(
     JSON.stringify({
       level: "warning",
-      event: "cms-auth-runtime-request-shape-v1",
+      event: "cms-auth-runtime-request-shape-v2",
       method: String(request?.method || "UNKNOWN").toUpperCase(),
       pathname: getSafeRequestPathname(request?.url),
+      originalUrlPathname: getSafeRequestPathname(request?.originalUrl),
+      pathPathname: getSafeRequestPathname(request?.path),
       urlQueryKeys: getUrlQueryKeys(request?.url),
       requestQueryKeys: queryShape.keys,
-      requestQueryRouteMarkerType: queryShape.routeMarkerType
+      requestQueryRouteMarkerType: queryShape.routeMarkerType,
+      requestOwnKeys: getOwnKeys(request),
+      requestHeaderKeys: getOwnKeys(request?.headers)
     })
   );
 
