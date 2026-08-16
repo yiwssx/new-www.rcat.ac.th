@@ -1,7 +1,21 @@
 import { QueryClient } from "@tanstack/react-query";
 import { projectSettings } from "./config/projectSettings";
+import { clearPublicCmsCache } from "./services/publicCmsCache";
+
+let legacyPublicCacheRetired = false;
+
+function retireLegacyPublicPersistence() {
+  if (legacyPublicCacheRetired || typeof window === "undefined") {
+    return;
+  }
+
+  clearPublicCmsCache();
+  legacyPublicCacheRetired = true;
+}
 
 export function createAppQueryClient() {
+  retireLegacyPublicPersistence();
+
   return new QueryClient({
     defaultOptions: {
       queries: {
