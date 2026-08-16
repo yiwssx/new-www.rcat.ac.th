@@ -139,31 +139,34 @@ describe("CMS-auth dispatcher", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
-  it.each(routes)("dispatches $id when Vercel exposes rewrite parameters on request.query", async ({ id, publicPath }) => {
-    const headers = { host: "cms.example.invalid", "x-vercel-test": "preserved" };
-    const body = { marker: "preserved" };
-    const { request, read } = createRequest({
-      url: publicPath,
-      headers,
-      body,
-      query: { _rcatCmsRoute: id }
-    });
-    const response = createResponse();
-    const handlers = createHandlerMap();
+  it.each(routes)(
+    "dispatches $id when Vercel exposes rewrite parameters on request.query",
+    async ({ id, publicPath }) => {
+      const headers = { host: "cms.example.invalid", "x-vercel-test": "preserved" };
+      const body = { marker: "preserved" };
+      const { request, read } = createRequest({
+        url: publicPath,
+        headers,
+        body,
+        query: { _rcatCmsRoute: id }
+      });
+      const response = createResponse();
+      const handlers = createHandlerMap();
 
-    handlers[id].mockImplementation(async (selectedRequest) => {
-      expect(selectedRequest.url).toBe(publicPath);
-      expect(selectedRequest.headers).toBe(headers);
-      expect(selectedRequest.body).toBe(body);
-    });
+      handlers[id].mockImplementation(async (selectedRequest) => {
+        expect(selectedRequest.url).toBe(publicPath);
+        expect(selectedRequest.headers).toBe(headers);
+        expect(selectedRequest.body).toBe(body);
+      });
 
-    await handleCmsAuthDispatch(request, response, { handlers });
+      await handleCmsAuthDispatch(request, response, { handlers });
 
-    expect(handlers[id]).toHaveBeenCalledTimes(1);
-    expect(callCount(handlers)).toBe(1);
-    expect(request.url).toBe(publicPath);
-    expect(read).not.toHaveBeenCalled();
-  });
+      expect(handlers[id]).toHaveBeenCalledTimes(1);
+      expect(callCount(handlers)).toBe(1);
+      expect(request.url).toBe(publicPath);
+      expect(read).not.toHaveBeenCalled();
+    }
+  );
 
   it("accepts the internal function path when Vercel exposes only the rewrite query object", async () => {
     const { request, read } = createRequest({
