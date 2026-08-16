@@ -35,7 +35,7 @@ if (!adminWrite.includes("await validateAdminLinkWriteRequest(request);")) {
   fail("authenticated Admin write boundary must invoke centralized CMS link validation");
 }
 for (const required of ["navigation", "resource", "canonical"]) {
-  if (!linkValidation.includes(`\"${required}\"`)) {
+  if (!linkValidation.includes(`"${required}"`)) {
     fail(`link policy is missing ${required} classification`);
   }
 }
