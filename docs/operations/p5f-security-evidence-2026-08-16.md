@@ -22,13 +22,13 @@ Both token roles remain outside source control. `CLOUDFLARE_ACCOUNT_ID` and `RCA
 
 Workflow ownership after P5F:
 
-| Workflow / mode | Credential role | Write capability in workflow |
-| --- | --- | --- |
-| Worker Production Preflight | `CLOUDFLARE_D1_READ_TOKEN` | none |
-| D1 Recovery Drill | `CLOUDFLARE_D1_READ_TOKEN` | none |
-| Production Data Integrity — `audit` | `CLOUDFLARE_D1_READ_TOKEN` | none |
-| Production Data Integrity — `cleanup` | `CLOUDFLARE_API_TOKEN` | exact guarded D1 deletes only |
-| Worker Production Release | `CLOUDFLARE_API_TOKEN` | migration apply + Worker deployment |
+| Workflow / mode                       | Credential role            | Write capability in workflow        |
+| ------------------------------------- | -------------------------- | ----------------------------------- |
+| Worker Production Preflight           | `CLOUDFLARE_D1_READ_TOKEN` | none                                |
+| D1 Recovery Drill                     | `CLOUDFLARE_D1_READ_TOKEN` | none                                |
+| Production Data Integrity — `audit`   | `CLOUDFLARE_D1_READ_TOKEN` | none                                |
+| Production Data Integrity — `cleanup` | `CLOUDFLARE_API_TOKEN`     | exact guarded D1 deletes only       |
+| Worker Production Release             | `CLOUDFLARE_API_TOKEN`     | migration apply + Worker deployment |
 
 `scripts/check-p5f-security-boundary.mjs` fails CI if the pure read-only workflows regain the privileged token, if Data Integrity audit/cleanup token selection loses its mode boundary, or if the Worker release path starts consuming the read-only token.
 
@@ -50,15 +50,15 @@ A missing or insufficient read token is a P5F access-boundary failure. Do not by
 
 Machine-readable evidence is recorded in `config/csp-production-evidence.json`. The evidence was collected from production custom-domain traffic after Cloudflare Edge processing, plus sanitized browser CSP reports emitted by `/api/csp-report`.
 
-| Surface | Representative path | State | Evidence/result |
-| --- | --- | --- | --- |
-| Public SSR | `/` | blocked | inline TanStack SSR script; GTM script; YouTube and Google Maps frames reported by browser |
-| Public navigation | `/search` | blocked | inline SSR script and GTM reported by browser |
-| Auth | `/login` | pending | post-P5E Edge response is 200 and carries Report-Only policy; browser sample still required |
-| Admin | `/admin` | pending | post-P5E Edge response is 200 and carries Report-Only policy; authenticated browser sample still required |
-| Media | `/admin/media` | pending | post-P5E Edge response is 200 and carries Report-Only policy; authenticated media sample still required; separate public content reports show Google Drive frame requirement |
-| Complaint | `/complaint` | blocked | post-P5E Edge HTML contains TanStack inline SSR stream script while delivered policy keeps `script-src 'self'` |
-| Facebook embed | representative `/content/facebook-*` route | blocked | inline SSR and GTM reported; no Facebook frame violation in the captured sample, which is not sufficient to call the surface clean |
+| Surface           | Representative path                        | State   | Evidence/result                                                                                                                                                              |
+| ----------------- | ------------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public SSR        | `/`                                        | blocked | inline TanStack SSR script; GTM script; YouTube and Google Maps frames reported by browser                                                                                   |
+| Public navigation | `/search`                                  | blocked | inline SSR script and GTM reported by browser                                                                                                                                |
+| Auth              | `/login`                                   | pending | post-P5E Edge response is 200 and carries Report-Only policy; browser sample still required                                                                                  |
+| Admin             | `/admin`                                   | pending | post-P5E Edge response is 200 and carries Report-Only policy; authenticated browser sample still required                                                                    |
+| Media             | `/admin/media`                             | pending | post-P5E Edge response is 200 and carries Report-Only policy; authenticated media sample still required; separate public content reports show Google Drive frame requirement |
+| Complaint         | `/complaint`                               | blocked | post-P5E Edge HTML contains TanStack inline SSR stream script while delivered policy keeps `script-src 'self'`                                                               |
+| Facebook embed    | representative `/content/facebook-*` route | blocked | inline SSR and GTM reported; no Facebook frame violation in the captured sample, which is not sufficient to call the surface clean                                           |
 
 The current evidence deliberately does **not** mark a surface clean merely because no retained report was found.
 
