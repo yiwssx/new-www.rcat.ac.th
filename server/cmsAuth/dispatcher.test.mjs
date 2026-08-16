@@ -322,7 +322,7 @@ describe("CMS-auth dispatcher", () => {
   it.each([
     ["retired-admin-proxy-login", "/api/admin-proxy-session/login"],
     ["retired-admin-proxy-logout", "/api/admin-proxy-session/logout"]
-  ])("returns a finite 410 tombstone for $1 from its public path without consuming the request", async (_id, publicPath) => {
+  ])("returns 410 from retired public authentication paths", async (_id, publicPath) => {
     const { request, read } = createRequest({
       url: publicPath,
       method: "POST",
@@ -344,7 +344,7 @@ describe("CMS-auth dispatcher", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
-  it.each(["GET", "PUT", "DELETE"])("rejects %s on the retired public authentication path with 405", async (method) => {
+  it.each(["GET", "PUT", "DELETE"])("returns 405 for non-POST retired public authentication", async (method) => {
     const publicPath = "/api/admin-proxy-session/login";
     const { request, read } = createRequest({ url: publicPath, method });
     const response = createResponse();
