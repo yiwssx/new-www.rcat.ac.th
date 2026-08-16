@@ -10,7 +10,7 @@ name = "rcat-public-api-production"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "rcat-public-api-production"
+database_name = "rcat-public-api-preview"
 database_id = "production-placeholder"
 `;
 
@@ -20,6 +20,7 @@ describe("production Worker deploy guard", () => {
 
     const prepared = createProductionWranglerConfig(source, productionDatabaseId);
     expect(prepared).toContain(`database_id = "${productionDatabaseId}"`);
+    expect(prepared).toContain('database_name = "rcat-public-api-preview"');
     expect(prepared).not.toContain("production-placeholder");
   });
 

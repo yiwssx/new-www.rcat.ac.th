@@ -3,12 +3,12 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createProductionWranglerConfig } from "./productionDeployGuard.mjs";
+import { PRODUCTION_D1_RESOURCE_NAME } from "./productionResource.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const workerDirectory = path.resolve(scriptDirectory, "..");
 const repositoryRoot = path.resolve(workerDirectory, "../..");
 const sourceConfigPath = path.join(workerDirectory, "wrangler.toml");
-const productionDatabaseName = "rcat-public-api-production";
 
 function runWrangler(args, configPath) {
   const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
@@ -34,7 +34,7 @@ export function deployProductionWorker() {
 
   try {
     writeFileSync(temporaryConfigPath, preparedConfig, { encoding: "utf8", mode: 0o600 });
-    runWrangler(["d1", "migrations", "apply", productionDatabaseName, "--remote"], temporaryConfigPath);
+    runWrangler(["d1", "migrations", "apply", PRODUCTION_D1_RESOURCE_NAME, "--remote"], temporaryConfigPath);
     runWrangler(["deploy"], temporaryConfigPath);
   } finally {
     rmSync(temporaryConfigPath, { force: true });

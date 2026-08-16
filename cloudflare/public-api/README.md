@@ -1,10 +1,20 @@
 # RCAT Public API Worker
 
-Updated: 2026-08-15.
+Updated: 2026-08-16.
 
 This Cloudflare Worker is the D1-backed public-read, public analytics, structured-admin, and CMS authentication API. Apps Script remains only for the server-side media/file bridge to Google Drive. The dedicated complaint Apps Script is a separate isolated endpoint behind the Vercel complaint proxy.
 
 M20 migration/runtime/domain-cutover scope is closed. Current work is stabilization and maintenance; repository validation does not authorize production mutation.
+
+## Current Environment Model
+
+Cloudflare remote runtime is production-only. Local development uses `rcat-public-api-local`; there is no persistent Preview environment.
+
+The canonical production D1 is the existing data-bearing database originally provisioned under the physical Cloudflare name `rcat-public-api-preview`. That physical name is retained only to avoid moving live data. The protected UUID in `RCAT_PRODUCTION_D1_DATABASE_ID` is the authoritative release identity, and production workflows verify that UUID against the exact account-scoped physical resource before migration or deployment. Do not interpret the legacy `preview` substring as a non-production runtime.
+
+See `docs/architecture/production-environment-convergence-2026-08-16.md`.
+
+The previous empty Worker and D1 named `rcat-public-api-production` were manually deleted on 2026-08-16. The protected production release recreates the Worker service with that name and binds it to the promoted data-bearing D1; it does not create a replacement D1.
 
 ## Current Public Surface
 
@@ -120,4 +130,4 @@ pnpm build
 pnpm quality
 ```
 
-Historical M19/M20 readiness scripts remain useful as repository/evidence guards but must not be treated as the current runtime ownership source. Use `docs/architecture/current-runtime-ownership.md` and `docs/deployment/runtime-deployment-guide.md` for current production boundaries.
+Historical M19/M20 readiness scripts remain useful as repository/evidence guards but must not be treated as the current runtime ownership source. Historical M4-M6 Preview documents record earlier migration work only. Use `docs/architecture/current-runtime-ownership.md`, `docs/architecture/production-environment-convergence-2026-08-16.md`, and `docs/deployment/runtime-deployment-guide.md` for current production boundaries.

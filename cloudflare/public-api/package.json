@@ -8,8 +8,6 @@
     "public-documents:import:prod": "node scripts/public-documents-production-import.mjs",
     "public-documents:worker-smoke": "node scripts/public-documents-production-worker-smoke.mjs",
     "public-documents:cutover": "node scripts/public-documents-production-cutover.mjs",
-    "public-read:preview-smoke": "node scripts/public-read-preview-smoke.mjs",
-    "worker:production:preflight": "node scripts/production-cutover-preflight.mjs",
     "m19:readiness": "node scripts/m19-parity-readiness.mjs",
     "m20:readiness": "node scripts/m20-readiness-gate.mjs"
   }

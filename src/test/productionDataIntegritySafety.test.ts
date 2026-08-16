@@ -75,7 +75,8 @@ describe("P5A production data-integrity safety", () => {
   it("requires master, the protected production environment, a bookmark, and explicit cleanup confirmation", () => {
     expect(integrityWorkflow).toContain("github.ref == 'refs/heads/master'");
     expect(integrityWorkflow).toMatch(/environment:\s*production/);
-    expect(integrityWorkflow).toContain("d1 time-travel info rcat-public-api-production");
+    expect(integrityWorkflow).toContain("PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview");
+    expect(integrityWorkflow).toContain('d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME"');
     expect(integrityWorkflow).toContain("DELETE_CONFIRMED_LOCAL_FIXTURES_ONLY");
     expect(integrityWorkflow).toContain("inputs.mode == 'cleanup'");
     expect(integrityWorkflow).toContain("production-fixture-cleanup.sql");

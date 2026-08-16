@@ -241,7 +241,7 @@ describe("M12 public document import manifest dry-run CLI", () => {
     expect(manifestScriptSource).not.toMatch(forbiddenProductionPattern);
     expect(manifestScriptSource).not.toMatch(realD1IdPattern);
     expect(wranglerToml).toContain('database_id = "local-placeholder"');
-    expect(wranglerToml).toContain('database_id = "preview-placeholder"');
+    expect(wranglerToml).toContain('database_id = "production-placeholder"');
     expect(publicApiProviderSource).toMatch(/VITE_CLOUDFLARE_PUBLIC_API_URL/);
     expect(publicApiProviderSource).toMatch(/CLOUDFLARE_PUBLIC_API_URL/);
     expect(publicApiProviderSource).not.toMatch(/VITE_PUBLIC_API_PROVIDER/);

@@ -436,7 +436,7 @@ describe("M15 production frontend cutover gate", () => {
 
   it("keeps committed repository guardrails and current frontend contract intact", () => {
     expect(wranglerToml).toContain('database_id = "local-placeholder"');
-    expect(wranglerToml).toContain('database_id = "preview-placeholder"');
+    expect(wranglerToml).toContain('database_id = "production-placeholder"');
     expect(wranglerToml).not.toMatch(realD1IdPattern);
     expect(publicApiProviderSource).toMatch(/VITE_CLOUDFLARE_PUBLIC_API_URL/);
     expect(publicApiProviderSource).toMatch(/CLOUDFLARE_PUBLIC_API_URL/);

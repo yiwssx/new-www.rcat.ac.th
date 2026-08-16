@@ -20,7 +20,7 @@ describe("M2.2 local D1 fake seed contract", () => {
     expect(wranglerToml).toMatch(/^\s*binding\s*=\s*"DB"\s*$/m);
     expect(wranglerToml).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-local"\s*$/m);
     expect(wranglerToml).toMatch(/^\s*database_id\s*=\s*"local-placeholder"\s*$/m);
-    expect(wranglerToml).toMatch(/local\/non-production/i);
+    expect(wranglerToml).toMatch(/# Local-only D1 binding/i);
   });
 
   it("defines safe local D1 package scripts", () => {

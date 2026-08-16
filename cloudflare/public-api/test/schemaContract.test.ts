@@ -255,26 +255,18 @@ describe("M2.1 D1 schema and sample safety contract", () => {
     expect(migrationSql).not.toMatch(/\bINSERT\s+INTO\b/i);
   });
 
-  it("keeps local, preview, and production bindings safe in source control", () => {
-    const localSection = wranglerToml.split("[env.preview]")[0] || "";
-
-    const previewSection = wranglerToml.split("[env.preview]")[1]?.split("[env.production]")[0] || "";
-
+  it("keeps local and canonical production bindings safe in source control", () => {
+    const localSection = wranglerToml.split("[env.production]")[0] || "";
     const productionSection = wranglerToml.split("[env.production]")[1] || "";
 
+    expect(wranglerToml).not.toMatch(/^\[env\.preview\]\s*$/m);
     expect(localSection).toMatch(/^\[\[d1_databases\]\]/m);
-
     expect(localSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-local"\s*$/m);
-
     expect(localSection).toMatch(/^\s*database_id\s*=\s*"local-placeholder"\s*$/m);
-
-    expect(previewSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-preview"\s*$/m);
-
-    expect(previewSection).toMatch(/^\s*database_id\s*=\s*"preview-placeholder"\s*$/m);
-
-    expect(productionSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-production"\s*$/m);
-
+    expect(productionSection).toMatch(/^\s*name\s*=\s*"rcat-public-api-production"\s*$/m);
+    expect(productionSection).toMatch(/^\s*database_name\s*=\s*"rcat-public-api-preview"\s*$/m);
     expect(productionSection).toMatch(/^\s*database_id\s*=\s*"production-placeholder"\s*$/m);
+    expect(wranglerToml).toMatch(/# Canonical production runtime\./i);
   });
 
   it("keeps Worker row column constants aligned to the migration chain", () => {
@@ -351,7 +343,6 @@ describe("M2.1 D1 schema and sample safety contract", () => {
 
   it("adds event media attachment storage", () => {
     expect(eventMediaMigrationSql).toMatch(/ALTER\s+TABLE\s+events/i);
-
     expect(eventMediaMigrationSql).toMatch(/ADD\s+COLUMN\s+media_ids_json\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'\[\]'/i);
   });
 });

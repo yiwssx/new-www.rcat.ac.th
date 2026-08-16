@@ -42,16 +42,12 @@ describe("M8 production cutover preflight documentation", () => {
 });
 
 describe("M8 production cutover preflight script", () => {
-  it("is exposed through the root package scripts", () => {
+  it("retains the historical helper without exposing it through the current package command surface", () => {
     const rootPackageJson = JSON.parse(rootPackageJsonSource);
     const workerPackageJson = JSON.parse(workerPackageJsonSource);
 
-    expect(rootPackageJson.scripts["worker:production:preflight"]).toBe(
-      "node cloudflare/public-api/scripts/production-cutover-preflight.mjs"
-    );
-    expect(workerPackageJson.scripts["worker:production:preflight"]).toBe(
-      "node scripts/production-cutover-preflight.mjs"
-    );
+    expect(rootPackageJson.scripts["worker:production:preflight"]).toBeUndefined();
+    expect(workerPackageJson.scripts["worker:production:preflight"]).toBeUndefined();
   });
 
   it("prints BLOCKED and exits logically clean when required env is missing", () => {

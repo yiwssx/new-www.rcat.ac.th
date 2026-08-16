@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
-  PRODUCTION_DATABASE_NAME,
+  PRODUCTION_D1_RESOURCE_NAME,
   assertProductionDatabaseIdentity,
   buildProductionMigrationListArgs
 } from "./worker-production-preflight.mjs";
@@ -9,27 +9,28 @@ import {
 const productionDatabaseId = "123e4567-e89b-42d3-a456-426614174000";
 
 describe("Worker production migration preflight", () => {
-  it("requires the exact account-scoped production database identity", () => {
+  it("requires the exact promoted production database identity", () => {
+    expect(PRODUCTION_D1_RESOURCE_NAME).toBe("rcat-public-api-preview");
     expect(
       assertProductionDatabaseIdentity(
-        [{ name: PRODUCTION_DATABASE_NAME, uuid: productionDatabaseId }],
+        [{ name: PRODUCTION_D1_RESOURCE_NAME, uuid: productionDatabaseId }],
         productionDatabaseId
       )
     ).toBe(true);
 
     expect(() =>
       assertProductionDatabaseIdentity(
-        [{ name: PRODUCTION_DATABASE_NAME, uuid: "123e4567-e89b-42d3-a456-426614174001" }],
+        [{ name: PRODUCTION_D1_RESOURCE_NAME, uuid: "123e4567-e89b-42d3-a456-426614174001" }],
         productionDatabaseId
       )
-    ).toThrow(/does not match the exact account-scoped production database/);
+    ).toThrow(/does not match the promoted account-scoped production resource/);
 
     expect(() => assertProductionDatabaseIdentity([], productionDatabaseId)).toThrow(/expected exactly one/);
     expect(() =>
       assertProductionDatabaseIdentity(
         [
-          { name: PRODUCTION_DATABASE_NAME, uuid: productionDatabaseId },
-          { name: PRODUCTION_DATABASE_NAME, uuid: productionDatabaseId }
+          { name: PRODUCTION_D1_RESOURCE_NAME, uuid: productionDatabaseId },
+          { name: PRODUCTION_D1_RESOURCE_NAME, uuid: productionDatabaseId }
         ],
         productionDatabaseId
       )
@@ -40,7 +41,7 @@ describe("Worker production migration preflight", () => {
     const args = buildProductionMigrationListArgs("/tmp/wrangler.production-preflight.toml");
     const joined = args.join(" ");
 
-    expect(joined).toContain(`d1 migrations list ${PRODUCTION_DATABASE_NAME}`);
+    expect(joined).toContain(`d1 migrations list ${PRODUCTION_D1_RESOURCE_NAME}`);
     expect(args).toContain("--remote");
     expect(args).toContain("production");
     expect(args).toContain("--experimental-provision=false");
