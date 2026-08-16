@@ -4,15 +4,14 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { sanitizeCloudflareCliOutput } from "../../../scripts/sanitize-cloudflare-cli-output.mjs";
 import { createProductionWranglerConfig, validateProductionDatabaseId } from "./productionDeployGuard.mjs";
+import { PRODUCTION_D1_RESOURCE_NAME } from "./productionResource.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const workerDirectory = path.resolve(scriptDirectory, "..");
 const repositoryRoot = path.resolve(workerDirectory, "../..");
 const sourceConfigPath = path.join(workerDirectory, "wrangler.toml");
 
-// Legacy physical Cloudflare name retained to promote the existing data-bearing
-// database in place. Canonical role is production and protected identity is its UUID.
-export const PRODUCTION_D1_RESOURCE_NAME = "rcat-public-api-preview";
+export { PRODUCTION_D1_RESOURCE_NAME } from "./productionResource.mjs";
 
 function readArgument(name, argv = process.argv.slice(2)) {
   const index = argv.indexOf(name);
