@@ -1,99 +1,61 @@
 import { QueryClient } from "@tanstack/react-query";
-import { beforeEach, describe, expect, it } from "vitest";
-import type { ContentItem, PublicContentDetailSnapshot } from "../types";
-import { getPublicContentDetailCache, setPublicContentDetailCache, writePublicCache } from "./publicCmsCache";
+import { describe, expect, it } from "vitest";
 import { invalidateDeletedPublicContent, invalidatePublicCmsData } from "./publicCmsInvalidation";
 
-function createContentItem(id: string, slug: string): ContentItem {
-  return {
-    id,
-    title: id,
-    slug,
-    type: "news",
-    status: "published",
-    owner: "RCAT",
-    summary: "Cached content",
-    updatedAt: "2026-07-13T00:00:00.000Z",
-    publishAt: "2026-07-13T00:00:00.000Z"
-  };
-}
-
-function createDetailSnapshot(item: ContentItem): PublicContentDetailSnapshot {
-  return {
-    item,
-    media: [],
-    generatedAt: item.updatedAt
-  };
-}
+const activePublicRoots = [
+  "content-detail",
+  "public-content-list",
+  "public-document-list",
+  "public-event-list",
+  "public-home-snapshot",
+  "public-program-list",
+  "public-search-index",
+  "public-shell"
+];
 
 describe("public CMS invalidation after admin mutations", () => {
-  beforeEach(() => {
-    window.localStorage.clear();
-  });
-
-  it("clears persisted caches and invalidates public list, detail, program, search, home, and shell queries", async () => {
+  it("invalidates every active public QueryClient root without treating legacy cms-snapshot as an owner", async () => {
     const queryClient = new QueryClient();
-    const roots = [
-      "cms-snapshot",
-      "content-detail",
-      "public-content-list",
-      "public-document-list",
-      "public-event-list",
-      "public-home-snapshot",
-      "public-program-list",
-      "public-search-index",
-      "public-shell"
-    ];
 
-    roots.forEach((root) => queryClient.setQueryData([root, "sample"], { stale: true }));
-    const persistedKeys = [
-      "rcat.cms.public.snapshot.v2",
-      "rcat.cms.public.home.snapshot.v2",
-      "rcat.cms.public.event-list",
-      "rcat.cms.public.program-list.v2",
-      "rcat.cms.public.content-list.v2.news",
-      "rcat.cms.public.content-detail.v3.sample",
-      "rcat.cms.public.search-index.v2",
-      "rcat.cms.public.home.snapshot",
-      "rcat.cms.public.program-list",
-      "rcat.cms.public.content-detail.v1.sample"
-    ];
-
-    persistedKeys.forEach((key) => writePublicCache(key, { stale: true }, 60_000));
+    activePublicRoots.forEach((root) => queryClient.setQueryData([root, "sample"], { stale: true }));
+    queryClient.setQueryData(["cms-snapshot", "legacy"], { legacy: true });
+    queryClient.setQueryData(["admin-only", "sample"], { private: true });
 
     await invalidatePublicCmsData(queryClient);
 
-    roots.forEach((root) => {
+    activePublicRoots.forEach((root) => {
       expect(queryClient.getQueryState([root, "sample"])?.isInvalidated).toBe(true);
       expect(queryClient.getQueryData([root, "sample"])).toEqual({ stale: true });
     });
-    persistedKeys.forEach((key) => expect(window.localStorage.getItem(key)).toBeNull());
+    expect(queryClient.getQueryState(["cms-snapshot", "legacy"])?.isInvalidated).toBe(false);
+    expect(queryClient.getQueryData(["cms-snapshot", "legacy"])).toEqual({ legacy: true });
+    expect(queryClient.getQueryState(["admin-only", "sample"])?.isInvalidated).toBe(false);
   });
 
-  it("removes only the deleted detail query while preserving existing public invalidation behavior", async () => {
+  it("removes the deleted detail query and invalidates the remaining active public queries", async () => {
     const queryClient = new QueryClient();
-    const deleted = createContentItem("deleted-content", "deleted-slug");
-    const other = createContentItem("other-content", "other-slug");
-    const deletedSnapshot = createDetailSnapshot(deleted);
-    const otherSnapshot = createDetailSnapshot(other);
-    const otherPublicKeys = [["public-content-list", "news"], ["public-home-snapshot"], ["public-search-index"]];
+    const deletedKey = ["content-detail", "deleted-slug"] as const;
+    const otherDetailKey = ["content-detail", "other-slug"] as const;
+    const otherPublicKeys = [
+      ["public-content-list", "news"],
+      ["public-home-snapshot"],
+      ["public-search-index"],
+      ["public-shell"]
+    ] as const;
 
-    queryClient.setQueryData(["content-detail", deleted.slug], deletedSnapshot);
-    queryClient.setQueryData(["content-detail", other.slug], otherSnapshot);
+    queryClient.setQueryData(deletedKey, { id: "deleted" });
+    queryClient.setQueryData(otherDetailKey, { id: "other" });
     otherPublicKeys.forEach((key) => queryClient.setQueryData(key, { cached: true }));
-    setPublicContentDetailCache(deleted.slug, deletedSnapshot);
-    setPublicContentDetailCache(other.slug, otherSnapshot);
 
-    await invalidateDeletedPublicContent(queryClient, deleted.slug);
+    await invalidateDeletedPublicContent(queryClient, "deleted-slug");
 
-    expect(queryClient.getQueryData(["content-detail", deleted.slug])).toBeUndefined();
-    expect(queryClient.getQueryData(["content-detail", other.slug])).toEqual(otherSnapshot);
-    expect(queryClient.getQueryState(["content-detail", other.slug])?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryData(deletedKey)).toBeUndefined();
+    expect(queryClient.getQueryState(deletedKey)).toBeUndefined();
+    expect(queryClient.getQueryData(otherDetailKey)).toEqual({ id: "other" });
+    expect(queryClient.getQueryState(otherDetailKey)?.isInvalidated).toBe(true);
     otherPublicKeys.forEach((key) => {
       expect(queryClient.getQueryData(key)).toEqual({ cached: true });
       expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
     });
-    expect(getPublicContentDetailCache(deleted.slug)).toBeNull();
-    expect(getPublicContentDetailCache(other.slug)).toBeNull();
   });
 });
