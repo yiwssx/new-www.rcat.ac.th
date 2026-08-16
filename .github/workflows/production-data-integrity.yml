@@ -90,6 +90,43 @@ jobs:
             console.log("Pre-change production Time Travel bookmark resolved and retained only in runner temp storage.");
           '
 
+      - name: Inspect production fixture schema
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          schema_json="$RUNNER_TEMP/production-fixture-schema.json"
+          schema_stderr="$RUNNER_TEMP/production-fixture-schema.stderr"
+          schema_sql="SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('documents','contents','visitor_daily_stats','public_home_sections') ORDER BY name;"
+          set +e
+          pnpm wrangler d1 execute rcat-public-api-production \
+            --remote \
+            --command="$schema_sql" \
+            --json > "$schema_json" 2> "$schema_stderr"
+          schema_status=$?
+          set -e
+
+          if [[ "$schema_status" -ne 0 ]]; then
+            echo "::error::Production fixture schema inspection failed (wrangler exit $schema_status)."
+            node scripts/sanitize-cloudflare-cli-output.mjs --file "$schema_stderr" --label "wrangler stderr" || true
+            node scripts/sanitize-cloudflare-cli-output.mjs --file "$schema_json" --label "wrangler stdout" || true
+            exit "$schema_status"
+          fi
+
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/production-fixture-schema.json", "utf8"));
+            const statements = Array.isArray(value) ? value : [value];
+            const names = new Set(statements.flatMap((statement) => Array.isArray(statement?.results) ? statement.results.map((row) => row?.name).filter(Boolean) : []));
+            const required = ["documents", "contents", "visitor_daily_stats"];
+            const missing = required.filter((name) => !names.has(name));
+            if (missing.length > 0) throw new Error(`production fixture audit cannot proceed; required pre-M17-B table(s) missing: ${missing.join(", ")}`);
+            const homePresent = names.has("public_home_sections");
+            fs.appendFileSync(process.env.GITHUB_ENV, `PUBLIC_HOME_SECTIONS_PRESENT=${homePresent ? "true" : "false"}\n`);
+            console.log(`Production fixture schema verified. public_home_sections present: ${homePresent}.`);
+          '
+
       - name: Audit exact local/dev fixtures
         shell: bash
         env:
@@ -109,6 +146,33 @@ jobs:
 
           if [[ "$audit_status" -ne 0 ]]; then
             echo "::error::Production fixture audit query failed before payload validation (wrangler exit $audit_status)."
+            node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_stderr" --label "wrangler stderr" || true
+            node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_json" --label "wrangler stdout" || true
+            exit "$audit_status"
+          fi
+
+          node scripts/check-production-fixture-audit.mjs --file "$audit_json"
+
+      - name: Audit optional public_home_sections fixture
+        if: ${{ env.PUBLIC_HOME_SECTIONS_PRESENT == 'true' }}
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          audit_json="$RUNNER_TEMP/production-home-section-fixture-audit.json"
+          audit_stderr="$RUNNER_TEMP/production-home-section-fixture-audit.stderr"
+          audit_sql="$(cat cloudflare/public-api/sql/production-home-section-fixture-audit.sql)"
+          set +e
+          pnpm wrangler d1 execute rcat-public-api-production \
+            --remote \
+            --command="$audit_sql" \
+            --json > "$audit_json" 2> "$audit_stderr"
+          audit_status=$?
+          set -e
+
+          if [[ "$audit_status" -ne 0 ]]; then
+            echo "::error::Optional public_home_sections fixture audit failed (wrangler exit $audit_status)."
             node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_stderr" --label "wrangler stderr" || true
             node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_json" --label "wrangler stdout" || true
             exit "$audit_status"
@@ -137,6 +201,17 @@ jobs:
           pnpm wrangler d1 execute rcat-public-api-production \
             --remote \
             --file cloudflare/public-api/sql/production-fixture-cleanup.sql
+
+      - name: Delete optional public_home_sections fixture row
+        if: ${{ inputs.mode == 'cleanup' && env.PUBLIC_HOME_SECTIONS_PRESENT == 'true' }}
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 execute rcat-public-api-production \
+            --remote \
+            --file cloudflare/public-api/sql/production-home-section-fixture-cleanup.sql
 
       - name: Verify production fixture sentinel is clean
         if: ${{ inputs.mode == 'cleanup' }}
@@ -167,6 +242,35 @@ jobs:
             --file "$audit_json" \
             --expect-clean
 
+      - name: Verify optional public_home_sections sentinel is clean
+        if: ${{ inputs.mode == 'cleanup' && env.PUBLIC_HOME_SECTIONS_PRESENT == 'true' }}
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          audit_json="$RUNNER_TEMP/production-home-section-fixture-post-audit.json"
+          audit_stderr="$RUNNER_TEMP/production-home-section-fixture-post-audit.stderr"
+          audit_sql="$(cat cloudflare/public-api/sql/production-home-section-fixture-audit.sql)"
+          set +e
+          pnpm wrangler d1 execute rcat-public-api-production \
+            --remote \
+            --command="$audit_sql" \
+            --json > "$audit_json" 2> "$audit_stderr"
+          audit_status=$?
+          set -e
+
+          if [[ "$audit_status" -ne 0 ]]; then
+            echo "::error::Post-cleanup public_home_sections fixture audit failed (wrangler exit $audit_status)."
+            node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_stderr" --label "wrangler stderr" || true
+            node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_json" --label "wrangler stdout" || true
+            exit "$audit_status"
+          fi
+
+          node scripts/check-production-fixture-audit.mjs \
+            --file "$audit_json" \
+            --expect-clean
+
       - name: Integrity summary
         shell: bash
         env:
@@ -178,10 +282,12 @@ jobs:
             echo "- Target: rcat-public-api-production (resolved by exact account-scoped name)"
             echo "- Mode: $MODE"
             echo "- Pre-change Time Travel bookmark: verified; value not printed"
+            echo "- Required pre-M17-B tables: verified"
+            echo "- public_home_sections present before migration: ${PUBLIC_HOME_SECTIONS_PRESENT:-unknown}"
             echo "- Audit scope: exact local/dev fixtures from public-read-core.seed.sql"
             echo "- Wildcard deletes: none"
             if [[ "$MODE" == "cleanup" ]]; then
-              echo "- Cleanup: exact guarded deletes only"
+              echo "- Cleanup: exact guarded deletes only against tables confirmed present"
               echo "- Post-cleanup sentinel: required clean"
             else
               echo "- Cleanup: not executed"

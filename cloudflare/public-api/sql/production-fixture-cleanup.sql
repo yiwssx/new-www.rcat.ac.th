@@ -1,15 +1,7 @@
--- P5A exact cleanup for fixtures from public-read-core.seed.sql.
+-- P5A exact cleanup for fixtures in tables that exist before M17-B.
 -- This file intentionally contains no wildcard deletes and no production-wide reset.
 
 BEGIN TRANSACTION;
-
-DELETE FROM public_home_sections
-WHERE id = 'sample-public-read-home-section-001'
-  AND section_key = 'intro'
-  AND title = 'Sample preview intro'
-  AND summary = 'Fake local-only public home section.'
-  AND href = 'https://preview.example.test/intro'
-  AND updated_at = '2026-06-13T00:00:00.000Z';
 
 DELETE FROM documents
 WHERE id = 'sample-public-read-document-001'
