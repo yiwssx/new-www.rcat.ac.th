@@ -2,39 +2,17 @@ name = "rcat-public-api"
 main = "src/index.ts"
 compatibility_date = "2026-05-27"
 
-# M2.2 local/non-production D1 binding.
-# This placeholder exists so `wrangler dev`, local migrations, and fake local
-# seed commands can exercise the Worker binding shape. Do not commit a real
-# preview or production database_id until that environment is explicitly scoped.
+# Local-only D1 binding for development, tests, and fake sample data.
 [[d1_databases]]
 binding = "DB"
 database_name = "rcat-public-api-local"
 database_id = "local-placeholder"
 
-# M5 preview-only binding placeholder.
-# This env is for non-production Cloudflare Worker preview testing only.
-# Replace `preview-placeholder` outside git when a real preview D1 database is
-# created. Never use this section for production traffic or real school data.
-[env.preview]
-name = "rcat-public-api-preview"
-
-[env.preview.vars]
-ENVIRONMENT = "preview"
-ADMIN_WRITE_PREVIEW_ENABLED = "true"
-ADMIN_WRITE_SMOKE_ENABLED = "true"
-ADMIN_WRITE_AUTH_MODE = "cloudflare-access"
-ADMIN_WRITE_ALLOWED_ORIGINS = "https://preview-placeholder.example.invalid"
-PUBLIC_API_ALLOWED_ORIGINS = "https://preview-placeholder.example.invalid"
-PUBLIC_ANALYTICS_ALLOWED_ORIGINS = "https://preview-placeholder.example.invalid"
-ADMIN_WRITE_ACCESS_TEAM_DOMAIN = "preview-placeholder"
-ADMIN_WRITE_ACCESS_AUD = "preview-placeholder"
-ADMIN_WRITE_ALLOWED_EMAILS = "admin@example.invalid"
-
-[[env.preview.d1_databases]]
-binding = "DB"
-database_name = "rcat-public-api-preview"
-database_id = "preview-placeholder"
-
+# Canonical production runtime.
+# The data-bearing D1 was originally provisioned under the physical Cloudflare
+# name `rcat-public-api-preview`. It is promoted in place as the sole production
+# database to avoid copying or rebuilding live data. The protected production
+# UUID is injected at release time; never commit the real D1 database_id.
 [env.production]
 name = "rcat-public-api-production"
 
@@ -49,5 +27,5 @@ crons = ["17 19 * * *"]
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "rcat-public-api-production"
+database_name = "rcat-public-api-preview"
 database_id = "production-placeholder"
