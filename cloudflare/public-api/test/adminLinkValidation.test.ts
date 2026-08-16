@@ -24,6 +24,7 @@ describe("P5H CMS link policy", () => {
   it("keeps resource and canonical policies narrower than navigation", () => {
     expect(isValidCmsLink("/assets/logo.png", "resource")).toBe(true);
     expect(isValidCmsLink("https://drive.google.com/file/d/example/view", "resource")).toBe(true);
+    expect(isValidCmsLink("http://files.example.test/document.pdf", "resource")).toBe(false);
     expect(isValidCmsLink("mailto:admin@example.test", "resource")).toBe(false);
     expect(isValidCmsLink("#image", "resource")).toBe(false);
 
