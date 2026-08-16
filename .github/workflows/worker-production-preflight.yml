@@ -1,0 +1,122 @@
+name: Worker Production Preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Production Migration Preflight
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: node scripts/check-d1-migration-sequences.mjs
+
+      - name: Require protected Cloudflare production credentials
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || {
+            echo "CLOUDFLARE_ACCOUNT_ID is unavailable from the protected production environment." >&2
+            exit 1
+          }
+          test -n "$CLOUDFLARE_API_TOKEN" || {
+            echo "CLOUDFLARE_API_TOKEN is unavailable from the protected production environment." >&2
+            exit 1
+          }
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || {
+            echo "RCAT_PRODUCTION_D1_DATABASE_ID is unavailable from the protected production environment." >&2
+            exit 1
+          }
+
+      - name: Guard read-only preflight
+        shell: bash
+        run: |
+          if grep -nE 'd1[[:space:]]+migrations[[:space:]]+apply|wrangler[[:space:]]+deploy|d1[[:space:]]+time-travel[[:space:]]+restore|d1[[:space:]]+execute[^\n]*--file' \
+            .github/workflows/worker-production-preflight.yml \
+            cloudflare/public-api/scripts/worker-production-preflight.mjs; then
+            echo "Worker production preflight must remain read-only." >&2
+            exit 1
+          fi
+
+      - name: Resolve exact production D1 identity
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            --verify-identity-only
+
+      - name: Verify current production Time Travel readiness
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 time-travel info rcat-public-api-production --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-time-travel.json", "utf8"));
+            const metadata = Array.isArray(value) ? value[0] : value;
+            if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) {
+              throw new Error("production Time Travel bookmark was not returned");
+            }
+            console.log("Current production Time Travel bookmark resolved; value not printed.");
+          '
+
+      - name: List unapplied production migrations
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            | tee "$RUNNER_TEMP/worker-production-migration-preflight.txt"
+
+      - name: Preflight summary
+        shell: bash
+        run: |
+          {
+            echo "## Worker Production Preflight"
+            echo
+            echo "- Target: rcat-public-api-production"
+            echo "- Exact database name + protected D1 ID: verified"
+            echo "- Migration filenames: repository sequence guard passed"
+            echo "- Time Travel readiness: current bookmark verified; value not printed"
+            echo "- Migration operation: list unapplied only"
+            echo "- D1 writes: none"
+            echo "- Migration apply: not executed"
+            echo "- Worker deploy: not executed"
+            echo "- Time Travel restore: not executed"
+            echo
+            echo "### Wrangler migration list"
+            echo '```text'
+            cat "$RUNNER_TEMP/worker-production-migration-preflight.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
