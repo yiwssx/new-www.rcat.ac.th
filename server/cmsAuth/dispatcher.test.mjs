@@ -116,7 +116,7 @@ describe("CMS-auth dispatcher", () => {
     expect(CMS_AUTH_ROUTE_TABLE.every((route) => Object.isFrozen(route))).toBe(true);
   });
 
-  it.each(routes)("dispatches $id to exactly its selected handler", async ({ id, publicPath }) => {
+  it.each(routes)("dispatches $id from the exact internal route marker", async ({ id, publicPath }) => {
     const dispatchUrl = `/api/cms-auth?_rcatCmsRoute=${id}`;
     const headers = { host: "cms.example.invalid", "x-test-header": "preserved" };
     const body = { marker: "preserved" };
@@ -139,8 +139,28 @@ describe("CMS-auth dispatcher", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
+  it.each(routes)("dispatches $id from its exact finite public path", async ({ id, publicPath }) => {
+    const headers = { host: "cms.example.invalid", "x-vercel-path-test": "preserved" };
+    const body = { marker: "preserved" };
+    const { request, read } = createRequest({ url: publicPath, headers, body });
+    const handlers = createHandlerMap();
+
+    handlers[id].mockImplementation(async (selectedRequest) => {
+      expect(selectedRequest.url).toBe(publicPath);
+      expect(selectedRequest.headers).toBe(headers);
+      expect(selectedRequest.body).toBe(body);
+    });
+
+    await handleCmsAuthDispatch(request, createResponse(), { handlers });
+
+    expect(handlers[id]).toHaveBeenCalledTimes(1);
+    expect(callCount(handlers)).toBe(1);
+    expect(request.url).toBe(publicPath);
+    expect(read).not.toHaveBeenCalled();
+  });
+
   it.each(routes)(
-    "dispatches $id when Vercel exposes rewrite parameters on request.query",
+    "dispatches $id when Vercel exposes the matching rewrite marker on request.query",
     async ({ id, publicPath }) => {
       const headers = { host: "cms.example.invalid", "x-vercel-test": "preserved" };
       const body = { marker: "preserved" };
@@ -189,9 +209,11 @@ describe("CMS-auth dispatcher", () => {
     ["unknown route", "/api/cms-auth?_rcatCmsRoute=unknown"],
     ["empty route", "/api/cms-auth?_rcatCmsRoute="],
     ["duplicate route", "/api/cms-auth?_rcatCmsRoute=login&_rcatCmsRoute=session"],
-    ["additional query", "/api/cms-auth?_rcatCmsRoute=login&token=secret"],
+    ["additional internal query", "/api/cms-auth?_rcatCmsRoute=login&token=secret"],
+    ["unexpected public query", "/api/cms-auth/login?token=secret"],
     ["URL-encoded route", "/api/cms-auth?_rcatCmsRoute=log%69n"],
     ["uppercase route", "/api/cms-auth?_rcatCmsRoute=LOGIN"],
+    ["unknown public path", "/api/cms-auth/not-registered"],
     ["malformed URL", "http://[?_rcatCmsRoute=login"]
   ])("rejects a %s with a no-store 404", async (_name, url) => {
     const { request, read } = createRequest({ url });
@@ -228,7 +250,7 @@ describe("CMS-auth dispatcher", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
-  it("does not let a Vercel query route select a different public CMS-auth path", async () => {
+  it("does not let a Vercel query marker select a different public CMS-auth path", async () => {
     const { request, read } = createRequest({
       url: "/api/cms-auth/session",
       query: { _rcatCmsRoute: "login" }
@@ -243,14 +265,14 @@ describe("CMS-auth dispatcher", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
-  it("does not obtain the route from the path, headers, body, cookies, or Referer", async () => {
+  it("does not obtain a route from an arbitrary path, headers, body, cookies, or Referer", async () => {
     const headers = {
       _rcatcmsroute: "login",
       cookie: "_rcatCmsRoute=login",
       referer: "https://cms.example.invalid/?_rcatCmsRoute=login"
     };
     const { request } = createRequest({
-      url: "/api/cms-auth/login",
+      url: "/api/cms-auth/not-registered",
       headers,
       body: { _rcatCmsRoute: "login" }
     });
@@ -277,14 +299,14 @@ describe("CMS-auth dispatcher", () => {
   });
 
   it("uses a narrow stream-preserving adapter when request.url is read-only", async () => {
-    const dispatchUrl = "/api/cms-auth?_rcatCmsRoute=session";
+    const publicPath = "/api/cms-auth/session";
     const headers = { host: "cms.example.invalid" };
     const body = { marker: "preserved" };
-    const { request, read } = createRequest({ url: dispatchUrl, method: "GET", headers, body });
+    const { request, read } = createRequest({ url: publicPath, method: "GET", headers, body });
     const handlers = createHandlerMap();
-    Object.defineProperty(request, "url", { configurable: true, value: dispatchUrl, writable: false });
+    Object.defineProperty(request, "url", { configurable: true, value: publicPath, writable: false });
     handlers.session.mockImplementation(async (selectedRequest) => {
-      expect(selectedRequest.url).toBe("/api/cms-auth/session");
+      expect(selectedRequest.url).toBe(publicPath);
       expect(selectedRequest.method).toBe("GET");
       expect(selectedRequest.headers).toBe(headers);
       expect(selectedRequest.body).toBe(body);
@@ -293,16 +315,16 @@ describe("CMS-auth dispatcher", () => {
     await handleCmsAuthDispatch(request, createResponse(), { handlers });
 
     expect(handlers.session).toHaveBeenCalledTimes(1);
-    expect(request.url).toBe(dispatchUrl);
+    expect(request.url).toBe(publicPath);
     expect(read).not.toHaveBeenCalled();
   });
 
   it.each([
     ["retired-admin-proxy-login", "/api/admin-proxy-session/login"],
     ["retired-admin-proxy-logout", "/api/admin-proxy-session/logout"]
-  ])("returns a finite 410 tombstone for $1 without consuming the request", async (id, publicPath) => {
+  ])("returns 410 from retired public authentication paths", async (_id, publicPath) => {
     const { request, read } = createRequest({
-      url: `/api/cms-auth?_rcatCmsRoute=${id}`,
+      url: publicPath,
       method: "POST",
       headers: {
         authorization: "Bearer ignored",
@@ -318,16 +340,13 @@ describe("CMS-auth dispatcher", () => {
     expect(response.getHeader("Cache-Control")).toBe("no-store");
     expect(response.getHeader("Content-Type")).toBe("application/json; charset=utf-8");
     expect(response.bodyText).toBe('{"error":"legacy authentication is retired"}');
-    expect(request.url).toBe(`/api/cms-auth?_rcatCmsRoute=${id}`);
+    expect(request.url).toBe(publicPath);
     expect(read).not.toHaveBeenCalled();
-    expect(publicPath).toContain("/api/admin-proxy-session/");
   });
 
-  it.each(["GET", "PUT", "DELETE"])("rejects %s on a retired authentication path with 405", async (method) => {
-    const { request, read } = createRequest({
-      url: "/api/cms-auth?_rcatCmsRoute=retired-admin-proxy-login",
-      method
-    });
+  it.each(["GET", "PUT", "DELETE"])("returns 405 for non-POST retired public authentication", async (method) => {
+    const publicPath = "/api/admin-proxy-session/login";
+    const { request, read } = createRequest({ url: publicPath, method });
     const response = createResponse();
 
     await handleCmsAuthDispatch(request, response);
@@ -335,6 +354,7 @@ describe("CMS-auth dispatcher", () => {
     expect(response.statusCode).toBe(405);
     expect(response.getHeader("Allow")).toBe("POST");
     expect(response.bodyText).toBe('{"error":"method not allowed"}');
+    expect(request.url).toBe(publicPath);
     expect(read).not.toHaveBeenCalled();
   });
 });
