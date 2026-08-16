@@ -4,7 +4,8 @@ type CmsLinkKind = "canonical" | "navigation" | "resource";
 
 const MAX_LINK_LENGTH = 4_096;
 const NAVIGATION_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
-const RESOURCE_PROTOCOLS = new Set(["http:", "https:"]);
+const CANONICAL_PROTOCOLS = new Set(["http:", "https:"]);
+const RESOURCE_PROTOCOLS = new Set(["https:"]);
 
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -70,7 +71,7 @@ export function isValidCmsLink(value: unknown, kind: CmsLinkKind, allowEmpty = t
   }
 
   if (kind === "canonical") {
-    return isValidAbsoluteUrl(link, RESOURCE_PROTOCOLS);
+    return isValidAbsoluteUrl(link, CANONICAL_PROTOCOLS);
   }
 
   return isValidAbsoluteUrl(link, kind === "navigation" ? NAVIGATION_PROTOCOLS : RESOURCE_PROTOCOLS);
