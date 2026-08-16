@@ -19,7 +19,7 @@ Node 22 is no longer the current project requirement.
 | Public SSR / Vercel functions (`api/**`, SSR runtime)      | Vercel                                       | Revalidate routing, HTTP semantics, cache headers, proxies, and crawler output.    |
 | Vercel same-origin proxies (`server/**`, other `api/**`)   | Vercel                                       | Includes CMS/Admin, media, and isolated complaint proxy behavior.                  |
 | Cloudflare Worker runtime (`cloudflare/public-api/src/**`) | Cloudflare Worker                            | Release explicitly after tests/typecheck; `master` merge alone does not deploy it. |
-| Worker config                                              | Cloudflare Worker/config operation           | Environment changes are explicit operations.                                       |
+| Worker config                                              | Cloudflare Worker/config operation           | Production changes are explicit operations.                                        |
 | New D1 schema migration                                    | D1 migration + compatible Worker as required | Append-only; production release workflow applies pending migrations before Worker. |
 | Apps Script `.gs` media bridge                             | Apps Script                                  | Explicit media bridge deployment required.                                         |
 | Dedicated Complaint Apps Script                            | Apps Script                                  | Separate endpoint/deployment from the main media bridge.                           |
@@ -35,7 +35,7 @@ Node 22 is no longer the current project requirement.
 - Dedicated Complaint Apps Script: isolated complaint destination reached only through Vercel `/api/complaint`.
 - Google Drive: file/media storage behind the main media bridge.
 
-See `docs/architecture/current-runtime-ownership.md` for the canonical ownership map.
+Cloudflare has only local development plus one canonical remote production role. There is no persistent Preview deployment tier. The data-bearing D1 originally provisioned with the physical name `rcat-public-api-preview` is promoted in place and is the canonical production database. See `docs/architecture/production-environment-convergence-2026-08-16.md` and `docs/architecture/current-runtime-ownership.md`.
 
 ## Vercel Production
 
@@ -48,6 +48,8 @@ CLOUDFLARE_PUBLIC_API_URL=<production Cloudflare Public API base URL>
 ```
 
 The Public structured-data runtime is Cloudflare-only and has no provider selector. Browser code uses the public `VITE_CLOUDFLARE_PUBLIC_API_URL` alias. Server-side code prefers `CLOUDFLARE_PUBLIC_API_URL` and accepts `VITE_CLOUDFLARE_PUBLIC_API_URL` only as a compatibility fallback because the Worker origin itself is not secret.
+
+Vercel production configuration must point to the canonical production Worker endpoint after Cloudflare cutover. Vercel configuration is managed separately from Worker/D1 repository convergence.
 
 ### Complaint proxy configuration
 
@@ -89,13 +91,24 @@ See `docs/operations/public-ssr-cutover.md` for live verification and rollback.
 
 A merge to `master` does **not** deploy the Cloudflare Worker automatically.
 
+### Canonical production database
+
+The canonical production D1 is the existing data-bearing database whose legacy physical Cloudflare name is `rcat-public-api-preview`. It is promoted in place; do not export/import, copy, rebuild, or reseed it merely to obtain a production-looking physical name.
+
+The old D1 physically named `rcat-public-api-production` never became the live structured-data source and is not a release target. It may be retired separately only after an independent check confirms it contains no required data.
+
+The legacy physical `preview` label must not be interpreted as a non-production environment. Release identity is the pair of:
+
+- exact physical D1 resource name expected by the repository;
+- protected UUID in `RCAT_PRODUCTION_D1_DATABASE_ID`.
+
 Production migration inspection is intentionally separate and read-only through:
 
 ```text
 .github/workflows/worker-production-preflight.yml
 ```
 
-Run this workflow on `master` before the first production Worker release after Worker/D1 changes. It verifies that the exact account-scoped D1 name matches the protected production D1 UUID, validates migration filename sequencing, resolves a current Time Travel bookmark without printing it, and runs `wrangler d1 migrations list ... --remote`. The preflight does not apply migrations, execute SQL files, deploy a Worker, or restore Time Travel state.
+Run this workflow on `master` before a production Worker release after Worker/D1 changes. It verifies that the promoted data-bearing D1 physical resource matches the protected production UUID, validates migration filename sequencing, resolves a current Time Travel bookmark without printing it, and runs `wrangler d1 migrations list ... --remote`. The preflight does not apply migrations, execute SQL files, deploy a Worker, or restore Time Travel state.
 
 Production Worker release is intentionally manual through:
 
@@ -103,7 +116,7 @@ Production Worker release is intentionally manual through:
 .github/workflows/worker-production.yml
 ```
 
-Both workflows are `workflow_dispatch` only, use the protected `production` environment, and refuse to operate from a ref other than `master`.
+Both workflows are `workflow_dispatch` only, use the protected `production` GitHub environment, and refuse to operate from a ref other than `master`.
 
 Required GitHub `production` environment/repository secrets:
 
@@ -113,21 +126,39 @@ CLOUDFLARE_API_TOKEN
 RCAT_PRODUCTION_D1_DATABASE_ID
 ```
 
+`RCAT_PRODUCTION_D1_DATABASE_ID` must contain the UUID of the promoted data-bearing D1, not the unused empty D1.
+
 The tracked `cloudflare/public-api/wrangler.toml` must keep:
 
 ```toml
+[env.production]
+name = "rcat-public-api-production"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "rcat-public-api-preview"
 database_id = "production-placeholder"
 ```
 
-Never commit the real production D1 ID. `worker-production-preflight.mjs` and `worker-production-deploy.mjs` create temporary production configs next to `wrangler.toml` using the protected D1 UUID. The release workflow now verifies exact D1 identity, captures a fresh pre-release Time Travel bookmark, lists unapplied migrations, rechecks the production fixture sentinel, and only then allows the mutating release step.
+Never commit the real D1 UUID. The `env.production` Worker service name is production-facing; the D1 `database_name` retains the legacy physical label only because the existing data-bearing database is promoted without data movement.
+
+`worker-production-preflight.mjs` and `worker-production-deploy.mjs` create temporary production configs next to `wrangler.toml` using the protected D1 UUID. The release workflow verifies exact D1 identity, captures a fresh pre-release Time Travel bookmark, lists unapplied migrations, rechecks the production fixture sentinel, and only then allows the mutating release step.
 
 The mutating release helper performs:
 
-1. `wrangler d1 migrations apply ... --remote --env production`;
+1. `wrangler d1 migrations apply` against the promoted data-bearing D1 using the temporary `env.production` config;
 2. `wrangler deploy --env production` only if migration succeeds;
 3. removal of the temporary config even on failure.
 
-The workflow therefore fails closed when the production D1 UUID is missing/malformed, does not match the exact named database, the tracked configuration no longer contains the placeholder contract, fixture sentinels are not clean, or migration application fails.
+The workflow therefore fails closed when the production D1 UUID is missing/malformed, does not match the promoted account-scoped resource, the tracked configuration no longer contains the placeholder contract, fixture sentinels are not clean, or migration application fails.
+
+### Production data integrity
+
+`.github/workflows/production-data-integrity.yml` uses the same promoted D1 identity contract. Audit mode is read-only. Cleanup mode remains separately guarded and may delete only the explicitly recognized local/dev fixture rows.
+
+### Recovery readiness
+
+`.github/workflows/d1-recovery-drill.yml` is now a read-only **production** Time Travel readiness drill. It verifies the same protected D1 identity and resolves current Time Travel metadata/bookmark only. The workflow intentionally contains no restore command.
 
 ### Analytics migration and retention
 
@@ -215,10 +246,12 @@ Before a Vercel deployment:
 
 Before a Worker deployment:
 
-1. merge the validated Worker/D1 changes to `master`;
-2. confirm the three production release secrets are configured;
+1. merge the validated Worker/D1 convergence/release changes to `master`;
+2. set `RCAT_PRODUCTION_D1_DATABASE_ID` to the promoted data-bearing D1 UUID in the protected GitHub `Production` environment;
 3. invoke `Worker Production Preflight` manually on `master` and inspect the unapplied-migration list;
-4. confirm the pending migration set is expected for the release and the preflight is green;
+4. confirm exact promoted-D1 identity, Time Travel readiness, and the pending migration set;
 5. invoke `Worker Production Release` manually on the same `master` revision;
-6. require successful exact-D1 identity verification, fresh Time Travel bookmark capture, fixture sentinel checks, migration apply, and Worker deploy output;
-7. verify Worker health/Public API behavior immediately after release.
+6. require successful fixture gates, migration apply, and Worker deploy output;
+7. update/verify Vercel production Worker URL separately;
+8. verify Worker health, Public API, Admin/Auth, analytics, and representative SSR pages immediately after release;
+9. retire obsolete empty/Preview-era Cloudflare resources only after the new production path is verified.
