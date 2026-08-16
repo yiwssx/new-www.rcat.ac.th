@@ -9,7 +9,10 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const workerDirectory = path.resolve(scriptDirectory, "..");
 const repositoryRoot = path.resolve(workerDirectory, "../..");
 const sourceConfigPath = path.join(workerDirectory, "wrangler.toml");
-export const PRODUCTION_DATABASE_NAME = "rcat-public-api-production";
+
+// Legacy physical Cloudflare name retained to promote the existing data-bearing
+// database in place. Canonical role is production and protected identity is its UUID.
+export const PRODUCTION_D1_RESOURCE_NAME = "rcat-public-api-preview";
 
 function readArgument(name, argv = process.argv.slice(2)) {
   const index = argv.indexOf(name);
@@ -29,9 +32,9 @@ export function assertProductionDatabaseIdentity(databases, expectedDatabaseId) 
     throw new Error("unexpected D1 list response shape");
   }
 
-  const matches = databases.filter((database) => database?.name === PRODUCTION_DATABASE_NAME);
+  const matches = databases.filter((database) => database?.name === PRODUCTION_D1_RESOURCE_NAME);
   if (matches.length !== 1) {
-    throw new Error(`expected exactly one ${PRODUCTION_DATABASE_NAME} database, found ${matches.length}`);
+    throw new Error(`expected exactly one promoted production D1 resource ${PRODUCTION_D1_RESOURCE_NAME}, found ${matches.length}`);
   }
 
   const ids = databaseRecordIds(matches[0]);
@@ -40,7 +43,7 @@ export function assertProductionDatabaseIdentity(databases, expectedDatabaseId) 
   }
 
   if (!ids.includes(validatedId)) {
-    throw new Error("protected production D1 database ID does not match the exact account-scoped production database");
+    throw new Error("protected production D1 database ID does not match the promoted account-scoped production resource");
   }
 
   return true;
@@ -53,7 +56,7 @@ export function buildProductionMigrationListArgs(configPath) {
     "d1",
     "migrations",
     "list",
-    PRODUCTION_DATABASE_NAME,
+    PRODUCTION_D1_RESOURCE_NAME,
     "--remote",
     "--config",
     configPath,
@@ -109,7 +112,7 @@ export function main(argv = process.argv.slice(2)) {
 
   const databases = JSON.parse(readFileSync(databaseListPath, "utf8"));
   assertProductionDatabaseIdentity(databases, process.env.RCAT_PRODUCTION_D1_DATABASE_ID);
-  console.log("Exact production D1 name and protected database ID match.");
+  console.log("Promoted production D1 physical resource and protected database ID match.");
 
   if (argv.includes("--verify-identity-only")) {
     return;
