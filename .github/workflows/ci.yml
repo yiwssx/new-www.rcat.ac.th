@@ -135,6 +135,7 @@ jobs:
       - run: pnpm layout:check
       - run: pnpm design:check
       - run: node scripts/check-csp-enforcement-readiness.mjs
+      - run: node scripts/check-p5f-security-boundary.mjs
 
   worker:
     name: Worker

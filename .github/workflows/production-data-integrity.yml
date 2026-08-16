@@ -47,7 +47,8 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'cleanup' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_CREDENTIAL_ROLE: ${{ inputs.mode == 'cleanup' && 'D1 write' || 'D1 read' }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           test -n "$CLOUDFLARE_ACCOUNT_ID" || {
@@ -55,7 +56,7 @@ jobs:
             exit 1
           }
           test -n "$CLOUDFLARE_API_TOKEN" || {
-            echo "CLOUDFLARE_API_TOKEN is unavailable from the protected production environment." >&2
+            echo "Required $CLOUDFLARE_CREDENTIAL_ROLE credential is unavailable from the protected production environment." >&2
             exit 1
           }
           test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || {
@@ -67,7 +68,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'cleanup' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
@@ -79,7 +80,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'cleanup' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
         run: |
           pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-time-travel.json"
           node -e '
@@ -96,7 +97,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'cleanup' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
         run: |
           schema_json="$RUNNER_TEMP/production-fixture-schema.json"
           schema_stderr="$RUNNER_TEMP/production-fixture-schema.stderr"
@@ -133,7 +134,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'cleanup' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
         run: |
           audit_json="$RUNNER_TEMP/production-fixture-audit.json"
           audit_stderr="$RUNNER_TEMP/production-fixture-audit.stderr"
@@ -160,7 +161,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'cleanup' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
         run: |
           audit_json="$RUNNER_TEMP/production-home-section-fixture-audit.json"
           audit_stderr="$RUNNER_TEMP/production-home-section-fixture-audit.stderr"
@@ -285,6 +286,11 @@ jobs:
             echo "- D1 physical resource label: legacy preview name retained; protected UUID is authoritative"
             echo "- Exact physical resource + protected D1 ID: verified"
             echo "- Mode: $MODE"
+            if [[ "$MODE" == "cleanup" ]]; then
+              echo "- Credential role: privileged production token (D1 write)"
+            else
+              echo "- Credential role: dedicated D1 read token"
+            fi
             echo "- Pre-change Time Travel bookmark: verified; value not printed"
             echo "- Required pre-M17-B tables: verified"
             echo "- public_home_sections present before migration: ${PUBLIC_HOME_SECTIONS_PRESENT:-unknown}"

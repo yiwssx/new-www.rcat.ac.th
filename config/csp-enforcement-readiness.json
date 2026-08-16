@@ -12,5 +12,5 @@
     "complaint": "pending",
     "facebook-embed": "pending"
   },
-  "notes": "Report-only remains required until representative production evidence is reviewed. Mark a surface clean only from observed browser/report evidence, not from absence of retained logs."
+  "notes": "Report-only remains required. P5F production observations are recorded in config/csp-production-evidence.json; current blockers/pending browser samples must be resolved before any surface moves to clean. Mark a surface clean only from observed browser/report evidence, not from absence of retained logs."
 }
