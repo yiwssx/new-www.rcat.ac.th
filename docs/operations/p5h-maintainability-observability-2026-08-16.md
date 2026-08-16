@@ -8,7 +8,7 @@ P5H closes three production-hardening goals without changing RCAT's runtime owne
 2. preserve and regression-guard the existing end-to-end request correlation contract;
 3. validate CMS-managed links at the authenticated write boundary and audit existing production link data read-only.
 
-This phase does not rename/recreate the production Worker or D1, move data, change Vercel API URLs, change authentication policy, deploy Apps Script, create a D1 migration, or perform a production write as part of its audit.
+This phase does not rename/recreate the production Worker or D1, move data, change Vercel API URLs, change authentication policy, deploy Apps Script, create a D1 migration, or perform a production data write as part of its audit. Because P5H changes Cloudflare Worker source, closure does require the normal guarded **Worker Production Preflight** followed by **Worker Production Release** from `master` after the read-only link audit is clean.
 
 ## Worker hotspot split
 
@@ -58,12 +58,25 @@ The audit never prints link values. On failure it prints only table/record ident
 
 Production audit coverage includes active Content, Documents, Home Sections, Menu, Carousel, External Services, Media metadata, Site Settings, and Homepage Settings.
 
+## Production activation order
+
+After the PR is merged and the merge-commit CI is green:
+
+1. run **CMS Link Integrity Audit** from `master`; it must succeed using the protected read-only D1 token;
+2. run **Worker Production Preflight** from `master`; exact D1 identity, Time Travel readiness, migration listing, and read-only guards must pass;
+3. run **Worker Production Release** from `master`; with no P5H migration present, the normal release gates should report no migration to apply and then deploy the reviewed Worker source in place to the existing canonical production Worker.
+
+The release must retain the existing physical Worker/D1 names and URLs. It must not create a new Worker or D1, move data, change Vercel API URLs, or perform a Time Travel restore.
+
 ## Closure gate
 
 P5H closes only when:
 
 - CI is green with the P5H Governance regression check;
 - Worker typecheck/dry deploy and existing Admin/auth regression tests pass after hotspot extraction;
-- the production merge deploy is healthy;
+- the Vercel production merge deployment is healthy;
 - **CMS Link Integrity Audit** succeeds from `master` using the protected read-only D1 token;
-- no production write, D1 migration, restore, Worker rename, or URL cutover is needed to achieve closure.
+- **Worker Production Preflight** succeeds from `master`;
+- **Worker Production Release** deploys the reviewed P5H Worker source in place with no unexpected migration/data operation;
+- post-release read-only production smoke is healthy;
+- no D1 data write, D1 migration, restore, Worker/D1 rename/recreation, data move, or URL cutover is required for P5H closure.
