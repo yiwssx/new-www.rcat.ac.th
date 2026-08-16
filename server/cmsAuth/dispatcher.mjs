@@ -100,7 +100,9 @@ export const CMS_AUTH_ROUTE_TABLE = Object.freeze([
   })
 ]);
 
-function findRoute(requestUrl) {
+function findRoute(request) {
+  const requestUrl = request?.url;
+
   if (
     typeof requestUrl !== "string" ||
     requestUrl.length === 0 ||
@@ -114,23 +116,51 @@ function findRoute(requestUrl) {
     const parsedUrl = new URL(requestUrl, "https://cms-auth-dispatch.invalid");
     const parameters = [...parsedUrl.searchParams.entries()];
 
-    if (
-      !parsedUrl.pathname.startsWith("/") ||
-      !["http:", "https:"].includes(parsedUrl.protocol) ||
-      parameters.length !== 1
-    ) {
+    if (!parsedUrl.pathname.startsWith("/") || !["http:", "https:"].includes(parsedUrl.protocol)) {
       return null;
     }
 
-    const [[name, value]] = parameters;
+    if (parameters.length === 1) {
+      const [[name, value]] = parameters;
 
-    if (name !== ROUTE_PARAMETER || value.length === 0) {
+      if (name !== ROUTE_PARAMETER || value.length === 0) {
+        return null;
+      }
+
+      const route = CMS_AUTH_ROUTE_TABLE.find((candidate) => candidate.id === value);
+
+      if (!route || parsedUrl.search !== `?${ROUTE_PARAMETER}=${route.id}`) {
+        return null;
+      }
+
+      return route;
+    }
+
+    if (parameters.length !== 0) {
+      return null;
+    }
+
+    const requestQuery = request?.query;
+
+    if (!requestQuery || typeof requestQuery !== "object" || Array.isArray(requestQuery)) {
+      return null;
+    }
+
+    const queryEntries = Object.entries(requestQuery);
+
+    if (queryEntries.length !== 1) {
+      return null;
+    }
+
+    const [[name, value]] = queryEntries;
+
+    if (name !== ROUTE_PARAMETER || typeof value !== "string" || value.length === 0) {
       return null;
     }
 
     const route = CMS_AUTH_ROUTE_TABLE.find((candidate) => candidate.id === value);
 
-    if (!route || parsedUrl.search !== `?${ROUTE_PARAMETER}=${route.id}`) {
+    if (!route || !["/api/cms-auth", route.publicPath].includes(parsedUrl.pathname)) {
       return null;
     }
 
@@ -218,7 +248,7 @@ function canonicalizeRequestUrl(request, canonicalUrl) {
 
 export async function handleCmsAuthDispatch(request, response, options = {}) {
   ensureNodeRequestId(request, response, { createId: options.createRequestId });
-  const route = findRoute(request?.url);
+  const route = findRoute(request);
 
   if (!route) {
     sendNotFound(response);
