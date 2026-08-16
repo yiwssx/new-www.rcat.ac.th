@@ -1,6 +1,6 @@
 # Environment Variables
 
-Updated: 2026-08-13.
+Updated: 2026-08-16.
 
 This Vite app only exposes browser-readable variables whose names start with `VITE_`.
 
@@ -36,6 +36,8 @@ Configure the Cloudflare Public API origin server-side for SSR:
 
 Server-side code gives `CLOUDFLARE_PUBLIC_API_URL` precedence over the `VITE_` alias.
 
+The configured URL must be the canonical production Worker endpoint after cutover. The repository no longer defines a persistent Cloudflare Preview runtime. Vercel production values are maintained separately from the Worker/D1 repository release configuration.
+
 ## Vercel Admin Proxy Variables
 
 Configure these in Vercel environment settings.
@@ -57,7 +59,7 @@ Configure these as server-side Vercel variables for `api/sitemap.mjs`.
 | `PUBLIC_SITE_URL`           | Canonical public origin written into sitemap URLs. Falls back to `VITE_PUBLIC_SITE_URL` and then the request host.  |
 | `CLOUDFLARE_PUBLIC_API_URL` | Cloudflare Worker public API origin used to read published content. Falls back to `VITE_CLOUDFLARE_PUBLIC_API_URL`. |
 
-The runtime sitemap reads published News and Blog content and the Announcements contract, including paginated published Public page items. It combines those canonical content records with the known indexable static route set. It does not depend on `/api/public/home` or the Public menu to construct sitemap routes. These URLs are server configuration, not secrets, but private preview origins should not be committed.
+The runtime sitemap reads published News and Blog content and the Announcements contract, including paginated published Public page items. It combines those canonical content records with the known indexable static route set. It does not depend on `/api/public/home` or the Public menu to construct sitemap routes. These URLs are server configuration, not secrets, but obsolete or non-production origins should not be committed.
 
 ## Complaint Proxy Variable
 
@@ -83,6 +85,20 @@ Configure these in Cloudflare Worker environment settings.
 | `CMS_MFA_ENCRYPTION_KEY_VERSION` | Version label for the active CMS MFA encryption key.                       |
 | `DB`                             | D1 database binding containing CMS data, users, credentials, and Sessions. |
 
+The production Worker `DB` binding targets the existing data-bearing D1 whose legacy physical Cloudflare name is `rcat-public-api-preview`. That physical label does not define an environment anymore; the canonical role is production.
+
+## GitHub Production Release Secrets
+
+Cloudflare release workflows run only through the protected GitHub `Production` environment and require:
+
+| Secret                            | Purpose                                                                                                               |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`           | Cloudflare account used by Wrangler.                                                                                  |
+| `CLOUDFLARE_API_TOKEN`            | Protected Wrangler credential for the explicitly approved release workflow.                                          |
+| `RCAT_PRODUCTION_D1_DATABASE_ID`  | UUID of the promoted data-bearing D1, physically still named `rcat-public-api-preview`; authoritative release identity. |
+
+Do not set `RCAT_PRODUCTION_D1_DATABASE_ID` to the unused empty D1 that was physically named `rcat-public-api-production`. Do not commit either UUID to git.
+
 ## Apps Script Media Bridge Variables
 
 Configure these as server-side variables only.
@@ -101,10 +117,13 @@ The following are not current frontend runtime configuration and must not be res
 
 - `VITE_PUBLIC_API_PROVIDER`;
 - `VITE_GOOGLE_APPS_SCRIPT_URL`;
-- browser-selected Admin provider/migration modes for production structured data.
+- browser-selected Admin provider/migration modes for production structured data;
+- a persistent Cloudflare Preview environment selector.
 
 The current admin runtime uses the Vercel CMS Admin proxy and the role stored in Cloudflare D1. The public frontend and runtime sitemap use the Cloudflare public API. Apps Script remains server-side only for the media/file bridge through `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`.
 
 ## Current Status
 
-M20 migration/runtime/domain-cutover scope is closed. M21 owns UI/UX and logic stabilization. Environment changes must still follow the deployment boundary and secret-handling rules; closure does not authorize unrelated production mutation.
+M20 migration/runtime/domain-cutover scope is closed. Cloudflare environment convergence makes local development plus one protected production runtime the current model. Environment changes must still follow the deployment boundary and secret-handling rules; closure does not authorize unrelated production mutation.
+
+See `docs/architecture/production-environment-convergence-2026-08-16.md` for the canonical environment naming decision.
