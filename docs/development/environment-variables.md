@@ -91,11 +91,11 @@ The production Worker `DB` binding targets the existing data-bearing D1 whose le
 
 Cloudflare release workflows run only through the protected GitHub `Production` environment and require:
 
-| Secret                            | Purpose                                                                                                               |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID`           | Cloudflare account used by Wrangler.                                                                                  |
-| `CLOUDFLARE_API_TOKEN`            | Protected Wrangler credential for the explicitly approved release workflow.                                          |
-| `RCAT_PRODUCTION_D1_DATABASE_ID`  | UUID of the promoted data-bearing D1, physically still named `rcat-public-api-preview`; authoritative release identity. |
+| Secret                           | Purpose                                                                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`          | Cloudflare account used by Wrangler.                                                                                    |
+| `CLOUDFLARE_API_TOKEN`           | Protected Wrangler credential for the explicitly approved release workflow.                                             |
+| `RCAT_PRODUCTION_D1_DATABASE_ID` | UUID of the promoted data-bearing D1, physically still named `rcat-public-api-preview`; authoritative release identity. |
 
 Do not set `RCAT_PRODUCTION_D1_DATABASE_ID` to the unused empty D1 that was physically named `rcat-public-api-production`. Do not commit either UUID to git.
 
