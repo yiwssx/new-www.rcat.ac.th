@@ -12,6 +12,8 @@ jobs:
     if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     environment: production
+    env:
+      PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
 
     steps:
       - uses: actions/checkout@v7
@@ -77,7 +79,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          pnpm wrangler d1 time-travel info rcat-public-api-production --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+          pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-time-travel.json"
           node -e '
             const fs = require("fs");
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-time-travel.json", "utf8"));
@@ -105,8 +107,9 @@ jobs:
           {
             echo "## Worker Production Preflight"
             echo
-            echo "- Target: rcat-public-api-production"
-            echo "- Exact database name + protected D1 ID: verified"
+            echo "- Canonical role: production"
+            echo "- D1 physical resource label: legacy preview name retained; protected UUID is authoritative"
+            echo "- Exact physical resource + protected D1 ID: verified"
             echo "- Migration filenames: repository sequence guard passed"
             echo "- Time Travel readiness: current bookmark verified; value not printed"
             echo "- Migration operation: list unapplied only"
