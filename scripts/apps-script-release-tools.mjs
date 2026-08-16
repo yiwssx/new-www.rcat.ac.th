@@ -21,14 +21,10 @@ function escapeRegex(value) {
 
 function deploymentLine(deploymentsText, deploymentId) {
   const matcher = new RegExp(`(^|\\s)${escapeRegex(deploymentId)}(?=\\s|@|$)`);
-  const matches = deploymentsText
-    .split(/\r?\n/)
-    .filter((line) => matcher.test(line));
+  const matches = deploymentsText.split(/\r?\n/).filter((line) => matcher.test(line));
 
   if (matches.length !== 1) {
-    throw new Error(
-      `Expected exactly one target deployment entry, found ${matches.length}.`,
-    );
+    throw new Error(`Expected exactly one target deployment entry, found ${matches.length}.`);
   }
 
   return matches[0];
@@ -73,9 +69,7 @@ function printCreatedVersion() {
   const file = readOption("--file");
   const matches = [...readText(file).matchAll(/Created version ([0-9]+)\./g)];
   if (matches.length !== 1) {
-    throw new Error(
-      `Expected exactly one created Apps Script version, found ${matches.length}.`,
-    );
+    throw new Error(`Expected exactly one created Apps Script version, found ${matches.length}.`);
   }
   process.stdout.write(matches[0][1]);
 }
@@ -84,15 +78,10 @@ function assertDeploymentVersion() {
   const deploymentsFile = readOption("--deployments");
   const deploymentId = readOption("--deployment-id");
   const expectedVersion = readOption("--version");
-  const actualVersion = deploymentVersion(
-    readText(deploymentsFile),
-    deploymentId,
-  );
+  const actualVersion = deploymentVersion(readText(deploymentsFile), deploymentId);
 
   if (actualVersion !== expectedVersion) {
-    throw new Error(
-      `Target deployment version mismatch: expected ${expectedVersion}, got ${actualVersion}.`,
-    );
+    throw new Error(`Target deployment version mismatch: expected ${expectedVersion}, got ${actualVersion}.`);
   }
   console.log(`Target deployment now references immutable version ${expectedVersion}.`);
 }
@@ -119,11 +108,9 @@ function verifyHealth() {
     "media-delete",
     "media-upload-start",
     "media-upload-chunk",
-    "media-upload-status",
+    "media-upload-status"
   ];
-  const actualResources = Array.isArray(payload?.resources)
-    ? [...payload.resources].sort()
-    : [];
+  const actualResources = Array.isArray(payload?.resources) ? [...payload.resources].sort() : [];
 
   if (payload?.ok !== true || payload?.scope !== "media-file-bridge") {
     throw new Error("Apps Script production health response has the wrong scope.");

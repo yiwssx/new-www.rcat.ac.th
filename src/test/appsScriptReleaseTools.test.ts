@@ -17,7 +17,7 @@ function tempFile(name: string, content: string) {
 
 function run(...args: string[]) {
   return execFileSync(process.execPath, [tool, ...args], {
-    encoding: "utf8",
+    encoding: "utf8"
   }).trim();
 }
 
@@ -31,38 +31,22 @@ describe("Apps Script production release tools", () => {
   it("resolves exactly one existing deployment version", () => {
     const deployments = tempFile(
       "deployments.txt",
-      [
-        "2 Deployments.",
-        "- head-deployment-id @HEAD",
-        "- production-deployment-id-123456 @42 - production",
-      ].join("\n"),
+      ["2 Deployments.", "- head-deployment-id @HEAD", "- production-deployment-id-123456 @42 - production"].join("\n")
     );
 
     expect(
-      run(
-        "current-version",
-        "--deployments",
-        deployments,
-        "--deployment-id",
-        "production-deployment-id-123456",
-      ),
+      run("current-version", "--deployments", deployments, "--deployment-id", "production-deployment-id-123456")
     ).toBe("42");
   });
 
   it("parses the immutable version created by clasp", () => {
-    const output = tempFile(
-      "created-version.txt",
-      "Creating a new version...\nCreated version 43.\n",
-    );
+    const output = tempFile("created-version.txt", "Creating a new version...\nCreated version 43.\n");
 
     expect(run("created-version", "--file", output)).toBe("43");
   });
 
   it("rejects deployment drift after release", () => {
-    const deployments = tempFile(
-      "deployments.txt",
-      "- production-deployment-id-123456 @42 - production\n",
-    );
+    const deployments = tempFile("deployments.txt", "- production-deployment-id-123456 @42 - production\n");
 
     expect(() =>
       run(
@@ -72,8 +56,8 @@ describe("Apps Script production release tools", () => {
         "--deployment-id",
         "production-deployment-id-123456",
         "--version",
-        "43",
-      ),
+        "43"
+      )
     ).toThrow();
   });
 
@@ -83,35 +67,18 @@ describe("Apps Script production release tools", () => {
       JSON.stringify({
         ok: true,
         scope: "media-file-bridge",
-        resources: [
-          "media-upload-status",
-          "media",
-          "media-delete",
-          "media-upload-chunk",
-          "media-upload-start",
-        ],
-      }),
+        resources: ["media-upload-status", "media", "media-delete", "media-upload-chunk", "media-upload-start"]
+      })
     );
 
-    expect(run("verify-health", "--file", health)).toContain(
-      "health contract verified",
-    );
+    expect(run("verify-health", "--file", health)).toContain("health contract verified");
   });
 
   it("rejects a production project config with the example placeholder", () => {
-    const project = tempFile(
-      ".clasp.json",
-      JSON.stringify({ scriptId: "PUT_YOUR_SCRIPT_ID_HERE", rootDir: "." }),
-    );
+    const project = tempFile(".clasp.json", JSON.stringify({ scriptId: "PUT_YOUR_SCRIPT_ID_HERE", rootDir: "." }));
 
     expect(() =>
-      run(
-        "validate-config",
-        "--project",
-        project,
-        "--deployment-id",
-        "production-deployment-id-123456",
-      ),
+      run("validate-config", "--project", project, "--deployment-id", "production-deployment-id-123456")
     ).toThrow();
   });
 });

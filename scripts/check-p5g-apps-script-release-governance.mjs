@@ -17,7 +17,7 @@ const checklist = read("docs/deployment/apps-script-deployment-checklist.md");
 for (const [name, source] of [
   ["preflight", preflight],
   ["release", release],
-  ["rollback", rollback],
+  ["rollback", rollback]
 ]) {
   if (!source.includes("github.ref == 'refs/heads/master'")) {
     fail(`${name} workflow must run only from master`);
@@ -25,11 +25,7 @@ for (const [name, source] of [
   if (!source.includes("environment: production")) {
     fail(`${name} workflow must use the protected production Environment`);
   }
-  for (const secret of [
-    "secrets.CLASPRC_JSON",
-    "secrets.CLASP_JSON",
-    "secrets.APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID",
-  ]) {
+  for (const secret of ["secrets.CLASPRC_JSON", "secrets.CLASP_JSON", "secrets.APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID"]) {
     if (!source.includes(secret)) {
       fail(`${name} workflow must require ${secret}`);
     }
@@ -78,9 +74,7 @@ if (preflight.includes("create-deployment") || preflight.includes("update-deploy
   fail("production preflight must not change a deployment");
 }
 
-const gasScripts = Object.entries(packageJson.scripts || {}).filter(([name]) =>
-  name.startsWith("gas:"),
-);
+const gasScripts = Object.entries(packageJson.scripts || {}).filter(([name]) => name.startsWith("gas:"));
 for (const [name, command] of gasScripts) {
   if (String(command).includes("push --force")) {
     fail(`${name} must not expose a local force-push production path`);
@@ -109,5 +103,5 @@ for (const document of [readme, checklist]) {
 }
 
 console.log(
-  "P5G Apps Script release governance: master/protected-Environment release, in-place deployment update, rollback, health smoke, and local-production-path guards verified.",
+  "P5G Apps Script release governance: master/protected-Environment release, in-place deployment update, rollback, health smoke, and local-production-path guards verified."
 );
