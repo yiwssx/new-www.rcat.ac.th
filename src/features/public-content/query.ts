@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import {
   getPublicQueryRequestOptions,
+  PUBLIC_CACHE_FRESHNESS_MS,
   PUBLIC_QUERY_GC_TIME_MS,
   type PublicQueryRuntimeOptions
 } from "../public-read/queryPolicy";
@@ -12,13 +13,6 @@ import {
   isPublicContentNotFoundError,
   type PublicContentListPageInput
 } from "./api";
-import {
-  PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS,
-  PUBLIC_CONTENT_LIST_CACHE_TTL_MS,
-  removePublicContentDetailCache,
-  setPublicContentDetailCache,
-  setPublicContentListCache
-} from "./cache";
 import type { PublicContentListKind } from "./types";
 
 function normalizePageInput(pageInput: PublicContentListPageInput) {
@@ -56,22 +50,14 @@ export function publicContentListQueryOptions(
     queryKey: publicContentListQueryKey(kind, pageItemsInput, pageInput),
     queryFn: async (context) => {
       const requestOptions = getPublicQueryRequestOptions(context, runtimeOptions);
-      const snapshot = pageInput
-        ? await getPublicContentListPageSnapshot(kind, pageInput, requestOptions)
+
+      return pageInput
+        ? getPublicContentListPageSnapshot(kind, pageInput, requestOptions)
         : kind === "announcements" && pageItemsInput
-          ? await getPublicAnnouncementsContentListSnapshot(pageItemsInput, requestOptions)
-          : await getPublicContentListSnapshot(kind, requestOptions);
-
-      if (
-        !pageInput &&
-        (kind !== "announcements" || !pageItemsInput || normalizePageInput(pageItemsInput).page === 1)
-      ) {
-        setPublicContentListCache(kind, snapshot);
-      }
-
-      return snapshot;
+          ? getPublicAnnouncementsContentListSnapshot(pageItemsInput, requestOptions)
+          : getPublicContentListSnapshot(kind, requestOptions);
     },
-    staleTime: PUBLIC_CONTENT_LIST_CACHE_TTL_MS,
+    staleTime: PUBLIC_CACHE_FRESHNESS_MS.collection,
     gcTime: PUBLIC_QUERY_GC_TIME_MS,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true
@@ -94,15 +80,12 @@ export function publicContentDetailQueryOptions(
       }
 
       try {
-        const snapshot = await getPublicContentDetailSnapshot(
+        return await getPublicContentDetailSnapshot(
           { slug },
           getPublicQueryRequestOptions(context, runtimeOptions)
         );
-        setPublicContentDetailCache(slug, snapshot);
-        return snapshot;
       } catch (error) {
         if (isPublicContentNotFoundError(error)) {
-          removePublicContentDetailCache(slug);
           return null;
         }
 
@@ -110,7 +93,7 @@ export function publicContentDetailQueryOptions(
       }
     },
     enabled: Boolean(slug),
-    staleTime: PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS,
+    staleTime: PUBLIC_CACHE_FRESHNESS_MS.detail,
     gcTime: PUBLIC_QUERY_GC_TIME_MS,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true
