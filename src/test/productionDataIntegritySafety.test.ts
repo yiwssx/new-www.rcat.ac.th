@@ -56,10 +56,9 @@ describe("P5A production data-integrity safety", () => {
     }
   });
 
-  it("allows cleanup only through exact predicates and only queries optional tables when present", () => {
+  it("allows cleanup only through exact predicates and D1-compatible import SQL", () => {
     for (const sql of [cleanupSql, homeCleanupSql]) {
-      expect(sql).toContain("BEGIN TRANSACTION;");
-      expect(sql).toContain("COMMIT;");
+      expect(sql).not.toMatch(/\b(?:begin\s+transaction|commit|savepoint)\b/i);
       expect(sql).not.toMatch(/\bdelete\s+from\s+\w+\s*;/i);
       expect(sql).not.toMatch(/\b(?:like|glob)\b/i);
       expect(sql).not.toMatch(/delete\s+from\s+(?:site_settings|homepage_settings|menu_items|media_assets)\b/i);
