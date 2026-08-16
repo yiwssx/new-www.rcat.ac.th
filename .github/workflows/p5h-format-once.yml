@@ -1,0 +1,41 @@
+name: P5H Format Once
+
+on:
+  push:
+    branches:
+      - agent/p5h-maintainability-observability
+    paths:
+      - .github/workflows/p5h-format-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/p5h-maintainability-observability
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm exec prettier scripts/audit-production-cms-links.mjs scripts/check-p5h-maintainability-observability.mjs --write
+      - name: Commit exact Prettier output
+        shell: bash
+        run: |
+          if git diff --quiet -- scripts/audit-production-cms-links.mjs scripts/check-p5h-maintainability-observability.mjs; then
+            echo "Already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/audit-production-cms-links.mjs scripts/check-p5h-maintainability-observability.mjs
+          git commit -m "style(p5h): apply exact Prettier output"
+          git push origin HEAD:agent/p5h-maintainability-observability
