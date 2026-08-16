@@ -1,6 +1,6 @@
 import type { PublicReadRequestOptions } from "./request";
 
-export const PUBLIC_QUERY_GC_TIME_MS = 60 * 60 * 1000;
+export { PUBLIC_CACHE_FRESHNESS_MS, PUBLIC_QUERY_GC_TIME_MS } from "../../config/publicCachePolicy";
 
 export interface PublicQueryRuntimeOptions {
   consumeAbortSignal?: boolean;
