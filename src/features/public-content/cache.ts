@@ -1,4 +1,5 @@
 import type { PublicContentListKind, PublicContentListSnapshot } from "./types";
+import { PUBLIC_CACHE_FRESHNESS_MS } from "../../config/publicCachePolicy";
 import {
   PUBLIC_CONTENT_DETAIL_CACHE_PREFIX,
   PUBLIC_CONTENT_DETAIL_CACHE_TTL_MS,
@@ -18,7 +19,7 @@ export {
   setPublicContentDetailCache
 };
 
-export const PUBLIC_CONTENT_LIST_CACHE_TTL_MS = 15 * 60 * 1000;
+export const PUBLIC_CONTENT_LIST_CACHE_TTL_MS = PUBLIC_CACHE_FRESHNESS_MS.collection;
 
 const publicContentListCachePrefix = "rcat.cms.public.content-list.v2.";
 const publicContentListKinds: PublicContentListKind[] = ["news", "announcements", "blog"];
