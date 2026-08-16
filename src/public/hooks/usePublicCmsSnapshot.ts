@@ -1,9 +1,6 @@
-import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CmsSnapshot, PublicContentDetailSnapshot } from "../../types";
 import { getPublicCmsSnapshotForProvider, publicCmsSnapshotQueryOptions } from "../../features/public-read/cmsSnapshot";
-import { isPublicQueryCacheFresh } from "../../features/public-read/queryPolicy";
-import { getPublicSnapshotCache, PUBLIC_SNAPSHOT_CACHE_TTL_MS } from "../../services/publicCmsCache";
 
 interface UsePublicCmsSnapshotOptions {
   enabled?: boolean;
@@ -33,19 +30,16 @@ function mergeContentDetailMedia(
 
 export { getPublicCmsSnapshotForProvider };
 
+/**
+ * Legacy compatibility hook. Production components should prefer
+ * usePublicShellSnapshot plus feature-specific queries.
+ */
 export function usePublicCmsSnapshot(options: UsePublicCmsSnapshotOptions = {}) {
   const enabled = options.enabled ?? true;
   const queryClient = useQueryClient();
-  const cachedSnapshot = useMemo(() => getPublicSnapshotCache(), []);
-  const hasFreshCache = cachedSnapshot
-    ? isPublicQueryCacheFresh(cachedSnapshot.savedAt, PUBLIC_SNAPSHOT_CACHE_TTL_MS)
-    : false;
   const query = useQuery({
     ...publicCmsSnapshotQueryOptions({ consumeAbortSignal: false }),
-    initialData: cachedSnapshot?.data,
-    initialDataUpdatedAt: cachedSnapshot?.savedAt,
-    enabled,
-    refetchOnMount: enabled && (cachedSnapshot ? !hasFreshCache : true)
+    enabled
   });
   const detailSnapshots = queryClient
     .getQueriesData<PublicContentDetailSnapshot | null>({ queryKey: ["content-detail"] })
