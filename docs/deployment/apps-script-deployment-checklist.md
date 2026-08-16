@@ -1,67 +1,136 @@
 # Apps Script Media Bridge Deployment Checklist
 
+Updated: 2026-08-16.
+
 Use this checklist only when a release changes `apps-script/`, Apps Script manifest/scopes, Google Drive media/file operations, or the Apps Script side of the Vercel media/file bridge.
 
-Current status: M20 migration/runtime/domain-cutover scope is closed; M21 stabilization is open. This checklist applies only when Apps Script media/file bridge source changes.
-
-Apps Script is not the current structured public/admin data backend and is not the current user-management backend.
+Apps Script is not the current structured public/admin data backend and is not the current user-management backend. Cloudflare Worker + D1 remain the source of truth for structured CMS data and identity/session state.
 
 ## Current Scope
 
-Apps Script is retained for:
+The active Apps Script Web App exposes a read-only `GET` health/scope response and these authenticated `POST` resources:
 
-- media upload/update operations
-- media delete operations
-- Google Drive file access
-- file upload/delete workflows behind the Vercel proxy
+- `media`
+- `media-delete`
+- `media-upload-start`
+- `media-upload-chunk`
+- `media-upload-status`
 
-The active Apps Script source is pruned to:
+The Vercel media bridge remains the browser-facing boundary. Structured public/admin routes such as `snapshot`, `public-home`, `content`, `users`, `menu`, `site-settings`, `homepage-settings`, `visitor-stats`, and `publish` must remain unavailable from Apps Script.
 
-- `POST ?resource=media`
-- `POST ?resource=media-delete`
+## Canonical Production Release Path
 
-Structured public/admin data routes were removed from Apps Script source. Cloudflare Worker and D1 remain the source of truth for public structured reads, admin structured reads/writes, user profiles, settings, menu, content, documents, carousel, E-Service, calendar, analytics, and visitor stats.
+Production Apps Script release is GitHub Actions only. Do not use a local `clasp push --force`, local version creation, or an ad-hoc deployment as the production release mechanism.
 
-Apps Script must not be restored as:
+The protected GitHub Environment `production` must contain:
 
-- frontend credential login backend
-- direct frontend user-management backend
-- local bootstrap user fallback
-- password-hash user-account fallback
+- `CLASPRC_JSON`: OAuth credential JSON from an authorized `clasp login` session;
+- `CLASP_JSON`: production `.clasp.json` containing the intended `scriptId` and `rootDir: "."`;
+- `APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID`: the existing production Web App deployment ID.
 
-## Deployment Overview
+Never commit those values. The production workflows pin `@google/clasp@3.3.0`.
 
-- Vercel frontend deployment and Apps Script deployment are separate release steps.
-- A Vercel deploy does not push, version, or redeploy Apps Script source.
-- Changes under `apps-script/` must be pushed to Google Apps Script, saved as a new version, and assigned to the intended Web App deployment.
-- The Apps Script manifest currently needs only the Google Drive scope for the active media/file bridge.
-- The current production frontend should not depend on `VITE_GOOGLE_APPS_SCRIPT_URL` for admin auth or user management.
-- The server-side media bridge should use server-only Apps Script bridge configuration, such as `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`.
-- `VITE_GOOGLE_APPS_SCRIPT_URL` must not be used as server runtime configuration.
-- Prefer updating the existing Web App deployment. Creating a new Web App deployment usually changes the URL and requires a coordinated server-side environment update.
+The approved workflows are:
 
-## Pre-Deploy Checklist
+- **Apps Script Production Preflight** — read-only target/health verification;
+- **Apps Script Production Release** — reviewed source push, immutable version creation, and in-place update of the existing production deployment;
+- **Apps Script Production Rollback** — repoint the same existing deployment to a known immutable version without a source push.
 
-- Confirm the current branch:
+## Before Release
 
-  ```powershell
-  git branch --show-current
-  ```
+Confirm the change is merged to `master`. The production workflows fail closed on any other branch.
 
-- Confirm no structured Apps Script routes remain in active source:
+Run normal CI and specifically confirm the media bridge contract tests pass:
 
-  ```powershell
-  rg "auth-login|snapshot|public-home|public-content-list|public-document-list|public-program-list|public-search-index|content-delete|document-delete|carousel-delete|external-service-delete|event-delete|publish|visitor-stats|users-delete|users-reset|site-settings|homepage-settings" apps-script
-  ```
+```powershell
+pnpm vitest run src/test/appsScriptCode.test.ts server/appsScriptProxy/handler.test.mjs
+```
 
-- Confirm the Vercel proxy still maps only media resources:
+Confirm no structured Apps Script routes have been restored:
 
-  ```powershell
-  rg "APPS_SCRIPT_RESOURCES|media-delete|deleteMedia" server/appsScriptProxy
-  ```
+```powershell
+rg "auth-login|snapshot|public-home|public-content-list|public-document-list|public-program-list|public-search-index|content-delete|document-delete|carousel-delete|external-service-delete|event-delete|publish|visitor-stats|users-delete|users-reset|site-settings|homepage-settings" apps-script
+```
 
-- Run the media bridge contract tests before deploying Apps Script:
+Confirm the Vercel proxy continues to expose only the intended media/file bridge operations and no browser path receives `APPS_SCRIPT_BRIDGE_TOKEN`.
 
-  ```powershell
-  pnpm vitest run src/test/appsScriptCode.test.ts server/appsScriptProxy/handler.test.mjs
-  ```
+Run **Apps Script Production Preflight** from `master` and approve the protected `production` Environment. It must succeed before the first production release after credential rotation or workflow changes.
+
+Preflight must prove:
+
+- `CLASPRC_JSON`, `CLASP_JSON`, and `APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID` are available from the protected Environment;
+- the project/deployment configuration parses without placeholders;
+- the configured deployment ID exists in the configured Apps Script project;
+- that deployment references an immutable version;
+- the unchanged production Web App URL returns `{ ok: true, scope: "media-file-bridge" }` with the exact five active resources;
+- no source push, version creation, deployment update, or deployment deletion occurs.
+
+## Production Release
+
+Run **Apps Script Production Release** from `master` only when Apps Script source or manifest behavior must change.
+
+Enter the exact confirmation phrase:
+
+```text
+DEPLOY_EXISTING_APPS_SCRIPT_WEB_APP
+```
+
+An optional release note may be supplied. The workflow records the GitHub SHA in the immutable Apps Script version description.
+
+The workflow sequence is intentionally fixed:
+
+1. verify media bridge contract tests;
+2. materialize protected clasp credentials only on the ephemeral runner;
+3. verify the exact existing production deployment and capture its current version;
+4. `clasp push --force` the reviewed repository source to Apps Script HEAD inside the protected CI boundary;
+5. create one new immutable Apps Script version;
+6. update only `APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID` to that exact version;
+7. re-list deployments and verify the same deployment ID references the new version;
+8. read the existing production Web App health endpoint and verify the media/file bridge contract;
+9. remove temporary clasp credential files from the runner.
+
+The release must not create a new deployment or change the Web App URL. Creating a new Web App deployment can produce a new URL and would require coordinated Vercel server-side configuration; that is outside normal P5G release scope.
+
+If source push succeeds but later version/deployment update fails, the prior immutable deployment remains the user-facing production release. Do not create a replacement deployment. Fix the blocker and rerun the guarded workflow from `master`.
+
+## Post-Release Evidence
+
+Record the successful GitHub Actions run URL. The workflow summary must show:
+
+- `master` commit SHA;
+- previous immutable Apps Script version;
+- released immutable Apps Script version;
+- existing deployment updated in place;
+- Web App URL unchanged;
+- production health smoke passed.
+
+Do not copy OAuth tokens, script IDs, deployment IDs, bridge tokens, or private Drive identifiers into tickets or docs.
+
+## Rollback
+
+Use **Apps Script Production Rollback** when a newly deployed immutable Apps Script version is proven faulty and rollback is preferable to a forward fix.
+
+Use the previous immutable version recorded by the release summary and enter the exact confirmation phrase:
+
+```text
+ROLLBACK_EXISTING_APPS_SCRIPT_WEB_APP
+```
+
+Rollback:
+
+1. verifies the requested immutable version exists;
+2. verifies it differs from the currently deployed version;
+3. updates the same `APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID` to the requested version;
+4. does not run `clasp push`;
+5. does not create a new Apps Script version;
+6. does not create or delete a deployment;
+7. verifies the deployment version after the update;
+8. performs the read-only production health smoke.
+
+A rollback changes only which immutable Apps Script version the existing Web App deployment references. Repository `master` remains unchanged; follow with a corrective PR before the next production release.
+
+## Local Development
+
+`pnpm gas:push:local` is development-only and intentionally does not use `--force`. It operates against the developer's local, gitignored `apps-script/.clasp.json`.
+
+Local commands are not the production release audit trail. Production source push, immutable version creation, deployment update, and rollback belong to the protected GitHub Actions workflows above.

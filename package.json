@@ -45,10 +45,8 @@
     "test:functional:install": "playwright install chromium",
     "test:functional": "playwright test",
     "test:all": "pnpm test:unit && pnpm test:integration && pnpm test:functional",
-    "gas:login": "pnpm dlx @google/clasp login",
-    "gas:push": "cd apps-script && pnpm dlx @google/clasp push --force",
-    "gas:version": "cd apps-script && pnpm dlx @google/clasp version \"release latest\"",
-    "gas:deployments": "cd apps-script && pnpm dlx @google/clasp deployments",
+    "gas:login": "pnpm dlx @google/clasp@3.3.0 login",
+    "gas:deployments": "cd apps-script && pnpm dlx @google/clasp@3.3.0 list-deployments",
     "lint:frontend": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:server": "eslint \"scripts/**/*.{js,mjs}\" \"api/**/*.{js,mjs}\" \"server/**/*.{js,mjs}\" \"*.config.{js,mjs,ts}\"",
     "lint:worker": "eslint \"cloudflare/public-api/src/**/*.ts\" \"cloudflare/public-api/test/**/*.ts\" \"cloudflare/public-api/scripts/**/*.{js,mjs}\"",
@@ -81,7 +79,8 @@
     "warning:baseline": "pnpm format:check && pnpm lint:report && pnpm test:unit && pnpm test:integration && pnpm build && pnpm worker:typecheck",
     "lint-staged": "lint-staged --relative --max-arg-length 6000 --concurrent false",
     "commitlint": "commitlint --edit",
-    "test:sitemap": "vitest run src/test/sitemap.test.mjs"
+    "test:sitemap": "vitest run src/test/sitemap.test.mjs",
+    "gas:push:local": "cd apps-script && pnpm dlx @google/clasp@3.3.0 push"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
