@@ -27,7 +27,8 @@ describe("P5A production data-integrity safety", () => {
   it("uses the D1 query path for read-only audits instead of the import path", () => {
     for (const workflow of [integrityWorkflow, workerProductionWorkflow]) {
       expect(workflow).toContain(`audit_sql="$(cat ${auditFilePath})"`);
-      expect(workflow).toContain('--command "$audit_sql"');
+      expect(workflow).toContain('--command="$audit_sql"');
+      expect(workflow).not.toContain('--command "$audit_sql"');
       expect(workflow).not.toContain(`--file ${auditFilePath}`);
     }
   });
