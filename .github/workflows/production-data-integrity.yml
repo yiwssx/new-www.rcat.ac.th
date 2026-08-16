@@ -102,7 +102,7 @@ jobs:
           set +e
           pnpm wrangler d1 execute rcat-public-api-production \
             --remote \
-            --command "$audit_sql" \
+            --command="$audit_sql" \
             --json > "$audit_json" 2> "$audit_stderr"
           audit_status=$?
           set -e
@@ -151,7 +151,7 @@ jobs:
           set +e
           pnpm wrangler d1 execute rcat-public-api-production \
             --remote \
-            --command "$audit_sql" \
+            --command="$audit_sql" \
             --json > "$audit_json" 2> "$audit_stderr"
           audit_status=$?
           set -e
