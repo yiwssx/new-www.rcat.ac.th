@@ -19,6 +19,7 @@ import {
 import { createCmsCorrelatedFetch } from "./upstreamFetch.mjs";
 
 const ROUTE_PARAMETER = "_rcatCmsRoute";
+const INTERNAL_DISPATCH_PATH = "/api/cms-auth";
 
 export function handleRetiredLegacyAuthentication(request, response) {
   if (String(request.method || "GET").toUpperCase() !== "POST") {
@@ -100,6 +101,40 @@ export const CMS_AUTH_ROUTE_TABLE = Object.freeze([
   })
 ]);
 
+function readRequestQueryEntries(request) {
+  const query = request?.query;
+
+  if (query === undefined) {
+    return [];
+  }
+
+  if (!query || typeof query !== "object" || Array.isArray(query)) {
+    return null;
+  }
+
+  return Object.entries(query);
+}
+
+function findRouteByMarker(entries, pathname) {
+  if (!Array.isArray(entries) || entries.length !== 1) {
+    return null;
+  }
+
+  const [[name, value]] = entries;
+
+  if (name !== ROUTE_PARAMETER || typeof value !== "string" || value.length === 0) {
+    return null;
+  }
+
+  const route = CMS_AUTH_ROUTE_TABLE.find((candidate) => candidate.id === value);
+
+  if (!route || ![INTERNAL_DISPATCH_PATH, route.publicPath].includes(pathname)) {
+    return null;
+  }
+
+  return route;
+}
+
 function findRoute(request) {
   const requestUrl = request?.url;
 
@@ -114,20 +149,14 @@ function findRoute(request) {
 
   try {
     const parsedUrl = new URL(requestUrl, "https://cms-auth-dispatch.invalid");
-    const parameters = [...parsedUrl.searchParams.entries()];
+    const urlEntries = [...parsedUrl.searchParams.entries()];
 
     if (!parsedUrl.pathname.startsWith("/") || !["http:", "https:"].includes(parsedUrl.protocol)) {
       return null;
     }
 
-    if (parameters.length === 1) {
-      const [[name, value]] = parameters;
-
-      if (name !== ROUTE_PARAMETER || value.length === 0) {
-        return null;
-      }
-
-      const route = CMS_AUTH_ROUTE_TABLE.find((candidate) => candidate.id === value);
+    if (urlEntries.length > 0) {
+      const route = findRouteByMarker(urlEntries, parsedUrl.pathname);
 
       if (!route || parsedUrl.search !== `?${ROUTE_PARAMETER}=${route.id}`) {
         return null;
@@ -136,35 +165,27 @@ function findRoute(request) {
       return route;
     }
 
-    if (parameters.length !== 0) {
+    const requestQueryEntries = readRequestQueryEntries(request);
+    const publicRoute = CMS_AUTH_ROUTE_TABLE.find((candidate) => candidate.publicPath === parsedUrl.pathname);
+
+    if (publicRoute) {
+      if (requestQueryEntries === null || requestQueryEntries.length > 1) {
+        return null;
+      }
+
+      if (requestQueryEntries.length === 1) {
+        const markerRoute = findRouteByMarker(requestQueryEntries, parsedUrl.pathname);
+        return markerRoute?.id === publicRoute.id ? publicRoute : null;
+      }
+
+      return publicRoute;
+    }
+
+    if (parsedUrl.pathname !== INTERNAL_DISPATCH_PATH) {
       return null;
     }
 
-    const requestQuery = request?.query;
-
-    if (!requestQuery || typeof requestQuery !== "object" || Array.isArray(requestQuery)) {
-      return null;
-    }
-
-    const queryEntries = Object.entries(requestQuery);
-
-    if (queryEntries.length !== 1) {
-      return null;
-    }
-
-    const [[name, value]] = queryEntries;
-
-    if (name !== ROUTE_PARAMETER || typeof value !== "string" || value.length === 0) {
-      return null;
-    }
-
-    const route = CMS_AUTH_ROUTE_TABLE.find((candidate) => candidate.id === value);
-
-    if (!route || !["/api/cms-auth", route.publicPath].includes(parsedUrl.pathname)) {
-      return null;
-    }
-
-    return route;
+    return findRouteByMarker(requestQueryEntries, parsedUrl.pathname);
   } catch {
     return null;
   }
