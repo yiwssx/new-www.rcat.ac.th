@@ -10,6 +10,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    env:
+      PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
 
     steps:
       - name: Require master
@@ -74,7 +76,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          pnpm wrangler d1 time-travel info rcat-public-api-production --json > "$RUNNER_TEMP/d1-production-pre-release-time-travel.json"
+          pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-pre-release-time-travel.json"
           node -e '
             const fs = require("fs");
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-pre-release-time-travel.json", "utf8"));
@@ -106,7 +108,7 @@ jobs:
           schema_stderr="$RUNNER_TEMP/production-fixture-schema.stderr"
           schema_sql="SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('documents','contents','visitor_daily_stats','public_home_sections') ORDER BY name;"
           set +e
-          pnpm wrangler d1 execute rcat-public-api-production \
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
             --command="$schema_sql" \
             --json > "$schema_json" 2> "$schema_stderr"
@@ -143,7 +145,7 @@ jobs:
           audit_stderr="$RUNNER_TEMP/production-fixture-audit.stderr"
           audit_sql="$(cat cloudflare/public-api/sql/production-fixture-audit.sql)"
           set +e
-          pnpm wrangler d1 execute rcat-public-api-production \
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
             --command="$audit_sql" \
             --json > "$audit_json" 2> "$audit_stderr"
@@ -172,7 +174,7 @@ jobs:
           audit_stderr="$RUNNER_TEMP/production-home-section-fixture-audit.stderr"
           audit_sql="$(cat cloudflare/public-api/sql/production-home-section-fixture-audit.sql)"
           set +e
-          pnpm wrangler d1 execute rcat-public-api-production \
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
             --command="$audit_sql" \
             --json > "$audit_json" 2> "$audit_stderr"
