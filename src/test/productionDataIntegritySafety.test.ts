@@ -19,6 +19,8 @@ describe("P5A production data-integrity safety", () => {
   it("keeps the production audit read-only and scoped to exact fixture identities", () => {
     expect(auditSql).toMatch(/^-- P5A production data-integrity sentinel/m);
     expect(auditSql).not.toMatch(/\b(?:delete|update|insert|replace|drop|alter|create)\b/i);
+    expect(auditSql).not.toMatch(/\bunion\b/i);
+    expect(auditSql).toContain("json_each('[0,1,2,3,4,5]')");
     exactFixtureIds.forEach((id) => expect(auditSql).toContain(id));
     expect(auditSql).toContain("2026-06-13");
     expect(auditSql).toContain("2026-01-01");
