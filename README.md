@@ -2,9 +2,19 @@
 
 React/Vite public website and CMS for Roi-Et College of Agriculture and Technology.
 
-Updated: 2026-08-13.
+Updated: 2026-08-17.
 
-This README describes the current runtime and development conventions after the CMS Session reliability work, Admin Menu hierarchy/URL refactor, Public SSR cutover, and Cloudflare-only Public runtime cleanup.
+This README describes the current runtime, development conventions, and project-state interpretation after the CMS Session reliability work, Admin Menu hierarchy/URL refactor, Public SSR cutover, Cloudflare-only Public runtime cleanup, and P5H production-governance hardening.
+
+## Current Project State
+
+Current status: post-P5H production governance baseline with ongoing governed dependency maintenance.
+
+P5H closed the current production-hardening sequence covering Worker maintainability, CMS link integrity, request correlation governance, Apps Script release governance, D1 credential-boundary hardening, and production audit/release evidence.
+
+Governed Renovate dependency maintenance is expected to continue after P5H. It is not considered feature, runtime, or stabilization-scope expansion when it follows the repository dependency policy and passes the required CI/governance gates.
+
+Historical M13-M21 milestone documents remain useful as migration and stabilization history, but they do not define the current active project state after P5H. When historical milestone text conflicts with the current runtime, deployment, security, governance, toolchain, or maintenance documentation, the current documents listed below take precedence.
 
 ## Current Runtime Ownership
 
@@ -22,14 +32,6 @@ Public structured data has no runtime provider selector. Cloudflare Worker + D1 
 The authoritative current ownership document is:
 
 `docs/architecture/current-runtime-ownership.md`
-
-Historical M13-M20 migration documents remain useful as historical evidence, but they must not override the current runtime ownership, CMS Session, Node/pnpm, or deployment documentation.
-
-## Current Stabilization Scope
-
-M20 migration/runtime/domain-cutover scope is closed.
-
-M21 owns continuing UI/UX and business-workflow stabilization. Current work includes Admin usability, menu management, content workflows, validation, presentation, Thai wording, error handling, and regression prevention.
 
 ### Admin Menu
 
@@ -202,15 +204,20 @@ See:
 
 Current documents:
 
+- Current project state: `docs/architecture/post-p5h-current-project-state.md`
 - Runtime ownership: `docs/architecture/current-runtime-ownership.md`
+- Post-P5H maintainability / observability closure context: `docs/operations/p5h-maintainability-observability-2026-08-16.md`
+- Production environment convergence: `docs/architecture/production-environment-convergence-2026-08-16.md`
+- Runtime deployment: `docs/deployment/runtime-deployment-guide.md`
+- Apps Script media bridge deployment: `docs/deployment/apps-script-deployment-checklist.md`
+- Dependency status: `docs/maintenance/dependency-current-status.md`
 - Admin Menu behavior: `docs/admin/admin-menu-management.md`
 - CMS Session lifecycle: `docs/cms-auth-session-lifecycle.md`
 - UI test policy: `docs/development/ui-testing-policy.md`
-- Runtime deployment: `docs/deployment/runtime-deployment-guide.md`
 - Public SSR verification: `docs/operations/public-ssr-cutover.md`
 - Environment variables: `docs/development/environment-variables.md`
 - Historical migration status: `docs/architecture/current-migration-status.md`
 - Historical M20 ownership closure: `docs/architecture/m20-cleanup-runtime-ownership.md`
 - CMS authentication cutover runbook: `docs/cms-auth-final-cutover.md`
 
-Historical milestone documents preserve the state and evidence of their milestones. For current Node/pnpm, Session behavior, Menu UX, Public provider ownership, SSR asset behavior, and deployment decisions, use the current documents listed above.
+Historical milestone documents preserve the state and evidence of their milestones. For current project state, runtime ownership, Node/pnpm, Session behavior, Menu UX, Public provider ownership, SSR asset behavior, deployment decisions, dependency maintenance, and governance boundaries, use the current documents listed above.
