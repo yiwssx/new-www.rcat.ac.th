@@ -2,6 +2,18 @@
 
 This project is a React/Vite public website and CMS for Roi-Et College of Agriculture and Technology.
 
+## Current Project Status
+
+Current status: post-P5H production governance baseline with ongoing governed dependency maintenance.
+
+Use `docs/architecture/post-p5h-current-project-state.md` as the current project-state note.
+
+P5H closed the current production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, and the current post-P5H maintenance posture.
+
+M20/M21 documents are retained as historical planning, migration, and stabilization records only. They must not be treated as the current active project phase unless a newer explicit project-status document says so.
+
+Governed Renovate dependency maintenance is expected to continue after P5H. It is not considered feature, runtime, or stabilization-scope expansion when it follows the repository dependency policy and passes the required CI/governance gates.
+
 ## Current Runtime Ownership
 
 - Public structured reads: Cloudflare Worker and D1.
@@ -12,11 +24,7 @@ This project is a React/Vite public website and CMS for Roi-Et College of Agricu
 - Media/file bridge: Apps Script behind the Vercel proxy.
 - File storage: Google Drive behind the Apps Script media/file bridge.
 
-## Current Project Status
-
-M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
-
-M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final. Remaining public, admin, workflow, validation, layout, Thai wording, and user-facing error issues are tracked under M21. Do not restore browser-side direct Apps Script structured reads/writes. Apps Script is retained only for media/file bridge and Google Drive operations.
+Do not restore browser-side direct Apps Script structured reads/writes. Apps Script is retained only for media/file bridge and Google Drive operations.
 
 ## Admin Operation Feedback Standard
 
@@ -36,9 +44,10 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Apps Script media/file bridge.
 - Google Drive file storage bridge.
 - D1 migration history.
-- M19 and M20 readiness records.
-- M21 UI/UX and logic stabilization tracking.
+- M13-M21 milestone records as historical evidence.
+- P5H production governance baseline documents.
 - Sigmap AI helper workflow.
+- Governed Renovate dependency maintenance under the repository dependency policy.
 
 ## Do Not Restore
 
@@ -47,6 +56,7 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Local bootstrap user fallback.
 - Local password-hash user-account fallback.
 - Legacy Apps Script credential login path.
+- Browser-side Apps Script structured-data reads or writes.
 
 ## Safety Rules
 
