@@ -145,8 +145,8 @@ importers:
         specifier: ^3.9.6
         version: 3.9.6
       sigmap:
-        specifier: ^8.24.0
-        version: 8.24.0
+        specifier: ^8.28.0
+        version: 8.28.0
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -2576,8 +2576,8 @@ packages:
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
-  sigmap@8.24.0:
-    resolution: {integrity: sha512-b5fO8uhJZv1BNV5fx8dodDs43eqW3V4bnOFIZ3bSNpawhJBeOAV9Bvi1qVsd2BKjUV310XkzNrZJrPk2Vw3FPw==}
+  sigmap@8.28.0:
+    resolution: {integrity: sha512-UxClUa/3haxUzCDdbh66nuPLEk+euyAQuEs8b+CYoGjrqj87FpPgxDOx8kizAIECG11/ubqgo/T8nv6Oh/ghpg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -5175,7 +5175,7 @@ snapshots:
 
   siginfo@2.0.0: {}
 
-  sigmap@8.24.0: {}
+  sigmap@8.28.0: {}
 
   signal-exit@3.0.7: {}
 
