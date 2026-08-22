@@ -57,7 +57,8 @@ const adminUxWorkflowItems = [
   {
     order: 4,
     title: "Menu management",
-    description: "รักษาเมนูให้ง่ายแบบ WordPress โดยเน้นลำดับ parent/child, ชื่อเมนู, URL และ preview โครงสร้างก่อนเพิ่มความสามารถใหม่",
+    description:
+      "รักษาเมนูให้ง่ายแบบ WordPress โดยเน้นลำดับ parent/child, ชื่อเมนู, URL และ preview โครงสร้างก่อนเพิ่มความสามารถใหม่",
     href: "/admin/menus",
     stage: "ถัดไป"
   },
@@ -71,35 +72,40 @@ const adminUxWorkflowItems = [
   {
     order: 6,
     title: "Settings / Homepage sections",
-    description: "ปรับส่วนหน้าแรกและค่าระบบหลังจากเนื้อหา/สื่อเริ่มนิ่ง เพื่อไม่ให้แก้ layout จากสมมติฐานก่อนข้อมูลจริง",
+    description:
+      "ปรับส่วนหน้าแรกและค่าระบบหลังจากเนื้อหา/สื่อเริ่มนิ่ง เพื่อไม่ให้แก้ layout จากสมมติฐานก่อนข้อมูลจริง",
     href: "/admin/settings",
     stage: "ถัดไป"
   },
   {
     order: 7,
     title: "User role/capability UX",
-    description: "ทำให้สิทธิ์ผู้ใช้เข้าใจง่ายขึ้นโดยไม่ขยาย policy ใหม่โดยไม่จำเป็น เน้นคำอธิบายและ feedback เมื่อไม่มีสิทธิ์",
+    description:
+      "ทำให้สิทธิ์ผู้ใช้เข้าใจง่ายขึ้นโดยไม่ขยาย policy ใหม่โดยไม่จำเป็น เน้นคำอธิบายและ feedback เมื่อไม่มีสิทธิ์",
     href: "/admin/users",
     stage: "รอข้อมูล"
   },
   {
     order: 8,
     title: "Audit / activity log",
-    description: "เตรียมมุมมองตรวจสอบการเปลี่ยนแปลงเมื่อเริ่มมี incident หรือข้อกำหนดจากผู้บริหาร โดยยังไม่แตะ audit boundary",
+    description:
+      "เตรียมมุมมองตรวจสอบการเปลี่ยนแปลงเมื่อเริ่มมี incident หรือข้อกำหนดจากผู้บริหาร โดยยังไม่แตะ audit boundary",
     href: "/admin/backup",
     stage: "รอข้อมูล"
   },
   {
     order: 9,
     title: "Preview / revision / autosave",
-    description: "ติดตามจุดเสี่ยงจากการแก้ข่าวหรือเอกสารผิด แล้วค่อยยกระดับ preview, revision และ autosave จาก pain point จริง",
+    description:
+      "ติดตามจุดเสี่ยงจากการแก้ข่าวหรือเอกสารผิด แล้วค่อยยกระดับ preview, revision และ autosave จาก pain point จริง",
     href: "/admin/content",
     stage: "รอข้อมูล"
   },
   {
     order: 10,
     title: "Mobile admin usability",
-    description: "ใช้มือถือเป็นเงื่อนไขร่วมของทุก workflow โดยเฉพาะข่าว รูปภาพ เอกสาร เมนู และหน้าแรก ไม่ใช่งานท้ายสุดแยกเดี่ยว",
+    description:
+      "ใช้มือถือเป็นเงื่อนไขร่วมของทุก workflow โดยเฉพาะข่าว รูปภาพ เอกสาร เมนู และหน้าแรก ไม่ใช่งานท้ายสุดแยกเดี่ยว",
     href: "/admin",
     stage: "ทดสอบร่วม"
   }
