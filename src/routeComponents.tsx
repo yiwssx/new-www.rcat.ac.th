@@ -21,7 +21,7 @@ export const DocumentsPage = lazy(() => import("./admin/pages/DocumentsPage"));
 export const ExternalServicesPage = lazy(() => import("./admin/pages/ExternalServicesPage"));
 export const IntegrationsPage = lazy(() => import("./admin/pages/IntegrationsPage"));
 export const LoginPage = lazy(() => import("./admin/pages/LoginPage"));
-export const MediaPage = lazy(() => import("./admin/pages/MediaPage"));
+export const MediaPage = lazy(() => import("./admin/pages/MediaLibraryWorkflowPage"));
 export const MenuPage = lazy(() => import("./admin/pages/MenuPage"));
 export const NotFoundPage = lazy(() => import("./shared/pages/NotFoundPage"));
 export const PublicAchievementsPage = lazy(() => import("./public/pages/PublicAchievementsPage"));
