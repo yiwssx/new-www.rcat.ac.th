@@ -2,7 +2,7 @@
 
 Status: active
 
-Updated: 2026-08-22 09:48 Asia/Bangkok
+Updated: 2026-08-22 16:34 Asia/Bangkok
 
 This tracker is the durable source of truth for the WordPress-like Admin UX work after the post-P5H production governance baseline.
 It exists to avoid long-lived mixed-scope branches, chat context loss, and unsafe all-in-one UX changes.
@@ -63,16 +63,16 @@ Do not change these unless the specific UX item explicitly requires it and the P
 ### Step 01 — Content editor / News workflow
 
 - Branch: `agent/admin-ux-01-content-workflow`
-- PR: Pending
-- State: In progress
-- Notes: Adds a compact WordPress-like Draft → Review → Publish/Schedule workflow guide on the admin content page and improves the empty list message.
+- PR: `#129`
+- State: Done
+- Notes: Merged to `master` as `97266b50baeab9242efa4a539563b88a8ec38eec`; adds a compact Draft → Review → Publish/Schedule guide on the admin content page and improves the empty list message.
 
 ### Step 02 — Media Library
 
 - Branch: `agent/admin-ux-02-media-library`
 - PR: Pending
-- State: Not started
-- Notes: Start after step 01 is merged.
+- State: In progress
+- Notes: Adds a compact Upload → Label → Reuse workflow guide for the admin media library without changing backend, API, Drive bridge, or upload policy.
 
 ### Step 03 — Document management
 
@@ -141,4 +141,4 @@ If an in-progress PR exists, inspect that PR before creating a new branch.
 - The tracker records the one-branch-per-item rule.
 - The tracker lists the exact branch naming convention for steps 01-10.
 - The tracker identifies #127 as the already-merged workflow hub.
-- The tracker makes the next step unambiguous: finish 00A, then start step 01.
+- The tracker makes the next step unambiguous: finish the in-progress step before starting the next one.
