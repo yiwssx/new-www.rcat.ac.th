@@ -2,7 +2,7 @@
 
 Status: active
 
-Updated: 2026-08-22 09:31 Asia/Bangkok
+Updated: 2026-08-22 09:48 Asia/Bangkok
 
 This tracker is the durable source of truth for the WordPress-like Admin UX work after the post-P5H production governance baseline.
 It exists to avoid long-lived mixed-scope branches, chat context loss, and unsafe all-in-one UX changes.
@@ -13,6 +13,7 @@ It exists to avoid long-lived mixed-scope branches, chat context loss, and unsaf
 - Default branch: `master`
 - Starting baseline for this tracker: `a1bdd78324d6c386ea675b1b61c334a7c00b3396`
 - Baseline PR already merged: `#127 feat(admin-ux): start practical workflow hub`
+- Tracker PR already merged: `#128 docs(admin-ux): add execution tracker`
 - Project posture: post-P5H production governance baseline with governed Renovate dependency maintenance.
 
 ## Execution rule
@@ -56,15 +57,15 @@ Do not change these unless the specific UX item explicitly requires it and the P
 
 - Branch: `agent/admin-ux-execution-tracker`
 - PR: `#128`
-- State: In progress
-- Notes: Adds this tracker so future chats can resume from repo state.
+- State: Done
+- Notes: Merged to `master` as `79e2ac5cee4d05ebfa66531385b5cadab0e078ff`; future chats should resume from this tracker.
 
 ### Step 01 — Content editor / News workflow
 
 - Branch: `agent/admin-ux-01-content-workflow`
 - PR: Pending
-- State: Not started
-- Notes: Start only after 00A is merged.
+- State: In progress
+- Notes: Adds a compact WordPress-like Draft → Review → Publish/Schedule workflow guide on the admin content page and improves the empty list message.
 
 ### Step 02 — Media Library
 
