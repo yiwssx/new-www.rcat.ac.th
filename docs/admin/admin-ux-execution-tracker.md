@@ -2,7 +2,7 @@
 
 Status: active
 
-Updated: 2026-08-22 16:34 Asia/Bangkok
+Updated: 2026-08-23 05:59 Asia/Bangkok
 
 This tracker is the durable source of truth for the WordPress-like Admin UX work after the post-P5H production governance baseline.
 It exists to avoid long-lived mixed-scope branches, chat context loss, and unsafe all-in-one UX changes.
@@ -70,16 +70,16 @@ Do not change these unless the specific UX item explicitly requires it and the P
 ### Step 02 — Media Library
 
 - Branch: `agent/admin-ux-02-media-library`
-- PR: Pending
-- State: In progress
-- Notes: Adds a compact Upload → Label → Reuse workflow guide for the admin media library without changing backend, API, Drive bridge, or upload policy.
+- PR: `#130`
+- State: Done
+- Notes: Merged to `master` as `79338a9c35fd4cb6ac95510ba6e3d4258f79b807`; adds a compact Upload → Label → Reuse guide without changing backend, API, Drive bridge, or upload policy.
 
 ### Step 03 — Document management
 
 - Branch: `agent/admin-ux-03-document-management`
 - PR: Pending
-- State: Not started
-- Notes: Start after step 02 is merged.
+- State: In progress
+- Notes: Adds a compact Prepare → Describe → Publish/Order guide for the admin document management workflow without changing document APIs, ordering logic, or public document behavior.
 
 ### Step 04 — Menu management
 
