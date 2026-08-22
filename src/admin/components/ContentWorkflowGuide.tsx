@@ -43,7 +43,13 @@ export default function ContentWorkflowGuide() {
                 }}
               >
                 <Stack spacing={0.75}>
-                  <Chip label={step.status} size="small" color="primary" variant="outlined" sx={{ alignSelf: "start" }} />
+                  <Chip
+                    label={step.status}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ alignSelf: "start" }}
+                  />
                   <Typography sx={{ fontWeight: 900 }}>{step.title}</Typography>
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     {step.description}
