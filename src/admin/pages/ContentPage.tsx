@@ -30,6 +30,7 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ContentEditorDialog from "../components/ContentEditorDialog";
+import ContentWorkflowGuide from "../components/ContentWorkflowGuide";
 import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
@@ -548,6 +549,7 @@ export default function ContentPage() {
           ) : undefined
         }
       />
+      <ContentWorkflowGuide />
       {draftRecovery && !editorOpen && (
         <Alert
           severity="warning"
@@ -654,13 +656,14 @@ export default function ContentPage() {
                 {!table.getRowModel().rows.length && (
                   <TableRow>
                     <TableCell colSpan={columns.length}>
-                      <Typography
-                        sx={{
-                          color: "text.secondary"
-                        }}
-                      >
-                        No content records are available.
-                      </Typography>
+                      <Stack spacing={0.5}>
+                        <Typography sx={{ color: "text.secondary" }}>ยังไม่มีรายการเนื้อหาตามตัวกรองนี้</Typography>
+                        {canCreate && (
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                            กด “เพิ่มเนื้อหา” เพื่อเริ่มเขียนฉบับร่างแรก หรือปรับตัวกรองสถานะด้านบน
+                          </Typography>
+                        )}
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 )}
