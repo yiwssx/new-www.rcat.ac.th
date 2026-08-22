@@ -4,19 +4,17 @@ const contentWorkflowSteps = [
   {
     title: "1. เขียนฉบับร่าง",
     status: "Draft",
-    description:
-      "เริ่มจากชื่อเรื่อง สรุป เนื้อหา รูปประกอบ หมวดหมู่ และแท็ก โดยยังไม่เผยแพร่ทันที"
+    description: "ใส่ชื่อเรื่อง สรุป เนื้อหา รูป หมวดหมู่ และแท็ก"
   },
   {
     title: "2. ตรวจทานก่อนเผยแพร่",
     status: "Review",
-    description:
-      "ตรวจข้อความ ลิงก์ถาวร ผู้รับผิดชอบ วันที่เผยแพร่ และสื่อที่แนบให้ครบก่อนส่งขึ้นหน้าเว็บ"
+    description: "ตรวจข้อความ ลิงก์ ผู้รับผิดชอบ วันที่ และสื่อที่แนบ"
   },
   {
     title: "3. เผยแพร่หรือกำหนดเวลา",
     status: "Publish / Schedule",
-    description: "เลือกเผยแพร่ทันทีหรือกำหนดเวลา แล้วตรวจหน้าสาธารณะหลังบันทึกสำเร็จ"
+    description: "เผยแพร่ทันทีหรือกำหนดเวลา แล้วตรวจหน้าสาธารณะ"
   }
 ] as const;
 
@@ -28,7 +26,7 @@ export default function ContentWorkflowGuide() {
           <Box>
             <Typography sx={{ fontWeight: 900 }}>ลำดับงานเขียนข่าวแบบ WordPress-like</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              ใช้ลำดับนี้เป็นเช็กลิสต์ก่อนเปิดตัวแก้ไข เพื่อให้การสร้างข่าวและประกาศไม่ข้ามขั้นตอนสำคัญ
+              ใช้เป็นเช็กลิสต์ก่อนเปิดตัวแก้ไข เพื่อไม่ข้ามขั้นตอนสำคัญ
             </Typography>
           </Box>
           <Stack direction={{ xs: "column", md: "row" }} spacing={1.25}>
