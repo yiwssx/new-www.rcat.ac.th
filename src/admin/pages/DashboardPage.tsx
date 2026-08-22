@@ -126,6 +126,42 @@ export default function DashboardPage() {
           </Grid>
         ))}
       </Grid>
+      <Card sx={{ mt: 2.5 }}>
+        <CardContent>
+          <Stack spacing={1.5}>
+            <Typography variant="h3">แผนปรับ UX จากการใช้งานจริง</Typography>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              เริ่มใช้แดชบอร์ดเป็นจุดรวมแผนปรับ UX แบบ WordPress-like CMS โดยไม่เปลี่ยน backend/runtime boundary
+            </Typography>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+              <Button href="/admin/content" variant="outlined">
+                1. Content / News
+              </Button>
+              <Button href="/admin/media" variant="outlined">
+                2. Media
+              </Button>
+              <Button href="/admin/documents" variant="outlined">
+                3. Documents
+              </Button>
+              <Button href="/admin/menus" variant="outlined">
+                4. Menu
+              </Button>
+              <Button href="/admin/settings" variant="outlined">
+                5-6. Dashboard / Homepage
+              </Button>
+              <Button href="/admin/users" variant="outlined">
+                7. Roles
+              </Button>
+              <Button href="/admin/backup" variant="outlined">
+                8. Audit
+              </Button>
+              <Button href="/admin/content" variant="outlined">
+                9-10. Preview / Mobile
+              </Button>
+            </Stack>
+          </Stack>
+        </CardContent>
+      </Card>
       <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
         <Grid size={{ xs: 12, lg: 7 }}>
           <Card sx={{ height: "100%" }}>
