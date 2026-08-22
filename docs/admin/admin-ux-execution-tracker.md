@@ -2,7 +2,7 @@
 
 Status: active
 
-Updated: 2026-08-22 09:15 Asia/Bangkok
+Updated: 2026-08-22 09:31 Asia/Bangkok
 
 This tracker is the durable source of truth for the WordPress-like Admin UX work after the post-P5H production governance baseline. It exists to avoid long-lived mixed-scope branches, chat context loss, and unsafe all-in-one UX changes.
 
@@ -47,7 +47,7 @@ Do not change these unless the specific UX item explicitly requires it and the P
 | Step | UX item | Branch | PR | State | Notes |
 | ---: | --- | --- | --- | --- | --- |
 | 00 | Workflow hub / execution baseline | `agent/admin-ux-practical-workflows` | `#127` | Done | Merged to `master`; adds compact Admin Dashboard UX workflow hub and practical workflow note. |
-| 00A | Durable execution tracker | `agent/admin-ux-execution-tracker` | Pending | In progress | Adds this tracker so future chats can resume from repo state. |
+| 00A | Durable execution tracker | `agent/admin-ux-execution-tracker` | `#128` | In progress | Adds this tracker so future chats can resume from repo state. |
 | 01 | Content editor / News workflow | `agent/admin-ux-01-content-workflow` | Pending | Not started | Start only after 00A is merged. |
 | 02 | Media Library | `agent/admin-ux-02-media-library` | Pending | Not started | Start after step 01 is merged. |
 | 03 | Document management | `agent/admin-ux-03-document-management` | Pending | Not started | Start after step 02 is merged. |
