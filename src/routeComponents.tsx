@@ -17,7 +17,7 @@ export const BackupPage = lazy(() => import("./admin/pages/BackupPage"));
 export const CarouselPage = lazy(() => import("./admin/pages/CarouselPage"));
 export const ContentPage = lazy(() => import("./admin/pages/ContentPage"));
 export const DashboardPage = lazy(() => import("./admin/pages/DashboardPage"));
-export const DocumentsPage = lazy(() => import("./admin/pages/DocumentsPage"));
+export const DocumentsPage = lazy(() => import("./admin/pages/DocumentManagementWorkflowPage"));
 export const ExternalServicesPage = lazy(() => import("./admin/pages/ExternalServicesPage"));
 export const IntegrationsPage = lazy(() => import("./admin/pages/IntegrationsPage"));
 export const LoginPage = lazy(() => import("./admin/pages/LoginPage"));
