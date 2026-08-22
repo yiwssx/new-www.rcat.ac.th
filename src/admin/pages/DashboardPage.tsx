@@ -34,14 +34,16 @@ const adminUxWorkflowItems = [
   {
     order: 1,
     title: "Content editor / News workflow",
-    description: "เริ่มจากงานข่าวและประชาสัมพันธ์ที่ผู้ดูแลเว็บใช้บ่อยที่สุด ตรวจ draft, preview, publish และข้อความผิดพลาดจากหน้างานจริง",
+    description:
+      "เริ่มจากงานข่าวและประชาสัมพันธ์ที่ผู้ดูแลเว็บใช้บ่อยที่สุด ตรวจ draft, preview, publish และข้อความผิดพลาดจากหน้างานจริง",
     href: "/admin/content",
     stage: "เริ่มก่อน"
   },
   {
     order: 2,
     title: "Media Library",
-    description: "ปรับ flow รูปภาพและไฟล์สื่อให้ต่อกับการลงข่าวจริง เช่น ค้นหา เลือกใช้ อัปโหลด และตรวจไฟล์ที่ใช้ในเนื้อหา",
+    description:
+      "ปรับ flow รูปภาพและไฟล์สื่อให้ต่อกับการลงข่าวจริง เช่น ค้นหา เลือกใช้ อัปโหลด และตรวจไฟล์ที่ใช้ในเนื้อหา",
     href: "/admin/media",
     stage: "เริ่มก่อน"
   },
@@ -213,7 +215,8 @@ export default function DashboardPage() {
             <Box>
               <Typography variant="h3">แผนปรับ UX จากการใช้งานจริง</Typography>
               <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-                ใช้เป็นแผนที่งานหลังบ้านแบบ WordPress-like CMS: ปล่อย baseline ให้ใช้งานจริง แล้วปรับ workflow ทีละจุดจาก pain point ที่พบ
+                ใช้เป็นแผนที่งานหลังบ้านแบบ WordPress-like CMS: ปล่อย baseline ให้ใช้งานจริง แล้วปรับ workflow
+                ทีละจุดจาก pain point ที่พบ
               </Typography>
             </Box>
             <Chip label="WordPress-like CMS" color="primary" variant="outlined" />
