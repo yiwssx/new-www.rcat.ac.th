@@ -13,7 +13,7 @@ import {
 export const AccountSecurityPage = lazy(() => import("./admin/pages/AccountSecurityPage"));
 export const ActivateAccountPage = lazy(() => import("./admin/pages/ActivateAccountPage"));
 export const CalendarPage = lazy(() => import("./admin/pages/CalendarPage"));
-export const BackupPage = lazy(() => import("./admin/pages/AuditActivityWorkflowPage"));
+export const BackupPage = lazy(() => import("./admin/pages/BackupPage"));
 export const CarouselPage = lazy(() => import("./admin/pages/CarouselPage"));
 export const ContentPage = lazy(() => import("./admin/pages/ContentPage"));
 export const DashboardPage = lazy(() => import("./admin/pages/AdminDashboardWorkflowPage"));
