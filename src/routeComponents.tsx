@@ -38,7 +38,7 @@ export const PublicIta2569Page = lazy(() => import("./public/pages/PublicIta2569
 export const PublicNewsPage = lazy(() => import("./public/pages/PublicNewsPage"));
 export const PublicSearchPage = lazy(() => import("./public/pages/PublicSearchPage"));
 export const ResetPasswordPage = lazy(() => import("./admin/pages/ResetPasswordPage"));
-export const SettingsPage = lazy(() => import("./admin/pages/SettingsPage"));
+export const SettingsPage = lazy(() => import("./admin/pages/SettingsHomepageWorkflowPage"));
 export const UsersPage = lazy(() => import("./admin/pages/UsersPage"));
 export const PublicRouteLayout = lazy(() => import("./public/components/PublicShellRouteLayout"));
 export const CmsAuthRouteLayout = lazy(() =>
