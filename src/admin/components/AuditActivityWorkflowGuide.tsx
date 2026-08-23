@@ -4,18 +4,18 @@ const auditActivitySteps = [
   {
     title: "1. ตรวจเหตุการณ์",
     status: "Review",
-    description: "ดูรายการสำคัญก่อนสรุปว่ามีความเสี่ยงหรือไม่",
+    description: "ดูรายการสำคัญก่อนสรุปว่ามีความเสี่ยงหรือไม่"
   },
   {
     title: "2. ยืนยันผู้กระทำ",
     status: "Trace",
-    description: "ตรวจเวลา ผู้ใช้งาน และหน้าที่เกี่ยวข้องให้ครบ",
+    description: "ตรวจเวลา ผู้ใช้งาน และหน้าที่เกี่ยวข้องให้ครบ"
   },
   {
     title: "3. บันทึกผลตรวจ",
     status: "Record",
-    description: "เก็บหมายเหตุหรือหลักฐานก่อนดำเนินการต่อ",
-  },
+    description: "เก็บหมายเหตุหรือหลักฐานก่อนดำเนินการต่อ"
+  }
 ] as const;
 
 export default function AuditActivityWorkflowGuide() {
@@ -39,7 +39,7 @@ export default function AuditActivityWorkflowGuide() {
                   border: "1px solid",
                   borderColor: "divider",
                   borderRadius: 2,
-                  bgcolor: "background.default",
+                  bgcolor: "background.default"
                 }}
               >
                 <Stack spacing={0.75}>
