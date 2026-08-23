@@ -1,5 +1,5 @@
-import DocumentManagementWorkflowGuide from "../components/DocumentManagementWorkflowGuide"
-import DocumentsPage from "./DocumentsPage"
+import DocumentManagementWorkflowGuide from "../components/DocumentManagementWorkflowGuide";
+import DocumentsPage from "./DocumentsPage";
 
 export default function DocumentManagementWorkflowPage() {
   return (
@@ -7,5 +7,5 @@ export default function DocumentManagementWorkflowPage() {
       <DocumentManagementWorkflowGuide />
       <DocumentsPage />
     </>
-  )
+  );
 }
