@@ -2,7 +2,7 @@
 
 Status: active
 
-Updated: 2026-08-23 05:59 Asia/Bangkok
+Updated: 2026-08-23 12:50 Asia/Bangkok
 
 This tracker is the durable source of truth for the WordPress-like Admin UX work after the post-P5H production governance baseline.
 It exists to avoid long-lived mixed-scope branches, chat context loss, and unsafe all-in-one UX changes.
@@ -77,16 +77,16 @@ Do not change these unless the specific UX item explicitly requires it and the P
 ### Step 03 — Document management
 
 - Branch: `agent/admin-ux-03-document-management`
-- PR: Pending
-- State: In progress
-- Notes: Adds a compact Prepare → Describe → Publish/Order guide for the admin document management workflow without changing document APIs, ordering logic, or public document behavior.
+- PR: `#131`
+- State: Done
+- Notes: Merged to `master` as `e3a0d56f7597ba06cb600fcd1b2a21dfedb85751`; adds a compact Prepare → Describe → Publish/Order guide without changing document APIs, ordering logic, or public document behavior.
 
 ### Step 04 — Menu management
 
 - Branch: `agent/admin-ux-04-menu-management`
 - PR: Pending
-- State: Not started
-- Notes: Start after step 03 is merged.
+- State: In progress
+- Notes: Adds a compact Structure → Label/Link → Order guide for admin menu management without changing menu APIs, ordering logic, or public navigation behavior.
 
 ### Step 05 — Admin dashboard
 
