@@ -2,7 +2,7 @@
 
 Status: active
 
-Updated: 2026-08-23 19:22 Asia/Bangkok
+Updated: 2026-08-23 20:48 Asia/Bangkok
 
 This tracker is the durable source of truth for the WordPress-like Admin UX work after the post-P5H production governance baseline.
 It exists to avoid long-lived mixed-scope branches, chat context loss, and unsafe all-in-one UX changes.
@@ -91,16 +91,16 @@ Do not change these unless the specific UX item explicitly requires it and the P
 ### Step 05 — Admin dashboard
 
 - Branch: `agent/admin-ux-05-admin-dashboard`
-- PR: Pending
-- State: In progress
-- Notes: Adds a compact Overview → Shortcut → Verify guide for the admin dashboard without changing dashboard metrics, data loading, API contracts, or runtime behavior.
+- PR: `#133`
+- State: Done
+- Notes: Merged to `master` as `b1a4ec95210456c055d30f81243dc0d74e9774a7`; adds a compact Overview → Shortcut → Verify guide without changing dashboard metrics, data loading, API contracts, or runtime behavior.
 
 ### Step 06 — Settings / Homepage sections
 
 - Branch: `agent/admin-ux-06-homepage-settings`
 - PR: Pending
-- State: Not started
-- Notes: Start after step 05 is merged.
+- State: In progress
+- Notes: Adds a compact Review → Configure → Verify guide for homepage and settings workflow without changing settings APIs, data loading, runtime behavior, or public homepage behavior.
 
 ### Step 07 — User role/capability UX
 
