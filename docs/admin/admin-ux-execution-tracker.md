@@ -2,7 +2,7 @@
 
 Status: active
 
-Updated: 2026-08-23 21:39 Asia/Bangkok
+Updated: 2026-08-23 21:52 Asia/Bangkok
 
 This tracker is the durable source of truth for the WordPress-like Admin UX work after the post-P5H production governance baseline.
 It exists to avoid long-lived mixed-scope branches, chat context loss, and unsafe all-in-one UX changes.
@@ -112,16 +112,16 @@ Do not change these unless the specific UX item explicitly requires it and the P
 ### Step 08 — Audit / activity log
 
 - Branch: `agent/admin-ux-08-audit-activity-log`
-- PR: Pending
-- State: In progress
-- Notes: Adds a compact Review → Trace → Record guide for audit and activity review without changing backup APIs, audit data loading, runtime behavior, or persistence behavior.
+- PR: `#136`
+- State: Done
+- Notes: Merged to `master` as `001d3c993f84c37201fe5fbb8faa6fbebc7508fc`; adds a compact Review → Trace → Record guide without changing backup APIs, audit data loading, runtime behavior, or persistence behavior.
 
 ### Step 09 — Preview / revision / autosave
 
 - Branch: `agent/admin-ux-09-preview-revision-autosave`
 - PR: Pending
-- State: Not started
-- Notes: Start after step 08 is merged.
+- State: In progress
+- Notes: Adds a compact Preview → Revision → Autosave guide without changing content persistence, preview behavior, revision behavior, autosave storage, or public content behavior.
 
 ### Step 10 — Mobile admin usability
 
