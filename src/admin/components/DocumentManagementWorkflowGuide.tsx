@@ -1,22 +1,22 @@
-import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material"
+import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 
 const documentWorkflowSteps = [
   {
     title: "1. เตรียมไฟล์",
     status: "Prepare",
-    description: "ตั้งชื่อไฟล์ให้ชัด ตรวจเวอร์ชัน และเตรียมลิงก์เอกสารที่เปิดได้"
+    description: "ตั้งชื่อไฟล์ให้ชัด ตรวจเวอร์ชัน และเตรียมลิงก์เอกสารที่เปิดได้",
   },
   {
     title: "2. กรอกข้อมูล",
     status: "Describe",
-    description: "ใส่ชื่อ หมวดหมู่ คำอธิบาย สถานะ และวันเผยแพร่ก่อนบันทึก"
+    description: "ใส่ชื่อ หมวดหมู่ คำอธิบาย สถานะ และวันเผยแพร่ก่อนบันทึก",
   },
   {
     title: "3. เผยแพร่และจัดลำดับ",
     status: "Publish / Order",
-    description: "เผยแพร่ ปักหมุด หรือจัดลำดับ แล้วตรวจหน้าเอกสารสาธารณะ"
-  }
-] as const
+    description: "เผยแพร่ ปักหมุด หรือจัดลำดับ แล้วตรวจหน้าเอกสารสาธารณะ",
+  },
+] as const;
 
 export default function DocumentManagementWorkflowGuide() {
   return (
@@ -39,7 +39,7 @@ export default function DocumentManagementWorkflowGuide() {
                   border: "1px solid",
                   borderColor: "divider",
                   borderRadius: 2,
-                  bgcolor: "background.default"
+                  bgcolor: "background.default",
                 }}
               >
                 <Stack spacing={0.75}>
@@ -61,5 +61,5 @@ export default function DocumentManagementWorkflowGuide() {
         </Stack>
       </CardContent>
     </Card>
-  )
+  );
 }
