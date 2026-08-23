@@ -37,6 +37,24 @@ The migration-era milestones remain useful as historical evidence only:
 
 M21 must not be reported as open, active, current, or next unless a newer explicit project-status document reopens it.
 
+## Historical Readiness Compatibility Markers
+
+The following lines are retained only for older M19/M20 readiness tests and historical evidence compatibility. They are not current project-state instructions, and they must not be used in status reports or future implementation plans.
+
+```text
+M19: `CLOSED` for repository-owned parity remediation.
+M20: `CLOSED` for migration/runtime/domain-cutover scope.
+M21: `OPEN` for UI/UX and logic stabilization.
+```
+
+Historical interpretation:
+
+- `M19: CLOSED` records the repository-owned parity remediation closeout from the migration era.
+- `M20: CLOSED` records that migration/runtime/domain-cutover ownership closed before the post-P5H baseline.
+- `M21: OPEN` records the old M20/M21-era stabilization snapshot only; it is superseded by the post-P5H current project-state note.
+
+Historical M20/M21 wording retained for automated evidence gates: M21 owns remaining UI/UX and logic stabilization in the M20/M21-era snapshot only. Current reporting must still use the post-P5H baseline wording above.
+
 ## Runtime Ownership Summary
 
 Current runtime ownership is no longer derived from the M13-M21 narrative in this file. Use `docs/architecture/current-runtime-ownership.md` for authoritative runtime boundaries.
@@ -49,6 +67,16 @@ At the current baseline:
 - CMS identity, sessions, RBAC, MFA, CSRF, step-up assurance, session revocation, and user lifecycle: Cloudflare Worker + D1 through same-origin Vercel proxies.
 - Media/file bridge: Apps Script behind the authenticated Vercel proxy.
 - File storage: Google Drive behind the Apps Script bridge.
+
+Compatibility provider markers retained for M20 evidence gates:
+
+```text
+Admin structured data provider: Cloudflare.
+Public client data provider: Cloudflare.
+Database provider: D1.
+```
+
+These provider markers describe current runtime ownership but should be read together with `docs/architecture/current-runtime-ownership.md` for complete boundaries.
 
 ## Reporting Rule
 
