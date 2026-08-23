@@ -22,6 +22,7 @@ import CloudDownloadOutlinedIcon from "@mui/icons-material/CloudDownloadOutlined
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import AuditActivityWorkflowGuide from "../components/AuditActivityWorkflowGuide";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
 import {
@@ -131,6 +132,7 @@ export default function BackupPage() {
         title="สำรองข้อมูลระบบ"
         description="สร้างไฟล์สำรองข้อมูล D1 แบบ JSON จากข้อมูลระบบที่ใช้กับเว็บไซต์และ CMS"
       />
+      <AuditActivityWorkflowGuide />
       <Stack spacing={2.5}>
         <Alert severity="warning" icon={<WarningAmberOutlinedIcon />}>
           ไฟล์สำรองข้อมูลอาจมีข้อมูลระบบและข้อมูลผู้ดูแล ควรจัดเก็บไว้ในพื้นที่ปลอดภัย และห้ามเผยแพร่สาธารณะ
