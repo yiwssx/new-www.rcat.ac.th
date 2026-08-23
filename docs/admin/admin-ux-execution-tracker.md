@@ -2,7 +2,7 @@
 
 Status: active
 
-Updated: 2026-08-24 00:38 Asia/Bangkok
+Updated: 2026-08-24 00:48 Asia/Bangkok
 
 This tracker is the durable source of truth for the WordPress-like Admin UX work after the post-P5H production governance baseline.
 It exists to avoid long-lived mixed-scope branches, chat context loss, and unsafe all-in-one UX changes.
@@ -127,8 +127,8 @@ Do not change these unless the specific UX item explicitly requires it and the P
 
 - Branch: `agent/admin-ux-10-mobile-admin-usability`
 - PR: `#138`
-- State: In progress
-- Notes: Adds a compact Touch → Navigate → Verify guide on the admin dashboard without changing shell drawer behavior, routes, API contracts, runtime behavior, persistence behavior, package manifests, or lockfile.
+- State: Done
+- Notes: Merged to `master` as `1b97bc89559bc8af2254981c50abdd76f44c4d80`; adds a compact Touch → Navigate → Verify guide on the admin dashboard without changing shell drawer behavior, routes, API contracts, runtime behavior, persistence behavior, package manifests, or lockfile.
 
 ## Resume instruction for future chats
 
