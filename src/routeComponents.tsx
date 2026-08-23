@@ -15,7 +15,7 @@ export const ActivateAccountPage = lazy(() => import("./admin/pages/ActivateAcco
 export const CalendarPage = lazy(() => import("./admin/pages/CalendarPage"));
 export const BackupPage = lazy(() => import("./admin/pages/BackupPage"));
 export const CarouselPage = lazy(() => import("./admin/pages/CarouselPage"));
-export const ContentPage = lazy(() => import("./admin/pages/ContentPage"));
+export const ContentPage = lazy(() => import("./admin/pages/PreviewRevisionAutosaveWorkflowPage"));
 export const DashboardPage = lazy(() => import("./admin/pages/AdminDashboardWorkflowPage"));
 export const DocumentsPage = lazy(() => import("./admin/pages/DocumentManagementWorkflowPage"));
 export const ExternalServicesPage = lazy(() => import("./admin/pages/ExternalServicesPage"));
