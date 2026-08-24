@@ -57,6 +57,10 @@ Use this wording instead:
 Current status: post-P5H production governance baseline. Admin UX 00-10 is complete. Ongoing dependency work is governed maintenance.
 ```
 
+## Validation Path
+
+This cleanup must pass the existing CI lanes before merge. The change intentionally updates historical readiness tests together with the documentation they protect so the repository gates reflect the current baseline instead of preserving stale active-phase wording.
+
 ## Scope Safety
 
 This review and cleanup change no runtime behavior, API contract, Worker/D1 resources, migrations, Apps Script code, Vercel routing or environment variables, authentication/session behavior, RBAC policy semantics, persistence behavior, package manifests, or lockfile.
