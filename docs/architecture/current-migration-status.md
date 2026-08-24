@@ -73,7 +73,9 @@ Compatibility provider markers retained for M20 evidence gates:
 ```text
 Admin structured data provider: Cloudflare.
 Public client data provider: Cloudflare.
+Media/attachment/file provider: Google Drive via Apps Script bridge.
 Database provider: D1.
+Production custom domain: `www.rcat.ac.th` connected to Vercel production.
 ```
 
 These provider markers describe current runtime ownership but should be read together with `docs/architecture/current-runtime-ownership.md` for complete boundaries.
