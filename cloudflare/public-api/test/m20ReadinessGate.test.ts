@@ -25,7 +25,7 @@ const repositoryFixture = {
     "# M20 Production Readiness Gate",
     "Current state after M19",
     "M19 is closed.",
-    "M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.",
+    "M20 is closed for migration/runtime ownership. Post-M20 UI/UX and logic stabilization was tracked separately and is now superseded by the post-P5H baseline.",
     "CLOSED_FOR_MIGRATION_RUNTIME_DOMAIN_SCOPE.",
     "M20 closure does not mean the UI/UX is complete, the system is defect-free.",
     "Scope of M20-P0",
@@ -100,7 +100,7 @@ describe("M20 readiness gate", () => {
         "final production identity and RBAC approval",
         "production-grade backup and restore policy",
         "production monitoring, alerting, and support ownership",
-        "M21 UI/UX and logic stabilization"
+        "post-M20 UI/UX and logic stabilization evidence, superseded by the post-P5H baseline"
       ])
     );
   });
