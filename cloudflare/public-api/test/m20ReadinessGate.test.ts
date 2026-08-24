@@ -12,7 +12,7 @@ const repositoryFixture = {
     "M19 remains CLOSED.",
     "M19: `CLOSED` for repository-owned parity remediation.",
     "M20: `CLOSED` for migration/runtime/domain-cutover scope.",
-    "M21: `OPEN` for UI/UX and logic stabilization.",
+    "M21: `SUPERSEDED` historical UI/UX and logic stabilization snapshot.",
     "Admin structured data provider: Cloudflare.",
     "Public client data provider: Cloudflare.",
     "Media/attachment/file provider: Google Drive via Apps Script bridge.",
@@ -164,7 +164,7 @@ describe("M20 readiness gate", () => {
     expect(currentStatus).toMatch(/Admin structured data provider: Cloudflare/i);
     expect(currentStatus).toMatch(/Public client data provider: Cloudflare/i);
     expect(currentStatus).toMatch(/Database provider: D1/i);
-    expect(currentStatus).toMatch(/M21 owns remaining UI\/UX/i);
+    expect(currentStatus).toMatch(/M21-era stabilization scope was replaced by the post-P5H production governance baseline/i);
   });
 
   it("exposes the readiness command from root and Worker packages", () => {
