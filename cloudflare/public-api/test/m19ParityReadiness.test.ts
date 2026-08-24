@@ -18,7 +18,7 @@ describe("M19 repository parity readiness", () => {
     expect(m19Doc).toMatch(/Apps Script remains the fallback and rollback provider/i);
     expect(currentStatus).toMatch(/M19: `CLOSED` for repository-owned parity remediation/i);
     expect(currentStatus).toMatch(/M20: `CLOSED` for migration\/runtime\/domain-cutover scope/i);
-    expect(currentStatus).toMatch(/M21: `OPEN` for UI\/UX and logic stabilization/i);
+    expect(currentStatus).toMatch(/M21: `SUPERSEDED` historical UI\/UX and logic stabilization snapshot/i);
     expect(workerReadme).toMatch(/Current Public Surface/i);
     expect(workerReadme).toMatch(/Historical M19\/M20 readiness scripts remain useful as repository\/evidence guards/i);
     expect(workerReadme).not.toMatch(/Current M3 Routes/i);
