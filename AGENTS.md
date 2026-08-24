@@ -10,9 +10,23 @@ Use `docs/architecture/post-p5h-current-project-state.md` as the current project
 
 P5H closed the current production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, and the current post-P5H maintenance posture.
 
+Admin UX 00-10 is complete. Use `docs/admin/admin-ux-execution-tracker.md` for the completed Admin UX sequence. Do not treat that sequence as a reopened M21 phase.
+
 M20/M21 documents are retained as historical planning, migration, and stabilization records only. They must not be treated as the current active project phase unless a newer explicit project-status document says so.
 
 Governed Renovate dependency maintenance is expected to continue after P5H. It is not considered feature, runtime, or stabilization-scope expansion when it follows the repository dependency policy and passes the required CI/governance gates.
+
+## Status Reporting Rule
+
+When reporting current project status, use:
+
+```text
+post-P5H production governance baseline + governed dependency maintenance + Admin UX 00-10 completed
+```
+
+Do not report P6, M20, or M21 as the current active phase unless a newer explicit project-status document reopens one of them.
+
+For future work, report the new branch and PR scope directly instead of framing it as P6 or M21.
 
 ## Current Runtime Ownership
 
