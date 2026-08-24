@@ -2,7 +2,7 @@
 
 Status: historical / superseded snapshot.
 
-Updated: 2026-08-24.
+Updated: 2026-08-25.
 
 This document was originally the migration-era status ledger for M13-M21. It is no longer the current project-state source of truth.
 
@@ -44,16 +44,16 @@ The following lines are retained only for older M19/M20 readiness tests and hist
 ```text
 M19: `CLOSED` for repository-owned parity remediation.
 M20: `CLOSED` for migration/runtime/domain-cutover scope.
-M21: `OPEN` for UI/UX and logic stabilization.
+M21: `SUPERSEDED` historical UI/UX and logic stabilization snapshot.
 ```
 
 Historical interpretation:
 
 - `M19: CLOSED` records the repository-owned parity remediation closeout from the migration era.
 - `M20: CLOSED` records that migration/runtime/domain-cutover ownership closed before the post-P5H baseline.
-- `M21: OPEN` records the old M20/M21-era stabilization snapshot only; it is superseded by the post-P5H current project-state note.
+- `M21: SUPERSEDED` records that the old M20/M21-era stabilization snapshot must not be treated as an open project phase.
 
-Historical M20/M21 wording retained for automated evidence gates: M21 owns remaining UI/UX and logic stabilization in the M20/M21-era snapshot only. Current reporting must still use the post-P5H baseline wording above.
+Historical M20/M21 wording is deliberately superseded: the M21-era stabilization scope was replaced by the post-P5H production governance baseline and the completed Admin UX 00-10 tracker. Current reporting must use the post-P5H baseline wording above.
 
 ## Runtime Ownership Summary
 
@@ -73,7 +73,9 @@ Compatibility provider markers retained for M20 evidence gates:
 ```text
 Admin structured data provider: Cloudflare.
 Public client data provider: Cloudflare.
+Media/attachment/file provider: Google Drive via Apps Script bridge.
 Database provider: D1.
+Production custom domain: `www.rcat.ac.th` connected to Vercel production.
 ```
 
 These provider markers describe current runtime ownership but should be read together with `docs/architecture/current-runtime-ownership.md` for complete boundaries.
