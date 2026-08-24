@@ -8,7 +8,7 @@ const futureProductionResponsibilities = [
   "production-grade backup and restore policy",
   "production monitoring, alerting, and support ownership",
   "production Worker, D1, and frontend resource decisions",
-  "M21 UI/UX and logic stabilization"
+  "post-M20 UI/UX and logic stabilization evidence, superseded by the post-P5H baseline"
 ];
 
 const requiredFiles = {
@@ -79,9 +79,7 @@ function evaluateChecks(sources) {
       /M19:[\s\S]*CLOSED[\s\S]*repository-owned parity remediation/i.test(sources.currentStatus),
     m20MigrationRuntimeClosed:
       /M20:\s*`CLOSED` for migration\/runtime\/domain-cutover scope/i.test(sources.currentStatus) &&
-      /M20 is closed for migration\/runtime ownership\. M21 owns remaining UI\/UX and logic stabilization\./i.test(
-        sources.m20Doc
-      ) &&
+      /M20 is closed for migration\/runtime ownership/i.test(sources.m20Doc) &&
       /CLOSED_FOR_MIGRATION_RUNTIME_DOMAIN_SCOPE/i.test(sources.m20Doc),
     productionPlaceholderSafety:
       /database_id\s*=\s*"production-placeholder"/.test(sources.wrangler) &&
