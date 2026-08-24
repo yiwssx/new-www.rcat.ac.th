@@ -2,7 +2,7 @@
 
 Status: analysis note only.
 
-This review records project-state conflicts found while cleaning up stale phase reporting.
+This review records project-state conflicts found while cleaning up stale phase reporting. CI was retriggered after GitHub marked the pull request mergeable.
 
 ## Current Source Of Truth
 
