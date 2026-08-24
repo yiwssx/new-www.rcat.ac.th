@@ -2,18 +2,27 @@
 
 This repository is a React/Vite public website and CMS with Cloudflare Worker/D1 backend paths, Vercel admin proxy paths, and an Apps Script media/file bridge.
 
-Current status: M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
+Current status: post-P5H production governance baseline with governed dependency maintenance. Admin UX 00-10 is complete.
 
-M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final. Remaining public, admin, workflow, validation, layout, Thai wording, and user-facing error issues are tracked under M21.
+P5H closed the production-governance hardening sequence. Historical M13-M21 documents remain useful as migration and stabilization evidence, but M21 is not an active or current project phase unless a newer explicit project-status document reopens it. Do not report P6 or M21 as the current phase.
 
 ## Current Source Of Truth
 
-Use these files as current runtime references:
+Use these files as current project and runtime references:
 
+- `docs/architecture/post-p5h-current-project-state.md`
+- `docs/architecture/current-runtime-ownership.md`
+- `docs/deployment/runtime-deployment-guide.md`
+- `docs/admin/admin-ux-execution-tracker.md`
+- `AGENTS.md`
+- `README.md`
+
+Use these migration-era documents as historical evidence only:
+
+- `docs/architecture/current-migration-status.md`
 - `docs/architecture/m20-cleanup-runtime-ownership.md`
 - `docs/architecture/m20-cleanup-ledger.md`
 - `docs/architecture/m21-ui-ux-logic-stabilization.md`
-- `AGENTS.md`
 
 ## Current Runtime Ownership
 
@@ -30,6 +39,16 @@ Use these files as current runtime references:
 - Admin write operations use blocking loading modals while pending, centered success modals requiring acknowledgment, centered error modals requiring acknowledgment, and no short auto-dismiss final-result success toast.
 - This standard applies to Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings.
 - Urgent marquee speed is normalized by pixels per second with distance-based duration. Reduced motion slows the ticker instead of disabling it.
+
+## Reporting Rule
+
+Status reports and future implementation plans must use this wording unless a newer explicit project-state document changes it:
+
+```text
+Current status: post-P5H production governance baseline. Admin UX 00-10 is complete. Ongoing dependency work is governed maintenance.
+```
+
+Do not use migration-era M21 wording as the current project state. Do not introduce P6 as a current phase unless an approved project-state document creates it.
 
 ## Do Not Reintroduce
 
