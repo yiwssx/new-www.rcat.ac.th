@@ -164,7 +164,9 @@ describe("M20 readiness gate", () => {
     expect(currentStatus).toMatch(/Admin structured data provider: Cloudflare/i);
     expect(currentStatus).toMatch(/Public client data provider: Cloudflare/i);
     expect(currentStatus).toMatch(/Database provider: D1/i);
-    expect(currentStatus).toMatch(/M21-era stabilization scope was replaced by the post-P5H production governance baseline/i);
+    expect(currentStatus).toMatch(
+      /M21-era stabilization scope was replaced by the post-P5H production governance baseline/i
+    );
   });
 
   it("exposes the readiness command from root and Worker packages", () => {
