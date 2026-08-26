@@ -289,7 +289,7 @@ describe("PublicSiteViewTracker", () => {
     expect(() => JSON.parse(window.localStorage.getItem("rcat.site.view.throttle.v1") || "")).not.toThrow();
   });
 
-  it("coalesces the StrictMode mount and sends one visible Presence heartbeat per 60 seconds", async () => {
+  it("coalesces the StrictMode mount and sends one visible Presence heartbeat per five minutes", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(TEST_NOW);
     const view = renderTrackedRouter("/news");
@@ -303,7 +303,7 @@ describe("PublicSiteViewTracker", () => {
     );
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(59_999);
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000 - 1);
     });
     expect(recordPresenceMock).toHaveBeenCalledTimes(1);
 
@@ -314,7 +314,7 @@ describe("PublicSiteViewTracker", () => {
 
     view.unmount();
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(120_000);
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
     });
     document.dispatchEvent(new Event("visibilitychange"));
     window.dispatchEvent(new Event("focus"));
@@ -334,7 +334,7 @@ describe("PublicSiteViewTracker", () => {
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(60_000);
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
     });
     expect(recordPresenceMock).toHaveBeenCalledTimes(1);
 
@@ -353,7 +353,7 @@ describe("PublicSiteViewTracker", () => {
     renderTrackedRouter("/news");
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(120_000);
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
     });
     expect(recordPresenceMock).not.toHaveBeenCalled();
 
