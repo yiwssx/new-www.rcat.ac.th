@@ -1,25 +1,18 @@
 import { getPublishedContentRowBySlug } from "../db/contentRepository";
 import { requireD1Database } from "../db/documentsRepository";
 import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } from "../db/publicContentVisibility";
-import {
-  countOnlineVisitors,
-  isVisitorPresenceSchemaMissing,
-  updateDailyOnlineVisitors,
-  upsertVisitorPresence
-} from "../db/visitorStatsRepository";
+import { isVisitorPresenceSchemaMissing, upsertVisitorPresence } from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 import {
   enforcePublicAnalyticsRateLimit,
   PublicAnalyticsRateLimitExceeded,
-  PublicAnalyticsRateLimitSchemaMissing
+  PublicAnalyticsRateLimitUnavailable
 } from "../analyticsAbuseGuard";
 
 const VISITOR_ID_PATTERN = /^rcat_[A-Za-z0-9_-]{12,64}$/;
 const MAX_PATH_LENGTH = 240;
-const SITE_VIEW_RATE_LIMIT_PER_MINUTE = 120;
-const PRESENCE_RATE_LIMIT_PER_MINUTE = 240;
-const CONTENT_VIEW_RATE_LIMIT_PER_MINUTE = 90;
+type PublicAnalyticsResource = "site-view" | "presence" | "content-view";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -54,17 +47,9 @@ function visitorPresenceSchemaError(resource: string) {
   });
 }
 
-function analyticsRateLimitSchemaError(resource: string) {
-  return jsonError("public analytics abuse guard schema is not available", 503, {
-    resource,
-    diagnostic: "public-analytics-rate-limit-schema-missing-v1",
-    suggestedMigration: "run 0007_public_analytics_abuse_guard.sql"
-  });
-}
-
-async function guardAnalyticsWrite(request: Request, env: Env, resource: string, limit: number) {
+async function guardAnalyticsWrite(request: Request, env: Env, resource: PublicAnalyticsResource) {
   try {
-    await enforcePublicAnalyticsRateLimit(request, env, { scope: resource, limit });
+    await enforcePublicAnalyticsRateLimit(request, env, { scope: resource });
     return null;
   } catch (error) {
     if (error instanceof PublicAnalyticsRateLimitExceeded) {
@@ -74,8 +59,11 @@ async function guardAnalyticsWrite(request: Request, env: Env, resource: string,
       });
     }
 
-    if (error instanceof PublicAnalyticsRateLimitSchemaMissing) {
-      return analyticsRateLimitSchemaError(resource);
+    if (error instanceof PublicAnalyticsRateLimitUnavailable) {
+      return jsonError("public analytics rate limiter is unavailable", 503, {
+        resource,
+        diagnostic: "public-analytics-rate-limiter-unavailable-v1"
+      });
     }
 
     throw error;
@@ -95,8 +83,7 @@ async function refreshVisitorPresence(env: Env, visitorId: string, path: string,
   const dailyVisitorId = await hashDailyVisitorId(visitorId, day);
 
   await upsertVisitorPresence(env, { visitorId: dailyVisitorId, day, path, seenAt });
-  const onlineUsers = await countOnlineVisitors(env, now);
-  return { day, dailyVisitorId, onlineUsers, seenAt };
+  return { day, dailyVisitorId };
 }
 
 export async function recordPublicPresence(request: Request, env: Env) {
@@ -104,7 +91,7 @@ export async function recordPublicPresence(request: Request, env: Env) {
     return jsonError("database binding is not configured", 503, { resource: "presence" });
   }
 
-  const rateLimited = await guardAnalyticsWrite(request, env, "presence", PRESENCE_RATE_LIMIT_PER_MINUTE);
+  const rateLimited = await guardAnalyticsWrite(request, env, "presence");
   if (rateLimited) {
     return rateLimited;
   }
@@ -117,8 +104,7 @@ export async function recordPublicPresence(request: Request, env: Env) {
 
   try {
     const presence = await refreshVisitorPresence(env, input.visitorId, input.path, new Date());
-    await updateDailyOnlineVisitors(env, presence.day, presence.onlineUsers, presence.seenAt);
-    return json({ recorded: true, day: presence.day, onlineUsers: presence.onlineUsers });
+    return json({ recorded: true, day: presence.day });
   } catch (error) {
     if (isVisitorPresenceSchemaMissing(error)) {
       return visitorPresenceSchemaError("presence");
@@ -133,7 +119,7 @@ export async function recordPublicSiteView(request: Request, env: Env) {
     return jsonError("database binding is not configured", 503, { resource: "site-view" });
   }
 
-  const rateLimited = await guardAnalyticsWrite(request, env, "site-view", SITE_VIEW_RATE_LIMIT_PER_MINUTE);
+  const rateLimited = await guardAnalyticsWrite(request, env, "site-view");
   if (rateLimited) {
     return rateLimited;
   }
@@ -150,12 +136,10 @@ export async function recordPublicSiteView(request: Request, env: Env) {
   const createdAt = now.toISOString();
   const day = getBangkokDay(now);
   let dailyVisitorId: string;
-  let onlineUsers: number;
 
   try {
     const presence = await refreshVisitorPresence(env, input.visitorId, input.path, now);
     dailyVisitorId = presence.dailyVisitorId;
-    onlineUsers = presence.onlineUsers;
   } catch (error) {
     if (isVisitorPresenceSchemaMissing(error)) {
       return visitorPresenceSchemaError("site-view");
@@ -184,19 +168,18 @@ export async function recordPublicSiteView(request: Request, env: Env) {
     .prepare(
       `INSERT INTO visitor_daily_stats
          (day, total_views, unique_visitors, online_users, updated_at, created_at, updated_by, revision)
-       VALUES (?, 1, ?, ?, ?, ?, 'public-site-view', 0)
+       VALUES (?, 1, ?, 0, ?, ?, 'public-site-view', 0)
        ON CONFLICT(day) DO UPDATE SET
          total_views = visitor_daily_stats.total_views + 1,
          unique_visitors = visitor_daily_stats.unique_visitors + excluded.unique_visitors,
-         online_users = excluded.online_users,
          updated_at = excluded.updated_at,
          updated_by = 'public-site-view',
          revision = visitor_daily_stats.revision + 1`
     )
-    .bind(day, uniqueIncrement, onlineUsers, createdAt, createdAt)
+    .bind(day, uniqueIncrement, createdAt, createdAt)
     .run();
 
-  return json({ recorded: true, day, onlineUsers }, { status: 201 });
+  return json({ recorded: true, day }, { status: 201 });
 }
 
 export async function recordPublicContentView(request: Request, env: Env) {
@@ -204,7 +187,7 @@ export async function recordPublicContentView(request: Request, env: Env) {
     return jsonError("database binding is not configured", 503, { resource: "content-view" });
   }
 
-  const rateLimited = await guardAnalyticsWrite(request, env, "content-view", CONTENT_VIEW_RATE_LIMIT_PER_MINUTE);
+  const rateLimited = await guardAnalyticsWrite(request, env, "content-view");
   if (rateLimited) {
     return rateLimited;
   }

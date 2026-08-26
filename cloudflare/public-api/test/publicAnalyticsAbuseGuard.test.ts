@@ -3,74 +3,83 @@ import { describe, expect, it } from "vitest";
 import {
   enforcePublicAnalyticsRateLimit,
   PublicAnalyticsRateLimitExceeded,
-  PublicAnalyticsRateLimitSchemaMissing
+  PublicAnalyticsRateLimitUnavailable
 } from "../src/analyticsAbuseGuard";
 
-function createRateLimitDb(options: { missing?: boolean } = {}) {
-  const counts = new Map<string, number>();
-
-  return {
-    prepare(query: string) {
-      const bindings: unknown[] = [];
-      return {
-        bind(...values: unknown[]) {
-          bindings.push(...values);
-          return this;
-        },
-        async run() {
-          if (options.missing) throw new Error("no such table: public_write_rate_limits");
-          if (/INSERT INTO public_write_rate_limits/i.test(query)) {
-            const key = String(bindings[0]);
-            counts.set(key, (counts.get(key) ?? 0) + 1);
-          }
-          return { success: true, meta: { changes: 1 } };
-        },
-        async first<T>() {
-          if (options.missing) throw new Error("no such table: public_write_rate_limits");
-          const key = String(bindings[0]);
-          return { request_count: counts.get(key) ?? 0 } as T;
-        }
-      };
+function createRateLimiter(outcomes: boolean[] = [true]) {
+  const keys: string[] = [];
+  let call = 0;
+  const limiter = {
+    async limit({ key }: { key: string }) {
+      keys.push(key);
+      const success = outcomes[Math.min(call, outcomes.length - 1)] ?? true;
+      call += 1;
+      return { success };
     }
-  } as unknown as D1Database;
+  } as RateLimit;
+
+  return { limiter, keys };
 }
 
 describe("public analytics abuse guard", () => {
-  it("limits repeated writes from the same Cloudflare client bucket", async () => {
-    const env = { DB: createRateLimitDb() };
+  it("uses the Worker rate-limit binding without persisting counters in D1", async () => {
+    const state = createRateLimiter([true, true, false]);
+    const env = { PUBLIC_SITE_VIEW_RATE_LIMITER: state.limiter };
     const request = new Request("https://worker.example.test/api/public/site-view", {
       headers: { "CF-Connecting-IP": "203.0.113.10" }
     });
-    const now = new Date("2026-08-08T12:00:30.000Z");
 
-    await expect(
-      enforcePublicAnalyticsRateLimit(request, env, { scope: "site-view", limit: 2, now })
-    ).resolves.toBeUndefined();
-    await expect(
-      enforcePublicAnalyticsRateLimit(request, env, { scope: "site-view", limit: 2, now })
-    ).resolves.toBeUndefined();
-    await expect(
-      enforcePublicAnalyticsRateLimit(request, env, { scope: "site-view", limit: 2, now })
-    ).rejects.toBeInstanceOf(PublicAnalyticsRateLimitExceeded);
+    await expect(enforcePublicAnalyticsRateLimit(request, env, { scope: "site-view" })).resolves.toBeUndefined();
+    await expect(enforcePublicAnalyticsRateLimit(request, env, { scope: "site-view" })).resolves.toBeUndefined();
+    await expect(enforcePublicAnalyticsRateLimit(request, env, { scope: "site-view" })).rejects.toBeInstanceOf(
+      PublicAnalyticsRateLimitExceeded
+    );
+
+    expect(state.keys).toHaveLength(3);
+    expect(new Set(state.keys).size).toBe(1);
+    expect(state.keys[0]).toMatch(/^v1_[a-f0-9]{40}$/);
+    expect(state.keys[0]).not.toContain("203.0.113.10");
   });
 
   it("does not invent an IP when Cloudflare client metadata is absent", async () => {
-    const env = { DB: createRateLimitDb() };
+    const state = createRateLimiter();
+    const env = { PUBLIC_SITE_VIEW_RATE_LIMITER: state.limiter };
     const request = new Request("https://worker.example.test/api/public/site-view");
 
-    await expect(
-      enforcePublicAnalyticsRateLimit(request, env, { scope: "site-view", limit: 1 })
-    ).resolves.toBeUndefined();
+    await expect(enforcePublicAnalyticsRateLimit(request, env, { scope: "site-view" })).resolves.toBeUndefined();
+    expect(state.keys).toHaveLength(0);
   });
 
-  it("reports the required migration when the rate-limit table is missing", async () => {
-    const env = { DB: createRateLimitDb({ missing: true }) };
+  it("allows local and unit-test callers without a runtime rate-limit binding", async () => {
+    const request = new Request("https://worker.example.test/api/public/presence", {
+      headers: { "CF-Connecting-IP": "203.0.113.10" }
+    });
+
+    await expect(enforcePublicAnalyticsRateLimit(request, {}, { scope: "presence" })).resolves.toBeUndefined();
+  });
+
+  it("fails closed when a production rate-limit binding is missing", async () => {
+    const request = new Request("https://worker.example.test/api/public/content-view", {
+      headers: { "CF-Connecting-IP": "203.0.113.10" }
+    });
+
+    await expect(
+      enforcePublicAnalyticsRateLimit(request, { ENVIRONMENT: "production" }, { scope: "content-view" })
+    ).rejects.toBeInstanceOf(PublicAnalyticsRateLimitUnavailable);
+  });
+
+  it("maps runtime binding failures to an unavailable guard", async () => {
+    const limiter = {
+      async limit() {
+        throw new Error("rate limit service unavailable");
+      }
+    } as RateLimit;
     const request = new Request("https://worker.example.test/api/public/site-view", {
       headers: { "CF-Connecting-IP": "203.0.113.10" }
     });
 
     await expect(
-      enforcePublicAnalyticsRateLimit(request, env, { scope: "site-view", limit: 1 })
-    ).rejects.toBeInstanceOf(PublicAnalyticsRateLimitSchemaMissing);
+      enforcePublicAnalyticsRateLimit(request, { PUBLIC_SITE_VIEW_RATE_LIMITER: limiter }, { scope: "site-view" })
+    ).rejects.toBeInstanceOf(PublicAnalyticsRateLimitUnavailable);
   });
 });

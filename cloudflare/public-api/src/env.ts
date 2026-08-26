@@ -10,4 +10,7 @@ export interface Env {
   ENV?: string;
   CF_PAGES_BRANCH?: string;
   DB?: D1Database;
+  PUBLIC_SITE_VIEW_RATE_LIMITER?: RateLimit;
+  PUBLIC_PRESENCE_RATE_LIMITER?: RateLimit;
+  PUBLIC_CONTENT_VIEW_RATE_LIMITER?: RateLimit;
 }

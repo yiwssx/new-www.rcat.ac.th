@@ -6,7 +6,7 @@ import {
 } from "../../shared/telemetry/publicTelemetryRoutes";
 
 export const SITE_VISITOR_ID_STORAGE_KEY = "rcat.site.visitor.id";
-export const PRESENCE_HEARTBEAT_MS = 60_000;
+export const PRESENCE_HEARTBEAT_MS = 5 * 60 * 1000;
 
 const SITE_VIEW_THROTTLE_STORAGE_KEY = "rcat.site.view.throttle.v1";
 const SITE_VIEW_THROTTLE_MS = 30 * 60 * 1000;
