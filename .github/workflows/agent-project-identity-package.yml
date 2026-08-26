@@ -1,0 +1,52 @@
+name: Agent Project Identity Package
+
+on:
+  push:
+    branches:
+      - agent/project-identity-v3-3-0
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Update package identity
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const path = 'package.json';
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+          pkg.name = 'www.rcat.ac.th';
+          pkg.version = '3.3.0';
+          pkg.description = 'Official web platform for Roi Et College of Agriculture and Technology.';
+          pkg.homepage = 'https://www.rcat.ac.th/';
+          pkg.license = 'UNLICENSED';
+          fs.writeFileSync(path, `${JSON.stringify(pkg, null, 2)}\n`);
+          NODE
+      - run: pnpm deps:status
+      - run: |
+          pnpm deps:status:check
+          pnpm deps:docs:audit
+          pnpm exec prettier --check package.json docs/maintenance/dependency-current-status.md
+      - name: Commit generated metadata
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json docs/maintenance/dependency-current-status.md
+          git commit -m "chore(project): establish www.rcat.ac.th v3.3.0 identity"
+          git push origin HEAD:agent/project-identity-v3-3-0
