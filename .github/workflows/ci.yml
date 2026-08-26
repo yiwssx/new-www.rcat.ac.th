@@ -54,7 +54,11 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - run: pnpm format:check
+      - name: Show formatter diff
+        run: |
+          pnpm exec prettier --write tests/functional/publicTelemetry.spec.ts
+          git diff -- tests/functional/publicTelemetry.spec.ts
+          exit 1
       - run: pnpm lint:strict
 
   unit:
