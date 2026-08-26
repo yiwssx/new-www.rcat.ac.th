@@ -9,6 +9,33 @@ binding = "DB"
 database_name = "rcat-public-api-local"
 database_id = "local-placeholder"
 
+# Public analytics rate limits run on Cloudflare's Rate Limiting binding instead
+# of writing a counter row into D1 for every telemetry request. Namespace IDs
+# are intentionally distinct from the canonical production bindings below.
+[[ratelimits]]
+name = "PUBLIC_SITE_VIEW_RATE_LIMITER"
+namespace_id = "2690101"
+
+[ratelimits.simple]
+limit = 120
+period = 60
+
+[[ratelimits]]
+name = "PUBLIC_PRESENCE_RATE_LIMITER"
+namespace_id = "2690102"
+
+[ratelimits.simple]
+limit = 240
+period = 60
+
+[[ratelimits]]
+name = "PUBLIC_CONTENT_VIEW_RATE_LIMITER"
+namespace_id = "2690103"
+
+[ratelimits.simple]
+limit = 90
+period = 60
+
 # Canonical production runtime promoted in place.
 # Both the existing Worker and data-bearing D1 retain their historical physical
 # Cloudflare name `rcat-public-api-preview`, while their canonical role is now
@@ -31,3 +58,27 @@ crons = ["17 19 * * *"]
 binding = "DB"
 database_name = "rcat-public-api-preview"
 database_id = "production-placeholder"
+
+[[env.production.ratelimits]]
+name = "PUBLIC_SITE_VIEW_RATE_LIMITER"
+namespace_id = "2690201"
+
+[env.production.ratelimits.simple]
+limit = 120
+period = 60
+
+[[env.production.ratelimits]]
+name = "PUBLIC_PRESENCE_RATE_LIMITER"
+namespace_id = "2690202"
+
+[env.production.ratelimits.simple]
+limit = 240
+period = 60
+
+[[env.production.ratelimits]]
+name = "PUBLIC_CONTENT_VIEW_RATE_LIMITER"
+namespace_id = "2690203"
+
+[env.production.ratelimits.simple]
+limit = 90
+period = 60
