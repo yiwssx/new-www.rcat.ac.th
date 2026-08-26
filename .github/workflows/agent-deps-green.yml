@@ -1,0 +1,49 @@
+name: Agent Dependency Green
+
+on:
+  push:
+    branches:
+      - agent/deps-green-20260826
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Update age-eligible direct dependencies
+        run: |
+          pnpm add @tanstack/react-query@5.102.0 @tanstack/react-router@1.170.32 jose@6.2.10
+          pnpm add -D @cloudflare/workers-types@5.20260822.1 @testing-library/user-event@14.6.6 @vitejs/plugin-react@6.1.0 @vitest/coverage-v8@4.1.11 eslint@10.9.0 sigmap@8.28.1 vitest@4.1.11 wrangler@4.125.0
+      - name: Refresh dependency status documentation
+        run: pnpm deps:status
+      - name: Validate dependency policy and freshness
+        run: |
+          pnpm deps:check
+          pnpm deps:latest:check
+          pnpm deps:docs:audit
+      - name: Commit generated update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml docs/maintenance/dependency-current-status.md
+          if git diff --cached --quiet; then
+            echo "No dependency changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(deps): refresh age-eligible dependencies"
+          git push origin HEAD:agent/deps-green-20260826
