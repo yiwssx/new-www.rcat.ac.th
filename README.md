@@ -1,151 +1,137 @@
-# RCAT Public Website and CMS
+# www.rcat.ac.th
 
-React/Vite public website and CMS for Roi-Et College of Agriculture and Technology.
+Official web platform of **Roi Et College of Agriculture and Technology** (วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด).
 
-Updated: 2026-08-17.
+**Current version:** `3.3.0`  
+**Production site:** `https://www.rcat.ac.th/`  
+**Package identity:** `www.rcat.ac.th`
 
-This README describes the current runtime, development conventions, and project-state interpretation after the CMS Session reliability work, Admin Menu hierarchy/URL refactor, Public SSR cutover, Cloudflare-only Public runtime cleanup, and P5H production-governance hardening.
+> **Proprietary software — All Rights Reserved.**  
+> This repository is publicly visible, but the software is **not open source**. Public repository visibility does not grant permission to copy, modify, redistribute, sublicense, publish, commercially exploit, or create derivative works from the college-owned software. See [`LICENSE`](LICENSE).
 
-## Current Project State
+## Product
 
-Current status: post-P5H production governance baseline with ongoing governed dependency maintenance.
+`www.rcat.ac.th` is the production website platform and content-management system for Roi Et College of Agriculture and Technology.
 
-P5H closed the current production-hardening sequence covering Worker maintainability, CMS link integrity, request correlation governance, Apps Script release governance, D1 credential-boundary hardening, and production audit/release evidence.
+It is no longer a template, starter, or standalone CMS project. The current system includes the public website, SSR/SEO runtime, CMS/admin application, API/backend services, structured data, authentication/session services, analytics, media integration, deployment controls, and operational governance required by the production site.
 
-Governed Renovate dependency maintenance is expected to continue after P5H. It is not considered feature, runtime, or stabilization-scope expansion when it follows the repository dependency policy and passes the required CI/governance gates.
+## Current Architecture
 
-Historical M13-M21 milestone documents remain useful as migration and stabilization history, but they do not define the current active project state after P5H. When historical milestone text conflicts with the current runtime, deployment, security, governance, toolchain, or maintenance documentation, the current documents listed below take precedence.
+Runtime ownership is intentionally split by responsibility:
 
-## Current Runtime Ownership
+- **Public website:** React + TypeScript with server-side rendering and hydration on Vercel.
+- **Public routing and SEO:** SSR-aware TanStack Router routes, runtime metadata, and runtime sitemap handling.
+- **Structured public data:** Cloudflare Worker + D1.
+- **Public analytics and visitor statistics:** Cloudflare Worker + D1.
+- **CMS/admin structured reads and writes:** Cloudflare Worker + D1.
+- **CMS identity, sessions, RBAC, MFA, CSRF, step-up assurance, revocation, and user lifecycle:** Cloudflare Worker + D1 through same-origin Vercel proxy routes.
+- **Media/file bridge:** Google Apps Script behind authenticated server-side proxy boundaries.
+- **File storage:** Google Drive.
+- **Frontend/server deployment:** Vercel.
+- **API/data runtime:** Cloudflare Worker + D1.
 
-- Public structured reads: Cloudflare Worker + D1.
-- Public analytics, site view, content view, visitor presence, and live visitor statistics: Cloudflare Worker + D1.
-- Admin structured reads and writes: Cloudflare Worker + D1.
-- CMS identity, sessions, RBAC, MFA, CSRF, step-up assurance, session revocation, and user lifecycle: Cloudflare Worker + D1, reached through same-origin Vercel proxies.
-- Admin/session proxy: Vercel server-side proxy.
-- Media/file bridge: Apps Script behind the authenticated Vercel proxy.
-- File storage: Google Drive behind the Apps Script media/file bridge.
-- Runtime sitemap: Vercel `/sitemap.xml` -> `/api/sitemap`, backed by live Cloudflare public data.
+The authoritative runtime ownership document is [`docs/architecture/current-runtime-ownership.md`](docs/architecture/current-runtime-ownership.md).
 
-Public structured data has no runtime provider selector. Cloudflare Worker + D1 is the current Public structured-data and analytics owner.
+## Product Generations
 
-The authoritative current ownership document is:
+The project predates formal semantic versioning. Its history has been reconstructed from explicit architecture and release evidence without rewriting the Git commit graph.
 
-`docs/architecture/current-runtime-ownership.md`
+| Version | Generation | Product boundary |
+| --- | --- | --- |
+| `v1.0.0` | Apps Script generation | Stabilized React/Vite + Apps Script production architecture before D1 migration |
+| `v2.0.0` | Cloudflare + D1 generation | D1-backed application field-cutover generation |
+| `v3.0.0` | SSR generation | SSR/SEO implementation promoted to production |
+| `v3.1.0` | Post-SSR stabilization | SSR and project-audit remediation baseline |
+| `v3.2.0` | Production hardening | Canonical D1 convergence, recovery, release, and audit hardening |
+| `v3.3.0` | Governed production baseline | Explicit product identity, licensing, versioning, and current production governance |
 
-### Admin Menu
+See [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) for exact historical anchor commits and rationale. See [`CHANGELOG.md`](CHANGELOG.md) for the release log from the explicit versioning baseline onward.
 
-The Admin Menu editor uses a hierarchical mental model:
+## Versioning Policy
 
-- menu items are presented as a tree;
-- child menus are displayed beneath their parent;
-- users select a parent by readable menu name rather than typing an internal menu ID;
-- internal IDs remain implementation details;
-- explicit internal paths are preserved;
-- the editor must not automatically rewrite `/some-path` to `/content/some-path`;
-- `/content/$slug` remains supported, but root permalink `/$slug` is also a valid public content route;
-- ordering is performed within sibling groups.
+From `v3.3.0` forward, the project follows semantic versioning with architecture-aware major versions:
 
-See:
+- **MAJOR** — new production architecture generation or deliberately breaking platform boundary.
+- **MINOR** — significant backward-compatible product capability, stabilization baseline, or production hardening/convergence milestone.
+- **PATCH** — backward-compatible fixes, dependency maintenance, documentation corrections, and narrowly scoped operational changes.
 
-`docs/admin/admin-menu-management.md`
+`package.json`, release tags, and release notes should move together for future releases.
 
-## CMS Session Behavior
+## Source and Licensing
 
-CMS Sessions remain server-authoritative.
+Copyright © 2026 **Roi Et College of Agriculture and Technology**. All Rights Reserved.
 
-Current policy:
+This repository is source-visible for project operation, deployment, review, and engineering collaboration. It is not distributed under an open-source license.
 
-- idle timeout: 30 minutes;
-- absolute lifetime: 8 hours;
-- server touch threshold: 5 minutes;
-- meaningful recent Admin activity can trigger a throttled session refresh while the page is visible;
-- a merely open but unattended tab must not keep a Session alive forever;
-- temporary `5xx`/network failures must not be treated as genuine Session expiration;
-- a genuine Session-expiration `401` can clear authentication;
-- unsaved Content Editor state has recovery protection for true Session expiration.
+The root package declares:
 
-See:
-
-`docs/cms-auth-session-lifecycle.md`
-
-## UI Test Policy
-
-Do not use the complete repository quality/release suite as the first feedback loop for a small UI fix.
-
-For a focused Admin Menu change, run the focused Menu tests first:
-
-```bash
-pnpm exec vitest run src/admin/pages/menuPageModel.test.ts src/admin/pages/MenuPage.test.tsx
+```json
+{
+  "name": "www.rcat.ac.th",
+  "private": true,
+  "version": "3.3.0",
+  "license": "UNLICENSED"
+}
 ```
 
-Then run the production TypeScript/Vite build:
+`UNLICENSED` is the package-manager signal that no public software license is granted. The human-readable proprietary terms are in [`LICENSE`](LICENSE).
 
-```bash
-pnpm build
-```
-
-Broader unit, integration, governance, Worker, and functional suites remain important, but they should follow targeted validation rather than block the first edit/test cycle.
-
-See:
-
-`docs/development/ui-testing-policy.md`
+Third-party packages, fonts, libraries, and assets remain subject to their own license terms. For example, bundled font license files continue to apply independently of the college-owned source-code license.
 
 ## Stack
 
-- React 19 + TypeScript strict mode
+- React 19
+- TypeScript strict mode
 - Vite
-- Tailwind CSS v4
-- MUI
 - TanStack Router
 - TanStack Query and Table
-- Vercel frontend, Public SSR, and same-origin server routes
-- Cloudflare Worker and D1
-- Apps Script media/file bridge
-- Google Drive file storage
+- MUI
+- Tailwind CSS v4
+- Vercel SSR and server routes
+- Cloudflare Workers
+- Cloudflare D1
+- Google Apps Script media/file bridge
+- Google Drive storage
+- Vitest
+- Playwright
 
 ## Toolchain
 
-The checked-in toolchain contract is:
+The checked-in runtime/toolchain contract is:
 
 - Node `24.x`
 - pnpm `10.34.5`
 
-Use the versions declared by `package.json`, `packageManager`, `.node-version` where applicable, and CI. Do not document or reintroduce Node 22 as the current project requirement.
-
-Install:
+Install dependencies with:
 
 ```bash
-pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile --strict-peer-dependencies
 ```
 
-## Common Commands
-
-Development:
+Start local frontend development with:
 
 ```bash
 pnpm dev
 ```
 
-Focused verification:
+## Quality and Release Gates
 
-```bash
-pnpm exec vitest run <affected-test-files>
-pnpm build
-```
+Focused development should start with the tests relevant to the change, followed by broader gates when appropriate.
 
-Repository suites:
+Core repository gates include:
 
 ```bash
 pnpm format:check
 pnpm lint:strict
 pnpm test:unit
 pnpm test:integration
-pnpm test:functional
+pnpm build
 pnpm worker:typecheck
+pnpm worker:deploy:dry
+pnpm test:functional
 ```
 
-Governance/release:
+Governance and release checks include:
 
 ```bash
 pnpm perf:check
@@ -157,67 +143,70 @@ pnpm quality:full
 pnpm quality:release
 ```
 
-`quality:release` is a release-scale command. It is intentionally not the default edit-loop command for a small UI change.
-
-## Project Settings
-
-Checked-in non-secret project settings live in:
-
-`src/config/project-settings.json`
-
-Do not store secrets, tokens, production credentials, D1 IDs, Access identifiers, private deployment URLs, Recovery Codes, session tokens, or encryption keys in project settings or documentation.
-
-## Runtime Sitemap
-
-Vercel rewrites `/sitemap.xml` to `/api/sitemap`.
-
-The server function combines the known indexable Public route set with published canonical content records from Cloudflare Worker/D1. Dynamic sitemap content currently comes from News, Announcements (including published Public page items), and Blog. It does not derive routes from the Public menu. Program records remain represented by the indexable `/departments` listing route because there is no canonical Public program-detail route.
-
-The build does not generate a tracked `public/sitemap.xml`.
-
-Relevant verification:
+Dependency governance includes:
 
 ```bash
-pnpm test:sitemap
-pnpm build
+pnpm deps:status:check
+pnpm deps:check
+pnpm deps:latest:check
+pnpm deps:docs:audit
 ```
 
-## Deployment
+The GitHub `quality` status is a protected merge gate for the production branch.
 
-General rule:
+## Deployment Model
 
-- React/Vite or `server/*` change -> Vercel.
-- Cloudflare Worker runtime/config change -> Cloudflare Worker.
-- new D1 migration -> apply migration and deploy compatible Worker as required.
-- Apps Script `.gs` media bridge change -> Apps Script.
-- docs/tests only -> no runtime deployment.
+General deployment ownership:
 
-The Admin Menu hierarchy refactor is a frontend/Admin UI change when only `src/admin/**` and documentation/tests change; it requires Vercel deployment, not a Worker/D1 migration.
+- React/Vite, SSR, or Vercel server-route change → Vercel deployment.
+- Cloudflare Worker runtime/config change → Cloudflare Worker deployment.
+- New D1 migration → migration plus compatible Worker release under the repository's production gates.
+- Apps Script media/file bridge change → Apps Script deployment.
+- Documentation/tests-only change → no runtime deployment is required.
 
-See:
+See [`docs/deployment/runtime-deployment-guide.md`](docs/deployment/runtime-deployment-guide.md).
 
-`docs/deployment/runtime-deployment-guide.md`
+## Security Boundary
 
-## Documentation
+Repository visibility must never be treated as a security boundary.
 
-- Icon system: `docs/design/icon-system.md`
+Do not commit:
 
-Current documents:
+- secrets or API tokens;
+- production credentials;
+- Cloudflare account/database secrets;
+- private deployment URLs or access credentials;
+- session tokens, MFA secrets, or recovery codes;
+- encryption/signing keys;
+- private operational evidence containing sensitive identifiers.
 
-- Current project state: `docs/architecture/post-p5h-current-project-state.md`
-- Runtime ownership: `docs/architecture/current-runtime-ownership.md`
-- Post-P5H maintainability / observability closure context: `docs/operations/p5h-maintainability-observability-2026-08-16.md`
-- Production environment convergence: `docs/architecture/production-environment-convergence-2026-08-16.md`
-- Runtime deployment: `docs/deployment/runtime-deployment-guide.md`
-- Apps Script media bridge deployment: `docs/deployment/apps-script-deployment-checklist.md`
-- Dependency status: `docs/maintenance/dependency-current-status.md`
-- Admin Menu behavior: `docs/admin/admin-menu-management.md`
-- CMS Session lifecycle: `docs/cms-auth-session-lifecycle.md`
-- UI test policy: `docs/development/ui-testing-policy.md`
-- Public SSR verification: `docs/operations/public-ssr-cutover.md`
-- Environment variables: `docs/development/environment-variables.md`
-- Historical migration status: `docs/architecture/current-migration-status.md`
-- Historical M20 ownership closure: `docs/architecture/m20-cleanup-runtime-ownership.md`
-- CMS authentication cutover runbook: `docs/cms-auth-final-cutover.md`
+Checked-in non-secret project settings live in `src/config/project-settings.json`.
 
-Historical milestone documents preserve the state and evidence of their milestones. For current project state, runtime ownership, Node/pnpm, Session behavior, Menu UX, Public provider ownership, SSR asset behavior, deployment decisions, dependency maintenance, and governance boundaries, use the current documents listed above.
+Current security and governance controls include CI quality gates, dependency audit/freshness policy, D1 migration sequencing, Worker dry-deploy validation, production data-integrity checks, Apps Script release governance, SSR/CSP readiness checks, and recovery documentation.
+
+## Current Documentation
+
+Primary current-state documents:
+
+- Product history: [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md)
+- Changelog: [`CHANGELOG.md`](CHANGELOG.md)
+- Runtime ownership: [`docs/architecture/current-runtime-ownership.md`](docs/architecture/current-runtime-ownership.md)
+- Current project state: [`docs/architecture/post-p5h-current-project-state.md`](docs/architecture/post-p5h-current-project-state.md)
+- Runtime deployment: [`docs/deployment/runtime-deployment-guide.md`](docs/deployment/runtime-deployment-guide.md)
+- Dependency status: [`docs/maintenance/dependency-current-status.md`](docs/maintenance/dependency-current-status.md)
+- Environment variables: [`docs/development/environment-variables.md`](docs/development/environment-variables.md)
+- CMS session lifecycle: [`docs/cms-auth-session-lifecycle.md`](docs/cms-auth-session-lifecycle.md)
+- Public SSR verification: [`docs/operations/public-ssr-cutover.md`](docs/operations/public-ssr-cutover.md)
+- Apps Script media bridge deployment: [`docs/deployment/apps-script-deployment-checklist.md`](docs/deployment/apps-script-deployment-checklist.md)
+
+## Historical Documentation
+
+M-series, P-series, migration, preview, replacement, cutover, and stabilization documents are retained when they describe historical work that actually occurred. They are engineering/audit evidence and are not automatically rewritten to current terminology.
+
+When historical text conflicts with present runtime ownership, product identity, toolchain, security policy, or release governance, the current documents listed above take precedence.
+
+The full Git history is intentionally preserved. Product history is curated; engineering history remains auditable.
+
+---
+
+Copyright © 2026 Roi Et College of Agriculture and Technology. All Rights Reserved.
