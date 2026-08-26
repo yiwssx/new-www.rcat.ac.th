@@ -285,16 +285,16 @@ test.describe("Public telemetry request governance", () => {
     await dispatchVisibilityAndFocus(page, "visible");
     expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(1);
 
-    // Visitor stats may refresh after 60 seconds, but Presence stays throttled
-    // until the five-minute path budget expires.
-    await page.clock.pauseAt(pausedAt + 61_001);
+    // Advance through timers so React Query visible polling executes while
+    // Presence remains inside its five-minute throttle window.
+    await page.clock.runFor(60_001);
     expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(1);
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);
 
     // The exact 299,999/300,000 millisecond Presence boundary is covered by the
-    // deterministic unit test. Advance past five minutes and wait for the
-    // persistent tracker interval to settle.
-    await page.clock.pauseAt(pausedAt + 301_001);
+    // deterministic unit test. runFor() is intentional here: unlike pauseAt(),
+    // it advances and executes the tracker's setInterval callback.
+    await page.clock.runFor(240_000);
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);
 
     await dispatchVisibilityAndFocus(page, "visible");
@@ -304,10 +304,9 @@ test.describe("Public telemetry request governance", () => {
     expect(statsBeforeHidden).toBeGreaterThanOrEqual(1);
 
     await dispatchVisibilityAndFocus(page, "hidden", false);
-    // Publish the hidden state so React Query cancels visible polling, then
-    // remain hidden for another full Presence budget.
-    await page.clock.runFor(1);
-    await page.clock.pauseAt(pausedAt + 601_001);
+    // Run another full Presence budget while hidden. Timers execute, but the
+    // tracker must suppress Presence and visible visitor-stats polling.
+    await page.clock.runFor(300_001);
     expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);
     expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(statsBeforeHidden);
 
