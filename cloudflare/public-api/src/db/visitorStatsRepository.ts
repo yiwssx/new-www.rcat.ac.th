@@ -2,6 +2,8 @@ import type { Env } from "../env";
 import { requireD1Database } from "./documentsRepository";
 import { VISITOR_DAILY_STATS_ROW_COLUMNS, type VisitorDailyStatsRow } from "./schema";
 
+const ONLINE_VISITOR_WINDOW_MS = 10 * 60 * 1000;
+
 export async function listVisitorDailyStatsRows(env: Env): Promise<VisitorDailyStatsRow[]> {
   const db = requireD1Database(env);
   const result = await db
@@ -17,7 +19,7 @@ export async function listVisitorDailyStatsRows(env: Env): Promise<VisitorDailyS
 
 export async function countOnlineVisitors(env: Env, generatedAt = new Date()): Promise<number> {
   const db = requireD1Database(env);
-  const onlineSince = new Date(generatedAt.getTime() - 5 * 60 * 1000).toISOString();
+  const onlineSince = new Date(generatedAt.getTime() - ONLINE_VISITOR_WINDOW_MS).toISOString();
   const result = await db
     .prepare(
       `SELECT COUNT(DISTINCT visitor_id) AS online_users
@@ -46,24 +48,6 @@ export async function upsertVisitorPresence(
          last_seen_at = excluded.last_seen_at`
     )
     .bind(presenceId, input.visitorId, input.day, input.path, input.seenAt, input.seenAt)
-    .run();
-}
-
-export async function updateDailyOnlineVisitors(env: Env, day: string, onlineUsers: number, updatedAt: string) {
-  const db = requireD1Database(env);
-
-  await db
-    .prepare(
-      `INSERT INTO visitor_daily_stats
-         (day, total_views, unique_visitors, online_users, updated_at, created_at, updated_by, revision)
-       VALUES (?, 0, 0, ?, ?, ?, 'public-presence', 0)
-       ON CONFLICT(day) DO UPDATE SET
-         online_users = excluded.online_users,
-         updated_at = excluded.updated_at,
-         updated_by = 'public-presence',
-         revision = visitor_daily_stats.revision + 1`
-    )
-    .bind(day, onlineUsers, updatedAt, updatedAt)
     .run();
 }
 
