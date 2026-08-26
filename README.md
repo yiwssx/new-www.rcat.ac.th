@@ -36,13 +36,13 @@ The authoritative runtime ownership document is [`docs/architecture/current-runt
 
 The project predates formal semantic versioning. Its history has been reconstructed from explicit architecture and release evidence without rewriting the Git commit graph.
 
-| Version | Generation | Product boundary |
-| --- | --- | --- |
-| `v1.0.0` | Apps Script generation | Stabilized React/Vite + Apps Script production architecture before D1 migration |
-| `v2.0.0` | Cloudflare + D1 generation | D1-backed application field-cutover generation |
-| `v3.0.0` | SSR generation | SSR/SEO implementation promoted to production |
-| `v3.1.0` | Post-SSR stabilization | SSR and project-audit remediation baseline |
-| `v3.2.0` | Production hardening | Canonical D1 convergence, recovery, release, and audit hardening |
+| Version  | Generation                   | Product boundary                                                                    |
+| -------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| `v1.0.0` | Apps Script generation       | Stabilized React/Vite + Apps Script production architecture before D1 migration     |
+| `v2.0.0` | Cloudflare + D1 generation   | D1-backed application field-cutover generation                                      |
+| `v3.0.0` | SSR generation               | SSR/SEO implementation promoted to production                                       |
+| `v3.1.0` | Post-SSR stabilization       | SSR and project-audit remediation baseline                                          |
+| `v3.2.0` | Production hardening         | Canonical D1 convergence, recovery, release, and audit hardening                    |
 | `v3.3.0` | Governed production baseline | Explicit product identity, licensing, versioning, and current production governance |
 
 See [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) for exact historical anchor commits and rationale. See [`CHANGELOG.md`](CHANGELOG.md) for the release log from the explicit versioning baseline onward.
