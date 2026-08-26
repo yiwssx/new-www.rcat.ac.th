@@ -1,7 +1,7 @@
 {
-  "name": "rcat-cms-template",
+  "name": "www.rcat.ac.th",
   "private": true,
-  "version": "0.1.0",
+  "version": "3.3.0",
   "type": "module",
   "engines": {
     "node": "24.x",
@@ -145,5 +145,8 @@
     "*.{json,md,css,html,yml,yaml}": [
       "prettier --write"
     ]
-  }
+  },
+  "description": "Official web platform for Roi Et College of Agriculture and Technology.",
+  "homepage": "https://www.rcat.ac.th/",
+  "license": "UNLICENSED"
 }
