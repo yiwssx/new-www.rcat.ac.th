@@ -189,17 +189,17 @@ describe("Cloudflare public analytics writes", () => {
     await worker.fetch(request("rcat_mnopqrstuvwx"), { DB: state.db });
     await worker.fetch(request("rcat_abcdefghijkl"), { DB: state.db });
 
-    const liveStatsResponse = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), {
+    const liveStats = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), {
       DB: state.db
     });
-    expect(await readOnlineUsers(liveStatsResponse)).toBe(2);
+    expect(await readOnlineUsers(liveStats)).toBe(2);
     expect(Number([...state.visitorRows.values()][0]?.online_users)).toBe(0);
 
     vi.setSystemTime(new Date("2026-06-22T04:11:00.000Z"));
-    const staleStatsResponse = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), {
+    const staleStats = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), {
       DB: state.db
     });
-    expect(await readOnlineUsers(staleStatsResponse)).toBe(0);
+    expect(await readOnlineUsers(staleStats)).toBe(0);
   });
 
   it("updates presence with one presence write and no daily-stats write", async () => {
@@ -222,16 +222,16 @@ describe("Cloudflare public analytics writes", () => {
     expect(state.visitorPresence.size).toBe(2);
     expect(state.visitorRows.size).toBe(0);
 
-    const liveStatsResponse = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), {
+    const liveStats = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), {
       DB: state.db
     });
-    expect(await readOnlineUsers(liveStatsResponse)).toBe(2);
+    expect(await readOnlineUsers(liveStats)).toBe(2);
 
     vi.setSystemTime(new Date("2026-06-22T04:11:00.000Z"));
-    const staleStatsResponse = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), {
+    const staleStats = await worker.fetch(new Request("https://public-api.example.test/api/public/visitor-stats"), {
       DB: state.db
     });
-    expect(await readOnlineUsers(staleStatsResponse)).toBe(0);
+    expect(await readOnlineUsers(staleStats)).toBe(0);
   });
 
   it("returns a migration diagnostic when visitor_presence is unavailable", async () => {
