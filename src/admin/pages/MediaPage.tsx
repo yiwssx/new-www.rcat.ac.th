@@ -125,6 +125,54 @@ function getMediaIcon(type: MediaAsset["type"]) {
   return <DescriptionOutlinedIcon />;
 }
 
+function extractDriveFileId(value?: string) {
+  const url = String(value || "").trim();
+  const patterns = [/\/file\/d\/([A-Za-z0-9_-]+)/, /[?&]id=([A-Za-z0-9_-]+)/, /\/d\/([A-Za-z0-9_-]+)/];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+
+  return "";
+}
+
+function getMediaDriveFileId(asset: MediaAsset) {
+  const directFileId = String(asset.fileId || "").trim();
+  if (directFileId) {
+    return directFileId;
+  }
+
+  for (const value of [asset.driveUrl, asset.thumbnailUrl, asset.previewUrl, asset.embedUrl]) {
+    const fileId = extractDriveFileId(value);
+    if (fileId) {
+      return fileId;
+    }
+  }
+
+  return "";
+}
+
+function buildDriveThumbnailUrl(fileId: string) {
+  return fileId ? `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1200` : "";
+}
+
+function getMediaPreviewUrl(asset: MediaAsset) {
+  const thumbnailUrl = String(asset.thumbnailUrl || "").trim();
+  if (thumbnailUrl) {
+    return thumbnailUrl;
+  }
+
+  const driveThumbnailUrl = buildDriveThumbnailUrl(getMediaDriveFileId(asset));
+  if (driveThumbnailUrl) {
+    return driveThumbnailUrl;
+  }
+
+  return asset.type === "image" ? String(asset.previewUrl || "").trim() : "";
+}
+
 function toFormState(asset: MediaAsset): MediaFormState {
   return {
     name: asset.name,
@@ -135,12 +183,8 @@ function toFormState(asset: MediaAsset): MediaFormState {
 }
 
 function MediaPreview({ asset }: { asset: MediaAsset }) {
-  const previewUrl = asset.thumbnailUrl || asset.previewUrl || "";
+  const previewUrl = getMediaPreviewUrl(asset);
   const [previewFailed, setPreviewFailed] = useState(false);
-
-  if (asset.type !== "image") {
-    return <Box sx={{ fontSize: 46, display: "grid", placeItems: "center" }}>{getMediaIcon(asset.type)}</Box>;
-  }
 
   if (!previewUrl || previewFailed) {
     return (
@@ -165,6 +209,8 @@ function MediaPreview({ asset }: { asset: MediaAsset }) {
     );
   }
 
+  const shouldContain = asset.type === "document" || asset.type === "sheet";
+
   return (
     <Box
       component="img"
@@ -172,7 +218,12 @@ function MediaPreview({ asset }: { asset: MediaAsset }) {
       alt={asset.name}
       loading="lazy"
       onError={() => setPreviewFailed(true)}
-      sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+      sx={{
+        width: "100%",
+        height: "100%",
+        objectFit: shouldContain ? "contain" : "cover",
+        backgroundColor: shouldContain ? "background.paper" : "transparent"
+      }}
     />
   );
 }
@@ -194,7 +245,7 @@ export function MediaAssetCard({
   onEdit,
   onDelete
 }: MediaAssetCardProps) {
-  const previewKey = `${asset.id}:${asset.thumbnailUrl || asset.previewUrl || "missing"}`;
+  const previewKey = `${asset.id}:${asset.thumbnailUrl || asset.fileId || asset.previewUrl || asset.driveUrl || "missing"}`;
   const driveActionDisabled = actionsDisabled || !asset.driveUrl;
 
   return (
