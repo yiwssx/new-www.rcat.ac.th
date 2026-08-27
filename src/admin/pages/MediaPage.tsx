@@ -230,9 +230,8 @@ export function MediaAssetCard({
   onEdit,
   onDelete
 }: MediaAssetCardProps) {
-  const previewKey = `${asset.id}:${
-    asset.thumbnailUrl || asset.fileId || asset.previewUrl || asset.driveUrl || "missing"
-  }`;
+  const previewSource = asset.thumbnailUrl || asset.fileId || asset.previewUrl || asset.driveUrl || "missing";
+  const previewKey = `${asset.id}:${previewSource}`;
   const driveActionDisabled = actionsDisabled || !asset.driveUrl;
 
   return (
