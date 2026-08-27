@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Box, Card, CardContent, Container, Stack, Typography } from "@mui/material";
-import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import { getCmsSiteName } from "../../config/projectSettings";
+import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
 
 export interface AuthPageLayoutProps {
   title: string;
@@ -36,19 +35,16 @@ export default function AuthPageLayout({ title, description, children, showBrand
                   }}
                 >
                   <Box
+                    component="img"
+                    src={projectSettings.site.logoPath}
+                    alt={projectSettings.site.logoAlt}
                     sx={{
-                      width: 52,
-                      height: 52,
-                      borderRadius: "50%",
-                      display: "grid",
-                      placeItems: "center",
-                      color: "primary.main",
-                      backgroundColor: "primary.light",
+                      width: { xs: 56, sm: 64 },
+                      height: { xs: 56, sm: 64 },
+                      objectFit: "contain",
                       flex: "0 0 auto"
                     }}
-                  >
-                    <SchoolOutlinedIcon aria-hidden="true" />
-                  </Box>
+                  />
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="h1" sx={{ overflowWrap: "anywhere" }}>
                       {getCmsSiteName()}
