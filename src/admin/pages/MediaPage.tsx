@@ -127,7 +127,11 @@ function getMediaIcon(type: MediaAsset["type"]) {
 
 function extractDriveFileId(value?: string) {
   const url = String(value || "").trim();
-  const patterns = [/\/file\/d\/([A-Za-z0-9_-]+)/, /[?&]id=([A-Za-z0-9_-]+)/, /\/d\/([A-Za-z0-9_-]+)/];
+  const patterns = [
+    /\/file\/d\/([A-Za-z0-9_-]+)/,
+    /[?&]id=([A-Za-z0-9_-]+)/,
+    /\/d\/([A-Za-z0-9_-]+)/
+  ];
 
   for (const pattern of patterns) {
     const match = url.match(pattern);
@@ -165,12 +169,14 @@ function getMediaPreviewUrl(asset: MediaAsset) {
     return thumbnailUrl;
   }
 
-  const driveThumbnailUrl = buildDriveThumbnailUrl(getMediaDriveFileId(asset));
-  if (driveThumbnailUrl) {
-    return driveThumbnailUrl;
+  if (asset.type === "image") {
+    const imagePreviewUrl = String(asset.previewUrl || "").trim();
+    if (imagePreviewUrl) {
+      return imagePreviewUrl;
+    }
   }
 
-  return asset.type === "image" ? String(asset.previewUrl || "").trim() : "";
+  return buildDriveThumbnailUrl(getMediaDriveFileId(asset));
 }
 
 function toFormState(asset: MediaAsset): MediaFormState {
