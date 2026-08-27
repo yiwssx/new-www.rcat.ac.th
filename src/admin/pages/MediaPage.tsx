@@ -59,10 +59,7 @@ import { appSwal } from "../../utils/swal";
 import { formatFileSize, readFileAsBase64 } from "../../utils/files";
 import { mediaTypeLabels } from "../../utils/thaiLabels";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
-import {
-  buildGoogleDriveThumbnailUrl,
-  extractGoogleDriveFileId
-} from "../../shared/media/publicImageSources";
+import { buildGoogleDriveThumbnailUrl, extractGoogleDriveFileId } from "../../shared/media/publicImageSources";
 import { ADMIN_READ_ONLY_NOTICE, canManageMedia } from "../utils/rbac";
 import ActionBar from "../../design-system/components/ActionBar";
 
@@ -233,7 +230,9 @@ export function MediaAssetCard({
   onEdit,
   onDelete
 }: MediaAssetCardProps) {
-  const previewKey = `${asset.id}:${asset.thumbnailUrl || asset.fileId || asset.previewUrl || asset.driveUrl || "missing"}`;
+  const previewKey = `${asset.id}:${
+    asset.thumbnailUrl || asset.fileId || asset.previewUrl || asset.driveUrl || "missing"
+  }`;
   const driveActionDisabled = actionsDisabled || !asset.driveUrl;
 
   return (
