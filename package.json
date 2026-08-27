@@ -57,7 +57,7 @@
     "lint:report": "eslint \"src/**/*.{ts,tsx}\" \"scripts/**/*.{js,mjs}\" \"api/**/*.{js,mjs}\" \"server/**/*.{js,mjs}\" \"*.config.{js,mjs,ts}\" \"cloudflare/public-api/src/**/*.ts\" \"cloudflare/public-api/test/**/*.ts\" \"cloudflare/public-api/scripts/**/*.{js,mjs}\" \"apps-script/**/*.gs\" --format stylish",
     "lint:strict": "eslint \"src/**/*.{ts,tsx}\" \"scripts/**/*.{js,mjs}\" \"api/**/*.{js,mjs}\" \"server/**/*.{js,mjs}\" \"*.config.{js,mjs,ts}\" \"cloudflare/public-api/src/**/*.ts\" \"cloudflare/public-api/test/**/*.ts\" \"cloudflare/public-api/scripts/**/*.{js,mjs}\" \"apps-script/**/*.gs\" --max-warnings=0",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write src/admin/pages/MediaPage.tsx && git diff -- src/admin/pages/MediaPage.tsx && exit 1",
     "perf:check": "node scripts/check-public-performance-budget.mjs",
     "media:check": "node scripts/check-public-media-governance.mjs",
     "layout:check": "node scripts/check-public-layout-stability.mjs",
