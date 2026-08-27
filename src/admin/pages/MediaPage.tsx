@@ -59,6 +59,10 @@ import { appSwal } from "../../utils/swal";
 import { formatFileSize, readFileAsBase64 } from "../../utils/files";
 import { mediaTypeLabels } from "../../utils/thaiLabels";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
+import {
+  buildGoogleDriveThumbnailUrl,
+  extractGoogleDriveFileId
+} from "../../shared/media/publicImageSources";
 import { ADMIN_READ_ONLY_NOTICE, canManageMedia } from "../utils/rbac";
 import ActionBar from "../../design-system/components/ActionBar";
 
@@ -125,24 +129,6 @@ function getMediaIcon(type: MediaAsset["type"]) {
   return <DescriptionOutlinedIcon />;
 }
 
-function extractDriveFileId(value?: string) {
-  const url = String(value || "").trim();
-  const patterns = [
-    /\/file\/d\/([A-Za-z0-9_-]+)/,
-    /[?&]id=([A-Za-z0-9_-]+)/,
-    /\/d\/([A-Za-z0-9_-]+)/
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match?.[1]) {
-      return match[1];
-    }
-  }
-
-  return "";
-}
-
 function getMediaDriveFileId(asset: MediaAsset) {
   const directFileId = String(asset.fileId || "").trim();
   if (directFileId) {
@@ -150,17 +136,13 @@ function getMediaDriveFileId(asset: MediaAsset) {
   }
 
   for (const value of [asset.driveUrl, asset.thumbnailUrl, asset.previewUrl, asset.embedUrl]) {
-    const fileId = extractDriveFileId(value);
+    const fileId = extractGoogleDriveFileId(value);
     if (fileId) {
       return fileId;
     }
   }
 
   return "";
-}
-
-function buildDriveThumbnailUrl(fileId: string) {
-  return fileId ? `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1200` : "";
 }
 
 function getMediaPreviewUrl(asset: MediaAsset) {
@@ -176,7 +158,7 @@ function getMediaPreviewUrl(asset: MediaAsset) {
     }
   }
 
-  return buildDriveThumbnailUrl(getMediaDriveFileId(asset));
+  return buildGoogleDriveThumbnailUrl(getMediaDriveFileId(asset), 1200);
 }
 
 function toFormState(asset: MediaAsset): MediaFormState {
