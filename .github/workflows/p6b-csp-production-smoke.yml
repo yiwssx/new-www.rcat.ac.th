@@ -37,7 +37,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: pnpm exec playwright install --with-deps chromium
-      - name: Verify production CSP candidate
+      - name: Verify production CSP enforcement
         env:
-          P6B_CSP_EXPECTED_MARKER: p6b-candidate-v1
+          P6B_CSP_EXPECTED_MARKER: p6b-enforced-v1
         run: node scripts/p6b-csp-production-smoke.mjs
