@@ -57,9 +57,7 @@ try {
     await page.waitForTimeout(2500);
 
     const violations = await page.evaluate(() => window.__rcatCspViolations || []);
-    const relevant = violations.filter(
-      (item) => item.disposition === "report" || item.disposition === "enforce"
-    );
+    const relevant = violations.filter((item) => item.disposition === "report" || item.disposition === "enforce");
 
     if (!response || response.status() >= 500) {
       throw new Error(`${path} returned ${response?.status() ?? "no response"}`);

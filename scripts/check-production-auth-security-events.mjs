@@ -62,11 +62,7 @@ const events = accounts.flatMap((account) =>
 const sensitive = events.filter((event) => {
   const path = String(event.clientRequestPath || "");
   const action = String(event.action || "").toLowerCase();
-  return (
-    (path.startsWith("/api/cms-auth/") || path === "/api/admin-proxy") &&
-    action !== "allow" &&
-    action !== "skip"
-  );
+  return (path.startsWith("/api/cms-auth/") || path === "/api/admin-proxy") && action !== "allow" && action !== "skip";
 });
 
 const count = sensitive.length;

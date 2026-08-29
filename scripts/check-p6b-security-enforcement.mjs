@@ -56,12 +56,7 @@ if (enforcing) {
     await readFile(new URL("../config/csp-enforcement-readiness.json", import.meta.url), "utf8")
   );
   const clean = Object.values(readiness.surfaces || {}).every((status) => status === "clean");
-  if (
-    readiness.approvedForEnforcement !== true ||
-    !clean ||
-    !readiness.reviewedAt ||
-    !readiness.rollbackOwner
-  ) {
+  if (readiness.approvedForEnforcement !== true || !clean || !readiness.reviewedAt || !readiness.rollbackOwner) {
     fail("enforcing CSP requires approved, clean readiness evidence and rollback ownership");
   }
 }
