@@ -4,11 +4,13 @@ This project is a React/Vite public website and CMS for Roi-Et College of Agricu
 
 ## Current Project Status
 
-Current status: post-P5H production governance baseline with ongoing governed dependency maintenance.
+Current status: post-P5H production governance baseline with an active Production Observability guard and ongoing governed dependency maintenance.
 
 Use `docs/architecture/post-p5h-current-project-state.md` as the current project-state note.
 
-P5H closed the current production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, and the current post-P5H maintenance posture.
+P5H closed the current production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, the Production Observability D1 usage guard, and the current post-P5H maintenance posture.
+
+The Production Observability guard completed its activation gate on 2026-08-29. Treat it as completed requested work under the post-P5H baseline, not as a reopened P6 phase. Use `docs/operations/p6a-production-observability.md` for closure evidence and operational constraints.
 
 Admin UX 00-10 is complete. Use `docs/admin/admin-ux-execution-tracker.md` for the completed Admin UX sequence. Do not treat that sequence as a reopened M21 phase.
 
@@ -21,7 +23,7 @@ Governed Renovate dependency maintenance is expected to continue after P5H. It i
 When reporting current project status, use:
 
 ```text
-post-P5H production governance baseline + governed dependency maintenance + Admin UX 00-10 completed
+post-P5H production governance baseline + Production Observability guard active + governed dependency maintenance + Admin UX 00-10 completed
 ```
 
 Do not report P6, M20, or M21 as the current active phase unless a newer explicit project-status document reopens one of them.
@@ -60,6 +62,7 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - D1 migration history.
 - M13-M21 milestone records as historical evidence.
 - P5H production governance baseline documents.
+- Production Observability D1 usage guard and its read-only analytics credential boundary.
 - Sigmap AI helper workflow.
 - Governed Renovate dependency maintenance under the repository dependency policy.
 
