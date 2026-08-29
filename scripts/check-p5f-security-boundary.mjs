@@ -67,8 +67,16 @@ for (const surface of requiredSurfaces) {
 }
 
 const readiness = JSON.parse(read("config/csp-enforcement-readiness.json"));
-if (readiness.approvedForEnforcement !== false) {
-  fail("P5F evidence collection must not approve CSP enforcement");
+const enforcementApproved = readiness.approvedForEnforcement === true;
+if (readiness.approvedForEnforcement !== false && !enforcementApproved) {
+  fail("CSP enforcement approval must be an explicit boolean");
+}
+
+if (enforcementApproved) {
+  const allSurfacesClean = requiredSurfaces.every((surface) => readiness.surfaces?.[surface] === "clean");
+  if (!allSurfacesClean || !readiness.reviewedAt || !readiness.rollbackOwner) {
+    fail("P6B enforcement requires clean production evidence, review time, and rollback ownership");
+  }
 }
 
 const vercel = JSON.parse(read("vercel.json"));
@@ -79,17 +87,22 @@ const reportOnlyHeaders = responseHeaders.filter(
 const enforcingHeaders = responseHeaders.filter(
   (header) => String(header.key).toLowerCase() === "content-security-policy"
 );
-if (reportOnlyHeaders.length === 0) {
-  fail("Content-Security-Policy-Report-Only must remain enabled during P5F evidence collection");
-}
-if (enforcingHeaders.length > 0) {
-  fail("P5F must not switch CSP to enforcement");
+
+if (!enforcementApproved) {
+  if (reportOnlyHeaders.length === 0) {
+    fail("Content-Security-Policy-Report-Only must remain enabled during P5F evidence collection");
+  }
+  if (enforcingHeaders.length > 0) {
+    fail("P5F must not switch CSP to enforcement before explicit P6B approval");
+  }
+} else if (enforcingHeaders.length === 0) {
+  fail("approved P6B CSP enforcement requires an enforcing Content-Security-Policy header");
 }
 
-for (const header of reportOnlyHeaders) {
+for (const header of [...reportOnlyHeaders, ...enforcingHeaders]) {
   const policy = String(header.value || "");
   if (!policy.includes("report-uri /api/csp-report")) {
-    fail("report-only CSP must continue reporting to /api/csp-report");
+    fail("CSP must continue reporting to /api/csp-report");
   }
   if (policy.includes("'unsafe-eval'")) {
     fail("CSP must not be weakened with unsafe-eval");
@@ -111,5 +124,5 @@ const counts = requiredSurfaces.reduce(
 );
 
 console.log(
-  `P5F security boundary: dedicated D1 read paths verified; CSP evidence ${counts.clean} clean / ${counts.blocked} blocked / ${counts.pending} pending; enforcement remains off.`
+  `P5F security boundary: dedicated D1 read paths verified; CSP evidence ${counts.clean} clean / ${counts.blocked} blocked / ${counts.pending} pending; enforcement ${enforcementApproved ? "approved by P6B evidence" : "remains off"}.`
 );
