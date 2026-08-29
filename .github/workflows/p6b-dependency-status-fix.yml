@@ -1,0 +1,37 @@
+name: P6B Dependency Status Fix
+
+on:
+  push:
+    branches:
+      - fix/p6b-dedicated-security-token
+    paths:
+      - ".github/workflows/p6b-dependency-status-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/p6b-dedicated-security-token
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm deps:status
+      - name: Commit dependency status
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/maintenance/dependency-current-status.md
+          git diff --cached --quiet && exit 0
+          git commit -m "docs(deps): refresh dependency status for P6B"
+          git push origin HEAD:fix/p6b-dedicated-security-token
