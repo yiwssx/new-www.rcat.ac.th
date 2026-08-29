@@ -44,11 +44,20 @@ for (const required of ["/api/internal", "/api/cms-auth", "/api/admin-proxy", "p
   if (!edgeWaf.includes(required)) fail(`Vercel edge WAF is missing ${required}`);
 }
 
-const workerRateLimit = await readFile(new URL("../cloudflare/public-api/src/securityRateLimit.ts", import.meta.url), "utf8");
+const workerRateLimit = await readFile(
+  new URL("../cloudflare/public-api/src/securityRateLimit.ts", import.meta.url),
+  "utf8"
+);
 const workerEnv = await readFile(new URL("../cloudflare/public-api/src/env.ts", import.meta.url), "utf8");
 const wrangler = await readFile(new URL("../cloudflare/public-api/wrangler.toml", import.meta.url), "utf8");
-const cmsAuth = await readFile(new URL("../cloudflare/public-api/src/routes/cmsAuthInternal.ts", import.meta.url), "utf8");
-const adminWrite = await readFile(new URL("../cloudflare/public-api/src/routes/adminWrite.ts", import.meta.url), "utf8");
+const cmsAuth = await readFile(
+  new URL("../cloudflare/public-api/src/routes/cmsAuthInternal.ts", import.meta.url),
+  "utf8"
+);
+const adminWrite = await readFile(
+  new URL("../cloudflare/public-api/src/routes/adminWrite.ts", import.meta.url),
+  "utf8"
+);
 
 for (const binding of ["CMS_AUTH_RATE_LIMITER", "ADMIN_API_RATE_LIMITER"]) {
   if (!workerEnv.includes(binding) || !wrangler.includes(`name = "${binding}"`)) {
