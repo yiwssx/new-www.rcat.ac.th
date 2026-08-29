@@ -33,16 +33,6 @@ function requireHeader(response, name, predicate, message) {
   }
 }
 
-function requireRobotsMeta(html, expectedDirectives, message) {
-  const metaTags = html.match(/<meta\b[^>]*>/gi) || [];
-  const robotsTag = metaTags.find((tag) => /\bname=["']robots["']/i.test(tag));
-  const content = robotsTag?.match(/\bcontent=["']([^"']*)["']/i)?.[1]?.toLowerCase() || "";
-
-  if (!robotsTag || !expectedDirectives.every((directive) => content.includes(directive))) {
-    fail(`${message}; robots meta=${content || "<missing>"}`);
-  }
-}
-
 async function checkHome() {
   const response = await request("/");
   if (response.status !== 200) {
@@ -88,12 +78,19 @@ async function checkLogin() {
   if (response.status !== 200) {
     fail(`/login expected 200, received ${response.status}`);
   }
-  requireRobotsMeta(
-    await response.text(),
-    ["noindex", "nofollow"],
-    "login SSR head must retain the Admin/Auth noindex boundary"
+  requireHeader(
+    response,
+    "x-robots-tag",
+    (value) => value.toLowerCase().includes("noindex") && value.toLowerCase().includes("nofollow"),
+    "login CSR response must retain the Admin/Auth noindex boundary"
   );
-  console.log("P6C reliability: login surface reachable with SSR robots boundary.");
+  requireHeader(
+    response,
+    "cache-control",
+    (value) => value.toLowerCase().includes("no-store"),
+    "login CSR response must remain uncached"
+  );
+  console.log("P6C reliability: login CSR security headers healthy.");
 }
 
 async function checkEdgeWaf() {
