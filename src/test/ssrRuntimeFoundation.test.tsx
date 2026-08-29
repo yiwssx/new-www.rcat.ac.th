@@ -36,7 +36,8 @@ describe("SSR runtime foundation", () => {
     expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
     const nonce = html.match(/nonce="([^"]+)"/)?.[1];
     expect(nonce).toBeTruthy();
-    expect(response.headers.get("Content-Security-Policy-Report-Only")).toContain(`'nonce-${nonce}'`);
+    expect(response.headers.get("Content-Security-Policy")).toContain(`'nonce-${nonce}'`);
+    expect(response.headers.get("Content-Security-Policy-Report-Only")).toBeNull();
     expect(html).toContain(`ข่าว | ${projectSettings.site.name}`);
     expect(html).toContain("https://www.rcat.ac.th/news?page=2");
   });
