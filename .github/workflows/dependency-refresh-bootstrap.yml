@@ -1,0 +1,44 @@
+name: Dependency Refresh Bootstrap
+
+on:
+  push:
+    branches:
+      - chore/deps-typescript-eslint-8.68.0
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm up typescript-eslint@8.68.0
+      - run: pnpm deps:status
+      - run: pnpm deps:check
+
+      - name: Commit deterministic dependency refresh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml docs/maintenance/dependency-current-status.md
+          if git diff --cached --quiet; then
+            echo "No dependency changes produced."
+            exit 1
+          fi
+          git commit -m "chore(deps): update typescript-eslint to 8.68.0"
+          git push
