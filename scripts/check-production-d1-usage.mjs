@@ -14,13 +14,13 @@ const DEFAULT_THRESHOLDS = {
 const D1_ANALYTICS_QUERY = `query D1ProductionUsage(
   $accountTag: string!
   $start: Date
-  $end: Date
+  $endExclusive: Date
 ) {
   viewer {
     accounts(filter: { accountTag: $accountTag }) {
       d1AnalyticsAdaptiveGroups(
         limit: 10000
-        filter: { date_geq: $start, date_leq: $end }
+        filter: { date_geq: $start, date_lt: $endExclusive }
         orderBy: [date_ASC]
       ) {
         sum {
@@ -217,7 +217,7 @@ export function formatD1UsageMarkdown(report) {
   ].join("\n");
 }
 
-export async function fetchD1Analytics({ accountId, token, start, end, fetchImpl = fetch }) {
+export async function fetchD1Analytics({ accountId, token, start, endExclusive, fetchImpl = fetch }) {
   if (!accountId) throw new Error("CLOUDFLARE_ACCOUNT_ID is required");
   if (!token) throw new Error("CLOUDFLARE_ANALYTICS_READ_TOKEN is required");
 
@@ -236,7 +236,7 @@ export async function fetchD1Analytics({ accountId, token, start, end, fetchImpl
         variables: {
           accountTag: accountId,
           start,
-          end
+          endExclusive
         }
       }),
       signal: controller.signal
@@ -278,13 +278,13 @@ export async function runCli(env = process.env, now = new Date()) {
   const lookbackDays = Math.round(
     requirePositiveNumber(env.D1_USAGE_LOOKBACK_DAYS, DEFAULT_LOOKBACK_DAYS, "lookback days")
   );
-  const end = utcDateString(now);
   const start = utcDateString(addUtcDays(now, -(lookbackDays - 1)));
+  const endExclusive = utcDateString(addUtcDays(now, 1));
   const groups = await fetchD1Analytics({
     accountId: String(env.CLOUDFLARE_ACCOUNT_ID ?? "").trim(),
     token: String(env.CLOUDFLARE_ANALYTICS_READ_TOKEN ?? "").trim(),
     start,
-    end
+    endExclusive
   });
 
   const report = buildD1UsageReport({
