@@ -66,10 +66,31 @@ for (const contract of [
   '"/api/internal/p6c-reliability-probe"',
   "p6b-enforced-v1",
   "p6b-vercel-v1",
+  "x-robots-tag",
+  "nofollow",
   "no-store"
 ]) {
   if (!reliabilitySmoke.includes(contract)) {
     fail(`production reliability smoke is missing contract ${contract}`);
+  }
+}
+
+const vercel = JSON.parse(read("vercel.json"));
+const sensitiveCsrSources = ["/login", "/activate-account", "/reset-password", "/admin", "/admin/:path*"];
+const headerRules = new Map((vercel.headers || []).map((entry) => [entry.source, entry.headers || []]));
+for (const source of sensitiveCsrSources) {
+  const headers = headerRules.get(source);
+  if (!headers) {
+    fail(`${source} must define direct response headers instead of relying on rewrite destination headers`);
+  }
+  const byName = new Map(headers.map((header) => [String(header.key || "").toLowerCase(), String(header.value || "")]));
+  const robots = (byName.get("x-robots-tag") || "").toLowerCase();
+  const cacheControl = (byName.get("cache-control") || "").toLowerCase();
+  if (!robots.includes("noindex") || !robots.includes("nofollow")) {
+    fail(`${source} must return X-Robots-Tag noindex,nofollow directly`);
+  }
+  if (!cacheControl.includes("no-store")) {
+    fail(`${source} must return Cache-Control no-store directly`);
   }
 }
 
