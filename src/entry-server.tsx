@@ -28,7 +28,7 @@ export async function renderSsrResponse(request: Request) {
     });
     const emotionResponse = await finalizeEmotionSsrResponse(response);
     const securityHeaders = new Headers(emotionResponse.headers);
-    securityHeaders.set("Content-Security-Policy-Report-Only", buildContentSecurityPolicy({ scriptNonce: cspNonce }));
+    securityHeaders.set("Content-Security-Policy", buildContentSecurityPolicy({ scriptNonce: cspNonce }));
     const securedResponse = new Response(emotionResponse.body, {
       status: emotionResponse.status,
       statusText: emotionResponse.statusText,
