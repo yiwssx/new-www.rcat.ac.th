@@ -50,6 +50,11 @@ import {
 import { validateAdminLinkWriteRequest } from "../adminLinkValidation";
 import type { Env } from "../env";
 import { json, jsonError, methodNotAllowed } from "../responses";
+import {
+  SecurityRateLimitExceeded,
+  SecurityRateLimitUnavailable,
+  enforceSecurityRateLimit
+} from "../securityRateLimit";
 import { handleAdminBackup } from "./adminBackup";
 import { handleAdminPaginatedReads } from "./adminPagination";
 import { handleAdminStructuredParity, readAdminStructuredSnapshot } from "./adminStructuredParity";
@@ -2048,6 +2053,23 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
     }
 
     return response;
+  }
+
+  try {
+    await enforceSecurityRateLimit(request, env, "admin-api");
+  } catch (error) {
+    if (error instanceof SecurityRateLimitExceeded) {
+      const response = jsonError("too many admin requests", 429, { resource: "admin-structured-data" });
+      response.headers.set("Cache-Control", "no-store");
+      response.headers.set("Retry-After", String(error.retryAfterSeconds));
+      return response;
+    }
+
+    if (error instanceof SecurityRateLimitUnavailable) {
+      return jsonError("admin security service is unavailable", 503, { resource: "admin-structured-data" });
+    }
+
+    throw error;
   }
 
   if (!env.DB) {
