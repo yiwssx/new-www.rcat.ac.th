@@ -7,6 +7,11 @@ on:
         description: "Confirm this production readiness drill is read-only and never restores"
         required: true
         type: boolean
+      restore_timestamp:
+        description: "Optional RFC3339/ISO-8601 past timestamp to resolve as a read-only recovery point"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -87,26 +92,47 @@ jobs:
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-info.json", "utf8"));
             const metadata = Array.isArray(value) ? value[0] : value;
             if (metadata?.name !== process.env.PRODUCTION_D1_RESOURCE_NAME) throw new Error("production D1 metadata did not resolve the expected physical resource");
+            if (metadata?.version && metadata.version !== "production") throw new Error("production D1 is not on the Time Travel capable production storage backend");
             console.log("Production D1 metadata resolved for the promoted data-bearing resource.");
           '
 
       - name: Resolve production Time Travel bookmark
+        id: time-travel
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          RESTORE_TIMESTAMP: ${{ inputs.restore_timestamp }}
         run: |
-          pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+          set -euo pipefail
+          if [[ -n "$RESTORE_TIMESTAMP" ]]; then
+            node -e '
+              const value = process.env.RESTORE_TIMESTAMP;
+              const parsed = Date.parse(value);
+              if (!Number.isFinite(parsed)) throw new Error("restore_timestamp must be a valid RFC3339/ISO-8601 timestamp");
+              if (parsed >= Date.now()) throw new Error("restore_timestamp must be in the past");
+            '
+            pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" \
+              --timestamp="$RESTORE_TIMESTAMP" \
+              --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+            echo "target_mode=historical-timestamp" >> "$GITHUB_OUTPUT"
+          else
+            pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" \
+              --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+            echo "target_mode=current" >> "$GITHUB_OUTPUT"
+          fi
           node -e '
             const fs = require("fs");
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-time-travel.json", "utf8"));
             const metadata = Array.isArray(value) ? value[0] : value;
             if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) throw new Error("production Time Travel bookmark was not returned");
-            console.log("Production Time Travel bookmark resolved. No restore was executed.");
+            console.log("Production Time Travel recovery point resolved. No restore was executed.");
           '
 
       - name: Drill summary
         shell: bash
+        env:
+          TARGET_MODE: ${{ steps.time-travel.outputs.target_mode }}
         run: |
           {
             echo "## D1 Recovery Drill"
@@ -114,8 +140,9 @@ jobs:
             echo "- Canonical role: production"
             echo "- D1 physical resource label: legacy preview name retained; protected UUID is authoritative"
             echo "- Credential role: dedicated D1 read token from protected production Environment"
-            echo "- Readiness proof: Wrangler Time Travel info returned a current production bookmark"
-            echo "- Mode: read-only metadata / Time Travel bookmark resolution"
+            echo "- Recovery point mode: $TARGET_MODE"
+            echo "- Readiness proof: Wrangler Time Travel info returned a production bookmark"
+            echo "- Mode: read-only metadata / Time Travel recovery-point resolution"
             echo "- Time Travel restore: not present in this workflow"
             echo "- Production D1 write: none"
           } >> "$GITHUB_STEP_SUMMARY"
