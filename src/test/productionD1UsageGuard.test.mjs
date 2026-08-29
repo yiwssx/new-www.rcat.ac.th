@@ -49,7 +49,22 @@ describe("production D1 usage guard", () => {
         writeQueries: 150
       }
     ]);
-    expect(aggregated.databases[0]).toMatchObject({ databaseId: "db-a", rowsWritten: 40_000 });
+    expect(aggregated.databases).toEqual([
+      {
+        databaseId: "db-b",
+        rowsRead: 2_000_000,
+        rowsWritten: 45_000,
+        readQueries: 90,
+        writeQueries: 70
+      },
+      {
+        databaseId: "db-a",
+        rowsRead: 2_400_000,
+        rowsWritten: 40_000,
+        readQueries: 195,
+        writeQueries: 105
+      }
+    ]);
   });
 
   it("reports the highest current-day severity across reads and writes", () => {
@@ -80,7 +95,7 @@ describe("production D1 usage guard", () => {
       expect(body.variables).toEqual({
         accountTag: "account-id",
         start: "2026-08-16",
-        end: "2026-08-29"
+        endExclusive: "2026-08-30"
       });
       return new Response(
         JSON.stringify({
@@ -99,7 +114,7 @@ describe("production D1 usage guard", () => {
         accountId: "account-id",
         token: "analytics-token",
         start: "2026-08-16",
-        end: "2026-08-29",
+        endExclusive: "2026-08-30",
         fetchImpl
       })
     ).resolves.toEqual(sampleGroups);
