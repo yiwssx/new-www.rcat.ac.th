@@ -4,12 +4,12 @@ import { describe, expect, it } from "vitest";
 import vercelConfig from "../../vercel.json";
 
 describe("M21 Vercel security headers", () => {
-  it("covers all frontend routes with baseline security headers and keeps CSP report-only before enforcement", () => {
+  it("covers all frontend routes with baseline security headers and enforces the approved CSP", () => {
     const allRoutesHeader = vercelConfig.headers.find((entry) => entry.source === "/(.*)");
     const reportOnlyPolicy = allRoutesHeader?.headers.find(
       (header) => header.key === "Content-Security-Policy-Report-Only"
-    )?.value;
-    const enforcingPolicy = allRoutesHeader?.headers.find((header) => header.key === "Content-Security-Policy");
+    );
+    const enforcingPolicy = allRoutesHeader?.headers.find((header) => header.key === "Content-Security-Policy")?.value;
 
     expect(allRoutesHeader).toBeDefined();
     expect(allRoutesHeader?.headers).toEqual(
@@ -21,15 +21,15 @@ describe("M21 Vercel security headers", () => {
         { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }
       ])
     );
-    expect(reportOnlyPolicy).toContain("default-src 'self'");
-    expect(reportOnlyPolicy).toContain("object-src 'none'");
-    expect(reportOnlyPolicy).toContain("frame-ancestors 'none'");
-    expect(reportOnlyPolicy).toContain("script-src 'self'");
-    expect(reportOnlyPolicy).toContain("frame-src https://www.facebook.com");
-    expect(reportOnlyPolicy).toContain("connect-src 'self' https://*.workers.dev https://*.rcat.ac.th");
-    expect(reportOnlyPolicy).toContain("font-src 'self' data:");
-    expect(reportOnlyPolicy).toContain("report-uri /api/csp-report");
-    expect(enforcingPolicy).toBeUndefined();
+    expect(enforcingPolicy).toContain("default-src 'self'");
+    expect(enforcingPolicy).toContain("object-src 'none'");
+    expect(enforcingPolicy).toContain("frame-ancestors 'none'");
+    expect(enforcingPolicy).toContain("script-src 'self'");
+    expect(enforcingPolicy).toContain("frame-src https://www.facebook.com");
+    expect(enforcingPolicy).toContain("connect-src 'self' https://*.workers.dev https://*.rcat.ac.th");
+    expect(enforcingPolicy).toContain("font-src 'self' data:");
+    expect(enforcingPolicy).toContain("report-uri /api/csp-report");
+    expect(reportOnlyPolicy).toBeUndefined();
     expect(JSON.stringify(vercelConfig)).not.toContain("preload");
 
     expect(vercelConfig.rewrites).toContainEqual({

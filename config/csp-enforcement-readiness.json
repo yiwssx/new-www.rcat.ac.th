@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "approvedForEnforcement": false,
-  "reviewedAt": null,
-  "rollbackOwner": null,
+  "approvedForEnforcement": true,
+  "reviewedAt": "2026-08-29T16:04:47Z",
+  "rollbackOwner": "RCAT IT / yiwssx",
   "surfaces": {
-    "public-ssr": "pending",
-    "public-navigation": "pending",
-    "auth": "pending",
-    "admin": "pending",
-    "media": "pending",
-    "complaint": "pending",
-    "facebook-embed": "pending"
+    "public-ssr": "clean",
+    "public-navigation": "clean",
+    "auth": "clean",
+    "admin": "clean",
+    "media": "clean",
+    "complaint": "clean",
+    "facebook-embed": "clean"
   },
-  "notes": "Report-only remains required. P5F production observations are recorded in config/csp-production-evidence.json; current blockers/pending browser samples must be resolved before any surface moves to clean. Mark a surface clean only from observed browser/report evidence, not from absence of retained logs."
+  "notes": "Approved from P6B CSP Production Smoke run 33261803140 after the production candidate marker converged on www.rcat.ac.th. Playwright observed zero CSP violations on /, /search?q=rcat, /complaint, the Facebook content route, /login, /admin, and /admin/media. Roll back by restoring report-only CSP and the candidate marker if the enforcing smoke detects a regression."
 }
