@@ -1,0 +1,48 @@
+name: P6C Production Reliability
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/p6c-production-reliability.yml"
+      - "scripts/p6c-production-reliability-smoke.mjs"
+      - "scripts/check-p6c-recovery-reliability.mjs"
+      - "config/p6c-recovery-readiness.json"
+      - "docs/operations/p6c-recovery-reliability.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p6c-production-reliability
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Public Recovery Baseline
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Run public production reliability smoke
+        run: node scripts/p6c-production-reliability-smoke.mjs
+      - name: Reliability summary
+        if: ${{ success() }}
+        run: |
+          {
+            echo "## P6C Production Reliability"
+            echo
+            echo "- Credential mode: public/read-only"
+            echo "- Protected production Environment: not used"
+            echo "- Home SSR/security baseline: passed"
+            echo "- Live uncached search/Public data dependency: passed"
+            echo "- Login reachability/noindex boundary: passed"
+            echo "- Vercel edge WAF deny probe: passed"
+          } >> "$GITHUB_STEP_SUMMARY"
