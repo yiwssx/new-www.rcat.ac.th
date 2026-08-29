@@ -40,12 +40,12 @@
           "value": "max-age=31536000; includeSubDomains"
         },
         {
-          "key": "Content-Security-Policy-Report-Only",
+          "key": "Content-Security-Policy",
           "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.workers.dev https://*.rcat.ac.th https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com; frame-src https://www.facebook.com https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com https://docs.google.com https://drive.google.com; media-src 'self' blob: https:; worker-src 'self' blob:; manifest-src 'self'; report-uri /api/csp-report"
         },
         {
           "key": "X-RCAT-Security-Baseline",
-          "value": "p6b-candidate-v1"
+          "value": "p6b-enforced-v1"
         }
       ]
     },
