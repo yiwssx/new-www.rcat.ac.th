@@ -26,7 +26,6 @@ jobs:
       D1_USAGE_INFO_RATIO: ${{ vars.D1_USAGE_INFO_RATIO || '0.50' }}
       D1_USAGE_WARNING_RATIO: ${{ vars.D1_USAGE_WARNING_RATIO || '0.70' }}
       D1_USAGE_CRITICAL_RATIO: ${{ vars.D1_USAGE_CRITICAL_RATIO || '0.85' }}
-      D1_USAGE_REPORT_PATH: ${{ runner.temp }}/production-observability-report.json
 
     steps:
       - uses: actions/checkout@v7
@@ -56,6 +55,7 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+          D1_USAGE_REPORT_PATH: ${{ runner.temp }}/production-observability-report.json
         run: node scripts/check-production-d1-usage.mjs
 
       - name: Fail on warning or critical daily usage
