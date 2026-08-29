@@ -80,7 +80,11 @@ function severityRank(severity) {
 }
 
 function maxSeverity(...values) {
-  return values.reduce((current, value) => (severityRank(value) > severityRank(current) ? value : current), "healthy");
+  return values.reduce(
+    (current, value) =>
+      severityRank(value) > severityRank(current) ? value : current,
+    "healthy"
+  );
 }
 
 export function aggregateD1AnalyticsGroups(groups) {
@@ -89,7 +93,8 @@ export function aggregateD1AnalyticsGroups(groups) {
 
   for (const group of Array.isArray(groups) ? groups : []) {
     const date = String(group?.dimensions?.date ?? "").trim();
-    const databaseId = String(group?.dimensions?.databaseId ?? "unknown").trim() || "unknown";
+    const databaseId =
+      String(group?.dimensions?.databaseId ?? "unknown").trim() || "unknown";
     if (!date) continue;
 
     const values = {
@@ -128,7 +133,9 @@ export function aggregateD1AnalyticsGroups(groups) {
 
   return {
     daily: [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)),
-    databases: [...byDatabase.values()].sort((a, b) => b.rowsWritten - a.rowsWritten || b.rowsRead - a.rowsRead)
+    databases: [...byDatabase.values()].sort(
+      (a, b) => b.rowsWritten - a.rowsWritten || b.rowsRead - a.rowsRead
+    )
   };
 }
 
@@ -139,16 +146,41 @@ export function buildD1UsageReport({
   thresholds = {}
 }) {
   const resolvedLimits = {
-    rowsRead: requirePositiveNumber(limits.rowsRead, DEFAULT_ROWS_READ_LIMIT, "rows read limit"),
-    rowsWritten: requirePositiveNumber(limits.rowsWritten, DEFAULT_ROWS_WRITTEN_LIMIT, "rows written limit")
+    rowsRead: requirePositiveNumber(
+      limits.rowsRead,
+      DEFAULT_ROWS_READ_LIMIT,
+      "rows read limit"
+    ),
+    rowsWritten: requirePositiveNumber(
+      limits.rowsWritten,
+      DEFAULT_ROWS_WRITTEN_LIMIT,
+      "rows written limit"
+    )
   };
   const resolvedThresholds = {
-    info: requireRatio(thresholds.info, DEFAULT_THRESHOLDS.info, "info threshold"),
-    warning: requireRatio(thresholds.warning, DEFAULT_THRESHOLDS.warning, "warning threshold"),
-    critical: requireRatio(thresholds.critical, DEFAULT_THRESHOLDS.critical, "critical threshold")
+    info: requireRatio(
+      thresholds.info,
+      DEFAULT_THRESHOLDS.info,
+      "info threshold"
+    ),
+    warning: requireRatio(
+      thresholds.warning,
+      DEFAULT_THRESHOLDS.warning,
+      "warning threshold"
+    ),
+    critical: requireRatio(
+      thresholds.critical,
+      DEFAULT_THRESHOLDS.critical,
+      "critical threshold"
+    )
   };
 
-  if (!(resolvedThresholds.info < resolvedThresholds.warning && resolvedThresholds.warning < resolvedThresholds.critical)) {
+  if (
+    !(
+      resolvedThresholds.info < resolvedThresholds.warning &&
+      resolvedThresholds.warning < resolvedThresholds.critical
+    )
+  ) {
     throw new Error("usage thresholds must be ordered info < warning < critical");
   }
 
@@ -181,29 +213,24 @@ export function buildD1UsageReport({
       rowsReadSeverity: readSeverity,
       rowsWrittenSeverity: writeSeverity
     },
-    daily: aggregated.daily,
-    databases: aggregated.databases
+    daily: aggregated.daily
   };
-}
-
-function formatInteger(value) {
-  return Math.round(numberFrom(value)).toLocaleString("en-US");
 }
 
 function formatPercent(value) {
   return `${(numberFrom(value) * 100).toFixed(1)}%`;
 }
 
-export function formatD1UsageMarkdown(report) {
-  const rows = report.daily.slice(-14).map(
-    (entry) =>
-      `| ${entry.date} | ${formatInteger(entry.rowsRead)} | ${formatInteger(entry.rowsWritten)} | ${formatInteger(entry.readQueries)} | ${formatInteger(entry.writeQueries)} |`
-  );
+function dailyRatio(value, limit) {
+  return limit > 0 ? numberFrom(value) / limit : 0;
+}
 
-  const topDatabases = report.databases.slice(0, 5).map(
-    (entry) =>
-      `| \`${entry.databaseId}\` | ${formatInteger(entry.rowsRead)} | ${formatInteger(entry.rowsWritten)} | ${formatInteger(entry.readQueries)} | ${formatInteger(entry.writeQueries)} |`
-  );
+export function formatD1UsageMarkdown(report) {
+  const rows = report.daily.slice(-14).map((entry) => {
+    const readRatio = dailyRatio(entry.rowsRead, report.limits.rowsRead);
+    const writeRatio = dailyRatio(entry.rowsWritten, report.limits.rowsWritten);
+    return `| ${entry.date} | ${formatPercent(readRatio)} | ${formatPercent(writeRatio)} |`;
+  });
 
   return [
     "## P6A Production D1 Usage",
@@ -211,26 +238,27 @@ export function formatD1UsageMarkdown(report) {
     `- Generated: ${report.generatedAt}`,
     `- UTC billing day: ${report.currentDate}`,
     `- Status: **${String(report.severity).toUpperCase()}**`,
-    `- Rows read: **${formatInteger(report.current.rowsRead)} / ${formatInteger(report.limits.rowsRead)}** (${formatPercent(report.current.rowsReadRatio)})`,
-    `- Rows written: **${formatInteger(report.current.rowsWritten)} / ${formatInteger(report.limits.rowsWritten)}** (${formatPercent(report.current.rowsWrittenRatio)})`,
+    `- Rows read utilization: **${formatPercent(report.current.rowsReadRatio)}**`,
+    `- Rows written utilization: **${formatPercent(report.current.rowsWrittenRatio)}**`,
     `- Thresholds: info ${formatPercent(report.thresholds.info)}, warning ${formatPercent(report.thresholds.warning)}, critical ${formatPercent(report.thresholds.critical)}`,
+    "- Raw account/database identifiers and raw usage counts are intentionally not printed.",
     "",
-    "### Recent daily usage",
+    "### Recent daily utilization",
     "",
-    "| UTC date | Rows read | Rows written | Read queries | Write queries |",
-    "| --- | ---: | ---: | ---: | ---: |",
-    ...(rows.length > 0 ? rows : ["| — | 0 | 0 | 0 | 0 |"]),
-    "",
-    "### Top databases in lookback window",
-    "",
-    "| Database ID | Rows read | Rows written | Read queries | Write queries |",
-    "| --- | ---: | ---: | ---: | ---: |",
-    ...(topDatabases.length > 0 ? topDatabases : ["| — | 0 | 0 | 0 | 0 |"]),
+    "| UTC date | Rows read | Rows written |",
+    "| --- | ---: | ---: |",
+    ...(rows.length > 0 ? rows : ["| — | 0.0% | 0.0% |"]),
     ""
   ].join("\n");
 }
 
-export async function fetchD1Analytics({ accountId, token, start, end, fetchImpl = fetch }) {
+export async function fetchD1Analytics({
+  accountId,
+  token,
+  start,
+  end,
+  fetchImpl = fetch
+}) {
   if (!accountId) throw new Error("CLOUDFLARE_ACCOUNT_ID is required");
   if (!token) throw new Error("CLOUDFLARE_ANALYTICS_READ_TOKEN is required");
 
@@ -256,18 +284,27 @@ export async function fetchD1Analytics({ accountId, token, start, end, fetchImpl
     });
 
     if (!response.ok) {
-      throw new Error(`Cloudflare GraphQL request failed with HTTP ${response.status}`);
+      throw new Error(
+        `Cloudflare GraphQL request failed with HTTP ${response.status}`
+      );
     }
 
     const payload = await response.json();
     if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
-      const message = payload.errors.map((entry) => entry?.message).filter(Boolean).join("; ");
-      throw new Error(`Cloudflare GraphQL returned errors: ${message || "unknown error"}`);
+      const message = payload.errors
+        .map((entry) => entry?.message)
+        .filter(Boolean)
+        .join("; ");
+      throw new Error(
+        `Cloudflare GraphQL returned errors: ${message || "unknown error"}`
+      );
     }
 
     const accounts = payload?.data?.viewer?.accounts;
     if (!Array.isArray(accounts) || accounts.length !== 1) {
-      throw new Error(`expected exactly one Cloudflare account analytics result, found ${Array.isArray(accounts) ? accounts.length : 0}`);
+      throw new Error(
+        `expected exactly one Cloudflare account analytics result, found ${Array.isArray(accounts) ? accounts.length : 0}`
+      );
     }
 
     return accounts[0]?.d1AnalyticsAdaptiveGroups ?? [];
@@ -279,11 +316,21 @@ export async function fetchD1Analytics({ accountId, token, start, end, fetchImpl
 function writeGithubOutput(name, value) {
   const outputPath = process.env.GITHUB_OUTPUT;
   if (!outputPath) return;
-  fs.appendFileSync(outputPath, `${name}=${String(value).replaceAll("\n", " ")}\n`, "utf8");
+  fs.appendFileSync(
+    outputPath,
+    `${name}=${String(value).replaceAll("\n", " ")}\n`,
+    "utf8"
+  );
 }
 
 export async function runCli(env = process.env, now = new Date()) {
-  const lookbackDays = Math.round(requirePositiveNumber(env.D1_USAGE_LOOKBACK_DAYS, DEFAULT_LOOKBACK_DAYS, "lookback days"));
+  const lookbackDays = Math.round(
+    requirePositiveNumber(
+      env.D1_USAGE_LOOKBACK_DAYS,
+      DEFAULT_LOOKBACK_DAYS,
+      "lookback days"
+    )
+  );
   const end = utcDateString(now);
   const start = utcDateString(addUtcDays(now, -(lookbackDays - 1)));
   const groups = await fetchD1Analytics({
@@ -307,7 +354,9 @@ export async function runCli(env = process.env, now = new Date()) {
     }
   });
 
-  const reportPath = String(env.D1_USAGE_REPORT_PATH || "production-observability-report.json");
+  const reportPath = String(
+    env.D1_USAGE_REPORT_PATH || "production-observability-report.json"
+  );
   fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
   const markdown = formatD1UsageMarkdown(report);
 
@@ -329,7 +378,10 @@ export async function runCli(env = process.env, now = new Date()) {
   writeGithubOutput("severity", report.severity);
   writeGithubOutput("report_path", reportPath);
   writeGithubOutput("rows_read_ratio", report.current.rowsReadRatio.toFixed(6));
-  writeGithubOutput("rows_written_ratio", report.current.rowsWrittenRatio.toFixed(6));
+  writeGithubOutput(
+    "rows_written_ratio",
+    report.current.rowsWrittenRatio.toFixed(6)
+  );
   return report;
 }
 
