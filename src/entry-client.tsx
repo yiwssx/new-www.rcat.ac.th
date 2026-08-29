@@ -16,12 +16,20 @@ export function shouldHydrateSsrDocument(documentElement: HTMLElement = document
   return documentElement.getAttribute(SSR_DOCUMENT_MARKER_ATTRIBUTE) === SSR_DOCUMENT_MARKER_VALUE;
 }
 
+export function readDocumentCspNonce(documentNode: Document = document) {
+  const script = documentNode.querySelector<HTMLScriptElement>("script[nonce]");
+  return script?.nonce || script?.getAttribute("nonce") || undefined;
+}
+
 export function mountClientApp(rootElement: HTMLElement) {
   installBrowserErrorFilters();
   document.documentElement.lang = projectSettings.site.language;
 
   const documentMode = shouldHydrateSsrDocument();
-  const runtime = createAppRuntime({ documentMode });
+  const runtime = createAppRuntime({
+    documentMode,
+    cspNonce: documentMode ? readDocumentCspNonce() : undefined
+  });
   const routerClient = (
     <React.StrictMode>
       <AppProviders emotionCache={runtime.emotionCache} queryClient={runtime.queryClient}>
