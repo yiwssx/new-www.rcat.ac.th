@@ -1,0 +1,104 @@
+name: Production Observability
+
+on:
+  schedule:
+    # Every two hours at minute 17. D1 Free daily limits reset at 00:00 UTC.
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-observability
+  cancel-in-progress: true
+
+jobs:
+  d1-usage:
+    name: D1 Usage Guard
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      D1_USAGE_LOOKBACK_DAYS: "14"
+      D1_DAILY_ROWS_READ_LIMIT: ${{ vars.D1_DAILY_ROWS_READ_LIMIT || '5000000' }}
+      D1_DAILY_ROWS_WRITTEN_LIMIT: ${{ vars.D1_DAILY_ROWS_WRITTEN_LIMIT || '100000' }}
+      D1_USAGE_INFO_RATIO: ${{ vars.D1_USAGE_INFO_RATIO || '0.50' }}
+      D1_USAGE_WARNING_RATIO: ${{ vars.D1_USAGE_WARNING_RATIO || '0.70' }}
+      D1_USAGE_CRITICAL_RATIO: ${{ vars.D1_USAGE_CRITICAL_RATIO || '0.85' }}
+      D1_USAGE_REPORT_PATH: ${{ runner.temp }}/production-observability-report.json
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+
+      - name: Require read-only analytics credentials
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || {
+            echo "CLOUDFLARE_ACCOUNT_ID is unavailable from the protected production environment." >&2
+            exit 1
+          }
+          test -n "$CLOUDFLARE_ANALYTICS_READ_TOKEN" || {
+            echo "CLOUDFLARE_ANALYTICS_READ_TOKEN is unavailable from the protected production environment." >&2
+            echo "Create a dedicated Cloudflare token with Account > Account Analytics > Read only." >&2
+            exit 1
+          }
+
+      - name: Query Cloudflare D1 billing metrics
+        id: usage
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+        run: node scripts/check-production-d1-usage.mjs
+
+      - name: Fail on warning or critical daily usage
+        if: ${{ steps.usage.outputs.severity == 'warning' || steps.usage.outputs.severity == 'critical' }}
+        shell: bash
+        run: |
+          echo "D1 usage reached the ${{ steps.usage.outputs.severity }} threshold for the current UTC billing day." >&2
+          exit 1
+
+  retire-environment-deployment:
+    name: Retire observability environment deployment
+    needs: d1-usage
+    if: ${{ always() && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      deployments: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Delete this monitor's GitHub Environment pseudo-deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh api "/repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/observability-run.json"
+          gh api "/repos/$GH_REPO/deployments?sha=$GITHUB_SHA&per_page=100" > "$RUNNER_TEMP/observability-deployments.json"
+
+          deployment_id="$(node scripts/resolve-d1-drill-environment-deployment.mjs \
+            --run "$RUNNER_TEMP/observability-run.json" \
+            --deployments "$RUNNER_TEMP/observability-deployments.json" \
+            --sha "$GITHUB_SHA" \
+            --actor "$GITHUB_ACTOR")"
+
+          gh api --method POST "/repos/$GH_REPO/deployments/$deployment_id/statuses" \
+            -f state=inactive \
+            -f environment=production \
+            -f description='Production observability credential-gate deployment retired' >/dev/null
+
+          gh api --method DELETE "/repos/$GH_REPO/deployments/$deployment_id"
+          echo "Retired and deleted the current observability Environment pseudo-deployment; workflow run remains as audit evidence."
