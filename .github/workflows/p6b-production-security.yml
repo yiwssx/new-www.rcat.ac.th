@@ -1,0 +1,101 @@
+name: P6B Production Security
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/p6b-production-security.yml"
+      - "scripts/apply-p6b-cloudflare-security.mjs"
+      - "scripts/check-production-auth-security-events.mjs"
+  schedule:
+    - cron: "47 */2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p6b-production-security
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: WAF + Auth Anomaly Guard
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AUTH_SECURITY_LOOKBACK_MINUTES: "135"
+      AUTH_SECURITY_WARNING_EVENTS: "10"
+      AUTH_SECURITY_CRITICAL_EVENTS: "30"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+
+      - name: Require protected security credentials
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || exit 1
+          test -n "$CLOUDFLARE_API_TOKEN" || exit 1
+          test -n "$CLOUDFLARE_ANALYTICS_READ_TOKEN" || exit 1
+
+      - name: Reconcile Cloudflare WAF and sensitive API rate limit
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/apply-p6b-cloudflare-security.mjs --apply
+
+      - name: Verify Cloudflare security rules
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/apply-p6b-cloudflare-security.mjs --check
+
+      - name: Query auth/admin edge security events
+        id: auth_security
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+        run: node scripts/check-production-auth-security-events.mjs
+
+      - name: Fail on auth anomaly warning or critical
+        if: ${{ steps.auth_security.outputs.severity == 'warning' || steps.auth_security.outputs.severity == 'critical' }}
+        run: |
+          echo "Sensitive admin/auth edge security events reached ${{ steps.auth_security.outputs.severity }} severity." >&2
+          exit 1
+
+  retire-environment-deployment:
+    name: Retire P6B security environment deployment
+    needs: security
+    if: ${{ always() && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      deployments: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Delete this guard's GitHub Environment pseudo-deployment
+        run: |
+          set -euo pipefail
+          gh api "/repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/p6b-run.json"
+          gh api "/repos/$GH_REPO/deployments?sha=$GITHUB_SHA&per_page=100" > "$RUNNER_TEMP/p6b-deployments.json"
+          deployment_id="$(node scripts/resolve-d1-drill-environment-deployment.mjs \
+            --run "$RUNNER_TEMP/p6b-run.json" \
+            --deployments "$RUNNER_TEMP/p6b-deployments.json" \
+            --sha "$GITHUB_SHA" \
+            --actor "$GITHUB_ACTOR")"
+          gh api --method POST "/repos/$GH_REPO/deployments/$deployment_id/statuses" \
+            -f state=inactive \
+            -f environment=production \
+            -f description='P6B production security credential-gate deployment retired' >/dev/null
+          gh api --method DELETE "/repos/$GH_REPO/deployments/$deployment_id"

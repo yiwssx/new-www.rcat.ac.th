@@ -76,6 +76,7 @@ export interface AppRouterContext {
 export interface CreateAppRouterInput {
   queryClient: QueryClient;
   documentMode?: boolean;
+  cspNonce?: string;
 }
 
 const rootRoute = createRootRouteWithContext<AppRouterContext>()({
@@ -428,10 +429,11 @@ const routeTree = rootRoute.addChildren([
   ])
 ]);
 
-export function createAppRouter({ queryClient, documentMode = false }: CreateAppRouterInput) {
+export function createAppRouter({ queryClient, documentMode = false, cspNonce }: CreateAppRouterInput) {
   return createRouter({
     routeTree,
     context: { queryClient, documentMode },
+    ssr: cspNonce ? { nonce: cspNonce } : undefined,
     defaultPreload: "intent",
     dehydrate: () => dehydrateAppQueryClient(queryClient),
     hydrate: (dehydrated) => {
