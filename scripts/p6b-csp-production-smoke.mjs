@@ -3,7 +3,7 @@
 import { chromium } from "@playwright/test";
 
 const BASE_URL = "https://www.rcat.ac.th";
-const EXPECTED_MARKER = process.env.P6B_CSP_EXPECTED_MARKER || "p6b-candidate-v1";
+const EXPECTED_MARKER = process.env.P6B_CSP_EXPECTED_MARKER || "p6b-enforced-v1";
 const PATHS = [
   "/",
   "/search?q=rcat",
