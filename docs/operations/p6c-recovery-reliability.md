@@ -23,13 +23,13 @@ P6C must reuse existing credentials before any new token is considered. A new cr
 
 These are operating targets rather than provider SLAs.
 
-| Runtime/data surface | Recovery objective | Data-loss objective | Primary recovery path |
-| --- | --- | --- | --- |
-| Vercel frontend, SSR, and same-origin proxies | restore service within 30 minutes of rollback decision | source-controlled runtime: zero | Vercel immutable deployment rollback or a validated Git revert on `master` |
-| Cloudflare Production Worker runtime | restore a known-good Worker within 30 minutes of rollback decision | runtime code: zero | protected Worker runtime rollback workflow; no migration reversal |
-| Canonical production D1 | begin verified point-in-time recovery within 30 minutes of restore approval | target a restore point no more than 5 minutes before the confirmed destructive event when Time Travel history permits | D1 Time Travel using the exact protected production database identity |
-| Apps Script media bridge | restore a known immutable Apps Script version within 30 minutes of rollback decision | Drive files are not rewritten by application-code rollback | existing protected Apps Script rollback workflow |
-| Dedicated complaint bridge | restore service by reverting Vercel proxy/config or the dedicated Apps Script deployment | submitted upstream records are outside source-control rollback | isolated complaint runbook; never redirect the browser directly to Apps Script |
+| Runtime/data surface                          | Recovery objective                                                                       | Data-loss objective                                                                                                   | Primary recovery path                                                          |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Vercel frontend, SSR, and same-origin proxies | restore service within 30 minutes of rollback decision                                   | source-controlled runtime: zero                                                                                       | Vercel immutable deployment rollback or a validated Git revert on `master`     |
+| Cloudflare Production Worker runtime          | restore a known-good Worker within 30 minutes of rollback decision                       | runtime code: zero                                                                                                    | protected Worker runtime rollback workflow; no migration reversal              |
+| Canonical production D1                       | begin verified point-in-time recovery within 30 minutes of restore approval              | target a restore point no more than 5 minutes before the confirmed destructive event when Time Travel history permits | D1 Time Travel using the exact protected production database identity          |
+| Apps Script media bridge                      | restore a known immutable Apps Script version within 30 minutes of rollback decision     | Drive files are not rewritten by application-code rollback                                                            | existing protected Apps Script rollback workflow                               |
+| Dedicated complaint bridge                    | restore service by reverting Vercel proxy/config or the dedicated Apps Script deployment | submitted upstream records are outside source-control rollback                                                        | isolated complaint runbook; never redirect the browser directly to Apps Script |
 
 Cloudflare Time Travel retention is provider/plan dependent. Recovery procedures must always resolve the requested timestamp/bookmark before any destructive restore is approved.
 
