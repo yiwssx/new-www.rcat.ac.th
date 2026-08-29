@@ -27,6 +27,11 @@ import { createAdminMfaRepository, isEffectiveMfa, type AdminMfaRepository } fro
 import type { AdminMfaRecoveryCodeRow, AdminMfaTotpRow } from "../db/schema";
 import type { Env } from "../env";
 import { json, jsonError, methodNotAllowed } from "../responses";
+import {
+  SecurityRateLimitExceeded,
+  SecurityRateLimitUnavailable,
+  enforceSecurityRateLimit
+} from "../securityRateLimit";
 
 export const CMS_AUTH_PROXY_SECRET_HEADER = "X-RCAT-CMS-Auth-Proxy-Secret";
 export const CMS_SESSION_TOKEN_HEADER = "X-RCAT-CMS-Session-Token";
@@ -883,6 +888,22 @@ export async function handleCmsAuthInternal(
 
   if (authorizationError) {
     return authorizationError;
+  }
+
+  try {
+    await enforceSecurityRateLimit(request, env, "cms-auth");
+  } catch (error) {
+    if (error instanceof SecurityRateLimitExceeded) {
+      const response = internalError("too many authentication requests", 429);
+      response.headers.set("Retry-After", String(error.retryAfterSeconds));
+      return response;
+    }
+
+    if (error instanceof SecurityRateLimitUnavailable) {
+      return internalError("CMS authentication is unavailable", 503);
+    }
+
+    throw error;
   }
 
   const now = dependencies.now?.() ?? new Date();

@@ -36,6 +36,24 @@ namespace_id = "2690103"
 limit = 90
 period = 60
 
+# P6B sensitive-route controls run in Cloudflare's edge rate-limit service.
+# CMS authentication is intentionally tighter than authenticated Admin API traffic.
+[[ratelimits]]
+name = "CMS_AUTH_RATE_LIMITER"
+namespace_id = "2690104"
+
+[ratelimits.simple]
+limit = 30
+period = 60
+
+[[ratelimits]]
+name = "ADMIN_API_RATE_LIMITER"
+namespace_id = "2690105"
+
+[ratelimits.simple]
+limit = 120
+period = 60
+
 # Canonical production runtime promoted in place.
 # Both the existing Worker and data-bearing D1 retain their historical physical
 # Cloudflare name `rcat-public-api-preview`, while their canonical role is now
@@ -81,4 +99,20 @@ namespace_id = "2690203"
 
 [env.production.ratelimits.simple]
 limit = 90
+period = 60
+
+[[env.production.ratelimits]]
+name = "CMS_AUTH_RATE_LIMITER"
+namespace_id = "2690204"
+
+[env.production.ratelimits.simple]
+limit = 30
+period = 60
+
+[[env.production.ratelimits]]
+name = "ADMIN_API_RATE_LIMITER"
+namespace_id = "2690205"
+
+[env.production.ratelimits.simple]
+limit = 120
 period = 60

@@ -1,78 +1,69 @@
 import { appendFile } from "node:fs/promises";
 
-const GRAPHQL_ENDPOINT = "https://api.cloudflare.com/client/v4/graphql";
+const API_BASE = "https://api.cloudflare.com/client/v4";
 const LOOKBACK_MINUTES = Math.max(15, Number(process.env.AUTH_SECURITY_LOOKBACK_MINUTES || 135));
 const WARNING_EVENTS = Math.max(1, Number(process.env.AUTH_SECURITY_WARNING_EVENTS || 10));
 const CRITICAL_EVENTS = Math.max(WARNING_EVENTS + 1, Number(process.env.AUTH_SECURITY_CRITICAL_EVENTS || 30));
 const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || "").trim();
-const token = String(process.env.CLOUDFLARE_ANALYTICS_READ_TOKEN || "").trim();
+const databaseId = String(process.env.RCAT_PRODUCTION_D1_DATABASE_ID || "").trim();
+const token = String(process.env.CLOUDFLARE_API_TOKEN || "").trim();
 
-if (!accountId || !token) {
-  console.error("Auth security events: read-only Cloudflare analytics credentials are unavailable.");
+if (!accountId || !databaseId || !token) {
+  console.error("Auth security events: protected D1 read credentials are unavailable.");
   process.exit(1);
 }
 
-const end = new Date();
-const start = new Date(end.getTime() - LOOKBACK_MINUTES * 60_000);
-const query = `query P6BAuthSecurity($accountTag: string!, $start: Time!, $end: Time!) {
-  viewer {
-    accounts(filter: { accountTag: $accountTag }) {
-      zones {
-        firewallEventsAdaptive(
-          filter: { datetime_geq: $start, datetime_leq: $end }
-          limit: 1000
-          orderBy: [datetime_DESC]
-        ) {
-          action
-          clientRequestPath
-          datetime
-          source
-        }
-      }
-    }
-  }
-}`;
+const start = new Date(Date.now() - LOOKBACK_MINUTES * 60_000).toISOString();
+const sql = `SELECT
+  (SELECT COALESCE(SUM(failed_login_count), 0)
+   FROM admin_credentials
+   WHERE updated_at >= ?) AS password_failures,
+  (SELECT COUNT(*)
+   FROM admin_credentials
+   WHERE updated_at >= ?
+     AND failed_login_count >= 5) AS locked_accounts,
+  (SELECT COALESCE(SUM(failed_attempt_count), 0)
+   FROM admin_mfa_challenges
+   WHERE created_at >= ?) AS mfa_failures`;
 
-const response = await fetch(GRAPHQL_ENDPOINT, {
+const response = await fetch(`${API_BASE}/accounts/${accountId}/d1/database/${databaseId}/query`, {
   method: "POST",
   headers: {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json"
   },
-  body: JSON.stringify({
-    query,
-    variables: {
-      accountTag: accountId,
-      start: start.toISOString(),
-      end: end.toISOString()
-    }
-  })
+  body: JSON.stringify({ sql, params: [start, start, start] })
 });
 
 const payload = await response.json().catch(() => null);
-if (!response.ok || payload?.errors?.length) {
-  console.error("Auth security events: Cloudflare firewall analytics query failed.");
+const queryResult = Array.isArray(payload?.result) ? payload.result[0] : null;
+const row = queryResult?.results?.[0];
+
+if (!response.ok || payload?.success !== true || queryResult?.success === false || !row) {
+  console.error("Auth security events: protected D1 aggregate query failed.");
   process.exit(1);
 }
 
-const accounts = payload?.data?.viewer?.accounts || [];
-const events = accounts.flatMap((account) =>
-  (account.zones || []).flatMap((zone) => zone.firewallEventsAdaptive || [])
-);
-const sensitive = events.filter((event) => {
-  const path = String(event.clientRequestPath || "");
-  const action = String(event.action || "").toLowerCase();
-  return (path.startsWith("/api/cms-auth/") || path === "/api/admin-proxy") && action !== "allow" && action !== "skip";
-});
-
-const count = sensitive.length;
+const passwordFailures = Math.max(0, Number(row.password_failures || 0));
+const mfaFailures = Math.max(0, Number(row.mfa_failures || 0));
+const lockedAccounts = Math.max(0, Number(row.locked_accounts || 0));
+const eventCount = passwordFailures + mfaFailures;
 const severity =
-  count >= CRITICAL_EVENTS ? "critical" : count >= WARNING_EVENTS ? "warning" : count > 0 ? "info" : "healthy";
+  eventCount >= CRITICAL_EVENTS || lockedAccounts >= 3
+    ? "critical"
+    : eventCount >= WARNING_EVENTS || lockedAccounts >= 1
+      ? "warning"
+      : eventCount > 0
+        ? "info"
+        : "healthy";
 
 console.log(
-  `Auth security events: ${severity}; ${count} sensitive edge security event(s) in the last ${LOOKBACK_MINUTES} minutes.`
+  `Auth security events: ${severity}; ${eventCount} failed auth/MFA attempt state(s), ${lockedAccounts} locked account(s), last ${LOOKBACK_MINUTES} minutes.`
 );
 
 if (process.env.GITHUB_OUTPUT) {
-  await appendFile(process.env.GITHUB_OUTPUT, `severity=${severity}\nevent_count=${count}\n`);
+  await appendFile(
+    process.env.GITHUB_OUTPUT,
+    `severity=${severity}\nevent_count=${eventCount}\nlocked_accounts=${lockedAccounts}\n`
+  );
 }

@@ -1,44 +1,71 @@
 # P6B Security Enforcement
 
-Status: implementation candidate; production activation gates pending.
+Status: implementation candidate; runtime-aligned production activation gates pending.
 
 Requested scope: CSP cleanup/enforcement + Admin/API rate limits + WAF + auth anomaly alerts.
 
+## Runtime ownership correction
+
+Production browser traffic terminates at Vercel. Vercel owns the public SSR/frontend and same-origin CMS/Admin proxies. The Cloudflare Production Worker owns structured Admin/Auth API execution and D1 owns authoritative state.
+
+P6B therefore does **not** manage a zone-level Cloudflare WAF for `www.rcat.ac.th`. The earlier zone reconciliation candidate was retired after production evidence showed that the browser-facing WAF boundary belongs to Vercel, while Cloudflare is the backend Worker/D1 boundary.
+
 ## CSP
 
-P6B moves the global policy toward enforcement without using `unsafe-eval`. Public SSR receives a per-request cryptographic nonce which is passed to TanStack Router SSR script rendering. The first deployment remains Report-Only and is validated against representative production routes by the `P6B CSP Production Smoke` workflow before the final enforcement switch.
+CSP is enforcing in production with a per-request cryptographic nonce for public SSR. The policy does not use `unsafe-eval`. Representative production browser smoke covers public SSR/navigation, complaint, Facebook content, login, Admin, and Admin media surfaces.
 
-The candidate policy explicitly classifies the third-party surfaces observed in earlier production evidence: Google Tag Manager, Facebook, YouTube/YouTube No-Cookie, Google forms/frames, and Google Drive frames. The CSP report collector remains `/api/csp-report`.
+The CSP report collector remains `/api/csp-report`, and rollback ownership/readiness evidence remains governed by `config/csp-enforcement-readiness.json`.
 
-## Admin/API rate limits and WAF
+## Vercel edge WAF
 
-`P6B Production Security` reconciles two zone-level Cloudflare controls using the protected production Cloudflare token:
+Root `middleware.ts` runs as Vercel Routing Middleware on `/api/:path*` and applies `server/security/edgeWafPolicy.ts` before same-origin API functions.
 
-- a WAF custom rule that blocks direct access to internal/admin origin-only API namespaces on `www.rcat.ac.th`;
-- one Free-plan-compatible rate limiting rule for `/api/cms-auth/*` and `/api/admin-proxy`, counted by client IP in a 10-second period.
+The policy:
 
-The rule count and expression intentionally fit the Cloudflare Free rate-limiting entitlement. Existing application-level CMS authentication limiters remain as defense in depth.
+- denies direct browser access to `/api/internal/*`;
+- rejects cross-site requests to `/api/cms-auth/*` and `/api/admin-proxy`;
+- rejects TRACE/CONNECT on sensitive API surfaces;
+- rejects oversized CMS Auth/Admin proxy request bodies before function execution;
+- emits the non-sensitive marker `X-RCAT-Edge-WAF: p6b-vercel-v1` for production verification.
 
-The reconciliation script only creates or updates rules with exact `RCAT P6B:` descriptions. It does not replace unrelated zone rulesets or rules.
+`scripts/p6b-edge-waf-production-smoke.mjs` verifies both a safe denied internal probe and same-origin forwarding without requiring production credentials.
+
+## Admin/API rate limits
+
+The authoritative Cloudflare Worker uses two Cloudflare Rate Limiting bindings:
+
+- `CMS_AUTH_RATE_LIMITER`: 30 requests per 60 seconds per trusted client-IP key;
+- `ADMIN_API_RATE_LIMITER`: 120 requests per 60 seconds per trusted client-IP key.
+
+Rate limiting runs only after the Worker has accepted the Vercel proxy trust boundary: CMS Auth first validates the shared proxy secret, while Admin API first validates the CMS proxy/session metadata. Client IP is then hashed with SHA-256 before it is used as a rate-limit key. Raw client IP is not persisted by this guard.
+
+Production fails closed when a required sensitive-route rate-limit binding or trusted proxy client metadata is unavailable. A limit breach returns HTTP 429 with `Retry-After`.
 
 ## Auth anomaly alerts
 
-The same protected workflow queries Cloudflare `firewallEventsAdaptive` with the dedicated read-only analytics token. It does not request client IP or user-agent fields. Sensitive auth/admin edge security events are classified as:
+The protected `P6B Production Security` workflow queries D1 aggregate state instead of browser-edge zone telemetry. It reads only aggregate counts derived from:
 
-- 0 events in lookback: healthy;
-- 1-9: info;
-- 10-29: warning;
-- 30 or more: critical.
+- `admin_credentials.failed_login_count` and recent `updated_at` state;
+- `admin_mfa_challenges.failed_attempt_count` in the lookback window.
 
-Warning/critical severity fails the GitHub Actions guard, using the repository's existing Actions notification path. The workflow currently inherits the `production` Environment reviewer requirement, so scheduled checks remain approval-gated until observability/security monitoring is moved to a dedicated read-only Environment.
+The workflow query does not select username, email, IP address, user-agent, session token, MFA secret, or credential material.
+
+Default severity for the 135-minute lookback is:
+
+- healthy: no failed auth/MFA state;
+- info: 1-9 failed auth/MFA state and no locked account;
+- warning: 10-29 failed states or at least one locked account;
+- critical: 30+ failed states or three or more locked accounts.
+
+Warning/critical severity fails the GitHub Actions guard. The workflow continues to inherit the protected `production` Environment reviewer requirement, so scheduled protected D1 checks remain approval-gated until monitoring credentials are moved to a dedicated read-only Environment.
 
 ## Activation gates
 
 P6B is closed only when all are true:
 
-1. repository CI is green;
-2. candidate CSP is deployed and the production browser smoke reports no representative violations;
-3. CSP is switched from Report-Only to enforcing and a second production smoke succeeds;
-4. Cloudflare WAF custom rule and sensitive API rate-limit rule reconcile and verify successfully;
-5. auth anomaly query succeeds with protected identifiers omitted from logs;
+1. repository CI is green on the final head SHA;
+2. enforcing CSP production browser smoke succeeds on all representative surfaces;
+3. Vercel edge WAF is deployed and its production deny/forward smoke succeeds;
+4. the production Worker is deployed with both sensitive-route Rate Limiting bindings and Worker guards;
+5. the protected D1 auth anomaly aggregate query succeeds without protected identifiers in output;
 6. project-state documentation records P6B closure and permits P6C to begin.

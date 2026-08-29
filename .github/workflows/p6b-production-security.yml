@@ -6,8 +6,14 @@ on:
       - master
     paths:
       - ".github/workflows/p6b-production-security.yml"
-      - "scripts/apply-p6b-cloudflare-security.mjs"
+      - "middleware.ts"
+      - "server/security/edgeWafPolicy.ts"
+      - "cloudflare/public-api/src/securityRateLimit.ts"
+      - "cloudflare/public-api/src/routes/cmsAuthInternal.ts"
+      - "cloudflare/public-api/src/routes/adminWrite.ts"
+      - "cloudflare/public-api/wrangler.toml"
       - "scripts/check-production-auth-security-events.mjs"
+      - "scripts/p6b-edge-waf-production-smoke.mjs"
   schedule:
     - cron: "47 */2 * * *"
   workflow_dispatch:
@@ -20,8 +26,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  security:
-    name: WAF + Auth Anomaly Guard
+  edge-waf:
+    name: Vercel Edge WAF Smoke
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Verify Vercel edge WAF on production
+        run: node scripts/p6b-edge-waf-production-smoke.mjs
+
+  auth-anomaly:
+    name: Auth Anomaly Guard
     if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     environment: production
@@ -35,44 +53,33 @@ jobs:
         with:
           node-version-file: .node-version
 
-      - name: Require protected security credentials
+      - name: Require protected D1 read credentials
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           test -n "$CLOUDFLARE_ACCOUNT_ID" || exit 1
           test -n "$CLOUDFLARE_API_TOKEN" || exit 1
-          test -n "$CLOUDFLARE_ANALYTICS_READ_TOKEN" || exit 1
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || exit 1
 
-      - name: Reconcile Cloudflare WAF and sensitive API rate limit
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node scripts/apply-p6b-cloudflare-security.mjs --apply
-
-      - name: Verify Cloudflare security rules
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node scripts/apply-p6b-cloudflare-security.mjs --check
-
-      - name: Query auth/admin edge security events
+      - name: Query sanitized auth anomaly aggregates
         id: auth_security
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: node scripts/check-production-auth-security-events.mjs
 
       - name: Fail on auth anomaly warning or critical
         if: ${{ steps.auth_security.outputs.severity == 'warning' || steps.auth_security.outputs.severity == 'critical' }}
         run: |
-          echo "Sensitive admin/auth edge security events reached ${{ steps.auth_security.outputs.severity }} severity." >&2
+          echo "Sensitive authentication activity reached ${{ steps.auth_security.outputs.severity }} severity." >&2
           exit 1
 
   retire-environment-deployment:
     name: Retire P6B security environment deployment
-    needs: security
+    needs: auth-anomaly
     if: ${{ always() && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     permissions:

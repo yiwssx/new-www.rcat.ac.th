@@ -35,20 +35,61 @@ if (!server.includes("buildContentSecurityPolicy({ scriptNonce: cspNonce })")) {
   fail("SSR response does not emit the nonce-aware CSP");
 }
 
-const waf = await readFile(new URL("./apply-p6b-cloudflare-security.mjs", import.meta.url), "utf8");
-if (!waf.includes("http_request_firewall_custom") || !waf.includes("http_ratelimit")) {
-  fail("Cloudflare WAF/rate-limit reconciliation is incomplete");
+const middleware = await readFile(new URL("../middleware.ts", import.meta.url), "utf8");
+const edgeWaf = await readFile(new URL("../server/security/edgeWafPolicy.ts", import.meta.url), "utf8");
+if (!middleware.includes('from "@vercel/functions"') || !middleware.includes("evaluateP6bEdgeWaf")) {
+  fail("Vercel routing middleware WAF is not wired");
 }
-if (!waf.includes("/api/cms-auth/") || !waf.includes("/api/admin-proxy")) {
-  fail("sensitive auth/admin API rate-limit scope is incomplete");
+for (const required of ["/api/internal", "/api/cms-auth", "/api/admin-proxy", "p6b-vercel-v1"]) {
+  if (!edgeWaf.includes(required)) fail(`Vercel edge WAF is missing ${required}`);
+}
+
+const workerRateLimit = await readFile(
+  new URL("../cloudflare/public-api/src/securityRateLimit.ts", import.meta.url),
+  "utf8"
+);
+const workerEnv = await readFile(new URL("../cloudflare/public-api/src/env.ts", import.meta.url), "utf8");
+const wrangler = await readFile(new URL("../cloudflare/public-api/wrangler.toml", import.meta.url), "utf8");
+const cmsAuth = await readFile(
+  new URL("../cloudflare/public-api/src/routes/cmsAuthInternal.ts", import.meta.url),
+  "utf8"
+);
+const adminWrite = await readFile(
+  new URL("../cloudflare/public-api/src/routes/adminWrite.ts", import.meta.url),
+  "utf8"
+);
+
+for (const binding of ["CMS_AUTH_RATE_LIMITER", "ADMIN_API_RATE_LIMITER"]) {
+  if (!workerEnv.includes(binding) || !wrangler.includes(`name = "${binding}"`)) {
+    fail(`Worker rate-limit binding ${binding} is incomplete`);
+  }
+}
+if (!workerRateLimit.includes("X-RCAT-CMS-Client-IP") || !workerRateLimit.includes('digest("SHA-256"')) {
+  fail("Worker sensitive-route rate-limit keys are not derived from hashed trusted proxy metadata");
+}
+if (!cmsAuth.includes('enforceSecurityRateLimit(request, env, "cms-auth")')) {
+  fail("CMS authentication route is missing Worker rate limiting");
+}
+if (!adminWrite.includes('enforceSecurityRateLimit(request, env, "admin-api")')) {
+  fail("Admin API route is missing Worker rate limiting");
 }
 
 const securityWorkflow = await readFile(
   new URL("../.github/workflows/p6b-production-security.yml", import.meta.url),
   "utf8"
 );
+const anomalyGuard = await readFile(new URL("./check-production-auth-security-events.mjs", import.meta.url), "utf8");
+if (!securityWorkflow.includes("p6b-edge-waf-production-smoke.mjs")) {
+  fail("Vercel edge WAF production smoke is not wired into the production guard");
+}
 if (!securityWorkflow.includes("check-production-auth-security-events.mjs")) {
-  fail("auth anomaly monitoring is not wired into production security workflow");
+  fail("auth anomaly monitoring is not wired into the production security workflow");
+}
+if (!anomalyGuard.includes("RCAT_PRODUCTION_D1_DATABASE_ID") || !anomalyGuard.includes("admin_mfa_challenges")) {
+  fail("auth anomaly monitoring is not aligned with the authoritative D1 auth runtime");
+}
+if (anomalyGuard.includes("clientRequestPath") || anomalyGuard.includes("firewallEventsAdaptive")) {
+  fail("auth anomaly monitoring must not depend on browser-edge zone telemetry");
 }
 
 if (enforcing) {
