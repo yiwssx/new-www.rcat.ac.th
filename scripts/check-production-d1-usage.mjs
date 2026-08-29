@@ -80,11 +80,7 @@ function severityRank(severity) {
 }
 
 function maxSeverity(...values) {
-  return values.reduce(
-    (current, value) =>
-      severityRank(value) > severityRank(current) ? value : current,
-    "healthy"
-  );
+  return values.reduce((current, value) => (severityRank(value) > severityRank(current) ? value : current), "healthy");
 }
 
 export function aggregateD1AnalyticsGroups(groups) {
@@ -93,8 +89,7 @@ export function aggregateD1AnalyticsGroups(groups) {
 
   for (const group of Array.isArray(groups) ? groups : []) {
     const date = String(group?.dimensions?.date ?? "").trim();
-    const databaseId =
-      String(group?.dimensions?.databaseId ?? "unknown").trim() || "unknown";
+    const databaseId = String(group?.dimensions?.databaseId ?? "unknown").trim() || "unknown";
     if (!date) continue;
 
     const values = {
@@ -133,54 +128,24 @@ export function aggregateD1AnalyticsGroups(groups) {
 
   return {
     daily: [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)),
-    databases: [...byDatabase.values()].sort(
-      (a, b) => b.rowsWritten - a.rowsWritten || b.rowsRead - a.rowsRead
-    )
+    databases: [...byDatabase.values()].sort((a, b) => b.rowsWritten - a.rowsWritten || b.rowsRead - a.rowsRead)
   };
 }
 
-export function buildD1UsageReport({
-  groups,
-  now = new Date(),
-  limits = {},
-  thresholds = {}
-}) {
+export function buildD1UsageReport({ groups, now = new Date(), limits = {}, thresholds = {} }) {
   const resolvedLimits = {
-    rowsRead: requirePositiveNumber(
-      limits.rowsRead,
-      DEFAULT_ROWS_READ_LIMIT,
-      "rows read limit"
-    ),
-    rowsWritten: requirePositiveNumber(
-      limits.rowsWritten,
-      DEFAULT_ROWS_WRITTEN_LIMIT,
-      "rows written limit"
-    )
+    rowsRead: requirePositiveNumber(limits.rowsRead, DEFAULT_ROWS_READ_LIMIT, "rows read limit"),
+    rowsWritten: requirePositiveNumber(limits.rowsWritten, DEFAULT_ROWS_WRITTEN_LIMIT, "rows written limit")
   };
   const resolvedThresholds = {
-    info: requireRatio(
-      thresholds.info,
-      DEFAULT_THRESHOLDS.info,
-      "info threshold"
-    ),
-    warning: requireRatio(
-      thresholds.warning,
-      DEFAULT_THRESHOLDS.warning,
-      "warning threshold"
-    ),
-    critical: requireRatio(
-      thresholds.critical,
-      DEFAULT_THRESHOLDS.critical,
-      "critical threshold"
-    )
+    info: requireRatio(thresholds.info, DEFAULT_THRESHOLDS.info, "info threshold"),
+    warning: requireRatio(thresholds.warning, DEFAULT_THRESHOLDS.warning, "warning threshold"),
+    critical: requireRatio(thresholds.critical, DEFAULT_THRESHOLDS.critical, "critical threshold")
   };
 
-  if (
-    !(
-      resolvedThresholds.info < resolvedThresholds.warning &&
-      resolvedThresholds.warning < resolvedThresholds.critical
-    )
-  ) {
+  if (!(
+    resolvedThresholds.info < resolvedThresholds.warning && resolvedThresholds.warning < resolvedThresholds.critical
+  )) {
     throw new Error("usage thresholds must be ordered info < warning < critical");
   }
 
@@ -252,13 +217,7 @@ export function formatD1UsageMarkdown(report) {
   ].join("\n");
 }
 
-export async function fetchD1Analytics({
-  accountId,
-  token,
-  start,
-  end,
-  fetchImpl = fetch
-}) {
+export async function fetchD1Analytics({ accountId, token, start, end, fetchImpl = fetch }) {
   if (!accountId) throw new Error("CLOUDFLARE_ACCOUNT_ID is required");
   if (!token) throw new Error("CLOUDFLARE_ANALYTICS_READ_TOKEN is required");
 
@@ -284,9 +243,7 @@ export async function fetchD1Analytics({
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Cloudflare GraphQL request failed with HTTP ${response.status}`
-      );
+      throw new Error(`Cloudflare GraphQL request failed with HTTP ${response.status}`);
     }
 
     const payload = await response.json();
@@ -295,9 +252,7 @@ export async function fetchD1Analytics({
         .map((entry) => entry?.message)
         .filter(Boolean)
         .join("; ");
-      throw new Error(
-        `Cloudflare GraphQL returned errors: ${message || "unknown error"}`
-      );
+      throw new Error(`Cloudflare GraphQL returned errors: ${message || "unknown error"}`);
     }
 
     const accounts = payload?.data?.viewer?.accounts;
@@ -316,20 +271,12 @@ export async function fetchD1Analytics({
 function writeGithubOutput(name, value) {
   const outputPath = process.env.GITHUB_OUTPUT;
   if (!outputPath) return;
-  fs.appendFileSync(
-    outputPath,
-    `${name}=${String(value).replaceAll("\n", " ")}\n`,
-    "utf8"
-  );
+  fs.appendFileSync(outputPath, `${name}=${String(value).replaceAll("\n", " ")}\n`, "utf8");
 }
 
 export async function runCli(env = process.env, now = new Date()) {
   const lookbackDays = Math.round(
-    requirePositiveNumber(
-      env.D1_USAGE_LOOKBACK_DAYS,
-      DEFAULT_LOOKBACK_DAYS,
-      "lookback days"
-    )
+    requirePositiveNumber(env.D1_USAGE_LOOKBACK_DAYS, DEFAULT_LOOKBACK_DAYS, "lookback days")
   );
   const end = utcDateString(now);
   const start = utcDateString(addUtcDays(now, -(lookbackDays - 1)));
@@ -354,9 +301,7 @@ export async function runCli(env = process.env, now = new Date()) {
     }
   });
 
-  const reportPath = String(
-    env.D1_USAGE_REPORT_PATH || "production-observability-report.json"
-  );
+  const reportPath = String(env.D1_USAGE_REPORT_PATH || "production-observability-report.json");
   fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
   const markdown = formatD1UsageMarkdown(report);
 
@@ -378,10 +323,7 @@ export async function runCli(env = process.env, now = new Date()) {
   writeGithubOutput("severity", report.severity);
   writeGithubOutput("report_path", reportPath);
   writeGithubOutput("rows_read_ratio", report.current.rowsReadRatio.toFixed(6));
-  writeGithubOutput(
-    "rows_written_ratio",
-    report.current.rowsWrittenRatio.toFixed(6)
-  );
+  writeGithubOutput("rows_written_ratio", report.current.rowsWrittenRatio.toFixed(6));
   return report;
 }
 
