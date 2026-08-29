@@ -1,3 +1,5 @@
+/* global document, window */
+
 import { chromium } from "@playwright/test";
 
 const BASE_URL = "https://www.rcat.ac.th";
@@ -20,7 +22,9 @@ async function waitForDeployment() {
         headers: { "Cache-Control": "no-cache" }
       });
       if (response.headers.get("x-rcat-security-baseline") === EXPECTED_MARKER) return;
-    } catch {}
+    } catch {
+      // Keep polling while the deployment is converging.
+    }
     await new Promise((resolve) => setTimeout(resolve, 15_000));
   }
   throw new Error(`production did not expose security marker ${EXPECTED_MARKER} within 10 minutes`);
