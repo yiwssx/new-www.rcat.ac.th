@@ -1,6 +1,13 @@
 name: Production Observability
 
 on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/production-observability.yml"
+      - "scripts/check-production-d1-usage.mjs"
+      - "scripts/resolve-d1-drill-environment-deployment.mjs"
   schedule:
     # Every two hours at minute 17. D1 Free daily limits reset at 00:00 UTC.
     - cron: "17 */2 * * *"
