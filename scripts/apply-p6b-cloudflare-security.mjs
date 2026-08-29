@@ -22,7 +22,7 @@ async function cf(path, options = {}) {
     }
   });
 
-  let payload = null;
+  let payload;
   try {
     payload = await response.json();
   } catch {
@@ -86,11 +86,11 @@ function sameRule(actual, desired) {
 }
 
 async function reconcilePhase(zoneId, phase, desiredRule) {
-  let ruleset = await entrypoint(zoneId, phase);
+  const ruleset = await entrypoint(zoneId, phase);
 
   if (!ruleset) {
     if (MODE !== "apply") throw new Error(`${phase} entry point is missing`);
-    ruleset = await cf(`/zones/${zoneId}/rulesets`, {
+    await cf(`/zones/${zoneId}/rulesets`, {
       method: "POST",
       body: JSON.stringify({
         name: "zone",
