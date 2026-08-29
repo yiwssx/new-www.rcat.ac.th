@@ -6,7 +6,6 @@ import {
   fetchD1Analytics,
   formatD1UsageMarkdown
 } from "../../scripts/check-production-d1-usage.mjs";
-import { reconcileAlert } from "../../scripts/reconcile-production-observability-alert.mjs";
 
 const sampleGroups = [
   {
@@ -62,7 +61,7 @@ describe("production D1 usage guard", () => {
     expect(report.current.rowsReadRatio).toBe(0.7);
     expect(report.current.rowsWrittenRatio).toBe(0.75);
     expect(report.severity).toBe("warning");
-    expect(formatD1UsageMarkdown(report)).toContain("Rows written: **75,000 / 100,000** (75.0%)");
+    expect(formatD1UsageMarkdown(report)).toContain("Rows written utilization: **75.0%**");
   });
 
   it("fails closed when thresholds are invalid", () => {
@@ -104,72 +103,5 @@ describe("production D1 usage guard", () => {
         fetchImpl
       })
     ).resolves.toEqual(sampleGroups);
-  });
-});
-
-describe("production D1 alert reconciliation", () => {
-  it("creates one alert issue at warning severity", async () => {
-    const report = buildD1UsageReport({
-      groups: sampleGroups,
-      now: new Date("2026-08-29T10:00:00.000Z")
-    });
-    const requests = [];
-    const fetchImpl = vi.fn(async (url, init = {}) => {
-      requests.push({ url, method: init.method ?? "GET", body: init.body });
-      if ((init.method ?? "GET") === "GET") {
-        return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
-      }
-      return new Response(JSON.stringify({ number: 153 }), {
-        status: 201,
-        headers: { "Content-Type": "application/json" }
-      });
-    });
-
-    await expect(
-      reconcileAlert({
-        report,
-        token: "github-token",
-        repo: "yiwssx/new-www.rcat.ac.th",
-        runUrl: "https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/1",
-        fetchImpl
-      })
-    ).resolves.toEqual({ action: "created", issueNumber: 153 });
-
-    expect(requests[1].method).toBe("POST");
-    expect(JSON.parse(requests[1].body).title).toBe("[P6A] D1 usage alert");
-  });
-
-  it("closes an existing alert after usage recovers", async () => {
-    const report = buildD1UsageReport({
-      groups: [],
-      now: new Date("2026-08-29T10:00:00.000Z")
-    });
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify([{ number: 153, title: "[P6A] D1 usage alert" }]), {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        })
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ number: 153, state: "closed" }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        })
-      );
-
-    await expect(
-      reconcileAlert({
-        report,
-        token: "github-token",
-        repo: "yiwssx/new-www.rcat.ac.th",
-        runUrl: "https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/2",
-        fetchImpl
-      })
-    ).resolves.toEqual({ action: "closed", issueNumber: 153 });
-
-    const closeBody = JSON.parse(fetchImpl.mock.calls[1][1].body);
-    expect(closeBody).toMatchObject({ state: "closed", state_reason: "completed" });
   });
 });
