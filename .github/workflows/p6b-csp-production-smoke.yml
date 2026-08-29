@@ -1,0 +1,43 @@
+name: P6B CSP Production Smoke
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "vercel.json"
+      - "src/entry-server.tsx"
+      - "src/entry-client.tsx"
+      - "src/runtime.ts"
+      - "src/routes.tsx"
+      - "src/security/cspPolicy.ts"
+      - "scripts/p6b-csp-production-smoke.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p6b-csp-production-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Verify production CSP candidate
+        env:
+          P6B_CSP_EXPECTED_MARKER: p6b-candidate-v1
+        run: node scripts/p6b-csp-production-smoke.mjs
