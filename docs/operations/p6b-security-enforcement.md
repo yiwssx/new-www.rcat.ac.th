@@ -1,6 +1,6 @@
 # P6B Security Enforcement
 
-Status: implementation candidate; runtime-aligned production activation gates pending.
+Status: closed on 2026-08-29.
 
 Requested scope: CSP cleanup/enforcement + Admin/API rate limits + WAF + auth anomaly alerts.
 
@@ -59,13 +59,24 @@ Default severity for the 135-minute lookback is:
 
 Warning/critical severity fails the GitHub Actions guard. The workflow continues to inherit the protected `production` Environment reviewer requirement, so scheduled protected D1 checks remain approval-gated until monitoring credentials are moved to a dedicated read-only Environment.
 
-## Activation gates
+## Closure evidence
 
-P6B is closed only when all are true:
+P6B was explicitly reopened for completion and closed after the runtime-aligned production gates passed.
 
-1. repository CI is green on the final head SHA;
-2. enforcing CSP production browser smoke succeeds on all representative surfaces;
-3. Vercel edge WAF is deployed and its production deny/forward smoke succeeds;
-4. the production Worker is deployed with both sensitive-route Rate Limiting bindings and Worker guards;
-5. the protected D1 auth anomaly aggregate query succeeds without protected identifiers in output;
-6. project-state documentation records P6B closure and permits P6C to begin.
+- PR #164 introduced the P6B security baseline and candidate CSP; merge SHA `08b72d85a99b14ae54774b4312471dd9859d5121`.
+- Candidate CSP production smoke run `33261803140` passed the representative surfaces.
+- PR #165 switched CSP to enforcement; merge SHA `8d9d042043e2703a4282bccbd5d8203910e4b538`.
+- Enforcing CSP production smoke run `33262928370` passed.
+- PR #167 aligned P6B with actual Vercel/Worker runtime ownership; merge SHA `b04aae856d56f3249de9b2089e9d965b27abc399`.
+- Master CI run `33270467362` passed all lanes and the aggregate `quality` gate.
+- Vercel production deployment for `b04aae856d56f3249de9b2089e9d965b27abc399` reached READY and the edge WAF production smoke passed.
+- P6B Production Security run `33271055270` passed both the Vercel edge WAF smoke and the protected D1 auth anomaly query.
+- The auth anomaly result was healthy: `0` failed auth/MFA attempt states and `0` locked accounts in the 135-minute lookback.
+- Worker Production Release run `33271266147` deployed the same master SHA to production.
+- That release reported `CMS_AUTH_RATE_LIMITER (30 requests/60s)` and `ADMIN_API_RATE_LIMITER (120 requests/60s)` as active Worker bindings and completed successfully.
+
+All six activation gates are satisfied. P6B is closed.
+
+## Next phase
+
+P6C Recovery & Reliability may begin when explicitly requested. Closing P6B does not automatically make P6C active.
