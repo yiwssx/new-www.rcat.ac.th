@@ -1,0 +1,34 @@
+{
+  "phase": "P6C",
+  "status": "active",
+  "startedAt": "2026-08-30",
+  "rollbackOwner": "RCAT IT / yiwssx",
+  "objectives": {
+    "runtimeRtoMinutes": 30,
+    "d1RestoreDecisionRtoMinutes": 30,
+    "d1TargetRpoMinutes": 5
+  },
+  "gates": {
+    "repositoryCi": "pending",
+    "unattendedReliabilitySmoke": "pending",
+    "d1TimeTravelReadiness": "pending",
+    "workerRollbackReadiness": "pending",
+    "vercelRollbackReadiness": "pending",
+    "appsScriptRollbackReadiness": "pending",
+    "closureEvidence": "pending"
+  },
+  "evidence": {
+    "repositoryCi": [],
+    "unattendedReliabilitySmoke": [],
+    "d1TimeTravelReadiness": [],
+    "workerRollbackReadiness": [],
+    "vercelRollbackReadiness": [],
+    "appsScriptRollbackReadiness": [],
+    "closureEvidence": []
+  },
+  "notes": [
+    "Destructive D1 restore is incident-only and is not required as a healthy-production readiness drill.",
+    "Worker runtime rollback must not reverse or reapply D1 migrations.",
+    "P6C must reuse existing credentials before requesting any new token."
+  ]
+}

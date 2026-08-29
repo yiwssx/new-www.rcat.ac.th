@@ -136,6 +136,7 @@ jobs:
       - run: pnpm design:check
       - run: node scripts/check-csp-enforcement-readiness.mjs
       - run: node scripts/check-p6b-security-enforcement.mjs
+      - run: node scripts/check-p6c-recovery-reliability.mjs
       - run: node scripts/check-p5f-security-boundary.mjs
       - run: node scripts/check-p5g-apps-script-release-governance.mjs
       - run: node scripts/check-p5h-maintainability-observability.mjs
