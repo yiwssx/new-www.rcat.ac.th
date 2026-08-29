@@ -1,6 +1,8 @@
 # P6A Production Observability
 
-Status: new requested work under the post-P5H production governance baseline.
+Status: completed requested work under the post-P5H production governance baseline.
+
+Activation completed: 2026-08-29.
 
 ## Goal
 
@@ -29,7 +31,7 @@ Because referencing a GitHub Environment creates a pseudo-deployment record, the
 
 ## Schedule And Thresholds
 
-`.github/workflows/production-observability.yml` runs every two hours at minute 17 and can also be started manually from `master`.
+`.github/workflows/production-observability.yml` runs every two hours at minute 17, can be started manually from `master`, and self-smoke-tests on `master` when observability workflow/script files change.
 
 Default daily limits match the Workers Free D1 allowance:
 
@@ -83,6 +85,29 @@ When a warning or critical run occurs:
 
 Cloudflare native billing notifications for Rows Read and Rows Written should also be enabled as the account-level primary alert channel when available.
 
+## Activation Evidence
+
+The activation gate completed successfully on 2026-08-29 using **Production Observability** run `#15`, attempt `2`, from `master`.
+
+Verified results:
+
+- protected credential gate succeeded;
+- Cloudflare D1 analytics query succeeded;
+- the run completed successfully;
+- the Environment pseudo-deployment cleanup succeeded;
+- current UTC-day utilization at activation was `12.5%` rows read and `0.1%` rows written;
+- protected identifiers and raw usage counts were not printed by the guard.
+
+This evidence closes the requested Production Observability activation work. It does not reopen P6 as the current active project phase; project status remains defined by `docs/architecture/post-p5h-current-project-state.md`.
+
+## Current Approval Constraint
+
+The GitHub `production` Environment currently requires reviewer approval. As a result, scheduled Production Observability runs can be created automatically but cannot access the protected analytics credentials or execute the D1 query until an authorized reviewer approves that Environment deployment.
+
+This is an explicit operational constraint, not an observability-query failure. Do not weaken the general production Environment protection merely to make this monitor unattended.
+
+If unattended monitoring is required later, prefer a dedicated read-only observability Environment containing only the analytics account identifier and the `Account > Account Analytics > Read` token, with protection rules appropriate for read-only monitoring.
+
 ## Activation Gate
 
 P6A monitoring is operational only after all of the following are true:
@@ -93,3 +118,5 @@ P6A monitoring is operational only after all of the following are true:
 - one manual **Production Observability** run succeeds from `master`;
 - the Environment pseudo-deployment cleanup succeeds;
 - the first successful run reports the expected current UTC-day utilization without exposing protected identifiers.
+
+All activation-gate conditions were satisfied on 2026-08-29.
