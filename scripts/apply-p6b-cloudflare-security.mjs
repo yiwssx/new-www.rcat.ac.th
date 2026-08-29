@@ -45,14 +45,31 @@ async function resolveZone() {
   const params = new URLSearchParams({
     name: ZONE_NAME,
     status: "active",
-    per_page: "50",
-    "account.id": accountId
+    per_page: "50"
   });
   const zones = await cf(`/zones?${params}`);
-  if (!Array.isArray(zones) || zones.length !== 1) {
-    throw new Error("expected exactly one active Cloudflare zone for the production hostname");
+
+  if (!Array.isArray(zones)) {
+    throw new Error("Cloudflare zone discovery returned an invalid response");
   }
-  return zones[0].id;
+  if (zones.length === 0) {
+    throw new Error(
+      "production zone is not visible to CLOUDFLARE_API_TOKEN; grant Zone > Zone > Read and include the production zone in token resources"
+    );
+  }
+  if (zones.length !== 1) {
+    throw new Error("expected exactly one active Cloudflare zone matching the production hostname");
+  }
+
+  const zone = zones[0];
+  if (!zone?.id) {
+    throw new Error("resolved production zone is missing its identifier");
+  }
+  if (zone.account?.id && zone.account.id !== accountId) {
+    throw new Error("resolved production zone belongs to a different account than CLOUDFLARE_ACCOUNT_ID");
+  }
+
+  return zone.id;
 }
 
 async function entrypoint(zoneId, phase) {
