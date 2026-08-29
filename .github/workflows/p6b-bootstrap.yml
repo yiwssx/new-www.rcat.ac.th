@@ -1,0 +1,705 @@
+name: P6B Bootstrap
+
+on:
+  push:
+    branches:
+      - feat/p6b-security-enforcement
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Apply P6B implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"expected snippet not found in {path}")
+              p.write_text(text.replace(old, new, 1))
+
+          Path("src/security").mkdir(parents=True, exist_ok=True)
+          Path("src/security/cspPolicy.ts").write_text(r'''export const CSP_REPORT_PATH = "/api/csp-report";
+
+const SCRIPT_SOURCES = ["'self'", "https://www.googletagmanager.com", "https://connect.facebook.net"];
+const CONNECT_SOURCES = [
+  "'self'",
+  "https://*.workers.dev",
+  "https://*.rcat.ac.th",
+  "https://www.google-analytics.com",
+  "https://region1.google-analytics.com",
+  "https://www.googletagmanager.com"
+];
+const FRAME_SOURCES = [
+  "https://www.facebook.com",
+  "https://www.youtube.com",
+  "https://www.youtube-nocookie.com",
+  "https://www.google.com",
+  "https://docs.google.com",
+  "https://drive.google.com"
+];
+
+export interface BuildContentSecurityPolicyOptions {
+  scriptNonce?: string;
+  allowInlineScripts?: boolean;
+  reportOnly?: boolean;
+}
+
+export function buildContentSecurityPolicy({
+  scriptNonce,
+  allowInlineScripts = false
+}: BuildContentSecurityPolicyOptions = {}) {
+  const scripts = [...SCRIPT_SOURCES];
+  if (scriptNonce) {
+    scripts.splice(1, 0, `'nonce-${scriptNonce}'`);
+  } else if (allowInlineScripts) {
+    scripts.splice(1, 0, "'unsafe-inline'");
+  }
+
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    `script-src ${scripts.join(" ")}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    `connect-src ${CONNECT_SOURCES.join(" ")}`,
+    `frame-src ${FRAME_SOURCES.join(" ")}`,
+    "media-src 'self' blob: https:",
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    `report-uri ${CSP_REPORT_PATH}`
+  ].join("; ");
+}
+''')
+
+          replace(
+              "src/runtime.ts",
+              '''export interface CreateAppRuntimeOptions {\n  documentMode?: boolean;\n}\n\nexport function createAppRuntime({ documentMode = false }: CreateAppRuntimeOptions = {}) {''',
+              '''export interface CreateAppRuntimeOptions {\n  documentMode?: boolean;\n  cspNonce?: string;\n}\n\nexport function createAppRuntime({ documentMode = false, cspNonce }: CreateAppRuntimeOptions = {}) {'''
+          )
+          replace(
+              "src/runtime.ts",
+              '''  const router = createAppRouter({ queryClient, documentMode });''',
+              '''  const router = createAppRouter({ queryClient, documentMode, cspNonce });'''
+          )
+
+          replace(
+              "src/routes.tsx",
+              '''export interface CreateAppRouterInput {\n  queryClient: QueryClient;\n  documentMode?: boolean;\n}''',
+              '''export interface CreateAppRouterInput {\n  queryClient: QueryClient;\n  documentMode?: boolean;\n  cspNonce?: string;\n}'''
+          )
+          replace(
+              "src/routes.tsx",
+              '''export function createAppRouter({ queryClient, documentMode = false }: CreateAppRouterInput) {\n  return createRouter({\n    routeTree,\n    context: { queryClient, documentMode },''',
+              '''export function createAppRouter({ queryClient, documentMode = false, cspNonce }: CreateAppRouterInput) {\n  return createRouter({\n    routeTree,\n    context: { queryClient, documentMode },\n    ssr: cspNonce ? { nonce: cspNonce } : undefined,'''
+          )
+
+          replace(
+              "src/entry-server.tsx",
+              '''import React from "react";''',
+              '''import { randomBytes } from "node:crypto";\nimport React from "react";'''
+          )
+          replace(
+              "src/entry-server.tsx",
+              '''import { createAppRuntime } from "./runtime";''',
+              '''import { createAppRuntime } from "./runtime";\nimport { buildContentSecurityPolicy } from "./security/cspPolicy";'''
+          )
+          replace(
+              "src/entry-server.tsx",
+              '''export async function renderSsrResponse(request: Request) {\n  const runtime = createAppRuntime({ documentMode: true });''',
+              '''export async function renderSsrResponse(request: Request) {\n  const cspNonce = randomBytes(24).toString("base64url");\n  const runtime = createAppRuntime({ documentMode: true, cspNonce });'''
+          )
+          replace(
+              "src/entry-server.tsx",
+              '''    const emotionResponse = await finalizeEmotionSsrResponse(response);\n\n    return applyPublicSsrHttpSemantics({\n      request,\n      response: emotionResponse,''',
+              '''    const emotionResponse = await finalizeEmotionSsrResponse(response);\n    const securityHeaders = new Headers(emotionResponse.headers);\n    securityHeaders.set("Content-Security-Policy-Report-Only", buildContentSecurityPolicy({ scriptNonce: cspNonce }));\n    const securedResponse = new Response(emotionResponse.body, {\n      status: emotionResponse.status,\n      statusText: emotionResponse.statusText,\n      headers: securityHeaders\n    });\n\n    return applyPublicSsrHttpSemantics({\n      request,\n      response: securedResponse,'''
+          )
+
+          replace(
+              "src/entry-client.tsx",
+              '''export function shouldHydrateSsrDocument(documentElement: HTMLElement = document.documentElement) {\n  return documentElement.getAttribute(SSR_DOCUMENT_MARKER_ATTRIBUTE) === SSR_DOCUMENT_MARKER_VALUE;\n}\n''',
+              '''export function shouldHydrateSsrDocument(documentElement: HTMLElement = document.documentElement) {\n  return documentElement.getAttribute(SSR_DOCUMENT_MARKER_ATTRIBUTE) === SSR_DOCUMENT_MARKER_VALUE;\n}\n\nexport function readDocumentCspNonce(documentNode: Document = document) {\n  const script = documentNode.querySelector<HTMLScriptElement>("script[nonce]");\n  return script?.nonce || script?.getAttribute("nonce") || undefined;\n}\n'''
+          )
+          replace(
+              "src/entry-client.tsx",
+              '''  const runtime = createAppRuntime({ documentMode });''',
+              '''  const runtime = createAppRuntime({ documentMode, cspNonce: documentMode ? readDocumentCspNonce() : undefined });'''
+          )
+
+          vercel_path = Path("vercel.json")
+          vercel = json.loads(vercel_path.read_text())
+          header_block = next(entry for entry in vercel["headers"] if entry["source"] == "/(.*)")
+          csp = next(header for header in header_block["headers"] if header["key"] in {"Content-Security-Policy", "Content-Security-Policy-Report-Only"})
+          csp["key"] = "Content-Security-Policy-Report-Only"
+          csp["value"] = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.workers.dev https://*.rcat.ac.th https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com; frame-src https://www.facebook.com https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com https://docs.google.com https://drive.google.com; media-src 'self' blob: https:; worker-src 'self' blob:; manifest-src 'self'; report-uri /api/csp-report"
+          marker = next((h for h in header_block["headers"] if h["key"] == "X-RCAT-Security-Baseline"), None)
+          if marker:
+              marker["value"] = "p6b-candidate-v1"
+          else:
+              header_block["headers"].append({"key": "X-RCAT-Security-Baseline", "value": "p6b-candidate-v1"})
+          vercel_path.write_text(json.dumps(vercel, indent=2) + "\n")
+
+          Path("scripts/apply-p6b-cloudflare-security.mjs").write_text(r'''const API_BASE = "https://api.cloudflare.com/client/v4";
+const ZONE_NAME = "rcat.ac.th";
+const MODE = process.argv.includes("--apply") ? "apply" : "check";
+const CUSTOM_DESCRIPTION = "RCAT P6B: block direct internal API paths";
+const RATE_DESCRIPTION = "RCAT P6B: sensitive admin and auth API burst guard";
+
+const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || "").trim();
+const apiToken = String(process.env.CLOUDFLARE_API_TOKEN || "").trim();
+if (!accountId || !apiToken) {
+  console.error("P6B Cloudflare security: protected production credentials are unavailable.");
+  process.exit(1);
+}
+
+async function cf(path, options = {}) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${apiToken}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+  if (!response.ok || payload?.success === false) {
+    const code = payload?.errors?.[0]?.code;
+    const message = payload?.errors?.[0]?.message;
+    const safe = [code ? `code ${code}` : "", message || "Cloudflare API request failed"].filter(Boolean).join(": ");
+    const error = new Error(safe);
+    error.status = response.status;
+    throw error;
+  }
+  return payload?.result;
+}
+
+async function resolveZone() {
+  const params = new URLSearchParams({ name: ZONE_NAME, status: "active", per_page: "50", "account.id": accountId });
+  const zones = await cf(`/zones?${params}`);
+  if (!Array.isArray(zones) || zones.length !== 1) {
+    throw new Error("expected exactly one active Cloudflare zone for the production hostname");
+  }
+  return zones[0].id;
+}
+
+async function entrypoint(zoneId, phase) {
+  try {
+    return await cf(`/zones/${zoneId}/rulesets/phases/${phase}/entrypoint`);
+  } catch (error) {
+    if (error.status === 404) return null;
+    throw error;
+  }
+}
+
+function sameRule(actual, desired) {
+  if (!actual) return false;
+  if (actual.description !== desired.description || actual.action !== desired.action || actual.expression !== desired.expression || actual.enabled === false) {
+    return false;
+  }
+  if (!desired.ratelimit) return true;
+  const rate = actual.ratelimit || {};
+  return rate.period === desired.ratelimit.period &&
+    rate.requests_per_period === desired.ratelimit.requests_per_period &&
+    rate.mitigation_timeout === desired.ratelimit.mitigation_timeout &&
+    JSON.stringify(rate.characteristics || []) === JSON.stringify(desired.ratelimit.characteristics);
+}
+
+async function reconcilePhase(zoneId, phase, desiredRule) {
+  let ruleset = await entrypoint(zoneId, phase);
+  if (!ruleset) {
+    if (MODE !== "apply") throw new Error(`${phase} entry point is missing`);
+    ruleset = await cf(`/zones/${zoneId}/rulesets`, {
+      method: "POST",
+      body: JSON.stringify({ name: "zone", description: "RCAT zone security entry point", kind: "zone", phase, rules: [desiredRule] })
+    });
+    console.log(`P6B Cloudflare security: created ${phase} entry point with managed rule.`);
+    return;
+  }
+
+  const actual = (ruleset.rules || []).find((rule) => rule.description === desiredRule.description);
+  if (sameRule(actual, desiredRule)) {
+    console.log(`P6B Cloudflare security: ${desiredRule.description} is current.`);
+    return;
+  }
+  if (MODE !== "apply") throw new Error(`${desiredRule.description} is missing or drifted`);
+
+  if (actual?.id) {
+    await cf(`/zones/${zoneId}/rulesets/${ruleset.id}/rules/${actual.id}`, {
+      method: "PUT",
+      body: JSON.stringify(desiredRule)
+    });
+    console.log(`P6B Cloudflare security: updated ${desiredRule.description}.`);
+  } else {
+    await cf(`/zones/${zoneId}/rulesets/${ruleset.id}/rules`, {
+      method: "POST",
+      body: JSON.stringify(desiredRule)
+    });
+    console.log(`P6B Cloudflare security: added ${desiredRule.description}.`);
+  }
+}
+
+try {
+  const zoneId = await resolveZone();
+  await reconcilePhase(zoneId, "http_request_firewall_custom", {
+    description: CUSTOM_DESCRIPTION,
+    expression: '(http.host eq "www.rcat.ac.th" and (starts_with(http.request.uri.path, "/api/internal/") or starts_with(http.request.uri.path, "/api/admin/")))',
+    action: "block",
+    enabled: true
+  });
+  await reconcilePhase(zoneId, "http_ratelimit", {
+    description: RATE_DESCRIPTION,
+    expression: '(starts_with(http.request.uri.path, "/api/cms-auth/") or http.request.uri.path eq "/api/admin-proxy")',
+    action: "block",
+    enabled: true,
+    ratelimit: {
+      characteristics: ["cf.colo.id", "ip.src"],
+      period: 10,
+      requests_per_period: 30,
+      mitigation_timeout: 10
+    }
+  });
+  console.log(`P6B Cloudflare security: ${MODE} completed without protected identifiers in output.`);
+} catch (error) {
+  console.error(`P6B Cloudflare security: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
+''')
+
+          Path("scripts/check-production-auth-security-events.mjs").write_text(r'''import { appendFile } from "node:fs/promises";
+
+const GRAPHQL_ENDPOINT = "https://api.cloudflare.com/client/v4/graphql";
+const LOOKBACK_MINUTES = Math.max(15, Number(process.env.AUTH_SECURITY_LOOKBACK_MINUTES || 135));
+const WARNING_EVENTS = Math.max(1, Number(process.env.AUTH_SECURITY_WARNING_EVENTS || 10));
+const CRITICAL_EVENTS = Math.max(WARNING_EVENTS + 1, Number(process.env.AUTH_SECURITY_CRITICAL_EVENTS || 30));
+const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || "").trim();
+const token = String(process.env.CLOUDFLARE_ANALYTICS_READ_TOKEN || "").trim();
+
+if (!accountId || !token) {
+  console.error("Auth security events: read-only Cloudflare analytics credentials are unavailable.");
+  process.exit(1);
+}
+
+const end = new Date();
+const start = new Date(end.getTime() - LOOKBACK_MINUTES * 60_000);
+const query = `query P6BAuthSecurity($accountTag: string!, $start: Time!, $end: Time!) {
+  viewer {
+    accounts(filter: { accountTag: $accountTag }) {
+      zones {
+        firewallEventsAdaptive(
+          filter: { datetime_geq: $start, datetime_leq: $end }
+          limit: 1000
+          orderBy: [datetime_DESC]
+        ) {
+          action
+          clientRequestPath
+          datetime
+          source
+        }
+      }
+    }
+  }
+}`;
+
+const response = await fetch(GRAPHQL_ENDPOINT, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  body: JSON.stringify({ query, variables: { accountTag: accountId, start: start.toISOString(), end: end.toISOString() } })
+});
+const payload = await response.json().catch(() => null);
+if (!response.ok || payload?.errors?.length) {
+  console.error("Auth security events: Cloudflare firewall analytics query failed.");
+  process.exit(1);
+}
+
+const accounts = payload?.data?.viewer?.accounts || [];
+const events = accounts.flatMap((account) => (account.zones || []).flatMap((zone) => zone.firewallEventsAdaptive || []));
+const sensitive = events.filter((event) => {
+  const path = String(event.clientRequestPath || "");
+  const action = String(event.action || "").toLowerCase();
+  return (path.startsWith("/api/cms-auth/") || path === "/api/admin-proxy") && action !== "allow" && action !== "skip";
+});
+
+const count = sensitive.length;
+const severity = count >= CRITICAL_EVENTS ? "critical" : count >= WARNING_EVENTS ? "warning" : count > 0 ? "info" : "healthy";
+console.log(`Auth security events: ${severity}; ${count} sensitive edge security event(s) in the last ${LOOKBACK_MINUTES} minutes.`);
+
+if (process.env.GITHUB_OUTPUT) {
+  await appendFile(process.env.GITHUB_OUTPUT, `severity=${severity}\nevent_count=${count}\n`);
+}
+''')
+
+          Path("scripts/p6b-csp-production-smoke.mjs").write_text(r'''import { chromium } from "@playwright/test";
+
+const BASE_URL = "https://www.rcat.ac.th";
+const EXPECTED_MARKER = process.env.P6B_CSP_EXPECTED_MARKER || "p6b-candidate-v1";
+const PATHS = [
+  "/",
+  "/search?q=rcat",
+  "/complaint",
+  "/content/facebook-1609435494524655-1623514416450096",
+  "/login",
+  "/admin",
+  "/admin/media"
+];
+
+async function waitForDeployment() {
+  const deadline = Date.now() + 10 * 60_000;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${BASE_URL}/`, { headers: { "Cache-Control": "no-cache" } });
+      if (response.headers.get("x-rcat-security-baseline") === EXPECTED_MARKER) return;
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 15_000));
+  }
+  throw new Error(`production did not expose security marker ${EXPECTED_MARKER} within 10 minutes`);
+}
+
+await waitForDeployment();
+const browser = await chromium.launch();
+try {
+  const context = await browser.newContext();
+  for (const path of PATHS) {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.__rcatCspViolations = [];
+      document.addEventListener("securitypolicyviolation", (event) => {
+        window.__rcatCspViolations.push({
+          blockedURI: event.blockedURI,
+          effectiveDirective: event.effectiveDirective,
+          disposition: event.disposition,
+          sourceFile: event.sourceFile
+        });
+      });
+    });
+    const response = await page.goto(`${BASE_URL}${path}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await page.waitForTimeout(2500);
+    const violations = await page.evaluate(() => window.__rcatCspViolations || []);
+    const relevant = violations.filter((item) => item.disposition === "report" || item.disposition === "enforce");
+    if (!response || response.status() >= 500) throw new Error(`${path} returned ${response?.status() ?? "no response"}`);
+    if (relevant.length) {
+      const summary = relevant.slice(0, 8).map((item) => `${item.effectiveDirective}:${item.blockedURI || "inline"}`).join(", ");
+      throw new Error(`${path} produced CSP violation(s): ${summary}`);
+    }
+    console.log(`P6B CSP production smoke: ${path} clean.`);
+    await page.close();
+  }
+} finally {
+  await browser.close();
+}
+''')
+
+          Path("scripts/check-p6b-security-enforcement.mjs").write_text(r'''import { readFile } from "node:fs/promises";
+
+function fail(message) {
+  console.error(`P6B security enforcement: ${message}`);
+  process.exitCode = 1;
+}
+
+const vercel = JSON.parse(await readFile(new URL("../vercel.json", import.meta.url), "utf8"));
+const globalHeaders = vercel.headers?.find((entry) => entry.source === "/(.*)")?.headers || [];
+const reportOnly = globalHeaders.find((header) => header.key === "Content-Security-Policy-Report-Only")?.value;
+const enforcing = globalHeaders.find((header) => header.key === "Content-Security-Policy")?.value;
+const policy = enforcing || reportOnly || "";
+for (const required of [
+  "https://www.googletagmanager.com",
+  "https://www.youtube-nocookie.com",
+  "https://www.google.com",
+  "https://drive.google.com",
+  "report-uri /api/csp-report"
+]) {
+  if (!policy.includes(required)) fail(`CSP is missing required source ${required}`);
+}
+if (!reportOnly && !enforcing) fail("CSP header is missing");
+
+const runtime = await readFile(new URL("../src/runtime.ts", import.meta.url), "utf8");
+const routes = await readFile(new URL("../src/routes.tsx", import.meta.url), "utf8");
+const server = await readFile(new URL("../src/entry-server.tsx", import.meta.url), "utf8");
+if (!runtime.includes("cspNonce")) fail("runtime does not propagate a CSP nonce");
+if (!routes.includes("ssr: cspNonce ? { nonce: cspNonce } : undefined")) fail("TanStack Router SSR nonce is not configured");
+if (!server.includes("buildContentSecurityPolicy({ scriptNonce: cspNonce })")) fail("SSR response does not emit the nonce-aware CSP");
+
+const waf = await readFile(new URL("./apply-p6b-cloudflare-security.mjs", import.meta.url), "utf8");
+if (!waf.includes("http_request_firewall_custom") || !waf.includes("http_ratelimit")) fail("Cloudflare WAF/rate-limit reconciliation is incomplete");
+if (!waf.includes("/api/cms-auth/") || !waf.includes("/api/admin-proxy")) fail("sensitive auth/admin API rate-limit scope is incomplete");
+
+const securityWorkflow = await readFile(new URL("../.github/workflows/p6b-production-security.yml", import.meta.url), "utf8");
+if (!securityWorkflow.includes("check-production-auth-security-events.mjs")) fail("auth anomaly monitoring is not wired into production security workflow");
+
+if (enforcing) {
+  const readiness = JSON.parse(await readFile(new URL("../config/csp-enforcement-readiness.json", import.meta.url), "utf8"));
+  const clean = Object.values(readiness.surfaces || {}).every((status) => status === "clean");
+  if (readiness.approvedForEnforcement !== true || !clean || !readiness.reviewedAt || !readiness.rollbackOwner) {
+    fail("enforcing CSP requires approved, clean readiness evidence and rollback ownership");
+  }
+}
+
+if (!process.exitCode) console.log(`P6B security enforcement: ${enforcing ? "enforcing" : "report-only candidate"} contract PASS.`);
+''')
+
+          Path(".github/workflows/p6b-csp-production-smoke.yml").write_text(r'''name: P6B CSP Production Smoke
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "vercel.json"
+      - "src/entry-server.tsx"
+      - "src/entry-client.tsx"
+      - "src/runtime.ts"
+      - "src/routes.tsx"
+      - "src/security/cspPolicy.ts"
+      - "scripts/p6b-csp-production-smoke.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p6b-csp-production-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Verify production CSP candidate
+        env:
+          P6B_CSP_EXPECTED_MARKER: p6b-candidate-v1
+        run: node scripts/p6b-csp-production-smoke.mjs
+''')
+
+          Path(".github/workflows/p6b-production-security.yml").write_text(r'''name: P6B Production Security
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/p6b-production-security.yml"
+      - "scripts/apply-p6b-cloudflare-security.mjs"
+      - "scripts/check-production-auth-security-events.mjs"
+  schedule:
+    - cron: "47 */2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p6b-production-security
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: WAF + Auth Anomaly Guard
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AUTH_SECURITY_LOOKBACK_MINUTES: "135"
+      AUTH_SECURITY_WARNING_EVENTS: "10"
+      AUTH_SECURITY_CRITICAL_EVENTS: "30"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+
+      - name: Require protected security credentials
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || exit 1
+          test -n "$CLOUDFLARE_API_TOKEN" || exit 1
+          test -n "$CLOUDFLARE_ANALYTICS_READ_TOKEN" || exit 1
+
+      - name: Reconcile Cloudflare WAF and sensitive API rate limit
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/apply-p6b-cloudflare-security.mjs --apply
+
+      - name: Verify Cloudflare security rules
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/apply-p6b-cloudflare-security.mjs --check
+
+      - name: Query auth/admin edge security events
+        id: auth_security
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+        run: node scripts/check-production-auth-security-events.mjs
+
+      - name: Fail on auth anomaly warning or critical
+        if: ${{ steps.auth_security.outputs.severity == 'warning' || steps.auth_security.outputs.severity == 'critical' }}
+        run: |
+          echo "Sensitive admin/auth edge security events reached ${{ steps.auth_security.outputs.severity }} severity." >&2
+          exit 1
+
+  retire-environment-deployment:
+    name: Retire P6B security environment deployment
+    needs: security
+    if: ${{ always() && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      deployments: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Delete this guard's GitHub Environment pseudo-deployment
+        run: |
+          set -euo pipefail
+          gh api "/repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/p6b-run.json"
+          gh api "/repos/$GH_REPO/deployments?sha=$GITHUB_SHA&per_page=100" > "$RUNNER_TEMP/p6b-deployments.json"
+          deployment_id="$(node scripts/resolve-d1-drill-environment-deployment.mjs \
+            --run "$RUNNER_TEMP/p6b-run.json" \
+            --deployments "$RUNNER_TEMP/p6b-deployments.json" \
+            --sha "$GITHUB_SHA" \
+            --actor "$GITHUB_ACTOR")"
+          gh api --method POST "/repos/$GH_REPO/deployments/$deployment_id/statuses" \
+            -f state=inactive -f environment=production \
+            -f description='P6B production security credential-gate deployment retired' >/dev/null
+          gh api --method DELETE "/repos/$GH_REPO/deployments/$deployment_id"
+''')
+
+          Path("docs/operations/p6b-security-enforcement.md").write_text(r'''# P6B Security Enforcement
+
+Status: implementation candidate; production activation gates pending.
+
+Requested scope: CSP cleanup/enforcement + Admin/API rate limits + WAF + auth anomaly alerts.
+
+## CSP
+
+P6B moves the global policy toward enforcement without using `unsafe-eval`. Public SSR receives a per-request cryptographic nonce which is passed to TanStack Router SSR script rendering. The first deployment remains Report-Only and is validated against representative production routes by the `P6B CSP Production Smoke` workflow before the final enforcement switch.
+
+The candidate policy explicitly classifies the third-party surfaces observed in earlier production evidence: Google Tag Manager, Facebook, YouTube/YouTube No-Cookie, Google forms/frames, and Google Drive frames. The CSP report collector remains `/api/csp-report`.
+
+## Admin/API rate limits and WAF
+
+`P6B Production Security` reconciles two zone-level Cloudflare controls using the protected production Cloudflare token:
+
+- a WAF custom rule that blocks direct access to internal/admin origin-only API namespaces on `www.rcat.ac.th`;
+- one Free-plan-compatible rate limiting rule for `/api/cms-auth/*` and `/api/admin-proxy`, counted by client IP in a 10-second period.
+
+The rule count and expression intentionally fit the Cloudflare Free rate-limiting entitlement. Existing application-level CMS authentication limiters remain as defense in depth.
+
+The reconciliation script only creates or updates rules with exact `RCAT P6B:` descriptions. It does not replace unrelated zone rulesets or rules.
+
+## Auth anomaly alerts
+
+The same protected workflow queries Cloudflare `firewallEventsAdaptive` with the dedicated read-only analytics token. It does not request client IP or user-agent fields. Sensitive auth/admin edge security events are classified as:
+
+- 0 events in lookback: healthy;
+- 1-9: info;
+- 10-29: warning;
+- 30 or more: critical.
+
+Warning/critical severity fails the GitHub Actions guard, using the repository's existing Actions notification path. The workflow currently inherits the `production` Environment reviewer requirement, so scheduled checks remain approval-gated until observability/security monitoring is moved to a dedicated read-only Environment.
+
+## Activation gates
+
+P6B is closed only when all are true:
+
+1. repository CI is green;
+2. candidate CSP is deployed and the production browser smoke reports no representative violations;
+3. CSP is switched from Report-Only to enforcing and a second production smoke succeeds;
+4. Cloudflare WAF custom rule and sensitive API rate-limit rule reconcile and verify successfully;
+5. auth anomaly query succeeds with protected identifiers omitted from logs;
+6. project-state documentation records P6B closure and permits P6C to begin.
+''')
+
+          # Add governance gate.
+          ci = Path(".github/workflows/ci.yml")
+          text = ci.read_text()
+          needle = "      - run: node scripts/check-csp-enforcement-readiness.mjs\n"
+          if needle not in text:
+              raise SystemExit("CI governance insertion point not found")
+          text = text.replace(needle, needle + "      - run: node scripts/check-p6b-security-enforcement.mjs\n", 1)
+          ci.write_text(text)
+
+          # Strengthen the SSR foundation test with nonce/header evidence.
+          test = Path("src/test/ssrRuntimeFoundation.test.tsx")
+          text = test.read_text()
+          needle = '''    expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");\n    expect(html).toContain(`ข่าว | ${projectSettings.site.name}`);'''
+          replacement = '''    expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");\n    const nonce = html.match(/nonce="([^"]+)"/)?.[1];\n    expect(nonce).toBeTruthy();\n    expect(response.headers.get("Content-Security-Policy-Report-Only")).toContain(`'nonce-${nonce}'`);\n    expect(html).toContain(`ข่าว | ${projectSettings.site.name}`);'''
+          if needle not in text:
+              raise SystemExit("SSR test insertion point not found")
+          test.write_text(text.replace(needle, replacement, 1))
+          PY
+
+      - run: pnpm format
+      - run: pnpm format:check
+      - run: pnpm lint:strict
+      - run: pnpm test:unit
+      - run: pnpm test:integration
+      - run: pnpm build
+      - run: pnpm worker:typecheck
+      - run: pnpm worker:deploy:dry
+      - run: node scripts/check-p6b-security-enforcement.mjs
+
+      - name: Commit P6B implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add . ':!.github/workflows/p6b-bootstrap.yml'
+          if git diff --cached --quiet; then
+            echo "No P6B implementation changes produced." >&2
+            exit 1
+          fi
+          git commit -m "feat(security): implement P6B enforcement candidate"
+          git push
