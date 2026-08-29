@@ -4,12 +4,13 @@ import { createAppRouter } from "./routes";
 
 export interface CreateAppRuntimeOptions {
   documentMode?: boolean;
+  cspNonce?: string;
 }
 
-export function createAppRuntime({ documentMode = false }: CreateAppRuntimeOptions = {}) {
+export function createAppRuntime({ documentMode = false, cspNonce }: CreateAppRuntimeOptions = {}) {
   const emotionCache = createAppEmotionCache();
   const queryClient = createAppQueryClient();
-  const router = createAppRouter({ queryClient, documentMode });
+  const router = createAppRouter({ queryClient, documentMode, cspNonce });
 
   return {
     emotionCache,
