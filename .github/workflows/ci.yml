@@ -54,12 +54,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - name: Show observability Prettier diff
-        shell: bash
-        run: |
-          pnpm exec prettier scripts/check-production-d1-usage.mjs --write
-          git diff -- scripts/check-production-d1-usage.mjs
-          exit 1
+      - run: pnpm format:check
       - run: pnpm lint:strict
 
   unit:
