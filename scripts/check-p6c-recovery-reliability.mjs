@@ -129,8 +129,9 @@ for (const contract of [
 }
 
 const runbook = read("docs/operations/p6c-recovery-reliability.md");
+const expectedRunbookStatus = readiness.status === "closed" ? "Status: closed." : "Status: active.";
 for (const contract of [
-  "Status: active.",
+  expectedRunbookStatus,
   "Do not combine runtime rollback and data restore by default.",
   "does **not** run `wrangler d1 migrations apply`",
   "does **not** run D1 Time Travel restore",
@@ -142,6 +143,12 @@ for (const contract of [
 }
 
 if (readiness.status === "closed") {
+  if (!readiness.closedAt) {
+    fail("closed P6C requires closedAt evidence");
+  }
+  if (!runbook.includes("## Closure evidence")) {
+    fail("closed P6C runbook must retain a closure evidence section");
+  }
   for (const gate of expectedGates) {
     if (readiness.gates[gate] !== "passed") {
       fail(`closed P6C requires ${gate}=passed`);
