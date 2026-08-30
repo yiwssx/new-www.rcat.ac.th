@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MediaAsset, PublicContentCardItem } from "../../types";
-import { resolveCardThumbnail } from "./PublicContentCard";
+import { resolveCardThumbnail } from "./publicContentCardThumbnail";
 
 function content(overrides: Partial<PublicContentCardItem> = {}): PublicContentCardItem {
   return {
