@@ -23,7 +23,7 @@ function normalizeCategories(value: string | undefined) {
     .filter(Boolean);
 }
 
-function resolveCardThumbnail(item: PublicContentCardItem, mediaAssets: MediaAsset[]) {
+export function resolveCardThumbnail(item: PublicContentCardItem, mediaAssets: MediaAsset[]) {
   const featuredMedia = mediaAssets.find((asset) => asset.id === item.featuredMediaId);
 
   if (featuredMedia?.type === "image") {
