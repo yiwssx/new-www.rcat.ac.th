@@ -33,9 +33,8 @@ async function findLegacyFacebookCandidateIds() {
   const ids: string[] = [];
   let page = 1;
   let scanned = 0;
-  let totalPages = 1;
 
-  do {
+  for (;;) {
     const response = await getAdminContentList({
       page,
       pageSize: BACKFILL_PAGE_SIZE,
@@ -48,9 +47,13 @@ async function findLegacyFacebookCandidateIds() {
     ids.push(
       ...response.items.filter((item) => !item.featuredMediaId && isFacebookEmbedContent(item)).map((item) => item.id)
     );
-    totalPages = Math.max(response.pagination.totalPages, 1);
+
+    const totalPages = Math.max(response.pagination.totalPages, 1);
+    if (page >= totalPages) {
+      break;
+    }
     page += 1;
-  } while (page <= totalPages);
+  }
 
   return { ids: [...new Set(ids)], scanned };
 }
