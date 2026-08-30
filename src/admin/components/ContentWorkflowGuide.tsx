@@ -1,4 +1,10 @@
-import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { useAuth } from "../../context/authSessionContext";
+import { invalidateAdminListQueries } from "../../features/admin-pagination";
+import { backfillLegacyFacebookThumbnails } from "../../features/cms-content";
+import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const contentWorkflowSteps = [
   {
@@ -19,6 +25,56 @@ const contentWorkflowSteps = [
 ] as const;
 
 export default function ContentWorkflowGuide() {
+  const queryClient = useQueryClient();
+  const { hasCapability } = useAuth();
+  const canRepairLegacyThumbnails = hasCapability("content.update") && hasCapability("media.manage");
+  const backfillMutation = useMutation({
+    mutationFn: backfillLegacyFacebookThumbnails
+  });
+
+  async function handleLegacyThumbnailRepair() {
+    if (!canRepairLegacyThumbnails || backfillMutation.isPending) {
+      return;
+    }
+
+    const confirmation = await appSwal.fire({
+      icon: "question",
+      title: "ซ่อมภาพย่อ Facebook เก่า?",
+      text: "ระบบจะตรวจเฉพาะเนื้อหาที่เผยแพร่แล้วและยังไม่มีรูป โดยคัดลอกรูปตัวอย่าง Facebook เข้า Google Drive เดิม",
+      showCancelButton: true,
+      confirmButtonText: "เริ่มซ่อม",
+      cancelButtonText: "ยกเลิก"
+    });
+
+    if (!confirmation.isConfirmed) {
+      return;
+    }
+
+    showBlockingLoading("กำลังซ่อมภาพย่อ Facebook เก่า", "กำลังตรวจโพสต์และคัดลอกรูป กรุณาอย่าปิดหน้านี้");
+
+    try {
+      const result = await backfillMutation.mutateAsync();
+      await Promise.all([invalidateAdminListQueries(queryClient, "content"), invalidatePublicCmsData(queryClient)]);
+      await appSwal.close();
+
+      const summary = `ตรวจ ${result.scanned} รายการ พบที่ต้องตรวจละเอียด ${result.candidates} รายการ ซ่อมสำเร็จ ${result.repaired} รายการ ข้าม ${result.skipped} รายการ ล้มเหลว ${result.failed} รายการ`;
+
+      if (result.failed > 0) {
+        await appSwal.fire({
+          icon: "warning",
+          title: "ซ่อมภาพย่อเสร็จบางส่วน",
+          text: summary,
+          confirmButtonText: "ตกลง"
+        });
+      } else {
+        await showSuccessResult("ซ่อมภาพย่อ Facebook เก่าเรียบร้อย", summary);
+      }
+    } catch (error) {
+      await appSwal.close();
+      await showErrorResult("ไม่สามารถซ่อมภาพย่อ Facebook เก่าได้", error, "กรุณาลองใหม่อีกครั้ง");
+    }
+  }
+
   return (
     <Card sx={{ mb: 3 }}>
       <CardContent>
@@ -58,6 +114,23 @@ export default function ContentWorkflowGuide() {
               </Box>
             ))}
           </Stack>
+          {canRepairLegacyThumbnails && (
+            <Alert
+              severity="info"
+              action={
+                <Button
+                  color="inherit"
+                  size="small"
+                  disabled={backfillMutation.isPending}
+                  onClick={() => void handleLegacyThumbnailRepair()}
+                >
+                  ซ่อมภาพย่อ Facebook เก่า
+                </Button>
+              }
+            >
+              สำหรับโพสต์ Facebook ที่เผยแพร่ก่อนระบบสร้างภาพย่ออัตโนมัติ และยังแสดงเป็นไอคอนโทรโข่ง
+            </Alert>
+          )}
         </Stack>
       </CardContent>
     </Card>
