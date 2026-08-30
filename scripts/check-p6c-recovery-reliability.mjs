@@ -73,6 +73,18 @@ for (const contract of [
   }
 }
 
+const appRoutes = read("src/routes.tsx");
+for (const routeContract of [
+  /const loginRoute = createRoute\(\{[\s\S]*?path: "login",[\s\S]*?head: getCmsRouteHead,[\s\S]*?component: LoginPage/,
+  /const activateAccountRoute = createRoute\(\{[\s\S]*?path: "activate-account",[\s\S]*?head: getCmsRouteHead,[\s\S]*?component: ActivateAccountPage/,
+  /const resetPasswordRoute = createRoute\(\{[\s\S]*?path: "reset-password",[\s\S]*?head: getCmsRouteHead,[\s\S]*?component: ResetPasswordPage/,
+  /const adminRoute = createRoute\(\{[\s\S]*?path: "admin",[\s\S]*?head: getCmsRouteHead,[\s\S]*?component: ProtectedLayout/
+]) {
+  if (!routeContract.test(appRoutes)) {
+    fail("concrete CMS auth/admin routes must retain their SSR robots head instead of relying only on a pathless parent");
+  }
+}
+
 const d1Drill = read(".github/workflows/d1-recovery-drill.yml");
 if (!d1Drill.includes("secrets.CLOUDFLARE_D1_READ_TOKEN")) {
   fail("D1 readiness drill must use the dedicated read-only token");
