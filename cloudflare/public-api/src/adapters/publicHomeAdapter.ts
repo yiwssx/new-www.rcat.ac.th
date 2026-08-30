@@ -5,7 +5,7 @@ import type { PublicContentCardContract } from "../contracts/publicContent";
 import type { PublicHomeSnapshotContract } from "../contracts/publicHome";
 import type { PublicMetadataContract } from "../contracts/publicMetadata";
 import type { PublicVisitorStatsSnapshotContract } from "../contracts/publicVisitorStats";
-import type { PublicContentCardReadRow } from "../db/contentRepository";
+import type { PublicContentSummaryReadRow } from "../db/contentRepository";
 import type { DocumentRow } from "../db/schema";
 
 const HOME_ACHIEVEMENT_LIMIT = 6;
@@ -36,7 +36,7 @@ function getExternalServiceIconMediaId(iconKey: unknown) {
 
 export function createPublicHomeSnapshot(
   input: {
-    content: PublicContentCardReadRow[];
+    content: PublicContentSummaryReadRow[];
     featuredDocuments: DocumentRow[];
     metadata: PublicMetadataContract;
     visitorStats: PublicVisitorStatsSnapshotContract;
