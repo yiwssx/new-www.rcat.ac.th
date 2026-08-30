@@ -1,0 +1,37 @@
+name: P6C Formatter Helper
+
+on:
+  push:
+    branches:
+      - fix/p6c-cms-ssr-robots-head
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/p6c-cms-ssr-robots-head
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm exec prettier --write scripts/check-p6c-recovery-reliability.mjs
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet -- scripts/check-p6c-recovery-reliability.mjs; then
+            echo "No formatter changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/check-p6c-recovery-reliability.mjs
+          git commit -m "style(p6c): apply prettier output"
+          git push origin HEAD:fix/p6c-cms-ssr-robots-head
