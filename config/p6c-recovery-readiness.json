@@ -1,7 +1,8 @@
 {
   "phase": "P6C",
-  "status": "active",
+  "status": "closed",
   "startedAt": "2026-08-30",
+  "closedAt": "2026-08-30",
   "rollbackOwner": "RCAT IT / yiwssx",
   "objectives": {
     "runtimeRtoMinutes": 30,
@@ -9,26 +10,40 @@
     "d1TargetRpoMinutes": 5
   },
   "gates": {
-    "repositoryCi": "pending",
-    "unattendedReliabilitySmoke": "pending",
-    "d1TimeTravelReadiness": "pending",
-    "workerRollbackReadiness": "pending",
-    "vercelRollbackReadiness": "pending",
-    "appsScriptRollbackReadiness": "pending",
-    "closureEvidence": "pending"
+    "repositoryCi": "passed",
+    "unattendedReliabilitySmoke": "passed",
+    "d1TimeTravelReadiness": "passed",
+    "workerRollbackReadiness": "passed",
+    "vercelRollbackReadiness": "passed",
+    "appsScriptRollbackReadiness": "passed",
+    "closureEvidence": "passed"
   },
   "evidence": {
-    "repositoryCi": [],
-    "unattendedReliabilitySmoke": [],
-    "d1TimeTravelReadiness": [],
-    "workerRollbackReadiness": [],
-    "vercelRollbackReadiness": [],
-    "appsScriptRollbackReadiness": [],
-    "closureEvidence": []
+    "repositoryCi": [
+      "CI #1637 run 33288591684 on master 71e8b604420580130e9ccd5774fcabaabeb6dd2f passed Dependencies, Governance, Static Quality, Build, Unit Tests, Worker, Functional E2E, Integration Tests, and aggregate quality."
+    ],
+    "unattendedReliabilitySmoke": [
+      "P6C Production Reliability #5 run 33288591681 on master 71e8b604420580130e9ccd5774fcabaabeb6dd2f passed home SSR/security baseline, live search/Worker dependency, login CSR robots boundary, and Vercel edge WAF checks."
+    ],
+    "d1TimeTravelReadiness": [
+      "D1 Recovery Drill #7 run 33295018757 passed behind the protected production Environment using the dedicated D1 read token: exact production D1 identity and production metadata matched, a current Time Travel bookmark resolved, no restore/write occurred, and the pseudo-deployment cleanup job passed."
+    ],
+    "workerRollbackReadiness": [
+      "CI #1637 P6C governance validated the runtime-only Worker rollback path. Worker Production Release #7 run 33271266147 independently proved the protected Cloudflare production credentials, exact production D1 identity, and pre-mutation Time Travel bookmark. An actual rollback was intentionally not executed against healthy production."
+    ],
+    "vercelRollbackReadiness": [
+      "Vercel production deployment dpl_45oLEHJb38mcAYbH29M7HgZAFNTx for master 71e8b604420580130e9ccd5774fcabaabeb6dd2f is READY and a rollback candidate; predecessor production deployment dpl_2c91Y6hkZ2BdHdR6tGp7ZdjVPadi is also READY and a rollback candidate. P6C added no Vercel token."
+    ],
+    "appsScriptRollbackReadiness": [
+      "CI #1637 P6C/P5G governance validated .github/workflows/apps-script-production-rollback.yml: exact rollback confirmation, protected production Environment, existing CLASPRC_JSON/CLASP_JSON/APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID credentials, immutable version verification, and read-only health verification remain required. No healthy-production rollback was executed."
+    ],
+    "closureEvidence": [
+      "docs/operations/p6c-recovery-reliability.md and docs/architecture/post-p5h-current-project-state.md record the seven-gate closure decision, retained evidence, and non-destructive provider constraints for 2026-08-30."
+    ]
   },
   "notes": [
-    "Destructive D1 restore is incident-only and is not required as a healthy-production readiness drill.",
-    "Worker runtime rollback must not reverse or reapply D1 migrations.",
-    "P6C must reuse existing credentials before requesting any new token."
+    "Destructive D1 restore remains incident-only and was not executed as a healthy-production readiness drill.",
+    "Worker runtime rollback remains incident-only and must not reverse or reapply D1 migrations.",
+    "P6C completed without adding a Vercel token or requesting a new production credential."
   ]
 }
