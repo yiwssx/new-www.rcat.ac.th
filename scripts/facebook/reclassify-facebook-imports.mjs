@@ -192,7 +192,8 @@ function buildReportRow(row, indexes) {
     proposedCategory: classification.category,
     proposedTags: classification.tags,
     confidence,
-    reasons: sourceKind === "facebook" ? classification.reasons : ["d1-title-summary-fallback", ...classification.reasons],
+    reasons:
+      sourceKind === "facebook" ? classification.reasons : ["d1-title-summary-fallback", ...classification.reasons],
     changed,
     eligibleForRepair: changed,
     scoreSummary: classification.scores.map((item) => ({ category: item.category, score: item.score }))

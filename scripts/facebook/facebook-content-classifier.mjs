@@ -270,7 +270,11 @@ export function runFacebookClassifierSelfTest() {
   return cases.length;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href && process.argv.includes("--self-test")) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href &&
+  process.argv.includes("--self-test")
+) {
   const total = runFacebookClassifierSelfTest();
   console.log(`Facebook classifier self-test passed: ${total} case(s)`);
 }
