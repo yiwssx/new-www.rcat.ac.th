@@ -9,6 +9,7 @@ interface LazyAppSwal {
   fire(title: string, html?: string, icon?: SweetAlertIcon): Promise<SweetAlertResult>;
   close(): Promise<void>;
   showLoading(): Promise<void>;
+  update(options: SweetAlertOptions): Promise<void>;
 }
 
 const defaultBlockingLoadingText = "กรุณารอสักครู่ อย่าปิดหน้านี้";
@@ -47,6 +48,10 @@ export const appSwal: LazyAppSwal = {
   async showLoading() {
     const swal = await getAppSwal();
     swal.showLoading();
+  },
+  async update(options: SweetAlertOptions) {
+    const swal = await getAppSwal();
+    swal.update(options);
   }
 };
 
@@ -65,6 +70,10 @@ export function showBlockingLoading(title: string, text = defaultBlockingLoading
       void appSwal.showLoading();
     }
   });
+}
+
+export function updateBlockingLoading(title: string, text: string) {
+  void appSwal.update({ title, text, showConfirmButton: false });
 }
 
 export async function showSuccessResult(title: string, text?: string) {
