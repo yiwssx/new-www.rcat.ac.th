@@ -43,10 +43,7 @@ describe("resolveCardThumbnail", () => {
     const attached = media("attached");
 
     expect(
-      resolveCardThumbnail(
-        content({ featuredMediaId: featured.id, mediaIds: [attached.id] }),
-        [attached, featured]
-      )
+      resolveCardThumbnail(content({ featuredMediaId: featured.id, mediaIds: [attached.id] }), [attached, featured])
     ).toEqual(featured);
   });
 
