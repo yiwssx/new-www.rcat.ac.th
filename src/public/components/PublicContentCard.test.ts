@@ -61,6 +61,8 @@ describe("resolveCardThumbnail", () => {
   });
 
   it("returns undefined only when no usable image exists", () => {
-    expect(resolveCardThumbnail(content({ mediaIds: ["document"] }), [media("document", "document")])).toBeUndefined();
+    expect(
+      resolveCardThumbnail(content({ mediaIds: ["document"] }), [media("document", "document")])
+    ).toBeUndefined();
   });
 });
