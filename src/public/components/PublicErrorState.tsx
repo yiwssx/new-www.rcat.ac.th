@@ -1,4 +1,5 @@
 import { Box, Button, Container, Stack, Typography } from "@mui/material";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 
@@ -40,18 +41,36 @@ export default function PublicErrorState({ onRetry, isRetrying = false }: Public
             >
               กรุณาลองใหม่อีกครั้ง
             </Typography>
-          </Stack>
-          {onRetry && (
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<RefreshOutlinedIcon />}
-              onClick={onRetry}
-              disabled={isRetrying}
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary"
+              }}
             >
-              ลองอีกครั้ง
+              หากยังไม่สำเร็จสามารถกลับหน้าแรกแล้วเลือกเมนูอื่นได้
+            </Typography>
+          </Stack>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ width: { xs: "100%", sm: "auto" } }}>
+            {onRetry && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<RefreshOutlinedIcon />}
+                onClick={onRetry}
+                disabled={isRetrying}
+              >
+                {isRetrying ? "กำลังลองใหม่" : "ลองอีกครั้ง"}
+              </Button>
+            )}
+            <Button
+              component="a"
+              href="/"
+              variant={onRetry ? "outlined" : "contained"}
+              startIcon={<HomeOutlinedIcon />}
+            >
+              กลับหน้าแรก
             </Button>
-          )}
+          </Stack>
         </Stack>
       </Container>
     </Box>

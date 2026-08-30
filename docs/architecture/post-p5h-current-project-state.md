@@ -4,7 +4,7 @@ Status: current project-state note.
 
 Updated: 2026-08-30.
 
-The project is currently in a post-P5H production governance baseline state with active Production Observability, completed P6B Security Enforcement, and completed P6C Recovery & Reliability, alongside ongoing governed dependency maintenance.
+The project is currently in a post-P5H production governance baseline state with active Production Observability, completed P6B Security Enforcement, completed P6C Recovery & Reliability, and active P6D Product/UX Improvements, alongside ongoing governed dependency maintenance.
 
 Admin UX 00-10 is complete. The completed Admin UX work is tracked in `docs/admin/admin-ux-execution-tracker.md` and does not reopen M21.
 
@@ -18,6 +18,8 @@ P6C Recovery & Reliability was explicitly opened by user request on 2026-08-30 a
 
 P6C closure evidence includes CI #1637 (`33288591684`), P6C Production Reliability #5 (`33288591681`), D1 Recovery Drill #7 (`33295018757`), Worker Production Release #7 (`33271266147`), and READY Vercel production rollback candidates `dpl_45oLEHJb38mcAYbH29M7HgZAFNTx` and `dpl_2c91Y6hkZ2BdHdR6tGp7ZdjVPadi`. The D1 drill resolved a production Time Travel bookmark with the dedicated read-only credential and performed no restore/write. Healthy production was not mutated merely to prove rollback readiness.
 
+P6D Product/UX Improvements was explicitly opened by user request on 2026-08-30 as the final planned P6 development phase. Its active scope is narrow public-facing usability work: not-found recovery, public error recovery, search state synchronization, and no-result search exits. It does not reopen the completed Admin UX 00-10 sequence or alter the P6A/P6B/P6C runtime, security, and recovery baselines. The active runbook is `docs/operations/p6d-product-ux-improvements.md`.
+
 Governed Renovate dependency maintenance is expected to continue after P5H. It is not considered feature, runtime, or stabilization-scope expansion when it follows the repository dependency policy and passes the required CI/governance gates.
 
 ## Interpretation Rules
@@ -26,12 +28,14 @@ Governed Renovate dependency maintenance is expected to continue after P5H. It i
 - Historical milestone documents must not be treated as the current active project phase after P5H.
 - Historical text that says M21 is open describes the M20/M21-era stabilization snapshot, not the current project-state baseline.
 - Production Observability, P6B Security Enforcement, and P6C Recovery & Reliability are completed requested work that form part of the production governance baseline.
+- P6D Product/UX Improvements is the current active requested phase and the final planned P6 development phase until explicit closure evidence is merged.
 - Current runtime ownership is defined by `docs/architecture/current-runtime-ownership.md`.
 - Current deployment behavior is defined by `docs/deployment/runtime-deployment-guide.md`.
 - P5H closure context is defined by `docs/operations/p5h-maintainability-observability-2026-08-16.md`.
 - Production Observability closure context is defined by `docs/operations/p6a-production-observability.md`.
 - P6B Security Enforcement closure context is defined by `docs/operations/p6b-security-enforcement.md`.
 - P6C Recovery & Reliability closure context is defined by `docs/operations/p6c-recovery-reliability.md`.
+- P6D Product/UX Improvements context is defined by `docs/operations/p6d-product-ux-improvements.md`.
 - Admin UX completion context is defined by `docs/admin/admin-ux-execution-tracker.md`.
 
 ## Reporting Rules
@@ -39,19 +43,20 @@ Governed Renovate dependency maintenance is expected to continue after P5H. It i
 Use this wording for project status reports unless a newer explicit project-state document replaces it:
 
 ```text
-post-P5H production governance baseline + Production Observability guard active + P6B Security Enforcement completed + P6C Recovery & Reliability completed + governed dependency maintenance + Admin UX 00-10 completed
+post-P5H production governance baseline + Production Observability guard active + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements active + governed dependency maintenance + Admin UX 00-10 completed
 ```
 
-Do not report M20 or M21 as the current active phase. P6B and P6C should be reported as completed, not active.
+Do not report M20 or M21 as the current active phase. P6B and P6C should be reported as completed, not active. P6D should be reported as active until its closure evidence is merged.
 
 When reporting future changes, separate them into one of these buckets:
 
 - current baseline: post-P5H production governance baseline, including Production Observability plus completed P6B security and P6C recovery controls
+- current requested phase: P6D Product/UX Improvements
 - completed recovery work: P6C Recovery & Reliability
 - completed UX work: Admin UX 00-10
 - ongoing maintenance: governed dependency maintenance
-- new requested work: describe any future scope explicitly
+- new requested work: describe any future scope outside P6D explicitly
 
 ## Maintenance Posture
 
-After P6C, keep recovery operations fail-closed, avoid destructive production drills, preserve protected Environment review requirements, and reuse existing credentials before requesting any new token. The unattended P6C production reliability workflow remains an active guard. Dependency maintenance may continue through governed Renovate PRs according to the repository dependency policy and CI gates.
+During P6D, preserve the completed runtime, security, recovery, and Admin UX boundaries. Keep recovery operations fail-closed, avoid destructive production drills, preserve protected Environment review requirements, and reuse existing credentials before requesting any new token. The unattended P6C production reliability workflow remains an active guard. Dependency maintenance may continue through governed Renovate PRs according to the repository dependency policy and CI gates.

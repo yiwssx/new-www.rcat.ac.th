@@ -1,11 +1,15 @@
 # Admin UX Execution Tracker
 
-Status: active
+Status: complete
 
-Updated: 2026-08-24 00:48 Asia/Bangkok
+Updated: 2026-08-30 Asia/Bangkok
 
-This tracker is the durable source of truth for the WordPress-like Admin UX work after the post-P5H production governance baseline.
+Completed: 2026-08-24.
+
+This tracker is the durable source of truth for the completed WordPress-like Admin UX work after the post-P5H production governance baseline.
 It exists to avoid long-lived mixed-scope branches, chat context loss, and unsafe all-in-one UX changes.
+
+P6D Product/UX Improvements does not reopen this completed Admin UX 00-10 sequence.
 
 ## Current baseline
 
@@ -18,7 +22,7 @@ It exists to avoid long-lived mixed-scope branches, chat context loss, and unsaf
 
 ## Execution rule
 
-Use this rule for every UX item below:
+The completed sequence used this rule for every UX item below:
 
 1. Sync from latest `master`.
 2. Create exactly one branch for exactly one UX item.
@@ -29,11 +33,11 @@ Use this rule for every UX item below:
 7. Update this tracker with the PR number, merge commit, completion state, and any deferred follow-up.
 8. Start the next item only after the previous item is merged or explicitly paused.
 
-Do not batch multiple UX items into one implementation branch.
+Do not batch future Admin UX changes into this completed historical sequence.
 
 ## Non-goals for this UX sequence
 
-Do not change these unless the specific UX item explicitly requires it and the PR documents why:
+Do not change these unless a future explicitly requested scope requires it and the PR documents why:
 
 - Worker/D1 resource identity
 - D1 migrations or production data write paths
@@ -132,13 +136,13 @@ Do not change these unless the specific UX item explicitly requires it and the P
 
 ## Resume instruction for future chats
 
-If context is lost or a new chat is started, read this file first and continue from the first step whose state is not `Done`.
+This sequence is complete. Do not resume from a numbered Admin UX step unless a new explicit product request creates a separate follow-up scope.
 
-If an in-progress PR exists, inspect that PR before creating a new branch.
+If a future Admin UX PR exists, inspect that PR and the current project-state document before creating another branch.
 
 ## Acceptance criteria for this tracker
 
-- The tracker records the one-branch-per-item rule.
+- The tracker records the one-branch-per-item rule used by the completed sequence.
 - The tracker lists the exact branch naming convention for steps 01-10.
-- The tracker identifies #127 as the already-merged workflow hub.
-- The tracker makes the next step unambiguous: finish the in-progress step before starting the next one.
+- The tracker identifies #127 as the merged workflow hub.
+- Every tracked step is `Done` and the sequence is explicitly closed.
