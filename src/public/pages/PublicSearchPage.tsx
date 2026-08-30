@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Box, Button, Card, CardContent, Chip, Stack, TextField, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
@@ -56,6 +56,10 @@ export default function PublicSearchPage() {
   );
   const [draftQuery, setDraftQuery] = useState(query);
 
+  useEffect(() => {
+    setDraftQuery(query);
+  }, [query]);
+
   const results = data?.items ?? [];
   const fallbackPageCount = Math.max(1, Math.ceil(results.length / SEARCH_PAGE_SIZE));
   const page = data?.pagination?.page ?? Math.min(requestedPage, fallbackPageCount);
@@ -75,6 +79,11 @@ export default function PublicSearchPage() {
     }
 
     void navigate({ to: "/search", search: { q: nextQuery } });
+  }
+
+  function handleClearSearch() {
+    setDraftQuery("");
+    void navigate({ to: "/search", search: {} });
   }
 
   function handlePageChange(nextPage: number) {
@@ -156,15 +165,22 @@ export default function PublicSearchPage() {
               />
             }
             secondary={
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                startIcon={<SearchOutlinedIcon />}
-                sx={{ minWidth: { md: 132 } }}
-              >
-                ค้นหา
-              </Button>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ width: { xs: "100%", sm: "auto" } }}>
+                {(draftQuery || query) && (
+                  <Button type="button" variant="outlined" size="large" onClick={handleClearSearch}>
+                    ล้างคำค้น
+                  </Button>
+                )}
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  startIcon={<SearchOutlinedIcon />}
+                  sx={{ minWidth: { md: 132 } }}
+                >
+                  ค้นหา
+                </Button>
+              </Stack>
             }
           />
         </CardContent>
@@ -178,15 +194,37 @@ export default function PublicSearchPage() {
         />
       )}
       {query && !totalItems && (
-        <EmptyState
-          title="ไม่พบผลการค้นหา"
-          description={`ไม่พบเนื้อหาที่ตรงกับ "${query}"`}
-          icon={<SearchOutlinedIcon />}
-        />
+        <Stack spacing={1.5}>
+          <EmptyState
+            title="ไม่พบผลการค้นหา"
+            description={`ไม่พบเนื้อหาที่ตรงกับ "${query}" ลองใช้คำที่สั้นลงหรือเลือกดูหมวดเนื้อหาหลัก`}
+            icon={<SearchOutlinedIcon />}
+          />
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            useFlexGap
+            sx={{ justifyContent: "center", flexWrap: "wrap" }}
+          >
+            <Button variant="outlined" onClick={handleClearSearch}>
+              ล้างคำค้น
+            </Button>
+            <Button component="a" href={normalizeSafeHref("/news")}>
+              ดูข่าวล่าสุด
+            </Button>
+            <Button component="a" href={normalizeSafeHref("/announcements")}>
+              ดูประกาศ
+            </Button>
+          </Stack>
+        </Stack>
       )}
       {query && totalItems > 0 && (
         <Stack spacing={2.2}>
-          <Typography variant="h2" sx={{ fontSize: { xs: "1.35rem", md: "1.75rem" } }}>
+          <Typography
+            variant="h2"
+            aria-live="polite"
+            sx={{ fontSize: { xs: "1.35rem", md: "1.75rem" } }}
+          >
             <span id="search-results-heading">
               พบ {totalItems} รายการสำหรับ "{query}"
             </span>
