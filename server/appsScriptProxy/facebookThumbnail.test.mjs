@@ -16,10 +16,12 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/test-deployment/exec
 function createRequest(body) {
   const request = Readable.from([JSON.stringify(body)]);
   request.method = "POST";
-  request.headers = {
-    cookie: `${getCmsSessionCookieName()}=${SESSION}; ${getCmsCsrfCookieName()}=${CSRF}`,
-    [CMS_BROWSER_CSRF_HEADER]: CSRF
-  };
+  request.headers = Object.fromEntries(
+    Object.entries({
+      cookie: `${getCmsSessionCookieName()}=${SESSION}; ${getCmsCsrfCookieName()}=${CSRF}`,
+      [CMS_BROWSER_CSRF_HEADER]: CSRF
+    }).map(([name, value]) => [name.toLowerCase(), value])
+  );
   return request;
 }
 
