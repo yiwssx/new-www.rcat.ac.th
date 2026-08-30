@@ -75,12 +75,20 @@ for (const contract of [
 
 const appRoutes = read("src/routes.tsx");
 for (const routeContract of [
-  /const loginRoute = createRoute\(\{[\s\S]*?path: "login",[\s\S]*?head: getCmsRouteHead,[\s\S]*?component: LoginPage/,
-  /const activateAccountRoute = createRoute\(\{[\s\S]*?path: "activate-account",[\s\S]*?head: getCmsRouteHead,[\s\S]*?component: ActivateAccountPage/,
-  /const resetPasswordRoute = createRoute\(\{[\s\S]*?path: "reset-password",[\s\S]*?head: getCmsRouteHead,[\s\S]*?component: ResetPasswordPage/,
-  /const adminRoute = createRoute\(\{[\s\S]*?path: "admin",[\s\S]*?head: getCmsRouteHead,[\s\S]*?component: ProtectedLayout/
+  `path: "login",
+  head: getCmsRouteHead,
+  component: LoginPage`,
+  `path: "activate-account",
+  head: getCmsRouteHead,
+  component: ActivateAccountPage`,
+  `path: "reset-password",
+  head: getCmsRouteHead,
+  component: ResetPasswordPage`,
+  `path: "admin",
+  head: getCmsRouteHead,
+  component: ProtectedLayout`
 ]) {
-  if (!routeContract.test(appRoutes)) {
+  if (!appRoutes.includes(routeContract)) {
     fail("concrete CMS auth/admin routes must retain their SSR robots head instead of relying only on a pathless parent");
   }
 }
