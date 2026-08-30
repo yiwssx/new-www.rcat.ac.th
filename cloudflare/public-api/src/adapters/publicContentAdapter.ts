@@ -22,7 +22,9 @@ function parseStringArray(value: string | undefined) {
   }
 }
 
-export function mapContentCardRowToPublicContentCard(row: PublicContentCardReadRow): PublicContentCardContract {
+export function mapContentCardRowToPublicContentCard(
+  row: PublicContentCardReadRow | PublicContentSummaryReadRow
+): PublicContentCardContract {
   return {
     id: row.id || "",
     title: row.title || "",
@@ -38,6 +40,7 @@ export function mapContentCardRowToPublicContentCard(row: PublicContentCardReadR
     readingMinutes: Math.max(0, Number(row.reading_minutes) || 0),
     template: row.template || "",
     featuredMediaId: row.featured_media_id || "",
+    mediaIds: "media_ids_json" in row ? parseStringArray(row.media_ids_json) : [],
     publishAt: row.publish_at || ""
   };
 }

@@ -8,6 +8,7 @@ import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { interactiveSurfaceSx } from "../../design-system/componentStyles";
+import { resolveCardThumbnail } from "./publicContentCardThumbnail";
 
 interface PublicContentCardProps {
   item: PublicContentCardItem;
@@ -29,7 +30,7 @@ export default function PublicContentCard({
   icon = <ArticleOutlinedIcon />,
   featured = false
 }: PublicContentCardProps) {
-  const featuredMedia = mediaAssets.find((asset) => asset.id === item.featuredMediaId);
+  const thumbnailMedia = resolveCardThumbnail(item, mediaAssets);
   const categories = normalizeCategories(item.category);
   const isFacebookEmbed = isFacebookEmbedContent(item);
 
@@ -57,12 +58,12 @@ export default function PublicContentCard({
               height: featured ? 150 : 70
             }}
           >
-            {featuredMedia?.type === "image" ? (
+            {thumbnailMedia ? (
               <PublicResponsiveImage
                 imageClassName="h-full w-full object-cover"
-                source={featuredMedia}
+                source={thumbnailMedia}
                 intent={featured ? "featured-card" : "content-card"}
-                alt={featuredMedia.name}
+                alt={thumbnailMedia.name}
                 sizes={featured ? "(max-width: 899px) calc(100vw - 64px), 180px" : "70px"}
                 loadMode="near-viewport"
                 nearViewportMargin="240px 0px"

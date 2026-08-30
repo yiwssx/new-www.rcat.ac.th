@@ -30,3 +30,9 @@ export interface MediaAssetInput {
   fileName?: string;
   fileBase64?: string;
 }
+
+export interface FacebookThumbnailImportInput {
+  sourceUrl: string;
+  name: string;
+  owner: string;
+}

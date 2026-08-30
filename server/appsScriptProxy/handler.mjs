@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import process from "node:process";
 import { hasCmsSessionCookie, readCmsCsrfCookie, readCmsSessionCookie } from "../cmsAuth/cookies.mjs";
 import {
@@ -13,6 +14,7 @@ import {
 } from "../cmsAuth/handlers.mjs";
 
 const MAX_REQUEST_BODY_BYTES = 4 * 1024 * 1024;
+const MAX_FACEBOOK_THUMBNAIL_BYTES = 5 * 1024 * 1024;
 const CMS_CAPABILITIES_PATH = "/api/admin/capabilities";
 const CMS_MEDIA_BRIDGE_AUTHORIZATION_PATH = "/api/admin/media-bridge-authorization";
 const CMS_STATUS_CAPABILITY = "media.read";
@@ -344,6 +346,221 @@ function createUpstreamPayload(payload, bridgeToken) {
   };
 }
 
+function isAllowedFacebookPageHost(hostname) {
+  const host = String(hostname || "").toLowerCase();
+  return host === "facebook.com" || host === "www.facebook.com" || host === "m.facebook.com";
+}
+
+function normalizeFacebookSourceUrl(value) {
+  const sourceUrl = String(value || "").trim();
+  const parsed = new URL(sourceUrl);
+
+  if (
+    parsed.protocol !== "https:" ||
+    !isAllowedFacebookPageHost(parsed.hostname) ||
+    parsed.username ||
+    parsed.password ||
+    parsed.port
+  ) {
+    throw new TypeError("invalid Facebook content URL");
+  }
+
+  parsed.hash = "";
+  return parsed.toString();
+}
+
+function decodeFacebookHtmlValue(value) {
+  return String(value || "")
+    .replace(/\\\//g, "/")
+    .replace(/\\u0025/gi, "%")
+    .replace(/\\u0026/gi, "&")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .trim();
+}
+
+function isAllowedFacebookImageHost(hostname) {
+  const host = String(hostname || "").toLowerCase();
+  return (
+    host === "facebook.com" ||
+    host.endsWith(".facebook.com") ||
+    host === "fbcdn.net" ||
+    host.endsWith(".fbcdn.net") ||
+    host === "fbsbx.com" ||
+    host.endsWith(".fbsbx.com")
+  );
+}
+
+function normalizeFacebookImageUrl(value) {
+  try {
+    const parsed = new URL(decodeFacebookHtmlValue(value));
+    if (
+      parsed.protocol !== "https:" ||
+      !isAllowedFacebookImageHost(parsed.hostname) ||
+      parsed.username ||
+      parsed.password ||
+      parsed.port
+    ) {
+      return "";
+    }
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
+function extractMetaContent(html, key) {
+  const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const patterns = [
+    new RegExp(`<meta[^>]+(?:property|name)=["']${escapedKey}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${escapedKey}["'][^>]*>`, "i")
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    const candidate = normalizeFacebookImageUrl(match?.[1]);
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  return "";
+}
+
+function extractFacebookImageUrl(html) {
+  const normalizedHtml = String(html || "").replace(/\\\//g, "/");
+  const metaCandidate =
+    extractMetaContent(normalizedHtml, "og:image") ||
+    extractMetaContent(normalizedHtml, "og:image:url") ||
+    extractMetaContent(normalizedHtml, "twitter:image");
+
+  if (metaCandidate) {
+    return metaCandidate;
+  }
+
+  const urls = normalizedHtml.match(/https:\/\/[^\s"'<>]+/gi) ?? [];
+  for (const value of urls) {
+    const candidate = normalizeFacebookImageUrl(value);
+    if (candidate && /(?:fbcdn\.net|fbsbx\.com)/i.test(candidate)) {
+      return candidate;
+    }
+  }
+
+  return "";
+}
+
+function createFacebookPluginUrls(sourceUrl) {
+  const encoded = encodeURIComponent(sourceUrl);
+  return [
+    sourceUrl,
+    `https://www.facebook.com/plugins/post.php?href=${encoded}&show_text=true&width=500`,
+    `https://www.facebook.com/plugins/video.php?href=${encoded}&show_text=true&width=500`
+  ];
+}
+
+async function resolveFacebookPreviewImage(sourceUrl, fetchImpl) {
+  for (const candidateUrl of createFacebookPluginUrls(sourceUrl)) {
+    try {
+      const response = await fetchImpl(candidateUrl, {
+        method: "GET",
+        headers: {
+          Accept: "text/html,application/xhtml+xml",
+          "User-Agent": "Mozilla/5.0 (compatible; RCATThumbnailBot/1.0; +https://www.rcat.ac.th/)"
+        },
+        cache: "no-store",
+        redirect: "follow"
+      });
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const html = await response.text();
+      const imageUrl = extractFacebookImageUrl(html);
+      if (imageUrl) {
+        return imageUrl;
+      }
+    } catch {
+      // Try the next public Facebook representation.
+    }
+  }
+
+  return "";
+}
+
+function extensionForImageMimeType(mimeType) {
+  switch (mimeType) {
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "image/gif":
+      return "gif";
+    case "image/avif":
+      return "avif";
+    default:
+      return "jpg";
+  }
+}
+
+async function createFacebookThumbnailMediaPayload(payload, fetchImpl) {
+  const sourceUrl = normalizeFacebookSourceUrl(payload.sourceUrl);
+  const imageUrl = await resolveFacebookPreviewImage(sourceUrl, fetchImpl);
+
+  if (!imageUrl) {
+    throw new Error("Facebook preview image is unavailable");
+  }
+
+  const imageResponse = await fetchImpl(imageUrl, {
+    method: "GET",
+    headers: {
+      Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      Referer: "https://www.facebook.com/",
+      "User-Agent": "Mozilla/5.0 (compatible; RCATThumbnailBot/1.0; +https://www.rcat.ac.th/)"
+    },
+    cache: "no-store",
+    redirect: "follow"
+  });
+
+  if (!imageResponse.ok) {
+    throw new Error("Facebook preview image download failed");
+  }
+
+  const mimeType = String(imageResponse.headers.get("content-type") || "")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
+  if (!mimeType.startsWith("image/")) {
+    throw new Error("Facebook preview did not return an image");
+  }
+
+  const bytes = Buffer.from(await imageResponse.arrayBuffer());
+  if (!bytes.length || bytes.length > MAX_FACEBOOK_THUMBNAIL_BYTES) {
+    throw new RangeError("Facebook preview image is too large");
+  }
+
+  const fingerprint = createHash("sha256").update(sourceUrl).digest("hex").slice(0, 24);
+  const id = `facebook-thumbnail-${fingerprint}`;
+  const fileName = `${id}.${extensionForImageMimeType(mimeType)}`;
+
+  return {
+    id,
+    name:
+      String(payload.name || "Facebook thumbnail")
+        .trim()
+        .slice(0, 160) || "Facebook thumbnail",
+    type: "image",
+    owner:
+      String(payload.owner || "ผู้แก้ไข CMS")
+        .trim()
+        .slice(0, 160) || "ผู้แก้ไข CMS",
+    fileName,
+    fileBase64: bytes.toString("base64"),
+    mimeType
+  };
+}
+
 export async function handleAppsScriptProxyRequest(request, response, { env = runtimeEnv(), fetchImpl = fetch } = {}) {
   const method = String(request.method || "GET").toUpperCase();
 
@@ -412,15 +629,29 @@ export async function handleAppsScriptProxyRequest(request, response, { env = ru
     return;
   }
 
-  const upstreamResource = APPS_SCRIPT_RESOURCES.get(body.resource);
+  const isFacebookThumbnailRequest = body.resource === "facebookThumbnail";
+  const upstreamResource = isFacebookThumbnailRequest ? "media" : APPS_SCRIPT_RESOURCES.get(body.resource);
 
   if (!upstreamResource || !body.payload || typeof body.payload !== "object" || Array.isArray(body.payload)) {
     sendJson(response, 400, { error: "invalid Apps Script media resource or payload" });
     return;
   }
 
+  let bridgePayload = body.payload;
+  if (isFacebookThumbnailRequest) {
+    try {
+      bridgePayload = await createFacebookThumbnailMediaPayload(body.payload, fetchImpl);
+    } catch (error) {
+      const status = error instanceof TypeError ? 400 : error instanceof RangeError ? 413 : 422;
+      sendJson(response, status, {
+        error: status === 400 ? "invalid Facebook content URL" : "Unable to create Facebook thumbnail"
+      });
+      return;
+    }
+  }
+
   appsScriptUrl.searchParams.set("resource", upstreamResource);
-  const upstreamPayload = createUpstreamPayload(body.payload, bridgeToken);
+  const upstreamPayload = createUpstreamPayload(bridgePayload, bridgeToken);
 
   try {
     const upstreamResponse = await fetchImpl(appsScriptUrl, {
@@ -441,15 +672,15 @@ export async function handleAppsScriptProxyRequest(request, response, { env = ru
         diagnostic: "apps-script-bridge-upstream-v2",
         upstreamStatus: upstreamResponse.status,
         upstreamBodySnippet: sanitizeUpstreamBodySnippet(upstreamBody, [
-          body.payload.fileBase64,
-          body.payload.chunkBase64,
-          body.payload.uploadUrl,
-          body.payload.upload_id,
-          body.payload.uploadKey,
-          body.payload.rcatUploadKey,
-          body.payload.authToken,
-          body.payload.appsScriptBridgeToken,
-          body.payload.mediaBridgeToken,
+          bridgePayload.fileBase64,
+          bridgePayload.chunkBase64,
+          bridgePayload.uploadUrl,
+          bridgePayload.upload_id,
+          bridgePayload.uploadKey,
+          bridgePayload.rcatUploadKey,
+          bridgePayload.authToken,
+          bridgePayload.appsScriptBridgeToken,
+          bridgePayload.mediaBridgeToken,
           bridgeToken
         ]),
         upstreamResource
@@ -466,15 +697,15 @@ export async function handleAppsScriptProxyRequest(request, response, { env = ru
         diagnostic: "apps-script-bridge-upstream-v2",
         upstreamStatus: upstreamResponse.status,
         upstreamBodySnippet: sanitizeUpstreamBodySnippet(upstreamBody, [
-          body.payload.fileBase64,
-          body.payload.chunkBase64,
-          body.payload.uploadUrl,
-          body.payload.upload_id,
-          body.payload.uploadKey,
-          body.payload.rcatUploadKey,
-          body.payload.authToken,
-          body.payload.appsScriptBridgeToken,
-          body.payload.mediaBridgeToken,
+          bridgePayload.fileBase64,
+          bridgePayload.chunkBase64,
+          bridgePayload.uploadUrl,
+          bridgePayload.upload_id,
+          bridgePayload.uploadKey,
+          bridgePayload.rcatUploadKey,
+          bridgePayload.authToken,
+          bridgePayload.appsScriptBridgeToken,
+          bridgePayload.mediaBridgeToken,
           bridgeToken
         ]),
         upstreamResource
