@@ -52,6 +52,7 @@ export type PublicContentCardItem = Pick<
   | "readingMinutes"
   | "template"
   | "featuredMediaId"
+  | "mediaIds"
   | "publishAt"
 > &
   Pick<Partial<ContentItem>, "updatedAt">;
