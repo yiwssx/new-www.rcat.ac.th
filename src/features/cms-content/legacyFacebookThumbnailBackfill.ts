@@ -64,8 +64,13 @@ async function repairLegacyFacebookThumbnail(id: string) {
     return false;
   }
 
+  const sourceUrl = item.canonicalUrl?.trim() ?? "";
+  if (!sourceUrl) {
+    return false;
+  }
+
   const asset = await importFacebookThumbnailAsset({
-    sourceUrl: item.canonicalUrl!.trim(),
+    sourceUrl,
     name: `Facebook - ${item.title}`.slice(0, 160),
     owner: item.owner.trim() || "ผู้แก้ไข CMS"
   });
