@@ -546,9 +546,15 @@ async function createFacebookThumbnailMediaPayload(payload, fetchImpl) {
 
   return {
     id,
-    name: String(payload.name || "Facebook thumbnail").trim().slice(0, 160) || "Facebook thumbnail",
+    name:
+      String(payload.name || "Facebook thumbnail")
+        .trim()
+        .slice(0, 160) || "Facebook thumbnail",
     type: "image",
-    owner: String(payload.owner || "ผู้แก้ไข CMS").trim().slice(0, 160) || "ผู้แก้ไข CMS",
+    owner:
+      String(payload.owner || "ผู้แก้ไข CMS")
+        .trim()
+        .slice(0, 160) || "ผู้แก้ไข CMS",
     fileName,
     fileBase64: bytes.toString("base64"),
     mimeType
