@@ -1,0 +1,225 @@
+name: Facebook Content Reclassification
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Audit only, or apply the generated metadata repair to production D1
+        required: true
+        default: audit
+        type: choice
+        options:
+          - audit
+          - apply
+      since:
+        description: Earliest Facebook post date to export (YYYY-MM-DD)
+        required: true
+        default: "2023-01-01"
+        type: string
+      until:
+        description: Latest Facebook post date to export (YYYY-MM-DD); leave blank to use today UTC
+        required: false
+        default: ""
+        type: string
+      apply_confirmation:
+        description: For apply mode only, enter RECLASSIFY_FACEBOOK_IMPORTS
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  reclassify:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
+      META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+
+    steps:
+      - name: Require master for production data access
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" != "master" ]]; then
+            echo "Facebook production reclassification must run from master after review/merge." >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Validate requested mode and credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "CLOUDFLARE_ACCOUNT_ID is unavailable." >&2; exit 1; }
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "CLOUDFLARE_API_TOKEN is unavailable." >&2; exit 1; }
+          test -n "$META_PAGE_ACCESS_TOKEN" || {
+            echo "META_PAGE_ACCESS_TOKEN is unavailable in the protected production environment." >&2
+            echo "The workflow cannot recover original Facebook messages without a Page access token." >&2
+            exit 1
+          }
+
+          if [[ "${{ inputs.mode }}" == "apply" && "${{ inputs.apply_confirmation }}" != "RECLASSIFY_FACEBOOK_IMPORTS" ]]; then
+            echo "Apply mode requires apply_confirmation=RECLASSIFY_FACEBOOK_IMPORTS." >&2
+            exit 1
+          fi
+
+      - name: Run classifier self-test
+        run: node scripts/facebook/facebook-content-classifier.mjs --self-test
+
+      - name: Resolve export date window
+        shell: bash
+        run: |
+          until="${{ inputs.until }}"
+          if [[ -z "$until" ]]; then
+            until="$(date -u +%F)"
+          fi
+          echo "FACEBOOK_EXPORT_SINCE=${{ inputs.since }}" >> "$GITHUB_ENV"
+          echo "FACEBOOK_EXPORT_UNTIL=$until" >> "$GITHUB_ENV"
+
+      - name: Read every Facebook-imported production content row
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/facebook-reclassification"
+          query="SELECT id, slug, title, summary, category, tags_json, canonical_url, template, owner, created_by, updated_by, revision, publish_at FROM contents WHERE type = 'news' AND COALESCE(deleted_at, '') = '' AND ((id LIKE 'facebook-post-%' AND template = 'facebook-embed') OR (slug LIKE 'facebook-%' AND (owner = 'facebook-import' OR created_by = 'facebook-import'))) ORDER BY publish_at ASC;"
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
+            --remote \
+            --command="$query" \
+            --json > "$RUNNER_TEMP/facebook-reclassification/d1-before.json"
+
+      - name: Resolve Facebook Page ID
+        shell: bash
+        run: |
+          if [[ -n "$META_PAGE_ID" ]]; then
+            echo "Using protected META_PAGE_ID."
+            exit 0
+          fi
+
+          derived_page_id="$(node --input-type=module - <<'NODE'
+          import { readFile } from "node:fs/promises";
+          const payload = JSON.parse(
+            await readFile(process.env.RUNNER_TEMP + "/facebook-reclassification/d1-before.json", "utf8")
+          );
+          const statements = Array.isArray(payload) ? payload : [payload];
+          const rows = statements.flatMap((statement) => (Array.isArray(statement?.results) ? statement.results : []));
+          const match = rows.map((row) => String(row?.id ?? "").match(/^facebook-post-(\d+)-/u)).find(Boolean);
+          if (!match?.[1]) process.exit(2);
+          process.stdout.write(match[1]);
+          NODE
+          )" || {
+            echo "META_PAGE_ID is not configured and could not be derived from imported Facebook IDs." >&2
+            exit 1
+          }
+          echo "META_PAGE_ID=$derived_page_id" >> "$GITHUB_ENV"
+          echo "Derived Facebook Page ID from imported source IDs."
+
+      - name: Re-export original Facebook source messages
+        shell: bash
+        run: |
+          node scripts/facebook/export-page-posts.mjs \
+            --since "$FACEBOOK_EXPORT_SINCE" \
+            --until "$FACEBOOK_EXPORT_UNTIL" \
+            --chunk-days 30 \
+            --limit 50 \
+            --output "$RUNNER_TEMP/facebook-reclassification/facebook-source.json"
+
+      - name: Build complete reclassification report and guarded repair SQL
+        shell: bash
+        run: |
+          node scripts/facebook/reclassify-facebook-imports.mjs \
+            --d1-json "$RUNNER_TEMP/facebook-reclassification/d1-before.json" \
+            --facebook-json "$RUNNER_TEMP/facebook-reclassification/facebook-source.json" \
+            --output-dir "$RUNNER_TEMP/facebook-reclassification/result" \
+            --batch-size 100
+
+      - name: Check apply readiness
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        run: |
+          node --input-type=module - <<'NODE'
+          import { readFile } from "node:fs/promises";
+          const summary = JSON.parse(
+            await readFile(process.env.RUNNER_TEMP + "/facebook-reclassification/result/summary.json", "utf8")
+          );
+          if (summary.facebookExport.chunkErrors !== 0) {
+            throw new Error(
+              `Facebook Graph export has ${summary.facebookExport.chunkErrors} chunk error(s); refusing production apply.`
+            );
+          }
+          if (summary.unresolved !== 0) {
+            throw new Error(
+              `There are ${summary.unresolved} content row(s) without enough source evidence; refusing partial production apply.`
+            );
+          }
+          if (summary.totalFacebookImports < 1) throw new Error("No Facebook-imported rows were found.");
+          console.log(
+            `Apply readiness passed for ${summary.totalFacebookImports} Facebook imports; ${summary.changed} row(s) need metadata repair.`
+          );
+          NODE
+
+      - name: Capture pre-repair D1 Time Travel bookmark
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        run: |
+          pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json \
+            > "$RUNNER_TEMP/facebook-reclassification/result/pre-repair-time-travel.json"
+
+      - name: Apply guarded repair batches to production D1
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=("$RUNNER_TEMP"/facebook-reclassification/result/repair-part-*.sql)
+          if [[ "${#files[@]}" -eq 0 ]]; then
+            echo "No metadata changes are required."
+            exit 0
+          fi
+          for file in "${files[@]}"; do
+            echo "Applying $(basename "$file")"
+            pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" --remote --file "$file"
+          done
+
+      - name: Read repaired Facebook metadata for verification
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        run: |
+          query="SELECT id, category, tags_json, revision FROM contents WHERE type = 'news' AND COALESCE(deleted_at, '') = '' AND ((id LIKE 'facebook-post-%' AND template = 'facebook-embed') OR (slug LIKE 'facebook-%' AND (owner = 'facebook-import' OR created_by = 'facebook-import'))) ORDER BY publish_at ASC;"
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
+            --remote \
+            --command="$query" \
+            --json > "$RUNNER_TEMP/facebook-reclassification/d1-after.json"
+
+      - name: Verify every planned metadata repair
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        run: |
+          node scripts/facebook/reclassify-facebook-imports.mjs \
+            --d1-json "$RUNNER_TEMP/facebook-reclassification/d1-after.json" \
+            --verify-report "$RUNNER_TEMP/facebook-reclassification/result/report.json" \
+            --output-dir "$RUNNER_TEMP/facebook-reclassification/result"
+
+      - name: Upload audit and repair evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: facebook-content-reclassification-${{ github.run_id }}
+          path: ${{ runner.temp }}/facebook-reclassification/result/
+          if-no-files-found: warn
+          retention-days: 30
