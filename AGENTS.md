@@ -92,6 +92,13 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Keep Apps Script scoped to media/file bridge operations.
 - Prefer small, scoped commits.
 
+## Formatting and Remote Write Rule
+
+- Repository Prettier is authoritative; use the repository-pinned Prettier version and `.prettierrc.json`.
+- Local commits are protected by Husky and `lint-staged`, which format supported staged files before commit.
+- GitHub API, connector, and other remote file writes bypass local Git hooks. Before every remote commit, format every changed supported file with the repository Prettier rules; do not rely on CI as the first formatter.
+- Before merge, `pnpm format:check` and `pnpm lint:strict` must pass.
+
 ## React Performance Skill
 
 For React frontend work, use the installed
