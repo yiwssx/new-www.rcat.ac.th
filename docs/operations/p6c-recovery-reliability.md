@@ -1,8 +1,10 @@
 # P6C Recovery & Reliability
 
-Status: active.
+Status: closed.
 
 Started: 2026-08-30.
+
+Closed: 2026-08-30.
 
 ## Goal
 
@@ -17,7 +19,7 @@ The phase covers:
 - Apps Script media bridge rollback verification;
 - explicit recovery objectives, operator decision points, and closure evidence.
 
-P6C must reuse existing credentials before any new token is considered. A new credential is allowed only when a non-destructive capability check proves that the existing role cannot perform the required operation.
+P6C reuses existing credentials before any new token is considered. A new credential is allowed only when a non-destructive capability check proves that the existing role cannot perform the required operation. P6C closed without adding a new credential.
 
 ## Recovery objectives
 
@@ -71,7 +73,7 @@ Do not execute a destructive production restore merely to prove P6C readiness.
 
 ### Apps Script media bridge
 
-`.github/workflows/apps-script-production-rollback.yml` already updates the existing production deployment in place to an immutable prior version, verifies the resulting deployment version, and runs a read-only bridge health smoke. P6C treats that workflow as the canonical media-bridge rollback path.
+`.github/workflows/apps-script-production-rollback.yml` updates the existing production deployment in place to an immutable prior version, verifies the resulting deployment version, and runs a read-only bridge health smoke. P6C treats that workflow as the canonical media-bridge rollback path.
 
 ### Complaint bridge
 
@@ -115,6 +117,26 @@ P6C is complete only after all of the following are evidenced:
 
 A destructive D1 restore and an actual Worker rollback are **not** required merely to close readiness. They are incident actions and must not be executed against healthy production for drill purposes.
 
+## Closure evidence
+
+All seven gates were satisfied on 2026-08-30:
+
+| Gate | Evidence |
+| --- | --- |
+| Repository CI / governance | CI #1637, run `33288591684`, on master `71e8b604420580130e9ccd5774fcabaabeb6dd2f` passed every lane including Governance and aggregate quality. |
+| Unattended production reliability | P6C Production Reliability #5, run `33288591681`, passed home SSR/security, live search/Worker dependency, login CSR robots boundary, and Vercel edge WAF checks. |
+| D1 Time Travel readiness | D1 Recovery Drill #7, run `33295018757`, passed behind the protected `production` Environment using the dedicated read-only D1 token. Exact production D1 identity/metadata matched and a current Time Travel bookmark resolved. No restore or production write occurred; environment pseudo-deployment cleanup also passed. |
+| Worker rollback readiness | CI #1637 validated the runtime-only rollback contract. Worker Production Release #7, run `33271266147`, separately proved the existing protected Cloudflare credentials, exact production D1 identity, and pre-mutation Time Travel bookmark. No healthy-production rollback was performed. |
+| Vercel rollback readiness | Current production deployment `dpl_45oLEHJb38mcAYbH29M7HgZAFNTx` for master `71e8b604...` is READY and a rollback candidate. Previous production deployment `dpl_2c91Y6hkZ2BdHdR6tGp7ZdjVPadi` is also READY and a rollback candidate. No Vercel token was added. |
+| Apps Script rollback readiness | CI #1637 P6C/P5G governance validates the existing protected rollback workflow, immutable version target, exact confirmation phrase, existing Apps Script credentials, version verification, and read-only health check. No healthy-production rollback was performed. |
+| Closure evidence | `config/p6c-recovery-readiness.json`, this runbook, and `docs/architecture/post-p5h-current-project-state.md` record the completed recovery baseline and closure decision. |
+
+Provider constraints retained after closure:
+
+- Cloudflare D1 Time Travel retention remains provider/plan dependent and a destructive restore remains incident-only.
+- Actual Worker, Vercel, and Apps Script rollbacks are not executed against healthy production solely for a readiness drill.
+- Protected `production` Environment approval remains in place for mutating recovery operations.
+
 ## Rollback decision rule
 
 Do not combine runtime rollback and data restore by default.
@@ -126,4 +148,4 @@ Do not combine runtime rollback and data restore by default.
 
 ## Current phase state
 
-P6C is active until the activation gates above are satisfied and closure evidence is merged into the current project-state document.
+P6C Recovery & Reliability is closed as of 2026-08-30. The unattended reliability workflow remains an active production guard, while destructive restore and runtime rollback workflows remain incident-only recovery tools.
