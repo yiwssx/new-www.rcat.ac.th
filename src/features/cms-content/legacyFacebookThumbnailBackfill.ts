@@ -5,6 +5,8 @@ import type { ContentItem } from "../public-content/types";
 import { isFacebookEmbedContent } from "../../utils/facebookContent";
 
 const BACKFILL_PAGE_SIZE = 100;
+const DEFAULT_BACKFILL_CONCURRENCY = 3;
+const MAX_BACKFILL_CONCURRENCY = 5;
 
 export interface LegacyFacebookThumbnailBackfillResult {
   scanned: number;
@@ -13,6 +15,21 @@ export interface LegacyFacebookThumbnailBackfillResult {
   skipped: number;
   failed: number;
   failedIds: string[];
+}
+
+export interface LegacyFacebookThumbnailBackfillProgress {
+  phase: "scanning" | "repairing";
+  scanned: number;
+  candidates: number;
+  completed: number;
+  repaired: number;
+  skipped: number;
+  failed: number;
+}
+
+export interface LegacyFacebookThumbnailBackfillOptions {
+  concurrency?: number;
+  onProgress?: (progress: LegacyFacebookThumbnailBackfillProgress) => void;
 }
 
 function hasAttachedMedia(item: ContentItem) {
@@ -29,7 +46,15 @@ function canRepairLegacyFacebookThumbnail(item: ContentItem) {
   );
 }
 
-async function findLegacyFacebookCandidateIds() {
+function normalizeConcurrency(value: number | undefined) {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_BACKFILL_CONCURRENCY;
+  }
+
+  return Math.min(MAX_BACKFILL_CONCURRENCY, Math.max(1, Math.floor(value ?? DEFAULT_BACKFILL_CONCURRENCY)));
+}
+
+async function findLegacyFacebookCandidateIds(onProgress?: LegacyFacebookThumbnailBackfillOptions["onProgress"]) {
   const ids: string[] = [];
   let page = 1;
   let scanned = 0;
@@ -47,6 +72,16 @@ async function findLegacyFacebookCandidateIds() {
     ids.push(
       ...response.items.filter((item) => !item.featuredMediaId && isFacebookEmbedContent(item)).map((item) => item.id)
     );
+
+    onProgress?.({
+      phase: "scanning",
+      scanned,
+      candidates: new Set(ids).size,
+      completed: 0,
+      repaired: 0,
+      skipped: 0,
+      failed: 0
+    });
 
     const totalPages = Math.max(response.pagination.totalPages, 1);
     if (page >= totalPages) {
@@ -85,22 +120,62 @@ async function repairLegacyFacebookThumbnail(id: string) {
   return true;
 }
 
-export async function backfillLegacyFacebookThumbnails(): Promise<LegacyFacebookThumbnailBackfillResult> {
-  const { ids, scanned } = await findLegacyFacebookCandidateIds();
+export async function backfillLegacyFacebookThumbnails(
+  options: LegacyFacebookThumbnailBackfillOptions = {}
+): Promise<LegacyFacebookThumbnailBackfillResult> {
+  const { ids, scanned } = await findLegacyFacebookCandidateIds(options.onProgress);
+  const concurrency = normalizeConcurrency(options.concurrency);
   let repaired = 0;
   let skipped = 0;
+  let completed = 0;
   const failedIds: string[] = [];
 
-  for (const id of ids) {
-    try {
-      if (await repairLegacyFacebookThumbnail(id)) {
+  options.onProgress?.({
+    phase: "repairing",
+    scanned,
+    candidates: ids.length,
+    completed,
+    repaired,
+    skipped,
+    failed: failedIds.length
+  });
+
+  for (let index = 0; index < ids.length; index += concurrency) {
+    const batch = ids.slice(index, index + concurrency);
+    const outcomes = await Promise.all(
+      batch.map(async (id) => {
+        try {
+          return {
+            id,
+            repaired: await repairLegacyFacebookThumbnail(id),
+            failed: false
+          };
+        } catch {
+          return { id, repaired: false, failed: true };
+        }
+      })
+    );
+
+    for (const outcome of outcomes) {
+      if (outcome.failed) {
+        failedIds.push(outcome.id);
+      } else if (outcome.repaired) {
         repaired += 1;
       } else {
         skipped += 1;
       }
-    } catch {
-      failedIds.push(id);
     }
+
+    completed += outcomes.length;
+    options.onProgress?.({
+      phase: "repairing",
+      scanned,
+      candidates: ids.length,
+      completed,
+      repaired,
+      skipped,
+      failed: failedIds.length
+    });
   }
 
   return {

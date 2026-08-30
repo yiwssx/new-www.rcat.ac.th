@@ -4,7 +4,13 @@ import { useAuth } from "../../context/authSessionContext";
 import { invalidateAdminListQueries } from "../../features/admin-pagination";
 import { backfillLegacyFacebookThumbnails } from "../../features/cms-content";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
-import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
+import {
+  appSwal,
+  showBlockingLoading,
+  showErrorResult,
+  showSuccessResult,
+  updateBlockingLoading
+} from "../../utils/swal";
 
 const contentWorkflowSteps = [
   {
@@ -50,10 +56,26 @@ export default function ContentWorkflowGuide() {
       return;
     }
 
-    showBlockingLoading("กำลังซ่อมภาพย่อ Facebook เก่า", "กำลังตรวจโพสต์และคัดลอกรูป กรุณาอย่าปิดหน้านี้");
+    showBlockingLoading("กำลังซ่อมภาพย่อ Facebook เก่า", "กำลังตรวจรายการที่ต้องซ่อม...");
 
     try {
-      const result = await backfillMutation.mutateAsync();
+      const result = await backfillMutation.mutateAsync({
+        concurrency: 3,
+        onProgress: (progress) => {
+          if (progress.phase === "scanning") {
+            updateBlockingLoading(
+              "กำลังตรวจโพสต์ Facebook เก่า",
+              `ตรวจแล้ว ${progress.scanned} รายการ พบผู้สมัครซ่อม ${progress.candidates} รายการ`
+            );
+            return;
+          }
+
+          updateBlockingLoading(
+            "กำลังซ่อมภาพย่อ Facebook เก่า",
+            `ดำเนินการ ${progress.completed}/${progress.candidates} รายการ • สำเร็จ ${progress.repaired} • ข้าม ${progress.skipped} • ล้มเหลว ${progress.failed}`
+          );
+        }
+      });
       await Promise.all([invalidateAdminListQueries(queryClient, "content"), invalidatePublicCmsData(queryClient)]);
       await appSwal.close();
 
