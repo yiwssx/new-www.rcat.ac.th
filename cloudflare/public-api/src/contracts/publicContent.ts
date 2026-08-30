@@ -45,6 +45,7 @@ export type PublicContentCardContract = Pick<
   | "readingMinutes"
   | "template"
   | "featuredMediaId"
+  | "mediaIds"
   | "publishAt"
 >;
 
