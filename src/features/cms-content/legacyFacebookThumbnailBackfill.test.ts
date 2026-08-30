@@ -148,4 +148,42 @@ describe("legacy Facebook thumbnail backfill", () => {
     });
     expect(cloudflareMock.saveContentItemToCloudflare).toHaveBeenCalledTimes(1);
   });
+
+  it("processes repairs in bounded batches and reports visible progress", async () => {
+    const items = Array.from({ length: 5 }, (_, index) =>
+      createContentItem({
+        id: `content-${index + 1}`,
+        slug: `facebook-post-${index + 1}`,
+        canonicalUrl: `https://www.facebook.com/rcat/posts/${index + 101}`
+      })
+    );
+    const progress: Array<{ phase: string; completed: number; candidates: number }> = [];
+
+    paginationMock.getAdminContentList.mockResolvedValue(paginated(items, 1, 1));
+    cloudflareMock.getAdminContentDetailFromCloudflare.mockImplementation(async ({ id }: { id: string }) =>
+      items.find((item) => item.id === id)
+    );
+    mediaMock.importFacebookThumbnailAsset.mockImplementation(async ({ sourceUrl }: { sourceUrl: string }) => ({
+      id: `thumbnail-${sourceUrl.split("/").pop()}`
+    }));
+    cloudflareMock.saveContentItemToCloudflare.mockImplementation(async (item: ContentItem) => item);
+
+    const result = await backfillLegacyFacebookThumbnails({
+      concurrency: 2,
+      onProgress: ({ phase, completed, candidates }) => {
+        progress.push({ phase, completed, candidates });
+      }
+    });
+
+    expect(result.repaired).toBe(5);
+    expect(progress).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ phase: "scanning", completed: 0, candidates: 5 }),
+        expect.objectContaining({ phase: "repairing", completed: 0, candidates: 5 }),
+        expect.objectContaining({ phase: "repairing", completed: 2, candidates: 5 }),
+        expect.objectContaining({ phase: "repairing", completed: 4, candidates: 5 }),
+        expect.objectContaining({ phase: "repairing", completed: 5, candidates: 5 })
+      ])
+    );
+  });
 });
