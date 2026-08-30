@@ -32,9 +32,9 @@ describe("P6D public product/UX baseline", () => {
     const source = readSource("src/public/pages/PublicSearchPage.tsx");
 
     expect(source).toContain("new FormData(event.currentTarget)");
-    expect(source).toContain('key={query}');
+    expect(source).toContain("key={query}");
     expect(source).toContain('name="q"');
-    expect(source).toContain('defaultValue={query}');
+    expect(source).toContain("defaultValue={query}");
     expect(source).toContain("ล้างคำค้น");
     expect(source).toContain('normalizeSafeHref("/news")');
     expect(source).toContain('normalizeSafeHref("/announcements")');
