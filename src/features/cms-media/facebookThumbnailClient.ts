@@ -66,7 +66,7 @@ export async function importFacebookThumbnailFromBridge(
 
   if (response.status === 401) {
     notifyCmsSessionExpired();
-    throw new CmsAuthError(401, CMS_SESSION_EXPIRED_MESSAGE);
+    throw new CmsAuthError(401, { message: CMS_SESSION_EXPIRED_MESSAGE });
   }
 
   let payload: BridgeEnvelope;
