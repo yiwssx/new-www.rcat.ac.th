@@ -25,7 +25,8 @@ export default function NotFoundPage() {
               color: "text.secondary"
             }}
           >
-            หน้าที่คุณกำลังเปิดอาจถูกย้าย เปลี่ยนชื่อ หรือไม่มีอยู่แล้ว คุณสามารถกลับหน้าแรกหรือค้นหาเนื้อหาในเว็บไซต์ได้
+            หน้าที่คุณกำลังเปิดอาจถูกย้าย เปลี่ยนชื่อ หรือไม่มีอยู่แล้ว
+            คุณสามารถกลับหน้าแรกหรือค้นหาเนื้อหาในเว็บไซต์ได้
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ width: { xs: "100%", sm: "auto" } }}>
             <Button component="a" href="/" variant="contained" startIcon={<HomeOutlinedIcon />}>
