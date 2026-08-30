@@ -44,9 +44,7 @@ function getSafeErrorMessage(value: unknown) {
   return message.slice(0, 240);
 }
 
-export async function importFacebookThumbnailFromBridge(
-  input: FacebookThumbnailImportInput
-): Promise<MediaAsset> {
+export async function importFacebookThumbnailFromBridge(input: FacebookThumbnailImportInput): Promise<MediaAsset> {
   const csrfToken = readCmsCsrfToken();
 
   if (!csrfToken) {
