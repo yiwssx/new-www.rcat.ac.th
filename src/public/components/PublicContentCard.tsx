@@ -23,13 +23,26 @@ function normalizeCategories(value: string | undefined) {
     .filter(Boolean);
 }
 
+function resolveCardThumbnail(item: PublicContentCardItem, mediaAssets: MediaAsset[]) {
+  const featuredMedia = mediaAssets.find((asset) => asset.id === item.featuredMediaId);
+
+  if (featuredMedia?.type === "image") {
+    return featuredMedia;
+  }
+
+  const attachedIds = item.mediaIds ?? [];
+  return attachedIds
+    .map((id) => mediaAssets.find((asset) => asset.id === id))
+    .find((asset): asset is MediaAsset => asset?.type === "image");
+}
+
 export default function PublicContentCard({
   item,
   mediaAssets = [],
   icon = <ArticleOutlinedIcon />,
   featured = false
 }: PublicContentCardProps) {
-  const featuredMedia = mediaAssets.find((asset) => asset.id === item.featuredMediaId);
+  const thumbnailMedia = resolveCardThumbnail(item, mediaAssets);
   const categories = normalizeCategories(item.category);
   const isFacebookEmbed = isFacebookEmbedContent(item);
 
@@ -57,12 +70,12 @@ export default function PublicContentCard({
               height: featured ? 150 : 70
             }}
           >
-            {featuredMedia?.type === "image" ? (
+            {thumbnailMedia ? (
               <PublicResponsiveImage
                 imageClassName="h-full w-full object-cover"
-                source={featuredMedia}
+                source={thumbnailMedia}
                 intent={featured ? "featured-card" : "content-card"}
-                alt={featuredMedia.name}
+                alt={thumbnailMedia.name}
                 sizes={featured ? "(max-width: 899px) calc(100vw - 64px), 180px" : "70px"}
                 loadMode="near-viewport"
                 nearViewportMargin="240px 0px"
