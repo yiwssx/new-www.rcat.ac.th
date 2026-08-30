@@ -237,24 +237,28 @@ const cmsAuthLayoutRoute = createRoute({
 const loginRoute = createRoute({
   getParentRoute: () => cmsAuthLayoutRoute,
   path: "login",
+  head: getCmsRouteHead,
   component: LoginPage
 });
 
 const activateAccountRoute = createRoute({
   getParentRoute: () => cmsAuthLayoutRoute,
   path: "activate-account",
+  head: getCmsRouteHead,
   component: ActivateAccountPage
 });
 
 const resetPasswordRoute = createRoute({
   getParentRoute: () => cmsAuthLayoutRoute,
   path: "reset-password",
+  head: getCmsRouteHead,
   component: ResetPasswordPage
 });
 
 const adminRoute = createRoute({
   getParentRoute: () => cmsAuthLayoutRoute,
   path: "admin",
+  head: getCmsRouteHead,
   component: ProtectedLayout
 });
 
