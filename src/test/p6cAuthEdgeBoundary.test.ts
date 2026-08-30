@@ -27,4 +27,11 @@ describe("P6C auth edge recovery boundary", () => {
       expect(routeHeaders?.get("cache-control")).toBe("no-store");
     }
   });
+
+  it("embeds noindex and nofollow in the CSR shell source so proxy header transforms cannot remove the boundary", () => {
+    const html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8").toLowerCase();
+    const robotsTag = (html.match(/<meta\b[^>]*\bname=["']robots["'][^>]*>/i) || [""])[0];
+    expect(robotsTag).toContain("noindex");
+    expect(robotsTag).toContain("nofollow");
+  });
 });
