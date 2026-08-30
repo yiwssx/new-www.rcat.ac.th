@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Box, Button, Card, CardContent, Chip, Stack, TextField, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
@@ -54,11 +54,6 @@ export default function PublicSearchPage() {
     SEARCH_PAGE_SIZE,
     hasQuery
   );
-  const [draftQuery, setDraftQuery] = useState(query);
-
-  useEffect(() => {
-    setDraftQuery(query);
-  }, [query]);
 
   const results = data?.items ?? [];
   const fallbackPageCount = Math.max(1, Math.ceil(results.length / SEARCH_PAGE_SIZE));
@@ -72,7 +67,8 @@ export default function PublicSearchPage() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextQuery = draftQuery.trim();
+    const formData = new FormData(event.currentTarget);
+    const nextQuery = String(formData.get("q") ?? "").trim();
 
     if (!nextQuery) {
       return;
@@ -82,7 +78,6 @@ export default function PublicSearchPage() {
   }
 
   function handleClearSearch() {
-    setDraftQuery("");
     void navigate({ to: "/search", search: {} });
   }
 
@@ -155,8 +150,9 @@ export default function PublicSearchPage() {
             ariaLabel="ค้นหาเนื้อหา"
             primary={
               <TextField
-                value={draftQuery}
-                onChange={(event) => setDraftQuery(event.target.value)}
+                key={query}
+                name="q"
+                defaultValue={query}
                 type="search"
                 label="คำค้น"
                 placeholder="ค้นหาในเว็บไซต์"
@@ -166,7 +162,7 @@ export default function PublicSearchPage() {
             }
             secondary={
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ width: { xs: "100%", sm: "auto" } }}>
-                {(draftQuery || query) && (
+                {query && (
                   <Button type="button" variant="outlined" size="large" onClick={handleClearSearch}>
                     ล้างคำค้น
                   </Button>
