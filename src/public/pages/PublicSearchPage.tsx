@@ -220,11 +220,7 @@ export default function PublicSearchPage() {
       )}
       {query && totalItems > 0 && (
         <Stack spacing={2.2}>
-          <Typography
-            variant="h2"
-            aria-live="polite"
-            sx={{ fontSize: { xs: "1.35rem", md: "1.75rem" } }}
-          >
+          <Typography variant="h2" aria-live="polite" sx={{ fontSize: { xs: "1.35rem", md: "1.75rem" } }}>
             <span id="search-results-heading">
               พบ {totalItems} รายการสำหรับ "{query}"
             </span>
