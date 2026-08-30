@@ -53,16 +53,15 @@ describe("resolveCardThumbnail", () => {
     const secondImage = media("second-image");
 
     expect(
-      resolveCardThumbnail(
-        content({ mediaIds: [document.id, firstImage.id, secondImage.id] }),
-        [document, secondImage, firstImage]
-      )
+      resolveCardThumbnail(content({ mediaIds: [document.id, firstImage.id, secondImage.id] }), [
+        document,
+        secondImage,
+        firstImage
+      ])
     ).toEqual(firstImage);
   });
 
   it("returns undefined only when no usable image exists", () => {
-    expect(
-      resolveCardThumbnail(content({ mediaIds: ["document"] }), [media("document", "document")])
-    ).toBeUndefined();
+    expect(resolveCardThumbnail(content({ mediaIds: ["document"] }), [media("document", "document")])).toBeUndefined();
   });
 });
