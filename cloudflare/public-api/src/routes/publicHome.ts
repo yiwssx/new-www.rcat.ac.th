@@ -1,7 +1,7 @@
 import { createPublicHomeSnapshot } from "../adapters/publicHomeAdapter";
 import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
-import { listAllPublishedContentCardRows } from "../db/contentRepository";
+import { listAllPublishedContentSummaryRows } from "../db/contentRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
 import { readPublicHomeMetadataRows } from "../db/publicMetadataRepository";
 import { countOnlineVisitors, listVisitorDailyStatsRows } from "../db/visitorStatsRepository";
@@ -22,7 +22,7 @@ export async function publicHome(env: Env) {
   try {
     const generatedAt = new Date();
     const [content, featuredDocuments, homeMetadataRows, visitorRows, onlineUsers] = await Promise.all([
-      listAllPublishedContentCardRows(env),
+      listAllPublishedContentSummaryRows(env),
       listPublishedDocumentRows(env),
       readPublicHomeMetadataRows(env),
       listVisitorDailyStatsRows(env),
