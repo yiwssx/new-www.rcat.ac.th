@@ -39,7 +39,15 @@ export default function PublicErrorState({ onRetry, isRetrying = false }: Public
                 color: "text.secondary"
               }}
             >
-              กรุณาลองใหม่อีกครั้ง หากยังไม่สำเร็จสามารถกลับหน้าแรกแล้วเลือกเมนูอื่นได้
+              กรุณาลองใหม่อีกครั้ง
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary"
+              }}
+            >
+              หากยังไม่สำเร็จสามารถกลับหน้าแรกแล้วเลือกเมนูอื่นได้
             </Typography>
           </Stack>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ width: { xs: "100%", sm: "auto" } }}>
