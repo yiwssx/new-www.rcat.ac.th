@@ -89,7 +89,9 @@ for (const routeContract of [
   component: ProtectedLayout`
 ]) {
   if (!appRoutes.includes(routeContract)) {
-    fail("concrete CMS auth/admin routes must retain their SSR robots head instead of relying only on a pathless parent");
+    fail(
+      "concrete CMS auth/admin routes must retain their SSR robots head instead of relying only on a pathless parent"
+    );
   }
 }
 
