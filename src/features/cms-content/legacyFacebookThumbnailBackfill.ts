@@ -46,9 +46,7 @@ async function findLegacyFacebookCandidateIds() {
 
     scanned += response.items.length;
     ids.push(
-      ...response.items
-        .filter((item) => !item.featuredMediaId && isFacebookEmbedContent(item))
-        .map((item) => item.id)
+      ...response.items.filter((item) => !item.featuredMediaId && isFacebookEmbedContent(item)).map((item) => item.id)
     );
     totalPages = Math.max(response.pagination.totalPages, 1);
     page += 1;
