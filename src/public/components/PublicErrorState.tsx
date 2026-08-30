@@ -62,7 +62,12 @@ export default function PublicErrorState({ onRetry, isRetrying = false }: Public
                 {isRetrying ? "กำลังลองใหม่" : "ลองอีกครั้ง"}
               </Button>
             )}
-            <Button component="a" href="/" variant={onRetry ? "outlined" : "contained"} startIcon={<HomeOutlinedIcon />}>
+            <Button
+              component="a"
+              href="/"
+              variant={onRetry ? "outlined" : "contained"}
+              startIcon={<HomeOutlinedIcon />}
+            >
               กลับหน้าแรก
             </Button>
           </Stack>
