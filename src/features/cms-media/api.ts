@@ -20,12 +20,17 @@ async function persistBridgeMetadata(asset: MediaAsset) {
   }
 }
 
+async function persistRequiredBridgeMetadata(asset: MediaAsset) {
+  cacheBridgeMediaAsset(asset);
+  return cacheBridgeMediaAsset(await saveMediaMetadataToCloudflare(asset));
+}
+
 export async function saveMediaAsset(input: MediaAssetInput, options: MediaUploadOptions = {}) {
   return persistBridgeMetadata(await saveMediaAssetToBridge(input, options));
 }
 
 export async function importFacebookThumbnailAsset(input: FacebookThumbnailImportInput) {
-  return persistBridgeMetadata(await importFacebookThumbnailFromBridge(input));
+  return persistRequiredBridgeMetadata(await importFacebookThumbnailFromBridge(input));
 }
 
 export async function uploadMediaAsset(asset: MediaAsset) {
