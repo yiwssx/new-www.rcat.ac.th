@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CmsAuthError } from "../cms-auth";
 import type { ContentItem } from "../public-content/types";
 import { backfillLegacyFacebookThumbnails } from "./legacyFacebookThumbnailBackfill";
@@ -36,7 +36,7 @@ function createContentItem(overrides: Partial<ContentItem> = {}): ContentItem {
     slug: "facebook-post",
     type: "news",
     status: "published",
-    owner: "Admin",
+    owner: "facebook-import",
     summary: "Facebook summary",
     canonicalUrl: "https://www.facebook.com/rcat/posts/101",
     template: "facebook-embed",
@@ -72,7 +72,11 @@ describe("legacy Facebook thumbnail backfill", () => {
     mediaMock.importFacebookThumbnailAsset.mockReset();
   });
 
-  it("repairs published Facebook posts without media and skips posts that already have attachments", async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("repairs published facebook-import posts without media and skips posts that already have attachments", async () => {
     const missing = createContentItem();
     const attached = createContentItem({
       id: "content-2",
@@ -113,7 +117,51 @@ describe("legacy Facebook thumbnail backfill", () => {
     );
   });
 
-  it("scans every page and reports individual preview failures without blocking other repairs", async () => {
+  it("never repairs Facebook embeds owned by anything other than facebook-import", async () => {
+    const imported = createContentItem();
+    const manual = createContentItem({
+      id: "content-2",
+      slug: "manual-facebook-post",
+      owner: "Admin",
+      canonicalUrl: "https://www.facebook.com/rcat/posts/102"
+    });
+
+    paginationMock.getAdminContentList.mockResolvedValue(paginated([imported, manual], 1, 1));
+    cloudflareMock.getAdminContentDetailFromCloudflare.mockResolvedValue(imported);
+    mediaMock.importFacebookThumbnailAsset.mockResolvedValue({ id: "facebook-thumbnail-101" });
+    cloudflareMock.saveContentItemToCloudflare.mockImplementation(async (item: ContentItem) => item);
+
+    const result = await backfillLegacyFacebookThumbnails();
+
+    expect(result.candidates).toBe(1);
+    expect(result.repaired).toBe(1);
+    expect(cloudflareMock.getAdminContentDetailFromCloudflare).toHaveBeenCalledTimes(1);
+    expect(cloudflareMock.getAdminContentDetailFromCloudflare).toHaveBeenCalledWith({ id: imported.id });
+  });
+
+  it("retries transient Facebook preview failures before marking an imported post failed", async () => {
+    vi.useFakeTimers();
+    const item = createContentItem();
+
+    paginationMock.getAdminContentList.mockResolvedValue(paginated([item], 1, 1));
+    cloudflareMock.getAdminContentDetailFromCloudflare.mockResolvedValue(item);
+    mediaMock.importFacebookThumbnailAsset
+      .mockRejectedValueOnce(new Error("Unable to create Facebook thumbnail"))
+      .mockRejectedValueOnce(new Error("Unable to create Facebook thumbnail"))
+      .mockResolvedValueOnce({ id: "facebook-thumbnail-101" });
+    cloudflareMock.saveContentItemToCloudflare.mockImplementation(async (content: ContentItem) => content);
+
+    const repairPromise = backfillLegacyFacebookThumbnails({ concurrency: 1 });
+    await vi.runAllTimersAsync();
+    const result = await repairPromise;
+
+    expect(result).toMatchObject({ repaired: 1, failed: 0, failedIds: [] });
+    expect(mediaMock.importFacebookThumbnailAsset).toHaveBeenCalledTimes(3);
+    expect(cloudflareMock.saveContentItemToCloudflare).toHaveBeenCalledTimes(1);
+  });
+
+  it("scans every page and reports persistent preview failures without blocking other repairs", async () => {
+    vi.useFakeTimers();
     const first = createContentItem();
     const second = createContentItem({
       id: "content-2",
@@ -129,14 +177,16 @@ describe("legacy Facebook thumbnail backfill", () => {
     );
     mediaMock.importFacebookThumbnailAsset.mockImplementation(async ({ sourceUrl }: { sourceUrl: string }) => {
       if (sourceUrl.endsWith("/102")) {
-        throw new Error("Facebook preview image is unavailable");
+        throw new Error("Unable to create Facebook thumbnail");
       }
 
       return { id: "facebook-thumbnail-101" };
     });
     cloudflareMock.saveContentItemToCloudflare.mockImplementation(async (item: ContentItem) => item);
 
-    const result = await backfillLegacyFacebookThumbnails();
+    const repairPromise = backfillLegacyFacebookThumbnails();
+    await vi.runAllTimersAsync();
+    const result = await repairPromise;
 
     expect(paginationMock.getAdminContentList).toHaveBeenCalledTimes(2);
     expect(result).toEqual({
@@ -147,6 +197,7 @@ describe("legacy Facebook thumbnail backfill", () => {
       failed: 1,
       failedIds: [second.id]
     });
+    expect(mediaMock.importFacebookThumbnailAsset).toHaveBeenCalledTimes(4);
     expect(cloudflareMock.saveContentItemToCloudflare).toHaveBeenCalledTimes(1);
   });
 
