@@ -39,9 +39,7 @@ describe("usePublicPagination", () => {
   it("preserves a requested server page while the next pagination response is pending", () => {
     routerMocks.search = { page: 200 };
 
-    const { result } = renderHook(() =>
-      usePublicPagination([], { pageSize: 12, serverPaginationPending: true })
-    );
+    const { result } = renderHook(() => usePublicPagination([], { pageSize: 12, serverPaginationPending: true }));
 
     expect(result.current.page).toBe(200);
     expect(result.current.pageCount).toBe(200);
