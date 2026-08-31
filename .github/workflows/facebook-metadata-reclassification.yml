@@ -1,6 +1,14 @@
 name: Facebook Metadata Reclassification
 
 on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/facebook-metadata-reclassification.yml
+      - scripts/facebook/facebook-content-classifier.mjs
+      - scripts/facebook/reclassify-facebook-imports.mjs
+      - scripts/facebook/transform-posts-to-d1-sql.mjs
   workflow_dispatch:
     inputs:
       mode:
@@ -27,6 +35,7 @@ jobs:
     environment: production
     env:
       PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
+      RECLASSIFICATION_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'audit' }}
       META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
       META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
 
@@ -49,8 +58,8 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
-          CLOUDFLARE_CREDENTIAL_ROLE: ${{ inputs.mode == 'apply' && 'D1 write' || 'D1 read' }}
+          CLOUDFLARE_API_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_CREDENTIAL_ROLE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' && 'D1 write' || 'D1 read' }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           test -n "$CLOUDFLARE_ACCOUNT_ID" || {
@@ -70,7 +79,7 @@ jobs:
             exit 1
           }
 
-          if [[ "${{ inputs.mode }}" == "apply" && "${{ inputs.apply_confirmation }}" != "RECLASSIFY_FACEBOOK_IMPORTS" ]]; then
+          if [[ "$RECLASSIFICATION_MODE" == "apply" && "${{ inputs.apply_confirmation }}" != "RECLASSIFY_FACEBOOK_IMPORTS" ]]; then
             echo "Apply mode requires apply_confirmation=RECLASSIFY_FACEBOOK_IMPORTS." >&2
             exit 1
           fi
@@ -79,7 +88,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
@@ -94,7 +103,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
         run: |
           mkdir -p "$RUNNER_TEMP/facebook-reclassification/result"
           query="SELECT id, slug, title, summary, category, tags_json, canonical_url, template, owner, created_by, updated_by, revision, publish_at FROM contents WHERE type = 'news' AND COALESCE(deleted_at, '') = '' AND template = 'facebook-embed' AND (id LIKE 'facebook-post-%' OR slug LIKE 'facebook-%') AND (owner = 'facebook-import' OR created_by = 'facebook-import') ORDER BY publish_at ASC;"
@@ -221,7 +230,7 @@ jobs:
             --batch-size 100
 
       - name: Require safe apply readiness
-        if: ${{ inputs.mode == 'apply' }}
+        if: ${{ env.RECLASSIFICATION_MODE == 'apply' }}
         shell: bash
         run: |
           node --input-type=module - <<'NODE'
@@ -245,7 +254,7 @@ jobs:
           NODE
 
       - name: Capture pre-repair D1 Time Travel bookmark
-        if: ${{ inputs.mode == 'apply' }}
+        if: ${{ env.RECLASSIFICATION_MODE == 'apply' }}
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -264,7 +273,7 @@ jobs:
           '
 
       - name: Apply guarded repair batches to production D1
-        if: ${{ inputs.mode == 'apply' }}
+        if: ${{ env.RECLASSIFICATION_MODE == 'apply' }}
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -282,7 +291,7 @@ jobs:
           done
 
       - name: Read repaired Facebook metadata for verification
-        if: ${{ inputs.mode == 'apply' }}
+        if: ${{ env.RECLASSIFICATION_MODE == 'apply' }}
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -295,7 +304,7 @@ jobs:
             --json > "$RUNNER_TEMP/facebook-reclassification/d1-after.json"
 
       - name: Verify every planned metadata repair
-        if: ${{ inputs.mode == 'apply' }}
+        if: ${{ env.RECLASSIFICATION_MODE == 'apply' }}
         shell: bash
         run: |
           node scripts/facebook/reclassify-facebook-imports.mjs \
