@@ -47,7 +47,7 @@ export default function ContentWorkflowGuide() {
     const confirmation = await appSwal.fire({
       icon: "question",
       title: "ซ่อมภาพย่อ Facebook เก่า?",
-      text: "ระบบจะตรวจเฉพาะเนื้อหาที่เผยแพร่แล้วและยังไม่มีรูป โดยคัดลอกรูปตัวอย่าง Facebook เข้า Google Drive เดิม",
+      text: "ระบบจะตรวจเฉพาะเนื้อหาที่เจ้าของเป็น facebook-import ซึ่งเผยแพร่แล้วและยังไม่มีรูป จากนั้นจะลองดึงภาพ Facebook ซ้ำอัตโนมัติก่อนสรุปว่าล้มเหลว",
       showCancelButton: true,
       confirmButtonText: "เริ่มซ่อม",
       cancelButtonText: "ยกเลิก"
@@ -61,7 +61,7 @@ export default function ContentWorkflowGuide() {
 
     try {
       const result = await backfillMutation.mutateAsync({
-        concurrency: 5,
+        concurrency: 3,
         onProgress: (progress) => {
           if (progress.phase === "scanning") {
             updateBlockingLoading(
@@ -162,7 +162,8 @@ export default function ContentWorkflowGuide() {
                 </Button>
               }
             >
-              สำหรับโพสต์ Facebook ที่เผยแพร่ก่อนระบบสร้างภาพย่ออัตโนมัติ และยังแสดงเป็นไอคอนโทรโข่ง
+              สำหรับโพสต์ที่เจ้าของเป็น facebook-import
+              ซึ่งเผยแพร่ก่อนระบบสร้างภาพย่ออัตโนมัติและยังแสดงเป็นไอคอนโทรโข่ง
             </Alert>
           )}
         </Stack>
