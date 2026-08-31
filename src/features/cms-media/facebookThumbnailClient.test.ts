@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MediaAsset } from "./types";
 
-const readCmsCsrfToken = vi.fn(() => "csrf-token");
-const notifyCmsSessionExpired = vi.fn();
+const { readCmsCsrfToken, notifyCmsSessionExpired } = vi.hoisted(() => ({
+  readCmsCsrfToken: vi.fn(() => "csrf-token"),
+  notifyCmsSessionExpired: vi.fn()
+}));
 
 vi.mock("../cms-auth", () => ({
   CMS_CSRF_HEADER_NAME: "x-cms-csrf",
