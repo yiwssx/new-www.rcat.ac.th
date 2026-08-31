@@ -6,8 +6,11 @@ import type { ContentItem } from "../public-content/types";
 import { isFacebookEmbedContent } from "../../utils/facebookContent";
 
 const BACKFILL_PAGE_SIZE = 100;
+const FACEBOOK_IMPORT_OWNER = "facebook-import";
 const DEFAULT_BACKFILL_CONCURRENCY = 3;
 const MAX_BACKFILL_CONCURRENCY = 5;
+const FACEBOOK_PREVIEW_RETRY_DELAYS_MS = [1_000, 3_000] as const;
+const FACEBOOK_PREVIEW_RETRY_MESSAGE = "Unable to create Facebook thumbnail";
 
 export interface LegacyFacebookThumbnailBackfillResult {
   scanned: number;
@@ -37,9 +40,14 @@ function hasAttachedMedia(item: ContentItem) {
   return Array.isArray(item.mediaIds) && item.mediaIds.some(Boolean);
 }
 
+function isFacebookImportOwner(owner: string | undefined) {
+  return owner?.trim().toLowerCase() === FACEBOOK_IMPORT_OWNER;
+}
+
 function canRepairLegacyFacebookThumbnail(item: ContentItem) {
   return (
     item.status === "published" &&
+    isFacebookImportOwner(item.owner) &&
     !item.featuredMediaId &&
     !hasAttachedMedia(item) &&
     Boolean(item.canonicalUrl?.trim()) &&
@@ -59,6 +67,30 @@ function shouldAbortForCmsAuth(error: unknown) {
   return error instanceof CmsAuthError && [401, 403, 428].includes(error.status);
 }
 
+function shouldRetryFacebookPreview(error: unknown) {
+  return error instanceof Error && error.message === FACEBOOK_PREVIEW_RETRY_MESSAGE;
+}
+
+function wait(delayMs: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, delayMs);
+  });
+}
+
+async function importFacebookThumbnailWithRetry(input: Parameters<typeof importFacebookThumbnailAsset>[0]) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await importFacebookThumbnailAsset(input);
+    } catch (error) {
+      if (shouldAbortForCmsAuth(error) || !shouldRetryFacebookPreview(error) || attempt >= FACEBOOK_PREVIEW_RETRY_DELAYS_MS.length) {
+        throw error;
+      }
+
+      await wait(FACEBOOK_PREVIEW_RETRY_DELAYS_MS[attempt]);
+    }
+  }
+}
+
 async function findLegacyFacebookCandidateIds(onProgress?: LegacyFacebookThumbnailBackfillOptions["onProgress"]) {
   const ids: string[] = [];
   let page = 1;
@@ -75,7 +107,11 @@ async function findLegacyFacebookCandidateIds(onProgress?: LegacyFacebookThumbna
 
     scanned += response.items.length;
     ids.push(
-      ...response.items.filter((item) => !item.featuredMediaId && isFacebookEmbedContent(item)).map((item) => item.id)
+      ...response.items
+        .filter(
+          (item) => isFacebookImportOwner(item.owner) && !item.featuredMediaId && isFacebookEmbedContent(item)
+        )
+        .map((item) => item.id)
     );
 
     onProgress?.({
@@ -110,10 +146,10 @@ async function repairLegacyFacebookThumbnail(id: string) {
     return false;
   }
 
-  const asset = await importFacebookThumbnailAsset({
+  const asset = await importFacebookThumbnailWithRetry({
     sourceUrl,
     name: `Facebook - ${item.title}`.slice(0, 160),
-    owner: item.owner.trim() || "ผู้แก้ไข CMS"
+    owner: item.owner.trim() || FACEBOOK_IMPORT_OWNER
   });
 
   await saveContentItemToCloudflare({
