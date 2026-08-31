@@ -1,0 +1,313 @@
+name: Facebook Metadata Reclassification
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Audit metadata only, or apply the generated repair to production D1"
+        required: true
+        type: choice
+        default: audit
+        options:
+          - audit
+          - apply
+      apply_confirmation:
+        description: "For apply only, enter RECLASSIFY_FACEBOOK_IMPORTS"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  reclassify:
+    name: Facebook Metadata Reclassification
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
+      META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
+      META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Require protected production credentials
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_CREDENTIAL_ROLE: ${{ inputs.mode == 'apply' && 'D1 write' || 'D1 read' }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || {
+            echo "CLOUDFLARE_ACCOUNT_ID is unavailable from the protected production environment." >&2
+            exit 1
+          }
+          test -n "$CLOUDFLARE_API_TOKEN" || {
+            echo "Required $CLOUDFLARE_CREDENTIAL_ROLE credential is unavailable from the protected production environment." >&2
+            exit 1
+          }
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || {
+            echo "RCAT_PRODUCTION_D1_DATABASE_ID is unavailable from the protected production environment." >&2
+            exit 1
+          }
+          test -n "$META_PAGE_ACCESS_TOKEN" || {
+            echo "META_PAGE_ACCESS_TOKEN is unavailable; original Facebook messages cannot be recovered safely." >&2
+            exit 1
+          }
+
+          if [[ "${{ inputs.mode }}" == "apply" && "${{ inputs.apply_confirmation }}" != "RECLASSIFY_FACEBOOK_IMPORTS" ]]; then
+            echo "Apply mode requires apply_confirmation=RECLASSIFY_FACEBOOK_IMPORTS." >&2
+            exit 1
+          fi
+
+      - name: Resolve exact production D1 identity
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            --verify-identity-only
+
+      - name: Run classifier self-test
+        run: node scripts/facebook/facebook-content-classifier.mjs --self-test
+
+      - name: Read every Facebook-imported production row
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.mode == 'apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/facebook-reclassification/result"
+          query="SELECT id, slug, title, summary, category, tags_json, canonical_url, template, owner, created_by, updated_by, revision, publish_at FROM contents WHERE type = 'news' AND COALESCE(deleted_at, '') = '' AND template = 'facebook-embed' AND (id LIKE 'facebook-post-%' OR slug LIKE 'facebook-%') AND (owner = 'facebook-import' OR created_by = 'facebook-import') ORDER BY publish_at ASC;"
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
+            --remote \
+            --command="$query" \
+            --json > "$RUNNER_TEMP/facebook-reclassification/d1-before.json"
+
+      - name: Derive Facebook Page ID and exact imported date window
+        shell: bash
+        run: |
+          node --input-type=module - <<'NODE'
+          import { appendFile, readFile } from "node:fs/promises";
+
+          const payload = JSON.parse(
+            await readFile(process.env.RUNNER_TEMP + "/facebook-reclassification/d1-before.json", "utf8")
+          );
+          const statements = Array.isArray(payload) ? payload : [payload];
+          const rows = statements.flatMap((statement) =>
+            Array.isArray(statement?.results) ? statement.results : Array.isArray(statement?.result?.results) ? statement.result.results : []
+          );
+          if (rows.length === 0) throw new Error("No Facebook-imported production rows were found.");
+
+          const sourceMatch = rows
+            .map((row) => String(row?.id ?? "").match(/^facebook-post-(\d+)-(\d+)$/u))
+            .find(Boolean);
+          const configuredPageId = String(process.env.META_PAGE_ID ?? "").trim();
+          const pageId = configuredPageId || sourceMatch?.[1] || "";
+          if (!pageId) throw new Error("META_PAGE_ID is not configured and could not be derived from imported IDs.");
+
+          const timestamps = rows
+            .map((row) => Date.parse(String(row?.publish_at ?? "")))
+            .filter(Number.isFinite)
+            .sort((a, b) => a - b);
+          if (timestamps.length === 0) throw new Error("Facebook imports do not contain a usable publish_at date window.");
+
+          const oneDay = 24 * 60 * 60 * 1000;
+          const since = new Date(timestamps[0] - oneDay).toISOString().slice(0, 10);
+          const until = new Date(timestamps.at(-1) + oneDay).toISOString().slice(0, 10);
+
+          await appendFile(
+            process.env.GITHUB_ENV,
+            `META_PAGE_ID=${pageId}\nFACEBOOK_EXPORT_SINCE=${since}\nFACEBOOK_EXPORT_UNTIL=${until}\nFACEBOOK_IMPORT_COUNT=${rows.length}\n`
+          );
+          console.log(`Resolved ${rows.length} Facebook imports covering ${since} to ${until}.`);
+          NODE
+
+      - name: Re-export original Facebook source messages
+        shell: bash
+        run: |
+          node scripts/facebook/export-page-posts.mjs \
+            --since "$FACEBOOK_EXPORT_SINCE" \
+            --until "$FACEBOOK_EXPORT_UNTIL" \
+            --chunk-days 30 \
+            --limit 50 \
+            --output "$RUNNER_TEMP/facebook-reclassification/facebook-source.json"
+
+      - name: Recover Graph posts missing from the bulk export
+        shell: bash
+        run: |
+          node --input-type=module - <<'NODE'
+          import { readFile, writeFile } from "node:fs/promises";
+          import { sanitizeFacebookPostId } from "./scripts/facebook/facebook-content-classifier.mjs";
+
+          const root = process.env.RUNNER_TEMP + "/facebook-reclassification";
+          const [d1Payload, facebookExport] = await Promise.all([
+            readFile(root + "/d1-before.json", "utf8").then(JSON.parse),
+            readFile(root + "/facebook-source.json", "utf8").then(JSON.parse)
+          ]);
+          const statements = Array.isArray(d1Payload) ? d1Payload : [d1Payload];
+          const rows = statements.flatMap((statement) =>
+            Array.isArray(statement?.results) ? statement.results : Array.isArray(statement?.result?.results) ? statement.result.results : []
+          );
+          const present = new Set((facebookExport.posts ?? []).map((post) => sanitizeFacebookPostId(post?.id)));
+          const missing = rows
+            .map((row) => String(row?.id ?? "").match(/^facebook-post-(\d+)-(\d+)$/u))
+            .filter(Boolean)
+            .map((match) => ({ sanitized: `${match[1]}-${match[2]}`, graphId: `${match[1]}_${match[2]}` }))
+            .filter((item) => !present.has(item.sanitized));
+
+          const recovered = [];
+          const failures = [];
+          const fields = "id,message,story,created_time,permalink_url,full_picture,status_type";
+          const token = process.env.META_PAGE_ACCESS_TOKEN;
+          const version = process.env.META_GRAPH_VERSION || "v25.0";
+
+          for (let index = 0; index < missing.length; index += 5) {
+            const group = missing.slice(index, index + 5);
+            const results = await Promise.all(
+              group.map(async ({ graphId }) => {
+                const url = new URL(`https://graph.facebook.com/${version}/${graphId}`);
+                url.searchParams.set("fields", fields);
+                url.searchParams.set("access_token", token);
+                const response = await fetch(url);
+                const payload = await response.json().catch(() => ({}));
+                return { graphId, response, payload };
+              })
+            );
+
+            for (const result of results) {
+              if (result.response.ok && result.payload?.id) recovered.push(result.payload);
+              else failures.push({
+                graphId: result.graphId,
+                status: result.response.status,
+                code: result.payload?.error?.code ?? null,
+                message: result.payload?.error?.message ?? "Graph post recovery failed"
+              });
+            }
+          }
+
+          facebookExport.posts = [...(facebookExport.posts ?? []), ...recovered];
+          facebookExport.targetedRecovery = { requested: missing.length, recovered: recovered.length, failures };
+          await writeFile(root + "/facebook-source.json", `${JSON.stringify(facebookExport, null, 2)}\n`, "utf8");
+          console.log(`Targeted Graph recovery: requested ${missing.length}, recovered ${recovered.length}, unavailable ${failures.length}.`);
+          NODE
+
+      - name: Build full metadata audit and guarded repair SQL
+        shell: bash
+        run: |
+          node scripts/facebook/reclassify-facebook-imports.mjs \
+            --d1-json "$RUNNER_TEMP/facebook-reclassification/d1-before.json" \
+            --facebook-json "$RUNNER_TEMP/facebook-reclassification/facebook-source.json" \
+            --output-dir "$RUNNER_TEMP/facebook-reclassification/result" \
+            --batch-size 100
+
+      - name: Require safe apply readiness
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        run: |
+          node --input-type=module - <<'NODE'
+          import { readFile } from "node:fs/promises";
+          const summary = JSON.parse(
+            await readFile(process.env.RUNNER_TEMP + "/facebook-reclassification/result/summary.json", "utf8")
+          );
+          const expectedCount = Number(process.env.FACEBOOK_IMPORT_COUNT);
+          if (summary.totalFacebookImports !== expectedCount) {
+            throw new Error(`Audit row count changed unexpectedly: expected ${expectedCount}, got ${summary.totalFacebookImports}.`);
+          }
+          if (summary.facebookExport.chunkErrors !== 0) {
+            throw new Error(`Facebook bulk export has ${summary.facebookExport.chunkErrors} chunk error(s); refusing production apply.`);
+          }
+          if (summary.unresolved !== 0) {
+            throw new Error(`There are ${summary.unresolved} row(s) without any usable source evidence; refusing production apply.`);
+          }
+          console.log(
+            `Apply readiness passed: ${summary.totalFacebookImports} imports, ${summary.changed} changes, ${summary.d1Fallback} D1 fallback(s), ${summary.lowConfidence} low-confidence classification(s).`
+          );
+          NODE
+
+      - name: Capture pre-repair D1 Time Travel bookmark
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json \
+            > "$RUNNER_TEMP/facebook-reclassification/result/pre-repair-time-travel.json"
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/facebook-reclassification/result/pre-repair-time-travel.json", "utf8"));
+            const metadata = Array.isArray(value) ? value[0] : value;
+            if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) {
+              throw new Error("production Time Travel bookmark was not returned");
+            }
+            console.log("Pre-repair production Time Travel bookmark captured.");
+          '
+
+      - name: Apply guarded repair batches to production D1
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          shopt -s nullglob
+          files=("$RUNNER_TEMP"/facebook-reclassification/result/repair-part-*.sql)
+          if [[ "${#files[@]}" -eq 0 ]]; then
+            echo "No metadata changes are required."
+            exit 0
+          fi
+          for file in "${files[@]}"; do
+            echo "Applying $(basename "$file")"
+            pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" --remote --file "$file"
+          done
+
+      - name: Read repaired Facebook metadata for verification
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          query="SELECT id, category, tags_json, revision FROM contents WHERE type = 'news' AND COALESCE(deleted_at, '') = '' AND template = 'facebook-embed' AND (id LIKE 'facebook-post-%' OR slug LIKE 'facebook-%') AND (owner = 'facebook-import' OR created_by = 'facebook-import') ORDER BY publish_at ASC;"
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
+            --remote \
+            --command="$query" \
+            --json > "$RUNNER_TEMP/facebook-reclassification/d1-after.json"
+
+      - name: Verify every planned metadata repair
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        run: |
+          node scripts/facebook/reclassify-facebook-imports.mjs \
+            --d1-json "$RUNNER_TEMP/facebook-reclassification/d1-after.json" \
+            --verify-report "$RUNNER_TEMP/facebook-reclassification/result/report.json" \
+            --output-dir "$RUNNER_TEMP/facebook-reclassification/result"
+
+      - name: Upload audit and repair evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: facebook-metadata-reclassification-${{ github.run_id }}
+          path: ${{ runner.temp }}/facebook-reclassification/result/
+          if-no-files-found: warn
+          retention-days: 30
