@@ -11,6 +11,7 @@ const mediaBridgePath = "/api/apps-script-proxy";
 const INVALID_FACEBOOK_THUMBNAIL_RESPONSE = "ระบบสร้างภาพตัวอย่าง Facebook ได้รับการตอบกลับที่ไม่ถูกต้อง";
 const FACEBOOK_THUMBNAIL_UNAVAILABLE = "Unable to create Facebook thumbnail";
 const FACEBOOK_PUBLIC_HOSTS = new Set(["facebook.com", "www.facebook.com", "m.facebook.com"]);
+const FACEBOOK_LEGACY_POST_PATH = /^\/(\d+)\/posts\/(\d+)\/?$/;
 
 type BridgeEnvelope = Partial<MediaAsset> & {
   error?: string;
@@ -46,6 +47,26 @@ function getSafeErrorMessage(value: unknown) {
   return message.slice(0, 240);
 }
 
+function createLegacyFacebookPermalinkCandidates(parsed: URL) {
+  const match = parsed.pathname.match(FACEBOOK_LEGACY_POST_PATH);
+  if (!match) {
+    return [];
+  }
+
+  const [, pageId, postId] = match;
+  if (!pageId || !postId) {
+    return [];
+  }
+
+  return ["www.facebook.com", "m.facebook.com"].map((hostname) => {
+    const legacyUrl = new URL("https://www.facebook.com/permalink.php");
+    legacyUrl.hostname = hostname;
+    legacyUrl.searchParams.set("story_fbid", postId);
+    legacyUrl.searchParams.set("id", pageId);
+    return legacyUrl.toString();
+  });
+}
+
 function createFacebookSourceCandidates(sourceUrl: string) {
   const candidates = [sourceUrl];
 
@@ -60,6 +81,7 @@ function createFacebookSourceCandidates(sourceUrl: string) {
     const fallbackHostname = hostname === "m.facebook.com" ? "www.facebook.com" : "m.facebook.com";
     parsed.hostname = fallbackHostname;
     candidates.push(parsed.toString());
+    candidates.push(...createLegacyFacebookPermalinkCandidates(parsed));
   } catch {
     // The server proxy remains responsible for validating malformed source URLs.
   }
