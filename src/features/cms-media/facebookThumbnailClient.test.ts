@@ -67,6 +67,28 @@ describe("Facebook thumbnail client fallback", () => {
     expect(secondRequest.payload.sourceUrl).toBe("https://m.facebook.com/example/posts/123?ref=share");
   });
 
+  it("falls back to the legacy permalink representation for numeric page post URLs", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ error: "Unable to create Facebook thumbnail" }, { status: 422 }))
+      .mockResolvedValueOnce(Response.json({ error: "Unable to create Facebook thumbnail" }, { status: 422 }))
+      .mockResolvedValueOnce(Response.json(asset));
+
+    const result = await importFacebookThumbnailFromBridge({
+      sourceUrl: "https://www.facebook.com/1609435494524655/posts/709909317810615",
+      name: "Facebook - ข่าวทดสอบ",
+      owner: "facebook-import"
+    });
+
+    expect(result).toEqual(asset);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    const thirdRequest = JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body));
+    expect(thirdRequest.payload.sourceUrl).toBe(
+      "https://www.facebook.com/permalink.php?story_fbid=709909317810615&id=1609435494524655"
+    );
+  });
+
   it("does not retry unrelated bridge failures", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
