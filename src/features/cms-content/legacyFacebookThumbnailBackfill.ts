@@ -5,7 +5,7 @@ import type { ContentItem } from "../public-content/types";
 import { isFacebookEmbedContent } from "../../utils/facebookContent";
 
 const BACKFILL_PAGE_SIZE = 100;
-const DEFAULT_BACKFILL_CONCURRENCY = 3;
+const DEFAULT_BACKFILL_CONCURRENCY = 5;
 const MAX_BACKFILL_CONCURRENCY = 5;
 
 export interface LegacyFacebookThumbnailBackfillResult {
