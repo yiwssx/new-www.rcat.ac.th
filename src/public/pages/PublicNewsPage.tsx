@@ -54,7 +54,7 @@ export default function PublicNewsPage() {
     [activeCategory, activeTag, hasActiveFilter, newsItems]
   );
   const serverPagination = hasActiveFilter ? undefined : data?.pagination;
-  const serverPaginationPending = !hasActiveFilter && (!serverPagination || isFetching);
+  const serverPaginationPending = !hasActiveFilter && (!data || isFetching);
   const archivePage = serverPagination?.page ?? requestedPage;
   const shouldFeatureFirstItem = !serverPagination || archivePage === 1;
   const featuredItem = shouldFeatureFirstItem ? filteredNewsItems[0] : undefined;
