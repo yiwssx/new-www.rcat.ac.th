@@ -54,6 +54,7 @@ export default function PublicNewsPage() {
     [activeCategory, activeTag, hasActiveFilter, newsItems]
   );
   const serverPagination = hasActiveFilter ? undefined : data?.pagination;
+  const serverPaginationPending = !hasActiveFilter && (!data || isFetching);
   const archivePage = serverPagination?.page ?? requestedPage;
   const shouldFeatureFirstItem = !serverPagination || archivePage === 1;
   const featuredItem = shouldFeatureFirstItem ? filteredNewsItems[0] : undefined;
@@ -62,7 +63,8 @@ export default function PublicNewsPage() {
     pageSize: NEWS_PAGE_SIZE,
     resetKeys: [activeTag, activeCategory],
     scrollTargetId: "news-list-heading",
-    serverPagination
+    serverPagination,
+    serverPaginationPending
   });
 
   if (!data && (isLoading || isFetching)) {

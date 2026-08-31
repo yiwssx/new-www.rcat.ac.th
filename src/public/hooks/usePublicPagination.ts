@@ -17,6 +17,7 @@ interface UsePublicPaginationOptions {
   resetKeys?: readonly unknown[];
   scrollTargetId?: string;
   serverPagination?: ServerPagination;
+  serverPaginationPending?: boolean;
 }
 
 function normalizePageSize(value: number) {
@@ -33,19 +34,29 @@ function createResetSignature(resetKeys: readonly unknown[]) {
 
 export function usePublicPagination<T>(
   items: T[],
-  { pageSize, queryParam = "page", resetKeys = [], scrollTargetId, serverPagination }: UsePublicPaginationOptions
+  {
+    pageSize,
+    queryParam = "page",
+    resetKeys = [],
+    scrollTargetId,
+    serverPagination,
+    serverPaginationPending = false
+  }: UsePublicPaginationOptions
 ) {
   const navigate = useNavigate();
   const routeSearch = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
+  const requestedPage = normalizePublicPageSearchValue(routeSearch[queryParam]) ?? 1;
   const fallbackPageSize = normalizePageSize(pageSize);
   const normalizedPageSize = serverPagination ? normalizePageSize(serverPagination.pageSize) : fallbackPageSize;
   const clientTotalItems = items.length;
   const totalItems = serverPagination ? Math.max(0, Math.floor(serverPagination.totalItems)) : clientTotalItems;
   const clientPageCount = Math.max(1, Math.ceil(clientTotalItems / normalizedPageSize));
-  const pageCount = serverPagination ? Math.max(1, Math.floor(serverPagination.totalPages)) : clientPageCount;
-  const requestedPage = normalizePublicPageSearchValue(routeSearch[queryParam]) ?? 1;
+  const resolvedPageCount = serverPagination ? Math.max(1, Math.floor(serverPagination.totalPages)) : clientPageCount;
+  const pageCount = serverPaginationPending ? Math.max(requestedPage, resolvedPageCount) : resolvedPageCount;
   const serverPage = serverPagination ? Math.max(1, Math.floor(serverPagination.page)) : requestedPage;
-  const page = Math.min(serverPagination ? serverPage : requestedPage, pageCount);
+  const page = serverPaginationPending
+    ? requestedPage
+    : Math.min(serverPagination ? serverPage : requestedPage, pageCount);
   const startIndex = (page - 1) * normalizedPageSize;
   const endIndex = Math.min(startIndex + normalizedPageSize, clientTotalItems);
   const resetSignature = createResetSignature(resetKeys);
@@ -98,14 +109,14 @@ export function usePublicPagination<T>(
   }, [requestedPage, resetSignature, updatePage]);
 
   useEffect(() => {
-    if (requestedPage !== page) {
+    if (!serverPaginationPending && requestedPage !== page) {
       updatePage(page, { replace: true });
     }
-  }, [page, requestedPage, updatePage]);
+  }, [page, requestedPage, serverPaginationPending, updatePage]);
 
   const paginatedItems = useMemo(
-    () => (serverPagination ? items : items.slice(startIndex, endIndex)),
-    [endIndex, items, serverPagination, startIndex]
+    () => (serverPagination || serverPaginationPending ? items : items.slice(startIndex, endIndex)),
+    [endIndex, items, serverPagination, serverPaginationPending, startIndex]
   );
 
   return {
