@@ -115,12 +115,16 @@ describe("Facebook post D1 content transform", () => {
     expect(rowFor(announcementPost).created_at).toBe(rowFor(announcementPost).publish_at);
   });
 
-  it("creates valid JSON tags from hashtags and keywords", () => {
-    const tags = JSON.parse(rowFor(announcementPost).tags_json);
+  it("creates controlled semantic tags without generic hashtags or category duplication", () => {
+    const row = rowFor(announcementPost);
+    const tags = JSON.parse(row.tags_json);
 
+    expect(row.category).toBe("ประกาศ");
     expect(tags).toContain("รับสมัคร");
-    expect(tags).toContain("RCAT");
-    expect(tags).toContain("ประกาศ");
+    expect(tags).toContain("นักเรียน");
+    expect(tags).toContain("นักศึกษา");
+    expect(tags).not.toContain("RCAT");
+    expect(tags).not.toContain("ประกาศ");
   });
 
   it("creates deterministic IDs and slugs from Facebook post IDs", () => {
