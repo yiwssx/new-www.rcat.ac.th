@@ -73,7 +73,7 @@ function shouldRetryFacebookPreview(error: unknown) {
 
 function wait(delayMs: number) {
   return new Promise<void>((resolve) => {
-    window.setTimeout(resolve, delayMs);
+    globalThis.setTimeout(resolve, delayMs);
   });
 }
 
@@ -82,7 +82,11 @@ async function importFacebookThumbnailWithRetry(input: Parameters<typeof importF
     try {
       return await importFacebookThumbnailAsset(input);
     } catch (error) {
-      if (shouldAbortForCmsAuth(error) || !shouldRetryFacebookPreview(error) || attempt >= FACEBOOK_PREVIEW_RETRY_DELAYS_MS.length) {
+      if (
+        shouldAbortForCmsAuth(error) ||
+        !shouldRetryFacebookPreview(error) ||
+        attempt >= FACEBOOK_PREVIEW_RETRY_DELAYS_MS.length
+      ) {
         throw error;
       }
 
