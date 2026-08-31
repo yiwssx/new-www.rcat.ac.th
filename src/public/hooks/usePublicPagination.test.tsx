@@ -86,7 +86,9 @@ describe("usePublicPagination", () => {
   it("keeps the existing client-side out-of-range page normalization", async () => {
     routerMocks.search = { page: 2 };
 
-    const { result } = renderHook(() => usePublicPagination(Array.from({ length: 12 }, (_, index) => index), { pageSize: 12 }));
+    const { result } = renderHook(() =>
+      usePublicPagination(Array.from({ length: 12 }, (_, index) => index), { pageSize: 12 })
+    );
 
     expect(result.current.page).toBe(1);
 
