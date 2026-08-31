@@ -9,6 +9,8 @@ import type { FacebookThumbnailImportInput, MediaAsset } from "./types";
 
 const mediaBridgePath = "/api/apps-script-proxy";
 const INVALID_FACEBOOK_THUMBNAIL_RESPONSE = "ระบบสร้างภาพตัวอย่าง Facebook ได้รับการตอบกลับที่ไม่ถูกต้อง";
+const FACEBOOK_THUMBNAIL_UNAVAILABLE = "Unable to create Facebook thumbnail";
+const FACEBOOK_PUBLIC_HOSTS = new Set(["facebook.com", "www.facebook.com", "m.facebook.com"]);
 
 type BridgeEnvelope = Partial<MediaAsset> & {
   error?: string;
@@ -44,13 +46,35 @@ function getSafeErrorMessage(value: unknown) {
   return message.slice(0, 240);
 }
 
-export async function importFacebookThumbnailFromBridge(input: FacebookThumbnailImportInput): Promise<MediaAsset> {
-  const csrfToken = readCmsCsrfToken();
+function createFacebookSourceCandidates(sourceUrl: string) {
+  const candidates = [sourceUrl];
 
-  if (!csrfToken) {
-    throw new CmsAuthError(403);
+  try {
+    const parsed = new URL(sourceUrl);
+    const hostname = parsed.hostname.toLowerCase();
+
+    if (!FACEBOOK_PUBLIC_HOSTS.has(hostname)) {
+      return candidates;
+    }
+
+    const fallbackHostname = hostname === "m.facebook.com" ? "www.facebook.com" : "m.facebook.com";
+    parsed.hostname = fallbackHostname;
+    candidates.push(parsed.toString());
+  } catch {
+    // The server proxy remains responsible for validating malformed source URLs.
   }
 
+  return [...new Set(candidates)];
+}
+
+function isRetryablePreviewFailure(response: Response, payload: BridgeEnvelope) {
+  const bridgeStatus = Number.isFinite(payload.statusCode) ? Number(payload.statusCode) : undefined;
+  const status = bridgeStatus ?? response.status;
+
+  return status === 422 && getSafeErrorMessage(payload.error) === FACEBOOK_THUMBNAIL_UNAVAILABLE;
+}
+
+async function requestFacebookThumbnail(input: FacebookThumbnailImportInput, csrfToken: string) {
   const response = await fetch(mediaBridgePath, {
     method: "POST",
     headers: {
@@ -74,14 +98,41 @@ export async function importFacebookThumbnailFromBridge(input: FacebookThumbnail
     throw new Error(INVALID_FACEBOOK_THUMBNAIL_RESPONSE);
   }
 
-  const bridgeStatus = Number.isFinite(payload.statusCode) ? Number(payload.statusCode) : undefined;
-  if (!response.ok || payload.error || (bridgeStatus !== undefined && bridgeStatus >= 400)) {
-    throw new Error(getSafeErrorMessage(payload.error));
+  return { payload, response };
+}
+
+export async function importFacebookThumbnailFromBridge(input: FacebookThumbnailImportInput): Promise<MediaAsset> {
+  const csrfToken = readCmsCsrfToken();
+
+  if (!csrfToken) {
+    throw new CmsAuthError(403);
   }
 
-  if (!isMediaAsset(payload)) {
-    throw new Error(INVALID_FACEBOOK_THUMBNAIL_RESPONSE);
+  const sourceCandidates = createFacebookSourceCandidates(input.sourceUrl);
+  let lastPreviewError: Error | undefined;
+
+  for (const [index, sourceUrl] of sourceCandidates.entries()) {
+    const { payload, response } = await requestFacebookThumbnail({ ...input, sourceUrl }, csrfToken);
+    const bridgeStatus = Number.isFinite(payload.statusCode) ? Number(payload.statusCode) : undefined;
+
+    if (!response.ok || payload.error || (bridgeStatus !== undefined && bridgeStatus >= 400)) {
+      const error = new Error(getSafeErrorMessage(payload.error));
+      const hasFallback = index < sourceCandidates.length - 1;
+
+      if (hasFallback && isRetryablePreviewFailure(response, payload)) {
+        lastPreviewError = error;
+        continue;
+      }
+
+      throw error;
+    }
+
+    if (!isMediaAsset(payload)) {
+      throw new Error(INVALID_FACEBOOK_THUMBNAIL_RESPONSE);
+    }
+
+    return payload;
   }
 
-  return payload;
+  throw lastPreviewError ?? new Error(INVALID_FACEBOOK_THUMBNAIL_RESPONSE);
 }
