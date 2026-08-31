@@ -2,6 +2,16 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePublicPagination } from "./usePublicPagination";
 
+type RouterState = {
+  location: {
+    search: Record<string, unknown>;
+  };
+};
+
+type RouterOptions = {
+  select?: (state: RouterState) => unknown;
+};
+
 const routerMocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   search: {} as Record<string, unknown>
@@ -9,8 +19,8 @@ const routerMocks = vi.hoisted(() => ({
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => routerMocks.navigate,
-  useRouterState: (options?: { select?: (state: { location: { search: Record<string, unknown> } }) => unknown }) => {
-    const state = {
+  useRouterState: (options?: RouterOptions) => {
+    const state: RouterState = {
       location: {
         search: routerMocks.search
       }
@@ -30,10 +40,7 @@ describe("usePublicPagination", () => {
     routerMocks.search = { page: 200 };
 
     const { result } = renderHook(() =>
-      usePublicPagination([], {
-        pageSize: 12,
-        serverPaginationPending: true
-      })
+      usePublicPagination([], { pageSize: 12, serverPaginationPending: true })
     );
 
     expect(result.current.page).toBe(200);
@@ -44,17 +51,13 @@ describe("usePublicPagination", () => {
   it("uses the resolved server page without rewriting a valid requested page", () => {
     routerMocks.search = { page: 200 };
 
-    const { result } = renderHook(() =>
-      usePublicPagination([], {
-        pageSize: 12,
-        serverPagination: {
-          page: 200,
-          pageSize: 12,
-          totalItems: 2500,
-          totalPages: 209
-        }
-      })
-    );
+    const serverPagination = {
+      page: 200,
+      pageSize: 12,
+      totalItems: 2500,
+      totalPages: 209
+    };
+    const { result } = renderHook(() => usePublicPagination([], { pageSize: 12, serverPagination }));
 
     expect(result.current.page).toBe(200);
     expect(result.current.pageCount).toBe(209);
@@ -65,17 +68,13 @@ describe("usePublicPagination", () => {
   it("canonicalizes an out-of-range page only after the server pagination response resolves", async () => {
     routerMocks.search = { page: 220 };
 
-    const { result } = renderHook(() =>
-      usePublicPagination([], {
-        pageSize: 12,
-        serverPagination: {
-          page: 209,
-          pageSize: 12,
-          totalItems: 2500,
-          totalPages: 209
-        }
-      })
-    );
+    const serverPagination = {
+      page: 209,
+      pageSize: 12,
+      totalItems: 2500,
+      totalPages: 209
+    };
+    const { result } = renderHook(() => usePublicPagination([], { pageSize: 12, serverPagination }));
 
     expect(result.current.page).toBe(209);
 
@@ -93,9 +92,8 @@ describe("usePublicPagination", () => {
   it("keeps the existing client-side out-of-range page normalization", async () => {
     routerMocks.search = { page: 2 };
 
-    const { result } = renderHook(() =>
-      usePublicPagination(Array.from({ length: 12 }, (_, index) => index), { pageSize: 12 })
-    );
+    const items = Array.from({ length: 12 }, (_, index) => index);
+    const { result } = renderHook(() => usePublicPagination(items, { pageSize: 12 }));
 
     expect(result.current.page).toBe(1);
 
