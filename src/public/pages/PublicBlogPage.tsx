@@ -54,6 +54,7 @@ export default function PublicBlogPage() {
     [activeCategory, activeTag, hasActiveFilter, blogItems]
   );
   const serverPagination = hasActiveFilter ? undefined : data?.pagination;
+  const serverPaginationPending = !hasActiveFilter && (!data || isFetching);
   const archivePage = serverPagination?.page ?? requestedPage;
   const shouldFeatureFirstItem = !serverPagination || archivePage === 1;
   const featuredItem = shouldFeatureFirstItem ? filteredBlogItems[0] : undefined;
@@ -62,7 +63,8 @@ export default function PublicBlogPage() {
     pageSize: BLOG_PAGE_SIZE,
     resetKeys: [activeTag, activeCategory],
     scrollTargetId: "blog-list-heading",
-    serverPagination
+    serverPagination,
+    serverPaginationPending
   });
 
   if (!data && (isLoading || isFetching)) {
