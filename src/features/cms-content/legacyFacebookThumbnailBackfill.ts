@@ -1,5 +1,6 @@
 import { getAdminContentList } from "../admin-pagination/api";
 import { getAdminContentDetailFromCloudflare, saveContentItemToCloudflare } from "../admin-write/cloudflareApi";
+import { CmsAuthError } from "../cms-auth";
 import { importFacebookThumbnailAsset } from "../cms-media";
 import type { ContentItem } from "../public-content/types";
 import { isFacebookEmbedContent } from "../../utils/facebookContent";
@@ -52,6 +53,10 @@ function normalizeConcurrency(value: number | undefined) {
   }
 
   return Math.min(MAX_BACKFILL_CONCURRENCY, Math.max(1, Math.floor(value ?? DEFAULT_BACKFILL_CONCURRENCY)));
+}
+
+function shouldAbortForCmsAuth(error: unknown) {
+  return error instanceof CmsAuthError && [401, 403, 428].includes(error.status);
 }
 
 async function findLegacyFacebookCandidateIds(onProgress?: LegacyFacebookThumbnailBackfillOptions["onProgress"]) {
@@ -150,7 +155,11 @@ export async function backfillLegacyFacebookThumbnails(
             repaired: await repairLegacyFacebookThumbnail(id),
             failed: false
           };
-        } catch {
+        } catch (error) {
+          if (shouldAbortForCmsAuth(error)) {
+            throw error;
+          }
+
           return { id, repaired: false, failed: true };
         }
       })
