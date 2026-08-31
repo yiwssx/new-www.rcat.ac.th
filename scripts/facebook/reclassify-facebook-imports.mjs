@@ -207,9 +207,7 @@ function buildReportRow(row, indexes) {
   const categoryChangeSafe = !categoryChanged || confidence >= 0.75;
   const eligibleForRepair = changed && sourceKind === "facebook" && categoryChangeSafe;
   const reasons =
-    sourceKind === "facebook"
-      ? [...classification.reasons]
-      : ["d1-title-summary-fallback", ...classification.reasons];
+    sourceKind === "facebook" ? [...classification.reasons] : ["d1-title-summary-fallback", ...classification.reasons];
 
   if (sourceKind === "facebook" && categoryChanged && confidence < 0.75) {
     reasons.unshift("deferred-low-confidence-category-change");
