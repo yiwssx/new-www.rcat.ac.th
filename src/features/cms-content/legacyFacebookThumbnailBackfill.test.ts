@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CmsAuthError } from "../cms-auth";
 import type { ContentItem } from "../public-content/types";
 import { backfillLegacyFacebookThumbnails } from "./legacyFacebookThumbnailBackfill";
 
@@ -146,6 +147,33 @@ describe("legacy Facebook thumbnail backfill", () => {
       failed: 1,
       failedIds: [second.id]
     });
+    expect(cloudflareMock.saveContentItemToCloudflare).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops immediately when the CMS session expires instead of counting remaining posts as failed", async () => {
+    const items = Array.from({ length: 3 }, (_, index) =>
+      createContentItem({
+        id: `content-${index + 1}`,
+        slug: `facebook-post-${index + 1}`,
+        canonicalUrl: `https://www.facebook.com/rcat/posts/${index + 101}`
+      })
+    );
+
+    paginationMock.getAdminContentList.mockResolvedValue(paginated(items, 1, 1));
+    cloudflareMock.getAdminContentDetailFromCloudflare.mockImplementation(async ({ id }: { id: string }) =>
+      items.find((item) => item.id === id)
+    );
+    mediaMock.importFacebookThumbnailAsset
+      .mockResolvedValueOnce({ id: "facebook-thumbnail-101" })
+      .mockRejectedValueOnce(new CmsAuthError(401));
+    cloudflareMock.saveContentItemToCloudflare.mockImplementation(async (item: ContentItem) => item);
+
+    await expect(backfillLegacyFacebookThumbnails({ concurrency: 1 })).rejects.toMatchObject({
+      name: "CmsAuthError",
+      status: 401
+    });
+
+    expect(mediaMock.importFacebookThumbnailAsset).toHaveBeenCalledTimes(2);
     expect(cloudflareMock.saveContentItemToCloudflare).toHaveBeenCalledTimes(1);
   });
 

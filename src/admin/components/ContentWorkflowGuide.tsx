@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useAuth } from "../../context/authSessionContext";
 import { invalidateAdminListQueries } from "../../features/admin-pagination";
+import { CmsAuthError } from "../../features/cms-auth";
 import { backfillLegacyFacebookThumbnails } from "../../features/cms-content";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import {
@@ -60,7 +61,7 @@ export default function ContentWorkflowGuide() {
 
     try {
       const result = await backfillMutation.mutateAsync({
-        concurrency: 3,
+        concurrency: 5,
         onProgress: (progress) => {
           if (progress.phase === "scanning") {
             updateBlockingLoading(
@@ -93,6 +94,17 @@ export default function ContentWorkflowGuide() {
       }
     } catch (error) {
       await appSwal.close();
+
+      if (error instanceof CmsAuthError && [401, 403, 428].includes(error.status)) {
+        await appSwal.fire({
+          icon: "warning",
+          title: "เซสชัน CMS หมดอายุ",
+          text: "กรุณาเข้าสู่ระบบหรือยืนยันตัวตนใหม่ แล้วกดซ่อมอีกครั้ง ระบบจะข้ามโพสต์ที่ซ่อมสำเร็จแล้วและทำต่อเฉพาะรายการที่เหลือ",
+          confirmButtonText: "ตกลง"
+        });
+        return;
+      }
+
       await showErrorResult("ไม่สามารถซ่อมภาพย่อ Facebook เก่าได้", error, "กรุณาลองใหม่อีกครั้ง");
     }
   }
