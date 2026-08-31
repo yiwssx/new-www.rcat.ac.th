@@ -207,7 +207,9 @@ function buildReportRow(row, indexes) {
   const categoryChangeSafe = !categoryChanged || confidence >= 0.75;
   const eligibleForRepair = changed && sourceKind === "facebook" && categoryChangeSafe;
   const reasons =
-    sourceKind === "facebook" ? [...classification.reasons] : ["d1-title-summary-fallback", ...classification.reasons];
+    sourceKind === "facebook"
+      ? [...classification.reasons]
+      : ["d1-title-summary-fallback", ...classification.reasons];
 
   if (sourceKind === "facebook" && categoryChanged && confidence < 0.75) {
     reasons.unshift("deferred-low-confidence-category-change");
@@ -276,12 +278,7 @@ function summarize(rows, rawExport) {
     else summary.unchanged += 1;
     if (row.confidence > 0 && row.confidence < 0.75) summary.lowConfidence += 1;
     if (row.eligibleForRepair) summary.repairEligible += 1;
-    if (
-      row.sourceKind === "facebook" &&
-      row.categoryChanged &&
-      row.confidence > 0 &&
-      row.confidence < 0.75
-    ) {
+    if (row.sourceKind === "facebook" && row.categoryChanged && row.confidence > 0 && row.confidence < 0.75) {
       summary.deferredLowConfidenceCategoryChange += 1;
     }
   }
