@@ -79,6 +79,7 @@ describe("Facebook bulk reclassification", () => {
     expect(result.summary.totalFacebookImports).toBe(1);
     expect(result.summary.matched).toBe(1);
     expect(result.summary.changed).toBe(1);
+    expect(result.summary.repairEligible).toBe(1);
     expect(result.reportRows[0].proposedCategory).toBe("ประกาศ");
     expect(result.reportRows[0].proposedTags).toContain("รับสมัคร");
     expect(result.reportRows[0].proposedTags).not.toContain("รางวัล");
@@ -100,8 +101,63 @@ describe("Facebook bulk reclassification", () => {
 
     expect(result.summary.unmatched).toBe(1);
     expect(result.summary.d1Fallback).toBe(1);
+    expect(result.summary.repairEligible).toBe(0);
     expect(result.reportRows[0].sourceKind).toBe("d1-fallback");
     expect(result.reportRows[0].confidence).toBeLessThanOrEqual(0.72);
     expect(result.reportRows[0].eligibleForRepair).toBe(false);
+  });
+
+  it("defers a low-confidence category change even with an exact Facebook source", async () => {
+    const fixture = await createFixtureFiles();
+    const d1Payload = JSON.parse(await readFile(fixture.d1Path, "utf8"));
+    d1Payload[0].results[0].title = "กิจกรรม";
+    d1Payload[0].results[0].summary = "กิจกรรม";
+    d1Payload[0].results[0].category = "ข่าวประชาสัมพันธ์";
+    d1Payload[0].results[0].tags_json = "[]";
+    await writeFile(fixture.d1Path, `${JSON.stringify(d1Payload)}\n`, "utf8");
+
+    const facebookPayload = JSON.parse(await readFile(fixture.facebookPath, "utf8"));
+    facebookPayload.posts[0].message = "กิจกรรม นักเรียน";
+    await writeFile(fixture.facebookPath, `${JSON.stringify(facebookPayload)}\n`, "utf8");
+
+    const result = await runAudit({ ...fixture, batchSize: 100 });
+    const row = result.reportRows[0];
+
+    expect(row.sourceKind).toBe("facebook");
+    expect(row.proposedCategory).toBe("กิจกรรม");
+    expect(row.confidence).toBeLessThan(0.75);
+    expect(row.categoryChanged).toBe(true);
+    expect(row.changed).toBe(true);
+    expect(row.eligibleForRepair).toBe(false);
+    expect(row.reasons).toContain("deferred-low-confidence-category-change");
+    expect(result.summary.deferredLowConfidenceCategoryChange).toBe(1);
+    expect(result.summary.repairEligible).toBe(0);
+    expect(result.repairManifest.totalRepairRows).toBe(0);
+  });
+
+  it("still repairs low-confidence tags when the category stays unchanged", async () => {
+    const fixture = await createFixtureFiles();
+    const d1Payload = JSON.parse(await readFile(fixture.d1Path, "utf8"));
+    d1Payload[0].results[0].title = "กิจกรรม";
+    d1Payload[0].results[0].summary = "กิจกรรม";
+    d1Payload[0].results[0].category = "กิจกรรม";
+    d1Payload[0].results[0].tags_json = "[]";
+    await writeFile(fixture.d1Path, `${JSON.stringify(d1Payload)}\n`, "utf8");
+
+    const facebookPayload = JSON.parse(await readFile(fixture.facebookPath, "utf8"));
+    facebookPayload.posts[0].message = "กิจกรรม นักเรียน";
+    await writeFile(fixture.facebookPath, `${JSON.stringify(facebookPayload)}\n`, "utf8");
+
+    const result = await runAudit({ ...fixture, batchSize: 100 });
+    const row = result.reportRows[0];
+
+    expect(row.proposedCategory).toBe("กิจกรรม");
+    expect(row.confidence).toBeLessThan(0.75);
+    expect(row.categoryChanged).toBe(false);
+    expect(row.proposedTags).toContain("นักเรียน");
+    expect(row.eligibleForRepair).toBe(true);
+    expect(result.summary.deferredLowConfidenceCategoryChange).toBe(0);
+    expect(result.summary.repairEligible).toBe(1);
+    expect(result.repairManifest.totalRepairRows).toBe(1);
   });
 });

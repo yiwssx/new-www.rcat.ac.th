@@ -194,6 +194,7 @@ function buildReportRow(row, indexes) {
       confidenceBand: "unresolved",
       reasons: ["no-source-evidence"],
       changed: false,
+      categoryChanged: false,
       eligibleForRepair: false,
       scoreSummary: []
     };
@@ -201,7 +202,16 @@ function buildReportRow(row, indexes) {
 
   const classification = classifyFacebookContent(sourceText);
   const confidence = sourceKind === "facebook" ? classification.confidence : Math.min(classification.confidence, 0.72);
-  const changed = currentCategory !== classification.category || !sameTags(row.tags_json, classification.tags);
+  const categoryChanged = currentCategory !== classification.category;
+  const changed = categoryChanged || !sameTags(row.tags_json, classification.tags);
+  const categoryChangeSafe = !categoryChanged || confidence >= 0.75;
+  const eligibleForRepair = changed && sourceKind === "facebook" && categoryChangeSafe;
+  const reasons =
+    sourceKind === "facebook" ? [...classification.reasons] : ["d1-title-summary-fallback", ...classification.reasons];
+
+  if (sourceKind === "facebook" && categoryChanged && confidence < 0.75) {
+    reasons.unshift("deferred-low-confidence-category-change");
+  }
 
   return {
     ...base,
@@ -209,10 +219,10 @@ function buildReportRow(row, indexes) {
     proposedTags: classification.tags,
     confidence,
     confidenceBand: confidence >= 0.9 ? "high" : confidence >= 0.75 ? "medium" : "low",
-    reasons:
-      sourceKind === "facebook" ? classification.reasons : ["d1-title-summary-fallback", ...classification.reasons],
+    reasons,
     changed,
-    eligibleForRepair: changed && sourceKind === "facebook",
+    categoryChanged,
+    eligibleForRepair,
     scoreSummary: classification.scores.map((item) => ({ category: item.category, score: item.score }))
   };
 }
@@ -243,6 +253,8 @@ function summarize(rows, rawExport) {
     changed: 0,
     unchanged: 0,
     lowConfidence: 0,
+    repairEligible: 0,
+    deferredLowConfidenceCategoryChange: 0,
     currentCategories: {},
     proposedCategories: {},
     matchStatuses: {},
@@ -263,6 +275,10 @@ function summarize(rows, rawExport) {
     if (row.changed) summary.changed += 1;
     else summary.unchanged += 1;
     if (row.confidence > 0 && row.confidence < 0.75) summary.lowConfidence += 1;
+    if (row.eligibleForRepair) summary.repairEligible += 1;
+    if (row.sourceKind === "facebook" && row.categoryChanged && row.confidence > 0 && row.confidence < 0.75) {
+      summary.deferredLowConfidenceCategoryChange += 1;
+    }
   }
 
   return summary;
