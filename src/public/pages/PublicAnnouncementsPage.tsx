@@ -53,11 +53,13 @@ export default function PublicAnnouncementsPage() {
       }),
     [activeCategory, activeTag, announcementItems]
   );
+  const announcementsPaginationPending = !data;
   const announcementsPagination = usePublicPagination(filteredAnnouncementItems, {
     pageSize: ANNOUNCEMENTS_PAGE_SIZE,
     queryParam: "announcementsPage",
     resetKeys: [activeTag, activeCategory],
-    scrollTargetId: "announcements-list-heading"
+    scrollTargetId: "announcements-list-heading",
+    serverPaginationPending: announcementsPaginationPending
   });
   const fallbackPagesPageCount = Math.max(1, Math.ceil(pageItems.length / PUBLIC_PAGES_PAGE_SIZE));
   const fallbackPagesPage = Math.min(requestedPagesPage, fallbackPagesPageCount);
