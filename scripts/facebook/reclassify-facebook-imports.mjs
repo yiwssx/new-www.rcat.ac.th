@@ -212,7 +212,7 @@ function buildReportRow(row, indexes) {
     reasons:
       sourceKind === "facebook" ? classification.reasons : ["d1-title-summary-fallback", ...classification.reasons],
     changed,
-    eligibleForRepair: changed,
+    eligibleForRepair: changed && sourceKind === "facebook",
     scoreSummary: classification.scores.map((item) => ({ category: item.category, score: item.score }))
   };
 }
@@ -229,7 +229,10 @@ function summarize(rows, rawExport) {
       since: rawExport?.since ?? "",
       until: rawExport?.until ?? "",
       totalPosts: Array.isArray(rawExport?.posts) ? rawExport.posts.length : 0,
-      chunkErrors: Array.isArray(rawExport?.errors) ? rawExport.errors.length : 0
+      chunkErrors: Array.isArray(rawExport?.errors) ? rawExport.errors.length : 0,
+      sourceFailures: Array.isArray(rawExport?.targetedRecovery?.failures)
+        ? rawExport.targetedRecovery.failures.length
+        : 0
     },
     totalFacebookImports: rows.length,
     matched: 0,
