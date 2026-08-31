@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { classifyFacebookContent } from "./facebook-content-classifier.mjs";
 
 const FALLBACK_TITLE = "ข่าวประชาสัมพันธ์จากวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด";
 const FALLBACK_SUMMARY = "ข่าวประชาสัมพันธ์จากวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด เผยแพร่จากเพจ Facebook อย่างเป็นทางการ";
@@ -42,43 +43,6 @@ const CONTENT_COLUMNS = [
   "created_by",
   "updated_by",
   "revision"
-];
-
-const CATEGORY_RULES = [
-  {
-    category: "จัดซื้อจัดจ้าง",
-    patterns: [/จัดซื้อ/u, /จัดจ้าง/u, /จัดซื้อจัดจ้าง/u, /ประกวดราคา/u, /ราคากลาง/u, /e-bidding/iu]
-  },
-  {
-    category: "ITA/คุณธรรมและความโปร่งใส",
-    patterns: [/\bITA\b/iu, /คุณธรรม/u, /โปร่งใส/u, /ป\.ป\.ช/u, /จริยธรรม/u]
-  },
-  {
-    category: "ผลงานและรางวัล",
-    patterns: [/รางวัล/u, /ชนะเลิศ/u, /รองชนะเลิศ/u, /ผลงาน/u, /แข่งขัน/u, /ประกวด/u]
-  },
-  {
-    category: "อบรม/โครงการ",
-    patterns: [/อบรม/u, /ฝึกอบรม/u, /โครงการ/u, /สัมมนา/u, /พัฒนา/u]
-  },
-  {
-    category: "กิจกรรม",
-    patterns: [/กิจกรรม/u, /เข้าร่วม/u, /จัดกิจกรรม/u, /พิธี/u, /วันสำคัญ/u, /ต้อนรับ/u]
-  },
-  {
-    category: "ประกาศ",
-    patterns: [/ประกาศ/u, /รับสมัคร/u, /แจ้ง/u, /กำหนดการ/u, /รายชื่อ/u]
-  }
-];
-
-const KEYWORD_TAGS = [
-  ["รับสมัคร", /รับสมัคร/u],
-  ["ประกาศ", /ประกาศ/u],
-  ["กิจกรรม", /กิจกรรม/u],
-  ["จัดซื้อจัดจ้าง", /จัดซื้อ|จัดจ้าง|ประกวดราคา/u],
-  ["รางวัล", /รางวัล|ชนะเลิศ|ผลงาน/u],
-  ["อบรม", /อบรม|โครงการ|สัมมนา/u],
-  ["ITA", /\bITA\b|คุณธรรม|โปร่งใส/iu]
 ];
 
 function parseCliArgs(argv) {
@@ -260,36 +224,7 @@ function createSummary(postText) {
 }
 
 function classifyCategory(postText) {
-  const normalizedText = postText.trim();
-
-  for (const rule of CATEGORY_RULES) {
-    if (rule.patterns.some((pattern) => pattern.test(normalizedText))) {
-      return rule.category;
-    }
-  }
-
-  return "ข่าวประชาสัมพันธ์";
-}
-
-function extractHashtags(postText) {
-  return Array.from(postText.matchAll(/#([^\s#]+)/gu), (match) => match[1].replace(/[.,;:!?()[\]{}"'“”‘’]+$/gu, ""))
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-}
-
-function createTagsJson(postText, category) {
-  const tags = new Set();
-
-  extractHashtags(postText).forEach((tag) => tags.add(tag));
-  tags.add(category);
-
-  KEYWORD_TAGS.forEach(([tag, pattern]) => {
-    if (pattern.test(postText)) {
-      tags.add(tag);
-    }
-  });
-
-  return JSON.stringify(Array.from(tags).slice(0, 12));
+  return classifyFacebookContent(postText).category;
 }
 
 function createBodySnapshot(sourceUrl) {
@@ -340,7 +275,8 @@ export function transformFacebookPostToContentRow(post, options = {}) {
   const title = createTitle(postText);
   const summary = createSummary(postText);
   const bodySnapshot = createBodySnapshot(sourceUrl);
-  const category = classifyCategory(postText);
+  const classification = classifyFacebookContent(postText);
+  const category = classification.category;
 
   return {
     id: `facebook-post-${sanitizedPostId}`,
@@ -351,7 +287,7 @@ export function transformFacebookPostToContentRow(post, options = {}) {
     summary,
     body_snapshot: bodySnapshot,
     category,
-    tags_json: createTagsJson(postText, category),
+    tags_json: JSON.stringify(classification.tags),
     seo_title: title,
     seo_description: summary,
     canonical_url: sourceUrl,
