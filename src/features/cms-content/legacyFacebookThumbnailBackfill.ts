@@ -112,9 +112,7 @@ async function findLegacyFacebookCandidateIds(onProgress?: LegacyFacebookThumbna
     scanned += response.items.length;
     ids.push(
       ...response.items
-        .filter(
-          (item) => isFacebookImportOwner(item.owner) && !item.featuredMediaId && isFacebookEmbedContent(item)
-        )
+        .filter((item) => isFacebookImportOwner(item.owner) && !item.featuredMediaId && isFacebookEmbedContent(item))
         .map((item) => item.id)
     );
 
