@@ -14,7 +14,9 @@ describe("Facebook SQL transform metadata", () => {
     );
 
     expect(row.category).toBe("ประกาศ");
-    expect(JSON.parse(row.tags_json)).toEqual(expect.arrayContaining(["รับสมัคร", "นักเรียน", "การแข่งขัน", "ทักษะวิชาชีพ"]));
+    expect(JSON.parse(row.tags_json)).toEqual(
+      expect.arrayContaining(["รับสมัคร", "นักเรียน", "การแข่งขัน", "ทักษะวิชาชีพ"])
+    );
     expect(JSON.parse(row.tags_json)).not.toContain("ผลงานและรางวัล");
     expect(JSON.parse(row.tags_json)).not.toContain("RCAT");
   });

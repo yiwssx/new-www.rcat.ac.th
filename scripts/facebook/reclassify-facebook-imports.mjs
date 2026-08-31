@@ -89,7 +89,10 @@ function normalizePermalink(value) {
 
     return `${host}${url.pathname.replace(/\/+$/u, "")}`.toLowerCase();
   } catch {
-    return raw.replace(/[?#].*$/u, "").replace(/\/+$/u, "").toLowerCase();
+    return raw
+      .replace(/[?#].*$/u, "")
+      .replace(/\/+$/u, "")
+      .toLowerCase();
   }
 }
 
