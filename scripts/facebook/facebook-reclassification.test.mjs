@@ -102,6 +102,6 @@ describe("Facebook bulk reclassification", () => {
     expect(result.summary.d1Fallback).toBe(1);
     expect(result.reportRows[0].sourceKind).toBe("d1-fallback");
     expect(result.reportRows[0].confidence).toBeLessThanOrEqual(0.72);
-    expect(result.reportRows[0].eligibleForRepair).toBe(true);
+    expect(result.reportRows[0].eligibleForRepair).toBe(false);
   });
 });
