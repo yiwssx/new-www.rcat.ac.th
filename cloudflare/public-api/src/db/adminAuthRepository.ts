@@ -91,6 +91,23 @@ function lockTimestamp(now: Date, failureCount: number) {
   return durationSeconds === 0 ? "" : new Date(now.getTime() + durationSeconds * 1000).toISOString();
 }
 
+function logFailedPasswordSecurityEvent(state: FailedPasswordAttemptState, timestamp: string) {
+  if (state.failedLoginCount < 5) {
+    return;
+  }
+
+  console.warn(
+    JSON.stringify({
+      level: state.failedLoginCount >= 10 ? "critical" : "warning",
+      event: "cms_auth_failed_password_threshold",
+      component: "public-api-worker",
+      failureCount: state.failedLoginCount,
+      locked: state.lockedUntil !== "",
+      timestamp
+    })
+  );
+}
+
 function classifyBootstrapError(error: unknown): never {
   const message = error instanceof Error ? error.message : String(error);
 
@@ -271,12 +288,16 @@ export function createAdminAuthRepository(env: Env): AdminAuthRepository {
         .run<Pick<AdminCredentialRow, "failed_login_count" | "locked_until">>();
       const state = result.results?.[0];
 
-      return state
-        ? {
-            failedLoginCount: state.failed_login_count,
-            lockedUntil: state.locked_until
-          }
-        : null;
+      if (!state) {
+        return null;
+      }
+
+      const failedState = {
+        failedLoginCount: state.failed_login_count,
+        lockedUntil: state.locked_until
+      };
+      logFailedPasswordSecurityEvent(failedState, nowIso);
+      return failedState;
     },
 
     async clearFailedPasswordAttempts(userId, now) {
