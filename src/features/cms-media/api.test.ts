@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type {
-  FacebookThumbnailImportOptions,
-  FacebookThumbnailProgress,
-  MediaAsset
-} from "./types";
+import type { FacebookThumbnailImportOptions, FacebookThumbnailProgress, MediaAsset } from "./types";
 
 const cloudflareMock = vi.hoisted(() => ({
   deleteMediaMetadataFromCloudflare: vi.fn(),
