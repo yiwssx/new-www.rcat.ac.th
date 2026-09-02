@@ -1,4 +1,12 @@
-export { deleteContentItem, getAdminContentDetail, publishContent, saveContentItem } from "./api";
+export {
+  deleteContentItem,
+  getAdminContentDetail,
+  publishContent,
+  saveContentItem,
+  type ContentSaveProgress,
+  type ContentSaveProgressPhase,
+  type SaveContentItemOptions
+} from "./api";
 export {
   backfillLegacyFacebookThumbnails,
   type LegacyFacebookThumbnailBackfillResult
