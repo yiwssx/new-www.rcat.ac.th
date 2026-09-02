@@ -1,6 +1,11 @@
 name: Phase A Production Browser Smoke
 
 on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       base_url:
@@ -11,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  statuses: read
 
 concurrency:
   group: phase-a-production-browser-smoke
@@ -19,11 +25,70 @@ concurrency:
 jobs:
   browser-smoke:
     name: Read-only Field QA
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'master')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      TARGET_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.base_url || 'https://www.rcat.ac.th' }}
+      TARGET_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TARGET_SHA }}
+
+      - name: Wait for matching Vercel production deployment
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in $(seq 1 30); do
+            payload="$(curl --fail-with-body --silent --show-error \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/status")"
+
+            state="$(printf '%s' "$payload" | node -e '
+              let input = "";
+              process.stdin.setEncoding("utf8");
+              process.stdin.on("data", (chunk) => (input += chunk));
+              process.stdin.on("end", () => {
+                const payload = JSON.parse(input);
+                const vercel = payload.statuses.find((status) => status.context === "Vercel");
+                process.stdout.write(vercel?.state || "missing");
+              });
+            ')"
+
+            case "$state" in
+              success)
+                echo "Vercel deployment for $TARGET_SHA is ready."
+                exit 0
+                ;;
+              failure|error)
+                echo "Vercel deployment for $TARGET_SHA failed with state: $state" >&2
+                exit 1
+                ;;
+              pending|missing)
+                echo "Vercel deployment for $TARGET_SHA is not ready yet (attempt $attempt/30)."
+                sleep 10
+                ;;
+              *)
+                echo "Unexpected Vercel commit status: $state" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          echo "Timed out waiting for Vercel deployment status for $TARGET_SHA." >&2
+          exit 1
 
       - uses: pnpm/action-setup@v6
         with:
@@ -42,7 +107,7 @@ jobs:
 
       - name: Run read-only production browser smoke
         env:
-          PHASE_A_PRODUCTION_BASE_URL: ${{ inputs.base_url }}
+          PHASE_A_PRODUCTION_BASE_URL: ${{ env.TARGET_URL }}
         run: pnpm exec playwright test --config playwright.production.config.ts
 
       - name: Upload browser failure evidence
@@ -58,14 +123,15 @@ jobs:
 
       - name: Field QA summary
         if: ${{ always() }}
-        env:
-          TARGET_URL: ${{ inputs.base_url }}
         run: |
           {
             echo "## Phase A Production Browser Smoke"
             echo
             echo "- Target: $TARGET_URL"
+            echo "- Commit: $TARGET_SHA"
+            echo "- Trigger: ${{ github.event_name }}"
             echo "- Mode: read-only"
+            echo "- Automatic path: successful master CI -> matching Vercel deployment -> browser smoke"
             echo "- Browsers: desktop Chromium + mobile Chromium"
             echo "- Runtime diagnostics: page errors, same-origin console errors, request failures, HTTP 5xx, critical asset/document 4xx"
             echo "- Production writes: none"
