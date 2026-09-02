@@ -1,0 +1,73 @@
+name: Phase A Production Browser Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: HTTPS site URL to verify
+        required: true
+        default: https://www.rcat.ac.th
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase-a-production-browser-smoke
+  cancel-in-progress: true
+
+jobs:
+  browser-smoke:
+    name: Read-only Field QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run read-only production browser smoke
+        env:
+          PHASE_A_PRODUCTION_BASE_URL: ${{ inputs.base_url }}
+        run: pnpm exec playwright test --config playwright.production.config.ts
+
+      - name: Upload browser failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: phase-a-production-browser-smoke-${{ github.run_id }}
+          path: |
+            playwright-report/production
+            test-results/production
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Field QA summary
+        if: ${{ always() }}
+        env:
+          TARGET_URL: ${{ inputs.base_url }}
+        run: |
+          {
+            echo "## Phase A Production Browser Smoke"
+            echo
+            echo "- Target: $TARGET_URL"
+            echo "- Mode: read-only"
+            echo "- Browsers: desktop Chromium + mobile Chromium"
+            echo "- Runtime diagnostics: page errors, same-origin console errors, request failures, HTTP 5xx, critical asset/document 4xx"
+            echo "- Production writes: none"
+            echo "- External paid services: none"
+          } >> "$GITHUB_STEP_SUMMARY"
