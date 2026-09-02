@@ -4,6 +4,8 @@ Status: completed requested work under the post-P5H production governance baseli
 
 Activation completed: 2026-08-29.
 
+Operational maintenance reviewed: 2026-09-02.
+
 ## Goal
 
 P6A adds an operator-facing production observability guard without changing the application runtime, D1 schema, Worker routing, authentication model, or production data.
@@ -18,14 +20,16 @@ The workflow does not execute SQL against D1, does not write D1 data, and does n
 
 ## Credential Boundary
 
-The workflow uses the existing protected GitHub `production` Environment only as a credential gate.
+The workflow uses the existing protected GitHub `production` Environment as its credential gate.
 
-Required secrets:
+Required credentials already belong to the established repository/Environment configuration:
 
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_ANALYTICS_READ_TOKEN`
 
-`CLOUDFLARE_ANALYTICS_READ_TOKEN` must be a dedicated Cloudflare API token scoped to **Account > Account Analytics > Read**. Do not substitute the Worker deploy token or another write-capable production token merely to make monitoring pass.
+`CLOUDFLARE_ANALYTICS_READ_TOKEN` must remain a dedicated Cloudflare API token scoped to **Account > Account Analytics > Read**. Do not substitute the Worker deploy token or another write-capable production token merely to make monitoring pass.
+
+Do not create a duplicate Environment, duplicate secret, or replacement token solely because an imagined monitoring name differs from the existing configuration. Reuse the established `production` Environment and existing credential names unless a separately approved configuration change proves that a new boundary is actually required.
 
 Because referencing a GitHub Environment creates a pseudo-deployment record, the workflow retires and deletes only the Environment deployment created for its own run. The workflow run remains the audit record.
 
@@ -102,13 +106,13 @@ Verified results:
 
 This evidence closes the requested Production Observability activation work. It does not reopen P6 as the current active project phase; project status remains defined by `docs/architecture/post-p5h-current-project-state.md`.
 
-## Current Approval Constraint
+## Current Approval-Gated Operating Mode
 
-The GitHub `production` Environment currently requires reviewer approval. As a result, scheduled Production Observability runs can be created automatically but cannot access the protected analytics credentials or execute the analytics query until an authorized reviewer approves that Environment deployment.
+The GitHub `production` Environment requires reviewer approval. Scheduled Production Observability runs are therefore created automatically but remain waiting until an authorized reviewer approves that Environment deployment. Only after approval can the job access `CLOUDFLARE_ANALYTICS_READ_TOKEN` and execute the Analytics query.
 
-This is an explicit operational constraint, not an observability-query failure. Do not weaken the general production Environment protection merely to make this monitor unattended.
+This means the guard is **configured, activated, and operational when approved**, but it is **not unattended monitoring**. Project status reports must preserve that distinction rather than describing the guard in a way that implies every scheduled run executes automatically.
 
-If unattended monitoring is required, prefer a dedicated read-only observability Environment containing only the analytics account identifier and the `Account > Account Analytics > Read` token, with protection rules appropriate for read-only monitoring.
+The waiting state is an intentional consequence of the existing production protection, not a missing-secret or failed-query condition. Do not weaken the general `production` Environment reviewer requirement merely to make this one job unattended, and do not create duplicate credentials or Environments solely to bypass the established approval boundary.
 
 ## Activation Gate
 
@@ -121,4 +125,4 @@ P6A monitoring is operational only after all of the following are true:
 - the Environment pseudo-deployment cleanup succeeds;
 - the first successful run reports the expected current UTC-day utilization without exposing protected identifiers.
 
-All activation-gate conditions were satisfied on 2026-08-29. The 2026-09-02 cadence adjustment does not change the credential boundary or activation evidence.
+All activation-gate conditions were satisfied on 2026-08-29. The 2026-09-02 cadence and documentation adjustments do not change the credential boundary or activation evidence.
