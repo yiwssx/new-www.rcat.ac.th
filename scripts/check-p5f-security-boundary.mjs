@@ -12,7 +12,8 @@ const PRIVILEGED_SECRET = "secrets.CLOUDFLARE_API_TOKEN";
 
 const pureReadWorkflows = [
   ".github/workflows/worker-production-preflight.yml",
-  ".github/workflows/d1-recovery-drill.yml"
+  ".github/workflows/d1-recovery-drill.yml",
+  ".github/workflows/p6b-production-security.yml"
 ];
 
 for (const workflow of pureReadWorkflows) {
