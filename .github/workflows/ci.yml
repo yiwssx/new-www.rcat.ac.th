@@ -200,6 +200,8 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Validate production Playwright suite discovery
+        run: pnpm exec playwright test --config playwright.production.config.ts --list
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:functional
 
