@@ -44,34 +44,34 @@ Authenticated write scenarios remain manual until a separately isolated test acc
 
 ## Automated browser coverage
 
-| ID | Scenario | Desktop | Mobile | Production write |
-| --- | --- | --- | --- | --- |
-| QA-A01 | Home renders SSR/hydrated public shell | Yes | Yes | No |
-| QA-A02 | Public Documents route renders | Yes | Yes | No |
-| QA-A03 | Search no-result state renders and remains interactive | Yes | Yes | No |
-| QA-A04 | Login form is reachable | Yes | Yes | No |
-| QA-A05 | Unauthenticated `/admin` returns to `/login` | Yes | Yes | No |
-| QA-A06 | Detect uncaught browser `pageerror` events | Yes | Yes | No |
-| QA-A07 | Detect same-origin application console errors | Yes | Yes | No |
-| QA-A08 | Detect same-origin failed requests | Yes | Yes | No |
-| QA-A09 | Detect same-origin HTTP 5xx responses | Yes | Yes | No |
-| QA-A10 | Detect 4xx document/script/stylesheet failures | Yes | Yes | No |
-| QA-A11 | Detect meaningful horizontal viewport overflow | Yes | Yes | No |
+| ID     | Scenario                                               | Desktop | Mobile | Production write |
+| ------ | ------------------------------------------------------ | ------- | ------ | ---------------- |
+| QA-A01 | Home renders SSR/hydrated public shell                 | Yes     | Yes    | No               |
+| QA-A02 | Public Documents route renders                         | Yes     | Yes    | No               |
+| QA-A03 | Search no-result state renders and remains interactive | Yes     | Yes    | No               |
+| QA-A04 | Login form is reachable                                | Yes     | Yes    | No               |
+| QA-A05 | Unauthenticated `/admin` returns to `/login`           | Yes     | Yes    | No               |
+| QA-A06 | Detect uncaught browser `pageerror` events             | Yes     | Yes    | No               |
+| QA-A07 | Detect same-origin application console errors          | Yes     | Yes    | No               |
+| QA-A08 | Detect same-origin failed requests                     | Yes     | Yes    | No               |
+| QA-A09 | Detect same-origin HTTP 5xx responses                  | Yes     | Yes    | No               |
+| QA-A10 | Detect 4xx document/script/stylesheet failures         | Yes     | Yes    | No               |
+| QA-A11 | Detect meaningful horizontal viewport overflow         | Yes     | Yes    | No               |
 
 ## QA scenario library — preserved regression cases
 
 These scenarios should become automated when their safety prerequisites exist. Until then they remain explicit manual field-QA cases instead of being forgotten after a bug fix.
 
-| ID | Regression scenario | Current mode | Automation prerequisite |
-| --- | --- | --- | --- |
-| QA-R01 | Content Save progress remains visible above editor dialog | Manual + existing unit/E2E regression | Isolated authenticated browser session |
-| QA-R02 | Auth 428 / reauthentication dialog can appear above Save progress | Existing functional E2E + manual production check | Safe authenticated production-like session |
-| QA-R03 | Facebook thumbnail source fallback reports real attempt progress | Existing unit/API regression + manual production check | Disposable content record |
-| QA-R04 | Facebook thumbnail failure still allows content Save | Existing unit/API regression + manual production check | Disposable content record |
-| QA-R05 | Existing featured media skips automatic thumbnail creation | Existing unit/API regression + manual production check | Disposable content record |
-| QA-R06 | Session expiry during an admin write recovers without duplicate mutation | Existing functional coverage + manual production check | Safe disposable mutation target |
-| QA-R07 | CMS desktop/mobile navigation has no blocking overlay or blank route | Manual | Isolated authenticated browser session |
-| QA-R08 | Slow network does not make long-running Save look frozen | Manual | Browser throttling against isolated authenticated session |
+| ID     | Regression scenario                                                      | Current mode                                           | Automation prerequisite                                   |
+| ------ | ------------------------------------------------------------------------ | ------------------------------------------------------ | --------------------------------------------------------- |
+| QA-R01 | Content Save progress remains visible above editor dialog                | Manual + existing unit/E2E regression                  | Isolated authenticated browser session                    |
+| QA-R02 | Auth 428 / reauthentication dialog can appear above Save progress        | Existing functional E2E + manual production check      | Safe authenticated production-like session                |
+| QA-R03 | Facebook thumbnail source fallback reports real attempt progress         | Existing unit/API regression + manual production check | Disposable content record                                 |
+| QA-R04 | Facebook thumbnail failure still allows content Save                     | Existing unit/API regression + manual production check | Disposable content record                                 |
+| QA-R05 | Existing featured media skips automatic thumbnail creation               | Existing unit/API regression + manual production check | Disposable content record                                 |
+| QA-R06 | Session expiry during an admin write recovers without duplicate mutation | Existing functional coverage + manual production check | Safe disposable mutation target                           |
+| QA-R07 | CMS desktop/mobile navigation has no blocking overlay or blank route     | Manual                                                 | Isolated authenticated browser session                    |
+| QA-R08 | Slow network does not make long-running Save look frozen                 | Manual                                                 | Browser throttling against isolated authenticated session |
 
 ## Runtime diagnostics policy
 

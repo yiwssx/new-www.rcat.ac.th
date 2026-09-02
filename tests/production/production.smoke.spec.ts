@@ -16,7 +16,9 @@ async function dismissIntroGateIfPresent(page: Page) {
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
   expect(overflow).toBeLessThanOrEqual(2);
 }
 

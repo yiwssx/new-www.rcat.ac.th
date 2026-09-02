@@ -17,10 +17,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   outputDir: "test-results/production",
   reporter: process.env.CI
-    ? [
-        ["line"],
-        ["html", { outputFolder: "playwright-report/production", open: "never" }]
-      ]
+    ? [["line"], ["html", { outputFolder: "playwright-report/production", open: "never" }]]
     : "list",
   use: {
     baseURL: productionBaseUrl.href,
