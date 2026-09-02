@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { MediaAsset } from "./types";
+import type { FacebookThumbnailProgress, MediaAsset } from "./types";
 
 const { readCmsCsrfToken, notifyCmsSessionExpired } = vi.hoisted(() => ({
   readCmsCsrfToken: vi.fn(() => "csrf-token"),
@@ -46,16 +46,20 @@ afterEach(() => {
 
 describe("Facebook thumbnail client fallback", () => {
   it("retries a persistent 422 preview failure through the mobile Facebook URL", async () => {
+    const progress: FacebookThumbnailProgress[] = [];
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(Response.json({ error: "Unable to create Facebook thumbnail" }, { status: 422 }))
       .mockResolvedValueOnce(Response.json(asset));
 
-    const result = await importFacebookThumbnailFromBridge({
-      sourceUrl: "https://www.facebook.com/example/posts/123?ref=share",
-      name: "Facebook - ข่าวทดสอบ",
-      owner: "facebook-import"
-    });
+    const result = await importFacebookThumbnailFromBridge(
+      {
+        sourceUrl: "https://www.facebook.com/example/posts/123?ref=share",
+        name: "Facebook - ข่าวทดสอบ",
+        owner: "facebook-import"
+      },
+      { onProgress: (value) => progress.push(value) }
+    );
 
     expect(result).toEqual(asset);
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -65,20 +69,30 @@ describe("Facebook thumbnail client fallback", () => {
 
     expect(firstRequest.payload.sourceUrl).toBe("https://www.facebook.com/example/posts/123?ref=share");
     expect(secondRequest.payload.sourceUrl).toBe("https://m.facebook.com/example/posts/123?ref=share");
+    expect(progress).toEqual([
+      { phase: "requesting", attempt: 1, totalAttempts: 2 },
+      { phase: "retrying", attempt: 1, totalAttempts: 2 },
+      { phase: "requesting", attempt: 2, totalAttempts: 2 },
+      { phase: "received", attempt: 2, totalAttempts: 2 }
+    ]);
   });
 
   it("falls back to the legacy permalink representation for numeric page post URLs", async () => {
+    const progress: FacebookThumbnailProgress[] = [];
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(Response.json({ error: "Unable to create Facebook thumbnail" }, { status: 422 }))
       .mockResolvedValueOnce(Response.json({ error: "Unable to create Facebook thumbnail" }, { status: 422 }))
       .mockResolvedValueOnce(Response.json(asset));
 
-    const result = await importFacebookThumbnailFromBridge({
-      sourceUrl: "https://www.facebook.com/1609435494524655/posts/709909317810615",
-      name: "Facebook - ข่าวทดสอบ",
-      owner: "facebook-import"
-    });
+    const result = await importFacebookThumbnailFromBridge(
+      {
+        sourceUrl: "https://www.facebook.com/1609435494524655/posts/709909317810615",
+        name: "Facebook - ข่าวทดสอบ",
+        owner: "facebook-import"
+      },
+      { onProgress: (value) => progress.push(value) }
+    );
 
     expect(result).toEqual(asset);
     expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -87,6 +101,14 @@ describe("Facebook thumbnail client fallback", () => {
     expect(thirdRequest.payload.sourceUrl).toBe(
       "https://www.facebook.com/permalink.php?story_fbid=709909317810615&id=1609435494524655"
     );
+    expect(progress).toEqual([
+      { phase: "requesting", attempt: 1, totalAttempts: 4 },
+      { phase: "retrying", attempt: 1, totalAttempts: 4 },
+      { phase: "requesting", attempt: 2, totalAttempts: 4 },
+      { phase: "retrying", attempt: 2, totalAttempts: 4 },
+      { phase: "requesting", attempt: 3, totalAttempts: 4 },
+      { phase: "received", attempt: 3, totalAttempts: 4 }
+    ]);
   });
 
   it("does not retry unrelated bridge failures", async () => {
