@@ -98,7 +98,7 @@ describe("content save progress", () => {
       percent: 60,
       message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ"
     });
-    expect(tracker.progress.at(-1)).toEqual({
+    expect(tracker.progress[tracker.progress.length - 1]).toEqual({
       phase: "saving",
       percent: 85,
       message: "บันทึกข้อมูลเนื้อหาแล้ว"
