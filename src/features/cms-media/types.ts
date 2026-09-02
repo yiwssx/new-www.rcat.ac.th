@@ -36,3 +36,15 @@ export interface FacebookThumbnailImportInput {
   name: string;
   owner: string;
 }
+
+export type FacebookThumbnailProgressPhase = "requesting" | "retrying" | "received" | "persisting" | "persisted";
+
+export interface FacebookThumbnailProgress {
+  phase: FacebookThumbnailProgressPhase;
+  attempt?: number;
+  totalAttempts?: number;
+}
+
+export interface FacebookThumbnailImportOptions {
+  onProgress?: (progress: FacebookThumbnailProgress) => void;
+}

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { FacebookThumbnailImportOptions } from "../cms-media/types";
 import type { ContentItem } from "../public-content/types";
 
 const cloudflareMock = vi.hoisted(() => ({
@@ -60,10 +61,20 @@ describe("content save progress", () => {
     cloudflareMock.saveContentItemToCloudflare.mockReset();
     cloudflareMock.saveContentItemToCloudflare.mockImplementation(async (item: ContentItem) => item);
     mediaMock.importFacebookThumbnailAsset.mockReset();
-    mediaMock.importFacebookThumbnailAsset.mockResolvedValue(thumbnailAsset);
+    mediaMock.importFacebookThumbnailAsset.mockImplementation(
+      async (_input: unknown, options?: FacebookThumbnailImportOptions) => {
+        options?.onProgress?.({ phase: "requesting", attempt: 1, totalAttempts: 2 });
+        options?.onProgress?.({ phase: "retrying", attempt: 1, totalAttempts: 2 });
+        options?.onProgress?.({ phase: "requesting", attempt: 2, totalAttempts: 2 });
+        options?.onProgress?.({ phase: "received", attempt: 2, totalAttempts: 2 });
+        options?.onProgress?.({ phase: "persisting" });
+        options?.onProgress?.({ phase: "persisted" });
+        return thumbnailAsset;
+      }
+    );
   });
 
-  it("reports Facebook thumbnail work before saving the content", async () => {
+  it("reports real Facebook thumbnail sub-phases before saving the content", async () => {
     const tracker = collectProgress();
 
     const saved = await saveContentItem(facebookContent, { onProgress: tracker.onProgress });
@@ -78,7 +89,16 @@ describe("content save progress", () => {
     expect(saved.featuredMediaId).toBe(thumbnailAsset.id);
     expect(tracker.progress).toEqual([
       { phase: "preparing", percent: 10, message: "กำลังตรวจสอบข้อมูลก่อนบันทึก" },
-      { phase: "facebook-thumbnail", percent: 35, message: "กำลังดึงและจัดเก็บภาพย่อจาก Facebook" },
+      { phase: "facebook-thumbnail", percent: 30, message: "กำลังเตรียมดึงภาพย่อจาก Facebook" },
+      { phase: "facebook-thumbnail", percent: 35, message: "กำลังดึงภาพย่อจาก Facebook (แหล่ง 1/2)" },
+      {
+        phase: "facebook-thumbnail",
+        percent: 40,
+        message: "แหล่งภาพปัจจุบันยังไม่พร้อม กำลังลองแหล่งสำรอง 2/2"
+      },
+      { phase: "facebook-thumbnail", percent: 40, message: "กำลังดึงภาพย่อจาก Facebook (แหล่ง 2/2)" },
+      { phase: "facebook-thumbnail", percent: 50, message: "ได้รับภาพย่อจาก Facebook แล้ว กำลังเตรียมจัดเก็บ" },
+      { phase: "facebook-thumbnail", percent: 60, message: "กำลังบันทึกข้อมูลภาพย่อ" },
       { phase: "facebook-thumbnail", percent: 65, message: "เตรียมภาพย่อ Facebook เรียบร้อยแล้ว" },
       { phase: "saving", percent: 75, message: "กำลังบันทึกข้อมูลเนื้อหา" },
       { phase: "saving", percent: 85, message: "บันทึกข้อมูลเนื้อหาแล้ว" }

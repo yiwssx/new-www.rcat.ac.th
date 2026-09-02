@@ -4,7 +4,7 @@ import {
   publishContentFromCloudflare,
   saveContentItemToCloudflare
 } from "../admin-write/cloudflareApi";
-import { importFacebookThumbnailAsset } from "../cms-media";
+import { importFacebookThumbnailAsset, type FacebookThumbnailProgress } from "../cms-media";
 import type { ContentItem } from "../public-content/types";
 import { isAdminStaleRevisionError } from "../admin-write/errors";
 import { isFacebookEmbedContent } from "../../utils/facebookContent";
@@ -25,6 +25,57 @@ function reportSaveProgress(options: SaveContentItemOptions, progress: ContentSa
   options.onProgress?.(progress);
 }
 
+function reportFacebookThumbnailProgress(options: SaveContentItemOptions, progress: FacebookThumbnailProgress) {
+  const attempt = progress.attempt ?? 1;
+  const totalAttempts = progress.totalAttempts ?? 1;
+
+  if (progress.phase === "requesting") {
+    reportSaveProgress(options, {
+      phase: "facebook-thumbnail",
+      percent: attempt > 1 ? 40 : 35,
+      message:
+        totalAttempts > 1
+          ? `กำลังดึงภาพย่อจาก Facebook (แหล่ง ${attempt}/${totalAttempts})`
+          : "กำลังดึงภาพย่อจาก Facebook"
+    });
+    return;
+  }
+
+  if (progress.phase === "retrying") {
+    const nextAttempt = Math.min(attempt + 1, totalAttempts);
+    reportSaveProgress(options, {
+      phase: "facebook-thumbnail",
+      percent: 40,
+      message: `แหล่งภาพปัจจุบันยังไม่พร้อม กำลังลองแหล่งสำรอง ${nextAttempt}/${totalAttempts}`
+    });
+    return;
+  }
+
+  if (progress.phase === "received") {
+    reportSaveProgress(options, {
+      phase: "facebook-thumbnail",
+      percent: 50,
+      message: "ได้รับภาพย่อจาก Facebook แล้ว กำลังเตรียมจัดเก็บ"
+    });
+    return;
+  }
+
+  if (progress.phase === "persisting") {
+    reportSaveProgress(options, {
+      phase: "facebook-thumbnail",
+      percent: 60,
+      message: "กำลังบันทึกข้อมูลภาพย่อ"
+    });
+    return;
+  }
+
+  reportSaveProgress(options, {
+    phase: "facebook-thumbnail",
+    percent: 65,
+    message: "เตรียมภาพย่อ Facebook เรียบร้อยแล้ว"
+  });
+}
+
 function hasAttachedMedia(item: ContentItem) {
   return Array.isArray(item.mediaIds) && item.mediaIds.some(Boolean);
 }
@@ -38,22 +89,21 @@ async function addAutomaticFacebookThumbnail(item: ContentItem, options: SaveCon
 
   reportSaveProgress(options, {
     phase: "facebook-thumbnail",
-    percent: 35,
-    message: "กำลังดึงและจัดเก็บภาพย่อจาก Facebook"
+    percent: 30,
+    message: "กำลังเตรียมดึงภาพย่อจาก Facebook"
   });
 
   try {
-    const asset = await importFacebookThumbnailAsset({
-      sourceUrl,
-      name: `Facebook - ${item.title}`.slice(0, 160),
-      owner: item.owner.trim() || "ผู้แก้ไข CMS"
-    });
-
-    reportSaveProgress(options, {
-      phase: "facebook-thumbnail",
-      percent: 65,
-      message: "เตรียมภาพย่อ Facebook เรียบร้อยแล้ว"
-    });
+    const asset = await importFacebookThumbnailAsset(
+      {
+        sourceUrl,
+        name: `Facebook - ${item.title}`.slice(0, 160),
+        owner: item.owner.trim() || "ผู้แก้ไข CMS"
+      },
+      {
+        onProgress: (progress) => reportFacebookThumbnailProgress(options, progress)
+      }
+    );
 
     return {
       ...item,

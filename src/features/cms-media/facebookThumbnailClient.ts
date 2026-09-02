@@ -5,7 +5,12 @@ import {
   notifyCmsSessionExpired,
   readCmsCsrfToken
 } from "../cms-auth";
-import type { FacebookThumbnailImportInput, MediaAsset } from "./types";
+import type {
+  FacebookThumbnailImportInput,
+  FacebookThumbnailImportOptions,
+  FacebookThumbnailProgress,
+  MediaAsset
+} from "./types";
 
 const mediaBridgePath = "/api/apps-script-proxy";
 const INVALID_FACEBOOK_THUMBNAIL_RESPONSE = "ระบบสร้างภาพตัวอย่าง Facebook ได้รับการตอบกลับที่ไม่ถูกต้อง";
@@ -17,6 +22,10 @@ type BridgeEnvelope = Partial<MediaAsset> & {
   error?: string;
   statusCode?: number;
 };
+
+function reportProgress(options: FacebookThumbnailImportOptions, progress: FacebookThumbnailProgress) {
+  options.onProgress?.(progress);
+}
 
 function isMediaAsset(value: unknown): value is MediaAsset {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -123,7 +132,10 @@ async function requestFacebookThumbnail(input: FacebookThumbnailImportInput, csr
   return { payload, response };
 }
 
-export async function importFacebookThumbnailFromBridge(input: FacebookThumbnailImportInput): Promise<MediaAsset> {
+export async function importFacebookThumbnailFromBridge(
+  input: FacebookThumbnailImportInput,
+  options: FacebookThumbnailImportOptions = {}
+): Promise<MediaAsset> {
   const csrfToken = readCmsCsrfToken();
 
   if (!csrfToken) {
@@ -131,9 +143,13 @@ export async function importFacebookThumbnailFromBridge(input: FacebookThumbnail
   }
 
   const sourceCandidates = createFacebookSourceCandidates(input.sourceUrl);
+  const totalAttempts = sourceCandidates.length;
   let lastPreviewError: Error | undefined;
 
   for (const [index, sourceUrl] of sourceCandidates.entries()) {
+    const attempt = index + 1;
+    reportProgress(options, { phase: "requesting", attempt, totalAttempts });
+
     const { payload, response } = await requestFacebookThumbnail({ ...input, sourceUrl }, csrfToken);
     const bridgeStatus = Number.isFinite(payload.statusCode) ? Number(payload.statusCode) : undefined;
 
@@ -143,6 +159,7 @@ export async function importFacebookThumbnailFromBridge(input: FacebookThumbnail
 
       if (hasFallback && isRetryablePreviewFailure(response, payload)) {
         lastPreviewError = error;
+        reportProgress(options, { phase: "retrying", attempt, totalAttempts });
         continue;
       }
 
@@ -153,6 +170,7 @@ export async function importFacebookThumbnailFromBridge(input: FacebookThumbnail
       throw new Error(INVALID_FACEBOOK_THUMBNAIL_RESPONSE);
     }
 
+    reportProgress(options, { phase: "received", attempt, totalAttempts });
     return payload;
   }
 

@@ -7,7 +7,12 @@ import {
   uploadMediaAssetToBridge,
   type MediaUploadOptions
 } from "./mediaBridgeClient";
-import type { FacebookThumbnailImportInput, MediaAsset, MediaAssetInput } from "./types";
+import type {
+  FacebookThumbnailImportInput,
+  FacebookThumbnailImportOptions,
+  MediaAsset,
+  MediaAssetInput
+} from "./types";
 
 async function persistBridgeMetadata(asset: MediaAsset) {
   cacheBridgeMediaAsset(asset);
@@ -29,8 +34,15 @@ export async function saveMediaAsset(input: MediaAssetInput, options: MediaUploa
   return persistBridgeMetadata(await saveMediaAssetToBridge(input, options));
 }
 
-export async function importFacebookThumbnailAsset(input: FacebookThumbnailImportInput) {
-  return persistRequiredBridgeMetadata(await importFacebookThumbnailFromBridge(input));
+export async function importFacebookThumbnailAsset(
+  input: FacebookThumbnailImportInput,
+  options: FacebookThumbnailImportOptions = {}
+) {
+  const asset = await importFacebookThumbnailFromBridge(input, options);
+  options.onProgress?.({ phase: "persisting" });
+  const persistedAsset = await persistRequiredBridgeMetadata(asset);
+  options.onProgress?.({ phase: "persisted" });
+  return persistedAsset;
 }
 
 export async function uploadMediaAsset(asset: MediaAsset) {
@@ -55,5 +67,11 @@ export async function deleteMediaAsset(asset: string | MediaAsset) {
   return result;
 }
 
-export type { FacebookThumbnailImportInput, MediaAssetInput } from "./types";
+export type {
+  FacebookThumbnailImportInput,
+  FacebookThumbnailImportOptions,
+  FacebookThumbnailProgress,
+  FacebookThumbnailProgressPhase,
+  MediaAssetInput
+} from "./types";
 export type { MediaUploadOptions, MediaUploadProgress } from "./mediaBridgeClient";
