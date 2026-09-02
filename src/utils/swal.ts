@@ -71,6 +71,25 @@ function createBlockingLoadingOptions(state: BlockingLoadingState): SweetAlertOp
   };
 }
 
+function alignBlockingContainerWithMuiModalStack(popup: HTMLElement) {
+  const container = popup.closest(".swal2-container");
+  if (!(container instanceof HTMLElement)) {
+    return;
+  }
+
+  let activeModalZIndex = 0;
+  document.querySelectorAll<HTMLElement>(".MuiModal-root").forEach((modal) => {
+    const zIndex = Number.parseInt(window.getComputedStyle(modal).zIndex, 10);
+    if (Number.isFinite(zIndex)) {
+      activeModalZIndex = Math.max(activeModalZIndex, zIndex);
+    }
+  });
+
+  if (activeModalZIndex > 0) {
+    container.style.zIndex = String(activeModalZIndex);
+  }
+}
+
 async function getAppSwal() {
   if (!appSwalPromise) {
     appSwalPromise = Promise.all([import("sweetalert2"), import("sweetalert2/dist/sweetalert2.min.css")]).then(
@@ -121,7 +140,8 @@ export function showBlockingLoading(title: string, text = defaultBlockingLoading
 
   void appSwal.fire({
     ...createBlockingLoadingOptions(state),
-    didOpen: () => {
+    didOpen: (popup) => {
+      alignBlockingContainerWithMuiModalStack(popup);
       void appSwal.showLoading();
 
       const latest = latestBlockingLoading;
