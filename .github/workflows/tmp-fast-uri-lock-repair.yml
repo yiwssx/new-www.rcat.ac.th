@@ -32,8 +32,8 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
-      - name: Regenerate lockfile with patched fast-uri
-        run: pnpm install --lockfile-only --no-frozen-lockfile --strict-peer-dependencies
+      - name: Install dependencies and regenerate lockfile with patched fast-uri
+        run: pnpm install --no-frozen-lockfile --strict-peer-dependencies
 
       - name: Refresh dependency status document
         run: pnpm deps:status
