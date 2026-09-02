@@ -1,12 +1,14 @@
 # Warning Cleanup Baseline
 
+> **Historical snapshot (2026-07-19).** Every runtime version, warning count, dependency finding, and working-tree observation below belongs to the dated baseline only. Current toolchain source of truth is Node `24.x` with `.node-version` pinning the exact release and pnpm `10.34.5`; use `docs/deployment/runtime-deployment-guide.md`, `docs/architecture/current-runtime-ownership.md`, and `docs/maintenance/dependency-current-status.md` for current state.
+
 Captured: 2026-07-19 (Asia/Bangkok)
 
 Starting branch: `master`
 
 Starting commit: `80324e71982411c67e6f3f9b66e06b09ab7bb282`
 
-Runtime: Node `v24.18.0`, pnpm `11.13.0`
+Historical baseline runtime observation: Node `v24.18.0`, pnpm `11.13.0`
 
 Correction recorded 2026-07-19: the runtime line above and the then-current Node
 `22.23.1` / `22.x` contract are retained only as historical baseline states.
