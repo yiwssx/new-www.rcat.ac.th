@@ -9,16 +9,41 @@ import type { ContentItem } from "../public-content/types";
 import { isAdminStaleRevisionError } from "../admin-write/errors";
 import { isFacebookEmbedContent } from "../../utils/facebookContent";
 
+export type ContentSaveProgressPhase = "preparing" | "facebook-thumbnail" | "saving";
+
+export interface ContentSaveProgress {
+  phase: ContentSaveProgressPhase;
+  percent: number;
+  message: string;
+}
+
+export interface SaveContentItemOptions {
+  onProgress?: (progress: ContentSaveProgress) => void;
+}
+
+function reportSaveProgress(options: SaveContentItemOptions, progress: ContentSaveProgress) {
+  options.onProgress?.(progress);
+}
+
 function hasAttachedMedia(item: ContentItem) {
   return Array.isArray(item.mediaIds) && item.mediaIds.some(Boolean);
 }
 
-async function addAutomaticFacebookThumbnail(item: ContentItem): Promise<ContentItem> {
+async function addAutomaticFacebookThumbnail(
+  item: ContentItem,
+  options: SaveContentItemOptions
+): Promise<ContentItem> {
   const sourceUrl = item.canonicalUrl?.trim() ?? "";
 
   if (item.featuredMediaId || hasAttachedMedia(item) || !sourceUrl || !isFacebookEmbedContent(item)) {
     return item;
   }
+
+  reportSaveProgress(options, {
+    phase: "facebook-thumbnail",
+    percent: 35,
+    message: "กำลังดึงและจัดเก็บภาพย่อจาก Facebook"
+  });
 
   try {
     const asset = await importFacebookThumbnailAsset({
@@ -27,22 +52,57 @@ async function addAutomaticFacebookThumbnail(item: ContentItem): Promise<Content
       owner: item.owner.trim() || "ผู้แก้ไข CMS"
     });
 
+    reportSaveProgress(options, {
+      phase: "facebook-thumbnail",
+      percent: 65,
+      message: "เตรียมภาพย่อ Facebook เรียบร้อยแล้ว"
+    });
+
     return {
       ...item,
       featuredMediaId: asset.id,
       mediaIds: Array.from(new Set([...(item.mediaIds ?? []), asset.id]))
     };
   } catch {
+    reportSaveProgress(options, {
+      phase: "facebook-thumbnail",
+      percent: 60,
+      message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ"
+    });
+
     // A Facebook preview is convenience media. A transient Facebook/Drive failure must not block content publishing.
     return item;
   }
 }
 
-export async function saveContentItem(item: ContentItem): Promise<ContentItem> {
-  const nextItem = await addAutomaticFacebookThumbnail(item);
+export async function saveContentItem(
+  item: ContentItem,
+  options: SaveContentItemOptions = {}
+): Promise<ContentItem> {
+  reportSaveProgress(options, {
+    phase: "preparing",
+    percent: 10,
+    message: "กำลังตรวจสอบข้อมูลก่อนบันทึก"
+  });
+
+  const nextItem = await addAutomaticFacebookThumbnail(item, options);
+
+  reportSaveProgress(options, {
+    phase: "saving",
+    percent: 75,
+    message: "กำลังบันทึกข้อมูลเนื้อหา"
+  });
 
   try {
-    return await saveContentItemToCloudflare(nextItem);
+    const savedItem = await saveContentItemToCloudflare(nextItem);
+
+    reportSaveProgress(options, {
+      phase: "saving",
+      percent: 85,
+      message: "บันทึกข้อมูลเนื้อหาแล้ว"
+    });
+
+    return savedItem;
   } catch (error) {
     if (isAdminStaleRevisionError(error) && item.id) {
       try {
