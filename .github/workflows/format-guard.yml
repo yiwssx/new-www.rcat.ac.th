@@ -1,0 +1,82 @@
+name: Format Guard
+
+on:
+  push:
+    branches-ignore:
+      - master
+
+concurrency:
+  group: format-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  format:
+    name: Auto Format Changed Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Collect changed files from master
+        id: changed
+        shell: bash
+        run: |
+          git fetch origin master --no-tags
+          git diff --name-only --diff-filter=ACMR -z origin/master...HEAD > "$RUNNER_TEMP/prettier-files"
+
+          if [ -s "$RUNNER_TEMP/prettier-files" ]; then
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Format changed files
+        if: steps.changed.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          mapfile -d '' files < "$RUNNER_TEMP/prettier-files"
+          pnpm exec prettier --write --ignore-unknown -- "${files[@]}"
+
+      - name: Commit formatting corrections
+        id: correction
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            echo "No formatting correction required."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --name-only -z | xargs -0 git add --
+          HUSKY=0 git commit -m "style: auto-format changed files"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Verify repository formatting
+        run: pnpm format:check
+
+      - name: Re-run CI on corrected branch head
+        if: steps.correction.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --ref "$GITHUB_REF_NAME"
