@@ -1,0 +1,33 @@
+name: Dependency Status Prettier Artifact
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  prettier-artifact:
+    if: github.head_ref == 'chore/dependency-status-gate-repair'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies --ignore-scripts
+      - run: pnpm exec prettier --write docs/maintenance/dependency-current-status.md
+      - uses: actions/upload-artifact@v6
+        with:
+          name: dependency-status-prettier
+          path: docs/maintenance/dependency-current-status.md
+          if-no-files-found: error
+          retention-days: 1
