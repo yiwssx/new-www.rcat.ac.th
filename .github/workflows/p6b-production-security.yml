@@ -15,7 +15,8 @@ on:
       - "scripts/check-production-auth-security-events.mjs"
       - "scripts/p6b-edge-waf-production-smoke.mjs"
   schedule:
-    - cron: "47 */2 * * *"
+    # WAF smoke only: every six hours at minute 47. Auth anomaly D1 diagnostics are manual-only.
+    - cron: "47 */6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -39,8 +40,8 @@ jobs:
         run: node scripts/p6b-edge-waf-production-smoke.mjs
 
   auth-anomaly:
-    name: Auth Anomaly Guard
-    if: ${{ github.ref == 'refs/heads/master' }}
+    name: Auth Anomaly Diagnostic
+    if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -80,7 +81,7 @@ jobs:
   retire-environment-deployment:
     name: Retire P6B security environment deployment
     needs: auth-anomaly
-    if: ${{ always() && github.ref == 'refs/heads/master' }}
+    if: ${{ always() && github.ref == 'refs/heads/master' && needs.auth-anomaly.result != 'skipped' }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -91,7 +92,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v7
-      - name: Delete this guard's GitHub Environment pseudo-deployment
+      - name: Delete this diagnostic's GitHub Environment pseudo-deployment
         run: |
           set -euo pipefail
           gh api "/repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/p6b-run.json"
@@ -104,5 +105,5 @@ jobs:
           gh api --method POST "/repos/$GH_REPO/deployments/$deployment_id/statuses" \
             -f state=inactive \
             -f environment=production \
-            -f description='P6B production security credential-gate deployment retired' >/dev/null
+            -f description='P6B auth diagnostic credential-gate deployment retired' >/dev/null
           gh api --method DELETE "/repos/$GH_REPO/deployments/$deployment_id"
