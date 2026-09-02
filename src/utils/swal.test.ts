@@ -28,7 +28,7 @@ describe("blocking loading progress", () => {
     swalInstance.close.mockClear();
   });
 
-  it("renders a determinate progress bar when the loading text contains a percentage", async () => {
+  it("renders a determinate progress bar in the browser top layer", async () => {
     showBlockingLoading("กำลังบันทึกเนื้อหา", "10% • กำลังตรวจสอบข้อมูลก่อนบันทึก");
 
     await vi.waitFor(() => expect(swalInstance.fire).toHaveBeenCalledTimes(1));
@@ -40,7 +40,8 @@ describe("blocking loading progress", () => {
         text: "10% • กำลังตรวจสอบข้อมูลก่อนบันทึก",
         showConfirmButton: false,
         allowOutsideClick: false,
-        allowEscapeKey: false
+        allowEscapeKey: false,
+        topLayer: true
       })
     );
     expect(options.html).toEqual(expect.stringContaining('role="progressbar"'));
