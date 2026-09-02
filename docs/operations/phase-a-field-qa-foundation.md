@@ -1,12 +1,21 @@
 # Phase A — Field QA Foundation
 
-Updated: 2026-09-02
+Updated: 2026-09-03
 
 ## Goal
 
 Phase A adds browser-level production verification on top of the existing P6C HTTP/SSR/Worker/D1 reliability smoke. It is intentionally read-only and uses only repository-owned or already-installed free tooling.
 
 The Phase A browser smoke is not a replacement for CI or P6C. It covers failure classes that static analysis and raw HTTP probes cannot reliably detect, including client-side crashes, hydration/runtime errors, critical browser request failures, and viewport-specific layout problems.
+
+The normal Phase A path is automation-first:
+
+1. a change reaches `master`;
+2. repository CI completes successfully for that exact commit SHA;
+3. the workflow waits for the matching GitHub commit status `Vercel` to report a successful deployment;
+4. the production Playwright smoke runs automatically against `https://www.rcat.ac.th`.
+
+`workflow_dispatch` remains available only as an operational fallback for reruns, controlled preview verification, or recovery checks. It is not the primary operating path.
 
 ## Cost boundary
 
@@ -16,6 +25,7 @@ Phase A uses:
 
 - Playwright already present in the repository;
 - GitHub Actions already used by the project;
+- Vercel's existing GitHub commit deployment status;
 - Chromium installed by Playwright on the GitHub-hosted runner;
 - GitHub failure artifacts for short-lived trace/screenshot evidence.
 
@@ -87,19 +97,32 @@ The browser smoke fails on:
 
 Expected unauthenticated API 4xx responses are not treated as browser-smoke failures because `/login` and `/admin` protection can legitimately probe session state without an authenticated user.
 
-## How to run
+## Automatic trigger and deployment gate
 
-Use GitHub Actions → `Phase A Production Browser Smoke` → `Run workflow`.
+The workflow listens for completion of the repository `CI` workflow. It runs automatically only when:
 
-The default target is `https://www.rcat.ac.th`. A different HTTPS target can be supplied for a controlled preview or recovery candidate.
+- the completed CI run is for `master`; and
+- the CI conclusion is `success`.
+
+The workflow then checks the GitHub combined commit status for the same `head_sha` and waits for context `Vercel` to report `success`. This prevents browser QA from racing ahead of the production deployment and prevents a later commit's deployment from being mistaken for the commit under test.
+
+If the matching Vercel deployment reports `failure` or `error`, or never reaches a successful state inside the workflow's bounded wait, Phase A fails closed and does not run the browser smoke against an unconfirmed deployment.
+
+## Manual fallback
+
+GitHub Actions → `Phase A Production Browser Smoke` → `Run workflow` remains available for deliberate reruns and controlled alternative HTTPS targets.
+
+The default target is `https://www.rcat.ac.th`.
 
 On failure, the workflow keeps Playwright HTML report, trace, and screenshot evidence for seven days. Successful runs do not upload artifacts.
 
 ## Relationship to later phases
 
-Phase A is manually triggered by design so it does not duplicate the existing six-hour P6C reliability schedule. Phase C can later connect this browser smoke to post-deploy verification after deployment readiness is known.
+Phase A now owns automatic read-only browser verification after successful production deployment. It remains separate from the existing six-hour P6C reliability schedule: P6C is an unattended periodic reliability checkpoint, while Phase A is deployment-driven browser QA.
 
 Phase B can reuse the same scenario IDs and diagnostics vocabulary in `/admin/system-health` and runtime error reporting.
+
+Later phases may extend the same automation chain with authenticated disposable-data scenarios, performance budgets, or accessibility checks without reverting the normal path to manual execution.
 
 ## Completion criteria
 
@@ -109,5 +132,6 @@ Phase A is complete when:
 2. desktop and mobile read-only production scenarios are present;
 3. console/page/network diagnostics are enforced;
 4. the QA scenario library is stored in the repository;
-5. the workflow can be manually executed against production;
-6. repository CI and governance remain green.
+5. successful `master` CI automatically waits for the matching successful Vercel deployment and then runs production browser smoke;
+6. manual dispatch remains only a fallback;
+7. repository CI and governance remain green.
