@@ -31,7 +31,9 @@ Because referencing a GitHub Environment creates a pseudo-deployment record, the
 
 ## Schedule And Thresholds
 
-`.github/workflows/production-observability.yml` runs every two hours at minute 17, can be started manually from `master`, and self-smoke-tests on `master` when observability workflow/script files change.
+`.github/workflows/production-observability.yml` runs every six hours at minute 17, can be started manually from `master`, and self-smoke-tests on `master` when observability workflow/script files change.
+
+The cadence was reduced from every two hours to every six hours on 2026-09-02 to reduce unnecessary monitoring frequency while retaining four D1 usage checkpoints per UTC day. The guard still reads Cloudflare Analytics rather than D1 itself, so these scheduled checks do not add D1 rows read or rows written.
 
 Default daily limits match the Workers Free D1 allowance:
 
@@ -102,11 +104,11 @@ This evidence closes the requested Production Observability activation work. It 
 
 ## Current Approval Constraint
 
-The GitHub `production` Environment currently requires reviewer approval. As a result, scheduled Production Observability runs can be created automatically but cannot access the protected analytics credentials or execute the D1 query until an authorized reviewer approves that Environment deployment.
+The GitHub `production` Environment currently requires reviewer approval. As a result, scheduled Production Observability runs can be created automatically but cannot access the protected analytics credentials or execute the analytics query until an authorized reviewer approves that Environment deployment.
 
 This is an explicit operational constraint, not an observability-query failure. Do not weaken the general production Environment protection merely to make this monitor unattended.
 
-If unattended monitoring is required later, prefer a dedicated read-only observability Environment containing only the analytics account identifier and the `Account > Account Analytics > Read` token, with protection rules appropriate for read-only monitoring.
+If unattended monitoring is required, prefer a dedicated read-only observability Environment containing only the analytics account identifier and the `Account > Account Analytics > Read` token, with protection rules appropriate for read-only monitoring.
 
 ## Activation Gate
 
@@ -119,4 +121,4 @@ P6A monitoring is operational only after all of the following are true:
 - the Environment pseudo-deployment cleanup succeeds;
 - the first successful run reports the expected current UTC-day utilization without exposing protected identifiers.
 
-All activation-gate conditions were satisfied on 2026-08-29.
+All activation-gate conditions were satisfied on 2026-08-29. The 2026-09-02 cadence adjustment does not change the credential boundary or activation evidence.

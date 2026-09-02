@@ -28,7 +28,7 @@ The policy:
 - rejects oversized CMS Auth/Admin proxy request bodies before function execution;
 - emits the non-sensitive marker `X-RCAT-Edge-WAF: p6b-vercel-v1` for production verification.
 
-`scripts/p6b-edge-waf-production-smoke.mjs` verifies both a safe denied internal probe and same-origin forwarding without requiring production credentials.
+`scripts/p6b-edge-waf-production-smoke.mjs` verifies both a safe denied internal probe and same-origin forwarding without requiring production credentials. The scheduled production WAF smoke runs every six hours at minute 47.
 
 ## Admin/API rate limits
 
@@ -41,23 +41,27 @@ Rate limiting runs only after the Worker has accepted the Vercel proxy trust bou
 
 Production fails closed when a required sensitive-route rate-limit binding or trusted proxy client metadata is unavailable. A limit breach returns HTTP 429 with `Retry-After`.
 
-## Auth anomaly alerts
+## Auth anomaly detection and diagnostic
 
-The protected `P6B Production Security` workflow queries D1 aggregate state instead of browser-edge zone telemetry. It reads only aggregate counts derived from:
+As of 2026-09-02, the D1-backed auth anomaly query is no longer part of the scheduled six-hour production security run. Scheduled polling was removed so the monitoring workflow does not consume D1 reads merely to discover that no authentication anomaly occurred.
+
+The protected `Auth Anomaly Diagnostic` remains available through `workflow_dispatch` for explicit investigation. When started manually, it queries only aggregate counts derived from:
 
 - `admin_credentials.failed_login_count` and recent `updated_at` state;
 - `admin_mfa_challenges.failed_attempt_count` in the lookback window.
 
-The workflow query does not select username, email, IP address, user-agent, session token, MFA secret, or credential material.
+The diagnostic query does not select username, email, IP address, user-agent, session token, MFA secret, or credential material. It remains behind the protected GitHub `production` Environment reviewer requirement.
 
-Default severity for the 135-minute lookback is:
+Default diagnostic severity for the 135-minute lookback remains:
 
 - healthy: no failed auth/MFA state;
 - info: 1-9 failed auth/MFA state and no locked account;
 - warning: 10-29 failed states or at least one locked account;
 - critical: 30+ failed states or three or more locked accounts.
 
-Warning/critical severity fails the GitHub Actions guard. The workflow continues to inherit the protected `production` Environment reviewer requirement, so scheduled protected D1 checks remain approval-gated until monitoring credentials are moved to a dedicated read-only Environment.
+Password failures also emit a structured Worker security log when the existing failed-login counter reaches the lockout threshold. The signal is derived from the existing `UPDATE ... RETURNING failed_login_count, locked_until` result, so no additional D1 query is introduced for that event signal. The structured event contains severity, event name, component, failure count, lock state, and timestamp; it does not include username, email, IP, password, credential hash, session token, or MFA secret.
+
+MFA aggregate investigation remains available through the manual diagnostic. No scheduled D1 MFA polling is performed.
 
 ## Closure evidence
 
@@ -74,9 +78,10 @@ P6B was explicitly reopened for completion and closed after the runtime-aligned 
 - The auth anomaly result was healthy: `0` failed auth/MFA attempt states and `0` locked accounts in the 135-minute lookback.
 - Worker Production Release run `33271266147` deployed the same master SHA to production.
 - That release reported `CMS_AUTH_RATE_LIMITER (30 requests/60s)` and `ADMIN_API_RATE_LIMITER (120 requests/60s)` as active Worker bindings and completed successfully.
+- PR #203 reduced scheduled monitoring cadence to six hours, removed scheduled D1 auth polling, and added the no-extra-query password failure threshold log signal.
 
-All six activation gates are satisfied. P6B is closed.
+All six original activation gates remain satisfied. P6B stays closed; the 2026-09-02 changes are maintenance of the established production security baseline.
 
 ## Next phase
 
-P6C Recovery & Reliability may begin when explicitly requested. Closing P6B does not automatically make P6C active.
+P6C Recovery & Reliability is historical and completed. Future security or product changes should use a new maintenance/feature scope rather than reopening P6B solely for routine guard maintenance.
