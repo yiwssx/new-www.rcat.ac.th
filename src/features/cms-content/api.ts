@@ -29,10 +29,7 @@ function hasAttachedMedia(item: ContentItem) {
   return Array.isArray(item.mediaIds) && item.mediaIds.some(Boolean);
 }
 
-async function addAutomaticFacebookThumbnail(
-  item: ContentItem,
-  options: SaveContentItemOptions
-): Promise<ContentItem> {
+async function addAutomaticFacebookThumbnail(item: ContentItem, options: SaveContentItemOptions): Promise<ContentItem> {
   const sourceUrl = item.canonicalUrl?.trim() ?? "";
 
   if (item.featuredMediaId || hasAttachedMedia(item) || !sourceUrl || !isFacebookEmbedContent(item)) {
@@ -75,10 +72,7 @@ async function addAutomaticFacebookThumbnail(
   }
 }
 
-export async function saveContentItem(
-  item: ContentItem,
-  options: SaveContentItemOptions = {}
-): Promise<ContentItem> {
+export async function saveContentItem(item: ContentItem, options: SaveContentItemOptions = {}): Promise<ContentItem> {
   reportSaveProgress(options, {
     phase: "preparing",
     percent: 10,
