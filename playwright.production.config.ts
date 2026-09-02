@@ -9,6 +9,7 @@ if (productionBaseUrl.protocol !== "https:") {
 
 export default defineConfig({
   testDir: "./tests/production",
+  testMatch: "**/*.pw.ts",
   timeout: 60_000,
   expect: {
     timeout: 15_000
