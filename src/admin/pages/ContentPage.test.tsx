@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ContentSaveProgress } from "../../features/cms-content";
 import {
   readContentDraftRecovery,
   writeContentDraftRecovery,
@@ -33,7 +34,8 @@ const publicInvalidationMock = vi.hoisted(() => ({
 const swalInstance = vi.hoisted(() => ({
   fire: vi.fn(),
   close: vi.fn(),
-  showLoading: vi.fn()
+  showLoading: vi.fn(),
+  update: vi.fn()
 }));
 
 vi.mock("sweetalert2", () => ({
@@ -169,6 +171,10 @@ const contentItem: ContentItem = {
   revision: 1
 };
 
+type SaveProgressOptions = {
+  onProgress?: (progress: ContentSaveProgress) => void;
+};
+
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;
@@ -244,6 +250,8 @@ describe("ContentPage operation feedback", () => {
     swalInstance.close.mockReset();
     swalInstance.close.mockResolvedValue(undefined);
     swalInstance.showLoading.mockReset();
+    swalInstance.update.mockReset();
+    swalInstance.update.mockResolvedValue(undefined);
   });
 
   it("shows loading and an acknowledged success modal when saving content", async () => {
@@ -258,6 +266,7 @@ describe("ContentPage operation feedback", () => {
     await waitFor(() => expect(contentMock.saveContentItem).toHaveBeenCalledTimes(1));
     expect(findSwalCall((options) => options.title === "กำลังบันทึกเนื้อหา")).toEqual(
       expect.objectContaining({
+        text: "10% • กำลังตรวจสอบข้อมูลก่อนบันทึก",
         showConfirmButton: false,
         allowOutsideClick: false,
         allowEscapeKey: false
@@ -274,6 +283,41 @@ describe("ContentPage operation feedback", () => {
     expect(publicInvalidationMock.invalidatePublicCmsData).toHaveBeenCalledTimes(1);
     expect(publicInvalidationMock.invalidateDeletedPublicContent).not.toHaveBeenCalled();
   }, 15_000);
+
+  it("updates save feedback while an automatic Facebook thumbnail is being prepared", async () => {
+    contentMock.saveContentItem.mockImplementation(async (item: ContentItem, options?: SaveProgressOptions) => {
+      options?.onProgress?.({
+        phase: "facebook-thumbnail",
+        percent: 35,
+        message: "กำลังดึงและจัดเก็บภาพย่อจาก Facebook"
+      });
+      return item;
+    });
+    renderContentPage();
+
+    await screen.findByText(contentItem.title);
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มเนื้อหา" }));
+    fireEvent.click(screen.getByRole("button", { name: "mock save content" }));
+
+    await waitFor(() =>
+      expect(swalInstance.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "กำลังบันทึกเนื้อหา",
+          text: "35% • กำลังดึงและจัดเก็บภาพย่อจาก Facebook"
+        })
+      )
+    );
+    expect(swalInstance.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "90% • กำลังอัปเดตรายการและหน้าเว็บ"
+      })
+    );
+    expect(swalInstance.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "100% • บันทึกและอัปเดตข้อมูลเรียบร้อย"
+      })
+    );
+  });
 
   it("shows a Facebook Embed label for imported facebook-embed content", async () => {
     paginationMock.content = [
