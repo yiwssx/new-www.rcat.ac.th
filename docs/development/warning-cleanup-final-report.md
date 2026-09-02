@@ -1,15 +1,17 @@
 # Warning Cleanup Final Report
 
+> **Historical snapshot (2026-07-19).** The Node `22.23.1` / `22.x` runtime statements below describe the validated repository state at that dated checkpoint and are not the current toolchain contract. Current source of truth: Node `24.x` (currently pinned by `.node-version`) and pnpm `10.34.5`, as documented in `docs/deployment/runtime-deployment-guide.md` and `docs/architecture/current-runtime-ownership.md`.
+
 Verified: 2026-07-19 (Asia/Bangkok)
 
 Baseline commit: `80324e71982411c67e6f3f9b66e06b09ab7bb282`
 
-Runtime contract: Node `22.23.1` (`22.x` engine), pnpm `10.34.5`
+Historical runtime contract at this checkpoint: Node `22.23.1` (`22.x` engine), pnpm `10.34.5`
 
 ## Resolved
 
 - Patched `brace-expansion` from `5.0.5` to `5.0.7` and `@babel/core` from `7.29.0` to `7.29.7` within existing parent ranges; no override was added.
-- Aligned `package.json`, `.node-version`, and GitHub Actions with the Vercel-compatible Node 22/pnpm 10 contract supported by Commitlint, lint-staged, ESLint, Vite, Vitest, and Wrangler.
+- Aligned `package.json`, `.node-version`, and GitHub Actions with the then-current Vercel-compatible Node 22/pnpm 10 contract supported by Commitlint, lint-staged, ESLint, Vite, Vitest, and Wrangler.
 - Migrated MUI 6.5 deprecated TextField, Drawer, and ListItemText props to slot props with focused accessibility/keyboard tests.
 - Corrected the stale selected-slide unit assertion and the Playwright fixture/site-name contract without changing carousel behavior.
 - Replaced a date-sensitive event-card assertion and a preview-binding test that required a real D1 identifier with stable, safe contracts.
@@ -22,16 +24,16 @@ Runtime contract: Node `22.23.1` (`22.x` engine), pnpm `10.34.5`
 
 - Remote build logs for `452eb0e15b871be1212868f4a93fa62a9e834bd8` were unavailable because the existing Vercel integration and local CLI token were not authorized for the linked project. No deployment command was run.
 - A clean detached worktree at that exact commit reproduced the first project failure: pnpm 11 exited with `ERR_PNPM_IGNORED_BUILDS` for `sharp@0.34.5`.
-- Vercel supports the Node 22 runtime line and its current lockfile-9 build selection supports pnpm 10, while pnpm 11 is not a supported automatic build selection. The correction therefore uses Node `22.23.1` / `22.x` and pnpm `10.34.5`.
+- At this historical checkpoint, the validated Vercel path used Node `22.23.1` / `22.x` and pnpm `10.34.5`; this statement is retained as evidence of that 2026-07-19 correction, not as the current Node requirement.
 - Clean, frozen, and strict-peer frozen installs passed with the pnpm 10 workspace policy. pnpm 10 found the lockfile current, so no dependency snapshot or integrity entry changed.
 
 ## Remaining and Deferred
 
 - Installed deprecated transitives remain: `git-raw-commits@5.0.1` through Commitlint and `whatwg-encoding@3.1.1` through jsdom. Removing either requires its upstream parent to migrate or a separately validated major update.
 - Direct major upgrades for React/MUI, Vite/Vitest/jsdom, TypeScript, bcryptjs, Sigmap, and Worker types remain deferred to dedicated compatibility work.
-- pnpm 11 is not used because Vercel's current build selection supports pnpm 10. The repository intentionally pins the validated `pnpm@10.34.5` contract.
-- `pnpm-workspace.yaml` is now intentionally tracked with pnpm 10's `onlyBuiltDependencies` allowlist and `strictDepBuilds: true`. `sharp@0.34.5` is approved because Wrangler -> Miniflare requires its install check; `esbuild` and `workerd` retain their required toolchain binary installers. Broad dependency scripts remain disabled, and the policy was validated by frozen-lockfile installation.
-- The preserved local `cloudflare/public-api/wrangler.toml` edit continues to trigger repository security guard tests in the main working tree. Task changes are validated separately from that user-owned configuration, and the file is excluded from every task commit.
+- pnpm 11 is not used because the repository intentionally pins the validated `pnpm@10.34.5` contract.
+- `pnpm-workspace.yaml` is intentionally tracked with pnpm 10's `onlyBuiltDependencies` allowlist and `strictDepBuilds: true`. `sharp@0.34.5` is approved because Wrangler -> Miniflare requires its install check; `esbuild` and `workerd` retain their required toolchain binary installers. Broad dependency scripts remain disabled, and the policy was validated by frozen-lockfile installation.
+- The preserved local `cloudflare/public-api/wrangler.toml` edit at the historical checkpoint continued to trigger repository security guard tests in the main working tree. Task changes were validated separately from that user-owned configuration, and the file was excluded from every task commit.
 
 ## Warning Status
 
@@ -64,10 +66,10 @@ The candidate patch was validated with the committed safe Wrangler placeholders 
 
 ## Deployment Impact
 
-- Vercel redeployment is required after the corrective toolchain commit is pushed.
-- Cloudflare Worker deployment is not required; Worker runtime source is unchanged.
-- D1 migration is not required; no migration or schema changed.
-- Apps Script deployment is not required; `.gs` runtime source is unchanged.
-- Documentation/CI-only changes require no runtime deployment.
+- At the 2026-07-19 checkpoint, Vercel redeployment was required after the corrective toolchain commit was pushed.
+- Cloudflare Worker deployment was not required; Worker runtime source was unchanged.
+- D1 migration was not required; no migration or schema changed.
+- Apps Script deployment was not required; `.gs` runtime source was unchanged.
+- Documentation/CI-only changes required no runtime deployment.
 
-See [current warning inventory](./current-warning-inventory.md) for the concise machine-readable-style status table and [dependency governance](../maintenance/dependencies.md) for the active maintenance policy.
+See [current warning inventory](./current-warning-inventory.md) for the concise status table and [dependency governance](../maintenance/dependencies.md) for the active maintenance policy. For current runtime/toolchain requirements, use `docs/deployment/runtime-deployment-guide.md` rather than this historical report.
