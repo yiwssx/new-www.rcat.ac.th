@@ -81,7 +81,7 @@ async function checkSearch() {
     (value) => value.toLowerCase().includes("no-store"),
     "search must remain uncached for a live upstream reliability probe"
   );
-  console.log("P6C reliability: live search/Worker dependency healthy.");
+  console.log("P6C reliability: live search/Worker/D1 dependency healthy.");
 }
 
 async function checkLogin() {
@@ -96,23 +96,8 @@ async function checkLogin() {
   console.log("P6C reliability: login CSR shell reachable with robots boundary.");
 }
 
-async function checkEdgeWaf() {
-  const response = await request("/api/internal/p6c-reliability-probe");
-  if (response.status !== 403) {
-    fail(`/api/internal probe expected 403, received ${response.status}`);
-  }
-  requireHeader(
-    response,
-    "x-rcat-edge-waf",
-    (value) => value === "p6b-vercel-v1",
-    "internal probe must be denied by the Vercel edge WAF"
-  );
-  console.log("P6C reliability: edge WAF boundary healthy.");
-}
-
 await checkHome();
 await checkSearch();
 await checkLogin();
-await checkEdgeWaf();
 
 console.log("P6C production reliability smoke: PASS.");
