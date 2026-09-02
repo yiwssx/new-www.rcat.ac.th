@@ -30,7 +30,7 @@ describe("Phase A automation contract", () => {
     expect(workflow).toContain("Wait for matching Vercel production deployment");
     expect(workflow).toContain("github.event.workflow_run.head_sha");
     expect(workflow).toContain('status.context === "Vercel"');
-    expect(workflow).toContain("case \"$state\" in");
+    expect(workflow).toContain('case "$state" in');
     expect(workflow).toContain("failure|error)");
     expect(workflow).toContain("pnpm exec playwright test --config playwright.production.config.ts");
   });
