@@ -49,8 +49,11 @@ for (const gate of expectedGates) {
 }
 
 const reliabilityWorkflow = read(".github/workflows/p6c-production-reliability.yml");
-if (!reliabilityWorkflow.includes('cron: "7,37 * * * *"')) {
-  fail("unattended reliability smoke must retain the twice-hourly schedule");
+if (!reliabilityWorkflow.includes('cron: "7 */6 * * *"')) {
+  fail("unattended reliability smoke must retain the six-hour bounded schedule");
+}
+if (reliabilityWorkflow.includes('cron: "7,37 * * * *"')) {
+  fail("the retired twice-hourly reliability schedule must not return");
 }
 if (reliabilityWorkflow.includes("environment: production") || reliabilityWorkflow.includes("secrets.")) {
   fail("unattended public reliability smoke must not consume protected production secrets");
@@ -58,19 +61,18 @@ if (reliabilityWorkflow.includes("environment: production") || reliabilityWorkfl
 if (!reliabilityWorkflow.includes("scripts/p6c-production-reliability-smoke.mjs")) {
   fail("reliability workflow must execute the P6C production smoke");
 }
+if (!reliabilityWorkflow.includes("intentionally owned by P6B Production Security")) {
+  fail("P6C workflow must document that scheduled WAF ownership belongs to P6B");
+}
 
 const reliabilitySmoke = read("scripts/p6c-production-reliability-smoke.mjs");
-for (const contract of [
-  '"/"',
-  '"/login"',
-  '"/api/internal/p6c-reliability-probe"',
-  "p6b-enforced-v1",
-  "p6b-vercel-v1",
-  "no-store"
-]) {
+for (const contract of ['"/"', '"/login"', "/search?q=", "p6b-enforced-v1", "no-store"]) {
   if (!reliabilitySmoke.includes(contract)) {
     fail(`production reliability smoke is missing contract ${contract}`);
   }
+}
+if (reliabilitySmoke.includes("/api/internal/") || reliabilitySmoke.includes("p6b-vercel-v1")) {
+  fail("P6C reliability smoke must not duplicate the P6B Vercel edge WAF probe");
 }
 
 const d1Drill = read(".github/workflows/d1-recovery-drill.yml");
@@ -135,7 +137,9 @@ for (const contract of [
   "Do not combine runtime rollback and data restore by default.",
   "does **not** run `wrangler d1 migrations apply`",
   "does **not** run D1 Time Travel restore",
-  "does not add a Vercel token"
+  "does not add a Vercel token",
+  "every six hours",
+  "P6B Production Security owns the scheduled WAF smoke"
 ]) {
   if (!runbook.includes(contract)) {
     fail(`P6C runbook is missing contract: ${contract}`);
