@@ -40,7 +40,8 @@ import {
   getAdminContentDetail,
   isAdminStaleRevisionError,
   publishContent,
-  saveContentItem
+  saveContentItem,
+  type ContentSaveProgress
 } from "../../features/cms-content";
 import { saveMediaAsset, type MediaAssetInput, type MediaUploadOptions } from "../../features/cms-media";
 import { ContentItem, ContentStatus } from "../../types";
@@ -61,7 +62,14 @@ import {
   useDebouncedValue
 } from "../../features/admin-pagination";
 import { formatDisplayDate } from "../../utils/dateDisplay";
-import { appSwal, getSwalErrorText, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
+import {
+  appSwal,
+  getSwalErrorText,
+  showBlockingLoading,
+  showErrorResult,
+  showSuccessResult,
+  updateBlockingLoading
+} from "../../utils/swal";
 import { invalidateDeletedPublicContent, invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { FACEBOOK_EMBED_LABEL, isFacebookEmbedContent } from "../../utils/facebookContent";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
@@ -70,6 +78,10 @@ import ActionBar from "../../design-system/components/ActionBar";
 
 type FilterStatus = ContentStatus | "all";
 type ContentFilterKey = "status";
+type ContentSaveMutationInput = {
+  item: ContentItem;
+  onProgress?: (progress: ContentSaveProgress) => void;
+};
 
 const columnHelper = createColumnHelper<StockFeatures, AdminContentListItem>();
 const contentListUrlOptions = {
@@ -163,7 +175,7 @@ export default function ContentPage() {
   }, [ownerUserId]);
 
   const saveMutation = useMutation({
-    mutationFn: saveContentItem
+    mutationFn: ({ item, onProgress }: ContentSaveMutationInput) => saveContentItem(item, { onProgress })
   });
 
   const deleteMutation = useMutation({
@@ -477,16 +489,23 @@ export default function ContentPage() {
       return;
     }
 
-    showBlockingLoading("กำลังบันทึกเนื้อหา");
+    showBlockingLoading("กำลังบันทึกเนื้อหา", "10% • กำลังตรวจสอบข้อมูลก่อนบันทึก");
 
     try {
       setSaveError("");
       const isCreating = !item.id;
-      await saveMutation.mutateAsync(item);
+      await saveMutation.mutateAsync({
+        item,
+        onProgress: (progress) => {
+          updateBlockingLoading("กำลังบันทึกเนื้อหา", `${progress.percent}% • ${progress.message}`);
+        }
+      });
       if (isCreating) {
         setListState({ page: 1 }, { replace: true });
       }
+      updateBlockingLoading("กำลังบันทึกเนื้อหา", "90% • กำลังอัปเดตรายการและหน้าเว็บ");
       await Promise.all([invalidateAdminListQueries(queryClient, "content"), invalidatePublicCmsData(queryClient)]);
+      updateBlockingLoading("กำลังบันทึกเนื้อหา", "100% • บันทึกและอัปเดตข้อมูลเรียบร้อย");
       clearContentDraftRecovery();
       setDraftRecovery(null);
       setRestoredRecovery(false);
