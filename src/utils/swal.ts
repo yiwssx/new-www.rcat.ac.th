@@ -121,6 +121,7 @@ export function showBlockingLoading(title: string, text = defaultBlockingLoading
 
   void appSwal.fire({
     ...createBlockingLoadingOptions(state),
+    topLayer: true,
     didOpen: () => {
       void appSwal.showLoading();
 
