@@ -67,6 +67,6 @@ describe("blocking loading progress", () => {
         })
       )
     );
-    expect(swalInstance.showLoading).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(swalInstance.showLoading).toHaveBeenCalledTimes(1));
   });
 });
