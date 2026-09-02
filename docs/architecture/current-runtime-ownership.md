@@ -1,6 +1,6 @@
 # Current Runtime Ownership
 
-Updated: 2026-08-16.
+Updated: 2026-09-02.
 
 This document is the current source of truth for runtime ownership. Historical migration milestone documents remain evidence of earlier states; when they conflict with this file about current ownership, authentication boundaries, provider responsibilities, cache policy, environment naming, or deployment behavior, this file takes precedence.
 
