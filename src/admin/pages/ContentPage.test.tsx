@@ -317,6 +317,11 @@ describe("ContentPage operation feedback", () => {
         text: "100% • บันทึกและอัปเดตข้อมูลเรียบร้อย"
       })
     );
+    await waitFor(() => {
+      expect(findSwalCall((options) => options.title === "บันทึกเนื้อหาสำเร็จ")).toEqual(
+        expect.objectContaining({ icon: "success" })
+      );
+    });
   });
 
   it("keeps a visible warning after content saves when Facebook thumbnail creation fails", async () => {
