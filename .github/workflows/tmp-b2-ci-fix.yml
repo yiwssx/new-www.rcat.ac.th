@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - feat/phase-b2-runtime-incident-feed
+    paths:
+      - .github/workflows/tmp-b2-ci-fix.yml
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.event.head_commit.message == 'chore(b2): apply CI fixes'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
