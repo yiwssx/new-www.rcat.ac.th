@@ -60,7 +60,8 @@ function resolveDependencies(dependencies: SystemHealthDependencies): ProbeConte
     timeoutMs: dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     browserRuntimeReady:
       dependencies.browserRuntimeReady ??
-      (() => typeof window !== "undefined" && typeof document !== "undefined" && Boolean(document.getElementById("root")))
+      (() =>
+        typeof window !== "undefined" && typeof document !== "undefined" && Boolean(document.getElementById("root")))
   };
 }
 
@@ -265,22 +266,14 @@ function getOverallStatus(checks: SystemHealthCheck[]): SystemHealthReport["over
   return "healthy";
 }
 
-export async function runSystemHealthChecks(
-  dependencies: SystemHealthDependencies = {}
-): Promise<SystemHealthReport> {
+export async function runSystemHealthChecks(dependencies: SystemHealthDependencies = {}): Promise<SystemHealthReport> {
   const context = resolveDependencies(dependencies);
   const [cmsAuth, adminData, publicSsr] = await Promise.all([
     runCmsAuthCheck(context),
     runAdminDataCheck(context),
     runPublicSsrCheck(context)
   ]);
-  const checks = [
-    buildFrontendCheck(context),
-    cmsAuth,
-    adminData,
-    publicSsr,
-    buildFacebookBridgeBoundary(context)
-  ];
+  const checks = [buildFrontendCheck(context), cmsAuth, adminData, publicSsr, buildFacebookBridgeBoundary(context)];
 
   return {
     overallStatus: getOverallStatus(checks),
