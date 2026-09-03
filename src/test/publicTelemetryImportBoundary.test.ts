@@ -129,7 +129,8 @@ describe("Public telemetry import boundary", () => {
       "src/shared/components/PublicAnalytics.tsx",
       "src/shared/components/VercelInsights.tsx",
       "src/shared/utils/publicAnalytics.ts",
-      "src/features/site-view/"
+      "src/features/site-view/",
+      "src/features/runtime-incidents/"
     ];
 
     expect(staticFiles).toContain("src/routeComponents.tsx");
@@ -138,7 +139,7 @@ describe("Public telemetry import boundary", () => {
     for (const forbiddenModule of forbiddenStaticModules) {
       expect(
         staticFiles.some((path) => path === forbiddenModule || path.startsWith(forbiddenModule)),
-        `${forbiddenModule} must stay behind the dynamic Public telemetry boundary`
+        `${forbiddenModule} must stay behind a dynamic telemetry boundary`
       ).toBe(false);
     }
 
@@ -146,16 +147,20 @@ describe("Public telemetry import boundary", () => {
     expect(graph.externalSpecifiers).not.toContain("@vercel/speed-insights/react");
   });
 
-  it("loads the telemetry implementation only through the Public route dynamic import", () => {
+  it("loads telemetry implementations only through their dynamic boundaries", () => {
     const routeComponentsPath = join(srcRoot, "routeComponents.tsx");
     const publicShellLayoutPath = join(srcRoot, "public", "components", "PublicShellRouteLayout.tsx");
+    const entryClientPath = join(srcRoot, "entry-client.tsx");
     const routeSpecifiers = moduleSpecifiers(routeComponentsPath);
     const layoutSpecifiers = moduleSpecifiers(publicShellLayoutPath);
+    const entrySpecifiers = moduleSpecifiers(entryClientPath);
 
     expect(routeSpecifiers.dynamicSpecifiers).toContain("./public/components/PublicShellRouteLayout");
     expect(layoutSpecifiers.staticSpecifiers).toContain("../../shared/telemetry/SilentTelemetryBoundary");
     expect(layoutSpecifiers.staticSpecifiers).not.toContain("../../shared/telemetry/PublicTelemetry");
     expect(layoutSpecifiers.dynamicSpecifiers).toContain("../../shared/telemetry/PublicTelemetry");
+    expect(entrySpecifiers.staticSpecifiers).not.toContain("./features/runtime-incidents/client");
+    expect(entrySpecifiers.dynamicSpecifiers).toContain("./features/runtime-incidents/client");
   });
 
   it("keeps the lazy telemetry graph reachable without importing the route registry back", () => {
