@@ -111,6 +111,37 @@ describe("Facebook thumbnail client fallback", () => {
     ]);
   });
 
+  it("accepts web.facebook.com and falls back to the mobile representation", async () => {
+    const progress: FacebookThumbnailProgress[] = [];
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ error: "Unable to create Facebook thumbnail" }, { status: 422 }))
+      .mockResolvedValueOnce(Response.json(asset));
+
+    const result = await importFacebookThumbnailFromBridge(
+      {
+        sourceUrl: "https://web.facebook.com/example/posts/123?ref=share",
+        name: "Facebook - ข่าวทดสอบ",
+        owner: "facebook-import"
+      },
+      { onProgress: (value) => progress.push(value) }
+    );
+
+    expect(result).toEqual(asset);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    const firstRequest = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const secondRequest = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+    expect(firstRequest.payload.sourceUrl).toBe("https://web.facebook.com/example/posts/123?ref=share");
+    expect(secondRequest.payload.sourceUrl).toBe("https://m.facebook.com/example/posts/123?ref=share");
+    expect(progress).toEqual([
+      { phase: "requesting", attempt: 1, totalAttempts: 2 },
+      { phase: "retrying", attempt: 1, totalAttempts: 2 },
+      { phase: "requesting", attempt: 2, totalAttempts: 2 },
+      { phase: "received", attempt: 2, totalAttempts: 2 }
+    ]);
+  });
+
   it("does not retry unrelated bridge failures", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")

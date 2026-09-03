@@ -116,7 +116,8 @@ describe("content save progress", () => {
     expect(tracker.progress).toContainEqual({
       phase: "facebook-thumbnail",
       percent: 60,
-      message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ"
+      message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ",
+      severity: "warning"
     });
     expect(tracker.progress[tracker.progress.length - 1]).toEqual({
       phase: "saving",

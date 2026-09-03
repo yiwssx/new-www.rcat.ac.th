@@ -15,6 +15,7 @@ export interface ContentSaveProgress {
   phase: ContentSaveProgressPhase;
   percent: number;
   message: string;
+  severity?: "info" | "warning";
 }
 
 export interface SaveContentItemOptions {
@@ -114,7 +115,8 @@ async function addAutomaticFacebookThumbnail(item: ContentItem, options: SaveCon
     reportSaveProgress(options, {
       phase: "facebook-thumbnail",
       percent: 60,
-      message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ"
+      message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ",
+      severity: "warning"
     });
 
     // A Facebook preview is convenience media. A transient Facebook/Drive failure must not block content publishing.

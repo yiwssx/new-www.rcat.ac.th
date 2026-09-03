@@ -124,6 +124,48 @@ describe("Facebook thumbnail media ingestion", () => {
     expect(upstreamPayload.appsScriptBridgeToken).toBe(BRIDGE_TOKEN);
   });
 
+  it("accepts web.facebook.com sources through the thumbnail bridge", async () => {
+    const imageUrl = "https://scontent.fbcdn.net/v/t39.30808-6/web-source.jpg";
+    const returnedAsset = {
+      id: "facebook-thumbnail-placeholder",
+      name: "Facebook - ข่าวทดสอบ",
+      type: "image",
+      size: "4 B",
+      owner: "Admin",
+      driveUrl: "https://drive.google.com/file/d/web-file-id/view",
+      fileId: "web-file-id",
+      mimeType: "image/jpeg",
+      thumbnailUrl: "https://drive.google.com/thumbnail?id=web-file-id&sz=w1200",
+      previewUrl: "https://drive.google.com/thumbnail?id=web-file-id&sz=w1200",
+      embedUrl: "https://drive.google.com/file/d/web-file-id/preview",
+      updatedAt: "2026-09-03T00:00:00.000Z"
+    };
+
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      const value = String(url);
+      if (value === `${WORKER_ORIGIN}/api/admin/media-bridge-authorization`) {
+        return authorizationSuccess();
+      }
+      if (value.startsWith("https://web.facebook.com/example/posts/123")) {
+        return new Response(`<html><head><meta property="og:image" content="${imageUrl}"></head></html>`);
+      }
+      if (value === imageUrl) {
+        return new Response(Uint8Array.from([1, 2, 3, 4]), { headers: { "Content-Type": "image/jpeg" } });
+      }
+      if (value.startsWith(APPS_SCRIPT_URL)) {
+        const payload = JSON.parse(init.body);
+        returnedAsset.id = payload.id;
+        return Response.json(returnedAsset);
+      }
+      throw new Error(`Unexpected URL: ${value}`);
+    });
+
+    const response = await callFacebookThumbnail(fetchImpl, "https://web.facebook.com/example/posts/123");
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyJson.thumbnailUrl).toContain("drive.google.com/thumbnail");
+  });
+
   it("rejects non-Facebook source URLs before attempting a remote preview fetch", async () => {
     const fetchImpl = vi.fn(async (url) => {
       if (String(url) === `${WORKER_ORIGIN}/api/admin/media-bridge-authorization`) {

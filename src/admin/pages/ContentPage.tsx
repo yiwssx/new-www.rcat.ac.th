@@ -494,9 +494,13 @@ export default function ContentPage() {
     try {
       setSaveError("");
       const isCreating = !item.id;
+      let facebookThumbnailWarning = false;
       await saveMutation.mutateAsync({
         item,
         onProgress: (progress) => {
+          if (progress.severity === "warning") {
+            facebookThumbnailWarning = true;
+          }
           updateBlockingLoading("กำลังบันทึกเนื้อหา", `${progress.percent}% • ${progress.message}`);
         }
       });
@@ -513,7 +517,16 @@ export default function ContentPage() {
       setEditorOpen(false);
       setSelectedItem(null);
       await waitForDialogTransition();
-      await showSuccessResult("บันทึกเนื้อหาสำเร็จ");
+      if (facebookThumbnailWarning) {
+        await appSwal.fire({
+          icon: "warning",
+          title: "บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail",
+          text: "ระบบไม่สามารถสร้างภาพย่อจาก Facebook ได้ในครั้งนี้ เนื้อหาถูกบันทึกแล้วและสามารถลองบันทึกอีกครั้งภายหลัง",
+          confirmButtonText: "ตกลง"
+        });
+      } else {
+        await showSuccessResult("บันทึกเนื้อหาสำเร็จ");
+      }
     } catch (currentError) {
       if (isAdminStaleRevisionError(currentError)) {
         await invalidateAdminListQueries(queryClient, "content");
