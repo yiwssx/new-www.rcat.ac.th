@@ -9,9 +9,9 @@ binding = "DB"
 database_name = "rcat-public-api-local"
 database_id = "local-placeholder"
 
-# Public analytics rate limits run on Cloudflare's Rate Limiting binding instead
-# of writing a counter row into D1 for every telemetry request. Namespace IDs
-# are intentionally distinct from the canonical production bindings below.
+# Public analytics and B2 runtime incident rate limits run on Cloudflare's Rate
+# Limiting binding instead of writing a counter row into D1 for every telemetry
+# request. Namespace IDs are intentionally distinct from production below.
 [[ratelimits]]
 name = "PUBLIC_SITE_VIEW_RATE_LIMITER"
 namespace_id = "2690101"
@@ -34,6 +34,14 @@ namespace_id = "2690103"
 
 [ratelimits.simple]
 limit = 90
+period = 60
+
+[[ratelimits]]
+name = "RUNTIME_INCIDENT_RATE_LIMITER"
+namespace_id = "2690106"
+
+[ratelimits.simple]
+limit = 30
 period = 60
 
 # P6B sensitive-route controls run in Cloudflare's edge rate-limit service.
@@ -99,6 +107,14 @@ namespace_id = "2690203"
 
 [env.production.ratelimits.simple]
 limit = 90
+period = 60
+
+[[env.production.ratelimits]]
+name = "RUNTIME_INCIDENT_RATE_LIMITER"
+namespace_id = "2690206"
+
+[env.production.ratelimits.simple]
+limit = 30
 period = 60
 
 [[env.production.ratelimits]]

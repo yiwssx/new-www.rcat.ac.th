@@ -4,40 +4,41 @@ Updated: 2026-09-03
 
 ## Purpose
 
-This roadmap reconciles the new field-QA work with the production governance capabilities that already existed after P5H/P6. It prevents duplicate observability systems and gives future reliability work one unambiguous phase vocabulary.
+This roadmap reconciles field-QA work with the production governance capabilities that already existed after P5H/P6. It prevents duplicate observability systems and gives future reliability work one unambiguous phase vocabulary.
 
 This roadmap does **not** reopen P6. Historical P5H/P6A/P6B/P6C/P6D records keep their original meaning.
 
 ## Current roadmap
 
-| Phase   | Name                     | Status   | Primary outcome                                                                                                                                 |
-| ------- | ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                        |
-| Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically.  |
-| Phase B | Operational Visibility   | Active   | Give operators one protected Admin view for safe live health checks and later privacy-safe runtime incident aggregation.                        |
+| Phase   | Name                     | Status   | Primary outcome                                                                                                                                |
+| ------- | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                       |
+| Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically. |
+| Phase B | Operational Visibility   | Active   | B1 provides protected live health checks; B2 adds a bounded privacy-safe Runtime Incident Feed; B3 will aggregate external guard state.         |
 | Phase C | Deep Field Verification  | Planned  | Add accessibility, synthetic performance regression, and isolated authenticated/disposable CMS field tests without weakening production safety. |
 
 ## Phase B scope
 
 ### B1 — System Health Dashboard
 
-Create `/admin/system-health` behind the existing CMS authentication and `dashboard.read` capability. Reuse current boundaries instead of creating a new privileged health service.
-
-Initial live checks are read-only and bounded:
-
-- browser/Admin frontend runtime;
-- CMS authentication session endpoint;
-- existing Vercel Admin Proxy → Cloudflare Worker → D1 dashboard read path;
-- public SSR response and SSR marker;
-- explicit `unknown` for side-effect services that do not yet expose a safe read-only health endpoint.
-
-The page may display a validated `X-RCAT-Request-ID` returned by existing server boundaries. It must not display request/response bodies, cookies, tokens, arbitrary query strings, user credentials, raw stack traces, or protected infrastructure identifiers.
-
-Existing Phase A/P6A/P6B/P6C workflows remain the owners of their current automation. B1 does not query GitHub with a browser token and does not create another scheduler.
+`/admin/system-health` sits behind the existing CMS authentication and `dashboard.read` capability. Initial live checks are read-only and bounded: browser/Admin runtime, CMS session, Vercel Admin Proxy → Worker → D1 dashboard read path, public SSR marker, and explicit `unknown` for side-effect services without a safe read-only probe.
 
 ### B2 — Runtime Incident Feed
 
-After B1 is stable, capture a deliberately narrow set of browser/runtime failures such as uncaught errors, unhandled promise rejections, and selected API failures. Reuse the existing request-correlation privacy contract. Define retention, deduplication, storage, and authorization before adding persistence.
+Capture only uncaught runtime errors, unhandled promise rejections, and API network/5xx failures. The contract is intentionally narrower than a generic client log collector.
+
+B2 uses:
+
+- sanitized pathname only, never query/fragment;
+- allowlisted error names/classes, never messages or stacks;
+- validated `X-RCAT-Request-ID` when available;
+- 60-second browser duplicate suppression;
+- 5-minute Worker aggregation;
+- dedicated 30/minute edge rate limiting;
+- seven-day retention and a latest-2,000-row storage bound;
+- authenticated `dashboard.read` access for the operator feed in `/admin/system-health`.
+
+It does not collect cookies, tokens, bodies, IP/email/user-agent/form data, or arbitrary exception text. See `docs/operations/phase-b-operational-visibility.md` for the normative contract.
 
 ### B3 — Health Aggregation
 

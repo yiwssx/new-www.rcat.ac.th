@@ -17,6 +17,13 @@ import {
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import {
+  getRuntimeIncidentFeed,
+  type RuntimeIncidentFeed,
+  type RuntimeIncidentItem,
+  type RuntimeIncidentKind,
+  type RuntimeIncidentSurface
+} from "../../features/runtime-incidents/api";
+import {
   runSystemHealthChecks,
   type SystemHealthCheck,
   type SystemHealthReport,
@@ -87,6 +94,19 @@ function formatCheckedAt(value: string) {
   }).format(new Date(value));
 }
 
+function incidentKindLabel(kind: RuntimeIncidentKind) {
+  if (kind === "runtime_error") return "Runtime error";
+  if (kind === "unhandled_rejection") return "Unhandled rejection";
+  return "API failure";
+}
+
+function incidentSurfaceLabel(surface: RuntimeIncidentSurface) {
+  if (surface === "admin") return "Admin";
+  if (surface === "auth") return "Authentication";
+  if (surface === "public") return "Public";
+  return "Unknown";
+}
+
 function HealthCheckCard({ check }: { check: SystemHealthCheck }) {
   return (
     <Card variant="outlined" sx={{ height: "100%" }}>
@@ -146,15 +166,113 @@ function HealthCheckCard({ check }: { check: SystemHealthCheck }) {
   );
 }
 
+function RuntimeIncidentRow({ incident }: { incident: RuntimeIncidentItem }) {
+  return (
+    <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+      <Stack spacing={1}>
+        <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
+          <Chip label={incidentKindLabel(incident.kind)} size="small" color="warning" variant="outlined" />
+          <Chip label={incidentSurfaceLabel(incident.surface)} size="small" variant="outlined" />
+          <Chip label={`${incident.occurrenceCount} ครั้ง`} size="small" />
+          {incident.httpStatus !== undefined && <Chip label={`HTTP ${incident.httpStatus}`} size="small" color="error" />}
+        </Stack>
+
+        <Typography component="code" variant="body2" sx={{ overflowWrap: "anywhere", fontFamily: "monospace" }}>
+          {incident.pathname}
+        </Typography>
+
+        <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: "wrap" }}>
+          <Typography variant="caption" color="text.secondary">
+            {incident.errorName}
+          </Typography>
+          {incident.apiMethod && (
+            <Typography variant="caption" color="text.secondary">
+              {incident.apiMethod}
+            </Typography>
+          )}
+          <Typography variant="caption" color="text.secondary">
+            ล่าสุด {formatCheckedAt(incident.lastSeenAt)}
+          </Typography>
+        </Stack>
+
+        {incident.requestId && (
+          <Typography component="code" variant="caption" sx={{ overflowWrap: "anywhere", fontFamily: "monospace" }}>
+            Request ID: {incident.requestId}
+          </Typography>
+        )}
+      </Stack>
+    </Box>
+  );
+}
+
+function RuntimeIncidentFeedCard({ feed, error }: { feed: RuntimeIncidentFeed | null; error: boolean }) {
+  return (
+    <Card variant="outlined">
+      <CardContent>
+        <Stack spacing={2}>
+          <Box>
+            <Typography variant="h2">Runtime Incident Feed · B2</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              รวมเฉพาะ uncaught runtime errors, unhandled promise rejections และ API 5xx/network failures แบบ privacy-safe
+            </Typography>
+          </Box>
+
+          <Alert severity="info">
+            ไม่เก็บ error message, stack trace, request/response body, query string, cookie, token, IP, email หรือ User-Agent ·
+            เก็บเหตุการณ์ไม่เกิน 7 วัน และรวมเหตุซ้ำเป็นช่วงเวลา 5 นาที
+          </Alert>
+
+          {error ? (
+            <Alert severity="warning">ไม่สามารถอ่าน Runtime Incident Feed ได้ในขณะนี้ โดย health checks อื่นยังทำงานแยกตามปกติ</Alert>
+          ) : feed && feed.items.length === 0 ? (
+            <Alert severity="success">ไม่พบ runtime incident ในช่วง {feed.windowHours} ชั่วโมงล่าสุด</Alert>
+          ) : feed ? (
+            <Stack spacing={1.5}>
+              <Typography variant="body2" color="text.secondary">
+                แสดง {feed.items.length} กลุ่มเหตุการณ์ล่าสุดในช่วง {feed.windowHours} ชั่วโมง · อัปเดตเมื่อกดตรวจสอบระบบ
+              </Typography>
+              {feed.items.map((incident) => (
+                <RuntimeIncidentRow key={incident.id} incident={incident} />
+              ))}
+            </Stack>
+          ) : (
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+              <CircularProgress size={20} />
+              <Typography variant="body2">กำลังอ่าน Runtime Incident Feed...</Typography>
+            </Stack>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SystemHealthPage() {
   const [report, setReport] = useState<SystemHealthReport | null>(null);
+  const [incidentFeed, setIncidentFeed] = useState<RuntimeIncidentFeed | null>(null);
+  const [incidentFeedError, setIncidentFeedError] = useState(false);
   const [loading, setLoading] = useState(false);
   const initialRunStarted = useRef(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
+    setIncidentFeedError(false);
+
     try {
-      setReport(await runSystemHealthChecks());
+      const [healthResult, incidentResult] = await Promise.allSettled([
+        runSystemHealthChecks(),
+        getRuntimeIncidentFeed({ hours: 24, limit: 25 })
+      ]);
+
+      if (healthResult.status === "fulfilled") {
+        setReport(healthResult.value);
+      }
+
+      if (incidentResult.status === "fulfilled") {
+        setIncidentFeed(incidentResult.value);
+      } else {
+        setIncidentFeedError(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -222,13 +340,15 @@ export default function SystemHealthPage() {
         </Card>
       )}
 
+      <RuntimeIncidentFeedCard feed={incidentFeed} error={incidentFeedError} />
+
       <Card variant="outlined">
         <CardContent>
           <Stack spacing={2}>
             <Box>
               <Typography variant="h2">Operational guards ที่มีอยู่แล้ว</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                B1 ไม่สร้าง monitoring stack ซ้ำ สถานะต่อไปนี้ยังมี owner อยู่ใน GitHub Actions ตาม governance เดิม
+                Phase B ไม่สร้าง monitoring stack ซ้ำ สถานะต่อไปนี้ยังมี owner อยู่ใน GitHub Actions ตาม governance เดิม
               </Typography>
             </Box>
 

@@ -4,6 +4,7 @@ import { RouterClient } from "@tanstack/react-router/ssr/client";
 import App from "./App";
 import AppProviders from "./AppProviders";
 import { projectSettings } from "./config/projectSettings";
+import { installRuntimeIncidentRecorder } from "./features/runtime-incidents/client";
 import { createAppRuntime } from "./runtime";
 import { SSR_DOCUMENT_MARKER_ATTRIBUTE, SSR_DOCUMENT_MARKER_VALUE } from "./ssrAssets";
 import { installBrowserErrorFilters } from "./utils/browserErrorFilters";
@@ -23,6 +24,7 @@ export function readDocumentCspNonce(documentNode: Document = document) {
 
 export function mountClientApp(rootElement: HTMLElement) {
   installBrowserErrorFilters();
+  installRuntimeIncidentRecorder();
   document.documentElement.lang = projectSettings.site.language;
 
   const documentMode = shouldHydrateSsrDocument();

@@ -41,6 +41,24 @@ describe("public analytics abuse guard", () => {
     expect(state.keys[0]).not.toContain("203.0.113.10");
   });
 
+  it("keeps the runtime incident limiter isolated from public view counters", async () => {
+    const siteView = createRateLimiter();
+    const incident = createRateLimiter();
+    const env = {
+      PUBLIC_SITE_VIEW_RATE_LIMITER: siteView.limiter,
+      RUNTIME_INCIDENT_RATE_LIMITER: incident.limiter
+    };
+    const request = new Request("https://worker.example.test/api/public/runtime-incident", {
+      headers: { "CF-Connecting-IP": "203.0.113.10" }
+    });
+
+    await enforcePublicAnalyticsRateLimit(request, env, { scope: "runtime-incident" });
+
+    expect(siteView.keys).toHaveLength(0);
+    expect(incident.keys).toHaveLength(1);
+    expect(incident.keys[0]).toMatch(/^v1_[a-f0-9]{40}$/);
+  });
+
   it("does not invent an IP when Cloudflare client metadata is absent", async () => {
     const state = createRateLimiter();
     const env = { PUBLIC_SITE_VIEW_RATE_LIMITER: state.limiter };
@@ -65,6 +83,16 @@ describe("public analytics abuse guard", () => {
 
     await expect(
       enforcePublicAnalyticsRateLimit(request, { ENVIRONMENT: "production" }, { scope: "content-view" })
+    ).rejects.toBeInstanceOf(PublicAnalyticsRateLimitUnavailable);
+  });
+
+  it("fails closed when the production runtime incident limiter is missing", async () => {
+    const request = new Request("https://worker.example.test/api/public/runtime-incident", {
+      headers: { "CF-Connecting-IP": "203.0.113.10" }
+    });
+
+    await expect(
+      enforcePublicAnalyticsRateLimit(request, { ENVIRONMENT: "production" }, { scope: "runtime-incident" })
     ).rejects.toBeInstanceOf(PublicAnalyticsRateLimitUnavailable);
   });
 
