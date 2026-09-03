@@ -1,4 +1,4 @@
-name: Temporary Phase A Overflow Diagnostic
+name: Temporary Carousel Accessibility Patch
 
 on:
   push:
@@ -6,25 +6,57 @@ on:
       - fix/phase-a-overflow-diagnostics
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  diagnose:
+  patch:
+    if: github.event.head_commit.message != 'fix(carousel): use pixel values for visually hidden content'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
         with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - run: pnpm exec playwright install --with-deps chromium
-      - name: Run production overflow diagnostic
-        env:
-          PHASE_A_PRODUCTION_BASE_URL: https://www.rcat.ac.th
-        run: pnpm exec playwright test --config playwright.production.config.ts
+          ref: fix/phase-a-overflow-diagnostics
+      - name: Patch visually hidden dimensions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/public/components/PublicHomeCarousel.tsx")
+          text = path.read_text()
+          old = '''const visuallyHiddenSx = {
+            position: "absolute",
+            width: 1,
+            height: 1,
+            p: 0,
+            m: -1,
+            overflow: "hidden",
+            clip: "rect(0 0 0 0)",
+            whiteSpace: "nowrap",
+            border: 0
+          } as const;'''
+          new = '''const visuallyHiddenSx = {
+            position: "absolute",
+            width: "1px",
+            height: "1px",
+            p: 0,
+            m: "-1px",
+            overflow: "hidden",
+            clip: "rect(0 0 0 0)",
+            whiteSpace: "nowrap",
+            border: 0
+          } as const;'''
+
+          if old not in text:
+            raise SystemExit("expected visuallyHiddenSx block not found")
+
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/public/components/PublicHomeCarousel.tsx
+          git diff --cached --check
+          git commit -m "fix(carousel): use pixel values for visually hidden content"
+          git push origin HEAD:fix/phase-a-overflow-diagnostics
