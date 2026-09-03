@@ -40,6 +40,7 @@ describe("SSR runtime foundation", () => {
     expect(response.headers.get("Content-Security-Policy-Report-Only")).toBeNull();
     expect(html).toContain(`ข่าว | ${projectSettings.site.name}`);
     expect(html).toContain("https://www.rcat.ac.th/news?page=2");
+    expect(html).not.toContain("<!--$!-->");
   });
 
   it("does not leak route head state between sequential server requests", async () => {
