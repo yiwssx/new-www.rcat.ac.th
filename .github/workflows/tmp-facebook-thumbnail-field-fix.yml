@@ -1,0 +1,127 @@
+name: Temporary Facebook Thumbnail Field Fix
+
+on:
+  push:
+    branches:
+      - fix/facebook-thumbnail-field-reliability
+    paths:
+      - .github/workflows/tmp-facebook-thumbnail-field-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/facebook-thumbnail-field-reliability
+
+      - name: Apply exact field reliability patches
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"expected block not found in {path}")
+              p.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "src/features/cms-media/facebookThumbnailClient.ts",
+              'const FACEBOOK_PUBLIC_HOSTS = new Set(["facebook.com", "www.facebook.com", "m.facebook.com"]);',
+              'const FACEBOOK_PUBLIC_HOSTS = new Set(["facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"]);'
+          )
+
+          replace_once(
+              "server/appsScriptProxy/handler.mjs",
+              'return host === "facebook.com" || host === "www.facebook.com" || host === "m.facebook.com";',
+              'return host === "facebook.com" || host === "www.facebook.com" || host === "web.facebook.com" || host === "m.facebook.com";'
+          )
+
+          replace_once(
+              "src/features/cms-content/api.ts",
+              'export interface ContentSaveProgress {\n  phase: ContentSaveProgressPhase;\n  percent: number;\n  message: string;\n}',
+              'export interface ContentSaveProgress {\n  phase: ContentSaveProgressPhase;\n  percent: number;\n  message: string;\n  severity?: "info" | "warning";\n}'
+          )
+
+          replace_once(
+              "src/features/cms-content/api.ts",
+              '      phase: "facebook-thumbnail",\n      percent: 60,\n      message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ"',
+              '      phase: "facebook-thumbnail",\n      percent: 60,\n      message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ",\n      severity: "warning"'
+          )
+
+          replace_once(
+              "src/admin/pages/ContentPage.tsx",
+              '      setSaveError("");\n      const isCreating = !item.id;\n      await saveMutation.mutateAsync({',
+              '      setSaveError("");\n      const isCreating = !item.id;\n      let facebookThumbnailWarning = false;\n      await saveMutation.mutateAsync({' 
+          )
+
+          replace_once(
+              "src/admin/pages/ContentPage.tsx",
+              '        onProgress: (progress) => {\n          updateBlockingLoading("กำลังบันทึกเนื้อหา", `${progress.percent}% • ${progress.message}`);\n        }',
+              '        onProgress: (progress) => {\n          if (progress.severity === "warning") {\n            facebookThumbnailWarning = true;\n          }\n          updateBlockingLoading("กำลังบันทึกเนื้อหา", `${progress.percent}% • ${progress.message}`);\n        }'
+          )
+
+          replace_once(
+              "src/admin/pages/ContentPage.tsx",
+              '      await waitForDialogTransition();\n      await showSuccessResult("บันทึกเนื้อหาสำเร็จ");',
+              '      await waitForDialogTransition();\n      if (facebookThumbnailWarning) {\n        await appSwal.fire({\n          icon: "warning",\n          title: "บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail",\n          text: "ระบบไม่สามารถสร้างภาพย่อจาก Facebook ได้ในครั้งนี้ เนื้อหาถูกบันทึกแล้วและสามารถลองบันทึกอีกครั้งภายหลัง",\n          confirmButtonText: "ตกลง"\n        });\n      } else {\n        await showSuccessResult("บันทึกเนื้อหาสำเร็จ");\n      }'
+          )
+
+          replace_once(
+              "src/features/cms-content/api.test.ts",
+              '      phase: "facebook-thumbnail",\n      percent: 60,\n      message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ"\n    });',
+              '      phase: "facebook-thumbnail",\n      percent: 60,\n      message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ",\n      severity: "warning"\n    });'
+          )
+
+          client_test = Path("src/features/cms-media/facebookThumbnailClient.test.ts")
+          client_text = client_test.read_text()
+          client_anchor = '  it("does not retry unrelated bridge failures", async () => {'
+          client_case = '''  it("accepts web.facebook.com and falls back to the mobile representation", async () => {\n    const progress: FacebookThumbnailProgress[] = [];\n    const fetchMock = vi\n      .spyOn(globalThis, "fetch")\n      .mockResolvedValueOnce(Response.json({ error: "Unable to create Facebook thumbnail" }, { status: 422 }))\n      .mockResolvedValueOnce(Response.json(asset));\n\n    const result = await importFacebookThumbnailFromBridge(\n      {\n        sourceUrl: "https://web.facebook.com/example/posts/123?ref=share",\n        name: "Facebook - ข่าวทดสอบ",\n        owner: "facebook-import"\n      },\n      { onProgress: (value) => progress.push(value) }\n    );\n\n    expect(result).toEqual(asset);\n    expect(fetchMock).toHaveBeenCalledTimes(2);\n\n    const firstRequest = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));\n    const secondRequest = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));\n    expect(firstRequest.payload.sourceUrl).toBe("https://web.facebook.com/example/posts/123?ref=share");\n    expect(secondRequest.payload.sourceUrl).toBe("https://m.facebook.com/example/posts/123?ref=share");\n    expect(progress).toEqual([\n      { phase: "requesting", attempt: 1, totalAttempts: 2 },\n      { phase: "retrying", attempt: 1, totalAttempts: 2 },\n      { phase: "requesting", attempt: 2, totalAttempts: 2 },\n      { phase: "received", attempt: 2, totalAttempts: 2 }\n    ]);\n  });\n\n'''
+          if client_anchor not in client_text:
+              raise SystemExit("client test anchor not found")
+          client_test.write_text(client_text.replace(client_anchor, client_case + client_anchor, 1))
+
+          server_test = Path("server/appsScriptProxy/facebookThumbnail.test.mjs")
+          server_text = server_test.read_text()
+          server_anchor = '  it("rejects non-Facebook source URLs before attempting a remote preview fetch", async () => {'
+          server_case = '''  it("accepts web.facebook.com sources through the thumbnail bridge", async () => {\n    const imageUrl = "https://scontent.fbcdn.net/v/t39.30808-6/web-source.jpg";\n    const returnedAsset = {\n      id: "facebook-thumbnail-placeholder",\n      name: "Facebook - ข่าวทดสอบ",\n      type: "image",\n      size: "4 B",\n      owner: "Admin",\n      driveUrl: "https://drive.google.com/file/d/web-file-id/view",\n      fileId: "web-file-id",\n      mimeType: "image/jpeg",\n      thumbnailUrl: "https://drive.google.com/thumbnail?id=web-file-id&sz=w1200",\n      previewUrl: "https://drive.google.com/thumbnail?id=web-file-id&sz=w1200",\n      embedUrl: "https://drive.google.com/file/d/web-file-id/preview",\n      updatedAt: "2026-09-03T00:00:00.000Z"\n    };\n\n    const fetchImpl = vi.fn(async (url, init = {}) => {\n      const value = String(url);\n      if (value === `${WORKER_ORIGIN}/api/admin/media-bridge-authorization`) {\n        return authorizationSuccess();\n      }\n      if (value.startsWith("https://web.facebook.com/example/posts/123")) {\n        return new Response(`<html><head><meta property="og:image" content="${imageUrl}"></head></html>`);\n      }\n      if (value === imageUrl) {\n        return new Response(Uint8Array.from([1, 2, 3, 4]), { headers: { "Content-Type": "image/jpeg" } });\n      }\n      if (value.startsWith(APPS_SCRIPT_URL)) {\n        const payload = JSON.parse(init.body);\n        returnedAsset.id = payload.id;\n        return Response.json(returnedAsset);\n      }\n      throw new Error(`Unexpected URL: ${value}`);\n    });\n\n    const response = await callFacebookThumbnail(fetchImpl, "https://web.facebook.com/example/posts/123");\n\n    expect(response.statusCode).toBe(200);\n    expect(response.bodyJson.thumbnailUrl).toContain("drive.google.com/thumbnail");\n  });\n\n'''
+          if server_anchor not in server_text:
+              raise SystemExit("server test anchor not found")
+          server_test.write_text(server_text.replace(server_anchor, server_case + server_anchor, 1))
+
+          page_test = Path("src/admin/pages/ContentPage.test.tsx")
+          page_text = page_test.read_text()
+          page_anchor = '  it("shows a Facebook Embed label for imported facebook-embed content", async () => {'
+          page_case = '''  it("keeps a visible warning after content saves when Facebook thumbnail creation fails", async () => {\n    contentMock.saveContentItem.mockImplementation(async (item: ContentItem, options?: SaveProgressOptions) => {\n      options?.onProgress?.({\n        phase: "facebook-thumbnail",\n        percent: 60,\n        message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ",\n        severity: "warning"\n      });\n      return item;\n    });\n    renderContentPage();\n\n    await screen.findByText(contentItem.title);\n    fireEvent.click(screen.getByRole("button", { name: "เพิ่มเนื้อหา" }));\n    fireEvent.click(screen.getByRole("button", { name: "mock save content" }));\n\n    await waitFor(() => {\n      expect(\n        findSwalCall((options) => options.title === "บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail")\n      ).toEqual(\n        expect.objectContaining({\n          icon: "warning",\n          confirmButtonText: "ตกลง"\n        })\n      );\n    });\n    expect(findSwalCall((options) => options.title === "บันทึกเนื้อหาสำเร็จ")).toBeUndefined();\n  });\n\n'''
+          if page_anchor not in page_text:
+              raise SystemExit("ContentPage test anchor not found")
+          page_test.write_text(page_text.replace(page_anchor, page_case + page_anchor, 1))
+          PY
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Format touched files
+        run: pnpm exec prettier --write src/features/cms-media/facebookThumbnailClient.ts server/appsScriptProxy/handler.mjs src/features/cms-content/api.ts src/admin/pages/ContentPage.tsx src/features/cms-content/api.test.ts src/features/cms-media/facebookThumbnailClient.test.ts server/appsScriptProxy/facebookThumbnail.test.mjs src/admin/pages/ContentPage.test.tsx
+      - name: Commit field fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/cms-media/facebookThumbnailClient.ts server/appsScriptProxy/handler.mjs src/features/cms-content/api.ts src/admin/pages/ContentPage.tsx src/features/cms-content/api.test.ts src/features/cms-media/facebookThumbnailClient.test.ts server/appsScriptProxy/facebookThumbnail.test.mjs src/admin/pages/ContentPage.test.tsx
+          git commit -m "fix(content): make Facebook thumbnail failures visible"
+          git push origin HEAD:fix/facebook-thumbnail-field-reliability
