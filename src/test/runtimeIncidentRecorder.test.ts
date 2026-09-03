@@ -55,7 +55,12 @@ describe("B2 runtime incident recorder", () => {
 
       return new Response(null, { status: 200 });
     }) as typeof fetch;
-    const cleanup = installRuntimeIncidentRecorder({ enabled: true, endpoint: ENDPOINT, fetchImpl: nativeFetch, now: () => 1_000 });
+    const cleanup = installRuntimeIncidentRecorder({
+      enabled: true,
+      endpoint: ENDPOINT,
+      fetchImpl: nativeFetch,
+      now: () => 1_000
+    });
     cleanups.push(cleanup);
     window.history.replaceState(
       {},
@@ -93,7 +98,12 @@ describe("B2 runtime incident recorder", () => {
         headers: { "X-RCAT-Request-ID": REQUEST_ID }
       });
     }) as typeof fetch;
-    const cleanup = installRuntimeIncidentRecorder({ enabled: true, endpoint: ENDPOINT, fetchImpl: nativeFetch, now: () => 10_000 });
+    const cleanup = installRuntimeIncidentRecorder({
+      enabled: true,
+      endpoint: ENDPOINT,
+      fetchImpl: nativeFetch,
+      now: () => 10_000
+    });
     cleanups.push(cleanup);
     window.history.replaceState({}, "", "/admin/content");
 

@@ -1,10 +1,18 @@
-import { enforcePublicAnalyticsRateLimit, PublicAnalyticsRateLimitExceeded, PublicAnalyticsRateLimitUnavailable } from "../analyticsAbuseGuard";
+import {
+  enforcePublicAnalyticsRateLimit,
+  PublicAnalyticsRateLimitExceeded,
+  PublicAnalyticsRateLimitUnavailable
+} from "../analyticsAbuseGuard";
 import { authenticateAdminRequest } from "../auth/adminAccess";
 import { requireAdminCapability } from "../auth/adminCapabilities";
 import { requireD1Database } from "../db/documentsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
-import { enforceSecurityRateLimit, SecurityRateLimitExceeded, SecurityRateLimitUnavailable } from "../securityRateLimit";
+import {
+  enforceSecurityRateLimit,
+  SecurityRateLimitExceeded,
+  SecurityRateLimitUnavailable
+} from "../securityRateLimit";
 
 export const RUNTIME_INCIDENT_PATH = "/api/public/runtime-incident";
 export const ADMIN_RUNTIME_INCIDENTS_PATH = "/api/admin/runtime-incidents";
@@ -173,7 +181,11 @@ function normalizeApiMethod(value: unknown) {
 }
 
 export function parseRuntimeIncidentInput(value: unknown): RuntimeIncidentInput | null {
-  if (!isRecord(value) || typeof value.kind !== "string" || !RUNTIME_INCIDENT_KINDS.has(value.kind as RuntimeIncidentKind)) {
+  if (
+    !isRecord(value) ||
+    typeof value.kind !== "string" ||
+    !RUNTIME_INCIDENT_KINDS.has(value.kind as RuntimeIncidentKind)
+  ) {
     return null;
   }
 
@@ -209,7 +221,10 @@ export function parseRuntimeIncidentInput(value: unknown): RuntimeIncidentInput 
     kind,
     surface,
     pathname,
-    errorName: normalizeRuntimeErrorName(value.errorName, kind === "unhandled_rejection" ? "NonErrorRejection" : "Error"),
+    errorName: normalizeRuntimeErrorName(
+      value.errorName,
+      kind === "unhandled_rejection" ? "NonErrorRejection" : "Error"
+    ),
     apiMethod: "",
     httpStatus: null,
     requestId
@@ -383,10 +398,15 @@ async function authorizeAdminIncidentFeed(request: Request, env: Env) {
 
   const authResult = await authenticateAdminRequest(request, env);
   if (authResult.response || !authResult.identity) {
-    return { identity: null, response: withNoStore(authResult.response ?? noStoreError("CMS session is required", 401)) };
+    return {
+      identity: null,
+      response: withNoStore(authResult.response ?? noStoreError("CMS session is required", 401))
+    };
   }
 
-  const permissionResponse = requireAdminCapability(authResult.identity, "dashboard.read", { resource: "runtime-incidents" });
+  const permissionResponse = requireAdminCapability(authResult.identity, "dashboard.read", {
+    resource: "runtime-incidents"
+  });
   return {
     identity: permissionResponse ? null : authResult.identity,
     response: permissionResponse ? withNoStore(permissionResponse) : null

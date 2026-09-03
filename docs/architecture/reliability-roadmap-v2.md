@@ -10,10 +10,10 @@ This roadmap does **not** reopen P6. Historical P5H/P6A/P6B/P6C/P6D records keep
 
 ## Current roadmap
 
-| Phase   | Name                     | Status   | Primary outcome                                                                                                                                |
-| ------- | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                       |
-| Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically. |
+| Phase   | Name                     | Status   | Primary outcome                                                                                                                                 |
+| ------- | ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                        |
+| Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically.  |
 | Phase B | Operational Visibility   | Active   | B1 provides protected live health checks; B2 adds a bounded privacy-safe Runtime Incident Feed; B3 will aggregate external guard state.         |
 | Phase C | Deep Field Verification  | Planned  | Add accessibility, synthetic performance regression, and isolated authenticated/disposable CMS field tests without weakening production safety. |
 

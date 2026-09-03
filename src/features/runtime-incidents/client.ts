@@ -265,7 +265,12 @@ function pruneDedupeMap(entries: Map<string, number>, now: number) {
 export function installRuntimeIncidentRecorder(options: RuntimeIncidentRecorderOptions = {}) {
   const enabled = options.enabled ?? import.meta.env.PROD;
 
-  if (!enabled || typeof window === "undefined" || runtimeIncidentRecorderInstalled || typeof globalThis.fetch !== "function") {
+  if (
+    !enabled ||
+    typeof window === "undefined" ||
+    runtimeIncidentRecorderInstalled ||
+    typeof globalThis.fetch !== "function"
+  ) {
     return () => undefined;
   }
 

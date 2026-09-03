@@ -174,7 +174,9 @@ function RuntimeIncidentRow({ incident }: { incident: RuntimeIncidentItem }) {
           <Chip label={incidentKindLabel(incident.kind)} size="small" color="warning" variant="outlined" />
           <Chip label={incidentSurfaceLabel(incident.surface)} size="small" variant="outlined" />
           <Chip label={`${incident.occurrenceCount} ครั้ง`} size="small" />
-          {incident.httpStatus !== undefined && <Chip label={`HTTP ${incident.httpStatus}`} size="small" color="error" />}
+          {incident.httpStatus !== undefined && (
+            <Chip label={`HTTP ${incident.httpStatus}`} size="small" color="error" />
+          )}
         </Stack>
 
         <Typography component="code" variant="body2" sx={{ overflowWrap: "anywhere", fontFamily: "monospace" }}>
@@ -213,23 +215,27 @@ function RuntimeIncidentFeedCard({ feed, error }: { feed: RuntimeIncidentFeed | 
           <Box>
             <Typography variant="h2">Runtime Incident Feed · B2</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              รวมเฉพาะ uncaught runtime errors, unhandled promise rejections และ API 5xx/network failures แบบ privacy-safe
+              รวมเฉพาะ uncaught runtime errors, unhandled promise rejections และ API 5xx/network failures แบบ
+              privacy-safe
             </Typography>
           </Box>
 
           <Alert severity="info">
-            ไม่เก็บ error message, stack trace, request/response body, query string, cookie, token, IP, email หรือ User-Agent ·
-            เก็บเหตุการณ์ไม่เกิน 7 วัน และรวมเหตุซ้ำเป็นช่วงเวลา 5 นาที
+            ไม่เก็บ error message, stack trace, request/response body, query string, cookie, token, IP, email หรือ
+            User-Agent · เก็บเหตุการณ์ไม่เกิน 7 วัน และรวมเหตุซ้ำเป็นช่วงเวลา 5 นาที
           </Alert>
 
           {error ? (
-            <Alert severity="warning">ไม่สามารถอ่าน Runtime Incident Feed ได้ในขณะนี้ โดย health checks อื่นยังทำงานแยกตามปกติ</Alert>
+            <Alert severity="warning">
+              ไม่สามารถอ่าน Runtime Incident Feed ได้ในขณะนี้ โดย health checks อื่นยังทำงานแยกตามปกติ
+            </Alert>
           ) : feed && feed.items.length === 0 ? (
             <Alert severity="success">ไม่พบ runtime incident ในช่วง {feed.windowHours} ชั่วโมงล่าสุด</Alert>
           ) : feed ? (
             <Stack spacing={1.5}>
               <Typography variant="body2" color="text.secondary">
-                แสดง {feed.items.length} กลุ่มเหตุการณ์ล่าสุดในช่วง {feed.windowHours} ชั่วโมง · อัปเดตเมื่อกดตรวจสอบระบบ
+                แสดง {feed.items.length} กลุ่มเหตุการณ์ล่าสุดในช่วง {feed.windowHours} ชั่วโมง ·
+                อัปเดตเมื่อกดตรวจสอบระบบ
               </Typography>
               {feed.items.map((incident) => (
                 <RuntimeIncidentRow key={incident.id} incident={incident} />
