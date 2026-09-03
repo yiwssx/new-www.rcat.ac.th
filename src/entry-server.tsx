@@ -17,7 +17,7 @@ export async function renderSsrResponse(request: Request) {
   });
 
   return handler(async ({ request: handledRequest, responseHeaders, router }) => {
-    const response = await renderRouterToStream({
+    const streamedResponse = await renderRouterToStream({
       request: handledRequest,
       responseHeaders,
       router,
@@ -27,7 +27,17 @@ export async function renderSsrResponse(request: Request) {
         </AppProviders>
       )
     });
-    const emotionResponse = await finalizeEmotionSsrResponse(response);
+
+    let emotionResponse: Response;
+
+    try {
+      emotionResponse = await finalizeEmotionSsrResponse(streamedResponse.response);
+    } finally {
+      if (streamedResponse.serverSsrCleanup === "stream") {
+        await streamedResponse.dispose();
+      }
+    }
+
     const securityHeaders = new Headers(emotionResponse.headers);
     securityHeaders.set("Content-Security-Policy", buildContentSecurityPolicy({ scriptNonce: cspNonce }));
     const securedResponse = new Response(emotionResponse.body, {
