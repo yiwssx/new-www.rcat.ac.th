@@ -46,7 +46,7 @@ describe("public route head SSR readiness", () => {
     expect(clientEntrySource).toContain("<RouterClient router={runtime.router} />");
     expect(clientEntrySource).toContain("createRoot(rootElement).render(");
     expect(serverEntrySource).toContain("createRequestHandler");
-    expect(serverEntrySource).toContain("renderRouterToString");
+    expect(serverEntrySource).toContain("renderRouterToStream");
     expect(serverEntrySource).toContain("<RouterServer router={router} />");
   });
 });
