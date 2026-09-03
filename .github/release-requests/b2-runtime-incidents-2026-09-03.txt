@@ -1,0 +1,5 @@
+Phase B2 Runtime Incident Feed production release request.
+
+Source baseline: master after PR #217.
+Expected Worker/D1 change: apply pending 0014_b2_runtime_incidents.sql, then deploy the compatible Cloudflare Worker through the canonical protected production workflow.
+This marker is temporary and must be removed together with the one-shot push trigger after successful release verification.
