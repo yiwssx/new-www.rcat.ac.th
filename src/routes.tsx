@@ -35,6 +35,7 @@ import {
   RootRouteLayout,
   ResetPasswordPage,
   SettingsPage,
+  SystemHealthPage,
   UsersPage
 } from "./routeComponents";
 import {
@@ -268,6 +269,16 @@ const adminDashboardRoute = createRoute({
   )
 });
 
+const adminSystemHealthRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "system-health",
+  component: () => (
+    <CapabilityGuard capability="dashboard.read">
+      <SystemHealthPage />
+    </CapabilityGuard>
+  )
+});
+
 const adminContentRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "content",
@@ -413,6 +424,7 @@ const routeTree = rootRoute.addChildren([
     resetPasswordRoute,
     adminRoute.addChildren([
       adminDashboardRoute,
+      adminSystemHealthRoute,
       adminContentRoute,
       adminDocumentsRoute,
       adminCarouselRoute,

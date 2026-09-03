@@ -43,6 +43,7 @@ const drawerWidth = 280;
 
 type AdminPath =
   | "/admin"
+  | "/admin/system-health"
   | "/admin/carousel"
   | "/admin/external-services"
   | "/admin/content"
@@ -65,6 +66,12 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "แดชบอร์ด", to: "/admin", icon: <DashboardOutlinedIcon />, capabilities: ["dashboard.read"] },
+  {
+    label: "สถานะระบบ",
+    to: "/admin/system-health",
+    icon: <CloudSyncOutlinedIcon />,
+    capabilities: ["dashboard.read"]
+  },
   { label: "เนื้อหา", to: "/admin/content", icon: <ArticleOutlinedIcon />, capabilities: ["content.read"] },
   {
     label: "เอกสารเผยแพร่",
