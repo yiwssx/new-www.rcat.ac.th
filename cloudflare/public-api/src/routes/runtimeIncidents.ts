@@ -26,7 +26,12 @@ const REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9
 const UUID_SEGMENT_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const LONG_HEX_SEGMENT_PATTERN = /^[0-9a-f]{32,}$/i;
 const TOKENISH_SEGMENT_PATTERN = /^[A-Za-z0-9_-]{40,}$/;
-const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/u;
+function containsControlCharacter(value: string) {
+  return Array.from(value).some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 0x1f || code === 0x7f;
+  });
+}
 const SENSITIVE_PATH_SEGMENTS = new Set([
   "token",
   "tokens",
@@ -116,7 +121,7 @@ function shouldRedactPathSegment(value: string) {
   const decoded = decodePathSegment(value);
   return (
     !decoded ||
-    CONTROL_CHARACTER_PATTERN.test(decoded) ||
+    containsControlCharacter(decoded) ||
     UUID_SEGMENT_PATTERN.test(decoded) ||
     LONG_HEX_SEGMENT_PATTERN.test(decoded) ||
     TOKENISH_SEGMENT_PATTERN.test(decoded)
