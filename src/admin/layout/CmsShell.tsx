@@ -29,7 +29,6 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
-import MonitorHeartOutlinedIcon from "@mui/icons-material/MonitorHeartOutlined";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
@@ -70,7 +69,7 @@ const navItems: NavItem[] = [
   {
     label: "สถานะระบบ",
     to: "/admin/system-health",
-    icon: <MonitorHeartOutlinedIcon />,
+    icon: <CloudSyncOutlinedIcon />,
     capabilities: ["dashboard.read"]
   },
   { label: "เนื้อหา", to: "/admin/content", icon: <ArticleOutlinedIcon />, capabilities: ["content.read"] },
