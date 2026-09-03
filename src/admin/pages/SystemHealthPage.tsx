@@ -113,7 +113,7 @@ function HealthCheckCard({ check }: { check: SystemHealthCheck }) {
 
           <Typography variant="body2">{check.detail}</Typography>
 
-          <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+          <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: "wrap" }}>
             {check.httpStatus !== undefined && (
               <Typography variant="caption" color="text.secondary">
                 HTTP {check.httpStatus}
