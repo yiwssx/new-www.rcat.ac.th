@@ -14,12 +14,8 @@ import {
   type AlertProps,
   type ChipProps
 } from "@mui/material";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import MonitorHeartOutlinedIcon from "@mui/icons-material/MonitorHeartOutlined";
-import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
-import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import {
   runSystemHealthChecks,
   type SystemHealthCheck,
@@ -66,13 +62,6 @@ function statusColor(status: SystemHealthStatus): ChipProps["color"] {
   return "default";
 }
 
-function statusIcon(status: SystemHealthStatus) {
-  if (status === "healthy") return <CheckCircleOutlineIcon fontSize="small" />;
-  if (status === "warning") return <WarningAmberOutlinedIcon fontSize="small" />;
-  if (status === "error") return <ErrorOutlineIcon fontSize="small" />;
-  return <HelpOutlineIcon fontSize="small" />;
-}
-
 function overallSeverity(status: SystemHealthReport["overallStatus"]): AlertProps["severity"] {
   if (status === "healthy") return "success";
   if (status === "warning") return "warning";
@@ -113,7 +102,6 @@ function HealthCheckCard({ check }: { check: SystemHealthCheck }) {
               </Typography>
             </Box>
             <Chip
-              icon={statusIcon(check.status)}
               label={statusLabel(check.status)}
               color={statusColor(check.status)}
               size="small"
@@ -183,7 +171,7 @@ export default function SystemHealthPage() {
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "space-between" }}>
         <Box>
           <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-            <MonitorHeartOutlinedIcon color="primary" />
+            <DashboardOutlinedIcon color="primary" />
             <Typography variant="h1">สถานะระบบ</Typography>
           </Stack>
           <Typography color="text.secondary" sx={{ mt: 1 }}>
@@ -192,7 +180,7 @@ export default function SystemHealthPage() {
         </Box>
         <Button
           variant="contained"
-          startIcon={loading ? <CircularProgress color="inherit" size={18} /> : <RefreshOutlinedIcon />}
+          startIcon={loading ? <CircularProgress color="inherit" size={18} /> : <CloudSyncOutlinedIcon />}
           disabled={loading}
           onClick={() => void refresh()}
           sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
