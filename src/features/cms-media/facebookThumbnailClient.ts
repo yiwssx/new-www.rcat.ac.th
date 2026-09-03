@@ -15,7 +15,7 @@ import type {
 const mediaBridgePath = "/api/apps-script-proxy";
 const INVALID_FACEBOOK_THUMBNAIL_RESPONSE = "ระบบสร้างภาพตัวอย่าง Facebook ได้รับการตอบกลับที่ไม่ถูกต้อง";
 const FACEBOOK_THUMBNAIL_UNAVAILABLE = "Unable to create Facebook thumbnail";
-const FACEBOOK_PUBLIC_HOSTS = new Set(["facebook.com", "www.facebook.com", "m.facebook.com"]);
+const FACEBOOK_PUBLIC_HOSTS = new Set(["facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"]);
 const FACEBOOK_LEGACY_POST_PATH = /^\/(\d+)\/posts\/(\d+)\/?$/;
 
 type BridgeEnvelope = Partial<MediaAsset> & {

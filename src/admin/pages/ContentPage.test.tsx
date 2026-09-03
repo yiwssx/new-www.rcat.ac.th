@@ -319,6 +319,33 @@ describe("ContentPage operation feedback", () => {
     );
   });
 
+  it("keeps a visible warning after content saves when Facebook thumbnail creation fails", async () => {
+    contentMock.saveContentItem.mockImplementation(async (item: ContentItem, options?: SaveProgressOptions) => {
+      options?.onProgress?.({
+        phase: "facebook-thumbnail",
+        percent: 60,
+        message: "ไม่พบภาพย่ออัตโนมัติ กำลังบันทึกเนื้อหาต่อ",
+        severity: "warning"
+      });
+      return item;
+    });
+    renderContentPage();
+
+    await screen.findByText(contentItem.title);
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มเนื้อหา" }));
+    fireEvent.click(screen.getByRole("button", { name: "mock save content" }));
+
+    await waitFor(() => {
+      expect(findSwalCall((options) => options.title === "บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail")).toEqual(
+        expect.objectContaining({
+          icon: "warning",
+          confirmButtonText: "ตกลง"
+        })
+      );
+    });
+    expect(findSwalCall((options) => options.title === "บันทึกเนื้อหาสำเร็จ")).toBeUndefined();
+  });
+
   it("shows a Facebook Embed label for imported facebook-embed content", async () => {
     paginationMock.content = [
       {

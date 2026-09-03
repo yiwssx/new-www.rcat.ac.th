@@ -348,7 +348,9 @@ function createUpstreamPayload(payload, bridgeToken) {
 
 function isAllowedFacebookPageHost(hostname) {
   const host = String(hostname || "").toLowerCase();
-  return host === "facebook.com" || host === "www.facebook.com" || host === "m.facebook.com";
+  return (
+    host === "facebook.com" || host === "www.facebook.com" || host === "web.facebook.com" || host === "m.facebook.com"
+  );
 }
 
 function normalizeFacebookSourceUrl(value) {
