@@ -19,22 +19,52 @@ async function expectNoHorizontalOverflow(page: Page) {
   const report = await page.evaluate(() => {
     const viewportWidth = document.documentElement.clientWidth;
     const documentOverflow = document.documentElement.scrollWidth - viewportWidth;
+    const clippingValues = new Set(["hidden", "clip", "auto", "scroll"]);
 
     const offenders = Array.from(document.body.querySelectorAll<HTMLElement>("*"))
       .map((element) => {
         const rect = element.getBoundingClientRect();
         const style = window.getComputedStyle(element);
-        const leftOverflow = Math.max(0, -rect.left);
-        const rightOverflow = Math.max(0, rect.right - viewportWidth);
-        const overflow = Math.max(leftOverflow, rightOverflow);
 
         if (
-          overflow <= 2 ||
           rect.width <= 0 ||
           rect.height <= 0 ||
           style.display === "none" ||
-          style.visibility === "hidden"
+          style.visibility === "hidden" ||
+          style.opacity === "0" ||
+          style.clip !== "auto" ||
+          style.clipPath !== "none"
         ) {
+          return null;
+        }
+
+        let visibleLeft = rect.left;
+        let visibleRight = rect.right;
+        let ancestor = element.parentElement;
+        let clippingAncestor: string | null = null;
+
+        while (ancestor && ancestor !== document.body) {
+          const ancestorStyle = window.getComputedStyle(ancestor);
+
+          if (clippingValues.has(ancestorStyle.overflowX)) {
+            const ancestorRect = ancestor.getBoundingClientRect();
+            visibleLeft = Math.max(visibleLeft, ancestorRect.left);
+            visibleRight = Math.min(visibleRight, ancestorRect.right);
+            clippingAncestor ||= `${ancestor.tagName.toLowerCase()}.${String(ancestor.className || "")}`;
+          }
+
+          if (visibleRight <= visibleLeft) {
+            return null;
+          }
+
+          ancestor = ancestor.parentElement;
+        }
+
+        const leftOverflow = Math.max(0, -visibleLeft);
+        const rightOverflow = Math.max(0, visibleRight - viewportWidth);
+        const overflow = Math.max(leftOverflow, rightOverflow);
+
+        if (overflow <= 2) {
           return null;
         }
 
@@ -46,22 +76,24 @@ async function expectNoHorizontalOverflow(page: Page) {
           ariaLabel: element.getAttribute("aria-label"),
           left: Math.round(rect.left),
           right: Math.round(rect.right),
+          visibleLeft: Math.round(visibleLeft),
+          visibleRight: Math.round(visibleRight),
           width: Math.round(rect.width),
           overflow: Math.round(overflow),
           position: style.position,
           overflowX: style.overflowX,
-          transform: style.transform,
+          clippingAncestor,
           text: (element.textContent || "").trim().replace(/\s+/g, " ").slice(0, 100)
         };
       })
       .filter((value): value is NonNullable<typeof value> => value !== null)
       .sort((left, right) => right.overflow - left.overflow)
-      .slice(0, 30);
+      .slice(0, 20);
 
     return { viewportWidth, documentOverflow, offenders };
   });
 
-  expect(report.documentOverflow, JSON.stringify(report, null, 2)).toBeLessThanOrEqual(2);
+  expect(report.offenders, JSON.stringify(report, null, 2)).toEqual([]);
 }
 
 test.describe("Phase A production public browser smoke", () => {
