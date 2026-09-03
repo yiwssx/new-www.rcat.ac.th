@@ -5,7 +5,12 @@ const PUBLIC_ANALYTICS_ALLOWED_METHODS = "POST, OPTIONS";
 const ALLOWED_HEADERS = "Content-Type";
 const ADMIN_ALLOWED_METHODS = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
 const ADMIN_ALLOWED_HEADERS = "Content-Type, X-RCAT-Expected-Revision";
-const PUBLIC_ANALYTICS_PATHS = new Set(["/api/public/site-view", "/api/public/presence", "/api/public/content-view"]);
+const PUBLIC_ANALYTICS_PATHS = new Set([
+  "/api/public/site-view",
+  "/api/public/presence",
+  "/api/public/content-view",
+  "/api/public/runtime-incident"
+]);
 
 function getConfiguredOrigins(value: string | undefined) {
   return (value ?? "")
@@ -89,7 +94,7 @@ export function isPublicAnalyticsOriginAllowed(request: Request, env: Env) {
   const requestOrigin = request.headers.get("Origin");
 
   // Non-browser/server-to-server clients do not send Origin. They remain
-  // governed by the existing D1-backed public analytics rate limits.
+  // governed by the existing edge-backed telemetry rate limits.
   if (!requestOrigin) {
     return true;
   }

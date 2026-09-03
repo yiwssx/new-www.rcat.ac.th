@@ -242,7 +242,10 @@ afterEach(() => {
 
 describe("Phase 6 isolated D1 integration", () => {
   it("applies migration 0013 with exact tables, assurance columns, indexes, and cascading foreign keys", () => {
-    expect(migrationNames.at(-1)).toBe("0013_cms_mfa_and_reauthentication.sql");
+    const migration0013Index = migrationNames.indexOf("0013_cms_mfa_and_reauthentication.sql");
+    const migration0014Index = migrationNames.indexOf("0014_b2_runtime_incidents.sql");
+    expect(migration0013Index).toBeGreaterThanOrEqual(0);
+    expect(migration0014Index).toBe(migration0013Index + 1);
     const columns = (table: string) =>
       (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ dflt_value: string | null; name: string }>).map(
         ({ name }) => name

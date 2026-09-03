@@ -24,18 +24,19 @@ function createRetentionDb() {
   return { db, statements };
 }
 
-describe("public analytics retention", () => {
-  it("keeps raw events for 90 days and presence for two days", () => {
+describe("public analytics and runtime incident retention", () => {
+  it("keeps raw events for 90 days, presence for two days, and incidents for seven days", () => {
     const now = new Date("2026-08-08T12:00:00.000Z");
 
     expect(getPublicAnalyticsRetentionCutoffs(now)).toEqual({
       now: "2026-08-08T12:00:00.000Z",
       rawEventCutoff: "2026-05-10T12:00:00.000Z",
-      presenceCutoff: "2026-08-06T12:00:00.000Z"
+      presenceCutoff: "2026-08-06T12:00:00.000Z",
+      runtimeIncidentCutoff: "2026-08-01T12:00:00.000Z"
     });
   });
 
-  it("prunes only short-lived and raw analytics tables", async () => {
+  it("prunes short-lived analytics data and bounds the runtime incident feed", async () => {
     const { db, statements } = createRetentionDb();
 
     await prunePublicAnalyticsData({ DB: db }, new Date("2026-08-08T12:00:00.000Z"));
@@ -44,13 +45,17 @@ describe("public analytics retention", () => {
       "DELETE FROM public_write_rate_limits WHERE expires_at < ?",
       "DELETE FROM visitor_presence WHERE last_seen_at < ?",
       "DELETE FROM visitor_events WHERE created_at < ?",
-      "DELETE FROM content_view_events WHERE created_at < ?"
+      "DELETE FROM content_view_events WHERE created_at < ?",
+      "DELETE FROM runtime_incidents WHERE last_seen_at < ?",
+      expect.stringContaining("LIMIT -1 OFFSET ?")
     ]);
     expect(statements.map(({ bindings }) => bindings)).toEqual([
       ["2026-08-08T12:00:00.000Z"],
       ["2026-08-06T12:00:00.000Z"],
       ["2026-05-10T12:00:00.000Z"],
-      ["2026-05-10T12:00:00.000Z"]
+      ["2026-05-10T12:00:00.000Z"],
+      ["2026-08-01T12:00:00.000Z"],
+      [2000]
     ]);
   });
 });

@@ -21,8 +21,19 @@ export function readDocumentCspNonce(documentNode: Document = document) {
   return script?.nonce || script?.getAttribute("nonce") || undefined;
 }
 
+function installRuntimeIncidentRecorderAsync() {
+  if (!import.meta.env.PROD) {
+    return;
+  }
+
+  void import("./features/runtime-incidents/client")
+    .then(({ installRuntimeIncidentRecorder }) => installRuntimeIncidentRecorder())
+    .catch(() => undefined);
+}
+
 export function mountClientApp(rootElement: HTMLElement) {
   installBrowserErrorFilters();
+  installRuntimeIncidentRecorderAsync();
   document.documentElement.lang = projectSettings.site.language;
 
   const documentMode = shouldHydrateSsrDocument();

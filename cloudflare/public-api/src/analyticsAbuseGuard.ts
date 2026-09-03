@@ -2,7 +2,7 @@ import type { Env } from "./env";
 
 const RATE_LIMIT_RETRY_AFTER_SECONDS = 60;
 
-type PublicAnalyticsScope = "site-view" | "presence" | "content-view";
+type PublicAnalyticsScope = "site-view" | "presence" | "content-view" | "runtime-incident";
 
 export class PublicAnalyticsRateLimitExceeded extends Error {
   constructor(readonly retryAfterSeconds: number) {
@@ -25,6 +25,7 @@ function getClientIp(request: Request) {
 function getRateLimiter(env: Env, scope: PublicAnalyticsScope) {
   if (scope === "site-view") return env.PUBLIC_SITE_VIEW_RATE_LIMITER;
   if (scope === "presence") return env.PUBLIC_PRESENCE_RATE_LIMITER;
+  if (scope === "runtime-incident") return env.RUNTIME_INCIDENT_RATE_LIMITER;
   return env.PUBLIC_CONTENT_VIEW_RATE_LIMITER;
 }
 

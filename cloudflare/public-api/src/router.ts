@@ -13,6 +13,7 @@ import { publicShell } from "./routes/publicShell";
 import { publicVisitorStats } from "./routes/publicVisitorStats";
 import { recordPublicContentView, recordPublicPresence, recordPublicSiteView } from "./routes/publicAnalytics";
 import { handleCmsAuthInternal } from "./routes/cmsAuthInternal";
+import { handleAdminRuntimeIncidents, recordRuntimeIncident } from "./routes/runtimeIncidents";
 
 const CONTENT_DETAIL_PREFIX = "/api/public/content/";
 
@@ -30,6 +31,11 @@ export async function routeRequest(request: Request, env: Env) {
   }
 
   const { pathname } = new URL(request.url);
+  const runtimeIncidentAdminResponse = await handleAdminRuntimeIncidents(request, env);
+
+  if (runtimeIncidentAdminResponse) {
+    return runtimeIncidentAdminResponse;
+  }
 
   // The current Admin UI uses revision-aware item/order endpoints. The legacy
   // whole-tree replacement can erase or overwrite concurrent menu changes, so
@@ -64,6 +70,11 @@ export async function routeRequest(request: Request, env: Env) {
   if (request.method === "POST" && pathname === "/api/public/content-view") {
     const denied = rejectUntrustedPublicAnalyticsOrigin(request, env, "content-view");
     return denied ?? recordPublicContentView(request, env);
+  }
+
+  if (request.method === "POST" && pathname === "/api/public/runtime-incident") {
+    const denied = rejectUntrustedPublicAnalyticsOrigin(request, env, "runtime-incident");
+    return denied ?? recordRuntimeIncident(request, env);
   }
 
   if (request.method !== "GET") {
