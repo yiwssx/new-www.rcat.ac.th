@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import React from "react";
-import { RouterServer, createRequestHandler, renderRouterToString } from "@tanstack/react-router/ssr/server";
+import { RouterServer, createRequestHandler, renderRouterToStream } from "@tanstack/react-router/ssr/server";
 import AppProviders from "./AppProviders";
 import { createEmotionSsrResponseFinalizer } from "./emotionSsr";
 import { applyPublicSsrHttpSemantics } from "./public/routing/publicHttpSemantics";
@@ -16,8 +16,9 @@ export async function renderSsrResponse(request: Request) {
     createRouter: () => runtime.router
   });
 
-  return handler(async ({ responseHeaders, router }) => {
-    const response = await renderRouterToString({
+  return handler(async ({ request: handledRequest, responseHeaders, router }) => {
+    const response = await renderRouterToStream({
+      request: handledRequest,
       responseHeaders,
       router,
       children: (
