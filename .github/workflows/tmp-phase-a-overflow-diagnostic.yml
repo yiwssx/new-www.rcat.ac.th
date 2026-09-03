@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   patch:
-    if: github.event.head_commit.message != 'fix(carousel): use pixel values for visually hidden content'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -47,13 +46,17 @@ jobs:
             border: 0
           } as const;'''
 
-          if old not in text:
+          if old in text:
+            path.write_text(text.replace(old, new, 1))
+          elif new not in text:
             raise SystemExit("expected visuallyHiddenSx block not found")
-
-          path.write_text(text.replace(old, new, 1))
           PY
-      - name: Commit patch
+      - name: Commit patch when needed
         run: |
+          if git diff --quiet -- src/public/components/PublicHomeCarousel.tsx; then
+            echo "Carousel patch already applied"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/public/components/PublicHomeCarousel.tsx
