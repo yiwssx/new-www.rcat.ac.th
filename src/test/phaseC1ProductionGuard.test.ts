@@ -6,9 +6,7 @@ describe("Phase C1 production field guard", () => {
     const source = readFileSync("src/public/components/PublicSiteShell.tsx", "utf8");
 
     expect(source).toContain('htmlInput: { "aria-label": "ค้นหาในเว็บไซต์" }');
-    expect(source).not.toContain(
-      'placeholder="ค้นหาในเว็บไซต์"\n                      aria-label="ค้นหาในเว็บไซต์"'
-    );
+    expect(source).not.toContain('placeholder="ค้นหาในเว็บไซต์"\n                      aria-label="ค้นหาในเว็บไซต์"');
   });
 
   it("keeps production browser verification serial and low impact", () => {
