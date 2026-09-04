@@ -41,9 +41,9 @@ async function auditAccessibility(page: Page, requireSingleH1: boolean) {
       const text = (element.textContent || "").trim();
       return Boolean(
         text ||
-          element.getAttribute("aria-label")?.trim() ||
-          element.getAttribute("aria-labelledby")?.trim() ||
-          element.getAttribute("title")?.trim()
+        element.getAttribute("aria-label")?.trim() ||
+        element.getAttribute("aria-labelledby")?.trim() ||
+        element.getAttribute("title")?.trim()
       );
     };
 
@@ -53,10 +53,10 @@ async function auditAccessibility(page: Page, requireSingleH1: boolean) {
       const wrappingLabel = element.closest("label");
       return Boolean(
         explicitLabel ||
-          wrappingLabel ||
-          element.getAttribute("aria-label")?.trim() ||
-          element.getAttribute("aria-labelledby")?.trim() ||
-          element.getAttribute("title")?.trim()
+        wrappingLabel ||
+        element.getAttribute("aria-label")?.trim() ||
+        element.getAttribute("aria-labelledby")?.trim() ||
+        element.getAttribute("title")?.trim()
       );
     };
 
@@ -74,12 +74,15 @@ async function auditAccessibility(page: Page, requireSingleH1: boolean) {
       if (!image.hasAttribute("alt")) violations.push(`${selectorFor(image)}: image is missing alt attribute`);
     }
 
-    for (const control of Array.from(document.querySelectorAll("input:not([type='hidden']), select, textarea")).filter(visible)) {
+    for (const control of Array.from(document.querySelectorAll("input:not([type='hidden']), select, textarea")).filter(
+      visible
+    )) {
       if (!hasFormLabel(control)) violations.push(`${selectorFor(control)}: form control has no accessible label`);
     }
 
     for (const interactive of Array.from(document.querySelectorAll("button, a[href]")).filter(visible)) {
-      if (!hasAccessibleName(interactive)) violations.push(`${selectorFor(interactive)}: interactive element has no accessible name`);
+      if (!hasAccessibleName(interactive))
+        violations.push(`${selectorFor(interactive)}: interactive element has no accessible name`);
     }
 
     const ids = new Map<string, number>();
@@ -93,7 +96,8 @@ async function auditAccessibility(page: Page, requireSingleH1: boolean) {
 
     for (const element of Array.from(document.querySelectorAll("[tabindex]"))) {
       const value = Number(element.getAttribute("tabindex"));
-      if (Number.isFinite(value) && value > 0) violations.push(`${selectorFor(element)}: positive tabindex ${value} changes natural tab order`);
+      if (Number.isFinite(value) && value > 0)
+        violations.push(`${selectorFor(element)}: positive tabindex ${value} changes natural tab order`);
     }
 
     return violations;
