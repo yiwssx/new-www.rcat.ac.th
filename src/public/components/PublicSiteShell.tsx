@@ -789,9 +789,9 @@ function PublicSiteShellFrame({
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
                       placeholder="ค้นหาในเว็บไซต์"
-                      aria-label="ค้นหาในเว็บไซต์"
                       fullWidth
                       slotProps={{
+                        htmlInput: { "aria-label": "ค้นหาในเว็บไซต์" },
                         input: {
                           startAdornment: (
                             <InputAdornment position="start">
