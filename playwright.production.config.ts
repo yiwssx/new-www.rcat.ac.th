@@ -15,6 +15,7 @@ export default defineConfig({
     timeout: 15_000
   },
   fullyParallel: false,
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   outputDir: "test-results/production",
   reporter: process.env.CI
