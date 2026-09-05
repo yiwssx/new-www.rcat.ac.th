@@ -15,4 +15,11 @@ describe("Phase C1 production field guard", () => {
     expect(source).toMatch(/fullyParallel:\s*false/);
     expect(source).toMatch(/workers:\s*1/);
   });
+
+  it("audits only form controls exposed to the accessibility tree", () => {
+    const source = readFileSync("tests/production/production.accessibility.pw.ts", "utf8");
+
+    expect(source).toContain("!element.closest('[aria-hidden=\"true\"]')");
+    expect(source).toContain("input:not([type='hidden']), select, textarea");
+  });
 });
