@@ -41,7 +41,9 @@ test.describe("Phase C2 synthetic performance regression", () => {
     for (const [metric, limit] of Object.entries(PERFORMANCE_BUDGET_MS)) {
       const actual = metrics[metric as keyof typeof metrics];
       expect(Number.isFinite(actual), `${metric} must be a finite browser timing`).toBe(true);
-      expect(actual, `${metric} ${Math.round(actual)}ms exceeded ${limit}ms release guardrail`).toBeLessThanOrEqual(limit);
+      expect(actual, `${metric} ${Math.round(actual)}ms exceeded ${limit}ms release guardrail`).toBeLessThanOrEqual(
+        limit
+      );
     }
   });
 });
