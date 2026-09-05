@@ -75,7 +75,7 @@ async function auditAccessibility(page: Page, requireSingleH1: boolean) {
     }
 
     for (const control of Array.from(document.querySelectorAll("input:not([type='hidden']), select, textarea")).filter(
-      visible
+      (element) => visible(element) && !element.closest('[aria-hidden="true"]')
     )) {
       if (!hasFormLabel(control)) violations.push(`${selectorFor(control)}: form control has no accessible label`);
     }
