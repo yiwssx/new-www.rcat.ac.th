@@ -42,9 +42,26 @@ Completion evidence is PR #224 merged to `master` at `443e82e2697e261b22ae671718
 
 ## C3 — Authenticated disposable CMS field test
 
-Status: planned.
+Status: implementation complete; production validation pending.
 
-C3 must establish an isolated QA identity and a deterministic disposable-data lifecycle before authenticating against a field environment. Normal Admin credentials must not be committed to test code and ordinary production content must not be mutated merely to prove the test.
+C3 is deliberately separated from the automatic read-only Phase A suite. `.github/workflows/phase-c3-authenticated-cms-field.yml` is manual, master-only, and protected by the existing `production` Environment because it performs tightly bounded production writes.
+
+The workflow does not use a normal Admin credential. It uses the existing protected Cloudflare production infrastructure credentials to create a run-scoped, non-root `editor` identity with a random one-run password. The password is masked immediately and is never committed, uploaded, or retained after the workflow.
+
+The browser flow uses `playwright.phase-c3.config.ts` with one desktop Chromium worker and no retries. It verifies:
+
+- real `/login` authentication with the disposable editor;
+- creation of a uniquely prefixed disposable content record;
+- the Facebook-thumbnail failure path continuing through Save and surfacing the successful-save warning;
+- publishing and verification through `/api/public/content/:slug` plus the public `/content/:slug` page;
+- deletion through the CMS and removal from the public read path;
+- session-cookie removal returning the browser to the login boundary.
+
+The thumbnail source intentionally uses a non-Facebook `.invalid` URL while the content template is `Facebook Embed`. The server rejects that source before any Facebook fetch or media persistence, making the fallback deterministic and ensuring C3 cannot leave an uploaded media artifact.
+
+Infrastructure cleanup runs with `always()` and hard-deletes the exact run-scoped content slug and non-root QA user. A final D1 count query requires the QA user, credential, session, and content counts all to be zero. Immutable Admin audit-log events are intentionally retained as operational evidence, not as live QA data.
+
+C3 must not be marked complete until the implementation is merged, repository CI is green, the exact merge SHA is deployed by Vercel, the protected C3 workflow passes on `master`, and its final deterministic cleanup verification succeeds.
 
 ## Closure rule
 

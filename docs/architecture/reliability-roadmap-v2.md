@@ -1,6 +1,6 @@
 # Reliability Roadmap v2
 
-Updated: 2026-09-03
+Updated: 2026-09-06
 
 ## Purpose
 
@@ -10,12 +10,12 @@ This roadmap does **not** reopen P6. Historical P5H/P6A/P6B/P6C/P6D records keep
 
 ## Current roadmap
 
-| Phase   | Name                     | Status   | Primary outcome                                                                                                                                 |
-| ------- | ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                        |
-| Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically.  |
-| Phase B | Operational Visibility   | Active   | B1 provides protected live health checks; B2 adds a bounded privacy-safe Runtime Incident Feed; B3 will aggregate external guard state.         |
-| Phase C | Deep Field Verification  | Planned  | Add accessibility, synthetic performance regression, and isolated authenticated/disposable CMS field tests without weakening production safety. |
+| Phase   | Name                     | Status   | Primary outcome                                                                                                                                |
+| ------- | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                       |
+| Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically. |
+| Phase B | Operational Visibility   | Active   | B1 provides protected live health checks; B2 adds a bounded privacy-safe Runtime Incident Feed; B3 will aggregate external guard state.        |
+| Phase C | Deep Field Verification  | Active   | C1 accessibility and C2 synthetic performance are complete; C3 authenticated disposable CMS validation is in progress.                         |
 
 ## Phase B scope
 
@@ -48,15 +48,25 @@ Aggregate safe current-state signals from Phase A, P6A, P6B, P6C, deployment met
 
 ### C1 — Automated accessibility
 
+Status: complete.
+
 Use repository-owned/free tooling to audit representative public/Admin routes. Keep semantic/component regression tests as the primary source of truth and avoid introducing commercial browser services.
 
 ### C2 — Synthetic performance regression
+
+Status: complete.
 
 Add release-oriented synthetic budgets that complement, rather than replace, existing Vercel Speed Insights/Web Analytics and build-time performance governance.
 
 ### C3 — Authenticated disposable CMS field test
 
-Only after an isolated QA identity and disposable-data contract exist, automate real CMS workflows such as login, Save progress, Facebook thumbnail fallback, public verification, and deterministic cleanup. Never place normal Admin credentials in test code or mutate ordinary production content merely to prove a test.
+Status: production validation pending.
+
+The implementation uses a manual, master-only workflow behind the existing protected `production` Environment. Each run provisions a random-password, non-root editor directly through the protected production D1 infrastructure boundary, executes a real CMS login/Save/Facebook-thumbnail-fallback/publish/public-read/delete flow, and then hard-cleans the exact run-scoped user and content namespace with `always()` cleanup plus zero-row verification.
+
+Normal Admin credentials are never placed in test code or workflow secrets for this purpose. The mutable C3 suite is kept outside `tests/production`, so it can never be discovered by the automatic read-only Phase A browser smoke.
+
+C3 remains incomplete until the merged implementation passes its protected production workflow on the exact deployed `master` SHA and deterministic cleanup is confirmed.
 
 ## What must not be duplicated
 
