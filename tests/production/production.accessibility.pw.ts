@@ -74,6 +74,7 @@ async function auditAccessibility(page: Page, requireSingleH1: boolean) {
       if (!image.hasAttribute("alt")) violations.push(`${selectorFor(image)}: image is missing alt attribute`);
     }
 
+    // Geometry alone is not enough: framework plumbing can be visible while intentionally removed from the accessibility tree.
     for (const control of Array.from(document.querySelectorAll("input:not([type='hidden']), select, textarea")).filter(
       (element) => visible(element) && !element.closest('[aria-hidden="true"]')
     )) {
