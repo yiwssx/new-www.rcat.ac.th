@@ -10,17 +10,28 @@ Phase C extends the completed development-quality, field-QA, and operational-vis
 
 ## C1 — Automated accessibility
 
-Status: validation in progress.
+Status: complete.
+
+Completed: 2026-09-05.
 
 The production Playwright suite audits representative public routes plus the unauthenticated Admin boundary on the existing desktop/mobile Chromium projects. The field audit is read-only and checks a bounded semantic baseline: document language/title, public h1 structure, image alt attributes, form-control labels, interactive accessible names, duplicate IDs, and positive tabindex values.
 
-C1 reuses `.github/workflows/phase-a-production-browser-smoke.yml` and `playwright.production.config.ts`. No commercial browser service, production credential, or mutable CMS operation is required.
+C1 reuses `.github/workflows/phase-a-production-browser-smoke.yml` and `playwright.production.config.ts`. No commercial browser service, production credential, or mutable CMS operation is required. Completion evidence is the successful exact-SHA production field run after PR #223, including the accessibility suite on desktop and mobile Chromium.
 
 ## C2 — Synthetic performance regression
 
-Status: planned.
+Status: validation in progress.
 
-Add bounded release-oriented synthetic budgets that complement the repository build-time performance governance and existing Vercel Speed Insights/Web Analytics.
+C2 reuses the existing deployment-driven production Playwright pipeline and adds one bounded home-route synthetic check per existing desktop/mobile Chromium project. It records browser-native Time to First Byte, First Contentful Paint, DOMContentLoaded, and load-event timings after the exact `master` SHA is deployed by Vercel.
+
+The fixed release guardrails are intentionally looser than the real-user Core Web Vitals objectives because GitHub-hosted runner network conditions are synthetic and variable. They detect gross release regressions rather than replace Vercel Speed Insights/Web Analytics or the existing static bundle budget:
+
+- Time to First Byte: <= 5,000 ms
+- First Contentful Paint: <= 7,000 ms
+- DOMContentLoaded: <= 10,000 ms
+- load event: <= 12,000 ms
+
+The test remains read-only, serial (`workers: 1`), retry-bounded by the existing production Playwright configuration, and adds no paid performance service or new runtime telemetry.
 
 ## C3 — Authenticated disposable CMS field test
 
