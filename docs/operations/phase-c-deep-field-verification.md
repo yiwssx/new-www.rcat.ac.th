@@ -20,7 +20,9 @@ C1 reuses `.github/workflows/phase-a-production-browser-smoke.yml` and `playwrig
 
 ## C2 — Synthetic performance regression
 
-Status: validation in progress.
+Status: complete.
+
+Completed: 2026-09-05.
 
 C2 reuses the existing deployment-driven production Playwright pipeline and adds one bounded home-route synthetic check per existing desktop/mobile Chromium project. It records browser-native Time to First Byte, First Contentful Paint, DOMContentLoaded, and load-event timings after the exact `master` SHA is deployed by Vercel.
 
@@ -32,6 +34,11 @@ The fixed release guardrails are intentionally looser than the real-user Core We
 - load event: <= 12,000 ms
 
 The test remains read-only, serial (`workers: 1`), retry-bounded by the existing production Playwright configuration, and adds no paid performance service or new runtime telemetry.
+
+Completion evidence is PR #224 merged to `master` at `443e82e2697e261b22ae671718bc5ee7274fd7fb`, successful master CI #1846, successful exact-SHA Vercel deployment, and successful Phase A Production Browser Smoke #38. The production field suite passed 16/16 tests. C2 measurements were:
+
+- desktop Chromium: TTFB 56.4 ms, FCP 212 ms, DOMContentLoaded 268.6 ms, load 282.5 ms;
+- mobile Chromium: TTFB 32.5 ms, FCP 184 ms, DOMContentLoaded 258 ms, load 272 ms.
 
 ## C3 — Authenticated disposable CMS field test
 
