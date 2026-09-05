@@ -24,10 +24,7 @@ const performanceSpec = readFileSync(
   join(repositoryRoot, "tests", "production", "production.performance.pw.ts"),
   "utf8"
 );
-const phaseC3Spec = readFileSync(
-  join(repositoryRoot, "tests", "field-authenticated", "phase-c3.cms.pw.ts"),
-  "utf8"
-);
+const phaseC3Spec = readFileSync(join(repositoryRoot, "tests", "field-authenticated", "phase-c3.cms.pw.ts"), "utf8");
 const phaseC3Fixture = readFileSync(join(repositoryRoot, "scripts", "phase-c3-disposable-fixture.mjs"), "utf8");
 const packageJson = JSON.parse(readFileSync(join(repositoryRoot, "package.json"), "utf8")) as {
   dependencies?: Record<string, string>;

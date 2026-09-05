@@ -54,7 +54,9 @@ function getCountRow(filePath) {
 function assertCounts(filePath, expected) {
   const actual = getCountRow(filePath);
   if (Object.entries(expected).some(([key, value]) => actual[key] !== value)) {
-    throw new Error(`Phase C3 fixture state mismatch: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    throw new Error(
+      `Phase C3 fixture state mismatch: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
   console.log(`[Phase C3] disposable fixture state verified: ${JSON.stringify(actual)}`);
 }

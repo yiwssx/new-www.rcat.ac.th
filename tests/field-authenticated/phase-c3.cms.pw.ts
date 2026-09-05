@@ -65,7 +65,9 @@ test.describe("Phase C3 authenticated disposable CMS field", () => {
     await editor.getByRole("textbox", { name: "ชื่อเรื่อง" }).fill(title);
     await editor.getByRole("textbox", { name: "slug ลิงก์ถาวร" }).fill(slug);
     await editor.getByRole("textbox", { name: "ผู้รับผิดชอบ" }).fill("Phase C3 Disposable QA");
-    await editor.getByRole("textbox", { name: "สรุปย่อ" }).fill("Disposable authenticated field verification; safe to delete.");
+    await editor
+      .getByRole("textbox", { name: "สรุปย่อ" })
+      .fill("Disposable authenticated field verification; safe to delete.");
     await editor.getByLabel("เทมเพลต").click();
     await page.getByRole("option", { name: "Facebook Embed", exact: true }).click();
     await editor.getByRole("textbox", { name: "URL หลัก" }).fill(facebookUrl);
