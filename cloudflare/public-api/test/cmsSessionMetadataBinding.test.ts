@@ -121,4 +121,19 @@ describe("CMS session client metadata binding", () => {
       })
     ).resolves.toEqual({ status: "unauthenticated" });
   });
+
+  it("requires User-Agent metadata when client IP metadata is present", async () => {
+    const repository = makeRepository(await makeRecord());
+
+    await expect(
+      authenticateCmsSession({
+        env: { CMS_AUTH_PROXY_SECRET: testSecret },
+        sessionToken,
+        clientIp: originalIp,
+        method: "GET",
+        now: new Date(fixedNow.getTime() + 5_000),
+        repository
+      })
+    ).resolves.toEqual({ status: "unauthenticated" });
+  });
 });
