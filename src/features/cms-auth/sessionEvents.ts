@@ -7,22 +7,28 @@ import {
 
 export type CmsSessionEvent = "session-changed" | "logged-out";
 
-export function broadcastCmsSessionEvent(event: CmsSessionEvent) {
+let cmsSessionChannel: BroadcastChannel | null = null;
+
+function getCmsSessionChannel() {
   if (typeof BroadcastChannel === "undefined") {
-    return;
+    return null;
   }
 
-  const channel = new BroadcastChannel(CMS_AUTH_CHANNEL_NAME);
-  channel.postMessage(event);
-  channel.close();
+  cmsSessionChannel ??= new BroadcastChannel(CMS_AUTH_CHANNEL_NAME);
+  return cmsSessionChannel;
+}
+
+export function broadcastCmsSessionEvent(event: CmsSessionEvent) {
+  getCmsSessionChannel()?.postMessage(event);
 }
 
 export function subscribeToCmsSessionEvents(listener: (event: CmsSessionEvent) => void) {
-  if (typeof BroadcastChannel === "undefined") {
+  const channel = getCmsSessionChannel();
+
+  if (!channel) {
     return () => undefined;
   }
 
-  const channel = new BroadcastChannel(CMS_AUTH_CHANNEL_NAME);
   const handleMessage = (message: MessageEvent<unknown>) => {
     if (message.data === "session-changed" || message.data === "logged-out") {
       listener(message.data);
@@ -32,7 +38,6 @@ export function subscribeToCmsSessionEvents(listener: (event: CmsSessionEvent) =
 
   return () => {
     channel.removeEventListener("message", handleMessage);
-    channel.close();
   };
 }
 
