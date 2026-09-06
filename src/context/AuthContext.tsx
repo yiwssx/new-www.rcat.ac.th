@@ -6,6 +6,7 @@ import {
   CMS_SESSION_EXPIRED_EVENT,
   CMS_SESSION_KEEPALIVE_CHECK_INTERVAL_MS,
   CMS_SESSION_KEEPALIVE_INTERVAL_MS,
+  CMS_SESSION_NOTICE_KEY,
   CMS_SESSION_RECENT_ACTIVITY_MS,
   cmsStepUpCoordinator,
   getCmsCapabilities,
@@ -27,7 +28,7 @@ import {
 } from "../features/cms-auth";
 import { AuthContext } from "./authSessionContext";
 
-async function retryFreshCmsAuthorizationRead<T>(read: () => Promise<T>) {
+async function retryCmsAuthorizationRead<T>(read: () => Promise<T>) {
   try {
     return await read();
   } catch (error) {
@@ -35,9 +36,8 @@ async function retryFreshCmsAuthorizationRead<T>(read: () => Promise<T>) {
       throw error;
     }
 
-    // Login creates the Session immediately before these authorization reads,
-    // which traverse separate same-origin proxy paths. Retry each read once to
-    // tolerate a transient disagreement for that newly-created Session only.
+    // Authorization reads are idempotent. Retry one 401 once to tolerate a
+    // transient disagreement between same-origin auth/admin proxy paths.
     // Persistent 401 responses still fail closed and mutations are never retried.
     return read();
   }
@@ -61,10 +61,18 @@ async function readCmsAuthorizationState() {
   return { user: sessionResult.value, capabilityPayload: capabilityResult.value };
 }
 
-async function readFreshCmsAuthorizationState() {
-  const user = await retryFreshCmsAuthorizationRead(getCmsSession);
-  const capabilityPayload = await retryFreshCmsAuthorizationRead(getCmsCapabilities);
+async function readCmsAuthorizationStateWithBounded401Retry() {
+  const user = await retryCmsAuthorizationRead(getCmsSession);
+  const capabilityPayload = await retryCmsAuthorizationRead(getCmsCapabilities);
   return { user, capabilityPayload };
+}
+
+function clearCmsSessionNotice() {
+  try {
+    window.sessionStorage.removeItem(CMS_SESSION_NOTICE_KEY);
+  } catch {
+    // A successful server revalidation is authoritative even when notice storage is unavailable.
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -78,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     generation: number;
     promise: Promise<CmsSession | null>;
   } | null>(null);
+  const sessionExpiryConfirmationRef = useRef<Promise<void> | null>(null);
   const lastAdminActivityAtRef = useRef(0);
   const lastSessionRefreshAtRef = useRef(0);
 
@@ -107,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshSession = useCallback(
-    (options: { force?: boolean; activityKeepalive?: boolean; freshLogin?: boolean } = {}) => {
+    (options: { force?: boolean; activityKeepalive?: boolean; retryAuthorization401?: boolean } = {}) => {
       if (!options.force && refreshRequestRef.current) {
         return refreshRequestRef.current.promise;
       }
@@ -122,8 +131,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const refreshPromise = (async () => {
         try {
-          const { user, capabilityPayload } = options.freshLogin
-            ? await readFreshCmsAuthorizationState()
+          const { user, capabilityPayload } = options.retryAuthorization401
+            ? await readCmsAuthorizationStateWithBounded401Retry()
             : await readCmsAuthorizationState();
 
           if (generation !== refreshGenerationRef.current) {
@@ -194,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await loginCmsAccount(identifier, password);
 
       if (result.kind === "authenticated") {
-        const nextSession = await refreshSession({ force: true, freshLogin: true });
+        const nextSession = await refreshSession({ force: true, retryAuthorization401: true });
 
         if (!nextSession) {
           throw new CmsAuthError(401);
@@ -273,7 +282,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshSession]);
 
   useEffect(() => {
-    const handleSessionExpired = () => clearSession({ broadcast: true });
+    const handleSessionExpired = (event: Event) => {
+      const shouldConfirm =
+        event instanceof CustomEvent &&
+        event.detail &&
+        typeof event.detail === "object" &&
+        event.detail.confirmSession === true;
+
+      if (!shouldConfirm) {
+        clearSession({ broadcast: true });
+        return;
+      }
+
+      if (sessionExpiryConfirmationRef.current) {
+        return;
+      }
+
+      // A proxy 401 can race with sibling authorization reads. Confirm through
+      // the authoritative Session/capability GETs before clearing global state.
+      // Reuse an in-flight auth refresh when present; otherwise allow one bounded
+      // 401 retry on those idempotent reads. Mutations are never replayed.
+      const confirmationSource =
+        refreshRequestRef.current?.promise ?? refreshSession({ retryAuthorization401: true });
+      const confirmationPromise = confirmationSource
+        .then((nextSession) => {
+          if (nextSession) {
+            clearCmsSessionNotice();
+            return;
+          }
+
+          clearSession({ broadcast: true });
+        })
+        .catch(() => {
+          clearSession({ broadcast: true });
+        });
+
+      sessionExpiryConfirmationRef.current = confirmationPromise;
+      void confirmationPromise.finally(() => {
+        if (sessionExpiryConfirmationRef.current === confirmationPromise) {
+          sessionExpiryConfirmationRef.current = null;
+        }
+      });
+    };
     const unsubscribe = subscribeToCmsSessionEvents(() => {
       void refreshSession({ force: true }).catch(() => undefined);
     });
