@@ -4,9 +4,7 @@ import { getCmsClientMetadata } from "./protocol.mjs";
 
 function request(headers = {}) {
   return {
-    headers: Object.fromEntries(
-      Object.entries(headers).map(([name, value]) => [name.toLowerCase(), value])
-    )
+    headers: Object.fromEntries(Object.entries(headers).map(([name, value]) => [name.toLowerCase(), value]))
   };
 }
 
