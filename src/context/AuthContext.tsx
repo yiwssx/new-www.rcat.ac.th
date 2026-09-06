@@ -2,11 +2,11 @@ import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { useQueryClient } from "@tanstack/react-query";
 import {
   broadcastCmsSessionEvent,
+  clearCmsSessionNotice,
   clearProtectedAdminQueries,
   CMS_SESSION_EXPIRED_EVENT,
   CMS_SESSION_KEEPALIVE_CHECK_INTERVAL_MS,
   CMS_SESSION_KEEPALIVE_INTERVAL_MS,
-  CMS_SESSION_NOTICE_KEY,
   CMS_SESSION_RECENT_ACTIVITY_MS,
   cmsStepUpCoordinator,
   getCmsCapabilities,
@@ -65,14 +65,6 @@ async function readCmsAuthorizationStateWithBounded401Retry() {
   const user = await retryCmsAuthorizationRead(getCmsSession);
   const capabilityPayload = await retryCmsAuthorizationRead(getCmsCapabilities);
   return { user, capabilityPayload };
-}
-
-function clearCmsSessionNotice() {
-  try {
-    window.sessionStorage.removeItem(CMS_SESSION_NOTICE_KEY);
-  } catch {
-    // A successful server revalidation is authoritative even when notice storage is unavailable.
-  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
