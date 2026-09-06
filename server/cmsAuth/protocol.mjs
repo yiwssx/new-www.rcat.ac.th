@@ -145,7 +145,11 @@ function containsControlCharacter(value) {
 }
 
 function readClientIp(request) {
-  for (const headerName of ["x-vercel-forwarded-for", "x-forwarded-for", "x-real-ip"]) {
+  // Vercel documents x-forwarded-for as the public client-IP contract and
+  // overwrites it at the platform edge to prevent spoofing. Prefer that stable
+  // value across separate serverless routes; retain legacy headers only as
+  // bounded fallbacks for non-Vercel/local execution.
+  for (const headerName of ["x-forwarded-for", "x-vercel-forwarded-for", "x-real-ip"]) {
     const value = getRequestHeader(request, headerName);
 
     if (!value) {
