@@ -27,6 +27,22 @@ import {
 } from "../features/cms-auth";
 import { AuthContext } from "./authSessionContext";
 
+async function retryCmsAuthorizationRead<T>(read: () => Promise<T>) {
+  try {
+    return await read();
+  } catch (error) {
+    if (!(error instanceof CmsAuthError && error.status === 401)) {
+      throw error;
+    }
+
+    // Session and capability reads traverse separate same-origin proxies. A
+    // freshly-created session may transiently disagree across those reads, so
+    // retry one read once before treating the session as expired. Mutations are
+    // never retried here and persistent 401 responses still fail closed.
+    return read();
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<CmsAuthStatus>("bootstrapping");
@@ -82,28 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const refreshPromise = (async () => {
         try {
-          const [sessionResult, capabilityResult] = await Promise.allSettled([getCmsSession(), getCmsCapabilities()]);
-
-          const failures = [sessionResult, capabilityResult]
-            .filter((result): result is PromiseRejectedResult => result.status === "rejected")
-            .map((result) => result.reason);
-          const failure =
-            failures.find((error) => error instanceof CmsAuthError && error.status === 401) ?? failures[0];
-
-          if (failure) {
-            throw failure;
-          }
+          const user = await retryCmsAuthorizationRead(getCmsSession);
+          const capabilityPayload = await retryCmsAuthorizationRead(getCmsCapabilities);
 
           if (generation !== refreshGenerationRef.current) {
             return sessionRef.current;
           }
-
-          if (sessionResult.status !== "fulfilled" || capabilityResult.status !== "fulfilled") {
-            throw new TypeError("CMS Session refresh did not return complete authorization state");
-          }
-
-          const user = sessionResult.value;
-          const capabilityPayload = capabilityResult.value;
 
           if (capabilityPayload.role !== user.role) {
             throw new TypeError("CMS Session role does not match the capability role");
@@ -169,7 +169,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await loginCmsAccount(identifier, password);
 
       if (result.kind === "authenticated") {
-        await refreshSession({ force: true });
+        const nextSession = await refreshSession({ force: true });
+
+        if (!nextSession) {
+          throw new CmsAuthError(401);
+        }
+
         broadcastCmsSessionEvent("session-changed");
       }
 
