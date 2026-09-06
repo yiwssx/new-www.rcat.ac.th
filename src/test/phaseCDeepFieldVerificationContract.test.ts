@@ -70,6 +70,15 @@ describe("Phase C deep field verification contract", () => {
     expect(phaseC3Workflow).not.toMatch(/CMS_(?:ADMIN|ROOT)_(?:USERNAME|PASSWORD)/);
   });
 
+  it("C3 executes disposable D1 SQL through query mode without nested transaction or file-import noise", () => {
+    expect(phaseC3Workflow).toContain('--command "$(cat "$RUNNER_TEMP/phase-c3-verify.sql")"');
+    expect(phaseC3Workflow).toContain('--command "$(cat "$RUNNER_TEMP/phase-c3-provision.sql")"');
+    expect(phaseC3Workflow).toContain('--command "$(cat "$RUNNER_TEMP/phase-c3-cleanup.sql")"');
+    expect(phaseC3Workflow).not.toContain('--file="$RUNNER_TEMP/phase-c3-');
+    expect(phaseC3Fixture).not.toContain("BEGIN TRANSACTION;");
+    expect(phaseC3Fixture).not.toContain("COMMIT;");
+  });
+
   it("C3 proves Facebook thumbnail fallback, public visibility, deletion, and cleanup", () => {
     expect(phaseC3Spec).toContain("บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail");
     expect(phaseC3Spec).toContain("เผยแพร่เนื้อหาสำเร็จ");
