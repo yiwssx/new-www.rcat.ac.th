@@ -27,7 +27,7 @@ import {
 } from "../features/cms-auth";
 import { AuthContext } from "./authSessionContext";
 
-async function retryCmsAuthorizationRead<T>(read: () => Promise<T>) {
+async function retryFreshCmsAuthorizationRead<T>(read: () => Promise<T>) {
   try {
     return await read();
   } catch (error) {
@@ -35,12 +35,36 @@ async function retryCmsAuthorizationRead<T>(read: () => Promise<T>) {
       throw error;
     }
 
-    // Session and capability reads traverse separate same-origin proxies. A
-    // freshly-created session may transiently disagree across those reads, so
-    // retry one read once before treating the session as expired. Mutations are
-    // never retried here and persistent 401 responses still fail closed.
+    // Login creates the Session immediately before these authorization reads,
+    // which traverse separate same-origin proxy paths. Retry each read once to
+    // tolerate a transient disagreement for that newly-created Session only.
+    // Persistent 401 responses still fail closed and mutations are never retried.
     return read();
   }
+}
+
+async function readCmsAuthorizationState() {
+  const [sessionResult, capabilityResult] = await Promise.allSettled([getCmsSession(), getCmsCapabilities()]);
+  const failures = [sessionResult, capabilityResult]
+    .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+    .map((result) => result.reason);
+  const failure = failures.find((error) => error instanceof CmsAuthError && error.status === 401) ?? failures[0];
+
+  if (failure) {
+    throw failure;
+  }
+
+  if (sessionResult.status !== "fulfilled" || capabilityResult.status !== "fulfilled") {
+    throw new TypeError("CMS Session refresh did not return complete authorization state");
+  }
+
+  return { user: sessionResult.value, capabilityPayload: capabilityResult.value };
+}
+
+async function readFreshCmsAuthorizationState() {
+  const user = await retryFreshCmsAuthorizationRead(getCmsSession);
+  const capabilityPayload = await retryFreshCmsAuthorizationRead(getCmsCapabilities);
+  return { user, capabilityPayload };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -83,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshSession = useCallback(
-    (options: { force?: boolean; activityKeepalive?: boolean } = {}) => {
+    (options: { force?: boolean; activityKeepalive?: boolean; freshLogin?: boolean } = {}) => {
       if (!options.force && refreshRequestRef.current) {
         return refreshRequestRef.current.promise;
       }
@@ -98,8 +122,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const refreshPromise = (async () => {
         try {
-          const user = await retryCmsAuthorizationRead(getCmsSession);
-          const capabilityPayload = await retryCmsAuthorizationRead(getCmsCapabilities);
+          const { user, capabilityPayload } = options.freshLogin
+            ? await readFreshCmsAuthorizationState()
+            : await readCmsAuthorizationState();
 
           if (generation !== refreshGenerationRef.current) {
             return sessionRef.current;
@@ -169,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await loginCmsAccount(identifier, password);
 
       if (result.kind === "authenticated") {
-        const nextSession = await refreshSession({ force: true });
+        const nextSession = await refreshSession({ force: true, freshLogin: true });
 
         if (!nextSession) {
           throw new CmsAuthError(401);
