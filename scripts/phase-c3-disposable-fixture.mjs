@@ -97,9 +97,7 @@ async function prepare() {
     ].join("\n") + "\n"
   );
 
-  const provisionSql = `PRAGMA foreign_keys = ON;
-BEGIN TRANSACTION;
-INSERT INTO app_admin_users
+  const provisionSql = `INSERT INTO app_admin_users
   (id, email, name, role, status, created_at, updated_at, created_by, updated_by, revision,
    username, is_root, must_change_password, mfa_required, session_version, last_login_at)
 VALUES
@@ -111,14 +109,10 @@ INSERT INTO admin_credentials
 VALUES
   (${sqlText(userId)}, ${sqlText(passwordHash)}, ${sqlText(PASSWORD_ALGORITHM)}, ${sqlText(now)}, 0, '',
    ${sqlText(now)}, ${sqlText(now)});
-COMMIT;
 `;
 
-  const cleanupSql = `PRAGMA foreign_keys = ON;
-BEGIN TRANSACTION;
-DELETE FROM contents WHERE slug = ${sqlText(slug)};
+  const cleanupSql = `DELETE FROM contents WHERE slug = ${sqlText(slug)};
 DELETE FROM app_admin_users WHERE id = ${sqlText(userId)} AND is_root = 0;
-COMMIT;
 `;
 
   const verifySql = `SELECT
