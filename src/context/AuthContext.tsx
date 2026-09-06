@@ -302,8 +302,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // the authoritative Session/capability GETs before clearing global state.
       // Reuse an in-flight auth refresh when present; otherwise allow one bounded
       // 401 retry on those idempotent reads. Mutations are never replayed.
-      const confirmationSource =
-        refreshRequestRef.current?.promise ?? refreshSession({ retryAuthorization401: true });
+      const confirmationSource = refreshRequestRef.current?.promise ?? refreshSession({ retryAuthorization401: true });
       const confirmationPromise = confirmationSource
         .then((nextSession) => {
           if (nextSession) {
