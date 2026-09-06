@@ -1,7 +1,13 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CMS_SESSION_NOTICE_KEY, CmsAuthError, notifyCmsSessionExpired, type CmsSafeUser } from "../features/cms-auth";
+import {
+  CMS_SESSION_EXPIRED_EVENT,
+  CMS_SESSION_NOTICE_KEY,
+  CmsAuthError,
+  notifyCmsSessionExpired,
+  type CmsSafeUser
+} from "../features/cms-auth";
 import { AuthProvider } from "./AuthContext";
 import { useAuth } from "./authSessionContext";
 
@@ -141,6 +147,21 @@ describe("CMS transient expiry confirmation", () => {
     expect(await screen.findByText("status:unauthenticated")).toBeInTheDocument();
     expect(screen.getByText("user:none")).toBeInTheDocument();
     expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(2);
+    expect(cmsAuthMock.getCapabilities).not.toHaveBeenCalled();
+    expect(FakeBroadcastChannel.messages).toEqual(["logged-out"]);
+  });
+
+  it("keeps legacy expiry events immediately fail-closed without server confirmation", async () => {
+    renderAuth();
+    await screen.findByText("status:authenticated");
+    cmsAuthMock.getSession.mockClear();
+    cmsAuthMock.getCapabilities.mockClear();
+
+    act(() => window.dispatchEvent(new CustomEvent(CMS_SESSION_EXPIRED_EVENT)));
+
+    expect(await screen.findByText("status:unauthenticated")).toBeInTheDocument();
+    expect(screen.getByText("user:none")).toBeInTheDocument();
+    expect(cmsAuthMock.getSession).not.toHaveBeenCalled();
     expect(cmsAuthMock.getCapabilities).not.toHaveBeenCalled();
     expect(FakeBroadcastChannel.messages).toEqual(["logged-out"]);
   });
