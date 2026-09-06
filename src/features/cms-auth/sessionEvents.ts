@@ -59,6 +59,18 @@ export function notifyCmsSessionExpired(message = CMS_SESSION_EXPIRED_MESSAGE) {
   );
 }
 
+export function clearCmsSessionNotice() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(CMS_SESSION_NOTICE_KEY);
+  } catch {
+    // A successful server revalidation is authoritative even when notice storage is unavailable.
+  }
+}
+
 export function consumeCmsSessionNotice() {
   if (typeof window === "undefined") {
     return "";
