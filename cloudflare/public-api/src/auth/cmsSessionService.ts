@@ -252,20 +252,23 @@ export async function authenticateCmsSession(
     }
 
     if (input.clientIp !== undefined || input.userAgent !== undefined) {
-      if (typeof input.clientIp !== "string" || typeof input.userAgent !== "string") {
+      if (
+        typeof input.clientIp !== "string" ||
+        input.clientIp.length === 0 ||
+        typeof input.userAgent !== "string" ||
+        input.userAgent.length === 0
+      ) {
         return { status: "unauthenticated" };
       }
 
+      // Client IP is retained as HMAC-protected session metadata for anomaly/audit use,
+      // but it is not a stable authentication factor across legitimate NAT/proxy changes.
+      // Keep the less volatile User-Agent binding fail-closed while the opaque session
+      // token, expiry/version/revocation checks, and mutation CSRF remain authoritative.
       const secret = input.env.CMS_AUTH_PROXY_SECRET ?? "";
-      const [ipHash, userAgentHash] = await Promise.all([
-        hashCmsClientIp(input.clientIp, secret),
-        hashCmsUserAgent(input.userAgent, secret)
-      ]);
+      const userAgentHash = await hashCmsUserAgent(input.userAgent, secret);
 
-      if (
-        !fixedSizeBase64UrlEqual(ipHash, record.session.ip_hash) ||
-        !fixedSizeBase64UrlEqual(userAgentHash, record.session.user_agent_hash)
-      ) {
+      if (!fixedSizeBase64UrlEqual(userAgentHash, record.session.user_agent_hash)) {
         return { status: "unauthenticated" };
       }
     }
