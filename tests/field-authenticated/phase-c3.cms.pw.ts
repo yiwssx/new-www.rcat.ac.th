@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Locator, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Locator, type Page, type Response } from "@playwright/test";
 
 function requireFieldValue(name: string) {
   const value = process.env[name]?.trim();
@@ -13,9 +13,38 @@ async function confirmSwal(page: Page, title: string, button: string) {
   await page.getByRole("button", { name: button, exact: true }).last().click();
 }
 
+function isFilteredContentListResponse(response: Response, title: string) {
+  if (response.request().method() !== "GET") {
+    return false;
+  }
+
+  const responseUrl = new URL(response.url());
+  if (responseUrl.pathname !== "/api/admin-proxy") {
+    return false;
+  }
+
+  const upstreamPath = responseUrl.searchParams.get("path");
+  if (!upstreamPath?.startsWith("/api/admin/content?")) {
+    return false;
+  }
+
+  const upstreamUrl = new URL(upstreamPath, "https://phase-c3.invalid");
+  return upstreamUrl.searchParams.get("q") === title;
+}
+
 async function findContentRow(page: Page, title: string): Promise<Locator> {
   const search = page.getByPlaceholder("ค้นหาเนื้อหา");
+  const filteredResponsePromise = page.waitForResponse((response) => isFilteredContentListResponse(response, title), {
+    timeout: 30_000
+  });
+
   await search.fill(title);
+  const filteredResponse = await filteredResponsePromise;
+  expect(filteredResponse.ok(), `filtered content list request returned ${filteredResponse.status()}`).toBeTruthy();
+
+  const tableScroll = page.locator(".table-scroll");
+  await expect(tableScroll).toHaveAttribute("aria-busy", "false");
+
   const row = page.getByRole("row").filter({ hasText: title });
   await expect(row).toHaveCount(1);
   return row;
@@ -42,6 +71,8 @@ test.describe("Phase C3 authenticated disposable CMS field", () => {
     page,
     request
   }) => {
+    test.setTimeout(240_000);
+
     const username = requireFieldValue("PHASE_C3_QA_USERNAME");
     const password = requireFieldValue("PHASE_C3_QA_PASSWORD");
     const slug = requireFieldValue("PHASE_C3_CONTENT_SLUG");
@@ -79,7 +110,9 @@ test.describe("Phase C3 authenticated disposable CMS field", () => {
     await confirmSwal(page, "บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail", "ตกลง");
 
     let row = await findContentRow(page, title);
-    await row.getByRole("button", { name: "เผยแพร่", exact: true }).click();
+    const publishButton = row.getByRole("button", { name: "เผยแพร่", exact: true });
+    await expect(publishButton).toBeEnabled();
+    await publishButton.click();
     await confirmSwal(page, "เผยแพร่เนื้อหา?", "เผยแพร่");
     await confirmSwal(page, "เผยแพร่เนื้อหาสำเร็จ", "ตกลง");
 
@@ -96,7 +129,9 @@ test.describe("Phase C3 authenticated disposable CMS field", () => {
 
     await page.goto("/admin/content");
     row = await findContentRow(page, title);
-    await row.getByRole("button", { name: "ลบ", exact: true }).click();
+    const deleteButton = row.getByRole("button", { name: "ลบ", exact: true });
+    await expect(deleteButton).toBeEnabled();
+    await deleteButton.click();
     await confirmSwal(page, "ลบเนื้อหา?", "ลบ");
     await confirmSwal(page, "ลบเนื้อหาสำเร็จ", "ตกลง");
 

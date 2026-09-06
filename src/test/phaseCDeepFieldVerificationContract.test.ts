@@ -84,6 +84,9 @@ describe("Phase C deep field verification contract", () => {
     expect(phaseC3Spec).toContain("เผยแพร่เนื้อหาสำเร็จ");
     expect(phaseC3Spec).toContain("/api/public/content/");
     expect(phaseC3Spec).toContain("ลบเนื้อหาสำเร็จ");
+    expect(phaseC3Spec).toContain("waitForResponse");
+    expect(phaseC3Spec).toContain('toHaveAttribute("aria-busy", "false")');
+    expect(phaseC3Spec).toContain("test.setTimeout(240_000)");
     expect(phaseC3Fixture).toContain("DELETE FROM contents WHERE slug");
     expect(phaseC3Fixture).toContain("DELETE FROM app_admin_users");
   });
