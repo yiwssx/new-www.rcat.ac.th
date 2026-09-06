@@ -133,7 +133,7 @@ jobs:
         run: |
           pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
-            --file="$RUNNER_TEMP/phase-c3-verify.sql" \
+            --command "$(cat "$RUNNER_TEMP/phase-c3-verify.sql")" \
             --json > "$RUNNER_TEMP/phase-c3-preflight.json"
           node scripts/phase-c3-disposable-fixture.mjs assert-clean "$RUNNER_TEMP/phase-c3-preflight.json"
 
@@ -145,7 +145,7 @@ jobs:
         run: |
           pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
-            --file="$RUNNER_TEMP/phase-c3-provision.sql" \
+            --command "$(cat "$RUNNER_TEMP/phase-c3-provision.sql")" \
             --json > "$RUNNER_TEMP/phase-c3-provision-result.json"
 
       - name: Verify disposable editor identity
@@ -156,7 +156,7 @@ jobs:
         run: |
           pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
-            --file="$RUNNER_TEMP/phase-c3-verify.sql" \
+            --command "$(cat "$RUNNER_TEMP/phase-c3-verify.sql")" \
             --json > "$RUNNER_TEMP/phase-c3-provision-verify.json"
           node scripts/phase-c3-disposable-fixture.mjs assert-provisioned "$RUNNER_TEMP/phase-c3-provision-verify.json"
 
@@ -181,7 +181,7 @@ jobs:
           fi
           pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
-            --file="$RUNNER_TEMP/phase-c3-cleanup.sql" \
+            --command "$(cat "$RUNNER_TEMP/phase-c3-cleanup.sql")" \
             --json > "$RUNNER_TEMP/phase-c3-cleanup-result.json"
 
       - name: Verify deterministic cleanup
@@ -197,7 +197,7 @@ jobs:
           fi
           pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
-            --file="$RUNNER_TEMP/phase-c3-verify.sql" \
+            --command "$(cat "$RUNNER_TEMP/phase-c3-verify.sql")" \
             --json > "$RUNNER_TEMP/phase-c3-cleanup-verify.json"
           node scripts/phase-c3-disposable-fixture.mjs assert-clean "$RUNNER_TEMP/phase-c3-cleanup-verify.json"
 
