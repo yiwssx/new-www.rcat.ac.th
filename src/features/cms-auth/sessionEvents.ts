@@ -52,7 +52,11 @@ export function notifyCmsSessionExpired(message = CMS_SESSION_EXPIRED_MESSAGE) {
     // Session loss still propagates when non-sensitive notice storage is unavailable.
   }
 
-  window.dispatchEvent(new CustomEvent(CMS_SESSION_EXPIRED_EVENT));
+  window.dispatchEvent(
+    new CustomEvent(CMS_SESSION_EXPIRED_EVENT, {
+      detail: { confirmSession: true }
+    })
+  );
 }
 
 export function consumeCmsSessionNotice() {
