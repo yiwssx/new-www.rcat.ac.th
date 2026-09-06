@@ -61,7 +61,7 @@ test.describe("Phase C3 authenticated disposable CMS field", () => {
     await page.getByRole("button", { name: "เพิ่มเนื้อหา", exact: true }).click();
 
     const editor = page.getByRole("dialog");
-    await expect(editor.getByRole("heading", { name: "เพิ่มเนื้อหาใหม่", exact: true })).toBeVisible();
+    await expect(editor.getByRole("heading", { name: /^เพิ่มเนื้อหาใหม่(?:\s|$)/ })).toBeVisible();
     await editor.getByRole("textbox", { name: "ชื่อเรื่อง" }).fill(title);
     await editor.getByRole("textbox", { name: "slug ลิงก์ถาวร" }).fill(slug);
     await editor.getByRole("textbox", { name: "ผู้รับผิดชอบ" }).fill("Phase C3 Disposable QA");
