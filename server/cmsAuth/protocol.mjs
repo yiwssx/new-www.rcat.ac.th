@@ -145,7 +145,7 @@ function containsControlCharacter(value) {
 }
 
 function readClientIp(request) {
-  for (const headerName of ["x-vercel-forwarded-for", "x-forwarded-for", "x-real-ip"]) {
+  for (const headerName of ["x-forwarded-for", "x-vercel-forwarded-for", "x-real-ip"]) {
     const value = getRequestHeader(request, headerName);
 
     if (!value) {
