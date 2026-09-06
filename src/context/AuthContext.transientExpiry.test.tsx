@@ -42,6 +42,14 @@ const user: CmsSafeUser = {
   recentMfaAuthentication: false
 };
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 function AuthState() {
   const auth = useAuth();
   return (
@@ -93,6 +101,30 @@ describe("CMS transient expiry confirmation", () => {
     });
     expect(screen.getByText("status:authenticated")).toBeInTheDocument();
     expect(screen.getByText("user:user-1")).toBeInTheDocument();
+    expect(window.sessionStorage.getItem(CMS_SESSION_NOTICE_KEY)).toBeNull();
+    expect(FakeBroadcastChannel.messages).toEqual([]);
+  });
+
+  it("deduplicates concurrent expiry signals while confirmation is in flight", async () => {
+    renderAuth();
+    await screen.findByText("status:authenticated");
+    cmsAuthMock.getSession.mockClear();
+    cmsAuthMock.getCapabilities.mockClear();
+    const confirmation = createDeferred<CmsSafeUser>();
+    cmsAuthMock.getSession.mockReturnValueOnce(confirmation.promise);
+
+    act(() => {
+      notifyCmsSessionExpired();
+      notifyCmsSessionExpired();
+    });
+
+    await waitFor(() => expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      confirmation.resolve(user);
+      await confirmation.promise;
+    });
+    await waitFor(() => expect(cmsAuthMock.getCapabilities).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("status:authenticated")).toBeInTheDocument();
     expect(window.sessionStorage.getItem(CMS_SESSION_NOTICE_KEY)).toBeNull();
     expect(FakeBroadcastChannel.messages).toEqual([]);
   });
