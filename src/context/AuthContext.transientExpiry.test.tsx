@@ -1,12 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  CMS_SESSION_NOTICE_KEY,
-  CmsAuthError,
-  notifyCmsSessionExpired,
-  type CmsSafeUser
-} from "../features/cms-auth";
+import { CMS_SESSION_NOTICE_KEY, CmsAuthError, notifyCmsSessionExpired, type CmsSafeUser } from "../features/cms-auth";
 import { AuthProvider } from "./AuthContext";
 import { useAuth } from "./authSessionContext";
 
