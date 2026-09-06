@@ -22,7 +22,9 @@ describe("Phase C3 CMS session continuity", () => {
   });
 
   it("does not report password Login success unless the refreshed authorization state is authenticated", () => {
-    expect(authContext).toContain("const nextSession = await refreshSession({ force: true, retryAuthorization401: true })");
+    expect(authContext).toContain(
+      "const nextSession = await refreshSession({ force: true, retryAuthorization401: true })"
+    );
     expect(authContext).toMatch(/if \(!nextSession\) \{\s*throw new CmsAuthError\(401\);\s*\}/);
     expect(authContext).toContain('broadcastCmsSessionEvent("session-changed")');
   });
