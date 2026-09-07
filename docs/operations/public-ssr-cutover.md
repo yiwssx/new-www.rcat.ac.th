@@ -1,43 +1,38 @@
-# Public SSR production cutover
+# Public SSR Production Cutover Runbook
 
-This runbook covers verification and rollback for the Vercel Public SSR runtime. It does not change Worker/D1 ownership or Admin/Auth boundaries.
+Updated: 2026-08-13.
 
-## Scope
-
-The Vercel SSR adapter owns Public page rendering for supported Public routes. Cloudflare Worker remains the Public/CMS API owner and D1 remains the data source.
-
-The browser receives semantic HTML from Vercel, then hydrates the same React application. Admin/Auth/API routes are outside this Public SSR catch-all.
+Use this checklist when Public SSR changes are explicitly promoted to `master`. A non-master branch or draft PR does not change production.
 
 ## Preconditions
 
-- production deploy is built from the intended `master` SHA;
-- Vercel Production environment has the canonical Cloudflare Public API URL configured;
-- Cloudflare Worker and D1 are healthy independently;
-- no production rollback or migration incident is active.
+- Vercel production environment has a valid server-side `CLOUDFLARE_PUBLIC_API_URL` (the public `VITE_CLOUDFLARE_PUBLIC_API_URL` alias remains an accepted compatibility fallback).
+- Production Cloudflare Public API / D1 reads are healthy.
+- Focused and release-scale repository gates pass.
+- No temporary validation workflow is present in the final production diff.
+- `/sitemap.xml` and existing CMS/Auth proxy rewrites remain ahead of the Public SSR catch-all.
 
-## Deployment verification
+The Public structured-data runtime is Cloudflare-only. Do not restore `PUBLIC_API_PROVIDER` or `VITE_PUBLIC_API_PROVIDER` as a runtime selector.
 
-Confirm the Vercel deployment is an actual production build for the intended SHA. A GitHub status whose description says `Canceled by Ignored Build Step` is not a production release and must not be accepted as equivalent to a READY deployment.
+## Expected routing after deployment
 
-Check representative routes from the production hostname, not only the Vercel preview hostname.
+- Public pages such as `/`, `/news`, `/announcements`, `/departments`, `/documents`, `/calendar`, `/contact`, `/search`, `/content/$slug`, and legacy `/$slug` are handled by the Public SSR Function.
+- `/login`, `/activate-account`, `/reset-password`, `/admin`, and `/admin/**` remain CSR through `csr.html`.
+- `/api/**`, `/sitemap.xml`, static assets, `robots.txt`, and other explicit Vercel routes keep their own routing behavior.
+
+## Immediate HTTP checks
+
+Run against the deployed production origin:
 
 ```bash
-curl -i https://www.rcat.ac.th/
-curl -i https://www.rcat.ac.th/news
-curl -i https://www.rcat.ac.th/content/<published-slug>
-curl -i https://www.rcat.ac.th/search?q=test
-curl -i https://www.rcat.ac.th/content/<missing-slug>
+curl -sS -D - -o /dev/null https://www.rcat.ac.th/
+curl -sS -D - -o /dev/null 'https://www.rcat.ac.th/news?page=2'
+curl -sS -D - -o /dev/null 'https://www.rcat.ac.th/search?q=test'
+curl -sS -D - -o /dev/null https://www.rcat.ac.th/content/<published-slug>
+curl -sS -D - -o /dev/null https://www.rcat.ac.th/content/<missing-slug>
+curl -sS -D - -o /dev/null https://www.rcat.ac.th/<published-slug>
+curl -sS -I https://www.rcat.ac.th/content/<published-slug>
 ```
-
-Expected semantic HTML includes:
-
-- `<!DOCTYPE html>`, `<html>`, `<head>`, and `<body>`;
-- `data-rcat-ssr="true"` on the HTML element;
-- meaningful page content / heading before JavaScript;
-- canonical metadata and appropriate Open Graph/Twitter metadata;
-- the client entry and stylesheet selected from the Vite manifest.
-
-## HTTP semantics checks
 
 Expected:
 
@@ -45,19 +40,53 @@ Expected:
 - missing content: `404`, `Cache-Control: no-store`, response-level noindex;
 - legacy published slug: `301` with `Location: /content/<slug>`;
 - Search: `200`, `Cache-Control: no-store`, `X-Robots-Tag: noindex, follow`;
-- Public upstream failure: `503`, `Retry-After: 300`, `Cache-Control: no-store`.
+- HEAD: same status/headers as GET but no body;
+- Public upstream outage: `503`, `Retry-After: 300`, `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`.
 
-Do not accept soft-404 HTML with status `200` for a missing or unpublished content item.
+For successful stable Public index/list pages, browsers should revalidate and the Vercel CDN should use 2-minute freshness plus 1-hour stale-while-revalidate. Canonical dynamic `/content/$slug` responses are intentionally `no-store` so CMS unpublish/delete cannot leave a stale published page in shared cache. Permanent legacy redirects use the longer redirect CDN policy.
 
-## Hydration checks
+## No-JavaScript / crawler HTML checks
 
-Use a production browser run after the SSR response checks. Confirm:
+Fetch source without executing JavaScript:
 
-- no hydration mismatch is emitted in the browser console;
-- the initial server-rendered content remains stable through hydration;
-- navigation to a second Public route works client-side;
-- lazy route chunks and the manifest-selected client assets load successfully;
-- there is no material flash of unstyled content.
+```bash
+curl -sS https://www.rcat.ac.th/ > /tmp/rcat-home.html
+curl -sS https://www.rcat.ac.th/content/<published-slug> > /tmp/rcat-detail.html
+```
+
+Verify the initial HTML includes:
+
+- `<!DOCTYPE html>`, `<html>`, `<head>`, and `<body>`;
+- `data-rcat-ssr="true"` on the HTML element;
+- meaningful page content / heading before JavaScript;
+- route-specific `<title>` and description;
+- canonical URL;
+- Open Graph and Twitter metadata;
+- `application/ld+json` structured data;
+- Emotion `data-emotion` critical styles in the head;
+- one client entry `<script>` marked with `data-rcat-client-entry` whose `/assets/...` filename is content-hashed;
+- one or more stylesheet links marked with `data-rcat-client-stylesheet` whose `/assets/...` filenames are content-hashed.
+
+Do not expect fixed `/assets/rcat-client.js` or `/assets/rcat-client.css` names. The production build selects assets from the Vite manifest and fails closed if the manifest-selected client entry/styles are unavailable.
+
+A published content page must expose its article body in initial HTML. If semantic content only appears after JavaScript, treat the cutover as failed.
+
+## Browser hydration checks
+
+Open representative Public pages and inspect the console:
+
+- no React hydration mismatch warnings;
+- no Emotion class-name mismatch;
+- no flash caused by missing critical MUI styles;
+- route navigation works after hydration;
+- Public queries do not immediately refetch solely because dehydrated state was lost;
+- carousel/Intro Gate/event labels retain deterministic first paint behavior.
+
+Then verify Admin/Auth separately:
+
+- `/login` loads through CSR;
+- `/admin` authentication/session/MFA/CSRF behavior is unchanged;
+- Admin is not server-rendered Public content and remains `noindex,nofollow`.
 
 ## SEO/indexing checks
 
@@ -69,9 +98,9 @@ Use a production browser run after the SSR response checks. Confirm:
 
 ## Vercel cache checks
 
-Repeat successful stable Public index/list GETs after a short interval and inspect Vercel cache/debug headers available on the deployment. Confirm those responses remain eligible for Vercel CDN caching with the current 2-minute freshness / 1-hour stale-while-revalidate policy.
+Repeat a successful stable Public index/list GET after a short interval and inspect Vercel cache/debug headers available on the deployment. Confirm that the response is eligible for Vercel CDN caching with the current 2-minute freshness / 1-hour stale-while-revalidate policy.
 
-Canonical dynamic content detail responses at `/content/:slug` are intentionally `Cache-Control: no-store` and must not emit `Vercel-CDN-Cache-Control`. This prevents a published page from remaining publicly visible from shared cache after CMS unpublish/delete. Search and error responses are also not cached.
+For `/content/<published-slug>`, confirm `Cache-Control: no-store` and no `Vercel-CDN-Cache-Control` header. Dynamic content detail, Search, and error responses must not be held in shared Vercel cache.
 
 Do not use browser `max-age` to hold Public HTML stale: browsers should revalidate, while shared Vercel caching is limited to stable Public SSR surfaces.
 
@@ -101,6 +130,6 @@ Production SSR is considered healthy only when:
 - Search/Admin indexing rules are correct;
 - sitemap/robots are correct;
 - browser hydration has no material mismatch/FOUC;
-- stable Public surfaces follow the documented CDN policy while `/content/:slug` remains no-store;
+- stable Public cache behavior matches the documented CDN policy and `/content/$slug` remains no-store;
 - manifest-selected hashed client assets load successfully;
 - Admin/CMS Session/MFA/CSRF behavior remains unchanged.
