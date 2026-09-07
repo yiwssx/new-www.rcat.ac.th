@@ -1,6 +1,6 @@
 name: Phase C3 One-Time Dispatch
 
-# Round 12 dispatch after DOM-row settlement verification.
+# Round 13 dispatch after sanitized production-auth diagnostics landed.
 on:
   push:
     branches:
