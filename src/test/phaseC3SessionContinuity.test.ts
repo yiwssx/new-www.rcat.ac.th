@@ -9,14 +9,15 @@ const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..")
 const authContext = readFileSync(join(repositoryRoot, "src", "context", "AuthContext.tsx"), "utf8");
 
 describe("Phase C3 CMS session continuity", () => {
-  it("bounds retry to explicit authorization confirmation while normal Session refreshes remain fail-closed", () => {
+  it("bounds 401 confirmation to idempotent authorization reads and established browser Session state", () => {
     expect(authContext).toContain("retryCmsAuthorizationRead");
     expect(authContext).toContain("error instanceof CmsAuthError && error.status === 401");
     expect(authContext).toContain("retryAuthorization401?: boolean");
     expect(authContext).toContain("refreshSession({ force: true, retryAuthorization401: true })");
     expect(authContext).toContain("refreshSession({ retryAuthorization401: true })");
     expect(authContext).toContain("const [sessionResult, capabilityResult] = await Promise.allSettled");
-    expect(authContext).toContain("void refreshSession().catch(() => undefined)");
+    expect(authContext).toContain("const retryAuthorization401 = Boolean(readCmsCsrfToken())");
+    expect(authContext).toContain("void refreshSession({ retryAuthorization401 }).catch(() => undefined)");
     expect(authContext).toContain("void refreshSession({ activityKeepalive: true }).catch(() => undefined)");
     expect(authContext).toContain("Persistent 401 responses still fail closed and mutations are never retried.");
   });
