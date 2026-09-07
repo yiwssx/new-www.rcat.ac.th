@@ -86,6 +86,7 @@ describe("Phase C deep field verification contract", () => {
     expect(phaseC3Spec).toContain("ลบเนื้อหาสำเร็จ");
     expect(phaseC3Spec).toContain("waitForResponse");
     expect(phaseC3Spec).toContain('toHaveAttribute("aria-busy", "false")');
+    expect(phaseC3Spec).toContain('page.locator("tbody tr").filter({ hasText: title })');
     expect(phaseC3Spec).toContain("filtered content row renders after the successful server response settles");
     expect(phaseC3Spec).toMatch(/toHaveCount\(1,\s*\{\s*timeout: 30_000\s*\}\)/);
     expect(phaseC3Spec).toContain("test.setTimeout(240_000)");
