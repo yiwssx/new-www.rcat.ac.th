@@ -46,7 +46,10 @@ async function findContentRow(page: Page, title: string): Promise<Locator> {
   await expect(tableScroll).toHaveAttribute("aria-busy", "false");
 
   const row = page.getByRole("row").filter({ hasText: title });
-  await expect(row).toHaveCount(1);
+  await expect(row, "filtered content row renders after the successful server response settles").toHaveCount(1, {
+    timeout: 30_000
+  });
+  await expect(row).toBeVisible();
   return row;
 }
 
