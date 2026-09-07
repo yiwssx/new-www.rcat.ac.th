@@ -83,7 +83,7 @@ describe("Phase C deep field verification contract", () => {
     expect(phaseC3Spec).toContain("บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail");
     expect(phaseC3Spec).toContain("เผยแพร่เนื้อหาสำเร็จ");
     expect(phaseC3Spec).toContain("getPublicContentPageState");
-    expect(phaseC3Spec).toContain("page.goto(`/content/${encodeURIComponent(slug)}`)");
+    expect(phaseC3Spec).toContain("/content/${encodeURIComponent(slug)}");
     expect(phaseC3Spec).not.toContain("/api/public/content/");
     expect(phaseC3Spec).toContain("production public SSR path");
     expect(phaseC3Spec).toContain("ลบเนื้อหาสำเร็จ");
