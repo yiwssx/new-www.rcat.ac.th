@@ -1,5 +1,6 @@
 name: Phase C3 One-Time Dispatch
 
+# Round 12 dispatch after DOM-row settlement verification.
 on:
   push:
     branches:
