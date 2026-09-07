@@ -131,12 +131,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshSession = useCallback(
-    (options: {
-      force?: boolean;
-      activityKeepalive?: boolean;
-      retryAuthorization401?: boolean;
-      confirmAuthorization401?: boolean;
-    } = {}) => {
+    (
+      options: {
+        force?: boolean;
+        activityKeepalive?: boolean;
+        retryAuthorization401?: boolean;
+        confirmAuthorization401?: boolean;
+      } = {}
+    ) => {
       if (!options.force && refreshRequestRef.current) {
         return refreshRequestRef.current.promise;
       }
@@ -301,8 +303,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // a server-issued CMS Session. On protected Admin navigation, confirm only
       // an authorization read that transiently returns 401. A repeated 401 still
       // fails closed and no mutation is replayed.
-      const confirmAuthorization401 =
-        window.location.pathname.startsWith("/admin") && Boolean(readCmsCsrfToken());
+      const confirmAuthorization401 = window.location.pathname.startsWith("/admin") && Boolean(readCmsCsrfToken());
       void refreshSession({ confirmAuthorization401 }).catch(() => undefined);
     }, 0);
 
