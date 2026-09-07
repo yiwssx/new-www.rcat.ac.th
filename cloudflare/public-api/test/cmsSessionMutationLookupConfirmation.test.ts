@@ -48,7 +48,9 @@ async function makeRecord(): Promise<AdminSessionWithUser> {
   return { session, user, effectiveMfa: false };
 }
 
-function makeRepository(findSessionByTokenHash: AdminSessionRepository["findSessionByTokenHash"]): AdminSessionRepository {
+function makeRepository(
+  findSessionByTokenHash: AdminSessionRepository["findSessionByTokenHash"]
+): AdminSessionRepository {
   return {
     createSession: vi.fn().mockResolvedValue(undefined),
     findSessionByTokenHash,
