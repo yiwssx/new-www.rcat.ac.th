@@ -82,8 +82,12 @@ function withResponseHeaders(response: Response, headers: Headers, body: BodyIni
 export function applyVercelPublicSsrCachePolicy(request: Request, response: Response) {
   const url = new URL(request.url);
   const headers = new Headers(response.headers);
+  const isDynamicContentDetail = /^\/content\/[^/]+$/.test(url.pathname);
 
-  if (response.status === 200 && url.pathname !== "/search") {
+  if (response.status === 200 && isDynamicContentDetail) {
+    headers.set("Cache-Control", "no-store");
+    headers.delete("Vercel-CDN-Cache-Control");
+  } else if (response.status === 200 && url.pathname !== "/search") {
     headers.set("Cache-Control", PUBLIC_SSR_BROWSER_CACHE_CONTROL);
     headers.set("Vercel-CDN-Cache-Control", PUBLIC_SSR_CDN_CACHE_CONTROL);
   } else if (response.status >= 300 && response.status < 400) {

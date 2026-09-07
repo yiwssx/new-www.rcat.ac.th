@@ -1,6 +1,6 @@
 name: Phase C3 One-Time Dispatch
 
-# Round 18 forces a real Vercel frontend deployment, then starts with the protected Worker production release; that workflow dispatches C3 only after deploy succeeds.
+# Round 19 deploys the content-detail no-store fix, then starts with the protected Worker production release; that workflow dispatches C3 only after deploy succeeds.
 on:
   push:
     branches:

@@ -43,7 +43,7 @@ Expected:
 - HEAD: same status/headers as GET but no body;
 - Public upstream outage: `503`, `Retry-After: 300`, `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`.
 
-For successful indexable Public pages, browsers should revalidate and the Vercel CDN should use 2-minute freshness plus 1-hour stale-while-revalidate. Permanent legacy redirects use the longer redirect CDN policy.
+For successful stable Public index/list pages, browsers should revalidate and the Vercel CDN should use 2-minute freshness plus 1-hour stale-while-revalidate. Canonical dynamic `/content/$slug` responses are intentionally `no-store` so CMS unpublish/delete cannot leave a stale published page in shared cache. Permanent legacy redirects use the longer redirect CDN policy.
 
 ## No-JavaScript / crawler HTML checks
 
@@ -98,9 +98,11 @@ Then verify Admin/Auth separately:
 
 ## Vercel cache checks
 
-Repeat a successful Public GET after a short interval and inspect Vercel cache/debug headers available on the deployment. Confirm that the response is eligible for Vercel CDN caching with the current 2-minute freshness / 1-hour stale-while-revalidate policy and that Search/errors are not cached.
+Repeat a successful stable Public index/list GET after a short interval and inspect Vercel cache/debug headers available on the deployment. Confirm that the response is eligible for Vercel CDN caching with the current 2-minute freshness / 1-hour stale-while-revalidate policy.
 
-Do not use browser `max-age` to hold Public HTML stale: browsers should revalidate, while shared Vercel caching provides the SSR cache layer.
+For `/content/<published-slug>`, confirm `Cache-Control: no-store` and no `Vercel-CDN-Cache-Control` header. Dynamic content detail, Search, and error responses must not be held in shared Vercel cache.
+
+Do not use browser `max-age` to hold Public HTML stale: browsers should revalidate, while shared Vercel caching is limited to stable Public SSR surfaces.
 
 ## Preview quota note
 
@@ -128,6 +130,6 @@ Production SSR is considered healthy only when:
 - Search/Admin indexing rules are correct;
 - sitemap/robots are correct;
 - browser hydration has no material mismatch/FOUC;
-- cache behavior matches the documented policy;
+- stable Public cache behavior matches the documented CDN policy and `/content/$slug` remains no-store;
 - manifest-selected hashed client assets load successfully;
 - Admin/CMS Session/MFA/CSRF behavior remains unchanged.
