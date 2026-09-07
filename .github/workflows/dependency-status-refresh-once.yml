@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - chore/refresh-dependency-status
+    paths:
+      - .github/workflows/dependency-status-refresh-once.yml
 
 permissions:
   contents: write
 
 jobs:
   generate:
-    if: github.event.head_commit.message != 'chore(deps): refresh dependency status'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
