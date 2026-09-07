@@ -16,6 +16,7 @@ import {
   logoutAllCmsSessions,
   logoutCmsSession,
   notifyCmsSessionExpired,
+  readCmsCsrfToken,
   reauthenticateCmsSession,
   subscribeToCmsSessionEvents,
   verifyCmsMfa,
@@ -43,6 +44,19 @@ async function retryCmsAuthorizationRead<T>(read: () => Promise<T>) {
   }
 }
 
+async function confirmCmsAuthorizationRead<T>(result: PromiseSettledResult<T>, read: () => Promise<T>) {
+  if (result.status === "fulfilled") {
+    return result.value;
+  }
+
+  const error = result.reason;
+  if (!(error instanceof CmsAuthError && error.status === 401)) {
+    throw error;
+  }
+
+  return read();
+}
+
 async function readCmsAuthorizationState() {
   const [sessionResult, capabilityResult] = await Promise.allSettled([getCmsSession(), getCmsCapabilities()]);
   const failures = [sessionResult, capabilityResult]
@@ -64,6 +78,15 @@ async function readCmsAuthorizationState() {
 async function readCmsAuthorizationStateWithBounded401Retry() {
   const user = await retryCmsAuthorizationRead(getCmsSession);
   const capabilityPayload = await retryCmsAuthorizationRead(getCmsCapabilities);
+  return { user, capabilityPayload };
+}
+
+async function readCmsAuthorizationStateWithBounded401Confirmation() {
+  const [sessionResult, capabilityResult] = await Promise.allSettled([getCmsSession(), getCmsCapabilities()]);
+  const [user, capabilityPayload] = await Promise.all([
+    confirmCmsAuthorizationRead(sessionResult, getCmsSession),
+    confirmCmsAuthorizationRead(capabilityResult, getCmsCapabilities)
+  ]);
   return { user, capabilityPayload };
 }
 
@@ -108,7 +131,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshSession = useCallback(
-    (options: { force?: boolean; activityKeepalive?: boolean; retryAuthorization401?: boolean } = {}) => {
+    (
+      options: {
+        force?: boolean;
+        activityKeepalive?: boolean;
+        retryAuthorization401?: boolean;
+        confirmAuthorization401?: boolean;
+      } = {}
+    ) => {
       if (!options.force && refreshRequestRef.current) {
         return refreshRequestRef.current.promise;
       }
@@ -123,9 +153,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const refreshPromise = (async () => {
         try {
-          const { user, capabilityPayload } = options.retryAuthorization401
-            ? await readCmsAuthorizationStateWithBounded401Retry()
-            : await readCmsAuthorizationState();
+          const { user, capabilityPayload } = options.confirmAuthorization401
+            ? await readCmsAuthorizationStateWithBounded401Confirmation()
+            : options.retryAuthorization401
+              ? await readCmsAuthorizationStateWithBounded401Retry()
+              : await readCmsAuthorizationState();
 
           if (generation !== refreshGenerationRef.current) {
             return sessionRef.current;
@@ -267,7 +299,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const bootstrapTimer = window.setTimeout(() => {
-      void refreshSession().catch(() => undefined);
+      // The readable CSRF cookie is evidence that this browser previously held
+      // a server-issued CMS Session. On protected Admin navigation, confirm only
+      // an authorization read that transiently returns 401. A repeated 401 still
+      // fails closed and no mutation is replayed.
+      const confirmAuthorization401 = window.location.pathname.startsWith("/admin") && Boolean(readCmsCsrfToken());
+      void refreshSession({ confirmAuthorization401 }).catch(() => undefined);
     }, 0);
 
     return () => window.clearTimeout(bootstrapTimer);
