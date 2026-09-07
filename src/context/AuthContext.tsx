@@ -267,7 +267,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const bootstrapTimer = window.setTimeout(() => {
-      void refreshSession().catch(() => undefined);
+      // Bootstrap performs only idempotent authorization reads. Confirm one
+      // transient 401 before clearing a valid browser Session; a repeated 401
+      // still fails closed and no mutation is replayed.
+      void refreshSession({ retryAuthorization401: true }).catch(() => undefined);
     }, 0);
 
     return () => window.clearTimeout(bootstrapTimer);
