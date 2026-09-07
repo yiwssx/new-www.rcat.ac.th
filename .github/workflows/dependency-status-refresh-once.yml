@@ -1,0 +1,30 @@
+name: Dependency Status Refresh Once
+
+on:
+  push:
+    branches:
+      - chore/refresh-dependency-status
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm deps:status
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dependency-current-status
+          path: docs/maintenance/dependency-current-status.md
+          retention-days: 1
