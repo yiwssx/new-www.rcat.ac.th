@@ -147,6 +147,24 @@ function requiresCsrf(method: string | undefined) {
   return MUTATION_METHODS.has(String(method ?? "GET").toUpperCase());
 }
 
+async function findSessionForAuthentication(
+  repository: AdminSessionRepository,
+  tokenHash: string,
+  input: Pick<AuthenticateCmsSessionInput, "method" | "csrfToken">
+) {
+  const firstRecord = await repository.findSessionByTokenHash(tokenHash);
+
+  if (firstRecord || !requiresCsrf(input.method) || !isValidCmsToken(input.csrfToken)) {
+    return firstRecord;
+  }
+
+  // A Session lookup is idempotent and happens before any protected route side effect.
+  // Confirm one missing row for a mutation that also carries a structurally valid CSRF
+  // token. This never replays the mutation: a persistent miss still fails closed before
+  // the request is authorized or its body reaches route-specific write handling.
+  return repository.findSessionByTokenHash(tokenHash);
+}
+
 export async function prepareCmsSession(input: CreateCmsSessionInput): Promise<PreparedCmsSession> {
   if (
     !isEligibleCredentialIdentity(input.identity) ||
@@ -245,7 +263,7 @@ export async function authenticateCmsSession(
 
   try {
     const tokenHash = await hashCmsSessionToken(input.sessionToken);
-    const record = await repository.findSessionByTokenHash(tokenHash);
+    const record = await findSessionForAuthentication(repository, tokenHash, input);
 
     if (!record || !isValidStoredSession(record, nowMs)) {
       return { status: "unauthenticated" };
