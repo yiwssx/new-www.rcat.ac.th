@@ -30,10 +30,7 @@ function getResultRow(filePath, requiredColumns) {
   const statements = Array.isArray(parsed) ? parsed : [parsed];
   const rows = statements.flatMap((statement) => (Array.isArray(statement?.results) ? statement.results : []));
   const row = rows.find(
-    (candidate) =>
-      candidate &&
-      typeof candidate === "object" &&
-      requiredColumns.every((column) => column in candidate)
+    (candidate) => candidate && typeof candidate === "object" && requiredColumns.every((column) => column in candidate)
   );
 
   if (!row) {
@@ -44,12 +41,7 @@ function getResultRow(filePath, requiredColumns) {
 }
 
 function getCountRow(filePath) {
-  const row = getResultRow(filePath, [
-    "qa_user_count",
-    "qa_credential_count",
-    "qa_session_count",
-    "qa_content_count"
-  ]);
+  const row = getResultRow(filePath, ["qa_user_count", "qa_credential_count", "qa_session_count", "qa_content_count"]);
 
   return {
     user: Number(row.qa_user_count),
