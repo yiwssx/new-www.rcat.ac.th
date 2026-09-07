@@ -53,6 +53,10 @@ async function findContentRow(page: Page, title: string): Promise<Locator> {
   return row;
 }
 
+function getActionButton(row: Locator, ariaLabel: string) {
+  return row.locator(`button[aria-label="${ariaLabel}"]`);
+}
+
 async function getPublicContent(request: APIRequestContext, slug: string) {
   const response = await request.get(`/api/public/content/${encodeURIComponent(slug)}`, {
     failOnStatusCode: false,
@@ -113,7 +117,8 @@ test.describe("Phase C3 authenticated disposable CMS field", () => {
     await confirmSwal(page, "บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail", "ตกลง");
 
     let row = await findContentRow(page, title);
-    const publishButton = row.getByRole("button", { name: "เผยแพร่", exact: true });
+    const publishButton = getActionButton(row, "เผยแพร่");
+    await expect(publishButton).toHaveCount(1);
     await expect(publishButton).toBeEnabled();
     await publishButton.click();
     await confirmSwal(page, "เผยแพร่เนื้อหา?", "เผยแพร่");
@@ -132,7 +137,8 @@ test.describe("Phase C3 authenticated disposable CMS field", () => {
 
     await page.goto("/admin/content");
     row = await findContentRow(page, title);
-    const deleteButton = row.getByRole("button", { name: "ลบ", exact: true });
+    const deleteButton = getActionButton(row, "ลบ");
+    await expect(deleteButton).toHaveCount(1);
     await expect(deleteButton).toBeEnabled();
     await deleteButton.click();
     await confirmSwal(page, "ลบเนื้อหา?", "ลบ");
