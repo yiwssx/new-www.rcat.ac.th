@@ -168,6 +168,23 @@ jobs:
           PHASE_C3_PRODUCTION_BASE_URL: ${{ env.TARGET_URL }}
         run: pnpm exec playwright test --config playwright.phase-c3.config.ts
 
+      - name: Capture sanitized authentication failure state
+        if: ${{ failure() }}
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [[ ! -f "$RUNNER_TEMP/phase-c3-diagnose.sql" ]]; then
+            echo "Phase C3 diagnostic plan is unavailable; fixture preparation did not complete."
+            exit 0
+          fi
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
+            --remote \
+            --command "$(cat "$RUNNER_TEMP/phase-c3-diagnose.sql")" \
+            --json > "$RUNNER_TEMP/phase-c3-auth-diagnostic.json"
+          node scripts/phase-c3-disposable-fixture.mjs diagnose "$RUNNER_TEMP/phase-c3-auth-diagnostic.json"
+
       - name: Deterministic infrastructure cleanup
         if: ${{ always() }}
         shell: bash
@@ -225,6 +242,7 @@ jobs:
             echo "- Browser: desktop Chromium"
             echo "- Normal Admin credentials: none"
             echo "- External paid services: none"
+            echo "- Failure diagnostics: sanitized identity/auth counters only; no password or hash output"
             echo "- Cleanup: infrastructure cleanup and zero-row verification run with always()"
             echo "- Audit trail: immutable operational audit events are intentionally retained"
           } >> "$GITHUB_STEP_SUMMARY"
