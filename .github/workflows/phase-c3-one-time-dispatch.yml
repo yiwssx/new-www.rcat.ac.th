@@ -1,6 +1,6 @@
 name: Phase C3 One-Time Dispatch
 
-# Round 14 dispatch after bounded pre-write Session lookup confirmation.
+# Round 14 dispatch after bounded pre-write Session lookup confirmation and regression coverage.
 on:
   push:
     branches:
