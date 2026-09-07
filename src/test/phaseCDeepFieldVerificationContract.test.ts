@@ -82,7 +82,10 @@ describe("Phase C deep field verification contract", () => {
   it("C3 proves Facebook thumbnail fallback, public visibility, deletion, and cleanup", () => {
     expect(phaseC3Spec).toContain("บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail");
     expect(phaseC3Spec).toContain("เผยแพร่เนื้อหาสำเร็จ");
-    expect(phaseC3Spec).toContain("/api/public/content/");
+    expect(phaseC3Spec).toContain("getPublicContentPageState");
+    expect(phaseC3Spec).toContain('page.goto(`/content/${encodeURIComponent(slug)}`)');
+    expect(phaseC3Spec).not.toContain("/api/public/content/");
+    expect(phaseC3Spec).toContain("production public SSR path");
     expect(phaseC3Spec).toContain("ลบเนื้อหาสำเร็จ");
     expect(phaseC3Spec).toContain("waitForResponse");
     expect(phaseC3Spec).toContain('toHaveAttribute("aria-busy", "false")');
