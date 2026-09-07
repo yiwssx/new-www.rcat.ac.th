@@ -212,9 +212,7 @@ describe("Vercel Public SSR production cutover", () => {
   });
 
   it("keeps stable public index pages eligible for Vercel CDN caching", async () => {
-    const response = await renderVercelPublicSsrRequest(
-      new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/")
-    );
+    const response = await renderVercelPublicSsrRequest(new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/"));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe(PUBLIC_SSR_BROWSER_CACHE_CONTROL);
