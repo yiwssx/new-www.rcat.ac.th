@@ -192,8 +192,8 @@ describe("Vercel Public SSR production cutover", () => {
       .mock.calls.map(([input]) => new URL(input instanceof Request ? input.url : String(input)).pathname);
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("Cache-Control")).toBe(PUBLIC_SSR_BROWSER_CACHE_CONTROL);
-    expect(response.headers.get("Vercel-CDN-Cache-Control")).toBe(PUBLIC_SSR_CDN_CACHE_CONTROL);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Vercel-CDN-Cache-Control")).toBeNull();
     expect(html).toContain("<!DOCTYPE html>");
     expect(html).toContain('<html lang="th" data-rcat-ssr="true">');
     expect(html).toContain("<head>");
@@ -209,6 +209,16 @@ describe("Vercel Public SSR production cutover", () => {
     expect(requestedPaths).toContain("/api/public/shell");
     expect(requestedPaths).toContain("/api/public/content/published-news");
     expect(requestedPaths).not.toContain("/api/public/home");
+  });
+
+  it("keeps stable public index pages eligible for Vercel CDN caching", async () => {
+    const response = await renderVercelPublicSsrRequest(
+      new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/")
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe(PUBLIC_SSR_BROWSER_CACHE_CONTROL);
+    expect(response.headers.get("Vercel-CDN-Cache-Control")).toBe(PUBLIC_SSR_CDN_CACHE_CONTROL);
   });
 
   it("keeps Search out of CDN cache and index", async () => {
