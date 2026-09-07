@@ -25,23 +25,23 @@ function getRunnerFile(name) {
   return join(requireEnv("RUNNER_TEMP"), name);
 }
 
-function getCountRow(filePath) {
+function getResultRow(filePath, requiredColumns) {
   const parsed = JSON.parse(readFileSync(filePath, "utf8"));
   const statements = Array.isArray(parsed) ? parsed : [parsed];
   const rows = statements.flatMap((statement) => (Array.isArray(statement?.results) ? statement.results : []));
   const row = rows.find(
-    (candidate) =>
-      candidate &&
-      typeof candidate === "object" &&
-      "qa_user_count" in candidate &&
-      "qa_credential_count" in candidate &&
-      "qa_session_count" in candidate &&
-      "qa_content_count" in candidate
+    (candidate) => candidate && typeof candidate === "object" && requiredColumns.every((column) => column in candidate)
   );
 
   if (!row) {
-    throw new Error("Phase C3 verification query did not return the expected count row");
+    throw new Error(`Phase C3 query did not return the expected columns: ${requiredColumns.join(", ")}`);
   }
+
+  return row;
+}
+
+function getCountRow(filePath) {
+  const row = getResultRow(filePath, ["qa_user_count", "qa_credential_count", "qa_session_count", "qa_content_count"]);
 
   return {
     user: Number(row.qa_user_count),
@@ -59,6 +59,31 @@ function assertCounts(filePath, expected) {
     );
   }
   console.log(`[Phase C3] disposable fixture state verified: ${JSON.stringify(actual)}`);
+}
+
+function reportDiagnostic(filePath) {
+  const row = getResultRow(filePath, [
+    "qa_user_count",
+    "qa_identifier_match_count",
+    "qa_active_identifier_match_count",
+    "qa_credential_count",
+    "qa_algorithm_match",
+    "qa_failed_login_count",
+    "qa_session_count",
+    "qa_content_count"
+  ]);
+  const diagnostic = {
+    user: Number(row.qa_user_count),
+    identifierMatches: Number(row.qa_identifier_match_count),
+    activeIdentifierMatches: Number(row.qa_active_identifier_match_count),
+    credential: Number(row.qa_credential_count),
+    algorithmMatch: Number(row.qa_algorithm_match),
+    failedLoginCount: Number(row.qa_failed_login_count),
+    session: Number(row.qa_session_count),
+    content: Number(row.qa_content_count)
+  };
+
+  console.log(`[Phase C3] sanitized authentication diagnostic: ${JSON.stringify(diagnostic)}`);
 }
 
 async function prepare() {
@@ -79,8 +104,14 @@ async function prepare() {
   const facebookUrl = `https://example.invalid/${slug}`;
   const password = `C3-${randomBytes(24).toString("base64url")}!aA1`;
   const digest = createHash("sha384").update(password, "utf8").digest("base64url");
-  const passwordHash = await bcrypt.hash(`${PASSWORD_DOMAIN}${digest}`, PASSWORD_BCRYPT_COST);
+  const preparedPassword = `${PASSWORD_DOMAIN}${digest}`;
+  const passwordHash = await bcrypt.hash(preparedPassword, PASSWORD_BCRYPT_COST);
+  const generatedCredentialMatches = await bcrypt.compare(preparedPassword, passwordHash);
   const now = new Date().toISOString();
+
+  if (!generatedCredentialMatches) {
+    throw new Error("Phase C3 generated credential failed its local compatibility check");
+  }
 
   console.log(`::add-mask::${password}`);
   console.log(`::add-mask::${passwordHash}`);
@@ -122,9 +153,27 @@ DELETE FROM app_admin_users WHERE id = ${sqlText(userId)} AND is_root = 0;
   (SELECT COUNT(*) FROM contents WHERE slug = ${sqlText(slug)}) AS qa_content_count;
 `;
 
+  const diagnoseSql = `SELECT
+  (SELECT COUNT(*) FROM app_admin_users WHERE id = ${sqlText(userId)}) AS qa_user_count,
+  (SELECT COUNT(*) FROM app_admin_users
+    WHERE email = ${sqlText(username)} COLLATE NOCASE OR username = ${sqlText(username)} COLLATE NOCASE) AS qa_identifier_match_count,
+  (SELECT COUNT(*) FROM app_admin_users
+    WHERE status = 'active'
+      AND (email = ${sqlText(username)} COLLATE NOCASE OR username = ${sqlText(username)} COLLATE NOCASE)) AS qa_active_identifier_match_count,
+  (SELECT COUNT(*) FROM admin_credentials WHERE user_id = ${sqlText(userId)}) AS qa_credential_count,
+  CASE WHEN EXISTS (
+    SELECT 1 FROM admin_credentials
+    WHERE user_id = ${sqlText(userId)} AND password_algorithm = ${sqlText(PASSWORD_ALGORITHM)}
+  ) THEN 1 ELSE 0 END AS qa_algorithm_match,
+  COALESCE((SELECT failed_login_count FROM admin_credentials WHERE user_id = ${sqlText(userId)} LIMIT 1), -1) AS qa_failed_login_count,
+  (SELECT COUNT(*) FROM admin_sessions WHERE user_id = ${sqlText(userId)}) AS qa_session_count,
+  (SELECT COUNT(*) FROM contents WHERE slug = ${sqlText(slug)}) AS qa_content_count;
+`;
+
   writeFileSync(getRunnerFile("phase-c3-provision.sql"), provisionSql, { mode: 0o600 });
   writeFileSync(getRunnerFile("phase-c3-cleanup.sql"), cleanupSql, { mode: 0o600 });
   writeFileSync(getRunnerFile("phase-c3-verify.sql"), verifySql, { mode: 0o600 });
+  writeFileSync(getRunnerFile("phase-c3-diagnose.sql"), diagnoseSql, { mode: 0o600 });
 
   console.log(`[Phase C3] prepared isolated editor and disposable slug ${slug}`);
 }
@@ -137,6 +186,10 @@ if (command === "prepare") {
   assertCounts(process.argv[3], { user: 0, credential: 0, session: 0, content: 0 });
 } else if (command === "assert-provisioned") {
   assertCounts(process.argv[3], { user: 1, credential: 1, session: 0, content: 0 });
+} else if (command === "diagnose") {
+  reportDiagnostic(process.argv[3]);
 } else {
-  throw new Error("Usage: phase-c3-disposable-fixture.mjs <prepare|assert-clean|assert-provisioned> [result.json]");
+  throw new Error(
+    "Usage: phase-c3-disposable-fixture.mjs <prepare|assert-clean|assert-provisioned|diagnose> [result.json]"
+  );
 }
