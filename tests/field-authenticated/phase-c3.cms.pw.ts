@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Locator, type Page, type Response } from "@playwright/test";
+import { expect, test, type Locator, type Page, type Response } from "@playwright/test";
 
 function requireFieldValue(name: string) {
   const value = process.env[name]?.trim();
@@ -57,26 +57,22 @@ function getActionButton(row: Locator, ariaLabel: string) {
   return row.locator(`button[aria-label="${ariaLabel}"]`);
 }
 
-async function getPublicContent(request: APIRequestContext, slug: string) {
-  const response = await request.get(`/api/public/content/${encodeURIComponent(slug)}`, {
-    failOnStatusCode: false,
-    headers: { "Cache-Control": "no-cache" }
-  });
+async function getPublicContentPageState(page: Page, slug: string, title: string) {
+  const response = await page.goto(`/content/${encodeURIComponent(slug)}`);
+  const status = response?.status() ?? 0;
+  const titleVisible =
+    status === 200 &&
+    (await page
+      .getByRole("heading", { name: title, exact: true })
+      .isVisible()
+      .catch(() => false));
 
-  if (!response.ok()) {
-    return { status: response.status(), item: null };
-  }
-
-  const payload = (await response.json()) as {
-    item?: { slug?: string; title?: string } | null;
-  };
-  return { status: response.status(), item: payload.item ?? null };
+  return { status, titleVisible };
 }
 
 test.describe("Phase C3 authenticated disposable CMS field", () => {
   test("isolated editor proves save fallback, publish, public read, delete, and browser-session cleanup", async ({
-    page,
-    request
+    page
   }) => {
     test.setTimeout(240_000);
 
@@ -125,15 +121,11 @@ test.describe("Phase C3 authenticated disposable CMS field", () => {
     await confirmSwal(page, "เผยแพร่เนื้อหาสำเร็จ", "ตกลง");
 
     await expect
-      .poll(async () => getPublicContent(request, slug), {
-        message: "published disposable content becomes readable through the public API",
+      .poll(async () => getPublicContentPageState(page, slug, title), {
+        message: "published disposable content becomes readable through the production public SSR path",
         timeout: 20_000
       })
-      .toMatchObject({ status: 200, item: { slug, title } });
-
-    const publicResponse = await page.goto(`/content/${encodeURIComponent(slug)}`);
-    expect(publicResponse?.status()).toBe(200);
-    await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+      .toEqual({ status: 200, titleVisible: true });
 
     await page.goto("/admin/content");
     row = await findContentRow(page, title);
@@ -145,8 +137,8 @@ test.describe("Phase C3 authenticated disposable CMS field", () => {
     await confirmSwal(page, "ลบเนื้อหาสำเร็จ", "ตกลง");
 
     await expect
-      .poll(async () => (await getPublicContent(request, slug)).status, {
-        message: "deleted disposable content is removed from the public API",
+      .poll(async () => (await getPublicContentPageState(page, slug, title)).status, {
+        message: "deleted disposable content is removed from the production public SSR path",
         timeout: 20_000
       })
       .toBe(404);

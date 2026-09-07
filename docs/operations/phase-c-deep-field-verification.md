@@ -53,9 +53,11 @@ The browser flow uses `playwright.phase-c3.config.ts` with one desktop Chromium 
 - real `/login` authentication with the disposable editor;
 - creation of a uniquely prefixed disposable content record;
 - the Facebook-thumbnail failure path continuing through Save and surfacing the successful-save warning;
-- publishing and verification through `/api/public/content/:slug` plus the public `/content/:slug` page;
-- deletion through the CMS and removal from the public read path;
+- publishing and verification through the production public `/content/:slug` SSR path, which resolves content through the Cloudflare Public API configured for the Vercel production runtime;
+- deletion through the CMS and a resulting `404` from the same production public route;
 - session-cookie removal returning the browser to the login boundary.
+
+The production Vercel app does not expose `/api/public/*` as a same-origin rewrite. Public structured-data requests use the configured Cloudflare Worker origin (`CLOUDFLARE_PUBLIC_API_URL` server-side and `VITE_CLOUDFLARE_PUBLIC_API_URL` in browser code). Phase C3 therefore verifies public visibility through the real SSR route instead of fabricating a same-origin `/api/public/content/:slug` request that production does not serve.
 
 The thumbnail source intentionally uses a non-Facebook `.invalid` URL while the content template is `Facebook Embed`. The server rejects that source before any Facebook fetch or media persistence, making the fallback deterministic and ensuring C3 cannot leave an uploaded media artifact.
 
