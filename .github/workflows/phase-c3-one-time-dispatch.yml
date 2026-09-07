@@ -1,6 +1,6 @@
 name: Phase C3 One-Time Dispatch
 
-# Round 13 dispatch after sanitized production-auth diagnostics landed.
+# Round 14 dispatch after bounded pre-write Session lookup confirmation.
 on:
   push:
     branches:
