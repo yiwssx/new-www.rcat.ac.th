@@ -16,6 +16,7 @@ import {
   logoutAllCmsSessions,
   logoutCmsSession,
   notifyCmsSessionExpired,
+  readCmsCsrfToken,
   reauthenticateCmsSession,
   subscribeToCmsSessionEvents,
   verifyCmsMfa,
@@ -267,10 +268,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const bootstrapTimer = window.setTimeout(() => {
-      // Bootstrap performs only idempotent authorization reads. Confirm one
-      // transient 401 before clearing a valid browser Session; a repeated 401
-      // still fails closed and no mutation is replayed.
-      void refreshSession({ retryAuthorization401: true }).catch(() => undefined);
+      // The readable CSRF cookie is evidence that this browser previously held
+      // a server-issued CMS Session. Only then confirm one transient bootstrap
+      // 401; a repeated 401 still fails closed and no mutation is replayed.
+      const retryAuthorization401 = Boolean(readCmsCsrfToken());
+      void refreshSession({ retryAuthorization401 }).catch(() => undefined);
     }, 0);
 
     return () => window.clearTimeout(bootstrapTimer);
