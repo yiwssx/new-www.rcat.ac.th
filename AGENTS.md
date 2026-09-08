@@ -4,11 +4,13 @@ This project is a React/Vite public website and CMS for Roi-Et College of Agricu
 
 ## Current Project Status
 
-Current status: post-P5H production governance baseline with Production Observability configured behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
+Current status: post-P5H production governance baseline with Production Observability configured behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, completed Admin UX 00-10, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
 
-Use `docs/architecture/post-p5h-current-project-state.md` as the current project-state note.
+Reliability Roadmap v2 is separate from P6. Phase 0 Development Quality Gate, Phase A Field QA Foundation, and Phase C Deep Field Verification are complete. Phase B Operational Visibility remains active: B1 System Health Dashboard and B2 Runtime Incident Feed are complete and production-verified; B3 Health Aggregation remains planned.
 
-P5H closed the original production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, the Production Observability D1 usage guard, completed P6B security controls, completed P6C recovery controls, completed P6D public UX controls, and the current post-P5H maintenance posture.
+Use `docs/architecture/post-p5h-current-project-state.md` as the canonical current project-state note and `docs/architecture/reliability-roadmap-v2.md` for reliability phase definitions.
+
+P5H closed the original production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, the Production Observability D1 usage guard, completed P6B security controls, completed P6C recovery controls, completed P6D public UX controls, completed Admin UX 00-10, completed Phase 0/A/C reliability work, completed Phase B1/B2, and the current post-P5H maintenance posture.
 
 The Production Observability guard completed its activation gate on 2026-08-29. It is configured on a six-hour schedule, but scheduled runs remain reviewer-gated by the existing `production` Environment and therefore must not be described as unattended monitoring. Reuse the existing Environment and credentials; do not request or create a duplicate Environment/secret merely because an imagined monitoring name differs. Use `docs/operations/p6a-production-observability.md` for closure evidence and operational constraints.
 
@@ -20,21 +22,25 @@ P6D Product/UX Improvements completed on 2026-08-30 as the final planned P6 deve
 
 Admin UX 00-10 is complete. Use `docs/admin/admin-ux-execution-tracker.md` for the completed Admin UX sequence. Do not treat that sequence as a reopened M21 phase.
 
-M20/M21 documents are retained as historical planning, migration, and stabilization records only. They must not be treated as the current active project phase unless a newer explicit project-status document says so.
+Phase B1 and B2 are complete. B2 completion is backed by implementation PR #217, successful repository CI and Phase A production browser smoke, canonical Worker release PR #218, successful Worker Production Release, and successful follow-up Phase A browser verification. B3 is the only planned Phase B roadmap item. Do not report B2 as pending and do not close Phase B until B3 has explicit completion evidence or a newer project-state decision removes it from scope.
 
-Governed Renovate dependency maintenance is expected to continue after P6D. It is not considered feature, runtime, or stabilization-scope expansion when it follows the repository dependency policy and passes the required CI/governance gates.
+Phase C is complete. C3 authenticated disposable CMS verification passed its protected production field run and deterministic zero-row cleanup. C3 remains manual-only after closure and must not be automatically dispatched by normal Worker production releases unless a new explicit scope reopens that behavior.
+
+M13-M21 documents are retained as historical planning, migration, and stabilization records only. They must not be treated as the current active project phase unless a newer explicit project-status document says so. In particular, historical `M21 owns remaining` or `M21 stabilization is open` wording must never be surfaced as current status.
+
+Governed Renovate dependency maintenance is expected to continue. It is not considered feature, runtime, or stabilization-scope expansion when it follows the repository dependency policy and passes the required CI/governance gates.
 
 ## Status Reporting Rule
 
 When reporting current project status, use:
 
 ```text
-post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed
+post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2: Phase 0 complete, Phase A complete, Phase B active (B1+B2 complete, B3 planned), Phase C complete
 ```
 
 Do not report M20, M21, P6B, P6C, or P6D as the current active feature-development phase. P6B, P6C, and P6D are completed. Production Observability remains an operational guard whose scheduled executions are reviewer-gated rather than unattended.
 
-For future feature or product work, report the new branch and PR scope directly rather than extending P6D implicitly.
+For future feature or product work, report the new branch and PR scope directly rather than extending P6D or M21 implicitly.
 
 ## Current Runtime Ownership
 
@@ -59,6 +65,17 @@ Admin write operations use:
 
 The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings.
 
+## Reliability Ownership
+
+- Phase A owns deployment-driven read-only production browser QA.
+- P6A owns D1 utilization observability and remains approval-gated.
+- P6B owns security/WAF/CSP enforcement checks.
+- P6C owns bounded six-hour SSR → Worker → D1 reliability verification.
+- Phase B B1/B2 are complete; B3 is planned.
+- Phase C is complete; C3 is manual-only.
+- Reuse `X-RCAT-Request-ID`; do not create duplicate correlation identifiers.
+- Do not add a parallel paid observability stack merely to recreate existing controls.
+
 ## Keep
 
 - Cloudflare Worker and D1 runtime paths.
@@ -72,6 +89,9 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Completed P6B security controls and P6B-owned scheduled WAF smoke.
 - Completed P6C recovery/reliability controls and bounded six-hour public reliability guard.
 - Completed P6D public product/UX controls.
+- Completed Phase A production browser QA pipeline.
+- Completed Phase B1/B2 operator visibility controls.
+- Completed Phase C checks and manual-only C3 deep-production regression tool.
 - Sigmap AI helper workflow.
 - Governed Renovate dependency maintenance under the repository dependency policy.
 
@@ -86,6 +106,8 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Twice-hourly P6C Search/D1 polling.
 - A duplicate scheduled WAF probe inside P6C.
 - Scheduled D1 auth-anomaly polling.
+- M20/M21 active-phase wording in current-facing guidance.
+- Worker → C3 automatic dispatch or one-time C3 release scaffolding.
 
 ## Safety Rules
 
@@ -105,8 +127,7 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 
 ## React Performance Skill
 
-For React frontend work, use the installed
-`vercel-react-best-practices` skill as a review and implementation guide.
+For React frontend work, use the installed `vercel-react-best-practices` skill as a review and implementation guide.
 
 Apply the rules selectively to this React/Vite application:
 
@@ -120,11 +141,9 @@ Apply the rules selectively to this React/Vite application:
 
 Do not apply Next.js-only rules to this Vite application.
 
-Do not perform broad performance refactors during authentication or security
-tasks unless the affected React code is directly in scope.
+Do not perform broad performance refactors during authentication or security tasks unless the affected React code is directly in scope.
 
-Security, correctness, authorization, session integrity, and data consistency
-take priority over performance optimization.
+Security, correctness, authorization, session integrity, and data consistency take priority over performance optimization.
 
 ## Sigmap Workflow
 
