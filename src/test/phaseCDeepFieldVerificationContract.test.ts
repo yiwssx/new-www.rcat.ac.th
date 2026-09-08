@@ -20,12 +20,7 @@ const workerProductionWorkflow = readFileSync(
   join(repositoryRoot, ".github", "workflows", "worker-production.yml"),
   "utf8"
 );
-const phaseC3OneTimeDispatcherPath = join(
-  repositoryRoot,
-  ".github",
-  "workflows",
-  "phase-c3-one-time-dispatch.yml"
-);
+const phaseC3OneTimeDispatcherPath = join(repositoryRoot, ".github", "workflows", "phase-c3-one-time-dispatch.yml");
 const accessibilitySpec = readFileSync(
   join(repositoryRoot, "tests", "production", "production.accessibility.pw.ts"),
   "utf8"
