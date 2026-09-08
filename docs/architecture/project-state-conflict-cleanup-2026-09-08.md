@@ -15,6 +15,7 @@ The canonical current state is `docs/architecture/post-p5h-current-project-state
 3. Current-facing release, launch, feature, seed, and smoke-test guidance still contained active-looking M20/M21/cutover wording. Those files now defer to the canonical post-P5H state instead of reopening historical phases.
 4. Governed Renovate PR #254 was the remaining open dependency-maintenance PR and was merged after its required checks passed.
 5. A repository test now guards current-facing guidance against reintroducing stale active M20/M21 wording and checks the B1/B2/B3 and Phase C status contract.
+6. The generated dependency status snapshot was reconciled with the package and lockfile state created by Renovate PR #254. Dependency freshness, deterministic dependency checks, and dependency documentation audit all pass against the reconciled snapshot.
 
 ## Historical Records
 
