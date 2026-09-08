@@ -14,7 +14,7 @@ This roadmap does **not** reopen P6. Historical P5H/P6A/P6B/P6C/P6D records keep
 | ------- | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                       |
 | Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically. |
-| Phase B | Operational Visibility   | Active   | B1 protected live health checks and B2 privacy-safe Runtime Incident Feed are complete; B3 Health Aggregation remains planned.                  |
+| Phase B | Operational Visibility   | Active   | B1 protected live health checks and B2 privacy-safe Runtime Incident Feed are complete; B3 Health Aggregation remains planned.                 |
 | Phase C | Deep Field Verification  | Complete | C1 accessibility, C2 synthetic performance, and C3 authenticated disposable CMS production validation are complete.                            |
 
 ## Phase B scope
