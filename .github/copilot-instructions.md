@@ -2,18 +2,28 @@
 
 This repository is a React/Vite public website and CMS with Cloudflare Worker/D1 backend paths, Vercel admin proxy paths, and an Apps Script media/file bridge.
 
-Current status: M20 is closed for migration/runtime ownership. M21 owns remaining UI/UX and logic stabilization.
+## Current Project Status
 
-M20 closure is limited to migration, runtime ownership, and domain cutover scope. It does not mean the UI/UX is complete, the system is defect-free, or all business workflows are final. Remaining public, admin, workflow, validation, layout, Thai wording, and user-facing error issues are tracked under M21.
+Current status: post-P5H production governance baseline with Production Observability configured behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, completed Admin UX 00-10, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
+
+Reliability Roadmap v2 is separate from P6. Phase 0 Development Quality Gate, Phase A Field QA Foundation, and Phase C Deep Field Verification are complete. Phase B Operational Visibility remains active: B1 System Health Dashboard and B2 Runtime Incident Feed are complete; B3 Health Aggregation remains planned. Completed C3 authenticated CMS verification remains manual/protected and must not be coupled back into normal Worker production releases without new explicit scope.
+
+M13-M21 documents are historical migration/stabilization records. Do not report M20 or M21 as the current active phase and do not use historical `M21 owns remaining` / `M21 stabilization is open` wording as current project status.
 
 ## Current Source Of Truth
 
-Use these files as current runtime references:
+Use these files as current references:
 
-- `docs/architecture/m20-cleanup-runtime-ownership.md`
-- `docs/architecture/m20-cleanup-ledger.md`
-- `docs/architecture/m21-ui-ux-logic-stabilization.md`
-- `AGENTS.md`
+- `docs/architecture/post-p5h-current-project-state.md` — canonical project-state note.
+- `docs/architecture/current-runtime-ownership.md` — current runtime ownership.
+- `docs/deployment/runtime-deployment-guide.md` — current deployment behavior.
+- `docs/architecture/reliability-roadmap-v2.md` — reliability phase definitions.
+- `docs/operations/phase-b-operational-visibility.md` — active Phase B scope and B1/B2 completion state.
+- `docs/operations/phase-c-deep-field-verification.md` — completed Phase C operating context.
+- `docs/admin/admin-ux-execution-tracker.md` — completed Admin UX sequence.
+- `AGENTS.md` — repository-wide agent operating rules.
+
+Historical M13-M21 milestone documents may be used as evidence for their original checkpoints, but they do not override the current source-of-truth files above.
 
 ## Current Runtime Ownership
 
@@ -31,6 +41,17 @@ Use these files as current runtime references:
 - This standard applies to Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings.
 - Urgent marquee speed is normalized by pixels per second with distance-based duration. Reduced motion slows the ticker instead of disabling it.
 
+## Reliability Boundaries
+
+- Reuse `X-RCAT-Request-ID`; do not create a parallel request-correlation identifier.
+- Phase A owns deployment-driven read-only production browser QA.
+- P6A owns D1 utilization observability and remains protected-Environment approval-gated.
+- P6B owns security/WAF/CSP verification.
+- P6C owns the bounded six-hour SSR → Worker → D1 reliability guard.
+- Phase B B1/B2 are complete; B3 is the only planned Phase B roadmap item.
+- Phase C is complete; C3 is manual-only after closure.
+- Do not add a duplicate paid observability stack merely to recreate existing guards.
+
 ## Do Not Reintroduce
 
 - Direct frontend Apps Script user management.
@@ -39,6 +60,8 @@ Use these files as current runtime references:
 - Local password-hash user fallback.
 - Legacy Apps Script credential login.
 - Production auth that depends on direct frontend Apps Script.
+- M20/M21 active-phase wording in current-facing guidance.
+- Worker → C3 automatic dispatch or one-time C3 release scaffolding.
 
 ## Safety Rules
 
@@ -47,6 +70,8 @@ Use these files as current runtime references:
 - Keep D1 migrations append-only.
 - Keep Apps Script only for media/file bridge operations.
 - Prefer Cloudflare Worker and D1 for structured public/admin data.
+- Reuse existing credentials and protected Environments before considering new ones.
+- New product work requires explicit new scope; do not silently extend completed P6 or M21 phases.
 
 ## Sigmap
 
