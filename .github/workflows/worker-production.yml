@@ -183,7 +183,7 @@ jobs:
 
           if [[ "$audit_status" -ne 0 ]]; then
             echo "::error::Optional public_home_sections fixture sentinel failed (wrangler exit $audit_status)."
-            node scripts/sanitize-cloudflare-cli-output.mjs --file "$schema_stderr" --label "wrangler stderr" || true
+            node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_stderr" --label "wrangler stderr" || true
             node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_json" --label "wrangler stdout" || true
             exit "$audit_status"
           fi
