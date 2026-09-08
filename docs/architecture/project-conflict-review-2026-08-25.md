@@ -1,25 +1,28 @@
 # Project Conflict Review — 2026-08-25
 
-Status: resolved in this change.
+Status: historical conflict-review record. Its deferred Copilot guidance conflict was resolved by the 2026-09-08 project-state cleanup.
 
-This review focuses on project-state and maintenance conflicts that could cause future reports or implementation plans to use stale phase language.
+This review focused on project-state and maintenance conflicts that could cause future reports or implementation plans to use stale phase language.
 
 ## Current Source Of Truth
 
-Current project status is:
-
-```text
-post-P5H production governance baseline + governed dependency maintenance + Admin UX 00-10 completed
-```
-
-The authoritative current-state documents are:
+The current source of truth is no longer the short 2026-08-25 status snapshot. Use:
 
 - `docs/architecture/post-p5h-current-project-state.md`
 - `docs/architecture/current-runtime-ownership.md`
 - `docs/deployment/runtime-deployment-guide.md`
+- `docs/architecture/reliability-roadmap-v2.md`
+- `docs/operations/phase-b-operational-visibility.md`
+- `docs/operations/phase-c-deep-field-verification.md`
 - `docs/admin/admin-ux-execution-tracker.md`
 - `README.md`
 - `AGENTS.md`
+
+The 2026-08-25 project-state wording below is preserved only as the context in which this conflict review was originally performed.
+
+```text
+post-P5H production governance baseline + governed dependency maintenance + Admin UX 00-10 completed
+```
 
 ## Conflicts Found
 
@@ -45,20 +48,20 @@ Resolution: separated the compatibility markers into a clearly named historical 
 
 Future project reports must not describe P6 or M21 as the current project phase unless a newer explicit project-state document reopens that phase.
 
-Use this wording instead:
-
-```text
-Current status: post-P5H production governance baseline. Admin UX 00-10 is complete. Ongoing dependency work is governed maintenance.
-```
+The canonical status wording has evolved since this 2026-08-25 review. Use `docs/architecture/post-p5h-current-project-state.md` rather than copying the historical status sentence from this file.
 
 ## Validation Path
 
-This cleanup must pass the existing CI lanes before merge. The change intentionally updates historical readiness tests together with the documentation they protect so the repository gates reflect the current baseline instead of preserving stale active-phase wording.
+This cleanup had to pass the existing CI lanes before merge. The change intentionally updated historical readiness tests together with the documentation they protected so the repository gates reflected the post-P5H baseline instead of preserving stale active-phase wording.
 
-## Deferred Conflict
+## Deferred Conflict — Resolved 2026-09-08
 
-`.github/copilot-instructions.md` also contains older M20/M21 wording, but updating files under `.github/` caused pull-request CI to fail before any job steps or logs were created in the first cleanup branch. That change should be handled separately only after confirming the repository policy for `.github/` updates.
+The original review deferred `.github/copilot-instructions.md` because an earlier `.github/` change caused pull-request CI to fail before job steps were created. That deferred conflict is no longer open.
+
+The 2026-09-08 project-state cleanup updated `.github/copilot-instructions.md` to use the canonical post-P5H project state, current runtime/deployment ownership, and Reliability Roadmap v2. It also added `src/test/projectStateConsistency.test.ts` so current-facing guidance cannot silently revert to active-looking M20/M21 wording.
+
+See `docs/architecture/project-state-conflict-cleanup-2026-09-08.md` for the reconciliation record.
 
 ## Scope Safety
 
-This review and cleanup change no runtime behavior, API contract, Worker/D1 resources, migrations, Apps Script code, Vercel routing or environment variables, authentication/session behavior, RBAC policy semantics, persistence behavior, package manifests, or lockfile.
+The 2026-08-25 review changed no runtime behavior, API contract, Worker/D1 resources, migrations, Apps Script code, Vercel routing or environment variables, authentication/session behavior, RBAC policy semantics, persistence behavior, package manifests, or lockfile. The 2026-09-08 follow-up likewise changes project-state guidance/tests only; it does not reopen historical milestones or introduce new runtime scope.
