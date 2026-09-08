@@ -2,7 +2,7 @@
 
 ใช้เอกสารนี้บันทึกผลตรวจจริงหลัง Deploy โดยอ้างอิงจาก [Production Smoke Checklist](./production-smoke-checklist.md)
 
-สถานะปัจจุบัน: ขอบเขต migration/runtime/domain cutover ของ M20 ปิดแล้ว และ M21 รับผิดชอบงาน stabilization เอกสารนี้บันทึกผล smoke test และไม่ใช่การอนุมัติให้แก้ไข production นอกขอบเขต
+สถานะโครงการปัจจุบันให้อ้างอิง `docs/architecture/post-p5h-current-project-state.md` โดย M20/M21 เป็นประวัติการย้ายระบบและ stabilization ไม่ใช่เฟสที่ active ปัจจุบัน Reliability Roadmap v2 มี Phase 0, Phase A และ Phase C เสร็จแล้ว ส่วน Phase B ยัง active โดย B1/B2 เสร็จและ B3 planned เอกสารนี้บันทึกผล smoke test และไม่ใช่การอนุมัติให้แก้ไข production นอกขอบเขต
 
 ## 1. Deployment Information
 
