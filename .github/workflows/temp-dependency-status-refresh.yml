@@ -1,0 +1,45 @@
+name: Temporary Dependency Status Refresh
+
+on:
+  push:
+    branches:
+      - chore/phase-c-closure-cleanup
+    paths:
+      - .github/workflows/temp-dependency-status-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: chore/phase-c-closure-cleanup
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies --ignore-scripts
+      - run: pnpm deps:status
+
+      - name: Commit generated dependency status
+        shell: bash
+        run: |
+          if git diff --quiet -- docs/maintenance/dependency-current-status.md; then
+            echo "Dependency status already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/maintenance/dependency-current-status.md
+          git commit -m "docs(deps): refresh current dependency status"
+          git push origin HEAD:chore/phase-c-closure-cleanup
