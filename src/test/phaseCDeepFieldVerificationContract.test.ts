@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -15,6 +15,16 @@ const phaseAWorkflow = readFileSync(
 const phaseC3Workflow = readFileSync(
   join(repositoryRoot, ".github", "workflows", "phase-c3-authenticated-cms-field.yml"),
   "utf8"
+);
+const workerProductionWorkflow = readFileSync(
+  join(repositoryRoot, ".github", "workflows", "worker-production.yml"),
+  "utf8"
+);
+const phaseC3OneTimeDispatcherPath = join(
+  repositoryRoot,
+  ".github",
+  "workflows",
+  "phase-c3-one-time-dispatch.yml"
 );
 const accessibilitySpec = readFileSync(
   join(repositoryRoot, "tests", "production", "production.accessibility.pw.ts"),
@@ -49,7 +59,7 @@ describe("Phase C deep field verification contract", () => {
     expect(productionConfig).toContain("workers: 1");
   });
 
-  it("C3 is isolated from automatic read-only field QA and requires protected manual execution", () => {
+  it("C3 is isolated from automatic QA and remains protected manual-only after closure", () => {
     expect(phaseC3Config).toContain('testDir: "./tests/field-authenticated"');
     expect(phaseC3Config).toContain("workers: 1");
     expect(phaseC3Config).toContain("retries: 0");
@@ -59,6 +69,9 @@ describe("Phase C deep field verification contract", () => {
     expect(phaseC3Workflow).toContain("environment: production");
     expect(phaseC3Workflow).toContain("if: ${{ always() }}");
     expect(phaseC3Workflow).toContain("Verify deterministic cleanup");
+    expect(workerProductionWorkflow).not.toContain("phase-c3-authenticated-cms-field.yml");
+    expect(workerProductionWorkflow).not.toContain("Dispatch Phase C3");
+    expect(existsSync(phaseC3OneTimeDispatcherPath)).toBe(false);
   });
 
   it("C3 provisions only a run-scoped non-root editor and never depends on normal Admin credentials", () => {
