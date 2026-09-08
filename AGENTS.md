@@ -26,7 +26,7 @@ Phase B1 and B2 are complete. B2 completion is backed by implementation PR #217,
 
 Phase C is complete. C3 authenticated disposable CMS verification passed its protected production field run and deterministic zero-row cleanup. C3 remains manual-only after closure and must not be automatically dispatched by normal Worker production releases unless a new explicit scope reopens that behavior.
 
-M13-M21 documents are retained as historical planning, migration, and stabilization records only. They must not be treated as the current active project phase unless a newer explicit project-status document says so. In particular, historical `M21 owns remaining` or `M21 stabilization is open` wording must never be surfaced as current status.
+M13-M21 documents are retained as historical planning, migration, and stabilization records only. They must not be treated as the current active project phase unless a newer explicit project-status document says so. Legacy M21 active-ownership or open-stabilization wording must never be surfaced as current status.
 
 Governed Renovate dependency maintenance is expected to continue. It is not considered feature, runtime, or stabilization-scope expansion when it follows the repository dependency policy and passes the required CI/governance gates.
 
