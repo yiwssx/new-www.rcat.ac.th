@@ -8,7 +8,7 @@ Current status: post-P5H production governance baseline with Production Observab
 
 Reliability Roadmap v2 is separate from P6. Phase 0 Development Quality Gate, Phase A Field QA Foundation, and Phase C Deep Field Verification are complete. Phase B Operational Visibility remains active: B1 System Health Dashboard and B2 Runtime Incident Feed are complete; B3 Health Aggregation remains planned. Completed C3 authenticated CMS verification remains manual/protected and must not be coupled back into normal Worker production releases without new explicit scope.
 
-M13-M21 documents are historical migration/stabilization records. Do not report M20 or M21 as the current active phase and do not use historical `M21 owns remaining` / `M21 stabilization is open` wording as current project status.
+M13-M21 documents are historical migration/stabilization records. Do not report M20 or M21 as the current active phase, and do not reuse legacy M21 active-ownership or open-stabilization status wording in current project guidance.
 
 ## Current Source Of Truth
 
