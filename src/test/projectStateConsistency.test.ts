@@ -54,13 +54,17 @@ describe("current project-state consistency", () => {
     expect(canonicalState).toContain("Phase C Deep Field Verification is complete");
 
     expect(reliabilityRoadmap).toContain("| Phase B | Operational Visibility");
-    expect(reliabilityRoadmap).toContain("B1 protected live health checks and B2 privacy-safe Runtime Incident Feed are complete");
+    expect(reliabilityRoadmap).toContain(
+      "B1 protected live health checks and B2 privacy-safe Runtime Incident Feed are complete"
+    );
     expect(reliabilityRoadmap).toContain("B3 Health Aggregation remains planned");
     expect(reliabilityRoadmap).toContain("| Phase C | Deep Field Verification  | Complete");
   });
 
   it("records B2 as complete while leaving only B3 planned", () => {
-    expect(phaseBRunbook).toContain("B1 System Health Dashboard and B2 Runtime Incident Feed are complete and production-verified");
+    expect(phaseBRunbook).toContain(
+      "B1 System Health Dashboard and B2 Runtime Incident Feed are complete and production-verified"
+    );
     expect(phaseBRunbook).toContain("Status: complete and production-verified.");
     expect(phaseBRunbook).toContain("B3 is the only remaining planned Phase B roadmap item");
     expect(phaseBRunbook).toContain("Worker Production Release run `33731760770` succeeded");
