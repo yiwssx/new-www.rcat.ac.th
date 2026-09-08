@@ -1,6 +1,6 @@
 # Production Readiness Checklist
 
-Current status: M20 migration/runtime/domain-cutover scope is closed and M21 stabilization is open. This checklist validates a release candidate; it does not authorize unrelated production mutation.
+Current project status is defined by `docs/architecture/post-p5h-current-project-state.md`. M20/M21 are historical migration/stabilization records, not active phases. Reliability Roadmap v2 currently has Phase 0, Phase A, and Phase C complete; Phase B is active with B1/B2 complete and B3 planned. This checklist validates a release candidate; it does not authorize unrelated production mutation.
 
 ## Launch-critical checks
 
