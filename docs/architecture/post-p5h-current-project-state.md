@@ -2,11 +2,11 @@
 
 Status: current project-state note.
 
-Updated: 2026-09-03.
+Updated: 2026-09-08.
 
 The project remains in a post-P5H production governance and maintenance baseline with a configured Production Observability guard operating behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
 
-A separate Reliability Roadmap v2 is now active for newly requested field-QA/operational-visibility work. It does not reopen or renumber P6. Phase 0 Development Quality Gate is complete, Phase A Field QA Foundation is complete and production-verified, Phase B Operational Visibility is the current requested reliability scope, and Phase C Deep Field Verification is planned but not active. The canonical reliability phase definitions are recorded in `docs/architecture/reliability-roadmap-v2.md`.
+A separate Reliability Roadmap v2 is active for newer field-QA/operational-visibility work. It does not reopen or renumber P6. Phase 0 Development Quality Gate is complete, Phase A Field QA Foundation is complete and production-verified, Phase B Operational Visibility is the current requested reliability scope, and Phase C Deep Field Verification is complete and production-verified. The canonical reliability phase definitions are recorded in `docs/architecture/reliability-roadmap-v2.md`.
 
 Admin UX 00-10 is complete. The completed Admin UX work is tracked in `docs/admin/admin-ux-execution-tracker.md` and does not reopen M21.
 
@@ -28,6 +28,8 @@ Phase A Field QA Foundation is complete. It adds read-only desktop/mobile Playwr
 
 Phase B Operational Visibility is the active requested reliability scope. Its first step is a protected `/admin/system-health` operator view that reuses existing CMS authentication, capabilities, Request ID correlation, Admin API/Worker/D1 read paths, and public SSR rather than creating another monitoring stack. Runtime incident recording and cross-workflow aggregation remain later B2/B3 work and must preserve the existing privacy/credential boundaries. Phase B scope is recorded in `docs/operations/phase-b-operational-visibility.md`.
 
+Phase C Deep Field Verification is complete. C1 automated accessibility and C2 synthetic performance were completed through the read-only production field pipeline. C3 authenticated disposable CMS verification completed on 2026-09-07 with Phase C3 Round 19, GitHub Actions run `34126501500`, on exact `master` SHA `88ef27396472d618fbf2091c4bab0255c4d31397`; the browser field test, deterministic cleanup, and final zero-row verification all passed. C3 remains a manual protected deep-production regression tool and is not automatically dispatched by normal Worker production releases. Closure evidence is recorded in `docs/operations/phase-c-deep-field-verification.md`.
+
 Governed Renovate dependency maintenance is expected to continue. It is not considered feature, runtime, or stabilization-scope expansion when it follows the repository dependency policy and passes the required CI/governance gates.
 
 ## Interpretation Rules
@@ -38,13 +40,15 @@ Governed Renovate dependency maintenance is expected to continue. It is not cons
 - Production Observability is configured and activation-proven but approval-gated; do not describe it as unattended monitoring while `production` Environment approval is required.
 - P6B Security Enforcement, P6C Recovery & Reliability, and P6D Product/UX Improvements are completed requested work that form part of the production governance baseline.
 - P6D was the final planned P6 development phase. No P6 feature-development phase is active after its closure.
-- Reliability Roadmap v2 is separate from P6: Phase 0 and Phase A are complete, Phase B is active, and Phase C is planned.
+- Reliability Roadmap v2 is separate from P6: Phase 0, Phase A, and Phase C are complete; Phase B remains active.
+- Completed C3 field verification remains manual-only unless a newer explicit reliability scope reopens automation for mutable production verification.
 - Do not recreate Request ID correlation, D1 observability, security/WAF/CSP checks, P6C reliability probes, Phase A post-deploy browser QA, or Vercel RUM under new phase names.
 - Current runtime ownership is defined by `docs/architecture/current-runtime-ownership.md`.
 - Current deployment behavior is defined by `docs/deployment/runtime-deployment-guide.md`.
 - Reliability Roadmap v2 is defined by `docs/architecture/reliability-roadmap-v2.md`.
 - Phase A closure/current operating context is defined by `docs/operations/phase-a-field-qa-foundation.md`.
 - Phase B current scope is defined by `docs/operations/phase-b-operational-visibility.md`.
+- Phase C closure/current operating context is defined by `docs/operations/phase-c-deep-field-verification.md`.
 - P5H closure context is defined by `docs/operations/p5h-maintainability-observability-2026-08-16.md`.
 - Production Observability closure context is defined by `docs/operations/p6a-production-observability.md`.
 - P6B Security Enforcement closure context is defined by `docs/operations/p6b-security-enforcement.md`.
@@ -57,22 +61,21 @@ Governed Renovate dependency maintenance is expected to continue. It is not cons
 Use this wording for project status reports unless a newer explicit project-state document replaces it:
 
 ```text
-post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2: Phase 0 complete, Phase A complete, Phase B active, Phase C planned
+post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2: Phase 0 complete, Phase A complete, Phase B active, Phase C complete
 ```
 
-Do not report M20, M21, P6B, P6C, or P6D as the current active feature-development phase. P6B, P6C, and P6D are completed. Production Observability remains an operational guard whose scheduled executions are reviewer-gated, not unattended. For the newer reliability roadmap, report Phase B as active until its explicit completion evidence is merged and production-verified.
+Do not report M20, M21, P6B, P6C, or P6D as the current active feature-development phase. P6B, P6C, and P6D are completed. Production Observability remains an operational guard whose scheduled executions are reviewer-gated, not unattended. For the newer reliability roadmap, report Phase B as active and Phase C as complete unless a newer explicit project-state document changes either status.
 
 When reporting future changes, separate them into one of these buckets:
 
 - current baseline: post-P5H production governance baseline, including approval-gated Production Observability plus completed P6B security, P6C recovery, and P6D public UX controls
-- completed reliability work: Phase 0 Development Quality Gate and Phase A Field QA Foundation
+- completed reliability work: Phase 0 Development Quality Gate, Phase A Field QA Foundation, and Phase C Deep Field Verification
 - active requested reliability work: Phase B Operational Visibility
-- planned reliability work: Phase C Deep Field Verification
 - completed UX work: P6D Product/UX Improvements and Admin UX 00-10
-- ongoing operations: approval-gated Production Observability, the bounded six-hour P6C end-to-end reliability guard, P6B security checks, and deployment-driven Phase A production browser QA
+- ongoing operations: approval-gated Production Observability, the bounded six-hour P6C end-to-end reliability guard, P6B security checks, deployment-driven Phase A production browser QA, and manual-only C3 deep-production regression when deliberately invoked
 - ongoing maintenance: governed dependency maintenance and narrowly scoped bug fixes
 - new requested product work: describe any future product/feature scope explicitly rather than extending P6D or overloading the reliability phase names
 
 ## Maintenance Posture
 
-Preserve the completed runtime, security, recovery, public UX, Admin UX, Phase 0, and Phase A boundaries while Phase B is implemented. Keep recovery operations fail-closed, avoid destructive production drills, preserve protected Environment review requirements, and reuse existing credentials/correlation identifiers before requesting any new token or creating a duplicate Environment/secret. Production Observability remains approval-gated by design. P6C keeps only a bounded six-hour end-to-end SSR/Worker/D1 probe, while P6B owns its security checks and no longer performs scheduled D1 auth polling. Phase B should add operator visibility rather than a parallel monitoring stack. Dependency maintenance may continue through governed Renovate PRs according to the repository dependency policy and CI gates. New product feature development requires a new explicit scope.
+Preserve the completed runtime, security, recovery, public UX, Admin UX, Phase 0, Phase A, and Phase C boundaries while Phase B remains active. Keep recovery operations fail-closed, avoid destructive production drills, preserve protected Environment review requirements, and reuse existing credentials/correlation identifiers before requesting any new token or creating a duplicate Environment/secret. Production Observability remains approval-gated by design. P6C keeps only a bounded six-hour end-to-end SSR/Worker/D1 probe, while P6B owns its security checks and no longer performs scheduled D1 auth polling. Phase B should add operator visibility rather than a parallel monitoring stack. C3 remains manual-only and must not be coupled back into normal Worker production releases without a new explicit scope. Dependency maintenance may continue through governed Renovate PRs according to the repository dependency policy and CI gates. New product feature development requires a new explicit scope.
