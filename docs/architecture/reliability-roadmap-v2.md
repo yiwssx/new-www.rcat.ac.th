@@ -14,16 +14,20 @@ This roadmap does **not** reopen P6. Historical P5H/P6A/P6B/P6C/P6D records keep
 | ------- | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                       |
 | Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically. |
-| Phase B | Operational Visibility   | Active   | B1 provides protected live health checks; B2 adds a bounded privacy-safe Runtime Incident Feed; B3 will aggregate external guard state.        |
+| Phase B | Operational Visibility   | Active   | B1 protected live health checks and B2 privacy-safe Runtime Incident Feed are complete; B3 Health Aggregation remains planned.                 |
 | Phase C | Deep Field Verification  | Complete | C1 accessibility, C2 synthetic performance, and C3 authenticated disposable CMS production validation are complete.                            |
 
 ## Phase B scope
 
 ### B1 — System Health Dashboard
 
+Status: complete.
+
 `/admin/system-health` sits behind the existing CMS authentication and `dashboard.read` capability. Initial live checks are read-only and bounded: browser/Admin runtime, CMS session, Vercel Admin Proxy → Worker → D1 dashboard read path, public SSR marker, and explicit `unknown` for side-effect services without a safe read-only probe.
 
 ### B2 — Runtime Incident Feed
+
+Status: complete and production-verified.
 
 Capture only uncaught runtime errors, unhandled promise rejections, and API network/5xx failures. The contract is intentionally narrower than a generic client log collector.
 
@@ -40,9 +44,15 @@ B2 uses:
 
 It does not collect cookies, tokens, bodies, IP/email/user-agent/form data, or arbitrary exception text. See `docs/operations/phase-b-operational-visibility.md` for the normative contract.
 
+Completion evidence: implementation PR #217 merged as `76ca0be1c17715b9e6cc2ec71de8d8e7eef81ea4`; repository CI run `33730760569` and Phase A Production Browser Smoke run `33731028288` succeeded for that merge. The canonical Worker production release followed through PR #218 at `51d286ddebbe0f05b5ddb21af601768ba0e472c3`; Worker Production Release run `33731760770` and the follow-up Phase A Production Browser Smoke run `33732058524` succeeded. Migration `0014_b2_runtime_incidents.sql` therefore crossed the documented B2 production completion gate.
+
 ### B3 — Health Aggregation
 
+Status: planned.
+
 Aggregate safe current-state signals from Phase A, P6A, P6B, P6C, deployment metadata, and B2 incidents through a server-owned boundary. Do not expose GitHub, Vercel, or Cloudflare credentials to the browser.
+
+B3 is the only remaining planned Phase B roadmap item. Do not describe B1 or B2 as pending work and do not close Phase B until B3 has its own explicit implementation and production-verification evidence.
 
 ## Phase C scope
 

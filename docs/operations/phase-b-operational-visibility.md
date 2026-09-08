@@ -1,8 +1,8 @@
 # Phase B — Operational Visibility
 
-Updated: 2026-09-03
+Updated: 2026-09-08
 
-Status: active. B1 is complete; B2 adds the privacy-safe Runtime Incident Feed. B3 remains planned.
+Status: active. B1 System Health Dashboard and B2 Runtime Incident Feed are complete and production-verified. B3 Health Aggregation remains planned.
 
 ## Goal
 
@@ -11,6 +11,8 @@ Phase B turns existing production reliability signals into operator-facing visib
 Phase B follows completed Phase 0 Development Quality Gate and completed Phase A Field QA Foundation. The reconciled roadmap is `docs/architecture/reliability-roadmap-v2.md`.
 
 ## B1 — `/admin/system-health`
+
+Status: complete.
 
 B1 adds a protected, read-only system health dashboard to the existing CMS shell.
 
@@ -31,6 +33,8 @@ Live checks:
 The checks run once when the page opens and only rerun when the operator explicitly requests another check. There is no interval polling.
 
 ## B2 — Runtime Incident Feed
+
+Status: complete and production-verified.
 
 B2 records only a narrow, predefined set of production browser failures:
 
@@ -83,6 +87,19 @@ Operator reading is `GET /api/admin/runtime-incidents`. It is not a public read 
 
 `/admin/system-health` reads the last 24 hours, up to 25 aggregate groups, only when the page performs its normal explicit health refresh. There is no background polling.
 
+### Completion evidence
+
+B2 crossed its documented completion gate on 2026-09-03:
+
+- implementation PR #217 merged as `76ca0be1c17715b9e6cc2ec71de8d8e7eef81ea4`;
+- repository CI run `33730760569` succeeded for that merge;
+- Phase A Production Browser Smoke run `33731028288` succeeded for that merge;
+- canonical Worker production release PR #218 merged as `51d286ddebbe0f05b5ddb21af601768ba0e472c3`;
+- Worker Production Release run `33731760770` succeeded, applying the production Worker release path that includes migration `0014_b2_runtime_incidents.sql`;
+- follow-up Phase A Production Browser Smoke run `33732058524` succeeded for the release commit.
+
+B2 must therefore be reported as complete. Do not reopen it merely because Phase B as a whole remains active for B3.
+
 ## Request correlation
 
 B1 and B2 reuse `X-RCAT-Request-ID`. They do not generate a second tracing identifier.
@@ -104,7 +121,11 @@ The dashboard links operators to GitHub Actions. It does **not** call GitHub fro
 
 ## B3 — Health Aggregation
 
+Status: planned.
+
 B3 may later aggregate current Phase A/P6A/P6B/P6C/deployment/incident signals through a server-owned endpoint. Browser-side infrastructure credentials are prohibited.
+
+B3 is the only remaining planned Phase B roadmap item. Phase B remains active until B3 has explicit implementation and production-verification evidence or a newer explicit project-state decision removes it from scope.
 
 ## Cost boundary
 
@@ -121,3 +142,5 @@ B2 is complete only after:
 5. the change is merged to `master`;
 6. the production Worker release applies migration `0014_b2_runtime_incidents.sql` and deploys the matching Worker code;
 7. the automatic Phase A production browser verification for the merge commit succeeds.
+
+All seven conditions are satisfied by the completion evidence above.

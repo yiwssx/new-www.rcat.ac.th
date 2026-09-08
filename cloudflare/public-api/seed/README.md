@@ -2,7 +2,7 @@
 
 This directory contains local-only D1 seed planning and fake seed fixtures. It does not import real data and does not change production or preview field-verification data.
 
-Current status: cleanup completed; preview field verification in progress. M20 production cutover remains gated. Structured public/admin data is owned by Cloudflare Worker + D1; Apps Script is retained only for the media/file bridge and Google Drive operations.
+Project-state note: the M2/M20 migration narrative in this seed plan is historical. Current production ownership is Cloudflare Worker + D1 for structured public/admin data, with Apps Script retained only for the media/file bridge and Google Drive operations. Current project status is defined by `docs/architecture/post-p5h-current-project-state.md`; do not infer an active migration or cutover phase from this local fixture directory.
 
 ## Current Contents
 
