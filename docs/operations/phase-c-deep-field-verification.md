@@ -1,8 +1,10 @@
 # Phase C Deep Field Verification
 
-Status: active.
+Status: complete.
 
 Started: 2026-09-04.
+
+Completed: 2026-09-07.
 
 ## Goal
 
@@ -42,7 +44,9 @@ Completion evidence is PR #224 merged to `master` at `443e82e2697e261b22ae671718
 
 ## C3 — Authenticated disposable CMS field test
 
-Status: implementation complete; production validation pending.
+Status: complete.
+
+Completed: 2026-09-07.
 
 C3 is deliberately separated from the automatic read-only Phase A suite. `.github/workflows/phase-c3-authenticated-cms-field.yml` is manual, master-only, and protected by the existing `production` Environment because it performs tightly bounded production writes.
 
@@ -59,12 +63,18 @@ The browser flow uses `playwright.phase-c3.config.ts` with one desktop Chromium 
 
 The production Vercel app does not expose `/api/public/*` as a same-origin rewrite. Public structured-data requests use the configured Cloudflare Worker origin (`CLOUDFLARE_PUBLIC_API_URL` server-side and `VITE_CLOUDFLARE_PUBLIC_API_URL` in browser code). Phase C3 therefore verifies public visibility through the real SSR route instead of fabricating a same-origin `/api/public/content/:slug` request that production does not serve.
 
+Dynamic public content detail responses use a no-store policy so publish/delete verification observes the current Worker/D1 state rather than stale CDN content. This policy was production-verified in the final successful C3 run.
+
 The thumbnail source intentionally uses a non-Facebook `.invalid` URL while the content template is `Facebook Embed`. The server rejects that source before any Facebook fetch or media persistence, making the fallback deterministic and ensuring C3 cannot leave an uploaded media artifact.
 
 Infrastructure cleanup runs with `always()` and hard-deletes the exact run-scoped content slug and non-root QA user. A final D1 count query requires the QA user, credential, session, and content counts all to be zero. Immutable Admin audit-log events are intentionally retained as operational evidence, not as live QA data.
 
-C3 must not be marked complete until the implementation is merged, repository CI is green, the exact merge SHA is deployed by Vercel, the protected C3 workflow passes on `master`, and its final deterministic cleanup verification succeeds.
+Final completion evidence is Phase C3 Round 19, GitHub Actions run `34126501500`, on exact `master` SHA `88ef27396472d618fbf2091c4bab0255c4d31397`. The browser field test passed, deterministic cleanup passed, and zero-row verification passed for user, credential, session, and content records.
+
+After Phase C closure, C3 remains available as a deliberate manual protected deep-production regression tool. It is not automatically dispatched by normal Worker production releases.
 
 ## Closure rule
 
 Phase C closes only when C1, C2, and C3 have merged implementation plus passing repository/field evidence, with deterministic cleanup for every mutable C3 test artifact.
+
+This closure rule is satisfied. Phase C is complete as of 2026-09-07.
