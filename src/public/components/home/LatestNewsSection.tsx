@@ -35,6 +35,7 @@ export function LatestNewsSection({
                 item={item}
                 mediaAssets={mediaAssets}
                 icon={<CampaignOutlinedIcon sx={{ fontSize: 42 }} />}
+                presentation="home-news"
               />
             </Grid>
           ))}
