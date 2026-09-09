@@ -1,6 +1,6 @@
 # Full Repository Conflict Audit — 2026-09-09
 
-Status: primary remediation merged in PR #261; final follow-up remediation is in progress through PR #262.
+Status: primary remediation merged in PR #261; final follow-up remediation is in progress through PR #263.
 
 Canonical project state remains `docs/architecture/post-p5h-current-project-state.md`. This audit does not reopen historical M13-M21 phases or completed P6B/P6C/P6D work.
 
@@ -29,7 +29,7 @@ The lockfile and `docs/maintenance/dependency-current-status.md` were regenerate
 
 The diagnostic workflow used to expose the audit JSON was temporary and was removed before PR #261 merged.
 
-Renovate PR #260 subsequently updated `@playwright/test` from `^1.62.1` to `^1.63.0` and merged at `a69e82be0fbc7bb4b1e95c23b1eed9c365d00a80` after its full CI passed. The protected-master dependency-status sync correctly detected that this direct dependency update changed the generated status snapshot by 12 lines. PR #262 refreshes that snapshot through the normal pull-request path rather than allowing a workflow to write directly to protected master.
+Renovate PR #260 subsequently updated `@playwright/test` from `^1.62.1` to `^1.63.0` and merged at `a69e82be0fbc7bb4b1e95c23b1eed9c365d00a80` after its full CI passed. The protected-master dependency-status sync correctly detected that this direct dependency update changed the generated status snapshot by 12 lines. PR #263 refreshes that snapshot through the normal pull-request path rather than allowing a workflow to write directly to protected master.
 
 ### Toolchain documentation drift
 
@@ -51,7 +51,9 @@ Post-merge verification of PR #261 exposed a workflow race that static repositor
 
 A successful PR or Renovate CI therefore created a Phase A workflow run that was correctly skipped by the job-level `master` condition but still entered the same workflow-level concurrency group first. With `cancel-in-progress: true`, that skipped run could cancel an in-flight read-only production smoke for `master` before browser assertions completed.
 
-PR #262 scopes concurrency to the triggering CI source branch while preserving same-branch supersession. `src/test/phaseAAutomationContract.test.ts` rejects a return to the old global concurrency key. The existing production base-URL environment variable, artifact paths, and detailed field-QA summary remain unchanged; the follow-up is intentionally limited to the concurrency defect.
+PR #263 scopes concurrency to the triggering CI source branch while preserving same-branch supersession. `src/test/phaseAAutomationContract.test.ts` rejects a return to the old global concurrency key. The existing production base-URL environment variable, artifact paths, and detailed field-QA summary remain unchanged; the follow-up is intentionally limited to the concurrency defect.
+
+PR #262 was the initial follow-up PR, but GitHub closed it automatically when its head branch was deliberately reset to the then-current master before the cleaned changes were reapplied. PR #263 is the replacement review object for the same branch after the final changes were restored on top of the latest master.
 
 ## Current-state conflict review
 
@@ -74,7 +76,7 @@ The current-facing state contract remains consistent:
 
 Historical milestone, cutover, readiness, smoke, and audit documents were not deleted merely because they contain wording that was true at an earlier date. Files marked as archived, historical, superseded, closure evidence, or compatibility evidence remain part of the audit trail.
 
-Old M20/M21 handoff wording must not be interpreted as current state. Current-state reporting is governed by the canonical post-P5H state document and current-facing consistency tests. Where a retained snapshot can otherwise look current, an archival marker should point readers back to the canonical project-state document rather than rewriting the historical evidence itself.
+Old M20/M21 handoff wording must not be interpreted as current state. Current-state reporting is governed by the canonical post-P5H state document and current-facing consistency tests. Where a retained snapshot can otherwise look current, an archival marker points readers back to the canonical project-state document rather than rewriting the historical evidence itself.
 
 ## Workflow review
 
@@ -103,16 +105,16 @@ The retired Worker-to-C3 automatic dispatch and the one-time C3 dispatcher remai
 
 PR #261 merged at `3fda60f7126da78d624726c981822e061e554567`; its PR CI and post-merge master CI passed and Vercel reported success.
 
-Renovate PR #260 was rebased onto that remediated master, passed fresh CI, and merged at `a69e82be0fbc7bb4b1e95c23b1eed9c365d00a80`. Its protected-master dependency-status sync reported the expected generated snapshot drift, which is being persisted through PR #262.
+Renovate PR #260 was rebased onto that remediated master, passed fresh CI, and merged at `a69e82be0fbc7bb4b1e95c23b1eed9c365d00a80`. Its protected-master dependency-status sync reported the expected generated snapshot drift, which is being persisted through PR #263.
 
-At the time of this follow-up, PR #262 is the remaining repository-cleanup change.
+At the time of this follow-up, PR #263 is the remaining repository-cleanup change.
 
 ## Closure criteria
 
 This audit can be marked complete only when:
 
-1. PR #262 passes all repository CI lanes and has no unresolved review threads;
-2. PR #262 merges onto the latest master with the regenerated dependency snapshot;
+1. PR #263 passes all repository CI lanes and has no unresolved review threads;
+2. PR #263 merges onto the latest master with the regenerated dependency snapshot;
 3. master post-merge CI passes;
 4. a master Phase A production browser smoke completes successfully without cross-branch cancellation;
 5. the final audit record is marked complete with the actual merge/run evidence;
