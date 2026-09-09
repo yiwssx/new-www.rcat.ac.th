@@ -18,8 +18,10 @@ permissions:
   contents: read
   statuses: read
 
+# workflow_run fires for CI on every branch. Scope concurrency to the source
+# branch so a completed PR/Renovate CI cannot cancel an in-flight master smoke.
 concurrency:
-  group: phase-a-production-browser-smoke
+  group: phase-a-production-browser-smoke-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
