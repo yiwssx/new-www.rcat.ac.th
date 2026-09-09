@@ -15,6 +15,7 @@ interface PublicContentCardProps {
   mediaAssets?: MediaAsset[];
   icon?: ReactNode;
   featured?: boolean;
+  presentation?: "default" | "home-news";
 }
 
 function normalizeCategories(value: string | undefined) {
@@ -28,17 +29,20 @@ export default function PublicContentCard({
   item,
   mediaAssets = [],
   icon = <ArticleOutlinedIcon />,
-  featured = false
+  featured = false,
+  presentation = "default"
 }: PublicContentCardProps) {
   const thumbnailMedia = resolveCardThumbnail(item, mediaAssets);
   const categories = normalizeCategories(item.category);
   const isFacebookEmbed = isFacebookEmbedContent(item);
+  const isHomeNews = presentation === "home-news" && !featured;
 
   return (
     <Card
       component="a"
       href={normalizeSafeHref(`/content/${item.slug}`)}
       className="block h-full"
+      data-public-content-card-presentation={presentation}
       sx={{
         ...interactiveSurfaceSx,
         "&:hover": {
@@ -47,15 +51,15 @@ export default function PublicContentCard({
         }
       }}
     >
-      <CardContent sx={{ p: featured ? 3 : 2.4 }}>
-        <Stack direction={featured ? { xs: "column", md: "row" } : "row"} spacing={2}>
+      <CardContent sx={{ p: featured ? 3 : isHomeNews ? 2.25 : 2.4 }}>
+        <Stack direction={featured ? { xs: "column", md: "row" } : "row"} spacing={isHomeNews ? 1.5 : 2}>
           <Box
             className="rcat-image-frame grid place-items-center"
             data-public-content-card-media-slot={featured ? "featured" : "regular"}
             sx={{
-              width: featured ? { xs: "100%", md: 180 } : 70,
-              minWidth: featured ? { md: 180 } : 70,
-              height: featured ? 150 : 70
+              width: featured ? { xs: "100%", md: 180 } : isHomeNews ? 120 : 70,
+              minWidth: featured ? { md: 180 } : isHomeNews ? 120 : 70,
+              height: featured ? 150 : isHomeNews ? 90 : 70
             }}
           >
             {thumbnailMedia ? (
@@ -64,7 +68,7 @@ export default function PublicContentCard({
                 source={thumbnailMedia}
                 intent={featured ? "featured-card" : "content-card"}
                 alt={thumbnailMedia.name}
-                sizes={featured ? "(max-width: 899px) calc(100vw - 64px), 180px" : "70px"}
+                sizes={featured ? "(max-width: 899px) calc(100vw - 64px), 180px" : isHomeNews ? "120px" : "70px"}
                 loadMode="near-viewport"
                 nearViewportMargin="240px 0px"
                 fill
@@ -78,11 +82,22 @@ export default function PublicContentCard({
           <Box className="min-w-0 flex-1">
             <Stack
               direction="row"
-              spacing={1}
+              spacing={isHomeNews ? 0.75 : 1}
               useFlexGap
               sx={{
                 flexWrap: "wrap",
-                mb: 1
+                mb: isHomeNews ? 0.75 : 1,
+                ...(isHomeNews
+                  ? {
+                      "& .MuiChip-root": {
+                        height: 24,
+                        fontSize: "0.6875rem"
+                      },
+                      "& .MuiChip-label": {
+                        px: 1
+                      }
+                    }
+                  : {})
               }}
             >
               <Chip label={contentTypeLabels[item.type]} size="small" />
@@ -92,17 +107,38 @@ export default function PublicContentCard({
               {categories.slice(0, 2).map((category) => (
                 <Chip key={category} label={category} size="small" variant="outlined" />
               ))}
-              {!!item.readingMinutes && (
+              {!isHomeNews && !!item.readingMinutes && (
                 <Chip label={`อ่าน ${item.readingMinutes} นาที`} size="small" variant="outlined" />
               )}
             </Stack>
-            <Typography variant="h3" sx={{ fontSize: featured ? "1.45rem" : "1.05rem" }}>
+            <Typography
+              variant="h3"
+              sx={{
+                fontSize: featured ? "1.45rem" : isHomeNews ? "0.9375rem" : "1.05rem",
+                ...(isHomeNews
+                  ? {
+                      fontWeight: 600,
+                      lineHeight: 1.45,
+                      display: "-webkit-box",
+                      overflow: "hidden",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: 3
+                    }
+                  : {})
+              }}
+            >
               {item.title}
             </Typography>
             <Typography
               className="content-summary mt-2"
               sx={{
-                color: "text.secondary"
+                color: "text.secondary",
+                ...(isHomeNews
+                  ? {
+                      fontSize: "0.8125rem",
+                      lineHeight: 1.5
+                    }
+                  : {})
               }}
             >
               {item.summary}
@@ -112,7 +148,13 @@ export default function PublicContentCard({
                 variant="caption"
                 className="mt-2 block"
                 sx={{
-                  color: "text.secondary"
+                  color: "text.secondary",
+                  ...(isHomeNews
+                    ? {
+                        fontSize: "0.71875rem",
+                        lineHeight: 1.4
+                      }
+                    : {})
                 }}
               >
                 {item.tags
@@ -126,21 +168,24 @@ export default function PublicContentCard({
               spacing={0.5}
               sx={{
                 justifyContent: "space-between",
-                mt: 2
+                mt: isHomeNews ? 1.5 : 2
               }}
             >
               <Typography
                 variant="body2"
                 sx={{
-                  color: "text.secondary"
+                  color: "text.secondary",
+                  ...(isHomeNews ? { fontSize: "0.75rem" } : {})
                 }}
               >
                 {item.owner}
+                {isHomeNews && !!item.readingMinutes ? ` · อ่าน ${item.readingMinutes} นาที` : ""}
               </Typography>
               <Typography
                 variant="body2"
                 sx={{
-                  color: "text.secondary"
+                  color: "text.secondary",
+                  ...(isHomeNews ? { fontSize: "0.75rem" } : {})
                 }}
               >
                 {formatDisplayDate(item.publishAt)}
