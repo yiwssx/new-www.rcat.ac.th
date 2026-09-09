@@ -1,0 +1,39 @@
+name: Dependency Audit Diagnostic
+
+on:
+  push:
+    branches:
+      - chore/full-repo-conflict-cleanup-2026-09-09
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies --ignore-scripts
+      - name: Full audit JSON
+        shell: bash
+        run: |
+          set +e
+          pnpm audit --json
+          echo "audit_exit=$?"
+          exit 0
+      - name: Production audit JSON
+        shell: bash
+        run: |
+          set +e
+          pnpm audit --prod --json
+          echo "prod_audit_exit=$?"
+          exit 0
