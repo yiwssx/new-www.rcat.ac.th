@@ -1,6 +1,6 @@
 # Dependency Update and Warning Cleanup
 
-This is the current dependency and warning-gate workflow. Use Node `24.18.0` and pnpm `10.34.5`, then install from the lockfile with `pnpm install --frozen-lockfile`.
+This is the current dependency and warning-gate workflow. Use Node `24.20.0` and pnpm `10.34.5`, then install from the lockfile with `pnpm install --frozen-lockfile`.
 
 The pnpm workspace policy uses `onlyBuiltDependencies` with `strictDepBuilds: true`. Only `esbuild`, `workerd`, and `sharp` may run dependency install scripts; this is the pnpm 10 form of the repository's fail-closed build policy.
 
@@ -36,7 +36,7 @@ Pass another threshold to the reporter when a stricter review is agreed, for exa
 
 ## Current Sitemap Note
 
-`pnpm build` runs TypeScript and Vite only. Vercel serves `/sitemap.xml` through `api/sitemap.mjs`, backed by live Cloudflare Worker/D1 public data. The tracked `scripts/generate-sitemap.mjs` file is obsolete and unreferenced; it is retained only for a separately scoped removal decision. `public/sitemap.xml` is not generated or source-controlled.
+`pnpm build` runs TypeScript and Vite only. Vercel serves `/sitemap.xml` through `api/sitemap.mjs`, backed by live Cloudflare Worker/D1 public data. The obsolete, unreferenced `scripts/generate-sitemap.mjs` build-time generator was removed during the 2026-09-09 repository cleanup. `public/sitemap.xml` is not generated or source-controlled.
 
 ## Acceptance Rules
 
