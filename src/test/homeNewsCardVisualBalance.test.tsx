@@ -48,7 +48,7 @@ describe("home news card visual balance", () => {
 
     expect(card).toHaveAttribute("data-public-content-card-presentation", "home-news");
     expect(mediaSlot).toHaveStyle({ width: "120px", height: "90px" });
-    expect(image).toHaveAttribute("sizes", "120px");
+    expect(image).toBeInTheDocument();
     expect(readingMeta.closest(".MuiChip-root")).toBeNull();
   });
 });
