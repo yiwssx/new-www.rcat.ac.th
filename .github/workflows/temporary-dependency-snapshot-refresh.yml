@@ -34,29 +34,53 @@ jobs:
       - name: Regenerate canonical dependency status
         run: |
           pnpm deps:status
-          pnpm exec prettier --write docs/maintenance/dependency-current-status.md
           pnpm deps:check
           pnpm deps:docs:audit
+
+      - name: Mark retained M20 ledger as historical
+        shell: bash
+        run: |
+          node <<'NODE'
+          const { readFileSync, writeFileSync } = require('node:fs');
+          const path = 'docs/architecture/m20-cleanup-ledger.md';
+          let text = readFileSync(path, 'utf8');
+          const marker = '> Historical record — this ledger preserves M20/M21-era closure and handoff wording as audit evidence. It is not current project status. Current source of truth: [post-P5H current project state](./post-p5h-current-project-state.md).';
+          if (!text.includes(marker)) {
+            const heading = '# M20 Cleanup Ledger\n\n';
+            if (!text.startsWith(heading)) throw new Error('Unexpected M20 cleanup ledger heading');
+            text = heading + marker + '\n\n' + text.slice(heading.length);
+          }
+          const oldNote = 'Historical implementation note: `scripts/generate-sitemap.mjs` previously enriched a build-time sitemap and fell back to static routes. Commit `80324e7` superseded that path: Vercel now serves `/sitemap.xml` through `api/sitemap.mjs` using live Cloudflare public API data; the old script remains tracked but unreferenced.';
+          const newNote = 'Historical implementation note: `scripts/generate-sitemap.mjs` previously enriched a build-time sitemap and fell back to static routes. Commit `80324e7` superseded that path: Vercel now serves `/sitemap.xml` through `api/sitemap.mjs` using live Cloudflare public API data. At that checkpoint, the old script remained tracked but unreferenced; it was removed by the 2026-09-09 full-repository cleanup.';
+          if (text.includes(oldNote)) text = text.replace(oldNote, newNote);
+          writeFileSync(path, text);
+          NODE
+
+          pnpm exec prettier --write \
+            docs/maintenance/dependency-current-status.md \
+            docs/architecture/m20-cleanup-ledger.md
 
       - name: Verify generated change scope
         shell: bash
         run: |
-          unexpected="$(git status --porcelain --untracked-files=no | awk '$2 != "docs/maintenance/dependency-current-status.md" { print }')"
+          unexpected="$(git status --porcelain --untracked-files=no | awk '$2 != "docs/maintenance/dependency-current-status.md" && $2 != "docs/architecture/m20-cleanup-ledger.md" { print }')"
           if [ -n "$unexpected" ]; then
-            echo "Unexpected tracked changes after dependency status generation:"
+            echo "Unexpected tracked changes after deterministic cleanup:"
             echo "$unexpected"
             exit 1
           fi
 
-      - name: Commit refreshed snapshot
+      - name: Commit deterministic cleanup
         shell: bash
         run: |
-          git add docs/maintenance/dependency-current-status.md
+          git add \
+            docs/maintenance/dependency-current-status.md \
+            docs/architecture/m20-cleanup-ledger.md
           if git diff --cached --quiet; then
-            echo "Dependency status snapshot is already current."
+            echo "Generated dependency and historical cleanup state is already current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix(deps): refresh Playwright dependency snapshot"
+          git commit -m "chore: refresh generated state and archive M20 ledger"
           git push origin HEAD:fix/phase-a-smoke-concurrency-2026-09-09
