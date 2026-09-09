@@ -1,6 +1,6 @@
 # Full Repository Conflict Audit — 2026-09-09
 
-Status: primary remediation merged in PR #261; final follow-up remediation is in progress through PR #263.
+Status: complete.
 
 Canonical project state remains `docs/architecture/post-p5h-current-project-state.md`. This audit does not reopen historical M13-M21 phases or completed P6B/P6C/P6D work.
 
@@ -20,16 +20,25 @@ The audit covered:
 
 ### Dependency security and generated state
 
-Master had two newly disclosed high-severity findings in the development/tooling tree while the production dependency tree remained clean:
+Two newly disclosed high-severity findings were identified in the development/tooling tree while the production dependency tree remained clean:
 
-- `wrangler -> miniflare -> sharp 0.35.2`, fixed by a narrow `sharp@<0.35.4 -> 0.35.4` override;
-- `@commitlint/cli -> @commitlint/load -> cosmiconfig -> js-yaml 4.3.1`, fixed by a narrow `js-yaml@>=4.0.0 <4.3.2 -> 4.3.2` override.
+- `wrangler -> miniflare -> sharp 0.35.2`, fixed by the narrow `sharp@<0.35.4 -> 0.35.4` override;
+- `@commitlint/cli -> @commitlint/load -> cosmiconfig -> js-yaml 4.3.1`, fixed by the narrow `js-yaml@>=4.0.0 <4.3.2 -> 4.3.2` override.
 
-The lockfile and `docs/maintenance/dependency-current-status.md` were regenerated from the repository toolchain. The resulting report records zero low, moderate, high, or critical findings for both the full tree and production tree.
+The lockfile and `docs/maintenance/dependency-current-status.md` were regenerated from the repository toolchain. The final report records zero low, moderate, high, or critical findings for both the full tree and production tree.
 
-The diagnostic workflow used to expose the audit JSON was temporary and was removed before PR #261 merged.
+The diagnostic workflow used to expose audit JSON and the temporary workflow used to regenerate cleanup state were removed before their corresponding cleanup PRs merged. No temporary cleanup/diagnostic workflow remains in `master`.
 
-Renovate PR #260 subsequently updated `@playwright/test` from `^1.62.1` to `^1.63.0` and merged at `a69e82be0fbc7bb4b1e95c23b1eed9c365d00a80` after its full CI passed. The protected-master dependency-status sync correctly detected that this direct dependency update changed the generated status snapshot by 12 lines. PR #263 refreshes that snapshot through the normal pull-request path rather than allowing a workflow to write directly to protected master.
+Renovate PR #260 subsequently updated `@playwright/test` from `^1.62.1` to `^1.63.0` and merged at `a69e82be0fbc7bb4b1e95c23b1eed9c365d00a80`. Protected-master Dependency Status Sync run #53 correctly detected the resulting 12-line generated snapshot drift without writing directly to protected `master`. PR #263 regenerated and committed that snapshot through the normal pull-request path.
+
+Final generated dependency state after PR #263:
+
+- direct dependencies: 52;
+- accepted by live monitoring policy: 43;
+- full-tree security audit: PASS, zero vulnerabilities;
+- production security audit: PASS, zero vulnerabilities;
+- `@playwright/test`: `1.63.0`, registry latest at generation time;
+- dependency freshness and dependency-document audit gates: PASS.
 
 ### Toolchain documentation drift
 
@@ -43,21 +52,23 @@ Historical measurements that mention older Node versions remain unchanged becaus
 
 `scripts/generate-sitemap.mjs` was explicitly documented as obsolete and unreferenced. Current sitemap ownership is the Vercel runtime function `api/sitemap.mjs`; `pnpm build` does not generate `public/sitemap.xml`.
 
-The obsolete build-time generator was deleted by PR #261. The hygiene regression test now requires runtime sitemap ownership to remain single-sourced and requires the old generator to stay absent.
+The obsolete build-time generator was deleted by PR #261. The hygiene regression test requires runtime sitemap ownership to remain single-sourced and requires the old generator to stay absent.
 
 ### Phase A production-smoke concurrency race
 
 Post-merge verification of PR #261 exposed a workflow race that static repository inspection could not reveal. `.github/workflows/phase-a-production-browser-smoke.yml` used one global concurrency group while `workflow_run` fires after CI completes on every branch.
 
-A successful PR or Renovate CI therefore created a Phase A workflow run that was correctly skipped by the job-level `master` condition but still entered the same workflow-level concurrency group first. With `cancel-in-progress: true`, that skipped run could cancel an in-flight read-only production smoke for `master` before browser assertions completed.
+A successful PR or Renovate CI could therefore create a Phase A workflow run that was correctly skipped by the job-level `master` condition but still entered the same workflow-level concurrency group first. With `cancel-in-progress: true`, that skipped run could cancel an in-flight read-only production smoke for `master` before browser assertions completed.
 
-PR #263 scopes concurrency to the triggering CI source branch while preserving same-branch supersession. `src/test/phaseAAutomationContract.test.ts` rejects a return to the old global concurrency key. The existing production base-URL environment variable, artifact paths, and detailed field-QA summary remain unchanged; the follow-up is intentionally limited to the concurrency defect.
+PR #263 scopes concurrency to the triggering CI source branch while preserving same-branch supersession. `src/test/phaseAAutomationContract.test.ts` rejects a return to the old global concurrency key. The production base-URL environment variable, artifact paths, and field-QA summary remain unchanged.
 
-PR #262 was the initial follow-up PR, but GitHub closed it automatically when its head branch was deliberately reset to the then-current master before the cleaned changes were reapplied. PR #263 is the replacement review object for the same branch after the final changes were restored on top of the latest master.
+Production verification after merge proved the fix: Phase A Production Browser Smoke run #148 (`34309509904`) targeted master SHA `23ff37f80b0b0eda7fe0d1f16141bb4d52ed1ce6`, matched a successful Vercel production deployment, executed the read-only browser suite, and completed successfully without cross-branch cancellation.
+
+PR #262 was the initial follow-up review object. GitHub closed it automatically when its head branch was deliberately reset to the then-current `master` before the cleaned changes were reapplied. PR #263 replaced it and contains the final reviewed follow-up change.
 
 ## Current-state conflict review
 
-The current-facing state contract remains consistent:
+The current-facing state contract is consistent:
 
 - Phase 0: complete;
 - Phase A: complete;
@@ -70,13 +81,13 @@ The current-facing state contract remains consistent:
 - P6B, P6C, P6D and Admin UX 00-10: complete;
 - governed dependency maintenance continues independently of feature-phase status.
 
-`src/test/projectStateConsistency.test.ts` continues to reject stale active M20/M21 wording from current-facing guidance and protects the B1/B2/B3/Phase C contract.
+`src/test/projectStateConsistency.test.ts` rejects stale active M20/M21 wording from current-facing guidance and protects the B1/B2/B3/Phase C contract. The full PR #263 and post-merge master unit-test lanes passed with these guards enabled.
 
 ## Historical records intentionally retained
 
 Historical milestone, cutover, readiness, smoke, and audit documents were not deleted merely because they contain wording that was true at an earlier date. Files marked as archived, historical, superseded, closure evidence, or compatibility evidence remain part of the audit trail.
 
-Old M20/M21 handoff wording must not be interpreted as current state. Current-state reporting is governed by the canonical post-P5H state document and current-facing consistency tests. Where a retained snapshot can otherwise look current, an archival marker points readers back to the canonical project-state document rather than rewriting the historical evidence itself.
+Old M20/M21 handoff wording must not be interpreted as current state. `docs/architecture/m20-cleanup-ledger.md` and `docs/architecture/m20-cleanup-runtime-ownership.md` now explicitly identify themselves as historical records/snapshots and point to the canonical post-P5H project-state document.
 
 ## Workflow review
 
@@ -99,23 +110,24 @@ The retired Worker-to-C3 automatic dispatch and the one-time C3 dispatcher remai
 
 `VITE_PUBLIC_ANALYTICS_STRATEGY="both"` remains a deprecated compatibility alias for the canonical GTM transport. It is covered by code, types, documentation, and tests. Repository evidence does not prove that all external deployment environments have stopped using the alias, so removing it during cleanup would be an unjustified compatibility break.
 
-`usePublicCmsSnapshot` also remains actively consumed by the public menu compatibility fallback and therefore is not dead code.
+`usePublicCmsSnapshot` remains actively consumed by the public menu compatibility fallback and therefore is not dead code.
 
-## Repository queue
+## Closure evidence
 
-PR #261 merged at `3fda60f7126da78d624726c981822e061e554567`; its PR CI and post-merge master CI passed and Vercel reported success.
+- PR #261 merged at `3fda60f7126da78d624726c981822e061e554567` after PR CI #1971 passed; post-merge master CI #1972 passed and Vercel reported success.
+- Renovate PR #260 rebased onto the remediated master, passed PR CI #1974, and merged at `a69e82be0fbc7bb4b1e95c23b1eed9c365d00a80`; master CI #1979 passed.
+- Protected-master Dependency Status Sync #53 detected the expected Playwright-generated snapshot drift and left protected `master` untouched.
+- PR #263 passed CI #1983 in every lane, including Unit Tests, Functional E2E, Governance, Static Quality, Build, Integration Tests, Worker, Dependencies, and the aggregate `quality` gate; it had no unresolved review threads.
+- PR #263 merged at `23ff37f80b0b0eda7fe0d1f16141bb4d52ed1ce6`.
+- Post-merge master CI #1984 (`34309272452`) passed every lane and the aggregate `quality` gate.
+- Vercel status for `23ff37f80b0b0eda7fe0d1f16141bb4d52ed1ce6` reported success.
+- Phase A Production Browser Smoke #148 (`34309509904`) completed successfully against that exact master SHA after matching the Vercel production deployment.
+- Final generated dependency status records zero vulnerabilities in both full and production trees and accepted status for 43/52 direct dependencies.
+- Temporary audit and snapshot-refresh workflows are absent from the merged repository.
+- Immediately before opening this documentation-only closure change, the repository had zero open pull requests and zero open issues.
 
-Renovate PR #260 was rebased onto that remediated master, passed fresh CI, and merged at `a69e82be0fbc7bb4b1e95c23b1eed9c365d00a80`. Its protected-master dependency-status sync reported the expected generated snapshot drift, which is being persisted through PR #263.
+## Closure result
 
-At the time of this follow-up, PR #263 is the remaining repository-cleanup change.
+All remediation and validation criteria defined by this audit are satisfied. No current-facing project-state conflict, known cleanup-only dead file, temporary cleanup workflow, unresolved cleanup review thread, failing dependency/security gate, failing master CI lane, failing Vercel status, or failing Phase A production browser verification remains from this audit.
 
-## Closure criteria
-
-This audit can be marked complete only when:
-
-1. PR #263 passes all repository CI lanes and has no unresolved review threads;
-2. PR #263 merges onto the latest master with the regenerated dependency snapshot;
-3. master post-merge CI passes;
-4. a master Phase A production browser smoke completes successfully without cross-branch cancellation;
-5. the final audit record is marked complete with the actual merge/run evidence;
-6. no current-facing project-state conflict, temporary diagnostic workflow, open cleanup PR, or failing required maintenance gate remains.
+This document is the terminal record for the 2026-09-09 full-repository conflict and hygiene cleanup. Its documentation-only merge is validated through the normal repository CI path; that self-validation does not reopen the completed remediation scope or require another self-referential closure edit.
