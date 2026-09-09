@@ -1,5 +1,7 @@
 # M20 Cleanup Ledger
 
+> Historical record — this ledger preserves M20/M21-era closure and handoff wording as audit evidence. It is not current project status. Current source of truth: [post-P5H current project state](./post-p5h-current-project-state.md).
+
 Date: 2026-06-24
 
 Status: M20 migration/runtime/domain-cutover scope is closed.
@@ -268,7 +270,7 @@ This pass removes the remaining active browser-side Apps Script structured-data 
 - `src/test/adminInformationArchitecture.test.ts` now guards active browser structured-data wrappers against `services/googleApi`, `getGoogleAppsScriptUrl`, `VITE_GOOGLE_APPS_SCRIPT_URL`, and `FromAppsScript` references.
 - `rg` showed no active source imports for `services/googleApi`, `cms-integrations`, `authRuntime`, `services/users`, or browser-side Apps Script structured read/write fallbacks after the cleanup.
 - Public and admin feature wrappers now call Cloudflare Worker APIs directly for structured data.
-- Historical implementation note: `scripts/generate-sitemap.mjs` previously enriched a build-time sitemap and fell back to static routes. Commit `80324e7` superseded that path: Vercel now serves `/sitemap.xml` through `api/sitemap.mjs` using live Cloudflare public API data; the old script remains tracked but unreferenced.
+- Historical implementation note: `scripts/generate-sitemap.mjs` previously enriched a build-time sitemap and fell back to static routes. Commit `80324e7` superseded that path: Vercel now serves `/sitemap.xml` through `api/sitemap.mjs` using live Cloudflare public API data. At that checkpoint, the old script remained tracked but unreferenced; it was removed by the 2026-09-09 full-repository cleanup.
 
 ### Intentionally Retained
 
