@@ -26,6 +26,14 @@ describe("Phase A automation contract", () => {
     expect(normalized).toContain("github.event.workflow_run.head_branch == 'master'");
   });
 
+  it("isolates concurrency by the CI source branch", () => {
+    const normalized = compact(workflow);
+    expect(normalized).toContain(
+      "group: phase-a-production-browser-smoke-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}"
+    );
+    expect(workflow).not.toMatch(/^\s*group:\s*phase-a-production-browser-smoke\s*$/m);
+  });
+
   it("waits for the matching Vercel commit deployment before browser smoke", () => {
     expect(workflow).toContain("Wait for matching Vercel production deployment");
     expect(workflow).toContain("github.event.workflow_run.head_sha");

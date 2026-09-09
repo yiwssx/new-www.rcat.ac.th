@@ -1,5 +1,7 @@
 # M20 Cleanup Runtime Ownership
 
+> Historical snapshot — this document freezes the M20 runtime-ownership closure at its stated 2026-07-19 baseline. It is not current project status. Current source of truth: [post-P5H current project state](./post-p5h-current-project-state.md).
+
 Status: M20 migration/runtime/domain-cutover scope is closed.
 
 Current source-of-truth snapshot: 2026-07-19 at baseline commit `80324e71982411c67e6f3f9b66e06b09ab7bb282`.
