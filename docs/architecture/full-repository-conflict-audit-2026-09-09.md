@@ -1,6 +1,6 @@
 # Full Repository Conflict Audit — 2026-09-09
 
-Status: remediation in progress through PR #261.
+Status: primary remediation merged in PR #261; final follow-up remediation is in progress through PR #262.
 
 Canonical project state remains `docs/architecture/post-p5h-current-project-state.md`. This audit does not reopen historical M13-M21 phases or completed P6B/P6C/P6D work.
 
@@ -27,13 +27,15 @@ Master had two newly disclosed high-severity findings in the development/tooling
 
 The lockfile and `docs/maintenance/dependency-current-status.md` were regenerated from the repository toolchain. The resulting report records zero low, moderate, high, or critical findings for both the full tree and production tree.
 
-The diagnostic workflow used to expose the audit JSON and regenerate state was temporary and was deleted before PR creation.
+The diagnostic workflow used to expose the audit JSON was temporary and was removed before PR #261 merged.
+
+Renovate PR #260 subsequently updated `@playwright/test` from `^1.62.1` to `^1.63.0` and merged at `a69e82be0fbc7bb4b1e95c23b1eed9c365d00a80` after its full CI passed. The protected-master dependency-status sync correctly detected that this direct dependency update changed the generated status snapshot by 12 lines. PR #262 refreshes that snapshot through the normal pull-request path rather than allowing a workflow to write directly to protected master.
 
 ### Toolchain documentation drift
 
 `.node-version` is `24.20.0`, `engines.node` remains `24.x`, and pnpm is pinned to `10.34.5`.
 
-Current development guidance incorrectly referenced Node `24.18.0`. The current dependency workflow and environment-variable guide now use the repository pin. `src/test/repositoryHygieneConsistency.test.ts` guards this contract so a future Node pin change must update current guidance in the same change.
+Current development guidance that incorrectly referenced Node `24.18.0` was updated by PR #261. `src/test/repositoryHygieneConsistency.test.ts` guards this contract so a future Node pin change must update current guidance in the same change.
 
 Historical measurements that mention older Node versions remain unchanged because they are evidence of earlier states, not current toolchain instructions.
 
@@ -41,7 +43,15 @@ Historical measurements that mention older Node versions remain unchanged becaus
 
 `scripts/generate-sitemap.mjs` was explicitly documented as obsolete and unreferenced. Current sitemap ownership is the Vercel runtime function `api/sitemap.mjs`; `pnpm build` does not generate `public/sitemap.xml`.
 
-The obsolete build-time generator was deleted. The hygiene regression test now requires runtime sitemap ownership to remain single-sourced and requires the old generator to stay absent.
+The obsolete build-time generator was deleted by PR #261. The hygiene regression test now requires runtime sitemap ownership to remain single-sourced and requires the old generator to stay absent.
+
+### Phase A production-smoke concurrency race
+
+Post-merge verification of PR #261 exposed a workflow race that static repository inspection could not reveal. `.github/workflows/phase-a-production-browser-smoke.yml` used one global concurrency group while `workflow_run` fires after CI completes on every branch.
+
+A successful PR or Renovate CI therefore created a Phase A workflow run that was correctly skipped by the job-level `master` condition but still entered the same workflow-level concurrency group first. With `cancel-in-progress: true`, that skipped run could cancel an in-flight read-only production smoke for `master` before browser assertions completed.
+
+PR #262 scopes concurrency to the triggering CI source branch while preserving same-branch supersession. `src/test/phaseAAutomationContract.test.ts` rejects a return to the old global concurrency key. The existing production base-URL environment variable, artifact paths, and detailed field-QA summary remain unchanged; the follow-up is intentionally limited to the concurrency defect.
 
 ## Current-state conflict review
 
@@ -62,9 +72,9 @@ The current-facing state contract remains consistent:
 
 ## Historical records intentionally retained
 
-Historical milestone, cutover, readiness, smoke, and audit documents were not deleted merely because they contain wording that was true at an earlier date. Files already marked as archived, historical, superseded, closure evidence, or compatibility evidence remain part of the audit trail.
+Historical milestone, cutover, readiness, smoke, and audit documents were not deleted merely because they contain wording that was true at an earlier date. Files marked as archived, historical, superseded, closure evidence, or compatibility evidence remain part of the audit trail.
 
-In particular, old M20/M21 handoff wording must not be interpreted as current state. Current-state reporting is governed by the canonical post-P5H state document and the current-facing consistency test.
+Old M20/M21 handoff wording must not be interpreted as current state. Current-state reporting is governed by the canonical post-P5H state document and current-facing consistency tests. Where a retained snapshot can otherwise look current, an archival marker should point readers back to the canonical project-state document rather than rewriting the historical evidence itself.
 
 ## Workflow review
 
@@ -91,16 +101,19 @@ The retired Worker-to-C3 automatic dispatch and the one-time C3 dispatcher remai
 
 ## Repository queue
 
-At audit time there were no open GitHub issues.
+PR #261 merged at `3fda60f7126da78d624726c981822e061e554567`; its PR CI and post-merge master CI passed and Vercel reported success.
 
-Renovate PR #260 (`@playwright/test` `^1.63.0`) remained open. Its non-dependency CI lanes had passed, while its dependency lane inherited the same newly disclosed audit failure from master. It should be reevaluated against the remediated master after PR #261 lands rather than merged against the stale vulnerable dependency state.
+Renovate PR #260 was rebased onto that remediated master, passed fresh CI, and merged at `a69e82be0fbc7bb4b1e95c23b1eed9c365d00a80`. Its protected-master dependency-status sync reported the expected generated snapshot drift, which is being persisted through PR #262.
+
+At the time of this follow-up, PR #262 is the remaining repository-cleanup change.
 
 ## Closure criteria
 
 This audit can be marked complete only when:
 
-1. PR #261 passes all repository CI lanes and review-thread checks;
-2. PR #261 merges to master;
-3. master post-merge CI confirms the regenerated dependency state and hygiene tests;
-4. the remaining Renovate queue is rebased/re-evaluated against the remediated master;
-5. no new current-facing project-state conflict or failing required maintenance gate remains.
+1. PR #262 passes all repository CI lanes and has no unresolved review threads;
+2. PR #262 merges onto the latest master with the regenerated dependency snapshot;
+3. master post-merge CI passes;
+4. a master Phase A production browser smoke completes successfully without cross-branch cancellation;
+5. the final audit record is marked complete with the actual merge/run evidence;
+6. no current-facing project-state conflict, temporary diagnostic workflow, open cleanup PR, or failing required maintenance gate remains.
