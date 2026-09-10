@@ -116,8 +116,11 @@ verification all pass without suppression.
 
 The Node engine declaration, `.node-version`, CI runtime, active local runtime,
 and `@types/node` major must agree. The compatibility policy selects the newest
-stable `@types/node` release in the active runtime major and fails when the
-registry latest release no longer requires an exception.
+age-eligible stable `@types/node` release in the active runtime major. Runtime-major
+validation derives its blocking comparison from the stable registry version inventory
+instead of trusting a cross-major `latest` dist-tag, so a temporary dist-tag regression
+cannot force an invalid type downgrade. The exception still fails closed when the
+registry inventory or runtime-major selection no longer satisfies the policy.
 
 A Node-major migration must update runtime pins, CI, type declarations,
 deployment runtime declarations where applicable, scripts, and integration

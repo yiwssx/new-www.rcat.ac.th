@@ -12,6 +12,7 @@ import {
   validatePeerRangeCompatibility,
   validateRuntimeMajorCompatibility
 } from "./dependency-status-policy.mjs";
+import { resolveCompatibilityRegistryWindow } from "./runtime-major-registry-policy.mjs";
 
 const PACKAGE_PATH = "package.json";
 const LOCK_PATH = "pnpm-lock.yaml";
@@ -323,7 +324,7 @@ async function mapWithConcurrency(items, concurrency, callback) {
   return results;
 }
 
-async function lookupRegistryMetadata(packageNames) {
+async function lookupRegistryMetadata(packageNames, validationKinds = new Map()) {
   const results = await mapWithConcurrency(packageNames, REGISTRY_CONCURRENCY, async (name) => {
     try {
       const value = requireSuccessfulJson(
@@ -349,9 +350,33 @@ async function lookupRegistryMetadata(packageNames) {
       if (!eligibleLatest) {
         throw new Error(`No stable ${name} release has passed the ${MINIMUM_RELEASE_AGE_HOURS}-hour age gate.`);
       }
-      return { name, version: version.raw, publishedAt, eligibleLatest, eligibleVersions, error: "" };
+      const validationWindow = resolveCompatibilityRegistryWindow({
+        distTagLatest: version.raw,
+        versionTimes: value.time,
+        validationKind: validationKinds.get(name) || "",
+        minimumReleaseAgeHours: MINIMUM_RELEASE_AGE_HOURS
+      });
+      return {
+        name,
+        version: version.raw,
+        publishedAt,
+        eligibleLatest,
+        eligibleVersions,
+        validationLatest: validationWindow.latest,
+        validationEligibleVersions: validationWindow.eligibleVersions,
+        error: ""
+      };
     } catch (error) {
-      return { name, version: "", publishedAt: "", eligibleLatest: "", eligibleVersions: [], error: error.message };
+      return {
+        name,
+        version: "",
+        publishedAt: "",
+        eligibleLatest: "",
+        eligibleVersions: [],
+        validationLatest: "",
+        validationEligibleVersions: [],
+        error: error.message
+      };
     }
   });
   const errors = results.filter((result) => result.error);
@@ -367,7 +392,9 @@ async function lookupRegistryMetadata(packageNames) {
         latest: result.version,
         publishedAt: result.publishedAt,
         eligibleLatest: result.eligibleLatest,
-        eligibleVersions: result.eligibleVersions
+        eligibleVersions: result.eligibleVersions,
+        validationLatest: result.validationLatest,
+        validationEligibleVersions: result.validationEligibleVersions
       }
     ])
   );
@@ -620,9 +647,17 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
     }
   }
 
-  const registryMetadata = await lookupRegistryMetadata(packageNames);
-  const registryLatest = new Map([...registryMetadata].map(([name, metadata]) => [name, metadata.latest]));
-  const eligibleVersions = new Map([...registryMetadata].map(([name, metadata]) => [name, metadata.eligibleVersions]));
+  const validationKinds = new Map(
+    Object.entries(policy?.compatibilityExceptions || {}).map(([name, exception]) => [
+      name,
+      exception?.validation?.kind || ""
+    ])
+  );
+  const registryMetadata = await lookupRegistryMetadata(packageNames, validationKinds);
+  const registryLatest = new Map([...registryMetadata].map(([name, metadata]) => [name, metadata.validationLatest]));
+  const eligibleVersions = new Map(
+    [...registryMetadata].map(([name, metadata]) => [name, metadata.validationEligibleVersions])
+  );
   const policyValidations = await validateCompatibilityPolicy({
     policy,
     directRows,
