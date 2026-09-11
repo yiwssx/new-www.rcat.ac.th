@@ -1,5 +1,7 @@
 # Production Readiness Checklist
 
+Updated: 2026-09-11.
+
 Current project status is defined by `docs/architecture/post-p5h-current-project-state.md`. M20/M21 are historical migration/stabilization records, not active phases. Reliability Roadmap v2 is complete: Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. This checklist validates a release candidate; it does not authorize unrelated production mutation.
 
 ## Launch-critical checks
@@ -18,7 +20,7 @@ Current project status is defined by `docs/architecture/post-p5h-current-project
 - [ ] Footer directory has real links or is intentionally hidden.
 - [ ] Messenger enabled only with real URL.
 - [ ] Google Maps URL/embed verified against real campus location.
-- [ ] Search page tested.
+- [ ] Search page tested against the Worker/D1-backed public search contract.
 - [ ] Contact page tested.
 - [ ] Mobile/tablet/desktop layout checked.
 - [ ] Vercel deployment success.
@@ -48,14 +50,16 @@ Current project status is defined by `docs/architecture/post-p5h-current-project
 - [ ] Announcements page.
 - [ ] Blog page.
 - [ ] Departments page.
+- [ ] Documents page.
 - [ ] Contact page.
 - [ ] Search page.
 - [ ] Content detail page.
 - [ ] Admin dashboard.
+- [ ] System Health page, including B1/B2/B3 explicit-refresh operator visibility.
 - [ ] Content editor.
 - [ ] Content save/publish/delete shows loading and acknowledged result modals.
 - [ ] Media library.
-- [ ] Media upload/delete shows loading and acknowledged result modals.
+- [ ] Media upload/delete shows blocking loading and acknowledged success/error result modals.
 - [ ] Carousel admin.
 - [ ] E-Service admin.
 - [ ] Settings page.
@@ -66,10 +70,10 @@ Current project status is defined by `docs/architecture/post-p5h-current-project
 
 - [ ] Run `pnpm quality`.
 - [ ] Run `pnpm build`.
-- [ ] Confirm Vercel deployment success.
+- [ ] Confirm Vercel deployment success when Vercel-owned runtime changed.
 - [ ] Run `pnpm gas:push` only when Apps Script media bridge code changed.
-- [ ] Clear/reload public CMS cache.
-- [ ] Verify Cloudflare public/admin structured data after deploy or preview field configuration.
+- [ ] Clear/reload public CMS cache when relevant to the changed public data path.
+- [ ] Verify Cloudflare public/admin structured data against the canonical production runtime after applicable releases.
 
 ## Rollback plan
 
@@ -81,7 +85,8 @@ Current project status is defined by `docs/architecture/post-p5h-current-project
 ## Known limitations
 
 - Visitor stats are generated through the Cloudflare analytics path and may be cache-delayed.
-- Search is client-side/public snapshot search, not server-indexed search.
+- Public Search filtering, ordering, total counting, and pagination are Worker/D1-owned; the browser is not the search index or authoritative filter engine.
+- Dynamic public content detail responses use `no-store`, so they deliberately do not receive the shared Vercel CDN cache used by stable index/list SSR surfaces.
 - Carousel images rely on correct uploaded media/URL quality.
 - Category/tag discovery depends on editor metadata discipline.
 - Footer/Messenger/Map are admin-managed and must be populated with real data.
