@@ -1,5 +1,7 @@
 # Site View Tracking
 
+Updated: 2026-09-11.
+
 The public website records lightweight, privacy-friendly site view counters through the Cloudflare Worker and D1 public analytics path.
 This replaces manual visitor statistic entry for the `Website Visitors / สถิติผู้เข้าชมเว็บไซต์` card.
 
@@ -73,14 +75,14 @@ pnpm worker:typecheck
 pnpm build
 ```
 
-Confirm the public frontend uses `VITE_PUBLIC_API_PROVIDER=cloudflare` and a non-secret `VITE_CLOUDFLARE_PUBLIC_API_URL` for the approved environment. Do not configure site-view tracking through `VITE_GOOGLE_APPS_SCRIPT_URL`.
+Public structured data and analytics are Cloudflare-only. There is no `VITE_PUBLIC_API_PROVIDER` runtime selector. Browser code uses the non-secret `VITE_CLOUDFLARE_PUBLIC_API_URL`; server-side Public reads use `CLOUDFLARE_PUBLIC_API_URL` with the browser-safe alias retained only as the documented compatibility fallback. Do not configure site-view tracking through `VITE_GOOGLE_APPS_SCRIPT_URL`.
 
 ## Manual Verification
 
-1. Deploy the frontend.
-2. Confirm the approved Cloudflare Worker/D1 environment is configured.
+1. Deploy the frontend and/or Worker only when the corresponding source changed.
+2. Confirm the approved Cloudflare Worker/D1 production runtime is configured.
 3. Open a public page in a normal browser.
-4. In DevTools Network, filter for the approved public Worker origin.
+4. In DevTools Network, filter for the configured Cloudflare Public API origin.
 5. Confirm a non-blocking public analytics request.
 6. Refresh the same path repeatedly and confirm the 30-minute throttle prevents excessive increments.
 7. Visit a different public route and confirm a new accepted view is counted.
