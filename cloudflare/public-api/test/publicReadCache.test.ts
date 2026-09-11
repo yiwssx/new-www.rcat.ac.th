@@ -70,7 +70,7 @@ describe("public D1 read cache", () => {
     const cached = await readPublicReadCache(request, productionEnv);
     expect(cached?.status).toBe(200);
     await expect(cached?.json()).resolves.toEqual({ ok: true });
-    expect(cached?.headers.get("Cache-Control")).toBe("public, s-maxage=300");
+    expect(cached?.headers.get("Cache-Control")).toBe("public, s-maxage=900");
   });
 
   it("never stores failed public reads", async () => {
