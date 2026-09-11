@@ -55,8 +55,14 @@ function createCacheKey(request: Request) {
   });
 }
 
+export function isPublicReadCacheEligible(request: Request, env: Env) {
+  return (
+    env.ENVIRONMENT === "production" && !requestBypassesCache(request) && getPublicReadCacheTtlSeconds(request) > 0
+  );
+}
+
 export async function readPublicReadCache(request: Request, env: Env): Promise<Response | null> {
-  if (env.ENVIRONMENT !== "production" || requestBypassesCache(request) || getPublicReadCacheTtlSeconds(request) <= 0) {
+  if (!isPublicReadCacheEligible(request, env)) {
     return null;
   }
 
@@ -76,12 +82,7 @@ export function storePublicReadCache(
 ) {
   const ttlSeconds = getPublicReadCacheTtlSeconds(request);
 
-  if (
-    env.ENVIRONMENT !== "production" ||
-    requestBypassesCache(request) ||
-    ttlSeconds <= 0 ||
-    response.status !== 200
-  ) {
+  if (!isPublicReadCacheEligible(request, env) || ttlSeconds <= 0 || response.status !== 200) {
     return;
   }
 
