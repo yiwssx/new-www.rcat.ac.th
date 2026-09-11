@@ -1,9 +1,6 @@
 import { logD1QueryMetrics } from "../d1QueryMetrics";
 import type { Env } from "../env";
-import {
-  PUBLIC_CONTENT_SUMMARY_READ_COLUMNS,
-  type PublicContentSummaryReadRow
-} from "./contentRepository";
+import { PUBLIC_CONTENT_SUMMARY_READ_COLUMNS, type PublicContentSummaryReadRow } from "./contentRepository";
 import { requireD1Database } from "./documentsRepository";
 import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } from "./publicContentVisibility";
 
