@@ -12,3 +12,6 @@ CREATE INDEX IF NOT EXISTS idx_contents_public_publish
 CREATE INDEX IF NOT EXISTS idx_documents_public_home
   ON documents (status, pinned DESC, sort_order ASC, published_at DESC, updated_at DESC)
   WHERE COALESCE(deleted_at, '') = '';
+
+CREATE INDEX IF NOT EXISTS idx_visitor_presence_online_cover
+  ON visitor_presence (last_seen_at, visitor_id);
