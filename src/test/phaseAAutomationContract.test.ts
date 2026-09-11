@@ -42,4 +42,15 @@ describe("Phase A automation contract", () => {
     expect(workflow).toContain("failure|error)");
     expect(workflow).toContain("pnpm exec playwright test --config playwright.production.config.ts");
   });
+
+  it("fails closed when Vercel reports an Ignored Build Step", () => {
+    expect(workflow).toContain('vercel?.description || ""');
+    expect(workflow).toContain("grep -qi 'ignored build step'");
+    expect(workflow).toContain(
+      "Phase A fails closed instead of testing an older production deployment as if it matched $TARGET_SHA."
+    );
+    expect(workflow).toContain(
+      "Ignored Build Step: fail closed; do not treat an older production deployment as exact-SHA evidence"
+    );
+  });
 });
