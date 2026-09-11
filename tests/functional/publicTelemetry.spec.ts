@@ -252,7 +252,9 @@ test.describe("Public telemetry request governance", () => {
     await expect(page.getByRole("alert")).toHaveCount(0);
   });
 
-  test("coalesces visibility bursts and enforces five-minute telemetry budgets across visibility changes", async ({ page }) => {
+  test("coalesces visibility bursts and enforces five-minute telemetry budgets across visibility changes", async ({
+    page
+  }) => {
     await page.clock.install({
       time: new Date(PUBLIC_AUTH_FIXTURE_GENERATED_AT)
     });
