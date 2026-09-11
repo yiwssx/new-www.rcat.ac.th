@@ -1,8 +1,8 @@
-import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
+import { createPublicVisitorStatsSnapshotFromAggregate } from "../adapters/publicVisitorStatsAdapter";
 import {
   countOnlineVisitors,
   isVisitorPresenceSchemaMissing,
-  listVisitorDailyStatsRows
+  readVisitorStatsAggregate
 } from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
@@ -20,11 +20,11 @@ export async function publicVisitorStats(env: Env) {
 
   try {
     const generatedAt = new Date();
-    const [rows, onlineUsers] = await Promise.all([
-      listVisitorDailyStatsRows(env),
+    const [aggregate, onlineUsers] = await Promise.all([
+      readVisitorStatsAggregate(env, generatedAt),
       countOnlineVisitors(env, generatedAt)
     ]);
-    return json(createPublicVisitorStatsSnapshot(rows, generatedAt, onlineUsers));
+    return json(createPublicVisitorStatsSnapshotFromAggregate(aggregate, generatedAt, onlineUsers));
   } catch (error) {
     if (isVisitorPresenceSchemaMissing(error)) {
       return jsonError("visitor presence schema is not available", 503, {
