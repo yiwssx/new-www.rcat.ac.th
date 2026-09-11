@@ -16,7 +16,11 @@ const CMS_PROXY_SECRET = "C".repeat(40);
 const CMS_WORKER_ORIGIN = "https://worker.example.test";
 const MASTER_SHA = "a".repeat(40);
 
-function createRequest({ cookie = `${getCmsSessionCookieName()}=${CMS_SESSION_TOKEN}`, headers = {}, method = "GET" } = {}) {
+function createRequest({
+  cookie = `${getCmsSessionCookieName()}=${CMS_SESSION_TOKEN}`,
+  headers = {},
+  method = "GET"
+} = {}) {
   const request = Readable.from([]);
   request.method = method;
   request.url = "/api/health-aggregation";
@@ -77,7 +81,11 @@ function workflowRun(path, { conclusion = "success", id, number, status = "compl
 function workflowPayload(overrides = {}) {
   return {
     workflow_runs: [
-      workflowRun(".github/workflows/phase-a-production-browser-smoke.yml", { id: 101, number: 165, ...overrides.phaseA }),
+      workflowRun(".github/workflows/phase-a-production-browser-smoke.yml", {
+        id: 101,
+        number: 165,
+        ...overrides.phaseA
+      }),
       workflowRun(".github/workflows/production-observability.yml", {
         id: 102,
         number: 67,

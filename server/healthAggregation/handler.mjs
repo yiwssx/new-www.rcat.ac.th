@@ -10,11 +10,7 @@ import {
   getRequestHeader,
   readCmsAuthConfiguration
 } from "../cmsAuth/handlers.mjs";
-import {
-  ensureNodeRequestId,
-  getNodeRequestId,
-  RCAT_REQUEST_ID_HEADER
-} from "../observability/requestId.mjs";
+import { ensureNodeRequestId, getNodeRequestId, RCAT_REQUEST_ID_HEADER } from "../observability/requestId.mjs";
 
 const REPOSITORY = "yiwssx/new-www.rcat.ac.th";
 const BRANCH = "master";

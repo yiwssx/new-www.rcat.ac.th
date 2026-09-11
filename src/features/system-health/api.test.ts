@@ -13,10 +13,7 @@ function jsonResponse(status = 200, requestId = REQUEST_ID) {
   });
 }
 
-function aggregationResponse(
-  overallStatus: "healthy" | "warning" | "error" = "healthy",
-  requestId = REQUEST_ID
-) {
+function aggregationResponse(overallStatus: "healthy" | "warning" | "error" = "healthy", requestId = REQUEST_ID) {
   return new Response(
     JSON.stringify({
       overallStatus,
