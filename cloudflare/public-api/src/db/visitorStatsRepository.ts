@@ -79,9 +79,9 @@ export async function readVisitorStatsAggregate(env: Env, generatedAt = new Date
     .prepare(
       `SELECT
          COALESCE(SUM(total_views), 0) AS total_views,
-         COALESCE(SUM(CASE WHEN day = ? THEN total_views ELSE 0 END), 0) AS today_views,
-         COALESCE(SUM(CASE WHEN day = ? THEN unique_visitors ELSE 0 END), 0) AS users_today,
-         COALESCE(SUM(CASE WHEN day = ? THEN unique_visitors ELSE 0 END), 0) AS users_yesterday,
+         COALESCE(SUM(CASE WHEN ? = day THEN total_views ELSE 0 END), 0) AS today_views,
+         COALESCE(SUM(CASE WHEN ? = day THEN unique_visitors ELSE 0 END), 0) AS users_today,
+         COALESCE(SUM(CASE WHEN ? = day THEN unique_visitors ELSE 0 END), 0) AS users_yesterday,
          COALESCE(SUM(CASE WHEN day LIKE ? THEN unique_visitors ELSE 0 END), 0) AS users_this_month,
          COALESCE(SUM(CASE WHEN day LIKE ? THEN unique_visitors ELSE 0 END), 0) AS users_this_year,
          COALESCE(SUM(unique_visitors), 0) AS total_users,
