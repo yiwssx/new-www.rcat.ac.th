@@ -1,20 +1,20 @@
 # RCAT Public API Worker
 
-Updated: 2026-08-16.
+Updated: 2026-09-11.
 
-This Cloudflare Worker is the D1-backed public-read, public analytics, structured-admin, and CMS authentication API. Apps Script remains only for the server-side media/file bridge to Google Drive. The dedicated complaint Apps Script is a separate isolated endpoint behind the Vercel complaint proxy.
+This Cloudflare Worker is the D1-backed public-read, public analytics, structured-admin, CMS authentication, and B2 Runtime Incident Feed API. Apps Script remains only for the server-side media/file bridge to Google Drive. The dedicated complaint Apps Script is a separate isolated endpoint behind the Vercel complaint proxy.
 
-M20 migration/runtime/domain-cutover scope is closed. Current work is stabilization and maintenance; repository validation does not authorize production mutation.
+Current project status is the post-P5H production governance and maintenance baseline. Reliability Roadmap v2 Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. There is no active migration, M20/M21 stabilization, P6 feature-development, or Reliability Roadmap v2 implementation phase. Use `docs/architecture/post-p5h-current-project-state.md` for current project status.
 
 ## Current Environment Model
 
 Cloudflare remote runtime is production-only. Local development uses `rcat-public-api-local`; there is no persistent Preview environment.
 
-The canonical production D1 is the existing data-bearing database originally provisioned under the physical Cloudflare name `rcat-public-api-preview`. That physical name is retained only to avoid moving live data. The protected UUID in `RCAT_PRODUCTION_D1_DATABASE_ID` is the authoritative release identity, and production workflows verify that UUID against the exact account-scoped physical resource before migration or deployment. Do not interpret the legacy `preview` substring as a non-production runtime.
+The canonical production Worker and D1 are the existing data-bearing resources originally provisioned under the physical Cloudflare name `rcat-public-api-preview`. That physical name is retained to preserve the live Worker endpoint and D1 data. The protected UUID in `RCAT_PRODUCTION_D1_DATABASE_ID` is the authoritative D1 release identity, and production workflows verify that UUID against the exact account-scoped physical resource before migration or deployment. Do not interpret the legacy `preview` substring as a non-production runtime.
 
-See `docs/architecture/production-environment-convergence-2026-08-16.md`.
+The previous empty Worker and D1 named `rcat-public-api-production` were manually deleted on 2026-08-16 and are not recreated. Production releases update the existing `rcat-public-api-preview` Worker in place and bind it to the existing promoted data-bearing D1 through the tracked `env.production` contract.
 
-The previous empty Worker and D1 named `rcat-public-api-production` were manually deleted on 2026-08-16. The protected production release recreates the Worker service with that name and binds it to the promoted data-bearing D1; it does not create a replacement D1.
+See `docs/architecture/production-environment-convergence-2026-08-16.md`, `docs/architecture/current-runtime-ownership.md`, and `docs/deployment/runtime-deployment-guide.md`.
 
 ## Current Public Surface
 
@@ -33,9 +33,11 @@ Public GET routes include:
 - `/api/public/programs`
 - `/api/public/visitor-stats`
 
-Public write routes include site-view, content-view, and presence analytics. They are unauthenticated by design but use Worker-side abuse protection, D1-backed rate-limit buckets, and an explicit browser-origin allowlist.
+Public write routes include site-view, content-view, presence analytics, and B2 runtime-incident ingestion. They are unauthenticated by design but use bounded Worker-side abuse protection. B2 incident ingestion uses its dedicated Cloudflare Rate Limiting binding at 30 requests/minute/client key and stores only the privacy-safe aggregate contract defined by `docs/operations/phase-b-operational-visibility.md`.
 
-Public list, program, home, and search responses use summary content records and omit full body fields; full bodies remain on content detail. Content detail returns only media rows referenced by that item. Paginated content/search requests use D1 `COUNT(*)` plus `LIMIT/OFFSET`, so one requested page does not require reading the complete matching dataset into Worker memory. Legacy unpaginated content-list URLs remain for archive surfaces that have not yet migrated to route-owned server pagination.
+Protected Admin/CMS routes include authenticated Runtime Incident Feed reads through `GET /api/admin/runtime-incidents`; the Vercel B3 `/api/health-aggregation` boundary consumes that existing protected feed rather than bypassing Worker authorization.
+
+Public list, program, home, and search responses use summary content records and omit full body fields; full bodies remain on content detail. Content detail returns only media rows referenced by that item. Paginated content/search requests use D1 `COUNT(*)` plus `LIMIT/OFFSET`, so one requested page does not require reading the complete matching dataset into Worker memory.
 
 ## CORS And Browser Analytics Writes
 
@@ -44,12 +46,12 @@ Public-read and public-write CORS are intentionally separate:
 - public GET routes use `PUBLIC_API_ALLOWED_ORIGINS` when configured and retain the wildcard fallback when it is omitted;
 - public analytics POST routes use `PUBLIC_ANALYTICS_ALLOWED_ORIGINS` and fail closed for browser requests when that allowlist is missing or the request origin is not listed;
 - production permits browser analytics from the canonical `www.rcat.ac.th` origin;
-- requests without an `Origin` remain available to server-to-server tooling and are still subject to the analytics abuse guard;
+- requests without an `Origin` remain available to server-to-server tooling and are still subject to the relevant abuse guard;
 - Admin routes remain credentialed and fail closed through `ADMIN_WRITE_ALLOWED_ORIGINS`.
 
-CORS is not the analytics abuse boundary by itself. Keep the D1-backed rate limits enabled even when the origin allowlist is correct.
+CORS is not the abuse boundary by itself. Keep the configured edge/D1 rate-limiting controls enabled even when the origin allowlist is correct.
 
-## Structured Admin and CMS Auth
+## Structured Admin And CMS Auth
 
 Structured admin routes cover:
 
@@ -60,9 +62,12 @@ Structured admin routes cover:
 - external services;
 - calendar events;
 - visitor statistics;
+- B2 runtime incident aggregates;
 - CMS users, sessions, lifecycle, MFA, CSRF, and step-up operations.
 
 The browser reaches privileged Admin APIs through the same-origin Vercel admin/session proxies. The Worker remains authoritative for Session validity, active-user state, RBAC/capabilities, MFA, CSRF, step-up assurance, audit actor, and D1 persistence.
+
+The CMS-auth observation window and legacy-only environment-value retirement are complete. The operator directly verified the applicable Vercel and Cloudflare live environments on 2026-09-11. Retired shared-password/Legacy-auth values must not be restored. See `docs/operations/environment-retirement-verification-2026-09-11.md` and `docs/cms-auth-project-closure.md`.
 
 ## Provider Behavior
 
@@ -70,8 +75,10 @@ Current runtime ownership:
 
 - Public structured reads: Cloudflare Worker + D1.
 - Public analytics and live visitor statistics: Cloudflare Worker + D1.
+- B2 runtime-incident ingest and protected aggregate reads: Cloudflare Worker + D1.
 - Admin structured reads/writes: Cloudflare Worker + D1 through same-origin Vercel proxies.
 - CMS authentication/session state: Cloudflare Worker + D1 through Vercel proxies.
+- B3 Health Aggregation: Vercel server-owned `/api/health-aggregation`, reusing the protected Worker B2 feed and bounded public deployment/workflow metadata.
 - Media upload/delete bytes and Google Drive file operations: Apps Script behind the Vercel media/file bridge.
 
 There is no Public runtime provider selector. Do not restore browser Apps Script structured-data reads/writes or `VITE_PUBLIC_API_PROVIDER`.
@@ -94,27 +101,31 @@ Ordered migration files currently committed in `migrations/` are:
 - `0011_cms_auth_foundation.sql`
 - `0012_cms_auth_identity_constraints.sql`
 - `0013_cms_mfa_and_reauthentication.sql`
+- `0014_b2_runtime_incidents.sql`
 
-The duplicate numeric prefix `0007` is a legacy repository fact. Do not rename already-applied migration files. New migrations remain append-only and should use a unique new numeric prefix.
+The duplicate numeric prefix `0007` is a legacy repository fact. Do not rename already-applied migration files. New migrations remain append-only and must use a unique new numeric prefix.
 
-Production release tooling applies pending migrations before deploying a compatible Worker.
+Production release tooling applies pending migrations before deploying a compatible Worker. B2 production verification confirms migration `0014_b2_runtime_incidents.sql` crossed the canonical production release gate.
 
-## Analytics Retention
+## Retention
 
-Production scheduled cleanup runs daily and removes:
+Production scheduled cleanup runs daily and removes or bounds:
 
 - expired public rate-limit buckets;
 - visitor presence older than 2 days;
 - raw site-view events older than 90 days;
-- raw content-view events older than 90 days.
+- raw content-view events older than 90 days;
+- runtime incidents older than 7 days;
+- runtime-incident aggregate storage beyond the latest 2,000 rows.
 
-Daily aggregate statistics are retained.
+Daily analytics aggregate statistics are retained.
 
 ## Safety Boundary
 
 - Do not commit real D1 identifiers, Cloudflare account identifiers, credentials, private live endpoints, or real records.
 - Do not apply migrations, seed data, imports, or production deploys from normal test/build flows.
 - Keep tracked `wrangler.toml` production `database_id` as `production-placeholder`.
+- Keep the production Worker/D1 physical identity as the existing `rcat-public-api-preview` resources unless an explicitly approved migration replaces the current architecture.
 - Keep Apps Script scoped to the approved media/file bridge.
 - Keep Google Drive binary operations in the approved Apps Script bridge.
 - Production Worker release remains an explicit manual operation through `.github/workflows/worker-production.yml` from `master`.
@@ -130,4 +141,4 @@ pnpm build
 pnpm quality
 ```
 
-Historical M19/M20 readiness scripts remain useful as repository/evidence guards but must not be treated as the current runtime ownership source. Historical M4-M6 Preview documents record earlier migration work only. Use `docs/architecture/current-runtime-ownership.md`, `docs/architecture/production-environment-convergence-2026-08-16.md`, and `docs/deployment/runtime-deployment-guide.md` for current production boundaries.
+Historical M19/M20 readiness scripts remain useful as repository/evidence guards but must not be treated as the current runtime ownership source. Historical M4-M6 Preview documents record earlier migration work only. Use `docs/architecture/current-runtime-ownership.md`, `docs/architecture/post-p5h-current-project-state.md`, and `docs/deployment/runtime-deployment-guide.md` for current production boundaries.
