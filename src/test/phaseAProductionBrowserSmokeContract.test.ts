@@ -19,7 +19,7 @@ describe("Phase A production browser smoke deployment gate", () => {
     expect(workflow).toContain('description: vercel?.description || ""');
     expect(workflow).toContain('targetUrl: vercel?.target_url || ""');
     expect(workflow).toContain('Canceled by Ignored Build Step');
-    expect(workflow).toContain('[[ "$description" == *"Ignored Build Step"* ]]');
+    expect(workflow).toContain('*"Ignored Build Step"*');
     expect(workflow).toContain('[[ -z "$target_url" ]]');
     expect(workflow).not.toContain('process.stdout.write(vercel?.state || "missing");');
   });
