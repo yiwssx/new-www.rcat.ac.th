@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { Env } from "../src/env";
-import {
-  isPublicReadCacheEligible,
-  readPublicReadCache,
-  storePublicReadCache
-} from "../src/publicReadCache";
+import { isPublicReadCacheEligible, readPublicReadCache, storePublicReadCache } from "../src/publicReadCache";
 
 const originalCachesDescriptor = Object.getOwnPropertyDescriptor(globalThis, "caches");
 

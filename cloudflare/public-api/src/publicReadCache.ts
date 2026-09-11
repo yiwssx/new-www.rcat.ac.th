@@ -26,11 +26,7 @@ function getPublicReadCacheTtlSeconds(request: Request) {
     return SEARCH_TTL_SECONDS;
   }
 
-  if (
-    pathname === "/api/public/documents" ||
-    pathname === "/api/public/events" ||
-    pathname === "/api/public/content"
-  ) {
+  if (pathname === "/api/public/documents" || pathname === "/api/public/events" || pathname === "/api/public/content") {
     return DEFAULT_PUBLIC_READ_TTL_SECONDS;
   }
 
