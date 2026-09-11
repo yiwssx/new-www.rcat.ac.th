@@ -4,6 +4,38 @@ All notable changes to `www.rcat.ac.th` are recorded here from the explicit vers
 
 The project existed before formal semantic versioning. Earlier architecture generations are documented retrospectively in [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) rather than fabricating a patch-by-patch release history for hundreds of historical commits.
 
+## [Unreleased]
+
+No next semantic version has been assigned. The entries below record completed production work after the `3.3.0` baseline without guessing a release number.
+
+### Added
+
+- Completed P6B Security Enforcement, including runtime-aligned WAF/rate-limit/CSP and privacy-preserving auth-anomaly controls.
+- Completed P6C Recovery & Reliability, including bounded production reliability checks, D1 Time Travel readiness, and documented Vercel/Worker/Apps Script rollback boundaries.
+- Completed P6D Product/UX Improvements and Admin UX 00-10.
+- Completed Reliability Roadmap v2:
+  - Phase 0 Development Quality Gate;
+  - Phase A deployment-driven read-only production browser QA;
+  - Phase B1 protected System Health Dashboard;
+  - Phase B2 privacy-safe Runtime Incident Feed;
+  - Phase B3 server-owned Health Aggregation for Phase A/P6A/P6B/P6C/deployment/B2 signals;
+  - Phase C1 accessibility, C2 synthetic performance, and manual/protected C3 authenticated disposable CMS field verification.
+- Added the standalone public `/documents` archive backed by the structured public document-list contract.
+
+### Changed
+
+- Public structured data is Cloudflare-only; the retired `VITE_PUBLIC_API_PROVIDER` runtime selector is no longer part of current configuration.
+- Public Search filtering, ordering, total counting, and pagination are Worker/D1-owned rather than a browser-owned snapshot search.
+- Public SSR now renders through TanStack Router `renderRouterToStream`; the current Emotion critical-CSS finalizer still buffers the completed body before final Vercel delivery.
+- Dynamic canonical `/content/:slug` SSR responses use `Cache-Control: no-store` and bypass shared Vercel CDN caching so current publish/delete state is observed.
+- Current project-state, runtime/deployment, launch/readiness/smoke, feature, and historical-snapshot documentation was reconciled on 2026-09-11 so historical Phase B/M20/M21/SSR integration language cannot be mistaken for current status.
+- Phase A documentation now describes the implemented GitHub `Vercel` commit-status gate precisely, including the `Canceled by Ignored Build Step` limitation; exact-deployment proof must use deployment evidence when required.
+
+### Maintenance
+
+- Governed dependency maintenance continues under the existing Renovate, release-age, freshness, security-audit, and CI/governance policies.
+- Historical migration, closure, cutover, and dated audit documents remain preserved as evidence; current source-of-truth documents take precedence when historical wording differs from the live architecture or project state.
+
 ## [3.3.0] - 2026-08-26
 
 ### Changed
