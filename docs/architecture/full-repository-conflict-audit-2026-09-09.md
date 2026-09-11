@@ -1,6 +1,8 @@
 # Full Repository Conflict Audit — 2026-09-09
 
-Status: complete.
+Status: historical completed audit record.
+
+> **Historical snapshot.** This audit records the repository state on 2026-09-09. Its Phase B/B3 status was correct at that checkpoint but was superseded on 2026-09-11 when B3 Health Aggregation and Phase B completed. Current project/reliability status is defined by `docs/architecture/post-p5h-current-project-state.md` and `docs/architecture/reliability-roadmap-v2.md`. The findings and closure evidence below remain audit history and are not rewritten to current terminology.
 
 Canonical project state remains `docs/architecture/post-p5h-current-project-state.md`. This audit does not reopen historical M13-M21 phases or completed P6B/P6C/P6D work.
 
