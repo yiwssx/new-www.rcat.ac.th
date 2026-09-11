@@ -1,5 +1,7 @@
 # Production Smoke Test Report Template
 
+Updated: 2026-09-11.
+
 ใช้เอกสารนี้บันทึกผลตรวจจริงหลัง Deploy โดยอ้างอิงจาก [Production Smoke Checklist](./production-smoke-checklist.md)
 
 สถานะโครงการปัจจุบันให้อ้างอิง `docs/architecture/post-p5h-current-project-state.md` โดย M20/M21 เป็นประวัติการย้ายระบบและ stabilization ไม่ใช่เฟสที่ active ปัจจุบัน Reliability Roadmap v2 เสร็จครบแล้ว: Phase 0, Phase A, Phase B (B1/B2/B3) และ Phase C เป็น complete เอกสารนี้บันทึกผล smoke test และไม่ใช่การอนุมัติให้แก้ไข production นอกขอบเขต
@@ -17,26 +19,29 @@
 | Environment                   | Production |
 | หมายเหตุรอบ Deploy            |            |
 
-## 2. Environment Variables Checked
+## 2. Environment Variables / Runtime Settings Checked
 
-| Environment variable / setting            | ตรวจแล้ว | ค่า/แหล่งอ้างอิง | หมายเหตุ                                   |
-| ----------------------------------------- | -------- | ---------------- | ------------------------------------------ |
-| Cloudflare public API provider/URL        | [ ]      |                  | Record only source label, not private URLs |
-| Cloudflare admin proxy/provider settings  | [ ]      |                  | Record only source label, not secrets      |
-| Apps Script media bridge server settings  | [ ]      |                  | Record only status, not bridge URL/token   |
-| Public site URL                           | [ ]      |                  |                                            |
-| Analytics strategy                        | [ ]      |                  |                                            |
-| GTM ID                                    | [ ]      |                  |                                            |
-| GA4 Measurement ID                        | [ ]      |                  |                                            |
-| Vercel Analytics / Speed Insights setting | [ ]      |                  |                                            |
-| อื่น ๆ                                    | [ ]      |                  |                                            |
+| Environment variable / setting            | ตรวจแล้ว | ค่า/แหล่งอ้างอิง | หมายเหตุ                                      |
+| ----------------------------------------- | -------- | ---------------- | --------------------------------------------- |
+| Cloudflare Public API origin              | [ ]      |                  | Record only source label, not private values  |
+| Cloudflare Admin proxy/server settings    | [ ]      |                  | Record only source label, not secrets         |
+| Apps Script media bridge server settings  | [ ]      |                  | Record only status, not bridge URL/token      |
+| Complaint proxy server setting if in scope | [ ]      |                  | Record only configured/not configured         |
+| Public site URL                           | [ ]      |                  |                                               |
+| Analytics strategy                        | [ ]      |                  |                                               |
+| GTM ID                                    | [ ]      |                  |                                               |
+| GA4 Measurement ID                        | [ ]      |                  |                                               |
+| Vercel Analytics / Speed Insights setting | [ ]      |                  |                                               |
+| อื่น ๆ                                    | [ ]      |                  |                                               |
+
+Public structured data has no `VITE_PUBLIC_API_PROVIDER` selector. Browser code uses `VITE_CLOUDFLARE_PUBLIC_API_URL`; server-side Public reads prefer `CLOUDFLARE_PUBLIC_API_URL`.
 
 ## 3. Quality Command Results
 
 | Command                 | Result                | Evidence / notes |
 | ----------------------- | --------------------- | ---------------- |
 | `pnpm format:check`     | Not run / Pass / Fail |                  |
-| `pnpm lint`             | Not run / Pass / Fail |                  |
+| `pnpm lint:strict`      | Not run / Pass / Fail |                  |
 | `pnpm test:unit`        | Not run / Pass / Fail |                  |
 | `pnpm test:integration` | Not run / Pass / Fail |                  |
 | `pnpm build`            | Not run / Pass / Fail |                  |
@@ -45,11 +50,13 @@
 - [ ] ถ้า `pnpm quality` fail ได้แยก sub-command ที่ fail แล้วแก้ไขก่อนดำเนินการต่อ
 - [ ] ไม่มี test หรือ quality failure ค้างอยู่ก่อนตัดสินใจ release
 
-## 4. Public Homepage Result
+## 4. Public Homepage / Public Routes Result
 
 **Overall result:** Not tested / Pass / Fail / Pass with known issues
 
 - [ ] หน้าแรกโหลดสำเร็จ
+- [ ] `/documents` โหลดสำเร็จบน desktop/mobile
+- [ ] `/search?q=...` โหลดสำเร็จและแสดงผลจาก Worker/D1-backed search contract
 - [ ] ไม่มี console error จากโค้ดของแอปเรา
 - [ ] Route หน้าแรกใช้งานได้หลัง hard refresh
 - [ ] First load performance ยังยอมรับได้
@@ -94,6 +101,8 @@
 
 - [ ] News detail page โหลดสำเร็จ
 - [ ] Announcement detail page โหลดสำเร็จ
+- [ ] Dynamic `/content/:slug` response ใช้ `Cache-Control: no-store`
+- [ ] Dynamic `/content/:slug` ไม่มี shared Vercel CDN cache directive
 - [ ] Metadata แสดง content type, publication status, วันที่ไทยแบบเต็ม, publisher, tags และ view count
 - [ ] Sidebar เก่า `รายละเอียดเนื้อหา` ไม่แสดง
 - [ ] Attached media แสดงผลได้
@@ -132,7 +141,7 @@
 | Unsupported `/watch`   |                 |              | Not tested / Pass / Fail |       |
 | Unsupported `/reel`    |                 |              | Not tested / Pass / Fail |       |
 
-## 9. Analytics / GTM / GA4 Result
+## 9. Analytics / GTM / GA4 / Runtime Incident Result
 
 **Overall result:** Not tested / Pass / Fail / Pass with known issues
 
@@ -142,20 +151,27 @@
 - [ ] Login/admin routes ไม่ส่ง public analytics `page_view`
 - [ ] ตรวจ public `page_view` ใน GTM/GA4 debug tools แล้ว ถ้ามีสิทธิ์เข้าถึง
 - [ ] Vercel Analytics และ Speed Insights โหลดเฉพาะจุดที่คาดไว้
+- [ ] Visitor stats / Who's Online อ่านจาก Cloudflare analytics path
+- [ ] ถ้าทดสอบ B2 incident feed ให้ยืนยันว่าไม่เก็บ message/stack/body/query/token/PII นอก allowlist
 
 **Evidence / notes:**
 
 -
 
-## 10. Admin CMS Result
+## 10. Admin CMS / System Health Result
 
 **Overall result:** Not tested / Pass / Fail / Pass with known issues
 
 - [ ] Admin login works
+- [ ] `/admin/system-health` works for an authorized `dashboard.read` user
+- [ ] B1 live health checks refresh explicitly
+- [ ] B2 Runtime Incident Feed loads bounded authenticated aggregates
+- [ ] B3 Health Aggregation shows Phase A/P6A/P6B/P6C/deployment/B2 summary without browser infrastructure credentials
 - [ ] Content list loads
 - [ ] Create content works
 - [ ] Edit content works
 - [ ] Publish/unpublish status works
+- [ ] Documents admin loads and respects draft/published behavior
 - [ ] Media selection works
 - [ ] Media upload/delete shows blocking loading and acknowledged success/error result
 - [ ] Content save/publish/delete shows blocking loading and acknowledged success/error result
@@ -175,14 +191,17 @@
 
 **Overall result:** Not tested / Pass / Fail / Pass with known issues
 
-- [ ] Vercel deployment succeeded
+- [ ] Vercel deployment succeeded when Vercel-owned runtime changed
 - [ ] Homepage route works
+- [ ] `/documents` and Search routes work
 - [ ] Public content detail routes work
 - [ ] Admin route works
 - [ ] Browser hard refresh works
 - [ ] No critical runtime errors in Vercel logs
 - [ ] Speed Insights does not show obvious regression
 - [ ] First load performance remains acceptable
+
+**Exact-deployment note:** Phase A currently gates on GitHub's `Vercel` commit-status context. A `success` status can also represent `Canceled by Ignored Build Step`, so record the actual Vercel deployment ID/URL above when exact-SHA deployment evidence matters.
 
 **Evidence / notes:**
 
