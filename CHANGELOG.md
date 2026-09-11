@@ -28,15 +28,15 @@ No next semantic version has been assigned. The entries below record completed p
 - Public Search filtering, ordering, total counting, and pagination are Worker/D1-owned rather than a browser-owned snapshot search.
 - Public SSR now renders through TanStack Router `renderRouterToStream`; the current Emotion critical-CSS finalizer still buffers the completed body before final Vercel delivery.
 - Dynamic canonical `/content/:slug` SSR responses use `Cache-Control: no-store` and bypass shared Vercel CDN caching so current publish/delete state is observed.
-- Current project-state, runtime/deployment, launch/readiness/smoke, feature, and historical-snapshot documentation was reconciled on 2026-09-11 so historical Phase B/M20/M21/SSR integration language cannot be mistaken for current status.
-- Phase A documentation now describes the implemented GitHub `Vercel` commit-status gate precisely, including the `Canceled by Ignored Build Step` limitation; exact-deployment proof must use deployment evidence when required.
+- Current project-state, runtime/deployment, launch/readiness/smoke, feature, and historical-snapshot documentation was reconciled on 2026-09-11 so dated architecture language cannot be mistaken for current status.
+- Phase A's automatic Vercel gate now rejects `Canceled by Ignored Build Step`/`Ignored Build Step` statuses and successful statuses without a deployment `target_url`, preventing skipped builds from being reported as ready matching deployments before browser smoke.
 - Production environment retirement was operator-verified on 2026-09-11: live Vercel uses server-only `COMPLAINT_API_URI`, retired `VITE_COMPLAINT_API_URI` is absent, and the CMS-auth observation/legacy-only environment retirement follow-ups are complete across the applicable Vercel/Cloudflare environments.
 - Current Worker, recovery, import, environment, and AI guidance now targets the canonical in-place production Worker/D1 identity and no longer presents retired Preview or `rcat-public-api-production` operations as current instructions.
 
 ### Maintenance
 
 - Governed dependency maintenance continues under the existing Renovate, release-age, freshness, security-audit, and CI/governance policies.
-- Historical migration, closure, cutover, and dated audit documents remain preserved as evidence; current source-of-truth documents take precedence when historical wording differs from the live architecture or project state.
+- Dated migration, closure, cutover, and audit documents remain preserved as evidence; current source-of-truth documents take precedence when older wording differs from the live architecture or project state.
 
 ## [3.3.0] - 2026-08-26
 

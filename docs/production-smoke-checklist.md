@@ -111,7 +111,7 @@ Updated: 2026-09-11.
 - [ ] Speed Insights ไม่แสดง regression ที่ชัดเจน
 - [ ] First load performance ยังอยู่ในระดับที่ยอมรับได้สำหรับผู้ใช้จริง
 
-หมายเหตุ: Phase A automation ใช้ GitHub `Vercel` commit-status context เป็น gate ก่อนยิง production browser smoke ปัจจุบัน status `success` อาจเกิดกับ `Canceled by Ignored Build Step` ได้ จึงไม่ควรใช้ Phase A status อย่างเดียวเป็นหลักฐานว่า production กำลัง serve exact SHA หาก release นั้นต้องการ exact-deployment proof ให้ตรวจ deployment record เพิ่มเติมตามขอบเขตงานนั้น
+หมายเหตุ: Phase A automation ใช้ GitHub `Vercel` commit-status context เป็น gate ก่อนยิง production browser smoke และตอนนี้ fail closed หากสถานะ `success` เป็น `Canceled by Ignored Build Step`/`Ignored Build Step` หรือไม่มี deployment `target_url` ดังนั้น ignored build จะไม่ถูกตีความเป็น matching deployment ที่พร้อมตรวจอีกต่อไป หาก release ต้องการหลักฐานระดับ Vercel deployment ID ให้บันทึก deployment ID/URL เพิ่มเติมตามขอบเขตงานนั้น
 
 ## 8. Rollback Readiness
 
