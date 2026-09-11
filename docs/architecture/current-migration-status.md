@@ -60,3 +60,37 @@ Historical M20/M21 wording is deliberately superseded: the M21-era stabilization
 ## Runtime Ownership Summary
 
 Current runtime ownership is no longer derived from the M13-M21 narrative in this file. Use `docs/architecture/current-runtime-ownership.md` for authoritative runtime boundaries and `docs/deployment/runtime-deployment-guide.md` for operational deployment commands.
+
+At the current baseline:
+
+- Public structured reads: Cloudflare Worker + D1.
+- Public analytics and visitor stats: Cloudflare Worker + D1.
+- B2 runtime-incident ingest and protected aggregates: Cloudflare Worker + D1.
+- Admin structured reads and writes: Cloudflare Worker + D1.
+- CMS identity, sessions, RBAC, MFA, CSRF, step-up assurance, session revocation, and user lifecycle: Cloudflare Worker + D1 through same-origin Vercel proxies.
+- B3 Health Aggregation: Vercel server-owned `/api/health-aggregation`, explicit refresh only.
+- Media/file bridge: Apps Script behind the authenticated Vercel proxy.
+- Complaint submission: same-origin Vercel `/api/complaint` to the dedicated Complaint Apps Script using live server-only `COMPLAINT_API_URI`.
+- File storage: Google Drive behind the Apps Script media bridge.
+
+Compatibility provider markers retained for M20 evidence gates:
+
+```text
+Admin structured data provider: Cloudflare.
+Public client data provider: Cloudflare.
+Media/attachment/file provider: Google Drive via Apps Script bridge.
+Database provider: D1.
+Production custom domain: `www.rcat.ac.th` connected to Vercel production.
+```
+
+These provider markers remain compatible with current runtime ownership but should be read together with `docs/architecture/current-runtime-ownership.md` for complete boundaries.
+
+## Reporting Rule
+
+Status reports and future implementation plans must not describe P6, M21, or Reliability Roadmap v2 Phase B as the current active project phase.
+
+Use the canonical wording from `docs/architecture/post-p5h-current-project-state.md` rather than dated M13-M21 milestone text.
+
+## Safety
+
+This documentation reconciliation changes no runtime behavior, API contract, Worker/D1 resources, migrations, Apps Script code, Vercel routing or environment values, authentication/session behavior, RBAC policy semantics, persistence behavior, package manifests, or lockfile. It records and guards the current state only.
