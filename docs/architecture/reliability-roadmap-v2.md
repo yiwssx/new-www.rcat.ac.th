@@ -10,12 +10,12 @@ This roadmap does **not** reopen P6. Historical P5H/P6A/P6B/P6C/P6D records keep
 
 ## Current roadmap
 
-| Phase   | Name                     | Status   | Primary outcome                                                                                                                                |
-| ------- | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                       |
-| Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically. |
+| Phase   | Name                     | Status   | Primary outcome                                                                                                                                      |
+| ------- | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                             |
+| Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically.       |
 | Phase B | Operational Visibility   | Complete | B1 protected live health checks, B2 privacy-safe Runtime Incident Feed, and B3 server-owned Health Aggregation are complete and production-verified. |
-| Phase C | Deep Field Verification  | Complete | C1 accessibility, C2 synthetic performance, and C3 authenticated disposable CMS production validation are complete.                            |
+| Phase C | Deep Field Verification  | Complete | C1 accessibility, C2 synthetic performance, and C3 authenticated disposable CMS production validation are complete.                                  |
 
 Reliability Roadmap v2 has no active phase after the 2026-09-11 B3/Phase B closure. Any future reliability work requires a new explicit scope rather than implicitly reopening B1, B2, B3, or Phase C.
 
