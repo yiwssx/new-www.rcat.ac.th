@@ -17,11 +17,11 @@ When unsure, keep a section disabled or leave an optional field empty. Empty is 
 
 ## Roles
 
-| Role              | What they verify                                                                                                                                                                                           |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin             | Deployments, Cloudflare/D1 status, Apps Script media bridge status, system health, settings, accounts, permissions, footer links, Messenger, map/contact, visitor stats, and final sign-off.                 |
-| Editor            | Media uploads, public documents, carousel slides, E-Service links, CMS content, categories, tags, featured media, publish dates, and search/discovery metadata.                                             |
-| Reviewer/Approver | Accuracy of public facts, official links, contact details, document metadata, map location, approved announcements, spelling, mobile layout, public route behavior, and final public page QA.               |
+| Role              | What they verify                                                                                                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin             | Deployments, Cloudflare/D1 status, Apps Script media bridge status, system health, settings, accounts, permissions, footer links, Messenger, map/contact, visitor stats, and final sign-off.  |
+| Editor            | Media uploads, public documents, carousel slides, E-Service links, CMS content, categories, tags, featured media, publish dates, and search/discovery metadata.                               |
+| Reviewer/Approver | Accuracy of public facts, official links, contact details, document metadata, map location, approved announcements, spelling, mobile layout, public route behavior, and final public page QA. |
 
 ## Pre-launch order of operations
 
@@ -365,21 +365,21 @@ System Health verification is read-only/explicit-refresh. B1/B2/B3 are completed
 
 ## Final Launch Sign-off
 
-| Area             | Owner | Status | Notes | Approved by | Date |
-| ---------------- | ----- | ------ | ----- | ----------- | ---- |
-| Site identity    |       |        |       |             |      |
-| Homepage         |       |        |       |             |      |
-| Documents        |       |        |       |             |      |
-| Carousel         |       |        |       |             |      |
-| E-Service        |       |        |       |             |      |
-| Content          |       |        |       |             |      |
-| Contact/map      |       |        |       |             |      |
-| Footer/Messenger |       |        |       |             |      |
-| Search           |       |        |       |             |      |
-| Admin/System Health |    |        |       |             |      |
-| Mobile QA        |       |        |       |             |      |
-| Desktop QA       |       |        |       |             |      |
-| Deployment       |       |        |       |             |      |
+| Area                | Owner | Status | Notes | Approved by | Date |
+| ------------------- | ----- | ------ | ----- | ----------- | ---- |
+| Site identity       |       |        |       |             |      |
+| Homepage            |       |        |       |             |      |
+| Documents           |       |        |       |             |      |
+| Carousel            |       |        |       |             |      |
+| E-Service           |       |        |       |             |      |
+| Content             |       |        |       |             |      |
+| Contact/map         |       |        |       |             |      |
+| Footer/Messenger    |       |        |       |             |      |
+| Search              |       |        |       |             |      |
+| Admin/System Health |       |        |       |             |      |
+| Mobile QA           |       |        |       |             |      |
+| Desktop QA          |       |        |       |             |      |
+| Deployment          |       |        |       |             |      |
 
 ## Rollback Notes
 
