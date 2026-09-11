@@ -10,6 +10,8 @@ Reliability Roadmap v2 is complete. It does not reopen or renumber P6. Phase 0 D
 
 Admin UX 00-10 is complete. The completed Admin UX work is tracked in `docs/admin/admin-ux-execution-tracker.md` and does not reopen M21.
 
+Production environment retirement follow-ups are also complete. On 2026-09-11 the operator directly inspected both the live Vercel and Cloudflare environment configuration and confirmed that Vercel Production uses server-only `COMPLAINT_API_URI`, retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment, the CMS-auth observation follow-up is complete, and legacy-only CMS-authentication environment values are retired from the applicable live environments. This is operator-attested production evidence recorded in `docs/operations/environment-retirement-verification-2026-09-11.md`; it does not imply that compatibility parsing must be removed from server source.
+
 P5H closed the original production-hardening sequence covering Worker maintainability, CMS link integrity, request correlation governance, Apps Script release governance, D1 credential-boundary hardening, and production audit/release evidence.
 
 Production Observability completed its activation gate on 2026-08-29. The workflow is configured on a six-hour schedule but remains approval-gated: scheduled runs are created automatically and wait for an authorized `production` Environment reviewer before the analytics credential becomes available and the query can execute. It is therefore an operational guard, but not unattended monitoring. Closure evidence and operating constraints are recorded in `docs/operations/p6a-production-observability.md`.
@@ -42,9 +44,12 @@ Governed Renovate dependency maintenance is expected to continue. It is not cons
 - P6D was the final planned P6 development phase. No P6 feature-development phase is active after its closure.
 - Reliability Roadmap v2 is separate from P6 and is complete: Phase 0, Phase A, Phase B, and Phase C are complete; B1, B2, and B3 are closed work.
 - Completed C3 field verification remains manual-only unless a newer explicit reliability scope reopens automation for mutable production verification.
+- The verified 2026-09-11 environment-retirement state is current: `COMPLAINT_API_URI` is the live complaint variable, `VITE_COMPLAINT_API_URI` is absent from live Vercel, and legacy-only CMS-auth environment values remain retired.
+- Compatibility parsing in server source must not be described as proof that a retired environment variable is still configured.
 - Do not recreate Request ID correlation, D1 observability, security/WAF/CSP checks, P6C reliability probes, Phase A post-deploy browser QA, B1/B2/B3 operator visibility, or Vercel RUM under new phase names.
 - Current runtime ownership is defined by `docs/architecture/current-runtime-ownership.md`.
 - Current deployment behavior is defined by `docs/deployment/runtime-deployment-guide.md`.
+- Current environment-variable ownership and verified retirement state are defined by `docs/development/environment-variables.md` and `docs/operations/environment-retirement-verification-2026-09-11.md`.
 - Reliability Roadmap v2 is defined by `docs/architecture/reliability-roadmap-v2.md`.
 - Phase A closure/current operating context is defined by `docs/operations/phase-a-field-qa-foundation.md`.
 - Phase B closure/current operating context is defined by `docs/operations/phase-b-operational-visibility.md`.
@@ -61,14 +66,14 @@ Governed Renovate dependency maintenance is expected to continue. It is not cons
 Use this wording for project status reports unless a newer explicit project-state document replaces it:
 
 ```text
-post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2 complete (Phase 0 + Phase A + Phase B/B1-B3 + Phase C complete)
+post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2 complete (Phase 0 + Phase A + Phase B/B1-B3 + Phase C complete) + production environment retirement follow-ups completed/operator-verified (2026-09-11)
 ```
 
 Do not report M20, M21, P6B, P6C, P6D, or Reliability Roadmap v2 Phase B as the current active feature-development/reliability phase. P6B, P6C, P6D, Phase 0, Phase A, Phase B, and Phase C are completed. Production Observability remains an operational guard whose scheduled executions are reviewer-gated, not unattended.
 
 When reporting future changes, separate them into one of these buckets:
 
-- current baseline: post-P5H production governance baseline, including approval-gated Production Observability plus completed P6B security, P6C recovery, P6D public UX, and completed Reliability Roadmap v2 controls
+- current baseline: post-P5H production governance baseline, including approval-gated Production Observability plus completed P6B security, P6C recovery, P6D public UX, completed Reliability Roadmap v2 controls, and operator-verified production environment retirement
 - completed reliability work: Phase 0 Development Quality Gate, Phase A Field QA Foundation, Phase B1 System Health Dashboard, Phase B2 Runtime Incident Feed, Phase B3 Health Aggregation, and Phase C Deep Field Verification
 - active requested reliability work: none unless a newer explicit scope is opened
 - completed UX work: P6D Product/UX Improvements and Admin UX 00-10
@@ -78,4 +83,4 @@ When reporting future changes, separate them into one of these buckets:
 
 ## Maintenance Posture
 
-Preserve the completed runtime, security, recovery, public UX, Admin UX, Phase 0, Phase A, Phase B1/B2/B3, and Phase C boundaries. Keep recovery operations fail-closed, avoid destructive production drills, preserve protected Environment review requirements, and reuse existing credentials/correlation identifiers before requesting any new token or creating a duplicate Environment/secret. Production Observability remains approval-gated by design. P6C keeps only a bounded six-hour end-to-end SSR/Worker/D1 probe, while P6B owns its security checks and no longer performs scheduled D1 auth polling. Completed Phase B remains explicit-refresh operator visibility rather than a parallel monitoring stack. C3 remains manual-only and must not be coupled back into normal Worker production releases without a new explicit scope. Dependency maintenance may continue through governed Renovate PRs according to the repository dependency policy and CI gates. New product or reliability development requires a new explicit scope.
+Preserve the completed runtime, security, recovery, public UX, Admin UX, Phase 0, Phase A, Phase B1/B2/B3, Phase C, and environment-retirement boundaries. Keep recovery operations fail-closed, avoid destructive production drills, preserve protected Environment review requirements, and reuse existing credentials/correlation identifiers before requesting any new token or creating a duplicate Environment/secret. Production Observability remains approval-gated by design. P6C keeps only a bounded six-hour end-to-end SSR/Worker/D1 probe, while P6B owns its security checks and no longer performs scheduled D1 auth polling. Completed Phase B remains explicit-refresh operator visibility rather than a parallel monitoring stack. C3 remains manual-only and must not be coupled back into normal Worker production releases without a new explicit scope. Retired complaint/CMS-auth environment variables must remain retired. Dependency maintenance may continue through governed Renovate PRs according to the repository dependency policy and CI gates. New product or reliability development requires a new explicit scope.
