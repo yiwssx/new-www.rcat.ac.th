@@ -6,7 +6,7 @@ This repository is a React/Vite public website and CMS with Cloudflare Worker/D1
 
 Current status: post-P5H production governance baseline with Production Observability configured behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, completed Admin UX 00-10, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
 
-Reliability Roadmap v2 is separate from P6. Phase 0 Development Quality Gate, Phase A Field QA Foundation, and Phase C Deep Field Verification are complete. Phase B Operational Visibility remains active: B1 System Health Dashboard and B2 Runtime Incident Feed are complete; B3 Health Aggregation remains planned. Completed C3 authenticated CMS verification remains manual/protected and must not be coupled back into normal Worker production releases without new explicit scope.
+Reliability Roadmap v2 is separate from P6 and is complete. Phase 0 Development Quality Gate, Phase A Field QA Foundation, Phase B Operational Visibility, and Phase C Deep Field Verification are complete. Within Phase B, B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified. Completed C3 authenticated CMS verification remains manual/protected and must not be coupled back into normal Worker production releases without new explicit scope.
 
 M13-M21 documents are historical migration/stabilization records. Do not report M20 or M21 as the current active phase, and do not reuse legacy M21 active-ownership or open-stabilization status wording in current project guidance.
 
@@ -17,8 +17,9 @@ Use these files as current references:
 - `docs/architecture/post-p5h-current-project-state.md` — canonical project-state note.
 - `docs/architecture/current-runtime-ownership.md` — current runtime ownership.
 - `docs/deployment/runtime-deployment-guide.md` — current deployment behavior.
-- `docs/architecture/reliability-roadmap-v2.md` — reliability phase definitions.
-- `docs/operations/phase-b-operational-visibility.md` — active Phase B scope and B1/B2 completion state.
+- `docs/architecture/reliability-roadmap-v2.md` — completed reliability phase definitions and evidence.
+- `docs/operations/phase-b-operational-visibility.md` — completed Phase B/B1-B3 scope and production evidence.
+- `docs/architecture/b3-health-aggregation-implementation-2026-09-11.md` — B3 implementation and production-verification record.
 - `docs/operations/phase-c-deep-field-verification.md` — completed Phase C operating context.
 - `docs/admin/admin-ux-execution-tracker.md` — completed Admin UX sequence.
 - `AGENTS.md` — repository-wide agent operating rules.
@@ -48,9 +49,10 @@ Historical M13-M21 milestone documents may be used as evidence for their origina
 - P6A owns D1 utilization observability and remains protected-Environment approval-gated.
 - P6B owns security/WAF/CSP verification.
 - P6C owns the bounded six-hour SSR → Worker → D1 reliability guard.
-- Phase B B1/B2 are complete; B3 is the only planned Phase B roadmap item.
+- Phase B B1/B2/B3 are complete. B3 is server-owned explicit-refresh aggregation through `/api/health-aggregation`; do not add browser infrastructure credentials or background polling.
 - Phase C is complete; C3 is manual-only after closure.
 - Do not add a duplicate paid observability stack merely to recreate existing guards.
+- New reliability work requires an explicit new scope; do not silently reopen Phase B.
 
 ## Do Not Reintroduce
 
@@ -62,6 +64,7 @@ Historical M13-M21 milestone documents may be used as evidence for their origina
 - Production auth that depends on direct frontend Apps Script.
 - M20/M21 active-phase wording in current-facing guidance.
 - Worker → C3 automatic dispatch or one-time C3 release scaffolding.
+- B3 browser-side infrastructure credentials or interval polling.
 
 ## Safety Rules
 
@@ -71,7 +74,7 @@ Historical M13-M21 milestone documents may be used as evidence for their origina
 - Keep Apps Script only for media/file bridge operations.
 - Prefer Cloudflare Worker and D1 for structured public/admin data.
 - Reuse existing credentials and protected Environments before considering new ones.
-- New product work requires explicit new scope; do not silently extend completed P6 or M21 phases.
+- New product or reliability work requires explicit new scope; do not silently extend completed P6, Phase B, or M21 phases.
 
 ## Sigmap
 
