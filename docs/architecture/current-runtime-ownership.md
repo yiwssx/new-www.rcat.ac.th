@@ -28,6 +28,8 @@ Public pages are server-rendered on Vercel. Admin/Auth remain CSR. Structured Pu
 
 Cloudflare runtime environments are intentionally reduced to local development plus one canonical production runtime. There is no persistent Preview tier. The existing Worker and data-bearing D1 originally provisioned under the physical Cloudflare name `rcat-public-api-preview` are promoted in place as Production. Their physical names and the existing Worker endpoint remain unchanged; `preview` is now only a historical label. The protected D1 UUID is the authoritative database release identity. See `docs/architecture/production-environment-convergence-2026-08-16.md`.
 
+On 2026-09-11 the operator directly inspected the live Vercel and Cloudflare environment configuration. Vercel Production is confirmed to use server-only `COMPLAINT_API_URI`; retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment; and the CMS-auth observation/Legacy-secret-retirement follow-ups are complete. This operator-attested production state is recorded in `docs/operations/environment-retirement-verification-2026-09-11.md`.
+
 ## Public Structured Data
 
 Owner: Cloudflare Worker + D1.
@@ -51,6 +53,8 @@ CMS Sessions are the application Admin identity.
 Vercel reads the CMS Session cookie and forwards the internal CMS proxy contract. It does not authorize by a browser-supplied role.
 
 The Worker remains authoritative for Session validity, active user status, role/capability, Session version, MFA state, CSRF, step-up assurance, and audit actor. Role/status/capabilities are derived from validated D1 state.
+
+The observation window and legacy-only CMS-auth environment retirement are complete. Retired shared-password, legacy-session, smoke-token, old Access-identity, and obsolete auth-flag values must not be restored merely because historical cutover documentation still names them. Current closure evidence is `docs/cms-auth-project-closure.md` and `docs/operations/environment-retirement-verification-2026-09-11.md`.
 
 ### Session lifetime
 
@@ -113,7 +117,7 @@ The browser never receives or calls the complaint Apps Script URL directly. The 
 - upstream timeout and safe error mapping;
 - an allowlisted `script.google.com/macros/s/.../exec` destination.
 
-Canonical Vercel server configuration is `COMPLAINT_API_URI`. `VITE_COMPLAINT_API_URI` is accepted server-side only as a temporary compatibility fallback for an already-configured deployment and should be removed from Vercel after `COMPLAINT_API_URI` is present and a production redeploy succeeds.
+Canonical Vercel server configuration is `COMPLAINT_API_URI`. The live Vercel Production environment was operator-verified on 2026-09-11 to contain that canonical variable and not contain retired `VITE_COMPLAINT_API_URI`. Server source may continue to recognize `VITE_COMPLAINT_API_URI` as compatibility parsing for an old deployment, but it is not current Production configuration and must not be restored merely because the fallback remains in code.
 
 The dedicated Complaint Apps Script is not the CMS structured-data backend and is not the media/file bridge.
 
@@ -256,7 +260,9 @@ Any document that still describes Node 22 as current is stale historical text.
 
 Do not place CMS Session tokens, passwords, TOTP secrets/codes, Recovery Codes, encryption keys, proxy shared secrets, Apps Script bridge tokens, production D1 IDs, or private deployment identifiers in browser code, docs, issues, commits, or chat logs.
 
-Complaint endpoint configuration is server-owned. `COMPLAINT_API_URI` may be stored as a Vercel server environment variable; do not restore browser code that reads a `VITE_` complaint endpoint.
+Complaint endpoint configuration is server-owned. Live Vercel Production uses `COMPLAINT_API_URI`; retired `VITE_COMPLAINT_API_URI` is operator-verified absent and must not be restored to the live environment. Do not restore browser code that reads a `VITE_` complaint endpoint.
+
+Legacy-only CMS-authentication values retired by the completed final cutover must remain absent from the applicable live Vercel/Cloudflare environments. Current authentication remains CMS Session + D1 user/capability state + MFA/CSRF/step-up, with `CMS_AUTH_PROXY_SECRET` retained as the internal server-to-Worker proxy boundary.
 
 ## Historical Documentation
 
