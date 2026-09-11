@@ -128,3 +128,42 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Keep Apps Script scoped to approved media/file bridge operations, except the separately isolated complaint Apps Script boundary.
 - Reuse existing credentials and Environments before considering any new one.
 - Prefer small, scoped commits.
+
+## Formatting and Remote Write Rule
+
+- Repository Prettier is authoritative; use the repository-pinned Prettier version and `.prettierrc.json`.
+- Local commits are protected by Husky and `lint-staged`, which format supported staged files before commit.
+- GitHub API, connector, and other remote file writes bypass local Git hooks. Before every remote commit, format every changed supported file with the repository Prettier rules; do not rely on CI as the first formatter.
+- Before merge, `pnpm format:check` and `pnpm lint:strict` must pass.
+
+## React Performance Skill
+
+For React frontend work, use the installed `vercel-react-best-practices` skill as a review and implementation guide.
+
+Apply the rules selectively to this React/Vite application:
+
+- prioritize eliminating request waterfalls
+- preserve React Query cache and invalidation semantics
+- reduce unnecessary re-renders
+- avoid unnecessary bundle growth
+- lazy-load heavy routes or components when measurable value exists
+- preserve accessibility and existing user-visible behavior
+- prefer evidence from profiling, bundle analysis, or tests over speculative optimization
+
+Do not apply Next.js-only rules to this Vite application.
+
+Do not perform broad performance refactors during authentication or security tasks unless the affected React code is directly in scope.
+
+Security, correctness, authorization, session integrity, and data consistency take priority over performance optimization.
+
+## Sigmap Workflow
+
+Use sigmap for repository-aware AI assistance when available.
+
+Common commands:
+
+```bash
+pnpm ai:ask
+pnpm ai:validate
+pnpm ai:map
+```
