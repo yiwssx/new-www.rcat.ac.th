@@ -1,8 +1,5 @@
 import type { Env } from "../env";
-import {
-  PUBLIC_CONTENT_SUMMARY_READ_COLUMNS,
-  type PublicContentSummaryReadRow
-} from "./contentRepository";
+import { PUBLIC_CONTENT_SUMMARY_READ_COLUMNS, type PublicContentSummaryReadRow } from "./contentRepository";
 import { logD1QueryUsage } from "./d1QueryUsage";
 import { requireD1Database } from "./documentsRepository";
 import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } from "./publicContentVisibility";
@@ -91,7 +88,7 @@ async function countSearchRows(env: Env, query: string) {
 
   logD1QueryUsage(env, "search:count-fallback", result);
   const projectedTotal = Number(result.results?.[0]?.total_items);
-  return Number.isFinite(projectedTotal) ? Math.max(0, projectedTotal) : result.results?.length ?? 0;
+  return Number.isFinite(projectedTotal) ? Math.max(0, projectedTotal) : (result.results?.length ?? 0);
 }
 
 export async function searchPublishedContentPageWithCountRows(
@@ -101,13 +98,7 @@ export async function searchPublishedContentPageWithCountRows(
 ): Promise<PublicSearchPageResult> {
   const pageSize = Math.min(100, Math.max(1, Math.floor(input.pageSize)));
   const requestedPage = Math.max(1, Math.floor(input.page));
-  const first = await readSearchPage(
-    env,
-    query,
-    pageSize,
-    (requestedPage - 1) * pageSize,
-    "search:page-with-count"
-  );
+  const first = await readSearchPage(env, query, pageSize, (requestedPage - 1) * pageSize, "search:page-with-count");
 
   if (first.rows.length > 0 || requestedPage === 1) {
     const totalItems = first.totalItems;

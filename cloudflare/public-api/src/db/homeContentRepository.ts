@@ -1,8 +1,5 @@
 import type { Env } from "../env";
-import {
-  PUBLIC_CONTENT_SUMMARY_READ_COLUMNS,
-  type PublicContentSummaryReadRow
-} from "./contentRepository";
+import { PUBLIC_CONTENT_SUMMARY_READ_COLUMNS, type PublicContentSummaryReadRow } from "./contentRepository";
 import { logD1QueryUsage } from "./d1QueryUsage";
 import { requireD1Database } from "./documentsRepository";
 import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } from "./publicContentVisibility";
@@ -70,13 +67,7 @@ export async function listHomePublishedContentSummaryRows(env: Env): Promise<Pub
   const achievementFilter = createAchievementFilter();
   const [news, announcements, programs, achievements] = await Promise.all([
     readHomeRows(env, "home:content:news", "AND type IN (?, ?)", ["news", "blog"], HOME_NEWS_LIMIT),
-    readHomeRows(
-      env,
-      "home:content:announcements",
-      "AND type = ?",
-      ["announcement"],
-      HOME_ANNOUNCEMENT_LIMIT
-    ),
+    readHomeRows(env, "home:content:announcements", "AND type = ?", ["announcement"], HOME_ANNOUNCEMENT_LIMIT),
     readHomeRows(env, "home:content:programs", "AND type = ?", ["program"], HOME_PROGRAM_LIMIT),
     readHomeRows(
       env,
