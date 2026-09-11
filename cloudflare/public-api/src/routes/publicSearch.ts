@@ -8,10 +8,16 @@ import {
 } from "../db/contentRepository";
 import { readPublicShellMetadataRows } from "../db/publicMetadataRepository";
 import type { Env } from "../env";
+import {
+  enforcePublicSearchRateLimit,
+  PublicReadRateLimitExceeded,
+  PublicReadRateLimitUnavailable
+} from "../publicReadAbuseGuard";
 import { json, jsonError } from "../responses";
 
 const RESOURCE = "search";
 const PHASE = "M17-B";
+const MAX_SEARCH_QUERY_LENGTH = 160;
 
 interface SearchPaginationInput {
   page: number;
@@ -49,6 +55,29 @@ function createPagination(input: SearchPaginationInput, totalItems: number) {
   };
 }
 
+async function guardPublicSearch(request: Request, env: Env) {
+  try {
+    await enforcePublicSearchRateLimit(request, env);
+    return null;
+  } catch (error) {
+    if (error instanceof PublicReadRateLimitExceeded) {
+      return jsonError("public search rate limit exceeded", 429, {
+        resource: RESOURCE,
+        retryAfterSeconds: error.retryAfterSeconds
+      });
+    }
+
+    if (error instanceof PublicReadRateLimitUnavailable) {
+      return jsonError("public search rate limiter is unavailable", 503, {
+        resource: RESOURCE,
+        diagnostic: "public-search-rate-limiter-unavailable-v1"
+      });
+    }
+
+    throw error;
+  }
+}
+
 export async function publicSearch(request: Request, env: Env) {
   if (!env.DB) {
     return jsonError("database binding is not configured", 503, {
@@ -60,6 +89,18 @@ export async function publicSearch(request: Request, env: Env) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim() ?? "";
   const paginationInput = getOptionalPaginationInput(url);
+
+  if (query.length > MAX_SEARCH_QUERY_LENGTH) {
+    return jsonError("search query is too long", 400, {
+      resource: RESOURCE,
+      maxLength: MAX_SEARCH_QUERY_LENGTH
+    });
+  }
+
+  const rateLimited = await guardPublicSearch(request, env);
+  if (rateLimited) {
+    return rateLimited;
+  }
 
   try {
     const shellMetadataPromise = readPublicShellMetadataRows(env);
