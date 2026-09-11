@@ -14,7 +14,7 @@ The normal Phase A path is automation-first:
 
 1. a change reaches `master`;
 2. repository CI completes successfully for that exact commit SHA;
-3. the workflow waits for the GitHub commit-status context `Vercel` on that SHA to report `success`;
+3. the workflow waits for the GitHub commit-status context `Vercel` on that SHA to report `success` and rejects any status whose description indicates an Ignored Build Step;
 4. the production Playwright smoke runs automatically against `https://www.rcat.ac.th`.
 
 `workflow_dispatch` remains available only as an operational fallback for reruns, controlled alternative-URL verification, or recovery checks. It is not the primary operating path.
@@ -108,11 +108,11 @@ The workflow listens for completion of the repository `CI` workflow. It runs aut
 - the completed CI run is for `master`; and
 - the CI conclusion is `success`.
 
-The workflow then queries the GitHub combined commit status for the same `head_sha` and waits for context `Vercel` to report `success` before running the browser smoke.
+The workflow then queries the GitHub combined commit status for the same `head_sha`, reads both the `state` and `description` of context `Vercel`, and waits for a non-ignored `success` before running the browser smoke.
 
-This is a commit-status gate, not a direct Vercel deployment-record lookup. Vercel can report a successful GitHub status when an Ignored Build Step cancels creation of a new deployment. In that case Phase A still tests the current production site, but the status alone must not be described as proof that production is serving that exact SHA. B3 already distinguishes the `Canceled by Ignored Build Step` description in its deployment metadata, and C3 independently fails closed on that condition for its exact-deployment mutable verification.
+Vercel can report a success-like commit status when an Ignored Build Step cancels creation of a new deployment. Phase A now fails closed when the Vercel status description contains `Ignored Build Step`; it does not continue to Playwright and does not treat the currently served older production deployment as exact-SHA evidence. B3 independently distinguishes the same condition in its deployment metadata, and C3 continues to fail closed for its exact-deployment mutable verification.
 
-If the Vercel commit status reports `failure` or `error`, or never reaches `success` inside the workflow's bounded wait, Phase A fails closed and does not run the browser smoke.
+If the Vercel commit status reports `failure` or `error`, reports an Ignored Build Step, or never reaches an acceptable `success` inside the workflow's bounded wait, Phase A fails closed and does not run the browser smoke.
 
 ## Manual fallback
 
@@ -142,8 +142,8 @@ Phase A is complete because:
 2. desktop and mobile read-only production scenarios are present;
 3. console/page/network diagnostics are enforced;
 4. the QA scenario library is stored in the repository;
-5. successful `master` CI automatically waits for the matching SHA's Vercel commit-status context and then runs the production browser smoke;
+5. successful `master` CI automatically waits for the matching SHA's Vercel commit-status context, rejects Ignored Build Step statuses, and then runs the production browser smoke only for an acceptable success;
 6. manual dispatch remains only a fallback;
 7. repository CI and governance remain green.
 
-The commit-status limitation documented above is an operational precision issue in the ongoing guard, not evidence that the completed Phase A implementation phase is reopened.
+The hardened Ignored Build Step handling is an operational guard improvement after Phase A closure; it does not reopen the completed reliability roadmap.
