@@ -1,14 +1,18 @@
 # CMS Authentication Final Cutover
 
-This runbook governs the Preview and Production rollout of the permanent CMS-only authentication path. It contains no credentials or deployment-specific identifiers.
+Updated: 2026-09-11.
 
-Phase 8 changes code only. It does not deploy, change a remote environment, migrate D1, revoke a Session, reset MFA, or retire a remote secret.
+This runbook governs the Preview and Production rollout procedure used for the permanent CMS-only authentication path. It contains no credentials or deployment-specific identifiers. The cutover stages below are retained as historical operational procedure; current runtime/environment ownership is defined by `docs/architecture/current-runtime-ownership.md`.
+
+Phase 8 changed code only. It did not itself deploy, change a remote environment, migrate D1, revoke a Session, reset MFA, or retire a remote secret.
 
 ## Project closure status
 
-Phase 8 code and operator-confirmed smoke testing are complete. Continued operations follow the technical handoff in `docs/cms-auth-project-closure.md`.
+Phase 8 code and operator-confirmed smoke testing are complete. The observation-window follow-up and remote Legacy-secret retirement are also complete.
 
-This runbook remains the authoritative procedure for remote Legacy-secret retirement, coordinated secret rotation, and rollback. Remote Legacy-secret retirement is an operational follow-up unless its completion is separately recorded through the approved process.
+On 2026-09-11, the operator directly inspected the relevant Vercel and Cloudflare environment configuration and confirmed the Legacy-only CMS-authentication values had been retired from the live environments. This completion is recorded in `docs/operations/environment-retirement-verification-2026-09-11.md` and summarized in `docs/cms-auth-project-closure.md`.
+
+This runbook remains the authoritative procedure for understanding the historical retirement sequence, future coordinated secret rotation, and rollback implications. It no longer represents an open Legacy-secret-retirement task.
 
 ## Confirmed application prerequisites
 
@@ -47,7 +51,7 @@ Never record a real identifier, password, token, Recovery Code, cookie, encrypti
 - The one-time Root credential bootstrap HTTP route and capability no longer exist.
 - CMS authentication is mandatory. The obsolete feature flag cannot reveal a fallback.
 - Existing CMS Sessions remain compatible; Phase 8 has no migration.
-- Direct Vercel Function inventory is exactly `admin-proxy`, `apps-script-proxy`, `cms-auth`, and `sitemap`.
+- At the original Phase 8 closure, the direct Vercel Function inventory was exactly `admin-proxy`, `apps-script-proxy`, `cms-auth`, and `sitemap`; later project work may add Functions without reopening this migration.
 
 ## Stage A — Preview
 
@@ -110,6 +114,8 @@ During the window:
 - verify secondary Admin access again;
 - confirm audit actors continue to match the D1 users that own the validated Sessions.
 
+This stage is complete for the CMS-auth migration. Completion was operator-confirmed and recorded on 2026-09-11.
+
 ## Stage D — Secret retirement
 
 Only after Preview and Production acceptance and the observation window, audit and remove verified legacy-only values from the applicable Vercel and Worker environments.
@@ -141,6 +147,8 @@ Keep:
 
 Retire values only through the approved environment-management process. Never copy their values into Git, shell history, chat, or this runbook.
 
+This stage is complete for the CMS-auth migration. On 2026-09-11, the operator directly inspected both Vercel and Cloudflare environment configuration and confirmed the Legacy-only values are retired from the applicable live environments. See `docs/operations/environment-retirement-verification-2026-09-11.md`.
+
 ## Stage E — Optional coordinated rotation
 
 `CMS_AUTH_PROXY_SECRET` may be rotated later in a controlled maintenance window:
@@ -169,6 +177,8 @@ After legacy-secret retirement:
 - restoring legacy behavior would require restoring the retired values from the approved secret manager;
 - never reconstruct a secret from Git, shell history, logs, or chat;
 - prefer fixing forward when CMS users, credentials, MFA, and Sessions are healthy.
+
+The project is now in the post-retirement state, so the "after legacy-secret retirement" rollback rules are the applicable current rules.
 
 ## Recovery and deferred capabilities
 
