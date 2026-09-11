@@ -8,6 +8,8 @@ import {
 import { readPublicMediaRowsByIds } from "../src/db/publicMetadataRepository";
 import type { Env } from "../src/env";
 import publicContentRouteSource from "../src/routes/publicContent.ts?raw";
+import publicHomeRouteSource from "../src/routes/publicHome.ts?raw";
+import publicProgramsRouteSource from "../src/routes/publicPrograms.ts?raw";
 import publicSearchRouteSource from "../src/routes/publicSearch.ts?raw";
 
 interface DbCall {
@@ -80,7 +82,7 @@ describe("Step 4 public-read hardening", () => {
     expect(calls[0].bindings).toEqual(["media-a", "media-b"]);
   });
 
-  it("keeps public content and search routes off full metadata/media table reads", () => {
+  it("keeps public content, search, home, and program routes off full media table reads", () => {
     expect(publicContentRouteSource).toContain("countPublishedContentSummaryRows");
     expect(publicContentRouteSource).toContain("listPublishedContentSummaryPageRows");
     expect(publicContentRouteSource).toContain("readPublicMediaRowsByIds");
@@ -91,6 +93,16 @@ describe("Step 4 public-read hardening", () => {
     expect(publicSearchRouteSource).toContain("searchPublishedContentPageRows");
     expect(publicSearchRouteSource).toContain("readPublicShellMetadataRows");
     expect(publicSearchRouteSource).not.toContain("readPublicMetadataRows(env)");
+
+    expect(publicHomeRouteSource).toContain("readPublicHomeCoreMetadataRows");
+    expect(publicHomeRouteSource).toContain("readPublicMediaRowsByIds");
+    expect(publicHomeRouteSource).not.toContain("readPublicHomeMetadataRows(env)");
+    expect(publicHomeRouteSource).not.toContain("readPublicMediaRows(env)");
+
+    expect(publicProgramsRouteSource).toContain("readPublicShellMetadataRows");
+    expect(publicProgramsRouteSource).toContain("readPublicMediaRowsByIds");
+    expect(publicProgramsRouteSource).not.toContain("readPublicMetadataRows(env)");
+    expect(publicProgramsRouteSource).not.toContain("readPublicMediaRows(env)");
   });
 
   it("paginates announcement public pages in D1 instead of reading every page row", () => {

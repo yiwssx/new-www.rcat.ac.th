@@ -12,6 +12,8 @@ vi.mock("../features/visitor-stats/api", () => ({
 
 const getLiveVisitorStatsMock = vi.mocked(getLiveVisitorStats);
 const TEST_NOW = new Date("2026-07-27T00:00:00.000Z").getTime();
+const LIVE_INTERVAL_MS = 5 * 60 * 1000;
+const FAILURE_BACKOFF_MS = 15 * 60 * 1000;
 
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
@@ -42,7 +44,7 @@ const liveStats: VisitorStatsSettings = {
   usersToday: 9,
   totalViews: 201,
   onlineUsers: 3,
-  updatedAt: "2026-07-27T00:01:00.000Z"
+  updatedAt: "2026-07-27T00:05:00.000Z"
 };
 
 function LiveStatsHarness({
@@ -93,7 +95,7 @@ describe("live public visitor stats", () => {
     vi.restoreAllMocks();
   });
 
-  it("uses a fresh public snapshot without an immediate duplicate GET and refreshes once at 60 seconds", async () => {
+  it("uses a fresh public snapshot without an immediate duplicate GET and refreshes once at five minutes", async () => {
     const pendingStats = createDeferred<VisitorStatsSettings>();
     getLiveVisitorStatsMock.mockReturnValue(pendingStats.promise);
     renderLiveStats();
@@ -104,7 +106,7 @@ describe("live public visitor stats", () => {
     expect(getLiveVisitorStatsMock).not.toHaveBeenCalled();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(59_999);
+      await vi.advanceTimersByTimeAsync(LIVE_INTERVAL_MS - 1);
     });
     expect(getLiveVisitorStatsMock).not.toHaveBeenCalled();
 
@@ -128,7 +130,7 @@ describe("live public visitor stats", () => {
     renderLiveStats();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(60_000);
+      await vi.advanceTimersByTimeAsync(LIVE_INTERVAL_MS);
     });
     await flushTimers();
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
@@ -148,7 +150,7 @@ describe("live public visitor stats", () => {
   it("refreshes an already stale snapshot on mount while retaining it during the request", async () => {
     const pendingStats = createDeferred<VisitorStatsSettings>();
     getLiveVisitorStatsMock.mockReturnValue(pendingStats.promise);
-    renderLiveStats(initialStats, TEST_NOW - 60_001);
+    renderLiveStats(initialStats, TEST_NOW - LIVE_INTERVAL_MS - 1);
 
     expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
     await flushTimers();
@@ -175,7 +177,7 @@ describe("live public visitor stats", () => {
     );
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(60_000);
+      await vi.advanceTimersByTimeAsync(LIVE_INTERVAL_MS);
     });
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
 
@@ -191,7 +193,7 @@ describe("live public visitor stats", () => {
     renderLiveStats();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(180_000);
+      await vi.advanceTimersByTimeAsync(LIVE_INTERVAL_MS * 2);
     });
     expect(getLiveVisitorStatsMock).not.toHaveBeenCalled();
 
@@ -224,7 +226,7 @@ describe("live public visitor stats", () => {
 
     await act(async () => {
       onlineManager.setOnline(false);
-      await vi.advanceTimersByTimeAsync(60_001);
+      await vi.advanceTimersByTimeAsync(LIVE_INTERVAL_MS + 1);
     });
     expect(getLiveVisitorStatsMock).not.toHaveBeenCalled();
 
@@ -243,19 +245,19 @@ describe("live public visitor stats", () => {
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
   });
 
-  it("retains the snapshot and enforces the full five-minute backoff across focus and reconnect", async () => {
+  it("retains the snapshot and enforces the full fifteen-minute backoff across focus and reconnect", async () => {
     const expectedError = new Error("visitor stats unavailable");
     const recoveredStats = createDeferred<VisitorStatsSettings>();
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     getLiveVisitorStatsMock.mockRejectedValueOnce(expectedError).mockReturnValueOnce(recoveredStats.promise);
-    const failedView = renderLiveStats(initialStats, TEST_NOW - 60_001);
+    const failedView = renderLiveStats(initialStats, TEST_NOW - LIVE_INTERVAL_MS - 1);
 
     await flushTimers();
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
     expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
 
     failedView.unmount();
-    renderLiveStats(initialStats, TEST_NOW - 60_001);
+    renderLiveStats(initialStats, TEST_NOW - LIVE_INTERVAL_MS - 1);
     await flushTimers();
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
 
@@ -264,7 +266,7 @@ describe("live public visitor stats", () => {
       focusManager.setFocused(true);
       onlineManager.setOnline(false);
       onlineManager.setOnline(true);
-      await vi.advanceTimersByTimeAsync(5 * 60 * 1000 - 1);
+      await vi.advanceTimersByTimeAsync(FAILURE_BACKOFF_MS - 1);
     });
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
     expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
@@ -293,7 +295,7 @@ describe("live public visitor stats", () => {
 
     view.unmount();
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(120_000);
+      await vi.advanceTimersByTimeAsync(LIVE_INTERVAL_MS * 2);
     });
     expect(getLiveVisitorStatsMock).not.toHaveBeenCalled();
   });
@@ -302,7 +304,7 @@ describe("live public visitor stats", () => {
     renderLiveStats({ ...initialStats, enabled: false });
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(120_000);
+      await vi.advanceTimersByTimeAsync(LIVE_INTERVAL_MS * 2);
     });
     expect(getLiveVisitorStatsMock).not.toHaveBeenCalled();
   });

@@ -252,7 +252,9 @@ test.describe("Public telemetry request governance", () => {
     await expect(page.getByRole("alert")).toHaveCount(0);
   });
 
-  test("coalesces visibility bursts and enforces five-minute Presence across visibility changes", async ({ page }) => {
+  test("coalesces visibility bursts and enforces five-minute telemetry budgets across visibility changes", async ({
+    page
+  }) => {
     await page.clock.install({
       time: new Date(PUBLIC_AUTH_FIXTURE_GENERATED_AT)
     });
@@ -282,35 +284,24 @@ test.describe("Public telemetry request governance", () => {
 
     await dispatchVisibilityAndFocus(page, "visible");
     expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(1);
+    expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(0);
 
-    // Force a real hidden -> visible transition after the live-stats freshness
-    // window. This drives the same focus refresh path users exercise when
-    // returning to the tab without coupling the test to internal timeout order.
-    await page.clock.pauseAt(pausedAt + 61_001);
-    await dispatchVisibilityAndFocus(page, "hidden", false);
-    await page.clock.runFor(1);
-    await dispatchVisibilityAndFocus(page, "visible");
-    await page.clock.runFor(1);
-    expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(1);
-    await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);
-
-    // The exact 299,999/300,000 millisecond boundary is covered by the unit
-    // test. Here the visible transition proves the browser integration honors
-    // the five-minute Presence budget once enough wall-clock time has elapsed.
+    // Presence and live visitor stats now share a five-minute network budget.
+    // A real hidden -> visible transition after that window should refresh each
+    // at most once, while visibility/focus bursts inside the budget coalesce.
     await page.clock.pauseAt(pausedAt + 301_001);
     await dispatchVisibilityAndFocus(page, "hidden", false);
     await page.clock.runFor(1);
     await dispatchVisibilityAndFocus(page, "visible");
     await page.clock.runFor(1);
     await expect.poll(() => countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);
+    await expect.poll(() => countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(1);
 
     const statsBeforeHidden = countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET");
-    expect(statsBeforeHidden).toBeGreaterThanOrEqual(1);
 
     await dispatchVisibilityAndFocus(page, "hidden", false);
-    // Execute a full five-minute timer budget while hidden. Both the Presence
-    // interval and live-stats scheduler may wake up, but neither may hit the
-    // network until the tab becomes visible again.
+    // Execute a full five-minute timer budget while hidden. Both schedulers may
+    // wake up, but neither may hit the network until the tab becomes visible.
     await page.clock.runFor(300_001);
     expect(countPublicRequests(publicFixture, "/api/public/presence", "POST")).toBe(2);
     expect(countPublicRequests(publicFixture, "/api/public/visitor-stats", "GET")).toBe(statsBeforeHidden);

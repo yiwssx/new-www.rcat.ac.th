@@ -3,13 +3,46 @@ import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
 import { listAllPublishedContentSummaryRows } from "../db/contentRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
-import { readPublicHomeMetadataRows } from "../db/publicMetadataRepository";
+import { readPublicHomeCoreMetadataRows, readPublicMediaRowsByIds } from "../db/publicMetadataRepository";
 import { countOnlineVisitors, listVisitorDailyStatsRows } from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
 const RESOURCE = "public-home";
 const PHASE = "M17-B";
+const EXTERNAL_SERVICE_MEDIA_ICON_PREFIX = "media:";
+
+function collectHomeMediaIds(snapshot: ReturnType<typeof createPublicHomeSnapshot>) {
+  const ids = new Set<string>();
+  const addMediaReferences = (items: Array<{ featuredMediaId?: string; mediaIds?: string[] }>) => {
+    items.forEach((item) => {
+      if (item.featuredMediaId) {
+        ids.add(item.featuredMediaId);
+      }
+      item.mediaIds?.forEach((id) => ids.add(id));
+    });
+  };
+
+  addMediaReferences([
+    ...snapshot.latestNews,
+    ...snapshot.latestAnnouncements,
+    ...snapshot.programItems,
+    ...snapshot.achievementItems,
+    ...snapshot.eventItems
+  ]);
+
+  snapshot.externalServices.forEach((service) => {
+    const iconKey = String(service.iconKey || "").trim();
+    if (iconKey.startsWith(EXTERNAL_SERVICE_MEDIA_ICON_PREFIX)) {
+      const id = iconKey.slice(EXTERNAL_SERVICE_MEDIA_ICON_PREFIX.length).trim();
+      if (id) {
+        ids.add(id);
+      }
+    }
+  });
+
+  return [...ids];
+}
 
 export async function publicHome(env: Env) {
   if (!env.DB) {
@@ -21,20 +54,34 @@ export async function publicHome(env: Env) {
 
   try {
     const generatedAt = new Date();
-    const [content, featuredDocuments, homeMetadataRows, visitorRows, onlineUsers] = await Promise.all([
+    const [content, featuredDocuments, homeCoreRows, visitorRows, onlineUsers] = await Promise.all([
       listAllPublishedContentSummaryRows(env),
       listPublishedDocumentRows(env),
-      readPublicHomeMetadataRows(env),
+      readPublicHomeCoreMetadataRows(env),
       listVisitorDailyStatsRows(env),
       countOnlineVisitors(env, generatedAt)
     ]);
-    const metadata = createPublicMetadata({
+    const visitorStats = createPublicVisitorStatsSnapshot(visitorRows, generatedAt, onlineUsers);
+    const metadataRows = {
       siteSettings: null,
       homepageSettings: null,
       displaySettings: null,
       menu: [],
-      ...homeMetadataRows
-    });
+      media: [],
+      ...homeCoreRows
+    };
+    const metadataWithoutMedia = createPublicMetadata(metadataRows);
+    const provisionalSnapshot = createPublicHomeSnapshot(
+      {
+        content,
+        featuredDocuments,
+        metadata: metadataWithoutMedia,
+        visitorStats
+      },
+      generatedAt
+    );
+    const media = await readPublicMediaRowsByIds(env, collectHomeMediaIds(provisionalSnapshot));
+    const metadata = createPublicMetadata({ ...metadataRows, media });
 
     return json(
       createPublicHomeSnapshot(
@@ -42,7 +89,7 @@ export async function publicHome(env: Env) {
           content,
           featuredDocuments,
           metadata,
-          visitorStats: createPublicVisitorStatsSnapshot(visitorRows, generatedAt, onlineUsers)
+          visitorStats
         },
         generatedAt
       )
