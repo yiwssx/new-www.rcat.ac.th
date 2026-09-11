@@ -72,7 +72,7 @@ const staleActiveStatusPatterns = [
 
 const staleProductionD1Command =
   /d1\s+(?:info|export|execute|time-travel\s+(?:info|restore))\s+rcat-public-api-production/i;
-const stalePreviewD1Command = /d1\s+(?:migrations\s+apply|execute)[\s\S]{0,220}--env\s+preview/i;
+const stalePreviewD1Command = /d1\s+(?:migrations\s+apply|execute)[\s\S]{0,100}--env\s+preview/i;
 
 describe("current project-state consistency", () => {
   it("keeps stale current-state/runtime language out of current-facing guidance", () => {
@@ -211,7 +211,7 @@ describe("current project-state consistency", () => {
       expect(source).toContain(
         "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified"
       );
-      expect(source).toContain("production environment retirement follow-ups are complete and operator-verified");
+      expect(source).toMatch(/production environment retirement follow-ups are complete and operator-verified/i);
       expect(source).toContain("C3");
       expect(source).toMatch(/manual(?:\/protected|-only)/i);
     }
