@@ -39,8 +39,12 @@ function createSearchFilter(query: string) {
   };
 }
 
-function stripWindowCount(rows: SearchPageRow[]) {
-  return rows.map(({ total_items: _totalItems, ...row }) => row as PublicContentSummaryReadRow);
+function stripWindowCount(rows: SearchPageRow[]): PublicContentSummaryReadRow[] {
+  return rows.map((row) => {
+    const projectedRow = { ...row };
+    delete projectedRow.total_items;
+    return projectedRow;
+  });
 }
 
 async function readSearchPage(
