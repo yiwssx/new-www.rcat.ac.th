@@ -1,7 +1,8 @@
 import type { Env } from "./env";
 
 const DEFAULT_PUBLIC_READ_TTL_SECONDS = 300;
-const VISITOR_STATS_TTL_SECONDS = 120;
+const HOME_PUBLIC_READ_TTL_SECONDS = 15 * 60;
+const VISITOR_STATS_TTL_SECONDS = 5 * 60;
 const SEARCH_TTL_SECONDS = 120;
 
 export type PublicReadCacheStatus = "HIT" | "MISS" | "BYPASS";
@@ -13,6 +14,10 @@ function getPublicReadCacheTtlSeconds(request: Request) {
 
   const { pathname } = new URL(request.url);
 
+  if (pathname === "/api/public/home" || pathname === "/api/public/shell" || pathname === "/api/public/programs") {
+    return HOME_PUBLIC_READ_TTL_SECONDS;
+  }
+
   if (pathname === "/api/public/visitor-stats") {
     return VISITOR_STATS_TTL_SECONDS;
   }
@@ -22,12 +27,9 @@ function getPublicReadCacheTtlSeconds(request: Request) {
   }
 
   if (
-    pathname === "/api/public/home" ||
-    pathname === "/api/public/shell" ||
     pathname === "/api/public/documents" ||
     pathname === "/api/public/events" ||
-    pathname === "/api/public/content" ||
-    pathname === "/api/public/programs"
+    pathname === "/api/public/content"
   ) {
     return DEFAULT_PUBLIC_READ_TTL_SECONDS;
   }
