@@ -89,7 +89,9 @@ describe("current project-state consistency", () => {
     }
 
     expect(currentRuntime).toContain("Public Search is Worker/D1-owned");
-    expect(currentRuntime).toContain("There is no `PUBLIC_API_PROVIDER` or `VITE_PUBLIC_API_PROVIDER` runtime selector");
+    expect(currentRuntime).toContain(
+      "There is no `PUBLIC_API_PROVIDER` or `VITE_PUBLIC_API_PROVIDER` runtime selector"
+    );
   });
 
   it("keeps Phase A wording aligned with the real commit-status gate and completed later phases", () => {

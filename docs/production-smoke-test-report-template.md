@@ -21,18 +21,18 @@ Updated: 2026-09-11.
 
 ## 2. Environment Variables / Runtime Settings Checked
 
-| Environment variable / setting            | ตรวจแล้ว | ค่า/แหล่งอ้างอิง | หมายเหตุ                                      |
-| ----------------------------------------- | -------- | ---------------- | --------------------------------------------- |
-| Cloudflare Public API origin              | [ ]      |                  | Record only source label, not private values  |
-| Cloudflare Admin proxy/server settings    | [ ]      |                  | Record only source label, not secrets         |
-| Apps Script media bridge server settings  | [ ]      |                  | Record only status, not bridge URL/token      |
-| Complaint proxy server setting if in scope | [ ]      |                  | Record only configured/not configured         |
-| Public site URL                           | [ ]      |                  |                                               |
-| Analytics strategy                        | [ ]      |                  |                                               |
-| GTM ID                                    | [ ]      |                  |                                               |
-| GA4 Measurement ID                        | [ ]      |                  |                                               |
-| Vercel Analytics / Speed Insights setting | [ ]      |                  |                                               |
-| อื่น ๆ                                    | [ ]      |                  |                                               |
+| Environment variable / setting             | ตรวจแล้ว | ค่า/แหล่งอ้างอิง | หมายเหตุ                                     |
+| ------------------------------------------ | -------- | ---------------- | -------------------------------------------- |
+| Cloudflare Public API origin               | [ ]      |                  | Record only source label, not private values |
+| Cloudflare Admin proxy/server settings     | [ ]      |                  | Record only source label, not secrets        |
+| Apps Script media bridge server settings   | [ ]      |                  | Record only status, not bridge URL/token     |
+| Complaint proxy server setting if in scope | [ ]      |                  | Record only configured/not configured        |
+| Public site URL                            | [ ]      |                  |                                              |
+| Analytics strategy                         | [ ]      |                  |                                              |
+| GTM ID                                     | [ ]      |                  |                                              |
+| GA4 Measurement ID                         | [ ]      |                  |                                              |
+| Vercel Analytics / Speed Insights setting  | [ ]      |                  |                                              |
+| อื่น ๆ                                     | [ ]      |                  |                                              |
 
 Public structured data has no `VITE_PUBLIC_API_PROVIDER` selector. Browser code uses `VITE_CLOUDFLARE_PUBLIC_API_URL`; server-side Public reads prefer `CLOUDFLARE_PUBLIC_API_URL`.
 
