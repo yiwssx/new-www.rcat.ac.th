@@ -1,5 +1,7 @@
 # Public Documents / เอกสารเผยแพร่
 
+Updated: 2026-09-11.
+
 ## Purpose
 
 Public Documents adds a dedicated CMS module for downloadable public files such as policies, ITA documents, plans, reports, and forms. It replaces the old homepage-only heuristic that inferred documents from published content pages with document-related keywords.
@@ -34,9 +36,9 @@ Published documents are returned through `public-document-list` and included in 
 
 The homepage keeps the existing `DocumentListCard` visual design. Managed documents link directly to `fileUrl`. Legacy keyword-derived content pages still link to `/content/:slug` only when the D1 `documents` table has no published documents.
 
-Draft documents are excluded from all public responses.
+The standalone public archive is available at `/documents`. It is a TanStack Router public route backed by the same public document-list query contract, supports the validated public pagination search state, and provides client-side title/category filtering over the loaded document page without changing document ownership.
 
-A full public `/documents` archive route is not included yet. Add it as a follow-up when the school wants a standalone document index beyond the homepage card.
+Draft documents are excluded from all public responses.
 
 ## D1 Schema
 
@@ -90,7 +92,7 @@ Migration path:
 
 1. Create matching records in `/admin/documents`.
 2. Set each document to `published`.
-3. Confirm the homepage document card uses the managed document links.
+3. Confirm the homepage document card and `/documents` archive use the managed document links.
 4. Keep or archive the old content pages manually as editorial policy requires.
 
 If the D1 `documents` table has no published records, the homepage temporarily falls back to the old keyword-derived page list.
@@ -99,8 +101,9 @@ If the D1 `documents` table has no published records, the homepage temporarily f
 
 1. Confirm the approved Cloudflare Worker/D1 environment is configured for public and admin structured data.
 2. In the CMS, create a test draft document and verify it does not appear publicly.
-3. Publish the test document and verify it appears on the homepage document card and public documents response.
-4. Delete/archive the test document and verify public caches update.
-5. Confirm media/file bytes, if any, still use the Apps Script media bridge and Google Drive storage.
+3. Publish the test document and verify it appears on the homepage document card, `/documents`, and the public documents response.
+4. Verify `/documents` renders on desktop/mobile and its search/category controls filter the loaded document list without exposing drafts.
+5. Delete/archive the test document and verify public caches update.
+6. Confirm media/file bytes, if any, still use the Apps Script media bridge and Google Drive storage.
 
 Apps Script deployment is not required for document metadata changes unless the separate media/file bridge code changed.

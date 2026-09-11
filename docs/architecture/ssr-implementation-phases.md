@@ -1,6 +1,8 @@
 # SSR/SEO Implementation Phases
 
-Updated: 2026-08-04.
+Historical snapshot: 2026-08-04. Classification clarified: 2026-09-11.
+
+> **Historical implementation/cutover record.** The phase descriptions below preserve the SSR integration state before production activation and must not be used as the current runtime source of truth. Current renderer, asset, provider, sitemap, cache, and deployment behavior is defined by `docs/architecture/current-runtime-ownership.md`, `docs/deployment/runtime-deployment-guide.md`, and `docs/operations/public-ssr-cutover.md`. In particular, current production uses TanStack Router `renderRouterToStream` with a buffering Emotion finalization step, manifest-selected content-hashed assets, Cloudflare-only Public structured data with no provider selector, `no-store` for dynamic `/content/:slug`, and the current sitemap contract documented there.
 
 The seven SSR-readiness steps are complete on the integration line. SSR/SEO implementation is tracked separately as seven production phases so readiness work is not confused with runtime activation.
 

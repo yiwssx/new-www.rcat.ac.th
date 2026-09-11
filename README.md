@@ -21,16 +21,20 @@ Runtime ownership is intentionally split by responsibility:
 
 - **Public website:** React + TypeScript with server-side rendering and hydration on Vercel.
 - **Public routing and SEO:** SSR-aware TanStack Router routes, runtime metadata, and runtime sitemap handling.
-- **Structured public data:** Cloudflare Worker + D1.
+- **Structured public data and Search:** Cloudflare Worker + D1; Search filtering, ordering, counting, and pagination are backend-owned.
 - **Public analytics and visitor statistics:** Cloudflare Worker + D1.
+- **Runtime Incident Feed (B2):** privacy-safe browser incident ingest and authenticated operator aggregates through Cloudflare Worker + D1.
 - **CMS/admin structured reads and writes:** Cloudflare Worker + D1.
 - **CMS identity, sessions, RBAC, MFA, CSRF, step-up assurance, revocation, and user lifecycle:** Cloudflare Worker + D1 through same-origin Vercel proxy routes.
+- **System Health / Health Aggregation (B1/B3):** protected `/admin/system-health` plus Vercel server-owned `/api/health-aggregation`; explicit refresh only, no browser infrastructure credentials.
 - **Media/file bridge:** Google Apps Script behind authenticated server-side proxy boundaries.
 - **File storage:** Google Drive.
 - **Frontend/server deployment:** Vercel.
 - **API/data runtime:** Cloudflare Worker + D1.
 
 The authoritative runtime ownership document is [`docs/architecture/current-runtime-ownership.md`](docs/architecture/current-runtime-ownership.md).
+
+Reliability Roadmap v2 is complete: Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. There is no active Reliability Roadmap v2 implementation phase; future reliability development requires a new explicit scope. Current status is defined by [`docs/architecture/post-p5h-current-project-state.md`](docs/architecture/post-p5h-current-project-state.md).
 
 ## Product Generations
 
@@ -182,7 +186,7 @@ Do not commit:
 
 Checked-in non-secret project settings live in `src/config/project-settings.json`.
 
-Current security and governance controls include CI quality gates, dependency audit/freshness policy, D1 migration sequencing, Worker dry-deploy validation, production data-integrity checks, Apps Script release governance, SSR/CSP readiness checks, and recovery documentation.
+Current security and governance controls include CI quality gates, dependency audit/freshness policy, D1 migration sequencing, Worker dry-deploy validation, production data-integrity checks, Apps Script release governance, SSR/CSP readiness checks, recovery documentation, Phase A read-only production browser QA, B1/B2/B3 operator visibility, and manual/protected C3 deep-production regression.
 
 ## Current Documentation
 
@@ -192,18 +196,24 @@ Primary current-state documents:
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - Runtime ownership: [`docs/architecture/current-runtime-ownership.md`](docs/architecture/current-runtime-ownership.md)
 - Current project state: [`docs/architecture/post-p5h-current-project-state.md`](docs/architecture/post-p5h-current-project-state.md)
+- Reliability Roadmap v2: [`docs/architecture/reliability-roadmap-v2.md`](docs/architecture/reliability-roadmap-v2.md)
+- Phase A operating context: [`docs/operations/phase-a-field-qa-foundation.md`](docs/operations/phase-a-field-qa-foundation.md)
+- Phase B closure/operating context: [`docs/operations/phase-b-operational-visibility.md`](docs/operations/phase-b-operational-visibility.md)
+- Phase C closure/operating context: [`docs/operations/phase-c-deep-field-verification.md`](docs/operations/phase-c-deep-field-verification.md)
 - Runtime deployment: [`docs/deployment/runtime-deployment-guide.md`](docs/deployment/runtime-deployment-guide.md)
 - Dependency status: [`docs/maintenance/dependency-current-status.md`](docs/maintenance/dependency-current-status.md)
 - Environment variables: [`docs/development/environment-variables.md`](docs/development/environment-variables.md)
 - CMS session lifecycle: [`docs/cms-auth-session-lifecycle.md`](docs/cms-auth-session-lifecycle.md)
 - Public SSR verification: [`docs/operations/public-ssr-cutover.md`](docs/operations/public-ssr-cutover.md)
+- Production readiness: [`docs/production-readiness-checklist.md`](docs/production-readiness-checklist.md)
+- Production smoke checklist: [`docs/production-smoke-checklist.md`](docs/production-smoke-checklist.md)
 - Apps Script media bridge deployment: [`docs/deployment/apps-script-deployment-checklist.md`](docs/deployment/apps-script-deployment-checklist.md)
 
 ## Historical Documentation
 
-M-series, P-series, migration, preview, replacement, cutover, and stabilization documents are retained when they describe historical work that actually occurred. They are engineering/audit evidence and are not automatically rewritten to current terminology.
+M-series, P-series, migration, preview, replacement, cutover, stabilization, dated audit, and pre-activation implementation documents are retained when they describe historical work that actually occurred. They are engineering/audit evidence and are not automatically rewritten to current terminology.
 
-When historical text conflicts with present runtime ownership, product identity, toolchain, security policy, or release governance, the current documents listed above take precedence.
+When historical text conflicts with present runtime ownership, project/reliability status, product identity, toolchain, security policy, or release governance, the current documents listed above take precedence. Dated historical files should carry an explicit historical/snapshot marker when their old status language could otherwise be mistaken for current guidance.
 
 The full Git history is intentionally preserved. Product history is curated; engineering history remains auditable.
 

@@ -1,6 +1,6 @@
 # Runtime Deployment Guide
 
-Updated: 2026-09-02.
+Updated: 2026-09-11.
 
 ## Toolchain
 
@@ -13,24 +13,24 @@ Node 22 is no longer the current project requirement.
 
 ## Deployment Matrix
 
-| Change type                                                | Required deployment                          | Notes                                                                              |
-| ---------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------- |
-| React/Vite frontend (`src/**`)                             | Vercel                                       | Includes Public SSR hydration client plus Admin/Public/Auth UI.                    |
-| Public SSR / Vercel functions (`api/**`, SSR runtime)      | Vercel                                       | Revalidate routing, HTTP semantics, cache headers, proxies, and crawler output.    |
-| Vercel same-origin proxies (`server/**`, other `api/**`)   | Vercel                                       | Includes CMS/Admin, media, and isolated complaint proxy behavior.                  |
-| Cloudflare Worker runtime (`cloudflare/public-api/src/**`) | Cloudflare Worker                            | Release explicitly after tests/typecheck; `master` merge alone does not deploy it. |
-| Worker config                                              | Cloudflare Worker/config operation           | Production changes are explicit operations.                                        |
-| New D1 schema migration                                    | D1 migration + compatible Worker as required | Append-only; production release workflow applies pending migrations before Worker. |
-| Apps Script `.gs` media bridge                             | Apps Script                                  | Explicit media bridge deployment required.                                         |
-| Dedicated Complaint Apps Script                            | Apps Script                                  | Separate endpoint/deployment from the main media bridge.                           |
-| Documentation only                                         | No runtime deployment                        | Source-control only.                                                               |
-| Tests only                                                 | No runtime deployment                        | Unless accompanying runtime code.                                                  |
+| Change type                                                 | Required deployment                          | Notes                                                                              |
+| ----------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------- |
+| React/Vite frontend (`src/**`)                              | Vercel                                       | Includes Public SSR hydration client plus Admin/Public/Auth UI.                    |
+| Public SSR / Vercel functions (`api/**`, SSR runtime)       | Vercel                                       | Revalidate routing, HTTP semantics, cache headers, proxies, and crawler output.    |
+| Vercel same-origin proxies/handlers (`server/**`, `api/**`) | Vercel                                       | Includes CMS/Admin, media, complaint, and B3 health-aggregation server behavior.   |
+| Cloudflare Worker runtime (`cloudflare/public-api/src/**`)  | Cloudflare Worker                            | Release explicitly after tests/typecheck; `master` merge alone does not deploy it. |
+| Worker config                                               | Cloudflare Worker/config operation           | Production changes are explicit operations.                                        |
+| New D1 schema migration                                     | D1 migration + compatible Worker as required | Append-only; production release workflow applies pending migrations before Worker. |
+| Apps Script `.gs` media bridge                              | Apps Script                                  | Explicit media bridge deployment required.                                         |
+| Dedicated Complaint Apps Script                             | Apps Script                                  | Separate endpoint/deployment from the main media bridge.                           |
+| Documentation only                                          | No runtime deployment                        | Source-control only.                                                               |
+| Tests only                                                  | No runtime deployment                        | Unless accompanying runtime code.                                                  |
 
 ## Runtime Ownership
 
-- Vercel: Public SSR presentation, React/Vite hydration client, Admin/Auth CSR fallback, same-origin proxies, runtime sitemap.
-- Cloudflare Worker: Public/Admin structured API behavior, analytics abuse guard, scheduled analytics retention.
-- D1: structured persistence and analytics aggregates/raw-event retention tables.
+- Vercel: Public SSR presentation, React/Vite hydration client, Admin/Auth CSR fallback, same-origin proxies/functions, B3 `/api/health-aggregation`, runtime sitemap.
+- Cloudflare Worker: Public/Admin structured API behavior, B2 runtime-incident ingest/admin read, analytics abuse guard, scheduled analytics/incident retention.
+- D1: structured persistence, analytics aggregates/raw-event retention tables, and B2 aggregated runtime incidents.
 - Apps Script media bridge: Google Drive media/file operations only.
 - Dedicated Complaint Apps Script: isolated complaint destination reached only through Vercel `/api/complaint`.
 - Google Drive: file/media storage behind the main media bridge.
@@ -50,6 +50,14 @@ CLOUDFLARE_PUBLIC_API_URL=<production Cloudflare Public API base URL>
 The Public structured-data runtime is Cloudflare-only and has no provider selector. Browser code uses the public `VITE_CLOUDFLARE_PUBLIC_API_URL` alias. Server-side code prefers `CLOUDFLARE_PUBLIC_API_URL` and accepts `VITE_CLOUDFLARE_PUBLIC_API_URL` only as a compatibility fallback because the Worker origin itself is not secret.
 
 If Vercel Production already points at the existing `rcat-public-api-preview` Worker endpoint, the environment convergence does not require changing `CLOUDFLARE_PUBLIC_API_URL`, `VITE_CLOUDFLARE_PUBLIC_API_URL`, or `CLOUDFLARE_ADMIN_API_URL`. A Vercel redeploy is required only when a Vercel value or consuming Vercel code actually changes.
+
+### B3 health aggregation
+
+`GET /api/health-aggregation` is Vercel-owned and server-side. The browser does not receive GitHub, Vercel, Cloudflare, or proxy credentials.
+
+The handler first reuses the existing CMS Session + server-only proxy boundary to read the authenticated B2 admin incident feed, preserving Worker-side `dashboard.read` enforcement. It then aggregates bounded public GitHub workflow/commit-status metadata for Phase A, P6A, P6B, and P6C. The response is `no-store` and is consumed only by the explicit-refresh `/admin/system-health` operator flow; there is no B3 polling scheduler.
+
+B3 does not require a Worker deployment or D1 migration unless a separate Worker/D1 change is included in the same release.
 
 ### Complaint proxy configuration
 
@@ -73,17 +81,20 @@ The complaint proxy validates fields, normalizes phone numbers, checks attachmen
 6. `dist/index.html` is intentionally absent so Vercel filesystem precedence cannot bypass Public SSR at `/`.
 7. Login/Activation/Reset/Admin rewrite to `csr.html`; Public application routes rewrite to `api/ssr.ts`.
 
-The Public SSR adapter supports GET/HEAD. Unexpected server-render exceptions return protected HTTP `503` rather than leaking implementation details.
+TanStack Router renders Public SSR through `renderRouterToStream`; the Emotion critical-CSS finalizer buffers the completed body before returning the final Vercel response. The Public SSR adapter supports GET/HEAD. Unexpected server-render exceptions return protected HTTP `503` rather than leaking implementation details.
 
 ### Public SSR cache policy
 
-- Successful indexable Public pages: browser revalidation; Vercel CDN freshness 2 minutes with stale-while-revalidate for 1 hour.
+- Stable/index/list Public SSR surfaces: browser revalidation; Vercel CDN freshness 2 minutes with stale-while-revalidate for 1 hour.
+- Dynamic canonical content detail `/content/:slug`: `Cache-Control: no-store`; no shared Vercel CDN cache directive.
 - Public Shell browser query: stale after 2 minutes; refetch on focus/reconnect.
 - Search: `no-store`, `X-Robots-Tag: noindex, follow`.
 - 4xx/5xx: `no-store` and noindex protection where applicable.
 - Permanent legacy `/$slug` redirect: browser revalidation; Vercel CDN one-day freshness with seven-day stale-while-revalidate.
 - `csr.html`: `no-store`, `noindex, nofollow`.
 - Client entry/styles and lazy chunks are manifest-selected content-hashed assets; do not restore fixed client asset names.
+
+Dynamic content detail deliberately bypasses shared CDN caching so publish/delete verification and normal reads observe current Worker/D1 state rather than stale cached HTML.
 
 See `docs/operations/public-ssr-cutover.md` for live verification and rollback.
 
@@ -162,12 +173,18 @@ The workflow therefore fails closed when the production D1 UUID is missing/malfo
 
 `.github/workflows/d1-recovery-drill.yml` is now a read-only **production** Time Travel readiness drill. It verifies the same protected D1 identity and resolves current Time Travel metadata/bookmark only. The workflow intentionally contains no restore command.
 
-### Analytics migration and retention
+### Analytics and runtime-incident migration/retention
 
 Before Worker code with the public analytics abuse guard can serve production traffic, D1 must contain migration:
 
 ```text
 0007_public_analytics_abuse_guard.sql
+```
+
+B2 Runtime Incident Feed additionally requires:
+
+```text
+0014_b2_runtime_incidents.sql
 ```
 
 The production release workflow applies pending migrations before deployment.
@@ -177,9 +194,10 @@ Production Worker cron runs daily and prunes:
 - expired rate-limit buckets;
 - visitor presence older than 2 days;
 - raw site-view events older than 90 days;
-- raw content-view events older than 90 days.
+- raw content-view events older than 90 days;
+- runtime incidents older than 7 days and reapplies the latest-2,000-row storage bound.
 
-Daily aggregate tables are not removed by this retention job.
+Daily analytics aggregate tables are not removed by this retention job.
 
 ## CMS Session Deployment Rule
 
@@ -190,7 +208,7 @@ Deploy based on the actual diff:
 - `cloudflare/public-api/**` -> Worker;
 - migration files -> D1 migration.
 
-Do not deploy Worker/D1 merely because a feature relates to authentication or SSR presentation.
+Do not deploy Worker/D1 merely because a feature relates to authentication, SSR presentation, or B3 server aggregation.
 
 ## Sitemap
 
@@ -255,4 +273,4 @@ Before a Worker deployment:
 5. invoke `Worker Production Release` manually on the same `master` revision;
 6. require successful fixture gates, migration apply, and in-place Worker deploy output;
 7. do not change Vercel Worker URL variables if they already point to the existing Worker endpoint;
-8. verify Worker health, Public API, Admin/Auth, analytics, and representative SSR pages immediately after release.
+8. verify Worker health, Public API, Admin/Auth, analytics/runtime-incidents, and representative SSR pages immediately after release.

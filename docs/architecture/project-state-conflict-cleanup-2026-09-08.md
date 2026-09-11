@@ -1,6 +1,8 @@
 # Project-State Conflict Cleanup — 2026-09-08
 
-Status: cleanup reconciliation record.
+Status: historical cleanup reconciliation record.
+
+> **Historical snapshot.** This file records the repository state as reconciled on 2026-09-08. Its Phase B/B3 status was correct at that checkpoint but was superseded on 2026-09-11 when B3 Health Aggregation and Phase B completed. Current status is defined by `docs/architecture/post-p5h-current-project-state.md` and `docs/architecture/reliability-roadmap-v2.md`. Do not use the status bullets or guardrail wording below as current guidance.
 
 ## Purpose
 

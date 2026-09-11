@@ -1,8 +1,10 @@
 # Launch Data Runbook
 
+Updated: 2026-09-11.
+
 ## Purpose
 
-This runbook is for entering and verifying real production data before public launch. It should be used by staff, editors, reviewers, and admins while preparing the school website for real visitors.
+This runbook is for entering and verifying real production data before public launch or a deliberate production content/configuration review. It should be used by staff, editors, reviewers, and admins while preparing or validating the school website for real visitors.
 
 Current project status is defined by `docs/architecture/post-p5h-current-project-state.md`. M20/M21 are historical migration/stabilization records, not active phases. Reliability Roadmap v2 is complete: Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. This runbook does not authorize unrelated production data mutation.
 
@@ -15,11 +17,11 @@ When unsure, keep a section disabled or leave an optional field empty. Empty is 
 
 ## Roles
 
-| Role              | What they verify                                                                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Admin             | Deployments, Cloudflare/D1 status, Apps Script media bridge status, settings, accounts, permissions, footer links, Messenger, map/contact, visitor stats, and final launch sign-off. |
-| Editor            | Media uploads, carousel slides, E-Service links, CMS content, categories, tags, featured media, publish dates, and search/discovery metadata.                                        |
-| Reviewer/Approver | Accuracy of public facts, official links, contact details, map location, approved announcements, spelling, mobile layout, and final public page QA.                                  |
+| Role              | What they verify                                                                                                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin             | Deployments, Cloudflare/D1 status, Apps Script media bridge status, system health, settings, accounts, permissions, footer links, Messenger, map/contact, visitor stats, and final sign-off.  |
+| Editor            | Media uploads, public documents, carousel slides, E-Service links, CMS content, categories, tags, featured media, publish dates, and search/discovery metadata.                               |
+| Reviewer/Approver | Accuracy of public facts, official links, contact details, document metadata, map location, approved announcements, spelling, mobile layout, public route behavior, and final public page QA. |
 
 ## Pre-launch order of operations
 
@@ -28,14 +30,16 @@ When unsure, keep a section disabled or leave an optional field empty. Empty is 
 3. Configure site settings.
 4. Configure homepage settings.
 5. Upload media.
-6. Create carousel slides.
-7. Create E-Service links.
-8. Configure contact/map.
-9. Configure footer/Messenger.
-10. Create CMS content.
-11. Apply category/tag presets.
-12. Verify public pages.
-13. Final mobile/tablet/desktop QA.
+6. Create/publish public document metadata where applicable.
+7. Create carousel slides.
+8. Create E-Service links.
+9. Configure contact/map.
+10. Configure footer/Messenger.
+11. Create CMS content.
+12. Apply category/tag presets.
+13. Verify public pages and Search.
+14. Verify protected Admin/System Health surfaces.
+15. Final mobile/tablet/desktop QA.
 
 Deploy Apps Script only when media/file bridge code under `apps-script/` changed.
 
@@ -143,6 +147,31 @@ Verify on public homepage:
 - [ ] Verify large document uploads up to 100 MB complete through the resumable Drive upload path.
 - [ ] Use 16:9 or wide landscape images for carousel slides.
 - [ ] Avoid blurry, cropped, stretched, or unofficial images.
+
+## Public Documents Data Entry
+
+Public document metadata is managed at `/admin/documents`; public users can browse the standalone `/documents` archive and the homepage document card.
+
+For each document verify:
+
+- [ ] Title
+- [ ] Description where needed
+- [ ] Category
+- [ ] File URL
+- [ ] File name
+- [ ] Linked media ID where applicable
+- [ ] Published date
+- [ ] Status
+- [ ] Sort order
+- [ ] Pinned state
+
+Rules:
+
+- Keep drafts private until approved.
+- Publish only approved public files.
+- Confirm the file URL opens the intended document.
+- Confirm published records appear in `/documents` and the homepage document surface as expected.
+- Confirm draft records do not appear in public responses.
 
 ## Carousel Data Entry
 
@@ -254,7 +283,7 @@ For each content item verify:
 
 ## Category/Tag Preset Guidance
 
-Use category/tag presets so public homepage sections and search can discover content correctly.
+Use category/tag presets so public homepage sections and Search can discover content correctly. Search filtering, ordering, total counting, and pagination are Worker/D1-owned; metadata quality still affects discoverability and presentation.
 
 Procurement:
 
@@ -300,45 +329,57 @@ Pages:
 - [ ] `/announcements`
 - [ ] `/blog`
 - [ ] `/departments`
+- [ ] `/documents`
 - [ ] `/contact`
 - [ ] `/search?q=...`
 - [ ] `/content/[slug]`
 
+For `/content/[slug]`, remember that current production deliberately uses `Cache-Control: no-store`; do not expect the shared CDN cache behavior used by stable index/list SSR pages.
+
 ## Admin Verification
 
-For each admin page, verify:
+For each applicable admin page, verify:
 
 - [ ] Admin can access
 - [ ] Editor access is correct
 - [ ] Viewer/non-admin restrictions are correct
-- [ ] Save action works
-- [ ] Public cache refreshes after save
+- [ ] Save action works where the surface is mutable
+- [ ] Public cache refreshes after relevant writes
 - [ ] Save/delete/publish actions show blocking loading and centered success/error modals requiring acknowledgment
 
 Pages:
 
 - [ ] `/admin`
+- [ ] `/admin/system-health`
 - [ ] `/admin/content`
+- [ ] `/admin/documents`
 - [ ] `/admin/media`
+- [ ] `/admin/menu`
+- [ ] `/admin/users`
+- [ ] `/admin/calendar`
 - [ ] `/admin/carousel`
 - [ ] `/admin/external-services`
 - [ ] `/admin/settings`
 
+System Health verification is read-only/explicit-refresh. B1/B2/B3 are completed operator-visibility controls and do not authorize production mutation.
+
 ## Final Launch Sign-off
 
-| Area             | Owner | Status | Notes | Approved by | Date |
-| ---------------- | ----- | ------ | ----- | ----------- | ---- |
-| Site identity    |       |        |       |             |      |
-| Homepage         |       |        |       |             |      |
-| Carousel         |       |        |       |             |      |
-| E-Service        |       |        |       |             |      |
-| Content          |       |        |       |             |      |
-| Contact/map      |       |        |       |             |      |
-| Footer/Messenger |       |        |       |             |      |
-| Search           |       |        |       |             |      |
-| Mobile QA        |       |        |       |             |      |
-| Desktop QA       |       |        |       |             |      |
-| Deployment       |       |        |       |             |      |
+| Area                | Owner | Status | Notes | Approved by | Date |
+| ------------------- | ----- | ------ | ----- | ----------- | ---- |
+| Site identity       |       |        |       |             |      |
+| Homepage            |       |        |       |             |      |
+| Documents           |       |        |       |             |      |
+| Carousel            |       |        |       |             |      |
+| E-Service           |       |        |       |             |      |
+| Content             |       |        |       |             |      |
+| Contact/map         |       |        |       |             |      |
+| Footer/Messenger    |       |        |       |             |      |
+| Search              |       |        |       |             |      |
+| Admin/System Health |       |        |       |             |      |
+| Mobile QA           |       |        |       |             |      |
+| Desktop QA          |       |        |       |             |      |
+| Deployment          |       |        |       |             |      |
 
 ## Rollback Notes
 
