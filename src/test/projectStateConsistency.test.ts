@@ -35,11 +35,14 @@ const staleActiveStatusPatterns = [
   /M21 owns remaining/i,
   /M21 stabilization is open/i,
   /M21\s+รับผิดชอบงาน\s+stabilization/i,
-  /preview field verification in progress\.\s*M20 production cutover remains gated/i
+  /preview field verification in progress\.\s*M20 production cutover remains gated/i,
+  /B3 Health Aggregation remains planned/i,
+  /B3 is the only planned Phase B roadmap item/i,
+  /Phase B(?: Operational Visibility)? (?:is|remains) (?:the )?active/i
 ];
 
 describe("current project-state consistency", () => {
-  it("keeps stale M20/M21 active-phase language out of current-facing guidance", () => {
+  it("keeps stale active-phase language out of current-facing guidance", () => {
     for (const [relativePath, source] of Object.entries(currentFacingSources)) {
       for (const pattern of staleActiveStatusPatterns) {
         expect(source, `${relativePath} contains stale active-phase wording: ${pattern}`).not.toMatch(pattern);
@@ -48,33 +51,39 @@ describe("current project-state consistency", () => {
   });
 
   it("keeps the canonical reliability state unambiguous", () => {
-    expect(canonicalState).toContain("Phase B Operational Visibility is the active requested reliability scope");
-    expect(canonicalState).toContain("B1 System Health Dashboard and B2 Runtime Incident Feed are complete");
-    expect(canonicalState).toContain("B3 Health Aggregation remains");
+    expect(canonicalState).toContain("Phase B Operational Visibility is complete and production-verified");
+    expect(canonicalState).toContain(
+      "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete"
+    );
+    expect(canonicalState).toContain("There is no active Reliability Roadmap v2 phase");
     expect(canonicalState).toContain("Phase C Deep Field Verification is complete");
 
-    expect(reliabilityRoadmap).toContain("| Phase B | Operational Visibility");
+    expect(reliabilityRoadmap).toContain("| Phase B | Operational Visibility   | Complete");
     expect(reliabilityRoadmap).toContain(
-      "B1 protected live health checks and B2 privacy-safe Runtime Incident Feed are complete"
+      "B1 protected live health checks, B2 privacy-safe Runtime Incident Feed, and B3 server-owned Health Aggregation are complete and production-verified"
     );
-    expect(reliabilityRoadmap).toContain("B3 Health Aggregation remains planned");
+    expect(reliabilityRoadmap).toContain("### B3 — Health Aggregation");
+    expect(reliabilityRoadmap).toContain("Status: complete and production-verified.");
     expect(reliabilityRoadmap).toContain("| Phase C | Deep Field Verification  | Complete");
   });
 
-  it("records B2 as complete while leaving only B3 planned", () => {
+  it("records B1, B2, and B3 as completed Phase B work", () => {
     expect(phaseBRunbook).toContain(
-      "B1 System Health Dashboard and B2 Runtime Incident Feed are complete and production-verified"
+      "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified"
     );
-    expect(phaseBRunbook).toContain("Status: complete and production-verified.");
-    expect(phaseBRunbook).toContain("B3 is the only remaining planned Phase B roadmap item");
-    expect(phaseBRunbook).toContain("Worker Production Release run `33731760770` succeeded");
+    expect(phaseBRunbook).toContain("## B3 — Health Aggregation");
+    expect(phaseBRunbook).toContain("PR #270 merged to `master` as `cda947149fee0e79791bfc401efbc5c33f3adbb9`");
+    expect(phaseBRunbook).toContain("CI #2007, run `34547284821`");
+    expect(phaseBRunbook).toContain("Vercel production deployment `dpl_94AZDYbaLc61t2XbmxMFCw1GQZyP`");
+    expect(phaseBRunbook).toContain("Phase B Operational Visibility is complete and production-verified");
   });
 
-  it("keeps repository AI guidance on the canonical post-P5H baseline", () => {
+  it("keeps repository AI guidance on the completed post-P5H reliability baseline", () => {
     for (const source of [copilotInstructions, agents]) {
       expect(source).toContain("post-P5H production governance baseline");
-      expect(source).toContain("B1 System Health Dashboard and B2 Runtime Incident Feed are complete");
-      expect(source).toContain("B3 Health Aggregation remains planned");
+      expect(source).toContain(
+        "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified"
+      );
       expect(source).toContain("C3");
       expect(source).toMatch(/manual(?:\/protected|-only)/i);
     }
