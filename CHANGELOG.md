@@ -30,6 +30,8 @@ No next semantic version has been assigned. The entries below record completed p
 - Dynamic canonical `/content/:slug` SSR responses use `Cache-Control: no-store` and bypass shared Vercel CDN caching so current publish/delete state is observed.
 - Current project-state, runtime/deployment, launch/readiness/smoke, feature, and historical-snapshot documentation was reconciled on 2026-09-11 so historical Phase B/M20/M21/SSR integration language cannot be mistaken for current status.
 - Phase A documentation now describes the implemented GitHub `Vercel` commit-status gate precisely, including the `Canceled by Ignored Build Step` limitation; exact-deployment proof must use deployment evidence when required.
+- Production environment retirement was operator-verified on 2026-09-11: live Vercel uses server-only `COMPLAINT_API_URI`, retired `VITE_COMPLAINT_API_URI` is absent, and the CMS-auth observation/legacy-only environment retirement follow-ups are complete across the applicable Vercel/Cloudflare environments.
+- Current Worker, recovery, import, environment, and AI guidance now targets the canonical in-place production Worker/D1 identity and no longer presents retired Preview or `rcat-public-api-production` operations as current instructions.
 
 ### Maintenance
 
