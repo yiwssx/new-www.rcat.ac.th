@@ -1,6 +1,6 @@
 # Reliability Roadmap v2
 
-Updated: 2026-09-08
+Updated: 2026-09-11
 
 ## Purpose
 
@@ -14,8 +14,10 @@ This roadmap does **not** reopen P6. Historical P5H/P6A/P6B/P6C/P6D records keep
 | ------- | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                       |
 | Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically. |
-| Phase B | Operational Visibility   | Active   | B1 protected live health checks and B2 privacy-safe Runtime Incident Feed are complete; B3 Health Aggregation remains planned.                 |
+| Phase B | Operational Visibility   | Complete | B1 protected live health checks, B2 privacy-safe Runtime Incident Feed, and B3 server-owned Health Aggregation are complete and production-verified. |
 | Phase C | Deep Field Verification  | Complete | C1 accessibility, C2 synthetic performance, and C3 authenticated disposable CMS production validation are complete.                            |
+
+Reliability Roadmap v2 has no active phase after the 2026-09-11 B3/Phase B closure. Any future reliability work requires a new explicit scope rather than implicitly reopening B1, B2, B3, or Phase C.
 
 ## Phase B scope
 
@@ -23,7 +25,7 @@ This roadmap does **not** reopen P6. Historical P5H/P6A/P6B/P6C/P6D records keep
 
 Status: complete.
 
-`/admin/system-health` sits behind the existing CMS authentication and `dashboard.read` capability. Initial live checks are read-only and bounded: browser/Admin runtime, CMS session, Vercel Admin Proxy → Worker → D1 dashboard read path, public SSR marker, and explicit `unknown` for side-effect services without a safe read-only probe.
+`/admin/system-health` sits behind the existing CMS authentication and `dashboard.read` capability. Its live checks are read-only and bounded: browser/Admin runtime, CMS session, Vercel Admin Proxy → Worker → D1 dashboard read path, public SSR marker, B3 Health Aggregation, and explicit `unknown` for side-effect services without a safe read-only probe.
 
 ### B2 — Runtime Incident Feed
 
@@ -48,11 +50,15 @@ Completion evidence: implementation PR #217 merged as `76ca0be1c17715b9e6cc2ec71
 
 ### B3 — Health Aggregation
 
-Status: planned.
+Status: complete and production-verified.
 
-Aggregate safe current-state signals from Phase A, P6A, P6B, P6C, deployment metadata, and B2 incidents through a server-owned boundary. Do not expose GitHub, Vercel, or Cloudflare credentials to the browser.
+B3 aggregates safe current-state signals from Phase A, P6A, P6B, P6C, deployment metadata, and B2 incidents through the server-owned Vercel endpoint `GET /api/health-aggregation`. GitHub, Vercel, and Cloudflare infrastructure credentials are not exposed to the browser.
 
-B3 is the only remaining planned Phase B roadmap item. Do not describe B1 or B2 as pending work and do not close Phase B until B3 has its own explicit implementation and production-verification evidence.
+The existing CMS Session and Worker `dashboard.read` boundary remain authoritative. P6A protected-Environment waiting is treated as expected/unknown, Vercel `Ignored Build Step` is distinguished from a real deployment success, and B2 data is reduced to a bounded 24-hour summary before it reaches the System Health check.
+
+Completion evidence: PR #270 merged to `master` as `cda947149fee0e79791bfc401efbc5c33f3adbb9`; final implementation head `b10ab8c99117fa1e254bd420df3f69de5ec77182` passed repository CI #2007, run `34547284821`; Vercel production deployment `dpl_94AZDYbaLc61t2XbmxMFCw1GQZyP` for the merge SHA reached `READY`; and an unauthenticated request to the exact production deployment endpoint returned the expected HTTP `401` fail-closed response with `Cache-Control: no-store`, Request ID correlation, and enforced P6B security markers.
+
+The normative implementation and closure evidence is recorded in `docs/architecture/b3-health-aggregation-implementation-2026-09-11.md` and `docs/operations/phase-b-operational-visibility.md`.
 
 ## Phase C scope
 
@@ -89,11 +95,12 @@ The roadmap must reuse the following established controls:
 - P6B security/WAF/CSP enforcement;
 - P6C recovery and bounded SSR → Worker → D1 reliability checks;
 - Phase A deployment-driven production browser QA;
+- Phase B B1/B2/B3 operator visibility controls;
 - Vercel Web Analytics and Speed Insights;
 - existing CI, dependency governance, and Format Guard.
 
-Do not add Sentry, Datadog, New Relic, BrowserStack, or another paid/external observability stack merely to implement this roadmap.
+Do not add Sentry, Datadog, New Relic, BrowserStack, or another paid/external observability stack merely to recreate this completed roadmap.
 
 ## Operating principle
 
-Normal repeated operational checks should be automation-first. Manual actions are reserved for deliberate reruns, approval-gated production credentials, recovery actions, or workflows that cannot safely run unattended. Completed mutable field-verification workflows such as C3 must remain manual unless a new explicit scope reopens automation for them.
+Normal repeated operational checks should be automation-first. Manual actions are reserved for deliberate reruns, approval-gated production credentials, recovery actions, or workflows that cannot safely run unattended. Completed mutable field-verification workflows such as C3 must remain manual unless a new explicit scope reopens automation for them. Completed Phase B visibility remains read-only and explicit-refresh driven; do not add background polling merely because Phase B is closed.
