@@ -5,9 +5,9 @@ import { getLiveVisitorStats } from "../../features/visitor-stats";
 import type { VisitorStatsSettings } from "../../features/visitor-stats";
 import { normalizeVisitorStats } from "../../services/visitorStats";
 
-const LIVE_VISITOR_STATS_INTERVAL_MS = 60_000;
-const LIVE_VISITOR_STATS_FAILURE_BACKOFF_MS = 5 * 60 * 1000;
-const LIVE_VISITOR_STATS_STALE_MS = 60_000;
+const LIVE_VISITOR_STATS_INTERVAL_MS = 5 * 60 * 1000;
+const LIVE_VISITOR_STATS_FAILURE_BACKOFF_MS = 15 * 60 * 1000;
+const LIVE_VISITOR_STATS_STALE_MS = 5 * 60 * 1000;
 
 export const LIVE_VISITOR_STATS_QUERY_KEY = ["public-visitor-stats-live"] as const;
 
