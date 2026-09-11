@@ -124,7 +124,9 @@ describe("D1 public read optimization", () => {
       totalUsers: 110
     });
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.query).toMatch(/SUM\(CASE WHEN day = \?/i);
+    expect(calls[0]?.query).toMatch(/SUM\(CASE WHEN[\s\S]+THEN total_views ELSE 0 END\)/i);
+    expect(calls[0]?.query).toMatch(/SUM\(CASE WHEN[\s\S]+THEN unique_visitors ELSE 0 END\)/i);
+    expect(calls[0]?.bindings).toHaveLength(5);
   });
 
   it("gets paginated search rows and total count in the same normal-path query", async () => {
