@@ -13,18 +13,18 @@ Node 22 is no longer the current project requirement.
 
 ## Deployment Matrix
 
-| Change type                                                | Required deployment                          | Notes                                                                              |
-| ---------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------- |
-| React/Vite frontend (`src/**`)                             | Vercel                                       | Includes Public SSR hydration client plus Admin/Public/Auth UI.                    |
-| Public SSR / Vercel functions (`api/**`, SSR runtime)      | Vercel                                       | Revalidate routing, HTTP semantics, cache headers, proxies, and crawler output.    |
+| Change type                                                 | Required deployment                          | Notes                                                                              |
+| ----------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------- |
+| React/Vite frontend (`src/**`)                              | Vercel                                       | Includes Public SSR hydration client plus Admin/Public/Auth UI.                    |
+| Public SSR / Vercel functions (`api/**`, SSR runtime)       | Vercel                                       | Revalidate routing, HTTP semantics, cache headers, proxies, and crawler output.    |
 | Vercel same-origin proxies/handlers (`server/**`, `api/**`) | Vercel                                       | Includes CMS/Admin, media, complaint, and B3 health-aggregation server behavior.   |
-| Cloudflare Worker runtime (`cloudflare/public-api/src/**`) | Cloudflare Worker                            | Release explicitly after tests/typecheck; `master` merge alone does not deploy it. |
-| Worker config                                              | Cloudflare Worker/config operation           | Production changes are explicit operations.                                        |
-| New D1 schema migration                                    | D1 migration + compatible Worker as required | Append-only; production release workflow applies pending migrations before Worker. |
-| Apps Script `.gs` media bridge                             | Apps Script                                  | Explicit media bridge deployment required.                                         |
-| Dedicated Complaint Apps Script                            | Apps Script                                  | Separate endpoint/deployment from the main media bridge.                           |
-| Documentation only                                         | No runtime deployment                        | Source-control only.                                                               |
-| Tests only                                                 | No runtime deployment                        | Unless accompanying runtime code.                                                  |
+| Cloudflare Worker runtime (`cloudflare/public-api/src/**`)  | Cloudflare Worker                            | Release explicitly after tests/typecheck; `master` merge alone does not deploy it. |
+| Worker config                                               | Cloudflare Worker/config operation           | Production changes are explicit operations.                                        |
+| New D1 schema migration                                     | D1 migration + compatible Worker as required | Append-only; production release workflow applies pending migrations before Worker. |
+| Apps Script `.gs` media bridge                              | Apps Script                                  | Explicit media bridge deployment required.                                         |
+| Dedicated Complaint Apps Script                             | Apps Script                                  | Separate endpoint/deployment from the main media bridge.                           |
+| Documentation only                                          | No runtime deployment                        | Source-control only.                                                               |
+| Tests only                                                  | No runtime deployment                        | Unless accompanying runtime code.                                                  |
 
 ## Runtime Ownership
 
