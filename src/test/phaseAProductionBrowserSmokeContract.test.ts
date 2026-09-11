@@ -18,7 +18,7 @@ describe("Phase A production browser smoke deployment gate", () => {
   it("fails closed when Vercel skipped deployment creation", () => {
     expect(workflow).toContain('description: vercel?.description || ""');
     expect(workflow).toContain('targetUrl: vercel?.target_url || ""');
-    expect(workflow).toContain('Canceled by Ignored Build Step');
+    expect(workflow).toContain("Canceled by Ignored Build Step");
     expect(workflow).toContain('*"Ignored Build Step"*');
     expect(workflow).toContain('[[ -z "$target_url" ]]');
     expect(workflow).not.toContain('process.stdout.write(vercel?.state || "missing");');
