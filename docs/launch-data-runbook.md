@@ -4,7 +4,7 @@
 
 This runbook is for entering and verifying real production data before public launch. It should be used by staff, editors, reviewers, and admins while preparing the school website for real visitors.
 
-Current project status is defined by `docs/architecture/post-p5h-current-project-state.md`. M20/M21 are historical migration/stabilization records, not active phases. Reliability Roadmap v2 currently has Phase 0, Phase A, and Phase C complete; Phase B remains active with B1/B2 complete and B3 planned. This runbook does not authorize unrelated production data mutation.
+Current project status is defined by `docs/architecture/post-p5h-current-project-state.md`. M20/M21 are historical migration/stabilization records, not active phases. Reliability Roadmap v2 is complete: Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. This runbook does not authorize unrelated production data mutation.
 
 - Do not use mock data.
 - Do not use `example.com`.
