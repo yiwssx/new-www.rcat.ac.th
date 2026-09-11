@@ -8,9 +8,11 @@ Current status: post-P5H production governance baseline with Production Observab
 
 Reliability Roadmap v2 is separate from P6 and is complete. Phase 0 Development Quality Gate, Phase A Field QA Foundation, Phase B Operational Visibility, and Phase C Deep Field Verification are complete. Within Phase B, B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified. There is no active Reliability Roadmap v2 phase; future reliability work requires a new explicit scope.
 
+Production environment retirement follow-ups are complete and operator-verified. On 2026-09-11 the operator directly inspected Vercel and Cloudflare: live Vercel Production uses `COMPLAINT_API_URI`, retired `VITE_COMPLAINT_API_URI` is absent, and legacy-only CMS-auth environment values are retired from the applicable live environments. Treat `docs/operations/environment-retirement-verification-2026-09-11.md` as the evidence record. Server-side compatibility parsing does not make a retired variable current configuration.
+
 Use `docs/architecture/post-p5h-current-project-state.md` as the canonical current project-state note and `docs/architecture/reliability-roadmap-v2.md` for reliability phase definitions.
 
-P5H closed the original production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, the Production Observability D1 usage guard, completed P6B security controls, completed P6C recovery controls, completed P6D public UX controls, completed Admin UX 00-10, completed Phase 0/A/B/C reliability work, and the current post-P5H maintenance posture.
+P5H closed the original production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, the Production Observability D1 usage guard, completed P6B security controls, completed P6C recovery controls, completed P6D public UX controls, completed Admin UX 00-10, completed Phase 0/A/B/C reliability work, the verified environment-retirement state, and the current post-P5H maintenance posture.
 
 The Production Observability guard completed its activation gate on 2026-08-29. It is configured on a six-hour schedule, but scheduled runs remain reviewer-gated by the existing `production` Environment and therefore must not be described as unattended monitoring. Reuse the existing Environment and credentials; do not request or create a duplicate Environment/secret merely because an imagined monitoring name differs. Use `docs/operations/p6a-production-observability.md` for closure evidence and operational constraints.
 
@@ -35,7 +37,7 @@ Governed Renovate dependency maintenance is expected to continue. It is not cons
 When reporting current project status, use:
 
 ```text
-post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2 complete (Phase 0 + Phase A + Phase B/B1-B3 + Phase C complete)
+post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2 complete (Phase 0 + Phase A + Phase B/B1-B3 + Phase C complete) + production environment retirement follow-ups completed/operator-verified (2026-09-11)
 ```
 
 Do not report M20, M21, P6B, P6C, P6D, or Reliability Roadmap v2 Phase B as the current active feature-development/reliability phase. P6B, P6C, P6D, Phase 0, Phase A, Phase B, and Phase C are completed. Production Observability remains an operational guard whose scheduled executions are reviewer-gated rather than unattended.
@@ -46,13 +48,16 @@ For future feature, product, or reliability work, report the new branch and PR s
 
 - Public structured reads: Cloudflare Worker and D1.
 - Public analytics, site view, content view, visitor presence, and live visitor stats: Cloudflare Worker and D1.
+- B2 Runtime Incident Feed ingest and protected aggregate reads: Cloudflare Worker and D1.
 - Admin structured reads and writes: Cloudflare Worker and D1.
 - Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
 - Admin session proxy: Vercel server-side admin proxy.
+- B3 Health Aggregation: Vercel server-owned `/api/health-aggregation`, explicit refresh only.
 - Media/file bridge: Apps Script behind the Vercel proxy.
 - File storage: Google Drive behind the Apps Script media/file bridge.
+- Complaint path: Vercel `/api/complaint` to the dedicated Complaint Apps Script using live server-only `COMPLAINT_API_URI`.
 
-Do not restore browser-side direct Apps Script structured reads/writes. Apps Script is retained only for media/file bridge and Google Drive operations.
+Do not restore browser-side direct Apps Script structured reads/writes. Apps Script is retained only for the media/file bridge/Google Drive operations, plus the separately isolated complaint Apps Script behind its Vercel proxy.
 
 ## Admin Operation Feedback Standard
 
@@ -92,6 +97,7 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Completed Phase A production browser QA pipeline.
 - Completed Phase B1/B2/B3 operator visibility controls.
 - Completed Phase C checks and manual-only C3 deep-production regression tool.
+- Verified production environment-retirement evidence and the current `COMPLAINT_API_URI` / CMS-auth retirement boundary.
 - Sigmap AI helper workflow.
 - Governed Renovate dependency maintenance under the repository dependency policy.
 
@@ -103,6 +109,10 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Local password-hash user-account fallback.
 - Legacy Apps Script credential login path.
 - Browser-side Apps Script structured-data reads or writes.
+- Retired `VITE_COMPLAINT_API_URI` in live Vercel Production.
+- Legacy-only CMS-auth environment values retired by the final cutover.
+- The deleted `rcat-public-api-production` Worker/D1 as a current target; production is the existing `rcat-public-api-preview` physical resource under `env.production`.
+- A persistent Cloudflare Preview tier or `--env preview` operational procedure unless explicitly redesigned as new scope.
 - Twice-hourly P6C Search/D1 polling.
 - A duplicate scheduled WAF probe inside P6C.
 - Scheduled D1 auth-anomaly polling.
@@ -115,7 +125,7 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Do not commit real secrets, tokens, D1 IDs, Access AUD values, private credentials, or production-only identifiers.
 - Do not mutate production Cloudflare, Vercel, Apps Script, Google Drive, D1, or DNS unless explicitly requested.
 - Keep D1 migrations append-only.
-- Keep Apps Script scoped to media/file bridge operations.
+- Keep Apps Script scoped to approved media/file bridge operations, except the separately isolated complaint Apps Script boundary.
 - Reuse existing credentials and Environments before considering any new one.
 - Prefer small, scoped commits.
 

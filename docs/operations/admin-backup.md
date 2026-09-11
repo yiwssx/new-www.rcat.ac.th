@@ -1,6 +1,16 @@
 # Admin Backup And D1 Recovery Runbook
 
-M21 adds a one-click logical JSON backup for Cloudflare D1 data from the CMS admin area. P1 adds an operator runbook for D1 Time Travel so a destructive production incident has a documented recovery path instead of relying on ad-hoc manual decisions.
+Updated: 2026-09-11.
+
+The CMS provides a logical JSON backup for Cloudflare D1 data, while D1 Time Travel is the documented point-in-time recovery path for destructive production incidents. The backup UI originated during the M21-era work, but M21 is historical; this runbook describes the current post-P5H production operation.
+
+## Canonical Production D1 Identity
+
+The canonical production D1 is the existing data-bearing resource whose historical physical Cloudflare name is `rcat-public-api-preview`. Under the current repository contract it is selected through `--env production`, and its protected UUID in `RCAT_PRODUCTION_D1_DATABASE_ID` is the authoritative release identity.
+
+The old empty D1 named `rcat-public-api-production` was deleted on 2026-08-16 and must not be used in current recovery commands. The `preview` substring in the live D1 name is historical naming only; it does not mean the resource is a Preview environment.
+
+For routine readiness checks prefer the protected repository workflows documented in `docs/deployment/runtime-deployment-guide.md`. A real restore remains a deliberate operator action and is never automatic CI/CD behavior.
 
 ## Open The Backup Page
 
@@ -27,7 +37,7 @@ The file name follows `rcat-d1-backup-<environment>-<timestamp>.json`.
 
 ## Safe Storage
 
-Backup files may include system data and admin metadata. Store them outside the repository in a restricted location such as an encrypted drive, approved password manager attachment vault, or organization-controlled private storage.
+Backup files may include system data and admin metadata. Store them outside the repository in a restricted location such as an encrypted drive, approved password-manager attachment vault, or organization-controlled private storage.
 
 Do not upload backup files to public websites, public Drive folders, chat channels, source control, or issue trackers.
 
@@ -35,47 +45,47 @@ Do not upload backup files to public websites, public Drive folders, chat channe
 
 Recommended baseline:
 
-- Before each Worker or D1-affecting deployment.
-- Before bulk content/admin-data changes.
-- Weekly during active CMS operation.
-- Immediately before any future restore/import procedure.
+- before each Worker or D1-affecting deployment;
+- before bulk content/admin-data changes;
+- weekly during active CMS operation;
+- immediately before any future restore/import procedure.
 
 ## D1 Time Travel Preflight
 
-Cloudflare D1 Time Travel is the primary point-in-time recovery mechanism for a production database on the D1 production storage backend. It is always on for supported databases; it does not replace the logical JSON backup because retention is finite and the logical backup is useful for inspection and longer-term storage.
+Cloudflare D1 Time Travel is the primary point-in-time recovery mechanism for the production database. It does not replace the logical JSON backup because retention is finite and the logical backup remains useful for inspection and longer-lived storage.
 
-Before relying on Time Travel, verify the production database backend:
+Before relying on Time Travel, verify the canonical production database:
 
 ```bash
-pnpm wrangler d1 info rcat-public-api-production \
+pnpm wrangler d1 info rcat-public-api-preview \
   --config cloudflare/public-api/wrangler.toml \
   --env production \
   --json
 ```
 
-Confirm the output reports `version: production`. Do not run a destructive restore if the backend/version cannot be verified.
+Confirm the account/resource identity is the expected canonical production D1. Do not run a destructive restore if identity cannot be verified.
 
-Before every production Worker/D1 release, capture the current Time Travel bookmark:
+Before every production Worker/D1 release, the protected release tooling captures current Time Travel readiness/bookmark information. For a manual incident investigation, the equivalent read-only query is:
 
 ```bash
-pnpm wrangler d1 time-travel info rcat-public-api-production \
+pnpm wrangler d1 time-travel info rcat-public-api-preview \
   --config cloudflare/public-api/wrangler.toml \
   --env production \
   --json
 ```
 
-Record the bookmark with the release/incident record. Do not commit real database identifiers, credentials, or sensitive output to the repository.
+Record recovery metadata only in the approved restricted incident/release record. Do not commit real database identifiers, credentials, bookmarks, or sensitive output to the repository.
 
 ## Optional SQL Export Before High-Risk Changes
 
 For a schema migration, bulk import, or other high-risk data operation, an operator may also create a full SQL export:
 
 ```bash
-pnpm wrangler d1 export rcat-public-api-production \
+pnpm wrangler d1 export rcat-public-api-preview \
   --remote \
   --config cloudflare/public-api/wrangler.toml \
   --env production \
-  --output ./rcat-public-api-production-before-change.sql
+  --output ./rcat-production-before-change.sql
 ```
 
 Store this export using the same restricted-storage rules as the logical JSON backup and delete temporary local copies when the retention requirement is satisfied.
@@ -90,16 +100,17 @@ Before restore:
 2. Identify the incident window and the last known good timestamp/bookmark.
 3. Capture the **current** bookmark first so the restore itself can be undone if necessary.
 4. Download a fresh logical JSON backup if the admin read path is still usable.
-5. Record the intended target timestamp/bookmark and reason for restore.
-6. Require an explicit operator decision before running the restore command. Do not place automatic Time Travel restore in CI/CD.
+5. Verify the physical resource is `rcat-public-api-preview` in the canonical production role and verify its protected identity through the approved process.
+6. Record the intended target timestamp/bookmark and reason for restore.
+7. Require an explicit operator decision before running the restore command. Do not place automatic Time Travel restore in CI/CD.
 
 ## Restore By Timestamp Or Bookmark
 
 Inspect a point in time before restoring:
 
 ```bash
-pnpm wrangler d1 time-travel info rcat-public-api-production \
-  --timestamp "2026-08-15T00:00:00+07:00" \
+pnpm wrangler d1 time-travel info rcat-public-api-preview \
+  --timestamp "<approved-ISO-8601-timestamp>" \
   --config cloudflare/public-api/wrangler.toml \
   --env production
 ```
@@ -109,8 +120,8 @@ Then restore using exactly one approved target.
 By timestamp:
 
 ```bash
-pnpm wrangler d1 time-travel restore rcat-public-api-production \
-  --timestamp "2026-08-15T00:00:00+07:00" \
+pnpm wrangler d1 time-travel restore rcat-public-api-preview \
+  --timestamp "<approved-ISO-8601-timestamp>" \
   --config cloudflare/public-api/wrangler.toml \
   --env production
 ```
@@ -118,7 +129,7 @@ pnpm wrangler d1 time-travel restore rcat-public-api-production \
 Or by bookmark:
 
 ```bash
-pnpm wrangler d1 time-travel restore rcat-public-api-production \
+pnpm wrangler d1 time-travel restore rcat-public-api-preview \
   --bookmark "<approved-bookmark>" \
   --config cloudflare/public-api/wrangler.toml \
   --env production
@@ -130,7 +141,7 @@ Do not use `--skip-confirmation` for an interactive production recovery.
 
 After Time Travel reports success:
 
-1. Re-run `d1 info` and capture the resulting bookmark/state.
+1. Re-run `d1 info` and capture the resulting state through the approved incident record.
 2. Run read-only public Worker smoke checks before any write test.
 3. Verify Admin backup counts against the expected pre-incident baseline.
 4. Verify login/session behavior without changing user lifecycle data.
@@ -144,23 +155,23 @@ If the restore target was wrong, use the pre-restore bookmark captured in the de
 
 Working engineering targets for the current architecture:
 
-- **RPO:** use D1 Time Travel to target the last known good minute when the incident falls inside Cloudflare retention; retain the weekly logical backup as a secondary longer-lived recovery artifact.
+- **RPO:** use D1 Time Travel to target the last known good point when the incident falls inside Cloudflare retention; retain the weekly logical backup as a secondary longer-lived recovery artifact.
 - **RTO:** aim to make the restore decision, execute Time Travel, and complete the read-only validation checklist within 60 minutes of declaring a D1 recovery incident.
 
 These are operational targets, not contractual service-level guarantees. Record actual recovery time and data-loss window after every drill or real incident and revise the targets if they are not realistic.
 
 ## Recovery Drill
 
-At least quarterly, perform a non-destructive tabletop exercise using the current commands and a safe non-production database when available:
+The repository-owned D1 Recovery Drill is read-only and verifies production Time Travel readiness through the protected production identity. Do not perform a real production restore merely to prove that rollback is possible.
 
-1. Verify `d1 info` and Time Travel support.
-2. Resolve a historical timestamp to a bookmark.
-3. Confirm operators know where logical backups are stored.
-4. Walk through the restore decision gate without restoring production.
-5. Record blockers, command drift, access gaps, and the observed RTO estimate.
+For tabletop exercises:
 
-A real production restore drill must not be performed solely to test this runbook.
+1. verify current production D1 identity and Time Travel support;
+2. resolve read-only Time Travel metadata through the approved workflow or safe operator command;
+3. confirm operators know where logical backups are stored;
+4. walk through the restore decision gate without restoring production;
+5. record blockers, command drift, access gaps, and the observed RTO estimate.
 
 ## Restore Status
 
-The CMS Admin UI still does not provide a restore/import button. That is intentional: restore is a destructive operator action and remains outside the normal web-admin write path. D1 Time Travel is the documented production point-in-time recovery mechanism; logical JSON/SQL exports are additional recovery and inspection layers.
+The CMS Admin UI does not provide a restore/import button. That is intentional: restore is a destructive operator action and remains outside the normal web-admin write path. D1 Time Travel is the documented production point-in-time recovery mechanism; logical JSON/SQL exports are additional recovery and inspection layers.

@@ -15,14 +15,19 @@ const currentFacingPaths = [
   "docs/architecture/reliability-roadmap-v2.md",
   "docs/architecture/current-runtime-ownership.md",
   "docs/deployment/runtime-deployment-guide.md",
+  "docs/development/environment-variables.md",
+  "docs/development/current-warning-inventory.md",
   "docs/operations/phase-a-field-qa-foundation.md",
   "docs/operations/phase-b-operational-visibility.md",
+  "docs/operations/admin-backup.md",
+  "docs/operations/facebook-page-import.md",
   "docs/production-readiness-checklist.md",
   "docs/production-smoke-checklist.md",
   "docs/launch-data-runbook.md",
   "docs/features/site-view-tracking.md",
   "docs/features/public-documents.md",
   "docs/production-smoke-test-report-template.md",
+  "cloudflare/public-api/README.md",
   "cloudflare/public-api/seed/README.md"
 ] as const;
 
@@ -34,8 +39,14 @@ const canonicalState = currentFacingSources["docs/architecture/post-p5h-current-
 const reliabilityRoadmap = currentFacingSources["docs/architecture/reliability-roadmap-v2.md"];
 const currentRuntime = currentFacingSources["docs/architecture/current-runtime-ownership.md"];
 const deploymentGuide = currentFacingSources["docs/deployment/runtime-deployment-guide.md"];
+const environmentVariables = currentFacingSources["docs/development/environment-variables.md"];
+const warningInventory = currentFacingSources["docs/development/current-warning-inventory.md"];
 const phaseARunbook = currentFacingSources["docs/operations/phase-a-field-qa-foundation.md"];
 const phaseBRunbook = currentFacingSources["docs/operations/phase-b-operational-visibility.md"];
+const adminBackupRunbook = currentFacingSources["docs/operations/admin-backup.md"];
+const facebookImportRunbook = currentFacingSources["docs/operations/facebook-page-import.md"];
+const workerReadme = currentFacingSources["cloudflare/public-api/README.md"];
+const seedReadme = currentFacingSources["cloudflare/public-api/seed/README.md"];
 const copilotInstructions = currentFacingSources[".github/copilot-instructions.md"];
 const agents = currentFacingSources["AGENTS.md"];
 const environmentRetirementVerification = readFileSync(
@@ -59,6 +70,10 @@ const staleActiveStatusPatterns = [
   /The server renderer is non-streaming/i
 ];
 
+const staleProductionD1Command =
+  /d1\s+(?:info|export|execute|time-travel\s+(?:info|restore))\s+rcat-public-api-production/i;
+const stalePreviewD1Command = /d1\s+(?:migrations\s+apply|execute)[\s\S]{0,100}--env\s+preview/i;
+
 describe("current project-state consistency", () => {
   it("keeps stale current-state/runtime language out of current-facing guidance", () => {
     for (const [relativePath, source] of Object.entries(currentFacingSources)) {
@@ -68,13 +83,16 @@ describe("current project-state consistency", () => {
     }
   });
 
-  it("keeps the canonical reliability state unambiguous", () => {
+  it("keeps the canonical reliability and environment state unambiguous", () => {
     expect(canonicalState).toContain("Phase B Operational Visibility is complete and production-verified");
     expect(canonicalState).toContain(
       "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete"
     );
     expect(canonicalState).toContain("There is no active Reliability Roadmap v2 phase");
     expect(canonicalState).toContain("Phase C Deep Field Verification is complete");
+    expect(canonicalState).toContain("Production environment retirement follow-ups are also complete");
+    expect(canonicalState).toContain("retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment");
+    expect(canonicalState).toContain("environment-retirement-verification-2026-09-11.md");
 
     expect(reliabilityRoadmap).toContain("| Phase B | Operational Visibility   | Complete");
     expect(reliabilityRoadmap).toContain(
@@ -85,19 +103,66 @@ describe("current project-state consistency", () => {
     expect(reliabilityRoadmap).toContain("| Phase C | Deep Field Verification  | Complete");
   });
 
-  it("keeps current runtime/deployment guidance aligned with implemented SSR, Search, B2, and B3", () => {
+  it("keeps current runtime/deployment/environment guidance aligned with implemented SSR, Search, B2, B3, and live env state", () => {
     for (const source of [currentRuntime, deploymentGuide]) {
       expect(source).toContain("renderRouterToStream");
       expect(source).toContain("/api/health-aggregation");
       expect(source).toContain("runtime-incidents");
       expect(source).toContain("/content/:slug");
       expect(source).toContain("no-store");
+      expect(source).toContain("environment-retirement-verification-2026-09-11.md");
     }
 
     expect(currentRuntime).toContain("Public Search is Worker/D1-owned");
     expect(currentRuntime).toContain(
       "There is no `PUBLIC_API_PROVIDER` or `VITE_PUBLIC_API_PROVIDER` runtime selector"
     );
+    expect(currentRuntime).toContain("retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment");
+
+    expect(deploymentGuide).toContain("Verified Live Environment Baseline");
+    expect(deploymentGuide).toContain("retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment");
+    expect(deploymentGuide).not.toContain("remove the old `VITE_COMPLAINT_API_URI` value from Vercel");
+
+    expect(environmentVariables).toContain("Verified Production Environment State");
+    expect(environmentVariables).toContain("`COMPLAINT_API_URI` for the dedicated complaint endpoint");
+    expect(environmentVariables).toContain("`VITE_COMPLAINT_API_URI` is absent from the live Vercel environment");
+    expect(environmentVariables).toContain("post-P5H production governance and maintenance baseline");
+  });
+
+  it("keeps the Worker README aligned with the canonical in-place production resource and B2 schema", () => {
+    expect(workerReadme).toContain("The previous empty Worker and D1 named `rcat-public-api-production`");
+    expect(workerReadme).toContain("are not recreated");
+    expect(workerReadme).not.toContain("recreates the Worker service with that name");
+    expect(workerReadme).toContain("`0014_b2_runtime_incidents.sql`");
+    expect(workerReadme).toContain("Runtime Incident Feed");
+    expect(workerReadme).toContain("latest 2,000 rows");
+    expect(workerReadme).toContain("environment-retirement-verification-2026-09-11.md");
+  });
+
+  it("keeps current D1 operator instructions on the canonical production resource", () => {
+    expect(adminBackupRunbook).toContain("d1 info rcat-public-api-preview");
+    expect(adminBackupRunbook).toContain("--env production");
+    expect(adminBackupRunbook).not.toMatch(staleProductionD1Command);
+
+    expect(facebookImportRunbook).toContain("d1 execute rcat-public-api-preview");
+    expect(facebookImportRunbook).toContain("d1 execute rcat-public-api-local");
+    expect(facebookImportRunbook).toContain("--env production");
+    expect(facebookImportRunbook).not.toMatch(staleProductionD1Command);
+    expect(facebookImportRunbook).not.toContain("pnpm facebook:import:preview");
+    expect(facebookImportRunbook).not.toMatch(stalePreviewD1Command);
+
+    expect(seedReadme).toContain("There is no persistent remote Preview environment");
+    expect(seedReadme).not.toContain("--remote --env preview");
+    expect(seedReadme).not.toMatch(stalePreviewD1Command);
+  });
+
+  it("keeps the current warning inventory on the live toolchain and green repository baseline", () => {
+    expect(warningInventory).toContain("Node `24.x`");
+    expect(warningInventory).toContain("`24.20.0`");
+    expect(warningInventory).toContain("pnpm `10.34.5`");
+    expect(warningInventory).toContain("no known current warning blocker");
+    expect(warningInventory).not.toContain("Node `22.23.1`; pnpm `10.34.5`");
+    expect(warningInventory).not.toContain("Main-tree unit guards intentionally fail");
   });
 
   it("keeps Phase A wording aligned with the real commit-status gate and completed later phases", () => {
@@ -146,6 +211,7 @@ describe("current project-state consistency", () => {
       expect(source).toContain(
         "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified"
       );
+      expect(source).toMatch(/production environment retirement follow-ups are complete and operator-verified/i);
       expect(source).toContain("C3");
       expect(source).toMatch(/manual(?:\/protected|-only)/i);
     }

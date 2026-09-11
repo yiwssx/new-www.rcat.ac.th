@@ -28,13 +28,18 @@ Runtime ownership is intentionally split by responsibility:
 - **CMS identity, sessions, RBAC, MFA, CSRF, step-up assurance, revocation, and user lifecycle:** Cloudflare Worker + D1 through same-origin Vercel proxy routes.
 - **System Health / Health Aggregation (B1/B3):** protected `/admin/system-health` plus Vercel server-owned `/api/health-aggregation`; explicit refresh only, no browser infrastructure credentials.
 - **Media/file bridge:** Google Apps Script behind authenticated server-side proxy boundaries.
+- **Complaint submission:** same-origin Vercel `/api/complaint` to a dedicated Complaint Apps Script; live Production uses server-only `COMPLAINT_API_URI`.
 - **File storage:** Google Drive.
 - **Frontend/server deployment:** Vercel.
 - **API/data runtime:** Cloudflare Worker + D1.
 
+Cloudflare remote structured-data runtime is production-only. The canonical production Worker and D1 retain the historical physical name `rcat-public-api-preview` and are promoted in place under `env.production`; the old empty `rcat-public-api-production` resources were deleted and are not current targets.
+
 The authoritative runtime ownership document is [`docs/architecture/current-runtime-ownership.md`](docs/architecture/current-runtime-ownership.md).
 
 Reliability Roadmap v2 is complete: Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. There is no active Reliability Roadmap v2 implementation phase; future reliability development requires a new explicit scope. Current status is defined by [`docs/architecture/post-p5h-current-project-state.md`](docs/architecture/post-p5h-current-project-state.md).
+
+Production environment retirement follow-ups are also complete and operator-verified as of 2026-09-11: live Vercel Production uses `COMPLAINT_API_URI`, retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment, and legacy-only CMS-auth environment values are retired from the applicable Vercel/Cloudflare environments. See [`docs/operations/environment-retirement-verification-2026-09-11.md`](docs/operations/environment-retirement-verification-2026-09-11.md).
 
 ## Product Generations
 
@@ -186,7 +191,9 @@ Do not commit:
 
 Checked-in non-secret project settings live in `src/config/project-settings.json`.
 
-Current security and governance controls include CI quality gates, dependency audit/freshness policy, D1 migration sequencing, Worker dry-deploy validation, production data-integrity checks, Apps Script release governance, SSR/CSP readiness checks, recovery documentation, Phase A read-only production browser QA, B1/B2/B3 operator visibility, and manual/protected C3 deep-production regression.
+Current security and governance controls include CI quality gates, dependency audit/freshness policy, D1 migration sequencing, Worker dry-deploy validation, production data-integrity checks, Apps Script release governance, SSR/CSP readiness checks, recovery documentation, Phase A read-only production browser QA, B1/B2/B3 operator visibility, manual/protected C3 deep-production regression, and the operator-verified environment-retirement baseline.
+
+Do not restore retired `VITE_COMPLAINT_API_URI`, legacy-only CMS-auth environment values, the deleted `rcat-public-api-production` resources as current production targets, or a persistent Cloudflare Preview workflow without a new explicitly approved architecture scope.
 
 ## Current Documentation
 
@@ -197,12 +204,13 @@ Primary current-state documents:
 - Runtime ownership: [`docs/architecture/current-runtime-ownership.md`](docs/architecture/current-runtime-ownership.md)
 - Current project state: [`docs/architecture/post-p5h-current-project-state.md`](docs/architecture/post-p5h-current-project-state.md)
 - Reliability Roadmap v2: [`docs/architecture/reliability-roadmap-v2.md`](docs/architecture/reliability-roadmap-v2.md)
+- Environment variables: [`docs/development/environment-variables.md`](docs/development/environment-variables.md)
+- Production environment retirement verification: [`docs/operations/environment-retirement-verification-2026-09-11.md`](docs/operations/environment-retirement-verification-2026-09-11.md)
 - Phase A operating context: [`docs/operations/phase-a-field-qa-foundation.md`](docs/operations/phase-a-field-qa-foundation.md)
 - Phase B closure/operating context: [`docs/operations/phase-b-operational-visibility.md`](docs/operations/phase-b-operational-visibility.md)
 - Phase C closure/operating context: [`docs/operations/phase-c-deep-field-verification.md`](docs/operations/phase-c-deep-field-verification.md)
 - Runtime deployment: [`docs/deployment/runtime-deployment-guide.md`](docs/deployment/runtime-deployment-guide.md)
 - Dependency status: [`docs/maintenance/dependency-current-status.md`](docs/maintenance/dependency-current-status.md)
-- Environment variables: [`docs/development/environment-variables.md`](docs/development/environment-variables.md)
 - CMS session lifecycle: [`docs/cms-auth-session-lifecycle.md`](docs/cms-auth-session-lifecycle.md)
 - Public SSR verification: [`docs/operations/public-ssr-cutover.md`](docs/operations/public-ssr-cutover.md)
 - Production readiness: [`docs/production-readiness-checklist.md`](docs/production-readiness-checklist.md)
@@ -213,7 +221,7 @@ Primary current-state documents:
 
 M-series, P-series, migration, preview, replacement, cutover, stabilization, dated audit, and pre-activation implementation documents are retained when they describe historical work that actually occurred. They are engineering/audit evidence and are not automatically rewritten to current terminology.
 
-When historical text conflicts with present runtime ownership, project/reliability status, product identity, toolchain, security policy, or release governance, the current documents listed above take precedence. Dated historical files should carry an explicit historical/snapshot marker when their old status language could otherwise be mistaken for current guidance.
+When historical text conflicts with present runtime ownership, project/reliability status, product identity, toolchain, security policy, environment state, or release governance, the current documents listed above take precedence. Dated historical files should carry an explicit historical/snapshot marker when their old status language could otherwise be mistaken for current guidance.
 
 The full Git history is intentionally preserved. Product history is curated; engineering history remains auditable.
 
