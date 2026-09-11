@@ -89,8 +89,9 @@ describe("Step 4 public-read hardening", () => {
     expect(publicContentRouteSource).not.toContain("readPublicMediaRows(env)");
     expect(publicContentRouteSource).not.toContain("readPublicMetadataRows(env)");
 
-    expect(publicSearchRouteSource).toContain("countSearchPublishedContentRows");
-    expect(publicSearchRouteSource).toContain("searchPublishedContentPageRows");
+    expect(publicSearchRouteSource).toContain("searchPublishedContentPageWithCountRows");
+    expect(publicSearchRouteSource).not.toContain("countSearchPublishedContentRows");
+    expect(publicSearchRouteSource).not.toContain("searchPublishedContentPageRows");
     expect(publicSearchRouteSource).toContain("readPublicShellMetadataRows");
     expect(publicSearchRouteSource).not.toContain("readPublicMetadataRows(env)");
 
