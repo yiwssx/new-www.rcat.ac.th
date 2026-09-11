@@ -111,8 +111,8 @@ function parseHealthAggregationPayload(value: unknown): HealthAggregationPayload
     return null;
   }
 
-  const guards = Array.isArray(value.guards)
-    ? value.guards.flatMap((candidate) => {
+  const guards: HealthAggregationGuard[] = Array.isArray(value.guards)
+    ? value.guards.flatMap<HealthAggregationGuard>((candidate) => {
         if (!isRecord(candidate) || !isHealthStatus(candidate.status)) {
           return [];
         }
