@@ -134,7 +134,9 @@ describe("current project-state consistency", () => {
     expect(cmsAuthClosure).toMatch(/\| Legacy-secret retirement\s+\| Completed/);
     expect(cmsAuthClosure).toContain("environment-retirement-verification-2026-09-11.md");
 
-    expect(cmsAuthCutover).toContain("The observation-window follow-up and remote Legacy-secret retirement are also complete");
+    expect(cmsAuthCutover).toContain(
+      "The observation-window follow-up and remote Legacy-secret retirement are also complete"
+    );
     expect(cmsAuthCutover).toContain("It no longer represents an open Legacy-secret-retirement task");
   });
 

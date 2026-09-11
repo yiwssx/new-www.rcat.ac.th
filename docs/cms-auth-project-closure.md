@@ -176,16 +176,16 @@ Remote retirement of the applicable Legacy-only environment values is complete. 
 
 ## 9. Closure status
 
-| Area                           | Status             | Evidence                                                                                                      |
-| ------------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| Source implementation          | Completed          | Phase commits, final repository audit, and CMS-only runtime paths                                             |
-| Automated regression contracts | Completed          | Focused authentication contracts plus full unit and integration suites                                       |
-| Vercel build                   | Completed          | Final `pnpm build` verification                                                                               |
-| Worker deployment              | Operator confirmed | Phase 8 and final operational smoke testing confirmed by the operator                                         |
-| Production smoke test          | Operator confirmed | Login, TOTP, Session, authorization, CSRF, step-up, Integrations, media, and tombstone checks                 |
-| Observation window             | Completed          | Operator-confirmed operational completion recorded on 2026-09-11                                             |
-| Legacy-secret retirement       | Completed          | Operator directly inspected Vercel and Cloudflare environments; completion recorded on 2026-09-11            |
-| Documentation handoff          | Completed          | This closure document, final-cutover runbook, and 2026-09-11 environment-retirement verification record      |
+| Area                           | Status             | Evidence                                                                                                |
+| ------------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------- |
+| Source implementation          | Completed          | Phase commits, final repository audit, and CMS-only runtime paths                                       |
+| Automated regression contracts | Completed          | Focused authentication contracts plus full unit and integration suites                                  |
+| Vercel build                   | Completed          | Final `pnpm build` verification                                                                         |
+| Worker deployment              | Operator confirmed | Phase 8 and final operational smoke testing confirmed by the operator                                   |
+| Production smoke test          | Operator confirmed | Login, TOTP, Session, authorization, CSRF, step-up, Integrations, media, and tombstone checks           |
+| Observation window             | Completed          | Operator-confirmed operational completion recorded on 2026-09-11                                        |
+| Legacy-secret retirement       | Completed          | Operator directly inspected Vercel and Cloudflare environments; completion recorded on 2026-09-11       |
+| Documentation handoff          | Completed          | This closure document, final-cutover runbook, and 2026-09-11 environment-retirement verification record |
 
 ## 10. Final rollback statement
 
