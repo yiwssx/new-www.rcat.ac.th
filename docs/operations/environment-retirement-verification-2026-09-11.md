@@ -4,6 +4,8 @@ Status: completed and operator-verified.
 
 This record captures production environment state that cannot be proven from repository contents alone. It records the operator's direct inspection of the live Vercel and Cloudflare environment configuration on 2026-09-11. No secret values, private URLs, tokens, identifiers, or credentials are recorded here.
 
+This record is the definitive completion evidence for the two environment follow-ups identified below unless a later dated operator verification supersedes it.
+
 ## Complaint endpoint configuration
 
 The operator directly inspected the Vercel project environment and confirmed:
