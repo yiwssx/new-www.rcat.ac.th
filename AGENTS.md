@@ -6,11 +6,11 @@ This project is a React/Vite public website and CMS for Roi-Et College of Agricu
 
 Current status: post-P5H production governance baseline with Production Observability configured behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, completed Admin UX 00-10, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
 
-Reliability Roadmap v2 is separate from P6. Phase 0 Development Quality Gate, Phase A Field QA Foundation, and Phase C Deep Field Verification are complete. Phase B Operational Visibility remains active: B1 System Health Dashboard and B2 Runtime Incident Feed are complete and production-verified; B3 Health Aggregation remains planned.
+Reliability Roadmap v2 is separate from P6 and is complete. Phase 0 Development Quality Gate, Phase A Field QA Foundation, Phase B Operational Visibility, and Phase C Deep Field Verification are complete. Within Phase B, B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified. There is no active Reliability Roadmap v2 phase; future reliability work requires a new explicit scope.
 
 Use `docs/architecture/post-p5h-current-project-state.md` as the canonical current project-state note and `docs/architecture/reliability-roadmap-v2.md` for reliability phase definitions.
 
-P5H closed the original production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, the Production Observability D1 usage guard, completed P6B security controls, completed P6C recovery controls, completed P6D public UX controls, completed Admin UX 00-10, completed Phase 0/A/C reliability work, completed Phase B1/B2, and the current post-P5H maintenance posture.
+P5H closed the original production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, the Production Observability D1 usage guard, completed P6B security controls, completed P6C recovery controls, completed P6D public UX controls, completed Admin UX 00-10, completed Phase 0/A/B/C reliability work, and the current post-P5H maintenance posture.
 
 The Production Observability guard completed its activation gate on 2026-08-29. It is configured on a six-hour schedule, but scheduled runs remain reviewer-gated by the existing `production` Environment and therefore must not be described as unattended monitoring. Reuse the existing Environment and credentials; do not request or create a duplicate Environment/secret merely because an imagined monitoring name differs. Use `docs/operations/p6a-production-observability.md` for closure evidence and operational constraints.
 
@@ -22,7 +22,7 @@ P6D Product/UX Improvements completed on 2026-08-30 as the final planned P6 deve
 
 Admin UX 00-10 is complete. Use `docs/admin/admin-ux-execution-tracker.md` for the completed Admin UX sequence. Do not treat that sequence as a reopened M21 phase.
 
-Phase B1 and B2 are complete. B2 completion is backed by implementation PR #217, successful repository CI and Phase A production browser smoke, canonical Worker release PR #218, successful Worker Production Release, and successful follow-up Phase A browser verification. B3 is the only planned Phase B roadmap item. Do not report B2 as pending and do not close Phase B until B3 has explicit completion evidence or a newer project-state decision removes it from scope.
+Phase B is complete and production-verified. B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete. B3 completion is backed by PR #270 merged as `cda947149fee0e79791bfc401efbc5c33f3adbb9`, CI #2007 (`34547284821`) on final implementation head `b10ab8c99117fa1e254bd420df3f69de5ec77182`, READY Vercel production deployment `dpl_94AZDYbaLc61t2XbmxMFCw1GQZyP`, and production endpoint verification preserving the fail-closed CMS-session, `no-store`, Request ID, and P6B security boundary. Do not report Phase B as active or B3 as planned unless a newer explicit project-state decision opens new scope.
 
 Phase C is complete. C3 authenticated disposable CMS verification passed its protected production field run and deterministic zero-row cleanup. C3 remains manual-only after closure and must not be automatically dispatched by normal Worker production releases unless a new explicit scope reopens that behavior.
 
@@ -35,12 +35,12 @@ Governed Renovate dependency maintenance is expected to continue. It is not cons
 When reporting current project status, use:
 
 ```text
-post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2: Phase 0 complete, Phase A complete, Phase B active (B1+B2 complete, B3 planned), Phase C complete
+post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2 complete (Phase 0 + Phase A + Phase B/B1-B3 + Phase C complete)
 ```
 
-Do not report M20, M21, P6B, P6C, or P6D as the current active feature-development phase. P6B, P6C, and P6D are completed. Production Observability remains an operational guard whose scheduled executions are reviewer-gated rather than unattended.
+Do not report M20, M21, P6B, P6C, P6D, or Reliability Roadmap v2 Phase B as the current active feature-development/reliability phase. P6B, P6C, P6D, Phase 0, Phase A, Phase B, and Phase C are completed. Production Observability remains an operational guard whose scheduled executions are reviewer-gated rather than unattended.
 
-For future feature or product work, report the new branch and PR scope directly rather than extending P6D or M21 implicitly.
+For future feature, product, or reliability work, report the new branch and PR scope directly rather than extending P6D, Phase B, or M21 implicitly.
 
 ## Current Runtime Ownership
 
@@ -71,7 +71,7 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - P6A owns D1 utilization observability and remains approval-gated.
 - P6B owns security/WAF/CSP enforcement checks.
 - P6C owns bounded six-hour SSR → Worker → D1 reliability verification.
-- Phase B B1/B2 are complete; B3 is planned.
+- Phase B B1/B2/B3 are complete; B3 remains explicit-refresh, server-owned aggregation through `/api/health-aggregation`.
 - Phase C is complete; C3 is manual-only.
 - Reuse `X-RCAT-Request-ID`; do not create duplicate correlation identifiers.
 - Do not add a parallel paid observability stack merely to recreate existing controls.
@@ -90,7 +90,7 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Completed P6C recovery/reliability controls and bounded six-hour public reliability guard.
 - Completed P6D public product/UX controls.
 - Completed Phase A production browser QA pipeline.
-- Completed Phase B1/B2 operator visibility controls.
+- Completed Phase B1/B2/B3 operator visibility controls.
 - Completed Phase C checks and manual-only C3 deep-production regression tool.
 - Sigmap AI helper workflow.
 - Governed Renovate dependency maintenance under the repository dependency policy.
@@ -108,6 +108,7 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 - Scheduled D1 auth-anomaly polling.
 - M20/M21 active-phase wording in current-facing guidance.
 - Worker → C3 automatic dispatch or one-time C3 release scaffolding.
+- B3 browser-side infrastructure credentials or background polling.
 
 ## Safety Rules
 
