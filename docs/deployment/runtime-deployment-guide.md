@@ -37,6 +37,17 @@ Node 22 is no longer the current project requirement.
 
 Cloudflare has only local development plus one canonical remote production role. There is no persistent Preview deployment tier. The existing Worker and data-bearing D1 originally provisioned with the physical name `rcat-public-api-preview` are promoted in place and are the canonical production runtime. Their physical names and Worker endpoint remain unchanged. See `docs/architecture/production-environment-convergence-2026-08-16.md` and `docs/architecture/current-runtime-ownership.md`.
 
+## Verified Live Environment Baseline
+
+On 2026-09-11 the operator directly inspected the applicable live Vercel and Cloudflare environments and confirmed:
+
+- Vercel Production uses server-only `COMPLAINT_API_URI`;
+- retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment;
+- the CMS-auth observation follow-up is complete;
+- legacy-only CMS-auth environment values governed by the final cutover are retired from the applicable Vercel and Cloudflare environments.
+
+The evidence classification is operator-attested production state and is recorded in `docs/operations/environment-retirement-verification-2026-09-11.md`. Compatibility parsing that remains in server source does not mean a retired variable is still live configuration.
+
 ## Vercel Production
 
 `master` is the production deployment branch. Repository Vercel configuration disables non-master deployments.
@@ -61,13 +72,13 @@ B3 does not require a Worker deployment or D1 migration unless a separate Worker
 
 ### Complaint proxy configuration
 
-Canonical server-only Vercel configuration:
+Canonical and verified live server-only Vercel Production configuration:
 
 ```text
 COMPLAINT_API_URI=https://script.google.com/macros/s/<dedicated-complaint-deployment-id>/exec
 ```
 
-The browser submits to same-origin `/api/complaint`; it does not call Apps Script directly. `VITE_COMPLAINT_API_URI` is a server-side compatibility fallback only for an already-configured deployment. After `COMPLAINT_API_URI` is configured and a production redeploy succeeds, remove the old `VITE_COMPLAINT_API_URI` value from Vercel.
+The browser submits to same-origin `/api/complaint`; it does not call Apps Script directly. `VITE_COMPLAINT_API_URI` remains recognized by server source only as compatibility parsing for an old configured deployment, but it is not current Production configuration. The operator verified on 2026-09-11 that `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment. Do not restore it merely because the compatibility fallback remains in code.
 
 The complaint proxy validates fields, normalizes phone numbers, checks attachment size/type/extension/signature, enforces same-origin requests and endpoint allowlisting, and applies an upstream timeout before forwarding the existing text/plain Apps Script contract.
 
@@ -210,6 +221,8 @@ Deploy based on the actual diff:
 
 Do not deploy Worker/D1 merely because a feature relates to authentication, SSR presentation, or B3 server aggregation.
 
+The CMS-auth observation window and legacy-only environment retirement are already complete. Do not reintroduce retired environment values as a deployment prerequisite; preserve the current CMS Session/MFA/proxy boundary documented by `docs/cms-auth-project-closure.md`.
+
 ## Sitemap
 
 Vercel rewrites `/sitemap.xml` to `/api/sitemap`, which reads live Public data from the Cloudflare API.
@@ -267,7 +280,7 @@ Before a Vercel deployment:
 Before a Worker deployment:
 
 1. merge the validated Worker/D1 convergence/release changes to `master`;
-2. keep `RCAT_PRODUCTION_D1_DATABASE_ID` set to the existing data-bearing D1 UUID in the protected GitHub `Production` environment;
+2. keep `RCAT_PRODUCTION_D1_DATABASE_ID` set to the existing data-bearing D1 UUID in the protected GitHub `production` environment;
 3. invoke `Worker Production Preflight` manually on `master` and inspect the unapplied-migration list;
 4. confirm exact promoted-D1 identity, Time Travel readiness, and the pending migration set;
 5. invoke `Worker Production Release` manually on the same `master` revision;
