@@ -41,13 +41,13 @@ describe("public D1 read cache", () => {
     );
     expect(
       isPublicReadCacheEligible(new Request("https://worker.test/api/public/content/example"), productionEnv)
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isPublicReadCacheEligible(
         new Request("https://worker.test/api/public/home", { headers: { "Cache-Control": "no-cache" } }),
         productionEnv
       )
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isPublicReadCacheEligible(new Request("https://worker.test/api/public/home"), { ENVIRONMENT: "preview" } as Env)
     ).toBe(false);
@@ -71,6 +71,27 @@ describe("public D1 read cache", () => {
     expect(cached?.status).toBe(200);
     await expect(cached?.json()).resolves.toEqual({ ok: true });
     expect(cached?.headers.get("Cache-Control")).toBe("public, s-maxage=900");
+  });
+
+  it("does not let anonymous clients force a D1 cache miss with no-cache headers", async () => {
+    installFakeCache();
+    const warmRequest = new Request("https://worker.test/api/public/home");
+    const bypassAttempt = new Request("https://worker.test/api/public/home", {
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" }
+    });
+    const pending: Promise<unknown>[] = [];
+    const context = {
+      waitUntil(promise: Promise<unknown>) {
+        pending.push(promise);
+      }
+    } as unknown as ExecutionContext;
+
+    storePublicReadCache(warmRequest, productionEnv, new Response("cached", { status: 200 }), context);
+    await Promise.all(pending);
+
+    const cached = await readPublicReadCache(bypassAttempt, productionEnv);
+    expect(cached?.status).toBe(200);
+    await expect(cached?.text()).resolves.toBe("cached");
   });
 
   it("never stores failed public reads", async () => {
