@@ -58,32 +58,41 @@ jobs:
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/status")"
 
-            state="$(printf '%s' "$payload" | node -e '
+            mapfile -t vercel_status < <(printf '%s' "$payload" | node -e '
               let input = "";
               process.stdin.setEncoding("utf8");
               process.stdin.on("data", (chunk) => (input += chunk));
               process.stdin.on("end", () => {
                 const payload = JSON.parse(input);
                 const vercel = payload.statuses.find((status) => status.context === "Vercel");
-                process.stdout.write(vercel?.state || "missing");
+                process.stdout.write(`${vercel?.state || "missing"}\n${vercel?.description || ""}\n`);
               });
-            ')"
+            ')
+
+            state="${vercel_status[0]:-missing}"
+            description="${vercel_status[1]:-}"
+
+            if printf '%s' "$description" | grep -qi 'ignored build step'; then
+              echo "Vercel reported success-like status for $TARGET_SHA, but no new deployment was created: $description" >&2
+              echo "Phase A fails closed instead of testing an older production deployment as if it matched $TARGET_SHA." >&2
+              exit 1
+            fi
 
             case "$state" in
               success)
-                echo "Vercel deployment for $TARGET_SHA is ready."
+                echo "Vercel deployment status for $TARGET_SHA is ready."
                 exit 0
                 ;;
               failure|error)
-                echo "Vercel deployment for $TARGET_SHA failed with state: $state" >&2
+                echo "Vercel deployment for $TARGET_SHA failed with state: $state${description:+ ($description)}" >&2
                 exit 1
                 ;;
               pending|missing)
-                echo "Vercel deployment for $TARGET_SHA is not ready yet (attempt $attempt/30)."
+                echo "Vercel deployment for $TARGET_SHA is not ready yet (attempt $attempt/30).${description:+ Status: $description}"
                 sleep 10
                 ;;
               *)
-                echo "Unexpected Vercel commit status: $state" >&2
+                echo "Unexpected Vercel commit status: $state${description:+ ($description)}" >&2
                 exit 1
                 ;;
             esac
@@ -134,6 +143,7 @@ jobs:
             echo "- Trigger: ${{ github.event_name }}"
             echo "- Mode: read-only"
             echo "- Automatic path: successful master CI -> matching Vercel deployment -> browser smoke"
+            echo "- Ignored Build Step: fail closed; do not treat an older production deployment as exact-SHA evidence"
             echo "- Browsers: desktop Chromium + mobile Chromium"
             echo "- Runtime diagnostics: page errors, same-origin console errors, request failures, HTTP 5xx, critical asset/document 4xx"
             echo "- Production writes: none"
