@@ -38,6 +38,12 @@ const phaseARunbook = currentFacingSources["docs/operations/phase-a-field-qa-fou
 const phaseBRunbook = currentFacingSources["docs/operations/phase-b-operational-visibility.md"];
 const copilotInstructions = currentFacingSources[".github/copilot-instructions.md"];
 const agents = currentFacingSources["AGENTS.md"];
+const environmentRetirementVerification = readFileSync(
+  join(repositoryRoot, "docs/operations/environment-retirement-verification-2026-09-11.md"),
+  "utf8"
+);
+const cmsAuthClosure = readFileSync(join(repositoryRoot, "docs/cms-auth-project-closure.md"), "utf8");
+const cmsAuthCutover = readFileSync(join(repositoryRoot, "docs/cms-auth-final-cutover.md"), "utf8");
 
 const staleActiveStatusPatterns = [
   /M21 owns remaining/i,
@@ -110,6 +116,26 @@ describe("current project-state consistency", () => {
     expect(phaseBRunbook).toContain("CI #2007, run `34547284821`");
     expect(phaseBRunbook).toContain("Vercel production deployment `dpl_94AZDYbaLc61t2XbmxMFCw1GQZyP`");
     expect(phaseBRunbook).toContain("Phase B Operational Visibility is complete and production-verified");
+  });
+
+  it("records operator-verified production environment retirement as completed", () => {
+    expect(environmentRetirementVerification).toContain("Status: completed and operator-verified.");
+    expect(environmentRetirementVerification).toContain(
+      "`COMPLAINT_API_URI` is the configured production complaint endpoint variable"
+    );
+    expect(environmentRetirementVerification).toContain(
+      "`VITE_COMPLAINT_API_URI` is not present in the live Vercel environment"
+    );
+    expect(environmentRetirementVerification).toContain(
+      "CMS-authentication Legacy-secret retirement and its associated observation follow-up are complete"
+    );
+
+    expect(cmsAuthClosure).toMatch(/\| Observation window\s+\| Completed/);
+    expect(cmsAuthClosure).toMatch(/\| Legacy-secret retirement\s+\| Completed/);
+    expect(cmsAuthClosure).toContain("environment-retirement-verification-2026-09-11.md");
+
+    expect(cmsAuthCutover).toContain("The observation-window follow-up and remote Legacy-secret retirement are also complete");
+    expect(cmsAuthCutover).toContain("It no longer represents an open Legacy-secret-retirement task");
   });
 
   it("keeps repository AI guidance on the completed post-P5H reliability baseline", () => {
