@@ -1,6 +1,6 @@
 # Current Runtime Ownership
 
-Updated: 2026-09-02.
+Updated: 2026-09-11.
 
 This document is the current source of truth for runtime ownership. Historical migration milestone documents remain evidence of earlier states; when they conflict with this file about current ownership, authentication boundaries, provider responsibilities, cache policy, environment naming, or deployment behavior, this file takes precedence.
 
@@ -34,6 +34,8 @@ Owner: Cloudflare Worker + D1.
 
 Public SSR is a presentation/runtime layer only. It consumes the Cloudflare Public API; it does not move structured-data ownership into Vercel. There is no runtime provider selector for Public structured data: current Public reads and analytics are Cloudflare-owned.
 
+Public Search is Worker/D1-owned. Filtering, ordering, total counting, and pagination are performed by the Public API/D1 contract rather than by a browser-owned snapshot index.
+
 ## Admin Structured Data
 
 Owner: Cloudflare Worker + D1.
@@ -63,6 +65,16 @@ See `docs/cms-auth-session-lifecycle.md`.
 ### Admin proxy 401 contract
 
 A genuine `CMS session is invalid or expired` response can invalidate frontend auth state. Known non-Session authentication failures must not be normalized into Session expiration. Temporary network and `5xx` failures must not automatically destroy a still-valid frontend Session.
+
+## Operational Visibility — B1/B2/B3
+
+Reliability Roadmap v2 Phase B is complete and production-verified. Operator visibility is explicit-refresh rather than background polling.
+
+- **B1 System Health Dashboard** — protected `/admin/system-health` live checks reuse CMS authentication, `dashboard.read`, Request ID correlation, the Admin Proxy → Worker → D1 read path, and Public SSR.
+- **B2 Runtime Incident Feed** — browser runtime errors, unhandled rejections, and API network/5xx failures are reduced to the privacy-safe allowlisted incident contract and ingested through `POST /api/public/runtime-incident`; operators read bounded aggregates through authenticated `GET /api/admin/runtime-incidents`.
+- **B3 Health Aggregation** — Vercel `GET /api/health-aggregation` is a server-owned, authenticated/no-store aggregation boundary for Phase A, P6A, P6B, P6C, Vercel deployment metadata, and a bounded B2 incident summary. Infrastructure credentials are not exposed to the browser.
+
+B2 storage remains in D1 under the seven-day/latest-2,000-row retention bounds defined by `docs/operations/phase-b-operational-visibility.md`. B3 introduces no new D1 migration or scheduler and runs only when the operator explicitly refreshes System Health.
 
 ## Admin Menu
 
@@ -122,7 +134,9 @@ Runtime construction is request-scoped:
 
 Public route loaders reuse the same TanStack Query factories consumed by browser hooks. Successful known-Public query roots are dehydrated through a JSON-safe DTO and restored into the browser QueryClient before hydrated route hooks consume them.
 
-The server renderer is non-streaming. It renders semantic route HTML, route-owned metadata/JSON-LD, request-local Emotion critical CSS, TanStack hydration state, and manifest-selected content-hashed client assets.
+TanStack Router renders through `renderRouterToStream`. The current Emotion critical-CSS finalizer then reads/buffers the completed response body before injecting request-local critical styles and returning the Vercel response. The implementation therefore uses the Router streaming renderer internally but does not currently deliver progressive HTML chunks through the final Emotion/Vercel response boundary.
+
+The final SSR document contains semantic route HTML, route-owned metadata/JSON-LD, request-local Emotion critical CSS, TanStack hydration state, and manifest-selected content-hashed client assets.
 
 SSR documents carry `data-rcat-ssr="true"`; Admin/Auth CSR pages retain the empty-`#root` bootstrap.
 
@@ -154,7 +168,9 @@ Current per-minute ceilings are:
 - presence heartbeats: 240;
 - content views: 90.
 
-Migration `0007_public_analytics_abuse_guard.sql` is required before deploying Worker code that enables this guard.
+Runtime-incident ingestion uses its own Cloudflare edge rate-limiting binding at 30 requests/minute/client key; it does not add a D1 rate-counter row for every incident.
+
+Migration `0007_public_analytics_abuse_guard.sql` is required before deploying Worker code that enables the analytics guard. B2 runtime incidents use migration `0014_b2_runtime_incidents.sql`.
 
 Production Worker scheduled cleanup runs daily. Retention policy:
 
@@ -162,6 +178,7 @@ Production Worker scheduled cleanup runs daily. Retention policy:
 - `visitor_presence`: retain 2 days;
 - `visitor_events`: retain 90 days;
 - `content_view_events`: retain 90 days;
+- `runtime_incidents`: retain 7 days and bound storage to the latest 2,000 aggregate rows;
 - daily aggregate statistics: retained; they are not deleted by raw-event cleanup.
 
 ## SEO Ownership
@@ -187,18 +204,19 @@ Server-side Public API configuration uses `CLOUDFLARE_PUBLIC_API_URL`. Browser c
 
 When deployed to Vercel:
 
-- successful indexable Public SSR: browser `Cache-Control: public, max-age=0, must-revalidate`; Vercel CDN `public, max-age=120, stale-while-revalidate=3600`;
+- successful stable/indexable Public index/list SSR: browser `Cache-Control: public, max-age=0, must-revalidate`; Vercel CDN `public, max-age=120, stale-while-revalidate=3600`;
+- dynamic canonical content detail `/content/:slug`: `Cache-Control: no-store` and no shared Vercel CDN cache directive;
 - Public Shell browser query: stale after 2 minutes, refetches on window focus and reconnect;
 - Search and error responses: `Cache-Control: no-store`, no Vercel CDN cache directive;
 - permanent legacy redirects: browser revalidation plus Vercel CDN `max-age=86400, stale-while-revalidate=604800`;
 - `csr.html`: `no-store`, `X-Robots-Tag: noindex, nofollow`;
 - manifest-selected client entry/styles and lazy chunks use content-hashed filenames; the SSR build fails closed if the manifest-selected entry/styles are unavailable.
 
-This policy intentionally bounds stale navigation/settings exposure without disabling SSR/CDN caching globally.
+This policy intentionally prevents publish/delete checks and normal content-detail reads from observing stale shared-CDN content while retaining bounded caching for stable public index/list SSR surfaces.
 
 ## Production Deployment Boundaries
 
-- frontend/UI + Public SSR + Vercel functions/proxies -> Vercel;
+- frontend/UI + Public SSR + Vercel functions/proxies, including B3 `/api/health-aggregation` -> Vercel;
 - Worker source/config -> existing Cloudflare production Worker physical resource;
 - D1 schema and structured data -> existing canonical production D1;
 - Apps Script media bridge `.gs` -> Apps Script;
@@ -242,6 +260,6 @@ Complaint endpoint configuration is server-owned. `COMPLAINT_API_URI` may be sto
 
 ## Historical Documentation
 
-`docs/architecture/current-migration-status.md`, milestone readiness/cutover notes, `docs/architecture/m20-cleanup-runtime-ownership.md`, and the M5/M6 Preview provisioning/smoke documents retain historical value but are not the current ownership or environment source when they contain older provider/auth/cache/deployment descriptions.
+`docs/architecture/current-migration-status.md`, milestone readiness/cutover notes, `docs/architecture/m20-cleanup-runtime-ownership.md`, `docs/architecture/ssr-implementation-phases.md`, and the M5/M6 Preview provisioning/smoke documents retain historical value but are not the current ownership or environment source when they contain older provider/auth/cache/deployment descriptions.
 
-In particular, references in historical M5/M6 documents to a persistent non-production `preview` environment describe the migration process at that time. They do not describe the post-2026-08-16 runtime. See `docs/architecture/production-environment-convergence-2026-08-16.md`.
+In particular, references in historical M5/M6 documents to a persistent non-production `preview` environment describe the migration process at that time. They do not describe the post-2026-08-16 runtime. Historical SSR implementation-phase text describes the integration/cutover state before production activation and does not override the current SSR renderer, asset, provider, cache, or sitemap contracts in this document.
