@@ -57,6 +57,7 @@ const cmsAuthClosure = readFileSync(join(repositoryRoot, "docs/cms-auth-project-
 const cmsAuthCutover = readFileSync(join(repositoryRoot, "docs/cms-auth-final-cutover.md"), "utf8");
 
 const staleActiveStatusPatterns = [
+  /M21 owns remaining/i,
   /M21 stabilization is open/i,
   /M21\s+รับผิดชอบงาน\s+stabilization/i,
   /preview field verification in progress\.\s*M20 production cutover remains gated/i,
@@ -71,6 +72,7 @@ const staleActiveStatusPatterns = [
 
 const staleProductionD1Command =
   /d1\s+(?:info|export|execute|time-travel\s+(?:info|restore))\s+rcat-public-api-production/i;
+const stalePreviewD1Command = /d1\s+(?:migrations\s+apply|execute)[\s\S]{0,220}--env\s+preview/i;
 
 describe("current project-state consistency", () => {
   it("keeps stale current-state/runtime language out of current-facing guidance", () => {
@@ -146,11 +148,12 @@ describe("current project-state consistency", () => {
     expect(facebookImportRunbook).toContain("d1 execute rcat-public-api-local");
     expect(facebookImportRunbook).toContain("--env production");
     expect(facebookImportRunbook).not.toMatch(staleProductionD1Command);
-    expect(facebookImportRunbook).not.toContain("facebook:import:preview");
-    expect(facebookImportRunbook).not.toContain("--env preview");
+    expect(facebookImportRunbook).not.toContain("pnpm facebook:import:preview");
+    expect(facebookImportRunbook).not.toMatch(stalePreviewD1Command);
 
     expect(seedReadme).toContain("There is no persistent remote Preview environment");
-    expect(seedReadme).not.toContain("--env preview");
+    expect(seedReadme).not.toContain("--remote --env preview");
+    expect(seedReadme).not.toMatch(stalePreviewD1Command);
   });
 
   it("keeps the current warning inventory on the live toolchain and green repository baseline", () => {
@@ -208,6 +211,7 @@ describe("current project-state consistency", () => {
       expect(source).toContain(
         "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified"
       );
+      expect(source).toContain("production environment retirement follow-ups are complete and operator-verified");
       expect(source).toContain("C3");
       expect(source).toMatch(/manual(?:\/protected|-only)/i);
     }
