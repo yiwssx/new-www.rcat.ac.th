@@ -1,12 +1,8 @@
 import { createPublicSearchSnapshot } from "../adapters/publicSearchAdapter";
 import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
-import {
-  countSearchPublishedContentRows,
-  searchPublishedContentPageRows,
-  searchPublishedContentRows,
-  type PublicContentSummaryReadRow
-} from "../db/contentRepository";
+import { searchPublishedContentRows, type PublicContentSummaryReadRow } from "../db/contentRepository";
 import { readPublicShellMetadataRows } from "../db/publicMetadataRepository";
+import { searchPublishedContentPageWithCountRows } from "../db/publicSearchRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -67,12 +63,15 @@ export async function publicSearch(request: Request, env: Env) {
     let pagination: ReturnType<typeof createPagination> | undefined;
 
     if (paginationInput) {
-      const totalItems = await countSearchPublishedContentRows(env, query);
-      pagination = createPagination(paginationInput, totalItems);
-      rows = await searchPublishedContentPageRows(env, query, {
-        limit: pagination.pageSize,
-        offset: (pagination.page - 1) * pagination.pageSize
-      });
+      const result = await searchPublishedContentPageWithCountRows(env, query, paginationInput);
+      rows = result.rows;
+      pagination = createPagination(
+        {
+          page: result.page,
+          pageSize: result.pageSize
+        },
+        result.totalItems
+      );
     } else {
       rows = await searchPublishedContentRows(env, query);
     }
