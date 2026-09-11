@@ -1,12 +1,23 @@
 # Environment Variables
 
-Updated: 2026-09-09.
+Updated: 2026-09-11.
 
 This Vite app only exposes browser-readable variables whose names start with `VITE_`.
 
 Treat every `VITE_` value as public because it can be bundled into client JavaScript.
 
 Do not commit real environment values, deployment URLs for private environments, tokens, passwords, cookies, service account data, Access AUD values, D1 IDs, or any other secret material.
+
+## Verified Production Environment State
+
+On 2026-09-11 the operator directly inspected the live Vercel and Cloudflare environment configuration and confirmed:
+
+- Vercel Production uses the server-only `COMPLAINT_API_URI` for the dedicated complaint endpoint;
+- the retired compatibility variable `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment;
+- the CMS-auth observation follow-up is complete;
+- legacy-only CMS-authentication environment values governed by `docs/cms-auth-final-cutover.md` are retired from the applicable Vercel and Cloudflare live environments.
+
+This is operator-attested production evidence, recorded in `docs/operations/environment-retirement-verification-2026-09-11.md`. The application may retain compatibility parsing in server source, but retired variables are not current Production configuration and must not be restored merely because compatibility code still recognizes them.
 
 ## Vercel Build Toolchain
 
@@ -36,7 +47,7 @@ Configure the Cloudflare Public API origin server-side for SSR:
 
 Server-side code gives `CLOUDFLARE_PUBLIC_API_URL` precedence over the `VITE_` alias.
 
-The configured URL must be the canonical production Worker endpoint after cutover. The repository no longer defines a persistent Cloudflare Preview runtime. Vercel production values are maintained separately from the Worker/D1 repository release configuration.
+The configured URL must be the canonical production Worker endpoint. The repository no longer defines a persistent Cloudflare Preview runtime. Vercel production values are maintained separately from the Worker/D1 repository release configuration.
 
 ## Vercel Admin Proxy Variables
 
@@ -49,6 +60,8 @@ Configure these in Vercel environment settings.
 | `GOOGLE_APPS_SCRIPT_URL`   | Apps Script Web App URL used by the server-side media/file bridge.   |
 | `APPS_SCRIPT_WEB_APP_URL`  | Alternate Apps Script Web App URL accepted by the media/file bridge. |
 | `APPS_SCRIPT_BRIDGE_TOKEN` | Server-only bridge token shared with Apps Script where required.     |
+
+The legacy-only CMS-auth values listed in `docs/cms-auth-final-cutover.md` Stage D are retired from the live environments. Keep the current CMS Session/MFA/proxy boundary; do not restore shared-password, legacy-session, smoke-token, old Access-identity, or obsolete auth-flag configuration.
 
 ## Vercel Runtime Sitemap Variables
 
@@ -63,13 +76,13 @@ The runtime sitemap reads published News and Blog content and the Announcements 
 
 ## Complaint Proxy Variable
 
-Canonical server-only Vercel configuration:
+Canonical and verified live Vercel Production configuration:
 
 | Variable            | Purpose                                                                  |
 | ------------------- | ------------------------------------------------------------------------ |
 | `COMPLAINT_API_URI` | Dedicated complaint Apps Script `/exec` endpoint used only by the proxy. |
 
-The browser submits to same-origin `/api/complaint`; do not expose the complaint Apps Script endpoint to browser code.
+The browser submits to same-origin `/api/complaint`; do not expose the complaint Apps Script endpoint to browser code. `VITE_COMPLAINT_API_URI` is not current Production configuration and is verified absent from the live Vercel environment. Server-side compatibility parsing may remain for an old deployment, but that does not authorize reintroducing the variable.
 
 ## Cloudflare Worker Variables
 
@@ -89,7 +102,7 @@ The production Worker `DB` binding targets the existing data-bearing D1 whose le
 
 ## GitHub Production Release Secrets
 
-Cloudflare release workflows run only through the protected GitHub `Production` environment and require:
+Cloudflare release workflows run only through the protected GitHub `production` environment and require:
 
 | Secret                           | Purpose                                                                                                                 |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -97,7 +110,7 @@ Cloudflare release workflows run only through the protected GitHub `Production` 
 | `CLOUDFLARE_API_TOKEN`           | Protected Wrangler credential for the explicitly approved release workflow.                                             |
 | `RCAT_PRODUCTION_D1_DATABASE_ID` | UUID of the promoted data-bearing D1, physically still named `rcat-public-api-preview`; authoritative release identity. |
 
-The unused empty D1 that was physically named `rcat-public-api-production` was deleted on 2026-08-16. Set `RCAT_PRODUCTION_D1_DATABASE_ID` only to the UUID of the promoted data-bearing D1 and never commit that UUID to git.
+The unused empty D1 that was physically named `rcat-public-api-production` was deleted on 2026-08-16 and is not recreated. Set `RCAT_PRODUCTION_D1_DATABASE_ID` only to the UUID of the promoted data-bearing D1 and never commit that UUID to Git.
 
 ## Apps Script Media Bridge Variables
 
@@ -111,19 +124,21 @@ Configure these as server-side variables only.
 
 Do not expose bridge URLs, bridge tokens, the CMS proxy secret, MFA encryption material, or D1 identifiers through `VITE_` variables.
 
-## Removed From Current Frontend Runtime
+## Removed From Current Frontend / Production Runtime
 
-The following are not current frontend runtime configuration and must not be restored:
+The following are not current frontend/Production configuration and must not be restored:
 
 - `VITE_PUBLIC_API_PROVIDER`;
 - `VITE_GOOGLE_APPS_SCRIPT_URL`;
+- `VITE_COMPLAINT_API_URI` in the live Vercel environment;
+- legacy-only CMS-authentication environment values retired by the final cutover;
 - browser-selected Admin provider/migration modes for production structured data;
 - a persistent Cloudflare Preview environment selector.
 
-The current admin runtime uses the Vercel CMS Admin proxy and the role stored in Cloudflare D1. The public frontend and runtime sitemap use the Cloudflare public API. Apps Script remains server-side only for the media/file bridge through `GOOGLE_APPS_SCRIPT_URL` or `APPS_SCRIPT_WEB_APP_URL`.
+The current admin runtime uses the Vercel CMS Admin proxy and the role/capabilities derived from Cloudflare D1. The public frontend and runtime sitemap use the Cloudflare public API. Apps Script remains server-side only for the media/file bridge and the isolated complaint destination through their respective Vercel proxy boundaries.
 
 ## Current Status
 
-M20 migration/runtime/domain-cutover scope is closed. Cloudflare environment convergence makes local development plus one protected production runtime the current model. Environment changes must still follow the deployment boundary and secret-handling rules; closure does not authorize unrelated production mutation.
+The project is in the post-P5H production governance and maintenance baseline. Reliability Roadmap v2 Phase 0, Phase A, Phase B/B1-B3, and Phase C are complete; no reliability implementation phase is active. Cloudflare environment convergence is local development plus one protected production runtime. Operator verification on 2026-09-11 closed the complaint-variable migration and CMS-auth legacy-environment retirement follow-ups.
 
-See `docs/architecture/production-environment-convergence-2026-08-16.md` for the canonical environment naming decision.
+See `docs/architecture/post-p5h-current-project-state.md`, `docs/architecture/current-runtime-ownership.md`, `docs/architecture/production-environment-convergence-2026-08-16.md`, and `docs/operations/environment-retirement-verification-2026-09-11.md` for the current state.
