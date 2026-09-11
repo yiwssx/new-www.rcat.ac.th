@@ -4,11 +4,14 @@ Updated: 2026-09-11.
 
 Current project status is defined by `docs/architecture/post-p5h-current-project-state.md`. M20/M21 are historical migration/stabilization records, not active phases. Reliability Roadmap v2 is complete: Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. This checklist validates a release candidate; it does not authorize unrelated production mutation.
 
+Current production environment baseline is also closed and verified: live Vercel uses server-only `COMPLAINT_API_URI`, retired `VITE_COMPLAINT_API_URI` is absent, and the CMS-auth observation/legacy-only environment retirement follow-ups are complete for the applicable Vercel/Cloudflare environments. See `docs/operations/environment-retirement-verification-2026-09-11.md`. Do not turn completed retirement work back into a release prerequisite that restores old variables.
+
 ## Launch-critical checks
 
 - [ ] Cloudflare public/admin structured status verified for the approved environment.
 - [ ] Apps Script media bridge status verified if media/file operations are in scope.
 - [ ] Apps Script deployed only if latest `apps-script/` media bridge changes require it.
+- [ ] Complaint proxy verified through same-origin `/api/complaint` if complaint behavior changed; do not expose or restore a browser `VITE_` complaint endpoint.
 - [ ] Admin account tested.
 - [ ] Editor account tested.
 - [ ] Public structured data loads from Cloudflare Worker/D1.
@@ -80,7 +83,7 @@ Current project status is defined by `docs/architecture/post-p5h-current-project
 - [ ] Revert latest commit if the issue is frontend-only and redeploy.
 - [ ] Re-deploy previous Vercel deployment if immediate rollback is needed.
 - [ ] For Apps Script media bridge issues, redeploy previous Apps Script version if available.
-- [ ] For structured data issues, follow the Cloudflare/D1 operator-approved rollback or pause plan.
+- [ ] For structured data issues, follow the Cloudflare/D1 operator-approved rollback or pause plan using the canonical production D1 physical resource `rcat-public-api-preview` under `env.production`.
 
 ## Known limitations
 
