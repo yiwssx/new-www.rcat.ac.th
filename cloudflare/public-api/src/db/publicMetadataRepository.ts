@@ -55,6 +55,8 @@ export type PublicHomeMetadataRows = Pick<
   "media" | "carouselSlides" | "externalServices" | "events"
 >;
 
+export type PublicHomeCoreMetadataRows = Omit<PublicHomeMetadataRows, "media">;
+
 export async function readPublicShellMetadataRows(env: Env): Promise<PublicShellMetadataRows> {
   const [siteSettings, homepageSettings, displaySettings, menu] = await Promise.all([
     readSingleton<SiteSettingsRow>(env, "site_settings", SITE_SETTINGS_ROW_COLUMNS),
@@ -106,12 +108,8 @@ export async function readPublicMediaRowsByIds(env: Env, ids: readonly string[])
   return rows.flat();
 }
 
-export async function readPublicHomeMetadataRows(env: Env): Promise<PublicHomeMetadataRows> {
-  const [media, carouselSlides, externalServices, events] = await Promise.all([
-    readRows<MediaAssetRow>(
-      env,
-      `SELECT ${MEDIA_ASSET_ROW_COLUMNS.join(", ")} FROM media_assets ORDER BY updated_at DESC`
-    ),
+export async function readPublicHomeCoreMetadataRows(env: Env): Promise<PublicHomeCoreMetadataRows> {
+  const [carouselSlides, externalServices, events] = await Promise.all([
     readRows<CarouselSlideRow>(
       env,
       `SELECT ${CAROUSEL_SLIDE_ROW_COLUMNS.join(", ")} FROM carousel_slides WHERE enabled = ? ORDER BY sort_order ASC`,
@@ -133,7 +131,13 @@ export async function readPublicHomeMetadataRows(env: Env): Promise<PublicHomeMe
     )
   ]);
 
-  return { media, carouselSlides, externalServices, events };
+  return { carouselSlides, externalServices, events };
+}
+
+export async function readPublicHomeMetadataRows(env: Env): Promise<PublicHomeMetadataRows> {
+  const [media, core] = await Promise.all([readPublicMediaRows(env), readPublicHomeCoreMetadataRows(env)]);
+
+  return { media, ...core };
 }
 
 export async function readPublicMetadataRows(env: Env): Promise<PublicMetadataRows> {
