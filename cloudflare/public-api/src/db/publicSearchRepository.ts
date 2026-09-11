@@ -4,9 +4,9 @@ import { logD1QueryUsage } from "./d1QueryUsage";
 import { requireD1Database } from "./documentsRepository";
 import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } from "./publicContentVisibility";
 
-interface SearchPageRow extends PublicContentSummaryReadRow {
+type SearchPageRow = PublicContentSummaryReadRow & {
   total_items?: number | string;
-}
+};
 
 export interface PublicSearchPageResult {
   rows: PublicContentSummaryReadRow[];
