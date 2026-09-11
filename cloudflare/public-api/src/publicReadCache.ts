@@ -74,12 +74,7 @@ export async function readPublicReadCache(request: Request, env: Env): Promise<R
   return (await cache.match(createCacheKey(request))) ?? null;
 }
 
-export function storePublicReadCache(
-  request: Request,
-  env: Env,
-  response: Response,
-  context?: ExecutionContext
-) {
+export function storePublicReadCache(request: Request, env: Env, response: Response, context?: ExecutionContext) {
   const ttlSeconds = getPublicReadCacheTtlSeconds(request);
 
   if (!isPublicReadCacheEligible(request, env) || ttlSeconds <= 0 || response.status !== 200) {
