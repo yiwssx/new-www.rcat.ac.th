@@ -1,10 +1,10 @@
 import { createPublicHomeSnapshot } from "../adapters/publicHomeAdapter";
 import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
-import { createPublicVisitorStatsSnapshot } from "../adapters/publicVisitorStatsAdapter";
-import { listAllPublishedContentSummaryRows } from "../db/contentRepository";
-import { listPublishedDocumentRows } from "../db/documentsRepository";
+import { createPublicVisitorStatsSnapshotFromAggregate } from "../adapters/publicVisitorStatsAdapter";
+import { listHomePublishedContentSummaryRows } from "../db/homeContentRepository";
+import { listHomePublishedDocumentRows } from "../db/homeDocumentsRepository";
 import { readPublicHomeCoreMetadataRows, readPublicMediaRowsByIds } from "../db/publicMetadataRepository";
-import { countOnlineVisitors, listVisitorDailyStatsRows } from "../db/visitorStatsRepository";
+import { countOnlineVisitors, readVisitorStatsAggregate } from "../db/visitorStatsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -54,14 +54,14 @@ export async function publicHome(env: Env) {
 
   try {
     const generatedAt = new Date();
-    const [content, featuredDocuments, homeCoreRows, visitorRows, onlineUsers] = await Promise.all([
-      listAllPublishedContentSummaryRows(env),
-      listPublishedDocumentRows(env),
+    const [content, featuredDocuments, homeCoreRows, visitorAggregate, onlineUsers] = await Promise.all([
+      listHomePublishedContentSummaryRows(env),
+      listHomePublishedDocumentRows(env),
       readPublicHomeCoreMetadataRows(env),
-      listVisitorDailyStatsRows(env),
+      readVisitorStatsAggregate(env, generatedAt),
       countOnlineVisitors(env, generatedAt)
     ]);
-    const visitorStats = createPublicVisitorStatsSnapshot(visitorRows, generatedAt, onlineUsers);
+    const visitorStats = createPublicVisitorStatsSnapshotFromAggregate(visitorAggregate, generatedAt, onlineUsers);
     const metadataRows = {
       siteSettings: null,
       homepageSettings: null,
