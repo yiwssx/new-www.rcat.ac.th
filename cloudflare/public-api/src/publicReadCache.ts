@@ -4,7 +4,6 @@ const DEFAULT_PUBLIC_READ_TTL_SECONDS = 300;
 const HOME_PUBLIC_READ_TTL_SECONDS = 15 * 60;
 const VISITOR_STATS_TTL_SECONDS = 5 * 60;
 const SEARCH_TTL_SECONDS = 5 * 60;
-const MAX_SEARCH_QUERY_LENGTH = 160;
 
 export type PublicReadCacheStatus = "HIT" | "MISS" | "BYPASS";
 
@@ -50,7 +49,7 @@ function boundedPageSize(value: string | null, fallback: number) {
 
 function createCanonicalSearchUrl(url: URL) {
   const canonical = new URL(url.origin + url.pathname);
-  const query = (url.searchParams.get("q") ?? "").trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
+  const query = (url.searchParams.get("q") ?? "").trim();
   const page = positiveInteger(url.searchParams.get("page"));
 
   if (query) {
