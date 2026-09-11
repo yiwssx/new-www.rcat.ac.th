@@ -12,6 +12,7 @@ const expectedFunctions = [
   "apps-script-proxy.mjs",
   "cms-auth.mjs",
   "complaint.mjs",
+  "health-aggregation.mjs",
   "sitemap.mjs",
   "ssr.ts"
 ];
@@ -55,10 +56,10 @@ function listExecutableApiFiles(directory, prefix = "") {
 }
 
 describe("direct Vercel Function budget", () => {
-  it("keeps exactly the six reviewed direct Functions including Complaint and Public SSR", () => {
+  it("keeps exactly the seven reviewed direct Functions including B3 Health Aggregation", () => {
     const functions = listExecutableApiFiles(apiDirectory);
 
-    expect(functions).toHaveLength(6);
+    expect(functions).toHaveLength(7);
     expect(functions).toEqual(expectedFunctions);
   });
 
