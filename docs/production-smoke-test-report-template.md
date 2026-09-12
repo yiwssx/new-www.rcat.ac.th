@@ -201,7 +201,7 @@ Public structured data has no `VITE_PUBLIC_API_PROVIDER` selector. Browser code 
 - [ ] Speed Insights does not show obvious regression
 - [ ] First load performance remains acceptable
 
-**Exact-deployment note:** Phase A currently gates on GitHub's `Vercel` commit-status context. A `success` status can also represent `Canceled by Ignored Build Step`, so record the actual Vercel deployment ID/URL above when exact-SHA deployment evidence matters.
+**Exact-deployment note:** Phase A now fails closed when GitHub's `Vercel` status is `Canceled by Ignored Build Step`/`Ignored Build Step` or when a successful status has no deployment `target_url`. A passing automatic Phase A run therefore cannot start from an ignored build. Record the actual Vercel deployment ID/URL above whenever the release process requires deployment-record evidence in addition to the commit-linked gate.
 
 **Evidence / notes:**
 

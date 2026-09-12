@@ -58,24 +58,39 @@ jobs:
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/status")"
 
-            state="$(printf '%s' "$payload" | node -e '
+            status_json="$(printf '%s' "$payload" | node -e '
               let input = "";
               process.stdin.setEncoding("utf8");
               process.stdin.on("data", (chunk) => (input += chunk));
               process.stdin.on("end", () => {
                 const payload = JSON.parse(input);
                 const vercel = payload.statuses.find((status) => status.context === "Vercel");
-                process.stdout.write(vercel?.state || "missing");
+                process.stdout.write(JSON.stringify({
+                  state: vercel?.state || "missing",
+                  description: vercel?.description || "",
+                  targetUrl: vercel?.target_url || ""
+                }));
               });
             ')"
+            state="$(printf '%s' "$status_json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).state')"
+            description="$(printf '%s' "$status_json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).description')"
+            target_url="$(printf '%s' "$status_json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).targetUrl')"
 
             case "$state" in
               success)
-                echo "Vercel deployment for $TARGET_SHA is ready."
+                if [[ "$description" == *"Canceled by Ignored Build Step"* || "$description" == *"Ignored Build Step"* ]]; then
+                  echo "Vercel did not create a production deployment for $TARGET_SHA: $description" >&2
+                  exit 1
+                fi
+                if [[ -z "$target_url" ]]; then
+                  echo "Vercel status for $TARGET_SHA is missing a deployment target URL." >&2
+                  exit 1
+                fi
+                echo "Vercel production deployment for $TARGET_SHA is ready: $target_url"
                 exit 0
                 ;;
               failure|error)
-                echo "Vercel deployment for $TARGET_SHA failed with state: $state" >&2
+                echo "Vercel deployment for $TARGET_SHA failed with state: $state ($description)" >&2
                 exit 1
                 ;;
               pending|missing)
@@ -83,7 +98,7 @@ jobs:
                 sleep 10
                 ;;
               *)
-                echo "Unexpected Vercel commit status: $state" >&2
+                echo "Unexpected Vercel commit status: $state ($description)" >&2
                 exit 1
                 ;;
             esac
@@ -133,7 +148,7 @@ jobs:
             echo "- Commit: $TARGET_SHA"
             echo "- Trigger: ${{ github.event_name }}"
             echo "- Mode: read-only"
-            echo "- Automatic path: successful master CI -> matching Vercel deployment -> browser smoke"
+            echo "- Automatic path: successful master CI -> non-ignored Vercel deployment status with target URL -> browser smoke"
             echo "- Browsers: desktop Chromium + mobile Chromium"
             echo "- Runtime diagnostics: page errors, same-origin console errors, request failures, HTTP 5xx, critical asset/document 4xx"
             echo "- Production writes: none"

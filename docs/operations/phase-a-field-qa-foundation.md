@@ -14,7 +14,7 @@ The normal Phase A path is automation-first:
 
 1. a change reaches `master`;
 2. repository CI completes successfully for that exact commit SHA;
-3. the workflow waits for the GitHub commit-status context `Vercel` on that SHA to report `success`;
+3. the workflow waits for the GitHub commit-status context `Vercel` on that SHA to report `success`, rejects `Ignored Build Step` outcomes, and requires a deployment target URL;
 4. the production Playwright smoke runs automatically against `https://www.rcat.ac.th`.
 
 `workflow_dispatch` remains available only as an operational fallback for reruns, controlled alternative-URL verification, or recovery checks. It is not the primary operating path.
@@ -110,9 +110,11 @@ The workflow listens for completion of the repository `CI` workflow. It runs aut
 
 The workflow then queries the GitHub combined commit status for the same `head_sha` and waits for context `Vercel` to report `success` before running the browser smoke.
 
-This is a commit-status gate, not a direct Vercel deployment-record lookup. Vercel can report a successful GitHub status when an Ignored Build Step cancels creation of a new deployment. In that case Phase A still tests the current production site, but the status alone must not be described as proof that production is serving that exact SHA. B3 already distinguishes the `Canceled by Ignored Build Step` description in its deployment metadata, and C3 independently fails closed on that condition for its exact-deployment mutable verification.
+This is a commit-status gate, not a direct Vercel deployment-record lookup. Phase A now fails closed when a successful Vercel status says `Canceled by Ignored Build Step` or otherwise contains `Ignored Build Step`, because that means no new deployment was created for the commit. It also fails closed when the successful status has no `target_url`. Only a non-ignored successful status with a deployment target URL is accepted before the production browser smoke starts.
 
-If the Vercel commit status reports `failure` or `error`, or never reaches `success` inside the workflow's bounded wait, Phase A fails closed and does not run the browser smoke.
+This closes the previous false-positive path where an ignored build could be described as a ready matching deployment. The gate still does not independently query Vercel's deployment API, so workflows that require a Vercel deployment ID or separate deployment-record attestation must collect that evidence explicitly.
+
+If the Vercel commit status reports `failure` or `error`, matches an ignored-build outcome, lacks a deployment target URL, or never reaches acceptable `success` inside the workflow's bounded wait, Phase A fails closed and does not run the browser smoke.
 
 ## Manual fallback
 
@@ -142,8 +144,8 @@ Phase A is complete because:
 2. desktop and mobile read-only production scenarios are present;
 3. console/page/network diagnostics are enforced;
 4. the QA scenario library is stored in the repository;
-5. successful `master` CI automatically waits for the matching SHA's Vercel commit-status context and then runs the production browser smoke;
+5. successful `master` CI waits for a non-ignored successful Vercel status with a deployment target URL for the matching SHA before running the production browser smoke;
 6. manual dispatch remains only a fallback;
 7. repository CI and governance remain green.
 
-The commit-status limitation documented above is an operational precision issue in the ongoing guard, not evidence that the completed Phase A implementation phase is reopened.
+The ignored-build false-positive path is guarded in the ongoing Phase A workflow and regression contract. This maintenance hardening does not reopen the completed Phase A implementation phase.
