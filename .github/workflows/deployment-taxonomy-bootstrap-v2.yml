@@ -19,7 +19,19 @@ jobs:
           ref: chore/deployment-history-taxonomy
           fetch-depth: 0
       - name: Apply deployment taxonomy migration
-        run: python .github/scripts/deployment-taxonomy-bootstrap.py
+        run: |
+          python .github/scripts/deployment-taxonomy-bootstrap.py
+          python - <<'PY'
+          from pathlib import Path
+          for path in [
+              ".github/workflows/apps-script-production-release.yml",
+              ".github/workflows/apps-script-production-rollback.yml",
+              ".github/workflows/worker-production.yml",
+              ".github/workflows/worker-production-rollback.yml",
+          ]:
+              p = Path(path)
+              p.write_text(p.read_text(encoding="utf-8").rstrip() + "\n", encoding="utf-8")
+          PY
       - name: Commit transformed branch
         shell: bash
         run: |
