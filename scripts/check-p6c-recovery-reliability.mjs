@@ -83,7 +83,9 @@ if (/d1\s+time-travel\s+restore/.test(d1Drill.replace(/grep[^\n]+restore[^\n]*/g
   fail("D1 readiness drill must not execute a Time Travel restore");
 }
 if (!d1Drill.includes("name: production") || !d1Drill.includes("deployment: false")) {
-  fail("D1 readiness drill must remain behind the protected production Environment without publishing a pseudo-deployment");
+  fail(
+    "D1 readiness drill must remain behind the protected production Environment without publishing a pseudo-deployment"
+  );
 }
 
 const workerRollback = read(".github/workflows/worker-production-rollback.yml");
