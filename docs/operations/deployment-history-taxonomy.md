@@ -12,4 +12,4 @@ External deployments use service-specific history names:
 
 Preflight, observability, security diagnostics, D1 recovery readiness, data-integrity checks, authenticated field verification, link audits, and metadata maintenance may use protected production secrets but must not publish deployment records.
 
-`Deployment History Maintenance` removes deployment records whose latest status is `failure` or `error`, plus legacy generic `production` pseudo-deployments emitted by GitHub Actions. Successful Vercel and service-specific deployment records are preserved.
+`Deployment History Maintenance` removes deployment records whose latest status is `failure` or `error`, plus legacy generic `production` pseudo-deployments emitted by GitHub Actions. Successful Vercel and service-specific deployment records are preserved. The cleanup is idempotent and leaves deployment records outside these explicit categories untouched.
