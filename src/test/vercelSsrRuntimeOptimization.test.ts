@@ -23,9 +23,7 @@ describe("Vercel Public SSR runtime optimization", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    const response = await handleVercelPublicSsrRequest(
-      new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/null")
-    );
+    const response = await handleVercelPublicSsrRequest(new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/null"));
 
     expect(response.status).toBe(404);
     expect(response.headers.get("Vercel-CDN-Cache-Control")).toBe(PUBLIC_NOT_FOUND_CDN_CACHE_CONTROL);

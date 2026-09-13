@@ -85,7 +85,10 @@ describe("runtime sitemap cache and degradation", () => {
 
   it("returns a cacheable static fallback instead of propagating an upstream 503", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
-    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "unavailable" }, { status: 503 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ error: "unavailable" }, { status: 503 }))
+    );
 
     const response = createResponseRecorder();
     await sitemap(createRequest(), response);

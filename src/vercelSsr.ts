@@ -45,9 +45,7 @@ function normalizeRewritePath(value: string | null) {
 
 function isLegacyPermalinkPath(pathname: string) {
   return (
-    /^\/[^/]+$/.test(pathname) &&
-    !STATIC_PUBLIC_SSR_PATHS.has(pathname) &&
-    !RESERVED_SINGLE_SEGMENT_PATHS.has(pathname)
+    /^\/[^/]+$/.test(pathname) && !STATIC_PUBLIC_SSR_PATHS.has(pathname) && !RESERVED_SINGLE_SEGMENT_PATHS.has(pathname)
   );
 }
 
@@ -193,7 +191,8 @@ async function resolveLegacyPermalinkResponse(request: Request) {
   }
 
   const slug = decodePathSegment(url.pathname.slice(1));
-  const { getPublicContentDetailSnapshot, isPublicContentNotFoundError } = await import("./features/public-content/api");
+  const { getPublicContentDetailSnapshot, isPublicContentNotFoundError } =
+    await import("./features/public-content/api");
 
   try {
     await getPublicContentDetailSnapshot({ slug }, { signal: request.signal });
