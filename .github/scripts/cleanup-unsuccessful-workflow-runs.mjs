@@ -34,9 +34,7 @@ async function github(path, options = {}) {
 async function listCompletedRuns() {
   const all = [];
   for (let page = 1; ; page += 1) {
-    const result = await github(
-      `/repos/${repository}/actions/runs?status=completed&per_page=100&page=${page}`
-    );
+    const result = await github(`/repos/${repository}/actions/runs?status=completed&per_page=100&page=${page}`);
     const batch = result?.workflow_runs || [];
     all.push(...batch);
     if (batch.length < 100) return all;
@@ -44,9 +42,7 @@ async function listCompletedRuns() {
 }
 
 const runs = await listCompletedRuns();
-const targets = runs.filter(
-  (run) => run.id !== currentRunId && run.conclusion && run.conclusion !== "success"
-);
+const targets = runs.filter((run) => run.id !== currentRunId && run.conclusion && run.conclusion !== "success");
 
 const byConclusion = new Map();
 for (const run of targets) {
