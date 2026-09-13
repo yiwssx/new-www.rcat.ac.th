@@ -82,8 +82,8 @@ if (!d1Drill.includes("secrets.CLOUDFLARE_D1_READ_TOKEN")) {
 if (/d1\s+time-travel\s+restore/.test(d1Drill.replace(/grep[^\n]+restore[^\n]*/g, ""))) {
   fail("D1 readiness drill must not execute a Time Travel restore");
 }
-if (!d1Drill.includes("environment: production")) {
-  fail("D1 readiness drill must remain behind the protected production Environment");
+if (!d1Drill.includes("name: production") || !d1Drill.includes("deployment: false")) {
+  fail("D1 readiness drill must remain behind the protected production Environment without publishing a pseudo-deployment");
 }
 
 const workerRollback = read(".github/workflows/worker-production-rollback.yml");
@@ -93,7 +93,9 @@ for (const contract of [
   "CMS_AUTH_RATE_LIMITER",
   "ADMIN_API_RATE_LIMITER",
   "secrets.CLOUDFLARE_API_TOKEN",
-  "environment: production",
+  "name: production",
+  "deployment: false",
+  "DEPLOYMENT_ENVIRONMENT: cloudflare-production",
   "scripts/deploy-worker-runtime-rollback.mjs",
   "scripts/p6c-production-reliability-smoke.mjs"
 ]) {
@@ -119,7 +121,9 @@ if (!workerRollbackHelper.includes("createProductionWranglerConfig")) {
 const appsScriptRollback = read(".github/workflows/apps-script-production-rollback.yml");
 for (const contract of [
   "ROLLBACK_EXISTING_APPS_SCRIPT_WEB_APP",
-  "environment: production",
+  "name: production",
+  "deployment: false",
+  "DEPLOYMENT_ENVIRONMENT: apps-script-production",
   "secrets.CLASPRC_JSON",
   "secrets.CLASP_JSON",
   "secrets.APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID",
