@@ -22,8 +22,8 @@ for (const [name, source] of [
   if (!source.includes("github.ref == 'refs/heads/master'")) {
     fail(`${name} workflow must run only from master`);
   }
-  if (!source.includes("environment: production")) {
-    fail(`${name} workflow must use the protected production Environment`);
+  if (!source.includes("name: production") || !source.includes("deployment: false")) {
+    fail(`${name} workflow must use the protected production Environment without creating a generic deployment record`);
   }
   for (const secret of ["secrets.CLASPRC_JSON", "secrets.CLASP_JSON", "secrets.APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID"]) {
     if (!source.includes(secret)) {
@@ -39,6 +39,14 @@ for (const [name, source] of [
   if (source.includes("delete-deployment") || source.includes("undeploy")) {
     fail(`${name} workflow must never delete a deployment`);
   }
+}
+
+
+if (!release.includes("DEPLOYMENT_ENVIRONMENT: apps-script-production")) {
+  fail("release workflow must publish Apps Script deployments under apps-script-production");
+}
+if (!rollback.includes("DEPLOYMENT_ENVIRONMENT: apps-script-production")) {
+  fail("rollback workflow must publish Apps Script deployments under apps-script-production");
 }
 
 if (!release.includes("DEPLOY_EXISTING_APPS_SCRIPT_WEB_APP")) {

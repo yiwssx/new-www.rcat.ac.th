@@ -16,7 +16,9 @@ jobs:
     name: Authenticated disposable CMS field
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    environment: production
+    environment:
+      name: production
+      deployment: false
     env:
       TARGET_URL: https://www.rcat.ac.th
       PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview

@@ -21,7 +21,9 @@ jobs:
     name: Production Time Travel Readiness
     if: ${{ inputs.acknowledge_read_only_production == true && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      deployment: false
     env:
       PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
 
@@ -146,41 +148,3 @@ jobs:
             echo "- Time Travel restore: not present in this workflow"
             echo "- Production D1 write: none"
           } >> "$GITHUB_STEP_SUMMARY"
-
-  retire-environment-deployment:
-    name: Retire drill environment deployment
-    needs: production-readiness
-    if: ${{ always() && inputs.acknowledge_read_only_production == true && github.ref == 'refs/heads/master' }}
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      deployments: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Delete this drill's GitHub Environment pseudo-deployment
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          gh api "/repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/d1-drill-run.json"
-          gh api "/repos/$GH_REPO/deployments?sha=$GITHUB_SHA&per_page=100" > "$RUNNER_TEMP/d1-drill-deployments.json"
-
-          deployment_id="$(node scripts/resolve-d1-drill-environment-deployment.mjs \
-            --run "$RUNNER_TEMP/d1-drill-run.json" \
-            --deployments "$RUNNER_TEMP/d1-drill-deployments.json" \
-            --sha "$GITHUB_SHA" \
-            --actor "$GITHUB_ACTOR")"
-
-          gh api --method POST "/repos/$GH_REPO/deployments/$deployment_id/statuses" \
-            -f state=inactive \
-            -f environment=production \
-            -f description='D1 recovery drill credential-gate deployment retired' >/dev/null
-
-          gh api --method DELETE "/repos/$GH_REPO/deployments/$deployment_id"
-          echo "Retired and deleted the current D1 drill GitHub Environment pseudo-deployment; workflow run remains as audit evidence."

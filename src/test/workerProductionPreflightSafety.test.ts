@@ -6,7 +6,8 @@ import preflightSource from "../../cloudflare/public-api/scripts/worker-producti
 describe("P5 Worker production preflight safety", () => {
   it("keeps the standalone preflight master-only, protected, and read-only", () => {
     expect(preflightWorkflow).toContain("github.ref == 'refs/heads/master'");
-    expect(preflightWorkflow).toMatch(/environment:\s*production/);
+    expect(preflightWorkflow).toContain("name: production");
+    expect(preflightWorkflow).toContain("deployment: false");
     expect(preflightWorkflow).toContain("worker-production-preflight.mjs");
     expect(preflightWorkflow).toContain("PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview");
     expect(preflightWorkflow).toContain('d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME"');

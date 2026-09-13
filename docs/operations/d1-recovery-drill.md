@@ -16,9 +16,7 @@ The workflow may run only from `master` after explicit acknowledgement that the 
 
 `CLOUDFLARE_D1_READ_TOKEN` is a dedicated account-scoped token with D1 Read only. The drill must never fall back to the privileged `CLOUDFLARE_API_TOKEN` used by cleanup/migration/release/deploy workflows.
 
-GitHub creates an Environment deployment record whenever a job references the protected `production` environment, even when the job is only using that environment as a credential gate. After the read-only readiness job finishes, a separate cleanup job resolves exactly the Environment deployment created for the current workflow attempt, marks it inactive, and deletes that pseudo-deployment. The workflow run itself remains the audit record. The cleanup job fails closed if it cannot identify exactly one matching deployment and does not interact with Cloudflare resources.
-
-Deployment matching lives in the unit-tested `scripts/resolve-d1-drill-environment-deployment.mjs` helper rather than inline workflow code. It requires the exact master SHA, actor, GitHub Actions app, Environment classification, and run-time window.
+The read-only readiness job uses the protected `production` Environment with `deployment: false`. GitHub still applies the Environment's credential and approval boundary, but no GitHub Deployment object is created for this verification-only run. The workflow run remains the audit record, and no deployment-history cleanup job is required.
 
 The authoritative Time Travel readiness gate is successful execution of `wrangler d1 time-travel info rcat-public-api-preview --json` together with a non-empty bookmark. The bookmark is retained only in runner temporary storage and is not printed or committed.
 
@@ -38,9 +36,9 @@ The workflow:
 6. invokes Wrangler's read-only Time Travel info command;
 7. requires a non-empty current bookmark as readiness proof;
 8. writes a summary confirming no restore or production D1 write occurred;
-9. retires and deletes only the GitHub Environment pseudo-deployment created for the current drill attempt while retaining the workflow run as audit evidence.
+9. retains the workflow run as audit evidence without creating a GitHub Deployment object.
 
-Missing credentials, insufficient D1 Read permission, D1 identity mismatch, failure to retrieve a Time Travel bookmark, Wrangler command incompatibility, or an ambiguous GitHub Environment deployment match is a drill failure. Do not bypass the boundary by restoring the privileged production token to this workflow.
+Missing credentials, insufficient D1 Read permission, D1 identity mismatch, failure to retrieve a Time Travel bookmark, or Wrangler command incompatibility is a drill failure. Do not bypass the boundary by restoring the privileged production token to this workflow.
 
 ## Evidence To Record
 
@@ -52,7 +50,7 @@ For every quarterly drill, record outside source control when it contains accoun
 - whether the exact production D1 identity resolved;
 - whether production metadata resolved;
 - whether Time Travel returned a current bookmark;
-- whether the transient GitHub Environment deployment record was retired successfully;
+- whether the run completed without creating a GitHub Deployment object;
 - credential/access blockers;
 - command drift or Wrangler incompatibility;
 - elapsed time from drill start to successful readiness confirmation;
