@@ -31,14 +31,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function toJsonSafeValue(value: unknown): PublicHydrationJsonValue {
-  const serialized = JSON.stringify(value);
-
-  if (serialized === undefined) {
+function assertJsonSerializable(value: unknown) {
+  if (JSON.stringify(value) === undefined) {
     throw new TypeError("Public SSR query hydration state must be JSON-serializable.");
   }
-
-  return JSON.parse(serialized) as PublicHydrationJsonValue;
 }
 
 export function dehydrateAppQueryClient(queryClient: QueryClient): AppRouterDehydratedData {
@@ -51,16 +47,18 @@ export function dehydrateAppQueryClient(queryClient: QueryClient): AppRouterDehy
       );
     }
   });
-  const jsonSafeState = toJsonSafeValue(dehydrated);
 
-  if (!isRecord(jsonSafeState) || !Array.isArray(jsonSafeState.mutations) || !Array.isArray(jsonSafeState.queries)) {
-    throw new TypeError("Public SSR query hydration state is invalid.");
+  // Production SSR already serializes this state when TanStack Router writes the
+  // document payload. Avoid the former stringify+parse deep clone on every request;
+  // keep the serializability assertion in development where it is actionable.
+  if (import.meta.env.DEV) {
+    assertJsonSerializable(dehydrated);
   }
 
   return {
     queryClientState: {
-      mutations: jsonSafeState.mutations,
-      queries: jsonSafeState.queries
+      mutations: dehydrated.mutations as unknown as PublicHydrationJsonValue[],
+      queries: dehydrated.queries as unknown as PublicHydrationJsonValue[]
     }
   };
 }

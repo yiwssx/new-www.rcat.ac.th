@@ -16,9 +16,10 @@ describe("Vercel SSR cutover routing", () => {
     expect(config.buildCommand).toContain("prepare-ssr-cutover-output.mjs");
     expect(config.functions?.["api/ssr.ts"]?.supportsCancellation).toBe(true);
     expect(config.buildCommand).toContain("vite build --ssr src/vercelSsr.ts");
+    expect(config.trailingSlash).toBe(false);
   });
 
-  it("keeps Admin/Auth on the CSR fallback and sends the remaining application paths to SSR", async () => {
+  it("keeps Admin/Auth on CSR and only sends supported public route shapes to SSR", async () => {
     const config = await readVercelConfig();
     const rewrites = config.rewrites || [];
     const destinationFor = (source) => rewrites.find((rewrite) => rewrite.source === source)?.destination;
@@ -28,8 +29,29 @@ describe("Vercel SSR cutover routing", () => {
     expect(destinationFor("/reset-password")).toBe("/csr.html");
     expect(destinationFor("/admin")).toBe("/csr.html");
     expect(destinationFor("/admin/:path*")).toBe("/csr.html");
-    expect(destinationFor("/(.*)")).toBe("/api/ssr?_rcatPath=/$1");
-    expect(rewrites.at(-1)?.source).toBe("/(.*)");
+
+    expect(destinationFor("/")).toBe("/api/ssr?_rcatPath=/");
+    expect(destinationFor("/news")).toBe("/api/ssr?_rcatPath=/news");
+    expect(destinationFor("/complaint")).toBe("/api/ssr?_rcatPath=/complaint");
+    expect(destinationFor("/ita2569")).toBe("/api/ssr?_rcatPath=/ita2569");
+    expect(destinationFor("/content/:slug")).toBe("/api/ssr?_rcatPath=/content/:slug");
+    expect(destinationFor("/:slug")).toBe("/api/ssr?_rcatPath=/:slug");
+
+    expect(destinationFor("/(.*)")).toBeUndefined();
+    expect(rewrites.at(-1)?.source).toBe("/:slug");
+  });
+
+  it("canonicalizes common legacy entry paths before they can reach SSR", async () => {
+    const config = await readVercelConfig();
+    const redirects = config.redirects || [];
+
+    expect(redirects).toEqual(
+      expect.arrayContaining([
+        { source: "/home", destination: "/", permanent: true },
+        { source: "/index", destination: "/", permanent: true },
+        { source: "/index.html", destination: "/", permanent: true }
+      ])
+    );
   });
 
   it("protects the CSR fallback while caching hashed client assets immutably", async () => {

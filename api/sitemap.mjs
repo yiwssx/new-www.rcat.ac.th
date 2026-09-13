@@ -1,7 +1,14 @@
 const CONTENT_KINDS = ["news", "announcements", "blog"];
 const SITEMAP_PAGE_SIZE = 100;
 const SITEMAP_FETCH_TIMEOUT_MS = 4_000;
+const SITEMAP_MEMORY_TTL_MS = 5 * 60 * 1000;
+const SITEMAP_BROWSER_CACHE_CONTROL = "public, max-age=0, must-revalidate";
+const SITEMAP_LIVE_CDN_CACHE_CONTROL = "public, max-age=600, stale-while-revalidate=86400, stale-if-error=86400";
+const SITEMAP_FALLBACK_CDN_CACHE_CONTROL = "public, max-age=60, stale-while-revalidate=300, stale-if-error=86400";
+
 let lastKnownGoodSitemap = null;
+let liveSitemapCache = null;
+let liveSitemapRefresh = null;
 
 export const STATIC_INDEXABLE_ROUTES = [
   "/",
@@ -248,9 +255,52 @@ function inferSiteUrl(request) {
   return forwardedHost ? `${forwardedProto}://${forwardedHost}` : "https://www.rcat.ac.th";
 }
 
-function sendSitemapResponse(request, response, xml, mode, cacheControl) {
+function createLiveCacheKey(siteUrl, apiBaseUrl) {
+  return `${siteUrl}\n${trimTrailingSlash(apiBaseUrl)}`;
+}
+
+async function getLiveSitemap(siteUrl, apiBaseUrl) {
+  const key = createLiveCacheKey(siteUrl, apiBaseUrl);
+  const now = Date.now();
+
+  if (liveSitemapCache?.key === key && liveSitemapCache.expiresAt > now) {
+    return { xml: liveSitemapCache.xml, mode: "memory-cache" };
+  }
+
+  if (liveSitemapRefresh?.key === key) {
+    return { xml: await liveSitemapRefresh.promise, mode: "live" };
+  }
+
+  const promise = (async () => {
+    const data = await loadSitemapData(apiBaseUrl);
+    const urls = buildSitemapUrls({ siteUrl, content: data.content });
+    const xml = createSitemapXml(urls);
+
+    lastKnownGoodSitemap = { siteUrl, xml };
+    liveSitemapCache = {
+      key,
+      xml,
+      expiresAt: Date.now() + SITEMAP_MEMORY_TTL_MS
+    };
+
+    return xml;
+  })();
+
+  liveSitemapRefresh = { key, promise };
+
+  try {
+    return { xml: await promise, mode: "live" };
+  } finally {
+    if (liveSitemapRefresh?.promise === promise) {
+      liveSitemapRefresh = null;
+    }
+  }
+}
+
+function sendSitemapResponse(request, response, xml, mode, cdnCacheControl) {
   response.setHeader("Content-Type", "application/xml; charset=utf-8");
-  response.setHeader("Cache-Control", cacheControl);
+  response.setHeader("Cache-Control", SITEMAP_BROWSER_CACHE_CONTROL);
+  response.setHeader("Vercel-CDN-Cache-Control", cdnCacheControl);
   response.setHeader("X-Content-Type-Options", "nosniff");
   response.setHeader("X-RCAT-Sitemap-Mode", mode);
   response.status(200);
@@ -261,6 +311,12 @@ function sendSitemapResponse(request, response, xml, mode, cacheControl) {
   }
 
   response.end(xml);
+}
+
+export function resetSitemapRuntimeCacheForTests() {
+  lastKnownGoodSitemap = null;
+  liveSitemapCache = null;
+  liveSitemapRefresh = null;
 }
 
 export default async function sitemap(request, response) {
@@ -276,18 +332,8 @@ export default async function sitemap(request, response) {
   const apiBaseUrl = process.env.CLOUDFLARE_PUBLIC_API_URL || process.env.VITE_CLOUDFLARE_PUBLIC_API_URL;
 
   try {
-    const data = await loadSitemapData(apiBaseUrl);
-    const urls = buildSitemapUrls({ siteUrl, content: data.content });
-    const xml = createSitemapXml(urls);
-    lastKnownGoodSitemap = { siteUrl, xml };
-
-    sendSitemapResponse(
-      request,
-      response,
-      xml,
-      "live",
-      "public, max-age=0, s-maxage=300, stale-while-revalidate=86400, stale-if-error=86400"
-    );
+    const result = await getLiveSitemap(siteUrl, apiBaseUrl);
+    sendSitemapResponse(request, response, result.xml, result.mode, SITEMAP_LIVE_CDN_CACHE_CONTROL);
   } catch (error) {
     const hasCompatibleLastKnownGood = lastKnownGoodSitemap?.siteUrl === siteUrl;
     const xml = hasCompatibleLastKnownGood ? lastKnownGoodSitemap.xml : createStaticSitemapXml(siteUrl);
@@ -298,12 +344,6 @@ export default async function sitemap(request, response) {
       mode
     });
 
-    sendSitemapResponse(
-      request,
-      response,
-      xml,
-      mode,
-      "public, max-age=0, s-maxage=60, stale-while-revalidate=86400, stale-if-error=86400"
-    );
+    sendSitemapResponse(request, response, xml, mode, SITEMAP_FALLBACK_CDN_CACHE_CONTROL);
   }
 }
