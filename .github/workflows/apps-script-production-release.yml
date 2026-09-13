@@ -14,14 +14,16 @@ on:
 
 permissions:
   contents: read
+  deployments: write
 
 jobs:
   release:
     name: Release Existing Production Media Bridge
     if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
-    environment: production
-
+    environment:
+      name: production
+      deployment: false
     steps:
       - uses: actions/checkout@v7
 
@@ -109,6 +111,14 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Created immutable Apps Script version $version for commit $short_sha."
 
+      - name: Start GitHub Apps Script production deployment record
+        id: github_deployment
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ENVIRONMENT: apps-script-production
+          DEPLOYMENT_DESCRIPTION: Apps Script production release
+        run: node .github/scripts/github-deployment-record.mjs start
+
       - name: Update only the existing production Web App deployment
         shell: bash
         env:
@@ -169,3 +179,11 @@ jobs:
       - name: Remove temporary Apps Script credentials
         if: ${{ always() }}
         run: rm -f "$HOME/.clasprc.json" apps-script/.clasp.json
+      - name: Finalize GitHub Apps Script production deployment record
+        if: ${{ always() && steps.github_deployment.outputs.deployment_id != '' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ID: ${{ steps.github_deployment.outputs.deployment_id }}
+          DEPLOYMENT_ENVIRONMENT: apps-script-production
+          JOB_STATUS: ${{ job.status }}
+        run: node .github/scripts/github-deployment-record.mjs finish

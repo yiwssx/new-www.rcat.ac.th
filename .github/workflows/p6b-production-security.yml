@@ -43,7 +43,9 @@ jobs:
     name: Auth Anomaly Diagnostic
     if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      deployment: false
     env:
       AUTH_SECURITY_LOOKBACK_MINUTES: "135"
       AUTH_SECURITY_WARNING_EVENTS: "10"
@@ -77,33 +79,3 @@ jobs:
         run: |
           echo "Sensitive authentication activity reached ${{ steps.auth_security.outputs.severity }} severity." >&2
           exit 1
-
-  retire-environment-deployment:
-    name: Retire P6B security environment deployment
-    needs: auth-anomaly
-    if: ${{ always() && github.ref == 'refs/heads/master' && needs.auth-anomaly.result != 'skipped' }}
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      deployments: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-    steps:
-      - uses: actions/checkout@v7
-      - name: Delete this diagnostic's GitHub Environment pseudo-deployment
-        run: |
-          set -euo pipefail
-          gh api "/repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/p6b-run.json"
-          gh api "/repos/$GH_REPO/deployments?sha=$GITHUB_SHA&per_page=100" > "$RUNNER_TEMP/p6b-deployments.json"
-          deployment_id="$(node scripts/resolve-d1-drill-environment-deployment.mjs \
-            --run "$RUNNER_TEMP/p6b-run.json" \
-            --deployments "$RUNNER_TEMP/p6b-deployments.json" \
-            --sha "$GITHUB_SHA" \
-            --actor "$GITHUB_ACTOR")"
-          gh api --method POST "/repos/$GH_REPO/deployments/$deployment_id/statuses" \
-            -f state=inactive \
-            -f environment=production \
-            -f description='P6B auth diagnostic credential-gate deployment retired' >/dev/null
-          gh api --method DELETE "/repos/$GH_REPO/deployments/$deployment_id"

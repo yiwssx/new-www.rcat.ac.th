@@ -5,11 +5,14 @@ on:
 
 permissions:
   contents: read
+  deployments: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      deployment: false
     env:
       PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
 
@@ -192,9 +195,25 @@ jobs:
             --file "$audit_json" \
             --expect-clean
 
+      - name: Start GitHub Cloudflare Worker production deployment record
+        id: github_deployment
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ENVIRONMENT: cloudflare-production
+          DEPLOYMENT_DESCRIPTION: Cloudflare Worker production release
+        run: node .github/scripts/github-deployment-record.mjs start
+
       - name: Apply pending migrations and deploy production Worker
         run: node cloudflare/public-api/scripts/worker-production-deploy.mjs
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+      - name: Finalize GitHub Cloudflare Worker production deployment record
+        if: ${{ always() && steps.github_deployment.outputs.deployment_id != '' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ID: ${{ steps.github_deployment.outputs.deployment_id }}
+          DEPLOYMENT_ENVIRONMENT: cloudflare-production
+          JOB_STATUS: ${{ job.status }}
+        run: node .github/scripts/github-deployment-record.mjs finish

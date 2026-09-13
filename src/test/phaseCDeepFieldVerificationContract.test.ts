@@ -61,7 +61,8 @@ describe("Phase C deep field verification contract", () => {
     expect(phaseC3Config).toContain('trace: "off"');
     expect(phaseAWorkflow).not.toContain("playwright.phase-c3.config.ts");
     expect(phaseC3Workflow).toContain("workflow_dispatch:");
-    expect(phaseC3Workflow).toContain("environment: production");
+    expect(phaseC3Workflow).toContain("name: production");
+    expect(phaseC3Workflow).toContain("deployment: false");
     expect(phaseC3Workflow).toContain("if: ${{ always() }}");
     expect(phaseC3Workflow).toContain("Verify deterministic cleanup");
     expect(workerProductionWorkflow).not.toContain("phase-c3-authenticated-cms-field.yml");

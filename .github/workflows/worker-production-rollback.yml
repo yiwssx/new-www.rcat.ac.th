@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  deployments: write
 
 concurrency:
   group: worker-production-recovery
@@ -28,7 +29,9 @@ jobs:
     name: Roll Back Production Worker Runtime
     if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      deployment: false
     env:
       PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
 
@@ -141,6 +144,14 @@ jobs:
           mkdir -p .p6c-worker-rollback
           git archive "$TARGET_SHA" cloudflare/public-api | tar -x -C .p6c-worker-rollback
 
+      - name: Start GitHub Cloudflare Worker production deployment record
+        id: github_deployment
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ENVIRONMENT: cloudflare-production
+          DEPLOYMENT_DESCRIPTION: Cloudflare Worker production rollback
+        run: node .github/scripts/github-deployment-record.mjs start
+
       - name: Deploy runtime rollback without D1 migration
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -171,3 +182,11 @@ jobs:
       - name: Remove extracted rollback source
         if: ${{ always() }}
         run: rm -rf .p6c-worker-rollback
+      - name: Finalize GitHub Cloudflare Worker production deployment record
+        if: ${{ always() && steps.github_deployment.outputs.deployment_id != '' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ID: ${{ steps.github_deployment.outputs.deployment_id }}
+          DEPLOYMENT_ENVIRONMENT: cloudflare-production
+          JOB_STATUS: ${{ job.status }}
+        run: node .github/scripts/github-deployment-record.mjs finish

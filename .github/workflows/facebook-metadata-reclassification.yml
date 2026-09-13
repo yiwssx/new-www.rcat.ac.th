@@ -33,7 +33,9 @@ jobs:
     name: Facebook Metadata Reclassification
     if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      deployment: false
     env:
       PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
       RECLASSIFICATION_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'audit' }}
