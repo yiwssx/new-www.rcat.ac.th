@@ -28,10 +28,8 @@ const expectedRetiredRoutes = [
   ["/api/admin-proxy-session/logout", "retired-admin-proxy-logout"]
 ];
 
-function findPublicSsrCatchAllIndex() {
-  return rewrites.findIndex(
-    ({ source, destination }) => source === "/(.*)" && destination === "/api/ssr?_rcatPath=/$1"
-  );
+function findFirstPublicSsrIndex() {
+  return rewrites.findIndex(({ destination }) => String(destination || "").startsWith("/api/ssr?_rcatPath="));
 }
 
 describe("Vercel CMS-auth rewrite contract", () => {
@@ -64,20 +62,21 @@ describe("Vercel CMS-auth rewrite contract", () => {
     ).toBe(expectedCmsRoutes.length);
   });
 
-  it("places every CMS-auth rewrite before the final Public SSR catch-all", () => {
-    const ssrIndex = findPublicSsrCatchAllIndex();
+  it("places every CMS-auth rewrite before the bounded Public SSR route set", () => {
+    const ssrIndex = findFirstPublicSsrIndex();
     const cmsIndices = rewrites
       .map((rewrite, index) => ({ rewrite, index }))
       .filter(({ rewrite }) => rewrite.source.startsWith("/api/cms-auth/"))
       .map(({ index }) => index);
 
-    expect(ssrIndex).toBe(rewrites.length - 1);
+    expect(ssrIndex).toBeGreaterThanOrEqual(0);
     expect(cmsIndices).toHaveLength(expectedCmsRoutes.length);
     expect(cmsIndices.every((index) => index < ssrIndex)).toBe(true);
+    expect(rewrites.some(({ source }) => source === "/(.*)")).toBe(false);
   });
 
   it("routes the two retired authentication endpoints through the consolidated Function before Public SSR", () => {
-    const ssrIndex = findPublicSsrCatchAllIndex();
+    const ssrIndex = findFirstPublicSsrIndex();
 
     for (const [source, routeId] of expectedRetiredRoutes) {
       const index = rewrites.findIndex(

@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "pnpm build && pnpm exec vite build --ssr src/vercelSsr.ts --outDir server-build --emptyOutDir && node scripts/prepare-ssr-cutover-output.mjs",
   "outputDirectory": "dist",
+  "trailingSlash": false,
   "ignoreCommand": "node scripts/vercel-ignore-build.mjs",
   "git": {
     "deploymentEnabled": {
@@ -146,6 +147,23 @@
       ]
     }
   ],
+  "redirects": [
+    {
+      "source": "/home",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/index",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/sitemap.xml",
@@ -244,8 +262,60 @@
       "destination": "/csr.html"
     },
     {
-      "source": "/(.*)",
-      "destination": "/api/ssr?_rcatPath=/$1"
+      "source": "/",
+      "destination": "/api/ssr?_rcatPath=/"
+    },
+    {
+      "source": "/news",
+      "destination": "/api/ssr?_rcatPath=/news"
+    },
+    {
+      "source": "/announcements",
+      "destination": "/api/ssr?_rcatPath=/announcements"
+    },
+    {
+      "source": "/achievements",
+      "destination": "/api/ssr?_rcatPath=/achievements"
+    },
+    {
+      "source": "/blog",
+      "destination": "/api/ssr?_rcatPath=/blog"
+    },
+    {
+      "source": "/departments",
+      "destination": "/api/ssr?_rcatPath=/departments"
+    },
+    {
+      "source": "/documents",
+      "destination": "/api/ssr?_rcatPath=/documents"
+    },
+    {
+      "source": "/calendar",
+      "destination": "/api/ssr?_rcatPath=/calendar"
+    },
+    {
+      "source": "/contact",
+      "destination": "/api/ssr?_rcatPath=/contact"
+    },
+    {
+      "source": "/complaint",
+      "destination": "/api/ssr?_rcatPath=/complaint"
+    },
+    {
+      "source": "/ita2569",
+      "destination": "/api/ssr?_rcatPath=/ita2569"
+    },
+    {
+      "source": "/search",
+      "destination": "/api/ssr?_rcatPath=/search"
+    },
+    {
+      "source": "/content/:slug",
+      "destination": "/api/ssr?_rcatPath=/content/:slug"
+    },
+    {
+      "source": "/:slug",
+      "destination": "/api/ssr?_rcatPath=/:slug"
     }
   ]
 }

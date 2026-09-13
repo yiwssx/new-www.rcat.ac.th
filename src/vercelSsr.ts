@@ -2,8 +2,9 @@ import { renderSsrResponse } from "./entry-server";
 
 export const SSR_REWRITE_PATH_PARAM = "_rcatPath";
 export const PUBLIC_SSR_BROWSER_CACHE_CONTROL = "public, max-age=0, must-revalidate";
-export const PUBLIC_SSR_CDN_CACHE_CONTROL = "public, max-age=120, stale-while-revalidate=3600";
+export const PUBLIC_SSR_CDN_CACHE_CONTROL = "public, max-age=600, stale-while-revalidate=3600";
 export const PUBLIC_REDIRECT_CDN_CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=604800";
+export const PUBLIC_NOT_FOUND_CDN_CACHE_CONTROL = "public, max-age=60, stale-while-revalidate=300";
 
 const STATIC_PUBLIC_SSR_PATHS = new Set([
   "/",
@@ -15,6 +16,8 @@ const STATIC_PUBLIC_SSR_PATHS = new Set([
   "/documents",
   "/calendar",
   "/contact",
+  "/complaint",
+  "/ita2569",
   "/search"
 ]);
 
@@ -28,6 +31,9 @@ const RESERVED_SINGLE_SEGMENT_PATHS = new Set([
   "/robots.txt"
 ]);
 
+const BLOCKED_LEGACY_PERMALINK_PATHS = new Set(["/ip", "/null", "/undefined"]);
+const LEGACY_FILE_PROBE_PATTERN = /\.(?:asp|aspx|bak|cgi|css|env|git|gz|ico|ini|js|json|map|php|sql|tar|txt|xml|zip)$/i;
+
 function normalizeRewritePath(value: string | null) {
   const normalized = String(value || "").trim();
   if (!normalized.startsWith("/") || normalized.includes("?") || normalized.includes("#")) {
@@ -35,6 +41,31 @@ function normalizeRewritePath(value: string | null) {
   }
 
   return normalized.replace(/\/{2,}/g, "/");
+}
+
+function isLegacyPermalinkPath(pathname: string) {
+  return (
+    /^\/[^/]+$/.test(pathname) &&
+    !STATIC_PUBLIC_SSR_PATHS.has(pathname) &&
+    !RESERVED_SINGLE_SEGMENT_PATHS.has(pathname)
+  );
+}
+
+function shouldRejectLegacyPermalink(pathname: string) {
+  if (BLOCKED_LEGACY_PERMALINK_PATHS.has(pathname)) {
+    return true;
+  }
+
+  const segment = pathname.slice(1);
+  return !segment || segment.length > 160 || segment.startsWith(".") || LEGACY_FILE_PROBE_PATTERN.test(segment);
+}
+
+function decodePathSegment(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 export function isPublicSsrPath(pathname: string) {
@@ -46,7 +77,7 @@ export function isPublicSsrPath(pathname: string) {
     return true;
   }
 
-  return /^\/[^/]+$/.test(pathname) && !RESERVED_SINGLE_SEGMENT_PATHS.has(pathname);
+  return isLegacyPermalinkPath(pathname);
 }
 
 export function reconstructPublicSsrRequest(request: Request) {
@@ -93,6 +124,10 @@ export function applyVercelPublicSsrCachePolicy(request: Request, response: Resp
   } else if (response.status >= 300 && response.status < 400) {
     headers.set("Cache-Control", PUBLIC_SSR_BROWSER_CACHE_CONTROL);
     headers.set("Vercel-CDN-Cache-Control", PUBLIC_REDIRECT_CDN_CACHE_CONTROL);
+  } else if (response.status === 404) {
+    headers.set("Cache-Control", PUBLIC_SSR_BROWSER_CACHE_CONTROL);
+    headers.set("Vercel-CDN-Cache-Control", PUBLIC_NOT_FOUND_CDN_CACHE_CONTROL);
+    headers.set("X-Robots-Tag", "noindex, nofollow");
   } else {
     headers.set("Cache-Control", "no-store");
     headers.delete("Vercel-CDN-Cache-Control");
@@ -137,13 +172,54 @@ function createInvalidRewriteResponse() {
   });
 }
 
+function createPublicNotFoundResponse() {
+  return new Response("Not Found", {
+    status: 404,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "X-Robots-Tag": "noindex, nofollow"
+    }
+  });
+}
+
+async function resolveLegacyPermalinkResponse(request: Request) {
+  const url = new URL(request.url);
+  if (!isLegacyPermalinkPath(url.pathname)) {
+    return null;
+  }
+
+  if (shouldRejectLegacyPermalink(url.pathname)) {
+    return createPublicNotFoundResponse();
+  }
+
+  const slug = decodePathSegment(url.pathname.slice(1));
+  const { getPublicContentDetailSnapshot, isPublicContentNotFoundError } = await import("./features/public-content/api");
+
+  try {
+    await getPublicContentDetailSnapshot({ slug }, { signal: request.signal });
+  } catch (error) {
+    if (isPublicContentNotFoundError(error)) {
+      return createPublicNotFoundResponse();
+    }
+    throw error;
+  }
+
+  return new Response(null, {
+    status: 301,
+    headers: {
+      Location: `/content/${encodeURIComponent(slug)}`
+    }
+  });
+}
+
 export async function renderVercelPublicSsrRequest(request: Request) {
   const publicRequest = reconstructPublicSsrRequest(request);
   if (!publicRequest) {
     return createInvalidRewriteResponse();
   }
 
-  const rendered = await renderSsrResponse(publicRequest);
+  const legacyPermalinkResponse = await resolveLegacyPermalinkResponse(publicRequest);
+  const rendered = legacyPermalinkResponse ?? (await renderSsrResponse(publicRequest));
   const cached = applyVercelPublicSsrCachePolicy(publicRequest, rendered);
 
   if (request.method === "HEAD") {
