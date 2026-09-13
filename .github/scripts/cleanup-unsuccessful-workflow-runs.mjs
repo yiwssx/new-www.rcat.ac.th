@@ -5,15 +5,7 @@ const repository = process.env.GITHUB_REPOSITORY;
 const apiUrl = process.env.GITHUB_API_URL || "https://api.github.com";
 const dryRun = process.env.DRY_RUN === "true";
 const currentRunId = Number(process.env.GITHUB_RUN_ID || 0);
-const targetStatuses = [
-  "failure",
-  "cancelled",
-  "skipped",
-  "action_required",
-  "neutral",
-  "timed_out",
-  "stale"
-];
+const targetStatuses = ["failure", "cancelled", "skipped", "action_required", "neutral", "timed_out", "stale"];
 
 if (!token || !repository) {
   throw new Error("GITHUB_TOKEN and GITHUB_REPOSITORY are required");
