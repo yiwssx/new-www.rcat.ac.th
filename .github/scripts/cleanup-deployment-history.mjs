@@ -53,7 +53,9 @@ for (const deployment of deployments) {
 
   if (failedHistory) failed += 1;
   if (legacyPseudo) pseudo += 1;
-  console.log(`${dryRun ? "Would delete" : "Deleting"} deployment ${deployment.id}: environment=${deployment.environment} state=${latestState} creator=${deployment.creator?.login || "unknown"}`);
+  console.log(
+    `${dryRun ? "Would delete" : "Deleting"} deployment ${deployment.id}: environment=${deployment.environment} state=${latestState} creator=${deployment.creator?.login || "unknown"}`
+  );
   if (dryRun) continue;
 
   if (latestState !== "inactive") {

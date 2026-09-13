@@ -41,7 +41,6 @@ for (const [name, source] of [
   }
 }
 
-
 if (!release.includes("DEPLOYMENT_ENVIRONMENT: apps-script-production")) {
   fail("release workflow must publish Apps Script deployments under apps-script-production");
 }
