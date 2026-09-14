@@ -4,6 +4,7 @@ const DEFAULT_PUBLIC_READ_TTL_SECONDS = 300;
 const HOME_PUBLIC_READ_TTL_SECONDS = 15 * 60;
 const VISITOR_STATS_TTL_SECONDS = 5 * 60;
 const SEARCH_TTL_SECONDS = 120;
+const CONTENT_NOT_FOUND_TTL_SECONDS = 60;
 
 export type PublicReadCacheStatus = "HIT" | "MISS" | "BYPASS";
 
@@ -33,6 +34,19 @@ function getPublicReadCacheTtlSeconds(request: Request) {
     pathname.startsWith("/api/public/content/")
   ) {
     return DEFAULT_PUBLIC_READ_TTL_SECONDS;
+  }
+
+  return 0;
+}
+
+function getStoredResponseTtlSeconds(request: Request, response: Response) {
+  if (response.status === 200) {
+    return getPublicReadCacheTtlSeconds(request);
+  }
+
+  const { pathname } = new URL(request.url);
+  if (response.status === 404 && /^\/api\/public\/content\/[^/]+$/.test(pathname)) {
+    return CONTENT_NOT_FOUND_TTL_SECONDS;
   }
 
   return 0;
@@ -72,9 +86,9 @@ export async function readPublicReadCache(request: Request, env: Env): Promise<R
 }
 
 export function storePublicReadCache(request: Request, env: Env, response: Response, context?: ExecutionContext) {
-  const ttlSeconds = getPublicReadCacheTtlSeconds(request);
+  const ttlSeconds = getStoredResponseTtlSeconds(request, response);
 
-  if (!isPublicReadCacheEligible(request, env) || ttlSeconds <= 0 || response.status !== 200) {
+  if (!isPublicReadCacheEligible(request, env) || ttlSeconds <= 0) {
     return;
   }
 

@@ -33,6 +33,15 @@ describe("SSR query hydration", () => {
     expect(serialized).not.toContain("must-not-cross-ssr-boundary");
   });
 
+  it("fails the development contract when Public query data is not JSON-serializable", () => {
+    const serverClient = createAppQueryClient();
+    serverClient.setQueryData(["public-shell"], {
+      invalidCounter: 1n
+    });
+
+    expect(() => dehydrateAppQueryClient(serverClient)).toThrow(TypeError);
+  });
+
   it("ignores malformed router hydration payloads", () => {
     const browserClient = createAppQueryClient();
 

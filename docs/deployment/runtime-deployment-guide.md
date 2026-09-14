@@ -1,6 +1,6 @@
 # Runtime Deployment Guide
 
-Updated: 2026-09-11.
+Updated: 2026-09-14.
 
 ## Toolchain
 
@@ -96,16 +96,16 @@ TanStack Router renders Public SSR through `renderRouterToStream`; the Emotion c
 
 ### Public SSR cache policy
 
-- Stable/index/list Public SSR surfaces: browser revalidation; Vercel CDN freshness 2 minutes with stale-while-revalidate for 1 hour.
+- Stable/index/list Public SSR surfaces: browser revalidation; Vercel CDN freshness 10 minutes with stale-while-revalidate for 1 hour.
 - Dynamic canonical content detail `/content/:slug`: `Cache-Control: no-store`; no shared Vercel CDN cache directive.
 - Public Shell browser query: stale after 2 minutes; refetch on focus/reconnect.
 - Search: `no-store`, `X-Robots-Tag: noindex, follow`.
-- 4xx/5xx: `no-store` and noindex protection where applicable.
+- 4xx/5xx: `no-store` and noindex protection where applicable; missing legacy permalink probes may be CDN-cached briefly by the SSR boundary.
 - Permanent legacy `/$slug` redirect: browser revalidation; Vercel CDN one-day freshness with seven-day stale-while-revalidate.
 - `csr.html`: `no-store`, `noindex, nofollow`.
 - Client entry/styles and lazy chunks are manifest-selected content-hashed assets; do not restore fixed client asset names.
 
-Dynamic content detail deliberately bypasses shared CDN caching so publish/delete verification and normal reads observe current Worker/D1 state rather than stale cached HTML.
+Dynamic content detail deliberately bypasses shared CDN caching so publish/delete verification and normal reads observe current Worker/D1 state rather than stale cached HTML. The Worker also short-lived negative-caches missing public content-detail reads to prevent repeated identical 404 probes from reaching D1.
 
 See `docs/operations/public-ssr-cutover.md` for live verification and rollback.
 
@@ -227,7 +227,7 @@ The CMS-auth observation window and legacy-only environment retirement are alrea
 
 Vercel rewrites `/sitemap.xml` to `/api/sitemap`, which reads live Public data from the Cloudflare API.
 
-The sitemap function emits the known indexable static Public routes and canonical published content routes from News, Announcements (including published Public page items), and Blog. Program records are not emitted as content-detail URLs because the current Public programs surface has the `/departments` listing route but no canonical program detail route.
+The sitemap function emits the known indexable static Public routes and canonical published content routes from News, Announcements (including published Public page items), and Blog. Program records are not emitted as content-detail URLs because the current Public programs surface has the `/departments` listing route but no canonical program detail route. Announcement page expansion uses bounded concurrent batches so sitemap refresh does not create unbounded Worker request fan-out as the archive grows.
 
 Verification:
 

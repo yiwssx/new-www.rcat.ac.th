@@ -6,7 +6,7 @@ export {
   getPublicContentListSnapshot,
   isPublicContentNotFoundError
 } from "./api";
-export type { PublicContentListPageInput } from "./api";
+export type { PublicContentListFilterInput, PublicContentListPageInput } from "./api";
 export {
   clearPublicContentListCache,
   getPublicContentDetailCache,

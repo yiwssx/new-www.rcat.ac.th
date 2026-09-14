@@ -36,7 +36,11 @@ export default function PublicNewsPage() {
   const hasActiveFilter = Boolean(activeTag || activeCategory);
   const requestedPage = normalizePublicPageSearchValue(routeSearch.page) ?? 1;
   const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("news", undefined, {
-    pageInput: hasActiveFilter ? undefined : { page: requestedPage, pageSize: NEWS_PAGE_SIZE }
+    pageInput: { page: requestedPage, pageSize: NEWS_PAGE_SIZE },
+    filters: {
+      ...(activeTag ? { tag: activeTag } : {}),
+      ...(activeCategory ? { category: activeCategory } : {})
+    }
   });
   const newsItems = useMemo(() => data?.items ?? [], [data?.items]);
   const mediaAssets = data?.media ?? [];
@@ -53,10 +57,10 @@ export default function PublicNewsPage() {
         : newsItems,
     [activeCategory, activeTag, hasActiveFilter, newsItems]
   );
-  const serverPagination = hasActiveFilter ? undefined : data?.pagination;
-  const serverPaginationPending = !hasActiveFilter && (!data || isFetching);
+  const serverPagination = data?.pagination;
+  const serverPaginationPending = !data || isFetching;
   const archivePage = serverPagination?.page ?? requestedPage;
-  const shouldFeatureFirstItem = !serverPagination || archivePage === 1;
+  const shouldFeatureFirstItem = archivePage === 1;
   const featuredItem = shouldFeatureFirstItem ? filteredNewsItems[0] : undefined;
   const secondaryItems = shouldFeatureFirstItem ? filteredNewsItems.slice(1) : filteredNewsItems;
   const newsPagination = usePublicPagination(secondaryItems, {

@@ -1,9 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { publicContentListQueryOptions, type PublicContentListPageInput } from "../../features/public-content";
+import {
+  publicContentListQueryOptions,
+  type PublicContentListFilterInput,
+  type PublicContentListPageInput
+} from "../../features/public-content";
 import type { PublicContentListKind } from "../../types";
 
 interface UsePublicContentListOptions {
   pageInput?: PublicContentListPageInput;
+  filters?: PublicContentListFilterInput;
 }
 
 function normalizePageInput(pageInput: PublicContentListPageInput | undefined) {
@@ -27,7 +32,8 @@ export function usePublicContentList(
       kind,
       { consumeAbortSignal: false },
       normalizePageInput(pageItemsInput),
-      normalizePageInput(options.pageInput)
+      normalizePageInput(options.pageInput),
+      options.filters
     )
   );
 }

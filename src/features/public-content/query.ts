@@ -11,6 +11,7 @@ import {
   getPublicContentListPageSnapshot,
   getPublicContentListSnapshot,
   isPublicContentNotFoundError,
+  type PublicContentListFilterInput,
   type PublicContentListPageInput
 } from "./api";
 import type { PublicContentListKind } from "./types";
@@ -22,13 +23,40 @@ function normalizePageInput(pageInput: PublicContentListPageInput) {
   };
 }
 
+function normalizeFilters(filters: PublicContentListFilterInput | undefined) {
+  const tag = String(filters?.tag || "")
+    .trim()
+    .slice(0, 120);
+  const category = String(filters?.category || "")
+    .trim()
+    .slice(0, 120);
+  return {
+    tag: tag || undefined,
+    category: category || undefined
+  };
+}
+
 export function publicContentListQueryKey(
   kind: PublicContentListKind,
   pageItemsInput?: PublicContentListPageInput,
-  pageInput?: PublicContentListPageInput
+  pageInput?: PublicContentListPageInput,
+  filters?: PublicContentListFilterInput
 ) {
   if (pageInput) {
     const normalized = normalizePageInput(pageInput);
+    const normalizedFilters = normalizeFilters(filters);
+    if (normalizedFilters.tag || normalizedFilters.category) {
+      return [
+        "public-content-list",
+        kind,
+        "page",
+        normalized.page,
+        normalized.pageSize ?? null,
+        "filters",
+        normalizedFilters.tag ?? null,
+        normalizedFilters.category ?? null
+      ] as const;
+    }
     return ["public-content-list", kind, "page", normalized.page, normalized.pageSize ?? null] as const;
   }
 
@@ -44,14 +72,15 @@ export function publicContentListQueryOptions(
   kind: PublicContentListKind,
   runtimeOptions: PublicQueryRuntimeOptions = {},
   pageItemsInput?: PublicContentListPageInput,
-  pageInput?: PublicContentListPageInput
+  pageInput?: PublicContentListPageInput,
+  filters?: PublicContentListFilterInput
 ) {
   return queryOptions({
-    queryKey: publicContentListQueryKey(kind, pageItemsInput, pageInput),
+    queryKey: publicContentListQueryKey(kind, pageItemsInput, pageInput, filters),
     queryFn: async (context) => {
       const requestOptions = getPublicQueryRequestOptions(context, runtimeOptions);
       const snapshot = pageInput
-        ? await getPublicContentListPageSnapshot(kind, pageInput, requestOptions)
+        ? await getPublicContentListPageSnapshot(kind, pageInput, requestOptions, normalizeFilters(filters))
         : kind === "announcements" && pageItemsInput
           ? await getPublicAnnouncementsContentListSnapshot(pageItemsInput, requestOptions)
           : await getPublicContentListSnapshot(kind, requestOptions);
