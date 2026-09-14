@@ -18,8 +18,8 @@ export interface PublicContentItemContract {
   featured: boolean;
   readingMinutes: number;
   template: string;
-  bodyDocId: string;
-  bodyDocUrl: string;
+  bodyDocId?: string;
+  bodyDocUrl?: string;
   featuredMediaId: string;
   mediaIds: string[];
   viewCount: number;
