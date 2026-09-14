@@ -40,7 +40,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
             p: { xs: 2.5, sm: 3.5, md: 4.5, lg: 5.5 },
             color: "white",
             bgcolor: "primary.dark",
-            boxShadow: "0 26px 64px rgba(15, 68, 45, 0.2)"
+            boxShadow: designTokens.elevation.high
           }}
         >
           {siteSettings.heroImageUrl ? (
@@ -185,7 +185,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
                   px: 2.6,
                   minHeight: 46,
                   fontWeight: 900,
-                  boxShadow: "0 12px 28px rgba(0,0,0,0.18)"
+                  boxShadow: designTokens.elevation.medium
                 }}
               >
                 {siteSettings.admissionUrl ? "สมัครเรียน" : "ดูประกาศรับสมัคร"}
