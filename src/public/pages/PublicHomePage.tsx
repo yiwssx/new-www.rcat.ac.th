@@ -9,6 +9,7 @@ import PublicLoadingState, { PublicBackgroundProgress } from "../components/Publ
 import PublicSiteShell from "../components/PublicSiteShell";
 import { LatestAnnouncementsCard } from "../components/home/LatestAnnouncementsCard";
 import { HomeHeroSection } from "../components/home/HomeHeroSection";
+import { HomeQuickAccessSection } from "../components/home/HomeQuickAccessSection";
 import { HomeIntroVideoSection } from "../components/home/HomeIntroVideoSection";
 import { LatestNewsSection } from "../components/home/LatestNewsSection";
 import { VisitorStatsCard } from "../components/home/VisitorStatsCard";
@@ -340,17 +341,20 @@ export default function PublicHomePage() {
       <HomeHashScroller />
       <PublicBackgroundProgress active={isFetching} />
 
-      <Container maxWidth="xl">
-        <HomeHeroSection siteSettings={siteSettings} externalServices={externalServiceItems} />
-      </Container>
-
-      <Box sx={{ mt: { xs: 3, md: 4 } }}>
+      <Box>
         <PublicHomeCarouselSsrBoundary
           slides={carouselSlides}
           settings={homepageSettings.carousel}
           initialNowMs={snapshotReferenceTimeMs}
         />
       </Box>
+
+      <Container maxWidth="xl" sx={{ pt: { xs: 2, md: 2.5 } }}>
+        <HomeQuickAccessSection siteSettings={siteSettings} externalServices={externalServiceItems} />
+        <Box sx={{ mt: { xs: 2, md: 2.5 } }}>
+          <HomeHeroSection siteSettings={siteSettings} />
+        </Box>
+      </Container>
 
       <Container maxWidth="xl" sx={{ pb: hasFloatingMessenger ? { xs: 9, md: 14 } : undefined }}>
         <HomeIntroVideoSection settings={homepageSettings.introVideo} />
