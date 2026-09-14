@@ -10,49 +10,51 @@ import { SiteSettings } from "../../../types";
 import { designTokens } from "../../../design-system/tokens";
 
 export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }) {
+  const admissionHref = siteSettings.admissionUrl || "/announcements";
+
   return (
     <Box
       sx={{
         display: "grid",
         gridTemplateColumns: {
           xs: "1fr",
-          md: "minmax(0, 1fr) minmax(240px, 280px)",
-          lg: "minmax(0, 1fr) minmax(300px, 360px)"
+          md: "minmax(0, 1fr) minmax(250px, 290px)",
+          lg: "minmax(0, 1fr) minmax(290px, 340px)"
         },
-        gap: { xs: 2, md: 3 },
+        gap: { xs: 2, md: 2.5 },
         alignItems: "stretch"
       }}
     >
       <Box
         component="section"
+        aria-label="แนะนำวิทยาลัย"
         sx={{
           position: "relative",
           overflow: "hidden",
-          borderRadius: 1,
-          height: "100%",
-          minHeight: { xs: 240, sm: 240, md: 240, lg: 240 },
+          borderRadius: `${designTokens.radius.large}px`,
+          minHeight: { xs: 360, sm: 400, md: 420, lg: 460 },
           display: "flex",
           alignItems: "center",
-          p: { xs: 2, sm: 2.5, md: 3.5 },
+          p: { xs: 2.5, sm: 3.5, md: 4.5, lg: 5.5 },
           color: "white",
           bgcolor: "primary.dark",
-          boxShadow: designTokens.elevation.high
+          boxShadow: "0 26px 64px rgba(15, 68, 45, 0.2)"
         }}
       >
-        {siteSettings.heroImageUrl && (
+        {siteSettings.heroImageUrl ? (
           <PublicResponsiveImage
             source={siteSettings.heroImageUrl}
             intent="hero"
             alt=""
             loadMode="near-viewport"
-            nearViewportMargin="240px 0px"
-            sizes="(max-width: 900px) 100vw, 65vw"
+            nearViewportMargin="320px 0px"
+            sizes="(max-width: 900px) 100vw, 72vw"
             fill
-            reservedMinHeight={240}
+            reservedMinHeight={420}
             imageSx={{ objectFit: "cover", objectPosition: "center" }}
             sx={{ position: "absolute", inset: 0, zIndex: 0 }}
           />
-        )}
+        ) : null}
 
         <Box
           aria-hidden="true"
@@ -60,21 +62,22 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
             position: "absolute",
             inset: 0,
             zIndex: 1,
-            background: `linear-gradient(120deg, ${alpha(theme.palette.primary.dark, 0.94)} 0%, ${alpha(
-              theme.palette.primary.main,
-              0.84
-            )} 56%, ${alpha(theme.palette.secondary.dark, 0.58)} 100%)`
+            background: `linear-gradient(90deg, ${alpha(theme.palette.primary.dark, 0.98)} 0%, ${alpha(
+              theme.palette.primary.dark,
+              0.92
+            )} 34%, ${alpha(theme.palette.primary.main, 0.72)} 62%, ${alpha(theme.palette.primary.dark, 0.2)} 100%)`
           })}
         />
 
         <Box
+          aria-hidden="true"
           sx={(theme) => ({
             position: "absolute",
             inset: 0,
             zIndex: 2,
-            background: `linear-gradient(180deg, ${alpha(theme.palette.common.black, 0.04)} 0%, ${alpha(
+            background: `linear-gradient(180deg, ${alpha(theme.palette.common.black, 0.02)} 0%, ${alpha(
               theme.palette.common.black,
-              0.42
+              0.36
             )} 100%)`
           })}
         />
@@ -85,14 +88,14 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
             display: { xs: "none", md: "block" },
             position: "absolute",
             zIndex: 2,
-            right: 44,
-            top: 34,
-            width: 210,
-            height: 210,
+            right: 40,
+            top: 40,
+            width: 180,
+            height: 180,
             borderRadius: "50%",
-            bgcolor: alpha(theme.palette.common.white, 0.055),
             border: "1px solid",
-            borderColor: alpha(theme.palette.common.white, 0.12)
+            borderColor: alpha(theme.palette.common.white, 0.14),
+            boxShadow: `0 0 0 28px ${alpha(theme.palette.common.white, 0.035)}`
           })}
         />
 
@@ -102,101 +105,123 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
             display: { xs: "none", lg: "block" },
             position: "absolute",
             zIndex: 2,
-            right: 108,
-            bottom: -36,
-            width: 150,
-            height: 150,
-            borderRadius: "50%",
-            bgcolor: alpha(theme.palette.common.white, 0.045)
+            right: 56,
+            bottom: 40,
+            width: 112,
+            height: 78,
+            backgroundImage: `radial-gradient(${alpha(theme.palette.common.white, 0.4)} 1px, transparent 1px)`,
+            backgroundSize: "12px 12px",
+            opacity: 0.42
           })}
         />
 
-        <Stack spacing={{ xs: 1.35, md: 1.6 }} sx={{ position: "relative", zIndex: 3, maxWidth: 620 }}>
-          {siteSettings.heroChip && (
+        <Stack spacing={{ xs: 1.6, md: 2 }} sx={{ position: "relative", zIndex: 3, maxWidth: 720 }}>
+          {siteSettings.heroChip ? (
             <Chip
               icon={<SchoolOutlinedIcon />}
               label={siteSettings.heroChip}
               sx={(theme) => ({
                 alignSelf: "flex-start",
+                height: 34,
+                px: 0.4,
                 bgcolor: alpha(theme.palette.common.white, 0.14),
                 color: "white",
                 border: "1px solid",
-                borderColor: alpha(theme.palette.common.white, 0.22),
+                borderColor: alpha(theme.palette.common.white, 0.2),
+                fontWeight: 800,
                 "& .MuiChip-icon": {
-                  color: "secondary.main"
+                  color: "secondary.light"
                 }
               })}
             />
-          )}
+          ) : null}
 
           <Typography
             variant="h1"
             sx={{
-              fontSize: { xs: "1.75rem", sm: "2.1rem", md: "2.2rem", lg: "2.55rem" },
-              fontWeight: 500,
-              lineHeight: 1.08,
-              letterSpacing: "-0.02em"
+              maxWidth: 700,
+              fontSize: { xs: "2rem", sm: "2.7rem", md: "3rem", lg: "3.45rem" },
+              fontWeight: 900,
+              lineHeight: 1.03,
+              letterSpacing: "-0.035em",
+              textWrap: "balance"
             }}
           >
             {siteSettings.heroTitle}
           </Typography>
 
-          {siteSettings.heroDescription && (
+          {siteSettings.heroDescription ? (
             <Typography
               sx={(theme) => ({
-                maxWidth: 520,
-                color: alpha(theme.palette.common.white, 0.84),
-                fontSize: { xs: "0.92rem", md: "1rem" },
-                lineHeight: 1.55
+                maxWidth: 590,
+                color: alpha(theme.palette.common.white, 0.88),
+                fontSize: { xs: "0.98rem", sm: "1.05rem", md: "1.12rem" },
+                lineHeight: 1.65
               })}
             >
               {siteSettings.heroDescription}
             </Typography>
-          )}
+          ) : null}
 
           <Stack
             direction={{ xs: "column", sm: "row" }}
-            spacing={1.2}
+            spacing={1.25}
+            useFlexGap
             sx={{
-              alignItems: { xs: "stretch", sm: "center" }
+              pt: 0.6,
+              alignItems: { xs: "stretch", sm: "center" },
+              flexWrap: "wrap"
             }}
           >
-            {siteSettings.admissionUrl && (
-              <Button
-                variant="contained"
-                color="error"
-                size="medium"
-                href={normalizeSafeHref(siteSettings.admissionUrl)}
-                startIcon={<AssignmentOutlinedIcon />}
-              >
-                สมัครเรียน
-              </Button>
-            )}
+            <Button
+              variant="contained"
+              color="secondary"
+              size="large"
+              href={normalizeSafeHref(admissionHref)}
+              startIcon={<AssignmentOutlinedIcon />}
+              sx={{
+                px: 2.6,
+                minHeight: 46,
+                fontWeight: 900,
+                boxShadow: "0 12px 28px rgba(0,0,0,0.18)"
+              }}
+            >
+              {siteSettings.admissionUrl ? "สมัครเรียน" : "ดูประกาศรับสมัคร"}
+            </Button>
 
             <Button
               variant="outlined"
-              size="medium"
-              href={normalizeSafeHref("/announcements")}
+              size="large"
+              href={normalizeSafeHref("/departments")}
               sx={(theme) => ({
+                minHeight: 46,
+                px: 2.4,
                 color: "white",
-                borderColor: alpha(theme.palette.common.white, 0.34)
+                borderColor: alpha(theme.palette.common.white, 0.52),
+                bgcolor: alpha(theme.palette.common.black, 0.08),
+                fontWeight: 850,
+                "&:hover": {
+                  borderColor: "white",
+                  bgcolor: alpha(theme.palette.common.white, 0.1)
+                }
               })}
             >
-              ประกาศ
+              ดูหลักสูตรและแผนกวิชา
             </Button>
 
             <Button
               variant="text"
-              size="medium"
+              size="large"
               href={normalizeSafeHref("/news")}
               endIcon={<ArrowForwardOutlinedIcon />}
-              sx={{ color: "white" }}
+              sx={{ color: "white", fontWeight: 850 }}
             >
-              ข่าวสาร
+              ข่าวล่าสุด
             </Button>
           </Stack>
         </Stack>
       </Box>
+
       <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
         <DirectorHeroCard siteSettings={siteSettings} />
       </Box>
