@@ -74,115 +74,262 @@ export function AchievementHighlightsSection({
   viewAllLabel = "ดูผลงานทั้งหมด"
 }: AchievementHighlightsSectionProps) {
   const visibleItems = getVisibleItems(items, limit);
+  const featuredItem = visibleItems[0];
+  const supportingItems = visibleItems.slice(1);
 
-  if (items.length === 0) {
+  if (!featuredItem) {
     return null;
   }
 
+  const featuredYear = formatDisplayYear(featuredItem.publishAt);
+  const featuredHref = normalizeSafeHref(`/content/${featuredItem.slug}`);
+
   return (
     <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
-      <HomeSectionHeading
-        label="ความสำเร็จ"
-        title="ผลงานและความภาคภูมิใจ"
-        description="รวมผลงานเด่น รางวัล และความภาคภูมิใจของนักเรียนนักศึกษา ครู บุคลากร และสถานศึกษา"
-      />
-      <Grid container spacing={2.5}>
-        {visibleItems.map((item) => {
-          const thaiYear = formatDisplayYear(item.publishAt);
-          const href = normalizeSafeHref(`/content/${item.slug}`);
+      <Box
+        sx={(theme) => ({
+          p: { xs: 2, md: 2.75 },
+          borderRadius: `${designTokens.radius.large}px`,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: alpha(theme.palette.primary.main, 0.035),
+          boxShadow: designTokens.elevation.low
+        })}
+      >
+        <HomeSectionHeading
+          label="ความสำเร็จ"
+          title="ผลงานและความภาคภูมิใจ"
+          description="รวมผลงานเด่น รางวัล และความภาคภูมิใจของนักเรียนนักศึกษา ครู บุคลากร และสถานศึกษา"
+          action={
+            viewAllHref ? (
+              <Button
+                href={normalizeSafeHref(viewAllHref)}
+                variant="outlined"
+                size="small"
+                endIcon={<ArrowForwardOutlinedIcon />}
+              >
+                {viewAllLabel}
+              </Button>
+            ) : undefined
+          }
+        />
 
-          return (
-            <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-              <Card
-                component="a"
-                href={href}
-                aria-label={`อ่านผลงาน ${item.title}`}
+        <Card
+          component="a"
+          href={featuredHref}
+          aria-label={`อ่านผลงาน ${featuredItem.title}`}
+          sx={(theme) => ({
+            ...interactiveSurfaceSx,
+            display: "block",
+            position: "relative",
+            overflow: "hidden",
+            mb: 2,
+            color: "inherit",
+            textDecoration: "none",
+            borderColor: alpha(theme.palette.primary.main, 0.3),
+            bgcolor: "background.paper",
+            boxShadow: designTokens.elevation.medium,
+            "&:hover": {
+              borderColor: "primary.main",
+              transform: "translateY(-2px)",
+              ...interactiveSurfaceSx["&:hover"]
+            }
+          })}
+        >
+          <CardContent
+            sx={{
+              p: { xs: 2.25, md: 3 },
+              display: "flex",
+              alignItems: { xs: "flex-start", md: "center" },
+              gap: { xs: 2, md: 3 }
+            }}
+          >
+            <Box
+              sx={(theme) => ({
+                width: { xs: 52, md: 66 },
+                height: { xs: 52, md: 66 },
+                flex: "0 0 auto",
+                borderRadius: `${designTokens.radius.large}px`,
+                display: "grid",
+                placeItems: "center",
+                color: "primary.dark",
+                bgcolor: alpha(theme.palette.secondary.light, 0.78),
+                border: "1px solid",
+                borderColor: alpha(theme.palette.secondary.dark, 0.2),
+                "& svg": {
+                  fontSize: { xs: 30, md: 38 }
+                }
+              })}
+            >
+              {getAchievementIcon(featuredItem)}
+            </Box>
+
+            <Stack spacing={1.15} sx={{ minWidth: 0, flex: 1 }}>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: "center" }}>
+                <Chip label="ผลงานล่าสุด" size="small" color="primary" sx={{ fontWeight: 800 }} />
+                <Chip label={getAchievementCategory(featuredItem)} size="small" variant="outlined" />
+                {featuredYear && (
+                  <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
+                    พ.ศ. {featuredYear}
+                  </Typography>
+                )}
+              </Stack>
+
+              <Typography
+                variant="h3"
                 sx={{
-                  ...interactiveSurfaceSx,
-                  display: "block",
-                  height: "100%",
-                  color: "inherit",
-                  textDecoration: "none",
-                  "&:hover": {
-                    borderColor: "primary.main",
-                    transform: "translateY(-2px)",
-                    ...interactiveSurfaceSx["&:hover"]
-                  }
+                  fontSize: { xs: "1.18rem", md: "1.34rem" },
+                  lineHeight: 1.35,
+                  pr: { md: 4 }
                 }}
               >
-                <CardContent
+                {featuredItem.title}
+              </Typography>
+
+              {featuredItem.summary && (
+                <Typography
+                  variant="body2"
                   sx={{
-                    height: "100%",
-                    p: 2.25,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 1.4
+                    color: "text.secondary",
+                    lineHeight: 1.65,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden"
                   }}
                 >
-                  <Stack
-                    direction="row"
-                    spacing={1.2}
+                  {featuredItem.summary}
+                </Typography>
+              )}
+
+              <Stack direction="row" spacing={0.7} sx={{ alignItems: "center", color: "primary.main" }}>
+                <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                  อ่านรายละเอียดผลงาน
+                </Typography>
+                <ArrowForwardOutlinedIcon sx={{ fontSize: 18 }} />
+              </Stack>
+            </Stack>
+
+            <WorkspacePremiumOutlinedIcon
+              aria-hidden="true"
+              sx={(theme) => ({
+                display: { xs: "none", md: "block" },
+                position: "absolute",
+                right: 20,
+                bottom: -24,
+                fontSize: 142,
+                color: alpha(theme.palette.primary.main, 0.055),
+                pointerEvents: "none"
+              })}
+            />
+          </CardContent>
+        </Card>
+
+        {supportingItems.length > 0 && (
+          <Grid container spacing={1.5}>
+            {supportingItems.map((item, index) => {
+              const thaiYear = formatDisplayYear(item.publishAt);
+              const href = normalizeSafeHref(`/content/${item.slug}`);
+              const spansFullRow = supportingItems.length % 2 === 1 && index === supportingItems.length - 1;
+
+              return (
+                <Grid size={{ xs: 12, sm: spansFullRow ? 12 : 6 }} key={item.id}>
+                  <Card
+                    component="a"
+                    href={href}
+                    aria-label={`อ่านผลงาน ${item.title}`}
                     sx={{
-                      alignItems: "center",
-                      justifyContent: "space-between"
+                      ...interactiveSurfaceSx,
+                      display: "block",
+                      height: "100%",
+                      color: "inherit",
+                      textDecoration: "none",
+                      bgcolor: "background.paper",
+                      "&:hover": {
+                        borderColor: "primary.main",
+                        transform: "translateY(-2px)",
+                        ...interactiveSurfaceSx["&:hover"]
+                      }
                     }}
                   >
-                    <Box
-                      sx={(theme) => ({
-                        width: 44,
-                        height: 44,
-                        borderRadius: `${designTokens.radius.medium}px`,
-                        display: "grid",
-                        placeItems: "center",
-                        color: "primary.dark",
-                        bgcolor: alpha(theme.palette.secondary.light, 0.75),
-                        border: "1px solid",
-                        borderColor: "divider",
-                        "& svg": {
-                          fontSize: 25
-                        }
-                      })}
-                    >
-                      {getAchievementIcon(item)}
-                    </Box>
-                    {thaiYear && (
-                      <Chip label={`พ.ศ. ${thaiYear}`} size="small" color="secondary" sx={{ fontWeight: 800 }} />
-                    )}
-                  </Stack>
-
-                  <Stack spacing={1} sx={{ flex: 1 }}>
-                    <Chip
-                      label={getAchievementCategory(item)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ alignSelf: "flex-start" }}
-                    />
-                    <Typography variant="h3" sx={{ fontSize: { xs: "1.05rem", md: "1.12rem" }, lineHeight: 1.28 }}>
-                      {item.title}
-                    </Typography>
-                    <Typography
-                      variant="body2"
+                    <CardContent
                       sx={{
-                        color: "text.secondary",
-                        lineHeight: 1.65
+                        height: "100%",
+                        p: 1.75,
+                        display: "flex",
+                        gap: 1.4,
+                        alignItems: "flex-start"
                       }}
                     >
-                      {item.summary}
-                    </Typography>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          );
-        })}
-      </Grid>
-      {viewAllHref && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 2.5 }}>
-          <Button href={normalizeSafeHref(viewAllHref)} endIcon={<ArrowForwardOutlinedIcon />}>
-            {viewAllLabel}
-          </Button>
-        </Box>
-      )}
+                      <Box
+                        sx={(theme) => ({
+                          width: 40,
+                          height: 40,
+                          flex: "0 0 auto",
+                          borderRadius: `${designTokens.radius.medium}px`,
+                          display: "grid",
+                          placeItems: "center",
+                          color: "primary.dark",
+                          bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          "& svg": {
+                            fontSize: 23
+                          }
+                        })}
+                      >
+                        {getAchievementIcon(item)}
+                      </Box>
+
+                      <Stack spacing={0.65} sx={{ minWidth: 0, flex: 1 }}>
+                        <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap" sx={{ alignItems: "center" }}>
+                          <Typography variant="caption" sx={{ color: "primary.dark", fontWeight: 800 }}>
+                            {getAchievementCategory(item)}
+                          </Typography>
+                          {thaiYear && (
+                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                              พ.ศ. {thaiYear}
+                            </Typography>
+                          )}
+                        </Stack>
+
+                        <Typography
+                          variant="h3"
+                          sx={{
+                            fontSize: { xs: "1rem", md: "1.05rem" },
+                            lineHeight: 1.38,
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden"
+                          }}
+                        >
+                          {item.title}
+                        </Typography>
+
+                        {item.summary && (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              fontSize: "0.84rem",
+                              lineHeight: 1.55,
+                              display: "-webkit-box",
+                              WebkitLineClamp: spansFullRow ? 1 : 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden"
+                            }}
+                          >
+                            {item.summary}
+                          </Typography>
+                        )}
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+        )}
+      </Box>
     </Box>
   );
 }
