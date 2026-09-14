@@ -1,56 +1,67 @@
 import { Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import { alpha } from "@mui/material/styles";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import type { PublicContentCardItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
-import { designTokens } from "../../../design-system/tokens";
 import SemanticStatusChip from "../../../design-system/components/SemanticStatusChip";
 import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
+const HOME_PROCUREMENT_DISPLAY_LIMIT = 4;
+
+function getLatestProcurementItems(items: PublicContentCardItem[]) {
+  return [...items]
+    .sort((left, right) => {
+      const leftTime = Date.parse(left.publishAt || "");
+      const rightTime = Date.parse(right.publishAt || "");
+      const safeLeftTime = Number.isFinite(leftTime) ? leftTime : 0;
+      const safeRightTime = Number.isFinite(rightTime) ? rightTime : 0;
+
+      return safeRightTime - safeLeftTime || right.id.localeCompare(left.id);
+    })
+    .slice(0, HOME_PROCUREMENT_DISPLAY_LIMIT);
+}
+
 export function ProcurementNewsSection({ items }: { items: PublicContentCardItem[] }) {
+  const visibleItems = getLatestProcurementItems(items);
+
   return (
-    <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
+    <Box component="section" sx={{ mt: { xs: 2.5, md: 4 } }}>
       <HomeSectionHeading
         label="จัดซื้อจัดจ้าง"
         title="ข่าวจัดซื้อจัดจ้าง"
         description="ประกาศ แผนจัดซื้อจัดจ้าง ร่างขอบเขตของงาน และผลการพิจารณาที่เกี่ยวข้องกับการจัดซื้อจัดจ้างของสถานศึกษา"
         action={
-          <Button href={normalizeSafeHref("/announcements")} endIcon={<ArrowForwardOutlinedIcon />}>
+          <Button href={normalizeSafeHref("/announcements")} endIcon={<ArrowForwardOutlinedIcon />} size="small">
             ดูทั้งหมด
           </Button>
         }
       />
-      {items.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <EmptyState
           title="ยังไม่มีข่าวจัดซื้อจัดจ้าง"
           description="เมื่อมีประกาศจัดซื้อจัดจ้างที่เผยแพร่แล้ว ระบบจะแสดงรายการในส่วนนี้"
         />
       ) : (
-        <Grid container spacing={2.5}>
-          {items.map((item) => (
+        <Grid container spacing={{ xs: 1.5, md: 1.8 }}>
+          {visibleItems.map((item) => (
             <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-              <Card
-                component="article"
-                sx={{
-                  height: "100%"
-                }}
-              >
+              <Card component="article" sx={{ height: "100%" }}>
                 <CardContent
                   sx={{
                     height: "100%",
-                    p: 2.25,
+                    p: { xs: 1.5, md: 1.75 },
                     display: "flex",
                     flexDirection: "column",
-                    gap: 1.35
+                    gap: 0.9,
+                    "&:last-child": { pb: { xs: 1.5, md: 1.75 } }
                   }}
                 >
                   <Stack
                     direction="row"
-                    spacing={1}
+                    spacing={0.75}
                     useFlexGap
                     sx={{
                       alignItems: "center",
@@ -66,55 +77,49 @@ export function ProcurementNewsSection({ items }: { items: PublicContentCardItem
                     <SemanticStatusChip label="เผยแพร่แล้ว" status="published" />
                   </Stack>
 
-                  <Stack spacing={0.9} sx={{ flex: 1 }}>
-                    <Typography variant="h3" sx={{ fontSize: { xs: "1.04rem", md: "1.1rem" }, lineHeight: 1.32 }}>
+                  <Stack spacing={0.55} sx={{ flex: 1 }}>
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        fontSize: { xs: "0.97rem", md: "1.03rem" },
+                        lineHeight: 1.3
+                      }}
+                    >
                       {item.title}
                     </Typography>
                     <Typography
                       variant="body2"
                       sx={{
                         color: "text.secondary",
-                        fontWeight: 800
+                        fontWeight: 800,
+                        fontSize: "0.82rem"
                       }}
                     >
                       {formatDisplayDate(item.publishAt)}
                     </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: "text.secondary",
-                        lineHeight: 1.65
-                      }}
-                    >
-                      {item.summary}
-                    </Typography>
-                    <Box
-                      sx={(theme) => ({
-                        mt: "auto",
-                        p: 1.15,
-                        borderRadius: `${designTokens.radius.medium}px`,
-                        bgcolor: alpha(theme.palette.primary.light, 0.62),
-                        border: "1px solid",
-                        borderColor: "divider"
-                      })}
-                    >
+                    {item.summary && (
                       <Typography
                         variant="body2"
                         sx={{
-                          color: "primary.dark",
-                          fontWeight: 900
+                          color: "text.secondary",
+                          lineHeight: 1.55,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden"
                         }}
                       >
-                        ดูรายละเอียดเพิ่มเติมในประกาศฉบับเต็ม
+                        {item.summary}
                       </Typography>
-                    </Box>
+                    )}
                   </Stack>
 
                   <Button
                     href={normalizeSafeHref(`/content/${item.slug}`)}
                     endIcon={<ArrowForwardOutlinedIcon />}
                     aria-label={`อ่านประกาศจัดซื้อจัดจ้าง ${item.title}`}
-                    sx={{ alignSelf: "flex-start", px: 0 }}
+                    size="small"
+                    sx={{ alignSelf: "flex-start", px: 0, minWidth: 0 }}
                   >
                     อ่านประกาศ
                   </Button>
