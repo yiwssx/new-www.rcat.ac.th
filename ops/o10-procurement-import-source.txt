@@ -1,0 +1,147 @@
+name: One-Time O10 Procurement Import
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/one-time-o10-procurement-import.yml
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    name: Import O10 procurement announcements
+    if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      deployment: false
+    env:
+      PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
+      IMPORT_FILE: ${{ runner.temp }}/rcat-o10-procurement-import.sql
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Require protected production credentials
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID"
+
+      - name: Resolve exact production D1 identity
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            --verify-identity-only
+
+      - name: Reconstruct reviewed import payload
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/o10.sql.gz.b64" <<'B64'
+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
+B64
+          base64 -d "$RUNNER_TEMP/o10.sql.gz.b64" | gunzip > "$IMPORT_FILE"
+          actual_sha="$(sha256sum "$IMPORT_FILE" | awk '{print $1}')"
+          test "$actual_sha" = "e03277abc9e28cf82c1a305b62b614fad4feb853ef60bf943ff00099406362b3"
+          test "$(grep -c '^INSERT OR IGNORE INTO contents' "$IMPORT_FILE")" = "25"
+          echo "Reviewed O10 payload verified: 25 idempotent inserts."
+
+      - name: Inspect existing O10 import scope
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
+            --remote \
+            --env production \
+            --config cloudflare/public-api/wrangler.toml \
+            --command="SELECT COUNT(*) AS existing_count FROM contents WHERE created_by = 'gdrive-o10-import' AND COALESCE(deleted_at, '') = '';" \
+            --json > "$RUNNER_TEMP/o10-before.json"
+          cat "$RUNNER_TEMP/o10-before.json"
+
+      - name: Capture pre-import Time Travel bookmark
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" \
+            --env production \
+            --config cloudflare/public-api/wrangler.toml \
+            --json > "$RUNNER_TEMP/o10-pre-import-time-travel.json"
+          node - <<'NODE'
+          const fs = require("fs");
+          const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/o10-pre-import-time-travel.json", "utf8"));
+          const metadata = Array.isArray(value) ? value[0] : value;
+          if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) {
+            throw new Error("Production Time Travel bookmark was not returned; refusing import.");
+          }
+          console.log("Pre-import Time Travel bookmark captured.");
+          NODE
+
+      - name: Import 25 procurement announcements
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
+            --remote \
+            --env production \
+            --config cloudflare/public-api/wrangler.toml \
+            --file "$IMPORT_FILE"
+
+      - name: Verify production rows
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
+            --remote \
+            --env production \
+            --config cloudflare/public-api/wrangler.toml \
+            --command="SELECT COUNT(*) AS row_count, COUNT(DISTINCT body_doc_id) AS distinct_files, MIN(publish_at) AS oldest, MAX(publish_at) AS newest FROM contents WHERE created_by = 'gdrive-o10-import' AND COALESCE(deleted_at, '') = '';" \
+            --json > "$RUNNER_TEMP/o10-after.json"
+          cat "$RUNNER_TEMP/o10-after.json"
+          node - <<'NODE'
+          const fs = require("fs");
+          const payload = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/o10-after.json", "utf8"));
+          const statements = Array.isArray(payload) ? payload : [payload];
+          const rows = statements.flatMap((s) => Array.isArray(s?.results) ? s.results : []);
+          const row = rows[0] || {};
+          if (Number(row.row_count) !== 25 || Number(row.distinct_files) !== 25) {
+            throw new Error(`O10 verification failed: row_count=${row.row_count}, distinct_files=${row.distinct_files}`);
+          }
+          if (row.oldest !== "2024-05-20T00:00:00.000Z" || row.newest !== "2026-07-09T00:00:00.000Z") {
+            throw new Error(`O10 date range mismatch: ${row.oldest} .. ${row.newest}`);
+          }
+          console.log("O10 production import verified: 25 rows, 25 source files, expected date range.");
+          NODE
