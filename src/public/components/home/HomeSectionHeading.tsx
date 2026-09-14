@@ -9,5 +9,5 @@ export interface HomeSectionHeadingProps {
 }
 
 export function HomeSectionHeading({ label, title, description, action }: HomeSectionHeadingProps) {
-  return <SectionHeader eyebrow={`:: ${label}`} title={title} description={description} action={action} />;
+  return <SectionHeader eyebrow={label} title={title} description={description} action={action} />;
 }
