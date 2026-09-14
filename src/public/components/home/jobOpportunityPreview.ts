@@ -35,8 +35,7 @@ function getPdfThumbnailUrl(asset: MediaAsset) {
 }
 
 function getBodyDocumentThumbnailUrl(item: PublicContentCardItem) {
-  const fileId =
-    String(item.bodyDocId || "").trim() || extractGoogleDriveFileId(String(item.bodyDocUrl || "").trim());
+  const fileId = String(item.bodyDocId || "").trim() || extractGoogleDriveFileId(String(item.bodyDocUrl || "").trim());
 
   return fileId ? buildGoogleDriveThumbnailUrl(fileId, JOB_THUMBNAIL_WIDTH) : "";
 }
