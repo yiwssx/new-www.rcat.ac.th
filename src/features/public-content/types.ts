@@ -51,6 +51,8 @@ export type PublicContentCardItem = Pick<
   | "featured"
   | "readingMinutes"
   | "template"
+  | "bodyDocId"
+  | "bodyDocUrl"
   | "featuredMediaId"
   | "mediaIds"
   | "publishAt"
