@@ -8,6 +8,7 @@ import type { PublicVisitorStatsSnapshotContract } from "../contracts/publicVisi
 import type { PublicContentSummaryReadRow } from "../db/contentRepository";
 import type { DocumentRow } from "../db/schema";
 
+// Keep procurement independently bounded so general announcements cannot crowd it out on the homepage.
 const HOME_PROCUREMENT_LIMIT = 4;
 const HOME_ACHIEVEMENT_LIMIT = 6;
 const PROCUREMENT_PATTERN = /procurement|tor|จัดซื้อ|จัดจ้าง|ประกวดราคา/i;
