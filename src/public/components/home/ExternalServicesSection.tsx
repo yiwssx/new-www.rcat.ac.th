@@ -31,24 +31,25 @@ export function ExternalServicesSection({
   const mediaById = new Map(mediaAssets.map((asset) => [asset.id, asset]));
 
   return (
-    <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
+    <Box component="section" sx={{ mt: { xs: 5, md: 7 } }}>
       <HomeSectionHeading
-        label="E-Service"
-        title="บริการออนไลน์และลิงก์ที่เกี่ยวข้อง"
-        description="รวมระบบบริการออนไลน์และลิงก์สำคัญสำหรับนักเรียน นักศึกษา ผู้ปกครอง บุคลากร และผู้สนใจ"
+        label="บริการออนไลน์"
+        title="E-Service สำหรับนักเรียนและบุคลากร"
+        description="เข้าถึงระบบสำคัญของวิทยาลัยได้จากจุดเดียว"
       />
       <Box
         sx={{
           position: "relative",
           overflow: "hidden",
           borderRadius: `${designTokens.radius.large}px`,
-          minHeight: { xs: 160, md: 220 },
+          minHeight: { xs: 122, md: 148 },
           mb: 2.5,
-          p: { xs: 2.4, sm: 3, md: 4 },
+          px: { xs: 2.4, sm: 3, md: 3.5 },
+          py: { xs: 2.2, md: 2.6 },
           display: "flex",
           alignItems: "center",
           background:
-            "linear-gradient(135deg, var(--rcat-primary-hover) 0%, var(--rcat-primary) 65%, var(--rcat-secondary) 100%)",
+            "linear-gradient(135deg, var(--rcat-primary-hover) 0%, var(--rcat-primary) 70%, var(--rcat-secondary) 100%)",
           color: "white",
           boxShadow: designTokens.elevation.medium
         }}
@@ -57,36 +58,36 @@ export function ExternalServicesSection({
           aria-hidden="true"
           sx={(theme) => ({
             position: "absolute",
-            right: { xs: -44, md: 44 },
-            top: { xs: -36, md: 28 },
+            right: { xs: -38, md: 52 },
+            top: { xs: -54, md: -44 },
             width: { xs: 150, md: 190 },
             height: { xs: 150, md: 190 },
             borderRadius: "50%",
-            border: "26px solid",
-            borderColor: alpha(theme.palette.secondary.main, 0.22)
+            border: "24px solid",
+            borderColor: alpha(theme.palette.secondary.light, 0.2)
           })}
         />
         <Box
           aria-hidden="true"
           sx={(theme) => ({
             position: "absolute",
-            right: { xs: 26, md: 228 },
-            bottom: { xs: -28, md: 24 },
+            right: { xs: 42, md: 250 },
+            bottom: -34,
             width: 96,
             height: 96,
-            borderRadius: `${designTokens.radius.large}px`,
-            backgroundImage: `radial-gradient(${alpha(theme.palette.secondary.light, 0.72)} 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(${alpha(theme.palette.secondary.light, 0.68)} 1px, transparent 1px)`,
             backgroundSize: "12px 12px",
-            opacity: 0.34
+            opacity: 0.32
           })}
         />
-        <Stack spacing={0.9} sx={{ position: "relative", zIndex: 1, maxWidth: 620 }}>
+        <Stack spacing={0.45} sx={{ position: "relative", zIndex: 1, maxWidth: 620 }}>
           <Typography
             component="p"
             sx={{
               color: "var(--rcat-accent-soft)",
               fontWeight: 900,
-              letterSpacing: 0,
+              fontSize: { xs: "0.76rem", md: "0.8rem" },
+              letterSpacing: "0.04em",
               textTransform: "uppercase"
             }}
           >
@@ -95,17 +96,20 @@ export function ExternalServicesSection({
           <Typography
             variant="h2"
             sx={{
-              fontSize: { xs: "2.55rem", sm: "3.35rem", md: "4.5rem" },
-              lineHeight: 0.95,
+              fontSize: { xs: "2rem", sm: "2.35rem", md: "2.75rem" },
+              lineHeight: 1,
               color: "var(--rcat-surface)"
             }}
           >
             E-Service
           </Typography>
           <Typography
-            sx={(theme) => ({ color: alpha(theme.palette.common.white, 0.9), fontSize: { xs: "1rem", md: "1.18rem" } })}
+            sx={(theme) => ({
+              color: alpha(theme.palette.common.white, 0.88),
+              fontSize: { xs: "0.9rem", md: "1rem" }
+            })}
           >
-            ระบบบริการออนไลน์
+            ระบบบริการออนไลน์ของวิทยาลัย
           </Typography>
         </Stack>
       </Box>
