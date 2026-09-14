@@ -1,5 +1,6 @@
 const CONTENT_KINDS = ["news", "announcements", "blog"];
 const SITEMAP_PAGE_SIZE = 100;
+const SITEMAP_PAGE_FETCH_CONCURRENCY = 4;
 const SITEMAP_FETCH_TIMEOUT_MS = 4_000;
 const SITEMAP_MEMORY_TTL_MS = 5 * 60 * 1000;
 const SITEMAP_BROWSER_CACHE_CONTROL = "public, max-age=0, must-revalidate";
@@ -208,18 +209,29 @@ function getSnapshotPageItems(snapshot) {
   return Array.isArray(snapshot?.pageItems) ? snapshot.pageItems : [];
 }
 
+async function loadPagesInBatches(firstPage, totalPages, getPage) {
+  const snapshots = [firstPage];
+
+  for (let first = 2; first <= totalPages; first += SITEMAP_PAGE_FETCH_CONCURRENCY) {
+    const batchSize = Math.min(SITEMAP_PAGE_FETCH_CONCURRENCY, totalPages - first + 1);
+    const batch = await Promise.all(Array.from({ length: batchSize }, (_, index) => getPage(first + index)));
+    snapshots.push(...batch);
+  }
+
+  return snapshots;
+}
+
 async function loadAnnouncementSnapshot(baseUrl) {
   const getPage = (page) =>
     fetchJson(`${baseUrl}/api/public/content?kind=announcements&pagesPage=${page}&pagesPageSize=${SITEMAP_PAGE_SIZE}`);
 
   const firstSnapshot = await getPage(1);
   const totalPages = Math.max(1, Number(firstSnapshot?.pageItemsPagination?.totalPages) || 1);
-  const remainingSnapshots =
-    totalPages > 1 ? await Promise.all(Array.from({ length: totalPages - 1 }, (_, index) => getPage(index + 2))) : [];
+  const snapshots = await loadPagesInBatches(firstSnapshot, totalPages, getPage);
 
   return {
     items: getSnapshotItems(firstSnapshot),
-    pageItems: [firstSnapshot, ...remainingSnapshots].flatMap(getSnapshotPageItems)
+    pageItems: snapshots.flatMap(getSnapshotPageItems)
   };
 }
 
