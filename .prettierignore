@@ -7,3 +7,4 @@ test-results
 .DS_Store
 pnpm-lock.yaml
 .github/workflows/one-time-o10-procurement-import.yml
+.github/workflows/one-time-o10-procurement-import-v2.yml
