@@ -86,8 +86,6 @@ jobs:
         run: |
           pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
-            --env production \
-            --config cloudflare/public-api/wrangler.toml \
             --command="SELECT COUNT(*) AS existing_count FROM contents WHERE created_by = 'gdrive-o10-import' AND COALESCE(deleted_at, '') = '';" \
             --json > "$RUNNER_TEMP/o10-before.json"
           cat "$RUNNER_TEMP/o10-before.json"
@@ -99,8 +97,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" \
-            --env production \
-            --config cloudflare/public-api/wrangler.toml \
             --json > "$RUNNER_TEMP/o10-pre-import-time-travel.json"
           node - <<'NODE'
           const fs = require("fs");
@@ -120,8 +116,6 @@ jobs:
         run: |
           pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
-            --env production \
-            --config cloudflare/public-api/wrangler.toml \
             --file "$IMPORT_FILE"
 
       - name: Verify production rows
@@ -132,8 +126,6 @@ jobs:
         run: |
           pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
             --remote \
-            --env production \
-            --config cloudflare/public-api/wrangler.toml \
             --command="SELECT COUNT(*) AS row_count, COUNT(DISTINCT body_doc_id) AS distinct_files, MIN(publish_at) AS oldest, MAX(publish_at) AS newest FROM contents WHERE created_by = 'gdrive-o10-import' AND COALESCE(deleted_at, '') = '';" \
             --json > "$RUNNER_TEMP/o10-after.json"
           cat "$RUNNER_TEMP/o10-after.json"
