@@ -81,7 +81,7 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
               textDecoration: "none",
               borderLeft: nested ? "3px solid transparent" : "none",
               borderBottom: nested ? "none" : "3px solid transparent",
-              transition: `color ${designTokens.motion.duration.fast}ms ${designTokens.motion.easing}, background-color ${designTokens.motion.duration.fast}ms ${designTokens.motion.easing}, border-color ${designTokens.motion.duration.fast}ms ${designTokens.motion.easing}`,
+              transition: `color ${designTokens.motion.duration.short}ms ${designTokens.motion.easing}, background-color ${designTokens.motion.duration.short}ms ${designTokens.motion.easing}, border-color ${designTokens.motion.duration.short}ms ${designTokens.motion.easing}`,
               "&:hover": {
                 bgcolor: nested ? "primary.light" : alpha(theme.palette.primary.main, 0.055),
                 color: nested ? "text.primary" : "primary.main",
