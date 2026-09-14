@@ -70,7 +70,8 @@ describe("D1 public read optimization", () => {
     expect(contentCalls.some((call) => /title LIKE \?/i.test(call.query))).toBe(true);
 
     const procurementCall = contentCalls.find(
-      (call) => call.bindings.includes("announcement") && call.bindings.at(-1) === 4 && /title LIKE \?/i.test(call.query)
+      (call) =>
+        call.bindings.includes("announcement") && call.bindings.at(-1) === 4 && /title LIKE \?/i.test(call.query)
     );
     expect(procurementCall).toBeDefined();
   });
