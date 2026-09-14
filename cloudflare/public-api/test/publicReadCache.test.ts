@@ -94,7 +94,26 @@ describe("public D1 read cache", () => {
     await expect(cached?.text()).resolves.toBe("cached");
   });
 
-  it("never stores failed public reads", async () => {
+  it("negative-caches missing content detail reads for a short TTL", async () => {
+    const entries = installFakeCache();
+    const request = new Request("https://worker.test/api/public/content/missing-slug");
+    const pending: Promise<unknown>[] = [];
+    const context = {
+      waitUntil(promise: Promise<unknown>) {
+        pending.push(promise);
+      }
+    } as unknown as ExecutionContext;
+
+    storePublicReadCache(request, productionEnv, new Response("not found", { status: 404 }), context);
+    await Promise.all(pending);
+
+    expect(entries.size).toBe(1);
+    const cached = await readPublicReadCache(request, productionEnv);
+    expect(cached?.status).toBe(404);
+    expect(cached?.headers.get("Cache-Control")).toBe("public, s-maxage=60");
+  });
+
+  it("never stores transient failed public reads", async () => {
     const entries = installFakeCache();
     const request = new Request("https://worker.test/api/public/visitor-stats");
     const pending: Promise<unknown>[] = [];
