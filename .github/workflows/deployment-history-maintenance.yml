@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Inspect matching deployment and Actions history without deleting records"
+        description: "Inspect retention-expired deployment and Actions history without deleting records"
         required: false
         default: false
         type: boolean
@@ -23,20 +23,19 @@ permissions:
 
 jobs:
   cleanup:
-    name: Clean Deployment and Actions History
+    name: Maintain Deployment and Actions History
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .node-version
-      - name: Remove failed/error history and legacy generic production pseudo-deployments
+      - name: Reconcile stale deployments and apply deployment retention
         env:
           GITHUB_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
         run: node .github/scripts/cleanup-deployment-history.mjs
-      # Preserve every successful run; only completed non-success runs are removed.
-      - name: Remove completed GitHub Actions runs that were not successful
+      - name: Apply bounded retention to completed non-success Actions runs
         env:
           GITHUB_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
