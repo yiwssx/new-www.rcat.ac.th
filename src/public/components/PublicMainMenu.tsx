@@ -66,20 +66,28 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
             component="a"
             href={normalizeSafeHref(item.href)}
             sx={(theme) => ({
-              minHeight: nested ? 42 : 48,
+              minHeight: nested ? 42 : 54,
               px: nested ? 1.5 : 2,
               py: nested ? 1 : 1.15,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               gap: 0.8,
-              color: nested ? "text.primary" : "white",
-              fontWeight: 800,
+              color: nested ? "text.primary" : "primary.dark",
+              fontWeight: nested ? 750 : 850,
               whiteSpace: "nowrap",
+              textDecoration: "none",
               borderLeft: nested ? "3px solid transparent" : "none",
+              borderBottom: nested ? "none" : "3px solid transparent",
+              transition: `color ${designTokens.motion.duration.fast}ms ${designTokens.motion.easing}, background-color ${designTokens.motion.duration.fast}ms ${designTokens.motion.easing}, border-color ${designTokens.motion.duration.fast}ms ${designTokens.motion.easing}`,
               "&:hover": {
-                bgcolor: nested ? "primary.light" : alpha(theme.palette.common.white, 0.14),
-                borderColor: nested ? "secondary.main" : "transparent"
+                bgcolor: nested ? "primary.light" : alpha(theme.palette.primary.main, 0.055),
+                color: nested ? "text.primary" : "primary.main",
+                borderColor: nested ? "secondary.main" : "primary.main"
+              },
+              "&:focus-visible": {
+                outline: `2px solid ${theme.palette.secondary.main}`,
+                outlineOffset: -2
               }
             })}
           >
@@ -88,7 +96,7 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
               (nested ? (
                 <KeyboardArrowRightOutlinedIcon sx={{ fontSize: 18 }} />
               ) : (
-                <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 18 }} />
+                <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
               ))}
           </Box>
           {Boolean(item.children?.length) && (
@@ -106,13 +114,15 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
                 borderColor: "divider",
                 borderTopWidth: nested ? 1 : 3,
                 borderTopStyle: "solid",
-                borderTopColor: nested ? "divider" : "secondary.main",
+                borderTopColor: nested ? "divider" : "primary.main",
+                borderRadius: nested ? 1.5 : "0 0 12px 12px",
                 boxShadow: designTokens.elevation.high,
                 opacity: 0,
                 visibility: "hidden",
                 transform: nested ? "translateX(-6px)" : "translateY(8px)",
                 transition: `opacity ${designTokens.motion.duration.standard}ms ${designTokens.motion.easing}, transform ${designTokens.motion.duration.standard}ms ${designTokens.motion.easing}, visibility ${designTokens.motion.duration.standard}ms ${designTokens.motion.easing}`,
-                pointerEvents: "none"
+                pointerEvents: "none",
+                overflow: "visible"
               }}
             >
               <PublicMenuList items={item.children ?? []} nested />
@@ -141,15 +151,15 @@ function PublicTopLevelMenuMeasurement({ items }: { items: PublicMenuItem[] }) {
           <Box
             component="span"
             sx={{
-              minHeight: 48,
+              minHeight: 54,
               px: 2,
               py: 1.15,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               gap: 0.8,
-              color: "white",
-              fontWeight: 800,
+              color: "primary.dark",
+              fontWeight: 850,
               whiteSpace: "nowrap"
             }}
           >
@@ -242,13 +252,20 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
     <Box
       component="nav"
       aria-label="เมนูหลัก"
-      sx={{
-        bgcolor: "primary.main",
-        color: "white",
-        boxShadow: designTokens.elevation.low
-      }}
+      sx={(theme) => ({
+        position: "sticky",
+        top: 0,
+        zIndex: 15,
+        bgcolor: alpha(theme.palette.background.paper, 0.97),
+        color: "primary.dark",
+        borderTop: "1px solid",
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        boxShadow: designTokens.elevation.low,
+        backdropFilter: "blur(14px)"
+      })}
     >
-      <Container ref={menuContainerRef} maxWidth="xl" sx={{ position: "relative", minWidth: 0, minHeight: 48, py: 0 }}>
+      <Container ref={menuContainerRef} maxWidth="xl" sx={{ position: "relative", minWidth: 0, minHeight: 54, py: 0 }}>
         <Box
           sx={{
             position: "absolute",
@@ -265,7 +282,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
         </Box>
 
         {!shouldUseCompactMenu && (
-          <Box sx={{ display: "flex", overflow: "visible", minWidth: 0, minHeight: 48, width: "100%" }}>
+          <Box sx={{ display: "flex", overflow: "visible", minWidth: 0, minHeight: 54, width: "100%" }}>
             <PublicMenuList items={enabledItems} />
           </Box>
         )}
@@ -276,28 +293,35 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
               display: "flex",
               width: "100%",
               alignItems: "center",
-              justifyContent: "flex-start",
-              minHeight: 48,
+              justifyContent: "space-between",
+              minHeight: 54,
               gap: 1
             }}
           >
-            <IconButton
-              aria-label={mobileMenuOpen ? "ปิดเมนูหลัก" : "เปิดเมนูหลัก"}
-              onClick={() => setMobileMenuOpen((open) => !open)}
-              sx={(theme) => ({
-                border: "1px solid",
-                borderColor: alpha(theme.palette.common.white, 0.36),
-                color: "inherit"
-              })}
-            >
-              {mobileMenuOpen ? <CloseOutlinedIcon /> : <MenuOutlinedIcon />}
-            </IconButton>
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+              <IconButton
+                aria-label={mobileMenuOpen ? "ปิดเมนูหลัก" : "เปิดเมนูหลัก"}
+                onClick={() => setMobileMenuOpen((open) => !open)}
+                sx={(theme) => ({
+                  border: "1px solid",
+                  borderColor: alpha(theme.palette.primary.main, 0.22),
+                  color: "primary.dark",
+                  bgcolor: alpha(theme.palette.primary.main, 0.045)
+                })}
+              >
+                {mobileMenuOpen ? <CloseOutlinedIcon /> : <MenuOutlinedIcon />}
+              </IconButton>
+              <Typography sx={{ fontWeight: 900, color: "primary.dark" }}>เมนูหลัก</Typography>
+            </Stack>
             <Typography
               sx={{
-                fontWeight: 900
+                display: { xs: "none", sm: "block" },
+                color: "text.secondary",
+                fontSize: "0.82rem",
+                fontWeight: 700
               }}
             >
-              เมนูหลัก
+              วิทยาลัยเกษตรและเทคโนโลยี
             </Typography>
           </Box>
         )}
@@ -310,22 +334,31 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
         slotProps={{
           paper: {
             sx: {
-              width: { xs: "84vw", sm: 360 },
+              width: { xs: "86vw", sm: 360 },
               maxWidth: 360
             }
           }
         }}
       >
         <Stack spacing={0} sx={{ height: "100%" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1.5 }}>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontWeight: 700
-              }}
-            >
-              เมนูหลัก
-            </Typography>
+          <Box
+            sx={(theme) => ({
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              px: 2,
+              py: 1.5,
+              bgcolor: alpha(theme.palette.primary.main, 0.055)
+            })}
+          >
+            <Stack spacing={0.1}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 900, color: "primary.dark" }}>
+                เมนูเว็บไซต์
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                RCAT
+              </Typography>
+            </Stack>
             <IconButton aria-label="ปิดเมนูหลัก" onClick={closeMobileMenu}>
               <CloseOutlinedIcon />
             </IconButton>
@@ -341,15 +374,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
                 toggleOpen={toggleMobileItem}
               />
             ) : (
-              <Typography
-                sx={{
-                  color: "text.secondary",
-                  px: 2,
-                  py: 2
-                }}
-              >
-                ยังไม่มีรายการเมนู
-              </Typography>
+              <Typography sx={{ color: "text.secondary", px: 2, py: 2 }}>ยังไม่มีรายการเมนู</Typography>
             )}
           </Box>
         </Stack>
@@ -357,6 +382,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
     </Box>
   );
 }
+
 function MobileMenuList({
   items,
   level,
@@ -388,15 +414,19 @@ function MobileMenuList({
                   onNavigate();
                 }
               }}
-              sx={{
+              sx={(theme) => ({
                 pl: 2 + level * 2,
                 pr: 2,
                 py: 1.25,
                 borderBottom: "1px solid",
                 borderColor: "divider",
                 color: "text.primary",
-                justifyContent: "space-between"
-              }}
+                justifyContent: "space-between",
+                borderLeft: level ? `3px solid ${alpha(theme.palette.primary.main, 0.14)}` : "3px solid transparent",
+                "&:hover": {
+                  bgcolor: alpha(theme.palette.primary.main, 0.05)
+                }
+              })}
               aria-expanded={hasChildren ? isOpen : undefined}
               aria-controls={hasChildren ? `${item.id}-mobile-submenu` : undefined}
             >
@@ -405,9 +435,9 @@ function MobileMenuList({
                 slotProps={{
                   primary: {
                     sx: {
-                      fontWeight: 700,
+                      fontWeight: level ? 700 : 850,
                       fontSize: level ? { xs: "0.88rem", md: "0.92rem" } : { xs: "0.95rem", md: "0.98rem" },
-                      color: level ? "text.secondary" : "text.primary",
+                      color: level ? "text.secondary" : "primary.dark",
                       whiteSpace: "normal"
                     }
                   }
@@ -423,7 +453,7 @@ function MobileMenuList({
                   level={level + 1}
                   onNavigate={onNavigate}
                   openItems={openItems}
-                  toggleOpen={toggleOpen}
+                  toggleOpen={toggleMobileItem}
                 />
               </Collapse>
             )}
