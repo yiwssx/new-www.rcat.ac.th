@@ -36,7 +36,11 @@ export default function PublicBlogPage() {
   const hasActiveFilter = Boolean(activeTag || activeCategory);
   const requestedPage = normalizePublicPageSearchValue(routeSearch.page) ?? 1;
   const { data, isLoading, isFetching, isError, refetch } = usePublicContentList("blog", undefined, {
-    pageInput: hasActiveFilter ? undefined : { page: requestedPage, pageSize: BLOG_PAGE_SIZE }
+    pageInput: { page: requestedPage, pageSize: BLOG_PAGE_SIZE },
+    filters: {
+      ...(activeTag ? { tag: activeTag } : {}),
+      ...(activeCategory ? { category: activeCategory } : {})
+    }
   });
   const blogItems = useMemo(() => data?.items ?? [], [data?.items]);
   const mediaAssets = data?.media ?? [];
@@ -53,10 +57,10 @@ export default function PublicBlogPage() {
         : blogItems,
     [activeCategory, activeTag, hasActiveFilter, blogItems]
   );
-  const serverPagination = hasActiveFilter ? undefined : data?.pagination;
-  const serverPaginationPending = !hasActiveFilter && (!data || isFetching);
+  const serverPagination = data?.pagination;
+  const serverPaginationPending = !data || isFetching;
   const archivePage = serverPagination?.page ?? requestedPage;
-  const shouldFeatureFirstItem = !serverPagination || archivePage === 1;
+  const shouldFeatureFirstItem = archivePage === 1;
   const featuredItem = shouldFeatureFirstItem ? filteredBlogItems[0] : undefined;
   const secondaryItems = shouldFeatureFirstItem ? filteredBlogItems.slice(1) : filteredBlogItems;
   const blogPagination = usePublicPagination(secondaryItems, {
