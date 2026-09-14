@@ -4,6 +4,7 @@ import { Button, Chip, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
@@ -19,6 +20,7 @@ import { normalizeSafeHref } from "../../utils/safeUrl";
 const ANNOUNCEMENTS_PAGE_SIZE = 12;
 const PUBLIC_PAGES_PAGE_SIZE = 12;
 const JOB_CATEGORY = "รับสมัครงาน";
+const PROCUREMENT_CATEGORY = "จัดซื้อจัดจ้าง";
 
 function readTextSearchParam(search: Record<string, unknown>, name: string) {
   const value = search[name];
@@ -43,6 +45,8 @@ export default function PublicAnnouncementsPage() {
   const activeTag = readTextSearchParam(routeSearch, "tag");
   const activeCategory = readTextSearchParam(routeSearch, "category");
   const isJobArchive = activeCategory === JOB_CATEGORY;
+  const isProcurementArchive = activeCategory === PROCUREMENT_CATEGORY;
+  const isDedicatedArchive = isJobArchive || isProcurementArchive;
   const hasActiveFilter = Boolean(activeTag || activeCategory);
   const announcementItems = useMemo(() => data?.items ?? [], [data?.items]);
   const pageItems = useMemo(() => data?.pageItems ?? [], [data?.pageItems]);
@@ -73,6 +77,17 @@ export default function PublicAnnouncementsPage() {
   const visiblePageItems = pageItemsPagination
     ? pageItems
     : pageItems.slice((pagesPage - 1) * PUBLIC_PAGES_PAGE_SIZE, pagesPage * PUBLIC_PAGES_PAGE_SIZE);
+  const pageTitle = isJobArchive ? "ข่าวสมัครงานและจัดหาอาชีพ" : isProcurementArchive ? "ข่าวจัดซื้อจัดจ้าง" : "ประกาศ";
+  const pageDescription = isJobArchive
+    ? "ประกาศรับสมัครงาน พนักงานราชการ ลูกจ้างชั่วคราว ตำแหน่งงานว่าง และข้อมูลด้านการจัดหาอาชีพ"
+    : isProcurementArchive
+      ? "ประกาศ แผนจัดซื้อจัดจ้าง ร่างขอบเขตของงาน ราคากลาง และผลการพิจารณาที่เกี่ยวข้องกับการจัดซื้อจัดจ้างของสถานศึกษา"
+      : "รวมประกาศทุกหมวดของสถานศึกษา ทั้งจัดซื้อจัดจ้าง รับสมัครงาน จัดหาอาชีพ และประกาศทั่วไป";
+  const listHeading = isJobArchive
+    ? "ข่าวสมัครงานและจัดหาอาชีพ"
+    : isProcurementArchive
+      ? "ข่าวจัดซื้อจัดจ้าง"
+      : "ประกาศทั้งหมด";
 
   useEffect(() => {
     if (!data || requestedPagesPage === pagesPage) {
@@ -152,12 +167,8 @@ export default function PublicAnnouncementsPage() {
 
   return (
     <PublicSiteShell
-      title={isJobArchive ? "ข่าวสมัครงานและจัดหาอาชีพ" : "ประกาศ"}
-      description={
-        isJobArchive
-          ? "ประกาศรับสมัครงาน พนักงานราชการ ลูกจ้างชั่วคราว ตำแหน่งงานว่าง และข้อมูลด้านการจัดหาอาชีพ"
-          : "ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา"
-      }
+      title={pageTitle}
+      description={pageDescription}
       preloadedSiteSettings={data.siteSettings}
       preloadedHomepageSettings={data.homepageSettings}
       preloadedDisplaySettings={data.displaySettings}
@@ -173,9 +184,15 @@ export default function PublicAnnouncementsPage() {
           mb: 2
         }}
       >
-        {isJobArchive ? <WorkOutlineOutlinedIcon color="primary" /> : <CampaignOutlinedIcon color="primary" />}
+        {isJobArchive ? (
+          <WorkOutlineOutlinedIcon color="primary" />
+        ) : isProcurementArchive ? (
+          <RequestQuoteOutlinedIcon color="primary" />
+        ) : (
+          <CampaignOutlinedIcon color="primary" />
+        )}
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
-          {isJobArchive ? "ข่าวสมัครงานและจัดหาอาชีพ" : "ประกาศราชการ"}
+          {listHeading}
         </Typography>
       </Stack>
       {hasActiveFilter && (
@@ -205,6 +222,8 @@ export default function PublicAnnouncementsPage() {
               icon={
                 isJobArchive ? (
                   <WorkOutlineOutlinedIcon sx={{ fontSize: 42 }} />
+                ) : isProcurementArchive ? (
+                  <RequestQuoteOutlinedIcon sx={{ fontSize: 42 }} />
                 ) : (
                   <CampaignOutlinedIcon sx={{ fontSize: 42 }} />
                 )
@@ -227,14 +246,24 @@ export default function PublicAnnouncementsPage() {
           title={
             isJobArchive
               ? "ยังไม่มีข่าวสมัครงานหรือจัดหาอาชีพที่เผยแพร่"
-              : hasActiveFilter
-                ? "ไม่พบประกาศตามตัวกรองที่เลือก"
-                : "ยังไม่มีประกาศที่เผยแพร่"
+              : isProcurementArchive
+                ? "ยังไม่มีข่าวจัดซื้อจัดจ้างที่เผยแพร่"
+                : hasActiveFilter
+                  ? "ไม่พบประกาศตามตัวกรองที่เลือก"
+                  : "ยังไม่มีประกาศที่เผยแพร่"
           }
-          icon={isJobArchive ? <WorkOutlineOutlinedIcon /> : <CampaignOutlinedIcon />}
+          icon={
+            isJobArchive ? (
+              <WorkOutlineOutlinedIcon />
+            ) : isProcurementArchive ? (
+              <RequestQuoteOutlinedIcon />
+            ) : (
+              <CampaignOutlinedIcon />
+            )
+          }
         />
       )}
-      {!isJobArchive && (
+      {!isDedicatedArchive && (
         <>
           <Stack
             id="public-pages-list-heading"

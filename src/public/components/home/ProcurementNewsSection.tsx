@@ -14,6 +14,7 @@ import { HomeSectionHeading } from "./HomeSectionHeading";
 import { resolveProcurementPreview } from "./procurementPreview";
 
 const HOME_PROCUREMENT_DISPLAY_LIMIT = 4;
+const PROCUREMENT_ARCHIVE_HREF = `/announcements?category=${encodeURIComponent("จัดซื้อจัดจ้าง")}`;
 
 function getLatestProcurementItems(items: PublicContentCardItem[]) {
   return [...items]
@@ -40,7 +41,11 @@ export function ProcurementNewsSection({ items }: { items: PublicContentCardItem
         title="ข่าวจัดซื้อจัดจ้าง"
         description="ประกาศ แผนจัดซื้อจัดจ้าง ร่างขอบเขตของงาน และผลการพิจารณาที่เกี่ยวข้องกับการจัดซื้อจัดจ้างของสถานศึกษา"
         action={
-          <Button href={normalizeSafeHref("/announcements")} endIcon={<ArrowForwardOutlinedIcon />} size="small">
+          <Button
+            href={normalizeSafeHref(PROCUREMENT_ARCHIVE_HREF)}
+            endIcon={<ArrowForwardOutlinedIcon />}
+            size="small"
+          >
             ดูทั้งหมด
           </Button>
         }
