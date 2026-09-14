@@ -7,9 +7,22 @@ import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } f
 const HOME_NEWS_LIMIT = 6;
 const HOME_ANNOUNCEMENT_LIMIT = 8;
 const HOME_PROCUREMENT_LIMIT = 4;
+const HOME_JOB_OPPORTUNITY_LIMIT = 4;
 const HOME_PROGRAM_LIMIT = 8;
 const HOME_ACHIEVEMENT_LIMIT = 6;
 const PROCUREMENT_TERMS = ["procurement", "tor", "จัดซื้อ", "จัดจ้าง", "ประกวดราคา"] as const;
+const JOB_OPPORTUNITY_TERMS = [
+  "job",
+  "career",
+  "recruit",
+  "รับสมัครงาน",
+  "พนักงานราชการ",
+  "ลูกจ้าง",
+  "บุคลากร",
+  "ตำแหน่งงาน",
+  "จัดหางาน",
+  "อาชีพ"
+] as const;
 const ACHIEVEMENT_TERMS = [
   "achievement",
   "award",
@@ -67,8 +80,9 @@ function createTextFilter(terms: readonly string[]) {
 
 export async function listHomePublishedContentSummaryRows(env: Env): Promise<PublicContentSummaryReadRow[]> {
   const procurementFilter = createTextFilter(PROCUREMENT_TERMS);
+  const jobOpportunityFilter = createTextFilter(JOB_OPPORTUNITY_TERMS);
   const achievementFilter = createTextFilter(ACHIEVEMENT_TERMS);
-  const [news, announcements, procurement, programs, achievements] = await Promise.all([
+  const [news, announcements, procurement, jobOpportunities, programs, achievements] = await Promise.all([
     readHomeRows(env, "home:content:news", "AND type IN (?, ?)", ["news", "blog"], HOME_NEWS_LIMIT),
     readHomeRows(env, "home:content:announcements", "AND type = ?", ["announcement"], HOME_ANNOUNCEMENT_LIMIT),
     readHomeRows(
@@ -77,6 +91,13 @@ export async function listHomePublishedContentSummaryRows(env: Env): Promise<Pub
       `AND type = ? ${procurementFilter.sql}`,
       ["announcement", ...procurementFilter.bindings],
       HOME_PROCUREMENT_LIMIT
+    ),
+    readHomeRows(
+      env,
+      "home:content:jobs",
+      `AND type = ? ${jobOpportunityFilter.sql}`,
+      ["announcement", ...jobOpportunityFilter.bindings],
+      HOME_JOB_OPPORTUNITY_LIMIT
     ),
     readHomeRows(env, "home:content:programs", "AND type = ?", ["program"], HOME_PROGRAM_LIMIT),
     readHomeRows(
@@ -89,7 +110,7 @@ export async function listHomePublishedContentSummaryRows(env: Env): Promise<Pub
   ]);
 
   const rowsById = new Map<string, PublicContentSummaryReadRow>();
-  [...news, ...announcements, ...procurement, ...programs, ...achievements].forEach((row) => {
+  [...news, ...announcements, ...procurement, ...jobOpportunities, ...programs, ...achievements].forEach((row) => {
     if (!rowsById.has(row.id)) {
       rowsById.set(row.id, row);
     }
