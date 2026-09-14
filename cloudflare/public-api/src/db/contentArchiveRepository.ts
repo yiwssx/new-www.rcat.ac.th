@@ -22,7 +22,9 @@ function normalizePageReadOptions(options: PublicContentPageReadOptions) {
 }
 
 function normalizeFilterValue(value: string | undefined) {
-  return String(value || "").trim().slice(0, 120);
+  return String(value || "")
+    .trim()
+    .slice(0, 120);
 }
 
 function escapeLikePattern(value: string) {

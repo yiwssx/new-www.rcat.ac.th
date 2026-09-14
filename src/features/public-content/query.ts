@@ -24,8 +24,12 @@ function normalizePageInput(pageInput: PublicContentListPageInput) {
 }
 
 function normalizeFilters(filters: PublicContentListFilterInput | undefined) {
-  const tag = String(filters?.tag || "").trim().slice(0, 120);
-  const category = String(filters?.category || "").trim().slice(0, 120);
+  const tag = String(filters?.tag || "")
+    .trim()
+    .slice(0, 120);
+  const category = String(filters?.category || "")
+    .trim()
+    .slice(0, 120);
   return {
     tag: tag || undefined,
     category: category || undefined

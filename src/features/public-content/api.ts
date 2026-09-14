@@ -20,7 +20,9 @@ export interface PublicContentListFilterInput {
 }
 
 function normalizeFilterValue(value: string | undefined) {
-  return String(value || "").trim().slice(0, 120);
+  return String(value || "")
+    .trim()
+    .slice(0, 120);
 }
 
 function hasFilters(filters: PublicContentListFilterInput | undefined) {
@@ -36,7 +38,8 @@ function buildFilteredContentListPath(
     kind,
     page: String(Math.max(1, Math.floor(pageInput.page)))
   });
-  const pageSize = pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)));
+  const pageSize =
+    pageInput.pageSize === undefined ? undefined : Math.min(100, Math.max(1, Math.floor(pageInput.pageSize)));
   const tag = normalizeFilterValue(filters.tag);
   const category = normalizeFilterValue(filters.category);
 

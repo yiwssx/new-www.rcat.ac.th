@@ -82,7 +82,9 @@ function getPaginationInput(
 }
 
 function normalizeFilterValue(value: string | null) {
-  return String(value || "").trim().slice(0, MAX_PUBLIC_FILTER_LENGTH);
+  return String(value || "")
+    .trim()
+    .slice(0, MAX_PUBLIC_FILTER_LENGTH);
 }
 
 function getArchiveFilters(url: URL): PublicContentArchiveFilters {

@@ -86,9 +86,10 @@ export function getContentArchiveLoaderInput(search: Record<string, unknown>): P
   };
 }
 
-function resolveContentArchiveInput(
-  input: PublicContentPageInput | PublicContentArchiveLoaderDeps | undefined
-): { pageInput: PublicContentPageInput | undefined; filters: PublicContentArchiveFilters | undefined } {
+function resolveContentArchiveInput(input: PublicContentPageInput | PublicContentArchiveLoaderDeps | undefined): {
+  pageInput: PublicContentPageInput | undefined;
+  filters: PublicContentArchiveFilters | undefined;
+} {
   if (input && "pageInput" in input) {
     return {
       pageInput: input.pageInput,
