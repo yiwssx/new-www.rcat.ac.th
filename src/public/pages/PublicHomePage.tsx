@@ -371,6 +371,7 @@ export default function PublicHomePage() {
               <DeferredHomeSection minHeight={{ xs: 220, md: 260 }}>
                 <LazyAchievementHighlightsSection
                   items={achievementItems}
+                  mediaAssets={mediaAssets}
                   limit={6}
                   viewAllHref="/achievements"
                   viewAllLabel="ดูผลงานทั้งหมด"
