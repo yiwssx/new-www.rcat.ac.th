@@ -26,7 +26,10 @@ function compareContentPublishAtDesc(left: PublicContentCardContract, right: Pub
 }
 
 function isProcurementItem(item: PublicContentCardContract) {
-  return item.type === "announcement" && PROCUREMENT_PATTERN.test([item.title, item.summary, item.category, ...item.tags].join(" "));
+  return (
+    item.type === "announcement" &&
+    PROCUREMENT_PATTERN.test([item.title, item.summary, item.category, ...item.tags].join(" "))
+  );
 }
 
 function isAchievementItem(item: PublicContentCardContract) {
