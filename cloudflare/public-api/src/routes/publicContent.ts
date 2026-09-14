@@ -6,9 +6,14 @@ import {
 import { mapMediaAssetRowToPublicMediaAsset } from "../adapters/publicMediaAdapter";
 import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
 import {
+  countPublishedContentArchiveRows,
+  listPublishedContentArchivePageRows,
+  listRelatedPublishedContentCardRows,
+  type PublicContentArchiveFilters
+} from "../db/contentArchiveRepository";
+import {
   countPublishedContentSummaryRows,
   getPublishedContentRowBySlug,
-  listAllPublishedContentCardRows,
   listPublishedContentSummaryPageRows,
   listPublishedContentSummaryRows,
   type PublicContentCardReadRow,
@@ -23,6 +28,9 @@ const CONTENT_LIST_RESOURCE = "content-list";
 const CONTENT_DETAIL_RESOURCE = "content-detail";
 const PHASE = "M17-B";
 const ANNOUNCEMENT_PUBLIC_PAGES_PAGE_SIZE = 12;
+const FILTERED_ARCHIVE_DEFAULT_PAGE_SIZE = 20;
+const MAX_PUBLIC_FILTER_LENGTH = 120;
+const RELATED_CONTENT_CANDIDATE_LIMIT = 24;
 
 const CONTENT_KIND_TO_TYPE = {
   news: "news",
@@ -71,6 +79,21 @@ function getPaginationInput(
     page: Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1,
     pageSize: Number.isInteger(requestedPageSize) ? Math.min(Math.max(requestedPageSize, 1), 100) : defaultPageSize
   };
+}
+
+function normalizeFilterValue(value: string | null) {
+  return String(value || "").trim().slice(0, MAX_PUBLIC_FILTER_LENGTH);
+}
+
+function getArchiveFilters(url: URL): PublicContentArchiveFilters {
+  return {
+    tag: normalizeFilterValue(url.searchParams.get("tag")) || undefined,
+    category: normalizeFilterValue(url.searchParams.get("category")) || undefined
+  };
+}
+
+function hasArchiveFilters(filters: PublicContentArchiveFilters) {
+  return Boolean(filters.tag || filters.category);
 }
 
 function createPagination(input: PaginationInput, totalItems: number) {
@@ -141,7 +164,11 @@ export async function publicContentList(request: Request, env: Env) {
 
   const publicKind = kind as keyof typeof CONTENT_KIND_TO_TYPE;
   const contentType = CONTENT_KIND_TO_TYPE[publicKind];
-  const paginationInput = getOptionalPaginationInput(url);
+  const archiveFilters = getArchiveFilters(url);
+  const requestedPagination = getOptionalPaginationInput(url);
+  const paginationInput =
+    requestedPagination ??
+    (hasArchiveFilters(archiveFilters) ? { page: 1, pageSize: FILTERED_ARCHIVE_DEFAULT_PAGE_SIZE } : undefined);
   const pageItemsPaginationInput =
     publicKind === "announcements"
       ? getPaginationInput(url, "pagesPage", "pagesPageSize", ANNOUNCEMENT_PUBLIC_PAGES_PAGE_SIZE)
@@ -150,7 +177,7 @@ export async function publicContentList(request: Request, env: Env) {
   try {
     const shellMetadataPromise = readPublicShellMetadataRows(env);
     const [totalItems, totalPageItems] = await Promise.all([
-      paginationInput ? countPublishedContentSummaryRows(env, contentType) : Promise.resolve(undefined),
+      paginationInput ? countPublishedContentArchiveRows(env, contentType, archiveFilters) : Promise.resolve(undefined),
       pageItemsPaginationInput ? countPublishedContentSummaryRows(env, "page") : Promise.resolve(undefined)
     ]);
 
@@ -162,7 +189,7 @@ export async function publicContentList(request: Request, env: Env) {
         : undefined;
 
     const rowsPromise = pagination
-      ? listPublishedContentSummaryPageRows(env, contentType, {
+      ? listPublishedContentArchivePageRows(env, contentType, archiveFilters, {
           limit: pagination.pageSize,
           offset: (pagination.page - 1) * pagination.pageSize
         })
@@ -212,7 +239,12 @@ export async function publicContentDetail(env: Env, slug: string) {
       });
     }
 
-    const candidateRows = await listAllPublishedContentCardRows(env);
+    const candidateRows = await listRelatedPublishedContentCardRows(
+      env,
+      row.type || "page",
+      row.id || "",
+      RELATED_CONTENT_CANDIDATE_LIMIT
+    );
     const relatedRows = selectRelatedPublicContentCardRows(row, candidateRows);
     const mediaRows = await readPublicMediaRowsByIds(env, collectDetailMediaIds(row, relatedRows));
     const media = mediaRows.map(mapMediaAssetRowToPublicMediaAsset);
