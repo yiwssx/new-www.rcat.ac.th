@@ -134,7 +134,7 @@ export function HomeQuickAccessSection({
           border: "1px solid",
           borderColor: alpha(theme.palette.primary.main, 0.12),
           bgcolor: alpha(theme.palette.background.paper, 0.98),
-          boxShadow: "0 18px 48px rgba(19, 69, 46, 0.12)",
+          boxShadow: designTokens.elevation.medium,
           backdropFilter: "blur(14px)"
         })}
       >
