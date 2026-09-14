@@ -48,22 +48,35 @@ describe("resolveProcurementPreview", () => {
     });
   });
 
-  it("builds a Google Drive first-page thumbnail for an attached PDF", () => {
+  it("builds a Google Drive first-page thumbnail from the imported body PDF", () => {
+    const item = createItem({
+      bodyDocId: "procurement-pdf-file-1",
+      bodyDocUrl: "https://drive.google.com/file/d/procurement-pdf-file-1/view"
+    });
+
+    expect(resolveProcurementPreview(item, [])).toEqual({
+      source: "https://drive.google.com/thumbnail?id=procurement-pdf-file-1&sz=w320",
+      kind: "pdf",
+      label: "ประกาศจัดซื้อจัดจ้าง"
+    });
+  });
+
+  it("uses an attached PDF before the body document when both are available", () => {
     const pdf = createMedia({
       id: "pdf-1",
       mimeType: "application/pdf",
-      fileId: "pdf-file-1"
+      fileId: "attached-pdf-file"
     });
-    const item = createItem({ mediaIds: [pdf.id] });
+    const item = createItem({ mediaIds: [pdf.id], bodyDocId: "body-pdf-file" });
 
     expect(resolveProcurementPreview(item, [pdf])).toEqual({
-      source: "https://drive.google.com/thumbnail?id=pdf-file-1&sz=w320",
+      source: "https://drive.google.com/thumbnail?id=attached-pdf-file&sz=w320",
       kind: "pdf",
       label: "document.pdf"
     });
   });
 
-  it("falls back to the document placeholder when no preview media is attached", () => {
+  it("falls back to the document placeholder when no preview source exists", () => {
     expect(resolveProcurementPreview(createItem(), [])).toEqual({
       source: null,
       kind: "fallback",
