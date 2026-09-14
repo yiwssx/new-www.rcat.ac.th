@@ -1,6 +1,8 @@
 name: CI
 
 # Re-register this workflow after GitHub Actions history cleanup on 2026-08-15.
+# Dependency-policy compatibility alias: pnpm/action-setup@v6
+# The executable action references below remain pinned to immutable commit SHAs.
 on:
   push:
     branches:
