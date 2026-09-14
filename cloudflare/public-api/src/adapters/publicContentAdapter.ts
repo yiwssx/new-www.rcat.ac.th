@@ -39,6 +39,8 @@ export function mapContentCardRowToPublicContentCard(
     featured: row.featured === 1,
     readingMinutes: Math.max(0, Number(row.reading_minutes) || 0),
     template: row.template || "",
+    bodyDocId: row.body_doc_id || "",
+    bodyDocUrl: row.body_doc_url || "",
     featuredMediaId: row.featured_media_id || "",
     mediaIds: "media_ids_json" in row ? parseStringArray(row.media_ids_json) : [],
     publishAt: row.publish_at || ""
@@ -64,6 +66,8 @@ export function mapContentSummaryRowToPublicContentItem(
     featured: row.featured === 1,
     readingMinutes: Math.max(0, Number(row.reading_minutes) || 0),
     template: row.template || "",
+    bodyDocId: row.body_doc_id || "",
+    bodyDocUrl: row.body_doc_url || "",
     featuredMediaId: row.featured_media_id || "",
     mediaIds: parseStringArray(row.media_ids_json),
     viewCount: Math.max(0, Number(row.view_count) || 0),
