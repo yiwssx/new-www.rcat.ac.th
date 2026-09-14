@@ -65,7 +65,12 @@ function shouldRejectLegacyPermalink(pathname: string) {
   }
 
   const segment = pathname.slice(1);
-  if (!segment || segment.length > MAX_LEGACY_SLUG_LENGTH || segment.startsWith(".") || LEGACY_FILE_PROBE_PATTERN.test(segment)) {
+  if (
+    !segment ||
+    segment.length > MAX_LEGACY_SLUG_LENGTH ||
+    segment.startsWith(".") ||
+    LEGACY_FILE_PROBE_PATTERN.test(segment)
+  ) {
     return true;
   }
 
