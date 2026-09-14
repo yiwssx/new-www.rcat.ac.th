@@ -182,7 +182,7 @@ export function HomeHashScroller() {
 
       window.addEventListener("wheel", stopForUserIntent, { passive: true });
       window.addEventListener("touchstart", stopForUserIntent, { passive: true });
-      window.addEventListener("pointerdown", stopForUserIntent);
+      window.addEventListener("pointerdown", stopForUserIntent, { passive: true });
       window.addEventListener("keydown", stopForUserIntent);
       listeningForUserIntent = true;
     };
