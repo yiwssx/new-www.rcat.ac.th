@@ -60,10 +60,7 @@ function getPdfThumbnailUrl(asset: MediaAsset) {
   return fileId ? buildGoogleDriveThumbnailUrl(fileId, PROCUREMENT_THUMBNAIL_WIDTH) : "";
 }
 
-export function resolveProcurementPreview(
-  item: PublicContentCardItem,
-  mediaAssets: MediaAsset[]
-): ProcurementPreview {
+export function resolveProcurementPreview(item: PublicContentCardItem, mediaAssets: MediaAsset[]): ProcurementPreview {
   const image = resolveCardThumbnail(item, mediaAssets);
   if (image) {
     return {
