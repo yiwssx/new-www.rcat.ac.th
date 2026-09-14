@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MediaAsset, PublicContentCardItem } from "../../../types";
-import { resolveProcurementPreview } from "./ProcurementNewsSection";
+import { resolveProcurementPreview } from "./procurementPreview";
 
 function createItem(overrides: Partial<PublicContentCardItem> = {}): PublicContentCardItem {
   return {
