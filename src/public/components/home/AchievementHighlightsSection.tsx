@@ -6,12 +6,14 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
-import { PublicContentCardItem } from "../../../types";
+import { MediaAsset, PublicContentCardItem } from "../../../types";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
+import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { interactiveSurfaceSx } from "../../../design-system/componentStyles";
 import { designTokens } from "../../../design-system/tokens";
 import { formatDisplayYear } from "../../../utils/dateDisplay";
+import { resolveCardThumbnail } from "../publicContentCardThumbnail";
 
 function getAchievementHaystack(item: PublicContentCardItem) {
   return [item.title, item.summary, item.category, ...(item.tags ?? [])].join(" ").toLowerCase();
@@ -62,6 +64,7 @@ function getVisibleItems(items: PublicContentCardItem[], limit: number | undefin
 
 interface AchievementHighlightsSectionProps {
   items: PublicContentCardItem[];
+  mediaAssets?: MediaAsset[];
   limit?: number;
   viewAllHref?: string;
   viewAllLabel?: string;
@@ -69,6 +72,7 @@ interface AchievementHighlightsSectionProps {
 
 export function AchievementHighlightsSection({
   items,
+  mediaAssets = [],
   limit = 6,
   viewAllHref,
   viewAllLabel = "ดูผลงานทั้งหมด"
@@ -83,6 +87,7 @@ export function AchievementHighlightsSection({
 
   const featuredYear = formatDisplayYear(featuredItem.publishAt);
   const featuredHref = normalizeSafeHref(`/content/${featuredItem.slug}`);
+  const featuredThumbnail = resolveCardThumbnail(featuredItem, mediaAssets);
 
   return (
     <Box component="section" sx={{ mt: { xs: 4, md: 5.5 } }}>
@@ -140,28 +145,46 @@ export function AchievementHighlightsSection({
             sx={{
               p: { xs: 2.25, md: 3 },
               display: "flex",
-              alignItems: { xs: "flex-start", md: "center" },
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "stretch", sm: "center" },
               gap: { xs: 2, md: 3 }
             }}
           >
             <Box
+              className="rcat-image-frame grid place-items-center"
+              data-achievement-media-slot="featured"
               sx={(theme) => ({
-                width: { xs: 52, md: 66 },
-                height: { xs: 52, md: 66 },
+                width: { xs: "100%", sm: 190, md: 220 },
+                minWidth: { sm: 190, md: 220 },
+                height: { xs: 180, sm: 132, md: 152 },
                 flex: "0 0 auto",
+                overflow: "hidden",
                 borderRadius: `${designTokens.radius.large}px`,
-                display: "grid",
-                placeItems: "center",
                 color: "primary.dark",
                 bgcolor: alpha(theme.palette.secondary.light, 0.78),
                 border: "1px solid",
                 borderColor: alpha(theme.palette.secondary.dark, 0.2),
                 "& svg": {
-                  fontSize: { xs: 30, md: 38 }
+                  fontSize: { xs: 38, md: 44 }
                 }
               })}
             >
-              {getAchievementIcon(featuredItem)}
+              {featuredThumbnail ? (
+                <PublicResponsiveImage
+                  imageClassName="h-full w-full object-cover"
+                  source={featuredThumbnail}
+                  intent="featured-card"
+                  alt={featuredThumbnail.name}
+                  sizes="(max-width: 599px) calc(100vw - 72px), (max-width: 899px) 190px, 220px"
+                  loadMode="near-viewport"
+                  nearViewportMargin="240px 0px"
+                  fill
+                  fallback={getAchievementIcon(featuredItem)}
+                  imageSx={{ objectFit: "cover" }}
+                />
+              ) : (
+                getAchievementIcon(featuredItem)
+              )}
             </Box>
 
             <Stack spacing={1.15} sx={{ minWidth: 0, flex: 1 }}>
@@ -230,6 +253,7 @@ export function AchievementHighlightsSection({
             {supportingItems.map((item, index) => {
               const thaiYear = formatDisplayYear(item.publishAt);
               const href = normalizeSafeHref(`/content/${item.slug}`);
+              const thumbnail = resolveCardThumbnail(item, mediaAssets);
               const spansFullRow = supportingItems.length % 2 === 1 && index === supportingItems.length - 1;
 
               return (
@@ -262,21 +286,38 @@ export function AchievementHighlightsSection({
                       }}
                     >
                       <Box
+                        className="rcat-image-frame grid place-items-center"
+                        data-achievement-media-slot="regular"
                         sx={(theme) => ({
-                          width: 40,
-                          height: 40,
+                          width: 112,
+                          minWidth: 112,
+                          height: 84,
                           flex: "0 0 auto",
+                          overflow: "hidden",
                           borderRadius: `${designTokens.radius.medium}px`,
-                          display: "grid",
-                          placeItems: "center",
                           color: "primary.dark",
                           bgcolor: alpha(theme.palette.primary.main, 0.08),
                           "& svg": {
-                            fontSize: 23
+                            fontSize: 25
                           }
                         })}
                       >
-                        {getAchievementIcon(item)}
+                        {thumbnail ? (
+                          <PublicResponsiveImage
+                            imageClassName="h-full w-full object-cover"
+                            source={thumbnail}
+                            intent="content-card"
+                            alt={thumbnail.name}
+                            sizes="112px"
+                            loadMode="near-viewport"
+                            nearViewportMargin="240px 0px"
+                            fill
+                            fallback={getAchievementIcon(item)}
+                            imageSx={{ objectFit: "cover" }}
+                          />
+                        ) : (
+                          getAchievementIcon(item)
+                        )}
                       </Box>
 
                       <Stack spacing={0.65} sx={{ minWidth: 0, flex: 1 }}>
