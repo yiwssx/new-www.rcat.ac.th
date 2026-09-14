@@ -339,13 +339,20 @@ export default function PublicHomePage() {
     >
       <HomeHashScroller />
       <PublicBackgroundProgress active={isFetching} />
-      <PublicHomeCarouselSsrBoundary
-        slides={carouselSlides}
-        settings={homepageSettings.carousel}
-        initialNowMs={snapshotReferenceTimeMs}
-      />
+
+      <Container maxWidth="xl">
+        <HomeHeroSection siteSettings={siteSettings} externalServices={externalServiceItems} />
+      </Container>
+
+      <Box sx={{ mt: { xs: 3, md: 4 } }}>
+        <PublicHomeCarouselSsrBoundary
+          slides={carouselSlides}
+          settings={homepageSettings.carousel}
+          initialNowMs={snapshotReferenceTimeMs}
+        />
+      </Box>
+
       <Container maxWidth="xl" sx={{ pb: hasFloatingMessenger ? { xs: 9, md: 14 } : undefined }}>
-        <HomeHeroSection siteSettings={siteSettings} />
         <HomeIntroVideoSection settings={homepageSettings.introVideo} />
 
         <Box component="section" id="news" sx={{ mt: { xs: 3, md: 4 } }}>
@@ -358,7 +365,6 @@ export default function PublicHomePage() {
           >
             <Grid size={{ xs: 12, lg: 8 }} sx={{ order: { xs: 1, lg: 1 } }}>
               <LatestNewsSection items={latestNews} mediaAssets={mediaAssets} />
-
               <DeferredHomeSection minHeight={{ xs: 180, md: 210 }}>
                 <LazyProcurementNewsSection items={procurementItems} />
               </DeferredHomeSection>
