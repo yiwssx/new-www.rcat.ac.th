@@ -8,7 +8,9 @@ import type { PublicVisitorStatsSnapshotContract } from "../contracts/publicVisi
 import type { PublicContentSummaryReadRow } from "../db/contentRepository";
 import type { DocumentRow } from "../db/schema";
 
+const HOME_PROCUREMENT_LIMIT = 4;
 const HOME_ACHIEVEMENT_LIMIT = 6;
+const PROCUREMENT_PATTERN = /procurement|tor|จัดซื้อ|จัดจ้าง|ประกวดราคา/i;
 const ACHIEVEMENT_PATTERN = /achievement|award|รางวัล|ผลงาน|ความสำเร็จ|ความภาคภูมิใจ|ชนะเลิศ|รองชนะเลิศ|เหรียญ/i;
 const EXTERNAL_SERVICE_MEDIA_ICON_PREFIX = "media:";
 
@@ -21,6 +23,10 @@ function compareContentPublishAtDesc(left: PublicContentCardContract, right: Pub
   }
 
   return String(right.publishAt || "").localeCompare(String(left.publishAt || "")) || right.id.localeCompare(left.id);
+}
+
+function isProcurementItem(item: PublicContentCardContract) {
+  return item.type === "announcement" && PROCUREMENT_PATTERN.test([item.title, item.summary, item.category, ...item.tags].join(" "));
 }
 
 function isAchievementItem(item: PublicContentCardContract) {
@@ -46,13 +52,17 @@ export function createPublicHomeSnapshot(
   const content = input.content.map(mapContentCardRowToPublicContentCard);
   const latestNews = content.filter((item) => item.type === "news" || item.type === "blog").slice(0, 6);
   const latestAnnouncements = content.filter((item) => item.type === "announcement").slice(0, 8);
+  const procurementItems = content
+    .filter(isProcurementItem)
+    .sort(compareContentPublishAtDesc)
+    .slice(0, HOME_PROCUREMENT_LIMIT);
   const programs = content.filter((item) => item.type === "program").slice(0, 8);
   const achievementItems = content
     .filter(isAchievementItem)
     .sort(compareContentPublishAtDesc)
     .slice(0, HOME_ACHIEVEMENT_LIMIT);
   const publicDocuments = input.featuredDocuments.map(mapDocumentRowToPublicDocumentItem);
-  const homeContent = [...latestNews, ...latestAnnouncements, ...programs, ...achievementItems];
+  const homeContent = [...latestNews, ...latestAnnouncements, ...procurementItems, ...programs, ...achievementItems];
   const homeMediaReferences = [
     ...homeContent,
     ...input.metadata.events.map((event) => ({
@@ -70,11 +80,7 @@ export function createPublicHomeSnapshot(
     visitorStats: input.visitorStats,
     latestNews,
     latestAnnouncements,
-    procurementItems: latestAnnouncements.filter((item) =>
-      /procurement|tor|จัดซื้อ|จัดจ้าง|ประกวดราคา/i.test(
-        [item.title, item.summary, item.category, ...item.tags].join(" ")
-      )
-    ),
+    procurementItems,
     jobOpportunityItems: latestAnnouncements.filter((item) =>
       /job|career|recruit|สมัครงาน|รับสมัคร|งาน/i.test(
         [item.title, item.summary, item.category, ...item.tags].join(" ")
