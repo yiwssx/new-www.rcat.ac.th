@@ -4,6 +4,10 @@ const token = process.env.GITHUB_TOKEN;
 const repository = process.env.GITHUB_REPOSITORY;
 const apiUrl = process.env.GITHUB_API_URL || "https://api.github.com";
 const dryRun = process.env.DRY_RUN === "true";
+const now = Date.now();
+const failedRetentionMs = 30 * 24 * 60 * 60 * 1000;
+const staleInProgressMs = 6 * 60 * 60 * 1000;
+const legacyActionsPseudoDeploymentCutoff = Date.parse("2026-09-13T06:52:00Z");
 
 if (!token || !repository) throw new Error("GITHUB_TOKEN and GITHUB_REPOSITORY are required");
 
@@ -32,26 +36,65 @@ async function listDeployments() {
   }
 }
 
+function deploymentCreatedAt(deployment) {
+  const createdAt = Date.parse(deployment.created_at || "");
+  return Number.isFinite(createdAt) ? createdAt : now;
+}
+
 function isLegacyActionsPseudoDeployment(deployment) {
   if (String(deployment.environment || "").toLowerCase() !== "production") return false;
   const login = String(deployment.creator?.login || "").toLowerCase();
   const app = String(deployment.performed_via_github_app?.slug || "").toLowerCase();
-  return login === "github-actions[bot]" || app === "github-actions";
+  const createdAt = deploymentCreatedAt(deployment);
+  const createdByActions = login === "github-actions[bot]" || app === "github-actions";
+  return createdByActions && createdAt < legacyActionsPseudoDeploymentCutoff;
+}
+
+function isStaleInProgressState(state) {
+  return state === "queued" || state === "pending" || state === "in_progress";
 }
 
 const deployments = await listDeployments();
-let failed = 0;
+let failedExpired = 0;
+let failedPreserved = 0;
 let pseudo = 0;
+let staleReconciled = 0;
 let deleted = 0;
 
 for (const deployment of deployments) {
   const statuses = await github(`/repos/${repository}/deployments/${deployment.id}/statuses?per_page=1`);
   const latestState = statuses[0]?.state || "pending";
+  const ageMs = now - deploymentCreatedAt(deployment);
   const failedHistory = latestState === "failure" || latestState === "error";
+  const expiredFailedHistory = failedHistory && ageMs >= failedRetentionMs;
   const legacyPseudo = isLegacyActionsPseudoDeployment(deployment);
-  if (!failedHistory && !legacyPseudo) continue;
+  const staleInProgress = isStaleInProgressState(latestState) && ageMs >= staleInProgressMs;
 
-  if (failedHistory) failed += 1;
+  if (failedHistory && !expiredFailedHistory) {
+    failedPreserved += 1;
+  }
+
+  if (staleInProgress) {
+    staleReconciled += 1;
+    console.log(
+      `${dryRun ? "Would reconcile" : "Reconciling"} stale deployment ${deployment.id}: environment=${deployment.environment} state=${latestState} creator=${deployment.creator?.login || "unknown"}`
+    );
+
+    if (!dryRun) {
+      await github(`/repos/${repository}/deployments/${deployment.id}/statuses`, {
+        method: "POST",
+        body: JSON.stringify({
+          state: "inactive",
+          environment: deployment.environment,
+          description: "Stale deployment reconciled by repository history maintenance"
+        })
+      });
+    }
+  }
+
+  if (!expiredFailedHistory && !legacyPseudo) continue;
+
+  if (expiredFailedHistory) failedExpired += 1;
   if (legacyPseudo) pseudo += 1;
   console.log(
     `${dryRun ? "Would delete" : "Deleting"} deployment ${deployment.id}: environment=${deployment.environment} state=${latestState} creator=${deployment.creator?.login || "unknown"}`
@@ -64,7 +107,7 @@ for (const deployment of deployments) {
       body: JSON.stringify({
         state: "inactive",
         environment: deployment.environment,
-        description: "Deployment history taxonomy cleanup"
+        description: "Deployment history retention cleanup"
       })
     });
   }
@@ -76,11 +119,14 @@ const summary = [
   "## Deployment History Maintenance",
   "",
   `- Examined: ${deployments.length}`,
-  `- Failed/error records matched: ${failed}`,
-  `- Legacy GitHub Actions production pseudo-deployments matched: ${pseudo}`,
+  `- Failed/error records past 30-day retention: ${failedExpired}`,
+  `- Recent failed/error records preserved: ${failedPreserved}`,
+  `- Legacy pre-taxonomy GitHub Actions production pseudo-deployments matched: ${pseudo}`,
+  `- Stale queued/pending/in-progress deployments reconciled: ${staleReconciled}`,
   `- Deleted: ${deleted}`,
   `- Dry run: ${dryRun}`,
-  "- Successful Vercel and service-specific deployment records are preserved"
+  "- Successful Vercel and service-specific deployment records are preserved",
+  "- Future GitHub Actions deployment records are not classified as legacy solely by creator"
 ].join("\n");
 console.log(summary);
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
