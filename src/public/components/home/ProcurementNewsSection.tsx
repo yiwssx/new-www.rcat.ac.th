@@ -41,7 +41,11 @@ export function ProcurementNewsSection({ items }: { items: PublicContentCardItem
         title="ข่าวจัดซื้อจัดจ้าง"
         description="ประกาศ แผนจัดซื้อจัดจ้าง ร่างขอบเขตของงาน และผลการพิจารณาที่เกี่ยวข้องกับการจัดซื้อจัดจ้างของสถานศึกษา"
         action={
-          <Button href={normalizeSafeHref(PROCUREMENT_ARCHIVE_HREF)} endIcon={<ArrowForwardOutlinedIcon />} size="small">
+          <Button
+            href={normalizeSafeHref(PROCUREMENT_ARCHIVE_HREF)}
+            endIcon={<ArrowForwardOutlinedIcon />}
+            size="small"
+          >
             ดูทั้งหมด
           </Button>
         }
