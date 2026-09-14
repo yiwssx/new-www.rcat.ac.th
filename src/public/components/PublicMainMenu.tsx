@@ -23,6 +23,7 @@ import KeyboardArrowRightOutlinedIcon from "@mui/icons-material/KeyboardArrowRig
 import { usePublicCmsSnapshot } from "../hooks/usePublicCmsSnapshot";
 import { PublicMenuItem } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
+import { focusVisibleSx } from "../../design-system/componentStyles";
 import { designTokens } from "../../design-system/tokens";
 
 function getEnabledMenuItems(items: PublicMenuItem[]): PublicMenuItem[] {
@@ -66,6 +67,7 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
             component="a"
             href={normalizeSafeHref(item.href)}
             sx={(theme) => ({
+              ...focusVisibleSx,
               minHeight: nested ? 42 : 54,
               px: nested ? 1.5 : 2,
               py: nested ? 1 : 1.15,
@@ -74,7 +76,7 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
               justifyContent: "space-between",
               gap: 0.8,
               color: nested ? "text.primary" : "primary.dark",
-              fontWeight: nested ? 750 : 850,
+              fontWeight: 800,
               whiteSpace: "nowrap",
               textDecoration: "none",
               borderLeft: nested ? "3px solid transparent" : "none",
@@ -84,10 +86,6 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
                 bgcolor: nested ? "primary.light" : alpha(theme.palette.primary.main, 0.055),
                 color: nested ? "text.primary" : "primary.main",
                 borderColor: nested ? "secondary.main" : "primary.main"
-              },
-              "&:focus-visible": {
-                outline: `2px solid ${theme.palette.secondary.main}`,
-                outlineOffset: -2
               }
             })}
           >
@@ -115,7 +113,7 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
                 borderTopWidth: nested ? 1 : 3,
                 borderTopStyle: "solid",
                 borderTopColor: nested ? "divider" : "primary.main",
-                borderRadius: nested ? 1.5 : "0 0 12px 12px",
+                borderRadius: `${designTokens.radius.medium}px`,
                 boxShadow: designTokens.elevation.high,
                 opacity: 0,
                 visibility: "hidden",
@@ -159,7 +157,7 @@ function PublicTopLevelMenuMeasurement({ items }: { items: PublicMenuItem[] }) {
               justifyContent: "space-between",
               gap: 0.8,
               color: "primary.dark",
-              fontWeight: 850,
+              fontWeight: 800,
               whiteSpace: "nowrap"
             }}
           >
@@ -435,7 +433,7 @@ function MobileMenuList({
                 slotProps={{
                   primary: {
                     sx: {
-                      fontWeight: level ? 700 : 850,
+                      fontWeight: level ? 700 : 800,
                       fontSize: level ? { xs: "0.88rem", md: "0.92rem" } : { xs: "0.95rem", md: "0.98rem" },
                       color: level ? "text.secondary" : "primary.dark",
                       whiteSpace: "normal"
@@ -453,7 +451,7 @@ function MobileMenuList({
                   level={level + 1}
                   onNavigate={onNavigate}
                   openItems={openItems}
-                  toggleOpen={toggleMobileItem}
+                  toggleOpen={toggleOpen}
                 />
               </Collapse>
             )}
