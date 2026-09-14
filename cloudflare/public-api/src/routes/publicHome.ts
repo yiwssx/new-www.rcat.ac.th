@@ -26,6 +26,8 @@ function collectHomeMediaIds(snapshot: ReturnType<typeof createPublicHomeSnapsho
   addMediaReferences([
     ...snapshot.latestNews,
     ...snapshot.latestAnnouncements,
+    ...snapshot.procurementItems,
+    ...snapshot.jobOpportunityItems,
     ...snapshot.programItems,
     ...snapshot.achievementItems,
     ...snapshot.eventItems
