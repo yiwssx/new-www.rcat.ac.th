@@ -38,8 +38,14 @@ interface PublicContentPageInput {
   pageSize?: number;
 }
 
+interface PublicContentArchiveFilters {
+  tag?: string;
+  category?: string;
+}
+
 interface PublicContentArchiveLoaderDeps {
-  pageInput: PublicContentPageInput | undefined;
+  pageInput: PublicContentPageInput;
+  filters: PublicContentArchiveFilters;
 }
 
 export const PUBLIC_SEARCH_PAGE_SIZE = 12;
@@ -59,29 +65,41 @@ async function prefetchPublicQuery<T>(prefetch: () => Promise<T>): Promise<Publi
   return isPublicRouteLoadFailure(result) ? result : undefined;
 }
 
-function hasArchiveFilters(search: Record<string, unknown>) {
-  return Boolean(String(search.tag || "").trim() || String(search.category || "").trim());
+function readTextSearchParam(search: Record<string, unknown>, name: string) {
+  const value = search[name];
+  return typeof value === "string" ? value.trim().slice(0, 120) : "";
 }
 
 export function getContentArchiveLoaderInput(search: Record<string, unknown>): PublicContentArchiveLoaderDeps {
+  const tag = readTextSearchParam(search, "tag");
+  const category = readTextSearchParam(search, "category");
+
   return {
-    pageInput: hasArchiveFilters(search)
-      ? undefined
-      : {
-          page: normalizePublicPageSearchValue(search.page) ?? 1,
-          pageSize: PUBLIC_CONTENT_ARCHIVE_PAGE_SIZE
-        }
+    pageInput: {
+      page: normalizePublicPageSearchValue(search.page) ?? 1,
+      pageSize: PUBLIC_CONTENT_ARCHIVE_PAGE_SIZE
+    },
+    filters: {
+      ...(tag ? { tag } : {}),
+      ...(category ? { category } : {})
+    }
   };
 }
 
-function resolveContentArchivePageInput(
+function resolveContentArchiveInput(
   input: PublicContentPageInput | PublicContentArchiveLoaderDeps | undefined
-): PublicContentPageInput | undefined {
+): { pageInput: PublicContentPageInput | undefined; filters: PublicContentArchiveFilters | undefined } {
   if (input && "pageInput" in input) {
-    return input.pageInput;
+    return {
+      pageInput: input.pageInput,
+      filters: input.filters
+    };
   }
 
-  return input;
+  return {
+    pageInput: input,
+    filters: undefined
+  };
 }
 
 export async function loadPublicShellData(context: PublicRouteLoaderContext) {
@@ -115,9 +133,11 @@ export async function loadPublicContentListData(
   pageInput?: PublicContentPageInput | PublicContentArchiveLoaderDeps
 ) {
   const { publicContentListQueryOptions } = await import("../../features/public-content");
-  const resolvedPageInput = resolveContentArchivePageInput(pageInput);
+  const resolved = resolveContentArchiveInput(pageInput);
   return prefetchPublicQuery(() =>
-    context.queryClient.ensureQueryData(publicContentListQueryOptions(kind, {}, pageItemsInput, resolvedPageInput))
+    context.queryClient.ensureQueryData(
+      publicContentListQueryOptions(kind, {}, pageItemsInput, resolved.pageInput, resolved.filters)
+    )
   );
 }
 
