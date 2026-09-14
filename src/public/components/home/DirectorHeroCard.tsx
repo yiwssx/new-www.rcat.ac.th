@@ -30,7 +30,7 @@ export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings 
         border: "1px solid",
         borderColor: alpha(theme.palette.primary.main, 0.12),
         bgcolor: "background.paper",
-        boxShadow: "0 18px 48px rgba(19, 69, 46, 0.1)"
+        boxShadow: designTokens.elevation.medium
       })}
     >
       {hasDirectorInfo ? (
