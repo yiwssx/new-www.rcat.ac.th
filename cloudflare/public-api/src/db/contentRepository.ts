@@ -23,6 +23,8 @@ export type PublicContentReadRow = Pick<
   | "featured"
   | "reading_minutes"
   | "template"
+  | "body_doc_id"
+  | "body_doc_url"
   | "featured_media_id"
   | "media_ids_json"
   | "view_count"
@@ -47,6 +49,8 @@ export type PublicContentCardReadRow = Pick<
   | "featured"
   | "reading_minutes"
   | "template"
+  | "body_doc_id"
+  | "body_doc_url"
   | "featured_media_id"
   | "publish_at"
 >;
@@ -73,6 +77,8 @@ const PUBLIC_CONTENT_READ_COLUMNS = [
   "featured",
   "reading_minutes",
   "template",
+  "body_doc_id",
+  "body_doc_url",
   "featured_media_id",
   "media_ids_json",
   "view_count",
@@ -98,6 +104,8 @@ export const PUBLIC_CONTENT_CARD_READ_COLUMNS = [
   "featured",
   "reading_minutes",
   "template",
+  "body_doc_id",
+  "body_doc_url",
   "featured_media_id",
   "publish_at"
 ] as const satisfies readonly (keyof PublicContentCardReadRow)[];
