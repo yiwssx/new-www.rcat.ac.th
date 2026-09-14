@@ -4,6 +4,7 @@ import { Button, Chip, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicContentCard from "../components/PublicContentCard";
 import PublicErrorState from "../components/PublicErrorState";
@@ -17,6 +18,7 @@ import { normalizeSafeHref } from "../../utils/safeUrl";
 
 const ANNOUNCEMENTS_PAGE_SIZE = 12;
 const PUBLIC_PAGES_PAGE_SIZE = 12;
+const JOB_CATEGORY = "รับสมัครงาน";
 
 function readTextSearchParam(search: Record<string, unknown>, name: string) {
   const value = search[name];
@@ -40,6 +42,7 @@ export default function PublicAnnouncementsPage() {
   });
   const activeTag = readTextSearchParam(routeSearch, "tag");
   const activeCategory = readTextSearchParam(routeSearch, "category");
+  const isJobArchive = activeCategory === JOB_CATEGORY;
   const hasActiveFilter = Boolean(activeTag || activeCategory);
   const announcementItems = useMemo(() => data?.items ?? [], [data?.items]);
   const pageItems = useMemo(() => data?.pageItems ?? [], [data?.pageItems]);
@@ -149,8 +152,12 @@ export default function PublicAnnouncementsPage() {
 
   return (
     <PublicSiteShell
-      title="ประกาศ"
-      description="ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา"
+      title={isJobArchive ? "ข่าวสมัครงานและจัดหาอาชีพ" : "ประกาศ"}
+      description={
+        isJobArchive
+          ? "ประกาศรับสมัครงาน พนักงานราชการ ลูกจ้างชั่วคราว ตำแหน่งงานว่าง และข้อมูลด้านการจัดหาอาชีพ"
+          : "ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา"
+      }
       preloadedSiteSettings={data.siteSettings}
       preloadedHomepageSettings={data.homepageSettings}
       preloadedDisplaySettings={data.displaySettings}
@@ -166,9 +173,9 @@ export default function PublicAnnouncementsPage() {
           mb: 2
         }}
       >
-        <CampaignOutlinedIcon color="primary" />
+        {isJobArchive ? <WorkOutlineOutlinedIcon color="primary" /> : <CampaignOutlinedIcon color="primary" />}
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
-          ประกาศราชการ
+          {isJobArchive ? "ข่าวสมัครงานและจัดหาอาชีพ" : "ประกาศราชการ"}
         </Typography>
       </Stack>
       {hasActiveFilter && (
@@ -195,7 +202,13 @@ export default function PublicAnnouncementsPage() {
             <PublicContentCard
               item={item}
               mediaAssets={mediaAssets}
-              icon={<CampaignOutlinedIcon sx={{ fontSize: 42 }} />}
+              icon={
+                isJobArchive ? (
+                  <WorkOutlineOutlinedIcon sx={{ fontSize: 42 }} />
+                ) : (
+                  <CampaignOutlinedIcon sx={{ fontSize: 42 }} />
+                )
+              }
             />
           </Grid>
         ))}
@@ -211,46 +224,56 @@ export default function PublicAnnouncementsPage() {
       )}
       {!filteredAnnouncementItems.length && (
         <EmptyState
-          title={hasActiveFilter ? "ไม่พบประกาศตามตัวกรองที่เลือก" : "ยังไม่มีประกาศที่เผยแพร่"}
-          icon={<CampaignOutlinedIcon />}
+          title={
+            isJobArchive
+              ? "ยังไม่มีข่าวสมัครงานหรือจัดหาอาชีพที่เผยแพร่"
+              : hasActiveFilter
+                ? "ไม่พบประกาศตามตัวกรองที่เลือก"
+                : "ยังไม่มีประกาศที่เผยแพร่"
+          }
+          icon={isJobArchive ? <WorkOutlineOutlinedIcon /> : <CampaignOutlinedIcon />}
         />
       )}
-      <Stack
-        id="public-pages-list-heading"
-        direction="row"
-        spacing={1.2}
-        sx={{
-          alignItems: "center",
-          mt: 4,
-          mb: 2
-        }}
-      >
-        <DescriptionOutlinedIcon color="primary" />
-        <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
-          หน้าข้อมูลสาธารณะ
-        </Typography>
-      </Stack>
-      <Grid container spacing={2.5}>
-        {visiblePageItems.map((item) => (
-          <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-            <PublicContentCard
-              item={item}
-              mediaAssets={mediaAssets}
-              icon={<DescriptionOutlinedIcon sx={{ fontSize: 42 }} />}
-            />
+      {!isJobArchive && (
+        <>
+          <Stack
+            id="public-pages-list-heading"
+            direction="row"
+            spacing={1.2}
+            sx={{
+              alignItems: "center",
+              mt: 4,
+              mb: 2
+            }}
+          >
+            <DescriptionOutlinedIcon color="primary" />
+            <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
+              หน้าข้อมูลสาธารณะ
+            </Typography>
+          </Stack>
+          <Grid container spacing={2.5}>
+            {visiblePageItems.map((item) => (
+              <Grid size={{ xs: 12, md: 6 }} key={item.id}>
+                <PublicContentCard
+                  item={item}
+                  mediaAssets={mediaAssets}
+                  icon={<DescriptionOutlinedIcon sx={{ fontSize: 42 }} />}
+                />
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
-      {pagesTotalItems > 0 && (
-        <PublicPagination
-          page={pagesPage}
-          pageCount={pagesPageCount}
-          pageSize={pageItemsPagination?.pageSize ?? PUBLIC_PAGES_PAGE_SIZE}
-          totalItems={pagesTotalItems}
-          onPageChange={handlePagesPageChange}
-        />
+          {pagesTotalItems > 0 && (
+            <PublicPagination
+              page={pagesPage}
+              pageCount={pagesPageCount}
+              pageSize={pageItemsPagination?.pageSize ?? PUBLIC_PAGES_PAGE_SIZE}
+              totalItems={pagesTotalItems}
+              onPageChange={handlePagesPageChange}
+            />
+          )}
+          {!pagesTotalItems && <EmptyState title="ยังไม่มีเอกสารเผยแพร่" icon={<DescriptionOutlinedIcon />} />}
+        </>
       )}
-      {!pagesTotalItems && <EmptyState title="ยังไม่มีเอกสารเผยแพร่" icon={<DescriptionOutlinedIcon />} />}
     </PublicSiteShell>
   );
 }
