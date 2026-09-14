@@ -2,8 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "dependencyDashboard": false,
-  "enabledManagers": ["npm"],
-  "includePaths": ["package.json"],
+  "enabledManagers": ["npm", "github-actions"],
+  "includePaths": ["package.json", ".github/workflows/**"],
   "baseBranchPatterns": ["master"],
   "timezone": "Asia/Bangkok",
   "schedule": ["* 1-5 * * 1-5"],
@@ -12,6 +12,7 @@
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
   "rangeStrategy": "bump",
+  "pinDigests": true,
   "rebaseWhen": "behind-base-branch",
   "recreateWhen": "always",
   "automergeStrategy": "merge-commit",
@@ -22,7 +23,7 @@
   "lockFileMaintenance": {
     "enabled": false
   },
-  "osvVulnerabilityAlerts": false,
+  "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
       "description": "Manage only direct dependencies declared in the root package.json",
@@ -79,6 +80,13 @@
       "allowedVersions": ">=24.0.0 <25.0.0"
     },
     {
+      "description": "Pin GitHub Actions to immutable digests and require review for action changes",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true,
+      "automerge": false,
+      "addLabels": ["github-actions", "supply-chain", "manual-review"]
+    },
+    {
       "description": "Require manual review for major direct npm updates",
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies", "devDependencies"],
@@ -96,6 +104,8 @@
     }
   ],
   "vulnerabilityAlerts": {
-    "enabled": false
+    "enabled": true,
+    "labels": ["dependencies", "security"],
+    "prConcurrentLimit": 2
   }
 }
