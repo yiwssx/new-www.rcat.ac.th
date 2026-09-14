@@ -64,10 +64,17 @@ describe("D1 public read optimization", () => {
     await listHomePublishedContentSummaryRows(env);
 
     const contentCalls = calls.filter((call) => /FROM contents/i.test(call.query));
-    expect(contentCalls).toHaveLength(4);
+    expect(contentCalls).toHaveLength(5);
     expect(contentCalls.every((call) => /LIMIT \?/i.test(call.query))).toBe(true);
     expect(contentCalls.some((call) => /type IN \(\?, \?\)/i.test(call.query))).toBe(true);
     expect(contentCalls.some((call) => /title LIKE \?/i.test(call.query))).toBe(true);
+
+    // Procurement is a separate bounded homepage feed and must remain capped at four rows.
+    const procurementCall = contentCalls.find(
+      (call) =>
+        call.bindings.includes("announcement") && call.bindings.at(-1) === 4 && /title LIKE \?/i.test(call.query)
+    );
+    expect(procurementCall).toBeDefined();
   });
 
   it("bounds homepage documents to the three cards rendered by the homepage", async () => {

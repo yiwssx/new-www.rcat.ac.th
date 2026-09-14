@@ -6,8 +6,10 @@ import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } f
 
 const HOME_NEWS_LIMIT = 6;
 const HOME_ANNOUNCEMENT_LIMIT = 8;
+const HOME_PROCUREMENT_LIMIT = 4;
 const HOME_PROGRAM_LIMIT = 8;
 const HOME_ACHIEVEMENT_LIMIT = 6;
+const PROCUREMENT_TERMS = ["procurement", "tor", "จัดซื้อ", "จัดจ้าง", "ประกวดราคา"] as const;
 const ACHIEVEMENT_TERMS = [
   "achievement",
   "award",
@@ -19,7 +21,7 @@ const ACHIEVEMENT_TERMS = [
   "รองชนะเลิศ",
   "เหรียญ"
 ] as const;
-const ACHIEVEMENT_COLUMNS = ["title", "summary", "category", "tags_json"] as const;
+const SEARCHABLE_CONTENT_COLUMNS = ["title", "summary", "category", "tags_json"] as const;
 
 async function readHomeRows(
   env: Env,
@@ -45,13 +47,13 @@ async function readHomeRows(
   return result.results ?? [];
 }
 
-function createAchievementFilter() {
+function createTextFilter(terms: readonly string[]) {
   const clauses: string[] = [];
   const bindings: string[] = [];
 
-  ACHIEVEMENT_TERMS.forEach((term) => {
+  terms.forEach((term) => {
     const pattern = `%${term}%`;
-    ACHIEVEMENT_COLUMNS.forEach((column) => {
+    SEARCHABLE_CONTENT_COLUMNS.forEach((column) => {
       clauses.push(`${column} LIKE ?`);
       bindings.push(pattern);
     });
@@ -64,10 +66,18 @@ function createAchievementFilter() {
 }
 
 export async function listHomePublishedContentSummaryRows(env: Env): Promise<PublicContentSummaryReadRow[]> {
-  const achievementFilter = createAchievementFilter();
-  const [news, announcements, programs, achievements] = await Promise.all([
+  const procurementFilter = createTextFilter(PROCUREMENT_TERMS);
+  const achievementFilter = createTextFilter(ACHIEVEMENT_TERMS);
+  const [news, announcements, procurement, programs, achievements] = await Promise.all([
     readHomeRows(env, "home:content:news", "AND type IN (?, ?)", ["news", "blog"], HOME_NEWS_LIMIT),
     readHomeRows(env, "home:content:announcements", "AND type = ?", ["announcement"], HOME_ANNOUNCEMENT_LIMIT),
+    readHomeRows(
+      env,
+      "home:content:procurement",
+      `AND type = ? ${procurementFilter.sql}`,
+      ["announcement", ...procurementFilter.bindings],
+      HOME_PROCUREMENT_LIMIT
+    ),
     readHomeRows(env, "home:content:programs", "AND type = ?", ["program"], HOME_PROGRAM_LIMIT),
     readHomeRows(
       env,
@@ -79,7 +89,7 @@ export async function listHomePublishedContentSummaryRows(env: Env): Promise<Pub
   ]);
 
   const rowsById = new Map<string, PublicContentSummaryReadRow>();
-  [...news, ...announcements, ...programs, ...achievements].forEach((row) => {
+  [...news, ...announcements, ...procurement, ...programs, ...achievements].forEach((row) => {
     if (!rowsById.has(row.id)) {
       rowsById.set(row.id, row);
     }
