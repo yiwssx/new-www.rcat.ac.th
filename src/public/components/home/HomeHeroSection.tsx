@@ -7,10 +7,16 @@ import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { DirectorHeroCard } from "./DirectorHeroCard";
 import { HomeQuickAccessSection } from "./HomeQuickAccessSection";
-import { SiteSettings } from "../../../types";
+import type { ExternalServiceLink, SiteSettings } from "../../../types";
 import { designTokens } from "../../../design-system/tokens";
 
-export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }) {
+export function HomeHeroSection({
+  siteSettings,
+  externalServices = []
+}: {
+  siteSettings: SiteSettings;
+  externalServices?: ExternalServiceLink[];
+}) {
   const admissionHref = siteSettings.admissionUrl || "/announcements";
 
   return (
@@ -229,7 +235,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
         </Box>
       </Box>
 
-      <HomeQuickAccessSection siteSettings={siteSettings} externalServices={[]} />
+      <HomeQuickAccessSection siteSettings={siteSettings} externalServices={externalServices} />
     </Box>
   );
 }
