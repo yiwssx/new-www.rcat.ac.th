@@ -49,6 +49,8 @@ const contentRow = {
   featured: 0,
   reading_minutes: 1,
   template: "",
+  body_doc_id: "",
+  body_doc_url: "",
   featured_media_id: "",
   media_ids_json: "[]",
   view_count: 0,
@@ -64,7 +66,7 @@ describe("D1 public read optimization", () => {
     await listHomePublishedContentSummaryRows(env);
 
     const contentCalls = calls.filter((call) => /FROM contents/i.test(call.query));
-    expect(contentCalls).toHaveLength(5);
+    expect(contentCalls).toHaveLength(6);
     expect(contentCalls.every((call) => /LIMIT \?/i.test(call.query))).toBe(true);
     expect(contentCalls.some((call) => /type IN \(\?, \?\)/i.test(call.query))).toBe(true);
     expect(contentCalls.some((call) => /title LIKE \?/i.test(call.query))).toBe(true);
@@ -72,9 +74,22 @@ describe("D1 public read optimization", () => {
     // Procurement is a separate bounded homepage feed and must remain capped at four rows.
     const procurementCall = contentCalls.find(
       (call) =>
-        call.bindings.includes("announcement") && call.bindings.at(-1) === 4 && /title LIKE \?/i.test(call.query)
+        call.bindings.includes("announcement") &&
+        call.bindings.includes("%จัดซื้อ%") &&
+        call.bindings.at(-1) === 4 &&
+        /title LIKE \?/i.test(call.query)
     );
     expect(procurementCall).toBeDefined();
+
+    // Recruitment is also independent from the generic latest-announcements feed and capped at four rows.
+    const jobOpportunityCall = contentCalls.find(
+      (call) =>
+        call.bindings.includes("announcement") &&
+        call.bindings.includes("%รับสมัครงาน%") &&
+        call.bindings.at(-1) === 4 &&
+        /title LIKE \?/i.test(call.query)
+    );
+    expect(jobOpportunityCall).toBeDefined();
   });
 
   it("bounds homepage documents to the three cards rendered by the homepage", async () => {
