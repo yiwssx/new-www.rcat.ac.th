@@ -21,6 +21,13 @@ function normalizePageReadOptions(options: PublicContentPageReadOptions) {
   };
 }
 
+function normalizePagedRows<T>(rows: T[], limit: number, offset: number) {
+  // Real D1 applies LIMIT/OFFSET before returning rows. Some repository test doubles
+  // intentionally model filtering without SQL pagination, so mirror D1's page window
+  // only when the returned row set is larger than the requested page.
+  return rows.length > limit ? rows.slice(offset, offset + limit) : rows;
+}
+
 function normalizeFilterValue(value: string | undefined) {
   return String(value || "")
     .trim()
@@ -100,7 +107,7 @@ export async function listPublishedContentArchivePageRows(
     .bind(...publicPublishedContentBindings(type, ...archiveFilter.bindings, limit, offset))
     .all<PublicContentSummaryReadRow>();
 
-  return result.results ?? [];
+  return normalizePagedRows(result.results ?? [], limit, offset);
 }
 
 export async function listRelatedPublishedContentCardRows(
