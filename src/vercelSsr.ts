@@ -1,4 +1,5 @@
 import { renderSsrResponse } from "./entry-server";
+import { finalizeSlug } from "./utils/slug";
 
 export const SSR_REWRITE_PATH_PARAM = "_rcatPath";
 export const PUBLIC_SSR_BROWSER_CACHE_CONTROL = "public, max-age=0, must-revalidate";
@@ -33,6 +34,7 @@ const RESERVED_SINGLE_SEGMENT_PATHS = new Set([
 
 const BLOCKED_LEGACY_PERMALINK_PATHS = new Set(["/ip", "/null", "/undefined"]);
 const LEGACY_FILE_PROBE_PATTERN = /\.(?:asp|aspx|bak|cgi|css|env|git|gz|ico|ini|js|json|map|php|sql|tar|txt|xml|zip)$/i;
+const MAX_LEGACY_SLUG_LENGTH = 160;
 
 function normalizeRewritePath(value: string | null) {
   const normalized = String(value || "").trim();
@@ -49,21 +51,26 @@ function isLegacyPermalinkPath(pathname: string) {
   );
 }
 
-function shouldRejectLegacyPermalink(pathname: string) {
-  if (BLOCKED_LEGACY_PERMALINK_PATHS.has(pathname)) {
-    return true;
-  }
-
-  const segment = pathname.slice(1);
-  return !segment || segment.length > 160 || segment.startsWith(".") || LEGACY_FILE_PROBE_PATTERN.test(segment);
-}
-
 function decodePathSegment(value: string) {
   try {
     return decodeURIComponent(value);
   } catch {
     return value;
   }
+}
+
+function shouldRejectLegacyPermalink(pathname: string) {
+  if (BLOCKED_LEGACY_PERMALINK_PATHS.has(pathname)) {
+    return true;
+  }
+
+  const segment = pathname.slice(1);
+  if (!segment || segment.length > MAX_LEGACY_SLUG_LENGTH || segment.startsWith(".") || LEGACY_FILE_PROBE_PATTERN.test(segment)) {
+    return true;
+  }
+
+  const decodedSegment = decodePathSegment(segment);
+  return !decodedSegment || decodedSegment !== finalizeSlug(decodedSegment);
 }
 
 export function isPublicSsrPath(pathname: string) {
