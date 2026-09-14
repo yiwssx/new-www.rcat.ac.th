@@ -1,4 +1,4 @@
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { alpha } from "@mui/material/styles";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
@@ -122,20 +122,17 @@ export function HomeQuickAccessSection({
       aria-label="ทางลัดบริการสำคัญ"
       sx={{
         position: "relative",
-        zIndex: 4,
-        mt: { xs: 2, md: -3.25 },
-        px: { xs: 0, md: 2.5 }
+        zIndex: 1
       }}
     >
       <Box
         sx={(theme) => ({
           overflow: "hidden",
-          borderRadius: `${designTokens.radius.large}px`,
+          borderRadius: `${designTokens.radius.medium}px`,
           border: "1px solid",
-          borderColor: alpha(theme.palette.primary.main, 0.12),
-          bgcolor: alpha(theme.palette.background.paper, 0.98),
-          boxShadow: designTokens.elevation.medium,
-          backdropFilter: "blur(14px)"
+          borderColor: alpha(theme.palette.primary.main, 0.11),
+          bgcolor: "background.paper",
+          boxShadow: designTokens.elevation.low
         })}
       >
         <Grid container>
@@ -149,68 +146,62 @@ export function HomeQuickAccessSection({
                   href={getSafeQuickHref(item.href)}
                   target={external ? "_blank" : undefined}
                   rel={external ? "noreferrer" : undefined}
+                  title={item.description}
                   sx={(theme) => ({
                     ...focusVisibleSx,
-                    minHeight: { xs: 128, md: 142 },
+                    minHeight: { xs: 78, sm: 82, md: 86 },
                     height: "100%",
-                    px: { xs: 1.5, sm: 2, md: 2.25 },
-                    py: { xs: 2, md: 2.4 },
+                    px: { xs: 0.75, sm: 1, md: 1.2 },
+                    py: { xs: 0.8, md: 0.9 },
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 0.8,
+                    gap: 0.55,
                     color: "text.primary",
                     textAlign: "center",
                     textDecoration: "none",
                     borderRight: {
-                      xs: index % 2 === 0 ? `1px solid ${alpha(theme.palette.primary.main, 0.1)}` : "none",
-                      sm: index % 3 !== 2 ? `1px solid ${alpha(theme.palette.primary.main, 0.1)}` : "none",
-                      lg: index < items.length - 1 ? `1px solid ${alpha(theme.palette.primary.main, 0.1)}` : "none"
+                      xs: index % 2 === 0 ? `1px solid ${alpha(theme.palette.primary.main, 0.09)}` : "none",
+                      sm: index % 3 !== 2 ? `1px solid ${alpha(theme.palette.primary.main, 0.09)}` : "none",
+                      lg: index < items.length - 1 ? `1px solid ${alpha(theme.palette.primary.main, 0.09)}` : "none"
                     },
                     borderBottom: {
-                      xs: index < 4 ? `1px solid ${alpha(theme.palette.primary.main, 0.1)}` : "none",
-                      sm: index < 3 ? `1px solid ${alpha(theme.palette.primary.main, 0.1)}` : "none",
+                      xs: index < 4 ? `1px solid ${alpha(theme.palette.primary.main, 0.09)}` : "none",
+                      sm: index < 3 ? `1px solid ${alpha(theme.palette.primary.main, 0.09)}` : "none",
                       lg: "none"
                     },
-                    transition: "background-color 160ms ease, transform 160ms ease, color 160ms ease",
+                    transition: "background-color 160ms ease, color 160ms ease",
                     "&:hover": {
-                      bgcolor: alpha(theme.palette.primary.main, 0.055),
-                      color: "primary.dark",
-                      transform: "translateY(-2px)"
+                      bgcolor: alpha(theme.palette.primary.main, 0.045),
+                      color: "primary.dark"
                     }
                   })}
                 >
                   <Box
                     sx={(theme) => ({
-                      width: 46,
-                      height: 46,
+                      width: { xs: 32, md: 34 },
+                      height: { xs: 32, md: 34 },
                       borderRadius: "50%",
                       display: "grid",
                       placeItems: "center",
                       color: "primary.dark",
-                      bgcolor: alpha(theme.palette.primary.main, 0.1),
-                      "& svg": { fontSize: 25 }
+                      bgcolor: alpha(theme.palette.primary.main, 0.085),
+                      "& svg": { fontSize: { xs: 18, md: 19 } }
                     })}
                   >
                     {item.icon}
                   </Box>
-                  <Stack spacing={0.35} sx={{ alignItems: "center", minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 900, fontSize: { xs: "0.9rem", md: "0.98rem" }, lineHeight: 1.25 }}>
-                      {item.label}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        display: { xs: "none", sm: "block" },
-                        color: "text.secondary",
-                        lineHeight: 1.4,
-                        maxWidth: 170
-                      }}
-                    >
-                      {item.description}
-                    </Typography>
-                  </Stack>
+                  <Typography
+                    sx={{
+                      fontWeight: 850,
+                      fontSize: { xs: "0.76rem", sm: "0.8rem", md: "0.84rem" },
+                      lineHeight: 1.2,
+                      textWrap: "balance"
+                    }}
+                  >
+                    {item.label}
+                  </Typography>
                 </Box>
               </Grid>
             );
