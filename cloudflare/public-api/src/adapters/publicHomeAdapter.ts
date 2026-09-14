@@ -8,10 +8,13 @@ import type { PublicVisitorStatsSnapshotContract } from "../contracts/publicVisi
 import type { PublicContentSummaryReadRow } from "../db/contentRepository";
 import type { DocumentRow } from "../db/schema";
 
-// Keep procurement independently bounded so general announcements cannot crowd it out on the homepage.
+// Keep dedicated homepage feeds independently bounded so general announcements cannot crowd them out.
 const HOME_PROCUREMENT_LIMIT = 4;
+const HOME_JOB_OPPORTUNITY_LIMIT = 4;
 const HOME_ACHIEVEMENT_LIMIT = 6;
 const PROCUREMENT_PATTERN = /procurement|tor|จัดซื้อ|จัดจ้าง|ประกวดราคา/i;
+const JOB_OPPORTUNITY_PATTERN =
+  /job|career|recruit|รับสมัครงาน|พนักงานราชการ|ลูกจ้าง|บุคลากร|ตำแหน่งงาน|จัดหางาน|อาชีพ/i;
 const ACHIEVEMENT_PATTERN = /achievement|award|รางวัล|ผลงาน|ความสำเร็จ|ความภาคภูมิใจ|ชนะเลิศ|รองชนะเลิศ|เหรียญ/i;
 const EXTERNAL_SERVICE_MEDIA_ICON_PREFIX = "media:";
 
@@ -30,6 +33,13 @@ function isProcurementItem(item: PublicContentCardContract) {
   return (
     item.type === "announcement" &&
     PROCUREMENT_PATTERN.test([item.title, item.summary, item.category, ...item.tags].join(" "))
+  );
+}
+
+function isJobOpportunityItem(item: PublicContentCardContract) {
+  return (
+    item.type === "announcement" &&
+    JOB_OPPORTUNITY_PATTERN.test([item.title, item.summary, item.category, ...item.tags].join(" "))
   );
 }
 
@@ -60,13 +70,24 @@ export function createPublicHomeSnapshot(
     .filter(isProcurementItem)
     .sort(compareContentPublishAtDesc)
     .slice(0, HOME_PROCUREMENT_LIMIT);
+  const jobOpportunityItems = content
+    .filter(isJobOpportunityItem)
+    .sort(compareContentPublishAtDesc)
+    .slice(0, HOME_JOB_OPPORTUNITY_LIMIT);
   const programs = content.filter((item) => item.type === "program").slice(0, 8);
   const achievementItems = content
     .filter(isAchievementItem)
     .sort(compareContentPublishAtDesc)
     .slice(0, HOME_ACHIEVEMENT_LIMIT);
   const publicDocuments = input.featuredDocuments.map(mapDocumentRowToPublicDocumentItem);
-  const homeContent = [...latestNews, ...latestAnnouncements, ...procurementItems, ...programs, ...achievementItems];
+  const homeContent = [
+    ...latestNews,
+    ...latestAnnouncements,
+    ...procurementItems,
+    ...jobOpportunityItems,
+    ...programs,
+    ...achievementItems
+  ];
   const homeMediaReferences = [
     ...homeContent,
     ...input.metadata.events.map((event) => ({
@@ -85,11 +106,7 @@ export function createPublicHomeSnapshot(
     latestNews,
     latestAnnouncements,
     procurementItems,
-    jobOpportunityItems: latestAnnouncements.filter((item) =>
-      /job|career|recruit|สมัครงาน|รับสมัคร|งาน/i.test(
-        [item.title, item.summary, item.category, ...item.tags].join(" ")
-      )
-    ),
+    jobOpportunityItems,
     achievementItems,
     programItems: programs,
     documentItems: publicDocuments,
