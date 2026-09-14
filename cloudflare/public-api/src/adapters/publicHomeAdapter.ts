@@ -65,13 +65,7 @@ export function createPublicHomeSnapshot(
     .sort(compareContentPublishAtDesc)
     .slice(0, HOME_ACHIEVEMENT_LIMIT);
   const publicDocuments = input.featuredDocuments.map(mapDocumentRowToPublicDocumentItem);
-  const homeContent = [
-    ...latestNews,
-    ...latestAnnouncements,
-    ...procurementItems,
-    ...programs,
-    ...achievementItems
-  ];
+  const homeContent = [...latestNews, ...latestAnnouncements, ...procurementItems, ...programs, ...achievementItems];
   const homeMediaReferences = [
     ...homeContent,
     ...input.metadata.events.map((event) => ({
