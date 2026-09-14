@@ -165,7 +165,7 @@ export function AchievementHighlightsSection({
             </Box>
 
             <Stack spacing={1.15} sx={{ minWidth: 0, flex: 1 }}>
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: "center" }}>
+              <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
                 <Chip label="ผลงานล่าสุด" size="small" color="primary" sx={{ fontWeight: 800 }} />
                 <Chip label={getAchievementCategory(featuredItem)} size="small" variant="outlined" />
                 {featuredYear && (
@@ -280,7 +280,7 @@ export function AchievementHighlightsSection({
                       </Box>
 
                       <Stack spacing={0.65} sx={{ minWidth: 0, flex: 1 }}>
-                        <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap" sx={{ alignItems: "center" }}>
+                        <Stack direction="row" spacing={0.8} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
                           <Typography variant="caption" sx={{ color: "primary.dark", fontWeight: 800 }}>
                             {getAchievementCategory(item)}
                           </Typography>
