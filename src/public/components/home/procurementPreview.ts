@@ -34,6 +34,12 @@ function getPdfThumbnailUrl(asset: MediaAsset) {
   return fileId ? buildGoogleDriveThumbnailUrl(fileId, PROCUREMENT_THUMBNAIL_WIDTH) : "";
 }
 
+function getBodyDocumentThumbnailUrl(item: PublicContentCardItem) {
+  const fileId = String(item.bodyDocId || "").trim() || extractGoogleDriveFileId(String(item.bodyDocUrl || "").trim());
+
+  return fileId ? buildGoogleDriveThumbnailUrl(fileId, PROCUREMENT_THUMBNAIL_WIDTH) : "";
+}
+
 export function resolveProcurementPreview(item: PublicContentCardItem, mediaAssets: MediaAsset[]): ProcurementPreview {
   const image = resolveCardThumbnail(item, mediaAssets);
   if (image) {
@@ -50,6 +56,15 @@ export function resolveProcurementPreview(item: PublicContentCardItem, mediaAsse
       source: getPdfThumbnailUrl(pdf) || null,
       kind: "pdf",
       label: pdf.name || item.title
+    };
+  }
+
+  const bodyDocumentThumbnail = getBodyDocumentThumbnailUrl(item);
+  if (bodyDocumentThumbnail) {
+    return {
+      source: bodyDocumentThumbnail,
+      kind: "pdf",
+      label: item.title
     };
   }
 
