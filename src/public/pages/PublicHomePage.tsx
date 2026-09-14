@@ -182,7 +182,7 @@ export function HomeHashScroller() {
 
       window.addEventListener("wheel", stopForUserIntent, { passive: true });
       window.addEventListener("touchstart", stopForUserIntent, { passive: true });
-      window.addEventListener("pointerdown", stopForUserIntent, { passive: true });
+      window.addEventListener("pointerdown", stopForUserIntent);
       window.addEventListener("keydown", stopForUserIntent);
       listeningForUserIntent = true;
     };
@@ -371,6 +371,7 @@ export default function PublicHomePage() {
               <DeferredHomeSection minHeight={{ xs: 220, md: 260 }}>
                 <LazyAchievementHighlightsSection
                   items={achievementItems}
+                  mediaAssets={mediaAssets}
                   limit={6}
                   viewAllHref="/achievements"
                   viewAllLabel="ดูผลงานทั้งหมด"
