@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Button, Stack } from "@mui/material";
+import PlayCircleFilledRoundedIcon from "@mui/icons-material/PlayCircleFilledRounded";
+import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import ResponsiveFacebookPluginEmbed from "../../shared/media/ResponsiveFacebookPluginEmbed";
 import FacebookReelSdkEmbed from "../../shared/media/FacebookReelSdkEmbed";
 import { isFacebookReelUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
-import { normalizeSafeHref } from "../../utils/safeUrl";
+import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 
 interface FacebookPostEmbedProps {
   postUrl: string;
@@ -55,11 +56,91 @@ function resolutionsMatch(left: FacebookEmbedResolution, right: FacebookEmbedRes
   return left.kind === right.kind && left.canonicalUrl === right.canonicalUrl;
 }
 
+function MobileFacebookReelFallback({
+  href,
+  previewImageUrl,
+  title
+}: {
+  href: string;
+  previewImageUrl: string;
+  title?: string;
+}) {
+  return (
+    <Box
+      component="a"
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label="เล่น Reels บน Facebook"
+      data-facebook-mobile-reel-fallback="true"
+      sx={{
+        display: { xs: "block", md: "none" },
+        position: "relative",
+        width: "100%",
+        maxWidth: 360,
+        aspectRatio: "9 / 16",
+        mx: "auto",
+        overflow: "hidden",
+        borderRadius: 2,
+        bgcolor: "grey.900",
+        color: "common.white",
+        textDecoration: "none",
+        boxShadow: 2
+      }}
+    >
+      {previewImageUrl ? (
+        <Box
+          component="img"
+          src={previewImageUrl}
+          alt={title ? `ภาพตัวอย่าง ${title}` : "ภาพตัวอย่าง Facebook Reel"}
+          loading="eager"
+          decoding="async"
+          data-facebook-mobile-reel-poster="true"
+          sx={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover"
+          }}
+        />
+      ) : null}
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 1,
+          px: 2,
+          textAlign: "center",
+          background: "linear-gradient(180deg, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.72) 100%)"
+        }}
+      >
+        <PlayCircleFilledRoundedIcon sx={{ fontSize: 72, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }} />
+        <Typography sx={{ fontWeight: 800, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
+          แตะเพื่อเล่น Reels บน Facebook
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
 export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const directResolution = normalizedPostUrl ? fallbackResolution(normalizedPostUrl) : null;
   const requiresResolution = Boolean(normalizedPostUrl && directResolution?.kind === "post");
   const [resolvedPost, setResolvedPost] = useState<ResolvedFacebookPost | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState("");
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content || "";
+    setPreviewImageUrl(normalizeSafeResourceUrl(ogImage));
+  }, [normalizedPostUrl]);
 
   useEffect(() => {
     if (!normalizedPostUrl || !requiresResolution) {
@@ -143,7 +224,12 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
         }}
       >
         {isReel ? (
-          <FacebookReelSdkEmbed href={resolvedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
+          <>
+            <MobileFacebookReelFallback href={safeSourceHref} previewImageUrl={previewImageUrl} title={title} />
+            <Box data-facebook-desktop-reel-embed="true" sx={{ display: { xs: "none", md: "block" }, width: "100%" }}>
+              <FacebookReelSdkEmbed href={resolvedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
+            </Box>
+          </>
         ) : (
           <ResponsiveFacebookPluginEmbed
             href={resolvedUrl}
