@@ -6,7 +6,9 @@ const facebookPostUrl = "https://www.facebook.com/1609435494524655/posts/111";
 const historicalReelPostUrl = "https://www.facebook.com/1609435494524655/posts/1639846248150246";
 const canonicalReelUrl = "https://www.facebook.com/reel/1639846248150246/";
 const facebookReelUrl = "https://www.facebook.com/reel/859331548878917/";
-const resolverUrl = (url: string) => `/api/ssr?_rcatFacebookOembed=1&url=${encodeURIComponent(url)}`;
+const facebookOembedRevision = "legacy-reel-v2";
+const resolverUrl = (url: string) =>
+  `/api/ssr?_rcatFacebookOembed=1&url=${encodeURIComponent(url)}&_rcatFacebookOembedRevision=${facebookOembedRevision}`;
 
 function apiResponse(payload: unknown, ok = true) {
   return {
@@ -45,7 +47,10 @@ describe("FacebookPostEmbed", () => {
     expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(resolverUrl(facebookPostUrl), expect.objectContaining({ method: "GET" }));
+      expect(fetch).toHaveBeenCalledWith(
+        resolverUrl(facebookPostUrl),
+        expect.objectContaining({ method: "GET", cache: "no-store" })
+      );
     });
   });
 
@@ -84,7 +89,10 @@ describe("FacebookPostEmbed", () => {
       "href",
       canonicalReelUrl
     );
-    expect(fetch).toHaveBeenCalledWith(resolverUrl(historicalReelPostUrl), expect.objectContaining({ method: "GET" }));
+    expect(fetch).toHaveBeenCalledWith(
+      resolverUrl(historicalReelPostUrl),
+      expect.objectContaining({ method: "GET", cache: "no-store" })
+    );
   });
 
   it("renders already canonical Facebook Reel URLs directly without an oEmbed classification request", async () => {
