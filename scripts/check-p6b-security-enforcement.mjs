@@ -40,6 +40,9 @@ const edgeWaf = await readFile(new URL("../server/security/edgeWafPolicy.ts", im
 if (!middleware.includes('from "@vercel/functions"') || !middleware.includes("evaluateP6bEdgeWaf")) {
   fail("Vercel routing middleware WAF is not wired");
 }
+if (!middleware.includes('runtime: "nodejs"')) {
+  fail("Vercel routing middleware must use the Node.js runtime");
+}
 for (const required of ["/api/internal", "/api/cms-auth", "/api/admin-proxy", "p6b-vercel-v1"]) {
   if (!edgeWaf.includes(required)) fail(`Vercel edge WAF is missing ${required}`);
 }
