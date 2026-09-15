@@ -16,6 +16,11 @@ interface FacebookEmbedResolution {
   canonicalUrl: string;
 }
 
+interface ResolvedFacebookPost {
+  sourceUrl: string;
+  resolution: FacebookEmbedResolution;
+}
+
 const defaultEmbedMaxWidth = 560;
 const facebookPluginWidth = 500;
 const facebookPostHeight = 820;
@@ -49,29 +54,16 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const directResolution = normalizedPostUrl ? fallbackResolution(normalizedPostUrl) : null;
   const requiresResolution = Boolean(normalizedPostUrl && directResolution?.kind === "post");
-  const [resolution, setResolution] = useState<FacebookEmbedResolution | null>(
-    requiresResolution ? null : directResolution
-  );
-  const [isResolving, setIsResolving] = useState(requiresResolution);
+  const [resolvedPost, setResolvedPost] = useState<ResolvedFacebookPost | null>(null);
 
   useEffect(() => {
-    if (!normalizedPostUrl) {
-      setResolution(null);
-      setIsResolving(false);
+    if (!normalizedPostUrl || !requiresResolution) {
       return;
     }
 
     const fallback = fallbackResolution(normalizedPostUrl);
-    if (fallback.kind === "reel") {
-      setResolution(fallback);
-      setIsResolving(false);
-      return;
-    }
-
     const controller = new AbortController();
     let active = true;
-    setResolution(null);
-    setIsResolving(true);
 
     void fetch(`/api/facebook-oembed?url=${encodeURIComponent(normalizedPostUrl)}`, {
       method: "GET",
@@ -84,22 +76,25 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
       })
       .then((resolved) => {
         if (!active) return;
-        setResolution(resolved || fallback);
+        setResolvedPost({
+          sourceUrl: normalizedPostUrl,
+          resolution: resolved || fallback
+        });
       })
       .catch((error: unknown) => {
         if (!active || (error instanceof DOMException && error.name === "AbortError")) return;
-        setResolution(fallback);
-      })
-      .finally(() => {
-        if (active) setIsResolving(false);
+        setResolvedPost({ sourceUrl: normalizedPostUrl, resolution: fallback });
       });
 
     return () => {
       active = false;
       controller.abort();
     };
-  }, [normalizedPostUrl]);
+  }, [normalizedPostUrl, requiresResolution]);
 
+  const matchingResolvedPost = resolvedPost?.sourceUrl === normalizedPostUrl ? resolvedPost : null;
+  const resolution = requiresResolution ? matchingResolvedPost?.resolution || null : directResolution;
+  const isResolving = requiresResolution && !resolution;
   const resolvedUrl = resolution?.canonicalUrl || normalizedPostUrl;
   const isReel = resolution?.kind === "reel" || isFacebookReelUrl(resolvedUrl);
   const safeSourceHref = normalizeSafeHref(resolvedUrl || postUrl);
@@ -130,7 +125,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
     );
   }
 
-  if (isResolving && !resolution) {
+  if (isResolving) {
     return (
       <Stack
         spacing={1.25}
