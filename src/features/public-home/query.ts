@@ -13,9 +13,10 @@ export function publicHomeQueryOptions(runtimeOptions: PublicQueryRuntimeOptions
   return queryOptions({
     queryKey: publicHomeQueryKey,
     queryFn: (context) => getPublicHomeSnapshot(getPublicQueryRequestOptions(context, runtimeOptions)),
-    staleTime: PUBLIC_CACHE_FRESHNESS_MS.collection,
+    staleTime: PUBLIC_CACHE_FRESHNESS_MS.home,
     gcTime: PUBLIC_QUERY_GC_TIME_MS,
-    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     refetchOnReconnect: true
   });
 }

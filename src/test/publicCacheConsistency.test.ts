@@ -45,8 +45,9 @@ const activeHookSources = [
 ];
 
 describe("P5E public cache consistency", () => {
-  it("keeps one explicit freshness policy for shell, collections, detail, and GC", () => {
+  it("keeps explicit freshness policies for homepage, shell, collections, detail, and GC", () => {
     expect(PUBLIC_CACHE_FRESHNESS_MS).toEqual({
+      home: 60_000,
       shell: 120_000,
       collection: 900_000,
       detail: 1_800_000
@@ -55,11 +56,14 @@ describe("P5E public cache consistency", () => {
   });
 
   it("binds every public query family to the canonical freshness class", () => {
+    expect(publicHomeQueryOptions().staleTime).toBe(PUBLIC_CACHE_FRESHNESS_MS.home);
+    expect(publicHomeQueryOptions().refetchOnMount).toBe(true);
+    expect(publicHomeQueryOptions().refetchOnWindowFocus).toBe(true);
+    expect(publicHomeQueryOptions().refetchOnReconnect).toBe(true);
     expect(publicShellQueryOptions().staleTime).toBe(PUBLIC_CACHE_FRESHNESS_MS.shell);
     expect(publicCmsSnapshotQueryOptions().staleTime).toBe(PUBLIC_CACHE_FRESHNESS_MS.shell);
 
     [
-      publicHomeQueryOptions(),
       publicContentListQueryOptions("news"),
       publicDocumentListQueryOptions(),
       publicEventListQueryOptions(),

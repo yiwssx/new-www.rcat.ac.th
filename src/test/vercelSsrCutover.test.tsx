@@ -2,9 +2,11 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  PUBLIC_HOME_SSR_CDN_CACHE_CONTROL,
   PUBLIC_REDIRECT_CDN_CACHE_CONTROL,
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_CDN_CACHE_CONTROL,
+  applyVercelPublicSsrCachePolicy,
   handleVercelPublicSsrRequest,
   reconstructPublicSsrRequest,
   renderVercelPublicSsrRequest
@@ -211,10 +213,21 @@ describe("Vercel Public SSR production cutover", () => {
     expect(requestedPaths).not.toContain("/api/public/home");
   });
 
-  it("keeps stable public index pages eligible for Vercel CDN caching", async () => {
+  it("caps the homepage CDN cache at 60 seconds without stale-while-revalidate", async () => {
     const response = await renderVercelPublicSsrRequest(new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/"));
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe(PUBLIC_SSR_BROWSER_CACHE_CONTROL);
+    expect(response.headers.get("Vercel-CDN-Cache-Control")).toBe(PUBLIC_HOME_SSR_CDN_CACHE_CONTROL);
+    expect(PUBLIC_HOME_SSR_CDN_CACHE_CONTROL).toBe("public, max-age=60");
+  });
+
+  it("keeps other stable public index pages on the standard CDN policy", () => {
+    const response = applyVercelPublicSsrCachePolicy(
+      new Request("https://www.rcat.ac.th/news"),
+      new Response("ok", { status: 200 })
+    );
+
     expect(response.headers.get("Cache-Control")).toBe(PUBLIC_SSR_BROWSER_CACHE_CONTROL);
     expect(response.headers.get("Vercel-CDN-Cache-Control")).toBe(PUBLIC_SSR_CDN_CACHE_CONTROL);
   });

@@ -1,4 +1,5 @@
 export const PUBLIC_CACHE_FRESHNESS_MS = {
+  home: 60 * 1000,
   shell: 2 * 60 * 1000,
   collection: 15 * 60 * 1000,
   detail: 30 * 60 * 1000
