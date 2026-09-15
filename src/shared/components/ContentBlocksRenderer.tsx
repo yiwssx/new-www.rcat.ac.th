@@ -4,6 +4,7 @@ import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutli
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import { MediaAsset } from "../../types";
 import { ContentBlock, FacebookPostContentBlock } from "../../utils/contentBlocks";
+import FacebookReelSdkEmbed from "../media/FacebookReelSdkEmbed";
 import PublicDeferredEmbed from "../media/PublicDeferredEmbed";
 import PublicResponsiveImage from "../media/PublicResponsiveImage";
 import PublicPdfViewer from "../media/PublicPdfViewer";
@@ -26,7 +27,6 @@ interface ContentBlocksRendererProps {
 
 const defaultFacebookPostHeight = 761;
 const maximumFacebookReelWidth = 440;
-const facebookReelAspectRatioPadding = "177.7778%";
 
 function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
   const href = normalizeFacebookPostUrl(block.href);
@@ -34,49 +34,41 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
   const isReel = isFacebookReelUrl(href);
   const requestedWidth = clampFacebookPostPluginWidth(block.width || 500);
   const width = isReel ? Math.min(requestedWidth, maximumFacebookReelWidth) : requestedWidth;
-  const pluginUrl = buildFacebookPostPluginUrl({ href, showText: block.showText, width });
+  const pluginUrl = !isReel ? buildFacebookPostPluginUrl({ href, showText: block.showText, width }) : "";
 
   // If it's an unsafe or non-Facebook URL, render nothing
   if (!href && !isUnsupported) {
     return null;
   }
 
-  // If it's a valid supported URL, render iframe
-  if (href && pluginUrl) {
+  // Reels use the official Facebook SDK/XFBML path so mobile Chrome does not
+  // depend on the fragile hand-built plugin iframe. Normal posts keep the
+  // existing deferred iframe path.
+  if (href && (isReel || pluginUrl)) {
     return (
       <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
         <Box sx={{ width: "100%", maxWidth: width }}>
-          <PublicDeferredEmbed
-            title={isReel ? "Facebook Reel" : "Facebook post"}
-            src={pluginUrl}
-            loadMode={isReel ? "eager" : "near-viewport"}
-            scrolling="no"
-            frameBorder="0"
-            allowFullScreen
-            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-            width={width}
-            height={isReel && !block.height ? undefined : block.height || defaultFacebookPostHeight}
-            sx={
-              isReel && !block.height
-                ? {
-                    width: "100%",
-                    maxWidth: width,
-                    aspectRatio: "9 / 16",
-                    borderRadius: designTokens.radius.small,
-                    "&::before": {
-                      content: '""',
-                      display: "block",
-                      paddingTop: facebookReelAspectRatioPadding
-                    }
-                  }
-                : {
-                    width: "100%",
-                    maxWidth: width,
-                    height: block.height || defaultFacebookPostHeight,
-                    borderRadius: designTokens.radius.small
-                  }
-            }
-          />
+          {isReel ? (
+            <FacebookReelSdkEmbed href={href} preferredWidth={width} />
+          ) : (
+            <PublicDeferredEmbed
+              title="Facebook post"
+              src={pluginUrl}
+              loadMode="near-viewport"
+              scrolling="no"
+              frameBorder="0"
+              allowFullScreen
+              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+              width={width}
+              height={block.height || defaultFacebookPostHeight}
+              sx={{
+                width: "100%",
+                maxWidth: width,
+                height: block.height || defaultFacebookPostHeight,
+                borderRadius: designTokens.radius.small
+              }}
+            />
+          )}
           <Button
             component="a"
             href={normalizeSafeHref(href)}
