@@ -1,7 +1,6 @@
 import { Alert, Box, Button, Stack } from "@mui/material";
-import PublicDeferredEmbed from "../../shared/media/PublicDeferredEmbed";
 import FacebookReelSdkEmbed from "../../shared/media/FacebookReelSdkEmbed";
-import { buildFacebookPostPluginUrl, isFacebookReelUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
+import { isFacebookReelUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
 interface FacebookPostEmbedProps {
@@ -11,28 +10,17 @@ interface FacebookPostEmbedProps {
 }
 
 const defaultEmbedMaxWidth = 560;
-const facebookPluginWidth = 500;
-const facebookPostHeight = 820;
-const facebookReelMaxWidth = 440;
+const facebookSdkMaxWidth = 440;
 
 export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const isReel = isFacebookReelUrl(normalizedPostUrl);
-  const pluginUrl =
-    normalizedPostUrl && !isReel
-      ? buildFacebookPostPluginUrl({
-          href: normalizedPostUrl,
-          showText: true,
-          width: facebookPluginWidth
-        })
-      : "";
   const safeSourceHref = normalizeSafeHref(normalizedPostUrl || postUrl);
   const canOpenSource = Boolean(postUrl.trim()) && safeSourceHref !== "#";
-  const embedTitle = title || "Facebook post";
   const sourceLabel = isReel ? "เปิด Reels ต้นทางบน Facebook" : "เปิดโพสต์ต้นทางบน Facebook";
   const fallbackLabel = isReel ? "ดู Reels ต้นทางบน Facebook" : "ดูโพสต์ต้นทางบน Facebook";
 
-  if (!normalizedPostUrl || (!isReel && !pluginUrl)) {
+  if (!normalizedPostUrl) {
     return (
       <Stack
         spacing={1.5}
@@ -54,7 +42,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
     );
   }
 
-  const embedMaxWidth = isReel ? Math.min(maxWidth, facebookReelMaxWidth) : maxWidth;
+  const embedMaxWidth = Math.min(maxWidth, facebookSdkMaxWidth);
 
   return (
     <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
@@ -66,24 +54,12 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
           maxWidth: embedMaxWidth
         }}
       >
-        {isReel ? (
-          <FacebookReelSdkEmbed href={normalizedPostUrl} preferredWidth={embedMaxWidth} />
-        ) : (
-          <PublicDeferredEmbed
-            title={embedTitle}
-            src={pluginUrl}
-            loadMode="near-viewport"
-            scrolling="no"
-            frameBorder="0"
-            allowFullScreen
-            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-            sx={{
-              width: "100%",
-              height: { xs: 760, md: facebookPostHeight },
-              borderRadius: 1
-            }}
-          />
-        )}
+        <FacebookReelSdkEmbed
+          href={normalizedPostUrl}
+          preferredWidth={embedMaxWidth}
+          mode={isReel ? "video" : "post"}
+          showText
+        />
         <Button
           component="a"
           href={safeSourceHref}
@@ -92,6 +68,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
           size="small"
           variant="text"
           sx={{ px: 0 }}
+          aria-label={title ? `${sourceLabel}: ${title}` : undefined}
         >
           {sourceLabel}
         </Button>
