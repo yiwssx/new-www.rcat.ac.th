@@ -32,8 +32,12 @@ function ensureFacebookSdk() {
     return Promise.resolve();
   }
 
-  if (facebookSdkPromise) {
+  if (facebookSdkPromise && document.getElementById(FACEBOOK_SDK_SCRIPT_ID)) {
     return facebookSdkPromise;
+  }
+
+  if (facebookSdkPromise) {
+    facebookSdkPromise = null;
   }
 
   facebookSdkPromise = new Promise<void>((resolve, reject) => {
