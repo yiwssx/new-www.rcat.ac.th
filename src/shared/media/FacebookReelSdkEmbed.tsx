@@ -6,6 +6,7 @@ const FACEBOOK_SDK_SCRIPT_ID = "facebook-jssdk";
 const FACEBOOK_SDK_SRC = "https://connect.facebook.net/th_TH/sdk.js#xfbml=1&version=v25.0&autoLogAppEvents=0";
 const DEFAULT_EMBED_WIDTH = 320;
 const MINIMUM_EMBED_WIDTH = 220;
+const MINIMUM_POST_EMBED_WIDTH = 350;
 const MAXIMUM_EMBED_WIDTH = 440;
 
 interface FacebookSdkWindow extends Window {
@@ -98,22 +99,36 @@ export default function FacebookReelSdkEmbed({
   showText = true
 }: FacebookReelSdkEmbedProps) {
   const safeHref = normalizeSafeHref(href);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
-  const [renderWidth, setRenderWidth] = useState<number | null>(null);
+  const [availableWidth, setAvailableWidth] = useState<number | null>(null);
 
   useEffect(() => {
-    const host = hostRef.current;
-    if (!host) {
-      return;
-    }
+    const measure = () => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) {
+        return;
+      }
 
-    const availableWidth = host.getBoundingClientRect().width || DEFAULT_EMBED_WIDTH;
-    setRenderWidth(clampEmbedWidth(Math.min(availableWidth, preferredWidth)));
+      const measuredWidth = wrapper.getBoundingClientRect().width || DEFAULT_EMBED_WIDTH;
+      setAvailableWidth(clampEmbedWidth(Math.min(measuredWidth, preferredWidth)));
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+
+    return () => {
+      window.removeEventListener("resize", measure);
+    };
   }, [preferredWidth]);
 
+  const measuredWidth = availableWidth || DEFAULT_EMBED_WIDTH;
+  const renderWidth = mode === "post" ? Math.max(MINIMUM_POST_EMBED_WIDTH, measuredWidth) : measuredWidth;
+  const visualScale = mode === "post" && measuredWidth < renderWidth ? measuredWidth / renderWidth : 1;
+
   useEffect(() => {
     const host = hostRef.current;
-    if (!host || !renderWidth || safeHref === "#") {
+    if (!host || !availableWidth || safeHref === "#") {
       return;
     }
 
@@ -136,47 +151,62 @@ export default function FacebookReelSdkEmbed({
     return () => {
       cancelled = true;
     };
-  }, [mode, renderWidth, safeHref, showText]);
+  }, [availableWidth, mode, renderWidth, safeHref, showText]);
 
   if (safeHref === "#") {
     return null;
   }
 
-  const reservedHeight = mode === "video" ? Math.round((renderWidth || DEFAULT_EMBED_WIDTH) * (16 / 9)) : 180;
+  const reservedHeight = mode === "video" ? Math.round(renderWidth * (16 / 9)) : Math.round(180 * visualScale);
 
   return (
     <Box
-      ref={hostRef}
+      ref={wrapperRef}
       data-facebook-sdk-embed="true"
       data-facebook-sdk-embed-mode={mode}
       data-facebook-reel-sdk-embed={mode === "video" ? "true" : undefined}
+      data-facebook-sdk-visual-scale={visualScale.toFixed(3)}
       sx={{
         width: "100%",
         maxWidth: MAXIMUM_EMBED_WIDTH,
         minHeight: reservedHeight,
         mx: "auto",
-        overflow: "hidden"
+        overflow: "hidden",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "flex-start"
       }}
     >
-      {renderWidth ? (
-        mode === "video" ? (
-          <div
-            className="fb-video"
-            data-href={safeHref}
-            data-width={String(renderWidth)}
-            data-show-text="false"
-            data-allowfullscreen="true"
-            data-autoplay="false"
-          />
-        ) : (
-          <div
-            className="fb-post"
-            data-href={safeHref}
-            data-width={String(renderWidth)}
-            data-show-text={showText ? "true" : "false"}
-          />
-        )
-      ) : null}
+      <Box
+        ref={hostRef}
+        data-facebook-sdk-plugin-host="true"
+        sx={{
+          width: renderWidth,
+          flex: `0 0 ${renderWidth}px`,
+          transform: visualScale < 1 ? `scale(${visualScale})` : "none",
+          transformOrigin: "top center"
+        }}
+      >
+        {availableWidth ? (
+          mode === "video" ? (
+            <div
+              className="fb-video"
+              data-href={safeHref}
+              data-width={String(renderWidth)}
+              data-show-text="false"
+              data-allowfullscreen="true"
+              data-autoplay="false"
+            />
+          ) : (
+            <div
+              className="fb-post"
+              data-href={safeHref}
+              data-width={String(renderWidth)}
+              data-show-text={showText ? "true" : "false"}
+            />
+          )
+        ) : null}
+      </Box>
     </Box>
   );
 }
