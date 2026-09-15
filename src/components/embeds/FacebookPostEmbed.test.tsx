@@ -1,9 +1,14 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import FacebookPostEmbed from "./FacebookPostEmbed";
 
 const facebookPostUrl = "https://www.facebook.com/100063746585360/posts/111";
 const facebookReelUrl = "https://www.facebook.com/reel/859331548878917/";
+
+beforeEach(() => {
+  document.getElementById("facebook-jssdk")?.remove();
+  document.getElementById("fb-root")?.remove();
+});
 
 describe("FacebookPostEmbed", () => {
   it("renders a responsive lazy Facebook post iframe and source link", () => {
@@ -23,21 +28,23 @@ describe("FacebookPostEmbed", () => {
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
   });
 
-  it("renders a Facebook Reel eagerly with the embedded post plugin", () => {
+  it("renders a Facebook Reel with the responsive SDK video plugin", async () => {
     const { container } = render(<FacebookPostEmbed postUrl={facebookReelUrl} />);
 
-    const iframe = screen.getByTitle("Facebook Reel");
-    const iframeSrc = iframe.getAttribute("src") || "";
-    const pluginUrl = new URL(iframeSrc);
-    const slot = container.querySelector('[data-public-deferred-embed="true"]');
+    await waitFor(() => {
+      expect(container.querySelector(".fb-video")).toBeInTheDocument();
+    });
 
-    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
-    expect(pluginUrl.searchParams.get("href")).toBe(facebookReelUrl);
-    expect(pluginUrl.searchParams.get("show_text")).toBe("true");
-    expect(pluginUrl.searchParams.get("width")).toBe("440");
-    expect(iframe).toHaveAttribute("loading", "eager");
-    expect(iframe).toHaveAttribute("allowfullscreen");
-    expect(slot).toHaveAttribute("data-public-embed-load-mode", "eager");
+    const sdkHost = container.querySelector('[data-facebook-reel-sdk-embed="true"]');
+    const reelPlugin = container.querySelector(".fb-video");
+    const sdkScript = document.getElementById("facebook-jssdk");
+
+    expect(sdkHost).toBeInTheDocument();
+    expect(reelPlugin).toHaveAttribute("data-href", facebookReelUrl);
+    expect(reelPlugin).toHaveAttribute("data-width", "320");
+    expect(reelPlugin).toHaveAttribute("data-show-text", "false");
+    expect(screen.queryByTitle("Facebook Reel")).not.toBeInTheDocument();
+    expect(sdkScript).toHaveAttribute("src", expect.stringContaining("https://connect.facebook.net/th_TH/sdk.js"));
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute("href", facebookReelUrl);
   });
 
