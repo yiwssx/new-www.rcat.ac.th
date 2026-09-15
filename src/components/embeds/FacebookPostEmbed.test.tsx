@@ -121,7 +121,10 @@ describe("FacebookPostEmbed", () => {
   });
 
   it("keeps the live regular post embed if the resolver is temporarily unavailable", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => apiResponse({ ok: false }, false)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => apiResponse({ ok: false }, false))
+    );
 
     const { container } = render(
       <FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" previewImageUrl={previewImageUrl} />
