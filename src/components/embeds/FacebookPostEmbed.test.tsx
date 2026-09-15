@@ -84,10 +84,7 @@ describe("FacebookPostEmbed", () => {
       "href",
       canonicalReelUrl
     );
-    expect(fetch).toHaveBeenCalledWith(
-      resolverUrl(historicalReelPostUrl),
-      expect.objectContaining({ method: "GET" })
-    );
+    expect(fetch).toHaveBeenCalledWith(resolverUrl(historicalReelPostUrl), expect.objectContaining({ method: "GET" }));
   });
 
   it("renders already canonical Facebook Reel URLs directly without an oEmbed classification request", async () => {
