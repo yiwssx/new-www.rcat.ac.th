@@ -138,8 +138,7 @@ export default function FacebookReelSdkEmbed({
     return null;
   }
 
-  const reservedHeight =
-    mode === "video" ? Math.round((renderWidth || DEFAULT_EMBED_WIDTH) * (16 / 9)) : 180;
+  const reservedHeight = mode === "video" ? Math.round((renderWidth || DEFAULT_EMBED_WIDTH) * (16 / 9)) : 180;
 
   return (
     <Box
