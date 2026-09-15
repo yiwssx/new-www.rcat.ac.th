@@ -185,7 +185,12 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
   const resolution = matchingResolvedPost?.resolution || directResolution;
   const resolvedUrl = resolution?.canonicalUrl || normalizedPostUrl;
   const isReel = resolution?.kind === "reel" || isFacebookReelUrl(resolvedUrl);
-  const safeSourceHref = normalizeSafeHref(resolvedUrl || postUrl);
+
+  // Keep user-facing links on the URL that was actually imported/published. The
+  // resolver may synthesize a /reel/{id} URL only to select the correct embed
+  // renderer; that generated URL is not guaranteed to be a valid public permalink.
+  const sourceUrl = normalizedPostUrl || resolvedUrl || postUrl;
+  const safeSourceHref = normalizeSafeHref(sourceUrl);
   const canOpenSource = Boolean(postUrl.trim()) && safeSourceHref !== "#";
   const embedTitle = title || (isReel ? "Facebook Reel" : "Facebook post");
   const sourceLabel = isReel ? "เปิด Reels ต้นทางบน Facebook" : "เปิดโพสต์ต้นทางบน Facebook";
