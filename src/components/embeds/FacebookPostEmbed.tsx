@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Stack } from "@mui/material";
 import ResponsiveFacebookPluginEmbed from "../../shared/media/ResponsiveFacebookPluginEmbed";
 import FacebookReelSdkEmbed from "../../shared/media/FacebookReelSdkEmbed";
 import { isFacebookReelUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
@@ -50,6 +50,10 @@ function parseResolution(payload: unknown): FacebookEmbedResolution | null {
   };
 }
 
+function resolutionsMatch(left: FacebookEmbedResolution, right: FacebookEmbedResolution) {
+  return left.kind === right.kind && left.canonicalUrl === right.canonicalUrl;
+}
+
 export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const directResolution = normalizedPostUrl ? fallbackResolution(normalizedPostUrl) : null;
@@ -64,8 +68,9 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
     const fallback = fallbackResolution(normalizedPostUrl);
     const controller = new AbortController();
     let active = true;
+    const resolverUrl = `/api/ssr?_rcatFacebookOembed=1&url=${encodeURIComponent(normalizedPostUrl)}`;
 
-    void fetch(`/api/facebook-oembed?url=${encodeURIComponent(normalizedPostUrl)}`, {
+    void fetch(resolverUrl, {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: controller.signal
@@ -75,15 +80,14 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
         return parseResolution(await response.json().catch(() => null));
       })
       .then((resolved) => {
-        if (!active) return;
+        if (!active || !resolved || resolutionsMatch(resolved, fallback)) return;
         setResolvedPost({
           sourceUrl: normalizedPostUrl,
-          resolution: resolved || fallback
+          resolution: resolved
         });
       })
-      .catch((error: unknown) => {
-        if (!active || (error instanceof DOMException && error.name === "AbortError")) return;
-        setResolvedPost({ sourceUrl: normalizedPostUrl, resolution: fallback });
+      .catch(() => {
+        // The original post iframe remains visible if classification is unavailable.
       });
 
     return () => {
@@ -93,8 +97,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
   }, [normalizedPostUrl, requiresResolution]);
 
   const matchingResolvedPost = resolvedPost?.sourceUrl === normalizedPostUrl ? resolvedPost : null;
-  const resolution = requiresResolution ? matchingResolvedPost?.resolution || null : directResolution;
-  const isResolving = requiresResolution && !resolution;
+  const resolution = matchingResolvedPost?.resolution || directResolution;
   const resolvedUrl = resolution?.canonicalUrl || normalizedPostUrl;
   const isReel = resolution?.kind === "reel" || isFacebookReelUrl(resolvedUrl);
   const safeSourceHref = normalizeSafeHref(resolvedUrl || postUrl);
@@ -121,28 +124,6 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
             {fallbackLabel}
           </Button>
         )}
-      </Stack>
-    );
-  }
-
-  if (isResolving) {
-    return (
-      <Stack
-        spacing={1.25}
-        role="status"
-        aria-label="กำลังตรวจสอบเนื้อหา Facebook"
-        sx={{
-          width: "100%",
-          minHeight: 180,
-          alignItems: "center",
-          justifyContent: "center",
-          textAlign: "center"
-        }}
-      >
-        <CircularProgress size={30} />
-        <Typography variant="body2" color="text.secondary">
-          กำลังโหลดเนื้อหาจาก Facebook…
-        </Typography>
       </Stack>
     );
   }
