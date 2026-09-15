@@ -4,9 +4,9 @@ import { normalizeSafeHref } from "../../utils/safeUrl";
 
 const FACEBOOK_SDK_SCRIPT_ID = "facebook-jssdk";
 const FACEBOOK_SDK_SRC = "https://connect.facebook.net/th_TH/sdk.js#xfbml=1&version=v25.0&autoLogAppEvents=0";
-const DEFAULT_REEL_WIDTH = 320;
-const MINIMUM_REEL_WIDTH = 220;
-const MAXIMUM_REEL_WIDTH = 440;
+const DEFAULT_EMBED_WIDTH = 320;
+const MINIMUM_EMBED_WIDTH = 220;
+const MAXIMUM_EMBED_WIDTH = 440;
 
 interface FacebookSdkWindow extends Window {
   FB?: {
@@ -18,8 +18,8 @@ interface FacebookSdkWindow extends Window {
 
 let facebookSdkPromise: Promise<void> | null = null;
 
-function clampReelWidth(value: number) {
-  return Math.min(MAXIMUM_REEL_WIDTH, Math.max(MINIMUM_REEL_WIDTH, Math.round(value)));
+function clampEmbedWidth(value: number) {
+  return Math.min(MAXIMUM_EMBED_WIDTH, Math.max(MINIMUM_EMBED_WIDTH, Math.round(value)));
 }
 
 function ensureFacebookSdk() {
@@ -32,8 +32,12 @@ function ensureFacebookSdk() {
     return Promise.resolve();
   }
 
-  if (facebookSdkPromise) {
+  if (facebookSdkPromise && document.getElementById(FACEBOOK_SDK_SCRIPT_ID)) {
     return facebookSdkPromise;
+  }
+
+  if (facebookSdkPromise) {
+    facebookSdkPromise = null;
   }
 
   facebookSdkPromise = new Promise<void>((resolve, reject) => {
@@ -78,12 +82,21 @@ function ensureFacebookSdk() {
   return facebookSdkPromise;
 }
 
+export type FacebookSdkEmbedMode = "post" | "video";
+
 interface FacebookReelSdkEmbedProps {
   href: string;
   preferredWidth?: number;
+  mode?: FacebookSdkEmbedMode;
+  showText?: boolean;
 }
 
-export default function FacebookReelSdkEmbed({ href, preferredWidth = MAXIMUM_REEL_WIDTH }: FacebookReelSdkEmbedProps) {
+export default function FacebookReelSdkEmbed({
+  href,
+  preferredWidth = MAXIMUM_EMBED_WIDTH,
+  mode = "video",
+  showText = true
+}: FacebookReelSdkEmbedProps) {
   const safeHref = normalizeSafeHref(href);
   const hostRef = useRef<HTMLDivElement>(null);
   const [renderWidth, setRenderWidth] = useState<number | null>(null);
@@ -94,8 +107,8 @@ export default function FacebookReelSdkEmbed({ href, preferredWidth = MAXIMUM_RE
       return;
     }
 
-    const availableWidth = host.getBoundingClientRect().width || DEFAULT_REEL_WIDTH;
-    setRenderWidth(clampReelWidth(Math.min(availableWidth, preferredWidth)));
+    const availableWidth = host.getBoundingClientRect().width || DEFAULT_EMBED_WIDTH;
+    setRenderWidth(clampEmbedWidth(Math.min(availableWidth, preferredWidth)));
   }, [preferredWidth]);
 
   useEffect(() => {
@@ -123,35 +136,46 @@ export default function FacebookReelSdkEmbed({ href, preferredWidth = MAXIMUM_RE
     return () => {
       cancelled = true;
     };
-  }, [renderWidth, safeHref]);
+  }, [mode, renderWidth, safeHref, showText]);
 
   if (safeHref === "#") {
     return null;
   }
 
-  const reservedHeight = Math.round((renderWidth || DEFAULT_REEL_WIDTH) * (16 / 9));
+  const reservedHeight = mode === "video" ? Math.round((renderWidth || DEFAULT_EMBED_WIDTH) * (16 / 9)) : 180;
 
   return (
     <Box
       ref={hostRef}
-      data-facebook-reel-sdk-embed="true"
+      data-facebook-sdk-embed="true"
+      data-facebook-sdk-embed-mode={mode}
+      data-facebook-reel-sdk-embed={mode === "video" ? "true" : undefined}
       sx={{
         width: "100%",
-        maxWidth: MAXIMUM_REEL_WIDTH,
+        maxWidth: MAXIMUM_EMBED_WIDTH,
         minHeight: reservedHeight,
         mx: "auto",
         overflow: "hidden"
       }}
     >
       {renderWidth ? (
-        <div
-          className="fb-video"
-          data-href={safeHref}
-          data-width={String(renderWidth)}
-          data-show-text="false"
-          data-allowfullscreen="true"
-          data-autoplay="false"
-        />
+        mode === "video" ? (
+          <div
+            className="fb-video"
+            data-href={safeHref}
+            data-width={String(renderWidth)}
+            data-show-text="false"
+            data-allowfullscreen="true"
+            data-autoplay="false"
+          />
+        ) : (
+          <div
+            className="fb-post"
+            data-href={safeHref}
+            data-width={String(renderWidth)}
+            data-show-text={showText ? "true" : "false"}
+          />
+        )
       ) : null}
     </Box>
   );

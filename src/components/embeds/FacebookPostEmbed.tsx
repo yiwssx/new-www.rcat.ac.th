@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Stack } from "@mui/material";
+import { Alert, Box, Button, Stack, useMediaQuery } from "@mui/material";
 import PublicDeferredEmbed from "../../shared/media/PublicDeferredEmbed";
 import FacebookReelSdkEmbed from "../../shared/media/FacebookReelSdkEmbed";
 import { buildFacebookPostPluginUrl, isFacebookReelUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
@@ -13,11 +13,13 @@ interface FacebookPostEmbedProps {
 const defaultEmbedMaxWidth = 560;
 const facebookPluginWidth = 500;
 const facebookPostHeight = 820;
-const facebookReelMaxWidth = 440;
+const facebookSdkMaxWidth = 440;
+const facebookMobileBreakpoint = "(max-width:767.95px)";
 
 export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const isReel = isFacebookReelUrl(normalizedPostUrl);
+  const isMobileViewport = useMediaQuery(facebookMobileBreakpoint);
   const pluginUrl =
     normalizedPostUrl && !isReel
       ? buildFacebookPostPluginUrl({
@@ -54,7 +56,8 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
     );
   }
 
-  const embedMaxWidth = isReel ? Math.min(maxWidth, facebookReelMaxWidth) : maxWidth;
+  const useSdkEmbed = isReel || isMobileViewport;
+  const embedMaxWidth = useSdkEmbed ? Math.min(maxWidth, facebookSdkMaxWidth) : maxWidth;
 
   return (
     <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
@@ -66,8 +69,13 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
           maxWidth: embedMaxWidth
         }}
       >
-        {isReel ? (
-          <FacebookReelSdkEmbed href={normalizedPostUrl} preferredWidth={embedMaxWidth} />
+        {useSdkEmbed ? (
+          <FacebookReelSdkEmbed
+            href={normalizedPostUrl}
+            preferredWidth={embedMaxWidth}
+            mode={isReel ? "video" : "post"}
+            showText
+          />
         ) : (
           <PublicDeferredEmbed
             title={embedTitle}
