@@ -12,7 +12,7 @@ interface FacebookPostEmbedProps {
 const defaultEmbedMaxWidth = 560;
 const facebookSdkMaxWidth = 440;
 
-export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
+export default function FacebookPostEmbed({ postUrl, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const isReel = isFacebookReelUrl(normalizedPostUrl);
   const safeSourceHref = normalizeSafeHref(normalizedPostUrl || postUrl);
@@ -68,7 +68,6 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
           size="small"
           variant="text"
           sx={{ px: 0 }}
-          aria-label={title ? `${sourceLabel}: ${title}` : undefined}
         >
           {sourceLabel}
         </Button>
