@@ -16,6 +16,8 @@ interface PublicContentCardProps {
   icon?: ReactNode;
   featured?: boolean;
   presentation?: "default" | "home-news";
+  thumbnailSource?: MediaAsset | string | null;
+  thumbnailAlt?: string;
 }
 
 function normalizeCategories(value: string | undefined) {
@@ -30,9 +32,14 @@ export default function PublicContentCard({
   mediaAssets = [],
   icon = <ArticleOutlinedIcon />,
   featured = false,
-  presentation = "default"
+  presentation = "default",
+  thumbnailSource,
+  thumbnailAlt
 }: PublicContentCardProps) {
-  const thumbnailMedia = resolveCardThumbnail(item, mediaAssets);
+  const defaultThumbnailMedia = resolveCardThumbnail(item, mediaAssets);
+  const thumbnailMedia = thumbnailSource === undefined ? defaultThumbnailMedia : thumbnailSource;
+  const thumbnailLabel =
+    thumbnailAlt || (typeof thumbnailMedia === "string" ? item.title : thumbnailMedia?.name || item.title);
   const categories = normalizeCategories(item.category);
   const isFacebookEmbed = isFacebookEmbedContent(item);
   const isHomeNews = presentation === "home-news" && !featured;
@@ -67,7 +74,7 @@ export default function PublicContentCard({
                 imageClassName="h-full w-full object-cover"
                 source={thumbnailMedia}
                 intent={featured ? "featured-card" : "content-card"}
-                alt={thumbnailMedia.name}
+                alt={thumbnailLabel}
                 sizes={featured ? "(max-width: 899px) calc(100vw - 64px), 180px" : isHomeNews ? "120px" : "70px"}
                 loadMode="near-viewport"
                 nearViewportMargin="240px 0px"

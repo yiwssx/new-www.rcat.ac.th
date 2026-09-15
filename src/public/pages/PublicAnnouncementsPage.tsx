@@ -12,6 +12,8 @@ import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import { PublicPagination } from "../components/PublicPagination";
 import PublicSiteShell from "../components/PublicSiteShell";
+import { resolveJobOpportunityPreview } from "../components/home/jobOpportunityPreview";
+import { resolveProcurementPreview } from "../components/home/procurementPreview";
 import { usePublicContentList } from "../hooks/usePublicContentList";
 import { usePublicPagination } from "../hooks/usePublicPagination";
 import { normalizePublicPageSearchValue } from "../routing/searchParams";
@@ -214,23 +216,33 @@ export default function PublicAnnouncementsPage() {
         </Stack>
       )}
       <Grid container spacing={2.5}>
-        {announcementsPagination.paginatedItems.map((item) => (
-          <Grid size={{ xs: 12, md: 6 }} key={item.id}>
-            <PublicContentCard
-              item={item}
-              mediaAssets={mediaAssets}
-              icon={
-                isJobArchive ? (
-                  <WorkOutlineOutlinedIcon sx={{ fontSize: 42 }} />
-                ) : isProcurementArchive ? (
-                  <RequestQuoteOutlinedIcon sx={{ fontSize: 42 }} />
-                ) : (
-                  <CampaignOutlinedIcon sx={{ fontSize: 42 }} />
-                )
-              }
-            />
-          </Grid>
-        ))}
+        {announcementsPagination.paginatedItems.map((item) => {
+          const preview = isJobArchive
+            ? resolveJobOpportunityPreview(item, mediaAssets)
+            : isProcurementArchive
+              ? resolveProcurementPreview(item, mediaAssets)
+              : null;
+
+          return (
+            <Grid size={{ xs: 12, md: 6 }} key={item.id}>
+              <PublicContentCard
+                item={item}
+                mediaAssets={mediaAssets}
+                thumbnailSource={preview?.source}
+                thumbnailAlt={preview?.label}
+                icon={
+                  isJobArchive ? (
+                    <WorkOutlineOutlinedIcon sx={{ fontSize: 42 }} />
+                  ) : isProcurementArchive ? (
+                    <RequestQuoteOutlinedIcon sx={{ fontSize: 42 }} />
+                  ) : (
+                    <CampaignOutlinedIcon sx={{ fontSize: 42 }} />
+                  )
+                }
+              />
+            </Grid>
+          );
+        })}
       </Grid>
       {filteredAnnouncementItems.length > 0 && (
         <PublicPagination
