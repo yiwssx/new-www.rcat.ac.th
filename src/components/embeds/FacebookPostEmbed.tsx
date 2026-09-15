@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import PlayCircleFilledRoundedIcon from "@mui/icons-material/PlayCircleFilledRounded";
+import PlayCircleOutlinedIcon from "@mui/icons-material/PlayCircleOutlined";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import ResponsiveFacebookPluginEmbed from "../../shared/media/ResponsiveFacebookPluginEmbed";
 import FacebookReelSdkEmbed from "../../shared/media/FacebookReelSdkEmbed";
@@ -115,7 +115,7 @@ function MobileFacebookReelFallback({
           background: "linear-gradient(180deg, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.72) 100%)"
         }}
       >
-        <PlayCircleFilledRoundedIcon sx={{ fontSize: 72, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }} />
+        <PlayCircleOutlinedIcon sx={{ fontSize: 72, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }} />
         <Typography sx={{ fontWeight: 800, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
           แตะเพื่อเล่น Reels บน Facebook
         </Typography>
