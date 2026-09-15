@@ -108,10 +108,10 @@ export function createFacebookOembedCandidates(value) {
   if (!post) return [];
 
   const derivedReel = reelCandidateFromPostId(post.postId);
-  // Historical RCAT imports sometimes stored a Reel as /{page}/posts/{reel-id}.
-  // Probe the canonical Reel URL first; a normal post ID will simply fail the
-  // video oEmbed probe and fall back to the original post URL.
-  return derivedReel ? [derivedReel, post] : [post];
+  // A URL that is explicitly /posts/... is a Facebook post first. Historical
+  // RCAT imports may still contain Reels in that shape, so only probe the
+  // derived Reel candidate after the original post oEmbed is unavailable.
+  return derivedReel ? [post, derivedReel] : [post];
 }
 
 async function probeCandidate(candidate, fetchImpl) {
