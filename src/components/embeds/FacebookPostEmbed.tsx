@@ -25,6 +25,7 @@ const defaultEmbedMaxWidth = 560;
 const facebookPluginWidth = 500;
 const facebookPostHeight = 820;
 const facebookReelMaxWidth = 440;
+const facebookOembedRevision = "legacy-reel-v2";
 
 function fallbackResolution(normalizedPostUrl: string): FacebookEmbedResolution {
   return {
@@ -68,11 +69,12 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
     const fallback = fallbackResolution(normalizedPostUrl);
     const controller = new AbortController();
     let active = true;
-    const resolverUrl = `/api/ssr?_rcatFacebookOembed=1&url=${encodeURIComponent(normalizedPostUrl)}`;
+    const resolverUrl = `/api/ssr?_rcatFacebookOembed=1&url=${encodeURIComponent(normalizedPostUrl)}&_rcatFacebookOembedRevision=${facebookOembedRevision}`;
 
     void fetch(resolverUrl, {
       method: "GET",
       headers: { Accept: "application/json" },
+      cache: "no-store",
       signal: controller.signal
     })
       .then(async (response) => {
