@@ -33,53 +33,84 @@ function createNodeResponse() {
   };
 }
 
+const pageId = "1609435494524655";
+const legacyReelId = "1639846248150246";
+const normalPostId = "1674126058055598";
+const legacyReelPostUrl = `https://www.facebook.com/${pageId}/posts/${legacyReelId}`;
+const legacyReelUrl = `https://www.facebook.com/reel/${legacyReelId}/`;
+const normalPostUrl = `https://www.facebook.com/${pageId}/posts/${normalPostId}`;
+
 describe("Facebook tokenless oEmbed resolver", () => {
-  it("probes the original post before a derived Reel candidate for numeric /posts/ URLs", () => {
-    expect(createFacebookOembedCandidates("https://www.facebook.com/1609435494524655/posts/1639846248150246")).toEqual([
+  it("keeps confirmed legacy Reel imports Reel-first without changing normal post semantics", () => {
+    expect(createFacebookOembedCandidates(legacyReelPostUrl)).toEqual([
+      {
+        kind: "reel",
+        canonicalUrl: legacyReelUrl,
+        endpoint: "https://graph.facebook.com/v25.0/oembed_video"
+      },
       {
         kind: "post",
-        canonicalUrl: "https://www.facebook.com/1609435494524655/posts/1639846248150246",
+        canonicalUrl: legacyReelPostUrl,
         endpoint: "https://graph.facebook.com/v25.0/oembed_post",
-        postId: "1639846248150246"
+        postId: legacyReelId
+      }
+    ]);
+
+    expect(createFacebookOembedCandidates(normalPostUrl)).toEqual([
+      {
+        kind: "post",
+        canonicalUrl: normalPostUrl,
+        endpoint: "https://graph.facebook.com/v25.0/oembed_post",
+        postId: normalPostId
       },
       {
         kind: "reel",
-        canonicalUrl: "https://www.facebook.com/reel/1639846248150246/",
+        canonicalUrl: `https://www.facebook.com/reel/${normalPostId}/`,
         endpoint: "https://graph.facebook.com/v25.0/oembed_video"
       }
     ]);
   });
 
-  it("resolves a normal /posts/ URL without probing the video endpoint", async () => {
+  it("restores the confirmed historical Reel even when its stored URL uses /posts/", async () => {
     const fetchImpl = vi.fn(async (url) => {
       const requested = new URL(String(url));
-      expect(requested.pathname).toBe("/v25.0/oembed_post");
-      expect(requested.searchParams.get("url")).toBe(
-        "https://www.facebook.com/1609435494524655/posts/1639846248150246"
-      );
-      return jsonResponse({ html: '<div class="fb-post"></div>' });
+      expect(requested.pathname).toBe("/v25.0/oembed_video");
+      expect(requested.searchParams.get("url")).toBe(legacyReelUrl);
+      return jsonResponse({ html: '<div class="fb-video"></div>' });
     });
 
-    await expect(
-      resolveFacebookOembed("https://www.facebook.com/1609435494524655/posts/1639846248150246", fetchImpl)
-    ).resolves.toEqual({
-      kind: "post",
-      canonicalUrl: "https://www.facebook.com/1609435494524655/posts/1639846248150246"
+    await expect(resolveFacebookOembed(legacyReelPostUrl, fetchImpl)).resolves.toEqual({
+      kind: "reel",
+      canonicalUrl: legacyReelUrl
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back to the derived Reel only when the original post oEmbed is unavailable", async () => {
+  it("keeps the real normal /posts/ URL as a post and never probes video after post success", async () => {
+    const fetchImpl = vi.fn(async (url) => {
+      const requested = new URL(String(url));
+      expect(requested.pathname).toBe("/v25.0/oembed_post");
+      expect(requested.searchParams.get("url")).toBe(normalPostUrl);
+      return jsonResponse({ html: '<div class="fb-post"></div>' });
+    });
+
+    await expect(resolveFacebookOembed(normalPostUrl, fetchImpl)).resolves.toEqual({
+      kind: "post",
+      canonicalUrl: normalPostUrl
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("can still fall back to a derived Reel when an unclassified post oEmbed is unavailable", async () => {
+    const genericPostUrl = `https://www.facebook.com/${pageId}/posts/111`;
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ error: { message: "Unsupported get request" } }, 400))
       .mockResolvedValueOnce(jsonResponse({ html: '<div class="fb-video"></div>' }));
 
-    await expect(
-      resolveFacebookOembed("https://www.facebook.com/1609435494524655/posts/1639846248150246", fetchImpl)
-    ).resolves.toEqual({
+    await expect(resolveFacebookOembed(genericPostUrl, fetchImpl)).resolves.toEqual({
       kind: "reel",
-      canonicalUrl: "https://www.facebook.com/reel/1639846248150246/"
+      canonicalUrl: "https://www.facebook.com/reel/111/"
     });
 
     expect(fetchImpl).toHaveBeenCalledTimes(2);
@@ -89,14 +120,14 @@ describe("Facebook tokenless oEmbed resolver", () => {
     expect(secondRequest.pathname).toBe("/v25.0/oembed_video");
   });
 
-  it("serves a cacheable same-origin JSON resolution without exposing Meta HTML", async () => {
+  it("serves the confirmed legacy Reel classification through the same-origin resolver", async () => {
     const response = createNodeResponse();
-    const fetchImpl = vi.fn(async () => jsonResponse({ html: '<div class="fb-post">remote html</div>' }));
+    const fetchImpl = vi.fn(async () => jsonResponse({ html: '<div class="fb-video">remote html</div>' }));
 
     await handleFacebookOembedRequest(
       {
         method: "GET",
-        url: "/api/facebook-oembed?url=https%3A%2F%2Fwww.facebook.com%2F1609435494524655%2Fposts%2F1639846248150246"
+        url: `/api/facebook-oembed?url=${encodeURIComponent(legacyReelPostUrl)}`
       },
       response,
       { fetchImpl }
@@ -106,8 +137,8 @@ describe("Facebook tokenless oEmbed resolver", () => {
     expect(result.statusCode).toBe(200);
     expect(result.body).toEqual({
       ok: true,
-      kind: "post",
-      canonicalUrl: "https://www.facebook.com/1609435494524655/posts/1639846248150246"
+      kind: "reel",
+      canonicalUrl: legacyReelUrl
     });
     expect(result.headers.get("cache-control")).toContain("s-maxage=86400");
     expect(JSON.stringify(result.body)).not.toContain("remote html");
