@@ -6,6 +6,7 @@ const facebookPostUrl = "https://www.facebook.com/1609435494524655/posts/111";
 const historicalReelPostUrl = "https://www.facebook.com/1609435494524655/posts/1639846248150246";
 const canonicalReelUrl = "https://www.facebook.com/reel/1639846248150246/";
 const facebookReelUrl = "https://www.facebook.com/reel/859331548878917/";
+const resolverUrl = (url: string) => `/api/ssr?_rcatFacebookOembed=1&url=${encodeURIComponent(url)}`;
 
 function apiResponse(payload: unknown, ok = true) {
   return {
@@ -30,14 +31,8 @@ afterEach(() => {
 });
 
 describe("FacebookPostEmbed", () => {
-  it("resolves regular posts before using the official Facebook post iframe plugin", async () => {
+  it("keeps a regular post visible while checking whether the historical URL is a Reel", async () => {
     render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
-
-    expect(screen.getByRole("status", { name: "กำลังตรวจสอบเนื้อหา Facebook" })).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(screen.getByTitle("ข่าวจาก Facebook")).toBeInTheDocument();
-    });
 
     const iframe = screen.getByTitle("ข่าวจาก Facebook");
     const iframeSrc = iframe.getAttribute("src") || "";
@@ -48,18 +43,14 @@ describe("FacebookPostEmbed", () => {
     expect(iframe).toHaveAttribute("loading", "eager");
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
     expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith(
-      `/api/facebook-oembed?url=${encodeURIComponent(facebookPostUrl)}`,
-      expect.objectContaining({ method: "GET" })
-    );
-  });
-
-  it("keeps Facebook's minimum plugin width and visually scales regular posts for narrow mobile containers", async () => {
-    const { container } = render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
 
     await waitFor(() => {
-      expect(container.querySelector('[data-facebook-plugin-embed="true"]')).toBeInTheDocument();
+      expect(fetch).toHaveBeenCalledWith(resolverUrl(facebookPostUrl), expect.objectContaining({ method: "GET" }));
     });
+  });
+
+  it("keeps Facebook's minimum plugin width and visually scales regular posts for narrow mobile containers", () => {
+    const { container } = render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
 
     const pluginHost = container.querySelector('[data-facebook-plugin-embed="true"]');
     const iframe = screen.getByTitle("ข่าวจาก Facebook");
@@ -71,13 +62,15 @@ describe("FacebookPostEmbed", () => {
     expect(pluginUrl.searchParams.get("show_text")).toBe("true");
   });
 
-  it("converts a historical /posts/{reel-id} URL to the canonical Reel before mobile rendering", async () => {
+  it("converts a historical /posts/{reel-id} URL to the canonical Reel after tokenless oEmbed classification", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => apiResponse({ ok: true, kind: "reel", canonicalUrl: canonicalReelUrl }))
     );
 
     const { container } = render(<FacebookPostEmbed postUrl={historicalReelPostUrl} />);
+
+    expect(screen.getByTitle("Facebook post")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(container.querySelector(".fb-video")).toBeInTheDocument();
@@ -90,6 +83,10 @@ describe("FacebookPostEmbed", () => {
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute(
       "href",
       canonicalReelUrl
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      resolverUrl(historicalReelPostUrl),
+      expect.objectContaining({ method: "GET" })
     );
   });
 
@@ -105,7 +102,7 @@ describe("FacebookPostEmbed", () => {
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute("href", facebookReelUrl);
   });
 
-  it("falls back to the proven post iframe if the resolver is temporarily unavailable", async () => {
+  it("keeps the proven post iframe if the resolver is temporarily unavailable", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => apiResponse({ ok: false }, false))
@@ -113,11 +110,13 @@ describe("FacebookPostEmbed", () => {
 
     render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
 
-    await waitFor(() => {
-      expect(screen.getByTitle("ข่าวจาก Facebook")).toBeInTheDocument();
-    });
-
+    expect(screen.getByTitle("ข่าวจาก Facebook")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByTitle("ข่าวจาก Facebook")).toBeInTheDocument();
   });
 
   it("shows a safe fallback for invalid URLs", () => {
