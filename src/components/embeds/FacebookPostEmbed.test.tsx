@@ -1,35 +1,17 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import FacebookPostEmbed from "./FacebookPostEmbed";
 
 const facebookPostUrl = "https://www.facebook.com/1609435494524655/posts/111";
 const facebookReelUrl = "https://www.facebook.com/reel/859331548878917/";
 
-function setMobileViewport(matches: boolean) {
-  Object.defineProperty(window, "matchMedia", {
-    configurable: true,
-    writable: true,
-    value: vi.fn().mockImplementation(() => ({
-      matches,
-      media: "(max-width:767.95px)",
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn()
-    }))
-  });
-}
-
 beforeEach(() => {
   document.getElementById("facebook-jssdk")?.remove();
   document.getElementById("fb-root")?.remove();
-  setMobileViewport(false);
 });
 
 describe("FacebookPostEmbed", () => {
-  it("keeps the proven iframe post plugin on desktop", () => {
+  it("uses the official Facebook post iframe plugin for regular posts", () => {
     render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
 
     const iframe = screen.getByTitle("ข่าวจาก Facebook");
@@ -38,51 +20,39 @@ describe("FacebookPostEmbed", () => {
 
     expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
     expect(pluginUrl.searchParams.get("href")).toBe(facebookPostUrl);
-    expect(iframe).toHaveAttribute("loading", "lazy");
+    expect(iframe).toHaveAttribute("loading", "eager");
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
+    expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
   });
 
-  it("renders numeric /posts/ permalinks on mobile at Facebook's supported minimum post width", async () => {
-    setMobileViewport(true);
+  it("keeps Facebook's minimum plugin width and visually scales it for narrow mobile containers", async () => {
     const { container } = render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
 
     await waitFor(() => {
-      expect(container.querySelector(".fb-post")).toBeInTheDocument();
+      expect(container.querySelector('[data-facebook-plugin-embed="true"]')).toBeInTheDocument();
     });
 
-    const sdkHost = container.querySelector('[data-facebook-sdk-embed="true"]');
-    const pluginHost = container.querySelector('[data-facebook-sdk-plugin-host="true"]');
-    const postPlugin = container.querySelector(".fb-post");
-    const sdkScript = document.getElementById("facebook-jssdk");
+    const pluginHost = container.querySelector('[data-facebook-plugin-embed="true"]');
+    const iframe = screen.getByTitle("ข่าวจาก Facebook");
+    const pluginUrl = new URL(iframe.getAttribute("src") || "");
 
-    expect(sdkHost).toHaveAttribute("data-facebook-sdk-embed-mode", "post");
-    expect(sdkHost).toHaveAttribute("data-facebook-sdk-visual-scale", "0.914");
-    expect(pluginHost).toBeInTheDocument();
-    expect(postPlugin).toHaveAttribute("data-href", facebookPostUrl);
-    expect(postPlugin).toHaveAttribute("data-width", "350");
-    expect(postPlugin).toHaveAttribute("data-show-text", "true");
-    expect(screen.queryByTitle("ข่าวจาก Facebook")).not.toBeInTheDocument();
-    expect(sdkScript).toHaveAttribute("src", expect.stringContaining("https://connect.facebook.net/th_TH/sdk.js"));
-    expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
+    expect(pluginHost).toHaveAttribute("data-facebook-plugin-render-width", "350");
+    expect(pluginHost).toHaveAttribute("data-facebook-plugin-visual-scale", "0.914");
+    expect(pluginUrl.searchParams.get("width")).toBe("350");
+    expect(pluginUrl.searchParams.get("show_text")).toBe("true");
+    expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
   });
 
-  it("renders a direct Facebook Reel with the responsive SDK video plugin", async () => {
-    const { container } = render(<FacebookPostEmbed postUrl={facebookReelUrl} />);
+  it("renders direct Facebook Reels through the post iframe plugin instead of the blank-prone SDK video path", () => {
+    render(<FacebookPostEmbed postUrl={facebookReelUrl} />);
 
-    await waitFor(() => {
-      expect(container.querySelector(".fb-video")).toBeInTheDocument();
-    });
+    const iframe = screen.getByTitle("Facebook Reel");
+    const pluginUrl = new URL(iframe.getAttribute("src") || "");
 
-    const sdkHost = container.querySelector('[data-facebook-sdk-embed="true"]');
-    const reelPlugin = container.querySelector(".fb-video");
-    const sdkScript = document.getElementById("facebook-jssdk");
-
-    expect(sdkHost).toHaveAttribute("data-facebook-sdk-embed-mode", "video");
-    expect(reelPlugin).toHaveAttribute("data-href", facebookReelUrl);
-    expect(reelPlugin).toHaveAttribute("data-width", "320");
-    expect(reelPlugin).toHaveAttribute("data-show-text", "false");
-    expect(screen.queryByTitle("Facebook Reel")).not.toBeInTheDocument();
-    expect(sdkScript).toHaveAttribute("src", expect.stringContaining("https://connect.facebook.net/th_TH/sdk.js"));
+    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
+    expect(pluginUrl.searchParams.get("href")).toBe(facebookReelUrl);
+    expect(pluginUrl.searchParams.get("show_text")).toBe("true");
+    expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute("href", facebookReelUrl);
   });
 
