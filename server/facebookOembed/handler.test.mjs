@@ -34,29 +34,46 @@ function createNodeResponse() {
 }
 
 describe("Facebook tokenless oEmbed resolver", () => {
-  it("probes a canonical Reel candidate before a historical numeric /posts/ URL", () => {
+  it("probes the original post before a derived Reel candidate for numeric /posts/ URLs", () => {
     expect(createFacebookOembedCandidates("https://www.facebook.com/1609435494524655/posts/1639846248150246")).toEqual([
-      {
-        kind: "reel",
-        canonicalUrl: "https://www.facebook.com/reel/1639846248150246/",
-        endpoint: "https://graph.facebook.com/v25.0/oembed_video"
-      },
       {
         kind: "post",
         canonicalUrl: "https://www.facebook.com/1609435494524655/posts/1639846248150246",
         endpoint: "https://graph.facebook.com/v25.0/oembed_post",
         postId: "1639846248150246"
+      },
+      {
+        kind: "reel",
+        canonicalUrl: "https://www.facebook.com/reel/1639846248150246/",
+        endpoint: "https://graph.facebook.com/v25.0/oembed_video"
       }
     ]);
   });
 
-  it("resolves a historical /posts/{reel-id} URL to the canonical Reel when video oEmbed accepts it", async () => {
+  it("resolves a normal /posts/ URL without probing the video endpoint", async () => {
     const fetchImpl = vi.fn(async (url) => {
       const requested = new URL(String(url));
-      expect(requested.pathname).toBe("/v25.0/oembed_video");
-      expect(requested.searchParams.get("url")).toBe("https://www.facebook.com/reel/1639846248150246/");
-      return jsonResponse({ html: '<div class="fb-video"></div>' });
+      expect(requested.pathname).toBe("/v25.0/oembed_post");
+      expect(requested.searchParams.get("url")).toBe(
+        "https://www.facebook.com/1609435494524655/posts/1639846248150246"
+      );
+      return jsonResponse({ html: '<div class="fb-post"></div>' });
     });
+
+    await expect(
+      resolveFacebookOembed("https://www.facebook.com/1609435494524655/posts/1639846248150246", fetchImpl)
+    ).resolves.toEqual({
+      kind: "post",
+      canonicalUrl: "https://www.facebook.com/1609435494524655/posts/1639846248150246"
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the derived Reel only when the original post oEmbed is unavailable", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ error: { message: "Unsupported get request" } }, 400))
+      .mockResolvedValueOnce(jsonResponse({ html: '<div class="fb-video"></div>' }));
 
     await expect(
       resolveFacebookOembed("https://www.facebook.com/1609435494524655/posts/1639846248150246", fetchImpl)
@@ -64,30 +81,17 @@ describe("Facebook tokenless oEmbed resolver", () => {
       kind: "reel",
       canonicalUrl: "https://www.facebook.com/reel/1639846248150246/"
     });
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-  });
 
-  it("falls back to the original post oEmbed when the derived Reel candidate is not valid", async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse({ error: { message: "Unsupported get request" } }, 400))
-      .mockResolvedValueOnce(jsonResponse({ html: '<div class="fb-post"></div>' }));
-
-    await expect(
-      resolveFacebookOembed("https://www.facebook.com/1609435494524655/posts/111", fetchImpl)
-    ).resolves.toEqual({
-      kind: "post",
-      canonicalUrl: "https://www.facebook.com/1609435494524655/posts/111"
-    });
-
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const firstRequest = new URL(String(fetchImpl.mock.calls[0][0]));
     const secondRequest = new URL(String(fetchImpl.mock.calls[1][0]));
-    expect(secondRequest.pathname).toBe("/v25.0/oembed_post");
-    expect(secondRequest.searchParams.get("url")).toBe("https://www.facebook.com/1609435494524655/posts/111");
+    expect(firstRequest.pathname).toBe("/v25.0/oembed_post");
+    expect(secondRequest.pathname).toBe("/v25.0/oembed_video");
   });
 
   it("serves a cacheable same-origin JSON resolution without exposing Meta HTML", async () => {
     const response = createNodeResponse();
-    const fetchImpl = vi.fn(async () => jsonResponse({ html: '<div class="fb-video">remote html</div>' }));
+    const fetchImpl = vi.fn(async () => jsonResponse({ html: '<div class="fb-post">remote html</div>' }));
 
     await handleFacebookOembedRequest(
       {
@@ -102,8 +106,8 @@ describe("Facebook tokenless oEmbed resolver", () => {
     expect(result.statusCode).toBe(200);
     expect(result.body).toEqual({
       ok: true,
-      kind: "reel",
-      canonicalUrl: "https://www.facebook.com/reel/1639846248150246/"
+      kind: "post",
+      canonicalUrl: "https://www.facebook.com/1609435494524655/posts/1639846248150246"
     });
     expect(result.headers.get("cache-control")).toContain("s-maxage=86400");
     expect(JSON.stringify(result.body)).not.toContain("remote html");
