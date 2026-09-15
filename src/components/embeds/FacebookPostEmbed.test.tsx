@@ -23,19 +23,21 @@ describe("FacebookPostEmbed", () => {
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
   });
 
-  it("renders a Facebook Reel with the video plugin", () => {
-    render(<FacebookPostEmbed postUrl={facebookReelUrl} />);
+  it("renders a Facebook Reel eagerly with the video plugin", () => {
+    const { container } = render(<FacebookPostEmbed postUrl={facebookReelUrl} />);
 
     const iframe = screen.getByTitle("Facebook Reel");
     const iframeSrc = iframe.getAttribute("src") || "";
     const pluginUrl = new URL(iframeSrc);
+    const slot = container.querySelector('[data-public-deferred-embed="true"]');
 
     expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/video.php");
     expect(pluginUrl.searchParams.get("href")).toBe(facebookReelUrl);
     expect(pluginUrl.searchParams.get("show_text")).toBe("false");
     expect(pluginUrl.searchParams.get("width")).toBe("440");
-    expect(iframe).toHaveAttribute("loading", "lazy");
+    expect(iframe).toHaveAttribute("loading", "eager");
     expect(iframe).toHaveAttribute("allowfullscreen");
+    expect(slot).toHaveAttribute("data-public-embed-load-mode", "eager");
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute("href", facebookReelUrl);
   });
 
