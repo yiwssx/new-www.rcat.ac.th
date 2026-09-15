@@ -34,7 +34,7 @@ afterEach(() => {
 });
 
 describe("FacebookPostEmbed", () => {
-  it("keeps a regular post desktop embed while mobile always gets the local preview", async () => {
+  it("keeps a regular post desktop embed while mobile uses the local preview", async () => {
     const { container } = render(
       <FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" previewImageUrl={previewImageUrl} />
     );
@@ -43,18 +43,14 @@ describe("FacebookPostEmbed", () => {
     const iframeSrc = iframe.getAttribute("src") || "";
     const pluginUrl = new URL(iframeSrc);
     const mobilePreview = container.querySelector('[data-facebook-mobile-local-preview="true"]');
-    const poster = mobilePreview?.querySelector('[data-public-responsive-image-element="true"]');
 
     expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
     expect(pluginUrl.searchParams.get("href")).toBe(facebookPostUrl);
     expect(iframe).toHaveAttribute("loading", "eager");
     expect(container.querySelector('[data-facebook-desktop-embed="true"]')).toBeInTheDocument();
     expect(mobilePreview).toBeInTheDocument();
-    expect(poster).toHaveAttribute("src", previewImageUrl);
-    expect(screen.getByText("โพสต์ Facebook")).toBeInTheDocument();
+    expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
-    expect(container.querySelector('[data-facebook-mobile-reel-fallback="true"]')).not.toBeInTheDocument();
-    expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
@@ -77,7 +73,7 @@ describe("FacebookPostEmbed", () => {
     expect(pluginUrl.searchParams.get("show_text")).toBe("true");
   });
 
-  it("converts a historical Reel only for desktop embedding while mobile remains local", async () => {
+  it("restores the playable SDK Reel after classifying a historical imported Reel", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => apiResponse({ ok: true, kind: "reel", canonicalUrl: canonicalReelUrl }))
@@ -91,24 +87,12 @@ describe("FacebookPostEmbed", () => {
     expect(container.querySelector('[data-facebook-mobile-local-preview="true"]')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(container.querySelector('[data-facebook-mobile-reel-fallback="true"]')).toBeInTheDocument();
-    });
-
-    const mobileFallback = container.querySelector('[data-facebook-mobile-reel-fallback="true"]');
-    const poster = mobileFallback?.querySelector('[data-public-responsive-image-element="true"]');
-
-    expect(mobileFallback?.tagName).toBe("DIV");
-    expect(mobileFallback).not.toHaveAttribute("href");
-    expect(poster).toHaveAttribute("src", previewImageUrl);
-    expect(poster).toHaveAttribute("alt", "ภาพตัวอย่าง วิดีโอจาก Facebook");
-    expect(screen.getByText("วิดีโอ Facebook")).toBeInTheDocument();
-    expect(
-      screen.getByText("แสดงตัวอย่างจากเว็บไซต์เพื่อหลีกเลี่ยงปัญหาลิงก์ฝัง Facebook บนมือถือ")
-    ).toBeInTheDocument();
-    await waitFor(() => {
       expect(container.querySelector(".fb-video")).toHaveAttribute("data-href", canonicalReelUrl);
     });
-    expect(container.querySelector('[data-facebook-desktop-embed="true"]')).toBeInTheDocument();
+
+    expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-facebook-mobile-local-preview="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-facebook-desktop-embed="true"]')).not.toBeInTheDocument();
     expect(screen.queryByTitle("วิดีโอจาก Facebook")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute(
       "href",
@@ -120,23 +104,21 @@ describe("FacebookPostEmbed", () => {
     );
   });
 
-  it("renders canonical Reels with the local mobile preview immediately and SDK only in the desktop host", () => {
+  it("renders canonical Reels directly through the playable SDK path on all breakpoints", async () => {
     const { container } = render(<FacebookPostEmbed postUrl={facebookReelUrl} previewImageUrl={previewImageUrl} />);
 
-    const mobileFallback = container.querySelector('[data-facebook-mobile-reel-fallback="true"]');
-    const poster = mobileFallback?.querySelector('[data-public-responsive-image-element="true"]');
+    await waitFor(() => {
+      expect(container.querySelector(".fb-video")).toHaveAttribute("data-href", facebookReelUrl);
+    });
 
-    expect(mobileFallback).toBeInTheDocument();
-    expect(mobileFallback?.tagName).toBe("DIV");
-    expect(mobileFallback).not.toHaveAttribute("href");
-    expect(poster).toHaveAttribute("src", previewImageUrl);
-    expect(container.querySelector(".fb-video")).toHaveAttribute("data-href", facebookReelUrl);
-    expect(container.querySelector('[data-facebook-desktop-embed="true"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-facebook-mobile-local-preview="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-facebook-desktop-embed="true"]')).not.toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute("href", facebookReelUrl);
   });
 
-  it("keeps a local mobile preview even if the resolver is temporarily unavailable", async () => {
+  it("keeps the regular post presentation if the resolver is temporarily unavailable", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => apiResponse({ ok: false }, false))
@@ -149,7 +131,6 @@ describe("FacebookPostEmbed", () => {
     expect(screen.getByTitle("ข่าวจาก Facebook")).toBeInTheDocument();
     expect(container.querySelector('[data-facebook-mobile-local-preview="true"]')).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
-    expect(container.querySelector('[data-facebook-mobile-reel-fallback="true"]')).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledTimes(1);

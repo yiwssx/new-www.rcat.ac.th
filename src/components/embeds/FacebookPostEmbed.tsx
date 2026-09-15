@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import PlayCircleOutlinedIcon from "@mui/icons-material/PlayCircleOutlined";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import ResponsiveFacebookPluginEmbed from "../../shared/media/ResponsiveFacebookPluginEmbed";
 import FacebookReelSdkEmbed from "../../shared/media/FacebookReelSdkEmbed";
@@ -58,25 +57,16 @@ function resolutionsMatch(left: FacebookEmbedResolution, right: FacebookEmbedRes
   return left.kind === right.kind && left.canonicalUrl === right.canonicalUrl;
 }
 
-function MobileFacebookLocalPreview({
-  previewImageUrl,
-  title,
-  isReel
-}: {
-  previewImageUrl: string;
-  title?: string;
-  isReel: boolean;
-}) {
+function MobileFacebookLocalPreview({ previewImageUrl, title }: { previewImageUrl: string; title?: string }) {
   return (
     <Box
       data-facebook-mobile-local-preview="true"
-      data-facebook-mobile-reel-fallback={isReel ? "true" : undefined}
       sx={{
         display: { xs: "block", md: "none" },
         position: "relative",
         width: "100%",
-        maxWidth: isReel ? 360 : 500,
-        aspectRatio: isReel ? "9 / 16" : "4 / 3",
+        maxWidth: 500,
+        aspectRatio: "4 / 3",
         mx: "auto",
         overflow: "hidden",
         borderRadius: 2,
@@ -111,12 +101,7 @@ function MobileFacebookLocalPreview({
           background: "linear-gradient(180deg, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.72) 100%)"
         }}
       >
-        {isReel ? (
-          <PlayCircleOutlinedIcon sx={{ fontSize: 72, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }} />
-        ) : null}
-        <Typography sx={{ fontWeight: 800, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
-          {isReel ? "วิดีโอ Facebook" : "โพสต์ Facebook"}
-        </Typography>
+        <Typography sx={{ fontWeight: 800, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>โพสต์ Facebook</Typography>
         <Typography variant="caption" sx={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
           แสดงตัวอย่างจากเว็บไซต์เพื่อหลีกเลี่ยงปัญหาลิงก์ฝัง Facebook บนมือถือ
         </Typography>
@@ -179,7 +164,7 @@ export default function FacebookPostEmbed({
         });
       })
       .catch(() => {
-        // Desktop keeps the original post iframe if classification is unavailable.
+        // The original post presentation remains available if classification is unavailable.
       });
 
     return () => {
@@ -232,20 +217,22 @@ export default function FacebookPostEmbed({
           maxWidth: embedMaxWidth
         }}
       >
-        <MobileFacebookLocalPreview previewImageUrl={safePreviewImageUrl} title={title} isReel={isReel} />
-        <Box data-facebook-desktop-embed="true" sx={{ display: { xs: "none", md: "block" }, width: "100%" }}>
-          {isReel ? (
-            <FacebookReelSdkEmbed href={resolvedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
-          ) : (
-            <ResponsiveFacebookPluginEmbed
-              href={resolvedUrl}
-              title={embedTitle}
-              preferredWidth={embedMaxWidth}
-              height={facebookPostHeight}
-              showText
-            />
-          )}
-        </Box>
+        {isReel ? (
+          <FacebookReelSdkEmbed href={resolvedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
+        ) : (
+          <>
+            <MobileFacebookLocalPreview previewImageUrl={safePreviewImageUrl} title={title} />
+            <Box data-facebook-desktop-embed="true" sx={{ display: { xs: "none", md: "block" }, width: "100%" }}>
+              <ResponsiveFacebookPluginEmbed
+                href={resolvedUrl}
+                title={embedTitle}
+                preferredWidth={embedMaxWidth}
+                height={facebookPostHeight}
+                showText
+              />
+            </Box>
+          </>
+        )}
         <Button
           component="a"
           href={safeSourceHref}
@@ -253,7 +240,7 @@ export default function FacebookPostEmbed({
           rel="noreferrer"
           size="small"
           variant="text"
-          sx={{ px: 0, display: { xs: "none", md: "inline-flex" } }}
+          sx={isReel ? { px: 0 } : { px: 0, display: { xs: "none", md: "inline-flex" } }}
         >
           {sourceLabel}
         </Button>
