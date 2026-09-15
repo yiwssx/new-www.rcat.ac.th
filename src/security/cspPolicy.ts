@@ -7,7 +7,9 @@ const CONNECT_SOURCES = [
   "https://*.rcat.ac.th",
   "https://www.google-analytics.com",
   "https://region1.google-analytics.com",
-  "https://www.googletagmanager.com"
+  "https://www.googletagmanager.com",
+  "https://connect.facebook.net",
+  "https://www.facebook.com"
 ];
 const FRAME_SOURCES = [
   "https://www.facebook.com",
