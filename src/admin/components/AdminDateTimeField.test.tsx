@@ -25,13 +25,7 @@ describe("AdminDateTimeField", () => {
   it("clamps a newly selected date to the configured minimum local time", () => {
     const onChange = vi.fn();
     const { container } = render(
-      <AdminDateTimeField
-        label="สิ้นสุด"
-        value=""
-        min="2026-09-15T14:30"
-        required
-        onChange={onChange}
-      />
+      <AdminDateTimeField label="สิ้นสุด" value="" min="2026-09-15T14:30" required onChange={onChange} />
     );
 
     const dateInput = container.querySelector('input[type="date"]');
