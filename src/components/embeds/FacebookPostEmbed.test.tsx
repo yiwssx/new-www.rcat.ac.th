@@ -106,7 +106,10 @@ describe("FacebookPostEmbed", () => {
   });
 
   it("falls back to the proven post iframe if the resolver is temporarily unavailable", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => apiResponse({ ok: false }, false)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => apiResponse({ ok: false }, false))
+    );
 
     render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
 
