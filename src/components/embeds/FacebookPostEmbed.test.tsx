@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import FacebookPostEmbed from "./FacebookPostEmbed";
 
-const facebookPostUrl = "https://www.facebook.com/100063746585360/posts/111";
+const facebookPostUrl = "https://www.facebook.com/1609435494524655/posts/111";
 const facebookReelUrl = "https://www.facebook.com/reel/859331548878917/";
 
 beforeEach(() => {
