@@ -96,7 +96,6 @@ describe("FacebookPostEmbed", () => {
 
     const mobileFallback = container.querySelector('[data-facebook-mobile-reel-fallback="true"]');
     const poster = mobileFallback?.querySelector('[data-public-responsive-image-element="true"]');
-    const reelPlugin = container.querySelector(".fb-video");
 
     expect(mobileFallback?.tagName).toBe("DIV");
     expect(mobileFallback).not.toHaveAttribute("href");
@@ -106,7 +105,9 @@ describe("FacebookPostEmbed", () => {
     expect(
       screen.getByText("แสดงตัวอย่างจากเว็บไซต์เพื่อหลีกเลี่ยงปัญหาลิงก์ฝัง Facebook บนมือถือ")
     ).toBeInTheDocument();
-    expect(reelPlugin).toHaveAttribute("data-href", canonicalReelUrl);
+    await waitFor(() => {
+      expect(container.querySelector(".fb-video")).toHaveAttribute("data-href", canonicalReelUrl);
+    });
     expect(container.querySelector('[data-facebook-desktop-embed="true"]')).toBeInTheDocument();
     expect(screen.queryByTitle("วิดีโอจาก Facebook")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute(
