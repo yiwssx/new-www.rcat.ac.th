@@ -13,6 +13,7 @@ const defaultEmbedMaxWidth = 560;
 const facebookPluginWidth = 500;
 const facebookPostHeight = 820;
 const facebookReelMaxWidth = 440;
+const facebookReelAspectRatioPadding = "177.7778%";
 
 export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
@@ -68,6 +69,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
         <PublicDeferredEmbed
           title={embedTitle}
           src={pluginUrl}
+          loadMode={isReel ? "eager" : "near-viewport"}
           scrolling="no"
           frameBorder="0"
           allowFullScreen
@@ -77,7 +79,12 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
               ? {
                   width: "100%",
                   aspectRatio: "9 / 16",
-                  borderRadius: 1
+                  borderRadius: 1,
+                  "&::before": {
+                    content: '""',
+                    display: "block",
+                    paddingTop: facebookReelAspectRatioPadding
+                  }
                 }
               : {
                   width: "100%",
