@@ -145,6 +145,7 @@ export default function FacebookReelSdkEmbed({
       ref={hostRef}
       data-facebook-sdk-embed="true"
       data-facebook-sdk-embed-mode={mode}
+      data-facebook-reel-sdk-embed={mode === "video" ? "true" : undefined}
       sx={{
         width: "100%",
         maxWidth: MAXIMUM_EMBED_WIDTH,
