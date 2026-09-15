@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Button, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Stack } from "@mui/material";
 import ResponsiveFacebookPluginEmbed from "../../shared/media/ResponsiveFacebookPluginEmbed";
-import FacebookReelSdkEmbed from "../../shared/media/FacebookReelSdkEmbed";
-import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import { isFacebookReelUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
-import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
+import { normalizeSafeHref } from "../../utils/safeUrl";
 
 interface FacebookPostEmbedProps {
   postUrl: string;
@@ -29,7 +27,34 @@ const facebookPostHeight = 820;
 const facebookReelMaxWidth = 440;
 const facebookOembedRevision = "legacy-reel-v2";
 
+// Historical Facebook imports may have lost their original /reel/{id}
+// permalink and been stored as /{page}/posts/{id}. Keep the confirmed
+// legacy Reel available immediately during SSR/hydration so users never see
+// Facebook's broken post-plugin page before the resolver finishes.
+const confirmedLegacyReels = new Map<string, string>([["1609435494524655:1639846248150246", "1639846248150246"]]);
+
+function confirmedLegacyReelUrl(normalizedPostUrl: string) {
+  try {
+    const parsed = new URL(normalizedPostUrl);
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    if (segments.length < 3 || segments[1]?.toLowerCase() !== "posts") return "";
+
+    const reelId = confirmedLegacyReels.get(`${segments[0]}:${segments[2]}`);
+    return reelId ? `https://www.facebook.com/reel/${reelId}/` : "";
+  } catch {
+    return "";
+  }
+}
+
 function fallbackResolution(normalizedPostUrl: string): FacebookEmbedResolution {
+  const legacyReelUrl = confirmedLegacyReelUrl(normalizedPostUrl);
+  if (legacyReelUrl) {
+    return {
+      kind: "reel",
+      canonicalUrl: legacyReelUrl
+    };
+  }
+
   return {
     kind: isFacebookReelUrl(normalizedPostUrl) ? "reel" : "post",
     canonicalUrl: normalizedPostUrl
@@ -57,84 +82,11 @@ function resolutionsMatch(left: FacebookEmbedResolution, right: FacebookEmbedRes
   return left.kind === right.kind && left.canonicalUrl === right.canonicalUrl;
 }
 
-function MobileFacebookLocalPreview({ previewImageUrl, title }: { previewImageUrl: string; title?: string }) {
-  return (
-    <Box
-      data-facebook-mobile-local-preview="true"
-      sx={{
-        display: { xs: "block", md: "none" },
-        position: "relative",
-        width: "100%",
-        maxWidth: 500,
-        aspectRatio: "4 / 3",
-        mx: "auto",
-        overflow: "hidden",
-        borderRadius: 2,
-        bgcolor: "grey.900",
-        color: "common.white",
-        boxShadow: 2
-      }}
-    >
-      {previewImageUrl ? (
-        <PublicResponsiveImage
-          source={previewImageUrl}
-          alt={title ? `ภาพตัวอย่าง ${title}` : "ภาพตัวอย่างเนื้อหา Facebook"}
-          intent="content-featured"
-          loadMode="eager"
-          bypassPageMediaGate
-          fill
-          sx={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-          imageSx={{ objectFit: "cover" }}
-        />
-      ) : null}
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 1,
-          px: 2,
-          textAlign: "center",
-          background: "linear-gradient(180deg, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.72) 100%)"
-        }}
-      >
-        <Typography sx={{ fontWeight: 800, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>โพสต์ Facebook</Typography>
-        <Typography variant="caption" sx={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
-          แสดงตัวอย่างจากเว็บไซต์เพื่อหลีกเลี่ยงปัญหาลิงก์ฝัง Facebook บนมือถือ
-        </Typography>
-      </Box>
-    </Box>
-  );
-}
-
-export default function FacebookPostEmbed({
-  postUrl,
-  title,
-  maxWidth = defaultEmbedMaxWidth,
-  previewImageUrl = ""
-}: FacebookPostEmbedProps) {
+export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const directResolution = normalizedPostUrl ? fallbackResolution(normalizedPostUrl) : null;
-  const requiresResolution = Boolean(normalizedPostUrl && directResolution?.kind === "post");
+  const requiresResolution = Boolean(normalizedPostUrl && !isFacebookReelUrl(normalizedPostUrl));
   const [resolvedPost, setResolvedPost] = useState<ResolvedFacebookPost | null>(null);
-  const [metadataPreviewImageUrl, setMetadataPreviewImageUrl] = useState("");
-  const safePreviewImageUrl = normalizeSafeResourceUrl(previewImageUrl) || metadataPreviewImageUrl;
-
-  useEffect(() => {
-    if (previewImageUrl || typeof document === "undefined") return;
-
-    const timer = window.setTimeout(() => {
-      const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content || "";
-      setMetadataPreviewImageUrl(normalizeSafeResourceUrl(ogImage));
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [normalizedPostUrl, previewImageUrl]);
 
   useEffect(() => {
     if (!normalizedPostUrl || !requiresResolution) {
@@ -164,7 +116,7 @@ export default function FacebookPostEmbed({
         });
       })
       .catch(() => {
-        // The original post presentation remains available if classification is unavailable.
+        // Keep the direct live embed if classification is temporarily unavailable.
       });
 
     return () => {
@@ -217,22 +169,13 @@ export default function FacebookPostEmbed({
           maxWidth: embedMaxWidth
         }}
       >
-        {isReel ? (
-          <FacebookReelSdkEmbed href={resolvedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
-        ) : (
-          <>
-            <MobileFacebookLocalPreview previewImageUrl={safePreviewImageUrl} title={title} />
-            <Box data-facebook-desktop-embed="true" sx={{ display: { xs: "none", md: "block" }, width: "100%" }}>
-              <ResponsiveFacebookPluginEmbed
-                href={resolvedUrl}
-                title={embedTitle}
-                preferredWidth={embedMaxWidth}
-                height={facebookPostHeight}
-                showText
-              />
-            </Box>
-          </>
-        )}
+        <ResponsiveFacebookPluginEmbed
+          href={resolvedUrl}
+          title={embedTitle}
+          preferredWidth={embedMaxWidth}
+          height={facebookPostHeight}
+          showText
+        />
         <Button
           component="a"
           href={safeSourceHref}
@@ -240,7 +183,7 @@ export default function FacebookPostEmbed({
           rel="noreferrer"
           size="small"
           variant="text"
-          sx={isReel ? { px: 0 } : { px: 0, display: { xs: "none", md: "inline-flex" } }}
+          sx={{ px: 0 }}
         >
           {sourceLabel}
         </Button>

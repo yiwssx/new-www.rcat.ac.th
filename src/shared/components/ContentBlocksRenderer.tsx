@@ -4,7 +4,6 @@ import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutli
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import { MediaAsset } from "../../types";
 import { ContentBlock, FacebookPostContentBlock } from "../../utils/contentBlocks";
-import FacebookReelSdkEmbed from "../media/FacebookReelSdkEmbed";
 import PublicDeferredEmbed from "../media/PublicDeferredEmbed";
 import PublicResponsiveImage from "../media/PublicResponsiveImage";
 import PublicPdfViewer from "../media/PublicPdfViewer";
@@ -34,41 +33,36 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
   const isReel = isFacebookReelUrl(href);
   const requestedWidth = clampFacebookPostPluginWidth(block.width || 500);
   const width = isReel ? Math.min(requestedWidth, maximumFacebookReelWidth) : requestedWidth;
-  const pluginUrl = !isReel ? buildFacebookPostPluginUrl({ href, showText: block.showText, width }) : "";
+  const pluginUrl = buildFacebookPostPluginUrl({ href, showText: block.showText, width });
 
-  // If it's an unsafe or non-Facebook URL, render nothing
+  // If it's an unsafe or non-Facebook URL, render nothing.
   if (!href && !isUnsupported) {
     return null;
   }
 
-  // Reels use the official Facebook SDK/XFBML path so mobile Chrome does not
-  // depend on the fragile hand-built plugin iframe. Normal posts keep the
-  // existing deferred iframe path.
-  if (href && (isReel || pluginUrl)) {
+  // Use Facebook's iframe plugin for both posts and Reels. This keeps the
+  // content directly viewable on mobile without depending on the JS SDK.
+  if (href && pluginUrl) {
     return (
       <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
         <Box sx={{ width: "100%", maxWidth: width }}>
-          {isReel ? (
-            <FacebookReelSdkEmbed href={href} preferredWidth={width} />
-          ) : (
-            <PublicDeferredEmbed
-              title="Facebook post"
-              src={pluginUrl}
-              loadMode="near-viewport"
-              scrolling="no"
-              frameBorder="0"
-              allowFullScreen
-              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-              width={width}
-              height={block.height || defaultFacebookPostHeight}
-              sx={{
-                width: "100%",
-                maxWidth: width,
-                height: block.height || defaultFacebookPostHeight,
-                borderRadius: designTokens.radius.small
-              }}
-            />
-          )}
+          <PublicDeferredEmbed
+            title={isReel ? "Facebook Reel" : "Facebook post"}
+            src={pluginUrl}
+            loadMode="near-viewport"
+            scrolling="no"
+            frameBorder="0"
+            allowFullScreen
+            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+            width={width}
+            height={block.height || defaultFacebookPostHeight}
+            sx={{
+              width: "100%",
+              maxWidth: width,
+              height: block.height || defaultFacebookPostHeight,
+              borderRadius: designTokens.radius.small
+            }}
+          />
           <Button
             component="a"
             href={normalizeSafeHref(href)}
@@ -96,7 +90,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
     );
   }
 
-  // If it's an unsupported Facebook URL, render fallback with message and link
+  // If it's an unsupported Facebook URL, render fallback with message and link.
   if (isUnsupported && block.href) {
     const safeHref = normalizeSafeHref(block.href);
     const isValidHref = safeHref !== "#";
