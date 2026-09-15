@@ -81,7 +81,11 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - run: pnpm format:check
+      - name: Print exact Prettier diff for Facebook embed files
+        run: |
+          pnpm exec prettier --write src/components/embeds/FacebookPostEmbed.tsx src/components/embeds/FacebookPostEmbed.test.tsx
+          git diff -- src/components/embeds/FacebookPostEmbed.tsx src/components/embeds/FacebookPostEmbed.test.tsx
+          exit 1
       - run: pnpm lint:strict
 
   unit:
