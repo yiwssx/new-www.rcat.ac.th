@@ -3,6 +3,7 @@ import { finalizeSlug } from "./utils/slug";
 
 export const SSR_REWRITE_PATH_PARAM = "_rcatPath";
 export const PUBLIC_SSR_BROWSER_CACHE_CONTROL = "public, max-age=0, must-revalidate";
+export const PUBLIC_HOME_SSR_CDN_CACHE_CONTROL = "public, max-age=60";
 export const PUBLIC_SSR_CDN_CACHE_CONTROL = "public, max-age=600, stale-while-revalidate=3600";
 export const PUBLIC_REDIRECT_CDN_CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=604800";
 export const PUBLIC_NOT_FOUND_CDN_CACHE_CONTROL = "public, max-age=60, stale-while-revalidate=300";
@@ -128,6 +129,9 @@ export function applyVercelPublicSsrCachePolicy(request: Request, response: Resp
   if (response.status === 200 && isDynamicContentDetail) {
     headers.set("Cache-Control", "no-store");
     headers.delete("Vercel-CDN-Cache-Control");
+  } else if (response.status === 200 && url.pathname === "/") {
+    headers.set("Cache-Control", PUBLIC_SSR_BROWSER_CACHE_CONTROL);
+    headers.set("Vercel-CDN-Cache-Control", PUBLIC_HOME_SSR_CDN_CACHE_CONTROL);
   } else if (response.status === 200 && url.pathname !== "/search") {
     headers.set("Cache-Control", PUBLIC_SSR_BROWSER_CACHE_CONTROL);
     headers.set("Vercel-CDN-Cache-Control", PUBLIC_SSR_CDN_CACHE_CONTROL);
