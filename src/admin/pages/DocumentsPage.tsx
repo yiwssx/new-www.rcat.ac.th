@@ -43,6 +43,7 @@ import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PageHeader from "../components/PageHeader";
 import AdminPagination from "../components/AdminPagination";
+import AdminDateTimeField from "../components/AdminDateTimeField";
 import StatusChip from "../components/StatusChip";
 import { useAuth } from "../../context/authSessionContext";
 import { deleteDocumentFromApi, saveDocumentToApi, type DocumentItemInput } from "../../features/cms-documents";
@@ -1156,15 +1157,10 @@ export default function DocumentsPage() {
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
+                <AdminDateTimeField
                   label="วันที่เผยแพร่"
-                  type="datetime-local"
                   value={toLocalDateTimeInputValue(editingDocument.publishedAt)}
-                  onChange={(event) =>
-                    updateEditingDocument("publishedAt", fromLocalDateTimeInputValue(event.target.value))
-                  }
-                  slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
-                  fullWidth
+                  onChange={(value) => updateEditingDocument("publishedAt", fromLocalDateTimeInputValue(value))}
                 />
               </Grid>
               <Grid size={{ xs: 12 }}>

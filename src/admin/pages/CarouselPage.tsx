@@ -40,6 +40,7 @@ import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SwapVertOutlinedIcon from "@mui/icons-material/SwapVertOutlined";
 import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import AdminPagination from "../components/AdminPagination";
+import AdminDateTimeField from "../components/AdminDateTimeField";
 import CarouselGlobalSettingsEditor from "../components/CarouselGlobalSettingsEditor";
 import {
   CarouselSlidePresentationFields,
@@ -1233,29 +1234,19 @@ export default function CarouselPage() {
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
-                      <TextField
+                      <AdminDateTimeField
                         label="เริ่มแสดง"
-                        type="datetime-local"
                         value={toLocalDateTimeInputValue(editingSlide.startAt)}
-                        onChange={(event) =>
-                          updateEditingSlide("startAt", fromLocalDateTimeInputValue(event.target.value))
-                        }
-                        slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
+                        onChange={(value) => updateEditingSlide("startAt", fromLocalDateTimeInputValue(value))}
                         disabled={!canManage}
-                        fullWidth
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
-                      <TextField
+                      <AdminDateTimeField
                         label="สิ้นสุดการแสดง"
-                        type="datetime-local"
                         value={toLocalDateTimeInputValue(editingSlide.endAt)}
-                        onChange={(event) =>
-                          updateEditingSlide("endAt", fromLocalDateTimeInputValue(event.target.value))
-                        }
-                        slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
+                        onChange={(value) => updateEditingSlide("endAt", fromLocalDateTimeInputValue(value))}
                         disabled={!canManage}
-                        fullWidth
                       />
                     </Grid>
                   </Grid>

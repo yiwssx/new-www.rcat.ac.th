@@ -30,6 +30,7 @@ import ResponsiveDialogActions from "../../design-system/components/ResponsiveDi
 import { designTokens } from "../../design-system/tokens";
 import { staticSurfaceSx } from "../../design-system/componentStyles";
 import AdminPagination from "./AdminPagination";
+import AdminDateTimeField from "./AdminDateTimeField";
 import MediaUploadProgressFeedback from "./MediaUploadProgressFeedback";
 import ContentBlockBuilder from "./ContentBlockBuilder";
 import { ContentItem, ContentStatus, ContentType, MediaAsset, MediaType } from "../../types";
@@ -1008,19 +1009,12 @@ export default function ContentEditorDialog({
                   size="small"
                   fullWidth
                 />
-                <TextField
+                <AdminDateTimeField
                   label="วันที่เผยแพร่"
-                  type="datetime-local"
                   value={toLocalDateTimeInputValue(draft.publishAt)}
-                  onChange={(event) =>
-                    updateDraft(
-                      "publishAt",
-                      fromLocalDateTimeInputValue(event.target.value) || new Date().toISOString()
-                    )
+                  onChange={(value) =>
+                    updateDraft("publishAt", fromLocalDateTimeInputValue(value) || new Date().toISOString())
                   }
-                  slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 60 } }}
-                  size="small"
-                  fullWidth
                 />
                 <Divider />
                 <Typography

@@ -683,7 +683,7 @@ export default function SettingsPage() {
                   mb: 2
                 }}
               >
-                ใช้รูปแบบวันที่แบบ WordPress และเลือกรูปแบบเวลา 24 ชั่วโมงหรือ 12 ชั่วโมง
+                ใช้รูปแบบวันที่แบบ WordPress โดยระบบ Admin และ Editor ใช้เวลาแบบ 24 ชั่วโมง (00:00–23:59) เท่านั้น
               </Typography>
               <Grid container spacing={1.5}>
                 <Grid size={{ xs: 12, md: 5 }}>
