@@ -5,6 +5,13 @@ const ALLOWED_FACEBOOK_HOSTS = new Set(["facebook.com", "www.facebook.com", "m.f
 const SUCCESS_CACHE_CONTROL = "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800";
 const FAILURE_CACHE_CONTROL = "public, max-age=60, s-maxage=300";
 
+// Older RCAT imports lost the original /reel/ permalink and persisted a
+// /{page}/posts/{id} URL instead. Some of those URLs are also accepted by
+// Meta's post oEmbed endpoint, so endpoint success alone cannot recover the
+// original content type. Keep only confirmed legacy Reel identities here so
+// normal /posts/ URLs remain post-first.
+const CONFIRMED_LEGACY_REEL_POSTS = new Set(["1609435494524655:1639846248150246"]);
+
 function responseHeaders(cacheControl = FAILURE_CACHE_CONTROL) {
   return {
     "Content-Type": "application/json; charset=utf-8",
@@ -96,6 +103,25 @@ function reelCandidateFromPostId(postId) {
   };
 }
 
+function facebookPageId(url) {
+  const segments = url.pathname.split("/").filter(Boolean);
+  if (segments.length >= 3 && segments[1].toLowerCase() === "posts") {
+    return segments[0];
+  }
+
+  const normalizedPath = url.pathname.toLowerCase();
+  if (normalizedPath === "/permalink.php" || normalizedPath === "/story.php") {
+    return url.searchParams.get("id") || "";
+  }
+
+  return "";
+}
+
+function isConfirmedLegacyReel(url, postId) {
+  const pageId = facebookPageId(url);
+  return Boolean(pageId && postId && CONFIRMED_LEGACY_REEL_POSTS.has(`${pageId}:${postId}`));
+}
+
 export function createFacebookOembedCandidates(value) {
   const normalized = normalizeFacebookUrl(value);
   if (!normalized) return [];
@@ -108,10 +134,12 @@ export function createFacebookOembedCandidates(value) {
   if (!post) return [];
 
   const derivedReel = reelCandidateFromPostId(post.postId);
-  // A URL that is explicitly /posts/... is a Facebook post first. Historical
-  // RCAT imports may still contain Reels in that shape, so only probe the
-  // derived Reel candidate after the original post oEmbed is unavailable.
-  return derivedReel ? [post, derivedReel] : [post];
+  if (!derivedReel) return [post];
+
+  // Preserve the confirmed historical Reel that was imported as /posts/ while
+  // keeping every other explicit /posts/ URL post-first. This avoids the two
+  // regressions caused by globally choosing either Reel-first or post-first.
+  return isConfirmedLegacyReel(url, post.postId) ? [derivedReel, post] : [post, derivedReel];
 }
 
 async function probeCandidate(candidate, fetchImpl) {
