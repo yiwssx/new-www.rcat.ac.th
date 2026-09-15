@@ -123,8 +123,14 @@ describe("FacebookPostEmbed", () => {
       expect(container.querySelector('[data-facebook-mobile-reel-fallback="true"]')).toBeInTheDocument();
     });
 
-    expect(container.querySelector('[data-facebook-mobile-reel-fallback="true"]')).toHaveAttribute("href", facebookReelUrl);
-    expect(container.querySelector('[data-facebook-mobile-reel-poster="true"]')).toHaveAttribute("src", previewImageUrl);
+    expect(container.querySelector('[data-facebook-mobile-reel-fallback="true"]')).toHaveAttribute(
+      "href",
+      facebookReelUrl
+    );
+    expect(container.querySelector('[data-facebook-mobile-reel-poster="true"]')).toHaveAttribute(
+      "src",
+      previewImageUrl
+    );
     expect(container.querySelector(".fb-video")).toHaveAttribute("data-href", facebookReelUrl);
     expect(container.querySelector('[data-facebook-desktop-reel-embed="true"]')).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
