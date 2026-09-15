@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  createFacebookOembedCandidates,
-  handleFacebookOembedRequest,
-  resolveFacebookOembed
-} from "./handler.mjs";
+import { createFacebookOembedCandidates, handleFacebookOembedRequest, resolveFacebookOembed } from "./handler.mjs";
 
 function jsonResponse(payload, status = 200) {
   return {
@@ -77,7 +73,9 @@ describe("Facebook tokenless oEmbed resolver", () => {
       .mockResolvedValueOnce(jsonResponse({ error: { message: "Unsupported get request" } }, 400))
       .mockResolvedValueOnce(jsonResponse({ html: '<div class="fb-post"></div>' }));
 
-    await expect(resolveFacebookOembed("https://www.facebook.com/1609435494524655/posts/111", fetchImpl)).resolves.toEqual({
+    await expect(
+      resolveFacebookOembed("https://www.facebook.com/1609435494524655/posts/111", fetchImpl)
+    ).resolves.toEqual({
       kind: "post",
       canonicalUrl: "https://www.facebook.com/1609435494524655/posts/111"
     });
