@@ -31,6 +31,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import AdminPagination from "../components/AdminPagination";
+import AdminDateTimeField from "../components/AdminDateTimeField";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
 import { deleteCalendarEvent, saveCalendarEvent } from "../../features/cms-events";
@@ -916,13 +917,12 @@ export default function CalendarPage() {
                     sm: 6
                   }}
                 >
-                  <TextField
+                  <AdminDateTimeField
                     label="เริ่มต้น"
-                    type="datetime-local"
                     value={form.dateTime}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setForm((current) => {
-                        const nextDateTime = event.target.value;
+                        const nextDateTime = value;
 
                         return {
                           ...current,
@@ -933,16 +933,7 @@ export default function CalendarPage() {
                         };
                       })
                     }
-                    slotProps={{
-                      inputLabel: {
-                        shrink: true
-                      },
-                      htmlInput: {
-                        step: 60
-                      }
-                    }}
                     required
-                    fullWidth
                   />
                 </Grid>
 
@@ -952,29 +943,19 @@ export default function CalendarPage() {
                     sm: 6
                   }}
                 >
-                  <TextField
+                  <AdminDateTimeField
                     label="สิ้นสุด"
-                    type="datetime-local"
                     value={form.endDateTime}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setForm((current) => ({
                         ...current,
-                        endDateTime: event.target.value
+                        endDateTime: value
                       }))
                     }
-                    slotProps={{
-                      inputLabel: {
-                        shrink: true
-                      },
-                      htmlInput: {
-                        min: form.dateTime || undefined,
-                        step: 60
-                      }
-                    }}
+                    min={form.dateTime || undefined}
                     error={Boolean(endDateError)}
                     helperText={endDateError || "ต้องระบุวันเวลาสิ้นสุด"}
                     required
-                    fullWidth
                   />
                 </Grid>
 
