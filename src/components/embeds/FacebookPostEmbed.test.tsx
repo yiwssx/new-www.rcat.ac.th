@@ -84,11 +84,7 @@ describe("FacebookPostEmbed", () => {
     );
 
     const { container } = render(
-      <FacebookPostEmbed
-        postUrl={historicalReelPostUrl}
-        title="วิดีโอจาก Facebook"
-        previewImageUrl={previewImageUrl}
-      />
+      <FacebookPostEmbed postUrl={historicalReelPostUrl} title="วิดีโอจาก Facebook" previewImageUrl={previewImageUrl} />
     );
 
     expect(screen.getByTitle("วิดีโอจาก Facebook")).toBeInTheDocument();
@@ -107,7 +103,9 @@ describe("FacebookPostEmbed", () => {
     expect(poster).toHaveAttribute("src", previewImageUrl);
     expect(poster).toHaveAttribute("alt", "ภาพตัวอย่าง วิดีโอจาก Facebook");
     expect(screen.getByText("วิดีโอ Facebook")).toBeInTheDocument();
-    expect(screen.getByText("แสดงตัวอย่างจากเว็บไซต์เพื่อหลีกเลี่ยงปัญหาลิงก์ฝัง Facebook บนมือถือ")).toBeInTheDocument();
+    expect(
+      screen.getByText("แสดงตัวอย่างจากเว็บไซต์เพื่อหลีกเลี่ยงปัญหาลิงก์ฝัง Facebook บนมือถือ")
+    ).toBeInTheDocument();
     expect(reelPlugin).toHaveAttribute("data-href", canonicalReelUrl);
     expect(container.querySelector('[data-facebook-desktop-embed="true"]')).toBeInTheDocument();
     expect(screen.queryByTitle("วิดีโอจาก Facebook")).not.toBeInTheDocument();
@@ -122,9 +120,7 @@ describe("FacebookPostEmbed", () => {
   });
 
   it("renders canonical Reels with the local mobile preview immediately and SDK only in the desktop host", () => {
-    const { container } = render(
-      <FacebookPostEmbed postUrl={facebookReelUrl} previewImageUrl={previewImageUrl} />
-    );
+    const { container } = render(<FacebookPostEmbed postUrl={facebookReelUrl} previewImageUrl={previewImageUrl} />);
 
     const mobileFallback = container.querySelector('[data-facebook-mobile-reel-fallback="true"]');
     const poster = mobileFallback?.querySelector('[data-public-responsive-image-element="true"]');
