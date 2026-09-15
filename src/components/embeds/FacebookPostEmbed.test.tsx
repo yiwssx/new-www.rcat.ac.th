@@ -11,20 +11,23 @@ beforeEach(() => {
 });
 
 describe("FacebookPostEmbed", () => {
-  it("renders a responsive lazy Facebook post iframe and source link", () => {
-    render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
+  it("renders /posts/ permalinks with the responsive SDK post plugin", async () => {
+    const { container } = render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
 
-    const iframe = screen.getByTitle("ข่าวจาก Facebook");
-    const iframeSrc = iframe.getAttribute("src") || "";
-    const pluginUrl = new URL(iframeSrc);
+    await waitFor(() => {
+      expect(container.querySelector(".fb-post")).toBeInTheDocument();
+    });
 
-    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
-    expect(pluginUrl.searchParams.get("href")).toBe(facebookPostUrl);
-    expect(pluginUrl.searchParams.get("show_text")).toBe("true");
-    expect(pluginUrl.searchParams.get("width")).toBe("500");
-    expect(iframe).toHaveAttribute("loading", "lazy");
-    expect(iframe).toHaveAttribute("scrolling", "no");
-    expect(iframe).toHaveAttribute("allowfullscreen");
+    const sdkHost = container.querySelector('[data-facebook-sdk-embed="true"]');
+    const postPlugin = container.querySelector(".fb-post");
+    const sdkScript = document.getElementById("facebook-jssdk");
+
+    expect(sdkHost).toHaveAttribute("data-facebook-sdk-embed-mode", "post");
+    expect(postPlugin).toHaveAttribute("data-href", facebookPostUrl);
+    expect(postPlugin).toHaveAttribute("data-width", "320");
+    expect(postPlugin).toHaveAttribute("data-show-text", "true");
+    expect(screen.queryByTitle("ข่าวจาก Facebook")).not.toBeInTheDocument();
+    expect(sdkScript).toHaveAttribute("src", expect.stringContaining("https://connect.facebook.net/th_TH/sdk.js"));
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
   });
 
@@ -35,11 +38,11 @@ describe("FacebookPostEmbed", () => {
       expect(container.querySelector(".fb-video")).toBeInTheDocument();
     });
 
-    const sdkHost = container.querySelector('[data-facebook-reel-sdk-embed="true"]');
+    const sdkHost = container.querySelector('[data-facebook-sdk-embed="true"]');
     const reelPlugin = container.querySelector(".fb-video");
     const sdkScript = document.getElementById("facebook-jssdk");
 
-    expect(sdkHost).toBeInTheDocument();
+    expect(sdkHost).toHaveAttribute("data-facebook-sdk-embed-mode", "video");
     expect(reelPlugin).toHaveAttribute("data-href", facebookReelUrl);
     expect(reelPlugin).toHaveAttribute("data-width", "320");
     expect(reelPlugin).toHaveAttribute("data-show-text", "false");
