@@ -31,9 +31,7 @@ const facebookOembedRevision = "legacy-reel-v2";
 // permalink and been stored as /{page}/posts/{id}. Keep the confirmed
 // legacy Reel available immediately during SSR/hydration so users never see
 // Facebook's broken post-plugin page before the resolver finishes.
-const confirmedLegacyReels = new Map<string, string>([
-  ["1609435494524655:1639846248150246", "1639846248150246"]
-]);
+const confirmedLegacyReels = new Map<string, string>([["1609435494524655:1639846248150246", "1639846248150246"]]);
 
 function confirmedLegacyReelUrl(normalizedPostUrl: string) {
   try {
@@ -84,11 +82,7 @@ function resolutionsMatch(left: FacebookEmbedResolution, right: FacebookEmbedRes
   return left.kind === right.kind && left.canonicalUrl === right.canonicalUrl;
 }
 
-export default function FacebookPostEmbed({
-  postUrl,
-  title,
-  maxWidth = defaultEmbedMaxWidth
-}: FacebookPostEmbedProps) {
+export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const directResolution = normalizedPostUrl ? fallbackResolution(normalizedPostUrl) : null;
   const requiresResolution = Boolean(normalizedPostUrl && !isFacebookReelUrl(normalizedPostUrl));
