@@ -11,6 +11,7 @@ interface FacebookPostEmbedProps {
   postUrl: string;
   title?: string;
   maxWidth?: number;
+  previewImageUrl?: string;
 }
 
 interface FacebookEmbedResolution {
@@ -57,42 +58,37 @@ function resolutionsMatch(left: FacebookEmbedResolution, right: FacebookEmbedRes
   return left.kind === right.kind && left.canonicalUrl === right.canonicalUrl;
 }
 
-function MobileFacebookReelFallback({
-  href,
+function MobileFacebookLocalPreview({
   previewImageUrl,
-  title
+  title,
+  isReel
 }: {
-  href: string;
   previewImageUrl: string;
   title?: string;
+  isReel: boolean;
 }) {
   return (
     <Box
-      component="a"
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      aria-label="เล่น Reels บน Facebook"
-      data-facebook-mobile-reel-fallback="true"
+      data-facebook-mobile-local-preview="true"
+      data-facebook-mobile-reel-fallback={isReel ? "true" : undefined}
       sx={{
         display: { xs: "block", md: "none" },
         position: "relative",
         width: "100%",
-        maxWidth: 360,
-        aspectRatio: "9 / 16",
+        maxWidth: isReel ? 360 : 500,
+        aspectRatio: isReel ? "9 / 16" : "4 / 3",
         mx: "auto",
         overflow: "hidden",
         borderRadius: 2,
         bgcolor: "grey.900",
         color: "common.white",
-        textDecoration: "none",
         boxShadow: 2
       }}
     >
       {previewImageUrl ? (
         <PublicResponsiveImage
           source={previewImageUrl}
-          alt={title ? `ภาพตัวอย่าง ${title}` : "ภาพตัวอย่าง Facebook Reel"}
+          alt={title ? `ภาพตัวอย่าง ${title}` : "ภาพตัวอย่างเนื้อหา Facebook"}
           intent="content-featured"
           loadMode="eager"
           bypassPageMediaGate
@@ -115,34 +111,45 @@ function MobileFacebookReelFallback({
           background: "linear-gradient(180deg, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.72) 100%)"
         }}
       >
-        <PlayCircleOutlinedIcon sx={{ fontSize: 72, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }} />
+        {isReel ? (
+          <PlayCircleOutlinedIcon sx={{ fontSize: 72, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }} />
+        ) : null}
         <Typography sx={{ fontWeight: 800, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
-          แตะเพื่อเล่น Reels บน Facebook
+          {isReel ? "วิดีโอ Facebook" : "โพสต์ Facebook"}
+        </Typography>
+        <Typography variant="caption" sx={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
+          แสดงตัวอย่างจากเว็บไซต์เพื่อหลีกเลี่ยงปัญหาลิงก์ฝัง Facebook บนมือถือ
         </Typography>
       </Box>
     </Box>
   );
 }
 
-export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
+export default function FacebookPostEmbed({
+  postUrl,
+  title,
+  maxWidth = defaultEmbedMaxWidth,
+  previewImageUrl = ""
+}: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const directResolution = normalizedPostUrl ? fallbackResolution(normalizedPostUrl) : null;
   const requiresResolution = Boolean(normalizedPostUrl && directResolution?.kind === "post");
   const [resolvedPost, setResolvedPost] = useState<ResolvedFacebookPost | null>(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState("");
+  const [metadataPreviewImageUrl, setMetadataPreviewImageUrl] = useState("");
+  const safePreviewImageUrl = normalizeSafeResourceUrl(previewImageUrl) || metadataPreviewImageUrl;
 
   useEffect(() => {
-    if (typeof document === "undefined") return;
+    if (previewImageUrl || typeof document === "undefined") return;
 
     const timer = window.setTimeout(() => {
       const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content || "";
-      setPreviewImageUrl(normalizeSafeResourceUrl(ogImage));
+      setMetadataPreviewImageUrl(normalizeSafeResourceUrl(ogImage));
     }, 0);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [normalizedPostUrl]);
+  }, [normalizedPostUrl, previewImageUrl]);
 
   useEffect(() => {
     if (!normalizedPostUrl || !requiresResolution) {
@@ -172,7 +179,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
         });
       })
       .catch(() => {
-        // The original post iframe remains visible if classification is unavailable.
+        // Desktop keeps the original post iframe if classification is unavailable.
       });
 
     return () => {
@@ -185,12 +192,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
   const resolution = matchingResolvedPost?.resolution || directResolution;
   const resolvedUrl = resolution?.canonicalUrl || normalizedPostUrl;
   const isReel = resolution?.kind === "reel" || isFacebookReelUrl(resolvedUrl);
-
-  // Keep user-facing links on the URL that was actually imported/published. The
-  // resolver may synthesize a /reel/{id} URL only to select the correct embed
-  // renderer; that generated URL is not guaranteed to be a valid public permalink.
-  const sourceUrl = normalizedPostUrl || resolvedUrl || postUrl;
-  const safeSourceHref = normalizeSafeHref(sourceUrl);
+  const safeSourceHref = normalizeSafeHref(normalizedPostUrl || postUrl);
   const canOpenSource = Boolean(postUrl.trim()) && safeSourceHref !== "#";
   const embedTitle = title || (isReel ? "Facebook Reel" : "Facebook post");
   const sourceLabel = isReel ? "เปิด Reels ต้นทางบน Facebook" : "เปิดโพสต์ต้นทางบน Facebook";
@@ -230,22 +232,20 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
           maxWidth: embedMaxWidth
         }}
       >
-        {isReel ? (
-          <>
-            <MobileFacebookReelFallback href={safeSourceHref} previewImageUrl={previewImageUrl} title={title} />
-            <Box data-facebook-desktop-reel-embed="true" sx={{ display: { xs: "none", md: "block" }, width: "100%" }}>
-              <FacebookReelSdkEmbed href={resolvedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
-            </Box>
-          </>
-        ) : (
-          <ResponsiveFacebookPluginEmbed
-            href={resolvedUrl}
-            title={embedTitle}
-            preferredWidth={embedMaxWidth}
-            height={facebookPostHeight}
-            showText
-          />
-        )}
+        <MobileFacebookLocalPreview previewImageUrl={safePreviewImageUrl} title={title} isReel={isReel} />
+        <Box data-facebook-desktop-embed="true" sx={{ display: { xs: "none", md: "block" }, width: "100%" }}>
+          {isReel ? (
+            <FacebookReelSdkEmbed href={resolvedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
+          ) : (
+            <ResponsiveFacebookPluginEmbed
+              href={resolvedUrl}
+              title={embedTitle}
+              preferredWidth={embedMaxWidth}
+              height={facebookPostHeight}
+              showText
+            />
+          )}
+        </Box>
         <Button
           component="a"
           href={safeSourceHref}
@@ -253,7 +253,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
           rel="noreferrer"
           size="small"
           variant="text"
-          sx={{ px: 0 }}
+          sx={{ px: 0, display: { xs: "none", md: "inline-flex" } }}
         >
           {sourceLabel}
         </Button>
