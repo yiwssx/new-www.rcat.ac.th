@@ -1,17 +1,49 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import FacebookPostEmbed from "./FacebookPostEmbed";
 
 const facebookPostUrl = "https://www.facebook.com/1609435494524655/posts/111";
 const facebookReelUrl = "https://www.facebook.com/reel/859331548878917/";
 
+function setMobileViewport(matches: boolean) {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation(() => ({
+      matches,
+      media: "(max-width:767.95px)",
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    }))
+  });
+}
+
 beforeEach(() => {
   document.getElementById("facebook-jssdk")?.remove();
   document.getElementById("fb-root")?.remove();
+  setMobileViewport(false);
 });
 
 describe("FacebookPostEmbed", () => {
-  it("renders /posts/ permalinks with the responsive SDK post plugin", async () => {
+  it("keeps the proven iframe post plugin on desktop", () => {
+    render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
+
+    const iframe = screen.getByTitle("ข่าวจาก Facebook");
+    const iframeSrc = iframe.getAttribute("src") || "";
+    const pluginUrl = new URL(iframeSrc);
+
+    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
+    expect(pluginUrl.searchParams.get("href")).toBe(facebookPostUrl);
+    expect(iframe).toHaveAttribute("loading", "lazy");
+    expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
+  });
+
+  it("renders numeric /posts/ permalinks with the SDK post plugin on mobile", async () => {
+    setMobileViewport(true);
     const { container } = render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
 
     await waitFor(() => {
@@ -31,7 +63,7 @@ describe("FacebookPostEmbed", () => {
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
   });
 
-  it("renders a Facebook Reel with the responsive SDK video plugin", async () => {
+  it("renders a direct Facebook Reel with the responsive SDK video plugin", async () => {
     const { container } = render(<FacebookPostEmbed postUrl={facebookReelUrl} />);
 
     await waitFor(() => {
