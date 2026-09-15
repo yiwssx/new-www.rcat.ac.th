@@ -42,7 +42,7 @@ describe("FacebookPostEmbed", () => {
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
   });
 
-  it("renders numeric /posts/ permalinks with the SDK post plugin on mobile", async () => {
+  it("renders numeric /posts/ permalinks on mobile at Facebook's supported minimum post width", async () => {
     setMobileViewport(true);
     const { container } = render(<FacebookPostEmbed postUrl={facebookPostUrl} title="ข่าวจาก Facebook" />);
 
@@ -51,12 +51,15 @@ describe("FacebookPostEmbed", () => {
     });
 
     const sdkHost = container.querySelector('[data-facebook-sdk-embed="true"]');
+    const pluginHost = container.querySelector('[data-facebook-sdk-plugin-host="true"]');
     const postPlugin = container.querySelector(".fb-post");
     const sdkScript = document.getElementById("facebook-jssdk");
 
     expect(sdkHost).toHaveAttribute("data-facebook-sdk-embed-mode", "post");
+    expect(sdkHost).toHaveAttribute("data-facebook-sdk-visual-scale", "0.914");
+    expect(pluginHost).toBeInTheDocument();
     expect(postPlugin).toHaveAttribute("data-href", facebookPostUrl);
-    expect(postPlugin).toHaveAttribute("data-width", "320");
+    expect(postPlugin).toHaveAttribute("data-width", "350");
     expect(postPlugin).toHaveAttribute("data-show-text", "true");
     expect(screen.queryByTitle("ข่าวจาก Facebook")).not.toBeInTheDocument();
     expect(sdkScript).toHaveAttribute("src", expect.stringContaining("https://connect.facebook.net/th_TH/sdk.js"));
