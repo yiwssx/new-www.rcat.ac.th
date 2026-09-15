@@ -6,7 +6,7 @@ const facebookPostUrl = "https://www.facebook.com/1609435494524655/posts/111";
 const historicalReelPostUrl = "https://www.facebook.com/1609435494524655/posts/1639846248150246";
 const canonicalReelUrl = "https://www.facebook.com/reel/1639846248150246/";
 const facebookReelUrl = "https://www.facebook.com/reel/859331548878917/";
-const previewImageUrl = "https://drive.google.com/thumbnail?id=facebook-reel-preview&sz=w1200";
+const previewImageUrl = "https://images.example.com/facebook-reel-preview.jpg";
 const facebookOembedRevision = "legacy-reel-v2";
 const resolverUrl = (url: string) =>
   `/api/ssr?_rcatFacebookOembed=1&url=${encodeURIComponent(url)}&_rcatFacebookOembedRevision=${facebookOembedRevision}`;
@@ -95,7 +95,7 @@ describe("FacebookPostEmbed", () => {
     });
 
     const mobileFallback = container.querySelector('[data-facebook-mobile-reel-fallback="true"]');
-    const poster = container.querySelector('[data-facebook-mobile-reel-poster="true"]');
+    const poster = mobileFallback?.querySelector('[data-public-responsive-image-element="true"]');
     const reelPlugin = container.querySelector(".fb-video");
 
     expect(mobileFallback).toHaveAttribute("href", canonicalReelUrl);
@@ -123,14 +123,11 @@ describe("FacebookPostEmbed", () => {
       expect(container.querySelector('[data-facebook-mobile-reel-fallback="true"]')).toBeInTheDocument();
     });
 
-    expect(container.querySelector('[data-facebook-mobile-reel-fallback="true"]')).toHaveAttribute(
-      "href",
-      facebookReelUrl
-    );
-    expect(container.querySelector('[data-facebook-mobile-reel-poster="true"]')).toHaveAttribute(
-      "src",
-      previewImageUrl
-    );
+    const mobileFallback = container.querySelector('[data-facebook-mobile-reel-fallback="true"]');
+    const poster = mobileFallback?.querySelector('[data-public-responsive-image-element="true"]');
+
+    expect(mobileFallback).toHaveAttribute("href", facebookReelUrl);
+    expect(poster).toHaveAttribute("src", previewImageUrl);
     expect(container.querySelector(".fb-video")).toHaveAttribute("data-href", facebookReelUrl);
     expect(container.querySelector('[data-facebook-desktop-reel-embed="true"]')).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
