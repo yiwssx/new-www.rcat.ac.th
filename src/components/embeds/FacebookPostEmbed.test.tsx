@@ -79,7 +79,7 @@ describe("FacebookPostEmbed", () => {
     expect(pluginUrl.searchParams.get("show_text")).toBe("true");
   });
 
-  it("converts a historical Reel and guarantees a local mobile poster instead of relying on Facebook playback", async () => {
+  it("converts a historical Reel for embedding but preserves the imported permalink for mobile navigation", async () => {
     installFacebookPreviewMeta();
     vi.stubGlobal(
       "fetch",
@@ -98,7 +98,7 @@ describe("FacebookPostEmbed", () => {
     const poster = mobileFallback?.querySelector('[data-public-responsive-image-element="true"]');
     const reelPlugin = container.querySelector(".fb-video");
 
-    expect(mobileFallback).toHaveAttribute("href", canonicalReelUrl);
+    expect(mobileFallback).toHaveAttribute("href", historicalReelPostUrl);
     expect(poster).toHaveAttribute("src", previewImageUrl);
     expect(poster).toHaveAttribute("alt", "ภาพตัวอย่าง วิดีโอจาก Facebook");
     expect(screen.getByText("แตะเพื่อเล่น Reels บน Facebook")).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe("FacebookPostEmbed", () => {
     expect(screen.queryByTitle("วิดีโอจาก Facebook")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute(
       "href",
-      canonicalReelUrl
+      historicalReelPostUrl
     );
     expect(fetch).toHaveBeenCalledWith(
       resolverUrl(historicalReelPostUrl),
