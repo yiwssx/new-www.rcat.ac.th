@@ -26,6 +26,7 @@ interface ContentBlocksRendererProps {
 
 const defaultFacebookPostHeight = 761;
 const maximumFacebookReelWidth = 440;
+const facebookReelAspectRatioPadding = "177.7778%";
 
 function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
   const href = normalizeFacebookPostUrl(block.href);
@@ -48,6 +49,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
           <PublicDeferredEmbed
             title={isReel ? "Facebook Reel" : "Facebook post"}
             src={pluginUrl}
+            loadMode={isReel ? "eager" : "near-viewport"}
             scrolling="no"
             frameBorder="0"
             allowFullScreen
@@ -60,7 +62,12 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
                     width: "100%",
                     maxWidth: width,
                     aspectRatio: "9 / 16",
-                    borderRadius: designTokens.radius.small
+                    borderRadius: designTokens.radius.small,
+                    "&::before": {
+                      content: '""',
+                      display: "block",
+                      paddingTop: facebookReelAspectRatioPadding
+                    }
                   }
                 : {
                     width: "100%",

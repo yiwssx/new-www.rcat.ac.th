@@ -1,6 +1,6 @@
 import SvgIcon, { type SvgIconProps } from "@mui/material/SvgIcon";
 
-export const SOCIAL_BRAND_ICON_SIZE = 20;
+export const SOCIAL_BRAND_ICON_SIZE = 16;
 export const SOCIAL_BRAND_ICON_SOURCE = "Simple Icons 16.21.0";
 
 export type SocialPlatform = "facebook" | "youtube" | "tiktok";

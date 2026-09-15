@@ -41,7 +41,7 @@ describe("Facebook embed regressions", () => {
     expect(container.querySelector(".fb-post")).not.toBeInTheDocument();
   });
 
-  it("renders a Facebook Reel content block with the embedded video plugin", () => {
+  it("renders a Facebook Reel content block eagerly with the embedded video plugin", () => {
     const { container } = render(
       <ContentBlocksRenderer
         mediaAssets={[]}
@@ -61,11 +61,14 @@ describe("Facebook embed regressions", () => {
     const iframe = screen.getByTitle("Facebook Reel");
     const iframeSrc = iframe.getAttribute("src") || "";
     const pluginUrl = new URL(iframeSrc);
+    const slot = container.querySelector('[data-public-deferred-embed="true"]');
 
     expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/video.php");
     expect(pluginUrl.searchParams.get("href")).toBe(facebookReelUrl);
     expect(pluginUrl.searchParams.get("show_text")).toBe("false");
     expect(pluginUrl.searchParams.get("width")).toBe("440");
+    expect(iframe).toHaveAttribute("loading", "eager");
+    expect(slot).toHaveAttribute("data-public-embed-load-mode", "eager");
     expect(screen.getByRole("link", { name: "เปิด Reels บน Facebook" })).toHaveAttribute("href", facebookReelUrl);
     expect(screen.getByText("คลิปกิจกรรม")).toBeInTheDocument();
     expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();

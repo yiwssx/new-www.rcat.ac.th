@@ -10,7 +10,7 @@ import SocialIconLink, { SOCIAL_ICON_LINK_SIZE } from "../public/components/Soci
 const platforms: SocialPlatform[] = ["facebook", "youtube", "tiktok"];
 
 describe("Social brand icon policy", () => {
-  it("uses one normalized source, viewBox, and size for every social brand", () => {
+  it("uses one normalized source, viewBox, and compact size for every social brand", () => {
     render(
       <>
         {platforms.map((platform) => (
@@ -18,6 +18,8 @@ describe("Social brand icon policy", () => {
         ))}
       </>
     );
+
+    expect(SOCIAL_BRAND_ICON_SIZE).toBe(16);
 
     for (const platform of platforms) {
       const icon = screen.getByTestId(`brand-${platform}`);
