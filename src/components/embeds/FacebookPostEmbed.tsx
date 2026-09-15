@@ -18,13 +18,14 @@ const facebookReelMaxWidth = 440;
 export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const isReel = isFacebookReelUrl(normalizedPostUrl);
-  const pluginUrl = normalizedPostUrl && !isReel
-    ? buildFacebookPostPluginUrl({
-        href: normalizedPostUrl,
-        showText: true,
-        width: facebookPluginWidth
-      })
-    : "";
+  const pluginUrl =
+    normalizedPostUrl && !isReel
+      ? buildFacebookPostPluginUrl({
+          href: normalizedPostUrl,
+          showText: true,
+          width: facebookPluginWidth
+        })
+      : "";
   const safeSourceHref = normalizeSafeHref(normalizedPostUrl || postUrl);
   const canOpenSource = Boolean(postUrl.trim()) && safeSourceHref !== "#";
   const embedTitle = title || "Facebook post";
