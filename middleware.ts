@@ -1,5 +1,5 @@
 import { next } from "@vercel/functions";
-import { evaluateP6bEdgeWaf, P6B_EDGE_WAF_MARKER } from "./server/security/edgeWafPolicy";
+import { evaluateP6bEdgeWaf, P6B_EDGE_WAF_MARKER } from "./server/security/edgeWafPolicy.js";
 
 export const config = {
   matcher: "/api/:path*",

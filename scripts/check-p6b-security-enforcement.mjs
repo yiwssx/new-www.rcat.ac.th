@@ -43,6 +43,9 @@ if (!middleware.includes('from "@vercel/functions"') || !middleware.includes("ev
 if (!middleware.includes('runtime: "nodejs"')) {
   fail("Vercel routing middleware must use the Node.js runtime");
 }
+if (!middleware.includes('from "./server/security/edgeWafPolicy.js"')) {
+  fail("Node.js middleware WAF import must include the emitted .js extension");
+}
 for (const required of ["/api/internal", "/api/cms-auth", "/api/admin-proxy", "p6b-vercel-v1"]) {
   if (!edgeWaf.includes(required)) fail(`Vercel edge WAF is missing ${required}`);
 }
