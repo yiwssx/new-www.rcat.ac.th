@@ -5,12 +5,30 @@ const ALLOWED_FACEBOOK_HOSTS = new Set(["facebook.com", "www.facebook.com", "m.f
 const SUCCESS_CACHE_CONTROL = "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800";
 const FAILURE_CACHE_CONTROL = "public, max-age=60, s-maxage=300";
 
+function responseHeaders(cacheControl = FAILURE_CACHE_CONTROL) {
+  return {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": cacheControl,
+    "X-Content-Type-Options": "nosniff"
+  };
+}
+
 function sendJson(response, statusCode, payload, cacheControl = FAILURE_CACHE_CONTROL) {
   response.statusCode = statusCode;
-  response.setHeader("Content-Type", "application/json; charset=utf-8");
-  response.setHeader("Cache-Control", cacheControl);
-  response.setHeader("X-Content-Type-Options", "nosniff");
+  for (const [name, value] of Object.entries(responseHeaders(cacheControl))) {
+    response.setHeader(name, value);
+  }
   response.end(JSON.stringify(payload));
+}
+
+function createJsonResponse(statusCode, payload, cacheControl = FAILURE_CACHE_CONTROL, extraHeaders = {}) {
+  return new Response(JSON.stringify(payload), {
+    status: statusCode,
+    headers: {
+      ...responseHeaders(cacheControl),
+      ...extraHeaders
+    }
+  });
 }
 
 function normalizeFacebookUrl(value) {
@@ -134,6 +152,31 @@ export async function resolveFacebookOembed(value, fetchImpl = globalThis.fetch)
   return null;
 }
 
+function sourceUrlFromRequestUrl(requestUrl) {
+  return new URL(requestUrl || "/api/facebook-oembed", "https://www.rcat.ac.th").searchParams.get("url") || "";
+}
+
+export async function handleFacebookOembedFetchRequest(request, options = {}) {
+  if (request.method !== "GET") {
+    return createJsonResponse(405, { ok: false, error: "method_not_allowed" }, FAILURE_CACHE_CONTROL, {
+      Allow: "GET"
+    });
+  }
+
+  const sourceUrl = sourceUrlFromRequestUrl(request.url);
+  const candidates = createFacebookOembedCandidates(sourceUrl);
+  if (!candidates.length) {
+    return createJsonResponse(400, { ok: false, error: "unsupported_facebook_url" });
+  }
+
+  const resolved = await resolveFacebookOembed(sourceUrl, options.fetchImpl ?? globalThis.fetch);
+  if (!resolved) {
+    return createJsonResponse(404, { ok: false, error: "facebook_embed_unavailable" });
+  }
+
+  return createJsonResponse(200, { ok: true, ...resolved }, SUCCESS_CACHE_CONTROL);
+}
+
 export async function handleFacebookOembedRequest(request, response, options = {}) {
   if (request.method !== "GET") {
     response.setHeader("Allow", "GET");
@@ -141,8 +184,7 @@ export async function handleFacebookOembedRequest(request, response, options = {
     return;
   }
 
-  const requestUrl = new URL(request.url || "/api/facebook-oembed", "https://www.rcat.ac.th");
-  const sourceUrl = requestUrl.searchParams.get("url") || "";
+  const sourceUrl = sourceUrlFromRequestUrl(request.url);
   const candidates = createFacebookOembedCandidates(sourceUrl);
 
   if (!candidates.length) {
