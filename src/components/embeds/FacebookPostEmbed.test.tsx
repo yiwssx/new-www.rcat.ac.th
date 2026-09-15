@@ -23,7 +23,7 @@ describe("FacebookPostEmbed", () => {
     expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
   });
 
-  it("renders a Facebook Reel eagerly with the video plugin", () => {
+  it("renders a Facebook Reel eagerly with the embedded post plugin", () => {
     const { container } = render(<FacebookPostEmbed postUrl={facebookReelUrl} />);
 
     const iframe = screen.getByTitle("Facebook Reel");
@@ -31,9 +31,9 @@ describe("FacebookPostEmbed", () => {
     const pluginUrl = new URL(iframeSrc);
     const slot = container.querySelector('[data-public-deferred-embed="true"]');
 
-    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/video.php");
+    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
     expect(pluginUrl.searchParams.get("href")).toBe(facebookReelUrl);
-    expect(pluginUrl.searchParams.get("show_text")).toBe("false");
+    expect(pluginUrl.searchParams.get("show_text")).toBe("true");
     expect(pluginUrl.searchParams.get("width")).toBe("440");
     expect(iframe).toHaveAttribute("loading", "eager");
     expect(iframe).toHaveAttribute("allowfullscreen");
