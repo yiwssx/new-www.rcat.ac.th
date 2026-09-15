@@ -1,6 +1,5 @@
 const allowedFacebookHosts = new Set(["facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"]);
 const facebookPostPluginBaseUrl = "https://www.facebook.com/plugins/post.php";
-const facebookVideoPluginBaseUrl = "https://www.facebook.com/plugins/video.php";
 const defaultFacebookPostWidth = 500;
 const minimumFacebookPostWidth = 350;
 const maximumFacebookPostWidth = 750;
@@ -46,7 +45,7 @@ function isSupportedFacebookPostPath(pathname: string, searchParams: URLSearchPa
 
 /**
  * Checks if a Facebook URL is a direct Reel permalink that can be passed to
- * the embedded video player. Share redirect URLs are intentionally excluded.
+ * the embedded post plugin. Share redirect URLs are intentionally excluded.
  */
 function isSupportedFacebookReelPath(pathname: string) {
   const segments = pathname.toLowerCase().split("/").filter(Boolean);
@@ -205,9 +204,12 @@ export function buildFacebookPostPluginUrl(input: { href: string; showText: bool
   }
 
   const embedKind = getFacebookEmbedKind(href);
-  const pluginUrl = new URL(embedKind === "reel" ? facebookVideoPluginBaseUrl : facebookPostPluginBaseUrl);
+  const pluginUrl = new URL(facebookPostPluginBaseUrl);
   pluginUrl.searchParams.set("href", href);
-  pluginUrl.searchParams.set("show_text", embedKind === "reel" ? "false" : input.showText ? "true" : "false");
+  // Reels are more reliable in mobile Chromium when rendered as an embedded post.
+  // Keep the post text enabled so Facebook can render the complete Reel card instead
+  // of routing the permalink through the less reliable embedded video player.
+  pluginUrl.searchParams.set("show_text", embedKind === "reel" ? "true" : input.showText ? "true" : "false");
   pluginUrl.searchParams.set("width", String(clampFacebookPostPluginWidth(input.width)));
 
   return pluginUrl.toString();
