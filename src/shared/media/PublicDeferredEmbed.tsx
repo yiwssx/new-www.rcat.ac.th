@@ -61,7 +61,7 @@ export default function PublicDeferredEmbed({
         <iframe
           src={safeSrc}
           title={title}
-          loading="lazy"
+          loading={loadMode === "eager" ? "eager" : "lazy"}
           allow={allow}
           allowFullScreen={allowFullScreen}
           referrerPolicy={referrerPolicy}
