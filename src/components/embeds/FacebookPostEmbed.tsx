@@ -3,6 +3,7 @@ import PlayCircleFilledRoundedIcon from "@mui/icons-material/PlayCircleFilledRou
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import ResponsiveFacebookPluginEmbed from "../../shared/media/ResponsiveFacebookPluginEmbed";
 import FacebookReelSdkEmbed from "../../shared/media/FacebookReelSdkEmbed";
+import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import { isFacebookReelUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 
@@ -89,20 +90,15 @@ function MobileFacebookReelFallback({
       }}
     >
       {previewImageUrl ? (
-        <Box
-          component="img"
-          src={previewImageUrl}
+        <PublicResponsiveImage
+          source={previewImageUrl}
           alt={title ? `ภาพตัวอย่าง ${title}` : "ภาพตัวอย่าง Facebook Reel"}
-          loading="eager"
-          decoding="async"
-          data-facebook-mobile-reel-poster="true"
-          sx={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover"
-          }}
+          intent="content-featured"
+          loadMode="eager"
+          bypassPageMediaGate
+          fill
+          sx={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+          imageSx={{ objectFit: "cover" }}
         />
       ) : null}
       <Box
