@@ -4,7 +4,7 @@ import { readPublicCache, removePublicCache, writePublicCache } from "../../serv
 
 const LEGACY_PUBLIC_HOME_CACHE_KEY = "rcat.cms.public.home.snapshot.v2";
 export const PUBLIC_HOME_CACHE_KEY = "rcat.cms.public.home.snapshot.v3";
-export const PUBLIC_HOME_CACHE_TTL_MS = PUBLIC_CACHE_FRESHNESS_MS.collection;
+export const PUBLIC_HOME_CACHE_TTL_MS = PUBLIC_CACHE_FRESHNESS_MS.home;
 
 export function getPublicHomeCache() {
   removePublicCache(LEGACY_PUBLIC_HOME_CACHE_KEY);
