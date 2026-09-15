@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { FormControl, FormHelperText, InputLabel, MenuItem, Select, Stack, TextField } from "@mui/material";
 
 const LOCAL_DATE_TIME_PATTERN = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/;
@@ -49,6 +50,7 @@ export default function AdminDateTimeField({
   helperText = "",
   min
 }: AdminDateTimeFieldProps) {
+  const fieldId = useId();
   const current = parseLocalDateTime(value);
   const minimum = parseLocalDateTime(min);
   const date = current?.date ?? "";
@@ -71,6 +73,11 @@ export default function AdminDateTimeField({
     onChange(nextValue);
   }
 
+  const hourLabelId = `${fieldId}-hour-label`;
+  const hourSelectId = `${fieldId}-hour`;
+  const minuteLabelId = `${fieldId}-minute-label`;
+  const minuteSelectId = `${fieldId}-minute`;
+
   return (
     <Stack spacing={1}>
       <TextField
@@ -89,9 +96,10 @@ export default function AdminDateTimeField({
       />
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
         <FormControl fullWidth size="small" disabled={disabled || !date} error={error}>
-          <InputLabel id={`${label}-hour-label`}>ชั่วโมง (00–23)</InputLabel>
+          <InputLabel id={hourLabelId}>ชั่วโมง (00–23)</InputLabel>
           <Select
-            labelId={`${label}-hour-label`}
+            id={hourSelectId}
+            labelId={hourLabelId}
             label="ชั่วโมง (00–23)"
             value={hour}
             onChange={(event) => commit(date, String(event.target.value), minute)}
@@ -104,9 +112,10 @@ export default function AdminDateTimeField({
           </Select>
         </FormControl>
         <FormControl fullWidth size="small" disabled={disabled || !date} error={error}>
-          <InputLabel id={`${label}-minute-label`}>นาที (00–59)</InputLabel>
+          <InputLabel id={minuteLabelId}>นาที (00–59)</InputLabel>
           <Select
-            labelId={`${label}-minute-label`}
+            id={minuteSelectId}
+            labelId={minuteLabelId}
             label="นาที (00–59)"
             value={minute}
             onChange={(event) => commit(date, hour, String(event.target.value))}
