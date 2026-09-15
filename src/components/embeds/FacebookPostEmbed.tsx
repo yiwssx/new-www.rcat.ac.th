@@ -134,8 +134,14 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
   useEffect(() => {
     if (typeof document === "undefined") return;
 
-    const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content || "";
-    setPreviewImageUrl(normalizeSafeResourceUrl(ogImage));
+    const timer = window.setTimeout(() => {
+      const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content || "";
+      setPreviewImageUrl(normalizeSafeResourceUrl(ogImage));
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [normalizedPostUrl]);
 
   useEffect(() => {
