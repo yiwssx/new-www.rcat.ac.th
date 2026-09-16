@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import ContentBlocksRenderer from "../shared/components/ContentBlocksRenderer";
 
@@ -42,7 +42,7 @@ describe("Facebook embed regressions", () => {
     expect(container.querySelector(".fb-post")).not.toBeInTheDocument();
   });
 
-  it("renders a Facebook Reel content block through the live iframe plugin on mobile", () => {
+  it("renders a Facebook Reel content block through the Meta SDK video player on mobile", async () => {
     const { container } = render(
       <ContentBlocksRenderer
         mediaAssets={[]}
@@ -59,18 +59,16 @@ describe("Facebook embed regressions", () => {
       />
     );
 
-    const iframe = screen.getByTitle("Facebook Reel");
-    const iframeSrc = iframe.getAttribute("src") || "";
-    const pluginUrl = new URL(iframeSrc);
+    await waitFor(() => {
+      expect(container.querySelector(".fb-video")).toBeInTheDocument();
+    });
 
-    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
-    expect(pluginUrl.searchParams.get("href")).toBe(facebookReelUrl);
-    expect(pluginUrl.searchParams.get("show_text")).toBe("true");
-    expect(pluginUrl.searchParams.get("width")).toBe("440");
-    expect(iframe).toHaveAttribute("loading", "lazy");
-    expect(iframe).toHaveAttribute("width", "440");
-    expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
-    expect(container.querySelector(".fb-video")).not.toBeInTheDocument();
+    const reel = container.querySelector(".fb-video");
+    expect(reel).toHaveAttribute("data-href", facebookReelUrl);
+    expect(reel).toHaveAttribute("data-show-text", "false");
+    expect(reel).toHaveAttribute("data-allowfullscreen", "true");
+    expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).toBeInTheDocument();
+    expect(screen.queryByTitle("Facebook Reel")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "เปิด Reels บน Facebook" })).toHaveAttribute("href", facebookReelUrl);
     expect(screen.getByText("คลิปกิจกรรม")).toBeInTheDocument();
   });

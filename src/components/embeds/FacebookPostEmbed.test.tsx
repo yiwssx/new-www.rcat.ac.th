@@ -23,6 +23,7 @@ function apiResponse(payload: unknown, ok = true) {
 beforeEach(() => {
   document.getElementById("facebook-jssdk")?.remove();
   document.getElementById("fb-root")?.remove();
+  vi.stubGlobal("FB", { XFBML: { parse: vi.fn() } });
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => apiResponse({ ok: true, kind: "post", canonicalUrl: facebookPostUrl }))
@@ -72,7 +73,7 @@ describe("FacebookPostEmbed", () => {
     expect(pluginUrl.searchParams.get("show_text")).toBe("true");
   });
 
-  it("renders a historical imported Reel immediately with its canonical live embed", async () => {
+  it("renders a historical imported Reel with the canonical Meta SDK video player", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => apiResponse({ ok: true, kind: "reel", canonicalUrl: canonicalReelUrl }))
@@ -82,18 +83,19 @@ describe("FacebookPostEmbed", () => {
       <FacebookPostEmbed postUrl={historicalReelPostUrl} title="วิดีโอจาก Facebook" previewImageUrl={previewImageUrl} />
     );
 
-    const iframe = screen.getByTitle("วิดีโอจาก Facebook");
-    const pluginUrl = new URL(iframe.getAttribute("src") || "");
+    await waitFor(() => {
+      expect(container.querySelector(".fb-video")).toBeInTheDocument();
+    });
 
-    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
-    expect(pluginUrl.searchParams.get("href")).toBe(canonicalReelUrl);
-    expect(pluginUrl.searchParams.get("show_text")).toBe("true");
+    const reel = container.querySelector(".fb-video");
+    expect(reel).toHaveAttribute("data-href", canonicalReelUrl);
+    expect(reel).toHaveAttribute("data-show-text", "false");
     expect(container.querySelector('[data-facebook-mobile-local-preview="true"]')).not.toBeInTheDocument();
-    expect(container.querySelector('[data-facebook-plugin-embed="true"]')).toBeInTheDocument();
-    expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-facebook-plugin-embed="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute(
       "href",
-      historicalReelPostUrl
+      canonicalReelUrl
     );
 
     await waitFor(() => {
@@ -104,18 +106,18 @@ describe("FacebookPostEmbed", () => {
     });
   });
 
-  it("renders canonical Reels directly as live Facebook plugin embeds", () => {
+  it("renders canonical Reels directly with the Meta SDK video player", async () => {
     const { container } = render(<FacebookPostEmbed postUrl={facebookReelUrl} previewImageUrl={previewImageUrl} />);
 
-    const iframe = screen.getByTitle("Facebook Reel");
-    const pluginUrl = new URL(iframe.getAttribute("src") || "");
+    await waitFor(() => {
+      expect(container.querySelector(".fb-video")).toBeInTheDocument();
+    });
 
-    expect(pluginUrl.origin + pluginUrl.pathname).toBe("https://www.facebook.com/plugins/post.php");
-    expect(pluginUrl.searchParams.get("href")).toBe(facebookReelUrl);
-    expect(pluginUrl.searchParams.get("show_text")).toBe("true");
+    const reel = container.querySelector(".fb-video");
+    expect(reel).toHaveAttribute("data-href", facebookReelUrl);
     expect(container.querySelector('[data-facebook-mobile-local-preview="true"]')).not.toBeInTheDocument();
-    expect(container.querySelector('[data-facebook-plugin-embed="true"]')).toBeInTheDocument();
-    expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-facebook-plugin-embed="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
     expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute("href", facebookReelUrl);
   });
@@ -139,6 +141,25 @@ describe("FacebookPostEmbed", () => {
       expect(fetch).toHaveBeenCalledTimes(1);
     });
     expect(screen.getByTitle("ข่าวจาก Facebook")).toBeInTheDocument();
+  });
+
+  it("keeps the confirmed historical Reel player if the resolver is temporarily unavailable", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => apiResponse({ ok: false }, false))
+    );
+
+    const { container } = render(<FacebookPostEmbed postUrl={historicalReelPostUrl} />);
+
+    await waitFor(() => {
+      expect(container.querySelector(".fb-video")).toBeInTheDocument();
+    });
+
+    expect(container.querySelector(".fb-video")).toHaveAttribute("data-href", canonicalReelUrl);
+    expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute(
+      "href",
+      canonicalReelUrl
+    );
   });
 
   it("shows a safe fallback for invalid URLs", () => {
