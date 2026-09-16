@@ -84,12 +84,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
         }}
       >
         {isReel ? (
-          <FacebookReelSdkEmbed
-            href={normalizedPostUrl}
-            preferredWidth={embedMaxWidth}
-            mode="video"
-            showText={false}
-          />
+          <FacebookReelSdkEmbed href={normalizedPostUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
         ) : (
           <ResponsiveFacebookPluginEmbed
             href={normalizedPostUrl}
