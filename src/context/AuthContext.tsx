@@ -44,35 +44,22 @@ async function retryCmsAuthorizationRead<T>(read: () => Promise<T>) {
   }
 }
 
-async function confirmCmsAuthorizationRead<T>(result: PromiseSettledResult<T>, read: () => Promise<T>) {
-  if (result.status === "fulfilled") {
-    return result.value;
-  }
+async function confirmCmsAuthorizationRead<T>(read: () => Promise<T>) {
+  try {
+    return await read();
+  } catch (error) {
+    if (!(error instanceof CmsAuthError && error.status === 401)) {
+      throw error;
+    }
 
-  const error = result.reason;
-  if (!(error instanceof CmsAuthError && error.status === 401)) {
-    throw error;
+    return read();
   }
-
-  return read();
 }
 
 async function readCmsAuthorizationState() {
-  const [sessionResult, capabilityResult] = await Promise.allSettled([getCmsSession(), getCmsCapabilities()]);
-  const failures = [sessionResult, capabilityResult]
-    .filter((result): result is PromiseRejectedResult => result.status === "rejected")
-    .map((result) => result.reason);
-  const failure = failures.find((error) => error instanceof CmsAuthError && error.status === 401) ?? failures[0];
-
-  if (failure) {
-    throw failure;
-  }
-
-  if (sessionResult.status !== "fulfilled" || capabilityResult.status !== "fulfilled") {
-    throw new TypeError("CMS Session refresh did not return complete authorization state");
-  }
-
-  return { user: sessionResult.value, capabilityPayload: capabilityResult.value };
+  const user = await getCmsSession();
+  const capabilityPayload = await getCmsCapabilities();
+  return { user, capabilityPayload };
 }
 
 async function readCmsAuthorizationStateWithBounded401Retry() {
@@ -82,11 +69,8 @@ async function readCmsAuthorizationStateWithBounded401Retry() {
 }
 
 async function readCmsAuthorizationStateWithBounded401Confirmation() {
-  const [sessionResult, capabilityResult] = await Promise.allSettled([getCmsSession(), getCmsCapabilities()]);
-  const [user, capabilityPayload] = await Promise.all([
-    confirmCmsAuthorizationRead(sessionResult, getCmsSession),
-    confirmCmsAuthorizationRead(capabilityResult, getCmsCapabilities)
-  ]);
+  const user = await confirmCmsAuthorizationRead(getCmsSession);
+  const capabilityPayload = await confirmCmsAuthorizationRead(getCmsCapabilities);
   return { user, capabilityPayload };
 }
 
