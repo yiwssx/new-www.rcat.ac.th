@@ -25,7 +25,7 @@ describe("M21 Vercel security headers", () => {
     expect(enforcingPolicy).toContain("object-src 'none'");
     expect(enforcingPolicy).toContain("frame-ancestors 'none'");
     expect(enforcingPolicy).toContain("script-src 'self'");
-    expect(enforcingPolicy).toContain("frame-src https://www.facebook.com");
+    expect(enforcingPolicy).toContain("frame-src https://www.facebook.com https://m.facebook.com");
     expect(enforcingPolicy).toContain("connect-src 'self' https://*.workers.dev https://*.rcat.ac.th");
     expect(enforcingPolicy).toContain("https://connect.facebook.net");
     expect(enforcingPolicy).toContain("https://www.facebook.com");
