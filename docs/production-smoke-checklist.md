@@ -1,10 +1,12 @@
 # Production Smoke Checklist
 
-Updated: 2026-09-11.
+Updated: 2026-09-16.
 
 ใช้เช็กลิสต์นี้หลัง Deploy ทุกครั้ง เพื่อยืนยันว่าเว็บไซต์สาธารณะและ CMS ยังทำงานได้ครบตามจุดเสี่ยงหลักก่อนประกาศใช้งานจริง
 
 สถานะโครงการปัจจุบันให้อ้างอิง `docs/architecture/post-p5h-current-project-state.md` โดย M20/M21 เป็นประวัติ migration/stabilization ไม่ใช่เฟส active ปัจจุบัน Reliability Roadmap v2 เสร็จครบแล้ว: Phase 0, Phase A, Phase B (B1/B2/B3) และ Phase C เป็น complete เช็กลิสต์นี้ใช้ตรวจ release candidate และไม่ใช่การอนุมัติให้แก้ไข production นอกขอบเขต
+
+สัญญา runtime ที่ปรับให้ตรงกันล่าสุดเมื่อ 2026-09-16 บันทึกไว้ใน `docs/architecture/current-contract-reconciliation-2026-09-16.md` โดยเฉพาะ Facebook Post/Reel rendering และ CMS Session-before-capabilities bootstrap ordering
 
 ## 1. Quality Gate ก่อน Deploy
 
@@ -54,16 +56,19 @@ Updated: 2026-09-11.
 
 ## 4. Facebook Embed Smoke Checks
 
-- [ ] Facebook permalink URL ที่รองรับแสดง iframe plugin ได้
-- [ ] iframe ใช้ URL จาก `facebook.com/plugins/post.php`
-- [ ] ลิงก์ fallback `เปิดโพสต์บน Facebook` แสดงอยู่ใต้ embed ที่รองรับ
-- [ ] URL รูปแบบ `/share/p` แสดง fallback แทน iframe
-- [ ] URL รูปแบบ `/watch` แสดง fallback แทน iframe
-- [ ] URL รูปแบบ `/reel` แสดง fallback แทน iframe
-- [ ] ข้อความ fallback แสดงว่า `ไม่สามารถฝังโพสต์ Facebook นี้ได้โดยตรง`
-- [ ] ลิงก์ fallback เปิด Facebook URL ต้นฉบับ
-- [ ] แอปเราไม่ได้ inject script `facebook-jssdk`
-- [ ] ไม่มี `.fb-post` div ถูก render โดยแอปเรา
+- [ ] Facebook Post permalink ที่รองรับแสดง responsive iframe plugin ได้บน desktop/mobile
+- [ ] Post iframe ใช้ URL จาก `facebook.com/plugins/post.php`
+- [ ] Post source link `เปิดโพสต์บน Facebook` แสดงอยู่ใต้ embed และเปิด permalink ต้นฉบับ
+- [ ] Direct `/reel/{id}` ใช้ Meta SDK/XFBML `.fb-video` player ไม่ใช่ `plugins/post.php`
+- [ ] Reel แสดง source link `เปิด Reels บน Facebook` หรือ `เปิด Reels ต้นทางบน Facebook`
+- [ ] เมื่อมี Reel แอปอาจ inject `facebook-jssdk` และ `#fb-root` แต่ต้องไม่สร้าง SDK script ซ้ำหลายตัว
+- [ ] Regular Post ไม่ถูก promote เป็น Reel และไม่สร้าง `.fb-video`
+- [ ] Confirmed legacy Reel ที่เก็บต้นทางเป็น `/{page}/posts/{id}` ใช้ Reel player contract แต่ source CTA ยังคง permalink ต้นฉบับที่บันทึกไว้
+- [ ] URL รูปแบบ `/share/p`, `/share/v`, `/share/r` และ `/watch` แสดง fallback แทน direct embed
+- [ ] ข้อความ fallback แสดงว่า `ไม่สามารถฝังเนื้อหา Facebook นี้ได้โดยตรง` หรือข้อความ fallback ที่เทียบเท่าตาม renderer
+- [ ] ลิงก์ fallback เปิด Facebook URL ต้นฉบับที่ผ่าน safe-URL validation
+- [ ] Mobile Reel/Post ไม่ถูกแทนด้วย local thumbnail-only preview เมื่อ URL รองรับ direct embed
+- [ ] CSP ไม่ block Meta SDK/frames ที่ใช้งานจริง โดยอนุญาต `connect.facebook.net`, `www.facebook.com` และ `m.facebook.com` ตาม directive ที่เกี่ยวข้อง
 
 ## 5. Analytics / Runtime Incident Smoke Checks
 
@@ -78,6 +83,9 @@ Updated: 2026-09-11.
 
 ## 6. Admin CMS / System Health Smoke Checks
 
+- [ ] Fresh unauthenticated `/login` อาจได้ `401` จาก `/api/cms-auth/session` แต่ต้องไม่เรียก Admin capabilities ก่อน authenticated
+- [ ] Fresh unauthenticated `/admin` redirect ไป Login ได้โดยไม่มี anonymous `/api/admin/capabilities` request
+- [ ] หลัง Login สำเร็จ frontend อ่าน Session สำเร็จก่อน แล้วจึงโหลด capabilities และเปิด authenticated Admin state
 - [ ] เข้าสู่ระบบ admin ได้
 - [ ] `/admin/system-health` เปิดได้ตาม `dashboard.read` capability
 - [ ] B1 live health checks ทำงานเมื่อกด refresh
@@ -95,6 +103,7 @@ Updated: 2026-09-11.
 - [ ] จัดการ Carousel slides ได้
 - [ ] บันทึก Intro gate settings ได้
 - [ ] Facebook post content block รับ permalink URL ที่รองรับได้
+- [ ] Facebook Reel content block รับ direct `/reel/{id}` และใช้ SDK player path
 - [ ] Facebook URL ที่ไม่รองรับแสดง fallback บนหน้าสาธารณะ
 - [ ] ไม่มี Apps Script media bridge error ที่ไม่คาดคิด
 - [ ] ไม่มีการเรียก browser-side direct Apps Script structured read/write
