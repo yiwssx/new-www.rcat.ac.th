@@ -75,20 +75,16 @@ describe("facebookEmbed", () => {
     expect(parsed.searchParams.get("width")).toBe("520");
   });
 
-  it("builds Facebook Reels with the embedded post plugin for mobile compatibility", () => {
+  it("does not route Facebook Reels through the post iframe plugin", () => {
     const reelUrl = "https://www.facebook.com/reel/123456789012345/";
-    const pluginUrl = buildFacebookPostPluginUrl({
-      href: reelUrl,
-      showText: false,
-      width: 440
-    });
 
-    const parsed = new URL(pluginUrl);
-
-    expect(parsed.origin + parsed.pathname).toBe("https://www.facebook.com/plugins/post.php");
-    expect(parsed.searchParams.get("href")).toBe(reelUrl);
-    expect(parsed.searchParams.get("show_text")).toBe("true");
-    expect(parsed.searchParams.get("width")).toBe("440");
+    expect(
+      buildFacebookPostPluginUrl({
+        href: reelUrl,
+        showText: false,
+        width: 440
+      })
+    ).toBe("");
   });
 
   it("does not build plugin URLs for invalid post URLs", () => {
