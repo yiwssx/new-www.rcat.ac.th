@@ -1,0 +1,32 @@
+name: Temporary dependency status export
+
+on:
+  push:
+    branches:
+      - renovate/node-24.x
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm deps:status
+      - name: Export generated status
+        shell: bash
+        run: |
+          echo 'RCAT_DEPENDENCY_STATUS_BASE64_BEGIN'
+          base64 -w 0 docs/maintenance/dependency-current-status.md
+          echo
+          echo 'RCAT_DEPENDENCY_STATUS_BASE64_END'
