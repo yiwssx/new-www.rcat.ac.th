@@ -33,17 +33,22 @@ function facebookPostKey(normalizedPostUrl: string) {
   }
 }
 
-function isConfirmedLegacyReel(normalizedPostUrl: string) {
+function confirmedLegacyReelUrl(normalizedPostUrl: string) {
   const key = facebookPostKey(normalizedPostUrl);
-  return Boolean(key && confirmedLegacyReelPosts.has(key));
+  if (!key || !confirmedLegacyReelPosts.has(key)) return "";
+
+  const postId = key.split(":")[1];
+  return postId ? `https://www.facebook.com/reel/${encodeURIComponent(postId)}/` : "";
 }
 
 export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
-  // Classification is intentionally deterministic so normal posts never enter the Reel path.
-  const isReel = Boolean(
-    normalizedPostUrl && (isFacebookReelUrl(normalizedPostUrl) || isConfirmedLegacyReel(normalizedPostUrl))
-  );
+  const legacyReelUrl = normalizedPostUrl ? confirmedLegacyReelUrl(normalizedPostUrl) : "";
+  // Preserve the PR #312 player contract for confirmed legacy Reels only.
+  // Ordinary /posts/ URLs stay permanently on the post-plugin path.
+  const reelEmbedUrl =
+    legacyReelUrl || (normalizedPostUrl && isFacebookReelUrl(normalizedPostUrl) ? normalizedPostUrl : "");
+  const isReel = Boolean(reelEmbedUrl);
   const safeSourceHref = normalizeSafeHref(normalizedPostUrl || postUrl);
   const canOpenSource = Boolean(postUrl.trim()) && safeSourceHref !== "#";
   const embedTitle = title || "Facebook post";
@@ -85,7 +90,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
         }}
       >
         {isReel ? (
-          <FacebookReelSdkEmbed href={normalizedPostUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
+          <FacebookReelSdkEmbed href={reelEmbedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
         ) : (
           <ResponsiveFacebookPluginEmbed
             href={normalizedPostUrl}

@@ -4,6 +4,7 @@ import FacebookPostEmbed from "./FacebookPostEmbed";
 
 const facebookPostUrl = "https://www.facebook.com/1609435494524655/posts/111";
 const historicalReelPostUrl = "https://www.facebook.com/1609435494524655/posts/1639846248150246";
+const historicalReelUrl = "https://www.facebook.com/reel/1639846248150246/";
 const facebookReelUrl = "https://www.facebook.com/reel/859331548878917/";
 const previewImageUrl = "https://images.example.com/facebook-reel-preview.jpg";
 
@@ -51,7 +52,7 @@ describe("FacebookPostEmbed", () => {
     expect(pluginUrl.searchParams.get("show_text")).toBe("true");
   });
 
-  it("renders the confirmed historical Reel with the SDK using its real stored permalink", async () => {
+  it("renders the confirmed historical Reel with the PR 312 canonical Reel player URL", async () => {
     const { container } = render(
       <FacebookPostEmbed postUrl={historicalReelPostUrl} title="วิดีโอจาก Facebook" previewImageUrl={previewImageUrl} />
     );
@@ -61,7 +62,7 @@ describe("FacebookPostEmbed", () => {
     });
 
     const reel = container.querySelector(".fb-video");
-    expect(reel).toHaveAttribute("data-href", historicalReelPostUrl);
+    expect(reel).toHaveAttribute("data-href", historicalReelUrl);
     expect(reel).toHaveAttribute("data-show-text", "false");
     expect(container.querySelector('[data-facebook-plugin-embed="true"]')).not.toBeInTheDocument();
     expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).toBeInTheDocument();
