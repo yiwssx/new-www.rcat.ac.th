@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - renovate/node-24.x
+    paths-ignore:
+      - docs/maintenance/dependency-current-status.md
 
 permissions:
   contents: write
 
 jobs:
   export:
-    if: ${{ startsWith(github.event.head_commit.message, 'docs(deps): refresh dependency status') == false }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
