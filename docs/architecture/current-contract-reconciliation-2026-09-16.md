@@ -4,6 +4,8 @@ Status: completed maintenance reconciliation.
 
 This record compares the production code on `master`, the deployed runtime behavior, and current operational documentation. Historical release, migration, and dated evidence documents are intentionally preserved as snapshots; they are not rewritten when their old behavior is clearly scoped to their original date.
 
+The existing project phase/status remains unchanged: this work is a narrowly scoped maintenance correction inside the post-P5H production-governance baseline. It does not open a new P6 or Reliability Roadmap v2 phase.
+
 ## Reconciled contracts
 
 ### CMS authentication bootstrap
@@ -46,8 +48,9 @@ The following current operational documents are reconciled with these contracts:
 - `docs/cms-auth-session-lifecycle.md` — records Session-first capability loading;
 - `docs/production-smoke-checklist.md` — tests the current post/Reel split and anonymous capability gate;
 - `docs/production-smoke-test-report-template.md` — records evidence using the same expectations;
-- `docs/architecture/post-p5h-current-project-state.md` — records this as maintenance within the existing production-governance baseline;
 - `CHANGELOG.md` — records the completed production fixes under Unreleased.
+
+`docs/architecture/post-p5h-current-project-state.md` and `docs/architecture/current-runtime-ownership.md` remain compatible with this maintenance correction: their project-phase and provider-ownership statements do not change. This record adds the finer-grained frontend ordering/rendering invariants without reopening those architecture phases.
 
 ## Historical documents intentionally left unchanged
 
