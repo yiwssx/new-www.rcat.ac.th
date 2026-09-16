@@ -36,6 +36,12 @@ const confirmedLegacyReels = new Map<string, string>([["1609435494524655:1639846
 // embedded-post plugin. Rendering either transport produces Facebook's
 // "broken link" UI, so prefer the locally cached preview instead.
 const confirmedUnavailableEmbeds = new Set<string>(["1609435494524655:1639846248150246"]);
+const confirmedUnavailablePreviews = new Map<string, string>([
+  [
+    "1609435494524655:1639846248150246",
+    "https://drive.google.com/thumbnail?id=1NFMVP_bpiaxHMt-8nyVZOGTuvlyVKdv-&sz=w1200"
+  ]
+]);
 
 function facebookPostKey(normalizedPostUrl: string) {
   try {
@@ -59,6 +65,11 @@ function confirmedLegacyReelUrl(normalizedPostUrl: string) {
 function isConfirmedUnavailableEmbed(normalizedPostUrl: string) {
   const key = facebookPostKey(normalizedPostUrl);
   return Boolean(key && confirmedUnavailableEmbeds.has(key));
+}
+
+function confirmedUnavailablePreview(normalizedPostUrl: string) {
+  const key = facebookPostKey(normalizedPostUrl);
+  return key ? confirmedUnavailablePreviews.get(key) || "" : "";
 }
 
 function fallbackResolution(normalizedPostUrl: string): FacebookEmbedResolution {
@@ -155,7 +166,8 @@ export default function FacebookPostEmbed({
   const useReelSdk = Boolean(isReel && normalizedPostUrl && isFacebookReelUrl(normalizedPostUrl));
   const pluginEmbedUrl = isReel && !useReelSdk ? normalizedPostUrl : resolvedUrl;
   const safeSourceHref = normalizeSafeHref(normalizedPostUrl || postUrl);
-  const safePreviewImageUrl = normalizeSafeHref(previewImageUrl || "");
+  const cachedPreviewImageUrl = normalizedPostUrl ? confirmedUnavailablePreview(normalizedPostUrl) : "";
+  const safePreviewImageUrl = normalizeSafeHref(previewImageUrl || cachedPreviewImageUrl);
   const canOpenSource = Boolean(postUrl.trim()) && safeSourceHref !== "#";
   const canShowPreview = safePreviewImageUrl !== "#";
   const embedTitle = title || "Facebook post";
