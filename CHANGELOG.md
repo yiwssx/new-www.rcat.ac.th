@@ -32,11 +32,19 @@ No next semantic version has been assigned. The entries below record completed p
 - Phase A's automatic Vercel gate now rejects `Canceled by Ignored Build Step`/`Ignored Build Step` statuses and successful statuses without a deployment `target_url`, preventing skipped builds from being reported as ready matching deployments before browser smoke.
 - Production environment retirement was operator-verified on 2026-09-11: live Vercel uses server-only `COMPLAINT_API_URI`, retired `VITE_COMPLAINT_API_URI` is absent, and the CMS-auth observation/legacy-only environment retirement follow-ups are complete across the applicable Vercel/Cloudflare environments.
 - Current Worker, recovery, import, environment, and AI guidance now targets the canonical in-place production Worker/D1 identity and no longer presents retired Preview or `rcat-public-api-production` operations as current instructions.
+- Reconciled current runtime contracts again on 2026-09-16 so the production smoke/runbook expectations match the deployed CMS authorization bootstrap and Facebook Post/Reel rendering paths.
+
+### Fixed
+
+- CMS authorization bootstrap now validates `/api/cms-auth/session` before requesting Admin capabilities. An unauthenticated Login/Admin bootstrap stops on the Session `401` instead of issuing an anonymous `/api/admin/capabilities` request; authenticated Login/MFA/session restoration still loads capabilities after Session validation.
+- Facebook embed behavior is isolated by content kind: supported regular Posts use the responsive `facebook.com/plugins/post.php` iframe path, while direct and explicitly confirmed legacy Reels use the Meta SDK/XFBML video path. The regular-post iframe builder now fails closed for Reels so later call sites cannot accidentally route Reels back through `post.php`.
+- Mobile Facebook embedding CSP now includes the Meta frame/script/connect origins required by the live Post/Reel paths, while unsupported share/watch URL shapes remain fallback-only and source links remain preserved.
 
 ### Maintenance
 
 - Governed dependency maintenance continues under the existing Renovate, release-age, freshness, security-audit, and CI/governance policies.
 - Historical migration, closure, cutover, and dated audit documents remain preserved as evidence; current source-of-truth documents take precedence when historical wording differs from the live architecture or project state.
+- Added `docs/architecture/current-contract-reconciliation-2026-09-16.md` to record the verified Session-before-capabilities and Facebook Post/Reel invariants without rewriting dated historical release evidence.
 
 ## [3.3.0] - 2026-08-26
 
