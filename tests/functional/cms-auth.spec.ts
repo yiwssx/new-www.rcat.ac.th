@@ -422,29 +422,30 @@ test.describe("CMS auth intercepted functional flows", () => {
     expect(telemetryRequests).toEqual([]);
   });
 
-  test("CMS Auth Login route retains authentication bootstrap context", async ({ page }) => {
+  test("CMS Auth Login route checks Session without anonymous capabilities", async ({ page }) => {
     const state = await installCmsApi(page);
 
     await page.goto("/login");
     await expect(page.getByRole("button", { name: "เข้าสู่ระบบ" })).toBeVisible();
     await expect.poll(() => state.sessionHits).toBe(1);
-    await expect.poll(() => state.capabilityHits).toBe(1);
+    expect(state.capabilityHits).toBe(0);
   });
 
-  test("CMS auth unauthenticated /admin redirects after bootstrap", async ({ page }) => {
+  test("CMS auth unauthenticated /admin redirects without requesting capabilities", async ({ page }) => {
     const state = await installCmsApi(page);
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole("button", { name: "เข้าสู่ระบบ" })).toBeVisible();
     expect(state.sessionHits).toBeGreaterThanOrEqual(1);
-    expect(state.capabilityHits).toBeGreaterThanOrEqual(1);
+    expect(state.capabilityHits).toBe(0);
   });
 
   test("CMS auth password-only Login reaches Dashboard", async ({ page }) => {
-    await installCmsApi(page);
+    const state = await installCmsApi(page);
     await submitPasswordLogin(page);
     await expect(page).toHaveURL(/\/admin\/?$/);
     await expect(page.getByRole("heading", { name: "แดชบอร์ด" })).toBeVisible();
+    expect(state.capabilityHits).toBeGreaterThanOrEqual(1);
   });
 
   test("CMS auth password plus TOTP reaches Dashboard", async ({ page }) => {
