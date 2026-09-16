@@ -13,6 +13,7 @@ const CONNECT_SOURCES = [
 ];
 const FRAME_SOURCES = [
   "https://www.facebook.com",
+  "https://m.facebook.com",
   "https://www.youtube.com",
   "https://www.youtube-nocookie.com",
   "https://www.google.com",
