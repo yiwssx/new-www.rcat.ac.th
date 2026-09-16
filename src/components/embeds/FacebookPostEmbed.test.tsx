@@ -6,8 +6,7 @@ const facebookPostUrl = "https://www.facebook.com/1609435494524655/posts/111";
 const historicalReelPostUrl = "https://www.facebook.com/1609435494524655/posts/1639846248150246";
 const facebookReelUrl = "https://www.facebook.com/reel/859331548878917/";
 const previewImageUrl = "https://images.example.com/facebook-reel-preview.jpg";
-const cachedHistoricalPreviewUrl =
-  "https://drive.google.com/thumbnail?id=1NFMVP_bpiaxHMt-8nyVZOGTuvlyVKdv-&sz=w1200";
+const cachedHistoricalPreviewUrl = "https://drive.google.com/thumbnail?id=1NFMVP_bpiaxHMt-8nyVZOGTuvlyVKdv-&sz=w1200";
 const facebookOembedRevision = "legacy-reel-v2";
 const resolverUrl = (url: string) =>
   `/api/ssr?_rcatFacebookOembed=1&url=${encodeURIComponent(url)}&_rcatFacebookOembedRevision=${facebookOembedRevision}`;
