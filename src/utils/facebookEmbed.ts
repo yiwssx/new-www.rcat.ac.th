@@ -44,8 +44,8 @@ function isSupportedFacebookPostPath(pathname: string, searchParams: URLSearchPa
 }
 
 /**
- * Checks if a Facebook URL is a direct Reel permalink that can be passed to
- * the embedded post plugin. Share redirect URLs are intentionally excluded.
+ * Checks if a Facebook URL is a direct Reel permalink that can be rendered by
+ * the Meta SDK/XFBML video path. Share redirect URLs are intentionally excluded.
  */
 function isSupportedFacebookReelPath(pathname: string) {
   const segments = pathname.toLowerCase().split("/").filter(Boolean);
@@ -62,8 +62,8 @@ function getSupportedFacebookEmbedKind(pathname: string, searchParams: URLSearch
 }
 
 /**
- * Checks if a URL is a valid Facebook URL but not supported for iframe embedding.
- * These URLs should show a fallback message instead of an iframe.
+ * Checks if a URL is a valid Facebook URL but not supported for direct embedding.
+ * These URLs should show a fallback message instead of an embed.
  */
 function isValidButUnsupportedFacebookPath(pathname: string, searchParams: URLSearchParams) {
   const normalizedPath = pathname.toLowerCase();
@@ -147,7 +147,7 @@ export function isFacebookReelUrl(value: string): boolean {
 
 /**
  * Checks if a URL is a valid but unsupported Facebook URL.
- * These URLs should render a fallback message instead of an iframe.
+ * These URLs should render a fallback message instead of an embed.
  */
 export function isUnsupportedFacebookUrl(value: string): boolean {
   const url = String(value || "").trim();
@@ -196,20 +196,21 @@ export function clampFacebookPostPluginWidth(value: number): number {
   );
 }
 
+/**
+ * Builds the iframe URL for regular Facebook posts only.
+ * Reels intentionally fail closed here because their canonical renderer is the
+ * Meta SDK/XFBML video path (`FacebookReelSdkEmbed`).
+ */
 export function buildFacebookPostPluginUrl(input: { href: string; showText: boolean; width: number }): string {
   const href = normalizeFacebookPostUrl(input.href);
 
-  if (!href) {
+  if (!href || getFacebookEmbedKind(href) !== "post") {
     return "";
   }
 
-  const embedKind = getFacebookEmbedKind(href);
   const pluginUrl = new URL(facebookPostPluginBaseUrl);
   pluginUrl.searchParams.set("href", href);
-  // Reels are more reliable in mobile Chromium when rendered as an embedded post.
-  // Keep the post text enabled so Facebook can render the complete Reel card instead
-  // of routing the permalink through the less reliable embedded video player.
-  pluginUrl.searchParams.set("show_text", embedKind === "reel" ? "true" : input.showText ? "true" : "false");
+  pluginUrl.searchParams.set("show_text", input.showText ? "true" : "false");
   pluginUrl.searchParams.set("width", String(clampFacebookPostPluginWidth(input.width)));
 
   return pluginUrl.toString();
