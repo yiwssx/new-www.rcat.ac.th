@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ContentBlocksRenderer from "../shared/components/ContentBlocksRenderer";
 import { resetNearViewportObserversForTests } from "../shared/media/nearViewport";
@@ -11,6 +11,7 @@ afterEach(() => {
 describe("ContentBlocksRenderer", () => {
   beforeEach(() => {
     document.getElementById("facebook-jssdk")?.remove();
+    document.getElementById("fb-root")?.remove();
   });
 
   it("does not render invalid Facebook post URLs", () => {
@@ -72,6 +73,37 @@ describe("ContentBlocksRenderer", () => {
       "https://www.facebook.com/rcat/posts/12345"
     );
     expect(document.getElementById("facebook-jssdk")).not.toBeInTheDocument();
+  });
+
+  it("renders Facebook Reels with the SDK video plugin instead of the post iframe", async () => {
+    const reelUrl = "https://www.facebook.com/reel/1639846248150246/";
+    const { container } = render(
+      <ContentBlocksRenderer
+        mediaAssets={[]}
+        blocks={[
+          {
+            id: "facebook-reel-1",
+            type: "facebookPost",
+            href: reelUrl,
+            caption: "Official Facebook Reel",
+            showText: true,
+            width: 500
+          }
+        ]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(container.querySelector(".fb-video")).toBeInTheDocument();
+    });
+
+    const reel = container.querySelector(".fb-video");
+    expect(reel).toHaveAttribute("data-href", reelUrl);
+    expect(reel).toHaveAttribute("data-show-text", "false");
+    expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).toBeInTheDocument();
+    expect(screen.queryByTitle("Facebook Reel")).not.toBeInTheDocument();
+    expect(screen.getByText("Official Facebook Reel")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "เปิด Reels บน Facebook" })).toHaveAttribute("href", reelUrl);
   });
 
   it("renders custom labels for external links and media-library attachments", () => {
