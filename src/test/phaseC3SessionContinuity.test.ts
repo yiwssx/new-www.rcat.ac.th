@@ -18,7 +18,9 @@ describe("Phase C3 CMS session continuity", () => {
     expect(authContext).toContain("readCmsAuthorizationStateWithBounded401Confirmation");
     expect(authContext).toContain("refreshSession({ force: true, retryAuthorization401: true })");
     expect(authContext).toContain("refreshSession({ retryAuthorization401: true })");
-    expect(authContext).toContain("const user = await getCmsSession();\n  const capabilityPayload = await getCmsCapabilities();");
+    expect(authContext).toContain(
+      "const user = await getCmsSession();\n  const capabilityPayload = await getCmsCapabilities();"
+    );
     expect(authContext).toContain(
       "const user = await confirmCmsAuthorizationRead(getCmsSession);\n  const capabilityPayload = await confirmCmsAuthorizationRead(getCmsCapabilities);"
     );
