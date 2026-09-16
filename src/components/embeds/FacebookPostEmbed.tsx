@@ -40,6 +40,7 @@ function isConfirmedLegacyReel(normalizedPostUrl: string) {
 
 export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
+  // Classification is intentionally deterministic so normal posts never enter the Reel path.
   const isReel = Boolean(
     normalizedPostUrl && (isFacebookReelUrl(normalizedPostUrl) || isConfirmedLegacyReel(normalizedPostUrl))
   );
