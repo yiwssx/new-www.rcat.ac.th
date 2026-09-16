@@ -18,7 +18,11 @@ describe("Phase C3 CMS session continuity", () => {
     expect(authContext).toContain("readCmsAuthorizationStateWithBounded401Confirmation");
     expect(authContext).toContain("refreshSession({ force: true, retryAuthorization401: true })");
     expect(authContext).toContain("refreshSession({ retryAuthorization401: true })");
-    expect(authContext).toContain("const [sessionResult, capabilityResult] = await Promise.allSettled");
+    expect(authContext).toContain("const user = await getCmsSession();\n  const capabilityPayload = await getCmsCapabilities();");
+    expect(authContext).toContain(
+      "const user = await confirmCmsAuthorizationRead(getCmsSession);\n  const capabilityPayload = await confirmCmsAuthorizationRead(getCmsCapabilities);"
+    );
+    expect(authContext).not.toContain("Promise.allSettled([getCmsSession(), getCmsCapabilities()])");
     expect(authContext).toContain('window.location.pathname.startsWith("/admin") && Boolean(readCmsCsrfToken())');
     expect(authContext).toContain("void refreshSession({ confirmAuthorization401 }).catch(() => undefined)");
     expect(authContext).toContain("void refreshSession({ activityKeepalive: true }).catch(() => undefined)");
