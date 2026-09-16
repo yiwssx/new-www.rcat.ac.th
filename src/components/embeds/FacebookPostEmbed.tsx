@@ -44,8 +44,8 @@ function confirmedLegacyReelUrl(normalizedPostUrl: string) {
 export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const legacyReelUrl = normalizedPostUrl ? confirmedLegacyReelUrl(normalizedPostUrl) : "";
-  // Match the working PR #312 player path for confirmed legacy Reels, while
-  // keeping ordinary /posts/ URLs permanently on the post-plugin path.
+  // Preserve the PR #312 player contract for confirmed legacy Reels only.
+  // Ordinary /posts/ URLs stay permanently on the post-plugin path.
   const reelEmbedUrl =
     legacyReelUrl || (normalizedPostUrl && isFacebookReelUrl(normalizedPostUrl) ? normalizedPostUrl : "");
   const isReel = Boolean(reelEmbedUrl);
