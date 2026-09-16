@@ -29,22 +29,36 @@ const facebookReelMaxWidth = 440;
 const facebookOembedRevision = "legacy-reel-v2";
 
 // Historical Facebook imports may have lost their original /reel/{id}
-// permalink and been stored as /{page}/posts/{id}. Keep the confirmed
-// legacy Reel classification available immediately during SSR/hydration,
-// but render those stored /posts/ permalinks through Facebook's post plugin.
+// permalink and been stored as /{page}/posts/{id}.
 const confirmedLegacyReels = new Map<string, string>([["1609435494524655:1639846248150246", "1639846248150246"]]);
 
-function confirmedLegacyReelUrl(normalizedPostUrl: string) {
+// Meta currently rejects these source posts in both the Reel SDK and the
+// embedded-post plugin. Rendering either transport produces Facebook's
+// "broken link" UI, so prefer the locally cached preview instead.
+const confirmedUnavailableEmbeds = new Set<string>(["1609435494524655:1639846248150246"]);
+
+function facebookPostKey(normalizedPostUrl: string) {
   try {
     const parsed = new URL(normalizedPostUrl);
     const segments = parsed.pathname.split("/").filter(Boolean);
     if (segments.length < 3 || segments[1]?.toLowerCase() !== "posts") return "";
-
-    const reelId = confirmedLegacyReels.get(`${segments[0]}:${segments[2]}`);
-    return reelId ? `https://www.facebook.com/reel/${reelId}/` : "";
+    return `${segments[0]}:${segments[2]}`;
   } catch {
     return "";
   }
+}
+
+function confirmedLegacyReelUrl(normalizedPostUrl: string) {
+  const key = facebookPostKey(normalizedPostUrl);
+  if (!key) return "";
+
+  const reelId = confirmedLegacyReels.get(key);
+  return reelId ? `https://www.facebook.com/reel/${reelId}/` : "";
+}
+
+function isConfirmedUnavailableEmbed(normalizedPostUrl: string) {
+  const key = facebookPostKey(normalizedPostUrl);
+  return Boolean(key && confirmedUnavailableEmbeds.has(key));
 }
 
 function fallbackResolution(normalizedPostUrl: string): FacebookEmbedResolution {
@@ -83,10 +97,18 @@ function resolutionsMatch(left: FacebookEmbedResolution, right: FacebookEmbedRes
   return left.kind === right.kind && left.canonicalUrl === right.canonicalUrl;
 }
 
-export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEmbedMaxWidth }: FacebookPostEmbedProps) {
+export default function FacebookPostEmbed({
+  postUrl,
+  title,
+  maxWidth = defaultEmbedMaxWidth,
+  previewImageUrl
+}: FacebookPostEmbedProps) {
   const normalizedPostUrl = normalizeFacebookPostUrl(postUrl);
   const directResolution = normalizedPostUrl ? fallbackResolution(normalizedPostUrl) : null;
-  const requiresResolution = Boolean(normalizedPostUrl && !isFacebookReelUrl(normalizedPostUrl));
+  const confirmedUnavailable = Boolean(normalizedPostUrl && isConfirmedUnavailableEmbed(normalizedPostUrl));
+  const requiresResolution = Boolean(
+    normalizedPostUrl && !confirmedUnavailable && !isFacebookReelUrl(normalizedPostUrl)
+  );
   const [resolvedPost, setResolvedPost] = useState<ResolvedFacebookPost | null>(null);
 
   useEffect(() => {
@@ -130,15 +152,12 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
   const resolution = matchingResolvedPost?.resolution || directResolution;
   const resolvedUrl = resolution?.canonicalUrl || normalizedPostUrl;
   const isReel = resolution?.kind === "reel" || isFacebookReelUrl(resolvedUrl);
-
-  // The Meta video SDK is reliable for real /reel/ permalinks. Historical
-  // imports stored as /posts/ must keep Facebook's post-plugin transport: that
-  // is the original live embed path and avoids the SDK's broken-link screen on
-  // mobile when a post ID is only classified as a Reel by our resolver.
   const useReelSdk = Boolean(isReel && normalizedPostUrl && isFacebookReelUrl(normalizedPostUrl));
   const pluginEmbedUrl = isReel && !useReelSdk ? normalizedPostUrl : resolvedUrl;
   const safeSourceHref = normalizeSafeHref(normalizedPostUrl || postUrl);
+  const safePreviewImageUrl = normalizeSafeHref(previewImageUrl || "");
   const canOpenSource = Boolean(postUrl.trim()) && safeSourceHref !== "#";
+  const canShowPreview = safePreviewImageUrl !== "#";
   const embedTitle = title || "Facebook post";
   const sourceLabel = isReel ? "เปิด Reels ต้นทางบน Facebook" : "เปิดโพสต์ต้นทางบน Facebook";
   const fallbackLabel = isReel ? "ดู Reels ต้นทางบน Facebook" : "ดูโพสต์ต้นทางบน Facebook";
@@ -162,6 +181,48 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
           </Button>
         )}
       </Stack>
+    );
+  }
+
+  if (confirmedUnavailable) {
+    return (
+      <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        <Stack spacing={1.25} sx={{ alignItems: "center", width: "100%", maxWidth: facebookPluginWidth }}>
+          {canShowPreview ? (
+            <Box
+              data-facebook-local-preview="true"
+              component="img"
+              src={safePreviewImageUrl}
+              alt={embedTitle}
+              loading="eager"
+              sx={{
+                display: "block",
+                width: "100%",
+                maxHeight: 720,
+                objectFit: "contain",
+                borderRadius: 2,
+                bgcolor: "background.default"
+              }}
+            />
+          ) : (
+            <Alert severity="info" sx={{ width: "100%" }}>
+              Facebook ไม่อนุญาตให้ฝังรายการนี้บนเว็บไซต์ในขณะนี้
+            </Alert>
+          )}
+          {canOpenSource && (
+            <Button
+              component="a"
+              href={safeSourceHref}
+              target="_blank"
+              rel="noreferrer"
+              size="small"
+              variant="outlined"
+            >
+              {sourceLabel}
+            </Button>
+          )}
+        </Stack>
+      </Box>
     );
   }
 
