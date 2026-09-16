@@ -5,6 +5,7 @@ import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import { MediaAsset } from "../../types";
 import { ContentBlock, FacebookPostContentBlock } from "../../utils/contentBlocks";
 import PublicDeferredEmbed from "../media/PublicDeferredEmbed";
+import FacebookReelSdkEmbed from "../media/FacebookReelSdkEmbed";
 import PublicResponsiveImage from "../media/PublicResponsiveImage";
 import PublicPdfViewer from "../media/PublicPdfViewer";
 import { isPdfMediaAsset } from "../media/pdfMedia";
@@ -33,21 +34,54 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
   const isReel = isFacebookReelUrl(href);
   const requestedWidth = clampFacebookPostPluginWidth(block.width || 500);
   const width = isReel ? Math.min(requestedWidth, maximumFacebookReelWidth) : requestedWidth;
-  const pluginUrl = buildFacebookPostPluginUrl({ href, showText: block.showText, width });
+  const pluginUrl = isReel ? "" : buildFacebookPostPluginUrl({ href, showText: block.showText, width });
 
   // If it's an unsafe or non-Facebook URL, render nothing.
   if (!href && !isUnsupported) {
     return null;
   }
 
-  // Use Facebook's iframe plugin for both posts and Reels. This keeps the
-  // content directly viewable on mobile without depending on the JS SDK.
+  // Reels use Meta's XFBML video renderer. The post iframe plugin is reliable
+  // for regular posts but is not the canonical Reel playback path.
+  if (href && isReel) {
+    return (
+      <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        <Box sx={{ width: "100%", maxWidth: width }}>
+          <FacebookReelSdkEmbed href={href} preferredWidth={width} mode="video" showText={false} />
+          <Button
+            component="a"
+            href={normalizeSafeHref(href)}
+            target="_blank"
+            rel="noreferrer"
+            size="small"
+            variant="text"
+            sx={{ mt: 0.75, px: 0 }}
+          >
+            เปิด Reels บน Facebook
+          </Button>
+          {block.caption && (
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mt: 0.75
+              }}
+            >
+              {block.caption}
+            </Typography>
+          )}
+        </Box>
+      </Box>
+    );
+  }
+
+  // Regular posts use Facebook's iframe plugin on every breakpoint.
   if (href && pluginUrl) {
     return (
       <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
         <Box sx={{ width: "100%", maxWidth: width }}>
           <PublicDeferredEmbed
-            title={isReel ? "Facebook Reel" : "Facebook post"}
+            title="Facebook post"
             src={pluginUrl}
             loadMode="near-viewport"
             scrolling="no"
@@ -72,7 +106,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
             variant="text"
             sx={{ mt: 0.75, px: 0 }}
           >
-            {isReel ? "เปิด Reels บน Facebook" : "เปิดโพสต์บน Facebook"}
+            เปิดโพสต์บน Facebook
           </Button>
           {block.caption && (
             <Typography
