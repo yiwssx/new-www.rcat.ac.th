@@ -1,10 +1,12 @@
 # Production Smoke Test Report Template
 
-Updated: 2026-09-11.
+Updated: 2026-09-16.
 
 ใช้เอกสารนี้บันทึกผลตรวจจริงหลัง Deploy โดยอ้างอิงจาก [Production Smoke Checklist](./production-smoke-checklist.md)
 
 สถานะโครงการปัจจุบันให้อ้างอิง `docs/architecture/post-p5h-current-project-state.md` โดย M20/M21 เป็นประวัติการย้ายระบบและ stabilization ไม่ใช่เฟสที่ active ปัจจุบัน Reliability Roadmap v2 เสร็จครบแล้ว: Phase 0, Phase A, Phase B (B1/B2/B3) และ Phase C เป็น complete เอกสารนี้บันทึกผล smoke test และไม่ใช่การอนุมัติให้แก้ไข production นอกขอบเขต
+
+สัญญา runtime ที่ปรับให้ตรงกันล่าสุดเมื่อ 2026-09-16 บันทึกไว้ใน `docs/architecture/current-contract-reconciliation-2026-09-16.md`
 
 ## 1. Deployment Information
 
@@ -121,25 +123,27 @@ Public structured data has no `VITE_PUBLIC_API_PROVIDER` selector. Browser code 
 
 **Overall result:** Not tested / Pass / Fail / Pass with known issues
 
-- [ ] Valid Facebook permalink URL render iframe plugin
-- [ ] iframe ใช้ `facebook.com/plugins/post.php`
-- [ ] ลิงก์ `เปิดโพสต์บน Facebook` แสดงใต้ supported embed
-- [ ] `/share/p` URL แสดง fallback แทน iframe
-- [ ] `/watch` URL แสดง fallback แทน iframe
-- [ ] `/reel` URL แสดง fallback แทน iframe
-- [ ] ข้อความ `ไม่สามารถฝังโพสต์ Facebook นี้ได้โดยตรง` แสดงใน fallback
-- [ ] Fallback link เปิด Facebook URL ต้นฉบับ
-- [ ] ไม่มี `facebook-jssdk` script จากแอปเรา
-- [ ] ไม่มี `.fb-post` div จากแอปเรา
+- [ ] Supported regular Facebook Post permalink renders the responsive `facebook.com/plugins/post.php` iframe on desktop/mobile
+- [ ] Regular Post source link opens the original permalink
+- [ ] Direct `/reel/{id}` renders through Meta SDK/XFBML `.fb-video`, not `plugins/post.php`
+- [ ] Reel source link is visible and opens the safe Facebook source URL
+- [ ] A Reel may inject one `facebook-jssdk` script and `#fb-root`; duplicate SDK scripts are not created
+- [ ] Regular Post does not render `.fb-video` and is not promoted to Reel
+- [ ] Confirmed legacy Reel stored as `/{page}/posts/{id}` uses the Reel player contract while its source CTA preserves the stored permalink
+- [ ] `/share/p`, `/share/v`, `/share/r`, and `/watch` URLs render fallback instead of a direct embed
+- [ ] Fallback link opens the validated original Facebook URL
+- [ ] Supported mobile Post/Reel is not replaced by a local thumbnail-only preview
+- [ ] Production CSP permits required Meta SDK/connect/frame origins, including `connect.facebook.net`, `www.facebook.com`, and `m.facebook.com`
 
 **Test URLs / evidence:**
 
-| กรณี                   | Public page URL | Facebook URL | Result                   | Notes |
-| ---------------------- | --------------- | ------------ | ------------------------ | ----- |
-| Supported permalink    |                 |              | Not tested / Pass / Fail |       |
-| Unsupported `/share/p` |                 |              | Not tested / Pass / Fail |       |
-| Unsupported `/watch`   |                 |              | Not tested / Pass / Fail |       |
-| Unsupported `/reel`    |                 |              | Not tested / Pass / Fail |       |
+| กรณี                         | Public page URL | Facebook URL | Result                   | Notes |
+| ---------------------------- | --------------- | ------------ | ------------------------ | ----- |
+| Supported regular Post       |                 |              | Not tested / Pass / Fail |       |
+| Supported direct Reel        |                 |              | Not tested / Pass / Fail |       |
+| Confirmed legacy Reel import |                 |              | Not tested / Pass / Fail |       |
+| Unsupported `/share/p`       |                 |              | Not tested / Pass / Fail |       |
+| Unsupported `/watch`         |                 |              | Not tested / Pass / Fail |       |
 
 ## 9. Analytics / GTM / GA4 / Runtime Incident Result
 
@@ -162,6 +166,9 @@ Public structured data has no `VITE_PUBLIC_API_PROVIDER` selector. Browser code 
 
 **Overall result:** Not tested / Pass / Fail / Pass with known issues
 
+- [ ] Fresh unauthenticated `/login` may receive `/api/cms-auth/session` `401` but makes zero Admin capability requests
+- [ ] Fresh unauthenticated `/admin` redirects to Login without an anonymous `/api/admin/capabilities` request
+- [ ] Successful Login confirms Session first, then loads capabilities before authenticated Admin state is shown
 - [ ] Admin login works
 - [ ] `/admin/system-health` works for an authorized `dashboard.read` user
 - [ ] B1 live health checks refresh explicitly
@@ -179,6 +186,7 @@ Public structured data has no `VITE_PUBLIC_API_PROVIDER` selector. Browser code 
 - [ ] Carousel slide management works
 - [ ] Intro gate settings can be saved
 - [ ] Facebook post content block accepts a valid permalink URL
+- [ ] Facebook Reel content block accepts direct `/reel/{id}` and renders through the SDK player path
 - [ ] Unsupported Facebook URLs display fallback on the public page
 - [ ] No unexpected Apps Script media bridge errors
 - [ ] No browser-side direct Apps Script structured read/write observed
