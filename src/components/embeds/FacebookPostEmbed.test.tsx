@@ -50,10 +50,7 @@ describe("FacebookPostEmbed", () => {
     expect(container.querySelector('[data-facebook-mobile-local-preview="true"]')).not.toBeInTheDocument();
     expect(container.querySelector('[data-facebook-plugin-embed="true"]')).toBeInTheDocument();
     expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute(
-      "href",
-      facebookPostUrl
-    );
+    expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
@@ -83,11 +80,7 @@ describe("FacebookPostEmbed", () => {
     );
 
     const { container } = render(
-      <FacebookPostEmbed
-        postUrl={historicalReelPostUrl}
-        title="วิดีโอจาก Facebook"
-        previewImageUrl={previewImageUrl}
-      />
+      <FacebookPostEmbed postUrl={historicalReelPostUrl} title="วิดีโอจาก Facebook" previewImageUrl={previewImageUrl} />
     );
 
     await waitFor(() => {
@@ -114,9 +107,7 @@ describe("FacebookPostEmbed", () => {
   });
 
   it("renders canonical Reels directly with the Meta SDK video player", async () => {
-    const { container } = render(
-      <FacebookPostEmbed postUrl={facebookReelUrl} previewImageUrl={previewImageUrl} />
-    );
+    const { container } = render(<FacebookPostEmbed postUrl={facebookReelUrl} previewImageUrl={previewImageUrl} />);
 
     await waitFor(() => {
       expect(container.querySelector(".fb-video")).toBeInTheDocument();
@@ -128,10 +119,7 @@ describe("FacebookPostEmbed", () => {
     expect(container.querySelector('[data-facebook-plugin-embed="true"]')).not.toBeInTheDocument();
     expect(container.querySelector('[data-facebook-reel-sdk-embed="true"]')).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
-    expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute(
-      "href",
-      facebookReelUrl
-    );
+    expect(screen.getByRole("link", { name: "เปิด Reels ต้นทางบน Facebook" })).toHaveAttribute("href", facebookReelUrl);
   });
 
   it("keeps the live regular post embed if the resolver is temporarily unavailable", async () => {
@@ -147,10 +135,7 @@ describe("FacebookPostEmbed", () => {
     expect(screen.getByTitle("ข่าวจาก Facebook")).toBeInTheDocument();
     expect(container.querySelector('[data-facebook-mobile-local-preview="true"]')).not.toBeInTheDocument();
     expect(container.querySelector('[data-facebook-plugin-embed="true"]')).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute(
-      "href",
-      facebookPostUrl
-    );
+    expect(screen.getByRole("link", { name: "เปิดโพสต์ต้นทางบน Facebook" })).toHaveAttribute("href", facebookPostUrl);
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledTimes(1);
