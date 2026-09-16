@@ -130,7 +130,15 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
   const resolution = matchingResolvedPost?.resolution || directResolution;
   const resolvedUrl = resolution?.canonicalUrl || normalizedPostUrl;
   const isReel = resolution?.kind === "reel" || isFacebookReelUrl(resolvedUrl);
-  const safeSourceHref = normalizeSafeHref(isReel ? resolvedUrl : normalizedPostUrl || postUrl);
+  // For historical imports, the resolver only classifies the original post as
+  // a Reel. The synthesized /reel/{postId} URL is not guaranteed to be a valid
+  // Facebook permalink, so the SDK must receive the real stored post URL.
+  const reelEmbedUrl = isReel && normalizedPostUrl
+    ? isFacebookReelUrl(normalizedPostUrl)
+      ? resolvedUrl
+      : normalizedPostUrl
+    : resolvedUrl;
+  const safeSourceHref = normalizeSafeHref(normalizedPostUrl || postUrl);
   const canOpenSource = Boolean(postUrl.trim()) && safeSourceHref !== "#";
   const embedTitle = title || "Facebook post";
   const sourceLabel = isReel ? "เปิด Reels ต้นทางบน Facebook" : "เปิดโพสต์ต้นทางบน Facebook";
@@ -171,7 +179,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
         }}
       >
         {isReel ? (
-          <FacebookReelSdkEmbed href={resolvedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
+          <FacebookReelSdkEmbed href={reelEmbedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
         ) : (
           <ResponsiveFacebookPluginEmbed
             href={resolvedUrl}
