@@ -6,10 +6,9 @@ const SUCCESS_CACHE_CONTROL = "public, max-age=300, s-maxage=86400, stale-while-
 const FAILURE_CACHE_CONTROL = "public, max-age=60, s-maxage=300";
 
 // Older RCAT imports lost the original /reel/ permalink and persisted a
-// /{page}/posts/{id} URL instead. Some of those URLs are also accepted by
-// Meta's post oEmbed endpoint, so endpoint success alone cannot recover the
-// original content type. Keep only confirmed legacy Reel identities here so
-// normal /posts/ URLs remain post-first.
+// /{page}/posts/{id} URL instead. Only explicitly confirmed identities may be
+// treated as Reels. Normal /posts/ URLs must never be promoted to a Reel just
+// because the post oEmbed probe is unavailable.
 const CONFIRMED_LEGACY_REEL_POSTS = new Set(["1609435494524655:1639846248150246"]);
 
 function responseHeaders(cacheControl = FAILURE_CACHE_CONTROL) {
@@ -133,13 +132,12 @@ export function createFacebookOembedCandidates(value) {
   const post = postCandidate(url) || permalinkCandidate(url);
   if (!post) return [];
 
-  const derivedReel = reelCandidateFromPostId(post.postId);
-  if (!derivedReel) return [post];
+  if (!isConfirmedLegacyReel(url, post.postId)) {
+    return [post];
+  }
 
-  // Preserve the confirmed historical Reel that was imported as /posts/ while
-  // keeping every other explicit /posts/ URL post-first. This avoids the two
-  // regressions caused by globally choosing either Reel-first or post-first.
-  return isConfirmedLegacyReel(url, post.postId) ? [derivedReel, post] : [post, derivedReel];
+  const derivedReel = reelCandidateFromPostId(post.postId);
+  return derivedReel ? [derivedReel, post] : [post];
 }
 
 async function probeCandidate(candidate, fetchImpl) {

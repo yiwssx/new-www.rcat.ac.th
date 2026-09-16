@@ -41,7 +41,7 @@ const legacyReelUrl = `https://www.facebook.com/reel/${legacyReelId}/`;
 const normalPostUrl = `https://www.facebook.com/${pageId}/posts/${normalPostId}`;
 
 describe("Facebook tokenless oEmbed resolver", () => {
-  it("keeps confirmed legacy Reel imports Reel-first without changing normal post semantics", () => {
+  it("keeps confirmed legacy Reels explicit while normal posts stay post-only", () => {
     expect(createFacebookOembedCandidates(legacyReelPostUrl)).toEqual([
       {
         kind: "reel",
@@ -62,11 +62,6 @@ describe("Facebook tokenless oEmbed resolver", () => {
         canonicalUrl: normalPostUrl,
         endpoint: "https://graph.facebook.com/v25.0/oembed_post",
         postId: normalPostId
-      },
-      {
-        kind: "reel",
-        canonicalUrl: `https://www.facebook.com/reel/${normalPostId}/`,
-        endpoint: "https://graph.facebook.com/v25.0/oembed_video"
       }
     ]);
   });
@@ -101,23 +96,16 @@ describe("Facebook tokenless oEmbed resolver", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
-  it("can still fall back to a derived Reel when an unclassified post oEmbed is unavailable", async () => {
+  it("never probes the Reel endpoint when a normal post oEmbed is unavailable", async () => {
     const genericPostUrl = `https://www.facebook.com/${pageId}/posts/111`;
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse({ error: { message: "Unsupported get request" } }, 400))
-      .mockResolvedValueOnce(jsonResponse({ html: '<div class="fb-video"></div>' }));
-
-    await expect(resolveFacebookOembed(genericPostUrl, fetchImpl)).resolves.toEqual({
-      kind: "reel",
-      canonicalUrl: "https://www.facebook.com/reel/111/"
+    const fetchImpl = vi.fn(async (url) => {
+      const requested = new URL(String(url));
+      expect(requested.pathname).toBe("/v25.0/oembed_post");
+      return jsonResponse({ error: { message: "Unsupported get request" } }, 400);
     });
 
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
-    const firstRequest = new URL(String(fetchImpl.mock.calls[0][0]));
-    const secondRequest = new URL(String(fetchImpl.mock.calls[1][0]));
-    expect(firstRequest.pathname).toBe("/v25.0/oembed_post");
-    expect(secondRequest.pathname).toBe("/v25.0/oembed_video");
+    await expect(resolveFacebookOembed(genericPostUrl, fetchImpl)).resolves.toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it("serves the confirmed legacy Reel classification through the same-origin resolver", async () => {
