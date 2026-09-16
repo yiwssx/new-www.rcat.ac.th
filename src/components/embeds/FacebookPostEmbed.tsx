@@ -30,8 +30,8 @@ const facebookOembedRevision = "legacy-reel-v2";
 
 // Historical Facebook imports may have lost their original /reel/{id}
 // permalink and been stored as /{page}/posts/{id}. Keep the confirmed
-// legacy Reel available immediately during SSR/hydration so users never see
-// Facebook's broken post-plugin page before the resolver finishes.
+// legacy Reel classification available immediately during SSR/hydration,
+// but render those stored /posts/ permalinks through Facebook's post plugin.
 const confirmedLegacyReels = new Map<string, string>([["1609435494524655:1639846248150246", "1639846248150246"]]);
 
 function confirmedLegacyReelUrl(normalizedPostUrl: string) {
@@ -130,15 +130,13 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
   const resolution = matchingResolvedPost?.resolution || directResolution;
   const resolvedUrl = resolution?.canonicalUrl || normalizedPostUrl;
   const isReel = resolution?.kind === "reel" || isFacebookReelUrl(resolvedUrl);
-  // For historical imports, the resolver only classifies the original post as
-  // a Reel. The synthesized /reel/{postId} URL is not guaranteed to be a valid
-  // Facebook permalink, so the SDK must receive the real stored post URL.
-  const reelEmbedUrl =
-    isReel && normalizedPostUrl
-      ? isFacebookReelUrl(normalizedPostUrl)
-        ? resolvedUrl
-        : normalizedPostUrl
-      : resolvedUrl;
+
+  // The Meta video SDK is reliable for real /reel/ permalinks. Historical
+  // imports stored as /posts/ must keep Facebook's post-plugin transport: that
+  // is the original live embed path and avoids the SDK's broken-link screen on
+  // mobile when a post ID is only classified as a Reel by our resolver.
+  const useReelSdk = Boolean(isReel && normalizedPostUrl && isFacebookReelUrl(normalizedPostUrl));
+  const pluginEmbedUrl = isReel && !useReelSdk ? normalizedPostUrl : resolvedUrl;
   const safeSourceHref = normalizeSafeHref(normalizedPostUrl || postUrl);
   const canOpenSource = Boolean(postUrl.trim()) && safeSourceHref !== "#";
   const embedTitle = title || "Facebook post";
@@ -167,7 +165,7 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
     );
   }
 
-  const embedMaxWidth = Math.min(maxWidth, isReel ? facebookReelMaxWidth : facebookPluginWidth);
+  const embedMaxWidth = Math.min(maxWidth, useReelSdk ? facebookReelMaxWidth : facebookPluginWidth);
 
   return (
     <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
@@ -179,11 +177,11 @@ export default function FacebookPostEmbed({ postUrl, title, maxWidth = defaultEm
           maxWidth: embedMaxWidth
         }}
       >
-        {isReel ? (
-          <FacebookReelSdkEmbed href={reelEmbedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
+        {useReelSdk ? (
+          <FacebookReelSdkEmbed href={resolvedUrl} preferredWidth={embedMaxWidth} mode="video" showText={false} />
         ) : (
           <ResponsiveFacebookPluginEmbed
-            href={resolvedUrl}
+            href={pluginEmbedUrl}
             title={embedTitle}
             preferredWidth={embedMaxWidth}
             height={facebookPostHeight}
