@@ -1,4 +1,8 @@
-import { Box, Button, Divider, Stack, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Stack } from "@mui/material";
+import Stack from "@mui/material/Stack";
 
 export interface ActionBarProps {
   primary: ReactNode;

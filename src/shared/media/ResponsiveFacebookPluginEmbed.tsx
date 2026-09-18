@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Box } from "@mui/material";
+import Box from "@mui/material/Box";
 import { buildFacebookPostPluginUrl, clampFacebookPostPluginWidth } from "../../utils/facebookEmbed";
 import PublicDeferredEmbed from "./PublicDeferredEmbed";
 
@@ -39,6 +39,17 @@ export default function ResponsiveFacebookPluginEmbed({
     };
 
     measure();
+
+    const wrapper = wrapperRef.current;
+    if (wrapper && typeof ResizeObserver !== "undefined") {
+      const resizeObserver = new ResizeObserver(measure);
+      resizeObserver.observe(wrapper);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+
     window.addEventListener("resize", measure);
 
     return () => {

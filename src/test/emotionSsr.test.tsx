@@ -2,7 +2,8 @@
 
 import React from "react";
 import { CacheProvider } from "@emotion/react";
-import { Box, ThemeProvider } from "@mui/material";
+import Box from "@mui/material/Box";
+import { ThemeProvider } from "@mui/material/styles";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_EMOTION_CACHE_KEY, createAppEmotionCache } from "../emotionCache";

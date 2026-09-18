@@ -1,5 +1,9 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Alert, Button, Stack, TextField, Typography } from "@mui/material";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import {
   acceptCmsInvitation,
   CmsAuthError,

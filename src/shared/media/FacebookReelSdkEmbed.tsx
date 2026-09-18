@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Box } from "@mui/material";
+import Box from "@mui/material/Box";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 
 const FACEBOOK_SDK_SCRIPT_ID = "facebook-jssdk";
@@ -115,6 +115,17 @@ export default function FacebookReelSdkEmbed({
     };
 
     measure();
+
+    const wrapper = wrapperRef.current;
+    if (wrapper && typeof ResizeObserver !== "undefined") {
+      const resizeObserver = new ResizeObserver(measure);
+      resizeObserver.observe(wrapper);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+
     window.addEventListener("resize", measure);
 
     return () => {

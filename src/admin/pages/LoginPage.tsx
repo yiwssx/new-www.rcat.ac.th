@@ -1,18 +1,16 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "@tanstack/react-router";
-import {
-  Alert,
-  Button,
-  FormControl,
-  FormControlLabel,
-  FormLabel,
-  LinearProgress,
-  Radio,
-  RadioGroup,
-  Stack,
-  TextField,
-  Typography
-} from "@mui/material";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormLabel from "@mui/material/FormLabel";
+import LinearProgress from "@mui/material/LinearProgress";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import { getCmsSiteName } from "../../config/projectSettings";
 import { useAuth } from "../../context/authSessionContext";

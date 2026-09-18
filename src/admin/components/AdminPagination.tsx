@@ -1,15 +1,13 @@
 import { useId } from "react";
-import {
-  Box,
-  CircularProgress,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Pagination,
-  Select,
-  Stack,
-  Typography
-} from "@mui/material";
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Pagination from "@mui/material/Pagination";
+import Select from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import type { AdminPaginationMetadata } from "../../features/admin-pagination";
 import { ADMIN_PAGE_SIZE_OPTIONS } from "../../features/admin-pagination";
 

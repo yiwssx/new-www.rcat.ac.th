@@ -1,5 +1,11 @@
 import { FormEvent, useMemo, useState } from "react";
-import { Alert, Button, Card, CardContent, Stack, TextField, Typography } from "@mui/material";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import type { CmsMfaSetup } from "../../features/cms-auth";
 

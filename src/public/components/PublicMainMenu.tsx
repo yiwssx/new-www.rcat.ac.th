@@ -1,18 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Box,
-  Container,
-  IconButton,
-  Drawer,
-  List,
-  ListItemButton,
-  ListItemText,
-  Collapse,
-  Stack,
-  Typography,
-  Divider,
-  useMediaQuery
-} from "@mui/material";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import IconButton from "@mui/material/IconButton";
+import Drawer from "@mui/material/Drawer";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
+import Collapse from "@mui/material/Collapse";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import Divider from "@mui/material/Divider";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { alpha, useTheme } from "@mui/material/styles";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
@@ -84,12 +82,13 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
             })}
           >
             <span>{item.label}</span>
-            {item.children?.length &&
-              (nested ? (
+            {item.children?.length ? (
+              nested ? (
                 <KeyboardArrowRightOutlinedIcon sx={{ fontSize: 18 }} />
               ) : (
                 <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 18 }} />
-              ))}
+              )
+            ) : null}
           </Box>
           {Boolean(item.children?.length) && (
             <Box

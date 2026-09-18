@@ -107,6 +107,18 @@ describe("Thai display date normalization", () => {
     expect(formatDisplayDate(bangkokBoundaryUtc)).toBe("01/08/2569");
   });
 
+  it("migrates legacy display settings to the versioned storage key", () => {
+    const legacyStorageKey = "rcat.cms.display.settings";
+    const versionedStorageKey = projectSettings.storageKeys.displaySettings;
+    const legacySettings = { dateFormat: "d/m/Y", timeMode: "24h" };
+
+    window.localStorage.setItem(legacyStorageKey, JSON.stringify(legacySettings));
+
+    expect(getStoredDisplaySettings()).toEqual(legacySettings);
+    expect(window.localStorage.getItem(legacyStorageKey)).toBeNull();
+    expect(JSON.parse(window.localStorage.getItem(versionedStorageKey) || "{}")).toEqual(legacySettings);
+  });
+
   it("shows Buddhist Era examples for every Admin Settings preset", () => {
     expect(dateFormatPresets.map((preset) => preset.label)).toEqual([
       "27 เมษายน 2569 (j F Y)",

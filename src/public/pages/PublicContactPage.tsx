@@ -1,4 +1,9 @@
-import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 
 import FaxOutlinedIcon from "@mui/icons-material/FaxOutlined";
