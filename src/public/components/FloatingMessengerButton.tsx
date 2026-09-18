@@ -1,4 +1,6 @@
-import { Box, Fab, Tooltip } from "@mui/material";
+import Box from "@mui/material/Box";
+import Fab from "@mui/material/Fab";
+import Tooltip from "@mui/material/Tooltip";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { focusVisibleSx } from "../../design-system/componentStyles";
 import { designTokens } from "../../design-system/tokens";

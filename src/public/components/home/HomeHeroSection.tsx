@@ -1,4 +1,8 @@
-import { Box, Button, Chip, Stack, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { alpha } from "@mui/material/styles";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";

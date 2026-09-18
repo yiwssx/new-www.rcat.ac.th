@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Container } from "@mui/material";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
 import type { CarouselSlide, HomepageCarouselSettings } from "../../types";
 import { normalizeCarouselSlide } from "../../features/cms-carousel/normalization";
 import CarouselImageStage from "../../shared/components/CarouselImageStage";
