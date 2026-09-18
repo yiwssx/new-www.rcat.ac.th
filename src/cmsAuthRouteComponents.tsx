@@ -1,5 +1,9 @@
 import { lazy, Suspense, type ReactElement } from "react";
-import { Alert, Box, Button, Stack, Typography } from "@mui/material";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { Navigate, Outlet } from "@tanstack/react-router";
 import RecoveryCodeNavigationGuard from "./admin/components/RecoveryCodeNavigationGuard";
 import { AuthProvider } from "./context/AuthContext";

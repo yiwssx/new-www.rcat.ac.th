@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { Alert, Dialog, DialogContent, DialogTitle, Stack } from "@mui/material";
+import Alert from "@mui/material/Alert";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import Stack from "@mui/material/Stack";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../../context/authSessionContext";
 import { useRecoveryCodeHandoff } from "../../context/RecoveryCodeHandoffContext";
