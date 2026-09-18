@@ -84,12 +84,13 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
             })}
           >
             <span>{item.label}</span>
-            {item.children?.length &&
-              (nested ? (
+            {item.children?.length ? (
+              nested ? (
                 <KeyboardArrowRightOutlinedIcon sx={{ fontSize: 18 }} />
               ) : (
                 <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 18 }} />
-              ))}
+              )
+            ) : null}
           </Box>
           {Boolean(item.children?.length) && (
             <Box

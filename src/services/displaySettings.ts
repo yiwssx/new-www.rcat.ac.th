@@ -49,7 +49,8 @@ export function normalizeDisplaySettings(input: unknown): DisplaySettings {
   };
 }
 
-const displaySettingsStorageKey = projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings";
+const legacyDisplaySettingsStorageKey = "rcat.cms.display.settings";
+const displaySettingsStorageKey = projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings.v2";
 
 function getDisplaySettingsStorage() {
   if (typeof window === "undefined") {
@@ -79,9 +80,15 @@ function parseStoredDisplaySettings(): DisplaySettings | null {
   }
 
   let raw: string;
+  let migratedLegacyValue = false;
 
   try {
     raw = storage.getItem(displaySettingsStorageKey) || "";
+
+    if (!raw && displaySettingsStorageKey !== legacyDisplaySettingsStorageKey) {
+      raw = storage.getItem(legacyDisplaySettingsStorageKey) || "";
+      migratedLegacyValue = Boolean(raw);
+    }
   } catch {
     return null;
   }
@@ -93,9 +100,19 @@ function parseStoredDisplaySettings(): DisplaySettings | null {
   try {
     const parsed = JSON.parse(raw);
     const normalized = normalizeDisplaySettings(parsed);
-    if (raw !== JSON.stringify(normalized)) {
+
+    if (migratedLegacyValue || raw !== JSON.stringify(normalized)) {
       persistDisplaySettings(normalized);
     }
+
+    if (migratedLegacyValue) {
+      try {
+        storage.removeItem(legacyDisplaySettingsStorageKey);
+      } catch {
+        // The migrated value is already persisted under the versioned key.
+      }
+    }
+
     return normalized;
   } catch {
     return null;

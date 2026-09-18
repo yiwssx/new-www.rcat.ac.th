@@ -3,7 +3,8 @@ import { PUBLIC_CACHE_FRESHNESS_MS } from "../config/publicCachePolicy";
 
 export const PUBLIC_SNAPSHOT_CACHE_KEY = "rcat.cms.public.snapshot.v2";
 const PUBLIC_HOME_CACHE_KEY = "rcat.cms.public.home.snapshot.v2";
-const PUBLIC_DOCUMENT_LIST_CACHE_KEY = "rcat.cms.public.document-list";
+const PUBLIC_DOCUMENT_LIST_CACHE_KEY = "rcat.cms.public.document-list.v2";
+const LEGACY_PUBLIC_DOCUMENT_LIST_CACHE_KEY = "rcat.cms.public.document-list";
 const PUBLIC_CONTENT_LIST_CACHE_PREFIX = "rcat.cms.public.content-list.v2.";
 const PUBLIC_CONTENT_LIST_CACHE_KINDS = ["news", "announcements", "blog"];
 const PUBLIC_PROGRAM_LIST_CACHE_KEY = "rcat.cms.public.program-list.v2";
@@ -207,6 +208,7 @@ export function clearPublicCmsCache() {
   removePublicCache(PUBLIC_SNAPSHOT_CACHE_KEY);
   removePublicCache(PUBLIC_HOME_CACHE_KEY);
   removePublicCache(PUBLIC_DOCUMENT_LIST_CACHE_KEY);
+  removePublicCache(LEGACY_PUBLIC_DOCUMENT_LIST_CACHE_KEY);
   removePublicCache(PUBLIC_PROGRAM_LIST_CACHE_KEY);
   removePublicCache(PUBLIC_SEARCH_INDEX_CACHE_KEY);
   PUBLIC_CONTENT_LIST_CACHE_KINDS.forEach((kind) => {

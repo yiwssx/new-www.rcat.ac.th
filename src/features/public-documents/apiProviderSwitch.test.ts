@@ -65,7 +65,7 @@ describe("public document API wrapper", () => {
   it("preserves the public document cache key and TTL", () => {
     setPublicDocumentListCache(cloudflareSnapshot);
 
-    expect(PUBLIC_DOCUMENT_LIST_CACHE_KEY).toBe("rcat.cms.public.document-list");
+    expect(PUBLIC_DOCUMENT_LIST_CACHE_KEY).toBe("rcat.cms.public.document-list.v2");
     expect(PUBLIC_DOCUMENT_LIST_CACHE_TTL_MS).toBe(15 * 60 * 1000);
     expect(getPublicDocumentListCache()?.data).toEqual(cloudflareSnapshot);
   });

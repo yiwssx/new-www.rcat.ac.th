@@ -115,6 +115,17 @@ export default function FacebookReelSdkEmbed({
     };
 
     measure();
+
+    const wrapper = wrapperRef.current;
+    if (wrapper && typeof ResizeObserver !== "undefined") {
+      const resizeObserver = new ResizeObserver(measure);
+      resizeObserver.observe(wrapper);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+
     window.addEventListener("resize", measure);
 
     return () => {

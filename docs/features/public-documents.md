@@ -71,7 +71,7 @@ Public documents sort by:
 
 ## Cache Behavior
 
-Cloudflare Worker/D1 returns the public document list. Frontend public document cache uses `rcat.cms.public.document-list`, and the shared public CMS invalidation helper clears it after document mutations.
+Cloudflare Worker/D1 returns the public document list. Frontend public document cache uses `rcat.cms.public.document-list.v2`, and the shared public CMS invalidation helper clears it after document mutations.
 
 Saving or deleting a document invalidates:
 
@@ -82,7 +82,7 @@ Saving or deleting a document invalidates:
 
 Site view tracking does not invalidate document cache.
 
-The frontend also has a local public document list cache key: `rcat.cms.public.document-list`, and `clearPublicCmsCache()` clears it.
+The frontend also has a local public document list cache key: `rcat.cms.public.document-list.v2`, and `clearPublicCmsCache()` clears it.
 
 ## Migration From Keyword-Derived Pages
 
