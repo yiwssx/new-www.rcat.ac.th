@@ -1,4 +1,6 @@
-import { LinearProgress, Stack, Typography } from "@mui/material";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import type { MediaUploadProgress } from "../../features/cms-media";
 import { formatFileSize } from "../../utils/files";
 

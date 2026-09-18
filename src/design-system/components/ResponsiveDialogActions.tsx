@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { DialogActions } from "@mui/material";
+import DialogActions from "@mui/material/DialogActions";
 
 export interface ResponsiveDialogActionsProps {
   children: ReactNode;

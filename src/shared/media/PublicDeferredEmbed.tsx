@@ -1,5 +1,6 @@
 import type { HTMLAttributeReferrerPolicy } from "react";
-import { Box, type SxProps, type Theme } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
+import Box from "@mui/material/Box";
 import { normalizeSafeResourceUrl } from "../../utils/safeUrlCore";
 import { usePublicMediaLoading } from "./publicMediaLoadingState";
 import { useNearViewportActivation } from "./useNearViewportActivation";

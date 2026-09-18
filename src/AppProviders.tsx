@@ -1,7 +1,8 @@
 import type { PropsWithChildren } from "react";
 import type { EmotionCache } from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { theme } from "./theme";

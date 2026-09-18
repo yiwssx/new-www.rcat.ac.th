@@ -1,5 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { useAuth } from "../../context/authSessionContext";
 import { invalidateAdminListQueries } from "../../features/admin-pagination";
 import { CmsAuthError } from "../../features/cms-auth";

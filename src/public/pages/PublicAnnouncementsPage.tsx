@@ -1,6 +1,9 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Button, Chip, Stack, Typography } from "@mui/material";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";

@@ -1,4 +1,5 @@
-import { Chip, type ChipProps } from "@mui/material";
+import type { ChipProps } from "@mui/material";
+import Chip from "@mui/material/Chip";
 import { semanticStatusTokens, type SemanticStatus } from "../tokens";
 
 export interface SemanticStatusChipProps {

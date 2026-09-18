@@ -1,4 +1,7 @@
-import { Alert, Box, Button, Stack } from "@mui/material";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
 import FacebookReelSdkEmbed from "../../shared/media/FacebookReelSdkEmbed";
 import ResponsiveFacebookPluginEmbed from "../../shared/media/ResponsiveFacebookPluginEmbed";
 import { isFacebookReelUrl, normalizeFacebookPostUrl } from "../../utils/facebookEmbed";

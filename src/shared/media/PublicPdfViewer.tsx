@@ -1,6 +1,9 @@
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import type { MediaAsset } from "../../types";
 import { focusVisibleSx } from "../../design-system/componentStyles";
 import { getPdfOpenUrl, getPdfViewerUrl, isPdfMediaAsset } from "./pdfMedia";

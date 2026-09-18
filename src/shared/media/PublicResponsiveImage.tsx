@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import BrokenImageOutlinedIcon from "@mui/icons-material/BrokenImageOutlined";
-import { Box, type SxProps, type Theme } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
+import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
 import { resolvePublicImageSource, type PublicImageAssetSource, type PublicImageIntent } from "./publicImageSources";
 import { usePublicMediaLoading } from "./publicMediaLoadingState";

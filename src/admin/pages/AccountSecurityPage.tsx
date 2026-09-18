@@ -1,19 +1,17 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Checkbox,
-  CircularProgress,
-  FormControlLabel,
-  Stack,
-  TextField,
-  Typography
-} from "@mui/material";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Checkbox from "@mui/material/Checkbox";
+import CircularProgress from "@mui/material/CircularProgress";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import {
   changeCmsPassword,
   cmsStepUpCoordinator,
