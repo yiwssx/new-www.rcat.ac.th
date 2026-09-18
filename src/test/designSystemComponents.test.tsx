@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
-import { Button, IconButton, TextField, ThemeProvider } from "@mui/material";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import TextField from "@mui/material/TextField";
+import { ThemeProvider } from "@mui/material/styles";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
