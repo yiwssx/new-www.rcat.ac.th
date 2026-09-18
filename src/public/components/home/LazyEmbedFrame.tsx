@@ -1,5 +1,6 @@
 import type { HTMLAttributeReferrerPolicy } from "react";
-import type { SxProps, Theme } from "@mui/material";
+import type { SxProps } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import PublicDeferredEmbed from "../../../shared/media/PublicDeferredEmbed";
 
 interface LazyEmbedFrameProps {

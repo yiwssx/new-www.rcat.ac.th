@@ -1,5 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { Box, Chip, Container, Stack, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import Container from "@mui/material/Container";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";

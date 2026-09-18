@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BrokenImageOutlinedIcon from "@mui/icons-material/BrokenImageOutlined";
-import { Box, Stack, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { CarouselSlide } from "../../features/cms-carousel/types";
 import { normalizeCarouselSlide } from "../../features/cms-carousel/normalization";
