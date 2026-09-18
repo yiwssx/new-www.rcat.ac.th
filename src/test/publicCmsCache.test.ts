@@ -403,6 +403,26 @@ describe("publicCmsCache", () => {
     expect(window.localStorage.getItem(PUBLIC_PROGRAM_LIST_CACHE_KEY)).toBeNull();
   });
 
+  it("migrates the legacy public document list cache without extending its original TTL", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-04T00:00:00.000Z"));
+    const legacyKey = "rcat.cms.public.document-list";
+    const snapshot: PublicDocumentListSnapshot = {
+      items: [],
+      generatedAt: "2026-05-04T00:00:00.000Z"
+    };
+
+    writePublicCache(legacyKey, snapshot, 15 * 60 * 1000);
+    vi.setSystemTime(new Date("2026-05-04T00:05:00.000Z"));
+
+    expect(getPublicDocumentListCache()?.data).toEqual(snapshot);
+    expect(window.localStorage.getItem(legacyKey)).toBeNull();
+    expect(window.localStorage.getItem(PUBLIC_DOCUMENT_LIST_CACHE_KEY)).not.toBeNull();
+
+    vi.setSystemTime(new Date("2026-05-04T00:15:00.001Z"));
+    expect(getPublicDocumentListCache()).toBeNull();
+  });
+
   it("keeps public document list cache separate and clears it with public CMS cache", () => {
     const documentSnapshot: PublicDocumentListSnapshot = {
       items: [

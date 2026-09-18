@@ -49,7 +49,8 @@ export function normalizeDisplaySettings(input: unknown): DisplaySettings {
   };
 }
 
-const displaySettingsStorageKey = projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings";
+const displaySettingsStorageKey = projectSettings.storageKeys.displaySettings || "rcat.cms.display.settings.v1";
+const legacyDisplaySettingsStorageKey = "rcat.cms.display.settings";
 
 function getDisplaySettingsStorage() {
   if (typeof window === "undefined") {
@@ -65,7 +66,12 @@ function getDisplaySettingsStorage() {
 
 export function persistDisplaySettings(settings: DisplaySettings) {
   try {
-    getDisplaySettingsStorage()?.setItem(displaySettingsStorageKey, JSON.stringify(settings));
+    const storage = getDisplaySettingsStorage();
+    storage?.setItem(displaySettingsStorageKey, JSON.stringify(settings));
+
+    if (displaySettingsStorageKey !== legacyDisplaySettingsStorageKey) {
+      storage?.removeItem(legacyDisplaySettingsStorageKey);
+    }
   } catch {
     // Display settings are a local presentation cache; API data remains authoritative.
   }
@@ -80,8 +86,15 @@ function parseStoredDisplaySettings(): DisplaySettings | null {
 
   let raw: string;
 
+  let sourceKey = displaySettingsStorageKey;
+
   try {
     raw = storage.getItem(displaySettingsStorageKey) || "";
+
+    if (!raw && displaySettingsStorageKey !== legacyDisplaySettingsStorageKey) {
+      raw = storage.getItem(legacyDisplaySettingsStorageKey) || "";
+      sourceKey = legacyDisplaySettingsStorageKey;
+    }
   } catch {
     return null;
   }
@@ -93,7 +106,7 @@ function parseStoredDisplaySettings(): DisplaySettings | null {
   try {
     const parsed = JSON.parse(raw);
     const normalized = normalizeDisplaySettings(parsed);
-    if (raw !== JSON.stringify(normalized)) {
+    if (sourceKey !== displaySettingsStorageKey || raw !== JSON.stringify(normalized)) {
       persistDisplaySettings(normalized);
     }
     return normalized;

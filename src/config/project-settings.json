@@ -16,7 +16,7 @@
     "refetchOnWindowFocus": false
   },
   "storageKeys": {
-    "displaySettings": "rcat.cms.display.settings"
+    "displaySettings": "rcat.cms.display.settings.v1"
   },
   "roles": [
     {

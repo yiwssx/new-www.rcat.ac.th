@@ -70,6 +70,18 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@mui/material",
+              allowTypeImports: true,
+              message: "Use direct @mui/material/<Component> imports; type-only root imports are allowed."
+            }
+          ]
+        }
+      ],
       "@typescript-eslint/no-unused-vars": [
         "warn",
         {

@@ -100,6 +100,19 @@ describe("Thai display date normalization", () => {
     }
   );
 
+  it("migrates legacy unversioned display settings to the current storage key", () => {
+    const storageKey = projectSettings.storageKeys.displaySettings;
+    const legacyStorageKey = "rcat.cms.display.settings";
+    const legacySettings = { dateFormat: "d/m/Y", timeMode: "24h" };
+
+    expect(storageKey).toBe("rcat.cms.display.settings.v1");
+    window.localStorage.setItem(legacyStorageKey, JSON.stringify(legacySettings));
+
+    expect(getStoredDisplaySettings()).toEqual(legacySettings);
+    expect(window.localStorage.getItem(legacyStorageKey)).toBeNull();
+    expect(JSON.parse(window.localStorage.getItem(storageKey) || "{}")).toEqual(legacySettings);
+  });
+
   it("uses display settings persisted from a public API snapshot", () => {
     const storageKey = projectSettings.storageKeys.displaySettings;
     window.localStorage.setItem(storageKey, JSON.stringify({ dateFormat: "d/m/Y", timeMode: "24h" }));
