@@ -1,4 +1,4 @@
-import type { ChipProps } from "@mui/material";
+import type { ChipProps } from "@mui/material/Chip";
 import { ContentStatus, IntegrationState } from "../../types";
 import { contentStatusLabels, integrationStateLabels } from "../../utils/thaiLabels";
 import SemanticStatusChip from "../../design-system/components/SemanticStatusChip";
