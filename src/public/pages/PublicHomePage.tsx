@@ -1,5 +1,7 @@
 import { lazy, ReactNode, Suspense, useEffect, useRef, useState } from "react";
-import { Box, Container, Stack } from "@mui/material";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Stack from "@mui/material/Stack";
 import Grid from "@mui/material/Grid";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";

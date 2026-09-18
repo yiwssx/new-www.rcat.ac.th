@@ -1,5 +1,10 @@
 import { ReactNode } from "react";
-import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import { MediaAsset, PublicContentCardItem } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";

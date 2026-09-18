@@ -1,4 +1,8 @@
-import { Box, Container, Skeleton, Stack, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Skeleton from "@mui/material/Skeleton";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { FooterDirectoryGroup } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { getEnabledFooterDirectoryGroups } from "./publicFooterDirectoryPolicy";
