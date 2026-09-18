@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Box, Button, Card, CardContent, LinearProgress, Stack, Typography } from "@mui/material";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import { designTokens } from "../../design-system/tokens";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
