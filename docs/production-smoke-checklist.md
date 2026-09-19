@@ -1,6 +1,6 @@
 # Production Smoke Checklist
 
-Updated: 2026-09-16.
+Updated: 2026-09-19.
 
 ใช้เช็กลิสต์นี้หลัง Deploy ทุกครั้ง เพื่อยืนยันว่าเว็บไซต์สาธารณะและ CMS ยังทำงานได้ครบตามจุดเสี่ยงหลักก่อนประกาศใช้งานจริง
 
@@ -120,7 +120,7 @@ Updated: 2026-09-16.
 - [ ] Speed Insights ไม่แสดง regression ที่ชัดเจน
 - [ ] First load performance ยังอยู่ในระดับที่ยอมรับได้สำหรับผู้ใช้จริง
 
-หมายเหตุ: Phase A automation ใช้ GitHub `Vercel` commit-status context เป็น gate ก่อนยิง production browser smoke และตอนนี้ fail closed หากสถานะ `success` เป็น `Canceled by Ignored Build Step`/`Ignored Build Step` หรือไม่มี deployment `target_url` ดังนั้น ignored build จะไม่ถูกตีความเป็น matching deployment ที่พร้อมตรวจอีกต่อไป หาก release ต้องการหลักฐานระดับ Vercel deployment ID ให้บันทึก deployment ID/URL เพิ่มเติมตามขอบเขตงานนั้น
+หมายเหตุ: Phase A automation ใช้ runtime classifier เดียวกับ Vercel ก่อนอ่าน GitHub `Vercel` commit-status context หากสถานะเป็น `Canceled by Ignored Build Step`/`Ignored Build Step` และ diff เป็น non-runtime-only จะถือเป็น expected ignored build และจบสำเร็จโดยไม่รัน browser smoke เพราะไม่มี production deployment ใหม่ แต่ถ้าเป็น runtime-impacting change แล้ว Vercel ignore จะ fail closed ทันที สำหรับ deployment ปกติยังต้องมีสถานะ `success` และ `target_url` ก่อนรัน browser smoke หาก release ต้องการหลักฐานระดับ Vercel deployment ID ให้บันทึก deployment ID/URL เพิ่มเติมตามขอบเขตงานนั้น
 
 ## 8. Rollback Readiness
 
