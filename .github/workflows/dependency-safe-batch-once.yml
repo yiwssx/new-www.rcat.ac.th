@@ -50,7 +50,7 @@ jobs:
           NODE
 
       - name: Resolve lockfile with strict peers
-        run: pnpm install --strict-peer-dependencies --ignore-scripts
+        run: pnpm install --no-frozen-lockfile --strict-peer-dependencies --ignore-scripts
 
       - name: Verify selected versions
         shell: bash
