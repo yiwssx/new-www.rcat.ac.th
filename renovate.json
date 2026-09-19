@@ -1,13 +1,24 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "dependencyDashboard": false,
-  "enabledManagers": ["npm", "github-actions"],
-  "includePaths": ["package.json", ".github/workflows/**"],
-  "baseBranchPatterns": ["master"],
+  "extends": [
+    "config:recommended"
+  ],
+  "dependencyDashboard": true,
+  "enabledManagers": [
+    "npm",
+    "github-actions"
+  ],
+  "includePaths": [
+    "package.json",
+    ".github/workflows/**"
+  ],
+  "baseBranchPatterns": [
+    "master"
+  ],
   "timezone": "Asia/Bangkok",
-  "schedule": ["* 1-5 * * 1-5"],
-  "labels": ["dependencies"],
+  "labels": [
+    "dependencies"
+  ],
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
@@ -18,8 +29,8 @@
   "automergeStrategy": "merge-commit",
   "platformAutomerge": false,
   "ignoreTests": false,
-  "prConcurrentLimit": 2,
-  "branchConcurrentLimit": 2,
+  "prConcurrentLimit": 6,
+  "branchConcurrentLimit": 6,
   "lockFileMaintenance": {
     "enabled": false
   },
@@ -27,15 +38,26 @@
   "packageRules": [
     {
       "description": "Manage only direct dependencies declared in the root package.json",
-      "matchManagers": ["npm"],
-      "matchFileNames": ["package.json"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "package.json"
+      ],
+      "matchDepTypes": [
+        "dependencies",
+        "devDependencies"
+      ],
       "enabled": true
     },
     {
       "description": "Do not manage runtime metadata, package-manager metadata, overrides, peers, or other non-direct dependency fields",
-      "matchManagers": ["npm"],
-      "matchFileNames": ["package.json"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "package.json"
+      ],
       "matchDepTypes": [
         "engines",
         "packageManager",
@@ -51,62 +73,115 @@
     },
     {
       "description": "Wait three days before normal direct npm updates",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "dependencies",
+        "devDependencies"
+      ],
       "minimumReleaseAge": "3 days",
       "internalChecksFilter": "strict"
     },
     {
       "description": "Automatically merge stable patch and minor direct npm updates",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "dependencies",
+        "devDependencies"
+      ],
       "matchCurrentVersion": "!/^0/",
-      "matchUpdateTypes": ["patch", "minor"],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
       "automerge": true,
       "automergeType": "pr"
     },
     {
       "description": "Keep TypeScript within the installed typescript-eslint peer range",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
-      "matchPackageNames": ["typescript"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "dependencies",
+        "devDependencies"
+      ],
+      "matchPackageNames": [
+        "typescript"
+      ],
       "allowedVersions": ">=4.8.4 <6.1.0"
     },
     {
       "description": "Keep Node declarations aligned with the Node 24 runtime",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
-      "matchPackageNames": ["@types/node"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "dependencies",
+        "devDependencies"
+      ],
+      "matchPackageNames": [
+        "@types/node"
+      ],
       "allowedVersions": ">=24.0.0 <25.0.0"
     },
     {
       "description": "Manage GitHub Actions by version tags and automatically merge updates after CI",
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "pinDigests": false,
       "automerge": true,
       "automergeType": "pr",
-      "addLabels": ["github-actions"]
+      "addLabels": [
+        "github-actions"
+      ]
     },
     {
       "description": "Require manual review for major direct npm updates",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
-      "matchUpdateTypes": ["major"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "dependencies",
+        "devDependencies"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "automerge": false,
-      "addLabels": ["major-update", "manual-review"]
+      "addLabels": [
+        "major-update",
+        "manual-review"
+      ]
     },
     {
       "description": "Require manual review for unstable zero-major direct packages",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "dependencies",
+        "devDependencies"
+      ],
       "matchCurrentVersion": "/^0\\./",
       "automerge": false,
-      "addLabels": ["unstable-package", "manual-review"]
+      "addLabels": [
+        "unstable-package",
+        "manual-review"
+      ]
     }
   ],
   "vulnerabilityAlerts": {
     "enabled": true,
-    "labels": ["dependencies", "security"],
+    "labels": [
+      "dependencies",
+      "security"
+    ],
     "prConcurrentLimit": 2
-  }
+  },
+  "prHourlyLimit": 4
 }
