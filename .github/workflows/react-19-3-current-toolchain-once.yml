@@ -1,0 +1,104 @@
+name: React 19.3 Current Toolchain Once
+
+on:
+  push:
+    branches:
+      - chore/react-19-3-current-toolchain-2026-09-19
+
+permissions:
+  contents: write
+
+concurrency:
+  group: react-19-3-current-toolchain-once
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: chore/react-19-3-current-toolchain-2026-09-19
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Apply React 19.3 monorepo versions
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const path = "package.json";
+          const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
+          Object.assign(pkg.dependencies, {
+            "react": "^19.3.0",
+            "react-dom": "^19.3.0"
+          });
+          Object.assign(pkg.devDependencies, {
+            "@types/react": "^19.3.0",
+            "@types/react-dom": "^19.3.0"
+          });
+          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
+          NODE
+
+      - name: Resolve lockfile with strict peers
+        run: pnpm install --no-frozen-lockfile --strict-peer-dependencies --ignore-scripts
+
+      - name: Verify selected versions
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          const expected = {
+            dependencies: {
+              "react": "^19.3.0",
+              "react-dom": "^19.3.0"
+            },
+            devDependencies: {
+              "@types/react": "^19.3.0",
+              "@types/react-dom": "^19.3.0"
+            }
+          };
+          for (const [section, entries] of Object.entries(expected)) {
+            for (const [name, version] of Object.entries(entries)) {
+              if (pkg[section][name] !== version) {
+                throw new Error(`${section}.${name}: expected ${version}, got ${pkg[section][name]}`);
+              }
+            }
+          }
+          NODE
+          pnpm list react react-dom @types/react @types/react-dom --depth 0
+
+      - name: Generate canonical dependency status
+        run: pnpm deps:status
+
+      - name: Verify generated change scope
+        shell: bash
+        run: |
+          allowed='^(package.json|pnpm-lock.yaml|docs/maintenance/dependency-current-status.md|.github/workflows/react-19-3-current-toolchain-once.yml)$'
+          unexpected="$(git status --porcelain --untracked-files=no | awk '{print $2}' | grep -Ev "$allowed" || true)"
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected tracked changes:"
+            echo "$unexpected"
+            exit 1
+          fi
+
+      - name: Remove one-time workflow and commit result
+        shell: bash
+        run: |
+          rm .github/workflows/react-19-3-current-toolchain-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml docs/maintenance/dependency-current-status.md .github/workflows/react-19-3-current-toolchain-once.yml
+          git diff --cached --check
+          git commit -m "fix(deps): update react monorepo to 19.3"
+          git push origin HEAD:chore/react-19-3-current-toolchain-2026-09-19
