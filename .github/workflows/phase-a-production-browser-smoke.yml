@@ -6,6 +6,8 @@ on:
       - CI
     types:
       - completed
+    branches:
+      - master
   workflow_dispatch:
     inputs:
       base_url:
@@ -18,8 +20,8 @@ permissions:
   contents: read
   statuses: read
 
-# workflow_run fires for CI on every branch. Scope concurrency to the source
-# branch so a completed PR/Renovate CI cannot cancel an in-flight master smoke.
+# workflow_run is filtered to master at the trigger. Keep concurrency scoped to
+# the source branch so manual runs remain isolated from automatic production smoke.
 concurrency:
   group: phase-a-production-browser-smoke-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: true
@@ -42,11 +44,45 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 2
+
+      - name: Classify Vercel runtime impact
+        id: runtime_impact
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          CHANGED_PATHS_FILE: ${{ runner.temp }}/phase-a-changed-paths
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git diff --name-only -z HEAD^ HEAD > "$CHANGED_PATHS_FILE"
+          git diff --name-only HEAD^ HEAD
+
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import { shouldIgnoreVercelBuild } from "./scripts/vercel-ignore-build.mjs";
+
+          const changedPaths = fs
+            .readFileSync(process.env.CHANGED_PATHS_FILE)
+            .toString("utf8")
+            .split("\0")
+            .filter(Boolean);
+          const expectedIgnored = shouldIgnoreVercelBuild(changedPaths);
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `expected_ignored=${expectedIgnored}\n`);
+          console.log(
+            expectedIgnored
+              ? `Vercel runtime classifier: ${changedPaths.length} non-runtime path(s); an ignored build is expected.`
+              : "Vercel runtime classifier: a production deployment is required for this change."
+          );
+          NODE
 
       - name: Wait for matching Vercel production deployment
+        id: vercel_gate
         if: ${{ github.event_name == 'workflow_run' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          EXPECTED_IGNORED: ${{ steps.runtime_impact.outputs.expected_ignored }}
         shell: bash
         run: |
           set -euo pipefail
@@ -79,7 +115,12 @@ jobs:
             case "$state" in
               success)
                 if [[ "$description" == *"Canceled by Ignored Build Step"* || "$description" == *"Ignored Build Step"* ]]; then
-                  echo "Vercel did not create a production deployment for $TARGET_SHA: $description" >&2
+                  if [[ "$EXPECTED_IGNORED" == "true" ]]; then
+                    echo "Vercel intentionally skipped a non-runtime-only change for $TARGET_SHA: $description"
+                    echo "skip_smoke=true" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+                  echo "Vercel unexpectedly skipped a runtime-impacting change for $TARGET_SHA: $description" >&2
                   exit 1
                 fi
                 if [[ -z "$target_url" ]]; then
@@ -87,6 +128,7 @@ jobs:
                   exit 1
                 fi
                 echo "Vercel production deployment for $TARGET_SHA is ready: $target_url"
+                echo "skip_smoke=false" >> "$GITHUB_OUTPUT"
                 exit 0
                 ;;
               failure|error)
@@ -108,21 +150,26 @@ jobs:
           exit 1
 
       - uses: pnpm/action-setup@v6
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
         with:
           version: 10.34.5
           run_install: false
 
       - uses: actions/setup-node@v7
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
         with:
           node-version-file: .node-version
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
 
       - name: Install Chromium
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run read-only production browser smoke
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
         env:
           PHASE_A_PRODUCTION_BASE_URL: ${{ env.TARGET_URL }}
         run: pnpm exec playwright test --config playwright.production.config.ts
@@ -148,7 +195,13 @@ jobs:
             echo "- Commit: $TARGET_SHA"
             echo "- Trigger: ${{ github.event_name }}"
             echo "- Mode: read-only"
-            echo "- Automatic path: successful master CI -> non-ignored Vercel deployment status with target URL -> browser smoke"
+            if [[ "${{ steps.vercel_gate.outputs.skip_smoke }}" == "true" ]]; then
+              echo "- Automatic path: successful master CI -> expected non-runtime Vercel ignore -> no browser smoke required"
+              echo "- Browser smoke: not required because no new production deployment was created"
+            else
+              echo "- Automatic path: successful master CI -> matching Vercel deployment with target URL -> browser smoke"
+              echo "- Browser smoke: required"
+            fi
             echo "- Browsers: desktop Chromium + mobile Chromium"
             echo "- Runtime diagnostics: page errors, same-origin console errors, request failures, HTTP 5xx, critical asset/document 4xx"
             echo "- Production writes: none"
