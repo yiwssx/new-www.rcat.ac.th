@@ -1,6 +1,6 @@
 # Production Smoke Test Report Template
 
-Updated: 2026-09-16.
+Updated: 2026-09-19.
 
 ใช้เอกสารนี้บันทึกผลตรวจจริงหลัง Deploy โดยอ้างอิงจาก [Production Smoke Checklist](./production-smoke-checklist.md)
 
@@ -209,7 +209,7 @@ Public structured data has no `VITE_PUBLIC_API_PROVIDER` selector. Browser code 
 - [ ] Speed Insights does not show obvious regression
 - [ ] First load performance remains acceptable
 
-**Exact-deployment note:** Phase A now fails closed when GitHub's `Vercel` status is `Canceled by Ignored Build Step`/`Ignored Build Step` or when a successful status has no deployment `target_url`. A passing automatic Phase A run therefore cannot start from an ignored build. Record the actual Vercel deployment ID/URL above whenever the release process requires deployment-record evidence in addition to the commit-linked gate.
+**Exact-deployment note:** Phase A classifies the commit diff with the same Vercel runtime rules before evaluating GitHub's `Vercel` status. `Canceled by Ignored Build Step`/`Ignored Build Step` is accepted only for a non-runtime-only diff, in which case no new production deployment exists and browser smoke is not required. An ignored runtime-impacting change still fails closed. A normal deployment must report `success` with a non-empty `target_url` before browser smoke starts. Record the actual Vercel deployment ID/URL above whenever the release process requires deployment-record evidence in addition to the commit-linked gate.
 
 **Evidence / notes:**
 
