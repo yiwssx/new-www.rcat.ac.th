@@ -11,10 +11,7 @@ const monitoringWorkflow = readFileSync(
   join(repositoryRoot, ".github", "workflows", "dependency-monitoring.yml"),
   "utf8"
 );
-const dependencyStatusScript = readFileSync(
-  join(repositoryRoot, "scripts", "generate-dependency-status.mjs"),
-  "utf8"
-);
+const dependencyStatusScript = readFileSync(join(repositoryRoot, "scripts", "generate-dependency-status.mjs"), "utf8");
 
 describe("dependency automation contract", () => {
   it("keeps Renovate visible and able to drain normal dependency backlog", () => {
