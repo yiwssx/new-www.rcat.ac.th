@@ -420,13 +420,21 @@ async function validateCompatibilityException({
   const direct = directByName.get(packageName);
   const installedVersion = parseVersion(installed.get(packageName));
   const latestVersion = parseVersion(registryLatest.get(packageName));
-  const selected = parseVersion(exception?.selected);
+  const policySelected = parseVersion(exception?.selected);
+  const selected = installedVersion;
   const validation = exception?.validation;
 
   if (!direct) errors.push("package is not a direct dependency");
   if (!exception || typeof exception !== "object") errors.push("policy entry is not an object");
-  if (!selected || selected.prerelease) errors.push("selected must be an exact stable semantic version");
-  if (!installedVersion) errors.push("selected package is not installed");
+  if (!policySelected || policySelected.prerelease) {
+    errors.push("selected compatibility anchor must be an exact stable semantic version");
+  }
+  if (!selected || selected.prerelease) errors.push("selected package is not installed as a stable semantic version");
+  if (policySelected && selected && policySelected.major !== selected.major) {
+    errors.push(
+      `installed selected major ${selected.major} does not match configured compatibility anchor major ${policySelected.major}`
+    );
+  }
   if (!latestVersion) errors.push("registry latest is unavailable");
   if (!Number.isInteger(exception?.blockedLatestMajor)) errors.push("blockedLatestMajor must be an integer");
   if (typeof exception?.reason !== "string" || exception.reason.trim().length < 20) {
@@ -436,12 +444,9 @@ async function validateCompatibilityException({
     errors.push("verifyWith must list the registry verification commands");
   }
   if (direct?.manifestVersion && selected && direct.manifestVersion.raw !== selected.raw) {
-    errors.push(`selected ${selected.raw} does not match manifest ${direct.specifier}`);
+    errors.push(`installed ${selected.raw} does not match manifest ${direct.specifier}`);
   }
   if (direct && !direct.manifestVersion) errors.push(`manifest specifier ${direct.specifier} is invalid`);
-  if (installedVersion && selected && installedVersion.raw !== selected.raw) {
-    errors.push(`selected ${selected.raw} does not match installed ${installedVersion.raw}`);
-  }
   if (latestVersion && exception?.blockedLatestMajor !== latestVersion.major) {
     errors.push(
       `blockedLatestMajor ${String(exception?.blockedLatestMajor)} does not match registry latest major ${latestVersion.major}`

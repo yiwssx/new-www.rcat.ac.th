@@ -31,15 +31,20 @@ response is an error, never evidence that the installed version is current.
 
 ## 3. Compatibility exceptions
 
-Every exception must identify the selected version, the blocked latest major,
-the package-specific reason, a machine-verifiable validation kind, and registry
-commands that reproduce the constraint. The dependency checks verify that:
+Every exception must identify a stable selected-version anchor, the blocked latest
+major, the package-specific reason, a machine-verifiable validation kind, and
+registry commands that reproduce the constraint. The anchor fixes the allowed
+compatibility major; the active selected patch/minor version is derived from the
+manifest and installed lockfile result. The dependency checks verify that:
 
-- the selected version matches the manifest and installed lockfile result;
+- the installed selected version matches the manifest and stays in the anchor major;
 - the registry latest stable version is retrieved successfully;
-- the selected version is the newest release allowed by the active constraint;
+- the installed selected version is the newest release allowed by the active constraint;
 - the registry latest release is still blocked by that constraint; and
-- an exception fails as soon as it becomes stale.
+- an exception fails as soon as the active constraint becomes stale.
+
+This avoids requiring a policy-file edit for every safe same-major patch update,
+while still preventing Renovate from silently crossing the compatibility boundary.
 
 The active exception classes are the TypeScript compiler range supported by
 `typescript-eslint` and the `@types/node` major aligned with the repository Node

@@ -290,18 +290,24 @@ const compatibilityExceptions = dependencyPolicy?.compatibilityExceptions;
 const configuredExceptionPackages = validateCompatibilityExceptionPackages(compatibilityExceptions);
 compatibilityPolicyErrors.push(...configuredExceptionPackages.errors);
 for (const [packageName, exception] of Object.entries(compatibilityExceptions || {})) {
-  const selected = parseVersion(exception?.selected);
+  const policySelected = parseVersion(exception?.selected);
   const direct = directVersion(packageName);
   const installedPackage = readInstalledPackage(packageName);
+  const selected = parseVersion(installedPackage?.version);
   const validation = exception?.validation;
+  if (!policySelected || policySelected.prerelease) {
+    compatibilityPolicyErrors.push(`${packageName} selected compatibility anchor is not stable semantic version`);
+  }
   if (!selected || selected.prerelease) {
-    compatibilityPolicyErrors.push(`${packageName} selected version is not stable semantic version`);
+    compatibilityPolicyErrors.push(`${packageName} installed selected version is not stable semantic version`);
   }
   if (!direct || direct.raw !== selected?.raw) {
-    compatibilityPolicyErrors.push(`${packageName} selected version does not match the manifest`);
+    compatibilityPolicyErrors.push(`${packageName} installed selected version does not match the manifest`);
   }
-  if (!installedPackage?.version || installedPackage.version !== selected?.raw) {
-    compatibilityPolicyErrors.push(`${packageName} selected version does not match the installed lockfile result`);
+  if (policySelected && selected && policySelected.major !== selected.major) {
+    compatibilityPolicyErrors.push(
+      `${packageName} installed selected major does not match the configured compatibility anchor major`
+    );
   }
   if (!Number.isInteger(exception?.blockedLatestMajor) || exception.blockedLatestMajor <= (selected?.major ?? -1)) {
     compatibilityPolicyErrors.push(`${packageName} blockedLatestMajor must be greater than the selected major`);
@@ -331,7 +337,7 @@ record(
   compatibilityPolicyErrors.length === 0,
   compatibilityPolicyErrors.length
     ? compatibilityPolicyErrors.join("; ")
-    : "allowlist, selections, and local constraints align"
+    : "allowlist, compatibility anchors, installed selections, and local constraints align"
 );
 
 const wrangler = readInstalledPackage("wrangler");
