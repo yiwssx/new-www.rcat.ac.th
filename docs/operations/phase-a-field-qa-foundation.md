@@ -115,7 +115,7 @@ The workflow then queries the GitHub combined commit status for the same `head_s
 - if Vercel reports a normal successful deployment, the status must include a non-empty `target_url` before Playwright starts;
 - if the Vercel status reports `failure` or `error`, lacks the required deployment target URL, or never reaches an acceptable state inside the bounded wait, Phase A fails closed.
 
-This is still a commit-status gate, not a direct Vercel deployment-record lookup. The classified ignored-build path prevents non-runtime maintenance commits from creating false failures while preserving the earlier protection against treating an unexpected ignored runtime deployment as ready. Workflows that require a Vercel deployment ID or separate deployment-record attestation must collect that evidence explicitly.
+This is a commit-status gate, not a direct Vercel deployment-record lookup. The classified ignored-build path prevents non-runtime maintenance commits from creating false failures while preserving the earlier protection against treating an unexpected ignored runtime deployment as ready. Workflows that require a Vercel deployment ID or separate deployment-record attestation must collect that evidence explicitly.
 
 ## Manual fallback
 
