@@ -84,7 +84,7 @@
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies", "devDependencies"],
       "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
-      "ignoreVersions": ["19.3.0"]
+      "allowedVersions": "!/^19\\.3\\.0$/"
     },
     {
       "description": "Manage GitHub Actions by version tags and automatically merge updates after CI",
