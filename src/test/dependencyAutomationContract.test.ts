@@ -12,6 +12,7 @@ const monitoringWorkflow = readFileSync(
   "utf8"
 );
 const dependencyStatusScript = readFileSync(join(repositoryRoot, "scripts", "generate-dependency-status.mjs"), "utf8");
+const dependencyCheckScript = readFileSync(join(repositoryRoot, "scripts", "check-dependencies.mjs"), "utf8");
 
 describe("dependency automation contract", () => {
   it("keeps Renovate visible and able to drain normal dependency backlog", () => {
@@ -35,6 +36,18 @@ describe("dependency automation contract", () => {
           automerge: false
         })
       ])
+    );
+  });
+
+  it("treats compatibility policy selected versions as same-major anchors", () => {
+    expect(dependencyStatusScript).toContain("const policySelected = parseVersion(exception?.selected);");
+    expect(dependencyStatusScript).toContain("const selected = installedVersion;");
+    expect(dependencyStatusScript).toContain(
+      "installed selected major ${selected.major} does not match configured compatibility anchor major ${policySelected.major}"
+    );
+    expect(dependencyCheckScript).toContain("const selected = parseVersion(installedPackage?.version);");
+    expect(dependencyCheckScript).toContain(
+      "installed selected major does not match the configured compatibility anchor major"
     );
   });
 
