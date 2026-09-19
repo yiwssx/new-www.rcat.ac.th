@@ -152,7 +152,7 @@ jobs:
       - uses: pnpm/action-setup@v6
         if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
         with:
-          version: 10.34.5
+          version: 12.4.2
           run_install: false
 
       - uses: actions/setup-node@v7
