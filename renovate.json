@@ -87,6 +87,12 @@
       "allowedVersions": "!/^19\\.3\\.0$/"
     },
     {
+      "description": "Keep workflow pnpm setup pinned for deliberate package-manager upgrades",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["pnpm"],
+      "enabled": false
+    },
+    {
       "description": "Manage GitHub Actions by version tags and automatically merge updates after CI",
       "matchManagers": ["github-actions"],
       "pinDigests": false,
