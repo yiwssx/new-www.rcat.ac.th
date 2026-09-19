@@ -15,21 +15,27 @@ const smokeChecklist = readFileSync(join(repositoryRoot, "docs", "production-smo
 const smokeReport = readFileSync(join(repositoryRoot, "docs", "production-smoke-test-report-template.md"), "utf8");
 
 describe("Phase A production browser smoke deployment gate", () => {
-  it("fails closed when Vercel skipped deployment creation", () => {
-    expect(workflow).toContain('description: vercel?.description || ""');
-    expect(workflow).toContain('targetUrl: vercel?.target_url || ""');
+  it("accepts expected non-runtime ignored builds and fails closed on unexpected ignored builds", () => {
+    expect(workflow).toContain("fetch-depth: 2");
+    expect(workflow).toContain("id: runtime_impact");
+    expect(workflow).toContain("shouldIgnoreVercelBuild");
+    expect(workflow).toContain("EXPECTED_IGNORED: ${{ steps.runtime_impact.outputs.expected_ignored }}");
     expect(workflow).toContain("Canceled by Ignored Build Step");
-    expect(workflow).toContain('*"Ignored Build Step"*');
+    expect(workflow).toContain('[[ "$EXPECTED_IGNORED" == "true" ]]');
+    expect(workflow).toContain('echo "skip_smoke=true" >> "$GITHUB_OUTPUT"');
+    expect(workflow).toContain("Vercel unexpectedly skipped a runtime-impacting change");
     expect(workflow).toContain('[[ -z "$target_url" ]]');
-    expect(workflow).not.toContain('process.stdout.write(vercel?.state || "missing");');
+    expect(workflow).toContain('echo "skip_smoke=false" >> "$GITHUB_OUTPUT"');
+    expect(workflow).toContain("steps.vercel_gate.outputs.skip_smoke != 'true'");
   });
 
-  it("keeps operator documentation aligned with the fail-closed gate", () => {
+  it("keeps operator documentation aligned with the classified deployment gate", () => {
     for (const source of [runbook, smokeChecklist, smokeReport]) {
       expect(source).toContain("Ignored Build Step");
       expect(source).toContain("target_url");
+      expect(source).toContain("non-runtime");
     }
-    expect(runbook).toContain("Phase A now fails closed");
-    expect(runbook).toContain("Only a non-ignored successful status with a deployment target URL is accepted");
+    expect(runbook).toContain("expected ignored build");
+    expect(runbook).toContain("runtime-impacting change");
   });
 });

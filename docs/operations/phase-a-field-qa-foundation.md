@@ -1,6 +1,6 @@
 # Phase A — Field QA Foundation
 
-Updated: 2026-09-11
+Updated: 2026-09-19
 
 Status: complete and production-verified. The deployment-driven browser smoke remains an ongoing operational guard after closure.
 
@@ -14,8 +14,9 @@ The normal Phase A path is automation-first:
 
 1. a change reaches `master`;
 2. repository CI completes successfully for that exact commit SHA;
-3. the workflow waits for the GitHub commit-status context `Vercel` on that SHA to report `success`, rejects `Ignored Build Step` outcomes, and requires a deployment target URL;
-4. the production Playwright smoke runs automatically against `https://www.rcat.ac.th`.
+3. the workflow classifies the commit diff with the same Vercel runtime-impact rules used by `scripts/vercel-ignore-build.mjs`;
+4. if Vercel reports `Ignored Build Step` for a non-runtime-only change, the workflow records an expected ignored build and completes successfully without browser smoke because no new production deployment exists;
+5. otherwise, the workflow requires the matching `Vercel` status to report `success` with a deployment `target_url`, then runs the production Playwright smoke automatically against `https://www.rcat.ac.th`.
 
 `workflow_dispatch` remains available only as an operational fallback for reruns, controlled alternative-URL verification, or recovery checks. It is not the primary operating path.
 
@@ -103,18 +104,18 @@ Expected unauthenticated API 4xx responses are not treated as browser-smoke fail
 
 ## Automatic trigger and Vercel commit-status gate
 
-The workflow listens for completion of the repository `CI` workflow. It runs automatically only when:
+The workflow listens for completion of the repository `CI` workflow with a trigger-level `branches: master` filter. Pull-request and other non-`master` CI completions therefore do not create Phase A runs merely to be skipped. The job also retains the `master` and successful-CI checks as defense in depth.
 
-- the completed CI run is for `master`; and
-- the CI conclusion is `success`.
+After checkout with enough history to inspect `HEAD^..HEAD`, the workflow classifies the changed paths with `shouldIgnoreVercelBuild` from `scripts/vercel-ignore-build.mjs`. This keeps the Phase A decision aligned with the same runtime/non-runtime classification used by Vercel's `ignoreCommand`.
 
-The workflow then queries the GitHub combined commit status for the same `head_sha` and waits for context `Vercel` to report `success` before running the browser smoke.
+The workflow then queries the GitHub combined commit status for the same `head_sha` and waits for context `Vercel`:
 
-This is a commit-status gate, not a direct Vercel deployment-record lookup. Phase A now fails closed when a successful Vercel status says `Canceled by Ignored Build Step` or otherwise contains `Ignored Build Step`, because that means no new deployment was created for the commit. It also fails closed when the successful status has no `target_url`. Only a non-ignored successful status with a deployment target URL is accepted before the production browser smoke starts.
+- if Vercel reports `Canceled by Ignored Build Step` or `Ignored Build Step` and the classifier says the commit is non-runtime-only, Phase A treats it as an expected ignored build, records that no new production deployment was created, and completes successfully without Playwright;
+- if Vercel reports an ignored build for a runtime-impacting change, Phase A fails closed because a production deployment was expected;
+- if Vercel reports a normal successful deployment, the status must include a non-empty `target_url` before Playwright starts;
+- if the Vercel status reports `failure` or `error`, lacks the required deployment target URL, or never reaches an acceptable state inside the bounded wait, Phase A fails closed.
 
-This closes the previous false-positive path where an ignored build could be described as a ready matching deployment. The gate still does not independently query Vercel's deployment API, so workflows that require a Vercel deployment ID or separate deployment-record attestation must collect that evidence explicitly.
-
-If the Vercel commit status reports `failure` or `error`, matches an ignored-build outcome, lacks a deployment target URL, or never reaches acceptable `success` inside the workflow's bounded wait, Phase A fails closed and does not run the browser smoke.
+This is a commit-status gate, not a direct Vercel deployment-record lookup. The classified ignored-build path prevents non-runtime maintenance commits from creating false failures while preserving the earlier protection against treating an unexpected ignored runtime deployment as ready. Workflows that require a Vercel deployment ID or separate deployment-record attestation must collect that evidence explicitly.
 
 ## Manual fallback
 
@@ -144,8 +145,9 @@ Phase A is complete because:
 2. desktop and mobile read-only production scenarios are present;
 3. console/page/network diagnostics are enforced;
 4. the QA scenario library is stored in the repository;
-5. successful `master` CI waits for a non-ignored successful Vercel status with a deployment target URL for the matching SHA before running the production browser smoke;
-6. manual dispatch remains only a fallback;
-7. repository CI and governance remain green.
+5. successful `master` CI classifies the diff with the Vercel runtime classifier, accepts an expected non-runtime ignored build as a no-deployment/no-smoke success, and otherwise requires a successful Vercel status with a deployment target URL before running the production browser smoke;
+6. unexpected ignored builds for runtime-impacting changes still fail closed;
+7. manual dispatch remains only a fallback;
+8. repository CI and governance remain green.
 
-The ignored-build false-positive path is guarded in the ongoing Phase A workflow and regression contract. This maintenance hardening does not reopen the completed Phase A implementation phase.
+Both ignored-build failure modes are guarded in the ongoing Phase A workflow and regression contract: expected non-runtime ignores do not create false failures, while unexpected runtime ignores cannot be reported as successful deployments. This maintenance hardening does not reopen the completed Phase A implementation phase.

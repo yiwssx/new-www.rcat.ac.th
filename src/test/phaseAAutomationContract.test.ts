@@ -16,12 +16,13 @@ function compact(value: string) {
 }
 
 describe("Phase A automation contract", () => {
-  it("runs automatically from successful master CI while retaining manual fallback", () => {
+  it("runs automatically only from successful master CI while retaining manual fallback", () => {
     expect(workflow).toContain("workflow_run:");
     expect(workflow).toContain("- CI");
     expect(workflow).toContain("workflow_dispatch:");
 
     const normalized = compact(workflow);
+    expect(normalized).toContain("workflow_run: workflows: - CI types: - completed branches: - master");
     expect(normalized).toContain("github.event.workflow_run.conclusion == 'success'");
     expect(normalized).toContain("github.event.workflow_run.head_branch == 'master'");
   });
@@ -34,12 +35,14 @@ describe("Phase A automation contract", () => {
     expect(workflow).not.toMatch(/^\s*group:\s*phase-a-production-browser-smoke\s*$/m);
   });
 
-  it("waits for the matching Vercel commit deployment before browser smoke", () => {
+  it("waits for the matching Vercel status and only runs browser smoke when deployment exists", () => {
     expect(workflow).toContain("Wait for matching Vercel production deployment");
     expect(workflow).toContain("github.event.workflow_run.head_sha");
     expect(workflow).toContain('status.context === "Vercel"');
     expect(workflow).toContain('case "$state" in');
     expect(workflow).toContain("failure|error)");
+    expect(workflow).toContain("skip_smoke=true");
+    expect(workflow).toContain("steps.vercel_gate.outputs.skip_smoke != 'true'");
     expect(workflow).toContain("pnpm exec playwright test --config playwright.production.config.ts");
   });
 });
