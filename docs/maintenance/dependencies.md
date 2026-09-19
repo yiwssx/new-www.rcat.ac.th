@@ -267,6 +267,8 @@ per hour, while keeping the three-day release-age gate, automatic patch/minor
 merges, manual review for major and zero-major updates, and the existing security
 update policy. The Dependency Dashboard is enabled so pending, blocked, and
 rate-limited updates remain visible and can be deliberately retried when needed.
+The dashboard is an operator visibility/control surface; it does not bypass CI,
+release-age, compatibility, or manual-review requirements.
 
 `pnpm deps:latest:check` remains available as the strict on-demand freshness
 gate when an operator explicitly wants every age-eligible direct dependency to be
