@@ -250,12 +250,24 @@ pnpm test:functional
 No gate may use `continue-on-error`, `|| true`, or another silent failure
 fallback.
 
-The separate `Dependency Monitoring` workflow runs daily at `22:23` UTC
-(`05:23` Asia/Bangkok) and on `workflow_dispatch`. It installs the committed
-frozen lockfile with strict peers, then runs `pnpm deps:latest:check`. The job
-fails visibly when an eligible update, registry error, invalid compatibility
-exception, or audit failure exists. Releases still inside the 72-hour window are
-reported as pending eligibility and do not fail freshness.
+The separate `Dependency Monitoring` workflow runs daily at `00:15` UTC
+(`07:15` Asia/Bangkok) and on `workflow_dispatch`. It installs the committed
+frozen lockfile with strict peers, then runs the live registry monitor in
+`--monitor` mode. Eligible ordinary updates are reported as backlog for Renovate
+or manual review without making the operational monitor red. Registry lookup
+errors, invalid compatibility exceptions, and audit failures still fail closed.
+Releases still inside the 72-hour window are reported as pending eligibility.
+
+Renovate is not restricted to a narrow branch-creation time window. The repository
+allows up to six concurrent regular Renovate PRs/branches and up to four new PRs
+per hour, while keeping the three-day release-age gate, automatic patch/minor
+merges, manual review for major and zero-major updates, and the existing security
+update policy. The Dependency Dashboard is enabled so pending, blocked, and
+rate-limited updates remain visible and can be deliberately retried when needed.
+
+`pnpm deps:latest:check` remains available as the strict on-demand freshness
+gate when an operator explicitly wants every age-eligible direct dependency to be
+current or covered by a validated compatibility exception.
 
 ## 20. Rollback procedure
 
