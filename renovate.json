@@ -80,6 +80,13 @@
       "allowedVersions": ">=24.0.0 <25.0.0"
     },
     {
+      "description": "Temporarily defer React 19.3.0 because it exceeds the public synchronous JavaScript performance budget on the current toolchain",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "ignoreVersions": ["19.3.0"]
+    },
+    {
       "description": "Manage GitHub Actions by version tags and automatically merge updates after CI",
       "matchManagers": ["github-actions"],
       "pinDigests": false,
