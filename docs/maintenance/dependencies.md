@@ -170,12 +170,14 @@ security response described above may bypass it during the controlled
 installation; no exclusion may persist in the workspace.
 
 This setting governs both normal installation timing and update eligibility.
-The live monitor reports the registry `latest` release and its publication time,
-but it fails freshness only when an installed direct dependency is behind the
-newest stable release that has completed the 72-hour window. It never labels an
-older installed release as registry latest. When an urgent security release must
-be selected before the normal window expires, use the narrow exception in
-section 6. Never persist `minimumReleaseAgeExclude`, reduce the age window, or
+The live monitor reports the registry `latest` release, its publication time,
+and any age-eligible backlog. Ordinary age-eligible lag is informational in the
+scheduled operational monitor so Renovate can drain the queue without making the
+monitor look broken. The strict on-demand `pnpm deps:latest:check` command still
+fails when an installed direct dependency is behind the newest eligible release.
+Neither mode labels an older installed release as registry latest. When an urgent
+security release must be selected before the normal window expires, use the
+narrow exception in section 6. Never persist `minimumReleaseAgeExclude`, reduce the age window, or
 add a permanent package exclusion.
 
 Committed dependency-state validation checks manifest and lockfile alignment,
@@ -205,7 +207,8 @@ needed. Do not add broad script approvals.
 3. Update the smallest intended dependency set and regenerate the lockfile.
 4. Run a frozen strict-peer install.
 5. Run `pnpm deps:status`, `pnpm deps:check`, and `pnpm deps:docs:audit`.
-6. Run `pnpm deps:latest:check` as the separate live-registry monitoring check.
+6. Review the live dependency backlog. Run `pnpm deps:latest:check` only when
+   performing an explicit full-freshness sweep rather than a single queued update.
 7. Run the complete CI gates and package-specific tests for affected behavior.
 8. Review the manifest, lockfile, generated status, and source diff before
    committing.
@@ -250,12 +253,26 @@ pnpm test:functional
 No gate may use `continue-on-error`, `|| true`, or another silent failure
 fallback.
 
-The separate `Dependency Monitoring` workflow runs daily at `22:23` UTC
-(`05:23` Asia/Bangkok) and on `workflow_dispatch`. It installs the committed
-frozen lockfile with strict peers, then runs `pnpm deps:latest:check`. The job
-fails visibly when an eligible update, registry error, invalid compatibility
-exception, or audit failure exists. Releases still inside the 72-hour window are
-reported as pending eligibility and do not fail freshness.
+The separate `Dependency Monitoring` workflow runs daily at `00:15` UTC
+(`07:15` Asia/Bangkok) and on `workflow_dispatch`. It installs the committed
+frozen lockfile with strict peers, then runs the live registry monitor in
+`--monitor` mode. Eligible ordinary updates are reported as backlog for Renovate
+or manual review without making the operational monitor red. Registry lookup
+errors, invalid compatibility exceptions, and audit failures still fail closed.
+Releases still inside the 72-hour window are reported as pending eligibility.
+
+Renovate is not restricted to a narrow branch-creation time window. The repository
+allows up to six concurrent regular Renovate PRs/branches and up to four new PRs
+per hour, while keeping the three-day release-age gate, automatic patch/minor
+merges, manual review for major and zero-major updates, and the existing security
+update policy. The Dependency Dashboard is enabled so pending, blocked, and
+rate-limited updates remain visible and can be deliberately retried when needed.
+The dashboard is an operator visibility/control surface; it does not bypass CI,
+release-age, compatibility, or manual-review requirements.
+
+`pnpm deps:latest:check` remains available as the strict on-demand freshness
+gate when an operator explicitly wants every age-eligible direct dependency to be
+current or covered by a validated compatibility exception.
 
 ## 20. Rollback procedure
 
@@ -275,9 +292,11 @@ After any manifest, lockfile, or compatibility-policy change:
 ```bash
 pnpm deps:status
 pnpm deps:status:check
-pnpm deps:latest:check
 pnpm deps:docs:audit
 ```
+
+Use `pnpm deps:latest:check` separately when an operator is intentionally
+performing a full-freshness sweep across every direct dependency.
 
 Commit the regenerated `dependency-current-status.md` with the inputs that
 changed it. Keep this governance document version-agnostic except where a

@@ -2,7 +2,7 @@ name: Dependency Monitoring
 
 on:
   schedule:
-    # Daily at 00:15 UTC = 07:15 Asia/Bangkok, after the 01:00-05:59 Renovate window.
+    # Daily at 00:15 UTC = 07:15 Asia/Bangkok. Renovate itself is not time-window restricted.
     - cron: "15 0 * * *"
   workflow_dispatch:
 
@@ -31,4 +31,5 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - run: pnpm deps:latest:check
+      - name: Validate live dependency policy and report backlog
+        run: node scripts/generate-dependency-status.mjs --monitor

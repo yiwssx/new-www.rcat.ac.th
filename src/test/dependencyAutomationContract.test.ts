@@ -1,0 +1,52 @@
+// @vitest-environment node
+
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+
+const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const renovate = JSON.parse(readFileSync(join(repositoryRoot, "renovate.json"), "utf8")) as Record<string, unknown>;
+const monitoringWorkflow = readFileSync(
+  join(repositoryRoot, ".github", "workflows", "dependency-monitoring.yml"),
+  "utf8"
+);
+const dependencyStatusScript = readFileSync(join(repositoryRoot, "scripts", "generate-dependency-status.mjs"), "utf8");
+
+describe("dependency automation contract", () => {
+  it("keeps Renovate visible and able to drain normal dependency backlog", () => {
+    expect(renovate.dependencyDashboard).toBe(true);
+    expect(renovate).not.toHaveProperty("schedule");
+    expect(renovate.prConcurrentLimit).toBe(6);
+    expect(renovate.branchConcurrentLimit).toBe(6);
+    expect(renovate.prHourlyLimit).toBe(4);
+  });
+
+  it("preserves the normal three-day release-age and major-review safety controls", () => {
+    const packageRules = renovate.packageRules as Array<Record<string, unknown>>;
+    expect(packageRules).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          minimumReleaseAge: "3 days",
+          internalChecksFilter: "strict"
+        }),
+        expect.objectContaining({
+          matchUpdateTypes: ["major"],
+          automerge: false
+        })
+      ])
+    );
+  });
+
+  it("reports ordinary freshness backlog without failing the scheduled monitor", () => {
+    expect(monitoringWorkflow).toContain("node scripts/generate-dependency-status.mjs --monitor");
+    expect(monitoringWorkflow).not.toContain("pnpm deps:latest:check");
+    expect(dependencyStatusScript).toContain('const monitoringOnly = flags.has("--monitor");');
+    expect(dependencyStatusScript).toContain(
+      "Eligible dependency updates are pending Renovate or manual review (informational):"
+    );
+    expect(dependencyStatusScript).toContain(
+      'policyErrors.length || auditFailures.length || (flags.has("--enforce-latest") && enforcementFailures.length)'
+    );
+  });
+});

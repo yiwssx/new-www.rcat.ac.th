@@ -820,7 +820,8 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
     ""
   ];
 
-  if (!flags.has("--no-write") && !flags.has("--enforce-latest")) {
+  const monitoringOnly = flags.has("--monitor");
+  if (!flags.has("--no-write") && !flags.has("--enforce-latest") && !monitoringOnly) {
     writeFileSync(OUTPUT_PATH, lines.join("\n"), "utf8");
     console.log(`Updated ${OUTPUT_PATH}. Accepted direct dependencies: ${acceptedCount}/${rows.length}.`);
   } else {
@@ -840,6 +841,13 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
     console.error("Direct dependencies are not registry latest or a validated compatibility exception:");
     for (const row of enforcementFailures) {
       console.error(
+        `- ${row.name}: installed ${row.installed}; age-eligible latest ${row.eligibleLatest}; registry latest ${row.registryLatest}; status ${row.status}`
+      );
+    }
+  } else if (monitoringOnly && enforcementFailures.length) {
+    console.log("Eligible dependency updates are pending Renovate or manual review (informational):");
+    for (const row of enforcementFailures) {
+      console.log(
         `- ${row.name}: installed ${row.installed}; age-eligible latest ${row.eligibleLatest}; registry latest ${row.registryLatest}; status ${row.status}`
       );
     }

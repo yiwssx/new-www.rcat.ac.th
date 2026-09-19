@@ -1,12 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "dependencyDashboard": false,
+  "dependencyDashboard": true,
   "enabledManagers": ["npm", "github-actions"],
   "includePaths": ["package.json", ".github/workflows/**"],
   "baseBranchPatterns": ["master"],
   "timezone": "Asia/Bangkok",
-  "schedule": ["* 1-5 * * 1-5"],
   "labels": ["dependencies"],
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
@@ -18,8 +17,9 @@
   "automergeStrategy": "merge-commit",
   "platformAutomerge": false,
   "ignoreTests": false,
-  "prConcurrentLimit": 2,
-  "branchConcurrentLimit": 2,
+  "prConcurrentLimit": 6,
+  "branchConcurrentLimit": 6,
+  "prHourlyLimit": 4,
   "lockFileMaintenance": {
     "enabled": false
   },
