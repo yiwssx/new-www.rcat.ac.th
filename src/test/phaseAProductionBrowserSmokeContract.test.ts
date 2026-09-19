@@ -17,9 +17,9 @@ const smokeReport = readFileSync(join(repositoryRoot, "docs", "production-smoke-
 describe("Phase A production browser smoke deployment gate", () => {
   it("accepts expected non-runtime ignored builds and fails closed on unexpected ignored builds", () => {
     expect(workflow).toContain("fetch-depth: 2");
-    expect(workflow).toContain('id: runtime_impact');
-    expect(workflow).toContain('shouldIgnoreVercelBuild');
-    expect(workflow).toContain('EXPECTED_IGNORED: ${{ steps.runtime_impact.outputs.expected_ignored }}');
+    expect(workflow).toContain("id: runtime_impact");
+    expect(workflow).toContain("shouldIgnoreVercelBuild");
+    expect(workflow).toContain("EXPECTED_IGNORED: ${{ steps.runtime_impact.outputs.expected_ignored }}");
     expect(workflow).toContain("Canceled by Ignored Build Step");
     expect(workflow).toContain('[[ "$EXPECTED_IGNORED" == "true" ]]');
     expect(workflow).toContain('echo "skip_smoke=true" >> "$GITHUB_OUTPUT"');
