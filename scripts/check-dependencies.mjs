@@ -390,7 +390,8 @@ const ciInstallArgs = normalizeYamlScalar(
 );
 record(
   "CI frozen strict-peer online install",
-  ciInstallArgs.includes("--frozen-lockfile") &&
+  Boolean(ciInstallArgs) &&
+    ciInstallArgs.includes("--frozen-lockfile") &&
     ciInstallArgs.includes("--strict-peer-dependencies") &&
     !ciInstallArgs.includes("--offline"),
   ciInstallArgs ? `pnpm install ${ciInstallArgs}` : "missing"
