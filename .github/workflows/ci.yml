@@ -44,6 +44,11 @@ jobs:
             docs/maintenance/dependency-current-status.md
           )
 
+          if [ -z "$BASE_SHA" ]; then
+            git fetch origin master --no-tags
+            BASE_SHA="$(git merge-base origin/master HEAD)"
+          fi
+
           if [ -n "$BASE_SHA" ] && \
             [ "$BASE_SHA" != "0000000000000000000000000000000000000000" ] && \
             git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null && \
