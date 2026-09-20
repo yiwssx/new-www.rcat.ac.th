@@ -17,10 +17,7 @@ const packageJson = JSON.parse(readFileSync(join(repositoryRoot, "package.json")
   dependencies?: Record<string, string>;
 };
 const pnpmWorkspace = readFileSync(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8");
-const muiFocusTrapPatch = readFileSync(
-  join(repositoryRoot, "patches", "@mui__material@9.4.0.patch"),
-  "utf8"
-);
+const muiFocusTrapPatch = readFileSync(join(repositoryRoot, "patches", "@mui__material@9.4.0.patch"), "utf8");
 
 describe("dependency automation contract", () => {
   it("keeps Renovate visible while serializing normal dependency churn", () => {
@@ -81,12 +78,8 @@ describe("dependency automation contract", () => {
   });
 
   it("keeps the jsdom 30.1 MUI focus-restoration compatibility patch narrow", () => {
-    expect(pnpmWorkspace).toContain(
-      '"@mui/material@9.4.0": patches/@mui__material@9.4.0.patch'
-    );
-    expect(muiFocusTrapPatch).toContain(
-      'typeof nodeToRestore.current?.focus === "function"'
-    );
+    expect(pnpmWorkspace).toContain('"@mui/material@9.4.0": patches/@mui__material@9.4.0.patch');
+    expect(muiFocusTrapPatch).toContain('typeof nodeToRestore.current?.focus === "function"');
     expect(muiFocusTrapPatch.match(/^diff --git /gmu)).toHaveLength(2);
     expect(muiFocusTrapPatch).toContain("Unstable_TrapFocus/FocusTrap.js");
     expect(muiFocusTrapPatch).toContain("Unstable_TrapFocus/FocusTrap.mjs");
