@@ -71,7 +71,16 @@ jobs:
           else
             pnpm deps:check
           fi
-      - run: pnpm deps:docs:audit
+      - name: Audit dependency documentation
+        shell: bash
+        env:
+          INHERITED_DRIFT: ${{ steps.dependency_freshness.outputs.inherited_drift }}
+        run: |
+          if [ "$INHERITED_DRIFT" = "true" ]; then
+            pnpm deps:docs:audit -- --skip-status-hashes
+          else
+            pnpm deps:docs:audit
+          fi
 
   static-quality:
     name: Static Quality
