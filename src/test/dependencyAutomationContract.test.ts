@@ -13,6 +13,9 @@ const monitoringWorkflow = readFileSync(
 );
 const dependencyStatusScript = readFileSync(join(repositoryRoot, "scripts", "generate-dependency-status.mjs"), "utf8");
 const dependencyCheckScript = readFileSync(join(repositoryRoot, "scripts", "check-dependencies.mjs"), "utf8");
+const packageJson = JSON.parse(readFileSync(join(repositoryRoot, "package.json"), "utf8")) as {
+  dependencies?: Record<string, string>;
+};
 
 describe("dependency automation contract", () => {
   it("keeps Renovate visible while serializing normal dependency churn", () => {
@@ -26,7 +29,7 @@ describe("dependency automation contract", () => {
     expect(renovate.recreateWhen).toBe("auto");
   });
 
-  it("preserves release-age, major-review, selective grouping, and known-regression controls", () => {
+  it("preserves release-age, major-review, selective grouping, and no stale temporary holds", () => {
     const packageRules = renovate.packageRules as Array<Record<string, unknown>>;
     expect(packageRules).toEqual(
       expect.arrayContaining([
@@ -65,6 +68,11 @@ describe("dependency automation contract", () => {
           rule.allowedVersions.startsWith("!/")
       )
     ).toBe(false);
+  });
+
+  it("keeps retired JWT libraries out of direct runtime dependencies", () => {
+    expect(packageJson.dependencies).not.toHaveProperty("jose");
+    expect(packageJson.dependencies).not.toHaveProperty("jwt-decode");
   });
 
   it("treats compatibility policy selected versions as same-major anchors", () => {
