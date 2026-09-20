@@ -385,13 +385,15 @@ record(
     : "missing or not 4320 minutes"
 );
 
-const ciInstall = ciRuntimeSource.match(/^\s*(?:-\s+)?run:\s*(pnpm install[^\r\n]*)$/m)?.[1] || "";
+const ciInstallArgs = normalizeYamlScalar(
+  ciSetupAction.match(/install-args:[\s\S]*?\bdefault:\s*([^\r\n#]+)/)?.[1]
+);
 record(
   "CI frozen strict-peer online install",
-  ciInstall.includes("--frozen-lockfile") &&
-    ciInstall.includes("--strict-peer-dependencies") &&
-    !ciInstall.includes("--offline"),
-  ciInstall || "missing"
+  ciInstallArgs.includes("--frozen-lockfile") &&
+    ciInstallArgs.includes("--strict-peer-dependencies") &&
+    !ciInstallArgs.includes("--offline"),
+  ciInstallArgs ? `pnpm install ${ciInstallArgs}` : "missing"
 );
 record(
   "CI blocking dependency gates",
@@ -414,10 +416,12 @@ record(
 );
 record(
   "dependency status drift has an automated PR remediation path",
-  dependencyStatusSyncWorkflow.includes("contents: write") &&
+  dependencyStatusSyncWorkflow.includes("actions: write") &&
+    dependencyStatusSyncWorkflow.includes("contents: write") &&
     dependencyStatusSyncWorkflow.includes("pull-requests: write") &&
     dependencyStatusSyncWorkflow.includes("automation/dependency-status-sync") &&
     dependencyStatusSyncWorkflow.includes("gh pr create") &&
+    dependencyStatusSyncWorkflow.includes("gh workflow run ci.yml") &&
     !/git push[^\n]*master/u.test(dependencyStatusSyncWorkflow),
   "drift refreshes a dedicated automation branch and opens or updates a pull request"
 );
