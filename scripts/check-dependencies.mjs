@@ -447,7 +447,9 @@ const prodAuditExit = runPnpm(["audit", "--prod", "--audit-level", prodAuditLeve
 
 let docsExit = 0;
 if (skipDocumentationFreshness) {
-  console.log("Dependency documentation freshness: SKIPPED (inherited master drift; dependency state unchanged by this change)");
+  console.log(
+    "Dependency documentation freshness: SKIPPED (inherited master drift; dependency state unchanged by this change)"
+  );
 } else {
   console.log("Dependency documentation freshness:");
   docsExit = runNode(["scripts/generate-dependency-status.mjs", "--check"]).status;
