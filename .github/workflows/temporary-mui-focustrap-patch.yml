@@ -29,6 +29,7 @@ jobs:
       - name: Create narrow MUI FocusTrap compatibility patch
         shell: bash
         run: |
+          pnpm install --frozen-lockfile --strict-peer-dependencies
           rm -rf /tmp/mui-material-patch
           pnpm patch @mui/material@9.4.0 --edit-dir /tmp/mui-material-patch
           node --input-type=module <<'NODE'
