@@ -39,10 +39,6 @@ describe("dependency automation contract", () => {
           automerge: false
         }),
         expect.objectContaining({
-          matchPackageNames: ["jsdom"],
-          allowedVersions: "!/^30\\.1\\.0$/"
-        }),
-        expect.objectContaining({
           matchPackageNames: ["wrangler", "@cloudflare/workers-types"],
           matchUpdateTypes: ["patch", "minor"],
           groupName: "cloudflare toolchain"
@@ -58,6 +54,14 @@ describe("dependency automation contract", () => {
         })
       ])
     );
+
+    expect(
+      packageRules.some((rule) =>
+        (rule.matchPackageNames as string[] | undefined)?.some((name) =>
+          ["react", "react-dom", "@types/react", "@types/react-dom", "jsdom"].includes(name)
+        ) && typeof rule.allowedVersions === "string" && rule.allowedVersions.startsWith("!/")
+      )
+    ).toBe(false);
   });
 
   it("treats compatibility policy selected versions as same-major anchors", () => {
