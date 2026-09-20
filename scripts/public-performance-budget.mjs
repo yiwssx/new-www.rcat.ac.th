@@ -1,12 +1,12 @@
 import { gzipSync } from "node:zlib";
 
-// Keep these fixed ceilings aligned with the reviewed measurements in
-// docs/performance/performance-governance-and-analytics.md.
-// Accepted React 19 / Material UI 9 rebaseline: measured 445876 raw / 143145 gzip bytes; ceilings retain about 3% headroom.
-export const PUBLIC_PERFORMANCE_BUDGET = Object.freeze({
+// This is a reviewed deterministic reference, not a user-experience threshold.
+// Vercel Speed Insights / field RUM owns Web Vitals decisions. Static build
+// measurements remain useful as release evidence and for investigating changes.
+export const PUBLIC_PERFORMANCE_REFERENCE = Object.freeze({
   javascriptFiles: 14,
-  rawBytes: 460_000,
-  gzipBytes: 148_000
+  rawBytes: 432_228,
+  gzipBytes: 140_575
 });
 
 export const FORBIDDEN_SYNCHRONOUS_TELEMETRY_MODULES = Object.freeze([
@@ -181,34 +181,33 @@ export function analyzePublicEntryBuild({
   };
 }
 
-export function evaluatePublicPerformanceBudget(metrics, budget = PUBLIC_PERFORMANCE_BUDGET) {
-  const checks = [
+export function evaluatePublicPerformanceBudget(metrics, reference = PUBLIC_PERFORMANCE_REFERENCE) {
+  const observations = [
     {
       label: "Synchronous JavaScript files",
       actual: requireNonNegativeInteger(metrics.javascriptFileCount, "JavaScript file count"),
-      limit: requireNonNegativeInteger(budget.javascriptFiles, "JavaScript file limit")
+      reference: requireNonNegativeInteger(reference.javascriptFiles, "JavaScript file reference")
     },
     {
       label: "Synchronous JavaScript raw bytes",
       actual: requireNonNegativeInteger(metrics.rawBytes, "Raw byte count"),
-      limit: requireNonNegativeInteger(budget.rawBytes, "Raw byte limit")
+      reference: requireNonNegativeInteger(reference.rawBytes, "Raw byte reference")
     },
     {
       label: "Synchronous JavaScript gzip bytes",
       actual: requireNonNegativeInteger(metrics.gzipBytes, "Gzip byte count"),
-      limit: requireNonNegativeInteger(budget.gzipBytes, "Gzip byte limit")
+      reference: requireNonNegativeInteger(reference.gzipBytes, "Gzip byte reference")
     }
-  ].map((check) => ({
-    ...check,
-    difference: check.actual - check.limit,
-    passed: check.actual <= check.limit
+  ].map((observation) => ({
+    ...observation,
+    difference: observation.actual - observation.reference
   }));
   const forbiddenAssociations = Array.isArray(metrics.forbiddenAssociations) ? [...metrics.forbiddenAssociations] : [];
 
   return {
-    checks,
+    observations,
     forbiddenAssociations,
-    passed: checks.every((check) => check.passed) && forbiddenAssociations.length === 0
+    passed: forbiddenAssociations.length === 0
   };
 }
 
@@ -217,13 +216,11 @@ function formatSigned(value) {
 }
 
 export function formatPublicPerformanceBudgetReport(result) {
-  const lines = ["Public synchronous performance budget:"];
+  const lines = ["Public synchronous performance evidence:"];
 
-  for (const check of result.checks) {
+  for (const observation of result.observations) {
     lines.push(
-      `- ${check.label}: actual ${check.actual}; limit ${check.limit}; difference ${formatSigned(check.difference)}; ${
-        check.passed ? "PASS" : "FAIL"
-      }`
+      `- ${observation.label}: actual ${observation.actual}; reviewed reference ${observation.reference}; difference ${formatSigned(observation.difference)}; INFO`
     );
   }
 
@@ -236,6 +233,6 @@ export function formatPublicPerformanceBudgetReport(result) {
     }
   }
 
-  lines.push(`Performance budget result: ${result.passed ? "PASS" : "FAIL"}`);
+  lines.push(`Performance architecture result: ${result.passed ? "PASS" : "FAIL"}`);
   return lines.join("\n");
 }
