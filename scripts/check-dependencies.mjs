@@ -418,6 +418,8 @@ record(
   dependencyStatusSyncWorkflow.includes("actions: write") &&
     dependencyStatusSyncWorkflow.includes("contents: write") &&
     dependencyStatusSyncWorkflow.includes("pull-requests: write") &&
+    dependencyStatusSyncWorkflow.includes("workflow_dispatch:") &&
+    dependencyStatusSyncWorkflow.includes("github.event_name == 'workflow_dispatch'") &&
     dependencyStatusSyncWorkflow.includes("automation/dependency-status-sync") &&
     dependencyStatusSyncWorkflow.includes("gh pr create") &&
     dependencyStatusSyncWorkflow.includes("gh workflow run ci.yml") &&
