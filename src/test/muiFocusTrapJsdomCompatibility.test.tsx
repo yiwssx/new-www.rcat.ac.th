@@ -1,4 +1,5 @@
-import { Dialog, DialogContent } from "@mui/material";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
