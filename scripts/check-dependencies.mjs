@@ -385,9 +385,7 @@ record(
     : "missing or not 4320 minutes"
 );
 
-const ciInstallArgs = normalizeYamlScalar(
-  ciSetupAction.match(/install-args:[\s\S]*?\bdefault:\s*([^\r\n#]+)/)?.[1]
-);
+const ciInstallArgs = normalizeYamlScalar(ciSetupAction.match(/install-args:[\s\S]*?\bdefault:\s*([^\r\n#]+)/)?.[1]);
 record(
   "CI frozen strict-peer online install",
   Boolean(ciInstallArgs) &&
