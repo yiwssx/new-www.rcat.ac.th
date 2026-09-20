@@ -77,6 +77,6 @@ async function main() {
 
 main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`Unable to check the Public performance budget: ${message}`);
+  console.error(`Unable to check the Public performance architecture: ${message}`);
   process.exitCode = 1;
 });
