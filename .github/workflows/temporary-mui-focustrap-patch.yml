@@ -69,7 +69,7 @@ jobs:
           }
           console.log(`patched FocusTrap files: ${changed}`);
           NODE
-          pnpm patch-commit /tmp/mui-material-patch
+          pnpm --config.frozen-lockfile=false patch-commit /tmp/mui-material-patch
           pnpm install --no-frozen-lockfile --strict-peer-dependencies
           pnpm deps:status
       - name: Commit patch and generated dependency state
