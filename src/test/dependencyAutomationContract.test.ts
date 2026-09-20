@@ -15,15 +15,18 @@ const dependencyStatusScript = readFileSync(join(repositoryRoot, "scripts", "gen
 const dependencyCheckScript = readFileSync(join(repositoryRoot, "scripts", "check-dependencies.mjs"), "utf8");
 
 describe("dependency automation contract", () => {
-  it("keeps Renovate visible and able to drain normal dependency backlog", () => {
+  it("keeps Renovate visible while serializing normal dependency churn", () => {
     expect(renovate.dependencyDashboard).toBe(true);
     expect(renovate).not.toHaveProperty("schedule");
-    expect(renovate.prConcurrentLimit).toBe(6);
-    expect(renovate.branchConcurrentLimit).toBe(6);
-    expect(renovate.prHourlyLimit).toBe(4);
+    expect(renovate.prConcurrentLimit).toBe(2);
+    expect(renovate.branchConcurrentLimit).toBe(2);
+    expect(renovate.prHourlyLimit).toBe(1);
+    expect(renovate.commitHourlyLimit).toBe(2);
+    expect(renovate.rebaseWhen).toBe("behind-base-branch");
+    expect(renovate.recreateWhen).toBe("auto");
   });
 
-  it("preserves the normal three-day release-age and major-review safety controls", () => {
+  it("preserves release-age, major-review, selective grouping, and known-regression controls", () => {
     const packageRules = renovate.packageRules as Array<Record<string, unknown>>;
     expect(packageRules).toEqual(
       expect.arrayContaining([
@@ -34,6 +37,24 @@ describe("dependency automation contract", () => {
         expect.objectContaining({
           matchUpdateTypes: ["major"],
           automerge: false
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["jsdom"],
+          allowedVersions: "!/^30\\.1\\.0$/"
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["wrangler", "@cloudflare/workers-types"],
+          matchUpdateTypes: ["patch", "minor"],
+          groupName: "cloudflare toolchain"
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["@tanstack/react-query", "@tanstack/react-router"],
+          matchUpdateTypes: ["patch", "minor"],
+          groupName: "tanstack runtime"
+        }),
+        expect.objectContaining({
+          matchManagers: ["github-actions"],
+          groupName: "github actions"
         })
       ])
     );
