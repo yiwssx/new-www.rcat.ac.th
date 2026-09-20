@@ -1,0 +1,27 @@
+name: Setup Project Runtime
+description: Set up the repository-pinned pnpm and Node.js runtime, then install dependencies.
+
+inputs:
+  install-args:
+    description: Arguments passed to pnpm install.
+    required: false
+    default: --frozen-lockfile --strict-peer-dependencies
+
+runs:
+  using: composite
+  steps:
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v6
+      with:
+        version: 10.34.5
+        run_install: false
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: .node-version
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install ${{ inputs.install-args }}

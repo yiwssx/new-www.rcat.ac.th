@@ -16,6 +16,7 @@ const adminProxy = read("server/adminProxy/handlers.mjs");
 const cmsDispatcher = read("server/cmsAuth/dispatcher.mjs");
 const cmsUpstreamFetch = read("server/cmsAuth/upstreamFetch.mjs");
 const linkAuditWorkflow = read(".github/workflows/cms-link-integrity-audit.yml");
+const productionObservabilityWorkflow = read(".github/workflows/production-observability.yml");
 
 if (!pagination.includes('import { handleAdminMenuMutation } from "./adminMenuMutations";')) {
   fail("adminPagination must delegate menu mutations to the extracted route module");
@@ -81,6 +82,26 @@ for (const forbidden of ["wrangler deploy", "migrations apply", "time-travel res
   if (linkAuditWorkflow.includes(forbidden)) {
     fail(`CMS link audit must stay read-only: ${forbidden}`);
   }
+}
+
+if (!productionObservabilityWorkflow.includes("workflow_dispatch:")) {
+  fail("Production Observability must remain manually dispatchable");
+}
+if (productionObservabilityWorkflow.includes("schedule:") || productionObservabilityWorkflow.includes("cron:")) {
+  fail("Production Observability must remain manual-only while its credentials are reviewer-gated");
+}
+if (
+  !productionObservabilityWorkflow.includes("name: production") ||
+  !productionObservabilityWorkflow.includes("deployment: false") ||
+  !productionObservabilityWorkflow.includes("secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN")
+) {
+  fail("Production Observability must retain the protected read-only analytics credential boundary");
+}
+if (!productionObservabilityWorkflow.includes("group: production-observability")) {
+  fail("Production Observability must retain a single concurrency group");
+}
+if (!productionObservabilityWorkflow.includes("cancel-in-progress: false")) {
+  fail("Production Observability manual runs must queue rather than cancel one another");
 }
 
 console.log(

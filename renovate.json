@@ -3,7 +3,7 @@
   "extends": ["config:recommended"],
   "dependencyDashboard": true,
   "enabledManagers": ["npm", "github-actions"],
-  "includePaths": ["package.json", ".github/workflows/**"],
+  "includePaths": ["package.json", ".github/workflows/**", ".github/actions/**"],
   "baseBranchPatterns": ["master"],
   "timezone": "Asia/Bangkok",
   "labels": ["dependencies"],

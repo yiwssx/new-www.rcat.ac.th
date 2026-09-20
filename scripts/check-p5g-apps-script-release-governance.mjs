@@ -48,6 +48,15 @@ if (!rollback.includes("DEPLOYMENT_ENVIRONMENT: apps-script-production")) {
   fail("rollback workflow must publish Apps Script deployments under apps-script-production");
 }
 
+for (const [name, source] of [
+  ["release", release],
+  ["rollback", rollback]
+]) {
+  if (!source.includes("group: apps-script-production-write") || !source.includes("cancel-in-progress: false")) {
+    fail(`${name} workflow must share the non-cancelling Apps Script production write mutex`);
+  }
+}
+
 if (!release.includes("DEPLOY_EXISTING_APPS_SCRIPT_WEB_APP")) {
   fail("release workflow must require the exact production confirmation phrase");
 }

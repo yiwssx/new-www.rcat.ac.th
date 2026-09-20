@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { FORBIDDEN_SYNCHRONOUS_TELEMETRY_MODULES, PUBLIC_PERFORMANCE_BUDGET } from "./public-performance-budget.mjs";
 
 const ROOT = process.cwd();
+const skipStatusHashes = process.argv.includes("--skip-status-hashes");
 const DOCUMENTS = Object.freeze({
   governance: "docs/maintenance/dependencies.md",
   status: "docs/maintenance/dependency-current-status.md",
@@ -214,7 +215,9 @@ function validateDependencyMatrix(path, content) {
 function validateStatusDocument(content) {
   const path = DOCUMENTS.status;
   validateCanonicalHeader(path, content, "Dependency Status");
-  validateStatusHashes(path, content);
+  if (!skipStatusHashes) {
+    validateStatusHashes(path, content);
+  }
 
   record(
     path,

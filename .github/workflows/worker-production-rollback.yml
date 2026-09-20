@@ -21,7 +21,7 @@ permissions:
   deployments: write
 
 concurrency:
-  group: worker-production-recovery
+  group: worker-production-write
   cancel-in-progress: false
 
 jobs:

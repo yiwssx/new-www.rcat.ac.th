@@ -4,7 +4,7 @@ Status: completed requested work under the post-P5H production governance baseli
 
 Activation completed: 2026-08-29.
 
-Operational maintenance reviewed: 2026-09-02.
+Operational maintenance reviewed: 2026-09-20.
 
 ## Goal
 
@@ -33,11 +33,11 @@ Do not create a duplicate Environment, duplicate secret, or replacement token so
 
 Because referencing a GitHub Environment creates a pseudo-deployment record, the workflow retires and deletes only the Environment deployment created for its own run. The workflow run remains the audit record.
 
-## Schedule And Thresholds
+## Execution And Thresholds
 
-`.github/workflows/production-observability.yml` runs every six hours at minute 17, can be started manually from `master`, and self-smoke-tests on `master` when observability workflow/script files change.
+`.github/workflows/production-observability.yml` is manual-only and can be started deliberately from `master`. The protected `production` Environment still requires reviewer approval before the job can access its read-only analytics credential.
 
-The cadence was reduced from every two hours to every six hours on 2026-09-02 to reduce unnecessary monitoring frequency while retaining four D1 usage checkpoints per UTC day. The guard still reads Cloudflare Analytics rather than D1 itself, so these scheduled checks do not add D1 rows read or rows written.
+The former six-hour schedule was retired on 2026-09-20 because scheduled runs could not pass the existing Environment reviewer gate unattended. They accumulated in `waiting` state and were cancelled by later scheduled runs before executing. Keeping the guard manual-only preserves the established credential boundary without generating misleading scheduled-run churn. The guard still reads Cloudflare Analytics rather than D1 itself, so a manual check does not add D1 rows read or rows written.
 
 Default daily limits match the Workers Free D1 allowance:
 
@@ -108,11 +108,11 @@ This evidence closes the requested Production Observability activation work. It 
 
 ## Current Approval-Gated Operating Mode
 
-The GitHub `production` Environment requires reviewer approval. Scheduled Production Observability runs are therefore created automatically but remain waiting until an authorized reviewer approves that Environment deployment. Only after approval can the job access `CLOUDFLARE_ANALYTICS_READ_TOKEN` and execute the Analytics query.
+The GitHub `production` Environment requires reviewer approval. Production Observability is therefore invoked only when an operator intends to review and approve that protected Environment deployment. Only after approval can the job access `CLOUDFLARE_ANALYTICS_READ_TOKEN` and execute the Analytics query.
 
-This means the guard is **configured, activated, and operational when approved**, but it is **not unattended monitoring**. Project status reports must preserve that distinction rather than describing the guard in a way that implies every scheduled run executes automatically.
+This means the guard is **configured, activated, and operational when deliberately invoked and approved**, but it is **not unattended monitoring**. There is no recurring GitHub Actions schedule for this guard while the credential remains behind the reviewer gate.
 
-The waiting state is an intentional consequence of the existing production protection, not a missing-secret or failed-query condition. Do not weaken the general `production` Environment reviewer requirement merely to make this one job unattended, and do not create duplicate credentials or Environments solely to bypass the established approval boundary.
+A manually dispatched run may legitimately remain in `waiting` state until approval. Do not weaken the general `production` Environment reviewer requirement merely to make this one job unattended, and do not create duplicate credentials or Environments solely to bypass the established approval boundary.
 
 ## Activation Gate
 
@@ -125,4 +125,4 @@ P6A monitoring is operational only after all of the following are true:
 - the Environment pseudo-deployment cleanup succeeds;
 - the first successful run reports the expected current UTC-day utilization without exposing protected identifiers.
 
-All activation-gate conditions were satisfied on 2026-08-29. The 2026-09-02 cadence and documentation adjustments do not change the credential boundary or activation evidence.
+All activation-gate conditions were satisfied on 2026-08-29. The 2026-09-20 change to manual-only execution does not change the credential boundary or activation evidence.

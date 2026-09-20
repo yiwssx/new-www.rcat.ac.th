@@ -246,6 +246,7 @@ function classifyWorkflowRun(run, waitingIsExpected = false) {
 
   if (conclusion === "success") return "healthy";
   if (["failure", "timed_out", "action_required", "stale"].includes(conclusion)) return "error";
+  if (waitingIsExpected && conclusion === "cancelled") return "unknown";
   if (["cancelled", "neutral", "skipped"].includes(conclusion)) return "warning";
   return "unknown";
 }

@@ -177,6 +177,25 @@ describe("B3 health aggregation", () => {
     expect(response.bodyText).not.toContain(CMS_WORKER_ORIGIN);
   });
 
+  it("treats a cancelled approval-gated P6A run as non-blocking historical noise", async () => {
+    const fetchImpl = vi.fn(async (url) => {
+      const value = String(url);
+      if (value.startsWith(`${CMS_WORKER_ORIGIN}/api/admin/runtime-incidents`)) {
+        return Response.json(incidentPayload());
+      }
+      if (value.includes("/actions/runs?")) {
+        return Response.json(workflowPayload({ p6a: { status: "completed", conclusion: "cancelled" } }));
+      }
+      return Response.json(deploymentPayload());
+    });
+
+    const response = await callHandler(fetchImpl);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyJson.overallStatus).toBe("healthy");
+    expect(response.bodyJson.guards.find((guard) => guard.id === "p6a")?.status).toBe("unknown");
+  });
+
   it("makes a failed operational guard authoritative over lower-severity incident signals", async () => {
     const fetchImpl = vi.fn(async (url) => {
       const value = String(url);

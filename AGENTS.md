@@ -4,7 +4,7 @@ This project is a React/Vite public website and CMS for Roi-Et College of Agricu
 
 ## Current Project Status
 
-Current status: post-P5H production governance baseline with Production Observability configured behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, completed Admin UX 00-10, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
+Current status: post-P5H production governance baseline with Production Observability configured as a manual-only guard behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, completed Admin UX 00-10, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
 
 Reliability Roadmap v2 is separate from P6 and is complete. Phase 0 Development Quality Gate, Phase A Field QA Foundation, Phase B Operational Visibility, and Phase C Deep Field Verification are complete. Within Phase B, B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified. There is no active Reliability Roadmap v2 phase; future reliability work requires a new explicit scope.
 
@@ -14,7 +14,7 @@ Use `docs/architecture/post-p5h-current-project-state.md` as the canonical curre
 
 P5H closed the original production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, the Production Observability D1 usage guard, completed P6B security controls, completed P6C recovery controls, completed P6D public UX controls, completed Admin UX 00-10, completed Phase 0/A/B/C reliability work, the verified environment-retirement state, and the current post-P5H maintenance posture.
 
-The Production Observability guard completed its activation gate on 2026-08-29. It is configured on a six-hour schedule, but scheduled runs remain reviewer-gated by the existing `production` Environment and therefore must not be described as unattended monitoring. Reuse the existing Environment and credentials; do not request or create a duplicate Environment/secret merely because an imagined monitoring name differs. Use `docs/operations/p6a-production-observability.md` for closure evidence and operational constraints.
+The Production Observability guard completed its activation gate on 2026-08-29. As of 2026-09-20 it is manual-only because the existing `production` Environment reviewer gate prevents unattended scheduled execution; the former six-hour schedule was retired after waiting runs repeatedly accumulated and were cancelled by later runs. Reuse the existing Environment and credentials; do not request or create a duplicate Environment/secret merely because an imagined monitoring name differs. Use `docs/operations/p6a-production-observability.md` for closure evidence and operational constraints.
 
 P6B Security Enforcement completed on 2026-08-29. Preserve its CSP, Vercel WAF, sensitive Admin/Auth rate-limit, and privacy-preserving anomaly-detection boundaries. Scheduled D1 auth polling is retired; password-threshold signaling is event-driven and deeper D1 aggregate diagnosis is manual-only. Use `docs/operations/p6b-security-enforcement.md` for closure evidence.
 
@@ -37,10 +37,10 @@ Governed Renovate dependency maintenance is expected to continue. It is not cons
 When reporting current project status, use:
 
 ```text
-post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2 complete (Phase 0 + Phase A + Phase B/B1-B3 + Phase C complete) + production environment retirement follow-ups completed/operator-verified (2026-09-11)
+post-P5H production governance baseline + Production Observability configured/manual-only/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2 complete (Phase 0 + Phase A + Phase B/B1-B3 + Phase C complete) + production environment retirement follow-ups completed/operator-verified (2026-09-11)
 ```
 
-Do not report M20, M21, P6B, P6C, P6D, or Reliability Roadmap v2 Phase B as the current active feature-development/reliability phase. P6B, P6C, P6D, Phase 0, Phase A, Phase B, and Phase C are completed. Production Observability remains an operational guard whose scheduled executions are reviewer-gated rather than unattended.
+Do not report M20, M21, P6B, P6C, P6D, or Reliability Roadmap v2 Phase B as the current active feature-development/reliability phase. P6B, P6C, P6D, Phase 0, Phase A, Phase B, and Phase C are completed. Production Observability remains a manual-only operational guard whose executions are reviewer-gated rather than unattended.
 
 For future feature, product, or reliability work, report the new branch and PR scope directly rather than extending P6D, Phase B, or M21 implicitly.
 
@@ -73,7 +73,7 @@ The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carous
 ## Reliability Ownership
 
 - Phase A owns deployment-driven read-only production browser QA.
-- P6A owns D1 utilization observability and remains approval-gated.
+- P6A owns D1 utilization observability and remains manual-only and approval-gated.
 - P6B owns security/WAF/CSP enforcement checks.
 - P6C owns bounded six-hour SSR → Worker → D1 reliability verification.
 - Phase B B1/B2/B3 are complete; B3 remains explicit-refresh, server-owned aggregation through `/api/health-aggregation`.

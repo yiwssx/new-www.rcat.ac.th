@@ -26,19 +26,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - name: Refresh dependency status for Renovate update
         if: (github.event_name == 'pull_request' && github.event.pull_request.user.login == 'renovate[bot]') || (github.event_name == 'push' && github.actor == 'renovate[bot]')
         run: pnpm deps:status
       - name: Verify dependency status freshness
+        id: dependency_freshness
         shell: bash
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -52,17 +45,42 @@ jobs:
             docs/maintenance/dependency-current-status.md
           )
 
+          if [ -z "$BASE_SHA" ]; then
+            git fetch origin master --no-tags
+            BASE_SHA="$(git merge-base origin/master HEAD)"
+          fi
+
           if [ -n "$BASE_SHA" ] && \
             [ "$BASE_SHA" != "0000000000000000000000000000000000000000" ] && \
             git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null && \
             git diff --quiet "$BASE_SHA" HEAD -- "${dependency_state_paths[@]}"; then
             echo "Dependency state files are unchanged by this change; inherited snapshot drift does not block this CI run."
+            echo "inherited_drift=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
+          echo "inherited_drift=false" >> "$GITHUB_OUTPUT"
           pnpm deps:status:check
-      - run: pnpm deps:check
-      - run: pnpm deps:docs:audit
+      - name: Run dependency policy and audits
+        shell: bash
+        env:
+          INHERITED_DRIFT: ${{ steps.dependency_freshness.outputs.inherited_drift }}
+        run: |
+          if [ "$INHERITED_DRIFT" = "true" ]; then
+            pnpm deps:check -- --skip-documentation-freshness
+          else
+            pnpm deps:check
+          fi
+      - name: Audit dependency documentation
+        shell: bash
+        env:
+          INHERITED_DRIFT: ${{ steps.dependency_freshness.outputs.inherited_drift }}
+        run: |
+          if [ "$INHERITED_DRIFT" = "true" ]; then
+            pnpm deps:docs:audit -- --skip-status-hashes
+          else
+            pnpm deps:docs:audit
+          fi
 
   static-quality:
     name: Static Quality
@@ -70,15 +88,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: pnpm format:check
       - run: pnpm lint:strict
 
@@ -88,15 +98,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: pnpm test:unit
       - name: Enforce critical coverage thresholds
         run: >-
@@ -112,15 +114,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: pnpm test:integration
 
   build:
@@ -129,15 +123,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: pnpm build
 
   governance:
@@ -146,15 +132,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: pnpm perf:check
       - run: pnpm media:check
       - run: pnpm layout:check
@@ -172,15 +150,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: node scripts/check-d1-migration-sequences.mjs
       - run: pnpm worker:typecheck
       - run: pnpm worker:deploy:dry
@@ -191,15 +161,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - name: Validate production Playwright suite discovery
         run: pnpm exec playwright test --config playwright.production.config.ts --list
       - run: pnpm exec playwright install --with-deps chromium

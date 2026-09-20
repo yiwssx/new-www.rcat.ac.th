@@ -1,8 +1,10 @@
 name: Dependency Status Sync
 
-# Dependency status is intentionally read-only under the protected-master policy.
 # Renovate remains responsible only for direct dependencies declared in package.json.
+# When dependency state changes make the checked-in status snapshot stale, this workflow
+# refreshes the snapshot on a dedicated automation branch and opens or updates a PR.
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -14,7 +16,9 @@ on:
       - .node-version
 
 permissions:
-  contents: read
+  actions: write
+  contents: write
+  pull-requests: write
 
 concurrency:
   group: dependency-status-sync
@@ -22,24 +26,17 @@ concurrency:
 
 jobs:
   sync:
-    if: github.actor == 'renovate[bot]'
+    if: github.actor == 'renovate[bot]' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6
         with:
-          version: 10.34.5
-          run_install: false
+          fetch-depth: 0
 
-      - uses: actions/setup-node@v7
+      - uses: ./.github/actions/setup-project
         with:
-          node-version-file: .node-version
-          cache: pnpm
-
-      - name: Install dependencies without lifecycle scripts
-        run: pnpm install --frozen-lockfile --strict-peer-dependencies --ignore-scripts
+          install-args: --frozen-lockfile --strict-peer-dependencies --ignore-scripts
 
       - name: Refresh dependency status document in workspace
         run: pnpm deps:status
@@ -54,23 +51,63 @@ jobs:
             exit 1
           fi
 
-      - name: Report dependency status drift
+      - name: Detect dependency status drift
+        id: drift
         shell: bash
         run: |
           if git diff --quiet -- docs/maintenance/dependency-current-status.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Dependency status snapshot is already current."
-            {
-              echo "## Dependency status"
-              echo "The checked-in dependency status snapshot is current."
-            } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
+          echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "Dependency status snapshot differs from the generated result."
           git diff --stat -- docs/maintenance/dependency-current-status.md
+
+      - name: Publish refreshed dependency status branch
+        if: steps.drift.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sync_branch="automation/dependency-status-sync"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/maintenance/dependency-current-status.md
+          HUSKY=0 git commit -m "docs(deps): refresh dependency status"
+          git push --force origin "HEAD:refs/heads/$sync_branch"
+
+      - name: Open or update dependency status PR
+        if: steps.drift.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sync_branch="automation/dependency-status-sync"
+          existing_pr="$(gh pr list             --base master             --head "$sync_branch"             --state open             --json number             --jq '.[0].number // empty')"
+
+          if [ -z "$existing_pr" ]; then
+            gh pr create               --base master               --head "$sync_branch"               --title "docs(deps): refresh dependency status"               --body "Automated refresh of the committed dependency status snapshot after a Renovate dependency update."               --label dependencies
+          else
+            gh pr edit "$existing_pr"               --body "Automated refresh of the committed dependency status snapshot after the latest Renovate dependency update."
+          fi
+
+          gh workflow run ci.yml --ref "$sync_branch"
+
           {
-            echo "## Dependency status drift detected"
-            echo "The generated dependency status differs from the checked-in snapshot."
-            echo "Direct pushes to master are intentionally disabled by repository governance."
-            echo "Refresh the snapshot through a normal pull request when the report needs to be persisted."
+            echo "## Dependency status drift remediated"
+            echo "The generated dependency status differed from the checked-in snapshot."
+            echo "The dedicated automation branch was refreshed and a pull request now carries the update."
+            echo "CI was explicitly dispatched for the automation branch because GITHUB_TOKEN-created events do not recursively trigger normal workflow chains."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report current dependency status
+        if: steps.drift.outputs.changed != 'true'
+        run: |
+          {
+            echo "## Dependency status"
+            echo "The checked-in dependency status snapshot is current."
           } >> "$GITHUB_STEP_SUMMARY"
