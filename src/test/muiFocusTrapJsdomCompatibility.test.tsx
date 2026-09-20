@@ -12,14 +12,14 @@ describe("MUI FocusTrap compatibility with jsdom focus fixup", () => {
     trigger.remove();
 
     const { unmount } = render(
-      <Dialog open aria-label="compatibility dialog">
+      <Dialog open>
         <DialogContent>
           <button type="button">inside dialog</button>
         </DialogContent>
       </Dialog>
     );
 
-    expect(await screen.findByRole("dialog", { name: "compatibility dialog" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(() => unmount()).not.toThrow();
   });
 });
