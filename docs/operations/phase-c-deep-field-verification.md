@@ -28,7 +28,7 @@ Completed: 2026-09-05.
 
 C2 reuses the existing deployment-driven production Playwright pipeline and adds one bounded home-route synthetic check per existing desktop/mobile Chromium project. It records browser-native Time to First Byte, First Contentful Paint, DOMContentLoaded, and load-event timings after the exact `master` SHA is deployed by Vercel.
 
-The fixed release guardrails are intentionally looser than the real-user Core Web Vitals objectives because GitHub-hosted runner network conditions are synthetic and variable. They detect gross release regressions rather than replace Vercel Speed Insights/Web Analytics or the existing static bundle budget:
+The fixed release guardrails are intentionally looser than the real-user Core Web Vitals objectives because GitHub-hosted runner network conditions are synthetic and variable. They detect gross release regressions rather than replace Vercel Speed Insights/Web Analytics or the deterministic static-entry evidence and telemetry-boundary checks:
 
 - Time to First Byte: <= 5,000 ms
 - First Contentful Paint: <= 7,000 ms
