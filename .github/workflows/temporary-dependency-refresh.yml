@@ -1,0 +1,46 @@
+name: Temporary Dependency Refresh
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - package.json
+      - pnpm-lock.yaml
+      - docs/maintenance/dependency-current-status.md
+      - .github/workflows/temporary-dependency-refresh.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --strict-peer-dependencies
+      - run: pnpm deps:status
+      - name: Commit generated dependency state
+        shell: bash
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml docs/maintenance/dependency-current-status.md; then
+            echo "Dependency state already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml docs/maintenance/dependency-current-status.md
+          git commit -m "chore(deps): refresh generated dependency state"
+          git push origin HEAD
