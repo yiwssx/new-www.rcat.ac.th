@@ -1,9 +1,9 @@
 name: Temporary MUI FocusTrap Patch
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/dependency-cleanup-react-jsdom-20260920
+      - master
     paths:
       - .github/workflows/temporary-mui-focustrap-patch.yml
   workflow_dispatch:
