@@ -15,6 +15,7 @@ on:
       - .node-version
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -93,10 +94,13 @@ jobs:
             gh pr edit "$existing_pr"               --body "Automated refresh of the committed dependency status snapshot after the latest Renovate dependency update."
           fi
 
+          gh workflow run ci.yml --ref "$sync_branch"
+
           {
             echo "## Dependency status drift remediated"
             echo "The generated dependency status differed from the checked-in snapshot."
             echo "The dedicated automation branch was refreshed and a pull request now carries the update."
+            echo "CI was explicitly dispatched for the automation branch because GITHUB_TOKEN-created events do not recursively trigger normal workflow chains."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Report current dependency status
