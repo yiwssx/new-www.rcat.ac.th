@@ -30,7 +30,7 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install --strict-peer-dependencies
+      - run: pnpm install --no-frozen-lockfile --strict-peer-dependencies
       - run: pnpm deps:status
       - name: Commit generated dependency state
         shell: bash
