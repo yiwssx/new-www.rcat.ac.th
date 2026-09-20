@@ -56,10 +56,13 @@ describe("dependency automation contract", () => {
     );
 
     expect(
-      packageRules.some((rule) =>
-        (rule.matchPackageNames as string[] | undefined)?.some((name) =>
-          ["react", "react-dom", "@types/react", "@types/react-dom", "jsdom"].includes(name)
-        ) && typeof rule.allowedVersions === "string" && rule.allowedVersions.startsWith("!/")
+      packageRules.some(
+        (rule) =>
+          (rule.matchPackageNames as string[] | undefined)?.some((name) =>
+            ["react", "react-dom", "@types/react", "@types/react-dom", "jsdom"].includes(name)
+          ) &&
+          typeof rule.allowedVersions === "string" &&
+          rule.allowedVersions.startsWith("!/")
       )
     ).toBe(false);
   });
