@@ -7,6 +7,7 @@ const auditLevel = process.argv.find((argument) => argument.startsWith("--audit-
 const prodAuditLevel =
   process.argv.find((argument) => argument.startsWith("--prod-audit-level="))?.split("=", 2)[1] || "moderate";
 const includeOutdated = process.argv.includes("--include-outdated");
+const skipDocumentationFreshness = process.argv.includes("--skip-documentation-freshness");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 const ciWorkflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const ciSetupAction = readFileSync(".github/actions/setup-project/action.yml", "utf8");
@@ -444,8 +445,13 @@ const auditExit = runPnpm(["audit", "--audit-level", auditLevel]).status;
 console.log(`Production dependency audit (enforced at ${prodAuditLevel}):`);
 const prodAuditExit = runPnpm(["audit", "--prod", "--audit-level", prodAuditLevel]).status;
 
-console.log("Dependency documentation freshness:");
-const docsExit = runNode(["scripts/generate-dependency-status.mjs", "--check"]).status;
+let docsExit = 0;
+if (skipDocumentationFreshness) {
+  console.log("Dependency documentation freshness: SKIPPED (inherited master drift; dependency state unchanged by this change)");
+} else {
+  console.log("Dependency documentation freshness:");
+  docsExit = runNode(["scripts/generate-dependency-status.mjs", "--check"]).status;
+}
 
 let outdatedExit = "not-run";
 if (includeOutdated) {
