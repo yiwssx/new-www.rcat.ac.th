@@ -52,4 +52,4 @@ The focused icon tests are:
 
 pnpm exec vitest run src/test/ExternalServiceIcon.test.tsx src/test/designSystemGovernance.test.mjs
 
-Any icon-system change that touches Public synchronous code must also respect the existing public performance budget.
+Any icon-system change that touches Public synchronous code must also respect the existing public performance architecture and telemetry-isolation checks.
