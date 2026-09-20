@@ -9,6 +9,9 @@ const prodAuditLevel =
 const includeOutdated = process.argv.includes("--include-outdated");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 const ciWorkflow = readFileSync(".github/workflows/ci.yml", "utf8");
+const ciSetupAction = readFileSync(".github/actions/setup-project/action.yml", "utf8");
+const ciRuntimeSource = `${ciWorkflow}\n${ciSetupAction}`;
+const dependencyStatusSyncWorkflow = readFileSync(".github/workflows/dependency-status-sync.yml", "utf8");
 const workspaceConfig = readFileSync("pnpm-workspace.yaml", "utf8");
 const dependencyPolicy = JSON.parse(readFileSync("config/dependency-policy.json", "utf8"));
 const localNodeVersion = readFileSync(".node-version", "utf8").trim();
@@ -178,7 +181,7 @@ console.log("Deterministic dependency manifest and policy checks:");
 const packageManagerMatch = packageJson.packageManager?.match(/^pnpm@(.+)$/);
 const packageManagerPnpm = packageManagerMatch?.[1] || "";
 const enginePnpm = packageJson.engines?.pnpm || "";
-const ciPnpm = normalizeYamlScalar(ciWorkflow.match(/pnpm\/action-setup@v\d+[\s\S]*?\bversion:\s*([^\s#]+)/)?.[1]);
+const ciPnpm = normalizeYamlScalar(ciRuntimeSource.match(/pnpm\/action-setup@v\d+[\s\S]*?\bversion:\s*([^\s#]+)/)?.[1]);
 const actualPnpmResult = runPnpm(["--version"], { capture: true });
 const actualPnpm = actualPnpmResult.stdout.trim();
 record(
@@ -197,7 +200,7 @@ const engineNode = packageJson.engines?.node || "";
 const engineNodeMajor = Number(engineNode.match(/^(\d+)\.x$/)?.[1]);
 const localNode = parseVersion(localNodeVersion);
 const actualNode = parseVersion(process.versions.node);
-const ciNodeVersionFile = normalizeYamlScalar(ciWorkflow.match(/\bnode-version-file:\s*([^\s#]+)/)?.[1]);
+const ciNodeVersionFile = normalizeYamlScalar(ciRuntimeSource.match(/\bnode-version-file:\s*([^\s#]+)/)?.[1]);
 record(
   "Node engine, CI, local pin, and active runtime alignment",
   Boolean(engineNodeMajor) &&
@@ -382,7 +385,7 @@ record(
     : "missing or not 4320 minutes"
 );
 
-const ciInstall = ciWorkflow.match(/^\s*-\s+run:\s*(pnpm install[^\r\n]*)$/m)?.[1] || "";
+const ciInstall = ciRuntimeSource.match(/^\s*(?:-\s+)?run:\s*(pnpm install[^\r\n]*)$/m)?.[1] || "";
 record(
   "CI frozen strict-peer online install",
   ciInstall.includes("--frozen-lockfile") &&
@@ -392,7 +395,7 @@ record(
 );
 record(
   "CI blocking dependency gates",
-  !/\bcontinue-on-error\s*:\s*true\b|\|\|\s*true/u.test(ciWorkflow),
+  !/\bcontinue-on-error\s*:\s*true\b|\|\|\s*true/u.test(ciRuntimeSource),
   "no continue-on-error or || true"
 );
 record(
@@ -401,6 +404,22 @@ record(
   ciWorkflow.includes("pnpm deps:latest:check")
     ? "pnpm deps:latest:check is still in blocking push/pull-request CI"
     : "live freshness is handled outside blocking push/pull-request CI"
+);
+record(
+  "CI uses the centralized project setup action",
+  ciWorkflow.includes("uses: ./.github/actions/setup-project") &&
+    ciSetupAction.includes("pnpm/action-setup@v6") &&
+    ciSetupAction.includes("actions/setup-node@v7"),
+  "shared pnpm/Node/install setup is defined once and reused by CI lanes"
+);
+record(
+  "dependency status drift has an automated PR remediation path",
+  dependencyStatusSyncWorkflow.includes("contents: write") &&
+    dependencyStatusSyncWorkflow.includes("pull-requests: write") &&
+    dependencyStatusSyncWorkflow.includes("automation/dependency-status-sync") &&
+    dependencyStatusSyncWorkflow.includes("gh pr create") &&
+    !/git push[^\n]*master/u.test(dependencyStatusSyncWorkflow),
+  "drift refreshes a dedicated automation branch and opens or updates a pull request"
 );
 
 const manifestExit = manifestErrors.length ? 1 : 0;

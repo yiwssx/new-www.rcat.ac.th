@@ -88,6 +88,7 @@ if (!d1Drill.includes("name: production") || !d1Drill.includes("deployment: fals
   );
 }
 
+const workerRelease = read(".github/workflows/worker-production.yml");
 const workerRollback = read(".github/workflows/worker-production-rollback.yml");
 for (const contract of [
   "ROLLBACK_WORKER_RUNTIME_ONLY",
@@ -107,6 +108,15 @@ for (const contract of [
 }
 if (workerRollback.includes("d1 migrations apply") || workerRollback.includes("d1 time-travel restore")) {
   fail("Worker runtime rollback must not migrate or restore D1");
+}
+
+for (const [name, source] of [
+  ["release", workerRelease],
+  ["rollback", workerRollback]
+]) {
+  if (!source.includes("group: worker-production-write") || !source.includes("cancel-in-progress: false")) {
+    fail(`Worker ${name} must share the non-cancelling production write mutex`);
+  }
 }
 
 const workerRollbackHelper = read("scripts/deploy-worker-runtime-rollback.mjs");

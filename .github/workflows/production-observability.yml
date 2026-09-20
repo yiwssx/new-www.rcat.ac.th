@@ -1,16 +1,9 @@
 name: Production Observability
 
+# The analytics token is intentionally kept in the reviewer-gated production
+# Environment. Automatic schedules would therefore accumulate waiting runs and
+# cancel each other without executing. Run this guard deliberately from master.
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - ".github/workflows/production-observability.yml"
-      - "scripts/check-production-d1-usage.mjs"
-      - "scripts/resolve-d1-drill-environment-deployment.mjs"
-  schedule:
-    # Every six hours at minute 17. D1 Free daily limits reset at 00:00 UTC.
-    - cron: "17 */6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -18,7 +11,7 @@ permissions:
 
 concurrency:
   group: production-observability
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   d1-usage:

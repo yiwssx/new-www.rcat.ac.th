@@ -26,15 +26,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - name: Refresh dependency status for Renovate update
         if: (github.event_name == 'pull_request' && github.event.pull_request.user.login == 'renovate[bot]') || (github.event_name == 'push' && github.actor == 'renovate[bot]')
         run: pnpm deps:status
@@ -70,15 +62,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: pnpm format:check
       - run: pnpm lint:strict
 
@@ -88,15 +72,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: pnpm test:unit
       - name: Enforce critical coverage thresholds
         run: >-
@@ -112,15 +88,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: pnpm test:integration
 
   build:
@@ -129,15 +97,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: pnpm build
 
   governance:
@@ -146,15 +106,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: pnpm perf:check
       - run: pnpm media:check
       - run: pnpm layout:check
@@ -172,15 +124,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - run: node scripts/check-d1-migration-sequences.mjs
       - run: pnpm worker:typecheck
       - run: pnpm worker:deploy:dry
@@ -191,15 +135,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - name: Validate production Playwright suite discovery
         run: pnpm exec playwright test --config playwright.production.config.ts --list
       - run: pnpm exec playwright install --with-deps chromium

@@ -16,6 +16,10 @@ permissions:
   contents: read
   deployments: write
 
+concurrency:
+  group: apps-script-production-write
+  cancel-in-progress: false
+
 jobs:
   rollback:
     name: Roll Back Existing Production Media Bridge

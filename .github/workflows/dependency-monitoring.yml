@@ -20,16 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-          run_install: false
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - uses: ./.github/actions/setup-project
       - name: Validate live dependency policy and report backlog
         run: node scripts/generate-dependency-status.mjs --monitor

@@ -4,7 +4,7 @@ This repository is a React/Vite public website and CMS with Cloudflare Worker/D1
 
 ## Current Project Status
 
-Current status: post-P5H production governance baseline with Production Observability configured behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, completed Admin UX 00-10, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
+Current status: post-P5H production governance baseline with Production Observability configured as a manual-only guard behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, completed Admin UX 00-10, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
 
 Reliability Roadmap v2 is separate from P6 and is complete. Phase 0 Development Quality Gate, Phase A Field QA Foundation, Phase B Operational Visibility, and Phase C Deep Field Verification are complete. Within Phase B, B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified. Completed C3 authenticated CMS verification remains manual/protected and must not be coupled back into normal Worker production releases without new explicit scope.
 
@@ -53,7 +53,7 @@ Historical M13-M21 milestone documents may be used as evidence for their origina
 
 - Reuse `X-RCAT-Request-ID`; do not create a parallel request-correlation identifier.
 - Phase A owns deployment-driven read-only production browser QA.
-- P6A owns D1 utilization observability and remains protected-Environment approval-gated.
+- P6A owns D1 utilization observability and remains manual-only and protected-Environment approval-gated.
 - P6B owns security/WAF/CSP verification.
 - P6C owns the bounded six-hour SSR → Worker → D1 reliability guard.
 - Phase B B1/B2/B3 are complete. B3 is server-owned explicit-refresh aggregation through `/api/health-aggregation`; do not add browser infrastructure credentials or background polling.
