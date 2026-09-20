@@ -8,7 +8,7 @@ RCAT uses Vercel Web Analytics and Speed Insights through the existing lazy Publ
 
 The first SLO scope is the public web experience served by Vercel. Admin, CMS authentication, Cloudflare Worker internals, Apps Script, and D1 have separate operational boundaries and must not be inferred from Core Web Vitals alone.
 
-The existing build-time performance budget remains mandatory. RUM does not replace bundle, layout, media, or design governance; it adds field evidence about what real browsers experience.
+The build-time entry-graph and telemetry-boundary checks remain mandatory. Static file-count and byte measurements are deterministic diagnostic references, not Web Vitals thresholds. RUM adds the field evidence about what real browsers experience.
 
 ## Core Web Vitals Objectives
 
