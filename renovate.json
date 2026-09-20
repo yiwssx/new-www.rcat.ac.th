@@ -20,6 +20,7 @@
   "prConcurrentLimit": 2,
   "branchConcurrentLimit": 2,
   "prHourlyLimit": 1,
+  "commitHourlyLimit": 2,
   "lockFileMaintenance": {
     "enabled": false
   },
@@ -145,6 +146,5 @@
     "enabled": true,
     "labels": ["dependencies", "security"],
     "prConcurrentLimit": 2
-  },
-  "commitHourlyLimit": 2
+  }
 }
