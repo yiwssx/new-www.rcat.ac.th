@@ -13,6 +13,11 @@ const monitoringWorkflow = readFileSync(
 );
 const dependencyStatusScript = readFileSync(join(repositoryRoot, "scripts", "generate-dependency-status.mjs"), "utf8");
 const dependencyCheckScript = readFileSync(join(repositoryRoot, "scripts", "check-dependencies.mjs"), "utf8");
+const packageJson = JSON.parse(readFileSync(join(repositoryRoot, "package.json"), "utf8")) as {
+  dependencies?: Record<string, string>;
+};
+const pnpmWorkspace = readFileSync(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8");
+const muiFocusTrapPatch = readFileSync(join(repositoryRoot, "patches", "@mui__material@9.4.0.patch"), "utf8");
 
 describe("dependency automation contract", () => {
   it("keeps Renovate visible while serializing normal dependency churn", () => {
@@ -26,7 +31,7 @@ describe("dependency automation contract", () => {
     expect(renovate.recreateWhen).toBe("auto");
   });
 
-  it("preserves release-age, major-review, selective grouping, and known-regression controls", () => {
+  it("preserves release-age, major-review, selective grouping, and no stale temporary holds", () => {
     const packageRules = renovate.packageRules as Array<Record<string, unknown>>;
     expect(packageRules).toEqual(
       expect.arrayContaining([
@@ -37,10 +42,6 @@ describe("dependency automation contract", () => {
         expect.objectContaining({
           matchUpdateTypes: ["major"],
           automerge: false
-        }),
-        expect.objectContaining({
-          matchPackageNames: ["jsdom"],
-          allowedVersions: "!/^30\\.1\\.0$/"
         }),
         expect.objectContaining({
           matchPackageNames: ["wrangler", "@cloudflare/workers-types"],
@@ -58,6 +59,30 @@ describe("dependency automation contract", () => {
         })
       ])
     );
+
+    expect(
+      packageRules.some(
+        (rule) =>
+          (rule.matchPackageNames as string[] | undefined)?.some((name) =>
+            ["react", "react-dom", "@types/react", "@types/react-dom", "jsdom"].includes(name)
+          ) &&
+          typeof rule.allowedVersions === "string" &&
+          rule.allowedVersions.startsWith("!/")
+      )
+    ).toBe(false);
+  });
+
+  it("keeps retired JWT libraries out of direct runtime dependencies", () => {
+    expect(packageJson.dependencies).not.toHaveProperty("jose");
+    expect(packageJson.dependencies).not.toHaveProperty("jwt-decode");
+  });
+
+  it("keeps the jsdom 30.1 MUI focus-restoration compatibility patch narrow", () => {
+    expect(pnpmWorkspace).toContain('"@mui/material@9.4.0": patches/@mui__material@9.4.0.patch');
+    expect(muiFocusTrapPatch).toContain('typeof nodeToRestore.current?.focus === "function"');
+    expect(muiFocusTrapPatch.match(/^diff --git /gmu)).toHaveLength(2);
+    expect(muiFocusTrapPatch).toContain("Unstable_TrapFocus/FocusTrap.js");
+    expect(muiFocusTrapPatch).toContain("Unstable_TrapFocus/FocusTrap.mjs");
   });
 
   it("treats compatibility policy selected versions as same-major anchors", () => {

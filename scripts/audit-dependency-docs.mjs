@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { FORBIDDEN_SYNCHRONOUS_TELEMETRY_MODULES, PUBLIC_PERFORMANCE_BUDGET } from "./public-performance-budget.mjs";
+import { FORBIDDEN_SYNCHRONOUS_TELEMETRY_MODULES, PUBLIC_PERFORMANCE_REFERENCE } from "./public-performance-budget.mjs";
 
 const ROOT = process.cwd();
 const skipStatusHashes = process.argv.includes("--skip-status-hashes");
@@ -56,9 +56,9 @@ const REQUIRED_PERFORMANCE_SECTIONS = Object.freeze([
   "Public, Auth, and Admin boundaries",
   "Data minimization",
   "Deterministic measurement method",
-  "Current performance budget",
+  "Current deterministic reference",
   "Forbidden synchronous telemetry associations",
-  "Accepted reviewed performance rebaseline",
+  "Reviewed static baseline",
   "CI commands",
   "Reproduction",
   "Current limitations"
@@ -251,14 +251,14 @@ function validatePerformanceDocument(content) {
     record(path, hasHeading(content, heading), `missing required section "${heading}"`);
   }
 
-  const budgetRows = [
-    ["Synchronous JavaScript files", PUBLIC_PERFORMANCE_BUDGET.javascriptFiles],
-    ["Synchronous JavaScript raw bytes", PUBLIC_PERFORMANCE_BUDGET.rawBytes],
-    ["Synchronous JavaScript gzip bytes", PUBLIC_PERFORMANCE_BUDGET.gzipBytes],
+  const referenceRows = [
+    ["Synchronous JavaScript files", PUBLIC_PERFORMANCE_REFERENCE.javascriptFiles],
+    ["Synchronous JavaScript raw bytes", PUBLIC_PERFORMANCE_REFERENCE.rawBytes],
+    ["Synchronous JavaScript gzip bytes", PUBLIC_PERFORMANCE_REFERENCE.gzipBytes],
     ["Forbidden synchronous telemetry associations", 0]
   ];
-  for (const [label, value] of budgetRows) {
-    record(path, budgetRowMatches(content, label, value), `${label} does not match the committed budget`);
+  for (const [label, value] of referenceRows) {
+    record(path, budgetRowMatches(content, label, value), `${label} does not match the committed reviewed reference`);
   }
   for (const modulePath of FORBIDDEN_SYNCHRONOUS_TELEMETRY_MODULES) {
     record(path, content.includes(`\`${modulePath}\``), `missing forbidden module association ${modulePath}`);
@@ -274,8 +274,8 @@ function validatePerformanceDocument(content) {
   }
   record(
     path,
-    content.toLowerCase().includes("accepted reviewed performance rebaseline"),
-    "must describe the accepted reviewed performance rebaseline"
+    content.toLowerCase().includes("reviewed static baseline"),
+    "must describe the reviewed static baseline"
   );
   record(
     path,

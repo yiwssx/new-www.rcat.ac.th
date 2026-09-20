@@ -4,7 +4,7 @@ import {
   analyzePublicEntryBuild,
   collectStaticManifestEntries,
   evaluatePublicPerformanceBudget,
-  PUBLIC_PERFORMANCE_BUDGET,
+  PUBLIC_PERFORMANCE_REFERENCE,
   findIndexHtmlEntry,
   formatPublicPerformanceBudgetReport,
   parseViteManifestSource
@@ -48,7 +48,7 @@ function createFixture() {
   return { manifest, outputChunks };
 }
 
-describe("Public performance budget calculator", () => {
+describe("Public performance architecture calculator", () => {
   it("parses the manifest and identifies exactly one index.html entry", () => {
     const { manifest } = createFixture();
 
@@ -115,44 +115,38 @@ describe("Public performance budget calculator", () => {
     ).toThrow(/module associations/u);
   });
 
-  it("keeps the reviewed Vite 8 static-entry chunk baseline exact", () => {
-    expect(PUBLIC_PERFORMANCE_BUDGET.javascriptFiles).toBe(14);
-
-    const atLimit = evaluatePublicPerformanceBudget({
-      javascriptFileCount: 14,
-      rawBytes: 0,
-      gzipBytes: 0,
-      forbiddenAssociations: []
+  it("keeps static bundle measurements informational instead of treating them as Speed Insights thresholds", () => {
+    expect(PUBLIC_PERFORMANCE_REFERENCE).toEqual({
+      javascriptFiles: 14,
+      rawBytes: 432_228,
+      gzipBytes: 140_575
     });
-    const overLimit = evaluatePublicPerformanceBudget({
-      javascriptFileCount: 15,
-      rawBytes: 0,
-      gzipBytes: 0,
+
+    const result = evaluatePublicPerformanceBudget({
+      javascriptFileCount: 99,
+      rawBytes: 9_999_999,
+      gzipBytes: 9_999_999,
       forbiddenAssociations: []
     });
 
-    expect(atLimit.passed).toBe(true);
-    expect(overLimit.passed).toBe(false);
+    expect(result.passed).toBe(true);
+    expect(result.observations.every((observation) => observation.difference > 0)).toBe(true);
   });
 
-  it("reports exceeded limits and forbidden synchronous telemetry associations", () => {
+  it("hard-fails when telemetry crosses into the synchronous public entry graph", () => {
     const { manifest, outputChunks } = createFixture();
     outputChunks[0] = chunk("assets/index.js", outputChunks[0].code, [
       "/repo/src/main.tsx",
       "C:\\repo\\src\\shared\\components\\VercelInsights.tsx"
     ]);
     const metrics = analyzePublicEntryBuild({ manifest, outputChunks });
-    const result = evaluatePublicPerformanceBudget(metrics, {
-      javascriptFiles: 1,
-      rawBytes: 1,
-      gzipBytes: 1
-    });
+    const result = evaluatePublicPerformanceBudget(metrics);
     const report = formatPublicPerformanceBudgetReport(result);
 
     expect(result.passed).toBe(false);
-    expect(result.checks.every((check) => !check.passed)).toBe(true);
     expect(result.forbiddenAssociations).toEqual(["/src/shared/components/VercelInsights.tsx"]);
-    expect(report).toContain("actual 2; limit 1; difference +1; FAIL");
-    expect(report).toContain("Performance budget result: FAIL");
+    expect(report).toContain("reviewed reference");
+    expect(report).toContain("Forbidden synchronous telemetry associations: FAIL");
+    expect(report).toContain("Performance architecture result: FAIL");
   });
 });

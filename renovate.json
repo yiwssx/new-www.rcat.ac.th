@@ -81,20 +81,6 @@
       "allowedVersions": ">=24.0.0 <25.0.0"
     },
     {
-      "description": "Temporarily defer React 19.3.0 because it exceeds the public synchronous JavaScript performance budget on the current toolchain",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
-      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
-      "allowedVersions": "!/^19\\.3\\.0$/"
-    },
-    {
-      "description": "Temporarily defer jsdom 30.1.0 because it regresses dialog focus behavior in the current test/runtime stack",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
-      "matchPackageNames": ["jsdom"],
-      "allowedVersions": "!/^30\\.1\\.0$/"
-    },
-    {
       "description": "Group compatible Cloudflare toolchain patch and minor updates",
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies", "devDependencies"],

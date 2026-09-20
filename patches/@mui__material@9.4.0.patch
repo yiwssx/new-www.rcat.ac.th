@@ -1,0 +1,26 @@
+diff --git a/Unstable_TrapFocus/FocusTrap.js b/Unstable_TrapFocus/FocusTrap.js
+index afd28e3b9afd723f1331c953895832aa9933c0ca..7226b01108e58e45f676c0af7c33d9908ae363db 100644
+--- a/Unstable_TrapFocus/FocusTrap.js
++++ b/Unstable_TrapFocus/FocusTrap.js
+@@ -143,7 +143,7 @@ function FocusTrap(props) {
+     }
+     return () => {
+       // restoreLastFocus()
+-      if (!disableRestoreFocus && nodeToRestore.current) {
++      if (!disableRestoreFocus && typeof nodeToRestore.current?.focus === "function") {
+         ignoreNextEnforceFocus.current = true;
+         nodeToRestore.current.focus();
+         nodeToRestore.current = null;
+diff --git a/Unstable_TrapFocus/FocusTrap.mjs b/Unstable_TrapFocus/FocusTrap.mjs
+index d4a224e2b8321a3ec1d14bf63d73e5a59135e32e..4277b6a8d69f7251bc2fe213cf0e03adbaec80ad 100644
+--- a/Unstable_TrapFocus/FocusTrap.mjs
++++ b/Unstable_TrapFocus/FocusTrap.mjs
+@@ -136,7 +136,7 @@ function FocusTrap(props) {
+     }
+     return () => {
+       // restoreLastFocus()
+-      if (!disableRestoreFocus && nodeToRestore.current) {
++      if (!disableRestoreFocus && typeof nodeToRestore.current?.focus === "function") {
+         ignoreNextEnforceFocus.current = true;
+         nodeToRestore.current.focus();
+         nodeToRestore.current = null;

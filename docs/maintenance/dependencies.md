@@ -148,6 +148,16 @@ design-system verification.
 
 Treat Vite, its React plugin, Vitest, and jsdom as a compatibility group when a
 major update changes transforms, bundler output, test mocks, or DOM behavior.
+
+jsdom 30.1 changed focus fixup after a focused node is removed: the previous
+focus target can represent the document viewport. MUI Material 9.4.0 FocusTrap
+assumes every non-null restore target implements `focus()`. The repository
+therefore carries one narrow pnpm patch that checks the restore target has a
+callable `focus` method before invoking it. This is a runtime compatibility
+guard in the installed MUI package, not a test-only environment shim. The patch
+must not disable auto-focus, enforce-focus, or restore-focus behavior. Remove the patch when the
+installed MUI release contains an equivalent upstream guard, and keep the
+focused-node-removal regression test passing without a test-environment shim.
 Acceptance requires a production build, unit and integration tests, deterministic
 browser fixture readiness, and the committed performance gate.
 
