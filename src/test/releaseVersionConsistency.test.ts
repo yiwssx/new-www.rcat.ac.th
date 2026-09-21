@@ -1,7 +1,6 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
-// @ts-expect-error The runtime guard is an ESM .mjs module without a TypeScript declaration file.
 import {
   parseChangelogReleases,
   validateReleaseVersionConsistency
