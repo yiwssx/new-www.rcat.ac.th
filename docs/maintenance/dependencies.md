@@ -220,12 +220,13 @@ needed. Do not add broad script approvals.
 1. Confirm the branch and preserve unrelated working-tree changes.
 2. Review registry release notes, advisories, peer ranges, and release age.
 3. Update the smallest intended dependency set and regenerate the lockfile.
-4. Run a frozen strict-peer install.
-5. Run `pnpm deps:status`, `pnpm deps:check`, and `pnpm deps:docs:audit`.
-6. Review the live dependency backlog. Run `pnpm deps:latest:check` only when
+4. Regenerate and commit `docs/maintenance/dependency-current-status.md` in the same PR.
+5. Run a frozen strict-peer install.
+6. Run `pnpm deps:status:check`, `pnpm deps:check`, and `pnpm deps:docs:audit`.
+7. Review the live dependency backlog. Run `pnpm deps:latest:check` only when
    performing an explicit full-freshness sweep rather than a single queued update.
-7. Run the complete CI gates and package-specific tests for affected behavior.
-8. Review the manifest, lockfile, generated status, and source diff before
+8. Run the complete CI gates and package-specific tests for affected behavior.
+9. Review the manifest, lockfile, generated status, and source diff before
    committing.
 
 ## 18. Major migration procedure
@@ -277,10 +278,10 @@ errors, invalid compatibility exceptions, and audit failures still fail closed.
 Releases still inside the 72-hour window are reported as pending eligibility.
 
 Renovate is not restricted to a narrow branch-creation time window. The repository
-allows up to six concurrent regular Renovate PRs/branches and up to four new PRs
-per hour, while keeping the three-day release-age gate, automatic patch/minor
-merges, manual review for major and zero-major updates, and the existing security
-update policy. The Dependency Dashboard is enabled so pending, blocked, and
+allows up to two concurrent regular Renovate PRs/branches, one new PR per hour,
+and at most two Renovate commits/rebases per hour, while keeping the three-day
+release-age gate, automatic patch/minor merges, manual review for major and
+zero-major updates, and the existing security update policy. The Dependency Dashboard is enabled so pending, blocked, and
 rate-limited updates remain visible and can be deliberately retried when needed.
 The dashboard is an operator visibility/control surface; it does not bypass CI,
 release-age, compatibility, or manual-review requirements.
@@ -314,7 +315,10 @@ Use `pnpm deps:latest:check` separately when an operator is intentionally
 performing a full-freshness sweep across every direct dependency.
 
 Commit the regenerated `dependency-current-status.md` with the inputs that
-changed it. Keep this governance document version-agnostic except where a
+changed it. Renovate PRs are synchronized by the Dependency Status Sync workflow,
+which commits the generated snapshot to the Renovate branch and explicitly
+dispatches CI on that updated head. CI does not generate an uncommitted snapshot
+to make a dependency PR pass. Keep this governance document version-agnostic except where a
 current compatibility model or fixed repository policy must be explained.
 Technical repository documentation, source comments, generated labels, and
 commit messages use English; Thai remains appropriate for user-facing website

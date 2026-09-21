@@ -11,6 +11,11 @@ const monitoringWorkflow = readFileSync(
   join(repositoryRoot, ".github", "workflows", "dependency-monitoring.yml"),
   "utf8"
 );
+const ciWorkflow = readFileSync(join(repositoryRoot, ".github", "workflows", "ci.yml"), "utf8");
+const dependencyStatusSyncWorkflow = readFileSync(
+  join(repositoryRoot, ".github", "workflows", "dependency-status-sync.yml"),
+  "utf8"
+);
 const dependencyStatusScript = readFileSync(join(repositoryRoot, "scripts", "generate-dependency-status.mjs"), "utf8");
 const dependencyCheckScript = readFileSync(join(repositoryRoot, "scripts", "check-dependencies.mjs"), "utf8");
 const packageJson = JSON.parse(readFileSync(join(repositoryRoot, "package.json"), "utf8")) as {
@@ -29,6 +34,7 @@ describe("dependency automation contract", () => {
     expect(renovate.commitHourlyLimit).toBe(2);
     expect(renovate.rebaseWhen).toBe("behind-base-branch");
     expect(renovate.recreateWhen).toBe("auto");
+    expect(renovate.gitIgnoredAuthors).toEqual(["41898282+github-actions[bot]@users.noreply.github.com"]);
   });
 
   it("preserves release-age, major-review, selective grouping, and no stale temporary holds", () => {
@@ -95,6 +101,18 @@ describe("dependency automation contract", () => {
     expect(dependencyCheckScript).toContain(
       "installed selected major does not match the configured compatibility anchor major"
     );
+  });
+
+  it("requires committed dependency status before Renovate CI can pass", () => {
+    expect(ciWorkflow).not.toContain("Refresh dependency status for Renovate update");
+    expect(ciWorkflow).not.toContain("run: pnpm deps:status");
+    expect(ciWorkflow).toContain("pnpm deps:status:check");
+    expect(dependencyStatusSyncWorkflow).toContain("pull_request:");
+    expect(dependencyStatusSyncWorkflow).toContain("github.event.pull_request.user.login == 'renovate[bot]'");
+    expect(dependencyStatusSyncWorkflow).toContain("docs(deps): refresh dependency status");
+    expect(dependencyStatusSyncWorkflow).toContain('git push origin "HEAD:refs/heads/$HEAD_BRANCH"');
+    expect(dependencyStatusSyncWorkflow).toContain('gh workflow run ci.yml --ref "$HEAD_BRANCH"');
+    expect(dependencyStatusSyncWorkflow).toContain("github.event_name == 'push'");
   });
 
   it("reports ordinary freshness backlog without failing the scheduled monitor", () => {
