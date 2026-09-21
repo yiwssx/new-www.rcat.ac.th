@@ -80,8 +80,7 @@
     "lint-staged": "lint-staged --relative --max-arg-length 6000 --concurrent false",
     "commitlint": "commitlint --edit",
     "test:sitemap": "vitest run src/test/sitemap.test.mjs",
-    "gas:push:local": "cd apps-script && pnpm dlx @google/clasp@3.3.0 push",
-    "release:check": "node scripts/check-release-version-consistency.mjs"
+    "gas:push:local": "cd apps-script && pnpm dlx @google/clasp@3.3.0 push"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
