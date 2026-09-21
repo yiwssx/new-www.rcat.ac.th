@@ -103,7 +103,9 @@ function listTags() {
       .map((tag) => tag.trim())
       .filter(Boolean);
   } catch (error) {
-    throw new Error(`Unable to read Git tags: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Unable to read Git tags: ${error instanceof Error ? error.message : String(error)}`, {
+      cause: error
+    });
   }
 }
 
