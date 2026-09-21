@@ -1,10 +1,24 @@
 name: Dependency Status Sync
 
-# Renovate remains responsible only for direct dependencies declared in package.json.
-# When dependency state changes make the checked-in status snapshot stale, this workflow
-# refreshes the snapshot on a dedicated automation branch and opens or updates a PR.
+# Renovate updates must carry the generated dependency snapshot in the PR itself.
+# This workflow writes that snapshot back to same-repository Renovate branches before
+# merge. A master-push fallback still opens a repair PR if dependency state somehow
+# reaches master without a current snapshot.
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - config/dependency-policy.json
+      - .node-version
   push:
     branches:
       - master
@@ -21,18 +35,26 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: dependency-status-sync
+  group: dependency-status-sync-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   sync:
-    if: github.actor == 'renovate[bot]' || github.event_name == 'workflow_dispatch'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.user.login == 'renovate[bot]' &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
       - uses: ./.github/actions/setup-project
         with:
@@ -65,8 +87,33 @@ jobs:
           echo "Dependency status snapshot differs from the generated result."
           git diff --stat -- docs/maintenance/dependency-current-status.md
 
-      - name: Publish refreshed dependency status branch
-        if: steps.drift.outputs.changed == 'true'
+      - name: Commit refreshed snapshot to Renovate PR branch
+        if: github.event_name == 'pull_request' && steps.drift.outputs.changed == 'true'
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/maintenance/dependency-current-status.md
+          HUSKY=0 git commit -m "docs(deps): refresh dependency status"
+          git push origin "HEAD:refs/heads/$HEAD_BRANCH"
+
+          # GITHUB_TOKEN-created pushes do not recursively trigger normal Actions
+          # workflows, so validate the exact updated head explicitly.
+          gh workflow run ci.yml --ref "$HEAD_BRANCH"
+
+          {
+            echo "## Renovate dependency snapshot committed"
+            echo "The generated dependency status was committed to the Renovate branch before merge."
+            echo "CI was explicitly dispatched on the updated head SHA."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish post-merge repair branch
+        if: github.event_name != 'pull_request' && steps.drift.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -78,8 +125,8 @@ jobs:
           HUSKY=0 git commit -m "docs(deps): refresh dependency status"
           git push --force origin "HEAD:refs/heads/$sync_branch"
 
-      - name: Open or update dependency status PR
-        if: steps.drift.outputs.changed == 'true'
+      - name: Open or update post-merge dependency status PR
+        if: github.event_name != 'pull_request' && steps.drift.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -90,18 +137,17 @@ jobs:
           existing_pr="$(gh pr list             --base master             --head "$sync_branch"             --state open             --json number             --jq '.[0].number // empty')"
 
           if [ -z "$existing_pr" ]; then
-            gh pr create               --base master               --head "$sync_branch"               --title "docs(deps): refresh dependency status"               --body "Automated refresh of the committed dependency status snapshot after a Renovate dependency update."               --label dependencies
+            gh pr create               --base master               --head "$sync_branch"               --title "docs(deps): refresh dependency status"               --body "Automated safety-net refresh of the committed dependency status snapshot after dependency state reached master without a current generated snapshot."               --label dependencies
           else
-            gh pr edit "$existing_pr"               --body "Automated refresh of the committed dependency status snapshot after the latest Renovate dependency update."
+            gh pr edit "$existing_pr"               --body "Automated safety-net refresh of the committed dependency status snapshot after the latest dependency-state change on master."
           fi
 
           gh workflow run ci.yml --ref "$sync_branch"
 
           {
-            echo "## Dependency status drift remediated"
-            echo "The generated dependency status differed from the checked-in snapshot."
-            echo "The dedicated automation branch was refreshed and a pull request now carries the update."
-            echo "CI was explicitly dispatched for the automation branch because GITHUB_TOKEN-created events do not recursively trigger normal workflow chains."
+            echo "## Post-merge dependency status drift remediated"
+            echo "A dedicated repair branch now carries the generated status snapshot."
+            echo "This path is a safety net; normal Renovate PRs should be synchronized before merge."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Report current dependency status
