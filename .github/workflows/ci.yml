@@ -132,7 +132,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup-project
-      - run: pnpm release:check
+      - run: node scripts/check-release-version-consistency.mjs
       - run: pnpm perf:check
       - run: pnpm media:check
       - run: pnpm layout:check
