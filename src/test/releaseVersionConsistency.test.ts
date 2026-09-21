@@ -40,9 +40,7 @@ describe("release version consistency guard", () => {
       tags: ["v3.3.0", "v3.2.0"]
     });
 
-    expect(result.errors).toContain(
-      "package.json version 3.4.0 must match the newest CHANGELOG.md release 3.3.0"
-    );
+    expect(result.errors).toContain("package.json version 3.4.0 must match the newest CHANGELOG.md release 3.3.0");
   });
 
   it("rejects semantic tags that have no matching changelog release", () => {
@@ -52,9 +50,7 @@ describe("release version consistency guard", () => {
       tags: ["v3.3.0", "v3.2.0", "v3.1.0"]
     });
 
-    expect(result.errors).toContain(
-      "semantic tag v3.1.0 has no matching CHANGELOG.md release heading"
-    );
+    expect(result.errors).toContain("semantic tag v3.1.0 has no matching CHANGELOG.md release heading");
   });
 
   it("allows an untagged package version only as a release-preparation warning", () => {
@@ -65,9 +61,7 @@ describe("release version consistency guard", () => {
     });
 
     expect(result.errors).toEqual([]);
-    expect(result.warnings).toContain(
-      "v3.3.0 is not tagged yet; this is valid only while preparing the next release"
-    );
+    expect(result.warnings).toContain("v3.3.0 is not tagged yet; this is valid only while preparing the next release");
   });
 
   it("requires an explicit release tag to match package.json and the checked-out tag set", () => {
@@ -78,9 +72,7 @@ describe("release version consistency guard", () => {
       releaseTag: "v3.2.0"
     });
 
-    expect(result.errors).toContain(
-      "release tag v3.2.0 must match package.json as v3.3.0"
-    );
+    expect(result.errors).toContain("release tag v3.2.0 must match package.json as v3.3.0");
   });
 
   it("parses dated semantic release headings but ignores Unreleased", () => {
