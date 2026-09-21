@@ -66,6 +66,8 @@ From `v3.3.0` forward, the project follows semantic versioning with architecture
 
 `package.json`, release tags, and release notes should move together for future releases.
 
+CI enforces this contract with `node scripts/check-release-version-consistency.mjs`. The newest dated `CHANGELOG.md` release must match `package.json`. Semantic Git tags use the canonical `vX.Y.Z` form. A prepared next version may be merged before its tag exists, but any tagged release must exactly match the package and changelog metadata.
+
 ## Source and Licensing
 
 Copyright © 2026 **Roi Et College of Agriculture and Technology**. All Rights Reserved.

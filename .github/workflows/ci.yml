@@ -129,7 +129,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup-project
+      - run: node scripts/check-release-version-consistency.mjs
       - run: pnpm perf:check
       - run: pnpm media:check
       - run: pnpm layout:check
