@@ -22,6 +22,7 @@ Baseline.
 Previous baseline.
 `;
 
+// Regression coverage for the repository release/version governance helper.
 describe("release version consistency guard", () => {
   it("accepts aligned package, changelog, and semantic tags", () => {
     const result = validateReleaseVersionConsistency({
