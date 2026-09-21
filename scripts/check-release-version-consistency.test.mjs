@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  parseChangelogReleases,
-  validateReleaseVersionConsistency
-} from "./check-release-version-consistency.mjs";
+import { parseChangelogReleases, validateReleaseVersionConsistency } from "./check-release-version-consistency.mjs";
 
 const changelog = (...versions) =>
   [
@@ -40,9 +37,7 @@ describe("release version consistency guard", () => {
     });
 
     expect(result.errors).toEqual([]);
-    expect(result.warnings).toEqual([
-      "v3.4.0 is not tagged yet; this is valid only while preparing the next release"
-    ]);
+    expect(result.warnings).toEqual(["v3.4.0 is not tagged yet; this is valid only while preparing the next release"]);
   });
 
   it("rejects package and changelog version drift", () => {
@@ -52,9 +47,7 @@ describe("release version consistency guard", () => {
       tags: ["v3.3.0"]
     });
 
-    expect(result.errors).toContain(
-      "package.json version 3.4.0 must match the newest CHANGELOG.md release 3.3.0"
-    );
+    expect(result.errors).toContain("package.json version 3.4.0 must match the newest CHANGELOG.md release 3.3.0");
   });
 
   it("rejects a release tag that does not match package metadata", () => {
@@ -65,9 +58,7 @@ describe("release version consistency guard", () => {
       releaseTag: "v3.3.0"
     });
 
-    expect(result.errors).toContain(
-      "release tag v3.3.0 must match package.json as v3.4.0"
-    );
+    expect(result.errors).toContain("release tag v3.3.0 must match package.json as v3.4.0");
   });
 
   it("rejects semantic tags missing from the changelog", () => {
@@ -77,16 +68,12 @@ describe("release version consistency guard", () => {
       tags: ["v3.4.0", "v3.3.0", "v3.2.0"]
     });
 
-    expect(result.errors).toContain(
-      "semantic tag v3.2.0 has no matching CHANGELOG.md release heading"
-    );
+    expect(result.errors).toContain("semantic tag v3.2.0 has no matching CHANGELOG.md release heading");
   });
 
   it("parses only dated semantic release headings", () => {
-    expect(
-      parseChangelogReleases(
-        "# Changelog\n\n## [Unreleased]\n\n## [3.3.0] - 2026-08-26\n\n## Notes"
-      )
-    ).toEqual([{ version: "3.3.0", date: "2026-08-26" }]);
+    expect(parseChangelogReleases("# Changelog\n\n## [Unreleased]\n\n## [3.3.0] - 2026-08-26\n\n## Notes")).toEqual([
+      { version: "3.3.0", date: "2026-08-26" }
+    ]);
   });
 });
