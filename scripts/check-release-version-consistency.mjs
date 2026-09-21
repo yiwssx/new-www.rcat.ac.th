@@ -22,12 +22,7 @@ export function parseChangelogReleases(changelog) {
   }));
 }
 
-export function validateReleaseVersionConsistency({
-  packageVersion,
-  changelog,
-  tags,
-  releaseTag = ""
-}) {
+export function validateReleaseVersionConsistency({ packageVersion, changelog, tags, releaseTag = "" }) {
   const errors = [];
   const warnings = [];
 
@@ -70,9 +65,7 @@ export function validateReleaseVersionConsistency({
   } else {
     const latestTag = semverTags[0];
     if (compareSemver(latestTag.version, packageVersion) > 0) {
-      errors.push(
-        `latest semantic tag ${latestTag.tag} is newer than package.json version ${packageVersion}`
-      );
+      errors.push(`latest semantic tag ${latestTag.tag} is newer than package.json version ${packageVersion}`);
     }
 
     for (const { tag, version } of semverTags) {
@@ -82,9 +75,7 @@ export function validateReleaseVersionConsistency({
     }
 
     if (!semverTags.some(({ version }) => version === packageVersion)) {
-      warnings.push(
-        `v${packageVersion} is not tagged yet; this is valid only while preparing the next release`
-      );
+      warnings.push(`v${packageVersion} is not tagged yet; this is valid only while preparing the next release`);
     }
   }
 
@@ -120,8 +111,7 @@ function main() {
   const changelog = fs.readFileSync("CHANGELOG.md", "utf8");
   const tags = listTags();
   const releaseTag =
-    process.env.RELEASE_TAG ||
-    (process.env.GITHUB_REF_TYPE === "tag" ? process.env.GITHUB_REF_NAME || "" : "");
+    process.env.RELEASE_TAG || (process.env.GITHUB_REF_TYPE === "tag" ? process.env.GITHUB_REF_NAME || "" : "");
 
   const { errors, warnings } = validateReleaseVersionConsistency({
     packageVersion: packageJson.version,
@@ -144,9 +134,7 @@ function main() {
 
   console.log(
     `Release version consistency: PASS (package=${packageJson.version}, latest-tag=${
-      tags.filter((tag) => /^v\d+\.\d+\.\d+$/.test(tag)).sort((a, b) =>
-        compareSemver(b.slice(1), a.slice(1))
-      )[0]
+      tags.filter((tag) => /^v\d+\.\d+\.\d+$/.test(tag)).sort((a, b) => compareSemver(b.slice(1), a.slice(1)))[0]
     })`
   );
 }
