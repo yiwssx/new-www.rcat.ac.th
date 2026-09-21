@@ -55,6 +55,7 @@ export function validateReleaseVersionConsistency({ packageVersion, changelog, t
     }
   }
 
+  // Git tags are the repository's canonical release markers; GitHub Release objects are optional metadata.
   const semverTags = tags
     .filter((tag) => /^v\d+\.\d+\.\d+$/.test(tag))
     .map((tag) => ({ tag, version: tag.slice(1) }))
