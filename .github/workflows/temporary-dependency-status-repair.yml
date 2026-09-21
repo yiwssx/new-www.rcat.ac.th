@@ -1,6 +1,16 @@
 name: Temporary Dependency Status Repair
 
 on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/temporary-dependency-status-repair.yml
+      - .github/workflows/ci.yml
+      - .github/workflows/dependency-status-sync.yml
+      - renovate.json
+      - src/test/dependencyAutomationContract.test.ts
+      - docs/maintenance/dependencies.md
   push:
     branches:
       - fix/renovate-status-before-merge-20260921-v2
