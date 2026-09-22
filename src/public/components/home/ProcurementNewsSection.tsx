@@ -12,6 +12,7 @@ import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import type { PublicContentCardItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
+import FlagEmojiText from "../../../shared/media/FlagEmojiText";
 import SemanticStatusChip from "../../../design-system/components/SemanticStatusChip";
 import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
@@ -155,7 +156,7 @@ export function ProcurementNewsSection({ items }: { items: PublicContentCardItem
                           overflow: "hidden"
                         }}
                       >
-                        {item.title}
+                        <FlagEmojiText>{item.title}</FlagEmojiText>
                       </Typography>
                       <Typography
                         variant="body2"
@@ -180,7 +181,7 @@ export function ProcurementNewsSection({ items }: { items: PublicContentCardItem
                             overflow: "hidden"
                           }}
                         >
-                          {item.summary}
+                          <FlagEmojiText>{item.summary}</FlagEmojiText>
                         </Typography>
                       )}
 
