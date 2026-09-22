@@ -12,6 +12,7 @@ import Grid from "@mui/material/Grid";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import EmptyState from "../../shared/components/EmptyState";
+import FlagEmojiText from "../../shared/media/FlagEmojiText";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import { PublicPagination } from "../components/PublicPagination";
@@ -276,7 +277,7 @@ export default function PublicSearchPage() {
                             }
                           }}
                         >
-                          {item.title}
+                          <FlagEmojiText>{item.title}</FlagEmojiText>
                         </Typography>
                         <Typography
                           variant="body2"
@@ -297,7 +298,7 @@ export default function PublicSearchPage() {
                           lineHeight: 1.75
                         }}
                       >
-                        {item.summary}
+                        <FlagEmojiText>{item.summary}</FlagEmojiText>
                       </Typography>
                     )}
 
