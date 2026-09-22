@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -68,15 +68,6 @@ export default function RichTextMediaPickerDialog({ open, kind, onClose, onSelec
   const [pageSize, setPageSize] = useState(24);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    setPage(1);
-    setSearch("");
-  }, [kind, open]);
 
   const mediaQuery = useAdminMediaListQuery({
     page,
