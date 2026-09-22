@@ -1,4 +1,6 @@
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
+import Box from "@mui/material/Box";
+import PublicResponsiveImage from "../media/PublicResponsiveImage";
 
 const countryFlagEmojiPattern = /([\u{1F1E6}-\u{1F1FF}]{2})/gu;
 const countryFlagEmojiOnlyPattern = /^[\u{1F1E6}-\u{1F1FF}]{2}$/u;
@@ -29,30 +31,34 @@ export function getFlagEmojiAssetUrl(flag: string) {
 }
 
 function CountryFlagImage({ flag }: { flag: string }) {
-  const [failed, setFailed] = useState(false);
   const src = getFlagEmojiAssetUrl(flag);
 
-  if (!src || failed) {
+  if (!src) {
     return <>{flag}</>;
   }
 
   return (
-    <img
-      src={src}
+    <PublicResponsiveImage
+      source={src}
+      intent="tiny-thumbnail"
       alt={flag}
-      draggable={false}
-      decoding="async"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
-      data-country-flag={getCountryCode(flag)}
-      style={{
+      bypassPageMediaGate
+      loadMode="eager"
+      fill
+      fallback={
+        <Box component="span" aria-hidden="true">
+          {flag}
+        </Box>
+      }
+      sx={{
         display: "inline-block",
         width: "1.25em",
         height: "0.94em",
         marginInline: "0.08em",
-        objectFit: "cover",
-        verticalAlign: "-0.08em"
+        verticalAlign: "-0.08em",
+        overflow: "hidden"
       }}
+      imageSx={{ objectFit: "cover" }}
     />
   );
 }
