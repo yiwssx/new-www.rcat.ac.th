@@ -10,6 +10,7 @@ import { MediaAsset, PublicContentCardItem } from "../../types";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { isFacebookEmbedContent } from "../../utils/facebookContent";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
+import FlagEmojiText from "../../shared/media/FlagEmojiText";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { interactiveSurfaceSx } from "../../design-system/componentStyles";
@@ -139,7 +140,7 @@ export default function PublicContentCard({
                   : {})
               }}
             >
-              {item.title}
+              <FlagEmojiText>{item.title}</FlagEmojiText>
             </Typography>
             <Typography
               className="content-summary mt-2"
@@ -153,7 +154,7 @@ export default function PublicContentCard({
                   : {})
               }}
             >
-              {item.summary}
+              <FlagEmojiText>{item.summary}</FlagEmojiText>
             </Typography>
             {!!item.tags?.length && (
               <Typography
@@ -169,10 +170,12 @@ export default function PublicContentCard({
                     : {})
                 }}
               >
-                {item.tags
-                  .slice(0, 4)
-                  .map((tag) => `#${tag}`)
-                  .join(" ")}
+                <FlagEmojiText>
+                  {item.tags
+                    .slice(0, 4)
+                    .map((tag) => `#${tag}`)
+                    .join(" ")}
+                </FlagEmojiText>
               </Typography>
             )}
             <Stack
