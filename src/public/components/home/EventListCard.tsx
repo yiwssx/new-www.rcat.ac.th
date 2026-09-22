@@ -21,6 +21,7 @@ import {
 } from "../../../features/cms-events/presentation";
 import type { CalendarEvent, MediaAsset } from "../../../types";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
+import FlagEmojiText from "../../../shared/media/FlagEmojiText";
 import { resolvePublicImageSource } from "../../../shared/media/publicImageSources";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
@@ -62,7 +63,7 @@ function EventDetail({ label, value }: EventDetailProps) {
       >
         {label}
       </Typography>
-      <Typography>{value}</Typography>
+      <Typography><FlagEmojiText>{value}</FlagEmojiText></Typography>
     </Box>
   );
 }
@@ -122,7 +123,7 @@ function EventImageAttachment({ asset }: { asset: MediaAsset }) {
           overflowWrap: "anywhere"
         }}
       >
-        {asset.name}
+        <FlagEmojiText>{asset.name}</FlagEmojiText>
       </Typography>
     </>
   );
@@ -174,7 +175,7 @@ function EventOtherAttachment({ asset }: { asset: MediaAsset }) {
           textAlign: "left"
         }}
       >
-        {asset.name}
+        <FlagEmojiText>{asset.name}</FlagEmojiText>
       </Button>
     );
   }
@@ -193,7 +194,7 @@ function EventOtherAttachment({ asset }: { asset: MediaAsset }) {
         overflowWrap: "anywhere"
       }}
     >
-      {asset.name}
+      <FlagEmojiText>{asset.name}</FlagEmojiText>
     </Button>
   );
 }
@@ -305,7 +306,7 @@ export function EventListCard({
                             fontWeight: 900
                           }}
                         >
-                          {event.title}
+                          <FlagEmojiText>{event.title}</FlagEmojiText>
                         </Typography>
 
                         <SemanticStatusChip
@@ -333,7 +334,7 @@ export function EventListCard({
                             mt: 0.25
                           }}
                         >
-                          {event.location}
+                          <FlagEmojiText>{event.location}</FlagEmojiText>
                         </Typography>
                       )}
 
@@ -378,7 +379,9 @@ export function EventListCard({
         keepMounted
         maxWidth="md"
       >
-        <DialogTitle id="public-event-detail-title">{selectedEvent?.title}</DialogTitle>
+        <DialogTitle id="public-event-detail-title">
+          {selectedEvent ? <FlagEmojiText>{selectedEvent.title}</FlagEmojiText> : null}
+        </DialogTitle>
 
         <DialogContent dividers>
           {selectedEvent && selectedLifecycle && (
@@ -432,7 +435,7 @@ export function EventListCard({
                     overflowWrap: "anywhere"
                   }}
                 >
-                  {selectedEvent.description || "ไม่มีรายละเอียดเพิ่มเติม"}
+                  <FlagEmojiText>{selectedEvent.description || "ไม่มีรายละเอียดเพิ่มเติม"}</FlagEmojiText>
                 </Typography>
               </Box>
 
