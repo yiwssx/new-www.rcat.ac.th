@@ -160,10 +160,6 @@ function stripHashtags(value) {
   return value.replace(/#[^\s#]+/gu, " ");
 }
 
-function stripDecorativeEmoji(value) {
-  return value.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, " ");
-}
-
 function normalizeWhitespace(value) {
   return value.replace(/\s+/gu, " ").trim();
 }
@@ -177,11 +173,17 @@ function isUrlOnly(value) {
 }
 
 function cleanTextForTitle(value) {
-  return normalizeWhitespace(stripDecorativeEmoji(stripHashtags(stripUrls(value))));
+  return normalizeWhitespace(stripHashtags(stripUrls(value)));
+}
+
+const graphemeSegmenter = new Intl.Segmenter("th", { granularity: "grapheme" });
+
+function splitGraphemes(value) {
+  return Array.from(graphemeSegmenter.segment(value), ({ segment }) => segment);
 }
 
 function limitText(value, maxLength) {
-  const characters = Array.from(value);
+  const characters = splitGraphemes(value);
 
   if (characters.length <= maxLength) {
     return value;
