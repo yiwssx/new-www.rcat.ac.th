@@ -24,9 +24,13 @@ describe("FlagEmojiText", () => {
   it("falls back to the original flag text if the asset cannot load", () => {
     render(<FlagEmojiText text="ประเทศไทย 🇹🇭" />);
 
-    fireEvent.error(screen.getByRole("img", { name: "🇹🇭" }));
+    const flagImage = screen.getByRole("img", { name: "🇹🇭" });
+    const imageElement = flagImage.querySelector('[data-public-responsive-image-element="true"]');
 
-    expect(screen.queryByRole("img", { name: "🇹🇭" })).not.toBeInTheDocument();
-    expect(screen.getByText(/🇹🇭/)).toBeInTheDocument();
+    expect(imageElement).not.toBeNull();
+    fireEvent.error(imageElement as Element);
+
+    expect(document.querySelector('[data-public-image-fallback="true"]')).toBeInTheDocument();
+    expect(screen.getByText("🇹🇭")).toBeInTheDocument();
   });
 });
