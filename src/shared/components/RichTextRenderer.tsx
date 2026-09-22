@@ -43,7 +43,7 @@ function renderMarks(content: ReactNode, marks: RichTextMark[] | undefined, key:
       );
     }
     if (mark.type === "link") {
-      const href = normalizeSafeHref(mark.attrs?.href);
+      const href = normalizeSafeHref(mark.attrs?.href || "");
       if (href === "#") {
         return <Fragment key={markKey}>{child}</Fragment>;
       }
