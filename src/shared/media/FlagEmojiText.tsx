@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 
 const countryFlagPattern = /[\u{1F1E6}-\u{1F1FF}]{2}/gu;
 const twemojiFlagAssetBase = "https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.3/assets/svg/";
@@ -42,7 +42,7 @@ export default function FlagEmojiText({ children }: { children: string }) {
     return <>{children}</>;
   }
 
-  const parts = [];
+  const parts: ReactNode[] = [];
   let cursor = 0;
 
   for (const match of matches) {
