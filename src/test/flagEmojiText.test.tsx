@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import FlagEmojiText, { getFlagEmojiAssetUrl } from "../shared/components/FlagEmojiText";
+import FlagEmojiText from "../shared/components/FlagEmojiText";
+import { getFlagEmojiAssetUrl } from "../utils/flagEmoji";
 
 describe("FlagEmojiText", () => {
   it("maps regional-indicator flags to pinned Twemoji SVG assets", () => {
