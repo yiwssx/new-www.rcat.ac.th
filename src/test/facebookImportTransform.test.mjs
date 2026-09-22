@@ -192,12 +192,12 @@ describe("Facebook post D1 content transform", () => {
     const longEmojiPost = {
       ...activityPost,
       id: "100063746585360_long_emoji",
-      message: `${"ก".repeat(109)}${familyEmoji}ท้าย`,
+      message: `${"ก".repeat(103)}${familyEmoji}ท้าย`,
       permalink_url: "https://www.facebook.com/100063746585360/posts/long-emoji"
     };
 
     expect(rowFor(emojiPost).title).toBe("📢 ประกาศทดสอบ Emoji ✅");
-    expect(rowFor(longEmojiPost).title).toBe(`${"ก".repeat(109)}${familyEmoji}...`);
+    expect(rowFor(longEmojiPost).title).toBe(`${"ก".repeat(103)}${familyEmoji}...`);
   });
 
   it("skips rows with missing Facebook permalinks while keeping the report warning", () => {
