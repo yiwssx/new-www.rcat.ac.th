@@ -93,7 +93,7 @@
     "@tanstack/react-router": "^1.170.38",
     "@tanstack/react-table": "^9.2.4",
     "@vercel/analytics": "^2.0.1",
-    "@vercel/functions": "^3.9.8",
+    "@vercel/functions": "^3.9.9",
     "@vercel/speed-insights": "^2.0.0",
     "bcryptjs": "^3.0.3",
     "dayjs": "^1.11.23",
