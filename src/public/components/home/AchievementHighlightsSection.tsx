@@ -15,6 +15,7 @@ import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOu
 import { MediaAsset, PublicContentCardItem } from "../../../types";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
+import FlagEmojiText from "../../../shared/media/FlagEmojiText";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { interactiveSurfaceSx } from "../../../design-system/componentStyles";
 import { designTokens } from "../../../design-system/tokens";
@@ -349,7 +350,7 @@ export function AchievementHighlightsSection({
                             overflow: "hidden"
                           }}
                         >
-                          {item.title}
+                          <FlagEmojiText>{item.title}</FlagEmojiText>
                         </Typography>
 
                         {item.summary && (
@@ -365,7 +366,7 @@ export function AchievementHighlightsSection({
                               overflow: "hidden"
                             }}
                           >
-                            {item.summary}
+                            <FlagEmojiText>{item.summary}</FlagEmojiText>
                           </Typography>
                         )}
                       </Stack>
