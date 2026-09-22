@@ -167,7 +167,7 @@ The large desktop Carousel remains at the bounded w1600 maximum because its decl
 
 `pnpm media:check` fails when:
 
-1. Public image rendering bypasses `PublicResponsiveImage` or `CarouselImageStage`;
+1. Public image rendering bypasses the approved centralized owners: `PublicResponsiveImage`, `CarouselImageStage`, or the flag-only `FlagEmojiText` glyph renderer;
 2. a Public image consumes `previewUrl` directly;
 3. a Public iframe bypasses `PublicDeferredEmbed`;
 4. high fetch priority appears outside approved critical-media owners;
