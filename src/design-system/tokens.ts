@@ -52,7 +52,15 @@ export const designTokens = {
     overlay: "0 24px 60px rgba(18, 44, 24, 0.22)"
   },
   typography: {
-    fontFamily: ['"Sarabun"', '"Noto Sans Thai"', '"Segoe UI"', "sans-serif"],
+    fontFamily: [
+      '"Sarabun"',
+      '"Noto Sans Thai"',
+      '"Apple Color Emoji"',
+      '"Segoe UI Emoji"',
+      '"Noto Color Emoji"',
+      '"Segoe UI"',
+      "sans-serif"
+    ],
     display: {
       fontSize: "clamp(2rem, 3vw, 2.75rem)",
       fontWeight: 800,
