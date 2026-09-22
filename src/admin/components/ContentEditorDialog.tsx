@@ -224,7 +224,7 @@ function createEditorDraft(item: ContentItem | null) {
 
 function createBodyBlocks(body: string | undefined) {
   const parsedBlocks = parseContentBodyToBlocks(body);
-  return parsedBlocks.length ? parsedBlocks : [createContentBlock("paragraph")];
+  return parsedBlocks.length ? parsedBlocks : [createContentBlock("richText")];
 }
 
 function normalizeCategoryList(value: string | undefined) {
