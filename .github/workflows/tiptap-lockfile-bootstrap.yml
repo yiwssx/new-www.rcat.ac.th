@@ -32,16 +32,28 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - name: Refresh lockfile
+      - name: Install and refresh lockfile
         run: pnpm install --lockfile-only --strict-peer-dependencies
-      - name: Commit lockfile
+      - name: Format changed source files
+        run: >
+          pnpm prettier --write
+          src/admin/components/ContentBlockBuilder.tsx
+          src/admin/components/ContentEditorDialog.tsx
+          src/admin/components/RichTextEditor.tsx
+          src/shared/components/ContentBlocksRenderer.tsx
+          src/shared/components/RichTextRenderer.tsx
+          src/utils/contentBlocks.ts
+          src/utils/contentBlocks.test.ts
+      - name: Refresh dependency status
+        run: pnpm deps:status
+      - name: Commit generated maintenance files
         run: |
-          if git diff --quiet -- pnpm-lock.yaml; then
-            echo "pnpm-lock.yaml already current"
+          if git diff --quiet; then
+            echo "Generated files already current"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pnpm-lock.yaml
-          git commit -m "chore(deps): refresh lockfile for Tiptap"
+          git add pnpm-lock.yaml docs/maintenance/dependency-current-status.md             src/admin/components/ContentBlockBuilder.tsx             src/admin/components/ContentEditorDialog.tsx             src/admin/components/RichTextEditor.tsx             src/shared/components/ContentBlocksRenderer.tsx             src/shared/components/RichTextRenderer.tsx             src/utils/contentBlocks.ts             src/utils/contentBlocks.test.ts
+          git commit -m "chore(cms): refresh generated Tiptap artifacts"
           git push origin HEAD:feat/tiptap-rich-text-editor
