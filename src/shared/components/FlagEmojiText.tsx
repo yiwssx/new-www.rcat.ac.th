@@ -1,7 +1,12 @@
 import { Fragment } from "react";
 import Box from "@mui/material/Box";
 import PublicResponsiveImage from "../media/PublicResponsiveImage";
-import { getCountryFlagCode, getFlagEmojiAssetUrl, isCountryFlagEmoji, splitCountryFlagEmoji } from "../../utils/flagEmoji";
+import {
+  getCountryFlagCode,
+  getFlagEmojiAssetUrl,
+  isCountryFlagEmoji,
+  splitCountryFlagEmoji
+} from "../../utils/flagEmoji";
 
 interface FlagEmojiTextProps {
   text: string;
