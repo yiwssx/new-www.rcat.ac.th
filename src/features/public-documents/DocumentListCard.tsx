@@ -8,6 +8,7 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import NavigateNextOutlinedIcon from "@mui/icons-material/NavigateNextOutlined";
 import EmptyState from "../../shared/components/EmptyState";
+import FlagEmojiText from "../../shared/media/FlagEmojiText";
 import type { ContentItem } from "../../types";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { HomeSectionHeading } from "../../public/components/home/HomeSectionHeading";
@@ -80,7 +81,7 @@ export function DocumentListCard({
                         fontWeight: 800
                       }}
                     >
-                      {item.title}
+                      <FlagEmojiText>{item.title}</FlagEmojiText>
                     </Typography>
                     {item.category && (
                       <Typography
@@ -90,7 +91,7 @@ export function DocumentListCard({
                           mt: 0.45
                         }}
                       >
-                        {item.category}
+                        <FlagEmojiText>{item.category}</FlagEmojiText>
                       </Typography>
                     )}
                   </Box>
