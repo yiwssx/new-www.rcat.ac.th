@@ -50,6 +50,12 @@ describe("Public media governance parser", () => {
         `export const Frame = () => <Box component="iframe" src={safeSrc} />;`
       )
     ).toEqual([]);
+    expect(
+      scanPublicMediaSource(
+        "src/shared/media/FlagEmojiText.tsx",
+        `export const Flag = () => <img src={flagSrc} alt="country flag" />;`
+      )
+    ).toEqual([]);
   });
 
   it("allows high priority for the deterministic Carousel boundary without widening the owner policy", () => {
