@@ -8,6 +8,8 @@ on:
 permissions:
   contents: write
 
+# Temporary branch-only formatter; removed before merge.
+
 jobs:
   format:
     if: github.actor != 'github-actions[bot]'
