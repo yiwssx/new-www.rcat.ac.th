@@ -24,6 +24,7 @@ import {
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { designTokens } from "../../design-system/tokens";
 import FlagEmojiText from "./FlagEmojiText";
+import RichTextRenderer from "./RichTextRenderer";
 
 interface ContentBlocksRendererProps {
   blocks: ContentBlock[];
@@ -180,6 +181,10 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
   return (
     <Stack spacing={2.25}>
       {blocks.map((block) => {
+        if (block.type === "richText") {
+          return <RichTextRenderer key={block.id} document={block.document} />;
+        }
+
         if (block.type === "paragraph") {
           return (
             <Typography key={block.id} sx={{ whiteSpace: "pre-line" }}>
