@@ -6,6 +6,7 @@ const SOURCE_EXTENSIONS = new Set([".ts", ".tsx"]);
 const SCAN_ROOTS = ["src/public", "src/shared/components", "src/shared/media", "src/components/embeds"];
 const APPROVED_IMAGE_OWNERS = new Set([
   "src/shared/components/CarouselImageStage.tsx",
+  "src/shared/media/FlagEmojiText.tsx",
   "src/shared/media/PublicResponsiveImage.tsx"
 ]);
 const APPROVED_IFRAME_OWNERS = new Set(["src/shared/media/PublicDeferredEmbed.tsx"]);
@@ -152,7 +153,7 @@ export function scanPublicMediaSource(relativePath, sourceText) {
         report(
           node,
           "approved-image-owner",
-          "Public img rendering must use PublicResponsiveImage or CarouselImageStage."
+          "Public img rendering must use an approved centralized image owner."
         );
       }
 
