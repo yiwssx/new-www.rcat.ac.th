@@ -15,7 +15,7 @@
       ]
     },
     "@types/node": {
-      "selected": "24.13.4",
+      "selected": "24.13.6",
       "blockedLatestMajor": 26,
       "reason": "The project runtime, local pin, and CI are on Node 24, so the latest @types/node release in major 24 is selected.",
       "validation": {
