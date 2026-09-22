@@ -76,6 +76,15 @@ describe("siteSettings", () => {
     expect(settings.messengerEnabled).toBe(true);
   });
 
+  it("truncates text settings without splitting compound emoji", () => {
+    const familyEmoji = "👨‍👩‍👧‍👦";
+    const settings = normalizeSiteSettings({
+      siteName: `${"ก".repeat(119)}${familyEmoji}ท้าย`
+    });
+
+    expect(settings.siteName).toBe(`${"ก".repeat(119)}${familyEmoji}`);
+  });
+
   it("clears unsafe public URLs and keeps allowed map URLs", () => {
     const settings = normalizeSiteSettings({
       facebookUrl: "javascript:alert(1)",
