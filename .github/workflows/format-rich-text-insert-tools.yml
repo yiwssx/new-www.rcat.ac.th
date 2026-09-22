@@ -1,9 +1,13 @@
 name: Format Rich Text Insert Tools
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/cms-rich-text-insert-tools
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 permissions:
   contents: write
@@ -12,7 +16,7 @@ permissions:
 
 jobs:
   format:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && github.event.pull_request.head.ref == 'feat/cms-rich-text-insert-tools'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
