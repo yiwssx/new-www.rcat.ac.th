@@ -2,14 +2,14 @@
 <!-- package-json-sha256: 4cdfce54b2fe086afd1ad4b2b462b457ef078d9511e1dd02ea5a5429e1644c50 -->
 <!-- pnpm-lock-sha256: 34ff4e009fd3670ba5070178f9def43cb5d4ff2b3fd7be48cdaeab3b892833c4 -->
 <!-- pnpm-workspace-sha256: 0ebaade038d1fe93ab7521ccb29fc413d95a72ad0aaf8410b006259cfecc524e -->
-<!-- dependency-policy-sha256: 0e993183f8fb7ef07c168820771b234d47f03db0d0c2ae180fa65e4a4c37a417 -->
+<!-- dependency-policy-sha256: b5330acc47a6ef5c448d841b05635d12d1bd494cb30849150bdc676bf4472f17 -->
 <!-- report-data-sha256: d8007ab0900dfd6eae9c3800a1c072e293fe911b25fa8517879054360a37694c -->
 
 # Dependency Status
 
 - Document status: active
 - Canonical: true
-- Generated at: 2026-09-22T16:20:28+07:00
+- Generated at: 2026-09-22T16:33:02+07:00
 - Registry lookup: PASS (50 direct dependencies)
 - Direct dependencies: 50
 - Accepted by live monitoring policy: 47
