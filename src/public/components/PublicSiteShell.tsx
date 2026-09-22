@@ -31,6 +31,7 @@ import SocialIconLink from "./SocialIconLink";
 import { PublicMediaLoadingProvider } from "../../shared/media/PublicMediaLoadingContext";
 import { usePublicShellSnapshot } from "../hooks/usePublicShellSnapshot";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
+import FlagEmojiText from "../../shared/components/FlagEmojiText";
 import { projectSettings } from "../../config/projectSettings";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { normalizeSiteSettings } from "../../services/siteSettings";
@@ -696,7 +697,7 @@ function PublicSiteShellFrame({
                           mb: { xs: 0.2, md: 0.4 }
                         }}
                       >
-                        {siteSettings.eyebrow}
+                        <FlagEmojiText text={siteSettings.eyebrow} />
                       </Typography>
                     )}
                     <Typography
@@ -704,7 +705,7 @@ function PublicSiteShellFrame({
                       variant="h2"
                       sx={{ fontSize: { xs: "1.34rem", sm: "1.5rem", md: "2.4rem" }, lineHeight: 1.08 }}
                     >
-                      {siteName}
+                      <FlagEmojiText text={siteName} />
                     </Typography>
                     {siteSettings.intro && (
                       <Stack
@@ -727,7 +728,7 @@ function PublicSiteShellFrame({
                             WebkitLineClamp: { xs: 1, md: "unset" }
                           }}
                         >
-                          {siteSettings.intro}
+                          <FlagEmojiText text={siteSettings.intro} />
                         </Typography>
                       </Stack>
                     )}
@@ -858,7 +859,7 @@ function PublicSiteShellFrame({
                 ) : null}
                 {!pageHeaderLoading && title && (
                   <Typography variant="h1" sx={{ fontSize: { xs: "2rem", md: "2.8rem" }, maxWidth: 860 }}>
-                    {title}
+                    <FlagEmojiText text={title} />
                   </Typography>
                 )}
                 {!pageHeaderLoading && description && (
@@ -869,7 +870,7 @@ function PublicSiteShellFrame({
                       maxWidth: 820
                     }}
                   >
-                    {description}
+                    <FlagEmojiText text={description} />
                   </Typography>
                 )}
               </Container>
@@ -919,14 +920,14 @@ function PublicSiteShellFrame({
                         textTransform: "uppercase"
                       }}
                     >
-                      {siteSettings.footerTitle}
+                      <FlagEmojiText text={siteSettings.footerTitle} />
                     </Typography>
                   )}
                   {siteSettings.footerDescription && (
                     <Typography
                       sx={(theme) => ({ color: alpha(theme.palette.common.white, 0.82), mt: 0.6, maxWidth: 720 })}
                     >
-                      {siteSettings.footerDescription}
+                      <FlagEmojiText text={siteSettings.footerDescription} />
                     </Typography>
                   )}
                 </Box>
