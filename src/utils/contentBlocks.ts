@@ -1,6 +1,7 @@
 export const CONTENT_BLOCKS_MARKER = "[[RCAT_BLOCKS_V1]]";
 
 export type ContentBlockType =
+  | "richText"
   | "paragraph"
   | "heading"
   | "quote"
@@ -16,6 +17,43 @@ export type ContentBlockType =
 interface ContentBlockBase {
   id: string;
   type: ContentBlockType;
+}
+
+export interface RichTextMark {
+  type: "bold" | "italic" | "underline" | "strike" | "code" | "link" | "textStyle" | "highlight";
+  attrs?: Record<string, string>;
+}
+
+export interface RichTextNode {
+  type:
+    | "doc"
+    | "paragraph"
+    | "text"
+    | "heading"
+    | "blockquote"
+    | "bulletList"
+    | "orderedList"
+    | "listItem"
+    | "hardBreak"
+    | "horizontalRule"
+    | "codeBlock"
+    | "table"
+    | "tableRow"
+    | "tableHeader"
+    | "tableCell";
+  attrs?: Record<string, string | number | boolean | null>;
+  content?: RichTextNode[];
+  marks?: RichTextMark[];
+  text?: string;
+}
+
+export interface RichTextDocument extends RichTextNode {
+  type: "doc";
+}
+
+export interface RichTextContentBlock extends ContentBlockBase {
+  type: "richText";
+  document: RichTextDocument;
 }
 
 export interface ParagraphContentBlock extends ContentBlockBase {
@@ -77,6 +115,7 @@ export interface DividerContentBlock extends ContentBlockBase {
 }
 
 export type ContentBlock =
+  | RichTextContentBlock
   | ParagraphContentBlock
   | HeadingContentBlock
   | QuoteContentBlock
@@ -107,6 +146,7 @@ function normalizeString(value: unknown) {
 
 function normalizeBlockType(value: unknown): ContentBlockType | "" {
   if (
+    value === "richText" ||
     value === "paragraph" ||
     value === "heading" ||
     value === "quote" ||
@@ -123,6 +163,146 @@ function normalizeBlockType(value: unknown): ContentBlockType | "" {
   }
 
   return "";
+}
+
+const richTextNodeTypes = new Set<RichTextNode["type"]>([
+  "doc",
+  "paragraph",
+  "text",
+  "heading",
+  "blockquote",
+  "bulletList",
+  "orderedList",
+  "listItem",
+  "hardBreak",
+  "horizontalRule",
+  "codeBlock",
+  "table",
+  "tableRow",
+  "tableHeader",
+  "tableCell"
+]);
+
+const richTextMarkTypes = new Set<RichTextMark["type"]>([
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "code",
+  "link",
+  "textStyle",
+  "highlight"
+]);
+
+function normalizeRichTextColor(value: unknown) {
+  const color = normalizeString(value).trim();
+  return /^#[0-9a-f]{6}$/iu.test(color) ? color.toLowerCase() : "";
+}
+
+function normalizeRichTextMark(value: unknown): RichTextMark | null {
+  if (!isRecord(value) || !richTextMarkTypes.has(value.type as RichTextMark["type"])) {
+    return null;
+  }
+
+  const type = value.type as RichTextMark["type"];
+  if (type === "link") {
+    const attrs = isRecord(value.attrs) ? value.attrs : {};
+    const href = normalizeString(attrs.href).trim();
+    const title = normalizeString(attrs.title).trim();
+    return {
+      type,
+      attrs: {
+        href,
+        ...(title ? { title } : {})
+      }
+    };
+  }
+
+  if (type === "textStyle" || type === "highlight") {
+    const attrs = isRecord(value.attrs) ? value.attrs : {};
+    const color = normalizeRichTextColor(attrs.color);
+    return color ? { type, attrs: { color } } : { type };
+  }
+
+  return { type };
+}
+
+function normalizeRichTextNode(value: unknown): RichTextNode | null {
+  if (!isRecord(value) || !richTextNodeTypes.has(value.type as RichTextNode["type"])) {
+    return null;
+  }
+
+  const type = value.type as RichTextNode["type"];
+  if (type === "text") {
+    const text = normalizeString(value.text);
+    const marks = Array.isArray(value.marks)
+      ? value.marks.map(normalizeRichTextMark).filter((mark): mark is RichTextMark => Boolean(mark))
+      : [];
+    return {
+      type,
+      text,
+      ...(marks.length ? { marks } : {})
+    };
+  }
+
+  const content = Array.isArray(value.content)
+    ? value.content.map(normalizeRichTextNode).filter((node): node is RichTextNode => Boolean(node))
+    : [];
+  const attrs = isRecord(value.attrs) ? value.attrs : {};
+  const normalizedAttrs: RichTextNode["attrs"] = {};
+
+  if (type === "heading") {
+    normalizedAttrs.level = normalizeHeadingLevel(attrs.level);
+  }
+
+  if (type === "paragraph" || type === "heading") {
+    const textAlign = normalizeString(attrs.textAlign);
+    if (textAlign === "left" || textAlign === "center" || textAlign === "right" || textAlign === "justify") {
+      normalizedAttrs.textAlign = textAlign;
+    }
+  }
+
+  if (type === "orderedList") {
+    const start = Number(attrs.start);
+    if (Number.isInteger(start) && start > 1 && start < 10000) {
+      normalizedAttrs.start = start;
+    }
+  }
+
+  return {
+    type,
+    ...(Object.keys(normalizedAttrs).length ? { attrs: normalizedAttrs } : {}),
+    ...(content.length ? { content } : {})
+  };
+}
+
+export function createEmptyRichTextDocument(): RichTextDocument {
+  return {
+    type: "doc",
+    content: [{ type: "paragraph" }]
+  };
+}
+
+export function normalizeRichTextDocument(value: unknown): RichTextDocument {
+  const node = normalizeRichTextNode(value);
+  if (node?.type === "doc") {
+    return node as RichTextDocument;
+  }
+  return createEmptyRichTextDocument();
+}
+
+function richTextDocumentHasContent(document: RichTextDocument) {
+  const visit = (node: RichTextNode): boolean => {
+    if (node.type === "text" && Boolean(node.text?.trim())) {
+      return true;
+    }
+    if (node.type === "horizontalRule") {
+      return true;
+    }
+    return Boolean(node.content?.some(visit));
+  };
+
+  return visit(document);
 }
 
 function normalizeChecklistItems(value: unknown) {
@@ -171,6 +351,10 @@ function normalizeFacebookPostHeight(value: unknown): number | undefined {
 export function createContentBlock(type: ContentBlockType): ContentBlock {
   const id = createBlockId();
 
+  if (type === "richText") {
+    return { id, type, document: createEmptyRichTextDocument() };
+  }
+
   if (type === "heading") {
     return { id, type, text: "", level: 2 };
   }
@@ -217,6 +401,14 @@ function normalizeContentBlock(value: unknown): ContentBlock | null {
   }
 
   const id = normalizeString(value.id).trim() || createBlockId();
+
+  if (type === "richText") {
+    return {
+      id,
+      type,
+      document: normalizeRichTextDocument(value.document)
+    };
+  }
 
   if (type === "paragraph") {
     return {
@@ -312,6 +504,10 @@ function normalizeContentBlocks(value: unknown): ContentBlock[] {
 }
 
 function isMeaningfulBlock(block: ContentBlock) {
+  if (block.type === "richText") {
+    return richTextDocumentHasContent(block.document);
+  }
+
   if (block.type === "paragraph" || block.type === "heading" || block.type === "quote") {
     return Boolean(block.text.trim());
   }

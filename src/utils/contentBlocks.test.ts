@@ -44,6 +44,78 @@ describe("contentBlocks", () => {
     expect(parsed[0]).toMatchObject({ type: "heading", text: "Admissions Update" });
   });
 
+  it("creates, normalizes, and preserves rich-text blocks", () => {
+    const block = createContentBlock("richText");
+
+    expect(block).toMatchObject({
+      type: "richText",
+      document: {
+        type: "doc",
+        content: [{ type: "paragraph" }]
+      }
+    });
+
+    const serialized = serializeContentBlocksToBody([
+      {
+        id: "rich-1",
+        type: "richText",
+        document: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 3, textAlign: "center" },
+              content: [{ type: "text", text: "ข่าวประชาสัมพันธ์", marks: [{ type: "bold" }] }]
+            },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "อ่านรายละเอียด",
+                  marks: [
+                    { type: "link", attrs: { href: "https://example.org/news" } },
+                    { type: "textStyle", attrs: { color: "#1A2B3C" } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]);
+
+    expect(parseContentBodyToBlocks(serialized)).toEqual([
+      {
+        id: "rich-1",
+        type: "richText",
+        document: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 3, textAlign: "center" },
+              content: [{ type: "text", text: "ข่าวประชาสัมพันธ์", marks: [{ type: "bold" }] }]
+            },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "อ่านรายละเอียด",
+                  marks: [
+                    { type: "link", attrs: { href: "https://example.org/news" } },
+                    { type: "textStyle", attrs: { color: "#1a2b3c" } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]);
+  });
+
   it("creates and preserves Facebook post blocks safely", () => {
     const block = createContentBlock("facebookPost");
 

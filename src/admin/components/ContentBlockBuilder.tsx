@@ -25,6 +25,7 @@ import DragIndicatorOutlinedIcon from "@mui/icons-material/DragIndicatorOutlined
 import { MediaAsset } from "../../types";
 import { ContentBlock, ContentBlockType, createContentBlock } from "../../utils/contentBlocks";
 import { isPdfMediaAsset } from "../../shared/media/pdfMedia";
+import RichTextEditor from "./RichTextEditor";
 
 interface ContentBlockBuilderProps {
   blocks: ContentBlock[];
@@ -39,6 +40,11 @@ interface BlockTemplateOption {
 }
 
 const blockTemplateOptions: BlockTemplateOption[] = [
+  {
+    type: "richText",
+    label: "Rich Text",
+    helper: "ตัวแก้ไขแบบ Word/TinyMCE สำหรับหัวข้อ รูปแบบข้อความ ลิงก์ รายการ และตาราง"
+  },
   { type: "heading", label: "หัวข้อ", helper: "หัวข้อย่อยสำหรับบทความยาว" },
   { type: "paragraph", label: "ย่อหน้า", helper: "เนื้อหาหลัก" },
   { type: "quote", label: "คำอ้างอิง", helper: "ข้อความเด่นหรือคำรับรอง" },
@@ -122,7 +128,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
           color: "text.secondary"
         }}
       >
-        สร้างเนื้อหาด้วยบล็อกที่นำกลับมาใช้ได้ คล้ายการแก้ไขบล็อกของ WordPress
+        ใช้ Rich Text สำหรับเนื้อหาหลัก และใช้บล็อกสื่อ/เอกสารสำหรับองค์ประกอบเฉพาะของเว็บไซต์
       </Typography>
       <Stack
         direction="row"
@@ -197,6 +203,17 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                       </IconButton>
                     </Stack>
                   </Stack>
+
+                  {block.type === "richText" && (
+                    <RichTextEditor
+                      value={block.document}
+                      onChange={(document) =>
+                        updateBlock(block.id, (current) =>
+                          current.type === "richText" ? { ...current, document } : current
+                        )
+                      }
+                    />
+                  )}
 
                   {block.type === "paragraph" && (
                     <TextField
