@@ -8,6 +8,7 @@ import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
+import FlagEmojiText from "../../../shared/media/FlagEmojiText";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { DirectorHeroCard } from "./DirectorHeroCard";
 import { SiteSettings } from "../../../types";
@@ -119,7 +120,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
           {siteSettings.heroChip && (
             <Chip
               icon={<SchoolOutlinedIcon />}
-              label={siteSettings.heroChip}
+              label={<FlagEmojiText>{siteSettings.heroChip}</FlagEmojiText>}
               sx={(theme) => ({
                 alignSelf: "flex-start",
                 bgcolor: alpha(theme.palette.common.white, 0.14),
@@ -142,7 +143,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
               letterSpacing: "-0.02em"
             }}
           >
-            {siteSettings.heroTitle}
+            <FlagEmojiText>{siteSettings.heroTitle}</FlagEmojiText>
           </Typography>
 
           {siteSettings.heroDescription && (
@@ -154,7 +155,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
                 lineHeight: 1.55
               })}
             >
-              {siteSettings.heroDescription}
+              <FlagEmojiText>{siteSettings.heroDescription}</FlagEmojiText>
             </Typography>
           )}
 
