@@ -150,11 +150,7 @@ export function scanPublicMediaSource(relativePath, sourceText) {
       );
 
       if (elementKind === "img" && !APPROVED_IMAGE_OWNERS.has(normalizedRelativePath)) {
-        report(
-          node,
-          "approved-image-owner",
-          "Public img rendering must use an approved centralized image owner."
-        );
+        report(node, "approved-image-owner", "Public img rendering must use an approved centralized image owner.");
       }
 
       if (elementKind === "iframe" && !APPROVED_IFRAME_OWNERS.has(normalizedRelativePath)) {
