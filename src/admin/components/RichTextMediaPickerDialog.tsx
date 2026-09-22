@@ -63,12 +63,7 @@ function matchesKind(asset: MediaAsset, kind: RichTextMediaInsertKind) {
   return asset.type === "document" || asset.type === "sheet";
 }
 
-export default function RichTextMediaPickerDialog({
-  open,
-  kind,
-  onClose,
-  onSelect
-}: RichTextMediaPickerDialogProps) {
+export default function RichTextMediaPickerDialog({ open, kind, onClose, onSelect }: RichTextMediaPickerDialogProps) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(24);
   const [search, setSearch] = useState("");
@@ -115,9 +110,7 @@ export default function RichTextMediaPickerDialog({
           />
 
           {mediaQuery.isError && (
-            <Alert severity="error">
-              ไม่สามารถโหลดคลังสื่อได้ กรุณาปิดหน้าต่างนี้แล้วลองใหม่
-            </Alert>
+            <Alert severity="error">ไม่สามารถโหลดคลังสื่อได้ กรุณาปิดหน้าต่างนี้แล้วลองใหม่</Alert>
           )}
 
           {mediaQuery.isLoading ? (
@@ -169,9 +162,7 @@ export default function RichTextMediaPickerDialog({
               ))}
             </Box>
           ) : (
-            <Alert severity="info">
-              ไม่พบสื่อที่ตรงกับประเภทและคำค้นในหน้านี้
-            </Alert>
+            <Alert severity="info">ไม่พบสื่อที่ตรงกับประเภทและคำค้นในหน้านี้</Alert>
           )}
 
           {mediaQuery.data?.pagination && (
