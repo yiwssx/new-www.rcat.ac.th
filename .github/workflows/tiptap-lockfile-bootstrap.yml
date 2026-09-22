@@ -1,9 +1,13 @@
 name: Bootstrap Tiptap Lockfile
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/tiptap-rich-text-editor
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
     paths:
       - package.json
       - pnpm-workspace.yaml
@@ -14,7 +18,7 @@ permissions:
 
 jobs:
   lockfile:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && github.event.pull_request.head.ref == 'feat/tiptap-rich-text-editor'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
