@@ -64,9 +64,29 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+type SegmenterLike = {
+  segment(input: string): Iterable<{ segment: string }>;
+};
+
+type SegmenterConstructor = new (
+  locales?: string | string[],
+  options?: { granularity?: "grapheme" | "word" | "sentence" }
+) => SegmenterLike;
+
+const Segmenter = (Intl as typeof Intl & { Segmenter?: SegmenterConstructor }).Segmenter;
+const graphemeSegmenter = Segmenter ? new Segmenter("th", { granularity: "grapheme" }) : null;
+
+function truncateGraphemes(value: string, maxLength: number) {
+  const characters = graphemeSegmenter
+    ? Array.from(graphemeSegmenter.segment(value), ({ segment }) => segment)
+    : Array.from(value);
+
+  return characters.length > maxLength ? characters.slice(0, maxLength).join("") : value;
+}
+
 function normalizeText(value: unknown, maxLength: number) {
   const text = String(value || "").trim();
-  return text.length > maxLength ? text.slice(0, maxLength) : text;
+  return truncateGraphemes(text, maxLength);
 }
 
 function normalizeBoolean(value: unknown) {

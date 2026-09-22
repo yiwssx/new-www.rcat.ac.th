@@ -160,10 +160,6 @@ function stripHashtags(value) {
   return value.replace(/#[^\s#]+/gu, " ");
 }
 
-function stripDecorativeEmoji(value) {
-  return value.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, " ");
-}
-
 function normalizeWhitespace(value) {
   return value.replace(/\s+/gu, " ").trim();
 }
@@ -177,17 +173,36 @@ function isUrlOnly(value) {
 }
 
 function cleanTextForTitle(value) {
-  return normalizeWhitespace(stripDecorativeEmoji(stripHashtags(stripUrls(value))));
+  return normalizeWhitespace(stripHashtags(stripUrls(value)));
+}
+
+const graphemeSegmenter = new Intl.Segmenter("th", { granularity: "grapheme" });
+
+function splitGraphemes(value) {
+  return Array.from(graphemeSegmenter.segment(value), ({ segment }) => segment);
 }
 
 function limitText(value, maxLength) {
-  const characters = Array.from(value);
+  const codePoints = Array.from(value);
 
-  if (characters.length <= maxLength) {
+  if (codePoints.length <= maxLength) {
     return value;
   }
 
-  const clipped = characters.slice(0, maxLength).join("");
+  const clippedGraphemes = [];
+  let codePointCount = 0;
+
+  for (const grapheme of splitGraphemes(value)) {
+    const graphemeCodePointCount = Array.from(grapheme).length;
+    if (codePointCount + graphemeCodePointCount > maxLength) {
+      break;
+    }
+
+    clippedGraphemes.push(grapheme);
+    codePointCount += graphemeCodePointCount;
+  }
+
+  const clipped = clippedGraphemes.join("");
   const lastSpace = clipped.lastIndexOf(" ");
   const safeClip = lastSpace >= Math.floor(maxLength * 0.65) ? clipped.slice(0, lastSpace) : clipped;
 

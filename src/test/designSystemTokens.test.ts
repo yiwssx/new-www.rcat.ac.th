@@ -50,6 +50,9 @@ describe("canonical design-system tokens", () => {
     expect(designTokens.typography.sectionTitle.lineHeight).toBeGreaterThanOrEqual(1.3);
     expect(designTokens.typography.body.lineHeight).toBeGreaterThanOrEqual(1.5);
     expect(designTokens.typography.caption.lineHeight).toBeGreaterThanOrEqual(1.5);
+    expect(designTokens.typography.fontFamily).toEqual(
+      expect.arrayContaining(['"Apple Color Emoji"', '"Segoe UI Emoji"', '"Noto Color Emoji"'])
+    );
     expect(designTokens.control.compactHeight).toBe(40);
     expect(designTokens.control.comfortableHeight).toBe(44);
     expect(designTokens.control.iconButtonTarget).toBeGreaterThanOrEqual(44);

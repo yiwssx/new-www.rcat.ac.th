@@ -181,6 +181,25 @@ describe("Facebook post D1 content transform", () => {
     expect(csv).toContain("summary_truncated");
   });
 
+  it("preserves emoji in imported titles and truncates compound emoji by grapheme", () => {
+    const familyEmoji = "👨‍👩‍👧‍👦";
+    const emojiPost = {
+      ...activityPost,
+      id: "100063746585360_emoji",
+      message: "📢 ประกาศทดสอบ Emoji ✅",
+      permalink_url: "https://www.facebook.com/100063746585360/posts/emoji"
+    };
+    const longEmojiPost = {
+      ...activityPost,
+      id: "100063746585360_long_emoji",
+      message: `${"ก".repeat(103)}${familyEmoji}ท้าย`,
+      permalink_url: "https://www.facebook.com/100063746585360/posts/long-emoji"
+    };
+
+    expect(rowFor(emojiPost).title).toBe("📢 ประกาศทดสอบ Emoji ✅");
+    expect(rowFor(longEmojiPost).title).toBe(`${"ก".repeat(103)}${familyEmoji}...`);
+  });
+
   it("skips rows with missing Facebook permalinks while keeping the report warning", () => {
     const missingPermalinkFixture = {
       ...fixture,
