@@ -121,8 +121,7 @@ function renderNode(node: RichTextNode, key: string): ReactNode {
 
   if (node.type === "heading") {
     const level = Number(node.attrs?.level) || 2;
-    const textAlign =
-      (node.attrs?.textAlign as "left" | "center" | "right" | "justify" | undefined) ?? undefined;
+    const textAlign = (node.attrs?.textAlign as "left" | "center" | "right" | "justify" | undefined) ?? undefined;
 
     if (level === 3) {
       return (

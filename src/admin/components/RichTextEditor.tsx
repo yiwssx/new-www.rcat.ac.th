@@ -11,10 +11,7 @@ import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
 import { Color, TextStyle } from "@tiptap/extension-text-style";
 import { TableKit } from "@tiptap/extension-table";
-import {
-  RichTextDocument,
-  normalizeRichTextDocument
-} from "../../utils/contentBlocks";
+import { RichTextDocument, normalizeRichTextDocument } from "../../utils/contentBlocks";
 import { designTokens } from "../../design-system/tokens";
 
 interface RichTextEditorProps {
@@ -201,7 +198,13 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
             key={level}
             label={`H${level}`}
             active={editor.isActive("heading", { level })}
-            onClick={() => editor.chain().focus().toggleHeading({ level: level as 2 | 3 | 4 }).run()}
+            onClick={() =>
+              editor
+                .chain()
+                .focus()
+                .toggleHeading({ level: level as 2 | 3 | 4 })
+                .run()
+            }
           />
         ))}
         <Divider flexItem orientation="vertical" />
@@ -276,9 +279,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
         )}
         <ToolbarButton
           label="ตาราง"
-          onClick={() =>
-            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-          }
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
         />
         {editor.isActive("table") && (
           <>
