@@ -11,6 +11,7 @@ import { getExternalServiceIconMediaId } from "../../../features/cms-external-se
 import { getExternalServiceIconSurfaceStyle } from "../../../utils/externalServiceTheme";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
+import FlagEmojiText from "../../../shared/media/FlagEmojiText";
 import { resolvePublicImageSource } from "../../../shared/media/publicImageSources";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 import { focusVisibleSx } from "./homeSectionStyles";
@@ -206,7 +207,7 @@ export function ExternalServicesSection({
                     </Stack>
                     <Stack spacing={0.75} sx={{ flex: 1 }}>
                       <Typography variant="h3" sx={{ fontSize: "1rem", lineHeight: 1.32 }}>
-                        {item.title}
+                        <FlagEmojiText>{item.title}</FlagEmojiText>
                       </Typography>
                       {item.description ? (
                         <Typography
@@ -216,7 +217,7 @@ export function ExternalServicesSection({
                             lineHeight: 1.55
                           }}
                         >
-                          {item.description}
+                          <FlagEmojiText>{item.description}</FlagEmojiText>
                         </Typography>
                       ) : null}
                     </Stack>
