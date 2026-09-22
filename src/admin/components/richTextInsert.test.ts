@@ -70,11 +70,7 @@ describe("richTextInsert", () => {
       }
     ];
 
-    const inserted = insertContentBlockAfter(
-      blocks,
-      "rich-1",
-      createBlockFromRichTextInsert({ type: "button" })
-    );
+    const inserted = insertContentBlockAfter(blocks, "rich-1", createBlockFromRichTextInsert({ type: "button" }));
 
     expect(inserted.map((block) => block.type)).toEqual(["richText", "button", "paragraph"]);
   });
