@@ -110,10 +110,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
     onChange(blocks.filter((block) => block.id !== id));
   };
 
-  const insertFromRichText = (
-    afterBlockId: string,
-    request: Parameters<typeof createBlockFromRichTextInsert>[0]
-  ) => {
+  const insertFromRichText = (afterBlockId: string, request: Parameters<typeof createBlockFromRichTextInsert>[0]) => {
     onChange(insertContentBlockAfter(blocks, afterBlockId, createBlockFromRichTextInsert(request)));
   };
 

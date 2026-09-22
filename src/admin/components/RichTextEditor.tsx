@@ -24,10 +24,7 @@ import { RichTextDocument, normalizeRichTextDocument } from "../../utils/content
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { designTokens } from "../../design-system/tokens";
 import RichTextMediaPickerDialog from "./RichTextMediaPickerDialog";
-import type {
-  RichTextExternalInsertRequest,
-  RichTextMediaInsertKind
-} from "./richTextInsert";
+import type { RichTextExternalInsertRequest, RichTextMediaInsertKind } from "./richTextInsert";
 
 interface RichTextEditorProps {
   value: RichTextDocument;
@@ -331,8 +328,16 @@ export default function RichTextEditor({ value, onChange, onInsertBlock }: RichT
             borderColor: "divider"
           }}
         >
-          <ToolbarButton label="↶" disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()} />
-          <ToolbarButton label="↷" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()} />
+          <ToolbarButton
+            label="↶"
+            disabled={!editor.can().undo()}
+            onClick={() => editor.chain().focus().undo().run()}
+          />
+          <ToolbarButton
+            label="↷"
+            disabled={!editor.can().redo()}
+            onClick={() => editor.chain().focus().redo().run()}
+          />
           <Divider flexItem orientation="vertical" />
 
           <ToolbarButton
@@ -602,11 +607,7 @@ export default function RichTextEditor({ value, onChange, onInsertBlock }: RichT
                 autoFocus
               />
             )}
-            {!editor.state.selection.empty && (
-              <Alert severity="info">
-                ลิงก์จะถูกนำไปใช้กับข้อความที่เลือกอยู่
-              </Alert>
-            )}
+            {!editor.state.selection.empty && <Alert severity="info">ลิงก์จะถูกนำไปใช้กับข้อความที่เลือกอยู่</Alert>}
             <TextField
               label="URL"
               value={linkHref}
