@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import EmptyState from "../../../shared/components/EmptyState";
+import FlagEmojiText from "../../../shared/media/FlagEmojiText";
 import { PublicContentCardItem } from "../../../types";
 import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
@@ -47,7 +48,7 @@ function CompactAnnouncementList({ items, emptyTitle }: { items: PublicContentCa
                 fontWeight: 900
               }}
             >
-              {item.title}
+              <FlagEmojiText>{item.title}</FlagEmojiText>
             </Typography>
             <Typography
               variant="body2"
