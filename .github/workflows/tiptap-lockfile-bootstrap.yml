@@ -34,9 +34,11 @@ jobs:
           cache: pnpm
       - name: Install and refresh lockfile
         run: pnpm install --lockfile-only --strict-peer-dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - name: Format changed source files
         run: >
-          pnpm prettier --write
+          pnpm exec prettier --write
           src/admin/components/ContentBlockBuilder.tsx
           src/admin/components/ContentEditorDialog.tsx
           src/admin/components/RichTextEditor.tsx
