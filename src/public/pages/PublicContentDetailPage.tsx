@@ -15,6 +15,7 @@ import OndemandVideoOutlinedIcon from "@mui/icons-material/OndemandVideoOutlined
 import FacebookPostEmbed from "../../components/embeds/FacebookPostEmbed";
 import ContentBlocksRenderer from "../../shared/components/ContentBlocksRenderer";
 import EmptyState from "../../shared/components/EmptyState";
+import FlagEmojiText from "../../shared/components/FlagEmojiText";
 import PublicDeferredEmbed from "../../shared/media/PublicDeferredEmbed";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import PublicPdfViewer from "../../shared/media/PublicPdfViewer";
@@ -390,7 +391,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                     ))}
                   </Stack>
                   <Typography variant="h2" sx={{ fontSize: { xs: "1.55rem", md: "2rem" } }}>
-                    {item.seoTitle || item.title}
+                    <FlagEmojiText text={item.seoTitle || item.title} />
                   </Typography>
                   {(item.seoDescription || item.summary) && (
                     <Typography
@@ -400,7 +401,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                         fontSize: "1.05rem"
                       }}
                     >
-                      {item.seoDescription || item.summary}
+                      <FlagEmojiText text={item.seoDescription || item.summary} />
                     </Typography>
                   )}
                 </Box>
@@ -456,7 +457,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
               <Stack spacing={2.75}>
                 <Box>
                   <Typography variant="h1" sx={{ fontSize: { xs: "2.15rem", md: "3.8rem" }, lineHeight: 1.08 }}>
-                    {item.title}
+                    <FlagEmojiText text={item.title} />
                   </Typography>
                   {item.summary && (
                     <Typography
@@ -467,7 +468,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                         maxWidth: 900
                       }}
                     >
-                      {item.summary}
+                      <FlagEmojiText text={item.summary} />
                     </Typography>
                   )}
                 </Box>
@@ -541,7 +542,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
 
                 <Box>
                   <Typography variant="h1" sx={{ fontSize: { xs: "2rem", md: "3rem" }, lineHeight: 1.12 }}>
-                    {item.title}
+                    <FlagEmojiText text={item.title} />
                   </Typography>
                   {item.summary && (
                     <Typography
@@ -551,7 +552,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                         fontSize: { xs: "1rem", md: "1.12rem" }
                       }}
                     >
-                      {item.summary}
+                      <FlagEmojiText text={item.summary} />
                     </Typography>
                   )}
                 </Box>
@@ -619,7 +620,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
 
                 <Box>
                   <Typography variant="h1" sx={{ fontSize: { xs: "2rem", md: "3.2rem" }, lineHeight: 1.12 }}>
-                    {item.seoTitle || item.title}
+                    <FlagEmojiText text={item.seoTitle || item.title} />
                   </Typography>
                   {(item.seoDescription || item.summary) && (
                     <Typography
@@ -629,7 +630,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
                         fontSize: { xs: "1rem", md: "1.12rem" }
                       }}
                     >
-                      {item.seoDescription || item.summary}
+                      <FlagEmojiText text={item.seoDescription || item.summary} />
                     </Typography>
                   )}
                 </Box>
