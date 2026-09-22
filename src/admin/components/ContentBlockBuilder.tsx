@@ -26,6 +26,7 @@ import { MediaAsset } from "../../types";
 import { ContentBlock, ContentBlockType, createContentBlock } from "../../utils/contentBlocks";
 import { isPdfMediaAsset } from "../../shared/media/pdfMedia";
 import RichTextEditor from "./RichTextEditor";
+import { createBlockFromRichTextInsert, insertContentBlockAfter } from "./richTextInsert";
 
 interface ContentBlockBuilderProps {
   blocks: ContentBlock[];
@@ -107,6 +108,10 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
 
   const removeBlock = (id: string) => {
     onChange(blocks.filter((block) => block.id !== id));
+  };
+
+  const insertFromRichText = (afterBlockId: string, request: Parameters<typeof createBlockFromRichTextInsert>[0]) => {
+    onChange(insertContentBlockAfter(blocks, afterBlockId, createBlockFromRichTextInsert(request)));
   };
 
   const imageAssets = mediaAssets.filter((asset) => asset.type === "image");
@@ -212,6 +217,7 @@ export default function ContentBlockBuilder({ blocks, mediaAssets, onChange }: C
                           current.type === "richText" ? { ...current, document } : current
                         )
                       }
+                      onInsertBlock={(request) => insertFromRichText(block.id, request)}
                     />
                   )}
 
