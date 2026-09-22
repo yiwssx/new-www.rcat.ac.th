@@ -210,7 +210,9 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 borderRadius: `0 ${designTokens.radius.medium}px ${designTokens.radius.medium}px 0`
               }}
             >
-              <Typography sx={{ fontStyle: "italic", mb: block.citation ? 0.75 : 0 }}><FlagEmojiText text={block.text} /></Typography>
+              <Typography sx={{ fontStyle: "italic", mb: block.citation ? 0.75 : 0 }}>
+                <FlagEmojiText text={block.text} />
+              </Typography>
               {block.citation && (
                 <Typography
                   variant="body2"
@@ -238,7 +240,9 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                   }}
                 >
                   <CheckCircleOutlineOutlinedIcon sx={{ fontSize: 19, mt: 0.15, color: "primary.main" }} />
-                  <Typography><FlagEmojiText text={item} /></Typography>
+                  <Typography>
+                    <FlagEmojiText text={item} />
+                  </Typography>
                 </Stack>
               ))}
             </Stack>
