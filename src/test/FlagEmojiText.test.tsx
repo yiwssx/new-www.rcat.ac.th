@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import FlagEmojiText, { getCountryFlagAssetUrl } from "../shared/media/FlagEmojiText";
+import FlagEmojiText from "../shared/media/FlagEmojiText";
 
 describe("FlagEmojiText", () => {
   it("renders country flag sequences with pinned Twemoji SVG assets", () => {
@@ -37,7 +37,10 @@ describe("FlagEmojiText", () => {
     expect(screen.getByText("📢 ✅ 🎉")).toBeInTheDocument();
   });
 
-  it("does not return an asset URL for a single regional indicator", () => {
-    expect(getCountryFlagAssetUrl("🇹")).toBe("");
+  it("leaves a single regional indicator as native text", () => {
+    render(<FlagEmojiText>🇹</FlagEmojiText>);
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByText("🇹")).toBeInTheDocument();
   });
 });
