@@ -63,7 +63,9 @@ function EventDetail({ label, value }: EventDetailProps) {
       >
         {label}
       </Typography>
-      <Typography><FlagEmojiText>{value}</FlagEmojiText></Typography>
+      <Typography>
+        <FlagEmojiText>{value}</FlagEmojiText>
+      </Typography>
     </Box>
   );
 }
