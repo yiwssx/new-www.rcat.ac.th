@@ -23,6 +23,7 @@ import {
 } from "../../utils/facebookEmbed";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { designTokens } from "../../design-system/tokens";
+import FlagEmojiText from "./FlagEmojiText";
 
 interface ContentBlocksRendererProps {
   blocks: ContentBlock[];
@@ -71,7 +72,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
                 mt: 0.75
               }}
             >
-              {block.caption}
+              <FlagEmojiText text={block.caption} />
             </Typography>
           )}
         </Box>
@@ -120,7 +121,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
                 mt: 0.75
               }}
             >
-              {block.caption}
+              <FlagEmojiText text={block.caption} />
             </Typography>
           )}
         </Box>
@@ -158,7 +159,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
                 mt: 1.5
               }}
             >
-              {block.caption}
+              <FlagEmojiText text={block.caption} />
             </Typography>
           )}
         </Box>
@@ -182,7 +183,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
         if (block.type === "paragraph") {
           return (
             <Typography key={block.id} sx={{ whiteSpace: "pre-line" }}>
-              {block.text}
+              <FlagEmojiText text={block.text} />
             </Typography>
           );
         }
@@ -191,7 +192,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
           const variant = block.level === 2 ? "h3" : block.level === 3 ? "h4" : "h5";
           return (
             <Typography key={block.id} variant={variant}>
-              {block.text}
+              <FlagEmojiText text={block.text} />
             </Typography>
           );
         }
@@ -209,7 +210,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 borderRadius: `0 ${designTokens.radius.medium}px ${designTokens.radius.medium}px 0`
               }}
             >
-              <Typography sx={{ fontStyle: "italic", mb: block.citation ? 0.75 : 0 }}>{block.text}</Typography>
+              <Typography sx={{ fontStyle: "italic", mb: block.citation ? 0.75 : 0 }}><FlagEmojiText text={block.text} /></Typography>
               {block.citation && (
                 <Typography
                   variant="body2"
@@ -217,7 +218,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                     color: "text.secondary"
                   }}
                 >
-                  {block.citation}
+                  <FlagEmojiText text={block.citation} />
                 </Typography>
               )}
             </Box>
@@ -237,7 +238,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                   }}
                 >
                   <CheckCircleOutlineOutlinedIcon sx={{ fontSize: 19, mt: 0.15, color: "primary.main" }} />
-                  <Typography>{item}</Typography>
+                  <Typography><FlagEmojiText text={item} /></Typography>
                 </Stack>
               ))}
             </Stack>
@@ -277,7 +278,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                     mt: 0.75
                   }}
                 >
-                  {block.caption || asset.name}
+                  <FlagEmojiText text={block.caption || asset.name} />
                 </Typography>
               )}
             </Box>
@@ -307,7 +308,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                     mt: 0.75
                   }}
                 >
-                  {block.caption || asset.name}
+                  <FlagEmojiText text={block.caption || asset.name} />
                 </Typography>
               )}
             </Box>
@@ -350,7 +351,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 variant="outlined"
                 startIcon={block.source === "media" ? <AttachFileOutlinedIcon /> : <LinkOutlinedIcon />}
               >
-                {label}
+                <FlagEmojiText text={label} />
               </Button>
             </Box>
           );
@@ -369,7 +370,7 @@ export default function ContentBlocksRenderer({ blocks, mediaAssets }: ContentBl
                 rel="noreferrer"
                 variant={block.variant}
               >
-                {block.label}
+                <FlagEmojiText text={block.label} />
               </Button>
             </Box>
           );
