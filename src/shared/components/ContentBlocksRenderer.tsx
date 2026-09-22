@@ -159,7 +159,7 @@ function FacebookPostEmbed({ block }: { block: FacebookPostContentBlock }) {
                 mt: 1.5
               }}
             >
-              {block.caption}
+              <FlagEmojiText>{block.caption}</FlagEmojiText>
             </Typography>
           )}
         </Box>
