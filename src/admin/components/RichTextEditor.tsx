@@ -231,12 +231,12 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
         />
         <ColorInput
           label="สี"
-          value={String(editor.getAttributes("textStyle").color || "#1f2937")}
+          value={String(editor.getAttributes("textStyle").color || designTokens.color.textPrimary)}
           onChange={(event) => editor.chain().focus().setColor(event.target.value).run()}
         />
         <ColorInput
           label="ไฮไลต์"
-          value={String(editor.getAttributes("highlight").color || "#fff59d")}
+          value={String(editor.getAttributes("highlight").color || designTokens.color.brandAccentSoft)}
           onChange={(event) => editor.chain().focus().setHighlight({ color: event.target.value }).run()}
         />
         <Divider flexItem orientation="vertical" />
