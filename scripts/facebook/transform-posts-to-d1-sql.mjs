@@ -183,13 +183,26 @@ function splitGraphemes(value) {
 }
 
 function limitText(value, maxLength) {
-  const characters = splitGraphemes(value);
+  const codePoints = Array.from(value);
 
-  if (characters.length <= maxLength) {
+  if (codePoints.length <= maxLength) {
     return value;
   }
 
-  const clipped = characters.slice(0, maxLength).join("");
+  const clippedGraphemes = [];
+  let codePointCount = 0;
+
+  for (const grapheme of splitGraphemes(value)) {
+    const graphemeCodePointCount = Array.from(grapheme).length;
+    if (codePointCount + graphemeCodePointCount > maxLength) {
+      break;
+    }
+
+    clippedGraphemes.push(grapheme);
+    codePointCount += graphemeCodePointCount;
+  }
+
+  const clipped = clippedGraphemes.join("");
   const lastSpace = clipped.lastIndexOf(" ");
   const safeClip = lastSpace >= Math.floor(maxLength * 0.65) ? clipped.slice(0, lastSpace) : clipped;
 
