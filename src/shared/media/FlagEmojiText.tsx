@@ -1,6 +1,7 @@
 import { Fragment, useState, type ReactNode } from "react";
 
 const countryFlagPattern = /[\u{1F1E6}-\u{1F1FF}]{2}/gu;
+// Country-flag artwork: Twemoji (jdecked/twemoji), graphics licensed under CC BY 4.0.
 const twemojiFlagAssetBase = "https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.3/assets/svg/";
 
 export function getCountryFlagAssetUrl(flag: string) {
