@@ -39,7 +39,11 @@ export function createBlockFromRichTextInsert(request: RichTextExternalInsertReq
     }
   }
 
-  return createContentBlock(request.type);
+  if (request.type === "facebookPost") {
+    return createContentBlock("facebookPost");
+  }
+
+  return createContentBlock("button");
 }
 
 export function insertContentBlockAfter(blocks: ContentBlock[], afterBlockId: string, block: ContentBlock) {
