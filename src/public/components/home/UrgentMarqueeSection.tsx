@@ -8,6 +8,7 @@ import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import type { HomepageMarqueeSettings } from "../../../types";
+import FlagEmojiText from "../../../shared/media/FlagEmojiText";
 import { designTokens } from "../../../design-system/tokens";
 import {
   formatMarqueeSeconds,
@@ -134,7 +135,7 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
         >
           <Chip
             icon={<CampaignOutlinedIcon />}
-            label={settings.label}
+            label={<FlagEmojiText>{settings.label}</FlagEmojiText>}
             color="secondary"
             sx={{
               alignSelf: "center",
@@ -182,7 +183,7 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
                   pr: { xs: 4, md: 6 }
                 }}
               >
-                {marqueeText}
+                <FlagEmojiText>{marqueeText}</FlagEmojiText>
               </Typography>
             </Box>
           </Box>
