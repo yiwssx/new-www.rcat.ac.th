@@ -18,18 +18,21 @@ describe("FlagEmojiText", () => {
     render(<FlagEmojiText text="ไทย 🇹🇭 และญี่ปุ่น 🇯🇵" />);
 
     expect(screen.getByText(/ไทย/)).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "🇹🇭" })).toHaveAttribute("data-country-flag", "th");
-    expect(screen.getByRole("img", { name: "🇯🇵" })).toHaveAttribute("data-country-flag", "jp");
+    expect(screen.getByRole("img", { name: "🇹🇭" })).toHaveAttribute(
+      "src",
+      "https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.3/assets/svg/1f1f9-1f1ed.svg"
+    );
+    expect(screen.getByRole("img", { name: "🇯🇵" })).toHaveAttribute(
+      "src",
+      "https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.3/assets/svg/1f1ef-1f1f5.svg"
+    );
   });
 
   it("falls back to the original flag text if the asset cannot load", () => {
     render(<FlagEmojiText text="ประเทศไทย 🇹🇭" />);
 
     const flagImage = screen.getByRole("img", { name: "🇹🇭" });
-    const imageElement = flagImage.querySelector('[data-public-responsive-image-element="true"]');
-
-    expect(imageElement).not.toBeNull();
-    fireEvent.error(imageElement as Element);
+    fireEvent.error(flagImage);
 
     expect(document.querySelector('[data-public-image-fallback="true"]')).toBeInTheDocument();
     expect(screen.getByText("🇹🇭")).toBeInTheDocument();
