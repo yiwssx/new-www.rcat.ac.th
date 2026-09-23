@@ -60,6 +60,28 @@ export interface MediaUsageResult {
   items: MediaUsageItem[];
 }
 
+export type EditorialWorkflowStatus = "draft" | "review";
+
+export interface EditorialContentItem {
+  id: string;
+  slug: string;
+  type: string;
+  status: string;
+  owner: string;
+  title: string;
+  summary: string;
+  updatedAt: string;
+  publishAt: string;
+  deletedAt: string;
+  revision: number;
+}
+
+export interface ContentTrashSnapshot {
+  items: EditorialContentItem[];
+  generatedAt: string;
+  maximumItems: number;
+}
+
 function revisionHeaders(revision: number | undefined) {
   return Number.isInteger(revision) && Number(revision) >= 0
     ? { "X-RCAT-Expected-Revision": String(revision) }
@@ -100,6 +122,34 @@ export async function setContentUnpublishAt(contentId: string, unpublishAt: stri
     `/api/admin/content/${encodeURIComponent(contentId)}/expiry`,
     "PUT",
     { unpublishAt },
+    expectedRevision
+  );
+  return response.item;
+}
+
+export async function setContentWorkflowStatus(
+  contentId: string,
+  status: EditorialWorkflowStatus,
+  expectedRevision?: number
+) {
+  const response = await jsonMutation<{ item: EditorialContentItem }>(
+    `/api/admin/content/${encodeURIComponent(contentId)}/workflow`,
+    "PUT",
+    { status },
+    expectedRevision
+  );
+  return response.item;
+}
+
+export function getContentTrash() {
+  return requestCloudflareAdmin<ContentTrashSnapshot>("/api/admin/content/trash");
+}
+
+export async function restoreContentFromTrash(contentId: string, expectedRevision?: number) {
+  const response = await jsonMutation<{ item: EditorialContentItem }>(
+    `/api/admin/content/${encodeURIComponent(contentId)}/restore`,
+    "POST",
+    {},
     expectedRevision
   );
   return response.item;
