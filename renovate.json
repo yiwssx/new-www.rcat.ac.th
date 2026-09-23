@@ -6,6 +6,7 @@
   "includePaths": ["package.json", ".github/workflows/**", ".github/actions/**"],
   "baseBranchPatterns": ["master"],
   "timezone": "Asia/Bangkok",
+  "minimumReleaseAgeBuffer": "6 hours",
   "labels": ["dependencies"],
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
