@@ -222,9 +222,7 @@ export default function PublicAnnouncementsPage() {
         {announcementsPagination.paginatedItems.map((item) => {
           const preview = isJobArchive
             ? resolveJobOpportunityPreview(item, mediaAssets)
-            : isProcurementArchive
-              ? resolveProcurementPreview(item, mediaAssets)
-              : null;
+            : resolveProcurementPreview(item, mediaAssets);
 
           return (
             <Grid size={{ xs: 12, md: 6 }} key={item.id}>
