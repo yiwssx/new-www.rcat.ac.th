@@ -207,7 +207,9 @@ export default function ContentLifecycleGovernancePanel() {
             </Typography>
           </Box>
           {panelError && <Alert severity="error">{panelError}</Alert>}
-          {optionsQuery.isError && <Alert severity="warning">ไม่สามารถโหลดรายการเนื้อหาสำหรับเครื่องมือควบคุมได้</Alert>}
+          {optionsQuery.isError && (
+            <Alert severity="warning">ไม่สามารถโหลดรายการเนื้อหาสำหรับเครื่องมือควบคุมได้</Alert>
+          )}
           <Autocomplete
             options={options}
             value={selected}
@@ -296,7 +298,8 @@ export default function ContentLifecycleGovernancePanel() {
                     เวอร์ชัน {revision.revision} · {revision.snapshot?.title || "ไม่มีชื่อเรื่อง"}
                   </Typography>
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    {revisionReasonLabel(revision.reason)} · {formatDisplayDate(revision.createdAt)} · {revision.actor || "ระบบ"}
+                    {revisionReasonLabel(revision.reason)} · {formatDisplayDate(revision.createdAt)} ·{" "}
+                    {revision.actor || "ระบบ"}
                   </Typography>
                 </Box>
                 {canUpdate && (
@@ -318,7 +321,12 @@ export default function ContentLifecycleGovernancePanel() {
         </ResponsiveDialogActions>
       </Dialog>
 
-      <Dialog open={expiryOpen} onClose={expiryMutation.isPending ? undefined : () => setExpiryOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={expiryOpen}
+        onClose={expiryMutation.isPending ? undefined : () => setExpiryOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>กำหนดวันสิ้นสุดการเผยแพร่</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
