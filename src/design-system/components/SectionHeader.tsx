@@ -8,18 +8,27 @@ export interface SectionHeaderProps {
   description?: string;
   action?: ReactNode;
   eyebrow?: string;
+  density?: "default" | "compact";
 }
 
-export default function SectionHeader({ title, description, action, eyebrow }: SectionHeaderProps) {
+export default function SectionHeader({
+  title,
+  description,
+  action,
+  eyebrow,
+  density = "default"
+}: SectionHeaderProps) {
+  const compact = density === "compact";
+
   return (
     <Stack
       component="header"
       direction={{ xs: "column", sm: "row" }}
-      spacing={1.5}
+      spacing={compact ? 1 : 1.5}
       sx={{
         justifyContent: "space-between",
         alignItems: { xs: "stretch", sm: "flex-end" },
-        mb: 2.5,
+        mb: compact ? 1.5 : 2.5,
         minWidth: 0
       }}
     >
@@ -28,19 +37,25 @@ export default function SectionHeader({ title, description, action, eyebrow }: S
           <Typography
             component="p"
             variant="caption"
-            sx={{ color: "secondary.dark", fontWeight: 800, mb: 0.5, overflowWrap: "anywhere" }}
+            sx={{
+              color: "secondary.dark",
+              fontWeight: 800,
+              mb: compact ? 0.25 : 0.5,
+              overflowWrap: "anywhere"
+            }}
           >
             {eyebrow}
           </Typography>
         ) : null}
-        <Typography variant="h2" sx={{ overflowWrap: "anywhere" }}>
+        <Typography variant={compact ? "h3" : "h2"} sx={{ overflowWrap: "anywhere", fontWeight: 800 }}>
           {title}
         </Typography>
         {description ? (
           <Typography
+            variant={compact ? "body2" : undefined}
             sx={{
               color: "text.secondary",
-              mt: 0.75,
+              mt: compact ? 0.5 : 0.75,
               maxWidth: 760,
               overflowWrap: "anywhere"
             }}
