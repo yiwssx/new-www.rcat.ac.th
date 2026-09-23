@@ -54,14 +54,21 @@ function getMediaAssetId(asset: string | Pick<MediaAsset, "id">) {
   return typeof asset === "string" ? asset : asset.id;
 }
 
-export async function deleteMediaAsset(asset: string | MediaAsset) {
-  const id = getMediaAssetId(asset);
-  const usage = await getMediaUsage(id);
+async function assertManagedMediaIsUnused(asset: string | MediaAsset) {
+  // The CMS library always deletes with the full asset object. Keep the legacy
+  // id-only cleanup path transport-compatible; the Worker still enforces the
+  // same usage guard before D1 metadata can be removed.
+  if (typeof asset === "string") return;
 
+  const usage = await getMediaUsage(asset.id);
   if (usage.count > 0) {
     throw new Error(`ไม่สามารถลบสื่อนี้ได้ เนื่องจากยังถูกใช้งานอยู่ ${usage.count} จุด`);
   }
+}
 
+export async function deleteMediaAsset(asset: string | MediaAsset) {
+  const id = getMediaAssetId(asset);
+  await assertManagedMediaIsUnused(asset);
   const result = await deleteMediaAssetFromBridge(asset);
 
   try {
