@@ -13,7 +13,7 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import RestoreOutlinedIcon from "@mui/icons-material/RestoreOutlined";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
