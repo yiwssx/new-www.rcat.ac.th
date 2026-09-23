@@ -12,6 +12,7 @@ export interface MediaAsset {
   thumbnailUrl?: string;
   previewUrl?: string;
   embedUrl?: string;
+  altText?: string;
   updatedAt: string;
 }
 
@@ -27,6 +28,7 @@ export interface MediaAssetInput {
   thumbnailUrl?: string;
   previewUrl?: string;
   embedUrl?: string;
+  altText?: string;
   fileName?: string;
   fileBase64?: string;
 }

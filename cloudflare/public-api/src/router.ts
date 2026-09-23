@@ -1,6 +1,8 @@
 import { isPublicAnalyticsOriginAllowed } from "./cors";
 import type { Env } from "./env";
+import { invalidatePublicReadCacheAfterAdminMutation } from "./publicReadCacheInvalidation";
 import { jsonError, methodNotAllowed, notFound } from "./responses";
+import { handleAdminContentGovernance } from "./routes/adminContentGovernance";
 import { adminWrite } from "./routes/adminWrite";
 import { health } from "./routes/health";
 import { publicContentDetail, publicContentList } from "./routes/publicContent";
@@ -21,6 +23,17 @@ function rejectUntrustedPublicAnalyticsOrigin(request: Request, env: Env, resour
   return isPublicAnalyticsOriginAllowed(request, env)
     ? null
     : jsonError("origin is not allowed", 403, { resource, diagnostic: "public-analytics-origin-denied-v1" });
+}
+
+async function finalizeAdminResponse(request: Request, env: Env, response: Response) {
+  try {
+    await invalidatePublicReadCacheAfterAdminMutation(request, env, response);
+  } catch (error) {
+    console.warn("post-write public cache invalidation failed", {
+      errorName: error instanceof Error ? error.name : "Error"
+    });
+  }
+  return response;
 }
 
 export async function routeRequest(request: Request, env: Env) {
@@ -45,10 +58,16 @@ export async function routeRequest(request: Request, env: Env) {
     return jsonError("bulk menu replacement is retired; use revision-aware menu item and order endpoints", 405);
   }
 
+  const governanceResponse = await handleAdminContentGovernance(request, env);
+
+  if (governanceResponse) {
+    return finalizeAdminResponse(request, env, governanceResponse);
+  }
+
   const adminResponse = await adminWrite(request, env);
 
   if (adminResponse) {
-    return adminResponse;
+    return finalizeAdminResponse(request, env, adminResponse);
   }
 
   if (request.method === "OPTIONS") {

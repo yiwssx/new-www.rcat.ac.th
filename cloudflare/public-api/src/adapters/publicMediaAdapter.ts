@@ -1,7 +1,9 @@
 import type { PublicMediaAssetContract } from "../contracts/publicMetadata";
 import type { MediaAssetRow } from "../db/schema";
 
-export function mapMediaAssetRowToPublicMediaAsset(row: MediaAssetRow): PublicMediaAssetContract {
+export function mapMediaAssetRowToPublicMediaAsset(
+  row: MediaAssetRow & { alt_text?: string }
+): PublicMediaAssetContract {
   return {
     id: row.id || "",
     name: row.name || "",
@@ -32,6 +34,11 @@ export function mapMediaAssetRowToPublicMediaAsset(row: MediaAssetRow): PublicMe
     ...(row.embed_url
       ? {
           embedUrl: row.embed_url
+        }
+      : {}),
+    ...(row.alt_text
+      ? {
+          altText: row.alt_text
         }
       : {}),
     updatedAt: row.updated_at || ""

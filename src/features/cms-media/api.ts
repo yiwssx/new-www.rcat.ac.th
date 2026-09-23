@@ -1,4 +1,5 @@
 import { deleteMediaMetadataFromCloudflare, saveMediaMetadataToCloudflare } from "../admin-write/cloudflareApi";
+import { getMediaUsage } from "../cms-governance/client";
 import { cacheBridgeMediaAsset, removeBridgeMediaAsset } from "./bridgeCache";
 import { importFacebookThumbnailFromBridge } from "./facebookThumbnailClient";
 import {
@@ -53,14 +54,56 @@ function getMediaAssetId(asset: string | Pick<MediaAsset, "id">) {
   return typeof asset === "string" ? asset : asset.id;
 }
 
+async function assertManagedMediaIsUnused(asset: string | MediaAsset) {
+  // The CMS library always deletes with the full asset object. Keep the legacy
+  // id-only cleanup path transport-compatible; the Worker still enforces the
+  // same usage guard before D1 metadata can be removed.
+  if (typeof asset === "string") return;
+
+  const usage = await getMediaUsage(asset.id);
+  if (usage.count > 0) {
+    throw new Error(`ไม่สามารถลบสื่อนี้ได้ เนื่องจากยังถูกใช้งานอยู่ ${usage.count} จุด`);
+  }
+}
+
+async function deleteManagedMediaAsset(asset: MediaAsset) {
+  await assertManagedMediaIsUnused(asset);
+
+  // Let the Worker perform its authoritative usage check before the destructive
+  // Drive operation. If a concurrent reference appeared after the preflight,
+  // the D1 delete returns 409 here and the Drive file remains untouched.
+  await deleteMediaMetadataFromCloudflare(asset.id);
+
+  try {
+    const result = await deleteMediaAssetFromBridge(asset);
+    removeBridgeMediaAsset(asset.id);
+    return result;
+  } catch (error) {
+    // D1 metadata was removed first to protect referenced content. Restore the
+    // metadata best-effort if the Drive operation fails so the asset remains
+    // manageable and retryable instead of becoming an invisible orphan.
+    try {
+      await saveMediaMetadataToCloudflare(asset);
+    } catch {
+      // Preserve the original Drive error; reconciliation can restore metadata later.
+    }
+    throw error;
+  }
+}
+
 export async function deleteMediaAsset(asset: string | MediaAsset) {
+  if (typeof asset !== "string") {
+    return deleteManagedMediaAsset(asset);
+  }
+
   const id = getMediaAssetId(asset);
   const result = await deleteMediaAssetFromBridge(asset);
 
   try {
     await deleteMediaMetadataFromCloudflare(id);
   } catch {
-    // The Drive delete succeeded; remove the local bridge entry even if D1 metadata cleanup must be retried.
+    // Legacy id-only cleanup cannot restore metadata because it does not carry
+    // the complete asset. The Worker still protects the D1 deletion itself.
   }
 
   removeBridgeMediaAsset(id);

@@ -31,6 +31,7 @@ export interface ContentItem {
   lastViewedAt?: string;
   updatedAt: string;
   publishAt: string;
+  unpublishAt?: string;
   revision?: number;
 }
 
@@ -56,6 +57,7 @@ export type PublicContentCardItem = Pick<
   | "featuredMediaId"
   | "mediaIds"
   | "publishAt"
+  | "unpublishAt"
 > &
   Pick<Partial<ContentItem>, "updatedAt">;
 

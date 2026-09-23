@@ -19,12 +19,14 @@ import {
   type SiteSettingsRow
 } from "./schema";
 
+export type PublicMediaAssetRow = MediaAssetRow & { alt_text?: string };
+
 export interface PublicMetadataRows {
   siteSettings: SiteSettingsRow | null;
   homepageSettings: HomepageSettingsRow | null;
   displaySettings: DisplaySettingsRow | null;
   menu: MenuItemRow[];
-  media: MediaAssetRow[];
+  media: PublicMediaAssetRow[];
   carouselSlides: CarouselSlideRow[];
   externalServices: ExternalServiceRow[];
   events: EventRow[];
@@ -57,6 +59,8 @@ export type PublicHomeMetadataRows = Pick<
 
 export type PublicHomeCoreMetadataRows = Omit<PublicHomeMetadataRows, "media">;
 
+const PUBLIC_MEDIA_COLUMNS = [...MEDIA_ASSET_ROW_COLUMNS, "alt_text"] as const;
+
 export async function readPublicShellMetadataRows(env: Env): Promise<PublicShellMetadataRows> {
   const [siteSettings, homepageSettings, displaySettings, menu] = await Promise.all([
     readSingleton<SiteSettingsRow>(env, "site_settings", SITE_SETTINGS_ROW_COLUMNS),
@@ -72,14 +76,14 @@ export async function readPublicShellMetadataRows(env: Env): Promise<PublicShell
   return { siteSettings, homepageSettings, displaySettings, menu };
 }
 
-export async function readPublicMediaRows(env: Env): Promise<MediaAssetRow[]> {
-  return readRows<MediaAssetRow>(
+export async function readPublicMediaRows(env: Env): Promise<PublicMediaAssetRow[]> {
+  return readRows<PublicMediaAssetRow>(
     env,
-    `SELECT ${MEDIA_ASSET_ROW_COLUMNS.join(", ")} FROM media_assets ORDER BY updated_at DESC`
+    `SELECT ${PUBLIC_MEDIA_COLUMNS.join(", ")} FROM media_assets ORDER BY updated_at DESC`
   );
 }
 
-export async function readPublicMediaRowsByIds(env: Env, ids: readonly string[]): Promise<MediaAssetRow[]> {
+export async function readPublicMediaRowsByIds(env: Env, ids: readonly string[]): Promise<PublicMediaAssetRow[]> {
   const normalizedIds = [...new Set(ids.map((id) => String(id || "").trim()).filter(Boolean))];
 
   if (!normalizedIds.length) {
@@ -94,9 +98,9 @@ export async function readPublicMediaRowsByIds(env: Env, ids: readonly string[])
 
   const rows = await Promise.all(
     chunks.map((chunk) =>
-      readRows<MediaAssetRow>(
+      readRows<PublicMediaAssetRow>(
         env,
-        `SELECT ${MEDIA_ASSET_ROW_COLUMNS.join(", ")}
+        `SELECT ${PUBLIC_MEDIA_COLUMNS.join(", ")}
          FROM media_assets
          WHERE id IN (${chunk.map(() => "?").join(", ")})
          ORDER BY updated_at DESC`,

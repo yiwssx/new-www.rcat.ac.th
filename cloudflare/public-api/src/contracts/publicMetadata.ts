@@ -92,6 +92,7 @@ export interface PublicMediaAssetContract {
   thumbnailUrl?: string;
   previewUrl?: string;
   embedUrl?: string;
+  altText?: string;
   updatedAt: string;
 }
 
