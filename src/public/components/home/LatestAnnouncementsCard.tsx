@@ -75,11 +75,7 @@ export function LatestAnnouncementsCard({ items }: { items: PublicContentCardIte
           label="ประกาศ"
           title="ประกาศล่าสุด"
           action={
-            <Button
-              size="small"
-              href={normalizeSafeHref("/announcements")}
-              endIcon={<ArrowForwardOutlinedIcon />}
-            >
+            <Button size="small" href={normalizeSafeHref("/announcements")} endIcon={<ArrowForwardOutlinedIcon />}>
               ทั้งหมด
             </Button>
           }

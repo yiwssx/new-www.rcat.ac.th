@@ -9,13 +9,7 @@ export interface HomeSectionHeadingProps {
   compact?: boolean;
 }
 
-export function HomeSectionHeading({
-  label,
-  title,
-  description,
-  action,
-  compact = false
-}: HomeSectionHeadingProps) {
+export function HomeSectionHeading({ label, title, description, action, compact = false }: HomeSectionHeadingProps) {
   return (
     <SectionHeader
       eyebrow={`:: ${label}`}
