@@ -11,6 +11,8 @@ export type PublicImageLoadMode = "critical" | "eager" | "near-viewport";
 
 const PublicImageElement = styled("img")({});
 
+type AccessiblePublicImageAssetSource = PublicImageAssetSource & { altText?: string };
+
 interface PublicResponsiveImageProps {
   alt: string;
   aspectRatio?: string | number;
@@ -30,9 +32,15 @@ interface PublicResponsiveImageProps {
   onLoad?: () => void;
   reservedMinHeight?: number | Record<string, number>;
   sizes?: string;
-  source: string | PublicImageAssetSource | null | undefined;
+  source: string | AccessiblePublicImageAssetSource | null | undefined;
   sx?: SxProps<Theme>;
   width?: number;
+}
+
+function resolveAccessibleAlt(source: PublicResponsiveImageProps["source"], fallbackAlt: string) {
+  // Explicit empty alt remains authoritative for intentionally decorative images.
+  if (fallbackAlt === "" || typeof source === "string" || !source) return fallbackAlt;
+  return String(source.altText || "").trim() || fallbackAlt;
 }
 
 export default function PublicResponsiveImage({
@@ -58,6 +66,7 @@ export default function PublicResponsiveImage({
   width
 }: PublicResponsiveImageProps) {
   const resolvedSource = useMemo(() => resolvePublicImageSource(source, intent), [intent, source]);
+  const resolvedAlt = resolveAccessibleAlt(source, alt);
   const sourceKey = `${resolvedSource.src}|${resolvedSource.srcSet}`;
   const [failedSourceKey, setFailedSourceKey] = useState("");
   const { pageMediaAllowed } = usePublicMediaLoading();
@@ -103,7 +112,7 @@ export default function PublicResponsiveImage({
           src={resolvedSource.src}
           srcSet={resolvedSource.srcSet || undefined}
           sizes={resolvedSource.srcSet ? sizes : undefined}
-          alt={alt}
+          alt={resolvedAlt}
           width={width}
           height={height}
           loading={loading}
@@ -137,7 +146,7 @@ export default function PublicResponsiveImage({
       ) : failed || !resolvedSource.src ? (
         <Box
           role="img"
-          aria-label={alt}
+          aria-label={resolvedAlt}
           data-public-image-fallback="true"
           sx={{
             position: fill ? "absolute" : "relative",
