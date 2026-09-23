@@ -31,6 +31,7 @@ interface PublicResponsiveImageProps {
   onError?: () => void;
   onLoad?: () => void;
   reservedMinHeight?: number | Record<string, number>;
+  rootComponent?: "div" | "span";
   sizes?: string;
   source: string | AccessiblePublicImageAssetSource | null | undefined;
   sx?: SxProps<Theme>;
@@ -60,6 +61,7 @@ export default function PublicResponsiveImage({
   onError,
   onLoad,
   reservedMinHeight,
+  rootComponent = "div",
   sizes,
   source,
   sx,
@@ -83,6 +85,7 @@ export default function PublicResponsiveImage({
 
   return (
     <Box
+      component={rootComponent}
       className={className}
       data-public-responsive-image="true"
       data-public-image-intent={intent}

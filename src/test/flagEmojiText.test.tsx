@@ -1,3 +1,4 @@
+import { renderToString } from "react-dom/server";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import FlagEmojiText from "../shared/components/FlagEmojiText";
@@ -26,6 +27,24 @@ describe("FlagEmojiText", () => {
       "src",
       "https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.3/assets/svg/1f1ef-1f1f5.svg"
     );
+  });
+
+  it("keeps flag image wrappers valid inside phrasing content for SSR hydration", () => {
+    const markup = renderToString(
+      <p>
+        <FlagEmojiText text="ไทย 🇹🇭 และญี่ปุ่น 🇯🇵" />
+      </p>
+    );
+    const container = document.createElement("div");
+    container.innerHTML = markup;
+
+    const paragraph = container.querySelector("p");
+    const wrappers = [...container.querySelectorAll('[data-public-responsive-image="true"]')];
+
+    expect(container.querySelectorAll("p")).toHaveLength(1);
+    expect(wrappers).toHaveLength(2);
+    expect(wrappers.every((wrapper) => wrapper.tagName === "SPAN")).toBe(true);
+    expect(wrappers.every((wrapper) => paragraph?.contains(wrapper))).toBe(true);
   });
 
   it("falls back to the original flag text if the asset cannot load", () => {
