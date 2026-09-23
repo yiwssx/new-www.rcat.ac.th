@@ -37,6 +37,7 @@ interface EventListCardProps {
   viewAllLabel?: string;
   emptyTitle?: string;
   initialNowMs?: number;
+  compact?: boolean;
 }
 
 interface EventDetailProps {
@@ -205,7 +206,8 @@ export function EventListCard({
   viewAllHref,
   viewAllLabel = "ดูทั้งหมด",
   emptyTitle = "ยังไม่มีกิจกรรมที่เผยแพร่",
-  initialNowMs
+  initialNowMs,
+  compact = false
 }: EventListCardProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -266,8 +268,8 @@ export function EventListCard({
   return (
     <>
       <Card id="calendar" className="h-full">
-        <CardContent sx={{ p: 2.5 }}>
-          <HomeSectionHeading label="กำหนดการ" title="กำหนดการ" />
+        <CardContent sx={{ p: compact ? 2 : 2.5 }}>
+          <HomeSectionHeading compact={compact} label="กำหนดการ" title="กำหนดการ" />
 
           {visibleItems.length ? (
             <Stack divider={<Divider flexItem />} spacing={0}>
@@ -290,7 +292,7 @@ export function EventListCard({
                       ...focusVisibleSx
                     }}
                   >
-                    <Box className="py-3" sx={{ px: 0.5 }}>
+                    <Box sx={{ px: 0.5, py: compact ? 1 : 1.5 }}>
                       <Stack
                         direction="row"
                         spacing={1}
@@ -362,7 +364,8 @@ export function EventListCard({
               href={safeViewAllHref}
               aria-label="ดูกำหนดการทั้งหมด"
               endIcon={<ArrowForwardOutlinedIcon />}
-              sx={{ mt: 1.6 }}
+              size={compact ? "small" : "medium"}
+              sx={{ mt: compact ? 1 : 1.6 }}
               fullWidth
             >
               {viewAllLabel}
