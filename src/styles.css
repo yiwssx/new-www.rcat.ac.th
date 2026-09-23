@@ -183,6 +183,12 @@ a {
   #news #documents .p-3 {
     padding: 8px;
   }
+
+  #news #calendar a[aria-label="ดูกำหนดการทั้งหมด"],
+  #news #documents a[aria-label="ดูเอกสารเผยแพร่ทั้งหมด"] {
+    min-height: 40px;
+    padding-inline: 14px;
+  }
 }
 
 .form-shell {
