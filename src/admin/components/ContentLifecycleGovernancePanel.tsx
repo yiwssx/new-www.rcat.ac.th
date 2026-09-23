@@ -200,7 +200,7 @@ export default function ContentLifecycleGovernancePanel() {
         <Stack spacing={2}>
           <Box>
             <Typography variant="h2" sx={{ fontSize: "1.35rem" }}>
-              การควบคุมวงจรเนื้อหา
+              การควบคุมวงจรการเผยแพร่
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
               ตรวจตัวอย่าง ย้อนเวอร์ชัน กำหนดวันสิ้นสุดการเผยแพร่ และตรวจประวัติการดำเนินงาน
