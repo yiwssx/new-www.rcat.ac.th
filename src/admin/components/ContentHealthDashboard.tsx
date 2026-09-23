@@ -9,7 +9,8 @@ import Typography from "@mui/material/Typography";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminCmsSnapshotFromCloudflare } from "../../features/admin-write/cloudflareApi";
 import { evaluateContentHealth, type ContentHealthIssueCode } from "../../features/cms-governance/contentHealth";
-import { CONTENT_GOVERNANCE_OPTIONS_QUERY } from "./EditorialWorkflowPanel";
+
+const CONTENT_GOVERNANCE_OPTIONS_QUERY = ["cms-governance", "content-options"] as const;
 
 const issueLabels: Record<ContentHealthIssueCode, string> = {
   "missing-summary": "ขาดคำโปรย",
