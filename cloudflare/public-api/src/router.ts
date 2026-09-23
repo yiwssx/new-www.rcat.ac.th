@@ -1,6 +1,7 @@
 import { isPublicAnalyticsOriginAllowed } from "./cors";
 import type { Env } from "./env";
 import { jsonError, methodNotAllowed, notFound } from "./responses";
+import { handleAdminContentGovernance } from "./routes/adminContentGovernance";
 import { adminWrite } from "./routes/adminWrite";
 import { health } from "./routes/health";
 import { publicContentDetail, publicContentList } from "./routes/publicContent";
@@ -43,6 +44,12 @@ export async function routeRequest(request: Request, env: Env) {
   // historical preview parity tooling.
   if (env.ENVIRONMENT === "production" && request.method === "PUT" && pathname === "/api/admin/menu") {
     return jsonError("bulk menu replacement is retired; use revision-aware menu item and order endpoints", 405);
+  }
+
+  const governanceResponse = await handleAdminContentGovernance(request, env);
+
+  if (governanceResponse) {
+    return governanceResponse;
   }
 
   const adminResponse = await adminWrite(request, env);
