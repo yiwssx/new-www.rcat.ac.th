@@ -21,6 +21,7 @@ interface DocumentListCardProps {
   viewAllHref?: string;
   viewAllLabel?: string;
   emptyTitle?: string;
+  compact?: boolean;
 }
 
 function getDocumentHref(item: DocumentListItem) {
@@ -48,27 +49,29 @@ export function DocumentListCard({
   limit,
   viewAllHref,
   viewAllLabel = "ดูทั้งหมด",
-  emptyTitle = "ยังไม่มีเอกสารเผยแพร่"
+  emptyTitle = "ยังไม่มีเอกสารเผยแพร่",
+  compact = false
 }: DocumentListCardProps) {
   const visibleItems = getVisibleItems(items, limit);
 
   return (
     <Card id="documents" className="rcat-card h-full">
-      <CardContent sx={{ p: 2.5 }}>
-        <HomeSectionHeading label="เอกสาร" title="เอกสารเผยแพร่" />
+      <CardContent sx={{ p: compact ? 2 : 2.5 }}>
+        <HomeSectionHeading compact={compact} label="เอกสาร" title="เอกสารเผยแพร่" />
         {visibleItems.length ? (
-          <Stack spacing={1.1}>
+          <Stack spacing={compact ? 0.8 : 1.1}>
             {visibleItems.map((item) => (
               <Box
                 key={item.id}
                 component="a"
                 href={getDocumentHref(item)}
                 aria-label={`อ่านเอกสาร ${item.title}`}
-                className="rcat-card-muted rcat-focus-ring block p-3"
+                className="rcat-card-muted rcat-focus-ring block"
+                sx={{ p: compact ? 1 : 1.5 }}
               >
                 <Stack
                   direction="row"
-                  spacing={1.2}
+                  spacing={compact ? 0.9 : 1.2}
                   sx={{
                     alignItems: "flex-start"
                   }}
@@ -107,7 +110,8 @@ export function DocumentListCard({
             href={normalizeSafeHref(viewAllHref)}
             aria-label="ดูเอกสารเผยแพร่ทั้งหมด"
             endIcon={<ArrowForwardOutlinedIcon />}
-            sx={{ mt: 1.6 }}
+            size={compact ? "small" : "medium"}
+            sx={{ mt: compact ? 1 : 1.6 }}
             fullWidth
           >
             {viewAllLabel}
