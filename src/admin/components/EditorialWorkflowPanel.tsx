@@ -34,7 +34,7 @@ import { contentStatusLabels } from "../../utils/thaiLabels";
 import { formatDisplayDate } from "../../utils/dateDisplay";
 import { appSwal } from "../../utils/swal";
 
-export const CONTENT_GOVERNANCE_OPTIONS_QUERY = ["cms-governance", "content-options"] as const;
+const CONTENT_GOVERNANCE_OPTIONS_QUERY = ["cms-governance", "content-options"] as const;
 const CONTENT_TRASH_QUERY = ["cms-governance", "content-trash"] as const;
 
 function statusLabel(status: string) {
