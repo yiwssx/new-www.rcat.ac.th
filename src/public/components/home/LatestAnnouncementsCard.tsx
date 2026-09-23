@@ -14,6 +14,8 @@ import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
+const HOME_ANNOUNCEMENT_LIMIT = 3;
+
 function CompactAnnouncementList({ items, emptyTitle }: { items: PublicContentCardItem[]; emptyTitle: string }) {
   if (!items.length) {
     return <EmptyState title={emptyTitle} icon={<CampaignOutlinedIcon />} />;
@@ -21,18 +23,18 @@ function CompactAnnouncementList({ items, emptyTitle }: { items: PublicContentCa
 
   return (
     <Stack divider={<Divider flexItem />} spacing={0}>
-      {items.map((item) => (
+      {items.slice(0, HOME_ANNOUNCEMENT_LIMIT).map((item) => (
         <Box
           key={item.id}
           component="a"
           href={normalizeSafeHref(`/content/${item.slug}`)}
           aria-label={`อ่านประกาศ ${item.title}`}
-          className="rcat-focus-ring block rounded-md px-1 py-3"
+          className="rcat-focus-ring block rounded-md px-1 py-2"
         >
-          <Stack spacing={0.8}>
+          <Stack spacing={0.6}>
             <Stack
               direction="row"
-              spacing={1}
+              spacing={0.75}
               useFlexGap
               sx={{
                 alignItems: "center",
@@ -67,12 +69,17 @@ function CompactAnnouncementList({ items, emptyTitle }: { items: PublicContentCa
 export function LatestAnnouncementsCard({ items }: { items: PublicContentCardItem[] }) {
   return (
     <Card id="announcements" className="rcat-card h-full">
-      <CardContent sx={{ p: 2.5 }}>
+      <CardContent sx={{ p: 2 }}>
         <HomeSectionHeading
+          compact
           label="ประกาศ"
           title="ประกาศล่าสุด"
           action={
-            <Button href={normalizeSafeHref("/announcements")} endIcon={<ArrowForwardOutlinedIcon />}>
+            <Button
+              size="small"
+              href={normalizeSafeHref("/announcements")}
+              endIcon={<ArrowForwardOutlinedIcon />}
+            >
               ทั้งหมด
             </Button>
           }
