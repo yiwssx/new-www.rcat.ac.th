@@ -27,6 +27,7 @@ function CountryFlagImage({ flag }: { flag: string }) {
       bypassPageMediaGate
       loadMode="eager"
       fill
+      rootComponent="span"
       fallback={
         <Box component="span" aria-hidden="true">
           {flag}
