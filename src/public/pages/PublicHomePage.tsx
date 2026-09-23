@@ -393,10 +393,11 @@ export default function PublicHomePage() {
             </Grid>
 
             <Grid size={{ xs: 12, lg: 4 }} sx={{ order: { xs: 2, lg: 2 } }}>
-              <Stack spacing={2.5}>
+              <Stack spacing={2}>
                 <LatestAnnouncementsCard items={latestAnnouncements} />
-                <DeferredHomeSection minHeight={220}>
+                <DeferredHomeSection minHeight={180}>
                   <LazyEventListCard
+                    compact
                     items={eventItems}
                     mediaAssets={mediaAssets}
                     limit={3}
@@ -405,8 +406,9 @@ export default function PublicHomePage() {
                     initialNowMs={snapshotReferenceTimeMs}
                   />
                 </DeferredHomeSection>
-                <DeferredHomeSection minHeight={220}>
+                <DeferredHomeSection minHeight={180}>
                   <LazyDocumentListCard
+                    compact
                     items={documentItems}
                     limit={3}
                     viewAllHref="/documents"
