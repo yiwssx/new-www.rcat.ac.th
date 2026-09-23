@@ -66,15 +66,44 @@ async function assertManagedMediaIsUnused(asset: string | MediaAsset) {
   }
 }
 
-export async function deleteMediaAsset(asset: string | MediaAsset) {
-  const id = getMediaAssetId(asset);
+async function deleteManagedMediaAsset(asset: MediaAsset) {
   await assertManagedMediaIsUnused(asset);
+
+  // Let the Worker perform its authoritative usage check before the destructive
+  // Drive operation. If a concurrent reference appeared after the preflight,
+  // the D1 delete returns 409 here and the Drive file remains untouched.
+  await deleteMediaMetadataFromCloudflare(asset.id);
+
+  try {
+    const result = await deleteMediaAssetFromBridge(asset);
+    removeBridgeMediaAsset(asset.id);
+    return result;
+  } catch (error) {
+    // D1 metadata was removed first to protect referenced content. Restore the
+    // metadata best-effort if the Drive operation fails so the asset remains
+    // manageable and retryable instead of becoming an invisible orphan.
+    try {
+      await saveMediaMetadataToCloudflare(asset);
+    } catch {
+      // Preserve the original Drive error; reconciliation can restore metadata later.
+    }
+    throw error;
+  }
+}
+
+export async function deleteMediaAsset(asset: string | MediaAsset) {
+  if (typeof asset !== "string") {
+    return deleteManagedMediaAsset(asset);
+  }
+
+  const id = getMediaAssetId(asset);
   const result = await deleteMediaAssetFromBridge(asset);
 
   try {
     await deleteMediaMetadataFromCloudflare(id);
   } catch {
-    // The Drive delete succeeded; remove the local bridge entry even if D1 metadata cleanup must be retried.
+    // Legacy id-only cleanup cannot restore metadata because it does not carry
+    // the complete asset. The Worker still protects the D1 deletion itself.
   }
 
   removeBridgeMediaAsset(id);
