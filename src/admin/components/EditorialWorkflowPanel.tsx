@@ -201,13 +201,19 @@ export default function EditorialWorkflowPanel() {
 
           {selected && !["draft", "review"].includes(selected.status) && (
             <Alert severity="info">
-              เนื้อหาสถานะ {statusLabel(selected.status)} ต้องยกเลิกการเผยแพร่ก่อนจึงจะย้อนกลับเข้าสู่ Editorial Workflow ได้
+              เนื้อหาสถานะ {statusLabel(selected.status)} ต้องยกเลิกการเผยแพร่ก่อนจึงจะย้อนกลับเข้าสู่ Editorial
+              Workflow ได้
             </Alert>
           )}
         </Stack>
       </CardContent>
 
-      <Dialog open={trashOpen} onClose={restoreMutation.isPending ? undefined : () => setTrashOpen(false)} fullWidth maxWidth="md">
+      <Dialog
+        open={trashOpen}
+        onClose={restoreMutation.isPending ? undefined : () => setTrashOpen(false)}
+        fullWidth
+        maxWidth="md"
+      >
         <DialogTitle>ถังขยะเนื้อหา</DialogTitle>
         <DialogContent dividers>
           {trashQuery.isLoading && <Typography>กำลังโหลดรายการที่ลบ…</Typography>}
