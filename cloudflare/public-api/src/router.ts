@@ -3,6 +3,7 @@ import type { Env } from "./env";
 import { invalidatePublicReadCacheAfterAdminMutation } from "./publicReadCacheInvalidation";
 import { jsonError, methodNotAllowed, notFound } from "./responses";
 import { handleAdminContentGovernance } from "./routes/adminContentGovernance";
+import { handleAdminEditorialGovernance } from "./routes/adminEditorialGovernance";
 import { adminWrite } from "./routes/adminWrite";
 import { health } from "./routes/health";
 import { publicContentDetail, publicContentList } from "./routes/publicContent";
@@ -56,6 +57,12 @@ export async function routeRequest(request: Request, env: Env) {
   // historical preview parity tooling.
   if (env.ENVIRONMENT === "production" && request.method === "PUT" && pathname === "/api/admin/menu") {
     return jsonError("bulk menu replacement is retired; use revision-aware menu item and order endpoints", 405);
+  }
+
+  const editorialGovernanceResponse = await handleAdminEditorialGovernance(request, env);
+
+  if (editorialGovernanceResponse) {
+    return finalizeAdminResponse(request, env, editorialGovernanceResponse);
   }
 
   const governanceResponse = await handleAdminContentGovernance(request, env);
