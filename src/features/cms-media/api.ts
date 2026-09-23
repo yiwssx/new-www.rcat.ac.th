@@ -1,4 +1,5 @@
 import { deleteMediaMetadataFromCloudflare, saveMediaMetadataToCloudflare } from "../admin-write/cloudflareApi";
+import { getMediaUsage } from "../cms-governance/client";
 import { cacheBridgeMediaAsset, removeBridgeMediaAsset } from "./bridgeCache";
 import { importFacebookThumbnailFromBridge } from "./facebookThumbnailClient";
 import {
@@ -55,6 +56,12 @@ function getMediaAssetId(asset: string | Pick<MediaAsset, "id">) {
 
 export async function deleteMediaAsset(asset: string | MediaAsset) {
   const id = getMediaAssetId(asset);
+  const usage = await getMediaUsage(id);
+
+  if (usage.count > 0) {
+    throw new Error(`ไม่สามารถลบสื่อนี้ได้ เนื่องจากยังถูกใช้งานอยู่ ${usage.count} จุด`);
+  }
+
   const result = await deleteMediaAssetFromBridge(asset);
 
   try {
