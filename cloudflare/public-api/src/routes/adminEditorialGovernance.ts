@@ -95,7 +95,9 @@ async function authenticateEditorialRequest(request: Request, env: Env, route: E
       return noStore(response);
     }
     if (error instanceof SecurityRateLimitUnavailable) {
-      return noStore(jsonError("admin security service is unavailable", 503, { resource: "content-editorial-workflow" }));
+      return noStore(
+        jsonError("admin security service is unavailable", 503, { resource: "content-editorial-workflow" })
+      );
     }
     throw error;
   }
@@ -153,10 +155,7 @@ async function readContentAny(env: Env, contentId: string) {
     .first<EditorialContentRow>();
 }
 
-async function writeAudit(
-  env: Env,
-  input: { entityId: string; action: string; actor: string; metadata?: JsonRecord }
-) {
+async function writeAudit(env: Env, input: { entityId: string; action: string; actor: string; metadata?: JsonRecord }) {
   await requireD1Database(env)
     .prepare(
       `INSERT INTO admin_audit_log (id, entity_type, entity_id, action, actor, created_at, metadata_json)
@@ -189,18 +188,14 @@ export function validateEditorialTransition(currentStatus: string, targetStatus:
 
 function reviewReadinessError(row: EditorialContentRow) {
   if (!row.title.trim()) return "title is required before review";
-  if (!row.slug.trim() || row.slug.startsWith(DELETED_CONTENT_SLUG_PREFIX)) return "valid slug is required before review";
+  if (!row.slug.trim() || row.slug.startsWith(DELETED_CONTENT_SLUG_PREFIX))
+    return "valid slug is required before review";
   if (!row.summary.trim()) return "summary is required before review";
   if (!row.body_snapshot.trim()) return "content body is required before review";
   return "";
 }
 
-async function handleWorkflow(
-  request: Request,
-  env: Env,
-  identity: AdminIdentity,
-  contentId: string
-) {
+async function handleWorkflow(request: Request, env: Env, identity: AdminIdentity, contentId: string) {
   const current = await readContentAny(env, contentId);
   if (!current || current.deleted_at) return noStore(jsonError("not found", 404, { resource: "content" }));
 
@@ -275,12 +270,7 @@ export function readOriginalSlugFromDeleteSnapshot(snapshotJson: string) {
   return slug && !slug.startsWith(DELETED_CONTENT_SLUG_PREFIX) ? slug : "";
 }
 
-async function handleTrashRestore(
-  request: Request,
-  env: Env,
-  identity: AdminIdentity,
-  contentId: string
-) {
+async function handleTrashRestore(request: Request, env: Env, identity: AdminIdentity, contentId: string) {
   const current = await readContentAny(env, contentId);
   if (!current || !current.deleted_at) return noStore(jsonError("not found", 404, { resource: "content-trash" }));
 
