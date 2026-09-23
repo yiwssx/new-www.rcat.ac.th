@@ -33,7 +33,10 @@ async function deleteCachePaths(origin: string, paths: Iterable<string>) {
   await Promise.all(
     unique.map((path) =>
       cache.delete(cacheKey(origin, path)).catch((error) => {
-        console.warn("public read cache invalidation failed", { path, errorName: error instanceof Error ? error.name : "Error" });
+        console.warn("public read cache invalidation failed", {
+          path,
+          errorName: error instanceof Error ? error.name : "Error"
+        });
         return false;
       })
     )
@@ -125,11 +128,7 @@ async function invalidateContentMutation(request: Request, env: Env, response: R
   await deleteCachePaths(url.origin, paths);
 }
 
-export async function invalidatePublicReadCacheAfterAdminMutation(
-  request: Request,
-  env: Env,
-  response: Response
-) {
+export async function invalidatePublicReadCacheAfterAdminMutation(request: Request, env: Env, response: Response) {
   if (!response.ok || request.method === "GET" || request.method === "OPTIONS") return;
   const url = new URL(request.url);
   if (!url.pathname.startsWith("/api/admin/")) return;
