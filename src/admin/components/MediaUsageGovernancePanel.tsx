@@ -165,7 +165,7 @@ export default function MediaUsageGovernancePanel() {
                     value={altText}
                     onChange={(event) => setAltText(event.target.value)}
                     helperText="อธิบายสาระสำคัญของภาพแบบกระชับ หากภาพเป็นเพียงตกแต่งสามารถเว้นว่างได้"
-                    inputProps={{ maxLength: 500 }}
+                    slotProps={{ htmlInput: { maxLength: 500 } }}
                     fullWidth
                     multiline
                     minRows={2}
