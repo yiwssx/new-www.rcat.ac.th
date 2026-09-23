@@ -330,13 +330,7 @@ async function writeAudit(
     .run();
 }
 
-async function handleRestore(
-  request: Request,
-  env: Env,
-  identity: AdminIdentity,
-  contentId: string,
-  revision: number
-) {
+async function handleRestore(request: Request, env: Env, identity: AdminIdentity, contentId: string, revision: number) {
   const current = await readContent(env, contentId);
   if (!current) return noStore(jsonError("not found", 404, { resource: "content" }));
   const requestedRevision = expectedRevision(request);
@@ -579,7 +573,10 @@ async function handleMediaAccessibility(request: Request, env: Env, identity: Ad
 async function handleAudit(request: Request, env: Env) {
   const url = new URL(request.url);
   const page = Math.max(1, Number.parseInt(url.searchParams.get("page") || "1", 10) || 1);
-  const pageSize = Math.min(MAX_AUDIT_PAGE_SIZE, Math.max(1, Number.parseInt(url.searchParams.get("pageSize") || "25", 10) || 25));
+  const pageSize = Math.min(
+    MAX_AUDIT_PAGE_SIZE,
+    Math.max(1, Number.parseInt(url.searchParams.get("pageSize") || "25", 10) || 25)
+  );
   const entityType = (url.searchParams.get("entityType") || "").trim().slice(0, 80);
   const action = (url.searchParams.get("action") || "").trim().slice(0, 80);
   const actor = (url.searchParams.get("actor") || "").trim().slice(0, 160);
