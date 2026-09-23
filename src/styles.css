@@ -176,6 +176,11 @@ a {
     line-height: 1.4;
   }
 
+  #news :is(#announcements, #calendar, #documents) .MuiButton-root {
+    min-height: 40px;
+    padding-inline: 14px;
+  }
+
   #news #calendar .py-3 {
     padding-block: 8px;
   }
