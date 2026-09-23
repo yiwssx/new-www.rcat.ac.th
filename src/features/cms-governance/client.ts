@@ -78,15 +78,11 @@ function jsonMutation<T>(path: string, method: "POST" | "PUT" | "PATCH", body: u
 }
 
 export function getContentRevisions(contentId: string) {
-  return requestCloudflareAdmin<ContentRevisionList>(
-    `/api/admin/content/${encodeURIComponent(contentId)}/revisions`
-  );
+  return requestCloudflareAdmin<ContentRevisionList>(`/api/admin/content/${encodeURIComponent(contentId)}/revisions`);
 }
 
 export function getContentPreview(contentId: string) {
-  return requestCloudflareAdmin<ContentPreviewSnapshot>(
-    `/api/admin/content/${encodeURIComponent(contentId)}/preview`
-  );
+  return requestCloudflareAdmin<ContentPreviewSnapshot>(`/api/admin/content/${encodeURIComponent(contentId)}/preview`);
 }
 
 export async function restoreContentRevision(contentId: string, revision: number, expectedRevision?: number) {
@@ -109,13 +105,15 @@ export async function setContentUnpublishAt(contentId: string, unpublishAt: stri
   return response.item;
 }
 
-export function getAuditLog(input: {
-  page?: number;
-  pageSize?: number;
-  entityType?: string;
-  action?: string;
-  actor?: string;
-} = {}) {
+export function getAuditLog(
+  input: {
+    page?: number;
+    pageSize?: number;
+    entityType?: string;
+    action?: string;
+    actor?: string;
+  } = {}
+) {
   const search = new URLSearchParams();
   if (input.page) search.set("page", String(input.page));
   if (input.pageSize) search.set("pageSize", String(input.pageSize));
