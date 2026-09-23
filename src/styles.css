@@ -160,6 +160,29 @@ a {
     background: var(--rcat-color-surface);
     box-shadow: var(--rcat-elevation-low);
   }
+
+  #news :is(#announcements, #calendar, #documents) > .MuiCardContent-root {
+    padding: 16px;
+  }
+
+  #news :is(#calendar, #documents) header {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  #news :is(#calendar, #documents) header .MuiTypography-h2 {
+    font-size: clamp(1.08rem, 1.4vw, 1.35rem);
+    font-weight: 800;
+    line-height: 1.4;
+  }
+
+  #news #calendar .py-3 {
+    padding-block: 8px;
+  }
+
+  #news #documents .p-3 {
+    padding: 8px;
+  }
 }
 
 .form-shell {
