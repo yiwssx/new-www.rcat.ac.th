@@ -53,7 +53,9 @@ function hasMeaningfulBody(body: string | undefined) {
 }
 
 function referencedMediaIds(item: ContentItem) {
-  return [...new Set([item.featuredMediaId, ...(item.mediaIds ?? [])].map((id) => String(id || "").trim()).filter(Boolean))];
+  return [
+    ...new Set([item.featuredMediaId, ...(item.mediaIds ?? [])].map((id) => String(id || "").trim()).filter(Boolean))
+  ];
 }
 
 function isStaleEditorialItem(item: ContentItem, now: Date) {
@@ -75,7 +77,11 @@ function emptyIssueCounts(): Record<ContentHealthIssueCode, number> {
   };
 }
 
-export function evaluateContentHealth(content: ContentItem[], media: MediaAsset[], now = new Date()): ContentHealthReport {
+export function evaluateContentHealth(
+  content: ContentItem[],
+  media: MediaAsset[],
+  now = new Date()
+): ContentHealthReport {
   const issues: ContentHealthIssue[] = [];
   const issueCounts = emptyIssueCounts();
   const mediaById = new Map(media.map((asset) => [asset.id, asset]));

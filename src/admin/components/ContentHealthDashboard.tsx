@@ -8,10 +8,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminCmsSnapshotFromCloudflare } from "../../features/admin-write/cloudflareApi";
-import {
-  evaluateContentHealth,
-  type ContentHealthIssueCode
-} from "../../features/cms-governance/contentHealth";
+import { evaluateContentHealth, type ContentHealthIssueCode } from "../../features/cms-governance/contentHealth";
 import { CONTENT_GOVERNANCE_OPTIONS_QUERY } from "./EditorialWorkflowPanel";
 
 const issueLabels: Record<ContentHealthIssueCode, string> = {
