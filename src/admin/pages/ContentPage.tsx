@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { createColumnHelper, flexRender, stockFeatures, useTable, type StockFeatures } from "@tanstack/react-table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
@@ -27,7 +27,6 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import ContentEditorDialog from "../components/ContentEditorDialog";
 import ContentWorkflowGuide from "../components/ContentWorkflowGuide";
 import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
@@ -73,6 +72,8 @@ import { FACEBOOK_EMBED_LABEL, isFacebookEmbedContent } from "../../utils/facebo
 import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 import ActionBar from "../../design-system/components/ActionBar";
+
+const ContentEditorDialog = lazy(() => import("../components/ContentEditorDialog"));
 
 type FilterStatus = ContentStatus | "all";
 type ContentFilterKey = "status";
@@ -716,27 +717,31 @@ export default function ContentPage() {
           )}
         </CardContent>
       </Card>
-      <ContentEditorDialog
-        open={editorOpen}
-        item={selectedItem}
-        mode={editorMode}
-        ownerUserId={ownerUserId}
-        recovered={restoredRecovery}
-        recoveredTagInputValue={restoredRecovery ? (draftRecovery?.tagInputValue ?? "") : ""}
-        saving={saveMutation.isPending}
-        errorMessage={saveError}
-        onClose={() => {
-          clearContentDraftRecovery();
-          setDraftRecovery(null);
-          setRestoredRecovery(false);
-          setSaveError("");
-          setEditorOpen(false);
-        }}
-        onSave={(item) => {
-          void handleSave(item);
-        }}
-        onUploadMedia={handleUploadMedia}
-      />
+      {editorOpen && (
+        <Suspense fallback={<LinearProgress sx={{ mt: 2 }} />}>
+          <ContentEditorDialog
+            open
+            item={selectedItem}
+            mode={editorMode}
+            ownerUserId={ownerUserId}
+            recovered={restoredRecovery}
+            recoveredTagInputValue={restoredRecovery ? (draftRecovery?.tagInputValue ?? "") : ""}
+            saving={saveMutation.isPending}
+            errorMessage={saveError}
+            onClose={() => {
+              clearContentDraftRecovery();
+              setDraftRecovery(null);
+              setRestoredRecovery(false);
+              setSaveError("");
+              setEditorOpen(false);
+            }}
+            onSave={(item) => {
+              void handleSave(item);
+            }}
+            onUploadMedia={handleUploadMedia}
+          />
+        </Suspense>
+      )}
     </Box>
   );
 }
