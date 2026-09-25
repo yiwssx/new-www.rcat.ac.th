@@ -118,12 +118,8 @@ describe("dependency automation contract", () => {
       "const workersTypesInstalledVersion = parseVersion(workersTypesPackage?.version);"
     );
     expect(dependencyCheckScript).toContain("satisfiesRange(wranglerInstalledVersion, wranglerSpecifier)");
-    expect(dependencyCheckScript).toContain(
-      "satisfiesRange(workersTypesInstalledVersion, workersTypesSpecifier)"
-    );
-    expect(dependencyCheckScript).toContain(
-      "satisfiesRange(workersTypesInstalledVersion, workersTypesPeerRange)"
-    );
+    expect(dependencyCheckScript).toContain("satisfiesRange(workersTypesInstalledVersion, workersTypesSpecifier)");
+    expect(dependencyCheckScript).toContain("satisfiesRange(workersTypesInstalledVersion, workersTypesPeerRange)");
     expect(dependencyCheckScript).not.toContain("wrangler?.version === wranglerVersion.raw");
   });
 
