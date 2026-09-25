@@ -333,13 +333,6 @@ export function classifyDependencyStatus({
       registryLatest: latest.raw
     });
   }
-  if (manifest.version.raw !== installed.raw) {
-    return baseResult({
-      status: DEPENDENCY_STATUS.invalidManifest,
-      reason: `manifest ${manifest.display} selects ${manifest.version.raw}, which does not match installed ${installed.raw}`,
-      registryLatest: latest.raw
-    });
-  }
 
   if (compatibilityValidation) {
     if (compatibilityValidation.valid) {

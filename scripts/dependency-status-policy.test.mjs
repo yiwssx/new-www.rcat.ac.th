@@ -115,14 +115,26 @@ describe("direct dependency latest policy", () => {
     expect(result.reason).toContain("prerelease");
   });
 
-  it("rejects a manifest anchor lower than the installed lockfile version", () => {
+  it("accepts a newer installed lockfile version allowed by the manifest range", () => {
     const result = classify({
       manifestVersion: "^1.0.1",
       installedVersion: "1.0.2"
     });
 
+    expect(result.status).toBe(DEPENDENCY_STATUS.registryLatest);
+    expect(result.reason).toContain("matches the stable registry latest");
+  });
+
+  it("rejects an installed lockfile version outside the manifest range", () => {
+    const result = classify({
+      manifestVersion: "~1.0.1",
+      installedVersion: "1.1.0",
+      registryLatest: "1.1.0",
+      eligibleLatest: "1.1.0"
+    });
+
     expect(result.status).toBe(DEPENDENCY_STATUS.invalidManifest);
-    expect(result.reason).toContain("does not match installed 1.0.2");
+    expect(result.reason).toContain("does not allow installed 1.1.0");
   });
 
   it("rejects a selected version newer than registry latest", () => {
