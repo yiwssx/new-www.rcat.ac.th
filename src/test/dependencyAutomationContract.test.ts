@@ -108,6 +108,25 @@ describe("dependency automation contract", () => {
     );
   });
 
+  it("validates Cloudflare lockfile updates against declared semver ranges", () => {
+    expect(dependencyCheckScript).toContain('const wranglerSpecifier = directSpecifier("wrangler");');
+    expect(dependencyCheckScript).toContain("const wranglerInstalledVersion = parseVersion(wrangler?.version);");
+    expect(dependencyCheckScript).toContain(
+      'const workersTypesSpecifier = directSpecifier("@cloudflare/workers-types");'
+    );
+    expect(dependencyCheckScript).toContain(
+      "const workersTypesInstalledVersion = parseVersion(workersTypesPackage?.version);"
+    );
+    expect(dependencyCheckScript).toContain("satisfiesRange(wranglerInstalledVersion, wranglerSpecifier)");
+    expect(dependencyCheckScript).toContain(
+      "satisfiesRange(workersTypesInstalledVersion, workersTypesSpecifier)"
+    );
+    expect(dependencyCheckScript).toContain(
+      "satisfiesRange(workersTypesInstalledVersion, workersTypesPeerRange)"
+    );
+    expect(dependencyCheckScript).not.toContain("wrangler?.version === wranglerVersion.raw");
+  });
+
   it("gates full CI behind one dependency artifact preflight", () => {
     expect(ciWorkflow).toContain("dependency-preflight:");
     expect(ciWorkflow).toContain("name: Dependency Preflight");
