@@ -151,13 +151,22 @@ describe("dependency automation contract", () => {
     expect(dependencyStatusSyncWorkflow).toContain("github.event_name == 'push'");
   });
 
-  it("bridges bot-created branch heads to the protected quality status", () => {
+  it("bridges current bot-created branch heads to the protected quality status", () => {
     expect(dependencyStatusSyncWorkflow).toContain("statuses: write");
     expect(formatGuardWorkflow).toContain("statuses: write");
+    expect(dependencyStatusSyncWorkflow).toContain("Resolve required quality validation target");
+    expect(dependencyStatusSyncWorkflow).toContain("id: validation_target");
+    expect(dependencyStatusSyncWorkflow).toContain(
+      "if: github.event_name == 'pull_request' || steps.drift.outputs.changed == 'true'"
+    );
+    expect(dependencyStatusSyncWorkflow).toContain('target_sha="$(git rev-parse HEAD)"');
     expect(dependencyStatusSyncWorkflow).toContain("Validate updated head and publish required quality status");
     expect(formatGuardWorkflow).toContain("Validate corrected head and publish required quality status");
     expect(dependencyStatusSyncWorkflow).toContain("bash scripts/validate-required-quality.sh");
     expect(formatGuardWorkflow).toContain("bash scripts/validate-required-quality.sh");
+    expect(qualityBridgeScript).toContain('ci_run_id="$(latest_dispatch_run_id)"');
+    expect(qualityBridgeScript).toContain('if [ -n "$ci_run_id" ]; then');
+    expect(qualityBridgeScript).toContain("Reusing existing canonical CI run");
     expect(qualityBridgeScript).toContain('gh workflow run ci.yml --ref "$TARGET_BRANCH"');
     expect(qualityBridgeScript).toContain("statuses/$TARGET_SHA");
     expect(qualityBridgeScript).toContain('-f context="quality"');

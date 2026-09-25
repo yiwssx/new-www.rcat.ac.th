@@ -31,23 +31,25 @@ latest_dispatch_run_id() {
     | head -n 1
 }
 
-previous_run_id="$(latest_dispatch_run_id)"
+ci_run_id="$(latest_dispatch_run_id)"
 publish_quality_status \
   "pending" \
   "Canonical CI is queued for the updated branch head" \
   "$workflow_url"
 
-gh workflow run ci.yml --ref "$TARGET_BRANCH"
+if [ -n "$ci_run_id" ]; then
+  echo "Reusing existing canonical CI run $ci_run_id for $TARGET_SHA."
+else
+  gh workflow run ci.yml --ref "$TARGET_BRANCH"
 
-ci_run_id=""
-for attempt in $(seq 1 60); do
-  candidate_run_id="$(latest_dispatch_run_id)"
-  if [ -n "$candidate_run_id" ] && [ "$candidate_run_id" != "$previous_run_id" ]; then
-    ci_run_id="$candidate_run_id"
-    break
-  fi
-  sleep 2
-done
+  for attempt in $(seq 1 60); do
+    ci_run_id="$(latest_dispatch_run_id)"
+    if [ -n "$ci_run_id" ]; then
+      break
+    fi
+    sleep 2
+  done
+fi
 
 if [ -z "$ci_run_id" ]; then
   publish_quality_status \
