@@ -163,6 +163,8 @@ jobs:
             echo "This path is a safety net; normal Renovate PRs should be synchronized before merge."
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Dependency policy contract marker: the shared validator owns
+      # `gh workflow run ci.yml` and mirrors its result as required `quality`.
       - name: Validate updated head and publish required quality status
         if: steps.drift.outputs.changed == 'true'
         env:
