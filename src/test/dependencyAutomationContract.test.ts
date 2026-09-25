@@ -118,7 +118,7 @@ describe("dependency automation contract", () => {
   it("bridges dispatched dependency validation to the protected quality status", () => {
     expect(dependencyStatusSyncWorkflow).toContain("statuses: write");
     expect(dependencyStatusSyncWorkflow).toContain("Validate updated head and publish required quality status");
-    expect(dependencyStatusSyncWorkflow).toContain('statuses/$TARGET_SHA');
+    expect(dependencyStatusSyncWorkflow).toContain("statuses/$TARGET_SHA");
     expect(dependencyStatusSyncWorkflow).toContain('-f context="quality"');
     expect(dependencyStatusSyncWorkflow).toContain('quality_state="success"');
     expect(dependencyStatusSyncWorkflow).toContain('test "$quality_state" = "success"');
