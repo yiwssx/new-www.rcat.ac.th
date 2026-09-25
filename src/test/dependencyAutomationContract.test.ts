@@ -111,8 +111,17 @@ describe("dependency automation contract", () => {
     expect(dependencyStatusSyncWorkflow).toContain("github.event.pull_request.user.login == 'renovate[bot]'");
     expect(dependencyStatusSyncWorkflow).toContain("docs(deps): refresh dependency status");
     expect(dependencyStatusSyncWorkflow).toContain('git push origin "HEAD:refs/heads/$HEAD_BRANCH"');
-    expect(dependencyStatusSyncWorkflow).toContain('gh workflow run ci.yml --ref "$HEAD_BRANCH"');
+    expect(dependencyStatusSyncWorkflow).toContain('gh workflow run ci.yml --ref "$TARGET_BRANCH"');
     expect(dependencyStatusSyncWorkflow).toContain("github.event_name == 'push'");
+  });
+
+  it("bridges dispatched dependency validation to the protected quality status", () => {
+    expect(dependencyStatusSyncWorkflow).toContain("statuses: write");
+    expect(dependencyStatusSyncWorkflow).toContain("Validate updated head and publish required quality status");
+    expect(dependencyStatusSyncWorkflow).toContain('statuses/$TARGET_SHA');
+    expect(dependencyStatusSyncWorkflow).toContain('-f context="quality"');
+    expect(dependencyStatusSyncWorkflow).toContain('quality_state="success"');
+    expect(dependencyStatusSyncWorkflow).toContain('test "$quality_state" = "success"');
   });
 
   it("reports ordinary freshness backlog without failing the scheduled monitor", () => {
