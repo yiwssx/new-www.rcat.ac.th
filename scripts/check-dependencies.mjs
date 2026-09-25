@@ -345,20 +345,26 @@ record(
 );
 
 const wrangler = readInstalledPackage("wrangler");
-const wranglerVersion = directVersion("wrangler");
-const workersTypes = directVersion("@cloudflare/workers-types");
+const wranglerSpecifier = directSpecifier("wrangler");
+const wranglerInstalledVersion = parseVersion(wrangler?.version);
+const workersTypesPackage = readInstalledPackage("@cloudflare/workers-types");
+const workersTypesSpecifier = directSpecifier("@cloudflare/workers-types");
+const workersTypesInstalledVersion = parseVersion(workersTypesPackage?.version);
 const workersTypesPeerRange = wrangler?.peerDependencies?.["@cloudflare/workers-types"];
 record(
   "Wrangler and Cloudflare Worker types compatibility",
   Boolean(
-    wranglerVersion &&
-    workersTypes &&
-    wrangler?.version === wranglerVersion.raw &&
-    satisfiesRange(workersTypes, workersTypesPeerRange)
+    wranglerSpecifier &&
+    wranglerInstalledVersion &&
+    workersTypesSpecifier &&
+    workersTypesInstalledVersion &&
+    satisfiesRange(wranglerInstalledVersion, wranglerSpecifier) &&
+    satisfiesRange(workersTypesInstalledVersion, workersTypesSpecifier) &&
+    satisfiesRange(workersTypesInstalledVersion, workersTypesPeerRange)
   ),
-  `wrangler ${directSpecifier("wrangler")}/${wrangler?.version || "missing"}; workers types ${directSpecifier(
-    "@cloudflare/workers-types"
-  )}; peer ${workersTypesPeerRange || "missing"}`
+  `wrangler ${wranglerSpecifier || "missing"}/${wrangler?.version || "missing"}; workers types ${
+    workersTypesSpecifier || "missing"
+  }/${workersTypesPackage?.version || "missing"}; peer ${workersTypesPeerRange || "missing"}`
 );
 
 record(
