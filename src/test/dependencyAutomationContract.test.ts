@@ -16,6 +16,8 @@ const dependencyStatusSyncWorkflow = readFileSync(
   join(repositoryRoot, ".github", "workflows", "dependency-status-sync.yml"),
   "utf8"
 );
+const formatGuardWorkflow = readFileSync(join(repositoryRoot, ".github", "workflows", "format-guard.yml"), "utf8");
+const qualityBridgeScript = readFileSync(join(repositoryRoot, "scripts", "validate-required-quality.sh"), "utf8");
 const dependencyStatusScript = readFileSync(join(repositoryRoot, "scripts", "generate-dependency-status.mjs"), "utf8");
 const dependencyCheckScript = readFileSync(join(repositoryRoot, "scripts", "check-dependencies.mjs"), "utf8");
 const packageJson = JSON.parse(readFileSync(join(repositoryRoot, "package.json"), "utf8")) as {
@@ -111,17 +113,21 @@ describe("dependency automation contract", () => {
     expect(dependencyStatusSyncWorkflow).toContain("github.event.pull_request.user.login == 'renovate[bot]'");
     expect(dependencyStatusSyncWorkflow).toContain("docs(deps): refresh dependency status");
     expect(dependencyStatusSyncWorkflow).toContain('git push origin "HEAD:refs/heads/$HEAD_BRANCH"');
-    expect(dependencyStatusSyncWorkflow).toContain('gh workflow run ci.yml --ref "$TARGET_BRANCH"');
     expect(dependencyStatusSyncWorkflow).toContain("github.event_name == 'push'");
   });
 
-  it("bridges dispatched dependency validation to the protected quality status", () => {
+  it("bridges bot-created branch heads to the protected quality status", () => {
     expect(dependencyStatusSyncWorkflow).toContain("statuses: write");
+    expect(formatGuardWorkflow).toContain("statuses: write");
     expect(dependencyStatusSyncWorkflow).toContain("Validate updated head and publish required quality status");
-    expect(dependencyStatusSyncWorkflow).toContain("statuses/$TARGET_SHA");
-    expect(dependencyStatusSyncWorkflow).toContain('-f context="quality"');
-    expect(dependencyStatusSyncWorkflow).toContain('quality_state="success"');
-    expect(dependencyStatusSyncWorkflow).toContain('test "$quality_state" = "success"');
+    expect(formatGuardWorkflow).toContain("Validate corrected head and publish required quality status");
+    expect(dependencyStatusSyncWorkflow).toContain("bash scripts/validate-required-quality.sh");
+    expect(formatGuardWorkflow).toContain("bash scripts/validate-required-quality.sh");
+    expect(qualityBridgeScript).toContain('gh workflow run ci.yml --ref "$TARGET_BRANCH"');
+    expect(qualityBridgeScript).toContain("statuses/$TARGET_SHA");
+    expect(qualityBridgeScript).toContain('-f context="quality"');
+    expect(qualityBridgeScript).toContain('quality_state="success"');
+    expect(qualityBridgeScript).toContain('test "$quality_state" = "success"');
   });
 
   it("reports ordinary freshness backlog without failing the scheduled monitor", () => {
