@@ -261,7 +261,7 @@ describe("ContentPage operation feedback", () => {
 
     await screen.findByText(contentItem.title);
     fireEvent.click(screen.getByRole("button", { name: "เพิ่มเนื้อหา" }));
-    fireEvent.click(screen.getByRole("button", { name: "mock save content" }));
+    fireEvent.click(await screen.findByRole("button", { name: "mock save content" }));
 
     await waitFor(() => expect(contentMock.saveContentItem).toHaveBeenCalledTimes(1));
     expect(findSwalCall((options) => options.title === "กำลังบันทึกเนื้อหา")).toEqual(
@@ -297,7 +297,7 @@ describe("ContentPage operation feedback", () => {
 
     await screen.findByText(contentItem.title);
     fireEvent.click(screen.getByRole("button", { name: "เพิ่มเนื้อหา" }));
-    fireEvent.click(screen.getByRole("button", { name: "mock save content" }));
+    fireEvent.click(await screen.findByRole("button", { name: "mock save content" }));
 
     await waitFor(() =>
       expect(swalInstance.update).toHaveBeenCalledWith(
@@ -338,7 +338,7 @@ describe("ContentPage operation feedback", () => {
 
     await screen.findByText(contentItem.title);
     fireEvent.click(screen.getByRole("button", { name: "เพิ่มเนื้อหา" }));
-    fireEvent.click(screen.getByRole("button", { name: "mock save content" }));
+    fireEvent.click(await screen.findByRole("button", { name: "mock save content" }));
 
     await waitFor(() => {
       expect(findSwalCall((options) => options.title === "บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail")).toEqual(
@@ -466,12 +466,13 @@ describe("ContentPage operation feedback", () => {
     expect(screen.getByRole("button", { name: "เพิ่มเนื้อหา" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "แก้ไข" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "กู้คืนฉบับร่าง" }));
+    expect(await screen.findByRole("dialog", { name: "content-editor" })).toBeInTheDocument();
     expect(screen.getByText("mock item:ฉบับร่างหลังเข้าสู่ระบบใหม่")).toBeInTheDocument();
     expect(screen.getByText("mock mode:edit")).toBeInTheDocument();
     expect(screen.getByText("mock recovered:true")).toBeInTheDocument();
     expect(readContentDraftRecovery("cloudflare-editor")).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "mock save content" }));
+    fireEvent.click(await screen.findByRole("button", { name: "mock save content" }));
     await waitFor(() => expect(contentMock.saveContentItem).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(readContentDraftRecovery("cloudflare-editor")).toBeNull());
   });
