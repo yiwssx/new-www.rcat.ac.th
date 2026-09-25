@@ -39,14 +39,17 @@ describe("dependency automation contract", () => {
     expect(renovate.gitIgnoredAuthors).toEqual(["41898282+github-actions[bot]@users.noreply.github.com"]);
   });
 
-  it("preserves release-age, major-review, selective grouping, and no stale temporary holds", () => {
+  it("aligns Renovate and pnpm release-age enforcement without bump artifacts", () => {
+    expect(renovate.extends).toEqual(expect.arrayContaining(["security:minimumReleaseAgeNpm"]));
+    expect(renovate.rangeStrategy).toBe("update-lockfile");
+    expect(renovate.minimumReleaseAgeBuffer).toBe("6 hours");
+    expect(pnpmWorkspace).toContain("minimumReleaseAge: 4320");
+  });
+
+  it("preserves major-review, selective grouping, and no stale temporary holds", () => {
     const packageRules = renovate.packageRules as Array<Record<string, unknown>>;
     expect(packageRules).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          minimumReleaseAge: "3 days",
-          internalChecksFilter: "strict"
-        }),
         expect.objectContaining({
           matchUpdateTypes: ["major"],
           automerge: false
@@ -103,6 +106,23 @@ describe("dependency automation contract", () => {
     expect(dependencyCheckScript).toContain(
       "installed selected major does not match the configured compatibility anchor major"
     );
+  });
+
+  it("gates full CI behind one dependency artifact preflight", () => {
+    expect(ciWorkflow).toContain("dependency-preflight:");
+    expect(ciWorkflow).toContain("name: Dependency Preflight");
+    expect(ciWorkflow).toContain("Validate dependency artifact before full CI");
+    expect(ciWorkflow.match(/needs: dependency-preflight/gmu)?.length).toBe(8);
+    expect(ciWorkflow).toContain("DEPENDENCY_PREFLIGHT: ${{ needs.dependency-preflight.result }}");
+    expect(ciWorkflow).toContain('test "$DEPENDENCY_PREFLIGHT" = "success"');
+  });
+
+  it("requires a complete Renovate artifact before snapshot synchronization", () => {
+    expect(dependencyStatusSyncWorkflow).toContain("Reject incomplete Renovate dependency artifact");
+    expect(dependencyStatusSyncWorkflow).toContain('grep -Fxq "package.json"');
+    expect(dependencyStatusSyncWorkflow).toContain('grep -Fxq "pnpm-lock.yaml"');
+    expect(dependencyStatusSyncWorkflow).toContain("Renovate changed package.json without pnpm-lock.yaml");
+    expect(dependencyStatusSyncWorkflow).toContain("Install validated dependency artifact for snapshot generation");
   });
 
   it("requires committed dependency status before Renovate CI can pass", () => {

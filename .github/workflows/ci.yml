@@ -18,8 +18,20 @@ permissions:
   contents: read
 
 jobs:
+  dependency-preflight:
+    name: Dependency Preflight
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate dependency artifact before full CI
+        uses: ./.github/actions/setup-project
+        with:
+          install-args: --frozen-lockfile --strict-peer-dependencies --ignore-scripts
+
   dependencies:
     name: Dependencies
+    needs: dependency-preflight
     runs-on: ubuntu-latest
 
     steps:
@@ -81,6 +93,7 @@ jobs:
 
   static-quality:
     name: Static Quality
+    needs: dependency-preflight
     runs-on: ubuntu-latest
 
     steps:
@@ -91,6 +104,7 @@ jobs:
 
   unit:
     name: Unit Tests
+    needs: dependency-preflight
     runs-on: ubuntu-latest
 
     steps:
@@ -107,6 +121,7 @@ jobs:
 
   integration:
     name: Integration Tests
+    needs: dependency-preflight
     runs-on: ubuntu-latest
 
     steps:
@@ -116,6 +131,7 @@ jobs:
 
   build:
     name: Build
+    needs: dependency-preflight
     runs-on: ubuntu-latest
 
     steps:
@@ -125,6 +141,7 @@ jobs:
 
   governance:
     name: Governance
+    needs: dependency-preflight
     runs-on: ubuntu-latest
 
     steps:
@@ -146,6 +163,7 @@ jobs:
 
   worker:
     name: Worker
+    needs: dependency-preflight
     runs-on: ubuntu-latest
 
     steps:
@@ -157,6 +175,7 @@ jobs:
 
   functional:
     name: Functional E2E
+    needs: dependency-preflight
     runs-on: ubuntu-latest
 
     steps:
@@ -173,6 +192,7 @@ jobs:
   quality:
     if: ${{ always() }}
     needs:
+      - dependency-preflight
       - dependencies
       - static-quality
       - unit
@@ -186,6 +206,7 @@ jobs:
     steps:
       - name: Verify all CI lanes passed
         env:
+          DEPENDENCY_PREFLIGHT: ${{ needs.dependency-preflight.result }}
           DEPENDENCIES: ${{ needs.dependencies.result }}
           STATIC_QUALITY: ${{ needs.static-quality.result }}
           UNIT: ${{ needs.unit.result }}
@@ -196,6 +217,7 @@ jobs:
           FUNCTIONAL: ${{ needs.functional.result }}
         run: |
           printf '%s\n' \
+            "dependency-preflight=$DEPENDENCY_PREFLIGHT" \
             "dependencies=$DEPENDENCIES" \
             "static-quality=$STATIC_QUALITY" \
             "unit=$UNIT" \
@@ -204,6 +226,7 @@ jobs:
             "governance=$GOVERNANCE" \
             "worker=$WORKER" \
             "functional=$FUNCTIONAL"
+          test "$DEPENDENCY_PREFLIGHT" = "success"
           test "$DEPENDENCIES" = "success"
           test "$STATIC_QUALITY" = "success"
           test "$UNIT" = "success"

@@ -57,7 +57,37 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
-      - uses: ./.github/actions/setup-project
+      - name: Reject incomplete Renovate dependency artifact
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          changed_files="$(git diff --name-only "$BASE_SHA" HEAD)"
+          package_changed=false
+          lockfile_changed=false
+
+          if grep -Fxq "package.json" <<<"$changed_files"; then
+            package_changed=true
+          fi
+          if grep -Fxq "pnpm-lock.yaml" <<<"$changed_files"; then
+            lockfile_changed=true
+          fi
+
+          if [ "$package_changed" = "true" ] && [ "$lockfile_changed" != "true" ]; then
+            {
+              echo "## Incomplete Renovate dependency artifact"
+              echo "Renovate changed package.json without updating pnpm-lock.yaml."
+              echo "The branch must be retried by Renovate before snapshot synchronization or full CI."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Renovate changed package.json without pnpm-lock.yaml; refusing to synchronize an invalid dependency state."
+            exit 1
+          fi
+
+      - name: Install validated dependency artifact for snapshot generation
+        uses: ./.github/actions/setup-project
         with:
           install-args: --frozen-lockfile --strict-peer-dependencies --ignore-scripts
 

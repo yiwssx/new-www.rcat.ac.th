@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": ["config:recommended", "security:minimumReleaseAgeNpm"],
   "dependencyDashboard": true,
   "enabledManagers": ["npm", "github-actions"],
   "includePaths": ["package.json", ".github/workflows/**", ".github/actions/**"],
@@ -11,7 +11,7 @@
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
-  "rangeStrategy": "bump",
+  "rangeStrategy": "update-lockfile",
   "pinDigests": false,
   "rebaseWhen": "behind-base-branch",
   "recreateWhen": "auto",
@@ -50,13 +50,6 @@
         "pnpm-workspace.overrides"
       ],
       "enabled": false
-    },
-    {
-      "description": "Wait three days before normal direct npm updates",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
-      "minimumReleaseAge": "3 days",
-      "internalChecksFilter": "strict"
     },
     {
       "description": "Automatically merge stable patch and minor direct npm updates",
