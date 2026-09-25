@@ -3,16 +3,16 @@
 <!-- pnpm-lock-sha256: 75e55755af62e7c90a19cf636ab407b6b7a8b20bce0aa972c2b77dc728755d06 -->
 <!-- pnpm-workspace-sha256: 0ebaade038d1fe93ab7521ccb29fc413d95a72ad0aaf8410b006259cfecc524e -->
 <!-- dependency-policy-sha256: b5330acc47a6ef5c448d841b05635d12d1bd494cb30849150bdc676bf4472f17 -->
-<!-- report-data-sha256: 0763fea597e5e95a36ee68329cb74ba0c8b3d14d564bff0ed389405ad36135a0 -->
+<!-- report-data-sha256: 0b0fe56c56fee97ea1b3af79916bab1fac6da6dbf5642b056e440e345b790b0d -->
 
 # Dependency Status
 
 - Document status: active
 - Canonical: true
-- Generated at: 2026-09-25T08:42:37+07:00
+- Generated at: 2026-09-25T11:26:54+07:00
 - Registry lookup: PASS (57 direct dependencies)
 - Direct dependencies: 57
-- Accepted by live monitoring policy: 51
+- Accepted by live monitoring policy: 50
 
 ## Security audit
 
@@ -70,7 +70,7 @@
 | `eslint-plugin-react-refresh`     | devDependencies | `^0.5.7`        | `0.5.7`        | `0.5.7`         | `2026-09-14T16:12:50.394Z` | `0.5.7`             | Registry latest                   | Installed version matches the stable registry latest.                                                                                                        |
 | `globals`                         | devDependencies | `^17.12.0`      | `17.12.0`      | `17.12.0`       | `2026-09-01T11:00:43.545Z` | `17.12.0`           | Registry latest                   | Installed version matches the stable registry latest.                                                                                                        |
 | `husky`                           | devDependencies | `^9.1.7`        | `9.1.7`        | `9.1.7`         | `2024-11-18T15:28:26.026Z` | `9.1.7`             | Registry latest                   | Installed version matches the stable registry latest.                                                                                                        |
-| `jsdom`                           | devDependencies | `^30.1.0`       | `30.1.0`       | `30.1.1`        | `2026-09-22T02:07:00.270Z` | `30.1.0`            | Pending release-age eligibility   | Registry latest 30.1.1 was published at 2026-09-22T02:07:00.270Z and becomes eligible after 2026-09-25T02:07:00.270Z; current eligible latest is 30.1.0.     |
+| `jsdom`                           | devDependencies | `^30.1.0`       | `30.1.0`       | `30.1.1`        | `2026-09-22T02:07:00.270Z` | `30.1.1`            | Outdated                          | Installed 30.1.0 is lower than release-age-eligible latest 30.1.1.                                                                                           |
 | `lint-staged`                     | devDependencies | `^17.5.1`       | `17.5.1`       | `17.5.1`        | `2026-09-10T11:33:02.008Z` | `17.5.1`            | Registry latest                   | Installed version matches the stable registry latest.                                                                                                        |
 | `postcss`                         | devDependencies | `^8.5.28`       | `8.5.28`       | `8.5.28`        | `2026-09-03T15:13:59.819Z` | `8.5.28`            | Registry latest                   | Installed version matches the stable registry latest.                                                                                                        |
 | `prettier`                        | devDependencies | `^3.9.8`        | `3.9.8`        | `3.9.9`         | `2026-09-23T06:31:34.693Z` | `3.9.8`             | Pending release-age eligibility   | Registry latest 3.9.9 was published at 2026-09-23T06:31:34.693Z and becomes eligible after 2026-09-26T06:31:34.693Z; current eligible latest is 3.9.8.       |
