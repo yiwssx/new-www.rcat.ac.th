@@ -33,6 +33,7 @@ permissions:
   actions: write
   contents: write
   pull-requests: write
+  statuses: write
 
 concurrency:
   group: dependency-status-sync-${{ github.event.pull_request.number || github.ref }}
@@ -88,10 +89,10 @@ jobs:
           git diff --stat -- docs/maintenance/dependency-current-status.md
 
       - name: Commit refreshed snapshot to Renovate PR branch
+        id: renovate_commit
         if: github.event_name == 'pull_request' && steps.drift.outputs.changed == 'true'
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -102,17 +103,17 @@ jobs:
           HUSKY=0 git commit -m "docs(deps): refresh dependency status"
           git push origin "HEAD:refs/heads/$HEAD_BRANCH"
 
-          # GITHUB_TOKEN-created pushes do not recursively trigger normal Actions
-          # workflows, so validate the exact updated head explicitly.
-          gh workflow run ci.yml --ref "$HEAD_BRANCH"
+          echo "branch=$HEAD_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
           {
             echo "## Renovate dependency snapshot committed"
             echo "The generated dependency status was committed to the Renovate branch before merge."
-            echo "CI was explicitly dispatched on the updated head SHA."
+            echo "The updated head will be validated before the required quality status is published."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish post-merge repair branch
+        id: repair_commit
         if: github.event_name != 'pull_request' && steps.drift.outputs.changed == 'true'
         shell: bash
         run: |
@@ -125,6 +126,9 @@ jobs:
           HUSKY=0 git commit -m "docs(deps): refresh dependency status"
           git push --force origin "HEAD:refs/heads/$sync_branch"
 
+          echo "branch=$sync_branch" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Open or update post-merge dependency status PR
         if: github.event_name != 'pull_request' && steps.drift.outputs.changed == 'true'
         env:
@@ -134,21 +138,119 @@ jobs:
           set -euo pipefail
 
           sync_branch="automation/dependency-status-sync"
-          existing_pr="$(gh pr list             --base master             --head "$sync_branch"             --state open             --json number             --jq '.[0].number // empty')"
+          existing_pr="$(gh pr list \
+            --base master \
+            --head "$sync_branch" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')"
 
           if [ -z "$existing_pr" ]; then
-            gh pr create               --base master               --head "$sync_branch"               --title "docs(deps): refresh dependency status"               --body "Automated safety-net refresh of the committed dependency status snapshot after dependency state reached master without a current generated snapshot."               --label dependencies
+            gh pr create \
+              --base master \
+              --head "$sync_branch" \
+              --title "docs(deps): refresh dependency status" \
+              --body "Automated safety-net refresh of the committed dependency status snapshot after dependency state reached master without a current generated snapshot." \
+              --label dependencies
           else
-            gh pr edit "$existing_pr"               --body "Automated safety-net refresh of the committed dependency status snapshot after the latest dependency-state change on master."
+            gh pr edit "$existing_pr" \
+              --body "Automated safety-net refresh of the committed dependency status snapshot after the latest dependency-state change on master."
           fi
-
-          gh workflow run ci.yml --ref "$sync_branch"
 
           {
             echo "## Post-merge dependency status drift remediated"
             echo "A dedicated repair branch now carries the generated status snapshot."
             echo "This path is a safety net; normal Renovate PRs should be synchronized before merge."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate updated head and publish required quality status
+        if: steps.drift.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ github.event_name == 'pull_request' && steps.renovate_commit.outputs.branch || steps.repair_commit.outputs.branch }}
+          TARGET_SHA: ${{ github.event_name == 'pull_request' && steps.renovate_commit.outputs.sha || steps.repair_commit.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "$TARGET_BRANCH" ] || [ -z "$TARGET_SHA" ]; then
+            echo "Missing dependency validation target."
+            exit 1
+          fi
+
+          # A workflow_dispatch job check does not satisfy a required PR check.
+          # Run the canonical CI on the updated head, wait for its aggregate result,
+          # then mirror that result through the Commit Status API. The GITHUB_TOKEN
+          # belongs to the GitHub Actions app required by the repository ruleset.
+          dispatch_started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          gh workflow run ci.yml --ref "$TARGET_BRANCH"
+
+          ci_run_id=""
+          for attempt in $(seq 1 60); do
+            ci_run_id="$(
+              gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+                -f event=workflow_dispatch \
+                -f branch="$TARGET_BRANCH" \
+                -F per_page=20 \
+                --jq ".workflow_runs[] | select(.head_sha == \"$TARGET_SHA\" and .created_at >= \"$dispatch_started_at\") | .id" \
+                | head -n 1
+            )"
+
+            if [ -n "$ci_run_id" ]; then
+              break
+            fi
+
+            sleep 2
+          done
+
+          if [ -z "$ci_run_id" ]; then
+            echo "Unable to locate dispatched CI run for $TARGET_SHA."
+            exit 1
+          fi
+
+          ci_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$ci_run_id"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$TARGET_SHA" \
+            -f state="pending" \
+            -f context="quality" \
+            -f description="Canonical CI is validating the refreshed dependency snapshot" \
+            -f target_url="$ci_url" >/dev/null
+
+          ci_status=""
+          ci_conclusion=""
+          for attempt in $(seq 1 180); do
+            ci_status="$(gh run view "$ci_run_id" --json status --jq '.status')"
+            if [ "$ci_status" = "completed" ]; then
+              ci_conclusion="$(gh run view "$ci_run_id" --json conclusion --jq '.conclusion')"
+              break
+            fi
+            sleep 10
+          done
+
+          if [ "$ci_status" != "completed" ]; then
+            quality_state="failure"
+            quality_description="Canonical CI did not complete within the validation window"
+          elif [ "$ci_conclusion" = "success" ]; then
+            quality_state="success"
+            quality_description="Canonical CI passed on the refreshed dependency snapshot"
+          else
+            quality_state="failure"
+            quality_description="Canonical CI concluded: ${ci_conclusion:-unknown}"
+          fi
+
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$TARGET_SHA" \
+            -f state="$quality_state" \
+            -f context="quality" \
+            -f description="$quality_description" \
+            -f target_url="$ci_url" >/dev/null
+
+          {
+            echo "## Required quality status"
+            echo "Validated commit: \`$TARGET_SHA\`"
+            echo "CI run: $ci_url"
+            echo "Result: \`$quality_state\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          test "$quality_state" = "success"
 
       - name: Report current dependency status
         if: steps.drift.outputs.changed != 'true'
