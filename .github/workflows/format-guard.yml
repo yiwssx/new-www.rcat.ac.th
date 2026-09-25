@@ -12,6 +12,7 @@ concurrency:
 permissions:
   contents: write
   actions: write
+  statuses: write
 
 jobs:
   format:
@@ -61,12 +62,14 @@ jobs:
           HUSKY=0 git commit -m "style: auto-format changed files"
           git push origin "HEAD:${GITHUB_REF_NAME}"
           echo "committed=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Verify repository formatting
         run: pnpm format:check
 
-      - name: Re-run CI on corrected branch head
+      - name: Validate corrected head and publish required quality status
         if: steps.correction.outputs.committed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run ci.yml --ref "$GITHUB_REF_NAME"
+          TARGET_SHA: ${{ steps.correction.outputs.sha }}
+        run: bash scripts/validate-required-quality.sh "$GITHUB_REF_NAME" "$TARGET_SHA"
