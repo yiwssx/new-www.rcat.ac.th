@@ -98,7 +98,7 @@ importers:
         version: 11.26.25
     devDependencies:
       '@cloudflare/workers-types':
-        specifier: ^5.20260921.1
+        specifier: ^5.20260922.1
         version: 5.20260922.1
       '@commitlint/cli':
         specifier: 21.2.2
