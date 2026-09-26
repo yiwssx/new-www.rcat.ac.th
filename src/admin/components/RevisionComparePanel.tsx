@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
@@ -36,10 +36,15 @@ function revisionLabel(revision: ContentRevision) {
     : `v${revision.revision} · ${timestamp}`;
 }
 
+function resolveSelectedRevision(items: ContentRevision[], requested: number | null, fallbackIndex: number) {
+  if (requested !== null && items.some((item) => item.revision === requested)) return requested;
+  return items[fallbackIndex]?.revision ?? null;
+}
+
 export default function RevisionComparePanel() {
   const [selectedId, setSelectedId] = useState("");
-  const [beforeRevision, setBeforeRevision] = useState<number | null>(null);
-  const [afterRevision, setAfterRevision] = useState<number | null>(null);
+  const [requestedBeforeRevision, setRequestedBeforeRevision] = useState<number | null>(null);
+  const [requestedAfterRevision, setRequestedAfterRevision] = useState<number | null>(null);
 
   const contentQuery = useQuery({
     queryKey: CONTENT_OPTIONS_QUERY,
@@ -74,16 +79,8 @@ export default function RevisionComparePanel() {
     return [current, ...historical.filter((item) => item.revision !== currentRevision)];
   }, [revisionsQuery.data, selected]);
 
-  useEffect(() => {
-    if (revisions.length < 2) {
-      setBeforeRevision(revisions[0]?.revision ?? null);
-      setAfterRevision(null);
-      return;
-    }
-    setBeforeRevision(revisions[1].revision);
-    setAfterRevision(revisions[0].revision);
-  }, [revisions]);
-
+  const beforeRevision = resolveSelectedRevision(revisions, requestedBeforeRevision, 1);
+  const afterRevision = resolveSelectedRevision(revisions, requestedAfterRevision, 0);
   const before = findRevision(revisions, beforeRevision);
   const after = findRevision(revisions, afterRevision);
   const fieldChanges = compareRevisionFields(before?.snapshot ?? null, after?.snapshot ?? null);
@@ -110,7 +107,11 @@ export default function RevisionComparePanel() {
           <Autocomplete
             options={contentOptions}
             value={selected}
-            onChange={(_, value) => setSelectedId(value?.id || "")}
+            onChange={(_, value) => {
+              setSelectedId(value?.id || "");
+              setRequestedBeforeRevision(null);
+              setRequestedAfterRevision(null);
+            }}
             getOptionLabel={(option) => option.title}
             isOptionEqualToValue={(option, value) => option.id === value.id}
             renderInput={(params) => <TextField {...params} label="เลือกเนื้อหา" placeholder="ค้นหาชื่อเนื้อหา" />}
@@ -132,7 +133,7 @@ export default function RevisionComparePanel() {
                       labelId="before-revision-label"
                       label="เวอร์ชันก่อน"
                       value={beforeRevision ?? ""}
-                      onChange={(event) => setBeforeRevision(Number(event.target.value))}
+                      onChange={(event) => setRequestedBeforeRevision(Number(event.target.value))}
                     >
                       {revisions.map((revision) => (
                         <MenuItem key={revision.id} value={revision.revision}>
@@ -149,7 +150,7 @@ export default function RevisionComparePanel() {
                       labelId="after-revision-label"
                       label="เวอร์ชันหลัง"
                       value={afterRevision ?? ""}
-                      onChange={(event) => setAfterRevision(Number(event.target.value))}
+                      onChange={(event) => setRequestedAfterRevision(Number(event.target.value))}
                     >
                       {revisions.map((revision) => (
                         <MenuItem key={revision.id} value={revision.revision}>
