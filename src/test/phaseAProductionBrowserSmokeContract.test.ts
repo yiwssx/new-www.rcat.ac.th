@@ -6,10 +6,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const workflow = readFileSync(
-  join(repositoryRoot, ".github", "workflows", "production-verification.yml"),
-  "utf8"
-);
+const workflow = readFileSync(join(repositoryRoot, ".github", "workflows", "production-verification.yml"), "utf8");
 const runbook = readFileSync(join(repositoryRoot, "docs", "operations", "phase-a-field-qa-foundation.md"), "utf8");
 const smokeChecklist = readFileSync(join(repositoryRoot, "docs", "production-smoke-checklist.md"), "utf8");
 const smokeReport = readFileSync(join(repositoryRoot, "docs", "production-smoke-test-report-template.md"), "utf8");

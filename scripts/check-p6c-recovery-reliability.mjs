@@ -23,9 +23,12 @@ if (readiness.phase !== "P6C" || !["active", "closed"].includes(readiness.status
   fail("readiness model must identify P6C with active/closed status");
 }
 if (!readiness.rollbackOwner) fail("rollback ownership must be explicit");
-if (readiness.objectives?.runtimeRtoMinutes !== 30) fail("runtime RTO target must remain 30 minutes unless explicitly re-reviewed");
-if (readiness.objectives?.d1RestoreDecisionRtoMinutes !== 30) fail("D1 restore-decision RTO target must remain 30 minutes unless explicitly re-reviewed");
-if (readiness.objectives?.d1TargetRpoMinutes !== 5) fail("D1 target RPO must remain 5 minutes unless explicitly re-reviewed");
+if (readiness.objectives?.runtimeRtoMinutes !== 30)
+  fail("runtime RTO target must remain 30 minutes unless explicitly re-reviewed");
+if (readiness.objectives?.d1RestoreDecisionRtoMinutes !== 30)
+  fail("D1 restore-decision RTO target must remain 30 minutes unless explicitly re-reviewed");
+if (readiness.objectives?.d1TargetRpoMinutes !== 5)
+  fail("D1 target RPO must remain 5 minutes unless explicitly re-reviewed");
 
 const actualGates = Object.keys(readiness.gates || {}).sort();
 if (actualGates.join("\n") !== [...expectedGates].sort().join("\n")) {
@@ -75,7 +78,9 @@ if (/d1\s+time-travel\s+restore/.test(d1Drill.replace(/grep[^\n]+restore[^\n]*/g
   fail("D1 readiness drill must not execute a Time Travel restore");
 }
 if (!d1Drill.includes("name: production") || !d1Drill.includes("deployment: false")) {
-  fail("D1 readiness drill must remain behind the protected production Environment without publishing a pseudo-deployment");
+  fail(
+    "D1 readiness drill must remain behind the protected production Environment without publishing a pseudo-deployment"
+  );
 }
 
 const workerRelease = read(".github/workflows/worker-production.yml");
@@ -97,16 +102,22 @@ for (const contract of [
 if (workerRollback.includes("d1 migrations apply") || workerRollback.includes("d1 time-travel restore")) {
   fail("Worker runtime rollback must not migrate or restore D1");
 }
-for (const [name, source] of [["release", workerRelease], ["rollback", workerRollback]]) {
+for (const [name, source] of [
+  ["release", workerRelease],
+  ["rollback", workerRollback]
+]) {
   if (!source.includes("group: worker-production-write") || !source.includes("cancel-in-progress: false")) {
     fail(`Worker ${name} must share the non-cancelling production write mutex`);
   }
 }
 
 const workerRollbackHelper = read("scripts/deploy-worker-runtime-rollback.mjs");
-if (!workerRollbackHelper.includes('["exec", "wrangler", "deploy"')) fail("Worker rollback helper must deploy the extracted Worker runtime");
-if (/d1\s|migrations|time-travel\s+restore/.test(workerRollbackHelper)) fail("Worker rollback helper must remain runtime-only and contain no D1 operation");
-if (!workerRollbackHelper.includes("createProductionWranglerConfig")) fail("Worker rollback helper must inject the protected production D1 identity through the existing guard");
+if (!workerRollbackHelper.includes('["exec", "wrangler", "deploy"'))
+  fail("Worker rollback helper must deploy the extracted Worker runtime");
+if (/d1\s|migrations|time-travel\s+restore/.test(workerRollbackHelper))
+  fail("Worker rollback helper must remain runtime-only and contain no D1 operation");
+if (!workerRollbackHelper.includes("createProductionWranglerConfig"))
+  fail("Worker rollback helper must inject the protected production D1 identity through the existing guard");
 
 const appsScriptRollback = read(".github/workflows/apps-script-production-rollback.yml");
 for (const contract of [

@@ -45,10 +45,22 @@ describe("dependency automation contract", () => {
     expect(packageRules).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ matchUpdateTypes: ["major"], automerge: false }),
-        expect.objectContaining({ matchPackageNames: ["wrangler", "@cloudflare/workers-types"], groupName: "cloudflare toolchain" }),
-        expect.objectContaining({ matchPackageNames: ["@tanstack/react-query", "@tanstack/react-router"], groupName: "tanstack runtime" }),
-        expect.objectContaining({ matchPackageNames: ["vite", "@vitejs/plugin-react", "vite-plugin-checker"], groupName: "vite build tooling" }),
-        expect.objectContaining({ matchPackageNames: ["prettier", "eslint-config-prettier", "lint-staged"], groupName: "formatting tooling" }),
+        expect.objectContaining({
+          matchPackageNames: ["wrangler", "@cloudflare/workers-types"],
+          groupName: "cloudflare toolchain"
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["@tanstack/react-query", "@tanstack/react-router"],
+          groupName: "tanstack runtime"
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["vite", "@vitejs/plugin-react", "vite-plugin-checker"],
+          groupName: "vite build tooling"
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["prettier", "eslint-config-prettier", "lint-staged"],
+          groupName: "formatting tooling"
+        }),
         expect.objectContaining({ matchManagers: ["github-actions"], groupName: "github actions" })
       ])
     );
@@ -73,7 +85,9 @@ describe("dependency automation contract", () => {
 
   it("validates Cloudflare lockfile updates against declared semver ranges", () => {
     expect(dependencyCheckScript).toContain('const wranglerSpecifier = directSpecifier("wrangler");');
-    expect(dependencyCheckScript).toContain('const workersTypesSpecifier = directSpecifier("@cloudflare/workers-types");');
+    expect(dependencyCheckScript).toContain(
+      'const workersTypesSpecifier = directSpecifier("@cloudflare/workers-types");'
+    );
     expect(dependencyCheckScript).toContain("satisfiesRange(wranglerInstalledVersion, wranglerSpecifier)");
     expect(dependencyCheckScript).toContain("satisfiesRange(workersTypesInstalledVersion, workersTypesPeerRange)");
   });
@@ -113,6 +127,8 @@ describe("dependency automation contract", () => {
     expect(dependenciesWorkflow).toContain("node scripts/generate-dependency-status.mjs --monitor");
     expect(dependenciesWorkflow).not.toContain("pnpm deps:latest:check");
     expect(dependencyStatusScript).toContain('const monitoringOnly = flags.has("--monitor");');
-    expect(dependencyStatusScript).toContain("Eligible dependency updates are pending Renovate or manual review (informational):");
+    expect(dependencyStatusScript).toContain(
+      "Eligible dependency updates are pending Renovate or manual review (informational):"
+    );
   });
 });

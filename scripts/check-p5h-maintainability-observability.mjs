@@ -21,10 +21,16 @@ const productionVerification = read(".github/workflows/production-verification.y
 if (!pagination.includes('import { handleAdminMenuMutation } from "./adminMenuMutations";')) {
   fail("adminPagination must delegate menu mutations to the extracted route module");
 }
-for (const forbidden of ["handleMenuItemMutation", "INSERT INTO menu_items", "UPDATE menu_items", "DELETE FROM menu_items"]) {
+for (const forbidden of [
+  "handleMenuItemMutation",
+  "INSERT INTO menu_items",
+  "UPDATE menu_items",
+  "DELETE FROM menu_items"
+]) {
   if (pagination.includes(forbidden)) fail(`adminPagination regained menu write responsibility: ${forbidden}`);
 }
-if (Buffer.byteLength(pagination, "utf8") >= 48_000) fail("adminPagination hotspot has grown back above the P5H size ceiling");
+if (Buffer.byteLength(pagination, "utf8") >= 48_000)
+  fail("adminPagination hotspot has grown back above the P5H size ceiling");
 if (!menuMutations.includes("handleAdminMenuMutation") || !menuMutations.includes("isValidCmsLink")) {
   fail("extracted menu mutation module must own menu writes and use the central link policy");
 }
@@ -34,10 +40,12 @@ if (!adminWrite.includes("await validateAdminLinkWriteRequest(request);")) {
 for (const required of ["navigation", "resource", "canonical"]) {
   if (!linkValidation.includes(`"${required}"`)) fail(`link policy is missing ${required} classification`);
 }
-if (linkValidation.includes('"javascript:"') || linkValidation.includes('"data:"')) fail("unsafe URL schemes must not be allowlisted");
+if (linkValidation.includes('"javascript:"') || linkValidation.includes('"data:"'))
+  fail("unsafe URL schemes must not be allowlisted");
 
 for (const source of [workerRequestId, nodeRequestId]) {
-  if (!source.includes("X-RCAT-Request-ID")) fail("request ID header contract drifted between Vercel and Worker boundaries");
+  if (!source.includes("X-RCAT-Request-ID"))
+    fail("request ID header contract drifted between Vercel and Worker boundaries");
 }
 if (!adminProxy.includes("ensureNodeRequestId") || !adminProxy.includes("RCAT_REQUEST_ID_HEADER")) {
   fail("Admin proxy must create/forward a server-owned request ID");
@@ -60,9 +68,11 @@ if ((workerIndex.match(/withRequestId\(/g) ?? []).length < 2 || !workerIndex.inc
 
 const linkAuditStart = productionDataOperations.indexOf("\n  cms-link-audit:");
 const authenticatedStart = productionDataOperations.indexOf("\n  authenticated-cms-field:");
-if (linkAuditStart < 0 || authenticatedStart <= linkAuditStart) fail("Production Data Operations must retain a distinct CMS link audit job");
+if (linkAuditStart < 0 || authenticatedStart <= linkAuditStart)
+  fail("Production Data Operations must retain a distinct CMS link audit job");
 const linkAuditWorkflow = productionDataOperations.slice(linkAuditStart, authenticatedStart);
-if (!linkAuditWorkflow.includes("secrets.CLOUDFLARE_D1_READ_TOKEN")) fail("production CMS link audit must use the dedicated D1 read token");
+if (!linkAuditWorkflow.includes("secrets.CLOUDFLARE_D1_READ_TOKEN"))
+  fail("production CMS link audit must use the dedicated D1 read token");
 for (const forbidden of ["wrangler deploy", "migrations apply", "time-travel restore", "--file"]) {
   if (linkAuditWorkflow.includes(forbidden)) fail(`CMS link audit must stay read-only: ${forbidden}`);
 }
@@ -70,7 +80,8 @@ for (const forbidden of ["wrangler deploy", "migrations apply", "time-travel res
 const observabilityStart = productionVerification.indexOf("\n  d1-observability:");
 if (observabilityStart < 0) fail("Production Verification must retain a D1 observability job");
 const productionObservabilityWorkflow = productionVerification.slice(observabilityStart);
-if (!productionVerification.includes("workflow_dispatch:")) fail("Production Observability must remain manually dispatchable");
+if (!productionVerification.includes("workflow_dispatch:"))
+  fail("Production Observability must remain manually dispatchable");
 if (!productionObservabilityWorkflow.includes("github.event_name == 'workflow_dispatch'")) {
   fail("Production Observability must remain manual-only while its credentials are reviewer-gated");
 }

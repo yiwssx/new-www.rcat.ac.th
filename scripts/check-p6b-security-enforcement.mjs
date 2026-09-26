@@ -56,8 +56,14 @@ const workerRateLimit = await readFile(
 );
 const workerEnv = await readFile(new URL("../cloudflare/public-api/src/env.ts", import.meta.url), "utf8");
 const wrangler = await readFile(new URL("../cloudflare/public-api/wrangler.toml", import.meta.url), "utf8");
-const cmsAuth = await readFile(new URL("../cloudflare/public-api/src/routes/cmsAuthInternal.ts", import.meta.url), "utf8");
-const adminWrite = await readFile(new URL("../cloudflare/public-api/src/routes/adminWrite.ts", import.meta.url), "utf8");
+const cmsAuth = await readFile(
+  new URL("../cloudflare/public-api/src/routes/cmsAuthInternal.ts", import.meta.url),
+  "utf8"
+);
+const adminWrite = await readFile(
+  new URL("../cloudflare/public-api/src/routes/adminWrite.ts", import.meta.url),
+  "utf8"
+);
 
 for (const binding of ["CMS_AUTH_RATE_LIMITER", "ADMIN_API_RATE_LIMITER"]) {
   if (!workerEnv.includes(binding) || !wrangler.includes(`name = "${binding}"`)) {

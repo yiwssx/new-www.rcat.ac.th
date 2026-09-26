@@ -6,10 +6,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const workflow = readFileSync(
-  join(repositoryRoot, ".github", "workflows", "production-verification.yml"),
-  "utf8"
-);
+const workflow = readFileSync(join(repositoryRoot, ".github", "workflows", "production-verification.yml"), "utf8");
 
 function compact(value: string) {
   return value.replace(/\s+/g, " ");
