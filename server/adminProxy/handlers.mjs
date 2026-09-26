@@ -22,6 +22,8 @@ const PROXY_METHODS = new Set(["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS
 const BODY_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 const ADMIN_PATH_PREFIX = "/api/admin/";
 const MAX_PROXY_BODY_BYTES = 1024 * 1024;
+const MAX_BACKUP_RECOVERY_BODY_BYTES = 4 * 1024 * 1024;
+const BACKUP_RECOVERY_PATH = "/api/admin/backup/recover";
 const CMS_SESSION_EXPIRED_ERROR = "CMS session is invalid or expired";
 const SAFE_NON_SESSION_401_ERRORS = new Set(["MFA reset verification failed"]);
 
@@ -338,7 +340,9 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
 
   try {
     if (BODY_METHODS.has(method)) {
-      const body = await readRequestBody(request, MAX_PROXY_BODY_BYTES);
+      const maximumBodyBytes =
+        targetPath === BACKUP_RECOVERY_PATH ? MAX_BACKUP_RECOVERY_BODY_BYTES : MAX_PROXY_BODY_BYTES;
+      const body = await readRequestBody(request, maximumBodyBytes);
       requestBody = body.length > 0 ? body : undefined;
     }
   } catch {

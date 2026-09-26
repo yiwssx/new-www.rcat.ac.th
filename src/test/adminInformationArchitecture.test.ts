@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import usersPageSource from "../admin/pages/UsersPage.tsx?raw";
 import backupPageSource from "../admin/pages/BackupPage.tsx?raw";
+import portableBackupRecoveryPanelSource from "../admin/components/PortableBackupRecoveryPanel.tsx?raw";
 import userManagementCardSource from "../admin/components/UserManagementCard.tsx?raw";
 import settingsPageSource from "../admin/pages/SettingsPage.tsx?raw";
 import integrationsPageSource from "../admin/pages/IntegrationsPage.tsx?raw";
@@ -96,7 +97,7 @@ describe("M20 admin information architecture", () => {
     expect(routesSource).not.toMatch(/path:\s*"users"[\s\S]*?<AdminOnlyPage>[\s\S]*?<UsersPage\s*\/>/);
   });
 
-  it("adds an admin-only D1 backup route and sidebar item without restore controls", () => {
+  it("keeps D1 backup capability-guarded and exposes only guarded merge recovery", () => {
     expect(backupPageSource).toContain("สำรองข้อมูลระบบ");
     expect(backupPageSource).toContain("ตรวจนับข้อมูล");
     expect(backupPageSource).toContain("ดาวน์โหลดไฟล์สำรองข้อมูล");
@@ -104,7 +105,11 @@ describe("M20 admin information architecture", () => {
     expect(backupPageSource).toContain("canDownloadSystemBackup");
     expect(backupPageSource).toContain("downloadD1BackupFromCloudflare");
     expect(backupPageSource).toContain("getD1BackupCountsFromCloudflare");
-    expect(backupPageSource).not.toMatch(/restore|นำเข้า|อัปโหลดไฟล์สำรอง/i);
+    expect(backupPageSource).toContain("PortableBackupRecoveryPanel");
+    expect(backupPageSource).toContain('"backup.restore"');
+    expect(portableBackupRecoveryPanelSource).toContain("recoverD1Backup");
+    expect(portableBackupRecoveryPanelSource).toContain("กู้คืนแบบ Merge");
+    expect(portableBackupRecoveryPanelSource).toContain("MAX_BACKUP_FILE_BYTES = 4 * 1024 * 1024");
     expect(cmsShellSource).toContain('label: "สำรองข้อมูล"');
     expect(cmsShellSource).toContain('to: "/admin/backup"');
     expect(routeComponentsSource).toContain('export const BackupPage = lazy(() => import("./admin/pages/BackupPage"))');

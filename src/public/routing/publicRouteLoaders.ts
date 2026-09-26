@@ -222,6 +222,15 @@ export async function loadPublicContentDetailData(
   }
 
   const item = detailResult.item;
+  const canonicalSlug = item.slug?.trim();
+  if (canonicalSlug && canonicalSlug !== slug) {
+    throw redirect({
+      to: "/content/$slug",
+      params: { slug: canonicalSlug },
+      statusCode: 301
+    });
+  }
+
   const featuredMediaId = item.featuredMediaId;
   const featuredMedia = featuredMediaId
     ? detailResult.media.find((asset) => asset.id === featuredMediaId && asset.type === "image")

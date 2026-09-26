@@ -2,7 +2,9 @@ import { isPublicAnalyticsOriginAllowed } from "./cors";
 import type { Env } from "./env";
 import { invalidatePublicReadCacheAfterAdminMutation } from "./publicReadCacheInvalidation";
 import { jsonError, methodNotAllowed, notFound } from "./responses";
+import { handleAdminBackupRecovery } from "./routes/adminBackupRecovery";
 import { handleAdminContentGovernance } from "./routes/adminContentGovernance";
+import { enforceAdminContentScope, handleAdminCmsGapClosure } from "./routes/adminCmsGapClosure";
 import { handleAdminEditorialGovernance } from "./routes/adminEditorialGovernance";
 import { adminWrite } from "./routes/adminWrite";
 import { health } from "./routes/health";
@@ -57,6 +59,29 @@ export async function routeRequest(request: Request, env: Env) {
   // historical preview parity tooling.
   if (env.ENVIRONMENT === "production" && request.method === "PUT" && pathname === "/api/admin/menu") {
     return jsonError("bulk menu replacement is retired; use revision-aware menu item and order endpoints", 405);
+  }
+
+  // Scoped editors keep the existing role/capabilities while write access is
+  // constrained to content whose owner matches their optional account scope.
+  const contentScopeResponse = await enforceAdminContentScope(request, env);
+
+  if (contentScopeResponse) {
+    contentScopeResponse.headers.set("Cache-Control", "no-store");
+    return contentScopeResponse;
+  }
+
+  // Recovery is intercepted before the broader gap-closure handler so merge
+  // restores use primary-key UPSERT semantics and never REPLACE unrelated rows.
+  const backupRecoveryResponse = await handleAdminBackupRecovery(request, env);
+
+  if (backupRecoveryResponse) {
+    return finalizeAdminResponse(request, env, backupRecoveryResponse);
+  }
+
+  const gapClosureResponse = await handleAdminCmsGapClosure(request, env);
+
+  if (gapClosureResponse) {
+    return finalizeAdminResponse(request, env, gapClosureResponse);
   }
 
   const editorialGovernanceResponse = await handleAdminEditorialGovernance(request, env);

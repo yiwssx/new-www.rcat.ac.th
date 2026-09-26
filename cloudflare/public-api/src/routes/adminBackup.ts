@@ -14,7 +14,8 @@ const BACKUP_TABLES = [
   "homepage_settings",
   "display_settings",
   "public_home_sections",
-  "visitor_daily_stats"
+  "visitor_daily_stats",
+  "content_redirects"
 ] as const;
 
 const encoder = new TextEncoder();
@@ -146,7 +147,7 @@ function createBackupDownloadStream(db: D1Database, generatedAt: string, environ
       try {
         controller.enqueue(
           encoder.encode(
-            `{"schemaVersion":1,"generatedAt":${JSON.stringify(generatedAt)},"environment":${JSON.stringify(
+            `{"schemaVersion":2,"generatedAt":${JSON.stringify(generatedAt)},"environment":${JSON.stringify(
               environment
             )},"source":{"app":"new-www.rcat.ac.th","backend":"cloudflare-d1"},"tables":{`
           )

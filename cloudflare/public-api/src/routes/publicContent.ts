@@ -20,6 +20,7 @@ import {
   type PublicContentReadRow,
   type PublicContentSummaryReadRow
 } from "../db/contentRepository";
+import { getContentRedirectTarget } from "../db/contentRedirectRepository";
 import { readPublicMediaRowsByIds, readPublicShellMetadataRows } from "../db/publicMetadataRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
@@ -31,6 +32,7 @@ const ANNOUNCEMENT_PUBLIC_PAGES_PAGE_SIZE = 12;
 const FILTERED_ARCHIVE_DEFAULT_PAGE_SIZE = 20;
 const MAX_PUBLIC_FILTER_LENGTH = 120;
 const RELATED_CONTENT_CANDIDATE_LIMIT = 24;
+const CONTENT_REDIRECT_CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=604800";
 
 const CONTENT_KIND_TO_TYPE = {
   news: "news",
@@ -147,6 +149,16 @@ function collectDetailMediaIds(row: PublicContentReadRow, relatedRows: PublicCon
   return [...ids];
 }
 
+function contentRedirectResponse(targetSlug: string) {
+  return new Response(null, {
+    status: 308,
+    headers: {
+      Location: `/api/public/content/${encodeURIComponent(targetSlug)}`,
+      "Cache-Control": CONTENT_REDIRECT_CACHE_CONTROL
+    }
+  });
+}
+
 export async function publicContentList(request: Request, env: Env) {
   if (!env.DB) {
     return jsonError("database binding is not configured", 503, {
@@ -236,6 +248,8 @@ export async function publicContentDetail(env: Env, slug: string) {
     const row = await getPublishedContentRowBySlug(env, slug);
 
     if (!row) {
+      const redirectTarget = await getContentRedirectTarget(env, slug);
+      if (redirectTarget) return contentRedirectResponse(redirectTarget);
       return jsonError("not found", 404, {
         resource: CONTENT_DETAIL_RESOURCE
       });

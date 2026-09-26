@@ -51,6 +51,7 @@ const EXPECTED_CAPABILITIES = [
   "users.mfa.reset",
   "backup.counts",
   "backup.download",
+  "backup.restore",
   "audit.read",
   "auth.change-password-self",
   "auth.reauthenticate-self",
@@ -111,7 +112,7 @@ const EXPECTED_VIEWER_CAPABILITIES = [
 describe("Admin capability registry", () => {
   it("contains each exact capability once and has no wildcard", () => {
     expect(ADMIN_CAPABILITIES).toEqual(EXPECTED_CAPABILITIES);
-    expect(ADMIN_CAPABILITIES).toHaveLength(45);
+    expect(ADMIN_CAPABILITIES).toHaveLength(46);
     expect(new Set(ADMIN_CAPABILITIES).size).toBe(ADMIN_CAPABILITIES.length);
     expect(ADMIN_CAPABILITIES).not.toContain("*" as AdminCapability);
   });
@@ -128,6 +129,7 @@ describe("Admin capability registry", () => {
     expect(hasAdminCapability("editor", "menu.manage")).toBe(false);
     expect(hasAdminCapability("editor", "settings.manage")).toBe(false);
     expect(hasAdminCapability("editor", "audit.read")).toBe(false);
+    expect(hasAdminCapability("editor", "backup.restore")).toBe(false);
     expect(hasAdminCapability("editor", "users.update-self")).toBe(true);
     expect(hasAdminCapability("editor", "users.update-any")).toBe(false);
     expect(hasAdminCapability("editor", "auth.change-password-self")).toBe(true);
