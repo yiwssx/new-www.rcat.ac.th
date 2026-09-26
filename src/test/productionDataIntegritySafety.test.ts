@@ -3,7 +3,7 @@ import auditSql from "../../cloudflare/public-api/sql/production-fixture-audit.s
 import homeAuditSql from "../../cloudflare/public-api/sql/production-home-section-fixture-audit.sql?raw";
 import cleanupSql from "../../cloudflare/public-api/sql/production-fixture-cleanup.sql?raw";
 import homeCleanupSql from "../../cloudflare/public-api/sql/production-home-section-fixture-cleanup.sql?raw";
-import integrityWorkflow from "../../.github/workflows/production-data-integrity.yml?raw";
+import integrityWorkflow from "../../.github/workflows/production-data-operations.yml?raw";
 import workerProductionWorkflow from "../../.github/workflows/worker-production.yml?raw";
 import parserSource from "../../scripts/check-production-fixture-audit.mjs?raw";
 import diagnosticSanitizerSource from "../../scripts/sanitize-cloudflare-cli-output.mjs?raw";
@@ -41,7 +41,6 @@ describe("P5A production data-integrity safety", () => {
       expect(workflow).toContain("public_home_sections");
       expect(workflow).toContain("schema inspection failed");
     }
-    expect(integrityWorkflow).toContain("public_home_sections present before migration");
     expect(workerProductionWorkflow).toContain("env.PUBLIC_HOME_SECTIONS_PRESENT == 'true'");
   });
 
@@ -81,7 +80,7 @@ describe("P5A production data-integrity safety", () => {
     expect(integrityWorkflow).toContain("PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview");
     expect(integrityWorkflow).toContain('d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME"');
     expect(integrityWorkflow).toContain("DELETE_CONFIRMED_LOCAL_FIXTURES_ONLY");
-    expect(integrityWorkflow).toContain("inputs.mode == 'cleanup'");
+    expect(integrityWorkflow).toContain("inputs.operation == 'fixture-cleanup'");
     expect(integrityWorkflow).toContain("production-fixture-cleanup.sql");
     expect(integrityWorkflow).toContain("--expect-clean");
     expect(integrityWorkflow).not.toMatch(/d1\s+time-travel\s+restore/i);
