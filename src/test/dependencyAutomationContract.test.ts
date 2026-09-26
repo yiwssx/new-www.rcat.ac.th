@@ -8,15 +8,12 @@ import { describe, expect, it } from "vitest";
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (path: string) => readFileSync(join(repositoryRoot, path), "utf8");
 const renovate = JSON.parse(read("renovate.json")) as Record<string, unknown>;
-const monitoringWorkflow = read(".github/workflows/dependency-monitoring.yml");
+const dependenciesWorkflow = read(".github/workflows/dependencies.yml");
 const ciWorkflow = read(".github/workflows/ci.yml");
-const dependencyStatusSyncWorkflow = read(".github/workflows/dependency-status-sync.yml");
 const qualityBridgeScript = read("scripts/validate-required-quality.sh");
 const dependencyStatusScript = read("scripts/generate-dependency-status.mjs");
 const dependencyCheckScript = read("scripts/check-dependencies.mjs");
-const packageJson = JSON.parse(read("package.json")) as {
-  dependencies?: Record<string, string>;
-};
+const packageJson = JSON.parse(read("package.json")) as { dependencies?: Record<string, string> };
 const pnpmWorkspace = read("pnpm-workspace.yaml");
 const muiFocusTrapPatch = read("patches/@mui__material@9.4.0.patch");
 
@@ -48,26 +45,11 @@ describe("dependency automation contract", () => {
     expect(packageRules).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ matchUpdateTypes: ["major"], automerge: false }),
-        expect.objectContaining({
-          matchPackageNames: ["wrangler", "@cloudflare/workers-types"],
-          groupName: "cloudflare toolchain"
-        }),
-        expect.objectContaining({
-          matchPackageNames: ["@tanstack/react-query", "@tanstack/react-router"],
-          groupName: "tanstack runtime"
-        }),
-        expect.objectContaining({
-          matchPackageNames: ["vite", "@vitejs/plugin-react", "vite-plugin-checker"],
-          groupName: "vite build tooling"
-        }),
-        expect.objectContaining({
-          matchPackageNames: ["prettier", "eslint-config-prettier", "lint-staged"],
-          groupName: "formatting tooling"
-        }),
-        expect.objectContaining({
-          matchManagers: ["github-actions"],
-          groupName: "github actions"
-        })
+        expect.objectContaining({ matchPackageNames: ["wrangler", "@cloudflare/workers-types"], groupName: "cloudflare toolchain" }),
+        expect.objectContaining({ matchPackageNames: ["@tanstack/react-query", "@tanstack/react-router"], groupName: "tanstack runtime" }),
+        expect.objectContaining({ matchPackageNames: ["vite", "@vitejs/plugin-react", "vite-plugin-checker"], groupName: "vite build tooling" }),
+        expect.objectContaining({ matchPackageNames: ["prettier", "eslint-config-prettier", "lint-staged"], groupName: "formatting tooling" }),
+        expect.objectContaining({ matchManagers: ["github-actions"], groupName: "github actions" })
       ])
     );
   });
@@ -91,9 +73,7 @@ describe("dependency automation contract", () => {
 
   it("validates Cloudflare lockfile updates against declared semver ranges", () => {
     expect(dependencyCheckScript).toContain('const wranglerSpecifier = directSpecifier("wrangler");');
-    expect(dependencyCheckScript).toContain(
-      'const workersTypesSpecifier = directSpecifier("@cloudflare/workers-types");'
-    );
+    expect(dependencyCheckScript).toContain('const workersTypesSpecifier = directSpecifier("@cloudflare/workers-types");');
     expect(dependencyCheckScript).toContain("satisfiesRange(wranglerInstalledVersion, wranglerSpecifier)");
     expect(dependencyCheckScript).toContain("satisfiesRange(workersTypesInstalledVersion, workersTypesPeerRange)");
   });
@@ -108,13 +88,13 @@ describe("dependency automation contract", () => {
   });
 
   it("keeps snapshot mutation out of the normal Renovate PR lifecycle", () => {
-    expect(dependencyStatusSyncWorkflow).toContain("name: Dependencies / Snapshot Repair");
-    expect(dependencyStatusSyncWorkflow).toContain("workflow_dispatch:");
-    expect(dependencyStatusSyncWorkflow).not.toContain("  pull_request:");
-    expect(dependencyStatusSyncWorkflow).not.toContain("  push:\n");
-    expect(dependencyStatusSyncWorkflow).toContain("automation/dependency-status-sync");
-    expect(dependencyStatusSyncWorkflow).toContain("Require maintainer PR for repaired snapshot");
-    expect(dependencyStatusSyncWorkflow).not.toContain("HEAD:refs/heads/$HEAD_BRANCH");
+    expect(dependenciesWorkflow).toContain("name: Dependencies");
+    expect(dependenciesWorkflow).toContain("snapshot-repair:");
+    expect(dependenciesWorkflow).toContain("workflow_dispatch:");
+    expect(dependenciesWorkflow).not.toContain("  pull_request:");
+    expect(dependenciesWorkflow).not.toContain("HEAD:refs/heads/$HEAD_BRANCH");
+    expect(dependenciesWorkflow).toContain("automation/dependency-status-sync");
+    expect(dependenciesWorkflow).toContain("Require maintainer PR for repaired snapshot");
   });
 
   it("retires the branch-mutating auto-format workflow", () => {
@@ -123,18 +103,16 @@ describe("dependency automation contract", () => {
   });
 
   it("keeps the quality bridge scoped to manual snapshot repair", () => {
-    expect(dependencyStatusSyncWorkflow).toContain("bash scripts/validate-required-quality.sh");
+    expect(dependenciesWorkflow).toContain("bash scripts/validate-required-quality.sh");
     expect(qualityBridgeScript).toContain('gh workflow run ci.yml --ref "$TARGET_BRANCH"');
     expect(qualityBridgeScript).toContain("statuses/$TARGET_SHA");
     expect(qualityBridgeScript).toContain('-f context="quality"');
   });
 
   it("reports ordinary freshness backlog without failing the scheduled monitor", () => {
-    expect(monitoringWorkflow).toContain("node scripts/generate-dependency-status.mjs --monitor");
-    expect(monitoringWorkflow).not.toContain("pnpm deps:latest:check");
+    expect(dependenciesWorkflow).toContain("node scripts/generate-dependency-status.mjs --monitor");
+    expect(dependenciesWorkflow).not.toContain("pnpm deps:latest:check");
     expect(dependencyStatusScript).toContain('const monitoringOnly = flags.has("--monitor");');
-    expect(dependencyStatusScript).toContain(
-      "Eligible dependency updates are pending Renovate or manual review (informational):"
-    );
+    expect(dependencyStatusScript).toContain("Eligible dependency updates are pending Renovate or manual review (informational):");
   });
 });
