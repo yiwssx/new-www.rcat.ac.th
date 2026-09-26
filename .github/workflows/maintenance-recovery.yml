@@ -1,14 +1,35 @@
-name: D1 Recovery Drill
+name: Maintenance & Recovery
 
 on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/maintenance-recovery.yml"
+      - ".github/scripts/cleanup-deployment-history.mjs"
+      - ".github/scripts/cleanup-unsuccessful-workflow-runs.mjs"
   workflow_dispatch:
     inputs:
-      acknowledge_read_only_production:
-        description: "Confirm this production readiness drill is read-only and never restores"
+      operation:
+        description: "Maintenance or recovery operation"
         required: true
+        type: choice
+        default: history-cleanup
+        options:
+          - history-cleanup
+          - d1-recovery-drill
+      dry_run:
+        description: "History cleanup only: inspect without deleting records"
+        required: false
+        default: false
+        type: boolean
+      acknowledge_read_only_production:
+        description: "Recovery drill only: confirm this is read-only and never restores"
+        required: false
+        default: false
         type: boolean
       restore_timestamp:
-        description: "Optional RFC3339/ISO-8601 past timestamp to resolve as a read-only recovery point"
+        description: "Recovery drill only: optional RFC3339/ISO-8601 past timestamp"
         required: false
         default: ""
         type: string
@@ -16,30 +37,58 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: maintenance-recovery-${{ github.event_name == 'push' && 'history-cleanup' || inputs.operation }}
+  cancel-in-progress: false
+
 jobs:
-  production-readiness:
+  history-cleanup:
+    name: Maintain Deployment and Actions History
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.operation == 'history-cleanup') }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .node-version
+      - name: Reconcile stale deployments and apply deployment retention
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: node .github/scripts/cleanup-deployment-history.mjs
+      - name: Apply bounded retention to completed non-success Actions runs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: node .github/scripts/cleanup-unsuccessful-workflow-runs.mjs
+
+  d1-recovery-drill:
     name: Production Time Travel Readiness
-    if: ${{ inputs.acknowledge_read_only_production == true && github.ref == 'refs/heads/master' }}
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'd1-recovery-drill' &&
+      inputs.acknowledge_read_only_production == true &&
+      github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment:
       name: production
       deployment: false
     env:
       PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
-
     steps:
       - uses: actions/checkout@v7
-
       - uses: pnpm/action-setup@v6
         with:
           version: 10.34.5
           run_install: false
-
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: pnpm
-
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
 
       - name: Require protected Cloudflare D1 read credentials
@@ -49,23 +98,14 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
-          test -n "$CLOUDFLARE_ACCOUNT_ID" || {
-            echo "CLOUDFLARE_ACCOUNT_ID is unavailable from the protected production environment." >&2
-            exit 1
-          }
-          test -n "$CLOUDFLARE_API_TOKEN" || {
-            echo "CLOUDFLARE_D1_READ_TOKEN is unavailable from the protected production environment." >&2
-            exit 1
-          }
-          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || {
-            echo "RCAT_PRODUCTION_D1_DATABASE_ID is unavailable from the protected production environment." >&2
-            exit 1
-          }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || exit 1
+          test -n "$CLOUDFLARE_API_TOKEN" || exit 1
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || exit 1
 
       - name: Guard destructive commands
         shell: bash
         run: |
-          if grep -nE 'pnpm[[:space:]]+wrangler[[:space:]]+d1[[:space:]]+time-travel[[:space:]]+restore' .github/workflows/d1-recovery-drill.yml; then
+          if grep -nE 'pnpm[[:space:]]+wrangler[[:space:]]+d1[[:space:]]+time-travel[[:space:]]+restore' .github/workflows/maintenance-recovery.yml; then
             echo "Recovery drill workflow must never contain restore commands." >&2
             exit 1
           fi
@@ -95,7 +135,6 @@ jobs:
             const metadata = Array.isArray(value) ? value[0] : value;
             if (metadata?.name !== process.env.PRODUCTION_D1_RESOURCE_NAME) throw new Error("production D1 metadata did not resolve the expected physical resource");
             if (metadata?.version && metadata.version !== "production") throw new Error("production D1 is not on the Time Travel capable production storage backend");
-            console.log("Production D1 metadata resolved for the promoted data-bearing resource.");
           '
 
       - name: Resolve production Time Travel bookmark
@@ -114,13 +153,10 @@ jobs:
               if (!Number.isFinite(parsed)) throw new Error("restore_timestamp must be a valid RFC3339/ISO-8601 timestamp");
               if (parsed >= Date.now()) throw new Error("restore_timestamp must be in the past");
             '
-            pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" \
-              --timestamp="$RESTORE_TIMESTAMP" \
-              --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+            pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --timestamp="$RESTORE_TIMESTAMP" --json > "$RUNNER_TEMP/d1-production-time-travel.json"
             echo "target_mode=historical-timestamp" >> "$GITHUB_OUTPUT"
           else
-            pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" \
-              --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+            pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-time-travel.json"
             echo "target_mode=current" >> "$GITHUB_OUTPUT"
           fi
           node -e '
@@ -128,7 +164,6 @@ jobs:
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-time-travel.json", "utf8"));
             const metadata = Array.isArray(value) ? value[0] : value;
             if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) throw new Error("production Time Travel bookmark was not returned");
-            console.log("Production Time Travel recovery point resolved. No restore was executed.");
           '
 
       - name: Drill summary
@@ -138,13 +173,8 @@ jobs:
         run: |
           {
             echo "## D1 Recovery Drill"
-            echo
-            echo "- Canonical role: production"
-            echo "- D1 physical resource label: legacy preview name retained; protected UUID is authoritative"
-            echo "- Credential role: dedicated D1 read token from protected production Environment"
+            echo "- Credential role: dedicated D1 read token"
             echo "- Recovery point mode: $TARGET_MODE"
-            echo "- Readiness proof: Wrangler Time Travel info returned a production bookmark"
-            echo "- Mode: read-only metadata / Time Travel recovery-point resolution"
             echo "- Time Travel restore: not present in this workflow"
             echo "- Production D1 write: none"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -10,7 +10,10 @@ const fail = (message) => {
 const D1_READ_SECRET = "secrets.CLOUDFLARE_D1_READ_TOKEN";
 const PRIVILEGED_SECRET = "secrets.CLOUDFLARE_API_TOKEN";
 
-const pureReadWorkflows = [".github/workflows/d1-recovery-drill.yml", ".github/workflows/p6b-production-security.yml"];
+const pureReadWorkflows = [
+  ".github/workflows/maintenance-recovery.yml",
+  ".github/workflows/production-verification.yml"
+];
 
 for (const workflow of pureReadWorkflows) {
   const source = read(workflow);
@@ -22,16 +25,16 @@ for (const workflow of pureReadWorkflows) {
   }
 }
 
-const integritySource = read(".github/workflows/production-data-integrity.yml");
+const integritySource = read(".github/workflows/production-data-operations.yml");
 const integritySelector =
-  "inputs.mode == 'cleanup' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN";
+  "inputs.operation == 'fixture-cleanup' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN";
 if (!integritySource.includes(integritySelector)) {
   fail(
-    "Production Data Integrity must select D1 read credentials for audit mode and privileged credentials for cleanup mode"
+    "Production Data Operations must select D1 read credentials for fixture audit and privileged credentials for fixture cleanup"
   );
 }
-if (!integritySource.includes("if: ${{ inputs.mode == 'cleanup' }}")) {
-  fail("Production Data Integrity must keep write steps behind the cleanup mode guard");
+if (!integritySource.includes("if: ${{ inputs.operation == 'fixture-cleanup' }}")) {
+  fail("Production Data Operations must keep fixture write steps behind the cleanup operation guard");
 }
 
 const workerWorkflow = read(".github/workflows/worker-production.yml");

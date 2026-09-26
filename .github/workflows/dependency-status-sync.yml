@@ -1,28 +1,46 @@
-name: Dependencies / Snapshot Repair
+name: Dependencies
 
-# The live registry is owned by Renovate + Dependency Monitoring. This workflow
-# is an operator-only repair path for the committed dependency snapshot; it must
-# never mutate an active Renovate PR branch automatically.
 on:
+  schedule:
+    - cron: "15 0 * * *"
   workflow_dispatch:
+    inputs:
+      operation:
+        description: "Dependency operation"
+        required: true
+        type: choice
+        default: monitor
+        options:
+          - monitor
+          - snapshot-repair
 
 permissions:
-  actions: write
-  contents: write
-  # Retained for the existing dependency-policy contract. Repository settings
-  # still intentionally prevent Actions from creating or approving pull requests.
-  pull-requests: write
-  statuses: write
+  contents: read
 
 concurrency:
-  group: dependency-status-repair
+  group: dependencies-${{ github.event_name == 'schedule' && 'monitor' || inputs.operation }}
   cancel-in-progress: true
 
 jobs:
-  sync:
-    if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' }}
+  monitor:
+    name: Live Registry Monitor
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.operation == 'monitor') }}
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-project
+      - name: Validate live dependency policy and report backlog
+        run: node scripts/generate-dependency-status.mjs --monitor
 
+  snapshot-repair:
+    name: Snapshot Repair
+    if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' && inputs.operation == 'snapshot-repair' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+      statuses: write
     steps:
       - uses: actions/checkout@v7
         with:

@@ -6,10 +6,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const workflow = readFileSync(
-  join(repositoryRoot, ".github", "workflows", "phase-a-production-browser-smoke.yml"),
-  "utf8"
-);
+const workflow = readFileSync(join(repositoryRoot, ".github", "workflows", "production-verification.yml"), "utf8");
 const runbook = readFileSync(join(repositoryRoot, "docs", "operations", "phase-a-field-qa-foundation.md"), "utf8");
 const smokeChecklist = readFileSync(join(repositoryRoot, "docs", "production-smoke-checklist.md"), "utf8");
 const smokeReport = readFileSync(join(repositoryRoot, "docs", "production-smoke-test-report-template.md"), "utf8");
@@ -24,7 +21,7 @@ describe("Phase A production browser smoke deployment gate", () => {
     expect(workflow).toContain('[[ "$EXPECTED_IGNORED" == "true" ]]');
     expect(workflow).toContain('echo "skip_smoke=true" >> "$GITHUB_OUTPUT"');
     expect(workflow).toContain("Vercel unexpectedly skipped a runtime-impacting change");
-    expect(workflow).toContain('[[ -z "$target_url" ]]');
+    expect(workflow).toContain('test -n "$target_url"');
     expect(workflow).toContain('echo "skip_smoke=false" >> "$GITHUB_OUTPUT"');
     expect(workflow).toContain("steps.vercel_gate.outputs.skip_smoke != 'true'");
   });

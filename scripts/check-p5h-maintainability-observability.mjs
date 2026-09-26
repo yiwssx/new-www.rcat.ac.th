@@ -15,8 +15,8 @@ const nodeRequestId = read("server/observability/requestId.mjs");
 const adminProxy = read("server/adminProxy/handlers.mjs");
 const cmsDispatcher = read("server/cmsAuth/dispatcher.mjs");
 const cmsUpstreamFetch = read("server/cmsAuth/upstreamFetch.mjs");
-const linkAuditWorkflow = read(".github/workflows/cms-link-integrity-audit.yml");
-const productionObservabilityWorkflow = read(".github/workflows/production-observability.yml");
+const productionDataOperations = read(".github/workflows/production-data-operations.yml");
+const productionVerification = read(".github/workflows/production-verification.yml");
 
 if (!pagination.includes('import { handleAdminMenuMutation } from "./adminMenuMutations";')) {
   fail("adminPagination must delegate menu mutations to the extracted route module");
@@ -27,13 +27,10 @@ for (const forbidden of [
   "UPDATE menu_items",
   "DELETE FROM menu_items"
 ]) {
-  if (pagination.includes(forbidden)) {
-    fail(`adminPagination regained menu write responsibility: ${forbidden}`);
-  }
+  if (pagination.includes(forbidden)) fail(`adminPagination regained menu write responsibility: ${forbidden}`);
 }
-if (Buffer.byteLength(pagination, "utf8") >= 48_000) {
+if (Buffer.byteLength(pagination, "utf8") >= 48_000)
   fail("adminPagination hotspot has grown back above the P5H size ceiling");
-}
 if (!menuMutations.includes("handleAdminMenuMutation") || !menuMutations.includes("isValidCmsLink")) {
   fail("extracted menu mutation module must own menu writes and use the central link policy");
 }
@@ -41,18 +38,14 @@ if (!adminWrite.includes("await validateAdminLinkWriteRequest(request);")) {
   fail("authenticated Admin write boundary must invoke centralized CMS link validation");
 }
 for (const required of ["navigation", "resource", "canonical"]) {
-  if (!linkValidation.includes(`"${required}"`)) {
-    fail(`link policy is missing ${required} classification`);
-  }
+  if (!linkValidation.includes(`"${required}"`)) fail(`link policy is missing ${required} classification`);
 }
-if (linkValidation.includes('"javascript:"') || linkValidation.includes('"data:"')) {
+if (linkValidation.includes('"javascript:"') || linkValidation.includes('"data:"'))
   fail("unsafe URL schemes must not be allowlisted");
-}
 
 for (const source of [workerRequestId, nodeRequestId]) {
-  if (!source.includes("X-RCAT-Request-ID")) {
+  if (!source.includes("X-RCAT-Request-ID"))
     fail("request ID header contract drifted between Vercel and Worker boundaries");
-  }
 }
 if (!adminProxy.includes("ensureNodeRequestId") || !adminProxy.includes("RCAT_REQUEST_ID_HEADER")) {
   fail("Admin proxy must create/forward a server-owned request ID");
@@ -64,9 +57,7 @@ if (!cmsUpstreamFetch.includes("RCAT_REQUEST_ID_HEADER") || !cmsUpstreamFetch.in
   fail("CMS auth correlated fetch must forward the server-owned request ID");
 }
 for (const boundary of ["/api/admin/", "/api/internal/cms-auth/"]) {
-  if (!workerRequestId.includes(boundary)) {
-    fail(`Worker request ID trust boundary is missing ${boundary}`);
-  }
+  if (!workerRequestId.includes(boundary)) fail(`Worker request ID trust boundary is missing ${boundary}`);
 }
 if (!workerRequestId.includes("requestProxySecret === configuredProxySecret")) {
   fail("Worker must require the exact private proxy secret before accepting upstream request IDs");
@@ -75,20 +66,27 @@ if ((workerIndex.match(/withRequestId\(/g) ?? []).length < 2 || !workerIndex.inc
   fail("Worker success/error responses must retain request correlation");
 }
 
-if (!linkAuditWorkflow.includes("secrets.CLOUDFLARE_D1_READ_TOKEN")) {
+const linkAuditStart = productionDataOperations.indexOf("\n  cms-link-audit:");
+const authenticatedStart = productionDataOperations.indexOf("\n  authenticated-cms-field:");
+if (linkAuditStart < 0 || authenticatedStart <= linkAuditStart)
+  fail("Production Data Operations must retain a distinct CMS link audit job");
+const linkAuditWorkflow = productionDataOperations.slice(linkAuditStart, authenticatedStart);
+if (!linkAuditWorkflow.includes("secrets.CLOUDFLARE_D1_READ_TOKEN"))
   fail("production CMS link audit must use the dedicated D1 read token");
-}
 for (const forbidden of ["wrangler deploy", "migrations apply", "time-travel restore", "--file"]) {
-  if (linkAuditWorkflow.includes(forbidden)) {
-    fail(`CMS link audit must stay read-only: ${forbidden}`);
-  }
+  if (linkAuditWorkflow.includes(forbidden)) fail(`CMS link audit must stay read-only: ${forbidden}`);
 }
 
-if (!productionObservabilityWorkflow.includes("workflow_dispatch:")) {
+const observabilityStart = productionVerification.indexOf("\n  d1-observability:");
+if (observabilityStart < 0) fail("Production Verification must retain a D1 observability job");
+const productionObservabilityWorkflow = productionVerification.slice(observabilityStart);
+if (!productionVerification.includes("workflow_dispatch:"))
   fail("Production Observability must remain manually dispatchable");
-}
-if (productionObservabilityWorkflow.includes("schedule:") || productionObservabilityWorkflow.includes("cron:")) {
+if (!productionObservabilityWorkflow.includes("github.event_name == 'workflow_dispatch'")) {
   fail("Production Observability must remain manual-only while its credentials are reviewer-gated");
+}
+if (!productionObservabilityWorkflow.includes("inputs.operation == 'observability'")) {
+  fail("Production Observability must require the explicit observability operation");
 }
 if (
   !productionObservabilityWorkflow.includes("name: production") ||
@@ -96,12 +94,6 @@ if (
   !productionObservabilityWorkflow.includes("secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN")
 ) {
   fail("Production Observability must retain the protected read-only analytics credential boundary");
-}
-if (!productionObservabilityWorkflow.includes("group: production-observability")) {
-  fail("Production Observability must retain a single concurrency group");
-}
-if (!productionObservabilityWorkflow.includes("cancel-in-progress: false")) {
-  fail("Production Observability manual runs must queue rather than cancel one another");
 }
 
 console.log(

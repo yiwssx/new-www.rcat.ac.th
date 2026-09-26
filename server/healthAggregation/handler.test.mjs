@@ -81,19 +81,11 @@ function workflowRun(path, { conclusion = "success", id, number, status = "compl
 function workflowPayload(overrides = {}) {
   return {
     workflow_runs: [
-      workflowRun(".github/workflows/phase-a-production-browser-smoke.yml", {
+      workflowRun(".github/workflows/production-verification.yml", {
         id: 101,
-        number: 165,
-        ...overrides.phaseA
-      }),
-      workflowRun(".github/workflows/production-observability.yml", {
-        id: 102,
-        number: 67,
-        status: "waiting",
-        ...overrides.p6a
-      }),
-      workflowRun(".github/workflows/p6b-production-security.yml", { id: 103, number: 57, ...overrides.p6b }),
-      workflowRun(".github/workflows/p6c-production-reliability.yml", { id: 104, number: 57, ...overrides.p6c })
+        number: 1,
+        ...overrides.productionVerification
+      })
     ]
   };
 }
@@ -160,10 +152,7 @@ describe("B3 health aggregation", () => {
       incidents: { windowHours: 24, groupCount: 0, occurrenceCount: 0, truncated: false }
     });
     expect(response.bodyJson.guards.map((guard) => [guard.id, guard.status])).toEqual([
-      ["phase-a", "healthy"],
-      ["p6a", "unknown"],
-      ["p6b", "healthy"],
-      ["p6c", "healthy"]
+      ["production-verification", "healthy"]
     ]);
     expect(fetchImpl).toHaveBeenCalledTimes(3);
 
@@ -177,26 +166,7 @@ describe("B3 health aggregation", () => {
     expect(response.bodyText).not.toContain(CMS_WORKER_ORIGIN);
   });
 
-  it("treats a cancelled approval-gated P6A run as non-blocking historical noise", async () => {
-    const fetchImpl = vi.fn(async (url) => {
-      const value = String(url);
-      if (value.startsWith(`${CMS_WORKER_ORIGIN}/api/admin/runtime-incidents`)) {
-        return Response.json(incidentPayload());
-      }
-      if (value.includes("/actions/runs?")) {
-        return Response.json(workflowPayload({ p6a: { status: "completed", conclusion: "cancelled" } }));
-      }
-      return Response.json(deploymentPayload());
-    });
-
-    const response = await callHandler(fetchImpl);
-
-    expect(response.statusCode).toBe(200);
-    expect(response.bodyJson.overallStatus).toBe("healthy");
-    expect(response.bodyJson.guards.find((guard) => guard.id === "p6a")?.status).toBe("unknown");
-  });
-
-  it("makes a failed operational guard authoritative over lower-severity incident signals", async () => {
+  it("makes a failed production verification guard authoritative over lower-severity incident signals", async () => {
     const fetchImpl = vi.fn(async (url) => {
       const value = String(url);
       if (value.startsWith(`${CMS_WORKER_ORIGIN}/api/admin/runtime-incidents`)) {
@@ -211,7 +181,7 @@ describe("B3 health aggregation", () => {
         );
       }
       if (value.includes("/actions/runs?")) {
-        return Response.json(workflowPayload({ p6c: { conclusion: "failure" } }));
+        return Response.json(workflowPayload({ productionVerification: { conclusion: "failure" } }));
       }
       return Response.json(deploymentPayload());
     });
@@ -221,7 +191,7 @@ describe("B3 health aggregation", () => {
     expect(response.statusCode).toBe(200);
     expect(response.bodyJson.overallStatus).toBe("error");
     expect(response.bodyJson.incidents).toMatchObject({ groupCount: 1, occurrenceCount: 3 });
-    expect(response.bodyJson.guards.find((guard) => guard.id === "p6c")?.status).toBe("error");
+    expect(response.bodyJson.guards.find((guard) => guard.id === "production-verification")?.status).toBe("error");
   });
 
   it("treats an Ignored Build Step as no new deployment rather than a false deployment success", async () => {

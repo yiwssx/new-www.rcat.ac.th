@@ -14,18 +14,10 @@ const expectedWorkflows = [
   "apps-script-production-release.yml",
   "apps-script-production-rollback.yml",
   "ci.yml",
-  "cms-link-integrity-audit.yml",
-  "d1-recovery-drill.yml",
-  "dependency-monitoring.yml",
   "dependency-status-sync.yml",
-  "deployment-history-maintenance.yml",
-  "facebook-metadata-reclassification.yml",
-  "p6b-production-security.yml",
-  "p6c-production-reliability.yml",
-  "phase-a-production-browser-smoke.yml",
-  "phase-c3-authenticated-cms-field.yml",
-  "production-data-integrity.yml",
-  "production-observability.yml",
+  "maintenance-recovery.yml",
+  "production-data-operations.yml",
+  "production-verification.yml",
   "worker-production-rollback.yml",
   "worker-production.yml"
 ].sort();
@@ -33,24 +25,37 @@ const expectedWorkflows = [
 describe("workflow inventory governance", () => {
   it("keeps the active workflow surface intentionally bounded", () => {
     expect(workflowFiles).toEqual(expectedWorkflows);
-    expect(workflowFiles).toHaveLength(17);
+    expect(workflowFiles).toHaveLength(9);
   });
 
-  it("does not restore retired branch-mutating or duplicate preflight workflows", () => {
+  it("does not restore retired branch-mutating, phase-specific, or duplicate workflows", () => {
     for (const retired of [
       "format-guard.yml",
       "p6b-csp-production-smoke.yml",
       "worker-production-preflight.yml",
-      "apps-script-production-preflight.yml"
+      "apps-script-production-preflight.yml",
+      "dependency-monitoring.yml",
+      "p6b-production-security.yml",
+      "p6c-production-reliability.yml",
+      "phase-a-production-browser-smoke.yml",
+      "phase-c3-authenticated-cms-field.yml",
+      "production-observability.yml",
+      "production-data-integrity.yml",
+      "cms-link-integrity-audit.yml",
+      "facebook-metadata-reclassification.yml",
+      "d1-recovery-drill.yml",
+      "deployment-history-maintenance.yml"
     ]) {
       expect(workflowFiles).not.toContain(retired);
     }
   });
 
-  it("uses clear consolidated names for high-frequency operator surfaces", () => {
+  it("uses clear responsibility-oriented workflow names", () => {
     expect(readWorkflow("ci.yml")).toContain("name: CI");
-    expect(readWorkflow("dependency-status-sync.yml")).toContain("name: Dependencies / Snapshot Repair");
-    expect(readWorkflow("p6b-production-security.yml")).toContain("name: Production / Security");
+    expect(readWorkflow("dependency-status-sync.yml")).toContain("name: Dependencies");
+    expect(readWorkflow("production-verification.yml")).toContain("name: Production Verification");
+    expect(readWorkflow("production-data-operations.yml")).toContain("name: Production Data Operations");
+    expect(readWorkflow("maintenance-recovery.yml")).toContain("name: Maintenance & Recovery");
     expect(readWorkflow("worker-production.yml")).toContain("name: Deploy / Worker");
     expect(readWorkflow("apps-script-production-release.yml")).toContain("name: Deploy / Apps Script");
   });

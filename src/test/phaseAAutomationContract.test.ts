@@ -6,10 +6,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const workflow = readFileSync(
-  join(repositoryRoot, ".github", "workflows", "phase-a-production-browser-smoke.yml"),
-  "utf8"
-);
+const workflow = readFileSync(join(repositoryRoot, ".github", "workflows", "production-verification.yml"), "utf8");
 
 function compact(value: string) {
   return value.replace(/\s+/g, " ");
@@ -27,12 +24,11 @@ describe("Phase A automation contract", () => {
     expect(normalized).toContain("github.event.workflow_run.head_branch == 'master'");
   });
 
-  it("isolates concurrency by the CI source branch", () => {
+  it("isolates concurrency across verification trigger sources", () => {
     const normalized = compact(workflow);
-    expect(normalized).toContain(
-      "group: phase-a-production-browser-smoke-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}"
-    );
-    expect(workflow).not.toMatch(/^\s*group:\s*phase-a-production-browser-smoke\s*$/m);
+    expect(normalized).toContain("group: production-verification-");
+    expect(normalized).toContain("github.event.workflow_run.head_branch");
+    expect(normalized).toContain("github.event.schedule");
   });
 
   it("waits for the matching Vercel status and only runs browser smoke when deployment exists", () => {

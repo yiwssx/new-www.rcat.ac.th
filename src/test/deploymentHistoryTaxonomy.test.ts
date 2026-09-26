@@ -8,17 +8,13 @@ const root = process.cwd();
 const read = (path: string) => readFileSync(join(root, path), "utf8");
 
 const protectedWorkflows = [
-  "cms-link-integrity-audit.yml",
-  "p6b-production-security.yml",
+  "production-verification.yml",
+  "production-data-operations.yml",
+  "maintenance-recovery.yml",
   "apps-script-production-rollback.yml",
-  "production-observability.yml",
   "apps-script-production-release.yml",
-  "d1-recovery-drill.yml",
   "worker-production.yml",
-  "worker-production-rollback.yml",
-  "production-data-integrity.yml",
-  "phase-c3-authenticated-cms-field.yml",
-  "facebook-metadata-reclassification.yml"
+  "worker-production-rollback.yml"
 ];
 
 const workflow = (name: string) => read(`.github/workflows/${name}`);
@@ -43,7 +39,7 @@ describe("GitHub deployment history taxonomy", () => {
   });
 
   it("does not retain legacy pseudo-deployment retirement jobs", () => {
-    for (const name of ["p6b-production-security.yml", "production-observability.yml", "d1-recovery-drill.yml"]) {
+    for (const name of ["production-verification.yml", "maintenance-recovery.yml"]) {
       expect(workflow(name)).not.toContain("retire-environment-deployment");
     }
   });

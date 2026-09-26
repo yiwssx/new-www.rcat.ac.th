@@ -9,11 +9,11 @@ const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..")
 const productionConfig = readFileSync(join(repositoryRoot, "playwright.production.config.ts"), "utf8");
 const phaseC3Config = readFileSync(join(repositoryRoot, "playwright.phase-c3.config.ts"), "utf8");
 const phaseAWorkflow = readFileSync(
-  join(repositoryRoot, ".github", "workflows", "phase-a-production-browser-smoke.yml"),
+  join(repositoryRoot, ".github", "workflows", "production-verification.yml"),
   "utf8"
 );
 const phaseC3Workflow = readFileSync(
-  join(repositoryRoot, ".github", "workflows", "phase-c3-authenticated-cms-field.yml"),
+  join(repositoryRoot, ".github", "workflows", "production-data-operations.yml"),
   "utf8"
 );
 const workerProductionWorkflow = readFileSync(

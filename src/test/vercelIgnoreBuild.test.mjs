@@ -7,7 +7,7 @@ describe("Vercel runtime change classifier", () => {
   it("ignores known non-runtime-only changes", () => {
     expect(
       shouldIgnoreVercelBuild([
-        ".github/workflows/dependency-monitoring.yml",
+        ".github/workflows/dependency-status-sync.yml",
         "docs/maintenance/dependencies.md",
         "cloudflare/public-api/migrations/0012_example.sql",
         "src/test/example.test.ts"

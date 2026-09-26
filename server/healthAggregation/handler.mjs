@@ -22,25 +22,9 @@ const SHA_PATTERN = /^[0-9a-f]{40}$/i;
 
 const WORKFLOWS = [
   {
-    id: "phase-a",
-    label: "Phase A Production Browser Smoke",
-    path: ".github/workflows/phase-a-production-browser-smoke.yml"
-  },
-  {
-    id: "p6a",
-    label: "P6A Production Observability",
-    path: ".github/workflows/production-observability.yml",
-    waitingIsExpected: true
-  },
-  {
-    id: "p6b",
-    label: "P6B Production Security",
-    path: ".github/workflows/p6b-production-security.yml"
-  },
-  {
-    id: "p6c",
-    label: "P6C Production Reliability",
-    path: ".github/workflows/p6c-production-reliability.yml"
+    id: "production-verification",
+    label: "Production Verification",
+    path: ".github/workflows/production-verification.yml"
   }
 ];
 
@@ -228,7 +212,7 @@ function readWorkflowRuns(payload) {
   return payload.workflow_runs.filter((run) => run && typeof run === "object");
 }
 
-function classifyWorkflowRun(run, waitingIsExpected = false) {
+function classifyWorkflowRun(run) {
   if (!run) {
     return "unknown";
   }
@@ -237,16 +221,11 @@ function classifyWorkflowRun(run, waitingIsExpected = false) {
   const conclusion = safeString(run.conclusion).toLowerCase();
 
   if (workflowStatus !== "completed") {
-    if (waitingIsExpected && ["waiting", "queued", "pending", "requested"].includes(workflowStatus)) {
-      return "unknown";
-    }
-
     return workflowStatus ? "warning" : "unknown";
   }
 
   if (conclusion === "success") return "healthy";
   if (["failure", "timed_out", "action_required", "stale"].includes(conclusion)) return "error";
-  if (waitingIsExpected && conclusion === "cancelled") return "unknown";
   if (["cancelled", "neutral", "skipped"].includes(conclusion)) return "warning";
   return "unknown";
 }
@@ -258,7 +237,7 @@ function mapWorkflowSignal(config, runs) {
   return {
     id: config.id,
     label: config.label,
-    status: classifyWorkflowRun(run, config.waitingIsExpected),
+    status: classifyWorkflowRun(run),
     workflowStatus: safeString(run?.status) || "unknown",
     conclusion: safeString(run?.conclusion) || null,
     runId,
@@ -352,7 +331,7 @@ function getOverallStatus(guards, deployment, incidents, githubAvailable) {
     return "error";
   }
 
-  const unknownRequiredGuard = guards.some((guard) => guard.id !== "p6a" && guard.status === "unknown");
+  const unknownRequiredGuard = guards.some((guard) => guard.status === "unknown");
   const unresolvedDeployment = deployment.status === "unknown" && deployment.state !== "ignored";
 
   if (
