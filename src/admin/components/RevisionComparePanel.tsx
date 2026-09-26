@@ -31,7 +31,9 @@ function findRevision(items: ContentRevision[], revision: number | null) {
 
 function revisionLabel(revision: ContentRevision) {
   const timestamp = formatDisplayDateTime(revision.createdAt) || revision.createdAt;
-  return revision.reason === "current" ? `v${revision.revision} · ปัจจุบัน · ${timestamp}` : `v${revision.revision} · ${timestamp}`;
+  return revision.reason === "current"
+    ? `v${revision.revision} · ปัจจุบัน · ${timestamp}`
+    : `v${revision.revision} · ${timestamp}`;
 }
 
 export default function RevisionComparePanel() {
