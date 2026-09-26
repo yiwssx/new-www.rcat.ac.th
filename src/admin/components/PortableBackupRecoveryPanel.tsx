@@ -11,6 +11,7 @@ import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import RestorePageOutlinedIcon from "@mui/icons-material/RestorePageOutlined";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../context/authSessionContext";
+import { hasCmsCapability } from "../../features/cms-auth";
 import { recoverD1Backup } from "../../features/cms-governance/gapClosureClient";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { appSwal } from "../../utils/swal";
@@ -34,8 +35,8 @@ function parseBackupPayload(value: unknown): BackupPayload | null {
 
 export default function PortableBackupRecoveryPanel() {
   const queryClient = useQueryClient();
-  const { hasCapability } = useAuth();
-  const canRecover = hasCapability("backup.restore");
+  const { capabilities } = useAuth();
+  const canRecover = hasCmsCapability(capabilities, "backup.restore");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [payload, setPayload] = useState<BackupPayload | null>(null);
   const [fileName, setFileName] = useState("");
