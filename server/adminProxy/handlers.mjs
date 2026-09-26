@@ -340,7 +340,8 @@ export async function handleAdminProxyRequest(request, response, options = {}) {
 
   try {
     if (BODY_METHODS.has(method)) {
-      const maximumBodyBytes = targetPath === BACKUP_RECOVERY_PATH ? MAX_BACKUP_RECOVERY_BODY_BYTES : MAX_PROXY_BODY_BYTES;
+      const maximumBodyBytes =
+        targetPath === BACKUP_RECOVERY_PATH ? MAX_BACKUP_RECOVERY_BODY_BYTES : MAX_PROXY_BODY_BYTES;
       const body = await readRequestBody(request, maximumBodyBytes);
       requestBody = body.length > 0 ? body : undefined;
     }
