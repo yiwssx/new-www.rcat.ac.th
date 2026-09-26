@@ -1,6 +1,6 @@
 # Runtime Deployment Guide
 
-Updated: 2026-09-14.
+Updated: 2026-09-26.
 
 ## Toolchain
 
@@ -124,31 +124,26 @@ The legacy physical `preview` label must not be interpreted as a non-production 
 - exact physical D1 resource name expected by the repository;
 - protected UUID in `RCAT_PRODUCTION_D1_DATABASE_ID`.
 
-Production migration inspection is intentionally separate and read-only through:
-
-```text
-.github/workflows/worker-production-preflight.yml
-```
-
-Run this workflow on `master` before a production Worker release after Worker/D1 changes. It verifies that the promoted data-bearing D1 physical resource matches the protected production UUID, validates migration filename sequencing, resolves a current Time Travel bookmark without printing it, and runs `wrangler d1 migrations list ... --remote`. The preflight does not apply migrations, execute SQL files, deploy a Worker, or restore Time Travel state.
-
-Production Worker release is intentionally manual through:
+Production migration inspection and production release are consolidated into the manual **Deploy / Worker** workflow:
 
 ```text
 .github/workflows/worker-production.yml
 ```
 
-Both workflows are `workflow_dispatch` only, use the protected `production` GitHub environment, and refuse to operate from a ref other than `master`.
+Run operation `preflight` on `master` before a production Worker release after Worker/D1 changes. The preflight uses the dedicated read-only D1 credential, verifies that the promoted data-bearing D1 physical resource matches the protected production UUID, validates migration filename sequencing, resolves a current Time Travel bookmark without printing it, and lists unapplied migrations. It does not apply migrations, execute SQL files, deploy a Worker, or restore Time Travel state.
+
+Run operation `release` on the same reviewed `master` revision to perform the protected production mutation. Both operations use the protected `production` GitHub environment and refuse to operate from a ref other than `master`.
 
 Required GitHub `production` environment/repository secrets:
 
 ```text
 CLOUDFLARE_ACCOUNT_ID
+CLOUDFLARE_D1_READ_TOKEN
 CLOUDFLARE_API_TOKEN
 RCAT_PRODUCTION_D1_DATABASE_ID
 ```
 
-`RCAT_PRODUCTION_D1_DATABASE_ID` must contain the UUID of the promoted data-bearing D1.
+`CLOUDFLARE_D1_READ_TOKEN` is used only by read-only inspection paths. `CLOUDFLARE_API_TOKEN` is reserved for the release and other explicitly protected production-write operations. `RCAT_PRODUCTION_D1_DATABASE_ID` must contain the UUID of the promoted data-bearing D1.
 
 The tracked `cloudflare/public-api/wrangler.toml` must keep:
 
@@ -166,7 +161,7 @@ database_id = "production-placeholder"
 
 Never commit the real D1 UUID. `env.production` is the canonical deployment role while the Worker and D1 retain their historical physical names. `keep_vars = true` preserves dashboard-managed non-secret Worker variables that are not represented in the tracked configuration; Cloudflare encrypted secrets are preserved by Wrangler deployment unless they are explicitly deleted.
 
-`worker-production-preflight.mjs` and `worker-production-deploy.mjs` create temporary production configs next to `wrangler.toml` using the protected D1 UUID. The release workflow verifies exact D1 identity, captures a fresh pre-release Time Travel bookmark, lists unapplied migrations, rechecks the production fixture sentinel, and only then allows the mutating release step.
+`worker-production-preflight.mjs` and `worker-production-deploy.mjs` create temporary production configs next to `wrangler.toml` using the protected D1 UUID. The release job verifies exact D1 identity, captures a fresh pre-release Time Travel bookmark, lists unapplied migrations, rechecks the production fixture sentinel, and only then allows the mutating release step.
 
 The mutating release helper performs:
 
@@ -182,7 +177,7 @@ The workflow therefore fails closed when the production D1 UUID is missing/malfo
 
 ### Recovery readiness
 
-`.github/workflows/d1-recovery-drill.yml` is now a read-only **production** Time Travel readiness drill. It verifies the same protected D1 identity and resolves current Time Travel metadata/bookmark only. The workflow intentionally contains no restore command.
+`.github/workflows/d1-recovery-drill.yml` is a read-only **production** Time Travel readiness drill. It verifies the same protected D1 identity and resolves current Time Travel metadata/bookmark only. The workflow intentionally contains no restore command.
 
 ### Analytics and runtime-incident migration/retention
 
@@ -198,7 +193,7 @@ B2 Runtime Incident Feed additionally requires:
 0014_b2_runtime_incidents.sql
 ```
 
-The production release workflow applies pending migrations before deployment.
+The production release operation applies pending migrations before deployment.
 
 Production Worker cron runs daily and prunes:
 
@@ -244,9 +239,8 @@ Start with focused tests for the changed boundary, then broaden. Release-scale v
 
 ```bash
 pnpm install --frozen-lockfile --strict-peer-dependencies
-pnpm deps:status:check
-pnpm deps:check
-pnpm deps:docs:audit
+pnpm deps:check -- --skip-documentation-freshness
+pnpm deps:docs:audit -- --skip-status-hashes
 pnpm format:check
 pnpm lint:strict
 pnpm test:unit
@@ -262,7 +256,7 @@ pnpm exec playwright install --with-deps chromium
 pnpm test:functional
 ```
 
-The dependency status check validates the committed generated report; it must not silently regenerate a stale report in blocking PR/push CI.
+Blocking PR/push CI validates the committed dependency artifact without requiring an Actions-generated dependency snapshot commit. Live registry movement is handled by Renovate and Dependency Monitoring; the committed status snapshot is refreshed only through deliberate maintenance/repair.
 
 ## Deployment Safety
 
@@ -281,9 +275,9 @@ Before a Worker deployment:
 
 1. merge the validated Worker/D1 convergence/release changes to `master`;
 2. keep `RCAT_PRODUCTION_D1_DATABASE_ID` set to the existing data-bearing D1 UUID in the protected GitHub `production` environment;
-3. invoke `Worker Production Preflight` manually on `master` and inspect the unapplied-migration list;
+3. invoke **Deploy / Worker** with operation `preflight` manually on `master` and inspect the unapplied-migration list;
 4. confirm exact promoted-D1 identity, Time Travel readiness, and the pending migration set;
-5. invoke `Worker Production Release` manually on the same `master` revision;
+5. invoke **Deploy / Worker** with operation `release` manually on the same `master` revision;
 6. require successful fixture gates, migration apply, and in-place Worker deploy output;
 7. do not change Vercel Worker URL variables if they already point to the existing Worker endpoint;
 8. verify Worker health, Public API, Admin/Auth, analytics/runtime-incidents, and representative SSR pages immediately after release.
