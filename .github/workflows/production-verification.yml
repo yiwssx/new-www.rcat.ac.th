@@ -1,0 +1,302 @@
+name: Production Verification
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - master
+  schedule:
+    - cron: "7 */6 * * *"
+    - cron: "47 */6 * * *"
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/production-verification.yml"
+      - "vercel.json"
+      - "middleware.ts"
+      - "src/entry-server.tsx"
+      - "src/entry-client.tsx"
+      - "src/runtime.ts"
+      - "src/routes.tsx"
+      - "src/security/cspPolicy.ts"
+      - "server/security/edgeWafPolicy.ts"
+      - "cloudflare/public-api/src/securityRateLimit.ts"
+      - "cloudflare/public-api/src/routes/cmsAuthInternal.ts"
+      - "cloudflare/public-api/src/routes/adminWrite.ts"
+      - "cloudflare/public-api/wrangler.toml"
+      - "scripts/p6b-csp-production-smoke.mjs"
+      - "scripts/p6b-edge-waf-production-smoke.mjs"
+      - "scripts/check-production-auth-security-events.mjs"
+      - "scripts/p6c-production-reliability-smoke.mjs"
+      - "scripts/check-p6c-recovery-reliability.mjs"
+      - "config/p6c-recovery-readiness.json"
+      - "docs/operations/p6c-recovery-reliability.md"
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Production verification operation"
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - browser-smoke
+          - security
+          - reliability
+          - auth-anomaly
+          - observability
+      base_url:
+        description: "HTTPS site URL for manual browser smoke"
+        required: false
+        default: "https://www.rcat.ac.th"
+        type: string
+
+permissions:
+  contents: read
+  statuses: read
+
+concurrency:
+  group: production-verification-${{ github.event_name == 'workflow_dispatch' && inputs.operation || github.event.schedule || github.event.workflow_run.head_branch || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  browser-smoke:
+    name: Read-only Browser Field QA
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       (inputs.operation == 'all' || inputs.operation == 'browser-smoke')) ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'master')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.base_url || 'https://www.rcat.ac.th' }}
+      TARGET_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 2
+
+      - name: Classify Vercel runtime impact
+        id: runtime_impact
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          CHANGED_PATHS_FILE: ${{ runner.temp }}/production-verification-changed-paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only -z HEAD^ HEAD > "$CHANGED_PATHS_FILE"
+          git diff --name-only HEAD^ HEAD
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import { shouldIgnoreVercelBuild } from "./scripts/vercel-ignore-build.mjs";
+          const changedPaths = fs.readFileSync(process.env.CHANGED_PATHS_FILE).toString("utf8").split("\0").filter(Boolean);
+          const expectedIgnored = shouldIgnoreVercelBuild(changedPaths);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `expected_ignored=${expectedIgnored}\n`);
+          NODE
+
+      - name: Wait for matching Vercel production deployment
+        id: vercel_gate
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_IGNORED: ${{ steps.runtime_impact.outputs.expected_ignored }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            payload="$(curl --fail-with-body --silent --show-error -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/status")"
+            status_json="$(printf '%s' "$payload" | node -e '
+              let input = "";
+              process.stdin.setEncoding("utf8");
+              process.stdin.on("data", (chunk) => (input += chunk));
+              process.stdin.on("end", () => {
+                const payload = JSON.parse(input);
+                const vercel = payload.statuses.find((status) => status.context === "Vercel");
+                process.stdout.write(JSON.stringify({state: vercel?.state || "missing", description: vercel?.description || "", targetUrl: vercel?.target_url || ""}));
+              });
+            ')"
+            state="$(printf '%s' "$status_json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).state')"
+            description="$(printf '%s' "$status_json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).description')"
+            target_url="$(printf '%s' "$status_json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).targetUrl')"
+            case "$state" in
+              success)
+                if [[ "$description" == *"Canceled by Ignored Build Step"* || "$description" == *"Ignored Build Step"* ]]; then
+                  if [[ "$EXPECTED_IGNORED" == "true" ]]; then
+                    echo "skip_smoke=true" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+                  echo "Vercel unexpectedly skipped a runtime-impacting change for $TARGET_SHA: $description" >&2
+                  exit 1
+                fi
+                test -n "$target_url" || { echo "Vercel status is missing a deployment target URL." >&2; exit 1; }
+                echo "skip_smoke=false" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+              failure|error) echo "Vercel deployment failed: $state ($description)" >&2; exit 1 ;;
+              pending|missing) sleep 10 ;;
+              *) echo "Unexpected Vercel commit status: $state ($description)" >&2; exit 1 ;;
+            esac
+          done
+          echo "Timed out waiting for Vercel deployment status for $TARGET_SHA." >&2
+          exit 1
+
+      - uses: pnpm/action-setup@v6
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
+      - name: Install Chromium
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run read-only production browser smoke
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.vercel_gate.outputs.skip_smoke != 'true' }}
+        env:
+          PHASE_A_PRODUCTION_BASE_URL: ${{ env.TARGET_URL }}
+        run: pnpm exec playwright test --config playwright.production.config.ts
+      - name: Upload browser failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-browser-smoke-${{ github.run_id }}
+          path: |
+            playwright-report/production
+            test-results/production
+          if-no-files-found: ignore
+          retention-days: 7
+
+  edge-waf:
+    name: Vercel Edge WAF Smoke
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      ((github.event_name == 'schedule' && github.event.schedule == '47 */6 * * *') ||
+       github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && (inputs.operation == 'all' || inputs.operation == 'security')))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: node scripts/p6b-edge-waf-production-smoke.mjs
+
+  csp-browser:
+    name: CSP Browser Smoke
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && (inputs.operation == 'all' || inputs.operation == 'security')))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-project
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Verify production CSP enforcement
+        env:
+          P6B_CSP_EXPECTED_MARKER: p6b-enforced-v1
+        run: node scripts/p6b-csp-production-smoke.mjs
+
+  reliability:
+    name: Public Recovery Baseline
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      ((github.event_name == 'schedule' && github.event.schedule == '7 */6 * * *') ||
+       github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && (inputs.operation == 'all' || inputs.operation == 'reliability')))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: node scripts/p6c-production-reliability-smoke.mjs
+
+  auth-anomaly:
+    name: Auth Anomaly Diagnostic
+    if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' && inputs.operation == 'auth-anomaly' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      deployment: false
+    env:
+      AUTH_SECURITY_LOOKBACK_MINUTES: "135"
+      AUTH_SECURITY_WARNING_EVENTS: "10"
+      AUTH_SECURITY_CRITICAL_EVENTS: "30"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Require protected D1 read credentials
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || exit 1
+          test -n "$CLOUDFLARE_API_TOKEN" || exit 1
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || exit 1
+      - name: Query sanitized auth anomaly aggregates
+        id: auth_security
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: node scripts/check-production-auth-security-events.mjs
+      - name: Fail on auth anomaly warning or critical
+        if: ${{ steps.auth_security.outputs.severity == 'warning' || steps.auth_security.outputs.severity == 'critical' }}
+        run: |
+          echo "Sensitive authentication activity reached ${{ steps.auth_security.outputs.severity }} severity." >&2
+          exit 1
+
+  d1-observability:
+    name: D1 Usage Guard
+    if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' && inputs.operation == 'observability' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      deployment: false
+    env:
+      D1_USAGE_LOOKBACK_DAYS: "14"
+      D1_DAILY_ROWS_READ_LIMIT: ${{ vars.D1_DAILY_ROWS_READ_LIMIT || '5000000' }}
+      D1_DAILY_ROWS_WRITTEN_LIMIT: ${{ vars.D1_DAILY_ROWS_WRITTEN_LIMIT || '100000' }}
+      D1_USAGE_INFO_RATIO: ${{ vars.D1_USAGE_INFO_RATIO || '0.50' }}
+      D1_USAGE_WARNING_RATIO: ${{ vars.D1_USAGE_WARNING_RATIO || '0.70' }}
+      D1_USAGE_CRITICAL_RATIO: ${{ vars.D1_USAGE_CRITICAL_RATIO || '0.85' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Require read-only analytics credentials
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || exit 1
+          test -n "$CLOUDFLARE_ANALYTICS_READ_TOKEN" || exit 1
+      - name: Query Cloudflare D1 billing metrics
+        id: usage
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ANALYTICS_READ_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+          D1_USAGE_REPORT_PATH: ${{ runner.temp }}/production-observability-report.json
+        run: node scripts/check-production-d1-usage.mjs
+      - name: Fail on warning or critical daily usage
+        if: ${{ steps.usage.outputs.severity == 'warning' || steps.usage.outputs.severity == 'critical' }}
+        run: |
+          echo "D1 usage reached the ${{ steps.usage.outputs.severity }} threshold for the current UTC billing day." >&2
+          exit 1
