@@ -57,7 +57,10 @@ function fallbackLineDiff(beforeLines: string[], afterLines: string[]): Revision
   ];
 }
 
-export function compareRevisionBody(beforeBody: string | undefined, afterBody: string | undefined): RevisionLineChange[] {
+export function compareRevisionBody(
+  beforeBody: string | undefined,
+  afterBody: string | undefined
+): RevisionLineChange[] {
   const beforeLines = String(beforeBody || "").split("\n");
   const afterLines = String(afterBody || "").split("\n");
   if (beforeLines.join("\n") === afterLines.join("\n")) return [];
