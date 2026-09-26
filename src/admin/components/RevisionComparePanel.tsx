@@ -29,6 +29,11 @@ function findRevision(items: ContentRevision[], revision: number | null) {
   return items.find((item) => item.revision === revision) ?? null;
 }
 
+function revisionLabel(revision: ContentRevision) {
+  const timestamp = formatDisplayDateTime(revision.createdAt) || revision.createdAt;
+  return revision.reason === "current" ? `v${revision.revision} · ปัจจุบัน · ${timestamp}` : `v${revision.revision} · ${timestamp}`;
+}
+
 export default function RevisionComparePanel() {
   const [selectedId, setSelectedId] = useState("");
   const [beforeRevision, setBeforeRevision] = useState<number | null>(null);
@@ -51,10 +56,21 @@ export default function RevisionComparePanel() {
     enabled: Boolean(selectedId),
     staleTime: 5_000
   });
-  const revisions = useMemo(
-    () => (revisionsQuery.data?.items ?? []).filter((item) => Boolean(item.snapshot)),
-    [revisionsQuery.data?.items]
-  );
+  const revisions = useMemo(() => {
+    const historical = (revisionsQuery.data?.items ?? []).filter((item) => Boolean(item.snapshot));
+    if (!selected || !revisionsQuery.data) return historical;
+    const currentRevision = Number(selected.revision ?? revisionsQuery.data.currentRevision ?? 0);
+    const current: ContentRevision = {
+      id: `current-${selected.id}-${currentRevision}`,
+      contentId: selected.id,
+      revision: currentRevision,
+      reason: "current",
+      actor: "current",
+      createdAt: selected.updatedAt,
+      snapshot: selected
+    };
+    return [current, ...historical.filter((item) => item.revision !== currentRevision)];
+  }, [revisionsQuery.data, selected]);
 
   useEffect(() => {
     if (revisions.length < 2) {
@@ -101,7 +117,7 @@ export default function RevisionComparePanel() {
           {revisionsQuery.isLoading && selectedId && <Typography>กำลังโหลดประวัติเวอร์ชัน…</Typography>}
           {revisionsQuery.isError && <Alert severity="error">ไม่สามารถโหลดประวัติเวอร์ชันได้</Alert>}
           {selectedId && !revisionsQuery.isLoading && revisions.length < 2 && (
-            <Alert severity="info">ต้องมีอย่างน้อย 2 เวอร์ชันจึงจะเปรียบเทียบได้</Alert>
+            <Alert severity="info">ยังไม่มีเวอร์ชันก่อนหน้าเพียงพอสำหรับการเปรียบเทียบ</Alert>
           )}
 
           {revisions.length >= 2 && (
@@ -118,7 +134,7 @@ export default function RevisionComparePanel() {
                     >
                       {revisions.map((revision) => (
                         <MenuItem key={revision.id} value={revision.revision}>
-                          v{revision.revision} · {formatDisplayDateTime(revision.createdAt) || revision.createdAt}
+                          {revisionLabel(revision)}
                         </MenuItem>
                       ))}
                     </Select>
@@ -135,7 +151,7 @@ export default function RevisionComparePanel() {
                     >
                       {revisions.map((revision) => (
                         <MenuItem key={revision.id} value={revision.revision}>
-                          v{revision.revision} · {formatDisplayDateTime(revision.createdAt) || revision.createdAt}
+                          {revisionLabel(revision)}
                         </MenuItem>
                       ))}
                     </Select>
