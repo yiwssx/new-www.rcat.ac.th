@@ -21,6 +21,7 @@ import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import AuditActivityWorkflowGuide from "../components/AuditActivityWorkflowGuide";
+import PortableBackupRecoveryPanel from "../components/PortableBackupRecoveryPanel";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../../context/authSessionContext";
 import {
@@ -265,13 +266,12 @@ export default function BackupPage() {
                 >
                   {isDownloading ? "กำลังสร้างไฟล์สำรองข้อมูล" : "ดาวน์โหลดไฟล์สำรองข้อมูล"}
                 </Button>
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  การกู้คืนข้อมูลยังไม่เปิดให้ทำผ่านหน้าเว็บ เพื่อป้องกันการเขียนทับข้อมูลโดยไม่ตั้งใจ
-                </Alert>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
+
+        <PortableBackupRecoveryPanel />
       </Stack>
     </Box>
   );
