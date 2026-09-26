@@ -127,20 +127,23 @@ beforeEach(() => {
 });
 
 describe("admin MFA management route policy", () => {
-  it("adds exactly four Phase 6 capabilities with only MFA administration restricted to admins", () => {
-    expect(ADMIN_CAPABILITIES).toHaveLength(45);
+  it("keeps the Phase 6 MFA capabilities while later recovery capability remains admin-only", () => {
+    expect(ADMIN_CAPABILITIES).toHaveLength(46);
     expect(getCapabilitiesForRole("admin")).toEqual(
       expect.arrayContaining([
         "auth.reauthenticate-self",
         "auth.mfa.manage-self",
         "users.mfa.require",
-        "users.mfa.reset"
+        "users.mfa.reset",
+        "backup.restore"
       ])
     );
     expect(getCapabilitiesForRole("editor")).toEqual(
       expect.arrayContaining(["auth.reauthenticate-self", "auth.mfa.manage-self"])
     );
+    expect(getCapabilitiesForRole("editor")).not.toContain("backup.restore");
     expect(getCapabilitiesForRole("viewer")).not.toContain("users.mfa.reset");
+    expect(getCapabilitiesForRole("viewer")).not.toContain("backup.restore");
   });
 
   it("maps exact MFA requirement and reset methods and rejects neighboring methods", () => {
