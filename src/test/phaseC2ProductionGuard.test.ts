@@ -2,12 +2,15 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("Phase C2 production performance guard", () => {
-  it("reuses the existing read-only production Playwright pipeline", () => {
-    const workflow = readFileSync(".github/workflows/phase-a-production-browser-smoke.yml", "utf8");
+  it("reuses the consolidated read-only production Playwright pipeline", () => {
+    const workflow = readFileSync(".github/workflows/production-verification.yml", "utf8");
     const config = readFileSync("playwright.production.config.ts", "utf8");
+    const browserStart = workflow.indexOf("\n  browser-smoke:");
+    const wafStart = workflow.indexOf("\n  edge-waf:");
+    const browserJob = workflow.slice(browserStart, wafStart);
 
-    expect(workflow).toContain("pnpm exec playwright test --config playwright.production.config.ts");
-    expect(workflow).toContain("Production writes: none");
+    expect(browserJob).toContain("pnpm exec playwright test --config playwright.production.config.ts");
+    expect(browserJob).not.toContain("secrets.");
     expect(config).toMatch(/fullyParallel:\s*false/);
     expect(config).toMatch(/workers:\s*1/);
   });
