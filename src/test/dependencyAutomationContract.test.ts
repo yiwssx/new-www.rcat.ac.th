@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (path: string) => readFileSync(join(repositoryRoot, path), "utf8");
 const renovate = JSON.parse(read("renovate.json")) as Record<string, unknown>;
-const dependenciesWorkflow = read(".github/workflows/dependencies.yml");
+const dependenciesWorkflow = read(".github/workflows/dependency-status-sync.yml");
 const ciWorkflow = read(".github/workflows/ci.yml");
 const qualityBridgeScript = read("scripts/validate-required-quality.sh");
 const dependencyStatusScript = read("scripts/generate-dependency-status.mjs");
