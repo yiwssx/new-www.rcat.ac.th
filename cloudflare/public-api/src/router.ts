@@ -66,6 +66,7 @@ export async function routeRequest(request: Request, env: Env) {
   const contentScopeResponse = await enforceAdminContentScope(request, env);
 
   if (contentScopeResponse) {
+    contentScopeResponse.headers.set("Cache-Control", "no-store");
     return contentScopeResponse;
   }
 
