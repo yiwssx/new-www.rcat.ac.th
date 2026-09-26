@@ -189,6 +189,7 @@ jobs:
           schema_status=$?
           set -e
           if [[ "$schema_status" -ne 0 ]]; then
+            echo "Production fixture schema inspection failed." >&2
             node scripts/sanitize-cloudflare-cli-output.mjs --file "$schema_stderr" --label "wrangler stderr" || true
             exit "$schema_status"
           fi
