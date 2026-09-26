@@ -1,0 +1,151 @@
+name: Dependencies
+
+on:
+  schedule:
+    - cron: "15 0 * * *"
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Dependency operation"
+        required: true
+        type: choice
+        default: monitor
+        options:
+          - monitor
+          - snapshot-repair
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependencies-${{ github.event_name == 'schedule' && 'monitor' || inputs.operation }}
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    name: Live Registry Monitor
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.operation == 'monitor') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-project
+      - name: Validate live dependency policy and report backlog
+        run: node scripts/generate-dependency-status.mjs --monitor
+
+  snapshot-repair:
+    name: Snapshot Repair
+    if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' && inputs.operation == 'snapshot-repair' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install validated dependency artifact for snapshot generation
+        uses: ./.github/actions/setup-project
+        with:
+          install-args: --frozen-lockfile --strict-peer-dependencies --ignore-scripts
+
+      - name: Check committed dependency snapshot input hashes
+        id: committed_snapshot
+        shell: bash
+        run: |
+          set +e
+          pnpm deps:status:check
+          status=$?
+          set -e
+
+          if [ "$status" -eq 0 ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Dependency snapshot input hashes are current"
+              echo "No repair branch is required."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Dependency snapshot input hashes are stale"
+              echo "The workflow will generate a bounded repair branch for maintainer review."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Refresh dependency status document in workspace
+        if: steps.committed_snapshot.outputs.current != 'true'
+        run: pnpm deps:status
+
+      - name: Verify generated change scope
+        if: steps.committed_snapshot.outputs.current != 'true'
+        shell: bash
+        run: |
+          unexpected="$(git status --porcelain --untracked-files=no | awk '$2 != "docs/maintenance/dependency-current-status.md" { print }')"
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected tracked changes after dependency status generation:"
+            echo "$unexpected"
+            exit 1
+          fi
+
+      - name: Detect dependency status drift
+        id: drift
+        if: steps.committed_snapshot.outputs.current != 'true'
+        shell: bash
+        run: |
+          if git diff --quiet -- docs/maintenance/dependency-current-status.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Dependency status snapshot is already current."
+            exit 0
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          git diff --stat -- docs/maintenance/dependency-current-status.md
+
+      - name: Publish snapshot repair branch
+        id: repair_commit
+        if: steps.drift.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sync_branch="automation/dependency-status-sync"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/maintenance/dependency-current-status.md
+          HUSKY=0 git commit -m "docs(deps): refresh dependency status"
+          git push --force origin "HEAD:refs/heads/$sync_branch"
+
+          echo "branch=$sync_branch" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Validate repair head and publish required quality status
+        if: steps.repair_commit.outputs.branch != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ steps.repair_commit.outputs.branch }}
+          TARGET_SHA: ${{ steps.repair_commit.outputs.sha }}
+        shell: bash
+        run: bash scripts/validate-required-quality.sh "$TARGET_BRANCH" "$TARGET_SHA"
+
+      - name: Report current dependency status
+        if: steps.committed_snapshot.outputs.current == 'true'
+        run: |
+          {
+            echo "## Dependency status"
+            echo "The checked-in snapshot matches committed dependency inputs."
+            echo "Registry-only movement remains the responsibility of scheduled monitoring and Renovate."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Require maintainer PR for repaired snapshot
+        if: steps.repair_commit.outputs.branch != ''
+        shell: bash
+        run: |
+          {
+            echo "## Snapshot repair requires maintainer PR"
+            echo "Validated branch: automation/dependency-status-sync"
+            echo "Automatic pull-request creation remains disabled by repository policy."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Validated repair branch published; maintainer pull request is required by repository policy."
+          exit 1
