@@ -42,6 +42,7 @@ import {
   type AdminMenuOrderItem
 } from "../../features/admin-pagination";
 import type { PublicMenuItem } from "../../features/cms-navigation/types";
+import { PUBLIC_MENU_ROUTE_OPTIONS } from "../../public/routing/publicRouteRegistry";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { ADMIN_READ_ONLY_NOTICE, canManageMenu } from "../utils/rbac";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
@@ -164,6 +165,10 @@ export default function MenuPage() {
   const loading = treeQuery.isLoading || orderQuery.isLoading;
   const fetching = treeQuery.isFetching || orderQuery.isFetching;
   const loadError = treeQuery.error ?? orderQuery.error;
+  const normalizedFormHref = normalizeMenuHref(form.href);
+  const selectedRegisteredRoute = PUBLIC_MENU_ROUTE_OPTIONS.some((route) => route.path === normalizedFormHref)
+    ? normalizedFormHref
+    : "";
 
   async function invalidateMenuData() {
     await Promise.all([
@@ -626,6 +631,29 @@ export default function MenuPage() {
               required
               fullWidth
             />
+
+            <FormControl fullWidth>
+              <InputLabel id="menu-registered-route-label">หน้าในระบบ</InputLabel>
+              <Select
+                labelId="menu-registered-route-label"
+                label="หน้าในระบบ"
+                value={selectedRegisteredRoute}
+                onChange={(event) => {
+                  const path = String(event.target.value || "");
+                  if (path) {
+                    setForm((current) => ({ ...current, href: path }));
+                  }
+                }}
+              >
+                <MenuItem value="">กำหนด URL เอง</MenuItem>
+                {PUBLIC_MENU_ROUTE_OPTIONS.map((route) => (
+                  <MenuItem key={route.id} value={route.path}>
+                    {route.label} — {route.path}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>เลือกหน้าที่ระบบรู้จักเพื่อเติมเส้นทาง หรือกำหนด URL เองในช่องด้านล่าง</FormHelperText>
+            </FormControl>
 
             <TextField
               label="เส้นทางหรือ URL"

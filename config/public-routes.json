@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "systemReservedRootSlugs": [
+    "admin",
+    "api",
+    "login",
+    "activate-account",
+    "reset-password",
+    "content",
+    "sitemap.xml",
+    "robots.txt"
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "label": "หน้าหลัก",
+      "kind": "core",
+      "menuSelectable": true,
+      "indexable": true,
+      "sitemap": true,
+      "description": "เว็บไซต์ประชาสัมพันธ์และระบบจัดการเนื้อหาของสถานศึกษา"
+    },
+    {
+      "id": "news",
+      "path": "/news",
+      "label": "ข่าว",
+      "kind": "core",
+      "menuSelectable": true,
+      "indexable": true,
+      "sitemap": true,
+      "title": "ข่าว",
+      "description": "กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS"
+    },
+    {
+      "id": "announcements",
+      "path": "/announcements",
+      "label": "ประกาศ",
+      "kind": "core",
+      "menuSelectable": true,
+      "indexable": true,
+      "sitemap": true,
+      "title": "ประกาศ",
+      "description": "ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา"
+    },
+    {
+      "id": "achievements",
+      "path": "/achievements",
+      "label": "ผลงานและความภาคภูมิใจ",
+      "kind": "core",
+      "menuSelectable": true,
+      "indexable": true,
+      "sitemap": true,
+      "title": "ผลงานและความภาคภูมิใจ",
+      "description": "ผลงาน รางวัล และความสำเร็จของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด"
+    },
+    {
+      "id": "departments",
+      "path": "/departments",
+      "label": "แผนกวิชา",
+      "kind": "core",
+      "menuSelectable": true,
+      "indexable": true,
+      "sitemap": true,
+      "title": "แผนกวิชา",
+      "description": "ข้อมูลแผนกวิชาที่เผยแพร่จาก CMS"
+    },
+    {
+      "id": "blog",
+      "path": "/blog",
+      "label": "บทความ",
+      "kind": "core",
+      "menuSelectable": true,
+      "indexable": true,
+      "sitemap": true,
+      "title": "บทความ",
+      "description": "บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS"
+    },
+    {
+      "id": "documents",
+      "path": "/documents",
+      "label": "เอกสารเผยแพร่",
+      "kind": "core",
+      "menuSelectable": true,
+      "indexable": true,
+      "sitemap": true,
+      "title": "เอกสารเผยแพร่",
+      "description": "เอกสารเผยแพร่ของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด"
+    },
+    {
+      "id": "calendar",
+      "path": "/calendar",
+      "label": "กำหนดการ",
+      "kind": "core",
+      "menuSelectable": true,
+      "indexable": true,
+      "sitemap": true,
+      "title": "กำหนดการ",
+      "description": "กำหนดการและกิจกรรมสาธารณะของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด"
+    },
+    {
+      "id": "contact",
+      "path": "/contact",
+      "label": "ติดต่อ",
+      "kind": "core",
+      "menuSelectable": true,
+      "indexable": true,
+      "sitemap": true,
+      "title": "ติดต่อ",
+      "description": "ข้อมูลติดต่อที่เผยแพร่จาก CMS"
+    },
+    {
+      "id": "complaint",
+      "path": "/complaint",
+      "label": "แจ้งเรื่องร้องเรียน",
+      "kind": "application",
+      "menuSelectable": true,
+      "indexable": false,
+      "sitemap": false,
+      "title": "แบบฟอร์มแจ้งเรื่องร้องเรียน",
+      "description": "กรอกข้อมูลให้ครบถ้วน ระบบจะส่งเรื่องให้ผู้ดูแลทันที",
+      "robots": "noindex,follow"
+    },
+    {
+      "id": "ita2569",
+      "path": "/ita2569",
+      "label": "ITA 2569",
+      "kind": "application",
+      "menuSelectable": true,
+      "indexable": true,
+      "sitemap": true,
+      "title": "ITA ประจำปีงบประมาณ พ.ศ. 2569",
+      "description": "การเปิดเผยข้อมูลสาธารณะ (OIT) เพื่อการประเมินคุณธรรมและความโปร่งใสในการดำเนินงานของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด ประจำปีงบประมาณ พ.ศ. 2569"
+    },
+    {
+      "id": "search",
+      "path": "/search",
+      "label": "ค้นหา",
+      "kind": "core",
+      "menuSelectable": false,
+      "indexable": false,
+      "sitemap": false,
+      "title": "ค้นหา",
+      "description": "ค้นหาเนื้อหา ข่าว ประกาศ แผนกวิชา และบทความในเว็บไซต์",
+      "robots": "noindex,follow"
+    }
+  ]
+}

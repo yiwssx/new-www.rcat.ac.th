@@ -1,3 +1,5 @@
+import registryConfig from "../config/public-routes.json" with { type: "json" };
+
 const CONTENT_KINDS = ["news", "announcements", "blog"];
 const SITEMAP_PAGE_SIZE = 100;
 const SITEMAP_PAGE_FETCH_CONCURRENCY = 4;
@@ -7,22 +9,29 @@ const SITEMAP_BROWSER_CACHE_CONTROL = "public, max-age=0, must-revalidate";
 const SITEMAP_LIVE_CDN_CACHE_CONTROL = "public, max-age=600, stale-while-revalidate=86400, stale-if-error=86400";
 const SITEMAP_FALLBACK_CDN_CACHE_CONTROL = "public, max-age=60, stale-while-revalidate=300, stale-if-error=86400";
 
+const PUBLIC_ROUTE_REGISTRY = Array.isArray(registryConfig?.routes) ? registryConfig.routes : [];
+const SYSTEM_RESERVED_ROOT_SLUGS = new Set(
+  Array.isArray(registryConfig?.systemReservedRootSlugs)
+    ? registryConfig.systemReservedRootSlugs
+        .map((slug) =>
+          String(slug || "")
+            .trim()
+            .toLowerCase()
+        )
+        .filter(Boolean)
+    : []
+);
+const NON_INDEXABLE_PUBLIC_ROUTES = new Set(
+  PUBLIC_ROUTE_REGISTRY.filter((route) => route?.indexable === false).map((route) => String(route.path || "").trim())
+);
+
 let lastKnownGoodSitemap = null;
 let liveSitemapCache = null;
 let liveSitemapRefresh = null;
 
-export const STATIC_INDEXABLE_ROUTES = [
-  "/",
-  "/news",
-  "/announcements",
-  "/achievements",
-  "/departments",
-  "/blog",
-  "/documents",
-  "/calendar",
-  "/contact",
-  "/ita2569"
-];
+export const STATIC_INDEXABLE_ROUTES = PUBLIC_ROUTE_REGISTRY.filter(
+  (route) => route?.indexable === true && route?.sitemap === true
+).map((route) => String(route.path || "").trim());
 
 function trimTrailingSlash(value) {
   return String(value || "")
@@ -87,18 +96,9 @@ export function normalizeInternalRoute(href, siteUrl) {
   }
 
   const pathname = url.pathname.replace(/\/{2,}/g, "/").replace(/\/+$/, "") || "/";
-  if (
-    pathname === "/admin" ||
-    pathname.startsWith("/admin/") ||
-    pathname === "/api" ||
-    pathname.startsWith("/api/") ||
-    pathname === "/login" ||
-    pathname === "/activate-account" ||
-    pathname === "/reset-password" ||
-    pathname === "/search" ||
-    pathname === "/sitemap.xml" ||
-    pathname === "/robots.txt"
-  ) {
+  const rootSlug = pathname.replace(/^\/+/, "").split("/")[0]?.toLowerCase();
+
+  if (NON_INDEXABLE_PUBLIC_ROUTES.has(pathname) || (rootSlug && SYSTEM_RESERVED_ROOT_SLUGS.has(rootSlug))) {
     return "";
   }
 

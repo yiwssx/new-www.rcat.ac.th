@@ -1,5 +1,6 @@
 import { projectSettings } from "../../config/projectSettings";
 import type { ContentItem, MediaAsset, SiteSettings } from "../../types";
+import { getPublicRouteMetadata, PUBLIC_ROUTE_REGISTRY } from "./publicRouteRegistry";
 import { normalizePublicPageSearchValue } from "./searchParams";
 import {
   buildPublicBreadcrumbJsonLd,
@@ -70,58 +71,19 @@ const PUBLIC_ROUTE_CANONICAL_PAGINATION_KEYS: Readonly<Record<string, readonly P
   "/calendar": ["page"]
 };
 
-export const STATIC_PUBLIC_ROUTE_HEADS: Readonly<Record<string, StaticPublicRouteHead>> = {
-  "/": {
-    description: DEFAULT_PUBLIC_DESCRIPTION,
-    canonicalPath: "/"
-  },
-  "/news": {
-    title: "ข่าว",
-    description: "กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS",
-    canonicalPath: "/news"
-  },
-  "/announcements": {
-    title: "ประกาศ",
-    description: "ประกาศราชการ ข้อมูลการรับสมัคร และเอกสารสาธารณะที่เผยแพร่โดยสถานศึกษา",
-    canonicalPath: "/announcements"
-  },
-  "/achievements": {
-    title: "ผลงานและความภาคภูมิใจ",
-    description: "ผลงาน รางวัล และความสำเร็จของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
-    canonicalPath: "/achievements"
-  },
-  "/blog": {
-    title: "บทความ",
-    description: "บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS",
-    canonicalPath: "/blog"
-  },
-  "/departments": {
-    title: "แผนกวิชา",
-    description: "ข้อมูลแผนกวิชาที่เผยแพร่จาก CMS",
-    canonicalPath: "/departments"
-  },
-  "/documents": {
-    title: "เอกสารเผยแพร่",
-    description: "เอกสารเผยแพร่ของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
-    canonicalPath: "/documents"
-  },
-  "/calendar": {
-    title: "กำหนดการ",
-    description: "กำหนดการและกิจกรรมสาธารณะของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
-    canonicalPath: "/calendar"
-  },
-  "/contact": {
-    title: "ติดต่อ",
-    description: "ข้อมูลติดต่อที่เผยแพร่จาก CMS",
-    canonicalPath: "/contact"
-  },
-  "/search": {
-    title: "ค้นหา",
-    description: "ค้นหาเนื้อหา ข่าว ประกาศ แผนกวิชา และบทความในเว็บไซต์",
-    canonicalPath: "/search",
-    robots: "noindex,follow"
-  }
-};
+export const STATIC_PUBLIC_ROUTE_HEADS: Readonly<Record<string, StaticPublicRouteHead>> = Object.freeze(
+  Object.fromEntries(
+    PUBLIC_ROUTE_REGISTRY.map((route) => [
+      route.path,
+      {
+        ...(route.title ? { title: route.title } : {}),
+        description: route.description || DEFAULT_PUBLIC_DESCRIPTION,
+        canonicalPath: route.path,
+        ...(route.robots ? { robots: route.robots } : {})
+      }
+    ])
+  ) as Record<string, StaticPublicRouteHead>
+);
 
 const PUBLIC_CONTENT_ARCHIVE: Readonly<Record<string, { name: string; path: string } | undefined>> = {
   news: { name: "ข่าว", path: "/news" },
@@ -213,7 +175,10 @@ function getHomeDescription(siteSettings?: SiteSettings) {
 }
 
 function getStaticRoutePresentation(pathname: string, search?: Record<string, unknown>) {
-  const routeHead = STATIC_PUBLIC_ROUTE_HEADS[pathname] ?? { description: DEFAULT_PUBLIC_DESCRIPTION };
+  const registeredRoute = getPublicRouteMetadata(pathname);
+  const routeHead = registeredRoute
+    ? STATIC_PUBLIC_ROUTE_HEADS[registeredRoute.path]
+    : { description: DEFAULT_PUBLIC_DESCRIPTION, canonicalPath: pathname };
 
   if (pathname !== "/search") {
     return routeHead;

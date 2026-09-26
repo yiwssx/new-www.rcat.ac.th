@@ -39,7 +39,6 @@ import {
   UsersPage
 } from "./routeComponents";
 import {
-  buildPublicRouteHead,
   getCmsRouteHead,
   getPublicContentRouteHead,
   getPublicLayoutRouteHead,
@@ -179,26 +178,14 @@ const publicContactRoute = createRoute({
 const publicComplaintRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "complaint",
-  head: () =>
-    buildPublicRouteHead({
-      title: "แบบฟอร์มแจ้งเรื่องร้องเรียน",
-      description: "กรอกข้อมูลให้ครบถ้วน ระบบจะส่งเรื่องให้ผู้ดูแลทันที",
-      canonicalPath: "/complaint",
-      robots: "noindex,follow"
-    }),
+  head: () => getStaticPublicRouteHead("/complaint"),
   component: PublicComplaintPage
 });
 
 const publicIta2569Route = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "ita2569",
-  head: () =>
-    buildPublicRouteHead({
-      title: "ITA ประจำปีงบประมาณ พ.ศ. 2569",
-      description:
-        "การเปิดเผยข้อมูลสาธารณะ (OIT) เพื่อการประเมินคุณธรรมและความโปร่งใสในการดำเนินงานของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด ประจำปีงบประมาณ พ.ศ. 2569",
-      canonicalPath: "/ita2569"
-    }),
+  head: () => getStaticPublicRouteHead("/ita2569"),
   component: PublicIta2569Page
 });
 
