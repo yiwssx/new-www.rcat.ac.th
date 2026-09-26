@@ -199,7 +199,12 @@ export async function enforceAdminContentScope(request: Request, env: Env): Prom
   if (!scope) return null;
 
   if (segments.length === 1 && request.method === "POST") {
-    const body = parseJsonRecord(await request.clone().json().catch(() => null));
+    const body = parseJsonRecord(
+      await request
+        .clone()
+        .json()
+        .catch(() => null)
+    );
     const owner = normalizeText(body?.owner, MAX_SCOPE_LENGTH);
     return normalizeComparable(owner) === normalizeComparable(scope) ? null : scopeDenied(scope);
   }
@@ -214,7 +219,12 @@ export async function enforceAdminContentScope(request: Request, env: Env): Prom
   if (normalizeComparable(row.owner || "") !== normalizeComparable(scope)) return scopeDenied(scope);
 
   if (request.method === "PATCH") {
-    const body = parseJsonRecord(await request.clone().json().catch(() => null));
+    const body = parseJsonRecord(
+      await request
+        .clone()
+        .json()
+        .catch(() => null)
+    );
     if (body && Object.prototype.hasOwnProperty.call(body, "owner")) {
       const owner = normalizeText(body.owner, MAX_SCOPE_LENGTH);
       if (normalizeComparable(owner) !== normalizeComparable(scope)) return scopeDenied(scope);
@@ -254,7 +264,13 @@ async function handleRedirects(request: Request, env: Env, segments: string[]) {
     const body = parseJsonRecord(await request.json().catch(() => null));
     const oldSlug = normalizeText(body?.oldSlug, 240);
     const newSlug = normalizeText(body?.newSlug, 240);
-    if (!oldSlug || !newSlug || oldSlug === newSlug || oldSlug.startsWith("__deleted__:") || newSlug.startsWith("__deleted__:")) {
+    if (
+      !oldSlug ||
+      !newSlug ||
+      oldSlug === newSlug ||
+      oldSlug.startsWith("__deleted__:") ||
+      newSlug.startsWith("__deleted__:")
+    ) {
       return noStore(jsonError("invalid redirect", 400, { resource: "content-redirects" }));
     }
 
@@ -295,7 +311,10 @@ async function handleRedirects(request: Request, env: Env, segments: string[]) {
   if (request.method === "DELETE" && segments.length === 2) {
     const oldSlug = decodeURIComponent(segments[1] || "");
     if (!oldSlug) return noStore(jsonError("redirect slug is required", 400, { resource: "content-redirects" }));
-    const result = await requireD1Database(env).prepare("DELETE FROM content_redirects WHERE old_slug = ?").bind(oldSlug).run();
+    const result = await requireD1Database(env)
+      .prepare("DELETE FROM content_redirects WHERE old_slug = ?")
+      .bind(oldSlug)
+      .run();
     if (!result.meta.changes) return noStore(jsonError("not found", 404, { resource: "content-redirects" }));
     await writeAudit(env, {
       entityType: "content-redirect",
@@ -379,7 +398,9 @@ async function handleTaxonomy(request: Request, env: Env) {
       if (!renamed.changed) continue;
       statements.push(
         db
-          .prepare("UPDATE contents SET category = ?, updated_at = ?, updated_by = ?, revision = revision + 1 WHERE id = ?")
+          .prepare(
+            "UPDATE contents SET category = ?, updated_at = ?, updated_by = ?, revision = revision + 1 WHERE id = ?"
+          )
           .bind(renamed.values.join(", "), now, authenticated.actor, row.id)
       );
     } else {
@@ -387,7 +408,9 @@ async function handleTaxonomy(request: Request, env: Env) {
       if (!renamed.changed) continue;
       statements.push(
         db
-          .prepare("UPDATE contents SET tags_json = ?, updated_at = ?, updated_by = ?, revision = revision + 1 WHERE id = ?")
+          .prepare(
+            "UPDATE contents SET tags_json = ?, updated_at = ?, updated_by = ?, revision = revision + 1 WHERE id = ?"
+          )
           .bind(JSON.stringify(renamed.values), now, authenticated.actor, row.id)
       );
     }
@@ -409,9 +432,16 @@ async function handleTaxonomy(request: Request, env: Env) {
 
 async function handleScopes(request: Request, env: Env, segments: string[]) {
   const capability: AdminCapability = request.method === "GET" ? "users.read-all" : "users.update-any";
-  const authenticated = await authenticateFor(request, env, capability, "content-scopes", request.method === "GET" ? undefined : "password");
+  const authenticated = await authenticateFor(
+    request,
+    env,
+    capability,
+    "content-scopes",
+    request.method === "GET" ? undefined : "password"
+  );
   if (authenticated instanceof Response) return authenticated;
-  if (authenticated.role !== "admin") return noStore(jsonError("administrator role is required", 403, { resource: "content-scopes" }));
+  if (authenticated.role !== "admin")
+    return noStore(jsonError("administrator role is required", 403, { resource: "content-scopes" }));
   const db = requireD1Database(env);
 
   if (request.method === "GET" && segments.length === 1) {
@@ -437,7 +467,10 @@ async function handleScopes(request: Request, env: Env, segments: string[]) {
     const userId = decodeURIComponent(segments[1] || "");
     const body = parseJsonRecord(await request.json().catch(() => null));
     const contentScope = normalizeText(body?.contentScope, MAX_SCOPE_LENGTH);
-    const target = await db.prepare("SELECT id, role FROM app_admin_users WHERE id = ? LIMIT 1").bind(userId).first<{ id: string; role: string }>();
+    const target = await db
+      .prepare("SELECT id, role FROM app_admin_users WHERE id = ? LIMIT 1")
+      .bind(userId)
+      .first<{ id: string; role: string }>();
     if (!target) return noStore(jsonError("not found", 404, { resource: "content-scopes" }));
     if (contentScope && target.role !== "editor") {
       return noStore(jsonError("content scopes can only be assigned to editors", 409, { resource: "content-scopes" }));
@@ -470,10 +503,12 @@ async function getTableColumns(db: D1Database, table: RecoveryTable) {
 async function recoverBackup(request: Request, env: Env) {
   const authenticated = await authenticateFor(request, env, "backup.restore", "system-backup-recovery", "mfa");
   if (authenticated instanceof Response) return authenticated;
-  if (authenticated.role !== "admin") return noStore(jsonError("administrator role is required", 403, { resource: "system-backup-recovery" }));
+  if (authenticated.role !== "admin")
+    return noStore(jsonError("administrator role is required", 403, { resource: "system-backup-recovery" }));
 
   const contentLength = Number(request.headers.get("Content-Length") || 0);
-  if (contentLength > MAX_RECOVERY_BYTES) return noStore(jsonError("backup payload is too large", 413, { resource: "system-backup-recovery" }));
+  if (contentLength > MAX_RECOVERY_BYTES)
+    return noStore(jsonError("backup payload is too large", 413, { resource: "system-backup-recovery" }));
   const payload = parseJsonRecord(await request.json().catch(() => null));
   const schemaVersion = Number(payload?.schemaVersion);
   const tables = parseJsonRecord(payload?.tables);
@@ -507,9 +542,7 @@ async function recoverBackup(request: Request, env: Env) {
         const values = columns.map((column) => normalizeRecoveryBinding(row[column]));
         const placeholders = columns.map(() => "?").join(", ");
         prepared.push(
-          db
-            .prepare(`INSERT OR REPLACE INTO ${table} (${columns.join(", ")}) VALUES (${placeholders})`)
-            .bind(...values)
+          db.prepare(`INSERT OR REPLACE INTO ${table} (${columns.join(", ")}) VALUES (${placeholders})`).bind(...values)
         );
         accepted += 1;
       }
@@ -543,7 +576,9 @@ async function recoverBackup(request: Request, env: Env) {
     actor: authenticated.actor,
     metadata: { schemaVersion, restoredRows, restoredCounts }
   });
-  return noStore(json({ schemaVersion, mode: "merge", restoredRows, restoredCounts, completedAt: new Date().toISOString() }));
+  return noStore(
+    json({ schemaVersion, mode: "merge", restoredRows, restoredCounts, completedAt: new Date().toISOString() })
+  );
 }
 
 export async function handleAdminCmsGapClosure(request: Request, env: Env): Promise<Response | null> {
@@ -555,6 +590,7 @@ export async function handleAdminCmsGapClosure(request: Request, env: Env): Prom
   if (segments[0] === "content-redirects") return handleRedirects(request, env, segments);
   if (segments[0] === "taxonomy" && segments.length === 1) return handleTaxonomy(request, env);
   if (segments[0] === "content-scopes") return handleScopes(request, env, segments);
-  if (segments[0] === "backup" && segments[1] === "recover" && request.method === "POST") return recoverBackup(request, env);
+  if (segments[0] === "backup" && segments[1] === "recover" && request.method === "POST")
+    return recoverBackup(request, env);
   return null;
 }
