@@ -33,6 +33,9 @@ on:
 permissions:
   actions: write
   contents: write
+  # Retained for the existing dependency-policy contract. Repository settings still
+  # intentionally prevent Actions from creating or approving pull requests.
+  pull-requests: write
   statuses: write
 
 concurrency:
@@ -232,6 +235,8 @@ jobs:
             echo "Registry-only movement remains the responsibility of scheduled monitoring and Renovate."
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Do not run `gh pr create` here. The repository intentionally disables
+      # Actions-created/approved pull requests; a maintainer PR preserves the master ruleset.
       - name: Fail closed on genuine post-merge snapshot drift
         if: github.event_name != 'pull_request' && steps.repair_commit.outputs.branch != ''
         shell: bash
