@@ -152,7 +152,9 @@ export default function RevisionComparePanel() {
                     <Chip label={`เปลี่ยน body ${changedBodyLines.length} บรรทัด`} variant="outlined" />
                   </Stack>
 
-                  {!fieldChanges.length && !bodyChanges.length && <Alert severity="success">สองเวอร์ชันนี้ไม่มีความแตกต่าง</Alert>}
+                  {!fieldChanges.length && !bodyChanges.length && (
+                    <Alert severity="success">สองเวอร์ชันนี้ไม่มีความแตกต่าง</Alert>
+                  )}
 
                   {fieldChanges.length > 0 && (
                     <Stack divider={<Divider flexItem />} spacing={0}>

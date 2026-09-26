@@ -41,7 +41,7 @@ export default function TaxonomyManagerPanel() {
     queryFn: getTaxonomySnapshot,
     staleTime: 10_000
   });
-  const items = kind === "category" ? taxonomyQuery.data?.categories ?? [] : taxonomyQuery.data?.tags ?? [];
+  const items = kind === "category" ? (taxonomyQuery.data?.categories ?? []) : (taxonomyQuery.data?.tags ?? []);
   const fromOption = useMemo(() => items.find((item) => item.label === from) ?? null, [from, items]);
 
   const mutation = useMutation({
@@ -166,7 +166,9 @@ export default function TaxonomyManagerPanel() {
             {items.slice(0, 60).map((item) => (
               <Chip key={item.label} label={`${item.label} · ${item.count}`} variant="outlined" />
             ))}
-            {!taxonomyQuery.isLoading && !items.length && <Typography color="text.secondary">ยังไม่มีข้อมูล</Typography>}
+            {!taxonomyQuery.isLoading && !items.length && (
+              <Typography color="text.secondary">ยังไม่มีข้อมูล</Typography>
+            )}
           </Stack>
         </Stack>
       </CardContent>

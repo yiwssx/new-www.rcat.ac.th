@@ -45,13 +45,19 @@ export default function ContentRedirectManagerPanel() {
   const saveMutation = useMutation({
     mutationFn: () => saveContentRedirect(oldSlug.trim(), newSlug.trim()),
     onSuccess: async () => {
-      await Promise.all([queryClient.invalidateQueries({ queryKey: REDIRECT_QUERY }), invalidatePublicCmsData(queryClient)]);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: REDIRECT_QUERY }),
+        invalidatePublicCmsData(queryClient)
+      ]);
     }
   });
   const deleteMutation = useMutation({
     mutationFn: (slug: string) => deleteContentRedirect(slug),
     onSuccess: async () => {
-      await Promise.all([queryClient.invalidateQueries({ queryKey: REDIRECT_QUERY }), invalidatePublicCmsData(queryClient)]);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: REDIRECT_QUERY }),
+        invalidatePublicCmsData(queryClient)
+      ]);
     }
   });
 
@@ -142,7 +148,9 @@ export default function ContentRedirectManagerPanel() {
           )}
 
           {!isAdmin && (
-            <Alert severity="info">บัญชี Editor/Viewer ดูประวัติ Redirect ได้ แต่การสร้างหรือลบรายการกำหนดให้ Admin เท่านั้น</Alert>
+            <Alert severity="info">
+              บัญชี Editor/Viewer ดูประวัติ Redirect ได้ แต่การสร้างหรือลบรายการกำหนดให้ Admin เท่านั้น
+            </Alert>
           )}
 
           <Stack divider={<Divider flexItem />} spacing={0}>
