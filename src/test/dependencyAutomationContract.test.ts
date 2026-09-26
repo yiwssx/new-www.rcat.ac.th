@@ -151,13 +151,24 @@ describe("dependency automation contract", () => {
     expect(dependencyStatusSyncWorkflow).toContain("github.event_name == 'push'");
   });
 
+  it("distinguishes committed dependency drift from registry-only movement on master", () => {
+    expect(dependencyStatusSyncWorkflow).toContain("Check committed dependency snapshot input hashes");
+    expect(dependencyStatusSyncWorkflow).toContain("pnpm deps:status:check");
+    expect(dependencyStatusSyncWorkflow).toContain('echo "current=true" >> "$GITHUB_OUTPUT"');
+    expect(dependencyStatusSyncWorkflow).toContain(
+      "Registry-only movement remains the responsibility of scheduled monitoring and Renovate."
+    );
+    expect(dependencyStatusSyncWorkflow).toContain("Fail closed on genuine post-merge snapshot drift");
+    expect(dependencyStatusSyncWorkflow).toContain("automation/dependency-status-sync");
+  });
+
   it("bridges current bot-created branch heads to the protected quality status", () => {
     expect(dependencyStatusSyncWorkflow).toContain("statuses: write");
     expect(formatGuardWorkflow).toContain("statuses: write");
     expect(dependencyStatusSyncWorkflow).toContain("Resolve required quality validation target");
     expect(dependencyStatusSyncWorkflow).toContain("id: validation_target");
     expect(dependencyStatusSyncWorkflow).toContain(
-      "if: github.event_name == 'pull_request' || steps.drift.outputs.changed == 'true'"
+      "if: github.event_name == 'pull_request' || steps.repair_commit.outputs.branch != ''"
     );
     expect(dependencyStatusSyncWorkflow).toContain('target_sha="$(git rev-parse HEAD)"');
     expect(dependencyStatusSyncWorkflow).toContain("Validate updated head and publish required quality status");
