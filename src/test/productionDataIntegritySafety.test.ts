@@ -42,7 +42,7 @@ describe("P5A production data-integrity safety", () => {
       expect(workflow).toContain("schema inspection failed");
     }
     expect(integrityWorkflow).toContain("public_home_sections present before migration");
-    expect(workerProductionWorkflow).toContain("public_home_sections present before migrations");
+    expect(workerProductionWorkflow).toContain("env.PUBLIC_HOME_SECTIONS_PRESENT == 'true'");
   });
 
   it("uses the D1 query path for read-only audits instead of the import path", () => {
