@@ -5,253 +5,128 @@
 
 ## 1. Purpose and scope
 
-This document defines the durable dependency policy for the RCAT public website,
-CMS, Cloudflare Worker, test suites, and repository tooling. Current direct
-versions and audit results are generated in
-[Dependency Status](./dependency-current-status.md). Historical migration
-sequence and completed upgrade checklists remain in Git history.
+This document defines the durable dependency policy for the RCAT public website, CMS, Cloudflare Worker, test suites, and repository tooling. The committed `docs/maintenance/dependency-current-status.md` file is a reviewed snapshot, while current registry movement is reported by Renovate and the scheduled Dependency Monitoring workflow.
 
-Dependency maintenance must preserve production behavior, authentication and
-authorization contracts, route and lazy-loading boundaries, Worker bindings,
-data contracts, and the repository's performance, media, layout, and design
-governance.
+Dependency maintenance must preserve production behavior, authentication and authorization contracts, route boundaries, Worker bindings, data contracts, and repository quality gates.
 
 ## 2. Stable-release selection policy
 
-Select stable releases from the registry. Do not select a prerelease merely
-because it is numerically newer. A direct dependency may remain below the
-registry `latest` release while that release completes the three-day
-supply-chain age window, or when a validated compatibility exception in
-`config/dependency-policy.json` proves that the latest release is incompatible
-with an active peer or runtime constraint. Release age is a temporary monitoring
-state, not a permanent compatibility exception.
+Select stable releases only. A dependency may remain below registry `latest` while the release completes the three-day supply-chain age window or while a machine-checked compatibility exception in `config/dependency-policy.json` proves that the latest release is incompatible with an active runtime or peer constraint.
 
-Registry lookup is fail closed. A missing, malformed, or unreachable registry
-response is an error, never evidence that the installed version is current.
+Registry lookup failures are errors, never evidence that an installed version is current.
 
 ## 3. Compatibility exceptions
 
-Every exception must identify a stable selected-version anchor, the blocked latest
-major, the package-specific reason, a machine-verifiable validation kind, and
-registry commands that reproduce the constraint. The anchor fixes the allowed
-compatibility major; the active selected patch/minor version is derived from the
-manifest and installed lockfile result. The dependency checks verify that:
+Every exception in `config/dependency-policy.json` must identify a stable selected-version anchor, the blocked latest major, a package-specific reason, a machine-verifiable validation kind, and reproducible registry checks.
 
-- the installed selected version matches the manifest and stays in the anchor major;
-- the registry latest stable version is retrieved successfully;
-- the installed selected version is the newest release allowed by the active constraint;
-- the registry latest release is still blocked by that constraint; and
-- an exception fails as soon as the active constraint becomes stale.
-
-This avoids requiring a policy-file edit for every safe same-major patch update,
-while still preventing Renovate from silently crossing the compatibility boundary.
-
-The active exception classes are the TypeScript compiler range supported by
-`typescript-eslint` and the `@types/node` major aligned with the repository Node
-runtime. Add no exception that cannot be validated automatically.
+The active policy verifies that the installed version matches the manifest, remains in the approved compatibility major, and is the newest compatible age-eligible release. Exceptions must fail closed when their constraint is no longer valid.
 
 ## 4. Direct dependency and lockfile policy
 
-Declare a package in only one direct dependency section. Use stable semantic
-version specifiers supported by the dependency checks. Commit `package.json`
-and `pnpm-lock.yaml` together whenever dependency resolution changes.
+Declare a package in only one direct dependency section. Commit `package.json` and `pnpm-lock.yaml` together whenever dependency resolution changes. Do not hand-edit the lockfile.
 
-Install with:
+The canonical install is:
 
 ```bash
 pnpm install --frozen-lockfile --strict-peer-dependencies
 ```
 
-Do not hand-edit the lockfile, hide an install error, or accept a lockfile whose
-installed direct version conflicts with the manifest or compatibility policy.
+A dependency PR must contain a complete manifest/lockfile artifact before CI can pass.
 
 ## 5. Security audit thresholds
 
-The required full-tree audit threshold is `high`. The required production audit
-threshold is `moderate`.
+The full-tree audit threshold is `high`. The production audit threshold is `moderate`.
 
 ```bash
 pnpm audit --audit-level high
 pnpm audit --prod --audit-level moderate
 ```
 
-Both commands must exit with code 0. Audit output must be valid and include all
-severity counts. A command failure or invalid JSON is `ERROR`, not zero
-vulnerabilities.
+Command failures and malformed audit output fail closed.
 
 ## 6. Security update response policy
 
-For an advisory, identify the direct or transitive dependency path, affected
-runtime surface, fixed release, and package age. Prefer the smallest compatible
-stable update that removes the advisory, regenerate the lockfile, and run the
-complete gates.
+For an advisory, identify the affected dependency path, runtime surface, fixed release, and release age. Prefer the smallest compatible stable update that removes the advisory and run the complete quality gates.
 
-An urgent fix younger than the normal release-age threshold may use an exact,
-one-command release-age override during the controlled update. Record the
-advisory, dependency path, and verification evidence. Do not persist
-`minimumReleaseAgeExclude` in `pnpm-workspace.yaml`; the committed workspace
-must retain the normal age policy without exclusions. Never reduce audit
-thresholds or use broad overrides.
+An urgent security fix younger than the normal release-age threshold may use a narrow one-command override during the controlled update. Never persist `minimumReleaseAgeExclude`, reduce audit thresholds, or add broad permanent overrides.
 
 ## 7. Strict peer dependency policy
 
-Strict peer dependency validation is mandatory locally and in CI. Resolve a
-peer conflict by selecting a supported stable release or completing the
-necessary migration. Do not disable strict validation, use a silent fallback,
-or treat a nonzero install as acceptable.
+Strict peer dependency validation is mandatory locally and in CI. Resolve peer conflicts by selecting supported releases or completing the required migration. Do not disable strict peer validation or hide a failed install.
 
 ## 8. Runtime and type declaration alignment
 
-Runtime libraries that ship declarations own their types; obsolete external
-stub packages must be removed after compatibility tests pass. Runtime-major
-declarations must match the runtime that executes the code. Browser, Node, and
-Cloudflare Worker globals must remain limited to their owning TypeScript
-projects.
+Runtime libraries that ship their own declarations own those types. Node, browser, and Cloudflare Worker globals must remain scoped to their respective TypeScript projects. Runtime-major declarations must match the runtime that executes the code.
 
 ## 9. TypeScript and typescript-eslint alignment
 
-The selected TypeScript compiler must satisfy the installed
-`typescript-eslint` peer range. The compatibility policy verifies the installed
-lint package metadata against the registry and selects the newest stable
-compiler allowed by that range. A compiler-major update is blocked until strict
-peer install, lint, application and Worker typechecks, tests, build, and browser
-verification all pass without suppression.
+The selected TypeScript compiler must satisfy the installed `typescript-eslint` peer range. A compiler-major update requires strict peer install, lint, application and Worker typechecks, tests, build, and browser verification without suppressions.
 
 ## 10. Node and @types/node alignment
 
-The Node engine declaration, `.node-version`, CI runtime, active local runtime,
-and `@types/node` major must agree. The compatibility policy selects the newest
-age-eligible stable `@types/node` release in the active runtime major. Runtime-major
-validation derives its blocking comparison from the stable registry version inventory
-instead of trusting a cross-major `latest` dist-tag, so a temporary dist-tag regression
-cannot force an invalid type downgrade. The exception still fails closed when the
-registry inventory or runtime-major selection no longer satisfies the policy.
-
-A Node-major migration must update runtime pins, CI, type declarations,
-deployment runtime declarations where applicable, scripts, and integration
-tests as one coordinated change.
+The Node engine declaration, `.node-version`, CI runtime, active runtime, and `@types/node` major must agree. A Node-major migration must update these surfaces as one coordinated change.
 
 ## 11. React and React DOM alignment
 
-`react` and `react-dom` must use the same full version. Their type declarations
-must use the same runtime major. A React major update requires focused lifecycle,
-rendering, routing, analytics, accessibility, functional, and regression tests.
+`react` and `react-dom` must use the same full version, and their type declarations must remain in the same runtime major. Major updates require focused rendering, routing, accessibility, lifecycle, and browser regression coverage.
 
 ## 12. MUI and Emotion alignment
 
-`@mui/material` and `@mui/icons-material` must use the same full version and
-remain compatible with the declared Emotion packages. A MUI major update
-requires theme, component API, focus, accessible-role, responsive layout, and
-design-system verification.
+`@mui/material` and `@mui/icons-material` must use the same full version and remain compatible with the declared Emotion packages. The existing focused-node restoration patch remains narrow and must be removed when an equivalent upstream fix is available.
 
 ## 13. Vite, Vitest, and jsdom alignment
 
-Treat Vite, its React plugin, Vitest, and jsdom as a compatibility group when a
-major update changes transforms, bundler output, test mocks, or DOM behavior.
+Treat Vite build tooling and the Vitest ecosystem as compatibility-sensitive tooling. Renovate groups the Vite build surface where appropriate, while upstream monorepo grouping may group Vitest packages. `jsdom` remains subject to the focused-node restoration regression coverage because of the active MUI compatibility patch.
 
-jsdom 30.1 changed focus fixup after a focused node is removed: the previous
-focus target can represent the document viewport. MUI Material 9.4.0 FocusTrap
-assumes every non-null restore target implements `focus()`. The repository
-therefore carries one narrow pnpm patch that checks the restore target has a
-callable `focus` method before invoking it. This is a runtime compatibility
-guard in the installed MUI package, not a test-only environment shim. The patch
-must not disable auto-focus, enforce-focus, or restore-focus behavior. Remove the patch when the
-installed MUI release contains an equivalent upstream guard, and keep the
-focused-node-removal regression test passing without a test-environment shim.
-Acceptance requires a production build, unit and integration tests, deterministic
-browser fixture readiness, and the committed performance gate.
-
-The current Vite 8 and Rolldown performance checker follows the complete static
-manifest graph. The reviewed React 19, MUI 9, and Vite 8 changes are an accepted
-performance rebaseline, not permission to weaken the budget.
+Build-tool updates require the production build, unit and integration tests, deterministic browser fixture readiness, and performance governance checks.
 
 ## 14. Cloudflare Worker tooling alignment
 
-Keep Wrangler and `@cloudflare/workers-types` within their declared compatibility
-range. Production Worker source owns Cloudflare globals in
-`cloudflare/public-api/tsconfig.json`; Node-based Worker tests use the separate
-`cloudflare/public-api/tsconfig.test.json` project. Do not expose Node globals to
-production Worker source.
-
-Worker tooling updates require both type projects, Worker tests, and
-`pnpm worker:deploy:dry`. A dry run must not become a production deployment.
+Keep Wrangler and `@cloudflare/workers-types` within their declared compatibility range. Renovate groups compatible Cloudflare patch/minor updates into one PR. Worker tooling updates require both Worker type projects, Worker tests, and `pnpm worker:deploy:dry`.
 
 ## 15. Supply-chain minimum release age
 
-`pnpm-workspace.yaml` enforces `minimumReleaseAge: 4320`, requiring releases to
-age for three days before normal installation. Keep the lockfile deterministic
-and retain this protection during routine updates. Only the narrow, one-command
-security response described above may bypass it during the controlled
-installation; no exclusion may persist in the workspace.
+`pnpm-workspace.yaml` enforces `minimumReleaseAge: 4320`, requiring releases to age for three days before normal installation. Renovate uses the same three-day npm security preset without an additional release-age buffer, so the package manager and automation agree on eligibility.
 
-This setting governs both normal installation timing and update eligibility.
-The live monitor reports the registry `latest` release, its publication time,
-and any age-eligible backlog. Ordinary age-eligible lag is informational in the
-scheduled operational monitor so Renovate can drain the queue without making the
-monitor look broken. The strict on-demand `pnpm deps:latest:check` command still
-fails when an installed direct dependency is behind the newest eligible release.
-Neither mode labels an older installed release as registry latest. When an urgent
-security release must be selected before the normal window expires, use the
-narrow exception in section 6. Never persist `minimumReleaseAgeExclude`, reduce the age window, or
-add a permanent package exclusion.
+The live monitor reports registry `latest`, publication time, and age-eligible backlog. Ordinary lag is informational in scheduled monitoring. Security response follows section 6.
 
-Committed dependency-state validation checks manifest and lockfile alignment,
-strict peers, compatibility-policy structure and local constraints, audits, and
-generated-document hashes. Live registry monitoring is separate from blocking
-push and pull-request CI. It fails closed on missing or malformed registry data,
-rejects prereleases, and runs on the scheduled and manually dispatched
-Dependency Monitoring workflow.
+Live registry monitoring is separate from blocking push and pull-request CI. Blocking CI validates the committed dependency artifact, strict peers, compatibility policy, security audits, and repository behavior without requiring a newly committed live-registry snapshot for every Renovate head.
 
 ## 16. Install-time build-script allowlist
 
-`strictDepBuilds: true` is mandatory. The only approved install-time build
-packages are:
+`strictDepBuilds: true` is mandatory. The only approved install-time build packages are:
 
 - `esbuild`
 - `sharp`
 - `workerd`
 
-Any addition requires evidence that the package must build during install, a
-review of the executed script and ownership path, and removal when no longer
-needed. Do not add broad script approvals.
+Any addition requires explicit review of the executed install script and ownership path.
 
 ## 17. Patch and minor update procedure
 
-1. Confirm the branch and preserve unrelated working-tree changes.
-2. Review registry release notes, advisories, peer ranges, and release age.
-3. Update the smallest intended dependency set and regenerate the lockfile.
-4. Regenerate and commit `docs/maintenance/dependency-current-status.md` in the same PR.
-5. Run a frozen strict-peer install.
-6. Run `pnpm deps:status:check`, `pnpm deps:check`, and `pnpm deps:docs:audit`.
-7. Review the live dependency backlog. Run `pnpm deps:latest:check` only when
-   performing an explicit full-freshness sweep rather than a single queued update.
-8. Run the complete CI gates and package-specific tests for affected behavior.
-9. Review the manifest, lockfile, generated status, and source diff before
-   committing.
+1. Review release notes, advisories, peer ranges, and release age.
+2. Update the smallest compatible dependency group and regenerate the lockfile.
+3. Run `pnpm install --frozen-lockfile --strict-peer-dependencies`.
+4. Run `pnpm deps:check -- --skip-documentation-freshness` and `pnpm deps:docs:audit -- --skip-status-hashes`.
+5. Run the complete CI gates and package-specific regression tests.
+6. Allow the strict master ruleset to require the final Renovate head to be current before merge.
+
+Do not add an Actions-generated documentation commit to an active Renovate PR. This avoids changing the PR head solely for reporting metadata and prevents unnecessary CI restart loops.
 
 ## 18. Major migration procedure
 
-Evaluate a major in an isolated, reviewable change. Read the upstream migration
-guide and identify affected runtime, types, APIs, bundler output, tests, and
-deployment tooling before updating. Add focused compatibility tests where the
-dependency owns authentication, routing, storage, build output, telemetry,
-browser behavior, or Worker contracts.
+Evaluate major updates in isolated, reviewable changes. Read the upstream migration guide and identify affected runtime APIs, types, build output, tests, and deployment tooling before updating.
 
-Reject a trial that requires disabled peer validation, unsupported runtime or
-compiler combinations, lower audit thresholds, weaker assertions, blanket
-timeout increases, hidden errors, or an unreviewed performance-budget increase.
-Record only durable final-state policy in active documentation; Git history
-retains the migration sequence.
+Reject migrations that require disabled peer validation, lower audit thresholds, blanket timeout increases, hidden errors, unsupported runtime combinations, or unreviewed performance-budget increases.
 
 ## 19. Required CI gates
 
-The following checks are blocking:
+The blocking quality path includes:
 
 ```text
 pnpm install --frozen-lockfile --strict-peer-dependencies
-pnpm deps:status:check
-pnpm deps:check
-pnpm deps:docs:audit
+pnpm deps:check -- --skip-documentation-freshness
+pnpm deps:docs:audit -- --skip-status-hashes
 pnpm format:check
 pnpm lint:strict
 pnpm test:unit
@@ -266,44 +141,25 @@ pnpm worker:deploy:dry
 pnpm test:functional
 ```
 
-No gate may use `continue-on-error`, `|| true`, or another silent failure
-fallback.
+No blocking gate may use `continue-on-error`, `|| true`, or another silent failure fallback.
 
-The separate `Dependency Monitoring` workflow runs daily at `00:15` UTC
-(`07:15` Asia/Bangkok) and on `workflow_dispatch`. It installs the committed
-frozen lockfile with strict peers, then runs the live registry monitor in
-`--monitor` mode. Eligible ordinary updates are reported as backlog for Renovate
-or manual review without making the operational monitor red. Registry lookup
-errors, invalid compatibility exceptions, and audit failures still fail closed.
-Releases still inside the 72-hour window are reported as pending eligibility.
+The separate Dependency Monitoring workflow runs daily and on manual dispatch. It performs current registry and audit monitoring without modifying repository branches.
 
-Renovate is not restricted to a narrow branch-creation time window. The repository
-allows up to two concurrent regular Renovate PRs/branches, one new PR per hour,
-and at most two Renovate commits/rebases per hour, while keeping the three-day
-release-age gate, automatic patch/minor merges, manual review for major and
-zero-major updates, and the existing security update policy. The Dependency Dashboard is enabled so pending, blocked, and
-rate-limited updates remain visible and can be deliberately retried when needed.
-The dashboard is an operator visibility/control surface; it does not bypass CI,
-release-age, compatibility, or manual-review requirements.
+Renovate uses the `Asia/Bangkok` timezone and a maintenance window from 00:00 through 06:59. Branch creation, existing-branch updates/rebases, and Renovate-driven automerge are kept inside that window. `rebaseWhen: behind-base-branch` remains necessary because the master ruleset uses strict required status checks and requires the final merge candidate to be current with master.
 
-`pnpm deps:latest:check` remains available as the strict on-demand freshness
-gate when an operator explicitly wants every age-eligible direct dependency to be
-current or covered by a validated compatibility exception.
+Normal throughput is bounded to three concurrent Renovate PRs/branches, two new PRs per hour, and four branch commits/rebases per hour. Security alerts retain their dedicated security policy and are not intentionally delayed by ordinary backlog management.
 
 ## 20. Rollback procedure
 
-If an update fails acceptance, revert the dependency group and its source,
-configuration, test, lockfile, policy, and generated-status changes together.
-Rerun the affected baseline checks to prove the previous state remains valid.
-Do not keep a partially migrated manifest or lockfile, and do not use destructive
-Git commands that could discard unrelated work.
+If an update fails acceptance, revert the dependency group and its manifest, lockfile, configuration, source, tests, and policy changes together. Rerun the affected quality gates to prove the prior state remains valid. Do not keep a partially migrated dependency artifact.
 
-For a committed change, use a normal reviewable revert. For an uncommitted
-trial, edit only the files owned by that trial after confirming the exact diff.
+For committed changes, use a normal reviewable revert. Do not use destructive Git commands that can discard unrelated work.
 
 ## 21. Documentation update procedure
 
-After any manifest, lockfile, or compatibility-policy change:
+The committed dependency status document is an operator snapshot, not a required mutation on every Renovate PR. Current registry movement is visible in the Dependency Dashboard and scheduled Dependency Monitoring output.
+
+When an operator deliberately wants to refresh the committed snapshot, run:
 
 ```bash
 pnpm deps:status
@@ -311,15 +167,6 @@ pnpm deps:status:check
 pnpm deps:docs:audit
 ```
 
-Use `pnpm deps:latest:check` separately when an operator is intentionally
-performing a full-freshness sweep across every direct dependency.
+The manual **Dependencies / Snapshot Repair** workflow may prepare `automation/dependency-status-sync` when the committed snapshot hashes are stale. It never listens to Renovate PR synchronization events and never commits into Renovate branches. A maintainer PR is still required for the repair branch.
 
-Commit the regenerated `dependency-current-status.md` with the inputs that
-changed it. Renovate PRs are synchronized by the Dependency Status Sync workflow,
-which commits the generated snapshot to the Renovate branch and explicitly
-dispatches CI on that updated head. CI does not generate an uncommitted snapshot
-to make a dependency PR pass. Keep this governance document version-agnostic except where a
-current compatibility model or fixed repository policy must be explained.
-Technical repository documentation, source comments, generated labels, and
-commit messages use English; Thai remains appropriate for user-facing website
-content.
+Use `pnpm deps:latest:check` only for an explicit full-freshness sweep. Technical repository documentation, source comments, generated labels, and commit messages use English; Thai remains appropriate for user-facing website content.

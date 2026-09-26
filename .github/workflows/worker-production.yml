@@ -1,19 +1,27 @@
-name: Worker Production Release
+name: Deploy / Worker
 
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: "Choose a read-only preflight or the protected production release"
+        required: true
+        type: choice
+        default: preflight
+        options:
+          - preflight
+          - release
 
 permissions:
   contents: read
-  deployments: write
-
-concurrency:
-  group: worker-production-write
-  cancel-in-progress: false
 
 jobs:
-  deploy:
+  preflight:
+    name: Production Migration Preflight
+    if: ${{ github.ref == 'refs/heads/master' && inputs.operation == 'preflight' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     environment:
       name: production
       deployment: false
@@ -21,52 +29,119 @@ jobs:
       PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
 
     steps:
-      - name: Require master
-        shell: bash
-        run: |
-          if [[ "${GITHUB_REF_NAME}" != "master" ]]; then
-            echo "Production Worker releases must run from master." >&2
-            exit 1
-          fi
-
       - uses: actions/checkout@v7
-
       - uses: pnpm/action-setup@v6
         with:
           version: 10.34.5
           run_install: false
-
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: node scripts/check-d1-migration-sequences.mjs
 
+      - name: Require protected Cloudflare D1 read credentials
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID"
+
+      - name: Resolve exact production D1 identity
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            --verify-identity-only
+
+      - name: Verify current production Time Travel readiness
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+        run: |
+          pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-time-travel.json", "utf8"));
+            const metadata = Array.isArray(value) ? value[0] : value;
+            if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) throw new Error("production Time Travel bookmark was not returned");
+            console.log("Current production Time Travel bookmark resolved; value not printed.");
+          '
+
+      - name: List unapplied production migrations
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs \
+            --database-list "$RUNNER_TEMP/d1-databases.json" \
+            | tee "$RUNNER_TEMP/worker-production-migration-preflight.txt"
+
+      - name: Preflight summary
+        run: |
+          {
+            echo "## Worker Production Preflight"
+            echo "- Exact production D1 identity: verified"
+            echo "- Credential role: dedicated D1 read token"
+            echo "- Time Travel readiness: verified"
+            echo "- D1 writes: none"
+            echo "- Worker deploy: not executed"
+            echo
+            echo '```text'
+            cat "$RUNNER_TEMP/worker-production-migration-preflight.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    name: Production Worker Release
+    if: ${{ github.ref == 'refs/heads/master' && inputs.operation == 'release' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    concurrency:
+      group: worker-production-write
+      cancel-in-progress: false
+    environment:
+      name: production
+      deployment: false
+    env:
+      PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - run: pnpm worker:typecheck
       - run: node scripts/check-d1-migration-sequences.mjs
 
       - name: Require protected Cloudflare production credentials
-        shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
-          test -n "$CLOUDFLARE_ACCOUNT_ID" || {
-            echo "CLOUDFLARE_ACCOUNT_ID is unavailable from the protected production environment." >&2
-            exit 1
-          }
-          test -n "$CLOUDFLARE_API_TOKEN" || {
-            echo "CLOUDFLARE_API_TOKEN is unavailable from the protected production environment." >&2
-            exit 1
-          }
-          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID" || {
-            echo "RCAT_PRODUCTION_D1_DATABASE_ID is unavailable from the protected production environment." >&2
-            exit 1
-          }
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$RCAT_PRODUCTION_D1_DATABASE_ID"
 
       - name: Resolve exact production D1 identity
-        shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -78,7 +153,6 @@ jobs:
             --verify-identity-only
 
       - name: Capture pre-release Time Travel bookmark
-        shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -88,14 +162,11 @@ jobs:
             const fs = require("fs");
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/d1-production-pre-release-time-travel.json", "utf8"));
             const metadata = Array.isArray(value) ? value[0] : value;
-            if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) {
-              throw new Error("production Time Travel bookmark was not returned before release");
-            }
+            if (typeof metadata?.bookmark !== "string" || metadata.bookmark.length === 0) throw new Error("production Time Travel bookmark was not returned before release");
             console.log("Pre-release production Time Travel bookmark resolved and retained only in runner temp storage.");
           '
 
       - name: List unapplied production migrations before release
-        shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -106,7 +177,6 @@ jobs:
             | tee "$RUNNER_TEMP/worker-production-migrations-before-release.txt"
 
       - name: Inspect production fixture schema
-        shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -115,20 +185,14 @@ jobs:
           schema_stderr="$RUNNER_TEMP/production-fixture-schema.stderr"
           schema_sql="SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('documents','contents','visitor_daily_stats','public_home_sections') ORDER BY name;"
           set +e
-          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
-            --remote \
-            --command="$schema_sql" \
-            --json > "$schema_json" 2> "$schema_stderr"
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" --remote --command="$schema_sql" --json > "$schema_json" 2> "$schema_stderr"
           schema_status=$?
           set -e
-
           if [[ "$schema_status" -ne 0 ]]; then
-            echo "::error::Production fixture schema inspection failed (wrangler exit $schema_status)."
+            echo "Production fixture schema inspection failed." >&2
             node scripts/sanitize-cloudflare-cli-output.mjs --file "$schema_stderr" --label "wrangler stderr" || true
-            node scripts/sanitize-cloudflare-cli-output.mjs --file "$schema_json" --label "wrangler stdout" || true
             exit "$schema_status"
           fi
-
           node -e '
             const fs = require("fs");
             const value = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/production-fixture-schema.json", "utf8"));
@@ -136,14 +200,11 @@ jobs:
             const names = new Set(statements.flatMap((statement) => Array.isArray(statement?.results) ? statement.results.map((row) => row?.name).filter(Boolean) : []));
             const required = ["documents", "contents", "visitor_daily_stats"];
             const missing = required.filter((name) => !names.has(name));
-            if (missing.length > 0) throw new Error(`production release cannot continue; required pre-M17-B table(s) missing: ${missing.join(", ")}`);
-            const homePresent = names.has("public_home_sections");
-            fs.appendFileSync(process.env.GITHUB_ENV, `PUBLIC_HOME_SECTIONS_PRESENT=${homePresent ? "true" : "false"}\n`);
-            console.log(`Production fixture schema verified. public_home_sections present before migrations: ${homePresent}.`);
+            if (missing.length > 0) throw new Error(`production release cannot continue; required table(s) missing: ${missing.join(", ")}`);
+            fs.appendFileSync(process.env.GITHUB_ENV, `PUBLIC_HOME_SECTIONS_PRESENT=${names.has("public_home_sections") ? "true" : "false"}\n`);
           '
 
       - name: Require clean production fixture sentinel
-        shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -152,27 +213,17 @@ jobs:
           audit_stderr="$RUNNER_TEMP/production-fixture-audit.stderr"
           audit_sql="$(cat cloudflare/public-api/sql/production-fixture-audit.sql)"
           set +e
-          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
-            --remote \
-            --command="$audit_sql" \
-            --json > "$audit_json" 2> "$audit_stderr"
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" --remote --command="$audit_sql" --json > "$audit_json" 2> "$audit_stderr"
           audit_status=$?
           set -e
-
           if [[ "$audit_status" -ne 0 ]]; then
-            echo "::error::Production fixture sentinel query failed before payload validation (wrangler exit $audit_status)."
             node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_stderr" --label "wrangler stderr" || true
-            node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_json" --label "wrangler stdout" || true
             exit "$audit_status"
           fi
-
-          node scripts/check-production-fixture-audit.mjs \
-            --file "$audit_json" \
-            --expect-clean
+          node scripts/check-production-fixture-audit.mjs --file "$audit_json" --expect-clean
 
       - name: Require clean optional public_home_sections fixture sentinel
         if: ${{ env.PUBLIC_HOME_SECTIONS_PRESENT == 'true' }}
-        shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -181,23 +232,14 @@ jobs:
           audit_stderr="$RUNNER_TEMP/production-home-section-fixture-audit.stderr"
           audit_sql="$(cat cloudflare/public-api/sql/production-home-section-fixture-audit.sql)"
           set +e
-          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
-            --remote \
-            --command="$audit_sql" \
-            --json > "$audit_json" 2> "$audit_stderr"
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" --remote --command="$audit_sql" --json > "$audit_json" 2> "$audit_stderr"
           audit_status=$?
           set -e
-
           if [[ "$audit_status" -ne 0 ]]; then
-            echo "::error::Optional public_home_sections fixture sentinel failed (wrangler exit $audit_status)."
             node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_stderr" --label "wrangler stderr" || true
-            node scripts/sanitize-cloudflare-cli-output.mjs --file "$audit_json" --label "wrangler stdout" || true
             exit "$audit_status"
           fi
-
-          node scripts/check-production-fixture-audit.mjs \
-            --file "$audit_json" \
-            --expect-clean
+          node scripts/check-production-fixture-audit.mjs --file "$audit_json" --expect-clean
 
       - name: Start GitHub Cloudflare Worker production deployment record
         id: github_deployment
@@ -213,6 +255,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+
       - name: Finalize GitHub Cloudflare Worker production deployment record
         if: ${{ always() && steps.github_deployment.outputs.deployment_id != '' }}
         env:

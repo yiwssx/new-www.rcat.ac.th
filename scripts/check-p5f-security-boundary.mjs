@@ -10,11 +10,7 @@ const fail = (message) => {
 const D1_READ_SECRET = "secrets.CLOUDFLARE_D1_READ_TOKEN";
 const PRIVILEGED_SECRET = "secrets.CLOUDFLARE_API_TOKEN";
 
-const pureReadWorkflows = [
-  ".github/workflows/worker-production-preflight.yml",
-  ".github/workflows/d1-recovery-drill.yml",
-  ".github/workflows/p6b-production-security.yml"
-];
+const pureReadWorkflows = [".github/workflows/d1-recovery-drill.yml", ".github/workflows/p6b-production-security.yml"];
 
 for (const workflow of pureReadWorkflows) {
   const source = read(workflow);
@@ -38,12 +34,25 @@ if (!integritySource.includes("if: ${{ inputs.mode == 'cleanup' }}")) {
   fail("Production Data Integrity must keep write steps behind the cleanup mode guard");
 }
 
-const workerReleaseSource = read(".github/workflows/worker-production.yml");
-if (!workerReleaseSource.includes(PRIVILEGED_SECRET)) {
-  fail("Worker Production Release must retain the privileged token for migration/deploy operations");
+const workerWorkflow = read(".github/workflows/worker-production.yml");
+const workerPreflightStart = workerWorkflow.indexOf("\n  preflight:");
+const workerReleaseStart = workerWorkflow.indexOf("\n  release:");
+if (workerPreflightStart < 0 || workerReleaseStart <= workerPreflightStart) {
+  fail("Deploy / Worker must keep distinct preflight and release jobs");
 }
-if (workerReleaseSource.includes(D1_READ_SECRET)) {
-  fail("Worker Production Release must not blur the read-only token into the privileged release path");
+const workerPreflightSource = workerWorkflow.slice(workerPreflightStart, workerReleaseStart);
+const workerReleaseSource = workerWorkflow.slice(workerReleaseStart);
+if (!workerPreflightSource.includes(D1_READ_SECRET) || workerPreflightSource.includes(PRIVILEGED_SECRET)) {
+  fail("Worker preflight job must use only the dedicated D1 read token");
+}
+if (!workerReleaseSource.includes(PRIVILEGED_SECRET) || workerReleaseSource.includes(D1_READ_SECRET)) {
+  fail("Worker release job must use only the privileged production token");
+}
+if (
+  !workerReleaseSource.includes("group: worker-production-write") ||
+  !workerReleaseSource.includes("cancel-in-progress: false")
+) {
+  fail("Worker release job must share the non-cancelling production write mutex with rollback");
 }
 
 const evidence = JSON.parse(read("config/csp-production-evidence.json"));

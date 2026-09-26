@@ -1,93 +1,32 @@
-name: Dependency Status Sync
+name: Dependencies / Snapshot Repair
 
-# Renovate updates must carry the generated dependency snapshot in the PR itself.
-# This workflow writes that snapshot back to same-repository Renovate branches before
-# merge. On master, it first checks only committed dependency-input hashes so normal
-# live-registry movement cannot be misclassified as post-merge dependency-state drift.
+# The live registry is owned by Renovate + Dependency Monitoring. This workflow
+# is an operator-only repair path for the committed dependency snapshot; it must
+# never mutate an active Renovate PR branch automatically.
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - master
-    types:
-      - opened
-      - synchronize
-      - reopened
-    paths:
-      - package.json
-      - pnpm-lock.yaml
-      - pnpm-workspace.yaml
-      - config/dependency-policy.json
-      - .node-version
-  push:
-    branches:
-      - master
-    paths:
-      - package.json
-      - pnpm-lock.yaml
-      - pnpm-workspace.yaml
-      - config/dependency-policy.json
-      - .node-version
-      - .github/workflows/dependency-status-sync.yml
 
 permissions:
   actions: write
   contents: write
-  # Retained for the existing dependency-policy contract. Repository settings still
-  # intentionally prevent Actions from creating or approving pull requests.
+  # Retained for the existing dependency-policy contract. Repository settings
+  # still intentionally prevent Actions from creating or approving pull requests.
   pull-requests: write
   statuses: write
 
 concurrency:
-  group: dependency-status-sync-${{ github.event.pull_request.number || github.ref }}
+  group: dependency-status-repair
   cancel-in-progress: true
 
 jobs:
   sync:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'push' ||
-      (
-        github.event_name == 'pull_request' &&
-        github.event.pull_request.user.login == 'renovate[bot]' &&
-        github.event.pull_request.head.repo.full_name == github.repository
-      )
+    if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
-
-      - name: Reject incomplete Renovate dependency artifact
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          changed_files="$(git diff --name-only "$BASE_SHA" HEAD)"
-          package_changed=false
-          lockfile_changed=false
-
-          if grep -Fxq "package.json" <<<"$changed_files"; then
-            package_changed=true
-          fi
-          if grep -Fxq "pnpm-lock.yaml" <<<"$changed_files"; then
-            lockfile_changed=true
-          fi
-
-          if [ "$package_changed" = "true" ] && [ "$lockfile_changed" != "true" ]; then
-            {
-              echo "## Incomplete Renovate dependency artifact"
-              echo "Renovate changed package.json without updating pnpm-lock.yaml."
-              echo "The branch must be retried by Renovate before snapshot synchronization or full CI."
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo "Renovate changed package.json without pnpm-lock.yaml; refusing to synchronize an invalid dependency state."
-            exit 1
-          fi
 
       - name: Install validated dependency artifact for snapshot generation
         uses: ./.github/actions/setup-project
@@ -96,7 +35,6 @@ jobs:
 
       - name: Check committed dependency snapshot input hashes
         id: committed_snapshot
-        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set +e
@@ -108,24 +46,22 @@ jobs:
             echo "current=true" >> "$GITHUB_OUTPUT"
             {
               echo "## Dependency snapshot input hashes are current"
-              echo "The committed snapshot matches package.json, pnpm-lock.yaml, pnpm-workspace.yaml, and config/dependency-policy.json."
-              echo "Live registry movement alone does not require a post-merge repair."
+              echo "No repair branch is required."
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "current=false" >> "$GITHUB_OUTPUT"
             {
               echo "## Dependency snapshot input hashes are stale"
-              echo "A committed dependency input changed without a matching dependency snapshot."
-              echo "The workflow will generate and validate a bounded repair branch."
+              echo "The workflow will generate a bounded repair branch for maintainer review."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Refresh dependency status document in workspace
-        if: github.event_name == 'pull_request' || steps.committed_snapshot.outputs.current != 'true'
+        if: steps.committed_snapshot.outputs.current != 'true'
         run: pnpm deps:status
 
       - name: Verify generated change scope
-        if: github.event_name == 'pull_request' || steps.committed_snapshot.outputs.current != 'true'
+        if: steps.committed_snapshot.outputs.current != 'true'
         shell: bash
         run: |
           unexpected="$(git status --porcelain --untracked-files=no | awk '$2 != "docs/maintenance/dependency-current-status.md" { print }')"
@@ -137,7 +73,7 @@ jobs:
 
       - name: Detect dependency status drift
         id: drift
-        if: github.event_name == 'pull_request' || steps.committed_snapshot.outputs.current != 'true'
+        if: steps.committed_snapshot.outputs.current != 'true'
         shell: bash
         run: |
           if git diff --quiet -- docs/maintenance/dependency-current-status.md; then
@@ -147,36 +83,11 @@ jobs:
           fi
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
-          echo "Dependency status snapshot differs from the generated result."
           git diff --stat -- docs/maintenance/dependency-current-status.md
 
-      - name: Commit refreshed snapshot to Renovate PR branch
-        id: renovate_commit
-        if: github.event_name == 'pull_request' && steps.drift.outputs.changed == 'true'
-        env:
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/maintenance/dependency-current-status.md
-          HUSKY=0 git commit -m "docs(deps): refresh dependency status"
-          git push origin "HEAD:refs/heads/$HEAD_BRANCH"
-
-          echo "branch=$HEAD_BRANCH" >> "$GITHUB_OUTPUT"
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-          {
-            echo "## Renovate dependency snapshot committed"
-            echo "The generated dependency status was committed to the Renovate branch before merge."
-            echo "The updated head will be validated before the required quality status is published."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Publish post-merge repair branch
+      - name: Publish snapshot repair branch
         id: repair_commit
-        if: github.event_name != 'pull_request' && steps.committed_snapshot.outputs.current != 'true' && steps.drift.outputs.changed == 'true'
+        if: steps.drift.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -191,61 +102,35 @@ jobs:
           echo "branch=$sync_branch" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      # A snapshot commit triggers a new synchronize event and cancels this run. The
-      # successor sees no drift, so it must still bridge its current Renovate head.
-      - name: Resolve required quality validation target
-        id: validation_target
-        if: github.event_name == 'pull_request' || steps.repair_commit.outputs.branch != ''
-        env:
-          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
-          REPAIR_BRANCH: ${{ steps.repair_commit.outputs.branch }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            target_branch="$PR_BRANCH"
-          else
-            target_branch="$REPAIR_BRANCH"
-          fi
-
-          test -n "$target_branch"
-          target_sha="$(git rev-parse HEAD)"
-
-          echo "branch=$target_branch" >> "$GITHUB_OUTPUT"
-          echo "sha=$target_sha" >> "$GITHUB_OUTPUT"
-
-      # Dependency policy contract marker: the shared validator owns
-      # `gh workflow run ci.yml` and mirrors its result as required `quality`.
-      - name: Validate updated head and publish required quality status
-        if: github.event_name == 'pull_request' || steps.repair_commit.outputs.branch != ''
+      - name: Validate repair head and publish required quality status
+        if: steps.repair_commit.outputs.branch != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          TARGET_BRANCH: ${{ steps.validation_target.outputs.branch }}
-          TARGET_SHA: ${{ steps.validation_target.outputs.sha }}
+          TARGET_BRANCH: ${{ steps.repair_commit.outputs.branch }}
+          TARGET_SHA: ${{ steps.repair_commit.outputs.sha }}
         shell: bash
         run: bash scripts/validate-required-quality.sh "$TARGET_BRANCH" "$TARGET_SHA"
 
       - name: Report current dependency status
-        if: github.event_name != 'pull_request' && steps.committed_snapshot.outputs.current == 'true'
+        if: steps.committed_snapshot.outputs.current == 'true'
         run: |
           {
             echo "## Dependency status"
-            echo "The checked-in dependency snapshot matches the committed dependency inputs."
+            echo "The checked-in snapshot matches committed dependency inputs."
             echo "Registry-only movement remains the responsibility of scheduled monitoring and Renovate."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Do not run `gh pr create` here. The repository intentionally disables
-      # Actions-created/approved pull requests; a maintainer PR preserves the master ruleset.
-      - name: Fail closed on genuine post-merge snapshot drift
-        if: github.event_name != 'pull_request' && steps.repair_commit.outputs.branch != ''
+      # Repository policy intentionally keeps `gh pr create` out of automation.
+      # validate-required-quality.sh owns the bounded `gh workflow run ci.yml`
+      # validation for the repair branch before a maintainer opens the PR.
+      - name: Require maintainer PR for repaired snapshot
+        if: steps.repair_commit.outputs.branch != ''
         shell: bash
         run: |
           {
-            echo "## Post-merge dependency snapshot drift requires maintainer PR"
-            echo "The validated repair is available on branch automation/dependency-status-sync."
-            echo "Repository rules require a pull request and the required quality gate for master."
-            echo "GitHub Actions PR creation remains disabled; no repository-wide permission was widened."
+            echo "## Snapshot repair requires maintainer PR"
+            echo "Validated branch: automation/dependency-status-sync"
+            echo "Automatic pull-request creation remains disabled by repository policy."
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Validated repair branch published; maintainer pull request is required by repository policy."
           exit 1

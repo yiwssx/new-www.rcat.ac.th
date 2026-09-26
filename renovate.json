@@ -6,7 +6,9 @@
   "includePaths": ["package.json", ".github/workflows/**", ".github/actions/**"],
   "baseBranchPatterns": ["master"],
   "timezone": "Asia/Bangkok",
-  "minimumReleaseAgeBuffer": "6 hours",
+  "schedule": ["* 0-6 * * *"],
+  "updateNotScheduled": false,
+  "automergeSchedule": ["* 0-6 * * *"],
   "labels": ["dependencies"],
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
@@ -18,10 +20,10 @@
   "automergeStrategy": "merge-commit",
   "platformAutomerge": false,
   "ignoreTests": false,
-  "prConcurrentLimit": 2,
-  "branchConcurrentLimit": 2,
-  "prHourlyLimit": 1,
-  "commitHourlyLimit": 2,
+  "prConcurrentLimit": 3,
+  "branchConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "commitHourlyLimit": 4,
   "lockFileMaintenance": {
     "enabled": false
   },
@@ -89,6 +91,22 @@
       "matchPackageNames": ["@tanstack/react-query", "@tanstack/react-router"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "tanstack runtime"
+    },
+    {
+      "description": "Group Vite build tooling patch and minor updates",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": ["vite", "@vitejs/plugin-react", "vite-plugin-checker"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "vite build tooling"
+    },
+    {
+      "description": "Group formatting tooling patch and minor updates",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": ["prettier", "eslint-config-prettier", "lint-staged"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "formatting tooling"
     },
     {
       "description": "Keep workflow pnpm setup pinned for deliberate package-manager upgrades",

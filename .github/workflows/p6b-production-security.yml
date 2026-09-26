@@ -1,4 +1,4 @@
-name: P6B Production Security
+name: Production / Security
 
 on:
   push:
@@ -6,16 +6,23 @@ on:
       - master
     paths:
       - ".github/workflows/p6b-production-security.yml"
+      - "vercel.json"
       - "middleware.ts"
+      - "src/entry-server.tsx"
+      - "src/entry-client.tsx"
+      - "src/runtime.ts"
+      - "src/routes.tsx"
+      - "src/security/cspPolicy.ts"
       - "server/security/edgeWafPolicy.ts"
       - "cloudflare/public-api/src/securityRateLimit.ts"
       - "cloudflare/public-api/src/routes/cmsAuthInternal.ts"
       - "cloudflare/public-api/src/routes/adminWrite.ts"
       - "cloudflare/public-api/wrangler.toml"
-      - "scripts/check-production-auth-security-events.mjs"
+      - "scripts/p6b-csp-production-smoke.mjs"
       - "scripts/p6b-edge-waf-production-smoke.mjs"
+      - "scripts/check-production-auth-security-events.mjs"
   schedule:
-    # WAF smoke only: every six hours at minute 47. Auth anomaly D1 diagnostics are manual-only.
+    # Lightweight WAF smoke only: every six hours at minute 47.
     - cron: "47 */6 * * *"
   workflow_dispatch:
 
@@ -23,7 +30,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: p6b-production-security
+  group: production-security
   cancel-in-progress: true
 
 jobs:
@@ -38,6 +45,19 @@ jobs:
           node-version-file: .node-version
       - name: Verify Vercel edge WAF on production
         run: node scripts/p6b-edge-waf-production-smoke.mjs
+
+  csp-browser:
+    name: CSP Browser Smoke
+    if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-project
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Verify production CSP enforcement
+        env:
+          P6B_CSP_EXPECTED_MARKER: p6b-enforced-v1
+        run: node scripts/p6b-csp-production-smoke.mjs
 
   auth-anomaly:
     name: Auth Anomaly Diagnostic
