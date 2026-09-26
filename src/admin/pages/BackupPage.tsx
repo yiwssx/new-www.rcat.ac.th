@@ -31,6 +31,7 @@ import {
   type AdminBackupDownload,
   type AdminBackupTableCount
 } from "../../features/admin-write/cloudflareApi";
+import { hasCmsCapability } from "../../features/cms-auth";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { canDownloadSystemBackup, canReadSystemBackupCounts } from "../utils/rbac";
 import { formatDisplayDateTime } from "../../utils/dateDisplay";
@@ -65,6 +66,7 @@ export default function BackupPage() {
   const { capabilities } = useAuth();
   const canCheckCounts = canReadSystemBackupCounts(capabilities);
   const canDownload = canDownloadSystemBackup(capabilities);
+  const canRecover = hasCmsCapability(capabilities, "backup.restore");
   const [counts, setCounts] = useState<AdminBackupCounts | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -271,7 +273,7 @@ export default function BackupPage() {
           </Grid>
         </Grid>
 
-        <PortableBackupRecoveryPanel />
+        {canRecover && <PortableBackupRecoveryPanel />}
       </Stack>
     </Box>
   );
