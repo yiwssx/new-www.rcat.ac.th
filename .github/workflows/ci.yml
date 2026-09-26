@@ -29,6 +29,66 @@ jobs:
         with:
           install-args: --frozen-lockfile --strict-peer-dependencies --ignore-scripts
 
+  finalize-pr423:
+    name: Finalize PR 423
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.head_ref == 'refactor/workflow-architecture-consolidation' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: ./.github/actions/setup-project
+      - name: Restore production data safety contracts
+        shell: bash
+        run: |
+          if [[ -f scripts/_temp_pr423_repair.py ]]; then
+            python scripts/_temp_pr423_repair.py
+          fi
+      - name: Apply repository Prettier
+        run: |
+          pnpm exec prettier --write \
+            .github/workflows/dependency-status-sync.yml \
+            .github/workflows/maintenance-recovery.yml \
+            .github/workflows/production-data-operations.yml \
+            .github/workflows/production-verification.yml \
+            scripts/check-p5f-security-boundary.mjs \
+            scripts/check-p5h-maintainability-observability.mjs \
+            scripts/check-p6b-security-enforcement.mjs \
+            scripts/check-p6c-recovery-reliability.mjs \
+            server/healthAggregation/handler.mjs \
+            server/healthAggregation/handler.test.mjs \
+            src/test/dependencyAutomationContract.test.ts \
+            src/test/deploymentHistoryTaxonomy.test.ts \
+            src/test/phaseAAutomationContract.test.ts \
+            src/test/phaseAProductionBrowserSmokeContract.test.ts \
+            src/test/phaseC2ProductionGuard.test.ts \
+            src/test/phaseCDeepFieldVerificationContract.test.ts \
+            src/test/productionDataIntegritySafety.test.ts \
+            src/test/vercelIgnoreBuild.test.mjs \
+            src/test/workflowInventoryGovernance.test.ts
+      - name: Remove temporary repair helpers
+        run: rm -f .github/workflows/_temp-pr423-repair.yml scripts/_temp_pr423_repair.py
+      - name: Commit deterministic repair
+        shell: bash
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          if git diff --quiet; then
+            echo "No repair changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(ci): preserve safety after workflow consolidation"
+          git push origin "HEAD:$HEAD_BRANCH"
+
   dependencies:
     name: Dependencies
     needs: dependency-preflight
