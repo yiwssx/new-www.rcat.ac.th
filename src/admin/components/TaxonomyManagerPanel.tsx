@@ -41,7 +41,10 @@ export default function TaxonomyManagerPanel() {
     queryFn: getTaxonomySnapshot,
     staleTime: 10_000
   });
-  const items = kind === "category" ? (taxonomyQuery.data?.categories ?? []) : (taxonomyQuery.data?.tags ?? []);
+  const items = useMemo(
+    () => (kind === "category" ? (taxonomyQuery.data?.categories ?? []) : (taxonomyQuery.data?.tags ?? [])),
+    [kind, taxonomyQuery.data?.categories, taxonomyQuery.data?.tags]
+  );
   const fromOption = useMemo(() => items.find((item) => item.label === from) ?? null, [from, items]);
 
   const mutation = useMutation({
