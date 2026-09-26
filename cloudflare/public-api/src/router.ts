@@ -2,6 +2,7 @@ import { isPublicAnalyticsOriginAllowed } from "./cors";
 import type { Env } from "./env";
 import { invalidatePublicReadCacheAfterAdminMutation } from "./publicReadCacheInvalidation";
 import { jsonError, methodNotAllowed, notFound } from "./responses";
+import { handleAdminBackupRecovery } from "./routes/adminBackupRecovery";
 import { handleAdminContentGovernance } from "./routes/adminContentGovernance";
 import { enforceAdminContentScope, handleAdminCmsGapClosure } from "./routes/adminCmsGapClosure";
 import { handleAdminEditorialGovernance } from "./routes/adminEditorialGovernance";
@@ -66,6 +67,14 @@ export async function routeRequest(request: Request, env: Env) {
 
   if (contentScopeResponse) {
     return contentScopeResponse;
+  }
+
+  // Recovery is intercepted before the broader gap-closure handler so merge
+  // restores use primary-key UPSERT semantics and never REPLACE unrelated rows.
+  const backupRecoveryResponse = await handleAdminBackupRecovery(request, env);
+
+  if (backupRecoveryResponse) {
+    return finalizeAdminResponse(request, env, backupRecoveryResponse);
   }
 
   const gapClosureResponse = await handleAdminCmsGapClosure(request, env);
