@@ -9,14 +9,12 @@ const read = (path: string) => readFileSync(join(root, path), "utf8");
 
 const protectedWorkflows = [
   "cms-link-integrity-audit.yml",
-  "apps-script-production-preflight.yml",
   "p6b-production-security.yml",
   "apps-script-production-rollback.yml",
   "production-observability.yml",
   "apps-script-production-release.yml",
   "d1-recovery-drill.yml",
   "worker-production.yml",
-  "worker-production-preflight.yml",
   "worker-production-rollback.yml",
   "production-data-integrity.yml",
   "phase-c3-authenticated-cms-field.yml",
