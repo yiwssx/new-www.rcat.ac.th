@@ -12,7 +12,13 @@ const SITEMAP_FALLBACK_CDN_CACHE_CONTROL = "public, max-age=60, stale-while-reva
 const PUBLIC_ROUTE_REGISTRY = Array.isArray(registryConfig?.routes) ? registryConfig.routes : [];
 const SYSTEM_RESERVED_ROOT_SLUGS = new Set(
   Array.isArray(registryConfig?.systemReservedRootSlugs)
-    ? registryConfig.systemReservedRootSlugs.map((slug) => String(slug || "").trim().toLowerCase()).filter(Boolean)
+    ? registryConfig.systemReservedRootSlugs
+        .map((slug) =>
+          String(slug || "")
+            .trim()
+            .toLowerCase()
+        )
+        .filter(Boolean)
     : []
 );
 const NON_INDEXABLE_PUBLIC_ROUTES = new Set(
@@ -90,10 +96,7 @@ export function normalizeInternalRoute(href, siteUrl) {
   }
 
   const pathname = url.pathname.replace(/\/{2,}/g, "/").replace(/\/+$/, "") || "/";
-  const rootSlug = pathname
-    .replace(/^\/+/, "")
-    .split("/")[0]
-    ?.toLowerCase();
+  const rootSlug = pathname.replace(/^\/+/, "").split("/")[0]?.toLowerCase();
 
   if (NON_INDEXABLE_PUBLIC_ROUTES.has(pathname) || (rootSlug && SYSTEM_RESERVED_ROOT_SLUGS.has(rootSlug))) {
     return "";

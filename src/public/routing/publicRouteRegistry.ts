@@ -34,11 +34,13 @@ function normalizeRoutePath(path: string) {
 }
 
 function normalizeRootSlug(value: string) {
-  return String(value || "")
-    .trim()
-    .replace(/^\/+|\/+$/g, "")
-    .split("/")[0]
-    ?.toLocaleLowerCase("en-US") ?? "";
+  return (
+    String(value || "")
+      .trim()
+      .replace(/^\/+|\/+$/g, "")
+      .split("/")[0]
+      ?.toLocaleLowerCase("en-US") ?? ""
+  );
 }
 
 export function validatePublicRouteRegistry(input: PublicRouteRegistryConfig = config) {

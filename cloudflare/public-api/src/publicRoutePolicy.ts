@@ -8,11 +8,13 @@ interface PublicRouteRegistryConfig {
 const config = registryConfig as PublicRouteRegistryConfig;
 
 function normalizeRootSlug(value: string) {
-  return String(value || "")
-    .trim()
-    .replace(/^\/+|\/+$/g, "")
-    .split("/")[0]
-    ?.toLocaleLowerCase("en-US") ?? "";
+  return (
+    String(value || "")
+      .trim()
+      .replace(/^\/+|\/+$/g, "")
+      .split("/")[0]
+      ?.toLocaleLowerCase("en-US") ?? ""
+  );
 }
 
 const reservedRootSlugs = new Set([

@@ -120,12 +120,7 @@ async function resolveCandidate(request: Request, env: Env): Promise<ReservedSlu
     return { slug: await readCurrentSlug(env, contentId), capability: "content.update" };
   }
 
-  if (
-    segments.length === 5 &&
-    request.method === "POST" &&
-    segments[2] === "revisions" &&
-    segments[4] === "restore"
-  ) {
+  if (segments.length === 5 && request.method === "POST" && segments[2] === "revisions" && segments[4] === "restore") {
     const revision = Number(segments[3]);
     if (!Number.isSafeInteger(revision) || revision < 0) return null;
     return { slug: await readRevisionSlug(env, contentId, revision), capability: "content.update" };
