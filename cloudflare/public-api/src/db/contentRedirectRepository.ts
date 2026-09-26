@@ -3,7 +3,7 @@ import type { Env } from "../env";
 
 export async function getContentRedirectTarget(env: Env, oldSlug: string) {
   try {
-    const row = await requireD1Database(env)
+    const result = await requireD1Database(env)
       .prepare(
         `SELECT r.new_slug
          FROM content_redirects r
@@ -16,9 +16,9 @@ export async function getContentRedirectTarget(env: Env, oldSlug: string) {
          LIMIT 1`
       )
       .bind(oldSlug)
-      .first<{ new_slug: string }>();
+      .all<{ new_slug: string }>();
 
-    return row?.new_slug?.trim() || "";
+    return result.results?.[0]?.new_slug?.trim() || "";
   } catch (error) {
     // Keep pre-migration preview/test environments backward compatible.
     if (error instanceof Error && /no such table:\s*content_redirects/i.test(error.message)) {
