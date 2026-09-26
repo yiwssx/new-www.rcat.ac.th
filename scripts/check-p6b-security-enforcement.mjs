@@ -56,14 +56,8 @@ const workerRateLimit = await readFile(
 );
 const workerEnv = await readFile(new URL("../cloudflare/public-api/src/env.ts", import.meta.url), "utf8");
 const wrangler = await readFile(new URL("../cloudflare/public-api/wrangler.toml", import.meta.url), "utf8");
-const cmsAuth = await readFile(
-  new URL("../cloudflare/public-api/src/routes/cmsAuthInternal.ts", import.meta.url),
-  "utf8"
-);
-const adminWrite = await readFile(
-  new URL("../cloudflare/public-api/src/routes/adminWrite.ts", import.meta.url),
-  "utf8"
-);
+const cmsAuth = await readFile(new URL("../cloudflare/public-api/src/routes/cmsAuthInternal.ts", import.meta.url), "utf8");
+const adminWrite = await readFile(new URL("../cloudflare/public-api/src/routes/adminWrite.ts", import.meta.url), "utf8");
 
 for (const binding of ["CMS_AUTH_RATE_LIMITER", "ADMIN_API_RATE_LIMITER"]) {
   if (!workerEnv.includes(binding) || !wrangler.includes(`name = "${binding}"`)) {
@@ -81,7 +75,7 @@ if (!adminWrite.includes('enforceSecurityRateLimit(request, env, "admin-api")'))
 }
 
 const securityWorkflow = await readFile(
-  new URL("../.github/workflows/p6b-production-security.yml", import.meta.url),
+  new URL("../.github/workflows/production-verification.yml", import.meta.url),
   "utf8"
 );
 const anomalyGuard = await readFile(new URL("./check-production-auth-security-events.mjs", import.meta.url), "utf8");
@@ -91,10 +85,10 @@ for (const requiredScript of [
   "check-production-auth-security-events.mjs"
 ]) {
   if (!securityWorkflow.includes(requiredScript)) {
-    fail(`production security workflow is missing ${requiredScript}`);
+    fail(`production verification workflow is missing ${requiredScript}`);
   }
 }
-if (!securityWorkflow.includes("github.event_name != 'schedule'")) {
+if (!securityWorkflow.includes("github.event_name == 'push'") || !securityWorkflow.includes("csp-browser:")) {
   fail("CSP browser smoke must remain excluded from the six-hour scheduled WAF probe");
 }
 if (!anomalyGuard.includes("RCAT_PRODUCTION_D1_DATABASE_ID") || !anomalyGuard.includes("admin_mfa_challenges")) {
