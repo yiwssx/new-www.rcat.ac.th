@@ -51,6 +51,16 @@ BEGIN
   DELETE FROM content_redirects WHERE old_slug = new_slug;
 END;
 
+-- Restore/activation can move a tombstoned slug back to a live slug. The live
+-- content must always win over any historical redirect with the same source.
+CREATE TRIGGER IF NOT EXISTS trg_contents_slug_redirect_activate_update
+AFTER UPDATE OF slug, deleted_at ON contents
+WHEN NEW.slug NOT LIKE '__deleted__:%'
+  AND COALESCE(NEW.deleted_at, '') = ''
+BEGIN
+  DELETE FROM content_redirects WHERE old_slug = NEW.slug;
+END;
+
 -- If a historical slug becomes an active slug again, the active content wins.
 CREATE TRIGGER IF NOT EXISTS trg_contents_slug_redirect_insert
 AFTER INSERT ON contents
