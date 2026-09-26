@@ -272,8 +272,10 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
 export async function handleAdminBackupRecovery(request: Request, env: Env): Promise<Response | null> {
   const pathname = new URL(request.url).pathname;
   if (pathname !== RECOVERY_PATH) return null;
-  if (request.method !== "POST") return noStore(jsonError("method not allowed", 405, { resource: "system-backup-recovery" }));
-  if (!env.DB) return noStore(jsonError("database binding is not configured", 503, { resource: "system-backup-recovery" }));
+  if (request.method !== "POST")
+    return noStore(jsonError("method not allowed", 405, { resource: "system-backup-recovery" }));
+  if (!env.DB)
+    return noStore(jsonError("database binding is not configured", 503, { resource: "system-backup-recovery" }));
 
   const authenticated = await authenticateRecoveryRequest(request, env);
   if (authenticated instanceof Response) return authenticated;
