@@ -44,7 +44,8 @@ const backupTableNames = [
   "homepage_settings",
   "display_settings",
   "public_home_sections",
-  "visitor_daily_stats"
+  "visitor_daily_stats",
+  "content_redirects"
 ];
 
 authenticateCmsSessionMock.mockImplementation(async ({ sessionToken }: { sessionToken: string }) => {
@@ -204,11 +205,13 @@ describe("M21 admin D1 backup routes", () => {
       counts: {
         contents: 1,
         documents: 0,
-        media_assets: 0
+        media_assets: 0,
+        content_redirects: 0
       },
       tables: expect.arrayContaining([
         expect.objectContaining({ name: "contents", rowCount: 1, status: "ok" }),
-        expect.objectContaining({ name: "media_assets", rowCount: 0, status: "missing" })
+        expect.objectContaining({ name: "media_assets", rowCount: 0, status: "missing" }),
+        expect.objectContaining({ name: "content_redirects", rowCount: 0, status: "missing" })
       ])
     });
     expect(payload.warnings).toEqual(expect.arrayContaining([expect.stringMatching(/media_assets/i)]));
@@ -223,7 +226,8 @@ describe("M21 admin D1 backup routes", () => {
         createBackupMockDb({
           contents: [{ id: "content-1", revision: 2, deleted_at: "" }],
           media_assets: [],
-          documents: []
+          documents: [],
+          content_redirects: [{ old_slug: "old", new_slug: "new", content_id: "content-1" }]
         })
       )
     );
@@ -235,7 +239,7 @@ describe("M21 admin D1 backup routes", () => {
       /^attachment; filename="rcat-d1-backup-preview-[^"]+\.json"$/
     );
     expect(payload).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       environment: "preview",
       source: {
         app: "new-www.rcat.ac.th",
@@ -243,12 +247,17 @@ describe("M21 admin D1 backup routes", () => {
       },
       counts: {
         contents: 1,
-        media_assets: 0
+        media_assets: 0,
+        content_redirects: 1
       },
       tables: {
         contents: {
           rowCount: 1,
           rows: [expect.objectContaining({ id: "content-1", revision: 2 })]
+        },
+        content_redirects: {
+          rowCount: 1,
+          rows: [expect.objectContaining({ old_slug: "old", new_slug: "new" })]
         }
       }
     });
