@@ -55,10 +55,7 @@ export default function PortableBackupRecoveryPanel() {
   const mutation = useMutation({
     mutationFn: () => recoverD1Backup(payload),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries(),
-        invalidatePublicCmsData(queryClient)
-      ]);
+      await Promise.all([queryClient.invalidateQueries(), invalidatePublicCmsData(queryClient)]);
     }
   });
 
@@ -128,7 +125,8 @@ export default function PortableBackupRecoveryPanel() {
           </Box>
 
           <Alert severity="warning">
-            ฟังก์ชันนี้ไม่ใช่ Full Replace: ข้อมูลในไฟล์จะถูก upsert เฉพาะตาราง CMS ที่อนุญาต เพื่อหลีกเลี่ยงการล้างข้อมูลหรือเขียนทับระบบยืนยันตัวตนโดยไม่ตั้งใจ
+            ฟังก์ชันนี้ไม่ใช่ Full Replace: ข้อมูลในไฟล์จะถูก upsert เฉพาะตาราง CMS ที่อนุญาต
+            เพื่อหลีกเลี่ยงการล้างข้อมูลหรือเขียนทับระบบยืนยันตัวตนโดยไม่ตั้งใจ
           </Alert>
           {error && <Alert severity="error">{error}</Alert>}
 
