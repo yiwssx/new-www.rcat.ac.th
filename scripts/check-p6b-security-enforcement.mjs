@@ -85,11 +85,17 @@ const securityWorkflow = await readFile(
   "utf8"
 );
 const anomalyGuard = await readFile(new URL("./check-production-auth-security-events.mjs", import.meta.url), "utf8");
-if (!securityWorkflow.includes("p6b-edge-waf-production-smoke.mjs")) {
-  fail("Vercel edge WAF production smoke is not wired into the production guard");
+for (const requiredScript of [
+  "p6b-edge-waf-production-smoke.mjs",
+  "p6b-csp-production-smoke.mjs",
+  "check-production-auth-security-events.mjs"
+]) {
+  if (!securityWorkflow.includes(requiredScript)) {
+    fail(`production security workflow is missing ${requiredScript}`);
+  }
 }
-if (!securityWorkflow.includes("check-production-auth-security-events.mjs")) {
-  fail("auth anomaly monitoring is not wired into the production security workflow");
+if (!securityWorkflow.includes("github.event_name != 'schedule'")) {
+  fail("CSP browser smoke must remain excluded from the six-hour scheduled WAF probe");
 }
 if (!anomalyGuard.includes("RCAT_PRODUCTION_D1_DATABASE_ID") || !anomalyGuard.includes("admin_mfa_challenges")) {
   fail("auth anomaly monitoring is not aligned with the authoritative D1 auth runtime");
