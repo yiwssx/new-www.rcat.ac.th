@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
@@ -38,10 +38,6 @@ export default function ContentScopeManagementPanel() {
     [scopesQuery.data?.items]
   );
   const selected = editors.find((item) => item.id === selectedId) ?? null;
-
-  useEffect(() => {
-    setContentScope(selected?.contentScope ?? "");
-  }, [selected]);
 
   const mutation = useMutation({
     mutationFn: () => updateContentScope(selectedId, contentScope.trim()),
@@ -93,7 +89,11 @@ export default function ContentScopeManagementPanel() {
           <Autocomplete
             options={editors}
             value={selected}
-            onChange={(_, value) => setSelectedId(value?.id || "")}
+            onChange={(_, value) => {
+              setSelectedId(value?.id || "");
+              setContentScope(value?.contentScope || "");
+              setError("");
+            }}
             getOptionLabel={(option) => `${option.name || option.email} · ${option.email}`}
             isOptionEqualToValue={(option, value) => option.id === value.id}
             renderOption={(props, option) => (
