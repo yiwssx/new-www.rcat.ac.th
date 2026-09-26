@@ -15,7 +15,7 @@ import { recoverD1Backup } from "../../features/cms-governance/gapClosureClient"
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import { appSwal } from "../../utils/swal";
 
-const MAX_BACKUP_FILE_BYTES = 16 * 1024 * 1024;
+const MAX_BACKUP_FILE_BYTES = 4 * 1024 * 1024;
 
 type BackupPayload = {
   schemaVersion: number;
@@ -69,7 +69,7 @@ export default function PortableBackupRecoveryPanel() {
     setError("");
     if (!file) return;
     if (file.size > MAX_BACKUP_FILE_BYTES) {
-      setError("ไฟล์สำรองข้อมูลมีขนาดเกิน 16 MB");
+      setError("ไฟล์สำรองข้อมูลมีขนาดเกิน 4 MB");
       return;
     }
     try {
@@ -120,7 +120,7 @@ export default function PortableBackupRecoveryPanel() {
               <Typography variant="h3">กู้คืนข้อมูลแบบ Portable Merge</Typography>
             </Stack>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-              รองรับไฟล์ schema v1/v2 ตรวจคอลัมน์กับ D1 ก่อนเขียน และต้องยืนยัน MFA ล่าสุดก่อนดำเนินการ
+              รองรับไฟล์ schema v1/v2 ขนาดไม่เกิน 4 MB ตรวจคอลัมน์กับ D1 ก่อนเขียน และต้องยืนยัน MFA ล่าสุดก่อนดำเนินการ
             </Typography>
           </Box>
 
