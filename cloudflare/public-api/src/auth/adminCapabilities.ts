@@ -42,6 +42,7 @@ export const ADMIN_CAPABILITIES = Object.freeze([
   "users.mfa.reset",
   "backup.counts",
   "backup.download",
+  "backup.restore",
   "audit.read",
   "auth.change-password-self",
   "auth.reauthenticate-self",
