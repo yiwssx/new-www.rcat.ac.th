@@ -21,7 +21,7 @@ interface PublicRouteRegistryConfig {
   routes: PublicRouteMetadata[];
 }
 
-const config = registryConfig as PublicRouteRegistryConfig;
+const config = registryConfig as unknown as PublicRouteRegistryConfig;
 
 function normalizeRoutePath(path: string) {
   if (path === "/") {
