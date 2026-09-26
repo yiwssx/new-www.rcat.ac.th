@@ -6,6 +6,7 @@ import { handleAdminBackupRecovery } from "./routes/adminBackupRecovery";
 import { handleAdminContentGovernance } from "./routes/adminContentGovernance";
 import { enforceAdminContentScope, handleAdminCmsGapClosure } from "./routes/adminCmsGapClosure";
 import { handleAdminEditorialGovernance } from "./routes/adminEditorialGovernance";
+import { enforceReservedContentSlug } from "./routes/adminReservedContentSlug";
 import { adminWrite } from "./routes/adminWrite";
 import { health } from "./routes/health";
 import { publicContentDetail, publicContentList } from "./routes/publicContent";
@@ -68,6 +69,14 @@ export async function routeRequest(request: Request, env: Env) {
   if (contentScopeResponse) {
     contentScopeResponse.headers.set("Cache-Control", "no-store");
     return contentScopeResponse;
+  }
+
+  // Public application routes own their root paths. Reject content mutations
+  // that would make a CMS permalink collide with one of those registered paths.
+  const reservedSlugResponse = await enforceReservedContentSlug(request, env);
+
+  if (reservedSlugResponse) {
+    return reservedSlugResponse;
   }
 
   // Recovery is intercepted before the broader gap-closure handler so merge
