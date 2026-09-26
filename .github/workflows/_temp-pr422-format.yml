@@ -1,0 +1,37 @@
+name: Temporary / PR 422 Formatter
+
+on:
+  push:
+    branches:
+      - fix/dependency-lifecycle-workflow-consolidation
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+        with:
+          ref: fix/dependency-lifecycle-workflow-consolidation
+
+      - name: Set up project
+        uses: ./.github/actions/setup-project
+
+      - name: Apply repository Prettier
+        run: pnpm exec prettier --write src/test/dependencyAutomationContract.test.ts
+
+      - name: Commit formatted file
+        shell: bash
+        run: |
+          if git diff --quiet -- src/test/dependencyAutomationContract.test.ts; then
+            echo "File is already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/test/dependencyAutomationContract.test.ts
+          git commit -m "style(deps): apply repository prettier"
+          git push origin HEAD:fix/dependency-lifecycle-workflow-consolidation
