@@ -37,7 +37,7 @@ export function resolveD1DrillEnvironmentDeployment({
     const createdAt = Date.parse(deployment?.created_at ?? "");
     return (
       normalizeEnvironmentName(deployment?.environment) === "production" &&
-      deployment?.ref === "master" &&
+      ["master", "main"].includes(deployment?.ref) &&
       deployment?.sha === sha &&
       deployment?.creator?.login === actor &&
       deployment?.performed_via_github_app?.slug === "github-actions" &&

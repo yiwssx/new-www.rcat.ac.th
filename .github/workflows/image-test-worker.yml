@@ -4,12 +4,14 @@ on:
   pull_request:
     branches:
       - master
+      - main
     paths:
       - "cloudflare/image-test/**"
       - ".github/workflows/image-test-worker.yml"
   push:
     branches:
       - master
+      - main
     paths:
       - "cloudflare/image-test/**"
       - ".github/workflows/image-test-worker.yml"
@@ -48,7 +50,7 @@ jobs:
   deploy:
     name: Deploy Image Test Worker
     needs: validate
-    if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

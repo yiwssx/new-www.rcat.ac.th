@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - main
     paths:
       - ".github/workflows/maintenance-recovery.yml"
       - ".github/scripts/cleanup-deployment-history.mjs"
@@ -72,7 +73,7 @@ jobs:
       github.event_name == 'workflow_dispatch' &&
       inputs.operation == 'd1-recovery-drill' &&
       inputs.acknowledge_read_only_production == true &&
-      github.ref == 'refs/heads/master'
+      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     environment:
       name: production

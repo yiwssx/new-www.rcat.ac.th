@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - main
     paths:
       - ".github/workflows/production-data-operations.yml"
       - "scripts/facebook/facebook-content-classifier.mjs"
@@ -44,7 +45,7 @@ concurrency:
 jobs:
   cms-link-audit:
     name: Production CMS Link Integrity
-    if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' && inputs.operation == 'cms-link-audit' }}
+    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && github.event_name == 'workflow_dispatch' && inputs.operation == 'cms-link-audit' }}
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -102,7 +103,7 @@ jobs:
 
   authenticated-cms-field:
     name: Authenticated Disposable CMS Field
-    if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' && inputs.operation == 'authenticated-cms-field' }}
+    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && github.event_name == 'workflow_dispatch' && inputs.operation == 'authenticated-cms-field' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -228,7 +229,7 @@ jobs:
   fixture-integrity:
     name: Production Fixture Integrity
     if: >-
-      github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' &&
+      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && github.event_name == 'workflow_dispatch' &&
       (inputs.operation == 'fixture-audit' || inputs.operation == 'fixture-cleanup')
     runs-on: ubuntu-latest
     environment:
@@ -412,7 +413,7 @@ jobs:
   facebook-reclassification:
     name: Facebook Metadata Reclassification
     if: >-
-      github.ref == 'refs/heads/master' &&
+      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') &&
       (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'facebook-audit' || inputs.operation == 'facebook-apply')))
     runs-on: ubuntu-latest
     environment:

@@ -26,7 +26,7 @@ permissions:
 jobs:
   preflight:
     name: Apps Script Production Preflight
-    if: ${{ github.ref == 'refs/heads/master' && inputs.operation == 'preflight' }}
+    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && inputs.operation == 'preflight' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -105,7 +105,7 @@ jobs:
 
   release:
     name: Apps Script Production Release
-    if: ${{ github.ref == 'refs/heads/master' && inputs.operation == 'release' }}
+    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && inputs.operation == 'release' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -237,7 +237,7 @@ jobs:
         run: |
           {
             echo "## Apps Script Production Release"
-            echo "- Source: master@$GITHUB_SHA"
+            echo "- Source: $GITHUB_REF_NAME@$GITHUB_SHA"
             echo "- Existing deployment updated in place: yes"
             echo "- Previous immutable version: $PREVIOUS_VERSION"
             echo "- Released immutable version: $RELEASED_VERSION"
