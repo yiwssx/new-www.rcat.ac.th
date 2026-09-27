@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import IconButton from "@mui/material/IconButton";
@@ -42,7 +42,8 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
         p: 0,
         listStyle: "none",
         display: nested ? "block" : "flex",
-        flexWrap: "nowrap"
+        flexWrap: nested ? "nowrap" : "wrap",
+        width: nested ? "auto" : "100%"
       }}
     >
       {items.map((item) => (
@@ -65,7 +66,7 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
             href={normalizeSafeHref(item.href)}
             sx={(theme) => ({
               minHeight: nested ? 42 : 48,
-              px: nested ? 1.5 : 2,
+              px: nested ? 1.5 : { lg: 1.25, xl: 2 },
               py: nested ? 1 : 1.15,
               display: "flex",
               alignItems: "center",
@@ -73,6 +74,7 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
               gap: 0.8,
               color: nested ? "text.primary" : "white",
               fontWeight: 800,
+              fontSize: nested ? "inherit" : { lg: "0.92rem", xl: "1rem" },
               whiteSpace: "nowrap",
               borderLeft: nested ? "3px solid transparent" : "none",
               "&:hover": {
@@ -123,103 +125,27 @@ function PublicMenuList({ items, nested = false }: { items: PublicMenuItem[]; ne
   );
 }
 
-function PublicTopLevelMenuMeasurement({ items }: { items: PublicMenuItem[] }) {
-  return (
-    <Box
-      component="ul"
-      sx={{
-        m: 0,
-        p: 0,
-        listStyle: "none",
-        display: "flex",
-        flexWrap: "nowrap"
-      }}
-    >
-      {items.map((item) => (
-        <Box component="li" key={item.id} sx={{ position: "relative" }}>
-          <Box
-            component="span"
-            sx={{
-              minHeight: 48,
-              px: 2,
-              py: 1.15,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 0.8,
-              color: "white",
-              fontWeight: 800,
-              whiteSpace: "nowrap"
-            }}
-          >
-            <span>{item.label}</span>
-            {item.children?.length ? <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 18 }} /> : null}
-          </Box>
-        </Box>
-      ))}
-    </Box>
-  );
-}
-
 export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: PublicMenuItem[] }) {
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const isDesktopViewport = useMediaQuery(theme.breakpoints.up("lg"), { noSsr: true });
   const hasPreloadedMenu = preloadedMenu !== undefined;
   const { data } = usePublicCmsSnapshot({ enabled: !hasPreloadedMenu });
   const enabledItems = useMemo(() => getEnabledMenuItems(preloadedMenu ?? data?.menu ?? []), [data, preloadedMenu]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileOpenItems, setMobileOpenItems] = useState<Record<string, boolean>>({});
-  const [isMenuOverflowing, setIsMenuOverflowing] = useState(false);
-  const menuContainerRef = useRef<HTMLDivElement | null>(null);
-  const menuMeasurementRef = useRef<HTMLDivElement | null>(null);
-  const shouldUseCompactMenu = isSmallScreen || isMenuOverflowing;
-
-  const updateMenuMode = useCallback(() => {
-    const container = menuContainerRef.current;
-    const content = menuMeasurementRef.current;
-
-    if (!container || !content) {
-      return;
-    }
-
-    setIsMenuOverflowing(content.scrollWidth > container.clientWidth - 8);
-  }, []);
 
   useEffect(() => {
-    updateMenuMode();
-
-    const container = menuContainerRef.current;
-    const content = menuMeasurementRef.current;
-
-    if (!container || !content) {
+    if (!isDesktopViewport || !mobileMenuOpen) {
       return undefined;
     }
 
-    if (typeof ResizeObserver !== "undefined") {
-      const resizeObserver = new ResizeObserver(updateMenuMode);
-      resizeObserver.observe(container);
-      resizeObserver.observe(content);
+    const closeTimer = window.setTimeout(() => {
+      setMobileMenuOpen(false);
+      setMobileOpenItems({});
+    }, 0);
 
-      return () => resizeObserver.disconnect();
-    }
-
-    window.addEventListener("resize", updateMenuMode);
-
-    return () => window.removeEventListener("resize", updateMenuMode);
-  }, [enabledItems, updateMenuMode]);
-
-  useEffect(() => {
-    if (!shouldUseCompactMenu && mobileMenuOpen) {
-      const closeTimer = window.setTimeout(() => {
-        setMobileMenuOpen(false);
-        setMobileOpenItems({});
-      }, 0);
-
-      return () => window.clearTimeout(closeTimer);
-    }
-
-    return undefined;
-  }, [mobileMenuOpen, shouldUseCompactMenu]);
+    return () => window.clearTimeout(closeTimer);
+  }, [isDesktopViewport, mobileMenuOpen]);
 
   const toggleMobileItem = (itemId: string) => {
     setMobileOpenItems((prev) => ({
@@ -247,65 +173,57 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
         boxShadow: designTokens.elevation.low
       }}
     >
-      <Container ref={menuContainerRef} maxWidth="xl" sx={{ position: "relative", minWidth: 0, minHeight: 48, py: 0 }}>
+      <Container maxWidth="xl" sx={{ position: "relative", minWidth: 0, minHeight: 48, py: 0 }}>
         <Box
+          data-testid="public-main-menu-desktop"
           sx={{
-            position: "absolute",
-            visibility: "hidden",
-            pointerEvents: "none",
-            height: 0,
-            overflow: "hidden",
+            display: { xs: "none", lg: "flex" },
+            overflow: "visible",
+            minWidth: 0,
+            minHeight: 48,
             width: "100%"
           }}
         >
-          <Box ref={menuMeasurementRef} sx={{ display: "inline-flex", width: "max-content" }}>
-            <PublicTopLevelMenuMeasurement items={enabledItems} />
-          </Box>
+          <PublicMenuList items={enabledItems} />
         </Box>
 
-        {!shouldUseCompactMenu && (
-          <Box sx={{ display: "flex", overflow: "visible", minWidth: 0, minHeight: 48, width: "100%" }}>
-            <PublicMenuList items={enabledItems} />
-          </Box>
-        )}
-
-        {shouldUseCompactMenu && (
-          <Box
+        <Box
+          data-testid="public-main-menu-compact"
+          sx={{
+            display: { xs: "flex", lg: "none" },
+            width: "100%",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            minHeight: 48,
+            gap: 1
+          }}
+        >
+          <IconButton
+            aria-label={mobileMenuOpen ? "ปิดเมนูหลัก" : "เปิดเมนูหลัก"}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            sx={(theme) => ({
+              border: "1px solid",
+              borderColor: alpha(theme.palette.common.white, 0.36),
+              color: "inherit"
+            })}
+          >
+            {mobileMenuOpen ? <CloseOutlinedIcon /> : <MenuOutlinedIcon />}
+          </IconButton>
+          <Typography
             sx={{
-              display: "flex",
-              width: "100%",
-              alignItems: "center",
-              justifyContent: "flex-start",
-              minHeight: 48,
-              gap: 1
+              fontWeight: 900
             }}
           >
-            <IconButton
-              aria-label={mobileMenuOpen ? "ปิดเมนูหลัก" : "เปิดเมนูหลัก"}
-              onClick={() => setMobileMenuOpen((open) => !open)}
-              sx={(theme) => ({
-                border: "1px solid",
-                borderColor: alpha(theme.palette.common.white, 0.36),
-                color: "inherit"
-              })}
-            >
-              {mobileMenuOpen ? <CloseOutlinedIcon /> : <MenuOutlinedIcon />}
-            </IconButton>
-            <Typography
-              sx={{
-                fontWeight: 900
-              }}
-            >
-              เมนูหลัก
-            </Typography>
-          </Box>
-        )}
+            เมนูหลัก
+          </Typography>
+        </Box>
       </Container>
       <Drawer
         anchor="left"
         open={mobileMenuOpen}
         onClose={closeMobileMenu}
         ModalProps={{ keepMounted: true }}
+        sx={{ display: { xs: "block", lg: "none" } }}
         slotProps={{
           paper: {
             sx: {
@@ -422,7 +340,7 @@ function MobileMenuList({
                   level={level + 1}
                   onNavigate={onNavigate}
                   openItems={openItems}
-                  toggleOpen={toggleOpen}
+                  toggleOpen={toggleMobileItem}
                 />
               </Collapse>
             )}
