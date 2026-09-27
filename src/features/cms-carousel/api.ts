@@ -5,17 +5,15 @@ import type { CarouselSlideInput } from "./types";
 export type { CarouselSlideInput } from "./types";
 
 export function saveCarouselSlideToApi(input: CarouselSlideInput) {
-  if (!isPublicImageDeliveryEnabled("carousel")) {
-    return saveCarouselSlideToCloudflare(input);
+  if (isPublicImageDeliveryEnabled("carousel")) {
+    const sources = [input.imageUrl, input.mobileImageUrl].filter(
+      (value, index, values): value is string => Boolean(value) && values.indexOf(value) === index
+    );
+
+    void Promise.all(sources.map((source) => prewarmPublicImageDeliveryVariants(source, "carousel")));
   }
 
-  const sources = [input.imageUrl, input.mobileImageUrl].filter(
-    (value, index, values): value is string => Boolean(value) && values.indexOf(value) === index
-  );
-
-  return Promise.all(sources.map((source) => prewarmPublicImageDeliveryVariants(source, "carousel"))).then(() =>
-    saveCarouselSlideToCloudflare(input)
-  );
+  return saveCarouselSlideToCloudflare(input);
 }
 
 export function deleteCarouselSlideFromApi(id: string) {
