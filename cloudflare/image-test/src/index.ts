@@ -112,7 +112,8 @@ async function handleImage(
     return json(
       {
         error: "image_transform_fetch_failed",
-        message: error instanceof Error ? error.message : "Unknown transform error",
+        message:
+          error instanceof Error ? error.message : "Unknown transform error",
       },
       { status: 502 },
     );
@@ -129,7 +130,12 @@ async function handleImage(
     );
   }
 
-  return withPublicImageHeaders(upstream, width, format, Date.now() - startedAt);
+  return withPublicImageHeaders(
+    upstream,
+    width,
+    format,
+    Date.now() - startedAt,
+  );
 }
 
 export default {
