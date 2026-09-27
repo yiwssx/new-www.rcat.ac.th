@@ -15,6 +15,7 @@ const expectedWorkflows = [
   "apps-script-production-rollback.yml",
   "ci.yml",
   "dependency-status-sync.yml",
+  "image-test-worker.yml",
   "maintenance-recovery.yml",
   "production-data-operations.yml",
   "production-verification.yml",
@@ -25,7 +26,7 @@ const expectedWorkflows = [
 describe("workflow inventory governance", () => {
   it("keeps the active workflow surface intentionally bounded", () => {
     expect(workflowFiles).toEqual(expectedWorkflows);
-    expect(workflowFiles).toHaveLength(9);
+    expect(workflowFiles).toHaveLength(10);
   });
 
   it("does not restore retired branch-mutating, phase-specific, or duplicate workflows", () => {
@@ -53,6 +54,7 @@ describe("workflow inventory governance", () => {
   it("uses clear responsibility-oriented workflow names", () => {
     expect(readWorkflow("ci.yml")).toContain("name: CI");
     expect(readWorkflow("dependency-status-sync.yml")).toContain("name: Dependencies");
+    expect(readWorkflow("image-test-worker.yml")).toContain("name: Deploy / Image Test Worker");
     expect(readWorkflow("production-verification.yml")).toContain("name: Production Verification");
     expect(readWorkflow("production-data-operations.yml")).toContain("name: Production Data Operations");
     expect(readWorkflow("maintenance-recovery.yml")).toContain("name: Maintenance & Recovery");
