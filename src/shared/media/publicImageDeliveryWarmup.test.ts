@@ -48,11 +48,13 @@ describe("prewarmPublicImageDeliveryVariants", () => {
   it("reports partial warmup failures without throwing and blocking CMS saves", async () => {
     vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL", workerBaseUrl);
     vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_INTENTS", "portrait");
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(new Response(new Uint8Array([1]), { status: 200 }))
-      .mockResolvedValueOnce(new Response("bad gateway", { status: 502 }))
-      .mockResolvedValue(new Response(new Uint8Array([1]), { status: 200 }));
+    let callCount = 0;
+    const fetchMock = vi.fn(async () => {
+      callCount += 1;
+      return callCount === 2
+        ? new Response("bad gateway", { status: 502 })
+        : new Response(new Uint8Array([1]), { status: 200 });
+    });
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(prewarmPublicImageDeliveryVariants(driveFileUrl, "portrait")).resolves.toEqual({
