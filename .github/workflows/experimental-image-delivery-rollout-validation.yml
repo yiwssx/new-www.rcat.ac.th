@@ -27,6 +27,11 @@ jobs:
         run: pnpm format:check
       - name: Frontend lint
         run: pnpm lint:frontend
+      - name: Remove experiment-only workflow harness from governance surface
+        run: |
+          rm -f .github/workflows/experimental-image-delivery-rollout-focused.yml
+          rm -f .github/workflows/experimental-image-delivery-rollout-validation.yml
+          rm -f .github/workflows/experimental-image-delivery-test-fix.yml
       - name: Unit tests
         shell: bash
         run: |
