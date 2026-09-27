@@ -30,9 +30,7 @@ export function saveDisplaySettingsToApi(settings: Partial<DisplaySettings>) {
 
 export function saveSiteSettingsToApi(settings: Partial<SiteSettings>) {
   if (settings.directorImageUrl && isPublicImageDeliveryEnabled("portrait")) {
-    return prewarmPublicImageDeliveryVariants(settings.directorImageUrl, "portrait").then(() =>
-      saveSiteSettingsToCloudflare(settings)
-    );
+    void prewarmPublicImageDeliveryVariants(settings.directorImageUrl, "portrait");
   }
 
   return saveSiteSettingsToCloudflare(settings);
@@ -47,9 +45,7 @@ export function saveHomepageSettingsToApi(settings: Partial<HomepageSettings>) {
     }
 
     if (isPublicImageDeliveryEnabled("intro-gate")) {
-      return prewarmPublicImageDeliveryVariants(settings.introGate.imageUrl, "intro-gate").then(() =>
-        saveHomepageSettingsToCloudflare(settings)
-      );
+      void prewarmPublicImageDeliveryVariants(settings.introGate.imageUrl, "intro-gate");
     }
   }
 
