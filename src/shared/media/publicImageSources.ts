@@ -86,6 +86,8 @@ export const PUBLIC_IMAGE_POLICIES: Readonly<Record<PublicImageIntent, PublicIma
   }
 };
 
+const PUBLIC_IMAGE_INTENTS = new Set<PublicImageIntent>(Object.keys(PUBLIC_IMAGE_POLICIES) as PublicImageIntent[]);
+
 const SMALL_ASSET_INTENTS = new Set<PublicImageIntent>([
   "logo",
   "tiny-thumbnail",
@@ -94,6 +96,58 @@ const SMALL_ASSET_INTENTS = new Set<PublicImageIntent>([
   "portrait",
   "event-attachment"
 ]);
+
+function normalizePublicImageDeliveryBaseUrl(value: string | null | undefined) {
+  const input = String(value || "").trim();
+
+  if (!input) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(input);
+
+    if (parsed.protocol !== "https:") {
+      return "";
+    }
+
+    parsed.search = "";
+    parsed.hash = "";
+    parsed.pathname = parsed.pathname.replace(/\/+$/, "");
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return "";
+  }
+}
+
+export function getConfiguredPublicImageDeliveryBaseUrl() {
+  return normalizePublicImageDeliveryBaseUrl(import.meta.env.VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL);
+}
+
+export function getConfiguredPublicImageDeliveryIntents() {
+  const rawValue = String(import.meta.env.VITE_PUBLIC_IMAGE_DELIVERY_INTENTS || "")
+    .trim()
+    .toLowerCase();
+
+  if (!rawValue) {
+    return new Set<PublicImageIntent>();
+  }
+
+  if (rawValue === "*") {
+    return new Set(PUBLIC_IMAGE_INTENTS);
+  }
+
+  return new Set(
+    rawValue
+      .split(",")
+      .map((value) => value.trim())
+      .filter((value): value is PublicImageIntent => PUBLIC_IMAGE_INTENTS.has(value as PublicImageIntent))
+  );
+}
+
+export function isPublicImageDeliveryEnabled(intent: PublicImageIntent) {
+  return Boolean(getConfiguredPublicImageDeliveryBaseUrl()) && getConfiguredPublicImageDeliveryIntents().has(intent);
+}
 
 export function normalizePublicImageWidths(widths: readonly number[]) {
   return [...new Set(widths)]
@@ -154,6 +208,22 @@ export function buildGoogleDriveThumbnailUrl(fileId: string, width: number) {
   return `https://drive.google.com/thumbnail?id=${safeFileId}&sz=w${safeWidth}`;
 }
 
+export function buildPublicImageDeliveryUrl(
+  fileId: string,
+  width: number,
+  baseUrl: string = getConfiguredPublicImageDeliveryBaseUrl()
+) {
+  const safeFileId = normalizeGoogleDriveFileId(fileId);
+  const safeWidth = Number.isInteger(width) && width > 0 && width <= MAX_PUBLIC_DRIVE_WIDTH ? width : 0;
+  const safeBaseUrl = normalizePublicImageDeliveryBaseUrl(baseUrl);
+
+  if (!safeFileId || !safeWidth || !safeBaseUrl) {
+    return "";
+  }
+
+  return `${safeBaseUrl}/image/${encodeURIComponent(safeFileId)}?w=${safeWidth}`;
+}
+
 function createEmptyPublicImageSource(): PublicImageSourceSet {
   return {
     fileId: "",
@@ -181,9 +251,24 @@ function getPublicImageCandidates(
     : [source.previewUrl, source.driveUrl, source.thumbnailUrl];
 }
 
+function createGoogleDriveSource(fileId: string, originalUrl: string, intent: PublicImageIntent, useDelivery: boolean) {
+  const policy = getPublicImageIntentPolicy(intent);
+  const deliveryEnabled = useDelivery && isPublicImageDeliveryEnabled(intent);
+  const buildVariantUrl = deliveryEnabled ? buildPublicImageDeliveryUrl : buildGoogleDriveThumbnailUrl;
+
+  return {
+    fileId,
+    originalUrl,
+    src: buildVariantUrl(fileId, policy.fallbackWidth),
+    srcSet: policy.widths.map((width) => `${buildVariantUrl(fileId, width)} ${width}w`).join(", "),
+    widths: policy.widths
+  } satisfies PublicImageSourceSet;
+}
+
 function resolvePublicImageCandidate(
   candidate: string | null | undefined,
-  intent: PublicImageIntent
+  intent: PublicImageIntent,
+  useDelivery = true
 ): PublicImageSourceSet | null {
   const originalUrl = normalizeSafeResourceUrl(candidate);
 
@@ -222,15 +307,7 @@ function resolvePublicImageCandidate(
       return null;
     }
 
-    const policy = getPublicImageIntentPolicy(intent);
-
-    return {
-      fileId,
-      originalUrl,
-      src: buildGoogleDriveThumbnailUrl(fileId, policy.fallbackWidth),
-      srcSet: policy.widths.map((width) => `${buildGoogleDriveThumbnailUrl(fileId, width)} ${width}w`).join(", "),
-      widths: policy.widths
-    };
+    return createGoogleDriveSource(fileId, originalUrl, intent, useDelivery);
   }
 
   return {
@@ -270,6 +347,44 @@ export function resolvePublicImageSource(
   }
 
   return createEmptyPublicImageSource();
+}
+
+export function resolvePublicImageFallbackSource(
+  source: string | PublicImageAssetSource | null | undefined,
+  intent: PublicImageIntent
+): PublicImageSourceSet {
+  if (!isPublicImageDeliveryEnabled(intent)) {
+    return createEmptyPublicImageSource();
+  }
+
+  for (const candidate of getPublicImageCandidates(source, intent)) {
+    const resolvedCandidate = resolvePublicImageCandidate(candidate, intent, false);
+
+    if (resolvedCandidate?.fileId) {
+      return resolvedCandidate;
+    }
+  }
+
+  return createEmptyPublicImageSource();
+}
+
+export function getPublicImageDeliveryVariantUrls(
+  source: string | PublicImageAssetSource | null | undefined,
+  intent: PublicImageIntent
+) {
+  if (!isPublicImageDeliveryEnabled(intent)) {
+    return [];
+  }
+
+  const resolved = resolvePublicImageSource(source, intent);
+
+  if (!resolved.fileId) {
+    return [];
+  }
+
+  return resolved.widths
+    .map((width) => buildPublicImageDeliveryUrl(resolved.fileId, width))
+    .filter((url): url is string => Boolean(url));
 }
 
 export function normalizePublicImageUrl(
