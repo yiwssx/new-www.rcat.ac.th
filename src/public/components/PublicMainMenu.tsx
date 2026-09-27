@@ -340,7 +340,7 @@ function MobileMenuList({
                   level={level + 1}
                   onNavigate={onNavigate}
                   openItems={openItems}
-                  toggleOpen={toggleMobileItem}
+                  toggleOpen={toggleOpen}
                 />
               </Collapse>
             )}
