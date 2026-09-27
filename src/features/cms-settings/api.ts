@@ -7,6 +7,7 @@ import {
   saveSiteSettingsToCloudflare,
   saveVisitorStatsToCloudflare
 } from "../admin-write/cloudflareApi";
+import { prewarmPublicImageDeliveryVariants } from "../../shared/media/publicImageDeliveryWarmup";
 import type { DisplaySettings, HomepageSettings, SiteSettings } from "./types";
 import type { VisitorStatsSettings } from "../visitor-stats/types";
 
@@ -26,11 +27,19 @@ export function saveDisplaySettingsToApi(settings: Partial<DisplaySettings>) {
   return saveDisplaySettingsToCloudflare(settings);
 }
 
-export function saveSiteSettingsToApi(settings: Partial<SiteSettings>) {
+export async function saveSiteSettingsToApi(settings: Partial<SiteSettings>) {
+  if (settings.directorImageUrl) {
+    await prewarmPublicImageDeliveryVariants(settings.directorImageUrl, "portrait");
+  }
+
   return saveSiteSettingsToCloudflare(settings);
 }
 
-export function saveHomepageSettingsToApi(settings: Partial<HomepageSettings>) {
+export async function saveHomepageSettingsToApi(settings: Partial<HomepageSettings>) {
+  if (settings.introGate?.enabled && settings.introGate.imageUrl) {
+    await prewarmPublicImageDeliveryVariants(settings.introGate.imageUrl, "intro-gate");
+  }
+
   return saveHomepageSettingsToCloudflare(settings);
 }
 
