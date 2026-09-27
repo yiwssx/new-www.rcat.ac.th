@@ -34,6 +34,7 @@ jobs:
           rm -f .github/workflows/experimental-image-delivery-rollout-validation.yml
           rm -f .github/workflows/experimental-image-delivery-test-fix.yml
           rm -f .github/workflows/experimental-image-delivery-marquee-test-fix.yml
+          rm -f .github/workflows/experimental-image-delivery-marquee-duration-test-fix.yml
       - name: Unit tests
         shell: bash
         run: |
