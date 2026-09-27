@@ -1,0 +1,39 @@
+name: Experimental Apply Marquee Duration Test Scope Fix
+
+on:
+  push:
+    branches:
+      - experiment/image-delivery-rollout
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Include marquee duration rule in scoped style inspection
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/test/homepageSettingsComponents.test.tsx')
+          text = path.read_text()
+          old = '''        styles.includes("--rcat-marquee-start-x") ||\n        styles.includes("--rcat-marquee-end-x")'''
+          new = '''        styles.includes("--rcat-marquee-start-x") ||\n        styles.includes("--rcat-marquee-end-x") ||\n        styles.includes("--rcat-marquee-duration")'''
+          if text.count(old) != 1:
+              raise SystemExit(f'marquee duration filter replacement count={text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Remove one-shot updater
+        run: rm .github/workflows/experimental-image-delivery-marquee-duration-test-fix.yml
+      - name: Commit test fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/test/homepageSettingsComponents.test.tsx .github/workflows/experimental-image-delivery-marquee-duration-test-fix.yml
+          git commit -m "test(marquee): include duration rule in style scope"
+          git push origin HEAD:experiment/image-delivery-rollout
