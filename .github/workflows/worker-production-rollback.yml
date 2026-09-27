@@ -27,7 +27,7 @@ concurrency:
 jobs:
   rollback:
     name: Roll Back Production Worker Runtime
-    if: ${{ github.ref == 'refs/heads/master' }}
+    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -75,11 +75,11 @@ jobs:
           }
           git cat-file -e "$TARGET_SHA^{commit}"
           test "$TARGET_SHA" != "$GITHUB_SHA" || {
-            echo "Rollback target is already the current master revision." >&2
+            echo "Rollback target is already the current production branch revision." >&2
             exit 1
           }
           git merge-base --is-ancestor "$TARGET_SHA" "$GITHUB_SHA" || {
-            echo "Rollback target must be an ancestor of the workflow master revision." >&2
+            echo "Rollback target must be an ancestor of the workflow production branch revision." >&2
             exit 1
           }
           git cat-file -e "$TARGET_SHA:cloudflare/public-api/wrangler.toml"
