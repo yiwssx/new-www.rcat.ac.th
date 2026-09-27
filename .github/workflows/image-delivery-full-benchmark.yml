@@ -5,7 +5,7 @@ on:
     branches:
       - experiment/image-delivery-full-benchmark
     paths:
-      - ".github/scripts/image-delivery-full-benchmark.mjs"
+      - ".github/scripts/image-delivery-full-benchmark-v2.mjs"
       - ".github/workflows/image-delivery-full-benchmark.yml"
 
 permissions:
@@ -30,4 +30,4 @@ jobs:
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
       - name: Run browser benchmark
-        run: node .github/scripts/image-delivery-full-benchmark.mjs
+        run: node .github/scripts/image-delivery-full-benchmark-v2.mjs
