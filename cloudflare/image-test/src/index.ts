@@ -1,8 +1,8 @@
 const ALLOWED_WIDTHS = new Set([128, 160, 192, 240, 256, 320, 384, 480, 512, 640, 900, 1200, 1600]);
 
 const DEFAULT_WIDTH = 900;
-const SOURCE_WIDTH = 1600;
 const FIXED_QUALITY = 82;
+const SOURCE_CACHE_TTL_SECONDS = 604800;
 const DRIVE_FILE_ID_PATTERN = /^[A-Za-z0-9_-]{10,128}$/;
 
 function json(body: unknown, init: ResponseInit = {}): Response {
@@ -35,6 +35,7 @@ function resolveFormat(accept: string | null): "avif" | "webp" | undefined {
 function withPublicImageHeaders(
   response: Response,
   width: number,
+  sourceWidth: number,
   format: string | undefined,
   durationMs: number
 ): Response {
@@ -45,7 +46,7 @@ function withPublicImageHeaders(
   headers.set("vary", "Accept");
   headers.set("x-rcat-image-test", "cloudflare-transform");
   headers.set("x-rcat-image-width", String(width));
-  headers.set("x-rcat-image-source-width", String(SOURCE_WIDTH));
+  headers.set("x-rcat-image-source-width", String(sourceWidth));
   headers.set("x-rcat-image-format", format ?? "source");
   headers.set("server-timing", `rcat_image;dur=${durationMs}`);
 
@@ -86,9 +87,13 @@ async function handleImage(request: Request, fileId: string, url: URL): Promise<
   };
   if (format) imageOptions.format = format;
 
+  // Google Drive already exposes width-specific thumbnails. Fetching the same
+  // width avoids pulling a 1600px source for small responsive variants before
+  // Cloudflare transcodes it to AVIF/WebP.
+  const sourceWidth = width;
   const sourceUrl = new URL("https://drive.google.com/thumbnail");
   sourceUrl.searchParams.set("id", fileId);
-  sourceUrl.searchParams.set("sz", `w${SOURCE_WIDTH}`);
+  sourceUrl.searchParams.set("sz", `w${sourceWidth}`);
 
   const startedAt = Date.now();
   let upstream: Response;
@@ -96,7 +101,9 @@ async function handleImage(request: Request, fileId: string, url: URL): Promise<
   try {
     upstream = await fetch(sourceUrl.toString(), {
       cf: {
-        image: imageOptions
+        image: imageOptions,
+        cacheEverything: true,
+        cacheTtl: SOURCE_CACHE_TTL_SECONDS
       }
     });
   } catch (error) {
@@ -120,7 +127,7 @@ async function handleImage(request: Request, fileId: string, url: URL): Promise<
     );
   }
 
-  return withPublicImageHeaders(upstream, width, format, Date.now() - startedAt);
+  return withPublicImageHeaders(upstream, width, sourceWidth, format, Date.now() - startedAt);
 }
 
 export default {
@@ -137,7 +144,8 @@ export default {
         status: "ok",
         purpose: "isolated Google Drive to Cloudflare image-delivery experiment",
         sourceHost: "drive.google.com",
-        sourceWidth: SOURCE_WIDTH,
+        sourceWidthPolicy: "match-target-width",
+        sourceCacheTtlSeconds: SOURCE_CACHE_TTL_SECONDS,
         defaultWidth: DEFAULT_WIDTH,
         allowedWidths: [...ALLOWED_WIDTHS],
         quality: FIXED_QUALITY
