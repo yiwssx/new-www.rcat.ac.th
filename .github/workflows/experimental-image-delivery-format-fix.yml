@@ -1,0 +1,37 @@
+name: Experimental Apply Image Delivery Format Fix
+
+on:
+  push:
+    branches:
+      - experiment/image-delivery-rollout
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Format warmup test
+        run: pnpm exec prettier --write src/shared/media/publicImageDeliveryWarmup.test.ts
+      - name: Remove one-shot formatter
+        run: rm .github/workflows/experimental-image-delivery-format-fix.yml
+      - name: Commit formatted test
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/shared/media/publicImageDeliveryWarmup.test.ts .github/workflows/experimental-image-delivery-format-fix.yml
+          git commit -m "style(test): format image warmup mock typing"
+          git push origin HEAD:experiment/image-delivery-rollout
