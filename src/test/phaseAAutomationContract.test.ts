@@ -27,7 +27,7 @@ describe("Phase A automation contract", () => {
   it("isolates concurrency across verification trigger sources", () => {
     const normalized = compact(workflow);
     expect(normalized).toContain(
-      "group: production-verification-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && inputs.operation || github.event.schedule || github.event.workflow_run.head_branch || github.ref_name }}"
+      "group: prod-verification-${{ github.event_name }}-${{ github.event.schedule || inputs.operation || github.ref_name }}"
     );
     expect(normalized).toContain("cancel-in-progress: true");
   });
