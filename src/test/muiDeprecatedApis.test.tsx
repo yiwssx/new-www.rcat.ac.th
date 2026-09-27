@@ -15,7 +15,7 @@ beforeEach(() => {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: vi.fn().mockImplementation((query: string) => ({
-      matches: true,
+      matches: false,
       media: query,
       onchange: null,
       addEventListener: vi.fn(),
@@ -40,6 +40,15 @@ describe("MUI 9 deprecated API migrations", () => {
     expect(publicMainMenuSource).not.toMatch(/\b(?:PaperProps|primaryTypographyProps)\s*=/);
   });
 
+  it("keeps Public navigation mode CSS-driven from the first paint", () => {
+    expect(publicMainMenuSource).not.toContain("ResizeObserver");
+    expect(publicMainMenuSource).not.toContain("isMenuOverflowing");
+    expect(publicMainMenuSource).not.toContain("PublicTopLevelMenuMeasurement");
+    expect(publicMainMenuSource).toContain('display: { xs: "none", lg: "flex" }');
+    expect(publicMainMenuSource).toContain('display: { xs: "flex", lg: "none" }');
+    expect(publicMainMenuSource).toContain('flexWrap: nested ? "nowrap" : "wrap"');
+  });
+
   it("keeps the compact menu keyboard-operable after the Drawer slot migration", async () => {
     const user = userEvent.setup();
 
@@ -56,18 +65,16 @@ describe("MUI 9 deprecated API migrations", () => {
       />
     );
 
-    const openButton = screen.getAllByRole("button")[0];
-    await user.tab();
+    const openButton = screen.getByRole("button", { name: "เปิดเมนูหลัก" });
+    openButton.focus();
     expect(openButton).toHaveFocus();
     await user.keyboard("{Enter}");
 
     const menuLink = await screen.findByRole("link", { name: "About" });
     expect(menuLink).toBeVisible();
 
-    const buttons = screen.getAllByRole("button");
-    const closeButton = buttons[buttons.length - 1];
-    expect(closeButton).toBeDefined();
-    await user.click(closeButton!);
+    const closeButton = screen.getByRole("button", { name: "ปิดเมนูหลัก" });
+    await user.click(closeButton);
 
     await waitFor(() => expect(menuLink).not.toBeVisible());
   });

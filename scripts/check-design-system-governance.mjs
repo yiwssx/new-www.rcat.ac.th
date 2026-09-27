@@ -229,12 +229,17 @@ export function inspectDesignSystemRegressionPolicy({
   ) {
     violations.push("contextual focus, clipping, or secondary Playwright coverage is missing");
   }
-  if (
-    !/visibility:\s*["']hidden["'][\s\S]*overflow:\s*["']hidden["']/.test(mainMenuSource) ||
-    !/overflow:\s*["']visible["']/.test(mainMenuSource) ||
-    !/focusRingExtent/.test(mainMenuSource)
-  ) {
-    violations.push("Public Main Menu focus-safe overflow/Drawer inset policy is missing");
+
+  const cssFirstResponsiveMenu =
+    /display:\s*\{\s*xs:\s*["']none["'],\s*lg:\s*["']flex["']\s*\}/.test(mainMenuSource) &&
+    /display:\s*\{\s*xs:\s*["']flex["'],\s*lg:\s*["']none["']\s*\}/.test(mainMenuSource) &&
+    /flexWrap:\s*nested\s*\?\s*["']nowrap["']\s*:\s*["']wrap["']/.test(mainMenuSource) &&
+    /overflow:\s*["']visible["']/.test(mainMenuSource) &&
+    /focusRingExtent/.test(mainMenuSource);
+  const legacyMenuMeasurement = /ResizeObserver|isMenuOverflowing|PublicTopLevelMenuMeasurement/.test(mainMenuSource);
+
+  if (!cssFirstResponsiveMenu || legacyMenuMeasurement) {
+    violations.push("Public Main Menu CSS-first responsive/focus-safe policy is missing");
   }
   if (!/box-shadow:\s*var\(--rcat-focus-ring-shadow\)/.test(stylesSource)) {
     violations.push("RCAT structural focus bridge does not consume the canonical focus shadow");
