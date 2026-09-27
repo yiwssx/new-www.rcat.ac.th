@@ -18,7 +18,7 @@ permissions:
 jobs:
   preflight:
     name: Production Migration Preflight
-    if: ${{ github.ref == 'refs/heads/master' && inputs.operation == 'preflight' }}
+    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && inputs.operation == 'preflight' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -103,7 +103,7 @@ jobs:
 
   release:
     name: Production Worker Release
-    if: ${{ github.ref == 'refs/heads/master' && inputs.operation == 'release' }}
+    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && inputs.operation == 'release' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -169,7 +169,7 @@ jobs:
       - name: List unapplied production migrations before release
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           node cloudflare/public-api/scripts/worker-production-preflight.mjs \
