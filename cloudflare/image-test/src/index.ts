@@ -1,18 +1,4 @@
-const ALLOWED_WIDTHS = new Set([
-  128,
-  160,
-  192,
-  240,
-  256,
-  320,
-  384,
-  480,
-  512,
-  640,
-  900,
-  1200,
-  1600,
-]);
+const ALLOWED_WIDTHS = new Set([128, 160, 192, 240, 256, 320, 384, 480, 512, 640, 900, 1200, 1600]);
 
 const DEFAULT_WIDTH = 900;
 const SOURCE_WIDTH = 1600;
@@ -28,7 +14,7 @@ function json(body: unknown, init: ResponseInit = {}): Response {
 
   return new Response(JSON.stringify(body, null, 2), {
     ...init,
-    headers,
+    headers
   });
 }
 
@@ -50,13 +36,10 @@ function withPublicImageHeaders(
   response: Response,
   width: number,
   format: string | undefined,
-  durationMs: number,
+  durationMs: number
 ): Response {
   const headers = new Headers(response.headers);
-  headers.set(
-    "cache-control",
-    "public, max-age=604800, stale-while-revalidate=2592000",
-  );
+  headers.set("cache-control", "public, max-age=604800, stale-while-revalidate=2592000");
   headers.set("access-control-allow-origin", "*");
   headers.set("timing-allow-origin", "*");
   headers.set("vary", "Accept");
@@ -69,22 +52,18 @@ function withPublicImageHeaders(
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers,
+    headers
   });
 }
 
-async function handleImage(
-  request: Request,
-  fileId: string,
-  url: URL,
-): Promise<Response> {
+async function handleImage(request: Request, fileId: string, url: URL): Promise<Response> {
   if (!DRIVE_FILE_ID_PATTERN.test(fileId)) {
     return json(
       {
         error: "invalid_drive_file_id",
-        message: "The image test worker accepts only a Google Drive file ID.",
+        message: "The image test worker accepts only a Google Drive file ID."
       },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -93,9 +72,9 @@ async function handleImage(
     return json(
       {
         error: "invalid_width",
-        allowedWidths: [...ALLOWED_WIDTHS],
+        allowedWidths: [...ALLOWED_WIDTHS]
       },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -103,7 +82,7 @@ async function handleImage(
   const imageOptions: Record<string, string | number> = {
     fit: "scale-down",
     width,
-    quality: FIXED_QUALITY,
+    quality: FIXED_QUALITY
   };
   if (format) imageOptions.format = format;
 
@@ -117,17 +96,16 @@ async function handleImage(
   try {
     upstream = await fetch(sourceUrl.toString(), {
       cf: {
-        image: imageOptions,
-      },
+        image: imageOptions
+      }
     });
   } catch (error) {
     return json(
       {
         error: "image_transform_fetch_failed",
-        message:
-          error instanceof Error ? error.message : "Unknown transform error",
+        message: error instanceof Error ? error.message : "Unknown transform error"
       },
-      { status: 502 },
+      { status: 502 }
     );
   }
 
@@ -136,18 +114,13 @@ async function handleImage(
       {
         error: "image_transform_failed",
         upstreamStatus: upstream.status,
-        upstreamStatusText: upstream.statusText,
+        upstreamStatusText: upstream.statusText
       },
-      { status: 502 },
+      { status: 502 }
     );
   }
 
-  return withPublicImageHeaders(
-    upstream,
-    width,
-    format,
-    Date.now() - startedAt,
-  );
+  return withPublicImageHeaders(upstream, width, format, Date.now() - startedAt);
 }
 
 export default {
@@ -155,10 +128,7 @@ export default {
     const url = new URL(request.url);
 
     if (request.method !== "GET" && request.method !== "HEAD") {
-      return json(
-        { error: "method_not_allowed" },
-        { status: 405, headers: { allow: "GET, HEAD" } },
-      );
+      return json({ error: "method_not_allowed" }, { status: 405, headers: { allow: "GET, HEAD" } });
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
@@ -170,7 +140,7 @@ export default {
         sourceWidth: SOURCE_WIDTH,
         defaultWidth: DEFAULT_WIDTH,
         allowedWidths: [...ALLOWED_WIDTHS],
-        quality: FIXED_QUALITY,
+        quality: FIXED_QUALITY
       });
     }
 
@@ -179,12 +149,12 @@ export default {
       return json(
         {
           error: "not_found",
-          usage: "/image/<google-drive-file-id>?w=900",
+          usage: "/image/<google-drive-file-id>?w=900"
         },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     return handleImage(request, match[1], url);
-  },
+  }
 };
