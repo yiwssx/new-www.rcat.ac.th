@@ -40,6 +40,14 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Show canonical benchmark formatting
+        run: |
+          pnpm exec prettier --write scripts/benchmark-image-delivery.mjs
+          git diff -- scripts/benchmark-image-delivery.mjs
+          if ! git diff --quiet -- scripts/benchmark-image-delivery.mjs; then
+            echo "Benchmark script differs from canonical Prettier output." >&2
+            exit 1
+          fi
       - name: Lint image test Worker
         run: pnpm exec eslint "cloudflare/image-test/src/**/*.ts"
       - name: Typecheck image test Worker
@@ -49,8 +57,10 @@ jobs:
 
   benchmark:
     name: Benchmark Production Image Delivery
-    needs: validate
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+    needs:
+      - validate
+      - deploy
+    if: ${{ always() && needs.validate.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || needs.deploy.result == 'success') }}
     runs-on: ubuntu-latest
 
     steps:
