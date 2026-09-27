@@ -65,18 +65,16 @@ describe("MUI 9 deprecated API migrations", () => {
       />
     );
 
-    const openButton = screen.getAllByRole("button")[0];
-    await user.tab();
+    const openButton = screen.getByRole("button", { name: "เปิดเมนูหลัก" });
+    openButton.focus();
     expect(openButton).toHaveFocus();
     await user.keyboard("{Enter}");
 
     const menuLink = await screen.findByRole("link", { name: "About" });
     expect(menuLink).toBeVisible();
 
-    const buttons = screen.getAllByRole("button");
-    const closeButton = buttons[buttons.length - 1];
-    expect(closeButton).toBeDefined();
-    await user.click(closeButton!);
+    const closeButton = screen.getByRole("button", { name: "ปิดเมนูหลัก" });
+    await user.click(closeButton);
 
     await waitFor(() => expect(menuLink).not.toBeVisible());
   });
