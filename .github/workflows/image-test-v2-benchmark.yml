@@ -41,8 +41,21 @@ jobs:
           worker="https://rcat-image-test-v2.rcat-digital.workers.dev"
           accept="image/avif,image/webp,image/*,*/*;q=0.8"
 
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$worker/health"
-          echo
+          ready=0
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --show-error "$worker/health" > "$RUNNER_TEMP/image-v2-health.json"; then
+              ready=1
+              cat "$RUNNER_TEMP/image-v2-health.json"
+              echo
+              break
+            fi
+            echo "Worker route not ready yet (attempt ${attempt}/20)"
+            sleep 2
+          done
+          if [[ "$ready" != "1" ]]; then
+            echo "Worker route did not become ready." >&2
+            exit 1
+          fi
 
           benchmark() {
             local label="$1"
