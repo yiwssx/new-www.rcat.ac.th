@@ -23,7 +23,7 @@ concurrency:
 jobs:
   rollback:
     name: Roll Back Existing Production Media Bridge
-    if: ${{ github.ref == 'refs/heads/master' }}
+    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -149,7 +149,7 @@ jobs:
           {
             echo "## Apps Script Production Rollback"
             echo
-            echo "- Source control branch: master"
+            echo "- Source control branch: $GITHUB_REF_NAME"
             echo "- Protected Environment: production"
             echo "- Existing deployment updated in place: yes"
             echo "- Previous immutable version: $PREVIOUS_VERSION"
