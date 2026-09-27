@@ -76,6 +76,14 @@ function mockMarqueeMeasurements({ viewportWidth, trackWidth }: { viewportWidth:
   };
 }
 
+function getMarqueeInjectedStyles() {
+  return [...document.head.querySelectorAll("style")]
+    .map((style) => style.textContent || "")
+    .filter((styles) => styles.includes("rcat-marquee-track"))
+    .join("")
+    .replace(/\s/g, "");
+}
+
 function expectMotionSpeed(
   motion: ReturnType<typeof getMarqueeMotion>,
   totalDistancePx: number,
@@ -128,6 +136,7 @@ describe("homepage settings public sections", () => {
   it("stores a dismissed marker and hides IntroGate after entering the site", () => {
     render(<PublicIntroGate settings={createIntroGateSettings()} />);
 
+    fireEvent.load(screen.getByRole("img", { name: "Intro image" }));
     fireEvent.click(screen.getByRole("button", { name: /เข้าสู่เว็บไซต์หลัก/ }));
 
     expect(window.sessionStorage.getItem("intro-test")).toBe("dismissed");
@@ -274,7 +283,7 @@ describe("homepage settings public sections", () => {
     expect(screen.getByText("Notice")).toBeInTheDocument();
 
     const marqueeTrack = document.querySelector(".rcat-marquee-track") as HTMLElement;
-    const injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
+    const injectedStyles = getMarqueeInjectedStyles();
 
     expect(screen.getByTestId("urgent-marquee-group")).toHaveTextContent("Campus announcement");
     expect(marqueeTrack).toBeInTheDocument();
@@ -332,7 +341,7 @@ describe("homepage settings public sections", () => {
     );
 
     const marqueeTrack = document.querySelector(".rcat-marquee-track") as HTMLElement;
-    const injectedStyles = (document.head.textContent || "").replace(/\s/g, "");
+    const injectedStyles = getMarqueeInjectedStyles();
 
     expect(injectedStyles).toContain("prefers-reduced-motion:reduce");
     expect(
