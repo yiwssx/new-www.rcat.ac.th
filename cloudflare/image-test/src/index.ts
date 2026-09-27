@@ -36,10 +36,13 @@ function withPublicImageHeaders(
   response: Response,
   width: number,
   sourceWidth: number,
-  format: string | undefined,
+  requestedFormat: string | undefined,
   durationMs: number
 ): Response {
   const headers = new Headers(response.headers);
+  const actualContentType = String(headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
+  const actualFormat = actualContentType.startsWith("image/") ? actualContentType.slice("image/".length) : "unknown";
+
   headers.set("cache-control", "public, max-age=604800, stale-while-revalidate=2592000");
   headers.set("access-control-allow-origin", "*");
   headers.set("timing-allow-origin", "*");
@@ -47,7 +50,8 @@ function withPublicImageHeaders(
   headers.set("x-rcat-image-test", "cloudflare-transform");
   headers.set("x-rcat-image-width", String(width));
   headers.set("x-rcat-image-source-width", String(sourceWidth));
-  headers.set("x-rcat-image-format", format ?? "source");
+  headers.set("x-rcat-image-format", actualFormat);
+  headers.set("x-rcat-image-requested-format", requestedFormat ?? "source");
   headers.set("server-timing", `rcat_image;dur=${durationMs}`);
 
   return new Response(response.body, {
@@ -87,9 +91,6 @@ async function handleImage(request: Request, fileId: string, url: URL): Promise<
   };
   if (format) imageOptions.format = format;
 
-  // Google Drive already exposes width-specific thumbnails. Fetching the same
-  // width avoids pulling a 1600px source for small responsive variants before
-  // Cloudflare transcodes it to AVIF/WebP.
   const sourceWidth = width;
   const sourceUrl = new URL("https://drive.google.com/thumbnail");
   sourceUrl.searchParams.set("id", fileId);
