@@ -27,7 +27,9 @@ describe("prewarmPublicImageDeliveryVariants", () => {
   it("warms every responsive variant for an enabled intent", async () => {
     vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL", workerBaseUrl);
     vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_INTENTS", "portrait");
-    const fetchMock = vi.fn(async () => new Response(new Uint8Array([1, 2, 3]), { status: 200 }));
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      new Response(new Uint8Array([1, 2, 3]), { status: 200 })
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(prewarmPublicImageDeliveryVariants(driveFileUrl, "portrait")).resolves.toEqual({
@@ -49,7 +51,7 @@ describe("prewarmPublicImageDeliveryVariants", () => {
     vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL", workerBaseUrl);
     vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_INTENTS", "portrait");
     let callCount = 0;
-    const fetchMock = vi.fn(async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
       callCount += 1;
       return callCount === 2
         ? new Response("bad gateway", { status: 502 })
