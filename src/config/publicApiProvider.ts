@@ -16,6 +16,7 @@ function getRuntimePublicApiEnv(): PublicApiProviderEnv {
   };
 }
 
+// The Worker endpoint is deployment configuration; endpoint changes require a fresh Vercel build.
 function readCloudflareBaseUrl(env: PublicApiProviderEnv) {
   return (
     readEnvString(env, "CLOUDFLARE_PUBLIC_API_URL") || readEnvString(env, "VITE_CLOUDFLARE_PUBLIC_API_URL")
