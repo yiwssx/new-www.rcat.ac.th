@@ -1,0 +1,45 @@
+name: Experimental / Image Delivery Rollout Validation
+
+on:
+  push:
+    branches:
+      - experiment/image-delivery-rollout
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate image delivery rollout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Format check
+        run: pnpm format:check
+      - name: Frontend lint
+        run: pnpm lint:frontend
+      - name: Unit tests
+        run: pnpm test:unit
+      - name: Integration tests
+        run: pnpm test:integration
+      - name: Production build
+        run: pnpm build
+      - name: Public media governance
+        run: pnpm media:check
+      - name: Image Worker typecheck
+        run: pnpm exec tsc -p cloudflare/image-test/tsconfig.json --noEmit
+      - name: Image Worker dry run
+        run: pnpm exec wrangler deploy --config cloudflare/image-test/wrangler.toml --dry-run
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: IntroGate functional regression
+        run: pnpm exec playwright test tests/functional/publicIntroGate.spec.ts
