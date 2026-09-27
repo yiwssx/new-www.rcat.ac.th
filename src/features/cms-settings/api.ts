@@ -8,6 +8,7 @@ import {
   saveVisitorStatsToCloudflare
 } from "../admin-write/cloudflareApi";
 import { prewarmPublicImageDeliveryVariants } from "../../shared/media/publicImageDeliveryWarmup";
+import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
 import type { DisplaySettings, HomepageSettings, SiteSettings } from "./types";
 import type { VisitorStatsSettings } from "../visitor-stats/types";
 
@@ -36,7 +37,13 @@ export async function saveSiteSettingsToApi(settings: Partial<SiteSettings>) {
 }
 
 export async function saveHomepageSettingsToApi(settings: Partial<HomepageSettings>) {
-  if (settings.introGate?.enabled && settings.introGate.imageUrl) {
+  if (settings.introGate?.enabled) {
+    const introImage = resolvePublicImageSource(settings.introGate.imageUrl, "intro-gate");
+
+    if (!introImage.src) {
+      throw new Error("IntroGate ที่เปิดใช้งานต้องมีภาพประชาสัมพันธ์ที่ระบบสามารถแสดงได้");
+    }
+
     await prewarmPublicImageDeliveryVariants(settings.introGate.imageUrl, "intro-gate");
   }
 
