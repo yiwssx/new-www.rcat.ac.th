@@ -565,6 +565,7 @@ describe("public data-driven pages", () => {
     expect(screen.getByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "สอบถามข้อมูลผ่าน Messenger" })).not.toBeInTheDocument();
 
+    fireEvent.load(screen.getByRole("img", { name: "Intro gate fixture" }));
     fireEvent.click(screen.getByRole("button", { name: "เข้าสู่เว็บไซต์" }));
 
     expect(screen.queryByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" })).not.toBeInTheDocument();
