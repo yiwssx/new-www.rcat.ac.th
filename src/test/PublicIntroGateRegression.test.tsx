@@ -6,8 +6,8 @@ import type { HomepageIntroGateSettings } from "../types";
 const dialogName = "หน้าแนะนำก่อนเข้าสู่เว็บไซต์";
 const imageAlt = "ภาพแนะนำ";
 const primaryButtonLabel = "เข้าสู่เว็บไซต์หลัก";
-const loadingMessage = "กำลังโหลดภาพประชาสัมพันธ์";
-const errorMessage = "ไม่สามารถโหลดภาพประชาสัมพันธ์ได้";
+const errorMessage = "ไม่สามารถแสดงภาพประชาสัมพันธ์ได้";
+const workerBaseUrl = "https://rcat-image-test.rcat-digital.workers.dev";
 
 function createSettings(overrides: Partial<HomepageIntroGateSettings> = {}): HomepageIntroGateSettings {
   return {
@@ -22,14 +22,19 @@ function createSettings(overrides: Partial<HomepageIntroGateSettings> = {}): Hom
   };
 }
 
+function markIntroImageLoaded() {
+  fireEvent.load(screen.getByRole("img", { name: imageAlt }));
+}
+
 afterEach(() => {
   window.sessionStorage.clear();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("PublicIntroGate regressions", () => {
-  it("renders a normalized image for a valid stable HTTPS imageUrl", () => {
+  it("renders a critical image without exposing loading copy or an early enter action", () => {
     render(<PublicIntroGate settings={createSettings()} />);
 
     const introImage = screen.getByRole("img", { name: imageAlt });
@@ -44,11 +49,21 @@ describe("PublicIntroGate regressions", () => {
     expect(responsiveImage).toHaveAttribute("data-public-image-fill", "false");
     expect(imageRegion).toHaveAttribute("data-intro-gate-image-sizing", "intrinsic-constrained");
     expect(window.getComputedStyle(introImage).objectFit).toBe("contain");
-    expect(screen.getByText(loadingMessage)).toBeInTheDocument();
+    expect(document.querySelector('[data-intro-gate-loading-shell="true"]')).toBeInTheDocument();
+    expect(screen.queryByText(/กำลังโหลดภาพประชาสัมพันธ์/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: primaryButtonLabel })).not.toBeInTheDocument();
+
+    markIntroImageLoaded();
+
+    expect(screen.getByRole("button", { name: primaryButtonLabel })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: dialogName })).toHaveAttribute("data-intro-gate-image-status", "loaded");
   });
 
-  it("renders single and secondary action layouts without changing their controls", () => {
+  it("renders single and secondary action layouts only after the mandatory image is ready", () => {
     const { rerender } = render(<PublicIntroGate settings={createSettings()} />);
+    expect(document.querySelector('[data-intro-gate-actions="true"]')).not.toBeInTheDocument();
+
+    markIntroImageLoaded();
     let actions = document.querySelector('[data-intro-gate-actions="true"]') as HTMLElement;
 
     expect(actions).toHaveAttribute("data-intro-gate-has-secondary", "false");
@@ -79,7 +94,7 @@ describe("PublicIntroGate regressions", () => {
     expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute("src", "/intro/intro-gate-2026.webp");
   });
 
-  it("converts a Google Drive file share URL to a thumbnail image URL", () => {
+  it("converts a Google Drive file share URL to a thumbnail image URL when Worker rollout is disabled", () => {
     render(
       <PublicIntroGate
         settings={createSettings({
@@ -105,82 +120,69 @@ describe("PublicIntroGate regressions", () => {
     expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute("sizes", "96vw");
   });
 
-  it("accepts an existing Google Drive thumbnail image URL", () => {
+  it("falls back from the Worker to the same Drive image before reporting IntroGate failure", () => {
+    vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL", workerBaseUrl);
+    vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_INTENTS", "intro-gate");
+
     render(
       <PublicIntroGate
         settings={createSettings({
-          imageUrl: "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w400"
+          imageUrl: "https://drive.google.com/file/d/RCAT_intro-2026_ABC123/view?usp=sharing"
         })}
       />
     );
 
-    expect(screen.getByRole("img", { name: imageAlt })).toHaveAttribute(
-      "src",
-      "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w1600"
-    );
+    const workerImage = screen.getByRole("img", { name: imageAlt });
+    expect(workerImage).toHaveAttribute("src", `${workerBaseUrl}/image/RCAT_intro-2026_ABC123?w=1600`);
+
+    fireEvent.error(workerImage);
+
+    const driveImage = screen.getByRole("img", { name: imageAlt });
+    expect(driveImage).toHaveAttribute("src", "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w1600");
+    expect(screen.queryByText(errorMessage)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: primaryButtonLabel })).not.toBeInTheDocument();
+
+    fireEvent.load(driveImage);
+    expect(screen.getByRole("button", { name: primaryButtonLabel })).toBeInTheDocument();
   });
 
   it.each(["https://fbcdn.net/intro-gate.jpg", "https://scontent.fkkc3-1.fna.fbcdn.net/v/t39.30808-6/intro-gate.jpg"])(
-    "rejects direct Facebook CDN intro image URL %s",
-    (imageUrl) => {
-      render(
-        <PublicIntroGate
-          settings={createSettings({
-            imageUrl
-          })}
-        />
-      );
-
-      expect(screen.getByRole("dialog", { name: dialogName })).toBeInTheDocument();
-      expect(screen.queryByRole("img")).not.toBeInTheDocument();
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
-    }
-  );
-
-  it("keeps the enter button usable when a Facebook CDN image URL is rejected", () => {
-    render(
-      <PublicIntroGate
-        settings={createSettings({
-          imageUrl: "https://scontent.fkkc3-1.fna.fbcdn.net/v/t39.30808-6/intro-gate.jpg",
-          storageKey: "intro-fbcdn-dismiss"
-        })}
-      />
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: primaryButtonLabel }));
-
-    expect(window.sessionStorage.getItem("intro-fbcdn-dismiss")).toBe("dismissed");
-    expect(screen.queryByRole("dialog", { name: dialogName })).not.toBeInTheDocument();
-  });
-
-  it.each(["javascript:alert(1)", "data:image/png;base64,abc", "file:///C:/intro.webp", "//example.com/intro.webp"])(
-    "does not render a broken image when imageUrl is unsafe: %s",
+    "rejects direct Facebook CDN intro image URL %s without allowing bypass",
     (imageUrl) => {
       render(<PublicIntroGate settings={createSettings({ imageUrl })} />);
 
       expect(screen.getByRole("dialog", { name: dialogName })).toBeInTheDocument();
       expect(screen.queryByRole("img")).not.toBeInTheDocument();
       expect(screen.getByText(errorMessage)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: primaryButtonLabel })).not.toBeInTheDocument();
     }
   );
 
-  it("shows a fallback message when the intro image fails to load", () => {
+  it.each(["javascript:alert(1)", "data:image/png;base64,abc", "file:///C:/intro.webp", "//example.com/intro.webp"])(
+    "does not render a broken image or bypass action when imageUrl is unsafe: %s",
+    (imageUrl) => {
+      render(<PublicIntroGate settings={createSettings({ imageUrl })} />);
+
+      expect(screen.getByRole("dialog", { name: dialogName })).toBeInTheDocument();
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
+      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: primaryButtonLabel })).not.toBeInTheDocument();
+    }
+  );
+
+  it("shows a retry action when both delivery paths fail and still prevents site entry", () => {
     render(<PublicIntroGate settings={createSettings()} />);
 
     fireEvent.error(screen.getByRole("img", { name: imageAlt }));
 
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
-  });
+    expect(screen.getByRole("button", { name: "ลองโหลดอีกครั้ง" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: primaryButtonLabel })).not.toBeInTheDocument();
 
-  it("keeps the enter button usable after the intro image fails", () => {
-    render(<PublicIntroGate settings={createSettings({ storageKey: "intro-error-dismiss" })} />);
-
-    fireEvent.error(screen.getByRole("img", { name: imageAlt }));
-    fireEvent.click(screen.getByRole("button", { name: primaryButtonLabel }));
-
-    expect(window.sessionStorage.getItem("intro-error-dismiss")).toBe("dismissed");
-    expect(screen.queryByRole("dialog", { name: dialogName })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ลองโหลดอีกครั้ง" }));
+    expect(screen.getByRole("img", { name: imageAlt })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: primaryButtonLabel })).not.toBeInTheDocument();
   });
 
   it("stays hidden until enabled settings with an image arrive", () => {
@@ -208,9 +210,11 @@ describe("PublicIntroGate regressions", () => {
     expect(screen.getByRole("dialog", { name: dialogName })).toBeInTheDocument();
   });
 
-  it("stores dismissal and hides after the primary enter button is clicked", () => {
+  it("stores dismissal and hides only after the mandatory image has loaded", () => {
     render(<PublicIntroGate settings={createSettings()} />);
 
+    expect(screen.queryByRole("button", { name: primaryButtonLabel })).not.toBeInTheDocument();
+    markIntroImageLoaded();
     fireEvent.click(screen.getByRole("button", { name: primaryButtonLabel }));
 
     expect(window.sessionStorage.getItem("intro-regression")).toBe("dismissed");
@@ -234,6 +238,7 @@ describe("PublicIntroGate regressions", () => {
     expect(document.body.style.top).toBe("-240px");
     expect(document.body.style.width).toBe("100%");
 
+    markIntroImageLoaded();
     fireEvent.click(screen.getByRole("button", { name: primaryButtonLabel }));
 
     expect(document.documentElement.style.overflow).toBe("auto");
@@ -288,6 +293,7 @@ describe("PublicIntroGate regressions", () => {
 
     render(<PublicIntroGate settings={createSettings({ storageKey: "throwing-storage" })} />);
 
+    markIntroImageLoaded();
     fireEvent.click(screen.getByRole("button", { name: primaryButtonLabel }));
 
     expect(storageMock.setItem).toHaveBeenCalledWith("throwing-storage", "dismissed");

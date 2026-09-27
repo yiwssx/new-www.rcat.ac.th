@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
+import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import { alpha } from "@mui/material/styles";
 import type { HomepageIntroGateSettings } from "../../types";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
@@ -64,6 +65,7 @@ export default function PublicIntroGate({
 }) {
   const [dismissedKeys, setDismissedKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [reconciledStorageKeys, setReconciledStorageKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const [imageAttempt, setImageAttempt] = useState(0);
   const [imageState, setImageState] = useState<{ src: string; status: IntroGateImageStatus }>({
     src: "",
     status: "failed"
@@ -71,6 +73,7 @@ export default function PublicIntroGate({
   const imageSrc = useMemo(() => resolvePublicImageSource(settings?.imageUrl, "intro-gate").src, [settings?.imageUrl]);
   const hasSafeImage = Boolean(imageSrc);
   const imageStatus = imageState.src === imageSrc ? imageState.status : hasSafeImage ? "loading" : "failed";
+  const imageReady = imageStatus === "loaded";
   const hasSecondaryButton = Boolean(settings?.secondaryButtonLabel.trim() && settings.secondaryButtonUrl.trim());
   const storageKey = getPublicIntroGateStorageKey(settings);
   const sessionReconciled = import.meta.env.MODE === "test" || reconciledStorageKeys.has(storageKey);
@@ -141,14 +144,27 @@ export default function PublicIntroGate({
   }, [isVisible]);
 
   function handleEnterSite() {
+    if (!imageReady) {
+      return;
+    }
+
     try {
       window.sessionStorage.setItem(storageKey, "dismissed");
     } catch {
-      // Session storage can be unavailable in strict privacy modes; entry should still work.
+      // Session storage can be unavailable in strict privacy modes; entry should still work once the mandatory image is ready.
     }
 
     setDismissedKeys((current) => new Set(current).add(storageKey));
     onDismiss?.();
+  }
+
+  function handleRetryImage() {
+    if (!imageSrc) {
+      return;
+    }
+
+    setImageState({ src: imageSrc, status: "loading" });
+    setImageAttempt((current) => current + 1);
   }
 
   if (!settings || !shouldShowPublicIntroGate(settings) || !isVisible || dismissedKeys.has(storageKey)) {
@@ -165,6 +181,7 @@ export default function PublicIntroGate({
       role="dialog"
       aria-modal="true"
       aria-label="หน้าแนะนำก่อนเข้าสู่เว็บไซต์"
+      data-intro-gate-image-status={imageStatus}
       sx={(theme) => ({
         position: "fixed",
         inset: 0,
@@ -209,72 +226,84 @@ export default function PublicIntroGate({
             position: "relative",
             display: "grid",
             placeItems: "center",
-            width: "fit-content",
+            width: imageReady ? "fit-content" : "min(96vw, 720px)",
             maxWidth: "min(96vw, 960px)",
+            minHeight: imageReady ? undefined : { xs: 240, sm: 360 },
             ...imageHeightSx,
             overflow: "hidden",
             borderRadius: { xs: 1.5, sm: 2 },
-            bgcolor: "transparent",
+            bgcolor: showImageLoadingState ? "rgba(255,255,255,0.06)" : "transparent",
             boxShadow: "0 24px 80px rgba(0,0,0,0.46)"
           }}
         >
           {showImageLoadingState && (
             <Box
+              aria-hidden="true"
+              data-intro-gate-loading-shell="true"
               sx={{
                 gridArea: "1 / 1",
-                zIndex: 1,
-                width: "min(96vw, 320px)",
-                maxWidth: "100%",
-                borderRadius: { xs: 1.5, sm: 2 },
-                bgcolor: "rgba(255,255,255,0.1)",
-                textAlign: "center"
+                width: "100%",
+                height: "100%",
+                minHeight: { xs: 240, sm: 360 },
+                background:
+                  "linear-gradient(110deg, rgba(255,255,255,0.04) 20%, rgba(255,255,255,0.11) 38%, rgba(255,255,255,0.04) 56%)",
+                backgroundSize: "220% 100%",
+                animation: "introGateLoadingSheen 1.8s ease-in-out infinite",
+                "@keyframes introGateLoadingSheen": {
+                  "0%": { backgroundPosition: "100% 0" },
+                  "100%": { backgroundPosition: "-100% 0" }
+                },
+                "@media (prefers-reduced-motion: reduce)": {
+                  animation: "none"
+                }
               }}
-            >
-              <Typography
-                aria-live="polite"
-                sx={{
-                  px: 2,
-                  py: 4,
-                  fontSize: { xs: "0.9rem", sm: "1rem" },
-                  fontWeight: 700,
-                  color: "#fff",
-                  textAlign: "center"
-                }}
-              >
-                กำลังโหลดภาพประชาสัมพันธ์
-              </Typography>
-            </Box>
+            />
           )}
 
           {showImageErrorState && (
-            <Box
+            <Stack
+              role="status"
+              spacing={1.5}
               sx={{
                 gridArea: "1 / 1",
                 width: "min(96vw, 560px)",
                 maxWidth: "100%",
+                px: 2,
+                py: 4,
+                alignItems: "center",
                 borderRadius: { xs: 1.5, sm: 2 },
                 bgcolor: "rgba(255,255,255,0.1)",
                 textAlign: "center"
               }}
             >
               <Typography
-                role="status"
                 sx={{
-                  px: 2,
-                  py: 4,
                   fontSize: { xs: "0.9rem", sm: "1rem" },
                   fontWeight: 700,
                   color: "#fff",
                   textAlign: "center"
                 }}
               >
-                ไม่สามารถโหลดภาพประชาสัมพันธ์ได้
+                ไม่สามารถแสดงภาพประชาสัมพันธ์ได้
               </Typography>
-            </Box>
+              {hasSafeImage && (
+                <Button
+                  type="button"
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<RefreshOutlinedIcon />}
+                  onClick={handleRetryImage}
+                  sx={{ color: "#fff", borderColor: "rgba(255,255,255,0.72)" }}
+                >
+                  ลองโหลดอีกครั้ง
+                </Button>
+              )}
+            </Stack>
           )}
 
           {hasSafeImage && imageStatus !== "failed" && (
             <PublicResponsiveImage
+              key={`${imageSrc}:${imageAttempt}`}
               source={activeSettings.imageUrl}
               intent="intro-gate"
               sizes="96vw"
@@ -288,7 +317,7 @@ export default function PublicIntroGate({
                 gridArea: "1 / 1",
                 maxWidth: "100%",
                 maxHeight: "inherit",
-                opacity: imageStatus === "loaded" ? 1 : 0,
+                opacity: imageReady ? 1 : 0,
                 transition: "opacity 180ms ease",
                 pointerEvents: "auto",
                 "@media (prefers-reduced-motion: reduce)": {
@@ -303,64 +332,66 @@ export default function PublicIntroGate({
           )}
         </Box>
 
-        <Stack
-          data-intro-gate-actions="true"
-          data-intro-gate-has-secondary={hasSecondaryButton ? "true" : "false"}
-          direction={{ xs: "column", sm: "row" }}
-          spacing={{ xs: 0.75, sm: 1 }}
-          sx={{
-            justifyContent: "center",
-            alignItems: "stretch",
-            width: "100%",
-            maxWidth: hasSecondaryButton ? { xs: "96vw", sm: 560 } : { xs: "96vw", sm: 320 },
-            flexShrink: 0,
-            pointerEvents: "auto"
-          }}
-        >
-          {hasSecondaryButton && (
-            <Button
-              component="a"
-              href={normalizeSafeHref(activeSettings.secondaryButtonUrl)}
-              target="_blank"
-              rel="noreferrer"
-              variant="outlined"
-              color="inherit"
-              size="large"
-              fullWidth
-              endIcon={<OpenInNewOutlinedIcon />}
-              sx={(theme) => ({
-                minHeight: 46,
-                fontWeight: 800,
-                bgcolor: alpha(theme.palette.common.white, 0.96),
-                borderColor: alpha(theme.palette.common.white, 0.8),
-                color: theme.palette.primary.dark,
-                "&:hover": {
-                  bgcolor: theme.palette.common.white,
-                  borderColor: theme.palette.common.white
-                }
-              })}
-            >
-              {activeSettings.secondaryButtonLabel}
-            </Button>
-          )}
-
-          <Button
-            type="button"
-            variant="contained"
-            color="primary"
-            size="large"
-            fullWidth
-            startIcon={<LoginOutlinedIcon />}
-            onClick={handleEnterSite}
+        {imageReady && (
+          <Stack
+            data-intro-gate-actions="true"
+            data-intro-gate-has-secondary={hasSecondaryButton ? "true" : "false"}
+            direction={{ xs: "column", sm: "row" }}
+            spacing={{ xs: 0.75, sm: 1 }}
             sx={{
-              minHeight: 46,
-              fontWeight: 900,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.32)"
+              justifyContent: "center",
+              alignItems: "stretch",
+              width: "100%",
+              maxWidth: hasSecondaryButton ? { xs: "96vw", sm: 560 } : { xs: "96vw", sm: 320 },
+              flexShrink: 0,
+              pointerEvents: "auto"
             }}
           >
-            {activeSettings.primaryButtonLabel}
-          </Button>
-        </Stack>
+            {hasSecondaryButton && (
+              <Button
+                component="a"
+                href={normalizeSafeHref(activeSettings.secondaryButtonUrl)}
+                target="_blank"
+                rel="noreferrer"
+                variant="outlined"
+                color="inherit"
+                size="large"
+                fullWidth
+                endIcon={<OpenInNewOutlinedIcon />}
+                sx={(theme) => ({
+                  minHeight: 46,
+                  fontWeight: 800,
+                  bgcolor: alpha(theme.palette.common.white, 0.96),
+                  borderColor: alpha(theme.palette.common.white, 0.8),
+                  color: theme.palette.primary.dark,
+                  "&:hover": {
+                    bgcolor: theme.palette.common.white,
+                    borderColor: theme.palette.common.white
+                  }
+                })}
+              >
+                {activeSettings.secondaryButtonLabel}
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              variant="contained"
+              color="primary"
+              size="large"
+              fullWidth
+              startIcon={<LoginOutlinedIcon />}
+              onClick={handleEnterSite}
+              sx={{
+                minHeight: 46,
+                fontWeight: 900,
+                boxShadow: "0 10px 30px rgba(0,0,0,0.32)"
+              }}
+            >
+              {activeSettings.primaryButtonLabel}
+            </Button>
+          </Stack>
+        )}
       </Stack>
     </Box>
   );

@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PUBLIC_IMAGE_POLICIES,
   buildGoogleDriveThumbnailUrl,
+  buildPublicImageDeliveryUrl,
   extractGoogleDriveFileId,
+  getPublicImageDeliveryVariantUrls,
   getPublicImageIntentPolicy,
+  isPublicImageDeliveryEnabled,
   normalizePublicImageWidths,
+  resolvePublicImageFallbackSource,
   resolvePublicImageSource,
   selectPublicImageSource
 } from "./publicImageSources";
@@ -12,6 +16,11 @@ import {
 const driveFileId = "RCAT_media-2026_ABC123";
 const driveFileUrl = `https://drive.google.com/file/d/${driveFileId}/view?usp=sharing`;
 const driveThumbnailUrl = `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w400`;
+const workerBaseUrl = "https://rcat-image-test.rcat-digital.workers.dev";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("publicImageSources", () => {
   it("extracts valid Drive IDs from file and thumbnail URL forms", () => {
@@ -30,6 +39,15 @@ describe("publicImageSources", () => {
     expect(buildGoogleDriveThumbnailUrl(driveFileId, 1601)).toBe("");
   });
 
+  it("builds only valid HTTPS Worker delivery URLs", () => {
+    expect(buildPublicImageDeliveryUrl(driveFileId, 384, workerBaseUrl)).toBe(
+      `${workerBaseUrl}/image/${driveFileId}?w=384`
+    );
+    expect(buildPublicImageDeliveryUrl("unsafe$id", 384, workerBaseUrl)).toBe("");
+    expect(buildPublicImageDeliveryUrl(driveFileId, 1601, workerBaseUrl)).toBe("");
+    expect(buildPublicImageDeliveryUrl(driveFileId, 384, "http://example.com")).toBe("");
+  });
+
   it("normalizes, sorts, and deduplicates width candidates", () => {
     expect(normalizePublicImageWidths([640, -1, 240, 640, 0, 1601, 320])).toEqual([240, 320, 640]);
   });
@@ -45,6 +63,34 @@ describe("publicImageSources", () => {
     expect(featuredCard.widths).toEqual([320, 480, 640, 900]);
     expect(portrait.src).toContain("sz=w384");
     expect(portrait.widths).toEqual([192, 256, 384, 512]);
+  });
+
+  it("routes only configured intents through the Worker and exposes Drive fallback", () => {
+    vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL", workerBaseUrl);
+    vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_INTENTS", "portrait,carousel,intro-gate");
+
+    expect(isPublicImageDeliveryEnabled("portrait")).toBe(true);
+    expect(isPublicImageDeliveryEnabled("content-card")).toBe(false);
+
+    const portrait = resolvePublicImageSource(driveFileUrl, "portrait");
+    const portraitFallback = resolvePublicImageFallbackSource(driveFileUrl, "portrait");
+    const card = resolvePublicImageSource(driveFileUrl, "content-card");
+
+    expect(portrait.src).toBe(`${workerBaseUrl}/image/${driveFileId}?w=384`);
+    expect(portrait.srcSet).toContain(`${workerBaseUrl}/image/${driveFileId}?w=192 192w`);
+    expect(portraitFallback.src).toBe(`https://drive.google.com/thumbnail?id=${driveFileId}&sz=w384`);
+    expect(card.src).toBe(`https://drive.google.com/thumbnail?id=${driveFileId}&sz=w320`);
+    expect(getPublicImageDeliveryVariantUrls(driveFileUrl, "portrait")).toHaveLength(4);
+    expect(getPublicImageDeliveryVariantUrls(driveFileUrl, "content-card")).toEqual([]);
+  });
+
+  it("supports an all-intents rollout switch", () => {
+    vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL", workerBaseUrl);
+    vi.stubEnv("VITE_PUBLIC_IMAGE_DELIVERY_INTENTS", "*");
+
+    expect(isPublicImageDeliveryEnabled("logo")).toBe(true);
+    expect(isPublicImageDeliveryEnabled("content-body")).toBe(true);
+    expect(resolvePublicImageSource(driveFileUrl, "content-body").src).toContain(workerBaseUrl);
   });
 
   it("keeps every declared policy sorted, unique, positive, and bounded", () => {
