@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   format:
-    if: ${{ !contains(github.event.head_commit.message, 'style(media): format image delivery rollout') }}
+    if: "${{ !contains(github.event.head_commit.message, 'style(media): format image delivery rollout') }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
