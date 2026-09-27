@@ -236,11 +236,9 @@ export function inspectDesignSystemRegressionPolicy({
     /flexWrap:\s*nested\s*\?\s*["']nowrap["']\s*:\s*["']wrap["']/.test(mainMenuSource) &&
     /overflow:\s*["']visible["']/.test(mainMenuSource) &&
     /focusRingExtent/.test(mainMenuSource);
-  const legacyPostRenderMenuMeasurement = /ResizeObserver|isMenuOverflowing|PublicTopLevelMenuMeasurement/.test(
-    mainMenuSource
-  );
+  const legacyMenuMeasurement = /ResizeObserver|isMenuOverflowing|PublicTopLevelMenuMeasurement/.test(mainMenuSource);
 
-  if (!cssFirstResponsiveMenu || legacyPostRenderMenuMeasurement) {
+  if (!cssFirstResponsiveMenu || legacyMenuMeasurement) {
     violations.push("Public Main Menu CSS-first responsive/focus-safe policy is missing");
   }
   if (!/box-shadow:\s*var\(--rcat-focus-ring-shadow\)/.test(stylesSource)) {
