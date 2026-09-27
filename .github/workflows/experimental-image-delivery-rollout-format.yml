@@ -1,3 +1,4 @@
+# Branch-only formatting helper; never targets master.
 name: Experimental / Format Image Delivery Rollout
 
 on:
