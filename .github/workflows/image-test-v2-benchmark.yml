@@ -1,0 +1,80 @@
+name: Test / Image Worker V2 Benchmark
+
+on:
+  push:
+    branches:
+      - experiment/image-worker-source-width
+    paths:
+      - "cloudflare/image-test/**"
+      - ".github/workflows/image-test-v2-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Deploy and benchmark image Worker v2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Deploy isolated v2 Worker
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm wrangler deploy --config cloudflare/image-test/wrangler-v2.toml
+
+      - name: Benchmark Drive vs v2 Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          worker="https://rcat-image-test-v2.rcat-digital.workers.dev"
+          accept="image/avif,image/webp,image/*,*/*;q=0.8"
+
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$worker/health"
+          echo
+
+          benchmark() {
+            local label="$1"
+            local file_id="$2"
+            local width="$3"
+            local direct="https://drive.google.com/thumbnail?id=${file_id}&sz=w${width}"
+            local proxied="${worker}/image/${file_id}?w=${width}"
+
+            echo "===== ${label} (w=${width}) ====="
+            for mode in direct worker; do
+              if [[ "$mode" == "direct" ]]; then
+                url="$direct"
+              else
+                url="$proxied"
+              fi
+
+              echo "--- ${mode}: ${url}"
+              for run in 1 2 3 4 5 6 7 8; do
+                headers="$RUNNER_TEMP/${label}-${mode}-${run}.headers"
+                body="$RUNNER_TEMP/${label}-${mode}-${run}.body"
+                metrics=$(curl -L --fail --silent --show-error \
+                  -H "Accept: ${accept}" \
+                  -D "$headers" \
+                  -o "$body" \
+                  -w 'redirects=%{num_redirects},status=%{http_code},bytes=%{size_download},ttfb=%{time_starttransfer},total=%{time_total},type=%{content_type}' \
+                  "$url")
+                echo "${run}: ${metrics}"
+                awk 'BEGIN{IGNORECASE=1} /^(cf-cache-status|cf-resized|age|server-timing|x-rcat-image-test|x-rcat-image-width|x-rcat-image-source-width|x-rcat-image-format|content-type|content-length):/{gsub("\r",""); print "    " $0}' "$headers" | tail -n 16 || true
+              done
+            done
+          }
+
+          benchmark "director" "1WoFIoK4inXY5PmUS043AGJxyYKi6X6Mi" 384
+          benchmark "intro-latest" "1Ipz_zfoj9BQ4LUupFTS7w4WM--vDlDFu" 1600
+          benchmark "intro-student" "1S665rXfu5k8Og_fPTgkUytuBhMGERG8G" 1600
