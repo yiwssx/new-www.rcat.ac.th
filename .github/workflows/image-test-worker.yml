@@ -38,6 +38,14 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Show canonical Prettier diff
+        run: |
+          pnpm exec prettier --write cloudflare/image-test/src/index.ts
+          git diff -- cloudflare/image-test/src/index.ts
+          if ! git diff --quiet -- cloudflare/image-test/src/index.ts; then
+            echo "Image test Worker differs from canonical Prettier output." >&2
+            exit 1
+          fi
       - name: Lint image test Worker
         run: pnpm exec eslint "cloudflare/image-test/src/**/*.ts"
       - name: Typecheck image test Worker
