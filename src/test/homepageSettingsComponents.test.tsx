@@ -79,7 +79,12 @@ function mockMarqueeMeasurements({ viewportWidth, trackWidth }: { viewportWidth:
 function getMarqueeInjectedStyles() {
   return [...document.head.querySelectorAll("style")]
     .map((style) => style.textContent || "")
-    .filter((styles) => styles.includes("rcat-marquee-track"))
+    .filter(
+      (styles) =>
+        styles.includes("rcat-marquee-track") ||
+        styles.includes("--rcat-marquee-start-x") ||
+        styles.includes("--rcat-marquee-end-x")
+    )
     .join("")
     .replace(/\s/g, "");
 }
