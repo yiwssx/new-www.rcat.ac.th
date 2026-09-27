@@ -5,9 +5,11 @@ on:
   push:
     branches:
       - master
+      - main
   pull_request:
     branches:
       - master
+      - main
   workflow_dispatch:
 
 concurrency:
@@ -137,7 +139,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:functional
 
-  # Compatibility contract: Vercel deployment checks and the master ruleset consume
+  # Compatibility contract: Vercel deployment checks and the production branch ruleset consume
   # the GitHub Actions check named `quality`. Keep this aggregate check stable.
   quality:
     if: ${{ always() }}
