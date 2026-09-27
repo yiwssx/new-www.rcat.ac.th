@@ -6,12 +6,14 @@ on:
       - master
     paths:
       - "cloudflare/image-test/**"
+      - "scripts/benchmark-image-delivery.mjs"
       - ".github/workflows/image-test-worker.yml"
   push:
     branches:
       - master
     paths:
       - "cloudflare/image-test/**"
+      - "scripts/benchmark-image-delivery.mjs"
       - ".github/workflows/image-test-worker.yml"
   workflow_dispatch:
 
@@ -44,6 +46,27 @@ jobs:
         run: pnpm exec tsc -p cloudflare/image-test/tsconfig.json --noEmit
       - name: Build Wrangler dry run
         run: pnpm wrangler deploy --config cloudflare/image-test/wrangler.toml --dry-run --outdir "$RUNNER_TEMP/image-test-worker"
+
+  benchmark:
+    name: Benchmark Production Image Delivery
+    needs: validate
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Compare direct Drive and Cloudflare image delivery
+        env:
+          PRODUCTION_PUBLIC_API_URL: https://rcat-public-api-preview.rcat-digital.workers.dev
+          IMAGE_TEST_WORKER_URL: https://rcat-image-test.rcat-digital.workers.dev
+        run: |
+          set -o pipefail
+          benchmark_log="$RUNNER_TEMP/image-delivery-benchmark.md"
+          node scripts/benchmark-image-delivery.mjs | tee "$benchmark_log"
+          cat "$benchmark_log" >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     name: Deploy Image Test Worker
