@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { CarouselSlide } from "../../features/cms-carousel/types";
 import { normalizeCarouselSlide } from "../../features/cms-carousel/normalization";
-import { resolvePublicImageSource } from "../media/publicImageSources";
+import { resolvePublicImageFallbackSource, resolvePublicImageSource } from "../media/publicImageSources";
 
 const MOBILE_IMAGE_MEDIA_QUERY = "(max-width: 600px)";
 const DEFAULT_EMPTY_LABEL = "ยังไม่มีรูปภาพ";
@@ -30,6 +30,10 @@ function getResponsiveSource(url: string) {
   return resolvePublicImageSource(url, "carousel");
 }
 
+function getResponsiveFallbackSource(url: string) {
+  return resolvePublicImageFallbackSource(url, "carousel");
+}
+
 export default function CarouselImageStage({
   slide,
   alt,
@@ -44,17 +48,27 @@ export default function CarouselImageStage({
   const normalizedSlide = useMemo(() => normalizeCarouselSlide(slide), [slide]);
 
   const desktopSource = useMemo(() => getResponsiveSource(normalizedSlide.imageUrl), [normalizedSlide.imageUrl]);
+  const desktopFallbackSource = useMemo(
+    () => getResponsiveFallbackSource(normalizedSlide.imageUrl),
+    [normalizedSlide.imageUrl]
+  );
 
   const mobileSource = useMemo(
     () => getResponsiveSource(normalizedSlide.mobileImageUrl),
     [normalizedSlide.mobileImageUrl]
   );
+  const mobileFallbackSource = useMemo(
+    () => getResponsiveFallbackSource(normalizedSlide.mobileImageUrl),
+    [normalizedSlide.mobileImageUrl]
+  );
 
-  /*
-   * ผูกสถานะการโหลดล้มเหลวกับ URL ปัจจุบันแทนการ reset state ใน useEffect
-   * เมื่อผู้ใช้เปลี่ยนรูป sourceKey จะเปลี่ยน และ error ของรูปก่อนหน้าจะหมดผลทันที
-   */
-  const sourceKey = `${desktopSource.src}|${mobileSource.src}`;
+  const deliverySourceKey = `${desktopSource.src}|${mobileSource.src}`;
+  const [deliveryFallbackSourceKey, setDeliveryFallbackSourceKey] = useState("");
+  const deliveryFallbackActive = deliveryFallbackSourceKey === deliverySourceKey;
+  const activeDesktopSource =
+    deliveryFallbackActive && desktopFallbackSource.src ? desktopFallbackSource : desktopSource;
+  const activeMobileSource = deliveryFallbackActive && mobileFallbackSource.src ? mobileFallbackSource : mobileSource;
+  const sourceKey = `${deliverySourceKey}|fallback:${deliveryFallbackActive ? "drive" : "primary"}`;
 
   const [failedMobileSourceKey, setFailedMobileSourceKey] = useState("");
   const [failedMainSourceKey, setFailedMainSourceKey] = useState("");
@@ -67,17 +81,21 @@ export default function CarouselImageStage({
   const imageFailed = failedMainSourceKey === sourceKey;
   const mainImageLoaded = loadedMainSourceKey === sourceKey;
 
-  const fallbackSource = desktopSource.src || mobileSource.src;
-  const fallbackSrcSet = desktopSource.src ? desktopSource.srcSet : mobileSource.srcSet;
+  const fallbackSource = activeDesktopSource.src || activeMobileSource.src;
+  const fallbackSrcSet = activeDesktopSource.src ? activeDesktopSource.srcSet : activeMobileSource.srcSet;
 
   const usableMobileSource =
-    !mobileSourceFailed && mobileSource.src && mobileSource.src !== fallbackSource ? mobileSource : null;
+    !mobileSourceFailed && activeMobileSource.src && activeMobileSource.src !== fallbackSource ? activeMobileSource : null;
+
+  const hasDeliveryFallback =
+    (!deliveryFallbackActive &&
+      ((desktopFallbackSource.src && desktopFallbackSource.src !== desktopSource.src) ||
+        (mobileFallbackSource.src && mobileFallbackSource.src !== mobileSource.src))) ||
+    false;
 
   const objectFit = normalizedSlide.imageFit === "fill" ? "cover" : "contain";
-
   const objectPosition = `${normalizedSlide.focalPointX}% ${normalizedSlide.focalPointY}%`;
   const backgroundColor = normalizedSlide.backgroundColor || "";
-
   const stageSxItems = Array.isArray(stageSx) ? stageSx : stageSx ? [stageSx] : [];
 
   const drawBlurBackground = useCallback(() => {
@@ -147,31 +165,28 @@ export default function CarouselImageStage({
   }, [drawBlurBackground, mainImageLoaded, normalizedSlide.imageFit]);
 
   function handleMainImageError() {
+    if (hasDeliveryFallback) {
+      setDeliveryFallbackSourceKey(deliverySourceKey);
+      return;
+    }
+
     const mobileViewport =
       typeof window !== "undefined" &&
       typeof window.matchMedia === "function" &&
       window.matchMedia(MOBILE_IMAGE_MEDIA_QUERY).matches;
 
-    /*
-     * หากรูปเฉพาะมือถือเสีย ให้ตัด mobile source ออกก่อน
-     * browser จะกลับไปใช้ desktop source จาก img โดยไม่แสดง fallback ทันที
-     */
     if (mobileViewport && usableMobileSource) {
       setFailedMobileSourceKey(sourceKey);
       return;
     }
 
-    /*
-     * หากไม่มี source สำรอง หรือ desktop source เสีย
-     * ให้แสดง accessible fallback
-     */
     setFailedMainSourceKey(sourceKey);
   }
 
   function renderPicture() {
     return (
       <picture
-        key={`main:${fallbackSource}:${usableMobileSource?.src || ""}`}
+        key={`main:${sourceKey}:${fallbackSource}:${usableMobileSource?.src || ""}`}
         style={{
           position: "absolute",
           inset: 0,
@@ -205,6 +220,7 @@ export default function CarouselImageStage({
           }}
           onError={handleMainImageError}
           data-carousel-image-layer="main"
+          data-carousel-image-delivery-fallback={deliveryFallbackActive ? "drive" : "primary"}
           data-carousel-object-fit={objectFit}
           data-carousel-object-position={objectPosition}
           sx={{
@@ -317,13 +333,7 @@ export default function CarouselImageStage({
             }}
           />
 
-          <Typography
-            sx={{
-              fontWeight: 800
-            }}
-          >
-            {emptyLabel}
-          </Typography>
+          <Typography sx={{ fontWeight: 800 }}>{emptyLabel}</Typography>
         </Stack>
       )}
     </Box>
