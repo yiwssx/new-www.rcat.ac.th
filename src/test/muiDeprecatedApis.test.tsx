@@ -15,7 +15,7 @@ beforeEach(() => {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: vi.fn().mockImplementation((query: string) => ({
-      matches: true,
+      matches: false,
       media: query,
       onchange: null,
       addEventListener: vi.fn(),
@@ -38,6 +38,15 @@ describe("MUI 9 deprecated API migrations", () => {
     expect(publicDocumentsPageSource).not.toMatch(/\b(?:InputProps|inputProps)\s*=/);
     expect(publicSiteShellSource).not.toMatch(/\bInputProps\s*=/);
     expect(publicMainMenuSource).not.toMatch(/\b(?:PaperProps|primaryTypographyProps)\s*=/);
+  });
+
+  it("keeps Public navigation mode CSS-driven from the first paint", () => {
+    expect(publicMainMenuSource).not.toContain("ResizeObserver");
+    expect(publicMainMenuSource).not.toContain("isMenuOverflowing");
+    expect(publicMainMenuSource).not.toContain("PublicTopLevelMenuMeasurement");
+    expect(publicMainMenuSource).toContain('display: { xs: "none", lg: "flex" }');
+    expect(publicMainMenuSource).toContain('display: { xs: "flex", lg: "none" }');
+    expect(publicMainMenuSource).toContain('flexWrap: nested ? "nowrap" : "wrap"');
   });
 
   it("keeps the compact menu keyboard-operable after the Drawer slot migration", async () => {
