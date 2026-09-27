@@ -83,7 +83,8 @@ function getMarqueeInjectedStyles() {
       (styles) =>
         styles.includes("rcat-marquee-track") ||
         styles.includes("--rcat-marquee-start-x") ||
-        styles.includes("--rcat-marquee-end-x")
+        styles.includes("--rcat-marquee-end-x") ||
+        styles.includes("--rcat-marquee-duration")
     )
     .join("")
     .replace(/\s/g, "");
