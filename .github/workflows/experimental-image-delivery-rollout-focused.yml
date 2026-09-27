@@ -27,8 +27,12 @@ jobs:
           pnpm exec vitest run
           src/shared/media/publicImageSources.test.ts
           src/shared/media/publicImageDeliveryWarmup.test.ts
+          src/utils/safeUrl.test.ts
+          src/features/admin-write/adminWriteProvider.test.ts
           src/test/PublicIntroGateRegression.test.tsx
           src/test/publicMediaPriorityCoordination.test.tsx
+          src/test/carouselImageStage.test.tsx
+          src/test/publicHomeCarouselRegression.test.tsx
           src/test/homepageSettings.test.ts
           src/test/siteSettings.test.ts
           src/test/publicSiteShellSsrReadiness.test.ts
