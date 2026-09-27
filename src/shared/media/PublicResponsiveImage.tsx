@@ -4,7 +4,12 @@ import Box from "@mui/material/Box";
 import type { SxProps } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { styled } from "@mui/material/styles";
-import { resolvePublicImageSource, type PublicImageAssetSource, type PublicImageIntent } from "./publicImageSources";
+import {
+  resolvePublicImageFallbackSource,
+  resolvePublicImageSource,
+  type PublicImageAssetSource,
+  type PublicImageIntent
+} from "./publicImageSources";
 import { usePublicMediaLoading } from "./publicMediaLoadingState";
 
 export type PublicImageLoadMode = "critical" | "eager" | "near-viewport";
@@ -39,7 +44,6 @@ interface PublicResponsiveImageProps {
 }
 
 function resolveAccessibleAlt(source: PublicResponsiveImageProps["source"], fallbackAlt: string) {
-  // Explicit empty alt remains authoritative for intentionally decorative images.
   if (fallbackAlt === "" || typeof source === "string" || !source) return fallbackAlt;
   return String(source.altText || "").trim() || fallbackAlt;
 }
@@ -68,14 +72,22 @@ export default function PublicResponsiveImage({
   width
 }: PublicResponsiveImageProps) {
   const resolvedSource = useMemo(() => resolvePublicImageSource(source, intent), [intent, source]);
+  const resolvedFallbackSource = useMemo(() => resolvePublicImageFallbackSource(source, intent), [intent, source]);
   const resolvedAlt = resolveAccessibleAlt(source, alt);
   const sourceKey = `${resolvedSource.src}|${resolvedSource.srcSet}`;
+  const [fallbackSourceKey, setFallbackSourceKey] = useState("");
   const [failedSourceKey, setFailedSourceKey] = useState("");
   const { pageMediaAllowed } = usePublicMediaLoading();
   const allowed = bypassPageMediaGate || pageMediaAllowed;
   const isNearViewportMode = loadMode === "near-viewport";
-  const failed = failedSourceKey === sourceKey;
-  const hasUsableSource = Boolean(resolvedSource.src) && !failed;
+  const usingFallback =
+    fallbackSourceKey === sourceKey &&
+    Boolean(resolvedFallbackSource.src) &&
+    resolvedFallbackSource.src !== resolvedSource.src;
+  const activeSource = usingFallback ? resolvedFallbackSource : resolvedSource;
+  const activeSourceKey = `${sourceKey}|${activeSource.src}|${activeSource.srcSet}`;
+  const failed = failedSourceKey === activeSourceKey;
+  const hasUsableSource = Boolean(activeSource.src) && !failed;
   const shouldRenderImage = allowed && hasUsableSource;
   const loading = isNearViewportMode ? "lazy" : "eager";
   const fetchPriority = loadMode === "critical" ? "high" : isNearViewportMode ? "low" : "auto";
@@ -94,6 +106,7 @@ export default function PublicResponsiveImage({
       data-public-image-aspect-ratio={aspectRatio}
       data-public-image-fill={fill ? "true" : "false"}
       data-public-image-layout={fill ? "fill" : usesIntrinsicSizing ? "intrinsic" : "responsive"}
+      data-public-image-fallback-active={usingFallback ? "true" : "false"}
       sx={[
         {
           position: "relative",
@@ -111,10 +124,11 @@ export default function PublicResponsiveImage({
     >
       {shouldRenderImage ? (
         <PublicImageElement
+          key={activeSourceKey}
           className={imageClassName}
-          src={resolvedSource.src}
-          srcSet={resolvedSource.srcSet || undefined}
-          sizes={resolvedSource.srcSet ? sizes : undefined}
+          src={activeSource.src}
+          srcSet={activeSource.srcSet || undefined}
+          sizes={activeSource.srcSet ? sizes : undefined}
           alt={resolvedAlt}
           width={width}
           height={height}
@@ -124,7 +138,12 @@ export default function PublicResponsiveImage({
           data-public-responsive-image-element="true"
           onLoad={onLoad}
           onError={() => {
-            setFailedSourceKey(sourceKey);
+            if (!usingFallback && resolvedFallbackSource.src && resolvedFallbackSource.src !== resolvedSource.src) {
+              setFallbackSourceKey(sourceKey);
+              return;
+            }
+
+            setFailedSourceKey(activeSourceKey);
             onError?.();
           }}
           sx={[
@@ -146,7 +165,7 @@ export default function PublicResponsiveImage({
             ...imageSxItems
           ]}
         />
-      ) : failed || !resolvedSource.src ? (
+      ) : failed || !activeSource.src ? (
         <Box
           role="img"
           aria-label={resolvedAlt}
