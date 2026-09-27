@@ -138,11 +138,7 @@ export default function PublicResponsiveImage({
           data-public-responsive-image-element="true"
           onLoad={onLoad}
           onError={() => {
-            if (
-              !usingFallback &&
-              resolvedFallbackSource.src &&
-              resolvedFallbackSource.src !== resolvedSource.src
-            ) {
+            if (!usingFallback && resolvedFallbackSource.src && resolvedFallbackSource.src !== resolvedSource.src) {
               setFallbackSourceKey(sourceKey);
               return;
             }

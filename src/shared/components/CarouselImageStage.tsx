@@ -85,7 +85,9 @@ export default function CarouselImageStage({
   const fallbackSrcSet = activeDesktopSource.src ? activeDesktopSource.srcSet : activeMobileSource.srcSet;
 
   const usableMobileSource =
-    !mobileSourceFailed && activeMobileSource.src && activeMobileSource.src !== fallbackSource ? activeMobileSource : null;
+    !mobileSourceFailed && activeMobileSource.src && activeMobileSource.src !== fallbackSource
+      ? activeMobileSource
+      : null;
 
   const hasDeliveryFallback =
     (!deliveryFallbackActive &&

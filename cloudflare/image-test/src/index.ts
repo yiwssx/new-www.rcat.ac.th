@@ -40,7 +40,10 @@ function withPublicImageHeaders(
   durationMs: number
 ): Response {
   const headers = new Headers(response.headers);
-  const actualContentType = String(headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
+  const actualContentType = String(headers.get("content-type") || "")
+    .split(";", 1)[0]
+    .trim()
+    .toLowerCase();
   const actualFormat = actualContentType.startsWith("image/") ? actualContentType.slice("image/".length) : "unknown";
 
   headers.set("cache-control", "public, max-age=604800, stale-while-revalidate=2592000");

@@ -138,10 +138,7 @@ describe("PublicIntroGate regressions", () => {
     fireEvent.error(workerImage);
 
     const driveImage = screen.getByRole("img", { name: imageAlt });
-    expect(driveImage).toHaveAttribute(
-      "src",
-      "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w1600"
-    );
+    expect(driveImage).toHaveAttribute("src", "https://drive.google.com/thumbnail?id=RCAT_intro-2026_ABC123&sz=w1600");
     expect(screen.queryByText(errorMessage)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: primaryButtonLabel })).not.toBeInTheDocument();
 
