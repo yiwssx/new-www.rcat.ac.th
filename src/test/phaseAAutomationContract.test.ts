@@ -26,9 +26,10 @@ describe("Phase A automation contract", () => {
 
   it("isolates concurrency across verification trigger sources", () => {
     const normalized = compact(workflow);
-    expect(normalized).toContain("group: production-verification-");
-    expect(normalized).toContain("github.event.workflow_run.head_branch");
-    expect(normalized).toContain("github.event.schedule");
+    expect(normalized).toContain(
+      "group: prod-verification-${{ github.event_name }}-${{ github.event.schedule || inputs.operation || github.ref_name }}"
+    );
+    expect(normalized).toContain("cancel-in-progress: true");
   });
 
   it("waits for the matching Vercel status and only runs browser smoke when deployment exists", () => {
