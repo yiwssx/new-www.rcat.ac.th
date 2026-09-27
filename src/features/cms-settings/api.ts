@@ -8,7 +8,7 @@ import {
   saveVisitorStatsToCloudflare
 } from "../admin-write/cloudflareApi";
 import { prewarmPublicImageDeliveryVariants } from "../../shared/media/publicImageDeliveryWarmup";
-import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
+import { isPublicImageDeliveryEnabled, resolvePublicImageSource } from "../../shared/media/publicImageSources";
 import type { DisplaySettings, HomepageSettings, SiteSettings } from "./types";
 import type { VisitorStatsSettings } from "../visitor-stats/types";
 
@@ -28,15 +28,17 @@ export function saveDisplaySettingsToApi(settings: Partial<DisplaySettings>) {
   return saveDisplaySettingsToCloudflare(settings);
 }
 
-export async function saveSiteSettingsToApi(settings: Partial<SiteSettings>) {
-  if (settings.directorImageUrl) {
-    await prewarmPublicImageDeliveryVariants(settings.directorImageUrl, "portrait");
+export function saveSiteSettingsToApi(settings: Partial<SiteSettings>) {
+  if (settings.directorImageUrl && isPublicImageDeliveryEnabled("portrait")) {
+    return prewarmPublicImageDeliveryVariants(settings.directorImageUrl, "portrait").then(() =>
+      saveSiteSettingsToCloudflare(settings)
+    );
   }
 
   return saveSiteSettingsToCloudflare(settings);
 }
 
-export async function saveHomepageSettingsToApi(settings: Partial<HomepageSettings>) {
+export function saveHomepageSettingsToApi(settings: Partial<HomepageSettings>) {
   if (settings.introGate?.enabled) {
     const introImage = resolvePublicImageSource(settings.introGate.imageUrl, "intro-gate");
 
@@ -44,7 +46,11 @@ export async function saveHomepageSettingsToApi(settings: Partial<HomepageSettin
       throw new Error("IntroGate ที่เปิดใช้งานต้องมีภาพประชาสัมพันธ์ที่ระบบสามารถแสดงได้");
     }
 
-    await prewarmPublicImageDeliveryVariants(settings.introGate.imageUrl, "intro-gate");
+    if (isPublicImageDeliveryEnabled("intro-gate")) {
+      return prewarmPublicImageDeliveryVariants(settings.introGate.imageUrl, "intro-gate").then(() =>
+        saveHomepageSettingsToCloudflare(settings)
+      );
+    }
   }
 
   return saveHomepageSettingsToCloudflare(settings);
