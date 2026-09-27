@@ -28,7 +28,18 @@ jobs:
       - name: Frontend lint
         run: pnpm lint:frontend
       - name: Unit tests
-        run: pnpm test:unit
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm test:unit 2>&1 | tee unit-test.log
+      - name: Upload unit failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: image-delivery-unit-tests-${{ github.run_id }}
+          path: unit-test.log
+          if-no-files-found: ignore
+          retention-days: 1
       - name: Integration tests
         run: pnpm test:integration
       - name: Production build
