@@ -41,7 +41,10 @@ function withPublicImageHeaders(
   durationMs: number,
 ): Response {
   const headers = new Headers(response.headers);
-  headers.set("cache-control", "public, max-age=604800, stale-while-revalidate=2592000");
+  headers.set(
+    "cache-control",
+    "public, max-age=604800, stale-while-revalidate=2592000",
+  );
   headers.set("access-control-allow-origin", "*");
   headers.set("timing-allow-origin", "*");
   headers.set("vary", "Accept");
@@ -58,7 +61,11 @@ function withPublicImageHeaders(
   });
 }
 
-async function handleImage(request: Request, fileId: string, url: URL): Promise<Response> {
+async function handleImage(
+  request: Request,
+  fileId: string,
+  url: URL,
+): Promise<Response> {
   if (!DRIVE_FILE_ID_PATTERN.test(fileId)) {
     return json(
       {
@@ -130,7 +137,10 @@ export default {
     const url = new URL(request.url);
 
     if (request.method !== "GET" && request.method !== "HEAD") {
-      return json({ error: "method_not_allowed" }, { status: 405, headers: { allow: "GET, HEAD" } });
+      return json(
+        { error: "method_not_allowed" },
+        { status: 405, headers: { allow: "GET, HEAD" } },
+      );
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
