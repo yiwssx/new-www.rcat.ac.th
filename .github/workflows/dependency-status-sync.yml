@@ -34,7 +34,7 @@ jobs:
 
   snapshot-repair:
     name: Snapshot Repair
-    if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch' && inputs.operation == 'snapshot-repair' }}
+    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && github.event_name == 'workflow_dispatch' && inputs.operation == 'snapshot-repair' }}
     runs-on: ubuntu-latest
     permissions:
       actions: write
