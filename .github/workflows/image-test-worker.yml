@@ -97,7 +97,19 @@ jobs:
         env:
           WORKER_URL: ${{ steps.deploy.outputs.worker_url }}
         run: |
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$WORKER_URL/health" | tee "$RUNNER_TEMP/image-production-worker-health.json"
+          set -euo pipefail
+          health_file="$RUNNER_TEMP/image-production-worker-health.json"
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --show-error "$WORKER_URL/health" > "$health_file"; then
+              cat "$health_file"
+              break
+            fi
+            if [[ "$attempt" -eq 12 ]]; then
+              echo "Image production Worker health endpoint did not become ready after deployment." >&2
+              exit 1
+            fi
+            sleep 3
+          done
           node -e '
             const fs = require("fs");
             const body = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/image-production-worker-health.json", "utf8"));
