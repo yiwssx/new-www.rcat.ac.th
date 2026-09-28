@@ -1,8 +1,8 @@
 # Public SSR Production Cutover Runbook
 
-Updated: 2026-08-13.
+Updated: 2026-09-28.
 
-Use this checklist when Public SSR changes are explicitly promoted to `master`. A non-master branch or draft PR does not change production.
+Use this checklist when Public SSR changes are explicitly promoted to `main`. A non-main branch or draft PR does not change production.
 
 ## Preconditions
 
@@ -112,7 +112,7 @@ During the original SSR implementation, a temporary `preview-*` deployment reque
 
 If production SSR has a material routing, hydration, SEO, or availability failure:
 
-1. roll back the Vercel deployment to the last known-good `master` deployment, or revert the SSR change/configuration;
+1. roll back the Vercel deployment to the last known-good `main` deployment, or revert the SSR change/configuration;
 2. restore the previous known-good routing behavior;
 3. confirm Admin/Auth and Public pages are reachable again;
 4. leave Cloudflare Worker, D1, and Apps Script unchanged unless an independent issue exists there.
