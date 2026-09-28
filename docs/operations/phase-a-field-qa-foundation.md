@@ -1,42 +1,24 @@
 # Phase A — Field QA Foundation
 
-Updated: 2026-09-19
+Updated: 2026-09-28
 
-Status: complete and production-verified. The deployment-driven browser smoke remains an ongoing operational guard after closure.
+Status: complete and production-verified. Deployment-driven browser smoke remains an ongoing operational guard after closure.
 
 ## Goal
 
-Phase A adds browser-level production verification on top of the existing P6C HTTP/SSR/Worker/D1 reliability smoke. It is intentionally read-only and uses only repository-owned or already-installed free tooling.
+Phase A adds browser-level production verification on top of repository CI and bounded production reliability checks. It is intentionally read-only and uses repository-owned tooling.
 
-The Phase A browser smoke is not a replacement for CI or P6C. It covers failure classes that static analysis and raw HTTP probes cannot reliably detect, including client-side crashes, hydration/runtime errors, critical browser request failures, and viewport-specific layout problems.
+The normal path is automation-first:
 
-The normal Phase A path is automation-first:
-
-1. a change reaches `master`;
+1. a change reaches `main`;
 2. repository CI completes successfully for that exact commit SHA;
-3. the workflow classifies the commit diff with the same Vercel runtime-impact rules used by `scripts/vercel-ignore-build.mjs`;
-4. if Vercel reports `Ignored Build Step` for a non-runtime-only change, the workflow records an expected ignored build and completes successfully without browser smoke because no new production deployment exists;
-5. otherwise, the workflow requires the matching `Vercel` status to report `success` with a deployment `target_url`, then runs the production Playwright smoke automatically against `https://www.rcat.ac.th`.
+3. **Production Verification** classifies the commit diff with the same Vercel runtime-impact rules used by `scripts/vercel-ignore-build.mjs`;
+4. an expected Vercel `Ignored Build Step` for a non-runtime-only change completes without browser smoke because no new production deployment exists;
+5. otherwise, the workflow requires the matching `Vercel` status to report success with a deployment target URL, then runs production Playwright smoke against `https://www.rcat.ac.th`.
 
-`workflow_dispatch` remains available only as an operational fallback for reruns, controlled alternative-URL verification, or recovery checks. It is not the primary operating path.
-
-## Cost boundary
-
-No paid tool or new external SaaS is introduced.
-
-Phase A uses:
-
-- Playwright already present in the repository;
-- GitHub Actions already used by the project;
-- Vercel's existing GitHub commit deployment status;
-- Chromium installed by Playwright on the GitHub-hosted runner;
-- GitHub failure artifacts for short-lived trace/screenshot evidence.
-
-No Sentry, BrowserStack, Datadog, New Relic, or other monitoring service is required.
+`workflow_dispatch` remains available as an operational fallback for reruns, controlled alternative-URL verification, or recovery checks. It is not the primary operating path.
 
 ## Production safety boundary
-
-The automated smoke must remain read-only.
 
 Allowed:
 
@@ -44,110 +26,71 @@ Allowed:
 - submit a public Search GET query;
 - open `/login`;
 - verify unauthenticated `/admin` protection;
-- inspect console, page errors, requests, responses, viewport geometry, and browser-rendered UI.
+- inspect console, page errors, requests, responses, viewport geometry, accessibility, and browser-rendered UI.
 
-Not allowed in Phase A automation:
+Not allowed in automatic Phase A verification:
 
 - authenticate with a real CMS account;
 - create, edit, publish, unpublish, or delete CMS content;
 - upload or delete media/documents;
 - mutate D1, Apps Script, Google Drive, Vercel, Cloudflare, DNS, or production settings.
 
-Authenticated disposable write verification is owned by completed Phase C3 and remains manual/protected. It must not be folded into the automatic read-only Phase A smoke without new explicit scope.
+Authenticated disposable write verification remains a separate deliberate protected production operation and must not be folded into automatic read-only smoke without explicit scope.
 
-## Automated browser coverage
+## Runtime diagnostics
 
-| ID     | Scenario                                               | Desktop | Mobile | Production write |
-| ------ | ------------------------------------------------------ | ------- | ------ | ---------------- |
-| QA-A01 | Home renders SSR/hydrated public shell                 | Yes     | Yes    | No               |
-| QA-A02 | Public Documents route renders                         | Yes     | Yes    | No               |
-| QA-A03 | Search no-result state renders and remains interactive | Yes     | Yes    | No               |
-| QA-A04 | Login form is reachable                                | Yes     | Yes    | No               |
-| QA-A05 | Unauthenticated `/admin` returns to `/login`           | Yes     | Yes    | No               |
-| QA-A06 | Detect uncaught browser `pageerror` events             | Yes     | Yes    | No               |
-| QA-A07 | Detect same-origin application console errors          | Yes     | Yes    | No               |
-| QA-A08 | Detect same-origin failed requests                     | Yes     | Yes    | No               |
-| QA-A09 | Detect same-origin HTTP 5xx responses                  | Yes     | Yes    | No               |
-| QA-A10 | Detect 4xx document/script/stylesheet failures         | Yes     | Yes    | No               |
-| QA-A11 | Detect meaningful horizontal viewport overflow         | Yes     | Yes    | No               |
-
-Completed Phase C extends the production field pipeline with accessibility and synthetic-performance coverage; C3 provides deliberate manual/protected authenticated disposable CMS verification. Those completed capabilities do not change the Phase A read-only safety boundary.
-
-## QA scenario library — preserved regression cases
-
-These scenarios remain explicit regression cases. Some are covered by completed C3 or repository functional/unit/API suites; others remain manual production checks when a safe automated production contract is not warranted.
-
-| ID     | Regression scenario                                                      | Current mode                                           |
-| ------ | ------------------------------------------------------------------------ | ------------------------------------------------------ |
-| QA-R01 | Content Save progress remains visible above editor dialog                | C3/functional coverage + manual production check       |
-| QA-R02 | Auth 428 / reauthentication dialog can appear above Save progress        | Existing functional E2E + manual production check      |
-| QA-R03 | Facebook thumbnail source fallback reports real attempt progress         | C3/unit/API regression + manual production check       |
-| QA-R04 | Facebook thumbnail failure still allows content Save                     | Existing unit/API regression + manual production check |
-| QA-R05 | Existing featured media skips automatic thumbnail creation               | Existing unit/API regression + manual production check |
-| QA-R06 | Session expiry during an admin write recovers without duplicate mutation | Existing functional coverage + manual production check |
-| QA-R07 | CMS desktop/mobile navigation has no blocking overlay or blank route     | Manual                                                 |
-| QA-R08 | Slow network does not make long-running Save look frozen                 | Manual                                                 |
-
-## Runtime diagnostics policy
-
-The browser smoke fails on:
+Production browser verification fails on material browser/runtime regressions including:
 
 - uncaught page errors;
-- application-origin console errors, excluding generic browser `Failed to load resource` duplication;
-- same-origin request failures other than intentional `net::ERR_ABORTED` cancellation;
-- any same-origin HTTP 5xx response;
-- HTTP 4xx for a document, script, or stylesheet;
-- missing required page UI;
-- horizontal overflow beyond a small subpixel tolerance.
+- application-origin console errors;
+- unexpected same-origin request failures;
+- same-origin HTTP 5xx responses;
+- critical document/script/stylesheet 4xx failures;
+- missing required UI;
+- meaningful horizontal viewport overflow;
+- configured accessibility/synthetic performance regressions.
 
-Expected unauthenticated API 4xx responses are not treated as browser-smoke failures because `/login` and `/admin` protection can legitimately probe session state without an authenticated user.
+Expected unauthenticated API 4xx responses are not treated as browser-smoke failures when `/login` or `/admin` legitimately probes session state without an authenticated user.
 
-## Automatic trigger and Vercel commit-status gate
+## Automatic trigger and Vercel gate
 
-The workflow listens for completion of the repository `CI` workflow with a trigger-level `branches: master` filter. Pull-request and other non-`master` CI completions therefore do not create Phase A runs merely to be skipped. The job also retains the `master` and successful-CI checks as defense in depth.
+The active workflow is `.github/workflows/production-verification.yml` and listens for successful repository `CI` completion on `main`.
 
-After checkout with enough history to inspect `HEAD^..HEAD`, the workflow classifies the changed paths with `shouldIgnoreVercelBuild` from `scripts/vercel-ignore-build.mjs`. This keeps the Phase A decision aligned with the same runtime/non-runtime classification used by Vercel's `ignoreCommand`.
+It checks the exact CI `head_sha`, applies the repository's Vercel runtime-impact classifier, and waits for commit status context `Vercel`:
 
-The workflow then queries the GitHub combined commit status for the same `head_sha` and waits for context `Vercel`:
+- expected non-runtime ignored build -> successful no-deployment/no-smoke outcome;
+- ignored build for a runtime-impacting change -> fail closed;
+- successful deployment -> require a non-empty deployment target URL before browser smoke;
+- Vercel failure/error, missing target URL, or bounded wait timeout -> fail closed.
 
-- if Vercel reports `Canceled by Ignored Build Step` or `Ignored Build Step` and the classifier says the commit is non-runtime-only, Phase A treats it as an expected ignored build, records that no new production deployment was created, and completes successfully without Playwright;
-- if Vercel reports an ignored build for a runtime-impacting change, Phase A fails closed because a production deployment was expected;
-- if Vercel reports a normal successful deployment, the status must include a non-empty `target_url` before Playwright starts;
-- if the Vercel status reports `failure` or `error`, lacks the required deployment target URL, or never reaches an acceptable state inside the bounded wait, Phase A fails closed.
-
-This is a commit-status gate, not a direct Vercel deployment-record lookup. The classified ignored-build path prevents non-runtime maintenance commits from creating false failures while preserving the earlier protection against treating an unexpected ignored runtime deployment as ready. Workflows that require a Vercel deployment ID or separate deployment-record attestation must collect that evidence explicitly.
+This is a commit-status gate. It does not treat unrelated or older deployments as evidence for the target SHA.
 
 ## Manual fallback
 
-GitHub Actions → `Phase A Production Browser Smoke` → `Run workflow` remains available for deliberate reruns and controlled alternative HTTPS targets.
+GitHub Actions → **Production Verification** → **Run workflow** → operation `browser-smoke` is the current deliberate fallback. The default target is `https://www.rcat.ac.th`.
 
-The default target is `https://www.rcat.ac.th`.
-
-On failure, the workflow keeps Playwright HTML report, trace, and screenshot evidence for seven days. Successful runs do not upload artifacts.
+On failure, the workflow retains bounded Playwright report/trace/screenshot evidence. Successful automatic runs do not need failure artifacts.
 
 ## Relationship to completed reliability phases
 
-Reliability Roadmap v2 is complete.
-
 - Phase A owns deployment-driven automatic read-only browser QA.
-- Phase B B1/B2/B3 owns explicit-refresh operator visibility in `/admin/system-health`; it does not replace Phase A scheduling.
-- Phase C C1/C2 extended the field pipeline with accessibility and synthetic-performance checks.
-- Phase C3 is a manual/protected authenticated disposable CMS regression tool after closure.
-- P6C remains a separate bounded six-hour SSR → Worker → D1 reliability guard.
+- Phase B owns explicit-refresh operator visibility and does not replace Phase A scheduling.
+- Phase C added accessibility, synthetic-performance, and deliberate protected authenticated regression coverage.
+- P6C remains a separate bounded production reliability guard.
 
-Future reliability work requires a new explicit scope rather than extending completed Phase A/B/C implicitly.
+Future reliability work requires new explicit scope rather than silently extending completed phases.
 
-## Completion criteria
+## Ongoing completion contract
 
-Phase A is complete because:
+The implementation remains complete while:
 
-1. the production Playwright configuration is merged;
-2. desktop and mobile read-only production scenarios are present;
-3. console/page/network diagnostics are enforced;
-4. the QA scenario library is stored in the repository;
-5. successful `master` CI classifies the diff with the Vercel runtime classifier, accepts an expected non-runtime ignored build as a no-deployment/no-smoke success, and otherwise requires a successful Vercel status with a deployment target URL before running the production browser smoke;
-6. unexpected ignored builds for runtime-impacting changes still fail closed;
-7. manual dispatch remains only a fallback;
+1. desktop/mobile read-only production scenarios remain present;
+2. console/page/network diagnostics remain enforced;
+3. successful `main` CI uses the same Vercel runtime classifier as production deployment;
+4. expected non-runtime ignored builds do not create false failures;
+5. unexpected runtime ignored builds still fail closed;
+6. a real runtime deployment must match the exact target SHA before smoke begins;
+7. manual dispatch remains an operational fallback rather than the normal path;
 8. repository CI and governance remain green.
 
-Both ignored-build failure modes are guarded in the ongoing Phase A workflow and regression contract: expected non-runtime ignores do not create false failures, while unexpected runtime ignores cannot be reported as successful deployments. This maintenance hardening does not reopen the completed Phase A implementation phase.
+Historical Phase A completion evidence remains in the dated QA/roadmap documents and is intentionally not rewritten during the `master` → `main` migration.
