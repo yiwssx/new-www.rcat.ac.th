@@ -2,7 +2,7 @@
 
 Updated: 2026-09-28
 
-Status: complete and production-verified. Deployment-driven browser smoke remains an ongoing operational guard after closure.
+Status: complete and production-verified. Deployment-driven browser smoke remains an ongoing operational guard after closure. Reliability Roadmap v2 is complete.
 
 ## Goal
 
@@ -13,8 +13,8 @@ The normal path is automation-first:
 1. a change reaches `main`;
 2. repository CI completes successfully for that exact commit SHA;
 3. **Production Verification** classifies the commit diff with the same Vercel runtime-impact rules used by `scripts/vercel-ignore-build.mjs`;
-4. an expected Vercel `Ignored Build Step` for a non-runtime-only change completes without browser smoke because no new production deployment exists;
-5. otherwise, the workflow requires the matching `Vercel` status to report success with a deployment target URL, then runs production Playwright smoke against `https://www.rcat.ac.th`.
+4. an expected Vercel `Ignored Build Step` / `Canceled by Ignored Build Step` status for a non-runtime-only change completes without browser smoke because no new production deployment exists;
+5. otherwise, the workflow requires the matching `Vercel` status to report success with a non-empty `target_url`, then runs production Playwright smoke against `https://www.rcat.ac.th`.
 
 `workflow_dispatch` remains available as an operational fallback for reruns, controlled alternative-URL verification, or recovery checks. It is not the primary operating path.
 
@@ -60,10 +60,10 @@ It checks the exact CI `head_sha`, applies the repository's Vercel runtime-impac
 
 - expected non-runtime ignored build -> successful no-deployment/no-smoke outcome;
 - ignored build for a runtime-impacting change -> fail closed;
-- successful deployment -> require a non-empty deployment target URL before browser smoke;
-- Vercel failure/error, missing target URL, or bounded wait timeout -> fail closed.
+- successful deployment -> require a non-empty `target_url` before browser smoke;
+- Vercel failure/error, missing `target_url`, or bounded wait timeout -> fail closed.
 
-This is a commit-status gate. It does not treat unrelated or older deployments as evidence for the target SHA.
+This is a commit-status gate, not a direct Vercel deployment-record lookup. It does not treat unrelated or older deployments as evidence for the target SHA.
 
 ## Manual fallback
 
