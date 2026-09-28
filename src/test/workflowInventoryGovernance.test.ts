@@ -15,7 +15,7 @@ const expectedWorkflows = [
   "apps-script-production-rollback.yml",
   "ci.yml",
   "dependency-status-sync.yml",
-  "image-test-worker.yml",
+  "image-production-worker.yml",
   "maintenance-recovery.yml",
   "production-data-operations.yml",
   "production-verification.yml",
@@ -54,7 +54,7 @@ describe("workflow inventory governance", () => {
   it("uses clear responsibility-oriented workflow names", () => {
     expect(readWorkflow("ci.yml")).toContain("name: CI");
     expect(readWorkflow("dependency-status-sync.yml")).toContain("name: Dependencies");
-    expect(readWorkflow("image-test-worker.yml")).toContain("name: Deploy / Image Production Worker");
+    expect(readWorkflow("image-production-worker.yml")).toContain("name: Deploy / Image Production Worker");
     expect(readWorkflow("production-verification.yml")).toContain("name: Production Verification");
     expect(readWorkflow("production-data-operations.yml")).toContain("name: Production Data Operations");
     expect(readWorkflow("maintenance-recovery.yml")).toContain("name: Maintenance & Recovery");
