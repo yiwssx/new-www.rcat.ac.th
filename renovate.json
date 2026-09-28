@@ -4,7 +4,7 @@
   "dependencyDashboard": true,
   "enabledManagers": ["npm", "github-actions"],
   "includePaths": ["package.json", ".github/workflows/**", ".github/actions/**"],
-  "baseBranchPatterns": ["master"],
+  "baseBranchPatterns": ["main"],
   "timezone": "Asia/Bangkok",
   "schedule": ["* 0-6 * * *"],
   "updateNotScheduled": false,
