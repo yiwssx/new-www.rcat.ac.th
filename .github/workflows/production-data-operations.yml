@@ -42,6 +42,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  facebook-tooling-validation:
+    name: Facebook Tooling Validation
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Validate Facebook classifier tooling
+        run: node scripts/facebook/facebook-content-classifier.mjs --self-test
+
   cms-link-audit:
     name: Production CMS Link Integrity
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'cms-link-audit' }}
@@ -412,15 +424,15 @@ jobs:
   facebook-reclassification:
     name: Facebook Metadata Reclassification
     if: >-
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'facebook-audit' || inputs.operation == 'facebook-apply')))
+      github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' &&
+      (inputs.operation == 'facebook-audit' || inputs.operation == 'facebook-apply')
     runs-on: ubuntu-latest
     environment:
       name: production
       deployment: false
     env:
       PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
-      RECLASSIFICATION_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'facebook-apply' && 'apply' || 'audit' }}
+      RECLASSIFICATION_MODE: ${{ inputs.operation == 'facebook-apply' && 'apply' || 'audit' }}
       META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v7
@@ -436,7 +448,7 @@ jobs:
       - name: Require protected production credentials
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'facebook-apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.operation == 'facebook-apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           test -n "$CLOUDFLARE_ACCOUNT_ID" || exit 1
@@ -447,7 +459,7 @@ jobs:
       - name: Resolve exact production D1 identity
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'facebook-apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.operation == 'facebook-apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
@@ -456,7 +468,7 @@ jobs:
       - name: Read only facebook-import production rows
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'facebook-apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ inputs.operation == 'facebook-apply' && secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_D1_READ_TOKEN }}
         run: |
           mkdir -p "$RUNNER_TEMP/facebook-reclassification/result"
           query="SELECT id, slug, title, summary, category, tags_json, canonical_url, template, owner, created_by, updated_by, revision, publish_at FROM contents WHERE type = 'news' AND COALESCE(deleted_at, '') = '' AND template = 'facebook-embed' AND (id LIKE 'facebook-post-%' OR slug LIKE 'facebook-%') AND (owner = 'facebook-import' OR created_by = 'facebook-import') ORDER BY publish_at ASC;"
