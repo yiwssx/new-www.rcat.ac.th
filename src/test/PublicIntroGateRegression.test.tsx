@@ -7,7 +7,7 @@ const dialogName = "หน้าแนะนำก่อนเข้าสู่
 const imageAlt = "ภาพแนะนำ";
 const primaryButtonLabel = "เข้าสู่เว็บไซต์หลัก";
 const errorMessage = "ไม่สามารถแสดงภาพประชาสัมพันธ์ได้";
-const workerBaseUrl = "https://rcat-image-test.rcat-digital.workers.dev";
+const workerBaseUrl = "https://rcat-image-production.rcat-digital.workers.dev";
 
 function createSettings(overrides: Partial<HomepageIntroGateSettings> = {}): HomepageIntroGateSettings {
   return {
