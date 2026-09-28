@@ -18,7 +18,7 @@ permissions:
 jobs:
   preflight:
     name: Production Migration Preflight
-    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && inputs.operation == 'preflight' }}
+    if: ${{ github.ref == 'refs/heads/main' && inputs.operation == 'preflight' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -103,7 +103,7 @@ jobs:
 
   release:
     name: Production Worker Release
-    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && inputs.operation == 'release' }}
+    if: ${{ github.ref == 'refs/heads/main' && inputs.operation == 'release' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
