@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { prewarmPublicImageDeliveryVariants } from "./publicImageDeliveryWarmup";
 
-const workerBaseUrl = "https://rcat-image-test.rcat-digital.workers.dev";
+const workerBaseUrl = "https://rcat-image-production.rcat-digital.workers.dev";
 const driveFileId = "RCAT_media-2026_ABC123";
 const driveFileUrl = `https://drive.google.com/file/d/${driveFileId}/view?usp=sharing`;
 
