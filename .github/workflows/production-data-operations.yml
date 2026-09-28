@@ -38,8 +38,8 @@ permissions:
   statuses: read
 
 concurrency:
-  group: production-data-operations-${{ github.event_name == 'push' && 'facebook-audit' || inputs.operation }}
-  cancel-in-progress: false
+  group: production-data-operations-${{ github.event_name == 'push' && 'tooling-validation' || inputs.operation }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   facebook-tooling-validation:
