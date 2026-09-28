@@ -1,25 +1,35 @@
 # Controlled public image delivery rollout — 2026-09-27
 
-Status: experimental branch only. No production environment variables, Vercel aliases, or production routing are changed by this document.
+Updated: 2026-09-28.
+
+Status: production rollout active for the bounded `portrait`, `carousel`, and `intro-gate` intents.
 
 ## Proven baseline
 
 The preceding isolated benchmark showed lower transferred image bytes and lower median page timings when eligible Google Drive thumbnails were routed through the Cloudflare image Worker. The benchmark also confirmed that cold variants can be slower than Drive direct, while warmed variants are materially faster.
 
-## Runtime switches
-
-The frontend routing is disabled by default. It becomes active only when both variables are configured at build time:
+The production Worker identity is now:
 
 ```text
-VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL=https://rcat-image-test.rcat-digital.workers.dev
+https://rcat-image-production.rcat-digital.workers.dev
+```
+
+The earlier `rcat-image-test` workers.dev endpoint was used during isolated validation and is no longer the configured frontend production endpoint.
+
+## Runtime switches
+
+The production build enables the bounded rollout with:
+
+```text
+VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL=https://rcat-image-production.rcat-digital.workers.dev
 VITE_PUBLIC_IMAGE_DELIVERY_INTENTS=portrait,carousel,intro-gate
 ```
 
-`VITE_PUBLIC_IMAGE_DELIVERY_INTENTS=*` is supported for a later full rollout, but is not the initial rollout target.
+`VITE_PUBLIC_IMAGE_DELIVERY_INTENTS=*` remains supported for a later deliberate full rollout, but is not the current production policy.
 
 Removing either variable returns public rendering to direct Google Drive thumbnails after the next frontend deployment.
 
-## Initial rollout scope
+## Current rollout scope
 
 - `portrait`: director image
 - `carousel`: homepage carousel desktop/mobile images
@@ -61,8 +71,9 @@ IntroGate is not optional when its CMS setting is enabled.
 
 ## Worker telemetry
 
-The Worker exposes:
+The production Worker exposes:
 
+- `x-rcat-image-production`
 - `x-rcat-image-width`
 - `x-rcat-image-source-width`
 - `x-rcat-image-requested-format`
@@ -70,15 +81,19 @@ The Worker exposes:
 - `server-timing`
 - Cloudflare cache headers such as `CF-Cache-Status`
 
+Its `/health` endpoint must return `service: "rcat-image-production"` and `status: "ok"` before frontend production routing is changed.
+
 ## Production gate
 
-Do not enable production routing until the isolated rollout branch passes:
+The production rollout requires:
 
 - frontend format/lint;
 - unit and integration tests;
 - production build;
 - public media governance;
 - image Worker typecheck and Wrangler dry-run;
-- IntroGate Playwright functional regression.
+- successful production Worker deploy and `/health` smoke;
+- IntroGate Playwright functional regression;
+- post-merge Vercel Production Verification for runtime-impacting frontend changes.
 
-After production enablement, validate Vercel Speed Insights/RUM for Thailand traffic before expanding beyond the three initial intents.
+Validate Vercel Speed Insights/RUM for representative Thailand traffic before expanding beyond the three current intents.

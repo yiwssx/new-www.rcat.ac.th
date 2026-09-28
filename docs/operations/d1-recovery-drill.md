@@ -1,14 +1,14 @@
 # D1 Recovery Drill
 
-Updated: 2026-08-16.
+Updated: 2026-09-28.
 
 This drill verifies that the current operator path can resolve the canonical production D1 metadata and Time Travel information without exercising a destructive restore or any database write.
 
 ## Safety Boundary
 
-The GitHub Actions workflow `.github/workflows/d1-recovery-drill.yml` is intentionally limited to the canonical production D1 physical resource `rcat-public-api-preview`. The legacy `preview` label is retained by design; the protected `RCAT_PRODUCTION_D1_DATABASE_ID` is authoritative. The workflow contains no `d1 time-travel restore`, migration apply, D1 write/import, or Worker deploy command.
+The read-only drill is implemented by `.github/workflows/maintenance-recovery.yml` using operation `d1-recovery-drill`. It is intentionally limited to the canonical production D1 physical resource `rcat-public-api-preview`. The legacy `preview` label is retained by design; the protected `RCAT_PRODUCTION_D1_DATABASE_ID` is authoritative. The workflow contains no `d1 time-travel restore`, migration apply, D1 write/import, or Worker deploy command.
 
-The workflow may run only from `master` after explicit acknowledgement that the production readiness drill is read-only. It uses the protected GitHub `production` Environment as the credential boundary for:
+The drill may run only from `main` after explicit acknowledgement that the production readiness drill is read-only. It uses the protected GitHub `production` Environment as the credential boundary for:
 
 - `CLOUDFLARE_ACCOUNT_ID`;
 - `CLOUDFLARE_D1_READ_TOKEN`;
@@ -24,13 +24,13 @@ A production restore remains a separate manual incident action governed by `docs
 
 ## Running The Drill
 
-Run **D1 Recovery Drill** manually from GitHub Actions on `master`, set `acknowledge_read_only_production=true`, and approve the protected `production` environment when requested.
+Run **Maintenance & Recovery** manually from GitHub Actions on `main`, select operation `d1-recovery-drill`, set `acknowledge_read_only_production=true`, and approve the protected `production` environment when requested.
 
 The workflow:
 
 1. installs the repository's pinned Node/pnpm dependencies;
 2. verifies the protected account ID, dedicated D1 read token, and protected production D1 UUID are present;
-3. scans itself for destructive restore commands;
+3. scans the active maintenance/recovery workflow for destructive restore commands;
 4. lists account-scoped D1 resources and verifies the exact physical resource + protected UUID identity;
 5. resolves metadata for `rcat-public-api-preview`;
 6. invokes Wrangler's read-only Time Travel info command;
@@ -69,4 +69,4 @@ This read-only drill validates operator/tooling readiness but does **not** prove
 
 ## Escalation
 
-If Time Travel readiness cannot be resolved, fix the dedicated D1 Read token, exact production resource resolution, protected UUID mapping, Wrangler command drift, D1 availability, or GitHub Environment deployment cleanup before the next high-risk production migration/import. Do not weaken the credential boundary merely to make the drill pass.
+If Time Travel readiness cannot be resolved, fix the dedicated D1 Read token, exact production resource resolution, protected UUID mapping, Wrangler command drift, D1 availability, or GitHub Environment access before the next high-risk production migration/import. Do not weaken the credential boundary merely to make the drill pass.

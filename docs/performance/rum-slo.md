@@ -1,6 +1,6 @@
 # Real-User Monitoring And Performance SLO
 
-Updated: 2026-08-15.
+Updated: 2026-09-28.
 
 RCAT uses Vercel Web Analytics and Speed Insights through the existing lazy Public telemetry boundary so performance decisions can combine build-time governance with real-user field data. P3 formalizes the operating objectives and review process without adding another observability provider or changing telemetry route ownership.
 
@@ -34,7 +34,7 @@ These are engineering objectives, not contractual guarantees. Segment mobile and
 
 After a runtime-impacting production release:
 
-1. Confirm the deployment is READY and points at the intended `master` SHA.
+1. Confirm the deployment is READY and points at the intended `main` SHA.
 2. Review runtime errors first.
 3. Review Speed Insights after enough production samples exist.
 4. Compare LCP, INP, and CLS against the objectives above and the previous stable period.

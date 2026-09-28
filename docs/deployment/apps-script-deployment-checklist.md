@@ -1,6 +1,6 @@
 # Apps Script Media Bridge Deployment Checklist
 
-Updated: 2026-09-26.
+Updated: 2026-09-28.
 
 Use this checklist only when a change affects `apps-script/`, Apps Script manifest/scopes, Google Drive media/file operations, or the Apps Script side of the Vercel media/file bridge.
 
@@ -22,7 +22,7 @@ Never commit those values. The approved workflows are:
 
 ## Before release
 
-1. Confirm the change is merged to `master`.
+1. Confirm the change is merged to `main`.
 2. Confirm normal CI is green.
 3. Confirm media bridge contract tests pass:
 
@@ -30,13 +30,13 @@ Never commit those values. The approved workflows are:
 pnpm vitest run src/test/appsScriptCode.test.ts server/appsScriptProxy/handler.test.mjs
 ```
 
-4. Run **Deploy / Apps Script** with operation `preflight` and approve the protected `production` Environment.
+4. Run **Deploy / Apps Script** with operation `preflight` from `main` and approve the protected `production` Environment.
 
 Preflight must prove that the protected credentials are present, the configured deployment exists, it references an immutable version, and the production Web App returns the expected media/file bridge health contract. It must not push source, create a version, or mutate a deployment.
 
 ## Production release
 
-Run **Deploy / Apps Script** with operation `release` from `master`. Enter:
+Run **Deploy / Apps Script** with operation `release` from `main`. Enter:
 
 ```text
 DEPLOY_EXISTING_APPS_SCRIPT_WEB_APP
@@ -58,11 +58,11 @@ The release must not create a replacement deployment or change the Web App URL.
 
 ## Post-release evidence
 
-Record the successful GitHub Actions run URL. The summary must identify the `master` SHA, previous immutable version, released immutable version, and successful health smoke without printing credentials or deployment IDs.
+Record the successful GitHub Actions run URL. The summary must identify the `main` SHA, previous immutable version, released immutable version, and successful health smoke without printing credentials or deployment IDs.
 
 ## Rollback
 
-Use **Apps Script Production Rollback** when the newly released immutable version is faulty. Enter:
+Use **Apps Script Production Rollback** from `main` when the newly released immutable version is faulty. Enter:
 
 ```text
 ROLLBACK_EXISTING_APPS_SCRIPT_WEB_APP

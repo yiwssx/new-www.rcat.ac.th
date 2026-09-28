@@ -5,14 +5,14 @@ on:
     branches:
       - main
     paths:
-      - "cloudflare/image-test/**"
-      - ".github/workflows/image-test-worker.yml"
+      - "cloudflare/image-production/**"
+      - ".github/workflows/image-production-worker.yml"
   push:
     branches:
       - main
     paths:
-      - "cloudflare/image-test/**"
-      - ".github/workflows/image-test-worker.yml"
+      - "cloudflare/image-production/**"
+      - ".github/workflows/image-production-worker.yml"
   workflow_dispatch:
 
 permissions:
@@ -39,11 +39,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - name: Lint image production Worker
-        run: pnpm exec eslint "cloudflare/image-test/src/**/*.ts"
+        run: pnpm exec eslint "cloudflare/image-production/src/**/*.ts"
       - name: Typecheck image production Worker
-        run: pnpm exec tsc -p cloudflare/image-test/tsconfig.json --noEmit
+        run: pnpm exec tsc -p cloudflare/image-production/tsconfig.json --noEmit
       - name: Build Wrangler dry run
-        run: pnpm wrangler deploy --config cloudflare/image-test/wrangler.toml --dry-run --outdir "$RUNNER_TEMP/image-production-worker"
+        run: pnpm wrangler deploy --config cloudflare/image-production/wrangler.toml --dry-run --outdir "$RUNNER_TEMP/image-production-worker"
 
   deploy:
     name: Deploy Image Production Worker
@@ -84,7 +84,7 @@ jobs:
         run: |
           set -o pipefail
           deploy_log="$RUNNER_TEMP/image-production-worker-deploy.log"
-          pnpm wrangler deploy --config cloudflare/image-test/wrangler.toml 2>&1 | tee "$deploy_log"
+          pnpm wrangler deploy --config cloudflare/image-production/wrangler.toml 2>&1 | tee "$deploy_log"
           worker_url="$(grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' "$deploy_log" | tail -n 1)"
           if [[ -z "$worker_url" ]]; then
             echo "Wrangler did not report a workers.dev URL." >&2

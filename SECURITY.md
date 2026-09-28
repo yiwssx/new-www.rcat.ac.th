@@ -18,7 +18,7 @@ Do not include passwords, session tokens, MFA secrets, recovery codes, API token
 
 ## Supported Version
 
-Security fixes are applied to the currently deployed production version and the current `master` branch. Historical releases and archived implementation snapshots are not actively supported.
+Security fixes are applied to the currently deployed production version and the current `main` branch. Historical releases and archived implementation snapshots are not actively supported.
 
 The current package version is defined by `package.json`; release history is documented in `CHANGELOG.md` and `docs/PROJECT_HISTORY.md`.
 
