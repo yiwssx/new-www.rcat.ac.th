@@ -1,4 +1,4 @@
-name: Deploy / Image Test Worker
+name: Deploy / Image Production Worker
 
 on:
   pull_request:
@@ -19,12 +19,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: image-test-worker-${{ github.ref }}
+  group: image-production-worker-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
-    name: Validate Image Test Worker
+    name: Validate Image Production Worker
     runs-on: ubuntu-latest
 
     steps:
@@ -38,22 +38,22 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - name: Lint image test Worker
+      - name: Lint image production Worker
         run: pnpm exec eslint "cloudflare/image-test/src/**/*.ts"
-      - name: Typecheck image test Worker
+      - name: Typecheck image production Worker
         run: pnpm exec tsc -p cloudflare/image-test/tsconfig.json --noEmit
       - name: Build Wrangler dry run
-        run: pnpm wrangler deploy --config cloudflare/image-test/wrangler.toml --dry-run --outdir "$RUNNER_TEMP/image-test-worker"
+        run: pnpm wrangler deploy --config cloudflare/image-test/wrangler.toml --dry-run --outdir "$RUNNER_TEMP/image-production-worker"
 
   deploy:
-    name: Deploy Image Test Worker
+    name: Deploy Image Production Worker
     needs: validate
     if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
     concurrency:
-      group: image-test-worker-deploy
+      group: image-production-worker-deploy
       cancel-in-progress: false
 
     steps:
@@ -76,14 +76,14 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           test -n "$CLOUDFLARE_API_TOKEN"
 
-      - name: Deploy isolated Worker
+      - name: Deploy production Worker
         id: deploy
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -o pipefail
-          deploy_log="$RUNNER_TEMP/image-test-worker-deploy.log"
+          deploy_log="$RUNNER_TEMP/image-production-worker-deploy.log"
           pnpm wrangler deploy --config cloudflare/image-test/wrangler.toml 2>&1 | tee "$deploy_log"
           worker_url="$(grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' "$deploy_log" | tail -n 1)"
           if [[ -z "$worker_url" ]]; then
@@ -91,17 +91,17 @@ jobs:
             exit 1
           fi
           echo "worker_url=$worker_url" >> "$GITHUB_OUTPUT"
-          echo "Deployed isolated Worker: $worker_url" >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployed production Worker: $worker_url" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Smoke test health endpoint
         env:
           WORKER_URL: ${{ steps.deploy.outputs.worker_url }}
         run: |
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$WORKER_URL/health" | tee "$RUNNER_TEMP/image-test-worker-health.json"
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$WORKER_URL/health" | tee "$RUNNER_TEMP/image-production-worker-health.json"
           node -e '
             const fs = require("fs");
-            const body = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/image-test-worker-health.json", "utf8"));
-            if (body?.service !== "rcat-image-test" || body?.status !== "ok") {
-              throw new Error("unexpected image test Worker health response");
+            const body = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/image-production-worker-health.json", "utf8"));
+            if (body?.service !== "rcat-image-production" || body?.status !== "ok") {
+              throw new Error("unexpected image production Worker health response");
             }
           '
