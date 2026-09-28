@@ -19,7 +19,7 @@ Node 22 is no longer the current project requirement.
 | Public SSR / Vercel functions (`api/**`, SSR runtime)       | Vercel                                       | Revalidate routing, HTTP semantics, cache headers, proxies, and crawler output.        |
 | Vercel same-origin proxies/handlers (`server/**`, `api/**`) | Vercel                                       | Includes CMS/Admin, media, complaint, and B3 health-aggregation server behavior.       |
 | Public API Worker (`cloudflare/public-api/src/**`)           | Cloudflare Worker                            | Release explicitly after tests/typecheck; a `main` merge alone does not deploy it.     |
-| Image delivery Worker (`cloudflare/image-test/**`)           | Cloudflare Image Production Worker           | Deploys automatically from `main` when its tracked Worker path/workflow changes.       |
+| Image delivery Worker (`cloudflare/image-production/**`)     | Cloudflare Image Production Worker           | Deploys automatically from `main` when its tracked Worker path/workflow changes.       |
 | Worker config                                               | Cloudflare Worker/config operation           | Production changes follow the owning workflow's explicit policy.                       |
 | New D1 schema migration                                     | D1 migration + compatible Worker as required | Append-only; production release workflow applies pending migrations before Worker.     |
 | Apps Script `.gs` media bridge                              | Apps Script                                  | Explicit media bridge deployment required.                                             |
@@ -39,7 +39,7 @@ Node 22 is no longer the current project requirement.
 
 The Public API Worker and data-bearing D1 retain the historical physical name `rcat-public-api-preview` and are the canonical production runtime. Their historical physical labels are not environment semantics. See `docs/architecture/production-environment-convergence-2026-08-16.md` and `docs/architecture/current-runtime-ownership.md`.
 
-The separate image-delivery Worker uses the production service name `rcat-image-production` and workers.dev endpoint `https://rcat-image-production.rcat-digital.workers.dev`. Its repository source remains under `cloudflare/image-test/**` for continuity; the runtime service identity is authoritative.
+The separate image-delivery Worker uses the production service name `rcat-image-production` and workers.dev endpoint `https://rcat-image-production.rcat-digital.workers.dev`. Its repository source is under `cloudflare/image-production/**`.
 
 ## Verified Live Environment Baseline
 
@@ -79,7 +79,7 @@ VITE_PUBLIC_IMAGE_DELIVERY_INTENTS=portrait,carousel,intro-gate
 
 The Worker is an optimized delivery layer only; Google Drive remains the source of truth. The documented direct-Drive retry/fallback behavior remains active. IntroGate remains mandatory when enabled: Worker failure retries the same Drive image, and failure of both delivery paths must not expose an entry bypass.
 
-The image Worker is deployed by `.github/workflows/image-test-worker.yml`. A production deploy must pass lint, typecheck, Wrangler dry-run, deploy, and `/health` verification with `service: "rcat-image-production"` and `status: "ok"`.
+The image Worker is deployed by `.github/workflows/image-production-worker.yml`. A production deploy must pass lint, typecheck, Wrangler dry-run, deploy, and `/health` verification with `service: "rcat-image-production"` and `status: "ok"`.
 
 ### B3 health aggregation
 
@@ -189,7 +189,7 @@ Deploy based on the actual diff:
 - frontend auth/session code -> Vercel;
 - `server/adminProxy/**` -> Vercel;
 - `cloudflare/public-api/**` -> Public API Worker;
-- `cloudflare/image-test/**` -> Image Production Worker;
+- `cloudflare/image-production/**` -> Image Production Worker;
 - migration files -> D1 migration via the protected Public API Worker release path.
 
 Do not deploy Public API Worker/D1 merely because a feature relates to authentication, SSR presentation, image delivery, or B3 server aggregation.
