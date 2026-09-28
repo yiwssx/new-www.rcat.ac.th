@@ -33,8 +33,8 @@ for (const [name, source] of [
   ["release", release],
   ["rollback", rollback]
 ]) {
-  if (!source.includes("github.ref == 'refs/heads/master'")) {
-    fail(`${name} path must run only from master`);
+  if (!source.includes("github.ref == 'refs/heads/main'")) {
+    fail(`${name} path must run only from main`);
   }
   if (!source.includes("name: production") || !source.includes("deployment: false")) {
     fail(`${name} path must use the protected production Environment without a generic deployment record`);
@@ -131,5 +131,5 @@ for (const document of [readme, checklist]) {
 }
 
 console.log(
-  "P5G Apps Script release governance: consolidated master/protected-Environment preflight and release, in-place deployment update, rollback, health smoke, and local-production-path guards verified."
+  "P5G Apps Script release governance: consolidated main/protected-Environment preflight and release, in-place deployment update, rollback, health smoke, and local-production-path guards verified."
 );
