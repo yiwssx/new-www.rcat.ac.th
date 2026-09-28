@@ -50,7 +50,7 @@ function withPublicImageHeaders(
   headers.set("access-control-allow-origin", "*");
   headers.set("timing-allow-origin", "*");
   headers.set("vary", "Accept");
-  headers.set("x-rcat-image-test", "cloudflare-transform");
+  headers.set("x-rcat-image-production", "cloudflare-transform");
   headers.set("x-rcat-image-width", String(width));
   headers.set("x-rcat-image-source-width", String(sourceWidth));
   headers.set("x-rcat-image-format", actualFormat);
@@ -69,7 +69,7 @@ async function handleImage(request: Request, fileId: string, url: URL): Promise<
     return json(
       {
         error: "invalid_drive_file_id",
-        message: "The image test worker accepts only a Google Drive file ID."
+        message: "The production image worker accepts only a Google Drive file ID."
       },
       { status: 400 }
     );
@@ -144,9 +144,9 @@ export default {
 
     if (url.pathname === "/" || url.pathname === "/health") {
       return json({
-        service: "rcat-image-test",
+        service: "rcat-image-production",
         status: "ok",
-        purpose: "isolated Google Drive to Cloudflare image-delivery experiment",
+        purpose: "production Google Drive to Cloudflare image delivery",
         sourceHost: "drive.google.com",
         sourceWidthPolicy: "match-target-width",
         sourceCacheTtlSeconds: SOURCE_CACHE_TTL_SECONDS,

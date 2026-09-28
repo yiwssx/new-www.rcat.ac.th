@@ -1,4 +1,4 @@
-name = "rcat-image-test"
+name = "rcat-image-production"
 main = "src/index.ts"
 compatibility_date = "2026-09-27"
 workers_dev = true
