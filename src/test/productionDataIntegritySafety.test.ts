@@ -73,8 +73,8 @@ describe("P5A production data-integrity safety", () => {
     expect(integrityWorkflow).toContain("env.PUBLIC_HOME_SECTIONS_PRESENT == 'true'");
   });
 
-  it("requires master, the protected production environment, a bookmark, and explicit cleanup confirmation", () => {
-    expect(integrityWorkflow).toContain("github.ref == 'refs/heads/master'");
+  it("requires main, the protected production environment, a bookmark, and explicit cleanup confirmation", () => {
+    expect(integrityWorkflow).toContain("github.ref == 'refs/heads/main'");
     expect(integrityWorkflow).toContain("name: production");
     expect(integrityWorkflow).toContain("deployment: false");
     expect(integrityWorkflow).toContain("PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview");
