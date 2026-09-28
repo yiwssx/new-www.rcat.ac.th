@@ -7,14 +7,12 @@ on:
     types:
       - completed
     branches:
-      - master
       - main
   schedule:
     - cron: "7 */6 * * *"
     - cron: "47 */6 * * *"
   push:
     branches:
-      - master
       - main
     paths:
       - ".github/workflows/production-verification.yml"
@@ -73,7 +71,7 @@ jobs:
        (inputs.operation == 'all' || inputs.operation == 'browser-smoke')) ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
-       (github.event.workflow_run.head_branch == 'master' || github.event.workflow_run.head_branch == 'main'))
+       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -183,7 +181,7 @@ jobs:
   edge-waf:
     name: Vercel Edge WAF Smoke
     if: >-
-      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') &&
+      github.ref == 'refs/heads/main' &&
       ((github.event_name == 'schedule' && github.event.schedule == '47 */6 * * *') ||
        github.event_name == 'push' ||
        (github.event_name == 'workflow_dispatch' && (inputs.operation == 'all' || inputs.operation == 'security')))
@@ -198,7 +196,7 @@ jobs:
   csp-browser:
     name: CSP Browser Smoke
     if: >-
-      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') &&
+      github.ref == 'refs/heads/main' &&
       (github.event_name == 'push' ||
        (github.event_name == 'workflow_dispatch' && (inputs.operation == 'all' || inputs.operation == 'security')))
     runs-on: ubuntu-latest
@@ -284,7 +282,7 @@ jobs:
   reliability:
     name: Public Recovery Baseline
     if: >-
-      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') &&
+      github.ref == 'refs/heads/main' &&
       ((github.event_name == 'schedule' && github.event.schedule == '7 */6 * * *') ||
        github.event_name == 'push' ||
        (github.event_name == 'workflow_dispatch' && (inputs.operation == 'all' || inputs.operation == 'reliability')))
@@ -298,7 +296,7 @@ jobs:
 
   auth-anomaly:
     name: Auth Anomaly Diagnostic
-    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && github.event_name == 'workflow_dispatch' && inputs.operation == 'auth-anomaly' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'auth-anomaly' }}
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -336,7 +334,7 @@ jobs:
 
   d1-observability:
     name: D1 Usage Guard
-    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && github.event_name == 'workflow_dispatch' && inputs.operation == 'observability' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'observability' }}
     runs-on: ubuntu-latest
     environment:
       name: production

@@ -13,15 +13,15 @@ function compact(value: string) {
 }
 
 describe("Phase A automation contract", () => {
-  it("runs automatically only from successful master CI while retaining manual fallback", () => {
+  it("runs automatically only from successful main CI while retaining manual fallback", () => {
     expect(workflow).toContain("workflow_run:");
     expect(workflow).toContain("- CI");
     expect(workflow).toContain("workflow_dispatch:");
 
     const normalized = compact(workflow);
-    expect(normalized).toContain("workflow_run: workflows: - CI types: - completed branches: - master");
+    expect(normalized).toContain("workflow_run: workflows: - CI types: - completed branches: - main");
     expect(normalized).toContain("github.event.workflow_run.conclusion == 'success'");
-    expect(normalized).toContain("github.event.workflow_run.head_branch == 'master'");
+    expect(normalized).toContain("github.event.workflow_run.head_branch == 'main'");
   });
 
   it("isolates concurrency across verification trigger sources", () => {
