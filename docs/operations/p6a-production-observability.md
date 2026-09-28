@@ -4,13 +4,13 @@ Status: completed requested work under the post-P5H production governance baseli
 
 Activation completed: 2026-08-29.
 
-Operational maintenance reviewed: 2026-09-20.
+Operational maintenance reviewed: 2026-09-28.
 
 ## Goal
 
 P6A adds an operator-facing production observability guard without changing the application runtime, D1 schema, Worker routing, authentication model, or production data.
 
-The first guard targets Cloudflare D1 account usage because daily rows-read and rows-written limits can stop queries for the remainder of the UTC billing day when a Workers Free account exceeds its allowance.
+The first guard targets Cloudflare D1 account usage because daily rows-read and rows-written limits can stop queries for the remainder of the UTC billing day when the applicable allowance is exceeded.
 
 ## Data Source
 
@@ -20,26 +20,26 @@ The workflow does not execute SQL against D1, does not write D1 data, and does n
 
 ## Credential Boundary
 
-The workflow uses the existing protected GitHub `production` Environment as its credential gate.
+The guard uses the existing protected GitHub `production` Environment as its credential gate.
 
-Required credentials already belong to the established repository/Environment configuration:
+Required credentials:
 
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_ANALYTICS_READ_TOKEN`
 
 `CLOUDFLARE_ANALYTICS_READ_TOKEN` must remain a dedicated Cloudflare API token scoped to **Account > Account Analytics > Read**. Do not substitute the Worker deploy token or another write-capable production token merely to make monitoring pass.
 
-Do not create a duplicate Environment, duplicate secret, or replacement token solely because an imagined monitoring name differs from the existing configuration. Reuse the established `production` Environment and existing credential names unless a separately approved configuration change proves that a new boundary is actually required.
+Do not create a duplicate Environment, duplicate secret, or replacement token solely to bypass the established `production` Environment boundary.
 
-Because referencing a GitHub Environment creates a pseudo-deployment record, the workflow retires and deletes only the Environment deployment created for its own run. The workflow run remains the audit record.
+## Current execution path
 
-## Execution And Thresholds
+The current entry point is `.github/workflows/production-verification.yml` on `main`.
 
-`.github/workflows/production-observability.yml` is manual-only and can be started deliberately from `master`. The protected `production` Environment still requires reviewer approval before the job can access its read-only analytics credential.
+Run GitHub Actions → **Production Verification** → **Run workflow** → operation `observability`. The `D1 Usage Guard` job is main-only and uses the protected `production` Environment with `deployment: false`, so verification does not create a GitHub Deployment record.
 
-The former six-hour schedule was retired on 2026-09-20 because scheduled runs could not pass the existing Environment reviewer gate unattended. They accumulated in `waiting` state and were cancelled by later scheduled runs before executing. Keeping the guard manual-only preserves the established credential boundary without generating misleading scheduled-run churn. The guard still reads Cloudflare Analytics rather than D1 itself, so a manual check does not add D1 rows read or rows written.
+The former six-hour schedule was retired on 2026-09-20 because reviewer-gated Environment access cannot be approved unattended. Keeping this guard manual-only preserves the credential boundary without creating misleading waiting/cancelled schedule churn.
 
-Default daily limits match the Workers Free D1 allowance:
+Default daily limits remain:
 
 - rows read: `5,000,000`
 - rows written: `100,000`
@@ -51,7 +51,7 @@ Default utilization bands:
 - 70% to below 85%: `warning`
 - 85% and above: `critical`
 
-A warning or critical result fails the workflow so normal GitHub Actions failure notifications can surface the condition before the daily limit is exhausted. An informational result emits a workflow notice but remains successful.
+A warning or critical result fails the job so normal GitHub Actions failure notifications can surface the condition. An informational result emits a notice but remains successful.
 
 The limits and thresholds can be overridden with protected Environment variables:
 
@@ -65,64 +65,50 @@ If the Cloudflare account moves to a different billing plan, update the configur
 
 ## Privacy Boundary
 
-The monitor deliberately does not print or persist:
-
-- Cloudflare account IDs;
-- D1 database IDs;
-- API tokens;
-- raw SQL/query text;
-- request URLs;
-- user identity or session data;
-- raw account usage counts.
-
-Workflow output contains utilization percentages and severity only. The transient JSON report is written into the runner temporary directory and is not uploaded as an artifact.
+The monitor deliberately does not print or persist protected account/database identifiers, API tokens, raw SQL/query text, user/session data, or raw account usage counts. Workflow output is limited to the bounded utilization/severity information needed by the operator.
 
 ## Operational Interpretation
 
-Use the guard as a secondary safety signal, not as a replacement for Cloudflare's own Billing and D1 Metrics dashboards.
+Use the guard as a secondary safety signal, not as a replacement for Cloudflare's Billing and D1 Metrics dashboards.
 
 When a warning or critical run occurs:
 
 1. confirm rows-read and rows-written usage in the Cloudflare dashboard;
 2. determine whether the increase is expected traffic or an abnormal workload;
-3. inspect D1 query insights for the largest read/write contributors;
-4. compare the change with recent application releases;
-5. avoid emergency schema or billing changes until the source of the increase is understood.
+3. inspect D1 query insights for major read/write contributors;
+4. compare the change with recent releases;
+5. avoid emergency schema or billing changes until the source is understood.
 
-Cloudflare native billing notifications for Rows Read and Rows Written should also be enabled as the account-level primary alert channel when available.
+Cloudflare native billing notifications should remain the account-level primary alert channel when available.
 
-## Activation Evidence
+## Historical activation evidence
 
-The activation gate completed successfully on 2026-08-29 using **Production Observability** run `#15`, attempt `2`, from `master`.
+The original activation gate completed successfully on 2026-08-29 using **Production Observability** run `#15`, attempt `2`, from the then-production `master` branch.
 
-Verified results:
+Verified results at that historical checkpoint:
 
 - protected credential gate succeeded;
 - Cloudflare D1 analytics query succeeded;
 - the run completed successfully;
-- the Environment pseudo-deployment cleanup succeeded;
-- current UTC-day utilization at activation was `12.5%` rows read and `0.1%` rows written;
+- the then-applicable Environment pseudo-deployment cleanup succeeded;
+- UTC-day utilization at activation was `12.5%` rows read and `0.1%` rows written;
 - protected identifiers and raw usage counts were not printed by the guard.
 
-This evidence closes the requested Production Observability activation work. It does not reopen P6 as the current active project phase; project status remains defined by `docs/architecture/post-p5h-current-project-state.md`.
+That historical evidence is intentionally preserved. It predates the later workflow consolidation and `master` → `main` migration.
 
-## Current Approval-Gated Operating Mode
+## Current approval-gated operating mode
 
-The GitHub `production` Environment requires reviewer approval. Production Observability is therefore invoked only when an operator intends to review and approve that protected Environment deployment. Only after approval can the job access `CLOUDFLARE_ANALYTICS_READ_TOKEN` and execute the Analytics query.
+The GitHub `production` Environment requires reviewer approval. P6A observability is therefore invoked only when an operator intentionally dispatches **Production Verification** with operation `observability` and approves the protected Environment when requested.
 
-This means the guard is **configured, activated, and operational when deliberately invoked and approved**, but it is **not unattended monitoring**. There is no recurring GitHub Actions schedule for this guard while the credential remains behind the reviewer gate.
+The guard is configured and operational when deliberately invoked and approved, but it is not unattended monitoring. Do not weaken the general `production` Environment reviewer requirement merely to make this one job unattended.
 
-A manually dispatched run may legitimately remain in `waiting` state until approval. Do not weaken the general `production` Environment reviewer requirement merely to make this one job unattended, and do not create duplicate credentials or Environments solely to bypass the established approval boundary.
+## Current operating gate
 
-## Activation Gate
+The observability guard is considered available while:
 
-P6A monitoring is operational only after all of the following are true:
+- repository CI on `main` is green;
+- `production-verification.yml` retains the main-only `observability` operation;
+- `CLOUDFLARE_ANALYTICS_READ_TOKEN` remains Account Analytics Read only;
+- a deliberate manual run can pass the protected credential boundary and analytics query without exposing protected identifiers.
 
-- repository CI is green;
-- the workflow is merged to `master`;
-- `CLOUDFLARE_ANALYTICS_READ_TOKEN` exists in the protected production Environment with Account Analytics Read only;
-- one manual **Production Observability** run succeeds from `master`;
-- the Environment pseudo-deployment cleanup succeeds;
-- the first successful run reports the expected current UTC-day utilization without exposing protected identifiers.
-
-All activation-gate conditions were satisfied on 2026-08-29. The 2026-09-20 change to manual-only execution does not change the credential boundary or activation evidence.
+Changes to the execution wrapper do not reopen P6A as an active project phase; project status remains defined by the current architecture/project-state documentation.
