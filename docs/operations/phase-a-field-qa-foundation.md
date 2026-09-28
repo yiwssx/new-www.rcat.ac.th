@@ -16,6 +16,8 @@ The normal path is automation-first:
 4. an expected Vercel `Ignored Build Step` / `Canceled by Ignored Build Step` status for a non-runtime-only change completes without browser smoke because no new production deployment exists;
 5. otherwise, the workflow requires the matching `Vercel` status to report success with a non-empty `target_url`, then runs production Playwright smoke against `https://www.rcat.ac.th`.
 
+For documentation and test-contract purposes, an expected ignored build is a non-runtime-only change that the shared classifier intentionally permits Vercel to skip. A runtime-impacting change that is ignored remains a fail-closed condition.
+
 `workflow_dispatch` remains available as an operational fallback for reruns, controlled alternative-URL verification, or recovery checks. It is not the primary operating path.
 
 ## Production safety boundary
@@ -76,6 +78,7 @@ On failure, the workflow retains bounded Playwright report/trace/screenshot evid
 - Phase A owns deployment-driven automatic read-only browser QA.
 - Phase B owns explicit-refresh operator visibility and does not replace Phase A scheduling.
 - Phase C added accessibility, synthetic-performance, and deliberate protected authenticated regression coverage.
+- Phase C3 is a manual/protected authenticated disposable CMS regression tool and remains separate from automatic read-only Phase A smoke.
 - P6C remains a separate bounded production reliability guard.
 
 Future reliability work requires new explicit scope rather than silently extending completed phases.
