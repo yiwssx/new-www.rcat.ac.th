@@ -1,6 +1,6 @@
 # Apps Script Media/File Bridge
 
-Updated: 2026-09-26.
+Updated: 2026-09-28.
 
 This Apps Script project is retained only for media/file bridge operations and Google Drive file access. Cloudflare Worker + D1 own structured public/admin CMS data and CMS identity/session state.
 
@@ -26,7 +26,7 @@ Protected GitHub Environment `production` must contain:
 - `CLASP_JSON`: the production `.clasp.json` mapping for the existing project;
 - `APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID`: the existing production Web App deployment ID.
 
-The canonical workflow is **Deploy / Apps Script**. It pins `@google/clasp@3.3.0`, runs only from `master`, and exposes two explicit operations:
+The canonical workflow is **Deploy / Apps Script**. It pins `@google/clasp@3.3.0`, runs only from `main`, and exposes two explicit operations:
 
 ### Read-only preflight
 
@@ -40,7 +40,7 @@ Select `release` in **Deploy / Apps Script** only when Apps Script source or man
 
 1. verifies media bridge contracts;
 2. captures the existing production deployment version as the rollback target;
-3. pushes reviewed `master` source to Apps Script HEAD;
+3. pushes reviewed `main` source to Apps Script HEAD;
 4. creates a new immutable Apps Script version;
 5. updates only `APPS_SCRIPT_PRODUCTION_DEPLOYMENT_ID` to that version;
 6. verifies the same deployment now references the new version;
