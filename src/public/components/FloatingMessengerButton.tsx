@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
 import Tooltip from "@mui/material/Tooltip";
@@ -19,7 +20,7 @@ function MessengerIcon() {
       viewBox="0 0 512 512"
       sx={{ display: "block", width: "1em", height: "1em", fill: "currentColor" }}
     >
-      <path d="M256.6 8c-140 0-248.6 102.3-248.6 240.6 0 72.3 29.7 134.8 78.1 177.9 8.3 7.5 6.6 11.9 8 58.2 .1 3.2 1 6.4 2.6 9.2s3.9 5.2 6.7 6.9 5.9 2.8 9.1 3 6.5-.3 9.5-1.6c52.9-23.2 53.6-25 62.6-22.6 153.2 42.2 319.4-55.9 319.4-231C504 110.3 396.6 8 256.6 8zM405.8 193.1l-73 115.6c-2.8 4.3-6.4 8.1-10.6 11s-9.1 4.8-14.1 5.8-10.3 .8-15.3-.4-9.7-3.4-13.8-6.4l-58.1-43.5c-2.6-1.9-5.8-3-9-3s-6.4 1.1-9 3l-78.4 59.4c-10.5 7.9-24.2-4.6-17.1-15.7l73-115.6c2.8-4.3 6.4-8.1 10.6-11s9.1-4.8 14.1-5.8 10.3-.8 15.3 .4 9.7 3.4 13.9 6.4l58.1 43.5c2.6 1.9 5.8 3 9 3s6.4-1.1 9-3l78.4-59.4c10.4-8 24.1 4.5 17.1 15.6z" />
+      <path d="M256.6 8c-140 0-248.6 102.3-248.6 240.6 0 72.3 29.7 134.8 78.1 177.9 8.3 7.5 6.6 11.9 8 58.2 .1 3.2 1 6.4 2.6 9.2s3.9 5.2 6.7 6.9 5.9 2.8 9.1 3 6.5-.3 9.5-1.6c52.9-23.2 53.6-25 62.6-22.6 153.2 42.2 319.4-55.9 319.4-231C504 110.3 396.6 8 256.6 8zM405.8 193.1l-73 115.6c-2.8 4.3-6.4 8.1-10.6 11s-9.1 4.8-14.1 5.8-10.3 .8-15.3-.4-9.7-3.4-13.8-6.4l-58.1-43.5c-2.6-1.9-5.8-3-9-3s-6.4 1.1-9 3l-78.4 59.4c-10.5 7.9-24.2-4.6-17.1-15.7l73-115.6c2.8-4.3 6.4-8.1 10.6-11s9.1-4.8 14.1-5.8 10.3-.8 15.3 .4 9.7-3.4 13.9-6.4l58.1 43.5c2.6 1.9 5.8 3 9 3s6.4-1.1 9-3l78.4-59.4c10.4-8 24.1 4.5 17.1 15.6z" />
     </Box>
   );
 }
@@ -30,8 +31,16 @@ export default function FloatingMessengerButton({
   enabled = false
 }: FloatingMessengerButtonProps) {
   const normalizedHref = normalizeSafeHref(href || "");
+  const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
+  const [dismissed, setDismissed] = useState(false);
 
-  if (!enabled || !href) {
+  useEffect(() => {
+    // Route changes reset dismissal; refresh resets it naturally because it is not persisted.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDismissed(false);
+  }, [pathname]);
+
+  if (!enabled || !href || dismissed) {
     return null;
   }
 
@@ -58,7 +67,8 @@ export default function FloatingMessengerButton({
             display: "inline-flex",
             alignItems: "center",
             minHeight: 36,
-            px: 1.4,
+            pl: 1.4,
+            pr: 0.45,
             borderRadius: `${designTokens.radius.pill}px`,
             bgcolor: "background.paper",
             color: "text.primary",
@@ -71,6 +81,36 @@ export default function FloatingMessengerButton({
           }}
         >
           {label}
+          <Box
+            component="button"
+            type="button"
+            aria-label="ปิดปุ่มแชท"
+            onClick={() => setDismissed(true)}
+            sx={{
+              ml: 0.45,
+              width: 40,
+              height: 40,
+              p: 0,
+              border: 0,
+              borderRadius: "50%",
+              bgcolor: "transparent",
+              color: "text.secondary",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              font: "inherit",
+              fontSize: "1rem",
+              lineHeight: 1,
+              "&:hover": {
+                bgcolor: "action.hover",
+                color: "text.primary"
+              },
+              ...focusVisibleSx
+            }}
+          >
+            ×
+          </Box>
         </Box>
 
         <Fab
