@@ -31,9 +31,24 @@ jobs:
           pnpm install --no-frozen-lockfile --strict-peer-dependencies
           echo "native=$(pnpm exec tsc --version)"
           echo "compat=$(pnpm exec tsc6 --version)"
+          node - <<'NODE'
+          const pkg = require('./node_modules/typescript/package.json');
+          console.log(`compat-package=${pkg.name}@${pkg.version}`);
+          console.log(`compat-bin=${JSON.stringify(pkg.bin)}`);
+          if (pkg.name !== '@typescript/typescript6' || pkg.version !== '6.0.2') {
+            throw new Error(`unexpected compatibility package: ${pkg.name}@${pkg.version}`);
+          }
+          const native = require('./node_modules/@typescript/native/package.json');
+          console.log(`native-package=${native.name}@${native.version}`);
+          if (native.name !== 'typescript' || native.version !== '7.0.2') {
+            throw new Error(`unexpected native package: ${native.name}@${native.version}`);
+          }
+          NODE
+          readlink -f node_modules/.bin/tsc6 || true
+          readlink -f node_modules/.bin/tsc || true
           grep -n 'fast-uri@3\.1\.' pnpm-lock.yaml || true
           test "$(pnpm exec tsc --version)" = "Version 7.0.2"
-          test "$(pnpm exec tsc6 --version)" = "Version 6.0.2"
+          pnpm exec tsc6 --version | grep -Eq '^Version 6\.0\.[0-9]+$'
           grep -q 'fast-uri@3.1.7:' pnpm-lock.yaml
           if grep -q 'fast-uri@3.1.6:' pnpm-lock.yaml; then
             echo 'fast-uri 3.1.6 must not remain in the lockfile' >&2
