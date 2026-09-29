@@ -35,7 +35,7 @@ export default function FloatingMessengerButton({
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Route changes intentionally reset this transient, page-local dismissal state.
+    // Route changes reset dismissal; refresh resets it naturally because it is not persisted.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDismissed(false);
   }, [pathname]);
