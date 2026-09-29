@@ -12,33 +12,19 @@ function replaceOnce(path, needle, replacement) {
 
 function replaceRegexOnce(path, pattern, replacement) {
   const text = readFileSync(path, "utf8");
-  const matches = [...text.matchAll(new RegExp(pattern.source, `${pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`}`))];
+  const globalFlags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+  const matches = [...text.matchAll(new RegExp(pattern.source, globalFlags))];
   if (matches.length !== 1) throw new Error(`Expected one regex match in ${path}, got ${matches.length}: ${pattern}`);
   writeFileSync(path, text.replace(pattern, replacement));
 }
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
-pkg.devDependencies.typescript = "npm:@typescript/typescript6@6.0.3";
-pkg.devDependencies["@typescript/native"] = "npm:typescript@7.0.2";
+pkg.devDependencies.typescript = "npm:@typescript/typescript6@^6.0.2";
+pkg.devDependencies["@typescript/native"] = "npm:typescript@^7.0.2";
 writeFileSync("package.json", `${JSON.stringify(pkg, null, 2)}\n`);
 
 const dependencyPolicy = JSON.parse(readFileSync("config/dependency-policy.json", "utf8"));
-dependencyPolicy.compatibilityExceptions.typescript = {
-  selected: "6.0.3",
-  blockedLatestMajor: 7,
-  reason:
-    "The typescript package name remains a TypeScript 6 API compatibility alias required by typescript-eslint, while @typescript/native supplies the TypeScript 7 compiler for build and type-check commands.",
-  validation: {
-    kind: "peer-range",
-    peerPackage: "typescript-eslint",
-    peerDependency: "typescript"
-  },
-  verifyWith: [
-    "pnpm view typescript dist-tags --json",
-    "pnpm view @typescript/typescript6 version --json",
-    "pnpm view typescript-eslint version peerDependencies --json"
-  ]
-};
+delete dependencyPolicy.compatibilityExceptions.typescript;
 writeFileSync("config/dependency-policy.json", `${JSON.stringify(dependencyPolicy, null, 2)}\n`);
 
 replaceOnce(
@@ -103,6 +89,11 @@ record(
 
 replaceOnce(
   "scripts/dependency-status-policy.mjs",
+  'export const ALLOWED_COMPATIBILITY_EXCEPTION_PACKAGES = Object.freeze(["@types/node", "typescript"]);',
+  'export const ALLOWED_COMPATIBILITY_EXCEPTION_PACKAGES = Object.freeze(["@types/node"]);'
+);
+replaceOnce(
+  "scripts/dependency-status-policy.mjs",
   `function parseManifestSpecifier(value) {
   const text = String(value || "").trim();
   const match = text.match(/^(\\^|~)?(v?\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?)$/u);
@@ -154,7 +145,6 @@ function parseDeclaredVersion(specifier) {
   return match ? parseVersion(match[1]) : null;
 }`
 );
-
 replaceOnce(
   "scripts/generate-dependency-status.mjs",
   `function directDependencyRows(packageJson) {
@@ -176,14 +166,13 @@ replaceOnce(
         section,
         specifier,
         manifestVersion: parseDeclaredVersion(specifier),
-        registryName: name === "@typescript/native" && alias.targetName ? alias.targetName : name
+        registryName: alias.targetName || name
       });
     }
   }
   return rows;
 }`
 );
-
 replaceOnce(
   "scripts/generate-dependency-status.mjs",
   "async function lookupRegistryMetadata(packageNames, validationKinds = new Map()) {",
@@ -224,7 +213,7 @@ replaceOnce(
   `  it("accepts a stable npm alias manifest specifier", () => {
     expect(
       classify({
-        manifestVersion: "npm:typescript@1.0.2",
+        manifestVersion: "npm:typescript@^1.0.2",
         installedVersion: "1.0.2",
         registryLatest: "1.0.2"
       })
@@ -236,6 +225,57 @@ replaceOnce(
   });
 
   it("rejects a direct dependency behind registry latest", () => {`
+);
+replaceOnce(
+  "scripts/dependency-status-policy.test.mjs",
+  `  it("allows exactly the two established compatibility exception packages", () => {
+    expect(
+      validateCompatibilityExceptionPackages({
+        typescript: {},
+        "@types/node": {}
+      })
+    ).toEqual({ valid: true, errors: [] });
+  });`,
+  `  it("allows only the active runtime compatibility exception package", () => {
+    expect(validateCompatibilityExceptionPackages({ "@types/node": {} })).toEqual({ valid: true, errors: [] });
+  });`
+);
+replaceOnce(
+  "scripts/dependency-status-policy.test.mjs",
+  `  it("rejects any newly invented compatibility exception", () => {
+    const result = validateCompatibilityExceptionPackages({
+      typescript: {},
+      "@types/node": {},
+      wrangler: {}
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain("wrangler is not an allowed compatibility exception");
+  });`,
+  `  it("rejects a TypeScript compatibility exception now that aliases are tracked directly", () => {
+    const result = validateCompatibilityExceptionPackages({
+      "@types/node": {},
+      typescript: {}
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain("typescript is not an allowed compatibility exception");
+  });`
+);
+replaceOnce(
+  "scripts/dependency-status-policy.test.mjs",
+  `  it("rejects removal of either established compatibility exception", () => {
+    const result = validateCompatibilityExceptionPackages({ typescript: {} });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain("@types/node compatibility exception is missing");
+  });`,
+  `  it("rejects removal of the runtime compatibility exception", () => {
+    const result = validateCompatibilityExceptionPackages({});
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain("@types/node compatibility exception is missing");
+  });`
 );
 
 console.log("Applied TypeScript 7 side-by-side migration source changes.");
