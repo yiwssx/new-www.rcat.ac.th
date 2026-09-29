@@ -685,20 +685,28 @@ function PublicSiteShellFrame({
                     imageSx={{ objectFit: "contain" }}
                   />
                   <Box sx={{ minWidth: 0 }}>
-                    {siteSettings.intro && (
-                      <Typography
+                    {siteSettings.eyebrow && (
+                      <Stack
+                        direction="row"
+                        spacing={0.8}
                         sx={{
-                          color: "secondary.dark",
-                          fontSize: { xs: "0.74rem", md: "0.82rem" },
-                          fontWeight: 700,
-                          letterSpacing: "0.02em",
-                          lineHeight: 1.25,
-                          textTransform: "uppercase",
+                          alignItems: "center",
                           mb: { xs: 0.2, md: 0.4 }
                         }}
                       >
-                        <FlagEmojiText text={siteSettings.intro} />
-                      </Typography>
+                        <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark", fontSize: { xs: 17, md: 24 } }} />
+                        <Typography
+                          sx={{
+                            color: "secondary.dark",
+                            fontSize: { xs: "0.74rem", md: "0.82rem" },
+                            fontWeight: 700,
+                            letterSpacing: "0.02em",
+                            lineHeight: 1.25
+                          }}
+                        >
+                          <FlagEmojiText text={siteSettings.eyebrow} />
+                        </Typography>
+                      </Stack>
                     )}
                     <Typography
                       component="h2"
@@ -707,30 +715,25 @@ function PublicSiteShellFrame({
                     >
                       <FlagEmojiText text={siteName} />
                     </Typography>
-                    {siteSettings.eyebrow && (
-                      <Stack
-                        direction="row"
-                        spacing={0.8}
+                    {siteSettings.intro && (
+                      <Typography
                         sx={{
-                          alignItems: "center",
-                          mt: { xs: 0.35, md: 0.6 }
+                          color: "text.secondary",
+                          maxWidth: 860,
+                          fontSize: { xs: "0.78rem", md: "1rem" },
+                          fontWeight: 700,
+                          letterSpacing: "0.02em",
+                          lineHeight: 1.25,
+                          textTransform: "uppercase",
+                          mt: { xs: 0.35, md: 0.6 },
+                          overflow: { xs: "hidden", md: "visible" },
+                          display: { xs: "-webkit-box", md: "block" },
+                          WebkitBoxOrient: "vertical",
+                          WebkitLineClamp: { xs: 1, md: "unset" }
                         }}
                       >
-                        <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark", fontSize: { xs: 17, md: 24 } }} />
-                        <Typography
-                          sx={{
-                            color: "text.secondary",
-                            maxWidth: 860,
-                            fontSize: { xs: "0.78rem", md: "1rem" },
-                            overflow: { xs: "hidden", md: "visible" },
-                            display: { xs: "-webkit-box", md: "block" },
-                            WebkitBoxOrient: "vertical",
-                            WebkitLineClamp: { xs: 1, md: "unset" }
-                          }}
-                        >
-                          <FlagEmojiText text={siteSettings.eyebrow} />
-                        </Typography>
-                      </Stack>
+                        <FlagEmojiText text={siteSettings.intro} />
+                      </Typography>
                     )}
                   </Box>
                 </Stack>
