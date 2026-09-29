@@ -685,7 +685,7 @@ function PublicSiteShellFrame({
                     imageSx={{ objectFit: "contain" }}
                   />
                   <Box sx={{ minWidth: 0 }}>
-                    {siteSettings.eyebrow && (
+                    {siteSettings.intro && (
                       <Typography
                         sx={{
                           color: "secondary.dark",
@@ -697,7 +697,7 @@ function PublicSiteShellFrame({
                           mb: { xs: 0.2, md: 0.4 }
                         }}
                       >
-                        <FlagEmojiText text={siteSettings.eyebrow} />
+                        <FlagEmojiText text={siteSettings.intro} />
                       </Typography>
                     )}
                     <Typography
@@ -707,7 +707,7 @@ function PublicSiteShellFrame({
                     >
                       <FlagEmojiText text={siteName} />
                     </Typography>
-                    {siteSettings.intro && (
+                    {siteSettings.eyebrow && (
                       <Stack
                         direction="row"
                         spacing={0.8}
@@ -728,7 +728,7 @@ function PublicSiteShellFrame({
                             WebkitLineClamp: { xs: 1, md: "unset" }
                           }}
                         >
-                          <FlagEmojiText text={siteSettings.intro} />
+                          <FlagEmojiText text={siteSettings.eyebrow} />
                         </Typography>
                       </Stack>
                     )}
