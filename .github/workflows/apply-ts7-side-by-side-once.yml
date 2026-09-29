@@ -29,6 +29,9 @@ jobs:
         run: |
           set -euo pipefail
           pnpm install --no-frozen-lockfile --strict-peer-dependencies
+          echo "native=$(pnpm exec tsc --version)"
+          echo "compat=$(pnpm exec tsc6 --version)"
+          grep -n 'fast-uri@3\.1\.' pnpm-lock.yaml || true
           test "$(pnpm exec tsc --version)" = "Version 7.0.2"
           test "$(pnpm exec tsc6 --version)" = "Version 6.0.2"
           grep -q 'fast-uri@3.1.7:' pnpm-lock.yaml
