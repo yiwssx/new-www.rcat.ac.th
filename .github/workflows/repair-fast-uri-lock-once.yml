@@ -1,0 +1,56 @@
+name: Repair fast-uri lockfile once
+
+on:
+  push:
+    branches:
+      - fix/messenger-dismiss
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/messenger-dismiss
+
+      - name: Patch vulnerable fast-uri lockfile selection
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'pnpm-lock.yaml';
+          const oldIntegrity = 'sha512-7Ical1vFEMr0onbVzEDIreM22I4khW+fzyQPwvAFWBp1iwdshSZRsL4jjRvPG9JP1uiqMHRto+YU6R2/CzDz5Q==';
+          const newIntegrity = 'sha512-dOvZVzjdZdz7phd9v6jCbwxrBW3fK6n8Rc0CtdmM4bumzMnxywBYhuph6J819RRw/ku+rLbelwfMunktuzVVHg==';
+          const source = fs.readFileSync(path, 'utf8');
+          const versionMatches = source.match(/fast-uri@3\.1\.6/g) ?? [];
+          const dependencyMatches = source.match(/fast-uri: 3\.1\.6/g) ?? [];
+          const integrityMatches = source.match(new RegExp(oldIntegrity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? [];
+          if (versionMatches.length !== 2 || dependencyMatches.length !== 1 || integrityMatches.length !== 1) {
+            throw new Error(`Unexpected lockfile shape: version=${versionMatches.length}, dependency=${dependencyMatches.length}, integrity=${integrityMatches.length}`);
+          }
+          const updated = source
+            .replaceAll('fast-uri@3.1.6', 'fast-uri@3.1.7')
+            .replace('fast-uri: 3.1.6', 'fast-uri: 3.1.7')
+            .replace(oldIntegrity, newIntegrity);
+          fs.writeFileSync(path, updated);
+          NODE
+
+      - uses: ./.github/actions/setup-project
+        with:
+          install-args: --frozen-lockfile --strict-peer-dependencies --ignore-scripts
+
+      - name: Verify high-severity dependency audit is clean
+        run: pnpm audit --audit-level=high
+
+      - name: Commit lockfile repair and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/repair-fast-uri-lock-once.yml
+          git add pnpm-lock.yaml
+          git commit -m "fix(deps): patch fast-uri security advisory"
+          git push origin HEAD:fix/messenger-dismiss
