@@ -15,7 +15,7 @@ export const ACCEPTED_DEPENDENCY_STATUSES = new Set([
   DEPENDENCY_STATUS.compatibilityException
 ]);
 
-export const ALLOWED_COMPATIBILITY_EXCEPTION_PACKAGES = Object.freeze(["@types/node", "typescript"]);
+export const ALLOWED_COMPATIBILITY_EXCEPTION_PACKAGES = Object.freeze(["@types/node"]);
 
 export function validateCompatibilityExceptionPackages(exceptions) {
   if (!exceptions || typeof exceptions !== "object" || Array.isArray(exceptions)) {
@@ -161,7 +161,9 @@ function satisfiesRange(versionValue, range) {
 
 function parseManifestSpecifier(value) {
   const text = String(value || "").trim();
-  const match = text.match(/^(\^|~)?(v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/u);
+  const aliasMatch = text.match(/^npm:(?:@[^/]+\/)?[^@]+@(.+)$/u);
+  const versionSpecifier = aliasMatch?.[1] || text;
+  const match = versionSpecifier.match(/^(\^|~)?(v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/u);
   if (!match) return null;
   const version = parseVersion(match[2]);
   if (!version) return null;

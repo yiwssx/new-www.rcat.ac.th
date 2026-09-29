@@ -88,9 +88,10 @@ function parseVersion(value) {
 }
 
 function parseDeclaredVersion(specifier) {
-  const match = String(specifier || "")
-    .trim()
-    .match(/^(?:\^|~)?(v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/);
+  const text = String(specifier || "").trim();
+  const aliasMatch = text.match(/^npm:(?:@[^/]+\/)?[^@]+@(.+)$/u);
+  const versionSpecifier = aliasMatch?.[1] || text;
+  const match = versionSpecifier.match(/^(?:\^|~)?(v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/u);
   return match ? parseVersion(match[1]) : null;
 }
 
@@ -272,6 +273,9 @@ record(
 );
 
 const typescript = directVersion("typescript");
+const typescriptCompatInstalled = readInstalledPackage("typescript");
+const typescriptNative = directVersion("@typescript/native");
+const typescriptNativeInstalled = readInstalledPackage("@typescript/native");
 const typescriptEslint = readInstalledPackage("typescript-eslint");
 const typescriptPeerRange = typescriptEslint?.peerDependencies?.typescript;
 record(
@@ -280,6 +284,20 @@ record(
   `typescript ${directSpecifier("typescript")}; typescript-eslint ${
     typescriptEslint?.version || "missing"
   }; peer ${typescriptPeerRange || "missing"}`
+);
+record(
+  "TypeScript 6 API and TypeScript 7 native compiler side-by-side alignment",
+  Boolean(
+    typescript?.major === 6 &&
+    typescriptNative?.major === 7 &&
+    typescriptCompatInstalled?.name === "@typescript/typescript6" &&
+    parseVersion(typescriptCompatInstalled?.version)?.raw === typescript.raw &&
+    typescriptNativeInstalled?.name === "typescript" &&
+    parseVersion(typescriptNativeInstalled?.version)?.raw === typescriptNative.raw
+  ),
+  `compat ${directSpecifier("typescript")}/${typescriptCompatInstalled?.version || "missing"}; native ${directSpecifier(
+    "@typescript/native"
+  )}/${typescriptNativeInstalled?.version || "missing"}`
 );
 
 const nodeTypes = directVersion("@types/node");
