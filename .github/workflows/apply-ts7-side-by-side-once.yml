@@ -30,7 +30,7 @@ jobs:
           set -euo pipefail
           pnpm install --no-frozen-lockfile --strict-peer-dependencies
           test "$(pnpm exec tsc --version)" = "Version 7.0.2"
-          test "$(pnpm exec tsc6 --version)" = "Version 6.0.3"
+          test "$(pnpm exec tsc6 --version)" = "Version 6.0.2"
           grep -q 'fast-uri@3.1.7:' pnpm-lock.yaml
           if grep -q 'fast-uri@3.1.6:' pnpm-lock.yaml; then
             echo 'fast-uri 3.1.6 must not remain in the lockfile' >&2
