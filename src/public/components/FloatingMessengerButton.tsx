@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
 import Tooltip from "@mui/material/Tooltip";
@@ -30,8 +31,16 @@ export default function FloatingMessengerButton({
   enabled = false
 }: FloatingMessengerButtonProps) {
   const normalizedHref = normalizeSafeHref(href || "");
+  const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
+  const [dismissed, setDismissed] = useState(false);
 
-  if (!enabled || !href) {
+  useEffect(() => {
+    // Route changes intentionally reset this transient, page-local dismissal state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDismissed(false);
+  }, [pathname]);
+
+  if (!enabled || !href || dismissed) {
     return null;
   }
 
@@ -58,7 +67,8 @@ export default function FloatingMessengerButton({
             display: "inline-flex",
             alignItems: "center",
             minHeight: 36,
-            px: 1.4,
+            pl: 1.4,
+            pr: 0.45,
             borderRadius: `${designTokens.radius.pill}px`,
             bgcolor: "background.paper",
             color: "text.primary",
@@ -71,6 +81,36 @@ export default function FloatingMessengerButton({
           }}
         >
           {label}
+          <Box
+            component="button"
+            type="button"
+            aria-label="ปิดปุ่มแชท"
+            onClick={() => setDismissed(true)}
+            sx={{
+              ml: 0.45,
+              width: 26,
+              height: 26,
+              p: 0,
+              border: 0,
+              borderRadius: "50%",
+              bgcolor: "transparent",
+              color: "text.secondary",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              font: "inherit",
+              fontSize: "1rem",
+              lineHeight: 1,
+              "&:hover": {
+                bgcolor: "action.hover",
+                color: "text.primary"
+              },
+              ...focusVisibleSx
+            }}
+          >
+            ×
+          </Box>
         </Box>
 
         <Fab
