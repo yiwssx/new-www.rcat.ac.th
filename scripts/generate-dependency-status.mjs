@@ -179,10 +179,18 @@ function requireSuccessfulJson(result, label) {
   return parseRequiredJson(result, label);
 }
 
+function parseNpmAlias(specifier) {
+  const text = String(specifier || "").trim();
+  const match = text.match(/^npm:((?:@[^/]+\/)?[^@]+)@(.+)$/u);
+  return {
+    targetName: match?.[1] || "",
+    versionSpecifier: match?.[2] || text
+  };
+}
+
 function parseDeclaredVersion(specifier) {
-  const match = String(specifier || "")
-    .trim()
-    .match(/^(?:\^|~)?(v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/);
+  const { versionSpecifier } = parseNpmAlias(specifier);
+  const match = versionSpecifier.match(/^(?:\^|~)?(v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/u);
   return match ? parseVersion(match[1]) : null;
 }
 
@@ -304,7 +312,14 @@ function directDependencyRows(packageJson) {
   const rows = [];
   for (const section of ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]) {
     for (const [name, specifier] of Object.entries(packageJson[section] || {})) {
-      rows.push({ name, section, specifier, manifestVersion: parseDeclaredVersion(specifier) });
+      const alias = parseNpmAlias(specifier);
+      rows.push({
+        name,
+        section,
+        specifier,
+        manifestVersion: parseDeclaredVersion(specifier),
+        registryName: alias.targetName || name
+      });
     }
   }
   return rows;
@@ -324,12 +339,13 @@ async function mapWithConcurrency(items, concurrency, callback) {
   return results;
 }
 
-async function lookupRegistryMetadata(packageNames, validationKinds = new Map()) {
+async function lookupRegistryMetadata(packageNames, validationKinds = new Map(), registryNames = new Map()) {
   const results = await mapWithConcurrency(packageNames, REGISTRY_CONCURRENCY, async (name) => {
+    const registryName = registryNames.get(name) || name;
     try {
       const value = requireSuccessfulJson(
-        await runPnpmAsync(["view", name, "dist-tags.latest", "time", "--json"]),
-        `pnpm view ${name} dist-tags.latest time --json`
+        await runPnpmAsync(["view", registryName, "dist-tags.latest", "time", "--json"]),
+        `pnpm view ${registryName} dist-tags.latest time --json`
       );
       const version = parseVersion(value?.["dist-tags.latest"]);
       if (!version || version.prerelease) {
@@ -635,6 +651,7 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
   }
   const directRows = directDependencyRows(packageJson);
   const packageNames = [...new Set(directRows.map((row) => row.name))];
+  const registryNames = new Map(directRows.map((row) => [row.name, row.registryName || row.name]));
 
   const listResult = runPnpm(["list", "--depth", "0", "--json"]);
   const installedRecords = readListResult(listResult);
@@ -658,7 +675,7 @@ async function generateReport(packageHash, lockHash, workspaceHash, policyHash) 
       exception?.validation?.kind || ""
     ])
   );
-  const registryMetadata = await lookupRegistryMetadata(packageNames, validationKinds);
+  const registryMetadata = await lookupRegistryMetadata(packageNames, validationKinds, registryNames);
   const registryLatest = new Map([...registryMetadata].map(([name, metadata]) => [name, metadata.validationLatest]));
   const eligibleVersions = new Map(
     [...registryMetadata].map(([name, metadata]) => [name, metadata.validationEligibleVersions])

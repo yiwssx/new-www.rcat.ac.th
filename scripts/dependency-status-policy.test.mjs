@@ -42,6 +42,20 @@ describe("direct dependency latest policy", () => {
     });
   });
 
+  it("accepts a stable npm alias manifest specifier", () => {
+    expect(
+      classify({
+        manifestVersion: "npm:typescript@^1.0.2",
+        installedVersion: "1.0.2",
+        registryLatest: "1.0.2"
+      })
+    ).toEqual({
+      status: DEPENDENCY_STATUS.registryLatest,
+      reason: "Installed version matches the stable registry latest.",
+      registryLatest: "1.0.2"
+    });
+  });
+
   it("rejects a direct dependency behind registry latest", () => {
     const result = classify({
       manifestVersion: "^1.0.1",
@@ -171,28 +185,22 @@ describe("direct dependency latest policy", () => {
     expect(result.status).toBe(DEPENDENCY_STATUS.invalidException);
   });
 
-  it("allows exactly the two established compatibility exception packages", () => {
-    expect(
-      validateCompatibilityExceptionPackages({
-        typescript: {},
-        "@types/node": {}
-      })
-    ).toEqual({ valid: true, errors: [] });
+  it("allows only the active runtime compatibility exception package", () => {
+    expect(validateCompatibilityExceptionPackages({ "@types/node": {} })).toEqual({ valid: true, errors: [] });
   });
 
-  it("rejects any newly invented compatibility exception", () => {
+  it("rejects a TypeScript compatibility exception now that aliases are tracked directly", () => {
     const result = validateCompatibilityExceptionPackages({
-      typescript: {},
       "@types/node": {},
-      wrangler: {}
+      typescript: {}
     });
 
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain("wrangler is not an allowed compatibility exception");
+    expect(result.errors).toContain("typescript is not an allowed compatibility exception");
   });
 
-  it("rejects removal of either established compatibility exception", () => {
-    const result = validateCompatibilityExceptionPackages({ typescript: {} });
+  it("rejects removal of the runtime compatibility exception", () => {
+    const result = validateCompatibilityExceptionPackages({});
 
     expect(result.valid).toBe(false);
     expect(result.errors).toContain("@types/node compatibility exception is missing");
