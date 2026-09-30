@@ -26,6 +26,8 @@ type BridgeEnvelope = Partial<MediaAsset> & {
   statusCode?: number;
 };
 
+type FacebookThumbnailAttemptProgress = Pick<FacebookThumbnailProgress, "attempt" | "totalAttempts">;
+
 function reportProgress(options: FacebookThumbnailImportOptions, progress: FacebookThumbnailProgress) {
   options.onProgress?.(progress);
 }
@@ -164,7 +166,7 @@ async function requestFacebookThumbnailWithTransientRetries(
   input: FacebookThumbnailImportInput,
   csrfToken: string,
   options: FacebookThumbnailImportOptions,
-  progress: FacebookThumbnailProgress
+  progress: FacebookThumbnailAttemptProgress
 ) {
   for (let retry = 0; ; retry += 1) {
     try {
