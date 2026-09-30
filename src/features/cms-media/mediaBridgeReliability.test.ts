@@ -38,6 +38,7 @@ function parseRequest(init?: RequestInit) {
 }
 
 describe("resumable media bridge reliability", () => {
+  // Session-start retries may wait longer because uploadKey makes repeated starts idempotent; chunk recovery stays stricter.
   it("survives more transient start failures than the previous two-retry window", async () => {
     const delay = vi.fn(async (_milliseconds: number) => undefined);
     let startCalls = 0;
