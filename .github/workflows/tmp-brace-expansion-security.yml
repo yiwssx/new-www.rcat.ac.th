@@ -1,0 +1,53 @@
+name: Temporary / Refresh Brace Expansion Security Override
+
+on:
+  push:
+    branches:
+      - fix/apps-script-bridge-reliability
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/apps-script-bridge-reliability
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: Update security override
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("pnpm-workspace.yaml")
+          text = path.read_text()
+          old = '  "brace-expansion@>=4.0.0 <5.0.9": 5.0.9'
+          new = '  "brace-expansion@>=4.0.0 <5.0.11": 5.0.11'
+          if old not in text:
+              raise SystemExit("expected brace-expansion override not found")
+          path.write_text(text.replace(old, new, 1))
+      - name: Refresh lockfile
+        run: pnpm install --lockfile-only --no-frozen-lockfile --strict-peer-dependencies
+      - name: Verify audit and refresh dependency snapshot
+        run: |
+          pnpm audit --audit-level=high
+          node scripts/generate-dependency-status.mjs
+      - name: Format dependency files
+        run: pnpm exec prettier --write pnpm-workspace.yaml docs/maintenance/dependency-current-status.md
+      - name: Commit security refresh and remove temporary workflow
+        run: |
+          rm .github/workflows/tmp-brace-expansion-security.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(deps): patch brace-expansion advisory"
+          git push origin HEAD:fix/apps-script-bridge-reliability
