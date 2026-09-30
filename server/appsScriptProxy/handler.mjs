@@ -664,7 +664,11 @@ export async function handleAppsScriptProxyRequest(
         fetchImpl,
         ...(bridgeDelayImpl ? { delayImpl: bridgeDelayImpl } : {})
       });
-      sendJson(response, persisted.ok ? 200 : persisted.responseStatus, persisted.ok ? persisted.asset : persisted.responsePayload);
+      sendJson(
+        response,
+        persisted.ok ? 200 : persisted.responseStatus,
+        persisted.ok ? persisted.asset : persisted.responsePayload
+      );
     } catch {
       sendJson(response, 502, {
         error: "Apps Script bridge failed",

@@ -168,7 +168,9 @@ async function callWithTransientRetries(args, delayImpl) {
   for (let attempt = 0; attempt <= MAX_TRANSIENT_RETRIES; attempt += 1) {
     result = await postAppsScriptResource(args);
     const transient = !result.ok
-      ? result.failureClass === "network" || result.failureClass === "invalid-json" || isRetryableStatus(result.httpStatus)
+      ? result.failureClass === "network" ||
+        result.failureClass === "invalid-json" ||
+        isRetryableStatus(result.httpStatus)
       : isApplicationFailure(result.payload) && isTransientPayload(result.payload);
 
     if (!transient || attempt >= MAX_TRANSIENT_RETRIES) {
@@ -396,7 +398,9 @@ export async function persistFacebookThumbnailViaResumableBridge({
     }
 
     const transient = !result.ok
-      ? result.failureClass === "network" || result.failureClass === "invalid-json" || isRetryableStatus(result.httpStatus)
+      ? result.failureClass === "network" ||
+        result.failureClass === "invalid-json" ||
+        isRetryableStatus(result.httpStatus)
       : isTransientPayload(result.payload);
     if (!transient) {
       return result.ok ? createApplicationFailure(result.payload) : createTransportFailure(result);

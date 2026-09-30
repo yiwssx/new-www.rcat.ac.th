@@ -50,8 +50,7 @@ describe("resumable media bridge reliability", () => {
         }
         return Response.json({
           uploadComplete: false,
-          uploadUrl:
-            "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=reliability-test",
+          uploadUrl: "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=reliability-test",
           totalBytes: 3,
           chunkSizeBytes: MEDIA_UPLOAD_CHUNK_BYTES,
           nextByte: 0
