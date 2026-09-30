@@ -39,7 +39,7 @@ function parseRequest(init?: RequestInit) {
 
 describe("resumable media bridge reliability", () => {
   it("survives more transient start failures than the previous two-retry window", async () => {
-    const delay = vi.fn(async () => undefined);
+    const delay = vi.fn(async (_milliseconds: number) => undefined);
     let startCalls = 0;
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const request = parseRequest(init);
