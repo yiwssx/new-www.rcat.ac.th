@@ -20,10 +20,13 @@ const MEDIA_UPLOAD_TYPES: MediaType[] = ["image", "document", "sheet", "video"];
 export const MAX_MEDIA_UPLOAD_BYTES = 100 * 1024 * 1024;
 export const MEDIA_UPLOAD_CHUNK_BYTES = 6 * 256 * 1024;
 
+const MAX_START_RETRIES = 4;
 const MAX_CHUNK_RETRIES = 2;
 const MAX_STATUS_RETRIES = 2;
 const MAX_SESSION_RESTARTS = 1;
 const MAX_NO_PROGRESS_CYCLES = 3;
+const START_RETRY_DELAYS_MS = [500, 1000, 2000, 4000];
+const RECOVERY_RETRY_DELAYS_MS = [1000, 3000];
 
 type MediaBridgeResource = "media" | "deleteMedia" | "startMediaUpload" | "uploadMediaChunk" | "queryMediaUploadStatus";
 
@@ -464,9 +467,8 @@ function defaultRetryDelay(milliseconds: number) {
   });
 }
 
-async function waitBeforeRetry(retryNumber: number, options: MediaUploadOptions) {
-  const bases = [250, 750];
-  const base = bases[Math.min(Math.max(retryNumber - 1, 0), bases.length - 1)];
+async function waitBeforeRetry(retryNumber: number, options: MediaUploadOptions, delays = RECOVERY_RETRY_DELAYS_MS) {
+  const base = delays[Math.min(Math.max(retryNumber - 1, 0), delays.length - 1)];
   const random = options.random?.() ?? Math.random();
   const jittered = Math.round(base * (0.8 + Math.min(Math.max(random, 0), 1) * 0.4));
   await (options.delay ?? defaultRetryDelay)(jittered);
@@ -482,10 +484,10 @@ async function requestStartWithRetries(
       const result = await requestMediaBridge<unknown>("startMediaUpload", payload);
       return validateUploadStartResult(result, totalBytes);
     } catch (error) {
-      if (!isTransientMediaBridgeError(error) || attempt >= MAX_CHUNK_RETRIES) {
+      if (!isTransientMediaBridgeError(error) || attempt >= MAX_START_RETRIES) {
         throw error;
       }
-      await waitBeforeRetry(attempt + 1, options);
+      await waitBeforeRetry(attempt + 1, options, START_RETRY_DELAYS_MS);
     }
   }
 }

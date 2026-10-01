@@ -17,11 +17,16 @@ const INVALID_FACEBOOK_THUMBNAIL_RESPONSE = "ระบบสร้างภา�
 const FACEBOOK_THUMBNAIL_UNAVAILABLE = "Unable to create Facebook thumbnail";
 const FACEBOOK_PUBLIC_HOSTS = new Set(["facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"]);
 const FACEBOOK_LEGACY_POST_PATH = /^\/(\d+)\/posts\/(\d+)\/?$/;
+const MAX_TRANSIENT_RETRIES = 2;
+const TRANSIENT_RETRY_DELAYS_MS = [500, 1500];
 
 type BridgeEnvelope = Partial<MediaAsset> & {
   error?: string;
+  code?: string;
   statusCode?: number;
 };
+
+type FacebookThumbnailAttemptProgress = Pick<FacebookThumbnailProgress, "attempt" | "totalAttempts">;
 
 function reportProgress(options: FacebookThumbnailImportOptions, progress: FacebookThumbnailProgress) {
   options.onProgress?.(progress);
@@ -105,6 +110,31 @@ function isRetryablePreviewFailure(response: Response, payload: BridgeEnvelope) 
   return status === 422 && getSafeErrorMessage(payload.error) === FACEBOOK_THUMBNAIL_UNAVAILABLE;
 }
 
+function isRetryableTransientFailure(response: Response, payload: BridgeEnvelope) {
+  const bridgeStatus = Number.isFinite(payload.statusCode) ? Number(payload.statusCode) : undefined;
+  const status = bridgeStatus ?? response.status;
+  return (
+    payload.code === "DRIVE_UPLOAD_TRANSIENT" ||
+    status === 408 ||
+    status === 425 ||
+    status === 429 ||
+    (status >= 500 && status <= 599)
+  );
+}
+
+function defaultRetryDelay(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    globalThis.setTimeout(resolve, milliseconds);
+  });
+}
+
+async function waitBeforeRetry(retryNumber: number, options: FacebookThumbnailImportOptions) {
+  const base = TRANSIENT_RETRY_DELAYS_MS[Math.min(retryNumber - 1, TRANSIENT_RETRY_DELAYS_MS.length - 1)];
+  const random = options.random?.() ?? Math.random();
+  const jittered = Math.round(base * (0.8 + Math.min(Math.max(random, 0), 1) * 0.4));
+  await (options.delay ?? defaultRetryDelay)(jittered);
+}
+
 async function requestFacebookThumbnail(input: FacebookThumbnailImportInput, csrfToken: string) {
   const response = await fetch(mediaBridgePath, {
     method: "POST",
@@ -132,6 +162,34 @@ async function requestFacebookThumbnail(input: FacebookThumbnailImportInput, csr
   return { payload, response };
 }
 
+async function requestFacebookThumbnailWithTransientRetries(
+  input: FacebookThumbnailImportInput,
+  csrfToken: string,
+  options: FacebookThumbnailImportOptions,
+  progress: FacebookThumbnailAttemptProgress
+) {
+  for (let retry = 0; ; retry += 1) {
+    try {
+      const result = await requestFacebookThumbnail(input, csrfToken);
+      const failed =
+        !result.response.ok ||
+        Boolean(result.payload.error) ||
+        (Number.isFinite(result.payload.statusCode) && Number(result.payload.statusCode) >= 400);
+
+      if (!failed || !isRetryableTransientFailure(result.response, result.payload) || retry >= MAX_TRANSIENT_RETRIES) {
+        return result;
+      }
+    } catch (error) {
+      if (!(error instanceof TypeError) || retry >= MAX_TRANSIENT_RETRIES) {
+        throw error;
+      }
+    }
+
+    reportProgress(options, { ...progress, phase: "retrying" });
+    await waitBeforeRetry(retry + 1, options);
+  }
+}
+
 export async function importFacebookThumbnailFromBridge(
   input: FacebookThumbnailImportInput,
   options: FacebookThumbnailImportOptions = {}
@@ -148,9 +206,15 @@ export async function importFacebookThumbnailFromBridge(
 
   for (const [index, sourceUrl] of sourceCandidates.entries()) {
     const attempt = index + 1;
-    reportProgress(options, { phase: "requesting", attempt, totalAttempts });
+    const progress = { attempt, totalAttempts };
+    reportProgress(options, { phase: "requesting", ...progress });
 
-    const { payload, response } = await requestFacebookThumbnail({ ...input, sourceUrl }, csrfToken);
+    const { payload, response } = await requestFacebookThumbnailWithTransientRetries(
+      { ...input, sourceUrl },
+      csrfToken,
+      options,
+      progress
+    );
     const bridgeStatus = Number.isFinite(payload.statusCode) ? Number(payload.statusCode) : undefined;
 
     if (!response.ok || payload.error || (bridgeStatus !== undefined && bridgeStatus >= 400)) {
@@ -159,7 +223,7 @@ export async function importFacebookThumbnailFromBridge(
 
       if (hasFallback && isRetryablePreviewFailure(response, payload)) {
         lastPreviewError = error;
-        reportProgress(options, { phase: "retrying", attempt, totalAttempts });
+        reportProgress(options, { phase: "retrying", ...progress });
         continue;
       }
 
@@ -170,7 +234,7 @@ export async function importFacebookThumbnailFromBridge(
       throw new Error(INVALID_FACEBOOK_THUMBNAIL_RESPONSE);
     }
 
-    reportProgress(options, { phase: "received", attempt, totalAttempts });
+    reportProgress(options, { phase: "received", ...progress });
     return payload;
   }
 

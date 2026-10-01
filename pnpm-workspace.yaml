@@ -9,8 +9,8 @@ onlyBuiltDependencies:
   - workerd
 
 overrides:
-  "brace-expansion@>=4.0.0 <5.0.9": 5.0.9
-  "fast-uri@>=3.0.0 <3.1.7": 3.1.7
+  "brace-expansion@>=4.0.0 <5.0.12": 5.0.12
+  "fast-uri@>=3.0.0 <3.1.8": 3.1.8
   "js-yaml@>=4.0.0 <4.3.2": 4.3.2
   "nanoid@<3.3.17": 3.3.18
   "sharp@<0.35.4": 0.35.4

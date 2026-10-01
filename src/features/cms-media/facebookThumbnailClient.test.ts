@@ -142,19 +142,54 @@ describe("Facebook thumbnail client fallback", () => {
     ]);
   });
 
-  it("does not retry unrelated bridge failures", async () => {
+  it("retries a transient 502 on the same source before falling back", async () => {
+    const progress: FacebookThumbnailProgress[] = [];
+    const delay = vi.fn(async () => undefined);
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(Response.json({ error: "Apps Script bridge failed" }, { status: 502 }));
+      .mockResolvedValueOnce(Response.json({ error: "Apps Script bridge failed" }, { status: 502 }))
+      .mockResolvedValueOnce(Response.json(asset));
 
-    await expect(
-      importFacebookThumbnailFromBridge({
+    const result = await importFacebookThumbnailFromBridge(
+      {
         sourceUrl: "https://www.facebook.com/example/posts/123",
         name: "Facebook - ข่าวทดสอบ",
         owner: "facebook-import"
-      })
-    ).rejects.toThrow("Apps Script bridge failed");
+      },
+      { onProgress: (value) => progress.push(value), delay, random: () => 0.5 }
+    );
+
+    expect(result).toEqual(asset);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(delay).toHaveBeenCalledWith(500);
+    const firstRequest = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const secondRequest = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+    expect(secondRequest.payload.sourceUrl).toBe(firstRequest.payload.sourceUrl);
+    expect(progress).toEqual([
+      { phase: "requesting", attempt: 1, totalAttempts: 2 },
+      { phase: "retrying", attempt: 1, totalAttempts: 2 },
+      { phase: "received", attempt: 1, totalAttempts: 2 }
+    ]);
+  });
+
+  it("does not retry a non-transient bridge failure", async () => {
+    const delay = vi.fn(async () => undefined);
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(Response.json({ error: "invalid Apps Script media resource or payload" }, { status: 400 }));
+
+    await expect(
+      importFacebookThumbnailFromBridge(
+        {
+          sourceUrl: "https://www.facebook.com/example/posts/123",
+          name: "Facebook - ข่าวทดสอบ",
+          owner: "facebook-import"
+        },
+        { delay }
+      )
+    ).rejects.toThrow("invalid Apps Script media resource or payload");
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(delay).not.toHaveBeenCalled();
   });
 });

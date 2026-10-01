@@ -49,4 +49,6 @@ export interface FacebookThumbnailProgress {
 
 export interface FacebookThumbnailImportOptions {
   onProgress?: (progress: FacebookThumbnailProgress) => void;
+  delay?: (milliseconds: number) => Promise<void>;
+  random?: () => number;
 }

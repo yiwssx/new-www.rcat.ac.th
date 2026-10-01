@@ -12,6 +12,7 @@ import {
   getCmsClientMetadata,
   readCmsAuthConfiguration
 } from "../cmsAuth/handlers.mjs";
+import { persistFacebookThumbnailViaResumableBridge } from "./resumableFacebookThumbnail.mjs";
 
 const MAX_REQUEST_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_FACEBOOK_THUMBNAIL_BYTES = 5 * 1024 * 1024;
@@ -563,7 +564,11 @@ async function createFacebookThumbnailMediaPayload(payload, fetchImpl) {
   };
 }
 
-export async function handleAppsScriptProxyRequest(request, response, { env = runtimeEnv(), fetchImpl = fetch } = {}) {
+export async function handleAppsScriptProxyRequest(
+  request,
+  response,
+  { env = runtimeEnv(), fetchImpl = fetch, bridgeDelayImpl } = {}
+) {
   const method = String(request.method || "GET").toUpperCase();
 
   if (!STATUS_METHODS.has(method) && method !== "POST") {
@@ -650,6 +655,29 @@ export async function handleAppsScriptProxyRequest(request, response, { env = ru
       });
       return;
     }
+
+    try {
+      const persisted = await persistFacebookThumbnailViaResumableBridge({
+        appsScriptUrl: appsScriptUrl.toString(),
+        bridgeToken,
+        mediaPayload: bridgePayload,
+        fetchImpl,
+        ...(bridgeDelayImpl ? { delayImpl: bridgeDelayImpl } : {})
+      });
+      sendJson(
+        response,
+        persisted.ok ? 200 : persisted.responseStatus,
+        persisted.ok ? persisted.asset : persisted.responsePayload
+      );
+    } catch {
+      sendJson(response, 502, {
+        error: "Apps Script bridge failed",
+        diagnostic: "apps-script-thumbnail-resumable-v1",
+        failureClass: "unexpected",
+        upstreamResource: "media-upload-start"
+      });
+    }
+    return;
   }
 
   appsScriptUrl.searchParams.set("resource", upstreamResource);

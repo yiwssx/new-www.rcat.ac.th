@@ -12,6 +12,8 @@ const PROXY_SECRET = "C".repeat(40);
 const BRIDGE_TOKEN = "fake-apps-script-bridge-token";
 const WORKER_ORIGIN = "https://worker.example.test";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/test-deployment/exec";
+const UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=thumbnail-test";
+const CHUNK_SIZE = 6 * 256 * 1024;
 
 function createRequest(body) {
   const request = Readable.from([JSON.stringify(body)]);
@@ -52,7 +54,28 @@ function authorizationSuccess() {
   return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
 }
 
-async function callFacebookThumbnail(fetchImpl, sourceUrl = "https://www.facebook.com/example/posts/123") {
+function completedAsset(id, fileId = "file-id") {
+  return {
+    id,
+    name: "Facebook - ข่าวทดสอบ",
+    type: "image",
+    size: "4 B",
+    owner: "Admin",
+    driveUrl: `https://drive.google.com/file/d/${fileId}/view`,
+    fileId,
+    mimeType: "image/jpeg",
+    thumbnailUrl: `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`,
+    previewUrl: `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`,
+    embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+    updatedAt: "2026-08-30T00:00:00.000Z"
+  };
+}
+
+async function callFacebookThumbnail(
+  fetchImpl,
+  sourceUrl = "https://www.facebook.com/example/posts/123",
+  bridgeDelayImpl = async () => undefined
+) {
   const response = createResponse();
   await handleAppsScriptProxyRequest(
     createRequest({
@@ -64,29 +87,20 @@ async function callFacebookThumbnail(fetchImpl, sourceUrl = "https://www.faceboo
       }
     }),
     response,
-    { env: createEnv(), fetchImpl }
+    { env: createEnv(), fetchImpl, bridgeDelayImpl }
   );
   return response;
 }
 
+function resourceFromUrl(value) {
+  return new URL(String(value)).searchParams.get("resource");
+}
+
 describe("Facebook thumbnail media ingestion", () => {
-  it("copies a public Facebook preview image into the existing Apps Script media bridge", async () => {
+  it("copies a public Facebook preview image through the resumable Apps Script media bridge", async () => {
     const imageUrl = "https://scontent.fbcdn.net/v/t39.30808-6/example.jpg?x=1&amp;y=2";
     const expectedImageUrl = imageUrl.replace("&amp;", "&");
-    const returnedAsset = {
-      id: "facebook-thumbnail-placeholder",
-      name: "Facebook - ข่าวทดสอบ",
-      type: "image",
-      size: "4 B",
-      owner: "Admin",
-      driveUrl: "https://drive.google.com/file/d/file-id/view",
-      fileId: "file-id",
-      mimeType: "image/jpeg",
-      thumbnailUrl: "https://drive.google.com/thumbnail?id=file-id&sz=w1200",
-      previewUrl: "https://drive.google.com/thumbnail?id=file-id&sz=w1200",
-      embedUrl: "https://drive.google.com/file/d/file-id/preview",
-      updatedAt: "2026-08-30T00:00:00.000Z"
-    };
+    let deterministicId = "";
 
     const fetchImpl = vi.fn(async (url, init = {}) => {
       const value = String(url);
@@ -100,9 +114,29 @@ describe("Facebook thumbnail media ingestion", () => {
         return new Response(Uint8Array.from([1, 2, 3, 4]), { headers: { "Content-Type": "image/jpeg" } });
       }
       if (value.startsWith(APPS_SCRIPT_URL)) {
+        const resource = resourceFromUrl(value);
         const payload = JSON.parse(init.body);
-        returnedAsset.id = payload.id;
-        return Response.json(returnedAsset);
+        deterministicId ||= payload.id;
+        expect(payload.id).toBe(deterministicId);
+        expect(payload.uploadKey).toBe(deterministicId);
+        expect(payload.appsScriptBridgeToken).toBe(BRIDGE_TOKEN);
+
+        if (resource === "media-upload-start") {
+          return Response.json({
+            uploadComplete: false,
+            uploadUrl: UPLOAD_URL,
+            totalBytes: 4,
+            chunkSizeBytes: CHUNK_SIZE,
+            nextByte: 0,
+            statusCode: 200
+          });
+        }
+        if (resource === "media-upload-chunk") {
+          expect(payload.chunkBase64).toBe("AQIDBA==");
+          expect(payload.startByte).toBe(0);
+          expect(payload.endByte).toBe(3);
+          return Response.json({ uploadComplete: true, asset: completedAsset(deterministicId), statusCode: 200 });
+        }
       }
       throw new Error(`Unexpected URL: ${value}`);
     });
@@ -110,36 +144,127 @@ describe("Facebook thumbnail media ingestion", () => {
     const response = await callFacebookThumbnail(fetchImpl);
 
     expect(response.statusCode).toBe(200);
+    expect(response.bodyJson.id).toMatch(/^facebook-thumbnail-[a-f0-9]{24}$/);
     expect(response.bodyJson.type).toBe("image");
     expect(response.bodyJson.driveUrl).toContain("drive.google.com");
+    expect(
+      fetchImpl.mock.calls
+        .filter(([url]) => String(url).startsWith(APPS_SCRIPT_URL))
+        .map(([url]) => resourceFromUrl(url))
+    ).toEqual(["media-upload-start", "media-upload-chunk"]);
+  });
 
-    const appsScriptCall = fetchImpl.mock.calls.find(([url]) => String(url).startsWith(APPS_SCRIPT_URL));
-    expect(appsScriptCall).toBeTruthy();
-    expect(String(appsScriptCall[0])).toContain("resource=media");
-    const upstreamPayload = JSON.parse(appsScriptCall[1].body);
-    expect(upstreamPayload.id).toMatch(/^facebook-thumbnail-[a-f0-9]{24}$/);
-    expect(upstreamPayload.type).toBe("image");
-    expect(upstreamPayload.mimeType).toBe("image/jpeg");
-    expect(upstreamPayload.fileBase64).toBe("AQIDBA==");
-    expect(upstreamPayload.appsScriptBridgeToken).toBe(BRIDGE_TOKEN);
+  it("recovers an ambiguous transient chunk failure through upload status without resending the chunk", async () => {
+    const imageUrl = "https://scontent.fbcdn.net/v/t39.30808-6/recovered.jpg";
+    let deterministicId = "";
+    let chunkCalls = 0;
+
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      const value = String(url);
+      if (value === `${WORKER_ORIGIN}/api/admin/media-bridge-authorization`) {
+        return authorizationSuccess();
+      }
+      if (value.startsWith("https://www.facebook.com/example/posts/123")) {
+        return new Response(`<meta property="og:image" content="${imageUrl}">`);
+      }
+      if (value === imageUrl) {
+        return new Response(Uint8Array.from([1, 2, 3, 4]), { headers: { "Content-Type": "image/jpeg" } });
+      }
+      if (value.startsWith(APPS_SCRIPT_URL)) {
+        const resource = resourceFromUrl(value);
+        const payload = JSON.parse(init.body);
+        deterministicId ||= payload.id;
+        if (resource === "media-upload-start") {
+          return Response.json({
+            uploadComplete: false,
+            uploadUrl: UPLOAD_URL,
+            totalBytes: 4,
+            chunkSizeBytes: CHUNK_SIZE,
+            nextByte: 0,
+            statusCode: 200
+          });
+        }
+        if (resource === "media-upload-chunk") {
+          chunkCalls += 1;
+          return new Response("temporary upstream failure", { status: 502 });
+        }
+        if (resource === "media-upload-status") {
+          return Response.json({ uploadComplete: true, asset: completedAsset(deterministicId), statusCode: 200 });
+        }
+      }
+      throw new Error(`Unexpected URL: ${value}`);
+    });
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const response = await callFacebookThumbnail(fetchImpl);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyJson.id).toBe(deterministicId);
+    expect(chunkCalls).toBe(1);
+    expect(
+      fetchImpl.mock.calls
+        .filter(([url]) => String(url).startsWith(APPS_SCRIPT_URL))
+        .map(([url]) => resourceFromUrl(url))
+    ).toEqual(["media-upload-start", "media-upload-chunk", "media-upload-status"]);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("retries a transient upload-start upstream failure with bounded backoff", async () => {
+    const imageUrl = "https://scontent.fbcdn.net/v/t39.30808-6/start-retry.jpg";
+    const delay = vi.fn(async () => undefined);
+    let startCalls = 0;
+    let deterministicId = "";
+
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      const value = String(url);
+      if (value === `${WORKER_ORIGIN}/api/admin/media-bridge-authorization`) {
+        return authorizationSuccess();
+      }
+      if (value.startsWith("https://www.facebook.com/example/posts/123")) {
+        return new Response(`<meta property="og:image" content="${imageUrl}">`);
+      }
+      if (value === imageUrl) {
+        return new Response(Uint8Array.from([1, 2, 3, 4]), { headers: { "Content-Type": "image/jpeg" } });
+      }
+      if (value.startsWith(APPS_SCRIPT_URL)) {
+        const resource = resourceFromUrl(value);
+        const payload = JSON.parse(init.body);
+        deterministicId ||= payload.id;
+        if (resource === "media-upload-start") {
+          startCalls += 1;
+          if (startCalls === 1) {
+            return new Response("temporarily unavailable", { status: 503 });
+          }
+          return Response.json({
+            uploadComplete: false,
+            uploadUrl: UPLOAD_URL,
+            totalBytes: 4,
+            chunkSizeBytes: CHUNK_SIZE,
+            nextByte: 0,
+            statusCode: 200
+          });
+        }
+        if (resource === "media-upload-chunk") {
+          return Response.json({ uploadComplete: true, asset: completedAsset(deterministicId), statusCode: 200 });
+        }
+      }
+      throw new Error(`Unexpected URL: ${value}`);
+    });
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const response = await callFacebookThumbnail(fetchImpl, undefined, delay);
+
+    expect(response.statusCode).toBe(200);
+    expect(startCalls).toBe(2);
+    expect(delay).toHaveBeenCalledWith(250);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it("accepts web.facebook.com sources through the thumbnail bridge", async () => {
     const imageUrl = "https://scontent.fbcdn.net/v/t39.30808-6/web-source.jpg";
-    const returnedAsset = {
-      id: "facebook-thumbnail-placeholder",
-      name: "Facebook - ข่าวทดสอบ",
-      type: "image",
-      size: "4 B",
-      owner: "Admin",
-      driveUrl: "https://drive.google.com/file/d/web-file-id/view",
-      fileId: "web-file-id",
-      mimeType: "image/jpeg",
-      thumbnailUrl: "https://drive.google.com/thumbnail?id=web-file-id&sz=w1200",
-      previewUrl: "https://drive.google.com/thumbnail?id=web-file-id&sz=w1200",
-      embedUrl: "https://drive.google.com/file/d/web-file-id/preview",
-      updatedAt: "2026-09-03T00:00:00.000Z"
-    };
+    let deterministicId = "";
 
     const fetchImpl = vi.fn(async (url, init = {}) => {
       const value = String(url);
@@ -153,9 +278,26 @@ describe("Facebook thumbnail media ingestion", () => {
         return new Response(Uint8Array.from([1, 2, 3, 4]), { headers: { "Content-Type": "image/jpeg" } });
       }
       if (value.startsWith(APPS_SCRIPT_URL)) {
+        const resource = resourceFromUrl(value);
         const payload = JSON.parse(init.body);
-        returnedAsset.id = payload.id;
-        return Response.json(returnedAsset);
+        deterministicId ||= payload.id;
+        if (resource === "media-upload-start") {
+          return Response.json({
+            uploadComplete: false,
+            uploadUrl: UPLOAD_URL,
+            totalBytes: 4,
+            chunkSizeBytes: CHUNK_SIZE,
+            nextByte: 0,
+            statusCode: 200
+          });
+        }
+        if (resource === "media-upload-chunk") {
+          return Response.json({
+            uploadComplete: true,
+            asset: completedAsset(deterministicId, "web-file-id"),
+            statusCode: 200
+          });
+        }
       }
       throw new Error(`Unexpected URL: ${value}`);
     });
