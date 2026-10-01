@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import FormControl from "@mui/material/FormControl";
 import FormHelperText from "@mui/material/FormHelperText";
 import InputLabel from "@mui/material/InputLabel";
@@ -17,6 +17,11 @@ interface LocalDateTimeParts {
   date: string;
   hour: string;
   minute: string;
+}
+
+interface DateDraft {
+  sourceDate: string;
+  text: string;
 }
 
 interface AdminDateTimeFieldProps {
@@ -93,11 +98,8 @@ export default function AdminDateTimeField({
   const date = current?.date ?? "";
   const hour = current?.hour ?? "00";
   const minute = current?.minute ?? "00";
-  const [dateText, setDateText] = useState(() => formatIsoDateForDisplay(date));
-
-  useEffect(() => {
-    setDateText(formatIsoDateForDisplay(date));
-  }, [date]);
+  const [dateDraft, setDateDraft] = useState<DateDraft | null>(null);
+  const dateText = dateDraft?.sourceDate === date ? dateDraft.text : formatIsoDateForDisplay(date);
 
   function commit(nextDate: string, nextHour: string, nextMinute: string) {
     if (!nextDate) {
@@ -116,7 +118,7 @@ export default function AdminDateTimeField({
   }
 
   function handleDateTextChange(nextText: string) {
-    setDateText(nextText);
+    setDateDraft({ sourceDate: date, text: nextText });
 
     if (!nextText.trim()) {
       commit("", hour, minute);
@@ -131,16 +133,16 @@ export default function AdminDateTimeField({
 
   function handleDateTextBlur() {
     if (!dateText.trim()) {
+      setDateDraft(null);
       return;
     }
 
     const parsed = parseDisplayDate(dateText);
     if (parsed) {
-      setDateText(formatIsoDateForDisplay(parsed));
-      return;
+      commit(parsed, hour, minute);
     }
 
-    setDateText(formatIsoDateForDisplay(date));
+    setDateDraft(null);
   }
 
   const hourLabelId = `${fieldId}-hour-label`;
