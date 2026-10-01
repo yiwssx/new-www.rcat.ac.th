@@ -74,6 +74,61 @@ describe("content save progress", () => {
     );
   });
 
+  it("stamps a direct published create at the actual save time", async () => {
+    const directPublish: ContentItem = {
+      ...facebookContent,
+      id: "",
+      status: "published",
+      template: "standard",
+      canonicalUrl: "",
+      publishAt: "2026-09-29T00:00:00.000Z"
+    };
+    const beforeSave = Date.now();
+
+    await saveContentItem(directPublish);
+
+    const afterSave = Date.now();
+    const submittedItem = cloudflareMock.saveContentItemToCloudflare.mock.calls[0]?.[0] as ContentItem;
+    const submittedPublishAt = Date.parse(submittedItem.publishAt ?? "");
+
+    expect(submittedPublishAt).toBeGreaterThanOrEqual(beforeSave);
+    expect(submittedPublishAt).toBeLessThanOrEqual(afterSave);
+  });
+
+  it("preserves a valid past publish timestamp when editing already-published content", async () => {
+    const existingPublished: ContentItem = {
+      ...facebookContent,
+      status: "published",
+      template: "standard",
+      canonicalUrl: "",
+      publishAt: "2026-09-29T09:00:00.000Z"
+    };
+
+    await saveContentItem(existingPublished);
+
+    expect(cloudflareMock.saveContentItemToCloudflare).toHaveBeenCalledWith(existingPublished);
+  });
+
+  it("clamps an invalid future timestamp before saving published content", async () => {
+    const futurePublished: ContentItem = {
+      ...facebookContent,
+      status: "published",
+      template: "standard",
+      canonicalUrl: "",
+      publishAt: "2099-01-01T00:00:00.000Z"
+    };
+    const beforeSave = Date.now();
+
+    await saveContentItem(futurePublished);
+
+    const afterSave = Date.now();
+    const submittedItem = cloudflareMock.saveContentItemToCloudflare.mock.calls[0]?.[0] as ContentItem;
+    const submittedPublishAt = Date.parse(submittedItem.publishAt ?? "");
+
+    expect(submittedPublishAt).toBeGreaterThanOrEqual(beforeSave);
+    expect(submittedPublishAt).toBeLessThanOrEqual(afterSave);
+  });
+
   it("reports real Facebook thumbnail sub-phases before saving the content", async () => {
     const tracker = collectProgress();
 
