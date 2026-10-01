@@ -70,11 +70,7 @@ function parseDisplayDate(value: string) {
   const year = Number(match[3]);
   const candidate = new Date(Date.UTC(year, month - 1, day));
 
-  if (
-    candidate.getUTCFullYear() !== year ||
-    candidate.getUTCMonth() !== month - 1 ||
-    candidate.getUTCDate() !== day
-  ) {
+  if (candidate.getUTCFullYear() !== year || candidate.getUTCMonth() !== month - 1 || candidate.getUTCDate() !== day) {
     return null;
   }
 
