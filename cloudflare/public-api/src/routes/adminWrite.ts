@@ -482,14 +482,69 @@ function assertMutationChanged(result: D1Result<unknown>) {
   }
 }
 
-function normalizeContentPublishAt(action: string, value: unknown, now: string) {
+function isPublishAtAtOrBefore(value: string, now: string) {
+  const valueMillis = Date.parse(value);
+  const nowMillis = Date.parse(now);
+
+  return Number.isFinite(valueMillis) && Number.isFinite(nowMillis) && valueMillis <= nowMillis;
+}
+
+export function resolveContentPublishAtForWrite(
+  status: string,
+  value: unknown,
+  existingStatus: string | undefined,
+  existingPublishAtValue: unknown,
+  now: string
+) {
+  const requestedPublishAt = trimString(value);
+  const existingPublishAt = trimString(existingPublishAtValue);
+
+  if (status === "published") {
+    if (existingStatus === "published" && existingPublishAt && isPublishAtAtOrBefore(existingPublishAt, now)) {
+      return existingPublishAt;
+    }
+
+    if (
+      existingStatus &&
+      existingStatus !== "published" &&
+      requestedPublishAt &&
+      isPublishAtAtOrBefore(requestedPublishAt, now)
+    ) {
+      return requestedPublishAt;
+    }
+
+    return now;
+  }
+
+  if (status === "scheduled") {
+    if (!requestedPublishAt) {
+      throw new AdminHttpError("scheduled publishAt is required", 400, { field: "publishAt" });
+    }
+
+    const requestedMillis = Date.parse(requestedPublishAt);
+    const nowMillis = Date.parse(now);
+
+    if (!Number.isFinite(requestedMillis) || !Number.isFinite(nowMillis) || requestedMillis <= nowMillis) {
+      throw new AdminHttpError("scheduled publishAt must be a valid future timestamp", 400, {
+        field: "publishAt"
+      });
+    }
+
+    return requestedPublishAt;
+  }
+
+  const inactivePublishAt = requestedPublishAt || existingPublishAt;
+  return inactivePublishAt && isPublishAtAtOrBefore(inactivePublishAt, now) ? inactivePublishAt : "";
+}
+
+export function normalizeContentPublishAtForAction(action: string, value: unknown, now: string) {
   const currentPublishAt = trimString(value);
 
   if (action === "publish") {
-    return currentPublishAt || now;
+    return currentPublishAt && isPublishAtAtOrBefore(currentPublishAt, now) ? currentPublishAt : now;
   }
 
-  return currentPublishAt;
+  return currentPublishAt && isPublishAtAtOrBefore(currentPublishAt, now) ? currentPublishAt : "";
 }
 
 async function assertContentPublishChanged(
@@ -523,6 +578,13 @@ function createContentRow(body: JsonRecord, existing: ContentRow | null, actor: 
   );
   const type = assertAllowedValue(optionalString(body.type, existing?.type ?? ""), CONTENT_TYPES, "content type");
   const id = optionalString(body.id, existing?.id ?? makeId("content"));
+  const publishAt = resolveContentPublishAtForWrite(
+    status,
+    body.publishAt,
+    existing?.status,
+    existing?.publish_at,
+    now
+  );
 
   return {
     id,
@@ -548,7 +610,7 @@ function createContentRow(body: JsonRecord, existing: ContentRow | null, actor: 
     view_count: normalizeInteger(existing?.view_count, 0),
     last_viewed_at: optionalString(existing?.last_viewed_at, ""),
     updated_at: now,
-    publish_at: optionalString(body.publishAt, existing?.publish_at ?? now),
+    publish_at: publishAt,
     created_at: optionalString(existing?.created_at, now),
     deleted_at: "",
     created_by: optionalString(existing?.created_by, actor),
@@ -1100,7 +1162,7 @@ async function handleContent(request: Request, env: Env, segments: string[], ide
          AND COALESCE(deleted_at, '') = ''
          AND (? IS NULL OR revision = ?)`,
         status,
-        normalizeContentPublishAt(action, existing.publish_at, now),
+        normalizeContentPublishAtForAction(action, existing.publish_at, now),
         now,
         actor,
         id,
