@@ -53,7 +53,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
         run: |
           set -euo pipefail
-          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" --remote --json --command="SELECT id, title, slug, type, status, owner, publish_at, published_at, updated_at, deleted_at, canonical_url FROM contents WHERE title LIKE '%คณะกรรมการสถานศึกษา%' OR summary LIKE '%คณะกรรมการสถานศึกษา%' ORDER BY updated_at DESC LIMIT 20;" > "$RUNNER_TEMP/target-content.json"
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" --remote --json --command="SELECT id, title, slug, type, status, owner, publish_at, updated_at, deleted_at, canonical_url FROM contents WHERE title LIKE '%คณะกรรมการสถานศึกษา%' OR summary LIKE '%คณะกรรมการสถานศึกษา%' ORDER BY updated_at DESC LIMIT 20;" > "$RUNNER_TEMP/target-content.json"
           node - "$RUNNER_TEMP/target-content.json" <<'NODE'
           const fs = require('fs');
           const path = process.argv[2];
