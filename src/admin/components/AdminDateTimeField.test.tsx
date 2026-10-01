@@ -27,7 +27,7 @@ describe("AdminDateTimeField", () => {
     const onChange = vi.fn();
     render(<AdminDateTimeField label="สิ้นสุด" value="" min="2026-09-15T14:30" required onChange={onChange} />);
 
-    const dateInput = screen.getByLabelText("สิ้นสุด - วันที่ (วัน/เดือน/ปี)");
+    const dateInput = screen.getByPlaceholderText("DD/MM/YYYY");
     fireEvent.change(dateInput, { target: { value: "15/09/2026" } });
 
     expect(onChange).toHaveBeenCalledWith("2026-09-15T14:30");
