@@ -88,7 +88,8 @@ function normalizePublishedTimestampForSave(item: ContentItem, now = new Date())
 
   const publishAtMillis = Date.parse(item.publishAt ?? "");
   const nowMillis = now.getTime();
-  const isExistingPublishedTimestampValid = Boolean(item.id) && Number.isFinite(publishAtMillis) && publishAtMillis <= nowMillis;
+  const isExistingPublishedTimestampValid =
+    Boolean(item.id) && Number.isFinite(publishAtMillis) && publishAtMillis <= nowMillis;
 
   if (isExistingPublishedTimestampValid) {
     return item;
