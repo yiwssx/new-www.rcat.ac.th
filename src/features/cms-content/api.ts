@@ -81,6 +81,26 @@ function hasAttachedMedia(item: ContentItem) {
   return Array.isArray(item.mediaIds) && item.mediaIds.some(Boolean);
 }
 
+function normalizePublishedTimestampForSave(item: ContentItem, now = new Date()): ContentItem {
+  if (item.status !== "published") {
+    return item;
+  }
+
+  const publishAtMillis = Date.parse(item.publishAt ?? "");
+  const nowMillis = now.getTime();
+  const isExistingPublishedTimestampValid =
+    Boolean(item.id) && Number.isFinite(publishAtMillis) && publishAtMillis <= nowMillis;
+
+  if (isExistingPublishedTimestampValid) {
+    return item;
+  }
+
+  return {
+    ...item,
+    publishAt: now.toISOString()
+  };
+}
+
 async function addAutomaticFacebookThumbnail(item: ContentItem, options: SaveContentItemOptions): Promise<ContentItem> {
   const sourceUrl = item.canonicalUrl?.trim() ?? "";
 
@@ -131,7 +151,8 @@ export async function saveContentItem(item: ContentItem, options: SaveContentIte
     message: "กำลังตรวจสอบข้อมูลก่อนบันทึก"
   });
 
-  const nextItem = await addAutomaticFacebookThumbnail(item, options);
+  const timestampNormalizedItem = normalizePublishedTimestampForSave(item);
+  const nextItem = await addAutomaticFacebookThumbnail(timestampNormalizedItem, options);
 
   reportSaveProgress(options, {
     phase: "saving",
