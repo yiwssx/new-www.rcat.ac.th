@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import FormControl from "@mui/material/FormControl";
 import FormHelperText from "@mui/material/FormHelperText";
 import InputLabel from "@mui/material/InputLabel";
@@ -8,6 +8,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
 const LOCAL_DATE_TIME_PATTERN = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/;
+const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DISPLAY_DATE_PATTERN = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
 const HOURS = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, "0"));
 
@@ -15,6 +17,11 @@ interface LocalDateTimeParts {
   date: string;
   hour: string;
   minute: string;
+}
+
+interface DateDraft {
+  sourceDate: string;
+  text: string;
 }
 
 interface AdminDateTimeFieldProps {
@@ -46,6 +53,35 @@ function joinLocalDateTime(parts: LocalDateTimeParts) {
   return `${parts.date}T${parts.hour}:${parts.minute}`;
 }
 
+function formatIsoDateForDisplay(value: string) {
+  const match = ISO_DATE_PATTERN.exec(value);
+
+  if (!match) {
+    return "";
+  }
+
+  return `${match[3]}/${match[2]}/${match[1]}`;
+}
+
+function parseDisplayDate(value: string) {
+  const match = DISPLAY_DATE_PATTERN.exec(value.trim());
+
+  if (!match) {
+    return null;
+  }
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const candidate = new Date(Date.UTC(year, month - 1, day));
+
+  if (candidate.getUTCFullYear() !== year || candidate.getUTCMonth() !== month - 1 || candidate.getUTCDate() !== day) {
+    return null;
+  }
+
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 export default function AdminDateTimeField({
   label,
   value,
@@ -62,6 +98,8 @@ export default function AdminDateTimeField({
   const date = current?.date ?? "";
   const hour = current?.hour ?? "00";
   const minute = current?.minute ?? "00";
+  const [dateDraft, setDateDraft] = useState<DateDraft | null>(null);
+  const dateText = dateDraft?.sourceDate === date ? dateDraft.text : formatIsoDateForDisplay(date);
 
   function commit(nextDate: string, nextHour: string, nextMinute: string) {
     if (!nextDate) {
@@ -79,6 +117,34 @@ export default function AdminDateTimeField({
     onChange(nextValue);
   }
 
+  function handleDateTextChange(nextText: string) {
+    setDateDraft({ sourceDate: date, text: nextText });
+
+    if (!nextText.trim()) {
+      commit("", hour, minute);
+      return;
+    }
+
+    const nextDate = parseDisplayDate(nextText);
+    if (nextDate) {
+      commit(nextDate, hour, minute);
+    }
+  }
+
+  function handleDateTextBlur() {
+    if (!dateText.trim()) {
+      setDateDraft(null);
+      return;
+    }
+
+    const parsed = parseDisplayDate(dateText);
+    if (parsed) {
+      commit(parsed, hour, minute);
+    }
+
+    setDateDraft(null);
+  }
+
   const hourLabelId = `${fieldId}-hour-label`;
   const hourSelectId = `${fieldId}-hour`;
   const minuteLabelId = `${fieldId}-minute-label`;
@@ -87,16 +153,22 @@ export default function AdminDateTimeField({
   return (
     <Stack spacing={1}>
       <TextField
-        label={`${label} - วันที่`}
-        type="date"
-        value={date}
-        onChange={(event) => commit(event.target.value, hour, minute)}
+        label={`${label} - วันที่ (วัน/เดือน/ปี)`}
+        type="text"
+        value={dateText}
+        onChange={(event) => handleDateTextChange(event.target.value)}
+        onBlur={handleDateTextBlur}
+        placeholder="DD/MM/YYYY"
         disabled={disabled}
         required={required}
         error={error}
         slotProps={{
           inputLabel: { shrink: true },
-          htmlInput: { min: minimum?.date }
+          htmlInput: {
+            inputMode: "numeric",
+            pattern: "[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}",
+            maxLength: 10
+          }
         }}
         fullWidth
       />
