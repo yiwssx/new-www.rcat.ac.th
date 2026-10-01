@@ -49,17 +49,23 @@ jobs:
             return Number.isFinite(valueMillis) && Number.isFinite(nowMillis) && valueMillis <= nowMillis;
           }
 
-          function resolveContentPublishAt(status: string, value: unknown, existing: ContentRow | null, now: string) {
+          export function resolveContentPublishAtForWrite(
+            status: string,
+            value: unknown,
+            existingStatus: string | undefined,
+            existingPublishAtValue: unknown,
+            now: string
+          ) {
             const requestedPublishAt = trimString(value);
-            const existingPublishAt = trimString(existing?.publish_at);
+            const existingPublishAt = trimString(existingPublishAtValue);
 
             if (status === "published") {
-              if (
-                existing?.status === "published" &&
-                existingPublishAt &&
-                isPublishAtAtOrBefore(existingPublishAt, now)
-              ) {
+              if (existingStatus === "published" && existingPublishAt && isPublishAtAtOrBefore(existingPublishAt, now)) {
                 return existingPublishAt;
+              }
+
+              if (existingStatus && existingStatus !== "published" && requestedPublishAt && isPublishAtAtOrBefore(requestedPublishAt, now)) {
+                return requestedPublishAt;
               }
 
               return now;
@@ -86,7 +92,7 @@ jobs:
             return inactivePublishAt && isPublishAtAtOrBefore(inactivePublishAt, now) ? inactivePublishAt : "";
           }
 
-          function normalizeContentPublishAt(action: string, value: unknown, now: string) {
+          export function normalizeContentPublishAtForAction(action: string, value: unknown, now: string) {
             const currentPublishAt = trimString(value);
 
             if (action === "publish") {
@@ -107,7 +113,13 @@ jobs:
           '''
           new_create = '''  const type = assertAllowedValue(optionalString(body.type, existing?.type ?? ""), CONTENT_TYPES, "content type");
             const id = optionalString(body.id, existing?.id ?? makeId("content"));
-            const publishAt = resolveContentPublishAt(status, body.publishAt, existing, now);
+            const publishAt = resolveContentPublishAtForWrite(
+              status,
+              body.publishAt,
+              existing?.status,
+              existing?.publish_at,
+              now
+            );
 
             return {
           '''
@@ -121,170 +133,78 @@ jobs:
             raise SystemExit("createContentRow publish_at assignment did not match")
           source = source.replace(old_publish_at, '''    publish_at: publishAt,
           ''', 1)
-          worker.write_text(source)
 
-          tests = Path("cloudflare/public-api/test/adminWriteRoutes.test.ts")
-          test_source = tests.read_text()
-          marker = '''  it("returns stale revision for content publish conflicts instead of a generic write failure", async () => {
+          old_action_call = '''        normalizeContentPublishAt(action, existing.publish_at, now),
           '''
-          additions = r'''  it("uses Worker time for direct published creates instead of a future client clock", async () => {
-            const { db, tables } = createAdminWriteMockDb();
-            const env = makeEnv(db);
-            const clientFuture = "2099-10-30T15:45:00+07:00";
+          if old_action_call not in source:
+            raise SystemExit("publish action normalizer call did not match")
+          source = source.replace(old_action_call, '''        normalizeContentPublishAtForAction(action, existing.publish_at, now),
+          ''', 1)
+          worker.write_text(source)
+          PY
 
-            const response = await worker.fetch(
-              makeJsonRequest("/api/admin/content", {
-                ...contentInput,
-                status: "published",
-                publishAt: clientFuture
-              }),
-              env
-            );
+          cat > cloudflare/public-api/test/contentPublishTimeAuthority.test.ts <<'TEST'
+          // @vitest-environment node
+          import { describe, expect, it } from "vitest";
+          import {
+            normalizeContentPublishAtForAction,
+            resolveContentPublishAtForWrite
+          } from "../src/routes/adminWrite";
 
-            expect(response.status).toBe(201);
-            expect(tables.contents[0]).toMatchObject({ status: "published" });
-            expect(tables.contents[0]?.publish_at).toBe(tables.contents[0]?.updated_at);
-            expect(tables.contents[0]?.publish_at).not.toBe(clientFuture);
-          });
+          const now = "2026-10-02T00:00:00.000Z";
+          const past = "2026-09-30T08:45:00.000Z";
+          const future = "2026-10-30T08:45:00.000Z";
 
-          it("uses Worker time when a normal PATCH publishes a draft with a future client timestamp", async () => {
-            const { db, tables } = createAdminWriteMockDb();
-            const env = makeEnv(db);
-            const clientFuture = "2099-10-30T15:45:00+07:00";
+          describe("Worker-authoritative content publish time", () => {
+            it("ignores a future client clock for a direct published create", () => {
+              expect(resolveContentPublishAtForWrite("published", future, undefined, undefined, now)).toBe(now);
+            });
 
-            expect((await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env)).status).toBe(201);
-            const response = await worker.fetch(
-              makeJsonRequest(
-                "/api/admin/content/m18-preview-content-001",
-                {
-                  ...contentInput,
-                  status: "published",
-                  publishAt: clientFuture,
-                  expectedRevision: 0
-                },
-                { method: "PATCH" }
-              ),
-              env
-            );
+            it("clamps a future client timestamp when draft content becomes published", () => {
+              expect(resolveContentPublishAtForWrite("published", future, "draft", past, now)).toBe(now);
+            });
 
-            expect(response.status).toBe(200);
-            expect(tables.contents[0]).toMatchObject({ status: "published", revision: 1 });
-            expect(tables.contents[0]?.publish_at).toBe(tables.contents[0]?.updated_at);
-            expect(tables.contents[0]?.publish_at).not.toBe(clientFuture);
-          });
+            it("preserves an explicit valid past timestamp when draft content becomes published", () => {
+              expect(resolveContentPublishAtForWrite("published", past, "draft", past, now)).toBe(past);
+            });
 
-          it("preserves the historical server-approved publish time when editing published content", async () => {
-            const { db, tables } = createAdminWriteMockDb();
-            const env = makeEnv(db);
+            it("preserves the historical server-approved timestamp during published edits", () => {
+              expect(resolveContentPublishAtForWrite("published", future, "published", past, now)).toBe(past);
+            });
 
-            expect(
-              (
-                await worker.fetch(
-                  makeJsonRequest("/api/admin/content", { ...contentInput, status: "published", publishAt: "2099-01-01T00:00:00.000Z" }),
-                  env
-                )
-              ).status
-            ).toBe(201);
-            const originalPublishAt = String(tables.contents[0]?.publish_at ?? "");
+            it("repairs a legacy published future timestamp to Worker time", () => {
+              expect(resolveContentPublishAtForWrite("published", future, "published", future, now)).toBe(now);
+            });
 
-            const response = await worker.fetch(
-              makeJsonRequest(
-                "/api/admin/content/m18-preview-content-001",
-                {
-                  ...contentInput,
-                  status: "published",
-                  title: "Published item edited later",
-                  publishAt: "2099-12-31T23:59:00.000Z",
-                  expectedRevision: 0
-                },
-                { method: "PATCH" }
-              ),
-              env
-            );
+            it("allows future timestamps only for scheduled content", () => {
+              expect(resolveContentPublishAtForWrite("scheduled", future, "draft", past, now)).toBe(future);
+              expect(() => resolveContentPublishAtForWrite("scheduled", past, "draft", past, now)).toThrow(
+                "scheduled publishAt must be a valid future timestamp"
+              );
+              expect(() => resolveContentPublishAtForWrite("scheduled", "", "draft", past, now)).toThrow(
+                "scheduled publishAt is required"
+              );
+            });
 
-            expect(response.status).toBe(200);
-            expect(tables.contents[0]?.publish_at).toBe(originalPublishAt);
-            expect(tables.contents[0]?.publish_at).not.toBe("2099-12-31T23:59:00.000Z");
-          });
+            it("does not retain future client timestamps on inactive content", () => {
+              expect(resolveContentPublishAtForWrite("draft", future, "draft", future, now)).toBe("");
+              expect(resolveContentPublishAtForWrite("review", future, "review", future, now)).toBe("");
+            });
 
-          it("allows future publish timestamps only for scheduled content", async () => {
-            const { db, tables } = createAdminWriteMockDb();
-            const env = makeEnv(db);
-            const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
-            const scheduledResponse = await worker.fetch(
-              makeJsonRequest("/api/admin/content", {
-                ...contentInput,
-                id: "scheduled-content",
-                slug: "scheduled-content",
-                status: "scheduled",
-                publishAt: scheduledAt
-              }),
-              env
-            );
-            const draftResponse = await worker.fetch(
-              makeJsonRequest("/api/admin/content", {
-                ...contentInput,
-                id: "future-draft",
-                slug: "future-draft",
-                status: "draft",
-                publishAt: scheduledAt
-              }),
-              env
-            );
-            const invalidScheduleResponse = await worker.fetch(
-              makeJsonRequest("/api/admin/content", {
-                ...contentInput,
-                id: "past-schedule",
-                slug: "past-schedule",
-                status: "scheduled",
-                publishAt: "2020-01-01T00:00:00.000Z"
-              }),
-              env
-            );
-
-            expect(scheduledResponse.status).toBe(201);
-            expect(tables.contents.find((row) => row.id === "scheduled-content")?.publish_at).toBe(scheduledAt);
-            expect(draftResponse.status).toBe(201);
-            expect(tables.contents.find((row) => row.id === "future-draft")?.publish_at).toBe("");
-            expect(invalidScheduleResponse.status).toBe(400);
-            await expect(readJson(invalidScheduleResponse)).resolves.toMatchObject({
-              error: "scheduled publishAt must be a valid future timestamp",
-              field: "publishAt"
+            it("clamps legacy future timestamps on the dedicated publish action", () => {
+              expect(normalizeContentPublishAtForAction("publish", future, now)).toBe(now);
+              expect(normalizeContentPublishAtForAction("publish", past, now)).toBe(past);
+              expect(normalizeContentPublishAtForAction("unpublish", future, now)).toBe("");
             });
           });
-
-          it("clamps a legacy future publish timestamp when the dedicated publish route is used", async () => {
-            const { db, tables } = createAdminWriteMockDb();
-            const env = makeEnv(db);
-
-            expect((await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), env)).status).toBe(201);
-            tables.contents[0].publish_at = "2099-10-30T15:45:00+07:00";
-
-            const response = await worker.fetch(
-              makeJsonRequest("/api/admin/content/m18-preview-content-001/publish", {}),
-              env
-            );
-
-            expect(response.status).toBe(200);
-            expect(tables.contents[0]).toMatchObject({ status: "published", revision: 1 });
-            expect(tables.contents[0]?.publish_at).toBe(tables.contents[0]?.updated_at);
-            expect(tables.contents[0]?.publish_at).not.toBe("2099-10-30T15:45:00+07:00");
-          });
-
-          '''
-          if marker not in test_source:
-            raise SystemExit("test insertion marker did not match")
-          test_source = test_source.replace(marker, additions + marker, 1)
-          tests.write_text(test_source)
-          PY
-      - name: Run focused Worker regression tests
-        run: pnpm exec vitest run cloudflare/public-api/test/adminWriteRoutes.test.ts
+          TEST
+      - name: Run Worker regression tests
+        run: pnpm exec vitest run cloudflare/public-api/test/contentPublishTimeAuthority.test.ts cloudflare/public-api/test/adminWriteRoutes.test.ts
       - name: Commit tested patch and remove one-off workflow
         run: |
           rm .github/workflows/one-off-server-time-authority-patch.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add cloudflare/public-api/src/routes/adminWrite.ts cloudflare/public-api/test/adminWriteRoutes.test.ts .github/workflows/one-off-server-time-authority-patch.yml
+          git add cloudflare/public-api/src/routes/adminWrite.ts cloudflare/public-api/test/contentPublishTimeAuthority.test.ts .github/workflows/one-off-server-time-authority-patch.yml
           git commit -m "fix(content): make worker authoritative for publish time"
           git push origin HEAD:fix/server-authoritative-publish-time
