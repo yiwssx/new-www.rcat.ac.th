@@ -17,7 +17,6 @@ const expectedWorkflows = [
   "dependency-status-sync.yml",
   "image-production-worker.yml",
   "maintenance-recovery.yml",
-  "one-off-content-record-audit.yml",
   "production-data-operations.yml",
   "production-verification.yml",
   "worker-production-rollback.yml",
@@ -27,7 +26,7 @@ const expectedWorkflows = [
 describe("workflow inventory governance", () => {
   it("keeps the active workflow surface intentionally bounded", () => {
     expect(workflowFiles).toEqual(expectedWorkflows);
-    expect(workflowFiles).toHaveLength(11);
+    expect(workflowFiles).toHaveLength(10);
   });
 
   it("does not restore retired branch-mutating, phase-specific, or duplicate workflows", () => {
