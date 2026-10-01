@@ -1,4 +1,4 @@
-name: One-off Content Record Audit
+name: One-off Content Publish Repair
 
 on:
   push:
@@ -11,14 +11,18 @@ permissions:
   contents: read
 
 jobs:
-  audit-content-record:
-    name: Audit school board news record
+  repair-content-record:
+    name: Repair school board news publish timestamp
     runs-on: ubuntu-latest
     environment:
       name: production
       deployment: false
     env:
       PRODUCTION_D1_RESOURCE_NAME: rcat-public-api-preview
+      TARGET_CONTENT_ID: content-7072987c-d31a-457c-afe0-445858cfe3a6
+      TARGET_SLUG: facebook-1609435494524655-1689980159803521
+      EXPECTED_PUBLISH_AT: 2026-10-30T15:45:00+07:00
+      REPAIRED_PUBLISH_AT: 2026-09-30T15:45:00+07:00
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -30,10 +34,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
-      - name: Require protected D1 read credentials
+      - name: Require protected production write credentials
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           test -n "$CLOUDFLARE_ACCOUNT_ID"
@@ -42,15 +46,20 @@ jobs:
       - name: Resolve exact production D1 identity
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
           node cloudflare/public-api/scripts/worker-production-preflight.mjs --database-list "$RUNNER_TEMP/d1-databases.json" --verify-identity-only
-      - name: Query production D1 recent content and locate target
+      - name: Capture pre-change Time Travel bookmark
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm wrangler d1 time-travel info "$PRODUCTION_D1_RESOURCE_NAME" --json > "$RUNNER_TEMP/d1-production-time-travel.json"
+      - name: Guard, repair, and verify exact production record
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
         run: |
           set -euo pipefail
@@ -80,33 +89,61 @@ jobs:
           const label = process.argv[2];
           const path = process.argv[3];
           const payload = JSON.parse(fs.readFileSync(path, 'utf8'));
-
           if (payload.success !== true) {
             console.error(JSON.stringify({ label, success: false, errors: payload.errors ?? [], messages: payload.messages ?? [] }, null, 2));
             process.exit(1);
           }
-
           const statements = Array.isArray(payload.result) ? payload.result : [];
           const rows = statements.flatMap((entry) => Array.isArray(entry?.results) ? entry.results : []);
-          console.log(JSON.stringify({ label, count: rows.length }, null, 2));
+          console.log(JSON.stringify({ label, count: rows.length, rows }, null, 2));
           NODE
           }
 
-          query_d1 "contents-schema" "PRAGMA table_info(contents);"
-          query_d1 "recent-content" "SELECT id, title, summary, slug, type, status, publish_at, updated_at, deleted_at, unpublish_at FROM contents ORDER BY updated_at DESC LIMIT 100;"
+          query_d1 "preflight" "SELECT id, title, slug, type, status, publish_at, updated_at, deleted_at, unpublish_at FROM contents WHERE id = '${TARGET_CONTENT_ID}' LIMIT 1;"
 
-          node - "$RUNNER_TEMP/recent-content.json" <<'NODE'
+          node - "$RUNNER_TEMP/preflight.json" <<'NODE'
           const fs = require('fs');
           const payload = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-          const rows = (Array.isArray(payload.result) ? payload.result : [])
-            .flatMap((entry) => Array.isArray(entry?.results) ? entry.results : []);
-          const targetText = 'คณะกรรมการสถานศึกษา';
-          const targetRows = rows.filter((row) =>
-            String(row.title ?? '').includes(targetText) || String(row.summary ?? '').includes(targetText)
-          );
-          const recentRows = rows.filter((row) =>
-            String(row.publish_at ?? '') >= '2026-09-29' || String(row.updated_at ?? '') >= '2026-09-29'
-          );
-          console.log(JSON.stringify({ targetCount: targetRows.length, targetRows, recentCount: recentRows.length, recentRows }, null, 2));
-          if (targetRows.length === 0) process.exitCode = 2;
+          const rows = (Array.isArray(payload.result) ? payload.result : []).flatMap((entry) => Array.isArray(entry?.results) ? entry.results : []);
+          if (rows.length !== 1) throw new Error(`expected exactly one target row, got ${rows.length}`);
+          const row = rows[0];
+          const checks = {
+            id: row.id === process.env.TARGET_CONTENT_ID,
+            slug: row.slug === process.env.TARGET_SLUG,
+            type: row.type === 'news',
+            status: row.status === 'published',
+            publishAt: row.publish_at === process.env.EXPECTED_PUBLISH_AT,
+            deletedAt: (row.deleted_at ?? '') === '',
+            unpublishAt: (row.unpublish_at ?? '') === '',
+            title: String(row.title ?? '').includes('ประชุมคณะกรรมการวิทยาลัย') && String(row.title ?? '').includes('คณะกรรมการบริหารสถานศึกษา'),
+          };
+          const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
+          if (failed.length) throw new Error(`production repair guard failed: ${failed.join(', ')}`);
+          console.log('Exact production record guard passed.');
+          NODE
+
+          query_d1 "repair" "UPDATE contents SET publish_at = '${REPAIRED_PUBLISH_AT}' WHERE id = '${TARGET_CONTENT_ID}' AND slug = '${TARGET_SLUG}' AND type = 'news' AND status = 'published' AND publish_at = '${EXPECTED_PUBLISH_AT}' AND COALESCE(deleted_at, '') = '' AND COALESCE(unpublish_at, '') = '' RETURNING id, title, slug, status, publish_at, updated_at, deleted_at, unpublish_at;"
+
+          node - "$RUNNER_TEMP/repair.json" <<'NODE'
+          const fs = require('fs');
+          const payload = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const rows = (Array.isArray(payload.result) ? payload.result : []).flatMap((entry) => Array.isArray(entry?.results) ? entry.results : []);
+          if (rows.length !== 1) throw new Error(`repair changed ${rows.length} rows; expected exactly one`);
+          const row = rows[0];
+          if (row.id !== process.env.TARGET_CONTENT_ID || row.publish_at !== process.env.REPAIRED_PUBLISH_AT) {
+            throw new Error('repair result did not match the expected target and timestamp');
+          }
+          console.log(JSON.stringify({ repaired: true, row }, null, 2));
+          NODE
+
+          query_d1 "visibility" "SELECT id, title, slug, status, publish_at, deleted_at, unpublish_at FROM contents WHERE id = '${TARGET_CONTENT_ID}' AND status = 'published' AND (COALESCE(publish_at, '') = '' OR datetime(publish_at) <= datetime('now')) AND (COALESCE(unpublish_at, '') = '' OR datetime(unpublish_at) > datetime('now')) AND COALESCE(deleted_at, '') = '';"
+
+          node - "$RUNNER_TEMP/visibility.json" <<'NODE'
+          const fs = require('fs');
+          const payload = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const rows = (Array.isArray(payload.result) ? payload.result : []).flatMap((entry) => Array.isArray(entry?.results) ? entry.results : []);
+          if (rows.length !== 1 || rows[0].id !== process.env.TARGET_CONTENT_ID) {
+            throw new Error('repaired record still fails the public visibility predicate');
+          }
+          console.log(JSON.stringify({ publiclyVisibleByD1Predicate: true, row: rows[0] }, null, 2));
           NODE
