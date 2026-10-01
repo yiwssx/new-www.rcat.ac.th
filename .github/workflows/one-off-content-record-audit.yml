@@ -3,7 +3,7 @@ name: One-off Content Record Audit
 on:
   push:
     branches:
-      - ops/audit-school-board-news-2026-09-30
+      - main
     paths:
       - ".github/workflows/one-off-content-record-audit.yml"
 
