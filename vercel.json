@@ -7,7 +7,6 @@
   "git": {
     "deploymentEnabled": {
       "main": true,
-      "docs/close-mui-tailwind-cascade-migration": true,
       "**": false
     }
   },
