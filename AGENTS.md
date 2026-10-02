@@ -156,6 +156,21 @@ Do not perform broad performance refactors during authentication or security tas
 
 Security, correctness, authorization, session integrity, and data consistency take priority over performance optimization.
 
+## Material UI + Tailwind Skill
+
+For Material UI/Tailwind styling work, use the vendored `.agents/skills/material-ui-tailwind` skill as upstream implementation guidance. The vendored snapshot is pinned in `.agents/skills/material-ui-tailwind/UPSTREAM.md`; do not silently replace it from upstream `master`.
+
+Repository-specific policy overrides generic skill examples:
+
+- `src/design-system/tokens.ts` remains the canonical semantic design-token source. Do not make `--mui-*` variables the primary RCAT design-token source or create a parallel semantic token authority.
+- MUI owns interactive controls, forms, component state, focus behavior, overlays, portal-based UI, and dense Admin widgets. Tailwind/RCAT utilities own page layout, responsive structure, section spacing, prose, print, and static wrappers.
+- Do not give MUI and Tailwind competing border, radius, shadow, focus, state, or responsive ownership on the same element. Preserve `docs/design/mui-tailwind-boundary.md`.
+- Tailwind `className` or `slotProps.*.className` overrides on MUI internals require an explicit local need. Do not adopt them as the default styling pattern merely because the upstream skill demonstrates them.
+- SSR and client styling configuration must remain identical through the shared runtime/provider and runtime-owned Emotion cache. Do not apply `enableCssLayer` only in `src/main.tsx` or otherwise create a client-only MUI styling path.
+- Cascade-layer changes must preserve Emotion critical CSS extraction, CSP nonce behavior, hydration, accessibility/focus policy, portals, and existing component theme overrides.
+- Use the repository quality, design, SSR/hydration, and functional gates as evidence before merging cascade changes. Do not treat generic upstream snippets as sufficient verification.
+- Repository architecture, security, accessibility, and design-system rules take precedence over generic skill examples when they differ.
+
 ## Sigmap Workflow
 
 Use sigmap for repository-aware AI assistance when available.
