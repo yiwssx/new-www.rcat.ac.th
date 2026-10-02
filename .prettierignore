@@ -6,3 +6,8 @@ test-results
 .vercel
 .DS_Store
 pnpm-lock.yaml
+.agents/skills/material-ui-tailwind/AGENTS.md
+.agents/skills/material-ui-tailwind/README.md
+.agents/skills/material-ui-tailwind/SKILL.md
+.agents/skills/material-ui-tailwind/metadata.json
+.agents/skills/material-ui-tailwind/reference.md
