@@ -11,4 +11,6 @@ This directory vendors the official Material UI `material-ui-tailwind` agent ski
 
 The five upstream files (`AGENTS.md`, `README.md`, `SKILL.md`, `metadata.json`, and `reference.md`) are kept unmodified from the pinned snapshot. `UPSTREAM.md` is RCAT-owned provenance metadata and is not part of the upstream skill.
 
+Those five upstream files are listed explicitly in `.prettierignore`. The repository formatter must not rewrite third-party agent instructions because doing so would break blob-level provenance and make upstream review harder. RCAT-owned files in this directory remain subject to the normal repository formatting rules.
+
 Do not automatically synchronize this directory from upstream `master`. Agent skills are executable guidance for coding agents, so upstream changes must be reviewed as instruction-supply-chain changes. Update the pinned commit and vendored files together in a normal pull request after reviewing the upstream diff and compatibility with the repository's current Material UI major version and local design-system policy.
