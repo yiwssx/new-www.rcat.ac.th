@@ -2,15 +2,17 @@
 
 Date: 2026-10-02
 
+Status: complete. Runtime migration, deployment-level preview verification, and durable boundary documentation are closed through PRs #472–#475.
+
 ## Scope
 
-This document records the pre-change baseline for adopting the official Material UI + Tailwind CSS v4 cascade-layer integration. It is intentionally documentation-only: this audit does not change runtime styling, CSS precedence, SSR behavior, or production output.
+This document preserves the pre-change baseline and records the completed Material UI + Tailwind CSS v4 cascade-layer migration. The migration was deliberately split across separate pull requests so agent guidance, the CSS contract, runtime/SSR integration, and deployment verification could be reviewed independently.
 
-The implementation is split across separate pull requests so a cascade regression can be isolated from agent-guidance and SSR/Emotion changes.
+The baseline sections below remain historical evidence. The active architecture is described under **Current implementation** and in `docs/design/mui-tailwind-boundary.md`.
 
 ## Current stack
 
-The repository currently uses:
+The repository uses:
 
 - Material UI `^9.4.0`
 - Material UI Icons `^9.4.0`
@@ -21,91 +23,77 @@ The repository currently uses:
 - Vite `^8.3.0`
 - TanStack Router SSR
 
-`postcss.config.cjs` runs `@tailwindcss/postcss`. The project is already on the Tailwind v4 path; Tailwind v3 interoperability guidance is not applicable to the runtime architecture.
+`postcss.config.cjs` runs `@tailwindcss/postcss`. The project is on the Tailwind v4 path; Tailwind v3 interoperability guidance is not applicable to the runtime architecture.
 
 ## Existing ownership boundary
 
-`src/design-system/tokens.ts` remains the canonical semantic design-token source. The current policy in `docs/design/mui-tailwind-boundary.md` separates responsibilities deliberately:
+`src/design-system/tokens.ts` remains the canonical semantic design-token source. The policy in `docs/design/mui-tailwind-boundary.md` separates responsibilities deliberately:
 
 - MUI owns interactive controls, forms, component state, focus behavior, dialogs, drawers, menus, tables, tabs, pagination, and dense Admin workflows.
 - Tailwind/RCAT utilities own broad page layout, responsive containers, section spacing, simple static wrappers, print, and prose structure.
-- A surface must not receive competing border, radius, shadow, focus, or state ownership from both systems.
+- A surface must not receive competing border, radius, shadow, focus, state, or the same responsive/layout property from both systems.
 
-The cascade-layer integration must strengthen this boundary, not replace it with unrestricted Tailwind overrides of MUI internals.
+The cascade-layer integration strengthens this boundary; it does not permit unrestricted Tailwind overrides of MUI internals.
 
-## CSS baseline
+## Pre-change CSS baseline
 
-`src/styles.css` currently imports Tailwind directly and does not declare the Material UI layer order:
+Before PR B/PR C, `src/styles.css` imported Tailwind directly and did not declare the Material UI layer order:
 
 ```css
 @import "tailwindcss";
 ```
 
-The file already contains `@theme inline`, `@utility`, and `@layer components`, but several application rules remain unlayered. The current unlayered groups include:
+Several application rules were unlayered, including `:root`, the universal selector, `html`, `body`, `a`, `#root`, `.table-scroll`, `.content-summary`, `.form-shell`, `#status`, and `@keyframes cardIn`.
 
-- `:root`
-- universal `*`
-- `html`
-- `body`
-- `a`
-- `#root`
-- `.table-scroll`
-- `.content-summary`
-- `.form-shell`
-- `#status`
-- `@keyframes cardIn`
+This mattered because normal unlayered author CSS outranks normal author CSS inside named cascade layers. Enabling `@layer mui` without classifying those rules could have silently changed precedence.
 
-This matters because normal unlayered author CSS has precedence over normal author CSS inside named cascade layers. Enabling `@layer mui` before classifying these rules could therefore change which RCAT/global rules win against MUI styles.
+## Pre-change runtime and SSR baseline
 
-## Runtime and SSR baseline
+The application was already using one runtime-owned Emotion cache for both server and client rendering:
 
-The application is not a simple client-only Vite tree.
+- `src/main.tsx` imports `src/styles.css` and delegates mounting to `mountClientApp`.
+- `src/entry-client.tsx` creates an application runtime and passes its Emotion cache through the shared provider tree.
+- `src/entry-server.tsx` creates the same runtime shape for SSR and finalizes HTML through `createEmotionSsrResponseFinalizer`.
+- `src/runtime.ts` creates one `emotionCache` per application runtime through `createAppEmotionCache()`.
+- `src/emotionSsr.ts` extracts critical styles from that exact runtime cache.
 
-`src/main.tsx` imports `src/styles.css` and delegates mounting to `mountClientApp`.
-
-`src/entry-client.tsx` creates an application runtime and supports both document hydration and root hydration. It passes the runtime-owned Emotion cache to the shared `AppProviders` tree.
-
-`src/entry-server.tsx` creates the same runtime shape for SSR, renders the same `AppProviders`, then finalizes the HTML through `createEmotionSsrResponseFinalizer` before adding CSP headers.
-
-`src/runtime.ts` creates one `emotionCache` per application runtime through `createAppEmotionCache()`.
-
-`src/emotionCache.ts` currently creates the cache with the repository key only:
+The cache originally used the repository key only:
 
 ```ts
 createCache({ key: "css" });
 ```
 
-`src/emotionSsr.ts` creates the Emotion server instance from that exact runtime cache and extracts critical styles from the rendered HTML.
+A generic client-only `StyledEngineProvider enableCssLayer` integration would therefore have risked creating a second styling path that SSR extraction did not own.
 
-### Consequence
+## Current implementation
 
-The generic Vite example from the Material UI skill cannot be copied blindly into `src/main.tsx`. If a `StyledEngineProvider` were to introduce or redirect MUI styles to a different Emotion cache while SSR extraction continued to inspect only the runtime cache, server-rendered MUI styles could be omitted or ordered differently from client styles.
-
-The eventual MUI layer implementation must therefore preserve a single coherent cache/insertion strategy across SSR and CSR, including CSP nonce handling and hydration behavior.
-
-## Target cascade contract
-
-The intended Tailwind v4 layer order is:
+The active author-layer contract is:
 
 ```css
 @layer theme, base, mui, components, utilities;
 ```
 
-The architectural meaning for this repository is:
+The responsibilities are:
 
-1. `theme` — Tailwind/theme declarations and token plumbing.
+1. `theme` — Tailwind/theme declarations and RCAT token aliases.
 2. `base` — intentionally classified global/reset rules.
 3. `mui` — Material UI/Emotion component styles.
-4. `components` — RCAT structural component classes that are allowed to follow MUI in the cascade.
-5. `utilities` — Tailwind utilities, available as the final utility layer while still constrained by the RCAT ownership policy.
+4. `components` — RCAT structural/static component classes.
+5. `utilities` — Tailwind utilities, constrained by the repository ownership policy.
 
-Layer order is a deterministic cascade mechanism. It is not permission to mix both styling systems on the same interactive surface.
+`src/styles.css` declares the order before the Tailwind import, maps RCAT aliases in `theme`, places global/reset rules in `base`, and places RCAT structural rules in `components`.
+
+`src/emotionCache.ts` keeps `APP_EMOTION_CACHE_KEY = "css"` and wraps Emotion-generated styles in `@layer mui`. Explicit layer-order declarations are preserved instead of being wrapped. Server and client use the same cache factory, so SSR critical CSS extraction and CSR hydration observe the same MUI layer ownership.
+
+No `StyledEngineProvider`, second Emotion cache, new styling dependency, or `--mui-*` semantic token bridge was introduced.
+
+Layer order is deterministic cascade machinery, not permission to define one property twice. The PR C regression on the CMS shell demonstrated this directly: a Tailwind `w-full` declaration and responsive MUI `sx.width` on the same flex item competed after layering. The fix removed duplicate width ownership and added `minWidth: 0` so the MUI-controlled flex main can shrink correctly.
 
 ## Token policy
 
-The upstream skill documents a `--mui-*` to Tailwind `@theme` bridge. RCAT will not adopt that bridge as a second source of truth.
+The upstream skill documents a `--mui-*` to Tailwind `@theme` bridge. RCAT does not adopt that bridge as a second source of truth.
 
-The existing direction remains canonical:
+The canonical direction remains:
 
 ```text
 src/design-system/tokens.ts
@@ -129,53 +117,65 @@ The skill is guidance, not the highest repository authority. RCAT-specific archi
 
 ## Migration work and gates
 
-### PR A — baseline and guidance
+### PR A — baseline and guidance — complete (#472)
 
-- Vendor the pinned official Material UI skill.
-- Record upstream provenance.
-- Record this audit.
-- Add the RCAT-specific skill overlay to root `AGENTS.md`.
-- No runtime or CSS behavior change.
+- Vendored the pinned official Material UI skill.
+- Recorded upstream provenance and this audit.
+- Added the RCAT-specific skill overlay to root `AGENTS.md`.
+- Made no runtime or CSS behavior change.
 
-### PR B — cascade contract scaffolding
+### PR B — cascade contract scaffolding — complete (#473)
 
-- Declare the target layer order before Tailwind processing.
-- Reserve the `mui` layer in the contract without enabling MUI layer emission yet.
-- Keep existing RCAT/global unlayered selectors unchanged in this PR so style-precedence changes are not split across two migrations.
-- Add a focused repository check for the canonical layer order.
+- Declared `@layer theme, base, mui, components, utilities;` before Tailwind processing.
+- Reserved the `mui` layer without yet changing Emotion output.
+- Added focused regression coverage for the exact order and placement.
 
-Gate: no intentional UI redesign, no MUI/Emotion cache change, and no deliberate reclassification of existing application selectors.
+### PR C — atomic CSS classification and MUI/Emotion integration — complete (#474)
 
-### PR C — atomic CSS classification and MUI/Emotion integration
+- Classified RCAT/global rules into named layers.
+- Wrapped MUI/Emotion output in `@layer mui` through the existing shared runtime cache.
+- Preserved the Emotion cache key, SSR critical CSS extraction, hydration path, token source, and repository ownership boundary.
+- Added layer-contract, SSR, hydration, and architecture regression coverage.
+- Removed the conflicting CMS `w-full` ownership exposed by functional E2E and retained MUI responsive width ownership with `minWidth: 0`.
 
-- Inspect Material UI v9's actual `enableCssLayer` implementation before changing providers.
-- Classify the existing RCAT/global rules into their intended named layers in the same change that MUI begins emitting into `@layer mui`.
-- Integrate MUI layer emission with the repository's shared runtime-owned Emotion cache rather than creating a client-only styling path.
-- Keep server and client configuration identical.
-- Preserve Emotion critical CSS extraction, CSP nonce behavior, hydration, portals, focus styling, and existing component-theme overrides.
-- Add SSR/hydration and representative MUI/Tailwind regression coverage.
+PR #474 merged as `aee7a3931fce5b3280155f298988f8c9f8b1c57c`. Its post-merge CI run #3072 completed successfully, followed by Production Verification run #92. The read-only browser field QA waited for the matching Vercel production deployment and completed successfully without mutating production data.
 
-Gate: full repository quality/design checks and functional coverage must pass before merge.
+### PR D — preview, production verification, and closure — complete (#475)
 
-### PR D — preview and production verification
+The repository intentionally disables Git deployments for non-`main` branches and skips documentation-only Vercel builds. To obtain a real deployment-level preview without weakening that policy globally, PR D temporarily enabled only `docs/close-mui-tailwind-cascade-migration` and used a semantic-no-op CSS comment to force one preview build.
 
-- Verify representative Public and Admin surfaces on a Vercel preview.
-- Check responsive layout, forms, dialogs/menus/portals, focus-visible behavior, tables, and representative Tailwind structural wrappers.
-- Confirm no hydration/style-order errors in the verified build.
-- Merge only after the normal protected branch gates pass.
-- Verify the resulting production deployment read-only; do not mutate production content merely to validate styling.
-- Complete documentation/cleanup only after the production result is known.
+Verification snapshot:
 
-## Regression risks to watch
+- Git SHA: `43985acaf9963ef1038a52ad511fd240f933603c`
+- Vercel deployment: `dpl_547Dp1AnuN27oChGVZjGoMC2tanw`
+- Target: Preview; deployment reached `READY` for the exact PR branch/head.
+- Read-only HTTP verification returned `200` for `/`, `/news`, `/login`, and `/admin/content`.
+- `/news` returned SSR HTML with Emotion critical CSS emitted inside `@layer mui`.
+- `/login` and `/admin/content` retained the expected CSR/no-store/noindex boundary.
+- Functional E2E on the same PR snapshot completed successfully.
+- No production CMS content or production data was mutated.
 
-1. Unlayered CSS unintentionally outranking the new `mui` layer.
+The first verification snapshot also proved the static layer guard was effective: placing a comment before the canonical `@layer` statement caused `muiTailwindLayerContract.test.mjs` to fail because the repository requires the layer declaration to be the first statement. The comment was removed rather than weakening the test.
+
+Before protected merge, both temporary verification-only changes were fully reverted:
+
+- `src/styles.css` again begins exactly with the canonical layer declaration.
+- `vercel.json` again enables Git deployment only for `main` with all other branches disabled.
+- The final PR merge diff contains documentation only; no styling runtime, Vercel policy, dependency, Worker/API/D1/auth, or production-data change remains.
+
+The protected PR CI is the merge gate for the final documentation head. After merge, normal `main` CI and the repository's Production Verification workflow provide the immutable operational closeout record in GitHub Actions; exact run identities remain in repository history rather than requiring a follow-up documentation-only PR.
+
+## Regression risks retained as permanent review checks
+
+1. Unlayered CSS unintentionally outranking the `mui` layer.
 2. Tailwind utilities gaining authority over MUI internals where the RCAT boundary forbids it.
 3. A second Emotion cache being introduced by a provider and escaping SSR extraction.
 4. Server/client layer order differing during hydration.
 5. CssBaseline/global focus policy changing relative to Tailwind preflight.
 6. Portal-based components rendering with a different styling context.
 7. Token duplication through an unnecessary `--mui-*` bridge.
-8. Broad refactors being mixed into the cascade migration and obscuring regressions.
+8. The same layout property being declared by both Tailwind `className` and MUI `sx` on one element.
+9. Broad refactors being mixed into styling infrastructure changes and obscuring regressions.
 
 ## Non-goals
 
