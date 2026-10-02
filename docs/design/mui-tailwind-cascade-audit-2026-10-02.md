@@ -72,7 +72,7 @@ The application is not a simple client-only Vite tree.
 `src/emotionCache.ts` currently creates the cache with the repository key only:
 
 ```ts
-createCache({ key: "css" })
+createCache({ key: "css" });
 ```
 
 `src/emotionSsr.ts` creates the Emotion server instance from that exact runtime cache and extracts critical styles from the rendered HTML.
@@ -137,18 +137,19 @@ The skill is guidance, not the highest repository authority. RCAT-specific archi
 - Add the RCAT-specific skill overlay to root `AGENTS.md`.
 - No runtime or CSS behavior change.
 
-### PR B — cascade classification
+### PR B — cascade contract scaffolding
 
 - Declare the target layer order before Tailwind processing.
-- Classify the existing unlayered RCAT/global rules deliberately.
-- Preserve the existing visual and accessibility contract before MUI layer mode is enabled.
-- Add focused tests/checks for layer order and forbidden unlayered application rules where practical.
+- Reserve the `mui` layer in the contract without enabling MUI layer emission yet.
+- Keep existing RCAT/global unlayered selectors unchanged in this PR so style-precedence changes are not split across two migrations.
+- Add a focused repository check for the canonical layer order.
 
-Gate: no intentional UI redesign and no MUI/Emotion cache change.
+Gate: no intentional UI redesign, no MUI/Emotion cache change, and no deliberate reclassification of existing application selectors.
 
-### PR C — MUI/Emotion layer integration
+### PR C — atomic CSS classification and MUI/Emotion integration
 
 - Inspect Material UI v9's actual `enableCssLayer` implementation before changing providers.
+- Classify the existing RCAT/global rules into their intended named layers in the same change that MUI begins emitting into `@layer mui`.
 - Integrate MUI layer emission with the repository's shared runtime-owned Emotion cache rather than creating a client-only styling path.
 - Keep server and client configuration identical.
 - Preserve Emotion critical CSS extraction, CSP nonce behavior, hydration, portals, focus styling, and existing component-theme overrides.
