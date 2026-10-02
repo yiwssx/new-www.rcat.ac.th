@@ -1,4 +1,3 @@
-/* Canonical RCAT author-layer contract. Keep this order aligned with docs/design/mui-tailwind-boundary.md. */
 @layer theme, base, mui, components, utilities;
 @import "tailwindcss";
 
