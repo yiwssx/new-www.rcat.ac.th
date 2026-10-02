@@ -17,4 +17,12 @@ describe("MUI + Tailwind cascade layer contract", () => {
     const layerStatement = stylesSource.match(/^@layer\s+([^;]+);/)?.[1];
     expect(layerStatement?.split(/\s*,\s*/)).toEqual(["theme", "base", "mui", "components", "utilities"]);
   });
+
+  it("classifies RCAT token aliases, base rules, and structural classes", () => {
+    expect(stylesSource).toMatch(/@layer theme\s*{\s*:root\s*{/);
+    expect(stylesSource).toMatch(/@layer base\s*{\s*\*\s*{/);
+    expect(stylesSource).toMatch(/@layer components\s*{\s*\.table-scroll\s*{/);
+    expect(stylesSource).toMatch(/@layer components[\s\S]*\.form-shell\s*{/);
+    expect(stylesSource).toMatch(/@layer components[\s\S]*@keyframes cardIn\s*{/);
+  });
 });
