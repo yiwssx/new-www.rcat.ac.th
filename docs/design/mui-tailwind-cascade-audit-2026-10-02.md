@@ -2,7 +2,7 @@
 
 Date: 2026-10-02
 
-Status: runtime migration implemented; deployment-level closure verification in progress.
+Status: complete. Runtime migration, deployment-level preview verification, and durable boundary documentation are closed through PRs #472–#475.
 
 ## Scope
 
@@ -140,17 +140,30 @@ The skill is guidance, not the highest repository authority. RCAT-specific archi
 
 PR #474 merged as `aee7a3931fce5b3280155f298988f8c9f8b1c57c`. Its post-merge CI run #3072 completed successfully, followed by Production Verification run #92. The read-only browser field QA waited for the matching Vercel production deployment and completed successfully without mutating production data.
 
-### PR D — preview, production verification, and closure — in progress
+### PR D — preview, production verification, and closure — complete (#475)
 
-PR D is documentation/verification closure only. It must not introduce a new styling runtime change merely to produce a preview.
+The repository intentionally disables Git deployments for non-`main` branches and skips documentation-only Vercel builds. To obtain a real deployment-level preview without weakening that policy globally, PR D temporarily enabled only `docs/close-mui-tailwind-cascade-migration` and used a semantic-no-op CSS comment to force one preview build.
 
-Completion gate:
+Verification snapshot:
 
-- Verify the PR's Vercel preview resolves the exact PR head and is deployment-ready.
-- Exercise representative Public and Admin routes read-only and confirm no hydration/style-order failure is surfaced.
-- Require the normal repository CI/protected-branch checks before merge.
-- After merge, require post-merge CI and Production Verification on the resulting `main` commit.
-- Record the final PR/commit/run evidence here and change this document status to completed.
+- Git SHA: `43985acaf9963ef1038a52ad511fd240f933603c`
+- Vercel deployment: `dpl_547Dp1AnuN27oChGVZjGoMC2tanw`
+- Target: Preview; deployment reached `READY` for the exact PR branch/head.
+- Read-only HTTP verification returned `200` for `/`, `/news`, `/login`, and `/admin/content`.
+- `/news` returned SSR HTML with Emotion critical CSS emitted inside `@layer mui`.
+- `/login` and `/admin/content` retained the expected CSR/no-store/noindex boundary.
+- Functional E2E on the same PR snapshot completed successfully.
+- No production CMS content or production data was mutated.
+
+The first verification snapshot also proved the static layer guard was effective: placing a comment before the canonical `@layer` statement caused `muiTailwindLayerContract.test.mjs` to fail because the repository requires the layer declaration to be the first statement. The comment was removed rather than weakening the test.
+
+Before protected merge, both temporary verification-only changes were fully reverted:
+
+- `src/styles.css` again begins exactly with the canonical layer declaration.
+- `vercel.json` again enables Git deployment only for `main` with all other branches disabled.
+- The final PR merge diff contains documentation only; no styling runtime, Vercel policy, dependency, Worker/API/D1/auth, or production-data change remains.
+
+The protected PR CI is the merge gate for the final documentation head. After merge, normal `main` CI and the repository's Production Verification workflow provide the immutable operational closeout record in GitHub Actions; exact run identities remain in repository history rather than requiring a follow-up documentation-only PR.
 
 ## Regression risks retained as permanent review checks
 
