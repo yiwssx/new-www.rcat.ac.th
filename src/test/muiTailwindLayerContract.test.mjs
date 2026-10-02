@@ -5,7 +5,11 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const stylesPath = fileURLToPath(new URL("../styles.css", import.meta.url));
+const emotionCachePath = fileURLToPath(new URL("../emotionCache.ts", import.meta.url));
+const appProvidersPath = fileURLToPath(new URL("../AppProviders.tsx", import.meta.url));
 const stylesSource = readFileSync(stylesPath, "utf8");
+const emotionCacheSource = readFileSync(emotionCachePath, "utf8");
+const appProvidersSource = readFileSync(appProvidersPath, "utf8");
 const canonicalLayerContract = '@layer theme, base, mui, components, utilities;\n@import "tailwindcss";';
 
 describe("MUI + Tailwind cascade layer contract", () => {
@@ -24,5 +28,11 @@ describe("MUI + Tailwind cascade layer contract", () => {
     expect(stylesSource).toMatch(/@layer components\s*{\s*\.table-scroll\s*{/);
     expect(stylesSource).toMatch(/@layer components[\s\S]*\.form-shell\s*{/);
     expect(stylesSource).toMatch(/@layer components[\s\S]*@keyframes cardIn\s*{/);
+  });
+
+  it("keeps MUI layer emission on the shared runtime-owned Emotion cache", () => {
+    expect(emotionCacheSource).toContain('APP_EMOTION_CSS_LAYER = "mui"');
+    expect(emotionCacheSource).toContain("cache.insert =");
+    expect(appProvidersSource).not.toContain("StyledEngineProvider");
   });
 });
