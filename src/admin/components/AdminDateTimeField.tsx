@@ -1,6 +1,9 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import FormControl from "@mui/material/FormControl";
 import FormHelperText from "@mui/material/FormHelperText";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
@@ -93,6 +96,7 @@ export default function AdminDateTimeField({
   min
 }: AdminDateTimeFieldProps) {
   const fieldId = useId();
+  const nativeDateInputRef = useRef<HTMLInputElement | null>(null);
   const current = parseLocalDateTime(value);
   const minimum = parseLocalDateTime(min);
   const date = current?.date ?? "";
@@ -145,6 +149,30 @@ export default function AdminDateTimeField({
     setDateDraft(null);
   }
 
+  function openNativeDatePicker() {
+    const input = nativeDateInputRef.current;
+    if (!input || disabled) {
+      return;
+    }
+
+    if (typeof input.showPicker === "function") {
+      try {
+        input.showPicker();
+        return;
+      } catch {
+        input.click();
+        return;
+      }
+    }
+
+    input.click();
+  }
+
+  function handleNativeDateChange(nextDate: string) {
+    setDateDraft(null);
+    commit(nextDate, hour, minute);
+  }
+
   const hourLabelId = `${fieldId}-hour-label`;
   const hourSelectId = `${fieldId}-hour`;
   const minuteLabelId = `${fieldId}-minute-label`;
@@ -164,6 +192,20 @@ export default function AdminDateTimeField({
         error={error}
         slotProps={{
           inputLabel: { shrink: true },
+          input: {
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label={`เลือก${label}จากปฏิทิน`}
+                  edge="end"
+                  onClick={openNativeDatePicker}
+                  disabled={disabled}
+                >
+                  <CalendarMonthOutlinedIcon />
+                </IconButton>
+              </InputAdornment>
+            )
+          },
           htmlInput: {
             inputMode: "numeric",
             pattern: "[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}",
@@ -171,6 +213,23 @@ export default function AdminDateTimeField({
           }
         }}
         fullWidth
+      />
+      <input
+        ref={nativeDateInputRef}
+        type="date"
+        value={date}
+        min={minimum?.date}
+        onChange={(event) => handleNativeDateChange(event.target.value)}
+        disabled={disabled}
+        tabIndex={-1}
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          opacity: 0,
+          pointerEvents: "none"
+        }}
       />
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
         <FormControl fullWidth size="small" disabled={disabled || !date} error={error}>
