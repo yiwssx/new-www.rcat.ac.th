@@ -6,7 +6,12 @@ import Box from "@mui/material/Box";
 import { ThemeProvider } from "@mui/material/styles";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { APP_EMOTION_CACHE_KEY, createAppEmotionCache } from "../emotionCache";
+import {
+  APP_EMOTION_CACHE_KEY,
+  APP_EMOTION_CSS_LAYER,
+  createAppEmotionCache,
+  wrapEmotionStylesInMuiLayer
+} from "../emotionCache";
 import { createEmotionSsrResponseFinalizer, injectEmotionCriticalStyleTags } from "../emotionSsr";
 import { renderSsrResponse } from "../entry-server";
 import { theme } from "../theme";
@@ -35,6 +40,15 @@ describe("Emotion SSR styling", () => {
     expect(second.inserted.synthetic).toBeUndefined();
   });
 
+  it("wraps Emotion component styles in the canonical MUI cascade layer", () => {
+    expect(wrapEmotionStylesInMuiLayer("color:red;")).toBe(`@layer ${APP_EMOTION_CSS_LAYER} {color:red;}`);
+  });
+
+  it("preserves explicit cascade layer-order declarations", () => {
+    const layerOrder = "@layer theme, base, mui, components, utilities;";
+    expect(wrapEmotionStylesInMuiLayer(layerOrder)).toBe(layerOrder);
+  });
+
   it("places critical styles in head when a document head is available", () => {
     const html = "<!doctype html><html><head><title>RCAT</title></head><body><main>content</main></body></html>";
     const styleTags = '<style data-emotion="css test">.css-test{color:red}</style>';
@@ -50,7 +64,7 @@ describe("Emotion SSR styling", () => {
     expect(injectEmotionCriticalStyleTags(html, styleTags)).toBe(`<!DOCTYPE html>${styleTags}<main>content</main>`);
   });
 
-  it("extracts component critical CSS from a MUI server render", async () => {
+  it("extracts layered component critical CSS from a MUI server render", async () => {
     const cache = createAppEmotionCache();
     const finalizeEmotionSsrResponse = createEmotionSsrResponseFinalizer(cache);
     const markup = renderToString(
@@ -70,11 +84,12 @@ describe("Emotion SSR styling", () => {
 
     expect(styleMatch).not.toBeNull();
     expect(styleMatch?.[1].trim()).not.toBe("");
+    expect(styleMatch?.[2]).toContain("@layer mui");
     expect(styleMatch?.[2]).toContain(".css-");
     expect(html.indexOf('<style data-emotion="css ')).toBeLessThan(html.indexOf("Styled content"));
   });
 
-  it("returns a full route document with Emotion critical styles inside head", async () => {
+  it("returns a full route document with layered Emotion critical styles inside head", async () => {
     const response = await renderSsrResponse(new Request("https://www.rcat.ac.th/news?page=2"));
     const html = await response.text();
 
@@ -88,5 +103,6 @@ describe("Emotion SSR styling", () => {
     const headEnd = html.indexOf("</head>");
     expect(styleIndex).toBeGreaterThan(headStart);
     expect(styleIndex).toBeLessThan(headEnd);
+    expect(html.slice(styleIndex, headEnd)).toContain("@layer mui");
   });
 });

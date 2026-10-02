@@ -337,10 +337,11 @@ export default function CmsShell() {
       </Box>
       <Box
         component="main"
-        className="mx-auto w-full max-w-[1600px]"
+        className="mx-auto max-w-[1600px]"
         sx={{
           flexGrow: 1,
           width: { lg: `calc(100% - ${drawerWidth}px)` },
+          minWidth: 0,
           minHeight: "100vh",
           pt: 11,
           px: { xs: 2, sm: 3, lg: 4 },

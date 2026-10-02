@@ -10,14 +10,15 @@ describe("Emotion browser hydration", () => {
     document.documentElement.removeAttribute("data-rcat-ssr");
   });
 
-  it("adopts server-rendered Emotion ids when the browser cache is created", () => {
-    document.head.innerHTML = `<style data-emotion="${APP_EMOTION_CACHE_KEY} server-seeded">.css-server-seeded{color:red}</style>`;
+  it("adopts layered server-rendered Emotion ids when the browser cache is created", () => {
+    document.head.innerHTML = `<style data-emotion="${APP_EMOTION_CACHE_KEY} server-seeded">@layer mui{.css-server-seeded{color:red}}</style>`;
     const serverStyle = document.head.querySelector(`style[data-emotion="${APP_EMOTION_CACHE_KEY} server-seeded"]`);
 
     const cache = createAppEmotionCache();
 
     expect(cache.key).toBe(APP_EMOTION_CACHE_KEY);
     expect(cache.inserted["server-seeded"]).toBe(true);
+    expect(serverStyle?.textContent).toContain("@layer mui");
     expect(serverStyle).not.toBeNull();
     expect(document.head.contains(serverStyle)).toBe(true);
   });
