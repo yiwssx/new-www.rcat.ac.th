@@ -11,6 +11,26 @@ RCAT intentionally uses MUI and Tailwind CSS v4 together. The systems have separ
 - `src/styles.css` maps Tailwind and legacy RCAT aliases to the published variables; it does not repeat color values.
 - `src/config/project-settings.json` contains site content and role configuration, not theme values.
 
+## Cascade-layer contract
+
+The active Tailwind CSS v4 author-layer order is:
+
+```css
+@layer theme, base, mui, components, utilities;
+```
+
+The layers have explicit responsibilities:
+
+1. `theme` — Tailwind theme declarations and RCAT token aliases.
+2. `base` — intentionally classified global/reset rules.
+3. `mui` — all MUI/Emotion component output from the shared application Emotion cache.
+4. `components` — RCAT structural/static component classes.
+5. `utilities` — Tailwind utilities.
+
+`src/emotionCache.ts` wraps runtime Emotion output in `@layer mui` while preserving the existing `css` cache key. SSR and CSR use that same runtime-owned cache; do not introduce a client-only `StyledEngineProvider` or a second Emotion cache merely to enable CSS layers.
+
+Layer precedence is not an ownership override. A later layer does not grant permission for Tailwind utilities to restyle MUI internals or for MUI `sx` to duplicate RCAT structural layout on the same element. In particular, do not express the same width, breakpoint, overflow, border, radius, shadow, focus, or state rule through both `className` and `sx`.
+
 ## MUI owns
 
 - Buttons, IconButtons, links acting as controls, and interactive cards
