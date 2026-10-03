@@ -1,4 +1,4 @@
-import { normalizeUnpublishAt } from "../../../shared/contentStateValidation";
+import { normalizeUnpublishAt } from "../../../../shared/contentStateValidation";
 import { mapMediaAssetRowToPublicMediaAsset } from "../adapters/publicMediaAdapter";
 import { authenticateAdminRequest, type AdminIdentity } from "../auth/adminAccess";
 import { requireAdminCapability, type AdminCapability } from "../auth/adminCapabilities";
