@@ -51,10 +51,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
-      - name: Temporary formatter diagnostic
-        run: |
-          pnpm exec prettier --write docs/workstreams/v3.3.1-content-ops-tracker.md src/admin/components/RevisionHistoryViewer.tsx
-          git diff -- docs/workstreams/v3.3.1-content-ops-tracker.md src/admin/components/RevisionHistoryViewer.tsx
       - run: pnpm format:check
       - run: pnpm lint:strict
 
