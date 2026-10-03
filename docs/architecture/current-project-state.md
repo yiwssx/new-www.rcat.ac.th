@@ -36,16 +36,22 @@ Preserve these established ownership boundaries unless a new explicit scope chan
 - Public SSR/frontend and same-origin server/proxy routes: Vercel.
 - Media/file bridge: Apps Script behind the approved Vercel proxy; file storage remains Google Drive.
 - Complaint path: dedicated complaint Apps Script via server-only `COMPLAINT_API_URI`.
-- B3 health aggregation: server-owned explicit-refresh `/api/health-aggregation`.
+- B3 health aggregation: server-owned explicit-refresh `/api/health-aggregation`; GitHub workflow/deployment metadata is read from the current `main` branch.
 - Request correlation: reuse `X-RCAT-Request-ID`.
 
 Completed production-governance/reliability scope remains closed: P5H, P6B, P6C, P6D, Reliability Roadmap v2 Phase 0/A/B1-B3/C, Admin UX 00-10, and production environment-retirement follow-ups.
 
-Production Observability remains deliberate/manual-only and protected by the production Environment. C3 remains manual-only. P6C retains its bounded ongoing reliability guard under its current runbook.
+Current operational ownership is consolidated rather than phase-specific:
+
+- `.github/workflows/production-verification.yml` owns automatic post-CI browser verification plus the scheduled P6B security and P6C reliability checks.
+- Production Observability remains deliberate/manual-only as Production Verification operation `observability`, protected by the `production` Environment.
+- C3 remains deliberate/manual-only as Production Data Operations operation `authenticated-cms-field`, protected by the `production` Environment and deterministic cleanup.
+- `.github/workflows/maintenance-recovery.yml` owns the read-only D1 recovery drill path; destructive restore remains incident-only.
+- Retired phase-specific workflow files and the retired branch-mutating Format Guard must not be restored merely because historical documents mention them.
 
 ## Current branch rule
 
-`main` is the current default and production branch. Active workflows and new operational instructions must target `main`.
+`main` is the current default and production branch. Active workflows, runtime GitHub metadata lookups, and new operational instructions must target `main`.
 
 References to `master` in dated migration, release, milestone, audit, or completion documents describe the branch name that existed when those historical records were written. They are historical evidence and must not override current `main` workflow conditions.
 
@@ -73,8 +79,11 @@ Open Renovate PRs or Dependency Dashboard entries are maintenance state, not evi
 - `docs/operations/p6a-production-observability.md` — Production Observability constraints.
 - `docs/operations/p6b-security-enforcement.md` — completed P6B controls.
 - `docs/operations/p6c-recovery-reliability.md` — P6C recovery/reliability and ongoing guard ownership.
+- `docs/operations/phase-a-field-qa-foundation.md` — current consolidated browser-verification ownership.
+- `docs/operations/phase-b-operational-visibility.md` — current B1/B2/B3 operational ownership.
+- `docs/operations/phase-c-deep-field-verification.md` — completed Phase C and current manual C3 operation boundary.
+- `docs/operations/d1-recovery-drill.md` — current read-only D1 recovery-drill procedure.
 - `docs/operations/p6d-product-ux-improvements.md` — completed P6D scope.
-- `docs/operations/phase-c-deep-field-verification.md` — completed Phase C and manual-only C3 boundary.
 - `docs/admin/admin-ux-execution-tracker.md` — completed Admin UX 00-10 record.
 
 `docs/architecture/post-p5h-current-project-state.md` is the preceding 2026-09-20 project-state snapshot. It remains historical evidence but is superseded by this document for current-state reporting.
