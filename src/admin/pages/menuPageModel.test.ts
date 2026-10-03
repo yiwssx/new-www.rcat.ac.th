@@ -97,6 +97,14 @@ describe("menuPageModel", () => {
     expect(normalizeMenuHref("#section")).toBe("#section");
   });
 
+  it("preserves intentional placeholder targets without inventing a destination", () => {
+    expect(normalizeMenuHref("")).toBe("/");
+    expect(normalizeMenuHref("   ")).toBe("/");
+    expect(normalizeMenuHref("#")).toBe("#");
+    expect(normalizeMenuHref("/")).toBe("/");
+    expect(normalizeMenuHref("/#")).toBe("/#");
+  });
+
   it("keeps ancestors visible when a child matches search/filter", () => {
     const tree = buildMenuTree(flatItems);
     const filtered = filterMenuTree(tree, "first child", "disabled");
