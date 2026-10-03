@@ -14,7 +14,7 @@ import { handleHealthAggregationRequest } from "./handler.mjs";
 const CMS_SESSION_TOKEN = "A".repeat(43);
 const CMS_PROXY_SECRET = "C".repeat(40);
 const CMS_WORKER_ORIGIN = "https://worker.example.test";
-const MASTER_SHA = "a".repeat(40);
+const MAIN_SHA = "a".repeat(40);
 
 function createRequest({
   cookie = `${getCmsSessionCookieName()}=${CMS_SESSION_TOKEN}`,
@@ -72,7 +72,7 @@ function workflowRun(path, { conclusion = "success", id, number, status = "compl
     run_number: number ?? id ?? 1,
     status,
     conclusion: status === "completed" ? conclusion : null,
-    head_sha: MASTER_SHA,
+    head_sha: MAIN_SHA,
     path,
     updated_at: "2026-09-11T01:00:00.000Z"
   };
@@ -92,7 +92,7 @@ function workflowPayload(overrides = {}) {
 
 function deploymentPayload({ description = "Production deployment completed", state = "success" } = {}) {
   return {
-    sha: MASTER_SHA,
+    sha: MAIN_SHA,
     statuses: [
       {
         context: "Vercel",
@@ -133,7 +133,7 @@ describe("B3 health aggregation", () => {
       if (value.includes("/actions/runs?")) {
         return Response.json(workflowPayload());
       }
-      if (value.endsWith("/commits/master/status")) {
+      if (value.endsWith("/commits/main/status")) {
         return Response.json(deploymentPayload());
       }
       throw new Error(`unexpected URL ${value}`);
@@ -145,7 +145,7 @@ describe("B3 health aggregation", () => {
     expect(response.getHeader("Cache-Control")).toBe("no-store");
     expect(response.bodyJson).toMatchObject({
       repository: "yiwssx/new-www.rcat.ac.th",
-      branch: "master",
+      branch: "main",
       overallStatus: "healthy",
       sources: { github: "available", incidents: "available" },
       deployment: { status: "healthy", state: "success" },

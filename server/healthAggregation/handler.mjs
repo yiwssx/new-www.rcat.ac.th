@@ -13,7 +13,7 @@ import {
 import { ensureNodeRequestId, getNodeRequestId, RCAT_REQUEST_ID_HEADER } from "../observability/requestId.mjs";
 
 const REPOSITORY = "yiwssx/new-www.rcat.ac.th";
-const BRANCH = "master";
+const BRANCH = "main";
 const GITHUB_API_ROOT = `https://api.github.com/repos/${REPOSITORY}`;
 const GITHUB_TIMEOUT_MS = 5_000;
 const INCIDENT_WINDOW_HOURS = 24;
@@ -267,7 +267,7 @@ function mapDeploymentSignal(payload) {
     return {
       status: "unknown",
       state: "missing",
-      detail: "Vercel commit status is not present for master",
+      detail: `Vercel commit status is not present for ${BRANCH}`,
       sha
     };
   }
@@ -281,7 +281,7 @@ function mapDeploymentSignal(payload) {
     return {
       status: "unknown",
       state: "ignored",
-      detail: "Latest master change did not require a new Vercel deployment",
+      detail: `Latest ${BRANCH} change did not require a new Vercel deployment`,
       sha,
       updatedAt
     };
@@ -291,7 +291,7 @@ function mapDeploymentSignal(payload) {
     return {
       status: "healthy",
       state: "success",
-      detail: "Vercel reports the latest master deployment status as successful",
+      detail: `Vercel reports the latest ${BRANCH} deployment status as successful`,
       sha,
       updatedAt
     };

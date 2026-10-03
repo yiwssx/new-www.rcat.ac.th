@@ -11,7 +11,7 @@ const currentFacingPaths = [
   "README.md",
   ".github/copilot-instructions.md",
   "AGENTS.md",
-  "docs/architecture/post-p5h-current-project-state.md",
+  "docs/architecture/current-project-state.md",
   "docs/architecture/reliability-roadmap-v2.md",
   "docs/architecture/current-runtime-ownership.md",
   "docs/deployment/runtime-deployment-guide.md",
@@ -35,7 +35,8 @@ const currentFacingSources = Object.fromEntries(
   currentFacingPaths.map((relativePath) => [relativePath, readFileSync(join(repositoryRoot, relativePath), "utf8")])
 ) as Record<(typeof currentFacingPaths)[number], string>;
 
-const canonicalState = currentFacingSources["docs/architecture/post-p5h-current-project-state.md"];
+const readme = currentFacingSources["README.md"];
+const canonicalState = currentFacingSources["docs/architecture/current-project-state.md"];
 const reliabilityRoadmap = currentFacingSources["docs/architecture/reliability-roadmap-v2.md"];
 const currentRuntime = currentFacingSources["docs/architecture/current-runtime-ownership.md"];
 const deploymentGuide = currentFacingSources["docs/deployment/runtime-deployment-guide.md"];
@@ -49,6 +50,10 @@ const workerReadme = currentFacingSources["cloudflare/public-api/README.md"];
 const seedReadme = currentFacingSources["cloudflare/public-api/seed/README.md"];
 const copilotInstructions = currentFacingSources[".github/copilot-instructions.md"];
 const agents = currentFacingSources["AGENTS.md"];
+const historicalPostP5hState = readFileSync(
+  join(repositoryRoot, "docs/architecture/post-p5h-current-project-state.md"),
+  "utf8"
+);
 const environmentRetirementVerification = readFileSync(
   join(repositoryRoot, "docs/operations/environment-retirement-verification-2026-09-11.md"),
   "utf8"
@@ -83,16 +88,29 @@ describe("current project-state consistency", () => {
     }
   });
 
+  it("keeps v3.3.1 as the canonical current release and supersedes the post-P5H snapshot", () => {
+    expect(readme).toContain("**Current version:** `3.3.1`");
+    expect(readme).toContain("docs/architecture/current-project-state.md");
+
+    expect(canonicalState).toContain("Status: **CURRENT**");
+    expect(canonicalState).toContain("Default branch: `main`");
+    expect(canonicalState).toContain("Current release: `v3.3.1 — Content Operations`");
+    expect(canonicalState).toContain("The v3.3.1 Content Operations workstream is complete");
+    expect(canonicalState).toContain("There is no active feature-development, migration, release, P6");
+    expect(canonicalState).toContain("Tasks 1–9 were integrated into `main` by PR #505");
+    expect(canonicalState).toContain("Production Verification #106, run `37125180446` — PASS");
+    expect(canonicalState).toContain("`docs/architecture/post-p5h-current-project-state.md` is the preceding");
+
+    expect(historicalPostP5hState).toContain("Updated: 2026-09-20");
+    expect(canonicalState).not.toBe(historicalPostP5hState);
+  });
+
   it("keeps the canonical reliability and environment state unambiguous", () => {
-    expect(canonicalState).toContain("Phase B Operational Visibility is complete and production-verified");
     expect(canonicalState).toContain(
-      "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete"
+      "Completed production-governance/reliability scope remains closed: P5H, P6B, P6C, P6D, Reliability Roadmap v2"
     );
-    expect(canonicalState).toContain("There is no active Reliability Roadmap v2 phase");
-    expect(canonicalState).toContain("Phase C Deep Field Verification is complete");
-    expect(canonicalState).toContain("Production environment retirement follow-ups are also complete");
-    expect(canonicalState).toContain("retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment");
-    expect(canonicalState).toContain("environment-retirement-verification-2026-09-11.md");
+    expect(canonicalState).toContain("Production Observability remains deliberate/manual-only");
+    expect(canonicalState).toContain("C3 remains deliberate/manual-only as Production Data Operations operation");
 
     expect(reliabilityRoadmap).toContain("| Phase B | Operational Visibility   | Complete");
     expect(reliabilityRoadmap).toContain(
@@ -103,7 +121,7 @@ describe("current project-state consistency", () => {
     expect(reliabilityRoadmap).toContain("| Phase C | Deep Field Verification  | Complete");
   });
 
-  it("keeps current runtime/deployment/environment guidance aligned with implemented SSR, Search, B2, B3, and live env state", () => {
+  it("keeps current runtime/deployment/environment guidance aligned with main and the implemented runtime", () => {
     for (const source of [currentRuntime, deploymentGuide]) {
       expect(source).toContain("renderRouterToStream");
       expect(source).toContain("/api/health-aggregation");
@@ -117,23 +135,35 @@ describe("current project-state consistency", () => {
     expect(currentRuntime).toContain(
       "There is no `PUBLIC_API_PROVIDER` or `VITE_PUBLIC_API_PROVIDER` runtime selector"
     );
+    expect(currentRuntime).toContain("Vercel deploys `main` through Git integration");
+    expect(currentRuntime).toContain("must run from `main`");
+    expect(currentRuntime).not.toContain("Vercel deploys `master` through Git integration");
+    expect(currentRuntime).not.toContain("must run from `master`");
     expect(currentRuntime).toContain("retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment");
 
     expect(deploymentGuide).toContain("Verified Live Environment Baseline");
+    expect(deploymentGuide).toContain("`main` is the production deployment branch");
     expect(deploymentGuide).toContain("retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment");
     expect(deploymentGuide).not.toContain("remove the old `VITE_COMPLAINT_API_URI` value from Vercel");
 
     expect(environmentVariables).toContain("Verified Production Environment State");
     expect(environmentVariables).toContain("`COMPLAINT_API_URI` for the dedicated complaint endpoint");
     expect(environmentVariables).toContain("`VITE_COMPLAINT_API_URI` is absent from the live Vercel environment");
-    expect(environmentVariables).toContain("post-P5H production governance and maintenance baseline");
+    expect(environmentVariables).toContain("v3.3.1 production-governance and governed-maintenance baseline");
+    expect(environmentVariables).toContain("docs/architecture/current-project-state.md");
   });
 
-  it("keeps the Worker README aligned with the canonical in-place production resource and B2 schema", () => {
+  it("keeps the Worker README aligned with the current release, main, and migration inventory", () => {
+    expect(workerReadme).toContain("v3.3.1 production-governance and governed-maintenance baseline");
+    expect(workerReadme).toContain("docs/architecture/current-project-state.md");
     expect(workerReadme).toContain("The previous empty Worker and D1 named `rcat-public-api-production`");
     expect(workerReadme).toContain("are not recreated");
     expect(workerReadme).not.toContain("recreates the Worker service with that name");
     expect(workerReadme).toContain("`0014_b2_runtime_incidents.sql`");
+    expect(workerReadme).toContain("`0018_content_revision_history_hardening.sql`");
+    expect(workerReadme).toContain("`0019_content_revision_write_boundary.sql`");
+    expect(workerReadme).toContain("from `main`");
+    expect(workerReadme).not.toContain("from `master`");
     expect(workerReadme).toContain("Runtime Incident Feed");
     expect(workerReadme).toContain("latest 2,000 rows");
     expect(workerReadme).toContain("environment-retirement-verification-2026-09-11.md");
@@ -172,15 +202,18 @@ describe("current project-state consistency", () => {
     expect(phaseARunbook).toContain("Phase C3 is a manual/protected authenticated disposable CMS regression tool");
   });
 
-  it("records B1, B2, and B3 as completed Phase B work", () => {
+  it("records B1, B2, and B3 as completed Phase B work while preserving historical evidence", () => {
     expect(phaseBRunbook).toContain(
       "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified"
     );
     expect(phaseBRunbook).toContain("## B3 — Health Aggregation");
-    expect(phaseBRunbook).toContain("PR #270 merged to `master` as `cda947149fee0e79791bfc401efbc5c33f3adbb9`");
+    expect(phaseBRunbook).toContain(
+      "PR #270 merged to the then-default `master` branch as `cda947149fee0e79791bfc401efbc5c33f3adbb9`"
+    );
     expect(phaseBRunbook).toContain("CI #2007, run `34547284821`");
     expect(phaseBRunbook).toContain("Vercel production deployment `dpl_94AZDYbaLc61t2XbmxMFCw1GQZyP`");
     expect(phaseBRunbook).toContain("Phase B Operational Visibility is complete and production-verified");
+    expect(phaseBRunbook).toContain("Vercel commit-status metadata for `main`");
   });
 
   it("records operator-verified production environment retirement as completed", () => {
@@ -205,15 +238,16 @@ describe("current project-state consistency", () => {
     expect(cmsAuthCutover).toContain("It no longer represents an open Legacy-secret-retirement task");
   });
 
-  it("keeps repository AI guidance on the completed post-P5H reliability baseline", () => {
+  it("keeps repository AI guidance on the v3.3.1 current-state baseline", () => {
     for (const source of [copilotInstructions, agents]) {
-      expect(source).toContain("post-P5H production governance baseline");
+      expect(source).toContain("v3.3.1 production-governance and governed-maintenance baseline");
+      expect(source).toContain("docs/architecture/current-project-state.md");
       expect(source).toContain(
         "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified"
       );
       expect(source).toMatch(/production environment retirement follow-ups are complete and operator-verified/i);
       expect(source).toContain("C3");
-      expect(source).toMatch(/manual(?:\/protected|-only)/i);
+      expect(source).toMatch(/manual(?: protected|-only)/i);
     }
   });
 });

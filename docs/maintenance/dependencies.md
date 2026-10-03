@@ -109,7 +109,7 @@ Any addition requires explicit review of the executed install script and ownersh
 3. Run `pnpm install --frozen-lockfile --strict-peer-dependencies`.
 4. Run `pnpm deps:check -- --skip-documentation-freshness` and `pnpm deps:docs:audit -- --skip-status-hashes`.
 5. Run the complete CI gates and package-specific regression tests.
-6. Allow the strict master ruleset to require the final Renovate head to be current before merge.
+6. Allow the strict `main` ruleset to require the final Renovate head to be current before merge.
 
 Do not add an Actions-generated documentation commit to an active Renovate PR. This avoids changing the PR head solely for reporting metadata and prevents unnecessary CI restart loops.
 
@@ -145,7 +145,7 @@ No blocking gate may use `continue-on-error`, `|| true`, or another silent failu
 
 The separate Dependency Monitoring workflow runs daily and on manual dispatch. It performs current registry and audit monitoring without modifying repository branches.
 
-Renovate uses the `Asia/Bangkok` timezone and a maintenance window from 00:00 through 06:59. Branch creation, existing-branch updates/rebases, and Renovate-driven automerge are kept inside that window. `rebaseWhen: behind-base-branch` remains necessary because the master ruleset uses strict required status checks and requires the final merge candidate to be current with master.
+Renovate uses the `Asia/Bangkok` timezone and a maintenance window from 00:00 through 06:59. Branch creation, existing-branch updates/rebases, and Renovate-driven automerge are kept inside that window. `rebaseWhen: behind-base-branch` remains necessary because the `main` ruleset uses strict required status checks and requires the final merge candidate to be current with `main`.
 
 Normal throughput is bounded to three concurrent Renovate PRs/branches, two new PRs per hour, and four branch commits/rebases per hour. Security alerts retain their dedicated security policy and are not intentionally delayed by ordinary backlog management.
 

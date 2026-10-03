@@ -1,6 +1,6 @@
 # Phase B — Operational Visibility
 
-Updated: 2026-09-11
+Updated: 2026-10-03
 
 Status: complete and production-verified. B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified.
 
@@ -28,7 +28,7 @@ Live checks:
 2. **CMS Authentication** — reads the existing `/api/cms-auth/session` endpoint.
 3. **Admin API / Worker / D1** — reads the existing `/api/admin/dashboard-summary` path through the configured Admin provider, which exercises the current Vercel Admin Proxy → Cloudflare Worker → D1 boundary.
 4. **Public SSR** — reads `/` as HTML and verifies the expected RCAT SSR marker.
-5. **Health Aggregation · B3** — reads the server-owned `/api/health-aggregation` boundary and summarizes Phase A/P6A/P6B/P6C, deployment metadata, and bounded B2 incident state.
+5. **Health Aggregation · B3** — reads the server-owned `/api/health-aggregation` boundary and summarizes Production Verification/P6A/P6B/P6C, deployment metadata, and bounded B2 incident state.
 6. **Facebook Thumbnail Bridge** — deliberately reports `unknown` rather than performing an import/create request. A side-effect operation is not a health probe.
 
 The checks run once when the page opens and only rerun when the operator explicitly requests another check. There is no interval polling.
@@ -113,10 +113,10 @@ Operators should use a valid Request ID plus approximate time when deeper server
 
 Phase B does not replace or reschedule existing automation:
 
-- Phase A owns deployment-driven production browser QA;
-- P6A owns D1 utilization monitoring and remains protected-Environment approval-gated;
-- P6B owns security/WAF/CSP enforcement checks;
-- P6C owns bounded six-hour SSR → Worker → D1 reliability verification.
+- Production Verification owns deployment-driven read-only browser QA and the consolidated scheduled security/reliability checks;
+- P6A observability remains a protected/manual operation within Production Verification rather than a standalone workflow;
+- P6B owns security/WAF/CSP enforcement contracts;
+- P6C owns the bounded SSR → Worker → D1 reliability contract.
 
 B3 reads latest safe operational metadata only when `/admin/system-health` is explicitly refreshed. GitHub metadata is fetched by the Vercel server boundary after existing CMS authorization succeeds; no GitHub token or infrastructure credential is exposed to the browser.
 
@@ -126,12 +126,11 @@ Status: complete and production-verified.
 
 B3 adds `GET /api/health-aggregation` as a read-only Vercel server-owned boundary. It aggregates:
 
-- latest Phase A Production Browser Smoke state;
-- latest P6A Production Observability state, with protected-Environment waiting treated as expected/unknown rather than an incident;
-- latest P6B Production Security state;
-- latest P6C Production Reliability state;
-- Vercel commit-status metadata for `master`, distinguishing `Ignored Build Step` from a real deployment success; and
+- latest Production Verification workflow state for the current `main` branch;
+- Vercel commit-status metadata for `main`, distinguishing `Ignored Build Step` from a real deployment success; and
 - a bounded 24-hour B2 incident summary.
+
+The consolidated Production Verification workflow retains the Phase A browser, P6B security, P6C reliability, auth-anomaly, and observability operations; B3 does not recreate separate retired workflow files for those historical phases.
 
 Authorization and safety properties:
 
@@ -146,7 +145,7 @@ Authorization and safety properties:
 
 B3 crossed its completion gate on 2026-09-11:
 
-- implementation PR #270 merged to `master` as `cda947149fee0e79791bfc401efbc5c33f3adbb9`;
+- implementation PR #270 merged to the then-default `master` branch as `cda947149fee0e79791bfc401efbc5c33f3adbb9`;
 - final implementation head `b10ab8c99117fa1e254bd420df3f69de5ec77182` passed repository CI #2007, run `34547284821`;
 - Vercel production deployment `dpl_94AZDYbaLc61t2XbmxMFCw1GQZyP` for merge SHA `cda947149fee0e79791bfc401efbc5c33f3adbb9` reached `READY`;
 - an unauthenticated request to the exact production deployment `/api/health-aggregation` returned the expected HTTP `401` fail-closed response with `Cache-Control: no-store`, UUID-shaped `X-RCAT-Request-ID`, P6B WAF marker, and enforced security-baseline marker;
@@ -158,31 +157,31 @@ Implementation and production evidence are also recorded in `docs/architecture/b
 
 B1/B2/B3 use the existing React/MUI application, Vercel server boundary, Cloudflare Worker + D1, current rate-limiting mechanism, request correlation, and GitHub Actions/public repository metadata. No Sentry, Datadog, New Relic, BrowserStack, paid monitoring provider, or new paid SaaS is added.
 
-## B2 completion gate
+## Historical B2 completion gate
 
-B2 is complete only after:
+B2 closed after:
 
-1. event allowlist, sanitization, 60-second client dedupe, 5-minute Worker aggregation, 7-day retention, and 2,000-row bounds are covered by tests;
-2. public origin and rate-limit controls are covered by tests;
-3. the Admin incident feed remains behind CMS server-proxy authentication and `dashboard.read`;
-4. repository CI/governance is green;
-5. the change is merged to `master`;
-6. the production Worker release applies migration `0014_b2_runtime_incidents.sql` and deploys the matching Worker code;
-7. the automatic Phase A production browser verification for the merge commit succeeds.
+1. event allowlist, sanitization, 60-second client dedupe, 5-minute Worker aggregation, 7-day retention, and 2,000-row bounds were covered by tests;
+2. public origin and rate-limit controls were covered by tests;
+3. the Admin incident feed remained behind CMS server-proxy authentication and `dashboard.read`;
+4. repository CI/governance was green;
+5. the change was merged to the then-default `master` branch;
+6. the production Worker release applied migration `0014_b2_runtime_incidents.sql` and deployed the matching Worker code;
+7. the automatic Phase A production browser verification for the merge commit succeeded.
 
-All seven conditions are satisfied by the B2 completion evidence above.
+All seven conditions were satisfied by the B2 completion evidence above.
 
-## B3 completion gate
+## Historical B3 completion gate
 
-B3 is complete only after:
+B3 closed after:
 
-1. focused server/frontend contract tests and repository CI/governance pass;
-2. the implementation is merged to `master`;
-3. the matching Vercel production deployment reaches `READY`;
-4. the production endpoint is present and preserves the authenticated/no-store boundary; and
-5. canonical Phase B/project-state documents are reconciled.
+1. focused server/frontend contract tests and repository CI/governance passed;
+2. the implementation was merged to the then-default `master` branch;
+3. the matching Vercel production deployment reached `READY`;
+4. the production endpoint was present and preserved the authenticated/no-store boundary; and
+5. canonical Phase B/project-state documents were reconciled.
 
-All five conditions are satisfied by the B3 completion evidence above.
+All five conditions were satisfied by the B3 completion evidence above.
 
 ## Phase B closure
 

@@ -15,9 +15,13 @@ The project existed before formal semantic versioning. Earlier architecture gene
 - Authenticated Admin revision viewer and guarded revision restore as a new Draft revision.
 - Shared CMS URL/link and content-state/date validation contracts.
 
-### Safety
+### Release verification
 
-- This release baseline does not create a tag or apply production D1 migrations. Production release and verification remain required before publishing `v3.3.1`.
+- Tasks 1–9 were integrated into `main` at `e1c7f0181adff746457e15a6a6d35743f9326763`.
+- Protected Worker production preflight and production release completed successfully; production D1 migrations `0018` and `0019` were applied during the approved release sequence.
+- Production Verification #106 (run `37125180446`) passed against the exact release commit.
+- Git tag `v3.3.1` points to the exact release commit and GitHub Release `v3.3.1 — Content Operations` is published.
+- The v3.3.1 production sequence is complete; do not repeat its migrations, Worker deployment, or verification solely to reconcile stale state.
 
 No next semantic version has been assigned. The entries below record completed production work after the `3.3.0` baseline without guessing a release number.
 

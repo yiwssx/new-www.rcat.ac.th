@@ -1,10 +1,10 @@
 # RCAT Public API Worker
 
-Updated: 2026-09-11.
+Updated: 2026-10-03.
 
 This Cloudflare Worker is the D1-backed public-read, public analytics, structured-admin, CMS authentication, and B2 Runtime Incident Feed API. Apps Script remains only for the server-side media/file bridge to Google Drive. The dedicated complaint Apps Script is a separate isolated endpoint behind the Vercel complaint proxy.
 
-Current project status is the post-P5H production governance and maintenance baseline. Reliability Roadmap v2 Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. There is no active migration, M20/M21 stabilization, P6 feature-development, or Reliability Roadmap v2 implementation phase. Use `docs/architecture/post-p5h-current-project-state.md` for current project status.
+Current project status is the **v3.3.1 production-governance and governed-maintenance baseline**. Reliability Roadmap v2 Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. There is no active migration, release, M20/M21 stabilization, P6 feature-development, or Reliability Roadmap v2 implementation workstream. Use `docs/architecture/current-project-state.md` for current project status.
 
 ## Current Environment Model
 
@@ -14,7 +14,7 @@ The canonical production Worker and D1 are the existing data-bearing resources o
 
 The previous empty Worker and D1 named `rcat-public-api-production` were manually deleted on 2026-08-16 and are not recreated. Production releases update the existing `rcat-public-api-preview` Worker in place and bind it to the existing promoted data-bearing D1 through the tracked `env.production` contract.
 
-See `docs/architecture/production-environment-convergence-2026-08-16.md`, `docs/architecture/current-runtime-ownership.md`, and `docs/deployment/runtime-deployment-guide.md`.
+See `docs/architecture/production-environment-convergence-2026-08-16.md`, `docs/architecture/current-runtime-ownership.md`, `docs/architecture/current-project-state.md`, and `docs/deployment/runtime-deployment-guide.md`.
 
 ## Current Public Surface
 
@@ -78,7 +78,7 @@ Current runtime ownership:
 - B2 runtime-incident ingest and protected aggregate reads: Cloudflare Worker + D1.
 - Admin structured reads/writes: Cloudflare Worker + D1 through same-origin Vercel proxies.
 - CMS authentication/session state: Cloudflare Worker + D1 through Vercel proxies.
-- B3 Health Aggregation: Vercel server-owned `/api/health-aggregation`, reusing the protected Worker B2 feed and bounded public deployment/workflow metadata.
+- B3 Health Aggregation: Vercel server-owned `/api/health-aggregation`, reusing the protected Worker B2 feed and bounded public deployment/workflow metadata from current `main`.
 - Media upload/delete bytes and Google Drive file operations: Apps Script behind the Vercel media/file bridge.
 
 There is no Public runtime provider selector. Do not restore browser Apps Script structured-data reads/writes or `VITE_PUBLIC_API_PROVIDER`.
@@ -102,14 +102,19 @@ Ordered migration files currently committed in `migrations/` are:
 - `0012_cms_auth_identity_constraints.sql`
 - `0013_cms_mfa_and_reauthentication.sql`
 - `0014_b2_runtime_incidents.sql`
+- `0015_d1_public_read_optimization.sql`
+- `0016_content_lifecycle_governance.sql`
+- `0017_cms_wordpress_gap_closure.sql`
+- `0018_content_revision_history_hardening.sql`
+- `0019_content_revision_write_boundary.sql`
 
 The duplicate numeric prefix `0007` is a legacy repository fact. Do not rename already-applied migration files. New migrations remain append-only and must use a unique new numeric prefix.
 
-Production release tooling applies pending migrations before deploying a compatible Worker. B2 production verification confirms migration `0014_b2_runtime_incidents.sql` crossed the canonical production release gate.
+Production release tooling applies only pending migrations before deploying a compatible Worker. The approved v3.3.1 release applied migrations `0018` and `0019` and completed the matching Worker release and Production Verification on 2026-10-03. Do not repeat those migrations or that release solely because an older document described a pre-release checkpoint.
 
 ## Retention
 
-Production scheduled cleanup runs daily and removes or bounds:
+Production scheduled cleanup removes or bounds:
 
 - expired public rate-limit buckets;
 - visitor presence older than 2 days;
@@ -128,7 +133,7 @@ Daily analytics aggregate statistics are retained.
 - Keep the production Worker/D1 physical identity as the existing `rcat-public-api-preview` resources unless an explicitly approved migration replaces the current architecture.
 - Keep Apps Script scoped to the approved media/file bridge.
 - Keep Google Drive binary operations in the approved Apps Script bridge.
-- Production Worker release remains an explicit manual operation through `.github/workflows/worker-production.yml` from `master`.
+- Production Worker release remains an explicit manual operation through `.github/workflows/worker-production.yml` from `main` and behind the repository's protected production gates.
 
 ## Local Validation
 
@@ -141,4 +146,4 @@ pnpm build
 pnpm quality
 ```
 
-Historical M19/M20 readiness scripts remain useful as repository/evidence guards but must not be treated as the current runtime ownership source. Historical M4-M6 Preview documents record earlier migration work only. Use `docs/architecture/current-runtime-ownership.md`, `docs/architecture/post-p5h-current-project-state.md`, and `docs/deployment/runtime-deployment-guide.md` for current production boundaries.
+Historical M19/M20 readiness scripts remain useful as repository/evidence guards but must not be treated as the current runtime ownership source. Historical M4-M6 Preview documents record earlier migration work only. Use `docs/architecture/current-project-state.md`, `docs/architecture/current-runtime-ownership.md`, and `docs/deployment/runtime-deployment-guide.md` for current production boundaries.

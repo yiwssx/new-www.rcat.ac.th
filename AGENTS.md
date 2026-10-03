@@ -47,19 +47,23 @@ Do not embed fast-changing project status in this file. Read only the relevant s
 
 Stable baseline invariants retained here for repository consistency checks:
 
-- The current baseline is the **post-P5H production governance baseline**.
+- The current baseline is the **v3.3.1 production-governance and governed-maintenance baseline** on `main`.
+- The v3.3.1 Content Operations release is complete; do not repeat its migrations, Worker release, or production verification because an older checkpoint is stale.
 - **B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified**.
 - **Production environment retirement follow-ups are complete and operator-verified**.
-- Phase C is complete; C3 remains manual-only.
+- Phase C is complete; C3 remains a deliberate manual protected operation rather than an automatic release step.
 
 Canonical references:
 
-- `docs/architecture/post-p5h-current-project-state.md` — canonical current project-state note.
+- `docs/architecture/current-project-state.md` — canonical current project-state note.
+- `docs/architecture/post-p5h-current-project-state.md` — preceding 2026-09-20 project-state snapshot; historical after a newer current-state note supersedes it.
 - `docs/architecture/reliability-roadmap-v2.md` — Reliability Roadmap v2 definitions/history.
 - `docs/operations/environment-retirement-verification-2026-09-11.md` — verified environment-retirement evidence.
 - `docs/operations/p6a-production-observability.md` — Production Observability guard and approval constraints.
-- `docs/operations/p6b-security-enforcement.md` — completed security controls and ownership.
-- `docs/operations/p6c-recovery-reliability.md` — recovery/reliability controls and ongoing guard ownership.
+- `docs/operations/p6b-security-enforcement.md` — completed security controls and current consolidated verification ownership.
+- `docs/operations/p6c-recovery-reliability.md` — recovery/reliability controls and current consolidated verification ownership.
+- `docs/operations/phase-c-deep-field-verification.md` — completed Phase C and current C3 operation boundary.
+- `docs/operations/d1-recovery-drill.md` — current read-only D1 recovery-drill procedure.
 - `docs/operations/p6d-product-ux-improvements.md` — completed P6D scope.
 - `docs/admin/admin-ux-execution-tracker.md` — completed Admin UX 00-10 sequence.
 - `docs/design/mui-tailwind-boundary.md` — MUI/Tailwind ownership boundary.
@@ -75,7 +79,7 @@ Preserve these architectural boundaries unless the task explicitly redesigns the
 - Admin structured reads/writes: Cloudflare Worker + D1.
 - Admin access: Cloudflare RBAC + D1 `app_admin_users`.
 - Admin session proxy: Vercel server-side admin proxy.
-- B3 health aggregation: server-owned `/api/health-aggregation`, explicit refresh only.
+- B3 health aggregation: server-owned `/api/health-aggregation`, explicit refresh only, with public GitHub metadata resolved from current `main`.
 - Media/file bridge: Apps Script behind the Vercel proxy.
 - File storage: Google Drive behind the approved Apps Script bridge.
 - Complaint path: Vercel `/api/complaint` to the dedicated complaint Apps Script via server-only `COMPLAINT_API_URI`.
@@ -84,12 +88,13 @@ Do not restore browser-side direct Apps Script structured reads/writes.
 
 ## Reliability and security ownership
 
-- Phase A owns deployment-driven read-only production browser QA.
-- P6A owns D1 utilization observability and remains manual-only / approval-gated.
-- P6B owns security, WAF, CSP, rate-limit, and anomaly-enforcement checks.
-- P6C owns bounded six-hour SSR → Worker → D1 reliability verification.
+- `.github/workflows/production-verification.yml` owns deployment-driven read-only production browser QA plus the consolidated scheduled security/reliability checks.
+- P6A owns D1 utilization observability and remains manual-only / approval-gated through Production Verification operation `observability`.
+- P6B owns security, WAF, CSP, rate-limit, and anomaly-enforcement contracts; manual auth-anomaly diagnosis uses Production Verification operation `auth-anomaly`.
+- P6C owns bounded six-hour SSR → Worker → D1 reliability verification through Production Verification.
 - Phase B B1/B2/B3 are complete; B3 remains explicit-refresh server-owned aggregation.
-- Phase C is complete; C3 remains manual-only.
+- Phase C is complete; C3 remains manual-only through `.github/workflows/production-data-operations.yml` operation `authenticated-cms-field`.
+- Read-only D1 recovery readiness lives in `.github/workflows/maintenance-recovery.yml`; destructive restore remains incident-only.
 - Reuse `X-RCAT-Request-ID`; do not create a parallel request-correlation identifier.
 - Do not add a parallel paid observability stack merely to recreate existing controls.
 
@@ -104,6 +109,8 @@ Unless explicitly approved as new scope, do not restore:
 - retired `VITE_COMPLAINT_API_URI` or legacy-only CMS-auth environment values in live production;
 - deleted `rcat-public-api-production` as a current Worker/D1 target;
 - a persistent Cloudflare Preview tier / `--env preview` procedure;
+- retired branch-mutating `format-guard.yml`;
+- retired phase-specific/duplicate workflows such as `phase-a-production-browser-smoke.yml`, `phase-c3-authenticated-cms-field.yml`, `p6b-production-security.yml`, `p6c-production-reliability.yml`, `production-observability.yml`, `d1-recovery-drill.yml`, or standalone dependency-monitoring workflows;
 - twice-hourly P6C Search/D1 polling;
 - duplicate scheduled WAF probes;
 - scheduled D1 auth-anomaly polling;
