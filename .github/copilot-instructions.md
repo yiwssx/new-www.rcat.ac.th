@@ -4,31 +4,34 @@ This repository is a React/Vite public website and CMS with Cloudflare Worker/D1
 
 ## Current Project Status
 
-Current status: post-P5H production governance baseline with Production Observability configured as a manual-only guard behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, completed Admin UX 00-10, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
+Current status: **v3.3.1 production-governance and governed-maintenance baseline on `main`**. The v3.3.1 Content Operations release is complete, production-released, production-verified, tagged, and published. Do not repeat its D1 migrations, Worker release, or production verification merely because an older tracker or dated record describes a pre-release checkpoint.
 
-Reliability Roadmap v2 is separate from P6 and is complete. Phase 0 Development Quality Gate, Phase A Field QA Foundation, Phase B Operational Visibility, and Phase C Deep Field Verification are complete. Within Phase B, B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified. Completed C3 authenticated CMS verification remains manual/protected and must not be coupled back into normal Worker production releases without new explicit scope.
+Production Observability is configured as a manual-only guard behind the protected `production` Environment reviewer gate. P6B Security Enforcement, P6C Recovery & Reliability, P6D Product/UX Improvements, Admin UX 00-10, and Reliability Roadmap v2 are complete. There is no active P6 feature-development, Reliability Roadmap v2 implementation, migration, or release workstream.
+
+Reliability Roadmap v2 Phase 0 Development Quality Gate, Phase A Field QA Foundation, Phase B Operational Visibility, and Phase C Deep Field Verification are complete. Within Phase B, B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified. C3 authenticated CMS verification remains a deliberate manual protected operation and must not be coupled back into normal Worker production releases without new explicit scope.
 
 Production environment retirement follow-ups are complete and operator-verified as of 2026-09-11. Live Vercel Production uses server-only `COMPLAINT_API_URI`; retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment; and legacy-only CMS-auth environment values are retired from the applicable Vercel/Cloudflare environments. Compatibility parsing in server source is not evidence that a retired value is still configured.
 
-M13-M21 documents are historical migration/stabilization records. Do not report M20 or M21 as the current active phase, and do not reuse legacy M21 active-ownership or open-stabilization status wording in current project guidance.
+M13-M21 and the previous post-P5H project-state note are historical migration/stabilization snapshots. Do not report them as the current active phase or canonical current status.
 
 ## Current Source Of Truth
 
 Use these files as current references:
 
-- `docs/architecture/post-p5h-current-project-state.md` — canonical project-state note.
-- `docs/architecture/current-runtime-ownership.md` — current runtime ownership.
+- `docs/architecture/current-project-state.md` — canonical current project/release state.
+- `docs/architecture/current-runtime-ownership.md` — current runtime ownership and branch/deployment boundaries.
 - `docs/deployment/runtime-deployment-guide.md` — current deployment behavior.
 - `docs/development/environment-variables.md` — current environment-variable ownership.
 - `docs/operations/environment-retirement-verification-2026-09-11.md` — operator-verified complaint/CMS-auth environment retirement state.
 - `docs/architecture/reliability-roadmap-v2.md` — completed reliability phase definitions and evidence.
-- `docs/operations/phase-b-operational-visibility.md` — completed Phase B/B1-B3 scope and production evidence.
-- `docs/architecture/b3-health-aggregation-implementation-2026-09-11.md` — B3 implementation and production-verification record.
-- `docs/operations/phase-c-deep-field-verification.md` — completed Phase C operating context.
+- `docs/operations/phase-a-field-qa-foundation.md` — current Production Verification browser-QA ownership.
+- `docs/operations/phase-b-operational-visibility.md` — completed Phase B/B1-B3 scope and current consolidated ownership.
+- `docs/operations/phase-c-deep-field-verification.md` — completed Phase C and current manual C3 operation boundary.
+- `docs/operations/d1-recovery-drill.md` — current read-only D1 recovery-drill path.
 - `docs/admin/admin-ux-execution-tracker.md` — completed Admin UX sequence.
 - `AGENTS.md` — repository-wide agent operating rules.
 
-Historical M13-M21 milestone documents may be used as evidence for their original checkpoints, but they do not override the current source-of-truth files above.
+`docs/architecture/post-p5h-current-project-state.md` and dated M13-M21/migration/audit documents remain historical evidence; they do not override the current source-of-truth files above.
 
 ## Current Runtime Ownership
 
@@ -38,7 +41,7 @@ Historical M13-M21 milestone documents may be used as evidence for their origina
 - Admin structured reads and writes: Cloudflare Worker and D1.
 - Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
 - Admin session proxy: Vercel server-side proxy.
-- B3 Health Aggregation: Vercel server-owned `/api/health-aggregation`, explicit refresh only.
+- B3 Health Aggregation: Vercel server-owned `/api/health-aggregation`, explicit refresh only, reading public GitHub workflow/commit-status metadata from current `main`.
 - Media/file bridge: Apps Script behind the Vercel proxy.
 - File storage: Google Drive.
 - Complaint submission: Vercel `/api/complaint` to the dedicated Complaint Apps Script, configured by live server-only `COMPLAINT_API_URI`.
@@ -52,14 +55,15 @@ Historical M13-M21 milestone documents may be used as evidence for their origina
 ## Reliability Boundaries
 
 - Reuse `X-RCAT-Request-ID`; do not create a parallel request-correlation identifier.
-- Phase A owns deployment-driven read-only production browser QA.
-- P6A owns D1 utilization observability and remains manual-only and protected-Environment approval-gated.
-- P6B owns security/WAF/CSP verification.
-- P6C owns the bounded six-hour SSR → Worker → D1 reliability guard.
+- `.github/workflows/production-verification.yml` owns deployment-driven read-only production browser QA plus consolidated scheduled P6B security and P6C reliability checks.
+- P6A owns D1 utilization observability and remains manual-only and protected-Environment approval-gated through Production Verification operation `observability`.
+- P6B owns security/WAF/CSP/rate-limit contracts; explicit auth anomaly diagnosis uses Production Verification operation `auth-anomaly`.
+- P6C owns the bounded six-hour SSR → Worker → D1 reliability guard through Production Verification.
 - Phase B B1/B2/B3 are complete. B3 is server-owned explicit-refresh aggregation through `/api/health-aggregation`; do not add browser infrastructure credentials or background polling.
-- Phase C is complete; C3 is manual-only after closure.
+- Phase C is complete; C3 is manual-only through `.github/workflows/production-data-operations.yml` operation `authenticated-cms-field`.
+- Read-only D1 recovery readiness lives in `.github/workflows/maintenance-recovery.yml`; destructive restore remains incident-only.
 - Do not add a duplicate paid observability stack merely to recreate existing guards.
-- New reliability work requires an explicit new scope; do not silently reopen Phase B.
+- New reliability work requires an explicit new scope; do not silently reopen completed phases.
 
 ## Do Not Reintroduce
 
@@ -73,7 +77,9 @@ Historical M13-M21 milestone documents may be used as evidence for their origina
 - Legacy-only CMS-auth environment values retired by the final cutover.
 - The deleted `rcat-public-api-production` Worker/D1 as a current production target; the canonical live resource is the in-place `rcat-public-api-preview` physical resource under `env.production`.
 - A persistent Cloudflare Preview environment or `--env preview` operational procedure unless a new explicit environment is designed and approved.
-- M20/M21 active-phase wording in current-facing guidance.
+- M20/M21/post-P5H active-phase wording in current-facing guidance.
+- Retired branch-mutating `format-guard.yml`.
+- Retired duplicate/phase-specific workflows such as `phase-a-production-browser-smoke.yml`, `phase-c3-authenticated-cms-field.yml`, `p6b-production-security.yml`, `p6c-production-reliability.yml`, `production-observability.yml`, and `d1-recovery-drill.yml`.
 - Worker → C3 automatic dispatch or one-time C3 release scaffolding.
 - B3 browser-side infrastructure credentials or interval polling.
 
