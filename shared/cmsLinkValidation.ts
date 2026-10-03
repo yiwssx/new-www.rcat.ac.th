@@ -4,12 +4,7 @@ const MAX_LINK_LENGTH = 4_096;
 const NAVIGATION_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 const CANONICAL_PROTOCOLS = new Set(["http:", "https:"]);
 const RESOURCE_PROTOCOLS = new Set(["https:"]);
-const FACEBOOK_HOSTS = new Set([
-  "facebook.com",
-  "www.facebook.com",
-  "web.facebook.com",
-  "m.facebook.com",
-]);
+const FACEBOOK_HOSTS = new Set(["facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"]);
 
 function normalizedString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -18,12 +13,7 @@ function normalizedString(value: unknown) {
 function hasUnsafeCharacter(value: string) {
   for (const character of value) {
     const codePoint = character.codePointAt(0) ?? 0;
-    if (
-      codePoint <= 31 ||
-      codePoint === 127 ||
-      character === "\\" ||
-      /\s/u.test(character)
-    ) {
+    if (codePoint <= 31 || codePoint === 127 || character === "\\" || /\s/u.test(character)) {
       return true;
     }
   }
@@ -38,16 +28,10 @@ function absoluteProtocol(value: string) {
 function isValidAbsoluteUrl(value: string, allowedProtocols: Set<string>) {
   const protocol = absoluteProtocol(value);
   if (!protocol || !allowedProtocols.has(protocol)) return false;
-  if (protocol === "mailto:" || protocol === "tel:")
-    return value.slice(protocol.length).length > 0;
+  if (protocol === "mailto:" || protocol === "tel:") return value.slice(protocol.length).length > 0;
   try {
     const url = new URL(value);
-    return (
-      allowedProtocols.has(url.protocol.toLowerCase()) &&
-      Boolean(url.hostname) &&
-      !url.username &&
-      !url.password
-    );
+    return allowedProtocols.has(url.protocol.toLowerCase()) && Boolean(url.hostname) && !url.username && !url.password;
   } catch {
     return false;
   }
@@ -55,53 +39,30 @@ function isValidAbsoluteUrl(value: string, allowedProtocols: Set<string>) {
 
 export function isValidFacebookEmbedPermalink(value: unknown) {
   const link = normalizedString(value);
-  if (!link || link.length > MAX_LINK_LENGTH || hasUnsafeCharacter(link))
-    return false;
+  if (!link || link.length > MAX_LINK_LENGTH || hasUnsafeCharacter(link)) return false;
   try {
     const url = new URL(link);
-    if (
-      url.protocol !== "https:" ||
-      !FACEBOOK_HOSTS.has(url.hostname.toLowerCase()) ||
-      url.username ||
-      url.password
-    ) {
+    if (url.protocol !== "https:" || !FACEBOOK_HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password) {
       return false;
     }
     const normalizedPath = url.pathname.toLowerCase();
     const segments = normalizedPath.split("/").filter(Boolean);
-    if (
-      normalizedPath === "/permalink.php" ||
-      normalizedPath === "/story.php"
-    ) {
-      return Boolean(
-        url.searchParams.get("story_fbid") && url.searchParams.get("id"),
-      );
+    if (normalizedPath === "/permalink.php" || normalizedPath === "/story.php") {
+      return Boolean(url.searchParams.get("story_fbid") && url.searchParams.get("id"));
     }
-    if (segments.length === 3 && segments[1] === "posts")
-      return Boolean(segments[0] && segments[2]);
-    return (
-      segments.length === 2 && segments[0] === "reel" && Boolean(segments[1])
-    );
+    if (segments.length === 3 && segments[1] === "posts") return Boolean(segments[0] && segments[2]);
+    return segments.length === 2 && segments[0] === "reel" && Boolean(segments[1]);
   } catch {
     return false;
   }
 }
 
-export function isValidCmsLink(
-  value: unknown,
-  kind: CmsLinkKind,
-  allowEmpty = true,
-) {
+export function isValidCmsLink(value: unknown, kind: CmsLinkKind, allowEmpty = true) {
   const link = normalizedString(value);
   if (!link) return allowEmpty;
   if (link.length > MAX_LINK_LENGTH || hasUnsafeCharacter(link)) return false;
   if (kind === "navigation" && link.startsWith("#")) return true;
-  if (link.startsWith("/"))
-    return kind !== "canonical" && !link.startsWith("//");
-  if (kind === "canonical")
-    return isValidAbsoluteUrl(link, CANONICAL_PROTOCOLS);
-  return isValidAbsoluteUrl(
-    link,
-    kind === "navigation" ? NAVIGATION_PROTOCOLS : RESOURCE_PROTOCOLS,
-  );
+  if (link.startsWith("/")) return kind !== "canonical" && !link.startsWith("//");
+  if (kind === "canonical") return isValidAbsoluteUrl(link, CANONICAL_PROTOCOLS);
+  return isValidAbsoluteUrl(link, kind === "navigation" ? NAVIGATION_PROTOCOLS : RESOURCE_PROTOCOLS);
 }
