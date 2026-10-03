@@ -51,6 +51,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
+      - name: Temporary formatter diagnostic
+        run: |
+          pnpm exec prettier --write src/admin/components/RevisionHistoryViewer.tsx
+          echo '--- BEGIN PRETTIER OUTPUT ---'
+          cat src/admin/components/RevisionHistoryViewer.tsx
+          echo '--- END PRETTIER OUTPUT ---'
       - run: pnpm format:check
       - run: pnpm lint:strict
 
