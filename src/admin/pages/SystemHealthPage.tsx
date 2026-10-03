@@ -34,21 +34,21 @@ const externalGuards = [
   {
     name: "Phase A — Production Browser QA",
     cadence: "หลัง CI + Vercel deployment สำเร็จ",
-    detail: "Production Verification ใช้ Playwright ตรวจ production จริงทั้ง desktop/mobile และ runtime/console/network errors"
+    detail: "Playwright ตรวจ production จริงทั้ง desktop/mobile และ runtime/console/network errors"
   },
   {
     name: "P6A — Production Observability",
-    cadence: "ตรวจด้วยตนเอง · approval-gated",
-    detail: "Production Verification operation observability ติดตาม D1 utilization ผ่าน Cloudflare Analytics โดยไม่ยิง SQL เข้า D1"
+    cadence: "ทุก 6 ชั่วโมง · approval-gated",
+    detail: "ติดตาม D1 utilization ผ่าน Cloudflare Analytics โดยไม่ยิง SQL เข้า D1"
   },
   {
     name: "P6B — Security Enforcement",
-    cadence: "ทุก 6 ชั่วโมง · Production Verification",
+    cadence: "ทุก 6 ชั่วโมง",
     detail: "ตรวจ security/WAF boundary ตาม production governance"
   },
   {
     name: "P6C — Recovery & Reliability",
-    cadence: "ทุก 6 ชั่วโมง · Production Verification",
+    cadence: "ทุก 6 ชั่วโมง",
     detail: "ตรวจเส้นทาง SSR → Worker → D1 แบบ bounded read-only reliability probe"
   }
 ] as const;
