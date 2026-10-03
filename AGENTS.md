@@ -54,7 +54,8 @@ Stable baseline invariants retained here for repository consistency checks:
 
 Canonical references:
 
-- `docs/architecture/post-p5h-current-project-state.md` — canonical current project-state note.
+- `docs/architecture/current-project-state.md` — canonical current project-state note.
+- `docs/architecture/post-p5h-current-project-state.md` — preceding 2026-09-20 project-state snapshot; historical after a newer current-state note supersedes it.
 - `docs/architecture/reliability-roadmap-v2.md` — Reliability Roadmap v2 definitions/history.
 - `docs/operations/environment-retirement-verification-2026-09-11.md` — verified environment-retirement evidence.
 - `docs/operations/p6a-production-observability.md` — Production Observability guard and approval constraints.
