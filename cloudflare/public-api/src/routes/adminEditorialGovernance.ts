@@ -286,7 +286,8 @@ async function handleTrashRestore(request: Request, env: Env, identity: AdminIde
     .prepare(
       `SELECT snapshot_json, revision
        FROM content_revisions
-       WHERE content_id = ? AND reason = 'delete'
+       WHERE content_id = ?
+         AND revision < (SELECT revision FROM contents WHERE id = content_revisions.content_id)
        ORDER BY revision DESC, created_at DESC
        LIMIT 1`
     )

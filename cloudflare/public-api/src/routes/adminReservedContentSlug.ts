@@ -67,7 +67,8 @@ async function readDeletedOriginalSlug(env: Env, contentId: string) {
     .prepare(
       `SELECT snapshot_json
        FROM content_revisions
-       WHERE content_id = ? AND reason = 'delete'
+       WHERE content_id = ?
+         AND revision < (SELECT revision FROM contents WHERE id = content_revisions.content_id)
        ORDER BY revision DESC, created_at DESC
        LIMIT 1`
     )

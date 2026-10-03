@@ -77,7 +77,9 @@ async function readPreviousContentIdentity(env: Env, contentId: string): Promise
   const row = await requireD1Database(env)
     .prepare(
       `SELECT snapshot_json FROM content_revisions
-       WHERE content_id = ? ORDER BY revision DESC, created_at DESC LIMIT 1`
+       WHERE content_id = ?
+         AND revision < (SELECT revision FROM contents WHERE id = content_revisions.content_id)
+       ORDER BY revision DESC, created_at DESC LIMIT 1`
     )
     .bind(contentId)
     .first<{ snapshot_json: string }>();

@@ -783,6 +783,10 @@ async function insertContentRow(env: Env, row: ContentRow) {
 }
 
 async function updateContentRow(env: Env, row: ContentRow, expectedRevision: number | null) {
+  const previousRevision = Number(row.revision) - 1;
+  if (expectedRevision !== null && expectedRevision !== previousRevision) {
+    throw new AdminHttpError("stale revision", 409);
+  }
   try {
     const result = await run(
       env,
@@ -844,8 +848,8 @@ async function updateContentRow(env: Env, row: ContentRow, expectedRevision: num
       row.updated_by,
       row.revision,
       row.id,
-      expectedRevision,
-      expectedRevision
+      previousRevision,
+      previousRevision
     );
     assertMutationChanged(result);
   } catch (error) {
