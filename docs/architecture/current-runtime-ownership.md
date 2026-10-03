@@ -1,8 +1,8 @@
 # Current Runtime Ownership
 
-Updated: 2026-09-11.
+Updated: 2026-10-03.
 
-This document is the current source of truth for runtime ownership. Historical migration milestone documents remain evidence of earlier states; when they conflict with this file about current ownership, authentication boundaries, provider responsibilities, cache policy, environment naming, or deployment behavior, this file takes precedence.
+This document is the current source of truth for runtime ownership. Historical migration milestone documents remain evidence of earlier states; when they conflict with this file about current ownership, authentication boundaries, provider responsibilities, cache policy, environment naming, branch ownership, or deployment behavior, this file takes precedence. Current project/release status is defined by `docs/architecture/current-project-state.md`.
 
 ## Runtime Map
 
@@ -76,7 +76,7 @@ Reliability Roadmap v2 Phase B is complete and production-verified. Operator vis
 
 - **B1 System Health Dashboard** — protected `/admin/system-health` live checks reuse CMS authentication, `dashboard.read`, Request ID correlation, the Admin Proxy → Worker → D1 read path, and Public SSR.
 - **B2 Runtime Incident Feed** — browser runtime errors, unhandled rejections, and API network/5xx failures are reduced to the privacy-safe allowlisted incident contract and ingested through `POST /api/public/runtime-incident`; operators read bounded aggregates through authenticated `GET /api/admin/runtime-incidents`.
-- **B3 Health Aggregation** — Vercel `GET /api/health-aggregation` is a server-owned, authenticated/no-store aggregation boundary for Phase A, P6A, P6B, P6C, Vercel deployment metadata, and a bounded B2 incident summary. Infrastructure credentials are not exposed to the browser.
+- **B3 Health Aggregation** — Vercel `GET /api/health-aggregation` is a server-owned, authenticated/no-store aggregation boundary for the current Production Verification workflow state on `main`, Vercel commit-status metadata for `main`, and a bounded B2 incident summary. Historical Phase A/P6A/P6B/P6C ownership remains represented by the consolidated Production Verification operations rather than by retired workflow files. Infrastructure credentials are not exposed to the browser.
 
 B2 storage remains in D1 under the seven-day/latest-2,000-row retention bounds defined by `docs/operations/phase-b-operational-visibility.md`. B3 introduces no new D1 migration or scheduler and runs only when the operator explicitly refreshes System Health.
 
@@ -227,13 +227,13 @@ This policy intentionally prevents publish/delete checks and normal content-deta
 - dedicated Complaint Apps Script -> its own Apps Script deployment;
 - docs/tests only -> no runtime deployment.
 
-Vercel deploys `master` through Git integration. Non-master Vercel deployments are disabled by repository configuration.
+Vercel deploys `main` through Git integration. Non-main Vercel deployments are disabled by repository configuration.
 
 Cloudflare has no persistent Preview deployment tier. Local development uses `rcat-public-api-local`; all remote structured data and Worker releases target the canonical production role.
 
 The canonical production Worker and D1 are the existing data-bearing resources whose legacy physical Cloudflare name remains `rcat-public-api-preview`. They are promoted in place: no replacement Worker URL, export/import, or data copy is part of the environment convergence. The old empty D1 named `rcat-public-api-production` and the unused Worker of the same name were manually deleted on 2026-08-16 and are not recreated.
 
-Cloudflare production release is explicit rather than automatic. `.github/workflows/worker-production.yml` is manual (`workflow_dispatch`), must run from `master`, typechecks first, verifies that the legacy physical D1 resource matches the protected production UUID, captures a current Time Travel bookmark, lists pending migrations, runs fixture gates, injects the production D1 UUID from the `RCAT_PRODUCTION_D1_DATABASE_ID` GitHub secret into a temporary config, applies pending D1 migrations to the promoted data-bearing D1, and then deploys the `env.production` configuration back onto the same existing Worker physical resource `rcat-public-api-preview`.
+Cloudflare production release is explicit rather than automatic. `.github/workflows/worker-production.yml` is manual (`workflow_dispatch`), must run from `main`, typechecks first, verifies that the legacy physical D1 resource matches the protected production UUID, captures a current Time Travel bookmark, lists pending migrations, runs fixture gates, injects the production D1 UUID from the `RCAT_PRODUCTION_D1_DATABASE_ID` GitHub secret into a temporary config, applies pending D1 migrations to the promoted data-bearing D1, and then deploys the `env.production` configuration back onto the same existing Worker physical resource `rcat-public-api-preview`.
 
 The tracked `wrangler.toml` must keep `production-placeholder`; a real production D1 ID must never be committed. Both physical Worker and D1 names containing `preview` are legacy resource labels only and must not be treated as non-production environments. `keep_vars = true` preserves dashboard-managed non-secret Worker variables not represented in the tracked configuration, while encrypted Worker secrets remain preserved unless explicitly deleted.
 
