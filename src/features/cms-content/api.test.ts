@@ -129,6 +129,20 @@ describe("content save progress", () => {
     expect(submittedPublishAt).toBeLessThanOrEqual(afterSave);
   });
 
+  it("blocks an incomplete Facebook post collection URL before thumbnail or content writes", async () => {
+    const invalidFacebookContent: ContentItem = {
+      ...facebookContent,
+      canonicalUrl: "https://www.facebook.com/100063746585360/posts/"
+    };
+
+    await expect(saveContentItem(invalidFacebookContent)).rejects.toThrow(
+      "URL Facebook สำหรับ Facebook Embed ต้องเป็นลิงก์โพสต์หรือ Reel ที่สมบูรณ์"
+    );
+
+    expect(mediaMock.importFacebookThumbnailAsset).not.toHaveBeenCalled();
+    expect(cloudflareMock.saveContentItemToCloudflare).not.toHaveBeenCalled();
+  });
+
   it("reports real Facebook thumbnail sub-phases before saving the content", async () => {
     const tracker = collectProgress();
 

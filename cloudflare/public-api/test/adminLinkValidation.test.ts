@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import { isValidCmsLink, validateAdminLinkWriteRequest } from "../src/adminLinkValidation";
+import {
+  isValidCmsLink,
+  isValidFacebookEmbedPermalink,
+  validateAdminLinkWriteRequest
+} from "../src/adminLinkValidation";
 
 describe("P5H CMS link policy", () => {
   it("accepts intentional navigation targets", () => {
@@ -32,6 +36,15 @@ describe("P5H CMS link policy", () => {
     expect(isValidCmsLink("http://example.test/news/example", "canonical")).toBe(true);
     expect(isValidCmsLink("/news/example", "canonical")).toBe(false);
   });
+
+  it("requires complete Facebook post or Reel permalinks for embed content", () => {
+    expect(isValidFacebookEmbedPermalink("https://www.facebook.com/rcat/posts/12345")).toBe(true);
+    expect(isValidFacebookEmbedPermalink("https://www.facebook.com/reel/12345/")).toBe(true);
+    expect(isValidFacebookEmbedPermalink("https://facebook.com/permalink.php?story_fbid=123&id=456")).toBe(true);
+    expect(isValidFacebookEmbedPermalink("https://www.facebook.com/rcat/posts/")).toBe(false);
+    expect(isValidFacebookEmbedPermalink("https://www.facebook.com/rcat/posts")).toBe(false);
+    expect(isValidFacebookEmbedPermalink("https://www.facebook.com/settings")).toBe(false);
+  });
 });
 
 describe("P5H Admin write-boundary validation", () => {
@@ -49,6 +62,30 @@ describe("P5H Admin write-boundary validation", () => {
       body: JSON.stringify({ fileUrl: "data:text/plain,not-a-document-link" })
     });
     await expect(validateAdminLinkWriteRequest(documentRequest)).rejects.toThrow("invalid document file URL");
+  });
+
+  it("rejects incomplete Facebook embed permalinks but accepts a complete post URL", async () => {
+    const incompleteRequest = new Request("https://worker.test/api/admin/content/content-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        template: "facebook-embed",
+        canonicalUrl: "https://www.facebook.com/100063746585360/posts/"
+      })
+    });
+    await expect(validateAdminLinkWriteRequest(incompleteRequest)).rejects.toThrow(
+      "invalid content Facebook embed URL"
+    );
+
+    const validRequest = new Request("https://worker.test/api/admin/content/content-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        template: "facebook-embed",
+        canonicalUrl: "https://www.facebook.com/100063746585360/posts/111"
+      })
+    });
+    await expect(validateAdminLinkWriteRequest(validRequest)).resolves.toBeUndefined();
   });
 
   it("validates nested menu and site-settings links", async () => {

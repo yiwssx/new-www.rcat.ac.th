@@ -8,6 +8,7 @@ import { importFacebookThumbnailAsset, type FacebookThumbnailProgress } from "..
 import type { ContentItem } from "../public-content/types";
 import { isAdminStaleRevisionError } from "../admin-write/errors";
 import { isFacebookEmbedContent } from "../../utils/facebookContent";
+import { isValidFacebookPostUrl } from "../../utils/facebookEmbed";
 
 export type ContentSaveProgressPhase = "preparing" | "facebook-thumbnail" | "saving";
 
@@ -81,6 +82,18 @@ function hasAttachedMedia(item: ContentItem) {
   return Array.isArray(item.mediaIds) && item.mediaIds.some(Boolean);
 }
 
+function assertValidFacebookEmbedSource(item: ContentItem) {
+  if (!isFacebookEmbedContent(item)) {
+    return;
+  }
+
+  const sourceUrl = item.canonicalUrl?.trim() ?? "";
+
+  if (!isValidFacebookPostUrl(sourceUrl)) {
+    throw new Error("URL Facebook สำหรับ Facebook Embed ต้องเป็นลิงก์โพสต์หรือ Reel ที่สมบูรณ์");
+  }
+}
+
 function normalizePublishedTimestampForSave(item: ContentItem, now = new Date()): ContentItem {
   if (item.status !== "published") {
     return item;
@@ -150,6 +163,8 @@ export async function saveContentItem(item: ContentItem, options: SaveContentIte
     percent: 10,
     message: "กำลังตรวจสอบข้อมูลก่อนบันทึก"
   });
+
+  assertValidFacebookEmbedSource(item);
 
   const timestampNormalizedItem = normalizePublishedTimestampForSave(item);
   const nextItem = await addAutomaticFacebookThumbnail(timestampNormalizedItem, options);

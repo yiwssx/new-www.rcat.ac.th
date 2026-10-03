@@ -35,9 +35,10 @@ function isSupportedFacebookPostPath(pathname: string, searchParams: URLSearchPa
     return Boolean(searchParams.get("story_fbid") && searchParams.get("id"));
   }
 
-  // Support /{page}/posts/{postId}
-  if (segments.length >= 2 && segments[1] === "posts") {
-    return true;
+  // Support /{page}/posts/{postId}. The post id is required; /{page}/posts/ alone
+  // is a collection path and must never be treated as an embeddable permalink.
+  if (segments.length === 3 && segments[1] === "posts") {
+    return Boolean(segments[0] && segments[2]);
   }
 
   return false;
