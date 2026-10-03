@@ -16,6 +16,12 @@ describe("P5H CMS link policy", () => {
     expect(isValidCmsLink("tel:+6643519000", "navigation")).toBe(true);
   });
 
+  it("accepts intentional placeholder navigation targets", () => {
+    expect(isValidCmsLink("#", "navigation")).toBe(true);
+    expect(isValidCmsLink("/", "navigation")).toBe(true);
+    expect(isValidCmsLink("/#", "navigation")).toBe(true);
+  });
+
   it("rejects unsafe or ambiguous navigation targets", () => {
     expect(isValidCmsLink("//evil.example", "navigation")).toBe(false);
     expect(isValidCmsLink("javascript:alert(1)", "navigation")).toBe(false);
