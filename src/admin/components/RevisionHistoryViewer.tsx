@@ -97,7 +97,10 @@ export default function RevisionHistoryViewer() {
             }}
             getOptionLabel={(option) => option.title}
             isOptionEqualToValue={(option, value) => option.id === value.id}
-            renderInput={(params) => (\n              <TextField {...params} label="เลือกเนื้อหา" placeholder="ค้นหาชื่อเนื้อหา" />\n            )}\n          />
+            renderInput={(params) => (
+              <TextField {...params} label="เลือกเนื้อหา" placeholder="ค้นหาชื่อเนื้อหา" />
+            )}
+          />
 
           {selectedId && revisionsQuery.isLoading && <Typography>กำลังโหลดประวัติ…</Typography>}
           {revisionsQuery.isError && <Alert severity="error">ไม่สามารถโหลดประวัติการแก้ไขได้</Alert>}
