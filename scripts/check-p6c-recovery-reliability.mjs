@@ -142,14 +142,16 @@ for (const contract of [
   "does **not** run D1 Time Travel restore",
   "does not add a Vercel token",
   "every six hours",
-  "P6B Production Security owns the scheduled WAF smoke"
+  "P6B security checks are also consolidated into Production Verification on their own staggered schedule"
 ]) {
   if (!runbook.includes(contract)) fail(`P6C runbook is missing contract: ${contract}`);
 }
 
 if (readiness.status === "closed") {
   if (!readiness.closedAt) fail("closed P6C requires closedAt evidence");
-  if (!runbook.includes("## Closure evidence")) fail("closed P6C runbook must retain a closure evidence section");
+  if (!runbook.includes("## Historical activation gates and closure evidence")) {
+    fail("closed P6C runbook must retain a closure evidence section");
+  }
   for (const gate of expectedGates) {
     if (readiness.gates[gate] !== "passed") fail(`closed P6C requires ${gate}=passed`);
     if (readiness.evidence[gate].length === 0) fail(`closed P6C requires retained evidence for ${gate}`);
