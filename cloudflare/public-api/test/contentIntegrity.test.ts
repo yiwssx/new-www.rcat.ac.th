@@ -126,11 +126,21 @@ describe("content integrity core rules", () => {
     const result = auditContentIntegrity({
       now: NOW,
       contents: [
-        content({ id: "future-published", publish_at: "2026-10-04T00:00:00.000Z" }),
-        content({ id: "invalid-published", publish_at: "not-a-date" }),
-        content({ id: "invalid-scheduled", status: "scheduled", publish_at: "" }),
-        content({ id: "elapsed-scheduled", status: "scheduled", publish_at: "2026-10-02T00:00:00.000Z" }),
-        content({ id: "future-draft", status: "draft", publish_at: "2026-10-04T00:00:00.000Z" })
+        content({ id: "future-published", slug: "future-published", publish_at: "2026-10-04T00:00:00.000Z" }),
+        content({ id: "invalid-published", slug: "invalid-published", publish_at: "not-a-date" }),
+        content({ id: "invalid-scheduled", slug: "invalid-scheduled", status: "scheduled", publish_at: "" }),
+        content({
+          id: "elapsed-scheduled",
+          slug: "elapsed-scheduled",
+          status: "scheduled",
+          publish_at: "2026-10-02T00:00:00.000Z"
+        }),
+        content({
+          id: "future-draft",
+          slug: "future-draft",
+          status: "draft",
+          publish_at: "2026-10-04T00:00:00.000Z"
+        })
       ]
     });
 
