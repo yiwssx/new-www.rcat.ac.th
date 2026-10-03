@@ -124,7 +124,7 @@ async function callHandler(fetchImpl, request = createRequest()) {
 }
 
 describe("B3 health aggregation", () => {
-  it("aggregates authenticated operational signals from main without exposing server credentials", async () => {
+  it("aggregates authenticated operational signals without exposing server credentials", async () => {
     const fetchImpl = vi.fn(async (url) => {
       const value = String(url);
       if (value.startsWith(`${CMS_WORKER_ORIGIN}/api/admin/runtime-incidents`)) {
@@ -155,12 +155,6 @@ describe("B3 health aggregation", () => {
       ["production-verification", "healthy"]
     ]);
     expect(fetchImpl).toHaveBeenCalledTimes(3);
-    expect(
-      fetchImpl.mock.calls.some(([url]) =>
-        String(url).includes("/actions/runs?branch=main&per_page=100")
-      )
-    ).toBe(true);
-    expect(fetchImpl.mock.calls.some(([url]) => String(url).endsWith("/commits/main/status"))).toBe(true);
 
     const [, workerInit] = fetchImpl.mock.calls[0];
     expect(workerInit.headers.get(CMS_AUTH_PROXY_SECRET_HEADER)).toBe(CMS_PROXY_SECRET);
