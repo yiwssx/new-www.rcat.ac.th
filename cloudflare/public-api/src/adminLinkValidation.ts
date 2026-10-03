@@ -2,6 +2,16 @@ type JsonRecord = Record<string, unknown>;
 
 import { isValidCmsLink, isValidFacebookEmbedPermalink, type CmsLinkKind } from "../../../shared/cmsLinkValidation";
 
+function isRecord(value: unknown): value is JsonRecord {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizedString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export { isValidCmsLink, isValidFacebookEmbedPermalink };
+
 function assertLink(value: unknown, kind: CmsLinkKind, field: string) {
   if (value === undefined || value === null) {
     return;
