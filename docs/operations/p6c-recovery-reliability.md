@@ -6,15 +6,15 @@ Started: 2026-08-30.
 
 Closed: 2026-08-30.
 
-Operational maintenance reviewed: 2026-09-02.
+Operational maintenance reviewed: 2026-10-03.
 
 ## Goal
 
-P6C turns the existing production-hardening baseline into an operator-ready recovery system without creating a new provider tier or weakening the protected `production` Environment.
+P6C turns the production-hardening baseline into an operator-ready recovery system without creating a new provider tier or weakening the protected `production` Environment.
 
 The phase covers:
 
-- unattended public reliability checks that require no production secret;
+- bounded public reliability checks that require no production secret;
 - D1 point-in-time recovery readiness;
 - Cloudflare Worker runtime rollback without reversing D1 migrations;
 - Vercel frontend/SSR rollback procedure;
@@ -27,13 +27,13 @@ P6C reuses existing credentials before any new token is considered. A new creden
 
 These are operating targets rather than provider SLAs.
 
-| Runtime/data surface                          | Recovery objective                                                                       | Data-loss objective                                                                                                   | Primary recovery path                                                          |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Vercel frontend, SSR, and same-origin proxies | restore service within 30 minutes of rollback decision                                   | source-controlled runtime: zero                                                                                       | Vercel immutable deployment rollback or a validated Git revert on `master`     |
-| Cloudflare Production Worker runtime          | restore a known-good Worker within 30 minutes of rollback decision                       | runtime code: zero                                                                                                    | protected Worker runtime rollback workflow; no migration reversal              |
-| Canonical production D1                       | begin verified point-in-time recovery within 30 minutes of restore approval              | target a restore point no more than 5 minutes before the confirmed destructive event when Time Travel history permits | D1 Time Travel using the exact protected production database identity          |
-| Apps Script media bridge                      | restore a known immutable Apps Script version within 30 minutes of rollback decision     | Drive files are not rewritten by application-code rollback                                                            | existing protected Apps Script rollback workflow                               |
-| Dedicated complaint bridge                    | restore service by reverting Vercel proxy/config or the dedicated Apps Script deployment | submitted upstream records are outside source-control rollback                                                        | isolated complaint runbook; never redirect the browser directly to Apps Script |
+| Runtime/data surface | Recovery objective | Data-loss objective | Primary recovery path |
+| --- | --- | --- | --- |
+| Vercel frontend, SSR, and same-origin proxies | restore service within 30 minutes of rollback decision | source-controlled runtime: zero | Vercel immutable deployment rollback or a validated Git revert on `main` |
+| Cloudflare Production Worker runtime | restore a known-good Worker within 30 minutes of rollback decision | runtime code: zero | protected Worker runtime rollback workflow; no migration reversal |
+| Canonical production D1 | begin verified point-in-time recovery within 30 minutes of restore approval | target a restore point no more than 5 minutes before the confirmed destructive event when Time Travel history permits | D1 Time Travel using the exact protected production database identity |
+| Apps Script media bridge | restore a known immutable Apps Script version within 30 minutes of rollback decision | Drive files are not rewritten by application-code rollback | existing protected Apps Script rollback workflow |
+| Dedicated complaint bridge | restore service by reverting Vercel proxy/config or the dedicated Apps Script deployment | submitted upstream records are outside source-control rollback | isolated complaint runbook; never redirect the browser directly to Apps Script |
 
 Cloudflare Time Travel retention is provider/plan dependent. Recovery procedures must always resolve the requested timestamp/bookmark before any destructive restore is approved.
 
@@ -41,9 +41,9 @@ Cloudflare Time Travel retention is provider/plan dependent. Recovery procedures
 
 ### Vercel
 
-`master` remains the source deployment branch. Vercel rollback does not require a new repository secret in P6C. Prefer an immutable Vercel deployment rollback for an immediate runtime incident; use a Git revert when source control must permanently represent the restored state.
+`main` is the current source deployment branch. Vercel rollback does not require a new repository secret. Prefer an immutable Vercel deployment rollback for an immediate runtime incident; use a Git revert when source control must permanently represent the restored state.
 
-A Vercel rollback must not silently change Worker/D1 state. After rollback, run the P6C reliability smoke and verify Admin/Auth separately if the incident affected those surfaces.
+A Vercel rollback must not silently change Worker/D1 state. After rollback, use the consolidated **Production Verification** reliability operation and verify Admin/Auth separately if the incident affected those surfaces.
 
 ### Cloudflare Worker
 
@@ -54,13 +54,13 @@ Worker runtime rollback is intentionally separate from D1 recovery. A runtime ro
 - does **not** run `wrangler d1 migrations apply`;
 - does **not** run D1 Time Travel restore;
 - requires an exact rollback confirmation and the protected `production` Environment;
-- refuses a target that is not an ancestor of the workflow's `master` revision.
+- refuses a target that is not an ancestor of the workflow's current `main` revision.
 
 This preserves the append-only database history while allowing application runtime code to return to a known-good revision.
 
 ### D1
 
-`.github/workflows/d1-recovery-drill.yml` remains read-only. It verifies the exact protected production D1 identity and resolves current Time Travel metadata/bookmark without restoring anything.
+D1 recovery readiness is now part of the consolidated maintenance/recovery workflow inventory rather than a standalone `d1-recovery-drill.yml` workflow. The readiness path remains read-only unless an explicitly authorized incident restore is selected. It verifies the exact protected production D1 identity and resolves Time Travel metadata/bookmarks without restoring anything during a normal drill.
 
 A real D1 restore is an incident-only destructive action. Before approving one:
 
@@ -81,31 +81,31 @@ Do not execute a destructive production restore merely to prove P6C readiness.
 
 The complaint Apps Script endpoint remains isolated behind the same-origin Vercel `/api/complaint` proxy. P6C must not introduce a browser-visible Apps Script endpoint or merge the complaint deployment into the CMS media-bridge rollback path.
 
-## Unattended reliability smoke
+## Ongoing reliability smoke
 
-`.github/workflows/p6c-production-reliability.yml` is intentionally public/read-only and does **not** reference the protected `production` Environment or any secret.
+The standalone historical `.github/workflows/p6c-production-reliability.yml` workflow is retired. Its contract now lives in `.github/workflows/production-verification.yml` as the **Public Recovery Baseline** reliability job.
 
-As of 2026-09-02 it runs every six hours, giving four end-to-end checkpoints per day instead of the previous twice-hourly schedule. The reduction is deliberate: the Search probe is uncached and exercises Worker/D1 reads, so reliability coverage must be bounded rather than creating unnecessary D1 load.
+The consolidated Production Verification workflow runs the P6C reliability operation on `main` every six hours at cron `7 */6 * * *`, on relevant guarded changes, and on explicit manual dispatch. The reliability job remains public/read-only and does not require the protected `production` Environment or a production secret.
 
-The scheduled smoke checks:
+The bounded smoke checks:
 
 - the production home page returns a successful SSR response with the enforcing security baseline;
-- production search returns successfully and retains its noindex/no-store contract, providing a bounded end-to-end Vercel -> Worker -> D1 dependency probe;
+- production search returns successfully and retains its noindex/no-store contract, providing a bounded end-to-end Vercel → Worker → D1 dependency probe;
 - login remains reachable with the Admin/Auth noindex boundary.
 
-P6B Production Security owns the scheduled WAF smoke. P6C does not duplicate the `/api/internal/*` WAF probe; this keeps guard ownership unambiguous and avoids redundant production requests. P6B currently runs its WAF smoke every six hours on its own staggered schedule.
+P6B security checks are also consolidated into Production Verification on their own staggered schedule. P6C does not duplicate the WAF probe.
 
-A scheduled P6C failure should be treated as an availability signal. It does not authorize an automatic rollback.
+A scheduled P6C reliability failure is an availability signal. It does not authorize an automatic rollback.
 
 ## D1 monitoring-load posture
 
 P6C and P6B intentionally use different monitoring strategies:
 
-- P6C performs a small, bounded end-to-end Public Search read four times per day because proving the live SSR -> Worker -> D1 path is the purpose of this reliability guard;
-- P6B does not poll D1 for auth anomalies on a schedule; password-threshold signals are event-driven and deeper aggregate diagnosis is manual-only;
-- Production Observability reads Cloudflare Analytics rather than D1 SQL, so its own usage check does not add D1 rows read or written.
+- P6C performs a small, bounded end-to-end Public Search read four times per day because proving the live SSR → Worker → D1 path is the purpose of this reliability guard;
+- P6B does not poll D1 for auth anomalies on a schedule; deeper aggregate diagnosis remains bounded by the current Production Verification contract;
+- Production Observability is no longer a standalone workflow; its deliberate operation is consolidated into Production Verification and does not justify additional D1 SQL polling.
 
-This separation avoids the earlier contradiction where one guard removed unnecessary D1 polling while another performed an uncached D1-backed probe 48 times per day.
+This separation avoids unnecessary D1 load while preserving end-to-end recovery signals.
 
 ## Credential posture
 
@@ -118,31 +118,18 @@ P6C reuses the existing credential separation:
 
 The phase does not add a Vercel token. GitHub `production` Environment approval remains mandatory for mutating recovery actions.
 
-## Activation gates
+## Historical activation gates and closure evidence
 
-P6C is complete only after all of the following are evidenced:
+P6C closed after repository CI/governance, public reliability smoke, D1 read-only recovery readiness, Worker rollback validation, Vercel rollback readiness, Apps Script rollback validation, and project-state reconciliation were all evidenced. A destructive D1 restore and an actual Worker rollback were never required merely to close readiness.
 
-1. repository CI and the P6C governance check pass on the final implementation;
-2. the unattended production reliability workflow is merged and one production run passes;
-3. the D1 read-only recovery drill passes against the canonical production database;
-4. the Worker runtime rollback workflow passes static/governance validation and its production credential/identity preflight is proven without performing an unnecessary rollback;
-5. the Vercel rollback procedure is verified against the current immutable deployment model without adding a new token;
-6. the existing Apps Script rollback path remains governance-valid and credential-gated;
-7. the final project-state document records recovery evidence, unresolved provider constraints if any, and the P6C closure decision.
+All gates were satisfied on 2026-08-30. The evidence below is historical and intentionally preserves the then-default `master` branch and the workflow names that existed on the closure date:
 
-A destructive D1 restore and an actual Worker rollback are **not** required merely to close readiness. They are incident actions and must not be executed against healthy production for drill purposes.
-
-## Closure evidence
-
-All seven gates were satisfied on 2026-08-30. The evidence below is historical closure evidence and intentionally records the smoke contract that existed on the closure date; the active maintenance contract is defined in the unattended reliability section above.
-
-- Repository CI / governance: CI #1637, run `33288591684`, on master `71e8b604420580130e9ccd5774fcabaabeb6dd2f` passed every lane including Governance and aggregate quality.
+- Repository CI / governance: CI #1637, run `33288591684`, on `master` `71e8b604420580130e9ccd5774fcabaabeb6dd2f` passed every lane including Governance and aggregate quality.
 - Unattended production reliability: P6C Production Reliability #5, run `33288591681`, passed home SSR/security, live search/Worker dependency, login CSR robots boundary, and the then-current Vercel edge WAF check.
-- D1 Time Travel readiness: D1 Recovery Drill #7, run `33295018757`, passed behind the protected `production` Environment using the dedicated read-only D1 token. Exact production D1 identity/metadata matched and a current Time Travel bookmark resolved. No restore or production write occurred; environment pseudo-deployment cleanup also passed.
+- D1 Time Travel readiness: D1 Recovery Drill #7, run `33295018757`, passed behind the protected `production` Environment using the dedicated read-only D1 token. Exact production D1 identity/metadata matched and a current Time Travel bookmark resolved. No restore or production write occurred.
 - Worker rollback readiness: CI #1637 validated the runtime-only rollback contract. Worker Production Release #7, run `33271266147`, separately proved the existing protected Cloudflare credentials, exact production D1 identity, and pre-mutation Time Travel bookmark. No healthy-production rollback was performed.
-- Vercel rollback readiness: production deployment `dpl_45oLEHJb38mcAYbH29M7HgZAFNTx` for master `71e8b604...` was READY and a rollback candidate. Previous production deployment `dpl_2c91Y6hkZ2BdHdR6tGp7ZdjVPadi` was also READY and a rollback candidate. No Vercel token was added.
-- Apps Script rollback readiness: CI #1637 P6C/P5G governance validated the existing protected rollback workflow, immutable version target, exact confirmation phrase, existing Apps Script credentials, version verification, and read-only health check. No healthy-production rollback was performed.
-- Closure evidence: `config/p6c-recovery-readiness.json`, this runbook, and `docs/architecture/post-p5h-current-project-state.md` record the completed recovery baseline and closure decision.
+- Vercel rollback readiness: production deployment `dpl_45oLEHJb38mcAYbH29M7HgZAFNTx` for historical `master` `71e8b604...` was READY and a rollback candidate. Previous production deployment `dpl_2c91Y6hkZ2BdHdR6tGp7ZdjVPadi` was also READY and a rollback candidate. No Vercel token was added.
+- Apps Script rollback readiness: CI #1637 validated the existing protected rollback workflow, immutable version target, exact confirmation phrase, existing Apps Script credentials, version verification, and read-only health check. No healthy-production rollback was performed.
 
 Provider constraints retained after closure:
 
@@ -161,4 +148,4 @@ Do not combine runtime rollback and data restore by default.
 
 ## Current phase state
 
-P6C Recovery & Reliability is closed as of 2026-08-30. The unattended reliability workflow remains an active production guard on the bounded six-hour cadence, while destructive restore and runtime rollback workflows remain incident-only recovery tools.
+P6C Recovery & Reliability is closed. Its read-only reliability contract remains active inside the consolidated Production Verification workflow on the bounded six-hour cadence, while destructive restore and runtime rollback operations remain explicit incident-only recovery tools.
