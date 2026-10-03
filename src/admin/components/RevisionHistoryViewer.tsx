@@ -76,7 +76,7 @@ export default function RevisionHistoryViewer() {
       <CardContent>
         <Stack spacing={2}>
           <Box>
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <HistoryOutlinedIcon color="primary" />
               <Typography variant="h2" sx={{ fontSize: "1.35rem" }}>
                 ประวัติการแก้ไขเนื้อหา
@@ -116,7 +116,12 @@ export default function RevisionHistoryViewer() {
                   sx={{ py: 1.5, justifyContent: "space-between", alignItems: { sm: "center" } }}
                 >
                   <Box>
-                    <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      useFlexGap
+                      sx={{ flexWrap: "wrap", alignItems: "center" }}
+                    >
                       <Typography sx={{ fontWeight: 800 }}>Revision {revision.revision}</Typography>
                       <Chip label={revisionActionLabel(revision.reason)} size="small" variant="outlined" />
                     </Stack>
@@ -144,9 +149,7 @@ export default function RevisionHistoryViewer() {
       </CardContent>
 
       <Dialog open={Boolean(selectedRevision)} onClose={() => setSelectedRevision(null)} fullWidth maxWidth="md">
-        <DialogTitle>
-          Snapshot {selectedRevision ? `Revision ${selectedRevision.revision}` : ""}
-        </DialogTitle>
+        <DialogTitle>Snapshot {selectedRevision ? `Revision ${selectedRevision.revision}` : ""}</DialogTitle>
         <DialogContent dividers>
           {selectedRevision && (
             <Stack spacing={2}>
