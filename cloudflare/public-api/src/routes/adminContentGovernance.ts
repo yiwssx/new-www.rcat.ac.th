@@ -1,3 +1,4 @@
+import { normalizeUnpublishAt } from "../../../../shared/contentStateValidation";
 import { mapMediaAssetRowToPublicMediaAsset } from "../adapters/publicMediaAdapter";
 import { authenticateAdminRequest, type AdminIdentity } from "../auth/adminAccess";
 import { requireAdminCapability, type AdminCapability } from "../auth/adminCapabilities";
@@ -443,10 +444,7 @@ async function handleRestore(request: Request, env: Env, identity: AdminIdentity
 }
 
 function normalizeExpiry(value: unknown) {
-  if (value === undefined || value === null || value === "") return "";
-  if (typeof value !== "string") return null;
-  const milliseconds = Date.parse(value);
-  return Number.isFinite(milliseconds) ? new Date(milliseconds).toISOString() : null;
+  return normalizeUnpublishAt(value);
 }
 
 async function handleExpiry(request: Request, env: Env, identity: AdminIdentity, contentId: string) {

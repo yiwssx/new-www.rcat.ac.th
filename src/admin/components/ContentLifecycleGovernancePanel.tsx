@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { normalizeUnpublishAt } from "../../../shared/contentStateValidation";
 import Alert from "@mui/material/Alert";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
@@ -174,7 +175,7 @@ export default function ContentLifecycleGovernancePanel() {
   }
 
   async function saveExpiry() {
-    const iso = expiryValue ? fromLocalDateTimeInputValue(expiryValue) : "";
+    const iso = expiryValue ? normalizeUnpublishAt(fromLocalDateTimeInputValue(expiryValue)) || "" : "";
     if (expiryValue && !iso) {
       setPanelError("วันที่สิ้นสุดการเผยแพร่ไม่ถูกต้อง");
       return;
