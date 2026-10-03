@@ -1,181 +1,179 @@
-# Agent Notes
+# Agent Instructions
 
-This project is a React/Vite public website and CMS for Roi-Et College of Agriculture and Technology.
+This repository is the React/Vite public website and CMS for Roi-Et College of Agriculture and Technology.
 
-## Current Project Status
+## Automatic session bootstrap
 
-Current status: post-P5H production governance baseline with Production Observability configured as a manual-only guard behind the protected `production` Environment reviewer gate, completed P6B Security Enforcement, completed P6C Recovery & Reliability, completed P6D Product/UX Improvements, completed Admin UX 00-10, and ongoing governed dependency maintenance. There is no active P6 feature-development phase.
+For every substantial task, do this automatically before changing code or project state:
 
-Reliability Roadmap v2 is separate from P6 and is complete. Phase 0 Development Quality Gate, Phase A Field QA Foundation, Phase B Operational Visibility, and Phase C Deep Field Verification are complete. Within Phase B, B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified. There is no active Reliability Roadmap v2 phase; future reliability work requires a new explicit scope.
+1. Determine the current branch and inspect the current repository state.
+2. Search `docs/workstreams/` on the current branch for a tracker whose status is `ACTIVE` and whose scope matches the current branch/task.
+3. If exactly one matching active tracker exists, read it before doing work and treat it as the cross-session execution state.
+4. Treat the current repository, current GitHub PR/Actions state, and the matching tracker as authoritative over conversational recollection.
+5. Verify mutable facts such as PR state, branch head, CI result, deployment state, and task completion before acting on them.
+6. Do not make the user restate prior progress merely because the conversation is new or a previous response was interrupted.
 
-Production environment retirement follow-ups are complete and operator-verified. On 2026-09-11 the operator directly inspected Vercel and Cloudflare: live Vercel Production uses `COMPLAINT_API_URI`, retired `VITE_COMPLAINT_API_URI` is absent, and legacy-only CMS-auth environment values are retired from the applicable live environments. Treat `docs/operations/environment-retirement-verification-2026-09-11.md` as the evidence record. Server-side compatibility parsing does not make a retired variable current configuration.
+If no matching tracker exists and the work is expected to span multiple PRs, multiple sessions, or several dependent implementation steps, create a concise tracker under `docs/workstreams/<scope>-tracker.md` automatically. Do not create a tracker for a small one-shot change.
 
-Use `docs/architecture/post-p5h-current-project-state.md` as the canonical current project-state note and `docs/architecture/reliability-roadmap-v2.md` for reliability phase definitions.
+## Automatic checkpointing
 
-P5H closed the original production-hardening sequence. The active baseline includes Cloudflare Worker/D1 runtime ownership, governed Apps Script media bridge release, CMS link integrity validation, request correlation governance, D1 credential-boundary hardening, protected production audit/release procedures, the Production Observability D1 usage guard, completed P6B security controls, completed P6C recovery controls, completed P6D public UX controls, completed Admin UX 00-10, completed Phase 0/A/B/C reliability work, the verified environment-retirement state, and the current post-P5H maintenance posture.
+When an active workstream tracker exists:
 
-The Production Observability guard completed its activation gate on 2026-08-29. As of 2026-09-20 it is manual-only because the existing `production` Environment reviewer gate prevents unattended scheduled execution; the former six-hour schedule was retired after waiting runs repeatedly accumulated and were cancelled by later runs. Reuse the existing Environment and credentials; do not request or create a duplicate Environment/secret merely because an imagined monitoring name differs. Use `docs/operations/p6a-production-observability.md` for closure evidence and operational constraints.
+- update it whenever a task changes state, a PR/branch/SHA becomes authoritative, a blocker appears, a decision changes, or a meaningful verification completes;
+- before ending a response after meaningful repository changes, ensure the tracker reflects the latest durable checkpoint;
+- keep the tracker concise: current state, completed/in-progress/pending work, blockers, decisions/constraints, verification evidence, and next action;
+- do not copy verbose command output, secrets, logs, or conversational narrative into the tracker;
+- never mark work complete only because code exists; require the workstream's acceptance/verification evidence.
 
-P6B Security Enforcement completed on 2026-08-29. Preserve its CSP, Vercel WAF, sensitive Admin/Auth rate-limit, and privacy-preserving anomaly-detection boundaries. Scheduled D1 auth polling is retired; password-threshold signaling is event-driven and deeper D1 aggregate diagnosis is manual-only. Use `docs/operations/p6b-security-enforcement.md` for closure evidence.
+On a new session, interrupted response, or resumed task, reconstruct state from GitHub + the matching tracker rather than trying to resume stale conversational execution state.
 
-P6C Recovery & Reliability completed on 2026-08-30. Preserve its D1 Time Travel readiness and protected rollback boundaries. Its ongoing unattended end-to-end reliability smoke runs every six hours, not twice hourly, and retains one bounded Search/Worker/D1 dependency probe per run. P6B owns scheduled WAF verification; do not duplicate the WAF probe in P6C. Use `docs/operations/p6c-recovery-reliability.md` for closure evidence and current guard ownership.
+## Bounded execution and external waits
 
-P6D Product/UX Improvements completed on 2026-08-30 as the final planned P6 development phase. Preserve its public not-found/error recovery and public search-state/no-result usability improvements. Use `docs/operations/p6d-product-ux-improvements.md` for closure evidence. Do not reopen architecture, security, recovery, or completed Admin UX work under the P6D label.
+Do not keep one agent response alive by repeatedly polling an external system for a long time.
 
-Admin UX 00-10 is complete. Use `docs/admin/admin-ux-execution-tracker.md` for the completed Admin UX sequence. Do not treat that sequence as a reopened M21 phase.
+For CI, GitHub Actions, deployments, provider jobs, or other external waits:
 
-Phase B is complete and production-verified. B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete. B3 completion is backed by PR #270 merged as `cda947149fee0e79791bfc401efbc5c33f3adbb9`, CI #2007 (`34547284821`) on final implementation head `b10ab8c99117fa1e254bd420df3f69de5ec77182`, READY Vercel production deployment `dpl_94AZDYbaLc61t2XbmxMFCw1GQZyP`, and production endpoint verification preserving the fail-closed CMS-session, `no-store`, Request ID, and P6B security boundary. Do not report Phase B as active or B3 as planned unless a newer explicit project-state decision opens new scope.
+- start the external process and capture its run/deployment identifier;
+- poll no more than two times or roughly two minutes total in the same response, whichever comes first;
+- if it is still pending, write the waiting state and exact next check into the active tracker, then stop at that durable checkpoint;
+- on the next turn/session, re-read current GitHub/provider state and continue automatically;
+- do not restart or duplicate an already-running job merely because the previous conversation was interrupted.
 
-Phase C is complete. C3 authenticated disposable CMS verification passed its protected production field run and deterministic zero-row cleanup. C3 remains manual-only after closure and must not be automatically dispatched by normal Worker production releases unless a new explicit scope reopens that behavior.
+Prefer several short, durable transactions over one very long execution chain.
 
-M13-M21 documents are retained as historical planning, migration, and stabilization records only. They must not be treated as the current active project phase unless a newer explicit project-status document says so. Legacy M21 active-ownership or open-stabilization wording must never be surfaced as current status.
+## Current project-state sources
 
-Governed Renovate dependency maintenance is expected to continue. It is not considered feature, runtime, or stabilization-scope expansion when it follows the repository dependency policy and passes the required CI/governance gates.
+Do not embed fast-changing project status in this file. Read only the relevant source when the task requires it.
 
-## Status Reporting Rule
+Stable baseline invariants retained here for repository consistency checks:
 
-When reporting current project status, use:
+- The current baseline is the **post-P5H production governance baseline**.
+- **B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified**.
+- **Production environment retirement follow-ups are complete and operator-verified**.
+- Phase C is complete; C3 remains manual-only.
 
-```text
-post-P5H production governance baseline + Production Observability configured/manual-only/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2 complete (Phase 0 + Phase A + Phase B/B1-B3 + Phase C complete) + production environment retirement follow-ups completed/operator-verified (2026-09-11)
-```
+Canonical references:
 
-Do not report M20, M21, P6B, P6C, P6D, or Reliability Roadmap v2 Phase B as the current active feature-development/reliability phase. P6B, P6C, P6D, Phase 0, Phase A, Phase B, and Phase C are completed. Production Observability remains a manual-only operational guard whose executions are reviewer-gated rather than unattended.
+- `docs/architecture/post-p5h-current-project-state.md` — canonical current project-state note.
+- `docs/architecture/reliability-roadmap-v2.md` — Reliability Roadmap v2 definitions/history.
+- `docs/operations/environment-retirement-verification-2026-09-11.md` — verified environment-retirement evidence.
+- `docs/operations/p6a-production-observability.md` — Production Observability guard and approval constraints.
+- `docs/operations/p6b-security-enforcement.md` — completed security controls and ownership.
+- `docs/operations/p6c-recovery-reliability.md` — recovery/reliability controls and ongoing guard ownership.
+- `docs/operations/p6d-product-ux-improvements.md` — completed P6D scope.
+- `docs/admin/admin-ux-execution-tracker.md` — completed Admin UX 00-10 sequence.
+- `docs/design/mui-tailwind-boundary.md` — MUI/Tailwind ownership boundary.
 
-For future feature, product, or reliability work, report the new branch and PR scope directly rather than extending P6D, Phase B, or M21 implicitly.
+Historical M13-M21 documents are evidence/history only unless a newer explicit project-state decision reopens their scope.
 
-## Current Runtime Ownership
+## Runtime ownership boundaries
 
-- Public structured reads: Cloudflare Worker and D1.
-- Public analytics, site view, content view, visitor presence, and live visitor stats: Cloudflare Worker and D1.
-- B2 Runtime Incident Feed ingest and protected aggregate reads: Cloudflare Worker and D1.
-- Admin structured reads and writes: Cloudflare Worker and D1.
-- Admin user access: Cloudflare RBAC plus D1 `app_admin_users`.
+Preserve these architectural boundaries unless the task explicitly redesigns them:
+
+- Public structured reads: Cloudflare Worker + D1.
+- Public analytics/site/content/visitor data: Cloudflare Worker + D1.
+- Admin structured reads/writes: Cloudflare Worker + D1.
+- Admin access: Cloudflare RBAC + D1 `app_admin_users`.
 - Admin session proxy: Vercel server-side admin proxy.
-- B3 Health Aggregation: Vercel server-owned `/api/health-aggregation`, explicit refresh only.
+- B3 health aggregation: server-owned `/api/health-aggregation`, explicit refresh only.
 - Media/file bridge: Apps Script behind the Vercel proxy.
-- File storage: Google Drive behind the Apps Script media/file bridge.
-- Complaint path: Vercel `/api/complaint` to the dedicated Complaint Apps Script using live server-only `COMPLAINT_API_URI`.
+- File storage: Google Drive behind the approved Apps Script bridge.
+- Complaint path: Vercel `/api/complaint` to the dedicated complaint Apps Script via server-only `COMPLAINT_API_URI`.
 
-Do not restore browser-side direct Apps Script structured reads/writes. Apps Script is retained only for the media/file bridge/Google Drive operations, plus the separately isolated complaint Apps Script behind its Vercel proxy.
+Do not restore browser-side direct Apps Script structured reads/writes.
 
-## Admin Operation Feedback Standard
+## Reliability and security ownership
+
+- Phase A owns deployment-driven read-only production browser QA.
+- P6A owns D1 utilization observability and remains manual-only / approval-gated.
+- P6B owns security, WAF, CSP, rate-limit, and anomaly-enforcement checks.
+- P6C owns bounded six-hour SSR → Worker → D1 reliability verification.
+- Phase B B1/B2/B3 are complete; B3 remains explicit-refresh server-owned aggregation.
+- Phase C is complete; C3 remains manual-only.
+- Reuse `X-RCAT-Request-ID`; do not create a parallel request-correlation identifier.
+- Do not add a parallel paid observability stack merely to recreate existing controls.
+
+## Do not restore or silently redesign
+
+Unless explicitly approved as new scope, do not restore:
+
+- legacy Apps Script user-management backend or direct frontend Apps Script user CRUD;
+- local bootstrap/password-hash user-account fallbacks;
+- legacy Apps Script credential login;
+- browser-side Apps Script structured-data reads/writes;
+- retired `VITE_COMPLAINT_API_URI` or legacy-only CMS-auth environment values in live production;
+- deleted `rcat-public-api-production` as a current Worker/D1 target;
+- a persistent Cloudflare Preview tier / `--env preview` procedure;
+- twice-hourly P6C Search/D1 polling;
+- duplicate scheduled WAF probes;
+- scheduled D1 auth-anomaly polling;
+- Worker → C3 automatic dispatch;
+- B3 browser-side infrastructure credentials or background polling.
+
+Keep pnpm on the repository-approved v10 toolchain unless a newer explicit repository decision changes that constraint.
+
+## Production safety
+
+- Never commit real secrets, tokens, D1 IDs, Access AUD values, private credentials, Time Travel bookmarks, or production-only identifiers.
+- Do not mutate production Cloudflare, Vercel, Apps Script, Google Drive, D1, DNS, or protected GitHub environments unless explicitly requested and authorized by the task.
+- Keep D1 migrations append-only.
+- Keep Apps Script scoped to approved media/file operations, except the separately isolated complaint Apps Script boundary.
+- Reuse existing credentials and GitHub Environments before considering new ones.
+- Preserve protected production approvals and existing release gates.
+- Prefer small, scoped commits and task branches.
+
+## Admin operation feedback standard
 
 Admin write operations use:
 
-- blocking loading modal while pending
-- centered success modal requiring acknowledgment
-- centered error modal requiring acknowledgment
-- no short auto-dismiss toast for final admin write results
+- blocking loading modal while pending;
+- centered success modal requiring acknowledgment;
+- centered error modal requiring acknowledgment;
+- no short auto-dismiss toast as the final result of an admin write.
 
-The standard applies to Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings.
+This applies to Media, Content, Documents, Menu, Users, Calendar, Carousel, E-Service, and Settings.
 
-## Reliability Ownership
+## Formatting and remote-write rule
 
-- Phase A owns deployment-driven read-only production browser QA.
-- P6A owns D1 utilization observability and remains manual-only and approval-gated.
-- P6B owns security/WAF/CSP enforcement checks.
-- P6C owns bounded six-hour SSR → Worker → D1 reliability verification.
-- Phase B B1/B2/B3 are complete; B3 remains explicit-refresh, server-owned aggregation through `/api/health-aggregation`.
-- Phase C is complete; C3 is manual-only.
-- Reuse `X-RCAT-Request-ID`; do not create duplicate correlation identifiers.
-- Do not add a parallel paid observability stack merely to recreate existing controls.
+Repository Prettier is authoritative. Use the repository-pinned Prettier version and `.prettierrc.json`.
 
-## Keep
+GitHub API/connector writes bypass local Git hooks. Before every remote commit, format every changed supported file according to repository rules rather than relying on CI as the first formatter.
 
-- Cloudflare Worker and D1 runtime paths.
-- Vercel admin proxy paths.
-- Apps Script media/file bridge.
-- Google Drive file storage bridge.
-- D1 migration history.
-- M13-M21 milestone records as historical evidence.
-- P5H production governance baseline documents.
-- Production Observability D1 usage guard and its existing read-only analytics credential boundary.
-- Completed P6B security controls and P6B-owned scheduled WAF smoke.
-- Completed P6C recovery/reliability controls and bounded six-hour public reliability guard.
-- Completed P6D public product/UX controls.
-- Completed Phase A production browser QA pipeline.
-- Completed Phase B1/B2/B3 operator visibility controls.
-- Completed Phase C checks and manual-only C3 deep-production regression tool.
-- Verified production environment-retirement evidence and the current `COMPLAINT_API_URI` / CMS-auth retirement boundary.
-- Sigmap AI helper workflow.
-- Governed Renovate dependency maintenance under the repository dependency policy.
+Before merge, the relevant quality gates must pass, including `pnpm format:check` and `pnpm lint:strict` when applicable.
 
-## Do Not Restore
+## React performance guidance
 
-- Legacy Apps Script user-management backend.
-- Direct frontend Apps Script user CRUD.
-- Local bootstrap user fallback.
-- Local password-hash user-account fallback.
-- Legacy Apps Script credential login path.
-- Browser-side Apps Script structured-data reads or writes.
-- Retired `VITE_COMPLAINT_API_URI` in live Vercel Production.
-- Legacy-only CMS-auth environment values retired by the final cutover.
-- The deleted `rcat-public-api-production` Worker/D1 as a current target; production is the existing `rcat-public-api-preview` physical resource under `env.production`.
-- A persistent Cloudflare Preview tier or `--env preview` operational procedure unless explicitly redesigned as new scope.
-- Twice-hourly P6C Search/D1 polling.
-- A duplicate scheduled WAF probe inside P6C.
-- Scheduled D1 auth-anomaly polling.
-- M20/M21 active-phase wording in current-facing guidance.
-- Worker → C3 automatic dispatch or one-time C3 release scaffolding.
-- B3 browser-side infrastructure credentials or background polling.
+For React frontend work, use the installed `vercel-react-best-practices` skill when available. Apply it selectively to this React/Vite application:
 
-## Safety Rules
+- eliminate measurable request waterfalls;
+- preserve React Query cache/invalidation semantics;
+- reduce unnecessary re-renders;
+- avoid unnecessary bundle growth;
+- lazy-load heavy routes/components only when evidence supports it;
+- preserve accessibility and user-visible behavior;
+- prefer profiling, bundle analysis, or tests over speculative optimization.
 
-- Do not commit real secrets, tokens, D1 IDs, Access AUD values, private credentials, or production-only identifiers.
-- Do not mutate production Cloudflare, Vercel, Apps Script, Google Drive, D1, or DNS unless explicitly requested.
-- Keep D1 migrations append-only.
-- Keep Apps Script scoped to approved media/file bridge operations, except the separately isolated complaint Apps Script boundary.
-- Reuse existing credentials and Environments before considering any new one.
-- Prefer small, scoped commits.
+Do not apply Next.js-only rules to this Vite application. Security, correctness, authorization, session integrity, and data consistency take priority over performance optimization.
 
-## Formatting and Remote Write Rule
+## Material UI + Tailwind guidance
 
-- Repository Prettier is authoritative; use the repository-pinned Prettier version and `.prettierrc.json`.
-- Local commits are protected by Husky and `lint-staged`, which format supported staged files before commit.
-- GitHub API, connector, and other remote file writes bypass local Git hooks. Before every remote commit, format every changed supported file with the repository Prettier rules; do not rely on CI as the first formatter.
-- Before merge, `pnpm format:check` and `pnpm lint:strict` must pass.
+Use the vendored `.agents/skills/material-ui-tailwind` guidance, subject to repository policy:
 
-## React Performance Skill
+- `src/design-system/tokens.ts` is the canonical semantic token source;
+- MUI owns interactive controls/forms/component state/focus/overlays/portal UI/dense Admin widgets;
+- Tailwind/RCAT utilities own page layout, responsive structure, spacing, prose, print, and static wrappers;
+- do not give MUI and Tailwind competing border/radius/shadow/focus/state/responsive ownership on the same element;
+- SSR and client styling must use the same shared runtime/provider and runtime-owned Emotion cache;
+- cascade changes must preserve critical CSS extraction, CSP nonce behavior, hydration, accessibility/focus policy, portals, and theme overrides;
+- repository architecture/security/accessibility/design rules override generic skill examples.
 
-For React frontend work, use the installed `vercel-react-best-practices` skill as a review and implementation guide.
+## Dependency maintenance
 
-Apply the rules selectively to this React/Vite application:
+Governed Renovate maintenance is expected and does not by itself reopen completed feature/reliability phases. Dependency PRs must still satisfy repository dependency policy and required CI/governance gates.
 
-- prioritize eliminating request waterfalls
-- preserve React Query cache and invalidation semantics
-- reduce unnecessary re-renders
-- avoid unnecessary bundle growth
-- lazy-load heavy routes or components when measurable value exists
-- preserve accessibility and existing user-visible behavior
-- prefer evidence from profiling, bundle analysis, or tests over speculative optimization
+## Sigmap
 
-Do not apply Next.js-only rules to this Vite application.
-
-Do not perform broad performance refactors during authentication or security tasks unless the affected React code is directly in scope.
-
-Security, correctness, authorization, session integrity, and data consistency take priority over performance optimization.
-
-## Material UI + Tailwind Skill
-
-For Material UI/Tailwind styling work, use the vendored `.agents/skills/material-ui-tailwind` skill as upstream implementation guidance. The vendored snapshot is pinned in `.agents/skills/material-ui-tailwind/UPSTREAM.md`; do not silently replace it from upstream `master`.
-
-Repository-specific policy overrides generic skill examples:
-
-- `src/design-system/tokens.ts` remains the canonical semantic design-token source. Do not make `--mui-*` variables the primary RCAT design-token source or create a parallel semantic token authority.
-- MUI owns interactive controls, forms, component state, focus behavior, overlays, portal-based UI, and dense Admin widgets. Tailwind/RCAT utilities own page layout, responsive structure, section spacing, prose, print, and static wrappers.
-- Do not give MUI and Tailwind competing border, radius, shadow, focus, state, or responsive ownership on the same element. Preserve `docs/design/mui-tailwind-boundary.md`.
-- Tailwind `className` or `slotProps.*.className` overrides on MUI internals require an explicit local need. Do not adopt them as the default styling pattern merely because the upstream skill demonstrates them.
-- SSR and client styling configuration must remain identical through the shared runtime/provider and runtime-owned Emotion cache. Do not apply `enableCssLayer` only in `src/main.tsx` or otherwise create a client-only MUI styling path.
-- Cascade-layer changes must preserve Emotion critical CSS extraction, CSP nonce behavior, hydration, accessibility/focus policy, portals, and existing component theme overrides.
-- Use the repository quality, design, SSR/hydration, and functional gates as evidence before merging cascade changes. Do not treat generic upstream snippets as sufficient verification.
-- Repository architecture, security, accessibility, and design-system rules take precedence over generic skill examples when they differ.
-
-## Sigmap Workflow
-
-Use sigmap for repository-aware AI assistance when available.
-
-Common commands:
+Use sigmap for repository-aware AI assistance when available:
 
 ```bash
 pnpm ai:ask
