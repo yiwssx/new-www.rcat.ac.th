@@ -1,6 +1,6 @@
 # Reliability Roadmap v2
 
-Updated: 2026-09-11
+Updated: 2026-10-03
 
 ## Purpose
 
@@ -12,8 +12,8 @@ This roadmap does **not** reopen P6. Historical P5H/P6A/P6B/P6C/P6D records keep
 
 | Phase   | Name                     | Status   | Primary outcome                                                                                                                                      |
 | ------- | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 0 | Development Quality Gate | Complete | Connector/remote commits are auto-formatted before expensive CI work; repository `format:check` remains the final guard.                             |
-| Phase A | Field QA Foundation      | Complete | Successful `master` CI waits for the matching successful Vercel deployment and then runs read-only production Playwright checks automatically.       |
+| Phase 0 | Development Quality Gate | Complete | Repository CI blocks unformatted changes with `format:check`; the retired branch-mutating Format Guard is not part of the current workflow inventory. |
+| Phase A | Field QA Foundation      | Complete | Successful `main` CI uses the production runtime classifier, waits for a matching real Vercel deployment when required, and runs read-only production Playwright checks. |
 | Phase B | Operational Visibility   | Complete | B1 protected live health checks, B2 privacy-safe Runtime Incident Feed, and B3 server-owned Health Aggregation are complete and production-verified. |
 | Phase C | Deep Field Verification  | Complete | C1 accessibility, C2 synthetic performance, and C3 authenticated disposable CMS production validation are complete.                                  |
 
@@ -78,11 +78,11 @@ Add release-oriented synthetic budgets that complement, rather than replace, exi
 
 Status: complete.
 
-C3 uses a manual, master-only workflow behind the existing protected `production` Environment. Each run provisions a random-password, non-root editor directly through the protected production D1 infrastructure boundary, executes a real CMS login/Save/Facebook-thumbnail-fallback/publish/public-read/delete flow, and then hard-cleans the exact run-scoped user and content namespace with `always()` cleanup plus zero-row verification.
+C3 uses a manual, `main`-only workflow behind the existing protected `production` Environment. Each run provisions a random-password, non-root editor directly through the protected production D1 infrastructure boundary, executes a real CMS login/Save/Facebook-thumbnail-fallback/publish/public-read/delete flow, and then hard-cleans the exact run-scoped user and content namespace with `always()` cleanup plus zero-row verification.
 
 Normal Admin credentials are never placed in test code or workflow secrets for this purpose. The mutable C3 suite remains outside `tests/production`, so it cannot be discovered by the automatic read-only Phase A browser smoke.
 
-Completion evidence is Phase C3 Round 19, GitHub Actions run `34126501500`, on exact `master` SHA `88ef27396472d618fbf2091c4bab0255c4d31397`. The browser field test passed, deterministic cleanup passed, and the final QA user/credential/session/content counts were all verified as zero.
+Completion evidence is Phase C3 Round 19, GitHub Actions run `34126501500`, on exact historical `master` SHA `88ef27396472d618fbf2091c4bab0255c4d31397`. The browser field test passed, deterministic cleanup passed, and the final QA user/credential/session/content counts were all verified as zero.
 
 After closure, C3 remains available only as a deliberate manual protected deep-production regression tool. Normal Worker production releases do not automatically dispatch C3.
 
@@ -97,7 +97,9 @@ The roadmap must reuse the following established controls:
 - Phase A deployment-driven production browser QA;
 - Phase B B1/B2/B3 operator visibility controls;
 - Vercel Web Analytics and Speed Insights;
-- existing CI, dependency governance, and Format Guard.
+- existing blocking CI and dependency governance.
+
+The former branch-mutating Format Guard is retired; do not restore it as a parallel formatting path. Repository `format:check` remains the blocking formatting gate, and remote writers must format before commit.
 
 Do not add Sentry, Datadog, New Relic, BrowserStack, or another paid/external observability stack merely to recreate this completed roadmap.
 
