@@ -31,7 +31,12 @@ function isValidAbsoluteUrl(value: string, allowedProtocols: Set<string>) {
   if (protocol === "mailto:" || protocol === "tel:") return value.slice(protocol.length).length > 0;
   try {
     const url = new URL(value);
-    return allowedProtocols.has(url.protocol.toLowerCase()) && Boolean(url.hostname) && !url.username && !url.password;
+    return (
+      allowedProtocols.has(url.protocol.toLowerCase()) &&
+      Boolean(url.hostname) &&
+      !url.username &&
+      !url.password
+    );
   } catch {
     return false;
   }
@@ -42,7 +47,14 @@ export function isValidFacebookEmbedPermalink(value: unknown) {
   if (!link || link.length > MAX_LINK_LENGTH || hasUnsafeCharacter(link)) return false;
   try {
     const url = new URL(link);
-    if (url.protocol !== "https:" || !FACEBOOK_HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password) return false;
+    if (
+      url.protocol !== "https:" ||
+      !FACEBOOK_HOSTS.has(url.hostname.toLowerCase()) ||
+      url.username ||
+      url.password
+    ) {
+      return false;
+    }
     const normalizedPath = url.pathname.toLowerCase();
     const segments = normalizedPath.split("/").filter(Boolean);
     if (normalizedPath === "/permalink.php" || normalizedPath === "/story.php") {
