@@ -6,6 +6,19 @@ The project existed before formal semantic versioning. Earlier architecture gene
 
 ## [Unreleased]
 
+## [3.3.1] - 2026-10-03
+
+### Added
+
+- Content Integrity v2 read-only semantic auditing and protected production audit integration.
+- Immutable content revision history with atomic write-boundary recording.
+- Authenticated Admin revision viewer and guarded revision restore as a new Draft revision.
+- Shared CMS URL/link and content-state/date validation contracts.
+
+### Safety
+
+- This release baseline does not create a tag or apply production D1 migrations. Production release and verification remain required before publishing `v3.3.1`.
+
 No next semantic version has been assigned. The entries below record completed production work after the `3.3.0` baseline without guessing a release number.
 
 ### Added
