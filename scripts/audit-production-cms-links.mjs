@@ -6,13 +6,17 @@ import { auditContentIntegrity } from "../cloudflare/public-api/src/contentInteg
 
 const directory = process.argv[2];
 if (!directory) {
-  throw new Error("usage: node scripts/audit-production-cms-links.mjs <audit-directory>");
+  throw new Error(
+    "usage: node scripts/audit-production-cms-links.mjs <audit-directory>"
+  );
 }
 
 function rows(file) {
   const value = JSON.parse(fs.readFileSync(path.join(directory, file), "utf8"));
   const statements = Array.isArray(value) ? value : [value];
-  return statements.flatMap((statement) => (Array.isArray(statement?.results) ? statement.results : []));
+  return statements.flatMap((statement) =>
+    Array.isArray(statement?.results) ? statement.results : []
+  );
 }
 
 const findings = new Map();
@@ -49,7 +53,12 @@ for (const row of menuItems) {
 }
 for (const row of rows("carousel.json")) {
   check("carousel_slides", "image_url", row.image_url, "resource", false);
-  check("carousel_slides", "mobile_image_url", row.mobile_image_url, "resource");
+  check(
+    "carousel_slides",
+    "mobile_image_url",
+    row.mobile_image_url,
+    "resource"
+  );
   check("carousel_slides", "href", row.href, "navigation");
 }
 for (const row of rows("external-services.json")) {
@@ -75,7 +84,14 @@ function parseSettings(row, table) {
 for (const row of rows("site-settings.json")) {
   const value = parseSettings(row, "site_settings");
   if (!value || typeof value !== "object") continue;
-  for (const field of ["admissionUrl", "facebookUrl", "youtubeUrl", "tiktokUrl", "messengerUrl", "mapUrl"]) {
+  for (const field of [
+    "admissionUrl",
+    "facebookUrl",
+    "youtubeUrl",
+    "tiktokUrl",
+    "messengerUrl",
+    "mapUrl"
+  ]) {
     check("site_settings", field, value[field], "navigation");
   }
   for (const field of ["heroImageUrl", "directorImageUrl", "mapEmbedUrl"]) {
@@ -85,7 +101,12 @@ for (const row of rows("site-settings.json")) {
     for (const group of value.footerDirectoryGroups) {
       if (!Array.isArray(group?.links)) continue;
       for (const link of group.links) {
-        check("site_settings", "footerDirectoryGroups.href", link?.href, "navigation");
+        check(
+          "site_settings",
+          "footerDirectoryGroups.href",
+          link?.href,
+          "navigation"
+        );
       }
     }
   }
@@ -94,17 +115,28 @@ for (const row of rows("site-settings.json")) {
 for (const row of rows("homepage-settings.json")) {
   const value = parseSettings(row, "homepage_settings");
   if (!value || typeof value !== "object") continue;
-  check("homepage_settings", "introGate.imageUrl", value.introGate?.imageUrl, "resource");
+  check(
+    "homepage_settings",
+    "introGate.imageUrl",
+    value.introGate?.imageUrl,
+    "resource"
+  );
   check(
     "homepage_settings",
     "introGate.secondaryButtonUrl",
     value.introGate?.secondaryButtonUrl,
     "navigation"
   );
-  check("homepage_settings", "introVideo.youtubeEmbedUrl", value.introVideo?.youtubeEmbedUrl, "resource");
+  check(
+    "homepage_settings",
+    "introVideo.youtubeEmbedUrl",
+    value.introVideo?.youtubeEmbedUrl,
+    "resource"
+  );
 }
 
-const auditNow = process.env.CMS_INTEGRITY_AUDIT_NOW || new Date().toISOString();
+const auditNow =
+  process.env.CMS_INTEGRITY_AUDIT_NOW || new Date().toISOString();
 const semantic = auditContentIntegrity({
   now: auditNow,
   contents,
@@ -117,7 +149,10 @@ for (const item of semantic.issues) {
   record(`semantic:${item.code}`);
 }
 
-const findingCount = [...findings.values()].reduce((total, count) => total + count, 0);
+const findingCount = [...findings.values()].reduce(
+  (total, count) => total + count,
+  0
+);
 if (findingCount > 0) {
   console.error(
     `CMS integrity audit failed: ${findingCount} finding(s); ${checkedLinks} link field(s) and ${semantic.checked.contents + semantic.checked.documents + semantic.checked.mediaAssets + semantic.checked.menuItems} semantic row(s) checked. Sensitive values and record identifiers are intentionally not printed.`
