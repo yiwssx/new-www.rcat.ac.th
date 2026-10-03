@@ -51,11 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
-      - name: Print exact Prettier patch for Task 2 audit script
-        run: |
-          pnpm exec prettier --write scripts/audit-production-cms-links.mjs
-          git diff -- scripts/audit-production-cms-links.mjs
-          exit 1
+      - run: pnpm format:check
       - run: pnpm lint:strict
 
   unit:
