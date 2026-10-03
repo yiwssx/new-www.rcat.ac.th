@@ -79,7 +79,7 @@ export default function RevisionHistoryViewer() {
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <HistoryOutlinedIcon color="primary" />
               <Typography variant="h2" sx={{ fontSize: "1.35rem" }}>
-                ประวัติการแก้ไขเนื้อหา
+                ประวัติ Revision
               </Typography>
             </Stack>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
@@ -97,8 +97,7 @@ export default function RevisionHistoryViewer() {
             }}
             getOptionLabel={(option) => option.title}
             isOptionEqualToValue={(option, value) => option.id === value.id}
-            renderInput={(params) => <TextField {...params} label="เลือกเนื้อหา" placeholder="ค้นหาชื่อเนื้อหา" />}
-          />
+            renderInput={(params) => (\n              <TextField {...params} label="เลือกเนื้อหา" placeholder="ค้นหาชื่อเนื้อหา" />\n            )}\n          />
 
           {selectedId && revisionsQuery.isLoading && <Typography>กำลังโหลดประวัติ…</Typography>}
           {revisionsQuery.isError && <Alert severity="error">ไม่สามารถโหลดประวัติการแก้ไขได้</Alert>}
