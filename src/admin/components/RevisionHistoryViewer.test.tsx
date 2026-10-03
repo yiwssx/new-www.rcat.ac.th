@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ContentRevision } from "../../features/cms-governance/client";
-import { revisionActionLabel, snapshotSummaryRows } from "./RevisionHistoryViewer";
+import { revisionActionLabel, snapshotSummaryRows } from "./RevisionHistoryViewer.utils";
 
 const revision: ContentRevision = {
   id: "internal-revision-id",
