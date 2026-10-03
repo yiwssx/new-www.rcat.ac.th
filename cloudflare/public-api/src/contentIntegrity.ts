@@ -1,4 +1,4 @@
-import { isValidCmsLink, isValidFacebookEmbedPermalink } from "./adminLinkValidation";
+import { isValidCmsLink, isValidFacebookEmbedPermalink } from "./adminLinkValidation.ts";
 import type { ContentRow, DocumentRow, MediaAssetRow, MenuItemRow } from "./db/schema";
 
 const CONTENT_TYPES = new Set(["page", "news", "program", "announcement", "blog"]);

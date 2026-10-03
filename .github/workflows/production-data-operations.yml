@@ -55,7 +55,7 @@ jobs:
         run: node scripts/facebook/facebook-content-classifier.mjs --self-test
 
   cms-link-audit:
-    name: Production CMS Link Integrity
+    name: Production CMS Integrity
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'cms-link-audit' }}
     runs-on: ubuntu-latest
     environment:
@@ -91,7 +91,7 @@ jobs:
         run: |
           pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-databases.json"
           node cloudflare/public-api/scripts/worker-production-preflight.mjs --database-list "$RUNNER_TEMP/d1-databases.json" --verify-identity-only
-      - name: Read link-bearing CMS fields
+      - name: Read CMS integrity audit fields
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_READ_TOKEN }}
@@ -100,16 +100,16 @@ jobs:
           audit_dir="$RUNNER_TEMP/cms-link-audit"
           mkdir -p "$audit_dir"
           query() { local output="$1"; local sql="$2"; pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" --remote --command="$sql" --json > "$audit_dir/$output"; }
-          query contents.json "SELECT id, canonical_url, body_doc_url FROM contents WHERE COALESCE(deleted_at, '') = '';"
-          query documents.json "SELECT id, file_url FROM documents WHERE COALESCE(deleted_at, '') = '';"
+          query contents.json "SELECT id, slug, type, status, owner, title, canonical_url, template, body_doc_id, body_doc_url, featured_media_id, media_ids_json, publish_at, deleted_at FROM contents WHERE COALESCE(deleted_at, '') = '';"
+          query documents.json "SELECT id, title, file_url, media_id, status, deleted_at FROM documents WHERE COALESCE(deleted_at, '') = '';"
           query home-sections.json "SELECT id, href FROM public_home_sections WHERE COALESCE(deleted_at, '') = '';"
-          query menu.json "SELECT id, href FROM menu_items;"
+          query menu.json "SELECT id, parent_id, href, enabled FROM menu_items;"
           query carousel.json "SELECT id, image_url, mobile_image_url, href FROM carousel_slides;"
           query external-services.json "SELECT id, href FROM external_services;"
           query media.json "SELECT id, drive_url, preview_url, embed_url, thumbnail_url FROM media_assets;"
           query site-settings.json "SELECT id, settings_json FROM site_settings;"
           query homepage-settings.json "SELECT id, settings_json FROM homepage_settings;"
-      - name: Validate CMS link policy
+      - name: Validate CMS integrity policy
         run: node scripts/audit-production-cms-links.mjs "$RUNNER_TEMP/cms-link-audit"
 
   authenticated-cms-field:
@@ -336,10 +336,7 @@ jobs:
           audit_stderr="$RUNNER_TEMP/production-home-section-fixture-audit.stderr"
           audit_sql="$(cat cloudflare/public-api/sql/production-home-section-fixture-audit.sql)"
           set +e
-          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" \
-            --remote \
-            --command="$audit_sql" \
-            --json > "$audit_json" 2> "$audit_stderr"
+          pnpm wrangler d1 execute "$PRODUCTION_D1_RESOURCE_NAME" --remote --command="$audit_sql" --json > "$audit_json" 2> "$audit_stderr"
           audit_status=$?
           set -e
 
