@@ -35,7 +35,10 @@ export default function RevisionHistoryViewer() {
     staleTime: 30_000
   });
   const options = useMemo(
-    () => [...(optionsQuery.data?.content ?? [])].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+    () =>
+      [...(optionsQuery.data?.content ?? [])].sort((left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt)
+      ),
     [optionsQuery.data?.content]
   );
   const selected = options.find((item) => item.id === selectedId) ?? null;
@@ -72,7 +75,9 @@ export default function RevisionHistoryViewer() {
             }}
             getOptionLabel={(option) => option.title}
             isOptionEqualToValue={(option, value) => option.id === value.id}
-            renderInput={(params) => <TextField {...params} label="เลือกเนื้อหา" placeholder="ค้นหาชื่อเนื้อหา" />}
+            renderInput={(params) => (
+              <TextField {...params} label="เลือกเนื้อหา" placeholder="ค้นหาชื่อเนื้อหา" />
+            )}
           />
 
           {selectedId && revisionsQuery.isLoading && <Typography>กำลังโหลดประวัติ…</Typography>}
