@@ -4,6 +4,7 @@ import { requireAdminStepUp } from "../auth/adminStepUp";
 import { requireD1Database } from "../db/documentsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
+import { validateEditorialTransition as validateSharedEditorialTransition } from "../../../../shared/contentStateValidation";
 import {
   enforceSecurityRateLimit,
   SecurityRateLimitExceeded,
