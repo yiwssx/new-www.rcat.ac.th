@@ -1,3 +1,5 @@
+import { isValidFacebookEmbedPermalink } from "../../shared/cmsLinkValidation";
+
 const allowedFacebookHosts = new Set(["facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"]);
 const facebookPostPluginBaseUrl = "https://www.facebook.com/plugins/post.php";
 const defaultFacebookPostWidth = 500;
@@ -187,7 +189,7 @@ export function isFacebookUrl(value: string): boolean {
 }
 
 export function isValidFacebookPostUrl(value: string): boolean {
-  return Boolean(normalizeFacebookPostUrl(value));
+  return isValidFacebookEmbedPermalink(value);
 }
 
 export function clampFacebookPostPluginWidth(value: number): number {
