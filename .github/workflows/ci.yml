@@ -51,6 +51,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
+      - run: pnpm exec prettier --write shared/cmsLinkValidation.ts
+      - name: Print authoritative Task 7 Prettier output
+        run: |
+          echo '--- BEGIN PRETTIER OUTPUT ---'
+          cat shared/cmsLinkValidation.ts
+          echo '--- END PRETTIER OUTPUT ---'
       - run: pnpm format:check
       - run: pnpm lint:strict
 
