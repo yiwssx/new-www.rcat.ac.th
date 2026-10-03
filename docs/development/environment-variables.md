@@ -1,6 +1,6 @@
 # Environment Variables
 
-Updated: 2026-09-11.
+Updated: 2026-10-03.
 
 This Vite app only exposes browser-readable variables whose names start with `VITE_`.
 
@@ -139,6 +139,6 @@ The current admin runtime uses the Vercel CMS Admin proxy and the role/capabilit
 
 ## Current Status
 
-The project is in the post-P5H production governance and maintenance baseline. Reliability Roadmap v2 Phase 0, Phase A, Phase B/B1-B3, and Phase C are complete; no reliability implementation phase is active. Cloudflare environment convergence is local development plus one protected production runtime. Operator verification on 2026-09-11 closed the complaint-variable migration and CMS-auth legacy-environment retirement follow-ups.
+The project is in the **v3.3.1 production-governance and governed-maintenance baseline** on `main`. The v3.3.1 Content Operations release is complete; Reliability Roadmap v2 Phase 0, Phase A, Phase B/B1-B3, and Phase C are complete; and no reliability, migration, or release workstream is active. Cloudflare environment convergence remains local development plus one protected production runtime. Operator verification on 2026-09-11 closed the complaint-variable migration and CMS-auth legacy-environment retirement follow-ups.
 
-See `docs/architecture/post-p5h-current-project-state.md`, `docs/architecture/current-runtime-ownership.md`, `docs/architecture/production-environment-convergence-2026-08-16.md`, and `docs/operations/environment-retirement-verification-2026-09-11.md` for the current state.
+See `docs/architecture/current-project-state.md`, `docs/architecture/current-runtime-ownership.md`, `docs/architecture/production-environment-convergence-2026-08-16.md`, and `docs/operations/environment-retirement-verification-2026-09-11.md` for the current state. `docs/architecture/post-p5h-current-project-state.md` is a preceding historical snapshot.
