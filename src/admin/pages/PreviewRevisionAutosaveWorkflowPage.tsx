@@ -5,6 +5,7 @@ import ContentRedirectManagerPanel from "../components/ContentRedirectManagerPan
 import EditorialWorkflowPanel from "../components/EditorialWorkflowPanel";
 import PreviewRevisionAutosaveWorkflowGuide from "../components/PreviewRevisionAutosaveWorkflowGuide";
 import RevisionComparePanel from "../components/RevisionComparePanel";
+import RevisionHistoryViewer from "../components/RevisionHistoryViewer";
 import TaxonomyManagerPanel from "../components/TaxonomyManagerPanel";
 import ContentPage from "./ContentPage";
 
@@ -14,6 +15,7 @@ export default function PreviewRevisionAutosaveWorkflowPage() {
       <PreviewRevisionAutosaveWorkflowGuide />
       <EditorialWorkflowPanel />
       <ContentHealthDashboard />
+      <RevisionHistoryViewer />
       <ContentLifecycleGovernancePanel />
       <RevisionComparePanel />
       <TaxonomyManagerPanel />
