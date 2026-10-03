@@ -6,6 +6,7 @@ const MAX_LINK_LENGTH = 4_096;
 const NAVIGATION_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 const CANONICAL_PROTOCOLS = new Set(["http:", "https:"]);
 const RESOURCE_PROTOCOLS = new Set(["https:"]);
+const FACEBOOK_HOSTS = new Set(["facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"]);
 
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -46,6 +47,37 @@ function isValidAbsoluteUrl(value: string, allowedProtocols: Set<string>) {
   try {
     const url = new URL(value);
     return allowedProtocols.has(url.protocol.toLowerCase()) && Boolean(url.hostname) && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
+export function isValidFacebookEmbedPermalink(value: unknown) {
+  const link = normalizedString(value);
+
+  if (!link || link.length > MAX_LINK_LENGTH || hasUnsafeCharacter(link)) {
+    return false;
+  }
+
+  try {
+    const url = new URL(link);
+
+    if (url.protocol !== "https:" || !FACEBOOK_HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password) {
+      return false;
+    }
+
+    const normalizedPath = url.pathname.toLowerCase();
+    const segments = normalizedPath.split("/").filter(Boolean);
+
+    if (normalizedPath === "/permalink.php" || normalizedPath === "/story.php") {
+      return Boolean(url.searchParams.get("story_fbid") && url.searchParams.get("id"));
+    }
+
+    if (segments.length === 3 && segments[1] === "posts") {
+      return Boolean(segments[0] && segments[2]);
+    }
+
+    return segments.length === 2 && segments[0] === "reel" && Boolean(segments[1]);
   } catch {
     return false;
   }
@@ -151,6 +183,10 @@ function validateEntityBody(entity: string, body: JsonRecord) {
   if (entity === "content") {
     assertLink(body.canonicalUrl, "canonical", "content canonical URL");
     assertLink(body.bodyDocUrl, "resource", "content body document URL");
+
+    if (normalizedString(body.template) === "facebook-embed" && !isValidFacebookEmbedPermalink(body.canonicalUrl)) {
+      throw new Error("invalid content Facebook embed URL");
+    }
     return;
   }
 
