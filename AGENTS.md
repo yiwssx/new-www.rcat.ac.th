@@ -45,6 +45,13 @@ Prefer several short, durable transactions over one very long execution chain.
 
 Do not embed fast-changing project status in this file. Read only the relevant source when the task requires it.
 
+Stable baseline invariants retained here for repository consistency checks:
+
+- The current baseline is the **post-P5H production governance baseline**.
+- **B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified**.
+- **Production environment retirement follow-ups are complete and operator-verified**.
+- Phase C is complete; C3 remains manual-only.
+
 Canonical references:
 
 - `docs/architecture/post-p5h-current-project-state.md` — canonical current project-state note.
