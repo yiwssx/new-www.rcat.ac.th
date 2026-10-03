@@ -25,6 +25,14 @@ describe("facebookEmbed", () => {
     );
   });
 
+  it("requires a concrete post id for /{page}/posts/{postId} permalinks", () => {
+    expect(normalizeFacebookPostUrl("https://www.facebook.com/rcat/posts/")).toBe("");
+    expect(normalizeFacebookPostUrl("https://www.facebook.com/rcat/posts")).toBe("");
+    expect(normalizeFacebookPostUrl("https://www.facebook.com/rcat/posts/12345/extra")).toBe("");
+    expect(isValidFacebookPostUrl("https://www.facebook.com/rcat/posts/")).toBe(false);
+    expect(isValidFacebookPostUrl("https://www.facebook.com/rcat/posts/12345")).toBe(true);
+  });
+
   it("accepts direct Facebook Reel permalinks", () => {
     const reelUrl = "https://www.facebook.com/reel/123456789012345/?mibextid=test";
 
