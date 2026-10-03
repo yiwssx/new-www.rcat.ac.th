@@ -2,7 +2,7 @@
 
 Official web platform of **Roi Et College of Agriculture and Technology** (วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด).
 
-**Current version:** `3.3.0`  
+**Current version:** `3.3.1`  
 **Production site:** `https://www.rcat.ac.th/`  
 **Package identity:** `www.rcat.ac.th`
 
@@ -26,7 +26,7 @@ Runtime ownership is intentionally split by responsibility:
 - **Runtime Incident Feed (B2):** privacy-safe browser incident ingest and authenticated operator aggregates through Cloudflare Worker + D1.
 - **CMS/admin structured reads and writes:** Cloudflare Worker + D1.
 - **CMS identity, sessions, RBAC, MFA, CSRF, step-up assurance, revocation, and user lifecycle:** Cloudflare Worker + D1 through same-origin Vercel proxy routes.
-- **System Health / Health Aggregation (B1/B3):** protected `/admin/system-health` plus Vercel server-owned `/api/health-aggregation`; explicit refresh only, no browser infrastructure credentials.
+- **System Health / Health Aggregation (B1/B3):** protected `/admin/system-health` plus Vercel server-owned `/api/health-aggregation`; explicit refresh only, no browser infrastructure credentials. GitHub workflow/deployment metadata is resolved from current `main`.
 - **Media/file bridge:** Google Apps Script behind authenticated server-side proxy boundaries.
 - **Complaint submission:** same-origin Vercel `/api/complaint` to a dedicated Complaint Apps Script; live Production uses server-only `COMPLAINT_API_URI`.
 - **File storage:** Google Drive.
@@ -37,7 +37,7 @@ Cloudflare remote structured-data runtime is production-only. The canonical prod
 
 The authoritative runtime ownership document is [`docs/architecture/current-runtime-ownership.md`](docs/architecture/current-runtime-ownership.md).
 
-Reliability Roadmap v2 is complete: Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. There is no active Reliability Roadmap v2 implementation phase; future reliability development requires a new explicit scope. Current status is defined by [`docs/architecture/post-p5h-current-project-state.md`](docs/architecture/post-p5h-current-project-state.md).
+Reliability Roadmap v2 is complete: Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. There is no active Reliability Roadmap v2 implementation phase; future reliability development requires a new explicit scope. Current status is defined by [`docs/architecture/current-project-state.md`](docs/architecture/current-project-state.md).
 
 Production environment retirement follow-ups are also complete and operator-verified as of 2026-09-11: live Vercel Production uses `COMPLAINT_API_URI`, retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment, and legacy-only CMS-auth environment values are retired from the applicable Vercel/Cloudflare environments. See [`docs/operations/environment-retirement-verification-2026-09-11.md`](docs/operations/environment-retirement-verification-2026-09-11.md).
 
@@ -53,6 +53,8 @@ The project predates formal semantic versioning. Its history has been reconstruc
 | `v3.1.0` | Post-SSR stabilization       | SSR and project-audit remediation baseline                                          |
 | `v3.2.0` | Production hardening         | Canonical D1 convergence, recovery, release, and audit hardening                    |
 | `v3.3.0` | Governed production baseline | Explicit product identity, licensing, versioning, and current production governance |
+
+The current `v3.3.1` Content Operations patch remains inside the governed `v3.3.x` generation and adds production-released content integrity, revision-history, guarded restore, and shared content/link validation capabilities without creating a new architecture generation.
 
 See [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) for exact historical anchor commits and rationale. See [`CHANGELOG.md`](CHANGELOG.md) for the release log from the explicit versioning baseline onward.
 
@@ -80,7 +82,7 @@ The root package declares:
 {
   "name": "www.rcat.ac.th",
   "private": true,
-  "version": "3.3.0",
+  "version": "3.3.1",
   "license": "UNLICENSED"
 }
 ```
@@ -175,6 +177,12 @@ General deployment ownership:
 - Apps Script media/file bridge change → Apps Script deployment.
 - Documentation/tests-only change → no runtime deployment is required.
 
+Operational verification is intentionally consolidated:
+
+- `.github/workflows/production-verification.yml` owns automatic post-CI browser verification plus scheduled P6B security and P6C reliability checks; protected P6A observability and auth-anomaly diagnostics are deliberate manual operations in the same workflow.
+- `.github/workflows/production-data-operations.yml` owns the deliberate protected C3 `authenticated-cms-field` operation.
+- `.github/workflows/maintenance-recovery.yml` owns the read-only D1 recovery-drill path.
+
 See [`docs/deployment/runtime-deployment-guide.md`](docs/deployment/runtime-deployment-guide.md).
 
 ## Security Boundary
@@ -193,9 +201,9 @@ Do not commit:
 
 Checked-in non-secret project settings live in `src/config/project-settings.json`.
 
-Current security and governance controls include CI quality gates, dependency audit/freshness policy, D1 migration sequencing, Worker dry-deploy validation, production data-integrity checks, Apps Script release governance, SSR/CSP readiness checks, recovery documentation, Phase A read-only production browser QA, B1/B2/B3 operator visibility, manual/protected C3 deep-production regression, and the operator-verified environment-retirement baseline.
+Current security and governance controls include CI quality gates, dependency audit/freshness policy, D1 migration sequencing, Worker dry-deploy validation, production data-integrity checks, Apps Script release governance, SSR/CSP readiness checks, recovery documentation, consolidated Production Verification browser/security/reliability guards, B1/B2/B3 operator visibility, manual/protected C3 deep-production regression, and the operator-verified environment-retirement baseline.
 
-Do not restore retired `VITE_COMPLAINT_API_URI`, legacy-only CMS-auth environment values, the deleted `rcat-public-api-production` resources as current production targets, or a persistent Cloudflare Preview workflow without a new explicitly approved architecture scope.
+Do not restore retired `VITE_COMPLAINT_API_URI`, legacy-only CMS-auth environment values, the deleted `rcat-public-api-production` resources as current production targets, retired phase-specific/duplicate workflows, the retired branch-mutating Format Guard, or a persistent Cloudflare Preview workflow without a new explicitly approved architecture scope.
 
 ## Current Documentation
 
@@ -204,13 +212,14 @@ Primary current-state documents:
 - Product history: [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - Runtime ownership: [`docs/architecture/current-runtime-ownership.md`](docs/architecture/current-runtime-ownership.md)
-- Current project state: [`docs/architecture/post-p5h-current-project-state.md`](docs/architecture/post-p5h-current-project-state.md)
+- Current project state: [`docs/architecture/current-project-state.md`](docs/architecture/current-project-state.md)
 - Reliability Roadmap v2: [`docs/architecture/reliability-roadmap-v2.md`](docs/architecture/reliability-roadmap-v2.md)
 - Environment variables: [`docs/development/environment-variables.md`](docs/development/environment-variables.md)
 - Production environment retirement verification: [`docs/operations/environment-retirement-verification-2026-09-11.md`](docs/operations/environment-retirement-verification-2026-09-11.md)
 - Phase A operating context: [`docs/operations/phase-a-field-qa-foundation.md`](docs/operations/phase-a-field-qa-foundation.md)
 - Phase B closure/operating context: [`docs/operations/phase-b-operational-visibility.md`](docs/operations/phase-b-operational-visibility.md)
 - Phase C closure/operating context: [`docs/operations/phase-c-deep-field-verification.md`](docs/operations/phase-c-deep-field-verification.md)
+- D1 recovery drill: [`docs/operations/d1-recovery-drill.md`](docs/operations/d1-recovery-drill.md)
 - Runtime deployment: [`docs/deployment/runtime-deployment-guide.md`](docs/deployment/runtime-deployment-guide.md)
 - Dependency status: [`docs/maintenance/dependency-current-status.md`](docs/maintenance/dependency-current-status.md)
 - CMS session lifecycle: [`docs/cms-auth-session-lifecycle.md`](docs/cms-auth-session-lifecycle.md)
