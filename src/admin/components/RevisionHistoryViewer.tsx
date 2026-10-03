@@ -23,32 +23,7 @@ import { formatDisplayDate } from "../../utils/dateDisplay";
 
 const CONTENT_OPTIONS_QUERY = ["cms-governance", "content-options"] as const;
 
-export function revisionActionLabel(reason: string) {
-  const labels: Record<string, string> = {
-    create: "สร้าง",
-    update: "แก้ไข",
-    publish: "เผยแพร่",
-    unpublish: "ยกเลิกเผยแพร่",
-    delete: "ลบ",
-    restore: "กู้คืน"
-  };
-  return labels[reason] || reason || "ไม่ระบุ";
-}
-
-export function snapshotSummaryRows(revision: ContentRevision) {
-  const snapshot = revision.snapshot;
-  if (!snapshot) return [];
-  return [
-    ["ชื่อเรื่อง", snapshot.title || "—"],
-    ["Slug", snapshot.slug || "—"],
-    ["ประเภท", snapshot.type || "—"],
-    ["สถานะ", snapshot.status || "—"],
-    ["ผู้รับผิดชอบ", snapshot.owner || "—"],
-    ["หมวดหมู่", snapshot.category || "—"],
-    ["กำหนดเผยแพร่", snapshot.publishAt ? formatDisplayDate(snapshot.publishAt) : "—"],
-    ["กำหนดสิ้นสุด", snapshot.unpublishAt ? formatDisplayDate(snapshot.unpublishAt) : "—"]
-  ] as const;
-}
+import { revisionActionLabel, snapshotSummaryRows } from "./RevisionHistoryViewer.utils";
 
 export default function RevisionHistoryViewer() {
   const [selectedId, setSelectedId] = useState("");
@@ -60,10 +35,7 @@ export default function RevisionHistoryViewer() {
     staleTime: 30_000
   });
   const options = useMemo(
-    () =>
-      [...(optionsQuery.data?.content ?? [])].sort((left, right) =>
-        right.updatedAt.localeCompare(left.updatedAt)
-      ),
+    () => [...(optionsQuery.data?.content ?? [])].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     [optionsQuery.data?.content]
   );
   const selected = options.find((item) => item.id === selectedId) ?? null;
