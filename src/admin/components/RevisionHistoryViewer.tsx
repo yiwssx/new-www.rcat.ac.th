@@ -23,13 +23,12 @@ import {
   type ContentRevision,
 } from "../../features/cms-governance/client";
 import { formatDisplayDate } from "../../utils/dateDisplay";
-
-const CONTENT_OPTIONS_QUERY = ["cms-governance", "content-options"] as const;
-
 import {
   revisionActionLabel,
   snapshotSummaryRows,
 } from "./RevisionHistoryViewer.utils";
+
+const CONTENT_OPTIONS_QUERY = ["cms-governance", "content-options"] as const;
 
 export default function RevisionHistoryViewer() {
   const [selectedId, setSelectedId] = useState("");
