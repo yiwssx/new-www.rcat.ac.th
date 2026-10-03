@@ -330,6 +330,35 @@ async function writeAudit(
     .run();
 }
 
+export function normalizeRevisionRestoreSnapshot(snapshot: JsonRecord | null) {
+  if (!snapshot) return null;
+  const slug = String(snapshot.slug || "").trim();
+  if (!slug || slug.startsWith("__deleted__:")) return null;
+  return {
+    slug,
+    type: String(snapshot.type || "page"),
+    status: "draft",
+    owner: String(snapshot.owner || ""),
+    title: String(snapshot.title || ""),
+    summary: String(snapshot.summary || ""),
+    body: String(snapshot.body || ""),
+    category: String(snapshot.category || ""),
+    tagsJson: String(snapshot.tagsJson || "[]"),
+    seoTitle: String(snapshot.seoTitle || ""),
+    seoDescription: String(snapshot.seoDescription || ""),
+    canonicalUrl: String(snapshot.canonicalUrl || ""),
+    featured: Number(snapshot.featured || 0) === 1 ? 1 : 0,
+    readingMinutes: Math.max(0, Math.floor(Number(snapshot.readingMinutes || 0))),
+    template: String(snapshot.template || "standard"),
+    bodyDocId: String(snapshot.bodyDocId || ""),
+    bodyDocUrl: String(snapshot.bodyDocUrl || ""),
+    featuredMediaId: String(snapshot.featuredMediaId || ""),
+    mediaIdsJson: String(snapshot.mediaIdsJson || "[]"),
+    publishAt: "",
+    unpublishAt: ""
+  };
+}
+
 async function handleRestore(request: Request, env: Env, identity: AdminIdentity, contentId: string, revision: number) {
   const current = await readContent(env, contentId);
   if (!current) return noStore(jsonError("not found", 404, { resource: "content" }));
@@ -351,8 +380,11 @@ async function handleRestore(request: Request, env: Env, identity: AdminIdentity
   const snapshot = target ? parseJsonRecord(target.snapshot_json) : null;
   if (!target || !snapshot) return noStore(jsonError("revision not found", 404, { resource: "content-revision" }));
 
-  const slug = String(snapshot.slug || "").trim();
-  if (!slug) return noStore(jsonError("revision has no valid slug", 409, { resource: "content-revision" }));
+  const restoredSnapshot = normalizeRevisionRestoreSnapshot(snapshot);
+  if (!restoredSnapshot) {
+    return noStore(jsonError("revision has no valid restorable snapshot", 409, { resource: "content-revision" }));
+  }
+  const { slug } = restoredSnapshot;
   const duplicate = await requireD1Database(env)
     .prepare("SELECT id FROM contents WHERE slug = ? AND id <> ? AND COALESCE(deleted_at, '') = '' LIMIT 1")
     .bind(slug, contentId)
@@ -370,27 +402,27 @@ async function handleRestore(request: Request, env: Env, identity: AdminIdentity
        WHERE id = ? AND COALESCE(deleted_at, '') = '' AND revision = ?`
     )
     .bind(
-      slug,
-      String(snapshot.type || current.type),
-      String(snapshot.status || "draft"),
-      String(snapshot.owner || ""),
-      String(snapshot.title || ""),
-      String(snapshot.summary || ""),
-      String(snapshot.body || ""),
-      String(snapshot.category || ""),
-      String(snapshot.tagsJson || "[]"),
-      String(snapshot.seoTitle || ""),
-      String(snapshot.seoDescription || ""),
-      String(snapshot.canonicalUrl || ""),
-      Number(snapshot.featured || 0) === 1 ? 1 : 0,
-      Math.max(0, Math.floor(Number(snapshot.readingMinutes || 0))),
-      String(snapshot.template || "standard"),
-      String(snapshot.bodyDocId || ""),
-      String(snapshot.bodyDocUrl || ""),
-      String(snapshot.featuredMediaId || ""),
-      String(snapshot.mediaIdsJson || "[]"),
-      String(snapshot.publishAt || ""),
-      String(snapshot.unpublishAt || ""),
+      restoredSnapshot.slug,
+      restoredSnapshot.type,
+      restoredSnapshot.status,
+      restoredSnapshot.owner,
+      restoredSnapshot.title,
+      restoredSnapshot.summary,
+      restoredSnapshot.body,
+      restoredSnapshot.category,
+      restoredSnapshot.tagsJson,
+      restoredSnapshot.seoTitle,
+      restoredSnapshot.seoDescription,
+      restoredSnapshot.canonicalUrl,
+      restoredSnapshot.featured,
+      restoredSnapshot.readingMinutes,
+      restoredSnapshot.template,
+      restoredSnapshot.bodyDocId,
+      restoredSnapshot.bodyDocUrl,
+      restoredSnapshot.featuredMediaId,
+      restoredSnapshot.mediaIdsJson,
+      restoredSnapshot.publishAt,
+      restoredSnapshot.unpublishAt,
       now,
       identity.actor,
       contentId,
