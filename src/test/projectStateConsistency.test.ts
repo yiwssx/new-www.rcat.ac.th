@@ -207,11 +207,13 @@ describe("current project-state consistency", () => {
       "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified"
     );
     expect(phaseBRunbook).toContain("## B3 — Health Aggregation");
-    expect(phaseBRunbook).toContain("PR #270 merged to `master` as `cda947149fee0e79791bfc401efbc5c33f3adbb9`");
+    expect(phaseBRunbook).toContain(
+      "PR #270 merged to the then-default `master` branch as `cda947149fee0e79791bfc401efbc5c33f3adbb9`"
+    );
     expect(phaseBRunbook).toContain("CI #2007, run `34547284821`");
     expect(phaseBRunbook).toContain("Vercel production deployment `dpl_94AZDYbaLc61t2XbmxMFCw1GQZyP`");
     expect(phaseBRunbook).toContain("Phase B Operational Visibility is complete and production-verified");
-    expect(phaseBRunbook).toContain("Vercel commit-status metadata for current `main`");
+    expect(phaseBRunbook).toContain("Vercel commit-status metadata for `main`");
   });
 
   it("records operator-verified production environment retirement as completed", () => {
