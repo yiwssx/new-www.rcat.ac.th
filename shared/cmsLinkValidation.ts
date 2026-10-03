@@ -4,7 +4,12 @@ const MAX_LINK_LENGTH = 4_096;
 const NAVIGATION_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 const CANONICAL_PROTOCOLS = new Set(["http:", "https:"]);
 const RESOURCE_PROTOCOLS = new Set(["https:"]);
-const FACEBOOK_HOSTS = new Set(["facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"]);
+const FACEBOOK_HOSTS = new Set([
+  "facebook.com",
+  "www.facebook.com",
+  "web.facebook.com",
+  "m.facebook.com",
+]);
 
 function normalizedString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
