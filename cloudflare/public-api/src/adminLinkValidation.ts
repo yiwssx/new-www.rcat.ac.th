@@ -1,6 +1,6 @@
 type JsonRecord = Record<string, unknown>;
 
-import { isValidCmsLink, isValidFacebookEmbedPermalink, type CmsLinkKind } from "../../../shared/cmsLinkValidation";
+import { isValidCmsLink, isValidFacebookEmbedPermalink, type CmsLinkKind } from "../../../shared/cmsLinkValidation.ts";
 
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
