@@ -51,11 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
-      - name: Print exact Prettier patch for workstream bootstrap files
-        run: |
-          pnpm exec prettier --write .github/workflows/ci.yml docs/workstreams/v3.3.1-content-ops-tracker.md
-          git diff -- .github/workflows/ci.yml docs/workstreams/v3.3.1-content-ops-tracker.md
-          exit 1
+      - run: pnpm format:check
       - run: pnpm lint:strict
 
   unit:
