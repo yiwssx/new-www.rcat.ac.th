@@ -156,7 +156,9 @@ describe("B3 health aggregation", () => {
     ]);
     expect(fetchImpl).toHaveBeenCalledTimes(3);
     expect(
-      fetchImpl.mock.calls.some(([url]) => String(url).includes("/actions/runs?branch=main&per_page=100"))
+      fetchImpl.mock.calls.some(([url]) =>
+        String(url).includes("/actions/runs?branch=main&per_page=100")
+      )
     ).toBe(true);
     expect(fetchImpl.mock.calls.some(([url]) => String(url).endsWith("/commits/main/status"))).toBe(true);
 
