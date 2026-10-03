@@ -13,9 +13,6 @@ import {
 const ADMIN_PREFIX = "/api/admin/";
 const MAX_TRASH_ITEMS = 100;
 const DELETED_CONTENT_SLUG_PREFIX = "__deleted__:";
-const WORKFLOW_STATUSES = new Set(["draft", "review"] as const);
-
-type EditorialWorkflowStatus = "draft" | "review";
 type JsonRecord = Record<string, unknown>;
 type EditorialRoute =
   | { kind: "trash"; capability: "content.read" }
@@ -172,19 +169,7 @@ async function writeAudit(env: Env, input: { entityId: string; action: string; a
     .run();
 }
 
-export function validateEditorialTransition(currentStatus: string, targetStatus: unknown) {
-  if (typeof targetStatus !== "string" || !WORKFLOW_STATUSES.has(targetStatus as EditorialWorkflowStatus)) {
-    return { ok: false as const, error: "invalid editorial workflow status", status: 400 };
-  }
-  if (!WORKFLOW_STATUSES.has(currentStatus as EditorialWorkflowStatus)) {
-    return {
-      ok: false as const,
-      error: "published or scheduled content must be unpublished before editorial workflow changes",
-      status: 409
-    };
-  }
-  return { ok: true as const, status: targetStatus as EditorialWorkflowStatus };
-}
+export const validateEditorialTransition = validateSharedEditorialTransition;
 
 function reviewReadinessError(row: EditorialContentRow) {
   if (!row.title.trim()) return "title is required before review";
