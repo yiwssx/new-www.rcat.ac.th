@@ -18,7 +18,7 @@ function chunk(fileName, modules) {
 
 describe("editor dependency isolation", () => {
   it("normalizes module ids and recognizes both Tiptap and ProseMirror packages", () => {
-    expect(normalizeEditorModuleId("\\0C:\\repo\\node_modules\\@tiptap\\react\\dist\\index.js")).toBe(
+    expect(normalizeEditorModuleId("\0C:\\repo\\node_modules\\@tiptap\\react\\dist\\index.js")).toBe(
       "C:/repo/node_modules/@tiptap/react/dist/index.js"
     );
     expect(EDITOR_RUNTIME_MODULE_PATTERNS).toEqual([
