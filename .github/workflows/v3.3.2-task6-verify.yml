@@ -1,0 +1,40 @@
+name: v3.3.2 Task 6 Verify
+
+on:
+  push:
+    branches:
+      - feat/v3.3.2-task-6-editor-behavior-parity
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    if: ${{ !contains(github.event.head_commit.message || '', 'format verified parity evidence') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: pnpm exec prettier --write docs/workstreams/v3.3.2-editor-behavior-parity.md src/admin/components/richTextEditorParity.test.ts
+      - run: node scripts/run-vitest.mjs run src/admin/components/richTextEditorParity.test.ts
+      - run: pnpm build
+      - name: Commit canonical formatting after verification
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/workstreams/v3.3.2-editor-behavior-parity.md src/admin/components/richTextEditorParity.test.ts
+          if git diff --cached --quiet; then
+            echo "No formatting changes"
+            exit 0
+          fi
+          git commit -m "test(editor): format verified parity evidence"
+          git push origin HEAD:feat/v3.3.2-task-6-editor-behavior-parity
