@@ -21,10 +21,7 @@ describe("editor dependency isolation", () => {
     expect(normalizeEditorModuleId("\0C:\\repo\\node_modules\\@tiptap\\react\\dist\\index.js")).toBe(
       "C:/repo/node_modules/@tiptap/react/dist/index.js"
     );
-    expect(EDITOR_RUNTIME_MODULE_PATTERNS).toEqual([
-      "/node_modules/@tiptap/",
-      "/node_modules/prosemirror-"
-    ]);
+    expect(EDITOR_RUNTIME_MODULE_PATTERNS).toEqual(["/node_modules/@tiptap/", "/node_modules/prosemirror-"]);
 
     expect(
       findEditorRuntimeAssociations([
@@ -32,15 +29,15 @@ describe("editor dependency isolation", () => {
         "/repo/node_modules/@tiptap/core/dist/index.js",
         "/repo/node_modules/prosemirror-state/dist/index.js"
       ])
-    ).toEqual([
-      "/repo/node_modules/@tiptap/core/dist/index.js",
-      "/repo/node_modules/prosemirror-state/dist/index.js"
-    ]);
+    ).toEqual(["/repo/node_modules/@tiptap/core/dist/index.js", "/repo/node_modules/prosemirror-state/dist/index.js"]);
   });
 
   it("collects unique module ids from a static chunk graph and fails closed for missing associations", () => {
     const chunksByFile = new Map([
-      ["assets/content.js", chunk("assets/content.js", ["/repo/src/admin/pages/ContentPage.tsx", "/repo/src/shared.ts"])],
+      [
+        "assets/content.js",
+        chunk("assets/content.js", ["/repo/src/admin/pages/ContentPage.tsx", "/repo/src/shared.ts"])
+      ],
       ["assets/shared.js", chunk("assets/shared.js", ["/repo/src/shared.ts", "/repo/src/api.ts"])]
     ]);
 
@@ -83,9 +80,7 @@ describe("editor dependency isolation", () => {
 
     expect(result.passed).toBe(false);
     expect(result.publicAssociations).toEqual(["/repo/node_modules/@tiptap/core/dist/index.js"]);
-    expect(result.adminContentAssociations).toEqual([
-      "C:/repo/node_modules/prosemirror-model/dist/index.js"
-    ]);
+    expect(result.adminContentAssociations).toEqual(["C:/repo/node_modules/prosemirror-model/dist/index.js"]);
     expect(report).toContain("Public synchronous graph: Tiptap/ProseMirror leak; FAIL");
     expect(report).toContain("Initial /admin/content graph: Tiptap/ProseMirror leak; FAIL");
     expect(report).toContain("Editor dependency isolation result: FAIL");

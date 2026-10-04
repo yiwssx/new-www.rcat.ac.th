@@ -1,10 +1,9 @@
-export const EDITOR_RUNTIME_MODULE_PATTERNS = Object.freeze([
-  "/node_modules/@tiptap/",
-  "/node_modules/prosemirror-"
-]);
+export const EDITOR_RUNTIME_MODULE_PATTERNS = Object.freeze(["/node_modules/@tiptap/", "/node_modules/prosemirror-"]);
 
 export function normalizeEditorModuleId(moduleId) {
-  return String(moduleId ?? "").replaceAll("\\", "/").replace(/^\0/u, "");
+  return String(moduleId ?? "")
+    .replaceAll("\\", "/")
+    .replace(/^\0/u, "");
 }
 
 export function collectChunkGraphModuleIds(chunksByFile, chunkFiles) {
@@ -33,9 +32,7 @@ export function findEditorRuntimeAssociations(moduleIds, patterns = EDITOR_RUNTI
   const normalizedPatterns = patterns.map(normalizeEditorModuleId);
   const normalizedModuleIds = moduleIds.map(normalizeEditorModuleId);
 
-  return normalizedModuleIds.filter((moduleId) =>
-    normalizedPatterns.some((pattern) => moduleId.includes(pattern))
-  );
+  return normalizedModuleIds.filter((moduleId) => normalizedPatterns.some((pattern) => moduleId.includes(pattern)));
 }
 
 export function analyzeEditorDependencyIsolation({ publicModuleIds, adminContentModuleIds }) {
