@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -18,19 +19,35 @@ import { usePublicPagination } from "../hooks/usePublicPagination";
 
 const DOCUMENTS_PAGE_SIZE = 15;
 
+type DocumentFilterQueryParam = "q" | "category";
+
 function normalizeText(value: string) {
   return value.trim().toLocaleLowerCase("th-TH");
 }
 
+function readTextSearchParam(search: Record<string, unknown>, name: DocumentFilterQueryParam) {
+  const value = search[name];
+  return typeof value === "string" ? value.trim() : "";
+}
+
 export default function PublicDocumentsPage() {
+  const navigate = useNavigate();
+  const routeSearch = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
+  const routeSearchQuery = readTextSearchParam(routeSearch, "q");
+  const routeCategoryFilter = readTextSearchParam(routeSearch, "category");
   const { data, isLoading, isFetching, isError, refetch } = usePublicDocumentList();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState(routeSearchQuery);
+  const [categoryFilter, setCategoryFilter] = useState(routeCategoryFilter);
   const documents = useMemo(() => data?.items ?? [], [data?.items]);
   const categories = useMemo(
     () =>
-      Array.from(new Set(documents.map((item) => item.category).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
-    [documents]
+      Array.from(
+        new Set([
+          ...documents.map((item) => item.category).filter(Boolean),
+          ...(categoryFilter ? [categoryFilter] : [])
+        ])
+      ).sort((a, b) => a.localeCompare(b)),
+    [categoryFilter, documents]
   );
   const normalizedSearch = normalizeText(searchQuery);
   const filteredDocuments = useMemo(
@@ -50,6 +67,54 @@ export default function PublicDocumentsPage() {
     resetKeys: [normalizedSearch, categoryFilter],
     scrollTargetId: "documents-list-heading"
   });
+
+  useEffect(() => {
+    setSearchQuery(routeSearchQuery);
+  }, [routeSearchQuery]);
+
+  useEffect(() => {
+    setCategoryFilter(routeCategoryFilter);
+  }, [routeCategoryFilter]);
+
+  const updateFilterQueryParam = (name: DocumentFilterQueryParam, value: string) => {
+    const normalizedValue = value.trim();
+
+    void navigate({
+      to: ".",
+      search: (previous) => {
+        const nextSearch = { ...previous } as typeof previous & Record<string, unknown>;
+
+        if (normalizedValue) {
+          nextSearch[name] = normalizedValue;
+        } else {
+          delete nextSearch[name];
+        }
+
+        delete nextSearch.page;
+        return nextSearch;
+      },
+      replace: true,
+      resetScroll: false
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setCategoryFilter("");
+
+    void navigate({
+      to: ".",
+      search: (previous) => {
+        const nextSearch = { ...previous } as typeof previous & Record<string, unknown>;
+        delete nextSearch.q;
+        delete nextSearch.category;
+        delete nextSearch.page;
+        return nextSearch;
+      },
+      replace: true,
+      resetScroll: false
+    });
+  };
 
   if (!data && (isLoading || isFetching)) {
     return (
@@ -112,7 +177,11 @@ export default function PublicDocumentsPage() {
           type="search"
           label="ค้นหาเอกสารเผยแพร่"
           value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setSearchQuery(nextValue);
+            updateFilterQueryParam("q", nextValue);
+          }}
           slotProps={{
             htmlInput: { "aria-label": "ค้นหาเอกสารเผยแพร่" },
             input: {
@@ -132,7 +201,11 @@ export default function PublicDocumentsPage() {
           select
           label="หมวดหมู่"
           value={categoryFilter}
-          onChange={(event) => setCategoryFilter(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setCategoryFilter(nextValue);
+            updateFilterQueryParam("category", nextValue);
+          }}
           slotProps={{ htmlInput: { "aria-label": "กรองหมวดหมู่เอกสาร" } }}
           sx={{
             width: { xs: "100%", md: "auto" },
@@ -148,13 +221,7 @@ export default function PublicDocumentsPage() {
           ))}
         </TextField>
         {hasActiveFilter && (
-          <Button
-            onClick={() => {
-              setSearchQuery("");
-              setCategoryFilter("");
-            }}
-            sx={{ alignSelf: { xs: "stretch", md: "center" } }}
-          >
+          <Button onClick={clearFilters} sx={{ alignSelf: { xs: "stretch", md: "center" } }}>
             ล้างตัวกรอง
           </Button>
         )}
