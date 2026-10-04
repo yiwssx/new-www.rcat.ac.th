@@ -33,7 +33,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/admin/components/RichTextEditorImpl.tsx src/admin/components/RichTextEditorCore.tsx src/admin/components/RichTextEditorOptionalMode.tsx src/admin/components/richTextEditorParity.test.ts scripts/check-admin-editor-bundle.mjs package.json .github/workflows/ci.yml docs/workstreams/v3.3.2-content-editor-performance-tracker.md
+          git add src/admin/components/RichTextEditorImpl.tsx src/admin/components/RichTextEditorCore.tsx src/admin/components/RichTextEditorOptionalMode.tsx src/admin/components/richTextEditorParity.test.ts scripts/check-admin-editor-bundle.mjs package.json docs/workstreams/v3.3.2-content-editor-performance-tracker.md
           if git diff --cached --quiet; then
             echo "No generated changes"
             exit 0
