@@ -1,0 +1,40 @@
+name: v3.3.2 Task 3 Transform
+
+on:
+  push:
+    branches:
+      - feat/v3.3.2-task-3-tiptap-runtime-reduction
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  transform:
+    if: ${{ !contains(github.event.head_commit.message || '', 'apply lean Tiptap dependency set') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - run: node scripts/v332-task3-lean-tiptap.mjs
+      - run: pnpm install --lockfile-only --strict-peer-dependencies
+      - run: pnpm exec prettier --write package.json pnpm-lock.yaml src/admin/components/RichTextEditorImpl.tsx
+      - name: Commit generated dependency artifact
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml src/admin/components/RichTextEditorImpl.tsx
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git commit -m "perf(editor): apply lean Tiptap dependency set"
+          git push origin HEAD:feat/v3.3.2-task-3-tiptap-runtime-reduction
