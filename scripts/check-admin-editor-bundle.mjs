@@ -2,6 +2,12 @@ import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { build } from "vite";
+import { analyzePublicEntryBuild, parseViteManifestSource } from "./public-performance-budget.mjs";
+import {
+  analyzeEditorDependencyIsolation,
+  collectChunkGraphModuleIds,
+  formatEditorDependencyIsolationReport
+} from "./editor-dependency-isolation.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MAX_EDITOR_CHUNK_RAW_BYTES = 400_000;
@@ -34,6 +40,16 @@ function getJavaScriptChunks(outputs) {
     throw new Error("Vite returned no JavaScript chunks.");
   }
   return chunks;
+}
+
+function findManifestAsset(outputs) {
+  const matches = outputs.filter(
+    (output) => output?.type === "asset" && normalizePath(output.fileName) === ".vite/manifest.json"
+  );
+  if (matches.length !== 1) {
+    throw new Error(`Expected exactly one in-memory Vite manifest, found ${matches.length}.`);
+  }
+  return matches[0];
 }
 
 function findOwningChunk(chunks, sourcePath) {
@@ -106,8 +122,10 @@ async function createInMemoryProductionBuild() {
 }
 
 async function main() {
-  const chunks = getJavaScriptChunks(normalizeBuildOutputs(await createInMemoryProductionBuild()));
+  const outputs = normalizeBuildOutputs(await createInMemoryProductionBuild());
+  const chunks = getJavaScriptChunks(outputs);
   const chunksByFile = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
+  const manifest = parseViteManifestSource(findManifestAsset(outputs).source);
 
   const contentPage = findOwningChunk(chunks, SOURCE_PATHS.contentPage);
   const editorDialog = findOwningChunk(chunks, SOURCE_PATHS.editorDialog);
@@ -124,6 +142,16 @@ async function main() {
   for (const alreadyLoaded of initialContentGraph) {
     editorFirstOpenGraph.delete(alreadyLoaded);
   }
+
+  const publicEntryMetrics = analyzePublicEntryBuild({
+    manifest,
+    outputChunks: chunks,
+    forbiddenModules: []
+  });
+  const dependencyIsolation = analyzeEditorDependencyIsolation({
+    publicModuleIds: publicEntryMetrics.moduleIds,
+    adminContentModuleIds: collectChunkGraphModuleIds(chunksByFile, initialContentGraph)
+  });
 
   const measurements = [...editorFirstOpenGraph]
     .map((fileName) => measureChunk(chunksByFile.get(fileName)))
@@ -151,6 +179,9 @@ async function main() {
   if (deferredLeaks.length > 0) {
     failures.push(`deferred editor capabilities leaked into first open: ${deferredLeaks.join(", ")}`);
   }
+  if (!dependencyIsolation.passed) {
+    failures.push("Tiptap/ProseMirror leaked into a protected synchronous graph");
+  }
 
   console.log("Admin editor bundle evidence:");
   console.log(`- initial content-list owner: ${contentPage.fileName}`);
@@ -168,6 +199,7 @@ async function main() {
   console.log(
     `- deferred media-picker chunk: ${mediaPicker.fileName}; ${editorFirstOpenGraph.has(mediaPicker.fileName) ? "LEAK" : "deferred"}`
   );
+  console.log(formatEditorDependencyIsolationReport(dependencyIsolation));
   console.log(`Admin editor bundle result: ${failures.length === 0 ? "PASS" : "FAIL"}`);
 
   if (failures.length > 0) {
