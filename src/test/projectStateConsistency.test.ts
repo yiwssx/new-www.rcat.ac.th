@@ -210,7 +210,7 @@ describe("current project-state consistency", () => {
     );
     expect(phaseBRunbook).toContain("## B3 — Health Aggregation");
     expect(phaseBRunbook).toContain(
-      "PR #270 merged to the then-default `master` branch as `cda947149fee0e79791bfc5c33f3adbb9`"
+      "implementation PR #270 merged to the then-default `master` branch as `cda947149fee0e79791bfc5c33f3adbb9`"
     );
     expect(phaseBRunbook).toContain("CI #2007, run `34547284821`");
     expect(phaseBRunbook).toContain("Vercel production deployment `dpl_94AZDYbaLc61t2XbmxMFCw1GQZyP`");
