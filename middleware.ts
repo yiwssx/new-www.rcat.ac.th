@@ -9,10 +9,7 @@ export const config = {
   runtime: "nodejs"
 };
 
-export function getCanonicalProductionRedirect(
-  requestUrl: string,
-  vercelEnvironment: string | undefined
-): URL | null {
+export function getCanonicalProductionRedirect(requestUrl: string, vercelEnvironment: string | undefined): URL | null {
   if (vercelEnvironment !== "production") {
     return null;
   }
