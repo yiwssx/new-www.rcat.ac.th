@@ -67,7 +67,8 @@ for (const viewport of [
     await firstEnabledAction.focus();
     const focusedBounds = await getBounds(firstEnabledAction);
     const focusRingExtent = await page.evaluate(
-      () => Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--rcat-focus-ring-extent")) || 0
+      () =>
+        Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--rcat-focus-ring-extent")) || 0
     );
     expect(focusedBounds.x - focusRingExtent).toBeGreaterThanOrEqual(scrollBounds.x - 1);
     expect(focusedBounds.x + focusedBounds.width + focusRingExtent).toBeLessThanOrEqual(
