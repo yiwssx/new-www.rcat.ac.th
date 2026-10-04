@@ -15,7 +15,20 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { StarterKit } from "@tiptap/starter-kit";
+import { Blockquote } from "@tiptap/extension-blockquote";
+import { Bold } from "@tiptap/extension-bold";
+import { Document } from "@tiptap/extension-document";
+import { HardBreak } from "@tiptap/extension-hard-break";
+import { Heading } from "@tiptap/extension-heading";
+import { HorizontalRule } from "@tiptap/extension-horizontal-rule";
+import { Italic } from "@tiptap/extension-italic";
+import { Link } from "@tiptap/extension-link";
+import { BulletList, ListItem, ListKeymap, OrderedList } from "@tiptap/extension-list";
+import { Paragraph } from "@tiptap/extension-paragraph";
+import { Strike } from "@tiptap/extension-strike";
+import { Text } from "@tiptap/extension-text";
+import { Underline } from "@tiptap/extension-underline";
+import { UndoRedo } from "@tiptap/extensions";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
 import { Color, TextStyle } from "@tiptap/extension-text-style";
@@ -117,11 +130,25 @@ export default function RichTextEditor({ value, onChange, onInsertBlock }: RichT
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [2, 3, 4]
-        }
+      Bold,
+      Blockquote,
+      BulletList,
+      Document,
+      HardBreak,
+      Heading.configure({
+        levels: [2, 3, 4]
       }),
+      UndoRedo,
+      HorizontalRule,
+      Italic,
+      ListItem,
+      ListKeymap,
+      Link,
+      OrderedList,
+      Paragraph,
+      Strike,
+      Text,
+      Underline,
       TextStyle,
       Color,
       Highlight.configure({ multicolor: true }),
