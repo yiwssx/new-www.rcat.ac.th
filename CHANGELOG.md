@@ -6,6 +6,35 @@ The project existed before formal semantic versioning. Earlier architecture gene
 
 ## [Unreleased]
 
+## [3.3.2] - 2026-10-04
+
+### Changed
+
+- Split the Admin Content Editor behind nested lazy boundaries so opening `/admin/content` does not pull the Tiptap/ProseMirror editor runtime into the initial list graph.
+- Replaced the broad Tiptap StarterKit dependency with an explicit extension set matching the existing editor feature surface.
+- Deferred advanced rich-text capabilities and the media picker until those capabilities are required, while preserving documents that already contain advanced rich-text structures.
+- Preload the content-editor shell and rich-text runtime together on create/edit/restore intent to remove the avoidable dialog → editor network waterfall without preloading the editor on the list page itself.
+
+### Performance
+
+- Baseline `ContentEditorDialog`: 499.31 kB raw / 153.24 kB gzip.
+- Verified largest first-open editor chunk: 347,795 bytes raw / 105,003 bytes gzip.
+- Verified aggregate first-editor-open incremental JavaScript: 126,842 bytes gzip, down 26,398 bytes (17.23%) from the 153,240-byte baseline.
+- Table/horizontal-rule advanced runtime and the rich-text media picker remain deferred from the default first-open graph.
+
+### Governance
+
+- Added an Admin editor bundle budget that fails when the largest first-open editor chunk reaches 400,000 raw bytes or aggregate first-open gzip exceeds 138,000 bytes.
+- Added dependency-graph isolation checks that fail if Tiptap/ProseMirror enters either the public synchronous graph or the initial `/admin/content` graph.
+- Kept the public Web Vitals/performance architecture budget separate from the Admin lazy-chunk regression budget.
+
+### Release preparation
+
+- Tasks 1–8 were merged into `integration/v3.3.2-content-editor-performance` through PR #517 at `b5afbdf29c25a7492f58515790a9f47a3dbc1805`.
+- Task 9 prepares the `3.3.2` package/changelog/release baseline and removes temporary integration-branch CI triggers before final integration to `main`.
+- v3.3.2 is not production-released at this checkpoint. Create tag `v3.3.2` and GitHub Release `v3.3.2 — Content Editor Performance` only after final integration, Vercel production deployment, Production Verification, and non-mutating Admin editor smoke verification succeed.
+- This release has no D1 migration, production Worker deployment, Apps Script deployment, or production data mutation.
+
 ## [3.3.1] - 2026-10-03
 
 ### Added
@@ -23,7 +52,7 @@ The project existed before formal semantic versioning. Earlier architecture gene
 - Git tag `v3.3.1` points to the exact release commit and GitHub Release `v3.3.1 — Content Operations` is published.
 - The v3.3.1 production sequence is complete; do not repeat its migrations, Worker deployment, or verification solely to reconcile stale state.
 
-No next semantic version has been assigned. The entries below record completed production work after the `3.3.0` baseline without guessing a release number.
+The entries below preserve completed production work that preceded the explicit v3.3.1 Content Operations scope boundary.
 
 ### Added
 
