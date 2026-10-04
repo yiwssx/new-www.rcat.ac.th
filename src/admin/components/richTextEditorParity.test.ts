@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { Editor, type Content } from "@tiptap/core";
 import { Blockquote } from "@tiptap/extension-blockquote";
 import { Bold } from "@tiptap/extension-bold";
@@ -83,7 +84,7 @@ afterEach(() => {
 
 describe("v3.3.2 rich-text editor behavior parity", () => {
   it("keeps the production implementation on the explicit lean extension set and editor commands", () => {
-    const source = readFileSync(new URL("./RichTextEditorImpl.tsx", import.meta.url), "utf8");
+    const source = readFileSync(resolve(process.cwd(), "src/admin/components/RichTextEditorImpl.tsx"), "utf8");
 
     expect(source).not.toContain("@tiptap/starter-kit");
     for (const requiredToken of [
