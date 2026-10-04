@@ -66,6 +66,43 @@
     overflow-x: auto;
   }
 
+  .table-scroll > table[aria-label="ตารางเนื้อหา"] [data-column-id="actions"] {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background: var(--rcat-color-surface);
+    background-clip: padding-box;
+    box-shadow: -1px 0 0 var(--rcat-color-border-subtle);
+  }
+
+  .table-scroll > table[aria-label="ตารางเนื้อหา"] thead [data-column-id="actions"] {
+    z-index: 3;
+  }
+
+  .table-scroll > table[aria-label="ตารางเนื้อหา"] tbody .MuiTableRow-hover:hover > [data-column-id="actions"] {
+    background: var(--rcat-color-surface-subtle);
+  }
+
+  @media (max-width: 899px) {
+    .table-scroll > table[aria-label="ตารางเนื้อหา"] {
+      min-width: 984px;
+    }
+
+    .table-scroll > table[aria-label="ตารางเนื้อหา"] [data-column-id="owner"] {
+      display: none;
+    }
+  }
+
+  @media (max-width: 599px) {
+    .table-scroll > table[aria-label="ตารางเนื้อหา"] {
+      min-width: 852px;
+    }
+
+    .table-scroll > table[aria-label="ตารางเนื้อหา"] [data-column-id="updatedAt"] {
+      display: none;
+    }
+  }
+
   .content-summary {
     display: -webkit-box;
     overflow: hidden;
