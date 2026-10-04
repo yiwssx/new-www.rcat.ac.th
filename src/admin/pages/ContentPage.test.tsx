@@ -26,6 +26,10 @@ const contentMock = vi.hoisted(() => ({
   publishContent: vi.fn()
 }));
 
+const editorLoaderMock = vi.hoisted(() => ({
+  preloadContentEditorModules: vi.fn()
+}));
+
 const publicInvalidationMock = vi.hoisted(() => ({
   invalidateDeletedPublicContent: vi.fn(),
   invalidatePublicCmsData: vi.fn()
@@ -98,6 +102,11 @@ vi.mock("../../features/cms-content", async (importOriginal) => ({
   deleteContentItem: contentMock.deleteContentItem,
   getAdminContentDetail: contentMock.getAdminContentDetail,
   publishContent: contentMock.publishContent
+}));
+
+vi.mock("../components/contentEditorModuleLoader", () => ({
+  loadContentEditorDialog: () => import("../components/ContentEditorDialog"),
+  preloadContentEditorModules: editorLoaderMock.preloadContentEditorModules
 }));
 
 vi.mock("../../services/publicCmsInvalidation", () => ({
@@ -241,6 +250,7 @@ describe("ContentPage operation feedback", () => {
     contentMock.getAdminContentDetail.mockResolvedValue(contentItem);
     contentMock.publishContent.mockReset();
     contentMock.publishContent.mockResolvedValue({ id: contentItem.id, published: true });
+    editorLoaderMock.preloadContentEditorModules.mockReset();
     publicInvalidationMock.invalidatePublicCmsData.mockReset();
     publicInvalidationMock.invalidatePublicCmsData.mockResolvedValue(undefined);
     publicInvalidationMock.invalidateDeletedPublicContent.mockReset();
@@ -252,6 +262,24 @@ describe("ContentPage operation feedback", () => {
     swalInstance.showLoading.mockReset();
     swalInstance.update.mockReset();
     swalInstance.update.mockResolvedValue(undefined);
+  });
+
+  it("starts editor module preload as soon as edit intent begins", async () => {
+    const detail = deferred<ContentItem>();
+    contentMock.getAdminContentDetail.mockReturnValue(detail.promise);
+    renderContentPage();
+
+    await screen.findByText(contentItem.title);
+    expect(editorLoaderMock.preloadContentEditorModules).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "แก้ไข" }));
+
+    expect(editorLoaderMock.preloadContentEditorModules).toHaveBeenCalledTimes(1);
+    expect(contentMock.getAdminContentDetail).toHaveBeenCalledWith({ id: contentItem.id });
+    expect(screen.queryByRole("dialog", { name: "content-editor" })).not.toBeInTheDocument();
+
+    detail.resolve(contentItem);
+    expect(await screen.findByRole("dialog", { name: "content-editor" })).toBeInTheDocument();
   });
 
   it("shows loading and an acknowledged success modal when saving content", async () => {
