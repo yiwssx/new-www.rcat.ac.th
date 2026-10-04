@@ -9,7 +9,7 @@ function replaceOnce(source, before, after, label) {
 
 const implPath = "src/admin/components/RichTextEditorImpl.tsx";
 const corePath = "src/admin/components/RichTextEditorCore.tsx";
-const tableModePath = "src/admin/components/RichTextEditorTableMode.tsx";
+const optionalModePath = "src/admin/components/RichTextEditorOptionalMode.tsx";
 let coreSource = readFileSync(implPath, "utf8");
 
 coreSource = replaceOnce(
@@ -20,6 +20,12 @@ coreSource = replaceOnce(
 );
 coreSource = replaceOnce(
   coreSource,
+  'import { HorizontalRule } from "@tiptap/extension-horizontal-rule";\n',
+  "",
+  "static HorizontalRule import"
+);
+coreSource = replaceOnce(
+  coreSource,
   'import { TableKit } from "@tiptap/extension-table";\n',
   "",
   "static TableKit import"
@@ -27,14 +33,26 @@ coreSource = replaceOnce(
 coreSource = replaceOnce(
   coreSource,
   `interface RichTextEditorProps {\n  value: RichTextDocument;\n  onChange: (value: RichTextDocument) => void;\n  onInsertBlock?: (request: RichTextExternalInsertRequest) => void;\n}`,
-  `export interface RichTextEditorCoreProps {\n  value: RichTextDocument;\n  onChange: (value: RichTextDocument) => void;\n  onInsertBlock?: (request: RichTextExternalInsertRequest) => void;\n  additionalExtensions?: Extensions;\n  tableSupportEnabled?: boolean;\n  insertTableOnCreateAt?: number | null;\n  onRequestTableSupport?: (position: number) => void;\n  onTableInserted?: () => void;\n}`,
+  `export interface RichTextEditorCoreProps {\n  value: RichTextDocument;\n  onChange: (value: RichTextDocument) => void;\n  onInsertBlock?: (request: RichTextExternalInsertRequest) => void;\n  additionalExtensions?: Extensions;\n  optionalContentSupportEnabled?: boolean;\n  insertOptionalOnCreate?: { command: InternalInsertCommand; position: number } | null;\n  onRequestOptionalContentSupport?: (request: { command: InternalInsertCommand; position: number }) => void;\n  onOptionalInserted?: () => void;\n}`,
   "core props"
 );
 coreSource = replaceOnce(
   coreSource,
+  'type InternalInsertCommand = "table" | "horizontalRule";',
+  'export type InternalInsertCommand = "table" | "horizontalRule";',
+  "internal insert command type"
+);
+coreSource = replaceOnce(
+  coreSource,
   `export default function RichTextEditor({ value, onChange, onInsertBlock }: RichTextEditorProps) {`,
-  `export default function RichTextEditorCore({\n  value,\n  onChange,\n  onInsertBlock,\n  additionalExtensions = [],\n  tableSupportEnabled = false,\n  insertTableOnCreateAt = null,\n  onRequestTableSupport,\n  onTableInserted\n}: RichTextEditorCoreProps) {`,
+  `export default function RichTextEditorCore({\n  value,\n  onChange,\n  onInsertBlock,\n  additionalExtensions = [],\n  optionalContentSupportEnabled = false,\n  insertOptionalOnCreate = null,\n  onRequestOptionalContentSupport,\n  onOptionalInserted\n}: RichTextEditorCoreProps) {`,
   "core component signature"
+);
+coreSource = replaceOnce(
+  coreSource,
+  `      Heading.configure({\n        levels: [2, 3, 4]\n      }),\n      UndoRedo,\n      HorizontalRule,\n      Italic,`,
+  `      Heading.configure({\n        levels: [2, 3, 4]\n      }),\n      UndoRedo,\n      Italic,`,
+  "HorizontalRule extension registration"
 );
 coreSource = replaceOnce(
   coreSource,
@@ -45,42 +63,39 @@ coreSource = replaceOnce(
 coreSource = replaceOnce(
   coreSource,
   `    onUpdate: ({ editor: currentEditor }) => {\n      onChange(normalizeRichTextDocument(currentEditor.getJSON()));\n    }\n  });`,
-  `    onCreate: ({ editor: currentEditor }) => {\n      if (tableSupportEnabled && insertTableOnCreateAt !== null) {\n        currentEditor\n          .chain()\n          .focus()\n          .setTextSelection(insertTableOnCreateAt)\n          .insertTable({ rows: 3, cols: 3, withHeaderRow: true })\n          .run();\n        onTableInserted?.();\n      }\n    },\n    onUpdate: ({ editor: currentEditor }) => {\n      onChange(normalizeRichTextDocument(currentEditor.getJSON()));\n    }\n  });`,
+  `    onCreate: ({ editor: currentEditor }) => {\n      if (!optionalContentSupportEnabled || insertOptionalOnCreate === null) {\n        return;\n      }\n\n      const chain = currentEditor.chain().focus().setTextSelection(insertOptionalOnCreate.position);\n      if (insertOptionalOnCreate.command === "table") {\n        chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();\n      } else {\n        chain.setHorizontalRule().run();\n      }\n      onOptionalInserted?.();\n    },\n    onUpdate: ({ editor: currentEditor }) => {\n      onChange(normalizeRichTextDocument(currentEditor.getJSON()));\n    }\n  });`,
   "editor onCreate hook"
 );
 coreSource = replaceOnce(
   coreSource,
-  `    if (command === "table") {\n      editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();\n      return;\n    }`,
-  `    if (command === "table") {\n      if (!tableSupportEnabled) {\n        onRequestTableSupport?.(editor.state.selection.from);\n        return;\n      }\n\n      editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();\n      return;\n    }`,
-  "table insertion command"
+  `    if (command === "table") {\n      editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();\n      return;\n    }\n\n    editor.chain().focus().setHorizontalRule().run();`,
+  `    if (!optionalContentSupportEnabled) {\n      onRequestOptionalContentSupport?.({ command, position: editor.state.selection.from });\n      return;\n    }\n\n    if (command === "table") {\n      editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();\n      return;\n    }\n\n    editor.chain().focus().setHorizontalRule().run();`,
+  "optional insertion command"
 );
 coreSource = replaceOnce(
   coreSource,
   `{editor.isActive("table") && (`,
-  `{tableSupportEnabled && editor.isActive("table") && (`,
+  `{optionalContentSupportEnabled && editor.isActive("table") && (`,
   "table toolbar guard"
 );
 writeFileSync(corePath, coreSource);
 
-const wrapperSource = `import { lazy, Suspense, useState } from "react";\nimport Box from "@mui/material/Box";\nimport Typography from "@mui/material/Typography";\nimport type { RichTextDocument } from "../../utils/contentBlocks";\nimport type { RichTextExternalInsertRequest } from "./richTextInsert";\nimport RichTextEditorCore from "./RichTextEditorCore";\n\nconst RichTextEditorTableMode = lazy(() => import("./RichTextEditorTableMode"));\n\ninterface RichTextEditorProps {\n  value: RichTextDocument;\n  onChange: (value: RichTextDocument) => void;\n  onInsertBlock?: (request: RichTextExternalInsertRequest) => void;\n}\n\nfunction richTextNodeContainsTable(node: unknown): boolean {\n  if (!node || typeof node !== "object") {\n    return false;\n  }\n\n  const record = node as { type?: unknown; content?: unknown };\n  if (record.type === "table") {\n    return true;\n  }\n\n  return Array.isArray(record.content) && record.content.some(richTextNodeContainsTable);\n}\n\nexport function richTextDocumentHasTable(document: RichTextDocument) {\n  return richTextNodeContainsTable(document);\n}\n\nfunction TableModeFallback() {\n  return (\n    <Box\n      sx={{\n        minHeight: 280,\n        p: 2,\n        border: "1px solid",\n        borderColor: "divider",\n        borderRadius: 1.5\n      }}\n    >\n      <Typography variant="body2" color="text.secondary">\n        กำลังเตรียมเครื่องมือตาราง…\n      </Typography>\n    </Box>\n  );\n}\n\nexport default function RichTextEditorImpl(props: RichTextEditorProps) {\n  const [tableModeRequested, setTableModeRequested] = useState(() => richTextDocumentHasTable(props.value));\n  const [pendingTableInsertAt, setPendingTableInsertAt] = useState<number | null>(null);\n  const tableModeEnabled = tableModeRequested || richTextDocumentHasTable(props.value);\n\n  if (tableModeEnabled) {\n    return (\n      <Suspense fallback={<TableModeFallback />}>\n        <RichTextEditorTableMode\n          {...props}\n          insertTableOnCreateAt={pendingTableInsertAt}\n          onTableInserted={() => setPendingTableInsertAt(null)}\n        />\n      </Suspense>\n    );\n  }\n\n  return (\n    <RichTextEditorCore\n      {...props}\n      onRequestTableSupport={(position) => {\n        setPendingTableInsertAt(position);\n        setTableModeRequested(true);\n      }}\n    />\n  );\n}\n`;
+const wrapperSource = `import { lazy, Suspense, useState } from "react";\nimport Box from "@mui/material/Box";\nimport Typography from "@mui/material/Typography";\nimport type { RichTextDocument } from "../../utils/contentBlocks";\nimport type { RichTextExternalInsertRequest } from "./richTextInsert";\nimport RichTextEditorCore, { type InternalInsertCommand } from "./RichTextEditorCore";\n\nconst RichTextEditorOptionalMode = lazy(() => import("./RichTextEditorOptionalMode"));\n\ninterface RichTextEditorProps {\n  value: RichTextDocument;\n  onChange: (value: RichTextDocument) => void;\n  onInsertBlock?: (request: RichTextExternalInsertRequest) => void;\n}\n\ninterface PendingOptionalInsert {\n  command: InternalInsertCommand;\n  position: number;\n}\n\nfunction richTextNodeContainsOptionalContent(node: unknown): boolean {\n  if (!node || typeof node !== "object") {\n    return false;\n  }\n\n  const record = node as { type?: unknown; content?: unknown };\n  if (record.type === "table" || record.type === "horizontalRule") {\n    return true;\n  }\n\n  return Array.isArray(record.content) && record.content.some(richTextNodeContainsOptionalContent);\n}\n\nexport function richTextDocumentHasOptionalContent(document: RichTextDocument) {\n  return richTextNodeContainsOptionalContent(document);\n}\n\nfunction OptionalModeFallback() {\n  return (\n    <Box\n      sx={{\n        minHeight: 280,\n        p: 2,\n        border: "1px solid",\n        borderColor: "divider",\n        borderRadius: 1.5\n      }}\n    >\n      <Typography variant="body2" color="text.secondary">\n        กำลังเตรียมเครื่องมือแทรกขั้นสูง…\n      </Typography>\n    </Box>\n  );\n}\n\nexport default function RichTextEditorImpl(props: RichTextEditorProps) {\n  const [optionalModeRequested, setOptionalModeRequested] = useState(() =>\n    richTextDocumentHasOptionalContent(props.value)\n  );\n  const [pendingOptionalInsert, setPendingOptionalInsert] = useState<PendingOptionalInsert | null>(null);\n  const optionalModeEnabled = optionalModeRequested || richTextDocumentHasOptionalContent(props.value);\n\n  if (optionalModeEnabled) {\n    return (\n      <Suspense fallback={<OptionalModeFallback />}>\n        <RichTextEditorOptionalMode\n          {...props}\n          insertOptionalOnCreate={pendingOptionalInsert}\n          onOptionalInserted={() => setPendingOptionalInsert(null)}\n        />\n      </Suspense>\n    );\n  }\n\n  return (\n    <RichTextEditorCore\n      {...props}\n      onRequestOptionalContentSupport={(request) => {\n        setPendingOptionalInsert(request);\n        setOptionalModeRequested(true);\n      }}\n    />\n  );\n}\n`;
 writeFileSync(implPath, wrapperSource);
 
-const tableModeSource = `import { TableKit } from "@tiptap/extension-table";\nimport RichTextEditorCore, { type RichTextEditorCoreProps } from "./RichTextEditorCore";\n\nconst tableExtensions = [\n  TableKit.configure({\n    table: {\n      resizable: true\n    }\n  })\n];\n\ntype RichTextEditorTableModeProps = Omit<\n  RichTextEditorCoreProps,\n  "additionalExtensions" | "tableSupportEnabled" | "onRequestTableSupport"\n>;\n\nexport default function RichTextEditorTableMode(props: RichTextEditorTableModeProps) {\n  return <RichTextEditorCore {...props} additionalExtensions={tableExtensions} tableSupportEnabled />;\n}\n`;
-writeFileSync(tableModePath, tableModeSource);
+const optionalModeSource = `import { HorizontalRule } from "@tiptap/extension-horizontal-rule";\nimport { TableKit } from "@tiptap/extension-table";\nimport RichTextEditorCore, { type RichTextEditorCoreProps } from "./RichTextEditorCore";\n\nconst optionalExtensions = [\n  HorizontalRule,\n  TableKit.configure({\n    table: {\n      resizable: true\n    }\n  })\n];\n\ntype RichTextEditorOptionalModeProps = Omit<\n  RichTextEditorCoreProps,\n  "additionalExtensions" | "optionalContentSupportEnabled" | "onRequestOptionalContentSupport"\n>;\n\nexport default function RichTextEditorOptionalMode(props: RichTextEditorOptionalModeProps) {\n  return <RichTextEditorCore {...props} additionalExtensions={optionalExtensions} optionalContentSupportEnabled />;\n}\n`;
+writeFileSync(optionalModePath, optionalModeSource);
 
 const parityPath = "src/admin/components/richTextEditorParity.test.ts";
 let paritySource = readFileSync(parityPath, "utf8");
 paritySource = replaceOnce(
   paritySource,
   `    const source = readFileSync(resolve(process.cwd(), "src/admin/components/RichTextEditorImpl.tsx"), "utf8");\n\n    expect(source).not.toContain("@tiptap/starter-kit");`,
-  `    const wrapperSource = readFileSync(resolve(process.cwd(), "src/admin/components/RichTextEditorImpl.tsx"), "utf8");\n    const coreSource = readFileSync(resolve(process.cwd(), "src/admin/components/RichTextEditorCore.tsx"), "utf8");\n    const tableModeSource = readFileSync(\n      resolve(process.cwd(), "src/admin/components/RichTextEditorTableMode.tsx"),\n      "utf8"\n    );\n\n    expect(wrapperSource).toContain('lazy(() => import("./RichTextEditorTableMode"))');\n    expect(coreSource).not.toContain("@tiptap/starter-kit");\n    expect(coreSource).not.toContain("@tiptap/extension-table");\n    expect(tableModeSource).toContain('from "@tiptap/extension-table"');\n    expect(tableModeSource).toContain("TableKit.configure");`,
+  `    const wrapperSource = readFileSync(resolve(process.cwd(), "src/admin/components/RichTextEditorImpl.tsx"), "utf8");\n    const coreSource = readFileSync(resolve(process.cwd(), "src/admin/components/RichTextEditorCore.tsx"), "utf8");\n    const optionalModeSource = readFileSync(\n      resolve(process.cwd(), "src/admin/components/RichTextEditorOptionalMode.tsx"),\n      "utf8"\n    );\n\n    expect(wrapperSource).toContain('lazy(() => import("./RichTextEditorOptionalMode"))');\n    expect(coreSource).not.toContain("@tiptap/starter-kit");\n    expect(coreSource).not.toContain("@tiptap/extension-horizontal-rule");\n    expect(coreSource).not.toContain("@tiptap/extension-table");\n    expect(optionalModeSource).toContain('from "@tiptap/extension-horizontal-rule"');\n    expect(optionalModeSource).toContain('from "@tiptap/extension-table"');\n    expect(optionalModeSource).toContain("HorizontalRule");\n    expect(optionalModeSource).toContain("TableKit.configure");`,
   "parity source setup"
 );
 paritySource = paritySource.replaceAll("      expect(source).toContain(requiredToken);", "      expect(coreSource).toContain(requiredToken);");
-paritySource = paritySource.replace(
-  '      "TableKit.configure",\n',
-  ""
-);
+paritySource = paritySource.replace('      "TableKit.configure",\n', "");
 writeFileSync(parityPath, paritySource);
 
 const packagePath = "package.json";
