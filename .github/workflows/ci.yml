@@ -102,6 +102,7 @@ jobs:
       - uses: ./.github/actions/setup-project
       - run: node scripts/check-release-version-consistency.mjs
       - run: pnpm perf:check
+      - run: pnpm editor:bundle:check
       - run: pnpm media:check
       - run: pnpm layout:check
       - run: pnpm design:check
