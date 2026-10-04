@@ -2,7 +2,7 @@
 
 Status: historical / superseded snapshot.
 
-Updated: 2026-10-03.
+Updated: 2026-10-04.
 
 This document was originally the migration-era status ledger for M13-M21. It is no longer the current project-state source of truth. Historical compatibility markers below are retained as evidence only.
 
@@ -12,6 +12,7 @@ Use these current documents first:
 - `docs/architecture/current-runtime-ownership.md`
 - `docs/deployment/runtime-deployment-guide.md`
 - `docs/development/environment-variables.md`
+- `docs/releases/v3.3.2-release-baseline.md`
 - `docs/operations/environment-retirement-verification-2026-09-11.md`
 - `README.md`
 - `AGENTS.md`
@@ -26,7 +27,7 @@ The migration-era status below records the superseding state that existed when t
 post-P5H production governance baseline + Production Observability configured/approval-gated + P6B Security Enforcement completed + P6C Recovery & Reliability completed + P6D Product/UX Improvements completed + governed dependency maintenance + Admin UX 00-10 completed + Reliability Roadmap v2 complete (Phase 0 + Phase A + Phase B/B1-B3 + Phase C complete) + production environment retirement follow-ups completed/operator-verified (2026-09-11)
 ```
 
-Current reporting must use `docs/architecture/current-project-state.md`, which records the v3.3.1 production-governance and governed-maintenance baseline on `main`.
+Current reporting must use `docs/architecture/current-project-state.md`, which records the v3.3.2 production-governance and governed-maintenance baseline on `main`.
 
 There is no active P6 feature-development phase and no active Reliability Roadmap v2 implementation phase. The live environment-retirement state is also closed: Vercel Production uses `COMPLAINT_API_URI`, retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment, and legacy-only CMS-auth environment values are retired from the applicable Vercel/Cloudflare environments.
 
@@ -58,7 +59,7 @@ Historical interpretation:
 - `M20: CLOSED` records that migration/runtime/domain-cutover ownership closed before the post-P5H baseline.
 - `M21: SUPERSEDED` records that the old M20/M21-era stabilization snapshot must not be treated as an open project phase.
 
-Historical M20/M21 wording was deliberately superseded by later governance/reliability work and then by the current v3.3.1 baseline. Current reporting must use `docs/architecture/current-project-state.md`.
+Historical M20/M21 wording was deliberately superseded by later governance/reliability work and then by the current v3.3.2 baseline. Current reporting must use `docs/architecture/current-project-state.md`.
 
 ## Runtime Ownership Summary
 
