@@ -12,7 +12,7 @@ const SOURCE_PATHS = Object.freeze({
   contentPage: "/src/admin/pages/ContentPage.tsx",
   editorDialog: "/src/admin/components/ContentEditorDialog.tsx",
   richTextEditor: "/src/admin/components/RichTextEditorImpl.tsx",
-  tableMode: "/src/admin/components/RichTextEditorTableMode.tsx",
+  optionalMode: "/src/admin/components/RichTextEditorOptionalMode.tsx",
   mediaPicker: "/src/admin/components/RichTextMediaPickerDialogImpl.tsx"
 });
 
@@ -36,11 +36,13 @@ function getJavaScriptChunks(outputs) {
   return chunks;
 }
 
-function findFacadeChunk(chunks, sourcePath) {
+function findOwningChunk(chunks, sourcePath) {
   const normalizedSource = normalizePath(sourcePath);
-  const matches = chunks.filter((chunk) => normalizePath(chunk.facadeModuleId).endsWith(normalizedSource));
+  const matches = chunks.filter((chunk) =>
+    Object.keys(chunk.modules ?? {}).some((moduleId) => normalizePath(moduleId).endsWith(normalizedSource))
+  );
   if (matches.length !== 1) {
-    throw new Error(`Expected exactly one emitted facade for ${sourcePath}, found ${matches.length}.`);
+    throw new Error(`Expected exactly one emitted owner for ${sourcePath}, found ${matches.length}.`);
   }
   return matches[0];
 }
@@ -107,11 +109,11 @@ async function main() {
   const chunks = getJavaScriptChunks(normalizeBuildOutputs(await createInMemoryProductionBuild()));
   const chunksByFile = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
 
-  const contentPage = findFacadeChunk(chunks, SOURCE_PATHS.contentPage);
-  const editorDialog = findFacadeChunk(chunks, SOURCE_PATHS.editorDialog);
-  const richTextEditor = findFacadeChunk(chunks, SOURCE_PATHS.richTextEditor);
-  const tableMode = findFacadeChunk(chunks, SOURCE_PATHS.tableMode);
-  const mediaPicker = findFacadeChunk(chunks, SOURCE_PATHS.mediaPicker);
+  const contentPage = findOwningChunk(chunks, SOURCE_PATHS.contentPage);
+  const editorDialog = findOwningChunk(chunks, SOURCE_PATHS.editorDialog);
+  const richTextEditor = findOwningChunk(chunks, SOURCE_PATHS.richTextEditor);
+  const optionalMode = findOwningChunk(chunks, SOURCE_PATHS.optionalMode);
+  const mediaPicker = findOwningChunk(chunks, SOURCE_PATHS.mediaPicker);
 
   const initialContentGraph = collectStaticChunkClosure(chunksByFile, contentPage.fileName);
   const editorFirstOpenGraph = new Set([
@@ -128,7 +130,9 @@ async function main() {
     .sort((left, right) => right.rawBytes - left.rawBytes);
   const aggregateGzipBytes = measurements.reduce((total, measurement) => total + measurement.gzipBytes, 0);
   const largestRawBytes = measurements[0]?.rawBytes ?? 0;
-  const deferredLeaks = [tableMode.fileName, mediaPicker.fileName].filter((fileName) => editorFirstOpenGraph.has(fileName));
+  const deferredLeaks = [optionalMode.fileName, mediaPicker.fileName].filter((fileName) =>
+    editorFirstOpenGraph.has(fileName)
+  );
 
   const failures = [];
   if (measurements.length === 0) {
@@ -149,6 +153,7 @@ async function main() {
   }
 
   console.log("Admin editor bundle evidence:");
+  console.log(`- initial content-list owner: ${contentPage.fileName}`);
   console.log(`- first-open incremental JS chunks: ${measurements.length}`);
   for (const measurement of measurements) {
     console.log(`  - ${measurement.fileName}: raw ${measurement.rawBytes}; gzip ${measurement.gzipBytes}`);
@@ -157,8 +162,12 @@ async function main() {
   console.log(
     `- first-open aggregate gzip: ${aggregateGzipBytes}; baseline ${FIRST_OPEN_BASELINE_GZIP_BYTES}; target <= ${FIRST_OPEN_TARGET_GZIP_BYTES}; delta ${aggregateGzipBytes - FIRST_OPEN_BASELINE_GZIP_BYTES}`
   );
-  console.log(`- deferred table chunk: ${tableMode.fileName}; ${editorFirstOpenGraph.has(tableMode.fileName) ? "LEAK" : "deferred"}`);
-  console.log(`- deferred media-picker chunk: ${mediaPicker.fileName}; ${editorFirstOpenGraph.has(mediaPicker.fileName) ? "LEAK" : "deferred"}`);
+  console.log(
+    `- deferred optional-content chunk: ${optionalMode.fileName}; ${editorFirstOpenGraph.has(optionalMode.fileName) ? "LEAK" : "deferred"}`
+  );
+  console.log(
+    `- deferred media-picker chunk: ${mediaPicker.fileName}; ${editorFirstOpenGraph.has(mediaPicker.fileName) ? "LEAK" : "deferred"}`
+  );
   console.log(`Admin editor bundle result: ${failures.length === 0 ? "PASS" : "FAIL"}`);
 
   if (failures.length > 0) {
