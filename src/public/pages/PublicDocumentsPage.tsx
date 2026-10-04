@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -21,6 +21,11 @@ const DOCUMENTS_PAGE_SIZE = 15;
 
 type DocumentFilterQueryParam = "q" | "category";
 
+interface PendingFilterValue {
+  routeValue: string;
+  value: string;
+}
+
 function normalizeText(value: string) {
   return value.trim().toLocaleLowerCase("th-TH");
 }
@@ -30,14 +35,20 @@ function readTextSearchParam(search: Record<string, unknown>, name: DocumentFilt
   return typeof value === "string" ? value.trim() : "";
 }
 
+function resolveFilterValue(routeValue: string, pendingValue: PendingFilterValue | null) {
+  return pendingValue?.routeValue === routeValue ? pendingValue.value : routeValue;
+}
+
 export default function PublicDocumentsPage() {
   const navigate = useNavigate();
   const routeSearch = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
   const routeSearchQuery = readTextSearchParam(routeSearch, "q");
   const routeCategoryFilter = readTextSearchParam(routeSearch, "category");
   const { data, isLoading, isFetching, isError, refetch } = usePublicDocumentList();
-  const [searchQuery, setSearchQuery] = useState(routeSearchQuery);
-  const [categoryFilter, setCategoryFilter] = useState(routeCategoryFilter);
+  const [pendingSearchQuery, setPendingSearchQuery] = useState<PendingFilterValue | null>(null);
+  const [pendingCategoryFilter, setPendingCategoryFilter] = useState<PendingFilterValue | null>(null);
+  const searchQuery = resolveFilterValue(routeSearchQuery, pendingSearchQuery);
+  const categoryFilter = resolveFilterValue(routeCategoryFilter, pendingCategoryFilter);
   const documents = useMemo(() => data?.items ?? [], [data?.items]);
   const categories = useMemo(
     () =>
@@ -68,14 +79,6 @@ export default function PublicDocumentsPage() {
     scrollTargetId: "documents-list-heading"
   });
 
-  useEffect(() => {
-    setSearchQuery(routeSearchQuery);
-  }, [routeSearchQuery]);
-
-  useEffect(() => {
-    setCategoryFilter(routeCategoryFilter);
-  }, [routeCategoryFilter]);
-
   const updateFilterQueryParam = (name: DocumentFilterQueryParam, value: string) => {
     const normalizedValue = value.trim();
 
@@ -99,8 +102,8 @@ export default function PublicDocumentsPage() {
   };
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setCategoryFilter("");
+    setPendingSearchQuery({ routeValue: routeSearchQuery, value: "" });
+    setPendingCategoryFilter({ routeValue: routeCategoryFilter, value: "" });
 
     void navigate({
       to: ".",
@@ -179,7 +182,7 @@ export default function PublicDocumentsPage() {
           value={searchQuery}
           onChange={(event) => {
             const nextValue = event.target.value;
-            setSearchQuery(nextValue);
+            setPendingSearchQuery({ routeValue: routeSearchQuery, value: nextValue });
             updateFilterQueryParam("q", nextValue);
           }}
           slotProps={{
@@ -203,7 +206,7 @@ export default function PublicDocumentsPage() {
           value={categoryFilter}
           onChange={(event) => {
             const nextValue = event.target.value;
-            setCategoryFilter(nextValue);
+            setPendingCategoryFilter({ routeValue: routeCategoryFilter, value: nextValue });
             updateFilterQueryParam("category", nextValue);
           }}
           slotProps={{ htmlInput: { "aria-label": "กรองหมวดหมู่เอกสาร" } }}
