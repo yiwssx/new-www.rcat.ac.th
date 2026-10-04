@@ -88,17 +88,19 @@ describe("current project-state consistency", () => {
     }
   });
 
-  it("keeps v3.3.1 as the canonical current release and supersedes the post-P5H snapshot", () => {
-    expect(readme).toContain("**Current version:** `3.3.1`");
+  it("keeps v3.3.2 as the canonical current release and supersedes the post-P5H snapshot", () => {
+    expect(readme).toContain("**Current version:** `3.3.2`");
     expect(readme).toContain("docs/architecture/current-project-state.md");
 
     expect(canonicalState).toContain("Status: **CURRENT**");
     expect(canonicalState).toContain("Default branch: `main`");
-    expect(canonicalState).toContain("Current release: `v3.3.1 — Content Operations`");
-    expect(canonicalState).toContain("The v3.3.1 Content Operations workstream is complete");
+    expect(canonicalState).toContain("Current release: `v3.3.2 — Content Editor Performance`");
+    expect(canonicalState).toContain("The v3.3.2 Content Editor Performance workstream is complete");
     expect(canonicalState).toContain("There is no active feature-development, migration, release, P6");
-    expect(canonicalState).toContain("Tasks 1–9 were integrated into `main` by PR #505");
-    expect(canonicalState).toContain("Production Verification #106, run `37125180446` — PASS");
+    expect(canonicalState).toContain("Final integration PR #520");
+    expect(canonicalState).toContain("Main CI #3255, run `37187823374` — PASS");
+    expect(canonicalState).toContain("Production Verification #117, run `37188044774` — PASS");
+    expect(canonicalState).toContain("Authenticated Admin editor smoke was operator-verified");
     expect(canonicalState).toContain("`docs/architecture/post-p5h-current-project-state.md` is the preceding");
 
     expect(historicalPostP5hState).toContain("Updated: 2026-09-20");
@@ -149,12 +151,12 @@ describe("current project-state consistency", () => {
     expect(environmentVariables).toContain("Verified Production Environment State");
     expect(environmentVariables).toContain("`COMPLAINT_API_URI` for the dedicated complaint endpoint");
     expect(environmentVariables).toContain("`VITE_COMPLAINT_API_URI` is absent from the live Vercel environment");
-    expect(environmentVariables).toContain("v3.3.1 production-governance and governed-maintenance baseline");
+    expect(environmentVariables).toContain("v3.3.2 production-governance and governed-maintenance baseline");
     expect(environmentVariables).toContain("docs/architecture/current-project-state.md");
   });
 
   it("keeps the Worker README aligned with the current release, main, and migration inventory", () => {
-    expect(workerReadme).toContain("v3.3.1 production-governance and governed-maintenance baseline");
+    expect(workerReadme).toContain("v3.3.2 production-governance and governed-maintenance baseline");
     expect(workerReadme).toContain("docs/architecture/current-project-state.md");
     expect(workerReadme).toContain("The previous empty Worker and D1 named `rcat-public-api-production`");
     expect(workerReadme).toContain("are not recreated");
@@ -208,7 +210,7 @@ describe("current project-state consistency", () => {
     );
     expect(phaseBRunbook).toContain("## B3 — Health Aggregation");
     expect(phaseBRunbook).toContain(
-      "PR #270 merged to the then-default `master` branch as `cda947149fee0e79791bfc401efbc5c33f3adbb9`"
+      "implementation PR #270 merged to the then-default `master` branch as `cda947149fee0e79791bfc401efbc5c33f3adbb9`"
     );
     expect(phaseBRunbook).toContain("CI #2007, run `34547284821`");
     expect(phaseBRunbook).toContain("Vercel production deployment `dpl_94AZDYbaLc61t2XbmxMFCw1GQZyP`");
@@ -238,9 +240,9 @@ describe("current project-state consistency", () => {
     expect(cmsAuthCutover).toContain("It no longer represents an open Legacy-secret-retirement task");
   });
 
-  it("keeps repository AI guidance on the v3.3.1 current-state baseline", () => {
+  it("keeps repository AI guidance on the v3.3.2 current-state baseline", () => {
     for (const source of [copilotInstructions, agents]) {
-      expect(source).toContain("v3.3.1 production-governance and governed-maintenance baseline");
+      expect(source).toContain("v3.3.2 production-governance and governed-maintenance baseline");
       expect(source).toContain("docs/architecture/current-project-state.md");
       expect(source).toContain(
         "B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified"

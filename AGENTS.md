@@ -47,15 +47,19 @@ Do not embed fast-changing project status in this file. Read only the relevant s
 
 Stable baseline invariants retained here for repository consistency checks:
 
-- The current baseline is the **v3.3.1 production-governance and governed-maintenance baseline** on `main`.
-- The v3.3.1 Content Operations release is complete; do not repeat its migrations, Worker release, or production verification because an older checkpoint is stale.
+- The current baseline is the **v3.3.2 production-governance and governed-maintenance baseline** on `main`.
+- The v3.3.2 Content Editor Performance release is complete, production-verified, tagged, and published; do not repeat its Vercel deployment or production verification because an older checkpoint is stale.
+- The preceding v3.3.1 Content Operations D1 migrations and Worker release are complete and must not be repeated as later state reconciliation.
 - **B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified**.
 - **Production environment retirement follow-ups are complete and operator-verified**.
 - Phase C is complete; C3 remains a deliberate manual protected operation rather than an automatic release step.
+- The v3.3.2 Admin editor bundle and dependency-isolation checks are current regression gates and must not be weakened merely to make CI green.
 
 Canonical references:
 
 - `docs/architecture/current-project-state.md` — canonical current project-state note.
+- `docs/releases/v3.3.2-release-baseline.md` — current release baseline and verification evidence.
+- `docs/workstreams/v3.3.2-content-editor-performance-tracker.md` — closed v3.3.2 workstream execution record.
 - `docs/architecture/post-p5h-current-project-state.md` — preceding 2026-09-20 project-state snapshot; historical after a newer current-state note supersedes it.
 - `docs/architecture/reliability-roadmap-v2.md` — Reliability Roadmap v2 definitions/history.
 - `docs/operations/environment-retirement-verification-2026-09-11.md` — verified environment-retirement evidence.

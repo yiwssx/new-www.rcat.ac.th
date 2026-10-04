@@ -2,7 +2,7 @@
 
 Official web platform of **Roi Et College of Agriculture and Technology** (วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด).
 
-**Current version:** `3.3.1`  
+**Current version:** `3.3.2`  
 **Production site:** `https://www.rcat.ac.th/`  
 **Package identity:** `www.rcat.ac.th`
 
@@ -54,7 +54,7 @@ The project predates formal semantic versioning. Its history has been reconstruc
 | `v3.2.0` | Production hardening         | Canonical D1 convergence, recovery, release, and audit hardening                    |
 | `v3.3.0` | Governed production baseline | Explicit product identity, licensing, versioning, and current production governance |
 
-The current `v3.3.1` Content Operations patch remains inside the governed `v3.3.x` generation and adds production-released content integrity, revision-history, guarded restore, and shared content/link validation capabilities without creating a new architecture generation.
+The current `v3.3.2` Content Editor Performance patch remains inside the governed `v3.3.x` generation. It reduces the Admin content-editor first-open JavaScript cost, isolates Tiptap/ProseMirror from public and initial Admin-list graphs, and adds editor-specific bundle governance without changing content formats, Worker/API contracts, D1 schema, or editor save behavior. The preceding `v3.3.1` Content Operations release remains the production baseline for content integrity, revision history, guarded restore, and shared content/link validation capabilities.
 
 See [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) for exact historical anchor commits and rationale. See [`CHANGELOG.md`](CHANGELOG.md) for the release log from the explicit versioning baseline onward.
 
@@ -82,7 +82,7 @@ The root package declares:
 {
   "name": "www.rcat.ac.th",
   "private": true,
-  "version": "3.3.1",
+  "version": "3.3.2",
   "license": "UNLICENSED"
 }
 ```
@@ -201,7 +201,7 @@ Do not commit:
 
 Checked-in non-secret project settings live in `src/config/project-settings.json`.
 
-Current security and governance controls include CI quality gates, dependency audit/freshness policy, D1 migration sequencing, Worker dry-deploy validation, production data-integrity checks, Apps Script release governance, SSR/CSP readiness checks, recovery documentation, consolidated Production Verification browser/security/reliability guards, B1/B2/B3 operator visibility, manual/protected C3 deep-production regression, and the operator-verified environment-retirement baseline.
+Current security and governance controls include CI quality gates, dependency audit/freshness policy, D1 migration sequencing, Worker dry-deploy validation, production data-integrity checks, Apps Script release governance, SSR/CSP readiness checks, recovery documentation, consolidated Production Verification browser/security/reliability guards, B1/B2/B3 operator visibility, manual/protected C3 deep-production regression, the operator-verified environment-retirement baseline, and v3.3.2 Admin editor bundle/dependency-isolation governance.
 
 Do not restore retired `VITE_COMPLAINT_API_URI`, legacy-only CMS-auth environment values, the deleted `rcat-public-api-production` resources as current production targets, retired phase-specific/duplicate workflows, the retired branch-mutating Format Guard, or a persistent Cloudflare Preview workflow without a new explicitly approved architecture scope.
 
@@ -213,6 +213,8 @@ Primary current-state documents:
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - Runtime ownership: [`docs/architecture/current-runtime-ownership.md`](docs/architecture/current-runtime-ownership.md)
 - Current project state: [`docs/architecture/current-project-state.md`](docs/architecture/current-project-state.md)
+- v3.3.2 release baseline: [`docs/releases/v3.3.2-release-baseline.md`](docs/releases/v3.3.2-release-baseline.md)
+- v3.3.2 workstream tracker: [`docs/workstreams/v3.3.2-content-editor-performance-tracker.md`](docs/workstreams/v3.3.2-content-editor-performance-tracker.md)
 - Reliability Roadmap v2: [`docs/architecture/reliability-roadmap-v2.md`](docs/architecture/reliability-roadmap-v2.md)
 - Environment variables: [`docs/development/environment-variables.md`](docs/development/environment-variables.md)
 - Production environment retirement verification: [`docs/operations/environment-retirement-verification-2026-09-11.md`](docs/operations/environment-retirement-verification-2026-09-11.md)

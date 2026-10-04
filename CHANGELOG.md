@@ -28,12 +28,16 @@ The project existed before formal semantic versioning. Earlier architecture gene
 - Added dependency-graph isolation checks that fail if Tiptap/ProseMirror enters either the public synchronous graph or the initial `/admin/content` graph.
 - Kept the public Web Vitals/performance architecture budget separate from the Admin lazy-chunk regression budget.
 
-### Release preparation
+### Release verification
 
-- Tasks 1–8 were merged into `integration/v3.3.2-content-editor-performance` through PR #517 at `b5afbdf29c25a7492f58515790a9f47a3dbc1805`.
-- Task 9 prepares the `3.3.2` package/changelog/release baseline and removes temporary integration-branch CI triggers before final integration to `main`.
-- v3.3.2 is not production-released at this checkpoint. Create tag `v3.3.2` and GitHub Release `v3.3.2 — Content Editor Performance` only after final integration, Vercel production deployment, Production Verification, and non-mutating Admin editor smoke verification succeed.
-- This release has no D1 migration, production Worker deployment, Apps Script deployment, or production data mutation.
+- Tasks 1–8 were merged into `integration/v3.3.2-content-editor-performance` through PR #517 at `b5afbdf29c25a7492f58515790a9f47a3dbc1805`; Task 8 Governance CI run `37184894293` passed.
+- Task 9 PR #518 was validated by draft PR #519; validation CI run `37186713159` passed aggregate `quality`, #519 was closed without merge, and #518 was merged into the integration branch.
+- Final integration PR #520 passed release-candidate CI and merged into `main` at `2ec76e8bd4a58578145f1308641a7b77b4db56b1`.
+- Main CI #3255 (run `37187823374`) passed against the exact release commit and the matching Vercel production deployment completed successfully.
+- Production Verification #117 (run `37188044774`) passed against the exact release commit.
+- Authenticated Admin editor smoke was operator-verified on 2026-10-04 without saving or mutating production content: `/admin/content`, create/edit dialog loading, the rich-text toolbar, advanced capability loading, and media-picker loading all passed.
+- Git tag `v3.3.2` points to the exact release commit and GitHub Release `v3.3.2 — Content Editor Performance` is published as a normal release.
+- This release required no D1 migration, production Worker deployment, Apps Script deployment, or production data mutation.
 
 ## [3.3.1] - 2026-10-03
 

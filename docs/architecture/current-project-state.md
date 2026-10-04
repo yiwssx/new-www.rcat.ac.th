@@ -2,29 +2,33 @@
 
 Status: **CURRENT**
 
-Updated: 2026-10-03
+Updated: 2026-10-04
 
 Default branch: `main`
 
-Current release: `v3.3.1 — Content Operations`
+Current release: `v3.3.2 — Content Editor Performance`
 
-Release commit: `e1c7f0181adff746457e15a6a6d35743f9326763`
+Release commit: `2ec76e8bd4a58578145f1308641a7b77b4db56b1`
 
 ## Executive state
 
-The project is in a production-governance and governed-maintenance baseline. There is no active feature-development, migration, release, P6, Reliability Roadmap v2, or Admin UX workstream.
+The project is in a production-governance and governed-maintenance baseline. There is no active feature-development, migration, release, P6, Reliability Roadmap v2, Admin UX, or Content Editor Performance workstream.
 
-The v3.3.1 Content Operations workstream is complete, production-released, production-verified, tagged, and published. Its completed production operations must not be repeated merely because an older tracker, dated audit, or conversation describes a pre-release checkpoint.
+The v3.3.2 Content Editor Performance workstream is complete, production-released, production-verified, tagged, and published. Its completed deployment and verification must not be repeated merely because an older tracker, dated audit, or conversation describes a pre-release checkpoint.
 
-## v3.3.1 closure
+The preceding v3.3.1 Content Operations release also remains complete. Its D1 migrations `0018` and `0019` and matching Worker production release must not be repeated as part of later state reconciliation.
 
-- Tasks 1–9 were integrated into `main` by PR #505 at `e1c7f0181adff746457e15a6a6d35743f9326763`.
-- Protected Worker production preflight: Deploy / Worker #18, run `37124665532` — PASS.
-- Production D1 migrations `0018` and `0019` were applied successfully during the approved release sequence.
-- Protected Worker production release: Deploy / Worker #19, run `37124946660` — PASS; migration/deploy completed successfully.
-- Production Verification #106, run `37125180446` — PASS against the exact release commit.
-- Git tag `v3.3.1` points to the exact release commit.
-- GitHub Release `v3.3.1 — Content Operations` is published as a normal release.
+## v3.3.2 closure
+
+- Tasks 1–9 were integrated sequentially through PRs #510–#518 and the verified integration branch.
+- Final integration PR #520 passed the repository release-candidate CI and merged into `main` at `2ec76e8bd4a58578145f1308641a7b77b4db56b1`.
+- Main CI #3255, run `37187823374` — PASS against the exact release commit.
+- Vercel production deployment for the exact release commit completed successfully.
+- Production Verification #117, run `37188044774` — PASS against the exact release commit.
+- Authenticated Admin editor smoke was operator-verified on 2026-10-04 without saving or mutating production content: `/admin/content`, create/edit dialog loading, rich-text toolbar, advanced capability loading, and media-picker loading all passed.
+- Git tag `v3.3.2` points to the exact release commit.
+- GitHub Release `v3.3.2 — Content Editor Performance` is published as a normal release.
+- The release required no D1 migration, production Worker deployment, Apps Script deployment, or production data mutation.
 
 ## Current runtime and governance baseline
 
@@ -39,7 +43,7 @@ Preserve these established ownership boundaries unless a new explicit scope chan
 - B3 health aggregation: server-owned explicit-refresh `/api/health-aggregation`; GitHub workflow/deployment metadata is read from the current `main` branch.
 - Request correlation: reuse `X-RCAT-Request-ID`.
 
-Completed production-governance/reliability scope remains closed: P5H, P6B, P6C, P6D, Reliability Roadmap v2 Phase 0/A/B1-B3/C, Admin UX 00-10, and production environment-retirement follow-ups.
+Completed production-governance/reliability scope remains closed: P5H, P6B, P6C, P6D, Reliability Roadmap v2 Phase 0/A/B1-B3/C, Admin UX 00-10, production environment-retirement follow-ups, v3.3.1 Content Operations, and v3.3.2 Content Editor Performance.
 
 Current operational ownership is consolidated rather than phase-specific:
 
@@ -59,19 +63,24 @@ References to `master` in dated migration, release, milestone, audit, or complet
 
 Governed Renovate dependency maintenance and narrowly scoped bug fixes may continue. They do not reopen completed feature, reliability, migration, or release phases.
 
-Open Renovate PRs or Dependency Dashboard entries are maintenance state, not evidence that v3.3.1 production release is incomplete. Dependency PRs must become current with `main` and pass the repository-required CI/governance gates before merge.
+Open Renovate PRs or Dependency Dashboard entries are maintenance state, not evidence that the v3.3.2 production release is incomplete. Dependency PRs must become current with `main` and pass the repository-required CI/governance gates before merge.
+
+The v3.3.2 Admin editor bundle and dependency-isolation governance remain active regression gates. Future editor changes must preserve the current behavior/data contracts and satisfy those measured budgets rather than weakening thresholds to make CI pass.
 
 ## Production safety
 
-- Do not repeat v3.3.1 D1 migrations, Worker release, or production verification as a state-reconciliation action.
+- Do not repeat the v3.3.2 Vercel deployment or production verification as a state-reconciliation action.
+- Do not repeat the v3.3.1 D1 migrations `0018`/`0019` or its Worker production release.
 - Do not mutate production Cloudflare, D1, Vercel, Apps Script, Google Drive, DNS, or protected GitHub environments without a new explicit authorized scope.
 - Keep D1 migrations append-only and preserve protected production approvals/release gates.
 - Do not restore retired browser-side Apps Script structured-data access, `rcat-public-api-production`, persistent Cloudflare Preview procedures, retired complaint/CMS-auth environment variables, or duplicate monitoring/observability paths.
 
 ## Canonical references
 
+- `docs/workstreams/v3.3.2-content-editor-performance-tracker.md` — closed v3.3.2 execution record and release evidence.
+- `docs/releases/v3.3.2-release-baseline.md` — v3.3.2 scope, measured editor-performance baseline, and production closure.
 - `docs/workstreams/v3.3.1-content-ops-tracker.md` — closed v3.3.1 execution record and release evidence.
-- `docs/releases/v3.3.1-release-baseline.md` — v3.3.1 scope and production closure.
+- `docs/releases/v3.3.1-release-baseline.md` — preceding v3.3.1 Content Operations release baseline.
 - `docs/architecture/current-runtime-ownership.md` — current runtime ownership.
 - `docs/deployment/runtime-deployment-guide.md` — current deployment behavior.
 - `docs/development/environment-variables.md` — environment-variable ownership.
