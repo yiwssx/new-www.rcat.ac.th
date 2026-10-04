@@ -88,6 +88,15 @@ vi.mock("../../features/public-documents", () => ({
   )
 }));
 
+function getLatestNavigation() {
+  const calls = routerMocks.navigate.mock.calls;
+  return calls[calls.length - 1]?.[0] as {
+    search: (previous: Record<string, unknown>) => Record<string, unknown>;
+    replace?: boolean;
+    resetScroll?: boolean;
+  };
+}
+
 describe("PublicDocumentsPage query filters", () => {
   beforeEach(() => {
     routerMocks.navigate.mockReset();
@@ -114,11 +123,7 @@ describe("PublicDocumentsPage query filters", () => {
       target: { value: "student" }
     });
 
-    const navigation = routerMocks.navigate.mock.calls.at(-1)?.[0] as {
-      search: (previous: Record<string, unknown>) => Record<string, unknown>;
-      replace?: boolean;
-      resetScroll?: boolean;
-    };
+    const navigation = getLatestNavigation();
 
     expect(navigation.search({ page: 2, category: "คู่มือ" })).toEqual({
       category: "คู่มือ",
@@ -136,9 +141,7 @@ describe("PublicDocumentsPage query filters", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "ล้างตัวกรอง" }));
 
-    const navigation = routerMocks.navigate.mock.calls.at(-1)?.[0] as {
-      search: (previous: Record<string, unknown>) => Record<string, unknown>;
-    };
+    const navigation = getLatestNavigation();
 
     expect(navigation.search({ q: "student", category: "แบบฟอร์ม", page: 2 })).toEqual({});
   });
