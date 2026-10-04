@@ -55,7 +55,7 @@ function richTextNodeNeedsAdvancedMode(node: unknown): boolean {
   return Array.isArray(record.content) && record.content.some(richTextNodeNeedsAdvancedMode);
 }
 
-export function richTextDocumentNeedsAdvancedMode(document: RichTextDocument) {
+function richTextDocumentNeedsAdvancedMode(document: RichTextDocument) {
   return richTextNodeNeedsAdvancedMode(document);
 }
 
